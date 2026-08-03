@@ -2,7 +2,7 @@
 //
 // This file is compiled inside RustDesk 1.4.9 at commit
 // 6c578292e8ebbbec708b76986ba8c4bc7c509747. The surrounding RustDesk-derived
-// build is AGPL-3.0; see CoreBridge/README.md and LICENSES/RustDesk-AGPL-3.0.txt.
+// build is AGPL-3.0; see CoreBridge/README.md and the repository root LICENSE.
 
 use crate::client::{Data, QualityStatus};
 use crate::common::input::{

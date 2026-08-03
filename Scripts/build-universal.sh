@@ -29,6 +29,8 @@ swift build -c release --arch arm64
 swift build -c release --arch x86_64
 
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources" "$app_dir/Contents/Frameworks"
+rm -f "$app_dir/Contents/Resources/SlopDesk-MIT.txt"
+rm -f "$app_dir/Contents/Resources/RustDesk-AGPL-3.0.txt"
 lipo -create \
   "$repo_dir/.build/arm64-apple-macosx/release/RustDeskNative" \
   "$repo_dir/.build/x86_64-apple-macosx/release/RustDeskNative" \
@@ -37,8 +39,30 @@ cp "$repo_dir/App/Info.plist" "$app_dir/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$app_dir/Contents/Info.plist"
 cp "$repo_dir/App/FarPane.icns" "$app_dir/Contents/Resources/FarPane.icns"
 cp "$repo_dir/THIRD_PARTY_NOTICES.md" "$app_dir/Contents/Resources/"
-cp "$repo_dir/LICENSES/SlopDesk-MIT.txt" "$app_dir/Contents/Resources/"
-cp "$repo_dir/LICENSES/RustDesk-AGPL-3.0.txt" "$app_dir/Contents/Resources/"
+cp "$repo_dir/LICENSE" "$app_dir/Contents/Resources/FarPane-AGPL-3.0.txt"
+vcpkg_license_root=
+for triplet in arm64-osx x64-osx; do
+  candidate="$build_dir/vcpkg/installed/$triplet/share"
+  if [[ -f "$candidate/libyuv/copyright" && -f "$candidate/aom/copyright" && \
+        -f "$candidate/libvpx/copyright" && -f "$candidate/opus/copyright" ]]; then
+    vcpkg_license_root=$candidate
+    break
+  fi
+done
+if [[ -z "$vcpkg_license_root" ]]; then
+  print -u2 "vcpkg dependency copyright files are required for the distributable app"
+  exit 1
+fi
+dependency_license_dir="$app_dir/Contents/Resources/ThirdPartyLicenses"
+mkdir -p "$dependency_license_dir"
+rm -f "$dependency_license_dir/AOM.txt" \
+  "$dependency_license_dir/libvpx.txt" \
+  "$dependency_license_dir/libyuv.txt" \
+  "$dependency_license_dir/Opus.txt"
+cp "$vcpkg_license_root/aom/copyright" "$dependency_license_dir/AOM.txt"
+cp "$vcpkg_license_root/libvpx/copyright" "$dependency_license_dir/libvpx.txt"
+cp "$vcpkg_license_root/libyuv/copyright" "$dependency_license_dir/libyuv.txt"
+cp "$vcpkg_license_root/opus/copyright" "$dependency_license_dir/Opus.txt"
 arm_core="$build_dir/CoreBridge/arm64/liblibrustdesk.dylib"
 intel_core="$build_dir/CoreBridge/x86_64/liblibrustdesk.dylib"
 if [[ ! -f "$arm_core" || ! -f "$intel_core" ]]; then

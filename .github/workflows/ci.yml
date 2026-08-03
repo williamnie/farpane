@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Swift and script tests
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Validate shell scripts
+        run: find Scripts -type f -name '*.sh' -print0 | xargs -0 -n 1 zsh -n
+
+      - name: Run Python script tests
+        run: python3 -m unittest discover -s Tests/ScriptTests -p 'test_*.py'
+
+      - name: Run Swift tests
+        run: swift test
+
+      - name: Build release viewer
+        run: swift build -c release

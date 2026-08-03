@@ -1,288 +1,251 @@
 # FarPane
 
-FarPane is a native macOS remote-desktop viewer powered by a pinned RustDesk
-Core. Its public brand, app icon and installed product name are independent
-from the official RustDesk client; the protocol and self-hosted server fields
-retain their RustDesk terminology.
+<p align="center">
+  <img src="App/Brand/FarPane-Logo.svg" alt="FarPane" width="420">
+</p>
 
-This repository implements the [`docs/architecture.md`](docs/architecture.md)
-Phase 0/1 video pipeline, the
-accepted Phase 2 RustDesk Core Bridge, and the Phase 3 input/viewer surface.
-The macOS 13+ AppKit viewer can drive fixed HEVC fixtures through
-VideoToolbox hardware decode into NV12 IOSurface-backed `CVPixelBuffer`s, maps
-the Y/UV planes with `CVMetalTextureCache`, converts BT.709 YUV to RGB in a
-Metal shader and presents through `MTKView`. Live mode loads a narrow C ABI
-facade built from pinned RustDesk 1.4.9 and routes compressed H265 packets into
-the same decoder without copying decoded RGBA frames.
+<p align="center">
+  面向 macOS 的原生远程桌面 Viewer<br>
+  A native remote-desktop viewer for macOS
+</p>
 
-Connection, rendezvous/relay, authentication, encryption and the wire protocol
-remain in RustDesk's Rust core. The Swift layer exposes only connection state,
-sanitized metrics and copied encoded packet bytes. There is no CPU-side
-full-frame RGBA conversion or fallback path.
+<p align="center">
+  <a href="#中文">中文</a> · <a href="#english">English</a> ·
+  <a href="docs/README.md">文档 / Docs</a> ·
+  <a href="https://github.com/williamnie/farpane/releases">Releases</a>
+</p>
 
-Phase 3 adds aspect-fit/Retina coordinate mapping, mouse buttons and drag,
-discrete/precise wheel input, basic keyboard events, key repeat, common
-modifiers and AppKit-committed UTF-8 text through ABI v5. Standard-mode IME
-composition stays local; only committed text crosses the boundary through
-RustDesk Core. Exclusive mode sends macOS physical key positions through the
-pinned Core's keyboard-map path so the remote input method owns composition.
-The AppKit shell provides a multi-device home screen, optional Keychain-backed
-quick connect, sanitized state and error text, a compact full-screen session
-controller, an opt-in performance HUD and an explicit manual remote-feedback
-checklist. Pointer and keyboard events remain semantic at the
-C ABI; the pinned RustDesk Core constructs and sends the actual protocol
-messages after the remote grants control permission.
+> [!IMPORTANT]
+> FarPane 是独立开源项目，不是 RustDesk 官方客户端。连接、认证、加密和网络协议由固定版本的 RustDesk Core 提供。
+>
+> FarPane is an independent open-source project, not an official RustDesk client. Connection, authentication, encryption, and wire-protocol handling are provided by a pinned RustDesk Core.
 
-## Build and test
+## 中文
+
+FarPane 是面向 macOS 13 及以上系统的原生远程桌面 Viewer。它使用 AppKit 构建桌面界面，通过 VideoToolbox 硬件解码 H265，并用 Metal 直接渲染 NV12 IOSurface，避免在 CPU 上转换整帧 RGBA。
+
+### 主要能力
+
+- 原生 AppKit 多设备首页、收藏、别名和最近连接记录。
+- RustDesk 自托管 ID/Relay、认证、加密和会话连接。
+- VideoToolbox H265 硬件解码与 Metal 零 CPU 整帧拷贝渲染。
+- Retina/aspect-fit 坐标映射、鼠标、拖拽、滚轮和键盘输入。
+- AppKit 本地输入法提交，以及可选的远端独占键盘模式。
+- Keychain 可选保存设备密码；密码不会写入配置、参数或日志。
+- 内置 FPS、延迟、队列、CPU、内存和解码/渲染指标。
+- Universal macOS App：`arm64` 与 `x86_64`。
+
+### 当前状态
+
+FarPane 已完成真实 RustDesk Core、H265、VideoToolbox、Metal 和输入链路验证。Intel MacBook Pro 的已接受基线包含 30 分钟、4096×2304 的真实 Hermes Relay 会话；原始采样和校验文件位于 [`Evidence/`](Evidence/)。
+
+当前边界：
+
+- 仅支持 macOS 13 及以上系统。
+- 当前 Viewer 视频链路以 H265 为正式目标。
+- 音频和剪贴板尚未开放。
+- Release 预览包尚未经过 Apple notarization；源码和本地构建不受此限制。
+
+### 架构
+
+| 层 | 职责 |
+| --- | --- |
+| RustDesk Core 1.4.9 | 连接、认证、加密、直连/中继、协议和远端输入消息 |
+| Core Bridge | 固定的窄 C ABI、压缩视频 packet、状态、指标和语义输入 |
+| VideoToolbox | H265 硬件解码，输出 NV12 `CVPixelBuffer` |
+| Metal | IOSurface-backed Y/UV texture、BT.709 转换和低延迟呈现 |
+| AppKit | 连接首页、会话窗口、输入、Keychain 和性能 HUD |
+
+Swift 层不导入 RustDesk protobuf 或内部 Rust 类型，也不提供 CPU 侧整帧 RGBA fallback。完整设计见 [`docs/architecture.md`](docs/architecture.md)。
+
+### 构建与测试
+
+要求：
+
+- macOS 13+
+- Xcode 15.2+ / Swift 5.9+
+- Rust toolchain
+- 构建 RustDesk Core 时需要 CMake、NASM 和脚本固定的 vcpkg 依赖
+
+运行测试：
 
 ```sh
 swift test
-xcodebuild -scheme RustDeskNative \
-  -configuration Release \
-  -destination 'generic/platform=macOS' \
-  ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
-  MACOSX_DEPLOYMENT_TARGET=13.0 build
-Scripts/build-universal.sh
+python3 -m unittest discover -s Tests/ScriptTests -p 'test_*.py'
 ```
 
-The last command requires one Apple Development signing identity and produces a
-stable-identity universal app at `Build/FarPane.app`. Both arm64 and
-x86_64 Core libraries must be present. Install it at the fixed per-user path:
-
-```sh
-Scripts/install-local-macos.sh
-```
-
-The installed product is `~/Applications/FarPane.app`. Rebuilds
-change the code hash and build number but retain the same bundle identifier,
-Team ID and designated requirement, so Accessibility and Input Monitoring
-permissions remain attached to the product identity. Ad-hoc signing is allowed
-only for non-TCC development with `RDN_ALLOW_ADHOC_SIGNING=1` and is rejected by
-the installer because its CDHash-bound identity would require authorization
-again after every rebuild.
-
-Launching the installed app without arguments opens the device home screen.
-The server settings accept a RustDesk ID server, server public key and an
-optional force-relay mode; RustDesk Core discovers the actual relay in the
-normal self-hosted configuration. The bundled Core path is intentionally not a
-user-facing setting. Successful devices are retained in a local versioned
-catalog with favorites, aliases and recent-connection time. A fixed password is
-saved only when the operator explicitly opts in, and only in this App's local
-macOS Keychain service; passwords never enter the catalog, `UserDefaults` or
-logs. The legacy single non-password profile is migrated once as an unverified
-device. Automated benchmark
-mode takes connection values from named environment variables and immediately
-removes them from the App process environment; peer/server/key material is not
-placed in command arguments or logs.
-
-## Build the RustDesk Core
-
-The source/bootstrap scripts verify the RustDesk 1.4.9 commit, apply the
-tracked patch, install pinned vcpkg dependencies and build a native-architecture
-`cdylib`:
+构建当前机器架构的 RustDesk Core：
 
 ```sh
 Scripts/build-rust-core.sh
 ```
 
-Generated RustDesk/vcpkg sources and compiled outputs stay under ignored
-`Vendor/` and `Build/` directories. The distributable patch, bridge source,
-AGPL license and modification notice remain tracked.
+脚本会检出固定的 RustDesk 1.4.9 commit、应用仓库内补丁、准备固定 vcpkg 依赖，并生成：
 
-On the Intel MBP, set the existing RustDesk password only in the current shell
-and run the config-aware acceptance wrapper. It reads the existing Hermes and
-peer settings without printing them, requires at least 1800 seconds, and unsets
-the password from the App process immediately after reading it:
-
-```zsh
-cd ~/rustdeskNativePhase2
-read -s 'RDN_PASSWORD?RustDesk password: '
-export RDN_PASSWORD
-Scripts/benchmark-live-from-rustdesk-config-mbp.sh \
-  .build/release/RustDeskNative \
-  Build/CoreBridge/x86_64/liblibrustdesk.dylib \
-  1800 automatic \
-  Benchmarks/phase2-live-1800s
-unset RDN_PASSWORD
+```text
+Build/CoreBridge/<arch>/liblibrustdesk.dylib
 ```
 
-For the formal 4096x2304/30 Hz performance scene, first select the Mac mini's
-`2048x1152` HiDPI mode (not `2048x1152 (low resolution)`), verify that
-`system_profiler SPDisplaysDataType` reports a 4096x2304 framebuffer, and run
-the GPU-driven motion source on the Mac mini. It compiles locally, prevents
-display sleep, and exits automatically after the requested duration:
+当 `arm64` 和 `x86_64` Core 均已准备好后，构建 Universal App：
 
-```zsh
-Scripts/run-phase2-motion.sh 2100
+```sh
+Scripts/build-universal.sh
 ```
 
-The motion source uses Metal and does not decode a competing video,
-so it exercises RustDesk's real 4K/30 FPS capture path without consuming the
-sender CPU needed by the encoder.
+产物位于 `Build/FarPane.app`。稳定的本地 Accessibility/Input Monitoring 权限需要 Apple Development 签名身份；仅做不涉及 TCC 的开发时，可显式设置 `RDN_ALLOW_ADHOC_SIGNING=1`。
 
-With the motion source running and `RDN_PASSWORD` exported in the existing
-Intel MBP shell, the guarded preflight-plus-acceptance sequence is:
+安装到固定的用户路径：
 
-```zsh
+```sh
+Scripts/install-local-macos.sh
+```
+
+安装位置为 `~/Applications/FarPane.app`。
+
+### 使用
+
+启动 FarPane 后填写：
+
+1. RustDesk ID Server
+2. Server Public Key
+3. 远端设备 ID
+4. 密码（可以选择保存到本机 Keychain）
+
+FarPane 只把固定 Core 路径作为内部实现细节，不要求用户选择动态库。需要使用鼠标和键盘控制时，请在远端授予相应控制权限；独占键盘模式还需要本机 Accessibility 与 Input Monitoring 权限。
+
+### 验收与性能
+
+正式验收不会用 fixture 冒充真实远程链路。项目分别保留离线 fixture、短时 smoke、真实 H265 session 和 30 分钟正式验收证据。
+
+```sh
 Scripts/run-phase2-acceptance-mbp.sh
-```
-
-The script refuses non-Intel execution and refuses to overwrite any prior raw
-benchmark artifact. It runs a strict 60-second 4096x2304/28 FPS preflight,
-waits five seconds for session cleanup, and only then starts the 1800-second
-acceptance run. It pins the accepted secure Hermes relay path because a direct
-transport reset was observed during diagnosis; direct mode remains available
-through the lower-level benchmark wrapper for targeted investigation.
-
-Do not put the password in a command argument, repository file, log, or chat.
-The live acceptance command also fails closed unless it observes real H265
-packets, a single verified Annex-B or 4-byte AVCC framing mode, VPS/SPS/PPS and
-keyframes, nonzero remote encoded dimensions and measured encoded-frame FPS,
-matching decoded dimensions, a nonzero drawable, hardware NV12/IOSurface
-output, bounded queues, network telemetry and decode/render timing. Its
-validation rejects three seconds or more of presentation staleness while
-encoded packets continue arriving, including any final encoded-to-presented
-lag. A full acceptance run additionally requires real 4096x2304 input,
-at least 28 encoded and presented FPS, a maximum queue depth of two, average
-App CPU no more than 60%, average VTDecoder CPU no more than 10%, less than
-1 MiB/min steady-state RSS slope, and less than 50 MiB growth between the first
-and last five-minute steady windows. The summary retains the raw one-second
-App/VTDecoder CPU and RSS samples.
-For diagnosis only, `RDN_PHASE2_SMOKE=1` permits a shorter duration while
-retaining live codec, framing, dimensions, hardware decode, recovery and frame
-presentation-ratio gates; it never qualifies as Phase 2 acceptance.
-Set `RDN_FORCE_RELAY=1` for a deliberate Hermes-relay diagnostic or acceptance
-run; the low-level wrapper otherwise retains RustDesk's automatic direct/relay
-choice.
-
-Live HEVC backpressure is reference-aware: the decoder keeps a bounded
-two-frame queue, but never silently drops an arbitrary RustDesk picture. If
-the queue fills, it first drains VideoToolbox's asynchronous work and records
-the wait; only an actual drain/decode failure resets that decoder generation
-and asks the Rust core to send a fresh keyframe. Reports persist
-`backpressureWaits`, `maxBackpressureWaitMS`, `referenceFrameDrops`,
-`decoderResets`, `keyframeRequests`, and the first/last sanitized VideoToolbox
-status so a recovery cannot masquerade as uninterrupted presentation.
-
-## Phase 3 acceptance
-
-Build the matching Core and Release viewer on the Intel MBP, set the password only
-in its current interactive shell, and launch the Viewer once without arguments
-to verify that an incomplete form produces only the sanitized local error. Then
-close it, start the GPU motion source on the Mac mini, and run:
-
-```zsh
 Scripts/run-phase3-acceptance-mbp.sh
+Scripts/run-productization-acceptance-mbp.sh
 ```
 
-The guarded run lasts at least 1,800 seconds over the configured secure Hermes
-relay and retains all Phase 2 video/performance/stability gates. During the run,
-the operator must exercise click, drag, scroll, English and locally composed
-Chinese text, key repeat, a modifier shortcut,
-full-screen enter/exit and HUD hide/show, observe the real remote feedback, and
-record only personally verified results through `验收记录`. The post-validator
-requires balanced button/key events, zero Core input rejections, a remote
-`controlReady` permission state and a complete manual-feedback checklist. Only
-after both the retained pipeline gates and functional validator pass does the
-script create `Evidence/IntelMBP/<date>/Phase3/` with the report, raw one-second
-samples, sanitized App log, validation summaries, environment/build hashes and
-a verified `SHA256SUMS` manifest; it refuses to overwrite existing evidence.
+最新验证结果与限制见 [`docs/benchmark-results.md`](docs/benchmark-results.md)。运行验收时不要把密码放入命令参数、仓库、日志或聊天记录。
 
-Local tests, fixture playback, a short smoke, or event counters without observed
-remote feedback do not qualify as Phase 3 completion.
+### 发布
 
-The accepted Intel baseline completed on 2026-08-03 after the MBP's active AWDL
-interface was disabled to eliminate periodic Wi-Fi stalls. It ran for 1800.081
-seconds at 4096x2304 H265, presented 59,843/60,234 frames, passed all nine
-operator-confirmed functional checks and all retained performance/stability
-gates. The authoritative sanitized artifacts and verified checksums are under
-`Evidence/IntelMBP/2026-08-03/Phase3/`.
+向 `v*` tag 推送后，[GitHub Release workflow](.github/workflows/release.yml) 会重新执行测试并创建 prerelease。签名 macOS 二进制由受信任的 macOS 构建机生成并上传；Developer ID notarization 接入前，Release 页面会明确标记预览属性。
 
-The separate productization acceptance script checks that `awdl0` is already
-down before starting its 30-minute latency/stability run. It never changes the
-interface itself; restore AWDL after the run if AirDrop or peer-to-peer Apple
-features are needed.
+### 许可证
 
-### Exclusive remote keyboard follow-up
+FarPane 按 [GNU Affero General Public License v3.0](LICENSE) 开源。项目包含修改后的 RustDesk Core 1.4.9；对应来源、commit、补丁范围和第三方说明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
 
-The Viewer also provides an explicit `独占键盘` mode for macOS-reserved
-shortcuts such as Command-Space and Command-Tab. Standard mode remains the
-default and keeps AppKit IME composition local. Exclusive mode installs an
-active session event tap, suppresses supported local key events and forwards
-physical key-position events through ABI v5, so the remote Mac owns shortcut
-and input-source/IME handling. It requires both Accessibility and Input Monitoring
-permission. Passwords, key content and complete input messages are not logged.
+AGPL 允许使用、修改、再分发和商业收费，但发布或通过网络提供修改后的受保护程序时，必须依照许可证提供对应源代码并保留相应权利。
 
-Press `Control-Option-Shift-Escape` to leave exclusive mode. When the
-window/app temporarily loses focus, the Viewer fails open and releases captured
-remote keys; returning to the Viewer automatically restores exclusive mode if
-the user had explicitly enabled it. Manual exit, the escape chord, loss of
-connection control, permission failure, or a disabled event tap clears that
-restore intent.
-Unsupported media and hardware keys remain local. Touch ID, the power button
-and secure-input fields are outside this mode's guarantee.
+## English
 
-After permissions are granted, the dedicated three-minute real-link check is:
+FarPane is a native remote-desktop viewer for macOS 13 and later. It uses AppKit for the desktop UI, VideoToolbox for hardware H265 decode, and Metal to render NV12 IOSurface-backed frames without converting full frames to RGBA on the CPU.
 
-```zsh
-Scripts/run-exclusive-keyboard-preflight-mbp.sh
-```
+### Highlights
 
-Grant both permissions to the fixed installed bundle path
-`~/Applications/FarPane.app`; the preflight deliberately
-launches that stable-identity bundle rather than the transient `.build` path.
+- Native AppKit device home screen with favorites, aliases, and recent connections.
+- RustDesk self-hosted ID/Relay connectivity, authentication, encryption, and sessions.
+- Hardware H265 decode through VideoToolbox and Metal rendering without CPU full-frame copies.
+- Retina-aware aspect-fit mapping, pointer, drag, wheel, and keyboard input.
+- AppKit-committed local IME text plus an optional exclusive remote-keyboard mode.
+- Optional password storage in Keychain; secrets never enter settings, arguments, or logs.
+- Built-in FPS, latency, queue, CPU, memory, decode, and render metrics.
+- Universal macOS application for `arm64` and `x86_64`.
 
-The first permission-grant launch is diagnostic only; close and rerun it after
-granting permission. This follow-up does not alter or replace the already
-accepted Phase 3 evidence. Installed build `2026080306` passed the clean Intel
-real-link preflight, including remote shortcuts and IME input, automatic restore
-after temporary focus loss, balanced key events and the local escape chord.
+### Project status
 
-The final productization evidence combines a 1,800-second daily-operation run,
-a focused current-resolution/full-screen/HUD supplement and a 4096x2304
-preflight of the identical final viewer/Core hashes. It also proves that a
-different signed build retained the same designated requirement without a
-repeated TCC grant. The composite validator explicitly retains the original
-single-run fixed-resolution gate failure instead of presenting it as a clean
-4096x2304 run. Sanitized artifacts and verified checksums are under
-`Evidence/IntelMBP/2026-08-03/Productization/`.
+FarPane has been validated over a real RustDesk Core, H265, VideoToolbox, Metal, and input path. The accepted Intel MacBook Pro baseline includes a 30-minute 4096×2304 session over the real Hermes relay. Raw samples and checksum manifests are retained under [`Evidence/`](Evidence/).
 
-## Generate fixtures
+Current boundaries:
+
+- macOS 13 or later only.
+- H265 is the qualified video path for the current viewer.
+- Audio and clipboard are disabled.
+- Preview release binaries are not yet Apple-notarized; this does not affect source or local builds.
+
+### Architecture
+
+| Layer | Responsibility |
+| --- | --- |
+| RustDesk Core 1.4.9 | Connection, authentication, encryption, direct/relay transport, protocol, and remote input messages |
+| Core Bridge | Versioned narrow C ABI, encoded packets, state, metrics, and semantic input |
+| VideoToolbox | Hardware H265 decode into NV12 `CVPixelBuffer`s |
+| Metal | IOSurface-backed Y/UV textures, BT.709 conversion, and low-latency presentation |
+| AppKit | Device home, session window, input, Keychain, and performance HUD |
+
+The Swift layer does not import RustDesk protobuf or internal Rust types, and there is no CPU full-frame RGBA fallback. See [`docs/architecture.md`](docs/architecture.md) for the complete design.
+
+### Build and test
+
+Requirements:
+
+- macOS 13+
+- Xcode 15.2+ / Swift 5.9+
+- Rust toolchain
+- CMake, NASM, and the pinned vcpkg dependencies when building RustDesk Core
+
+Run the test suites:
 
 ```sh
-Scripts/generate-fixtures.sh
+swift test
+python3 -m unittest discover -s Tests/ScriptTests -p 'test_*.py'
 ```
 
-The generated `.hevc` files are intentionally ignored. Their checked-in
-`ffprobe` metadata and SHA-256 sidecars make the inputs auditable. See
-`Fixtures/README.md`.
-
-## Run a benchmark
+Build RustDesk Core for the current machine architecture:
 
 ```sh
-Scripts/benchmark-mbp.sh \
-  Build/FarPane.app \
-  Fixtures/hevc-4096x2304-30.hevc \
-  4096 2304 600 high-performance \
-  Benchmarks/intel-fullscreen-4k
+Scripts/build-rust-core.sh
 ```
 
-The benchmark uses a borderless full-screen window, samples process CPU/RSS at
-a nominal one-second interval, writes raw samples to CSV, and asks the app to
-write decode/render counters and latency statistics to JSON. It fails when the
-decoded dimensions, hardware-decode status, NV12 format, IOSurface backing or
-decode-error invariants do not hold.
+The scripts verify the pinned RustDesk 1.4.9 commit, apply the tracked patch, prepare pinned vcpkg dependencies, and produce:
 
-Fresh Intel MBP results and limitations are recorded in
-[`docs/benchmark-results.md`](docs/benchmark-results.md). The authoritative
-Phase 2 artifacts, sanitized logs,
-raw samples, independent validation and SHA-256 manifests are under
-`Evidence/IntelMBP/2026-08-03/Phase2/`.
+```text
+Build/CoreBridge/<arch>/liblibrustdesk.dylib
+```
 
-## Documentation
+Once both `arm64` and `x86_64` Core libraries are available, build the Universal App:
 
-The documentation index is [`docs/README.md`](docs/README.md). In particular,
-the approved implementation baseline remains in
-[`docs/architecture.md`](docs/architecture.md), while the proposed multi-device,
-Keychain quick-connect and floating session-controller page work is specified in
-[`docs/product-ui-design.md`](docs/product-ui-design.md).
+```sh
+Scripts/build-universal.sh
+```
+
+The result is `Build/FarPane.app`. Stable local Accessibility/Input Monitoring permissions require an Apple Development signing identity. For development that does not exercise TCC, ad-hoc signing can be explicitly enabled with `RDN_ALLOW_ADHOC_SIGNING=1`.
+
+Install to the stable per-user location:
+
+```sh
+Scripts/install-local-macos.sh
+```
+
+The installed application is `~/Applications/FarPane.app`.
+
+### Usage
+
+Launch FarPane and provide:
+
+1. RustDesk ID Server
+2. Server Public Key
+3. Remote device ID
+4. Password, optionally stored in the local Keychain
+
+The bundled Core path is an implementation detail rather than a user-facing setting. Grant remote-control permission on the peer before using pointer and keyboard input. Exclusive keyboard mode also requires local Accessibility and Input Monitoring permission.
+
+### Acceptance and performance
+
+Formal acceptance never substitutes a fixture for a real remote session. The repository distinguishes offline fixtures, short smokes, real H265 sessions, and retained 30-minute acceptance evidence.
+
+```sh
+Scripts/run-phase2-acceptance-mbp.sh
+Scripts/run-phase3-acceptance-mbp.sh
+Scripts/run-productization-acceptance-mbp.sh
+```
+
+See [`docs/benchmark-results.md`](docs/benchmark-results.md) for current results and limitations. Never place a password in command arguments, repository files, logs, or chat.
+
+### Releases
+
+Pushing a `v*` tag runs the [GitHub Release workflow](.github/workflows/release.yml), repeats the test gates, and creates a prerelease. Signed macOS binaries are produced and uploaded from a trusted macOS signing host. Until Developer ID notarization is wired in, the Releases page explicitly identifies these binaries as previews.
+
+### License
+
+FarPane is licensed under the [GNU Affero General Public License v3.0](LICENSE). It includes a modified RustDesk Core 1.4.9. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the pinned source commit, modification scope, and third-party notices.
+
+The AGPL permits use, modification, redistribution, and commercial distribution. When conveying or making a modified covered program available over a network, comply with the license's corresponding-source and notice requirements.
