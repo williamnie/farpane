@@ -1,0 +1,25 @@
+captured_at=2026-08-02T10:54:06Z
+ProductName:		macOS
+ProductVersion:		13.7.8
+BuildVersion:		22H730
+x86_64
+Xcode 15.2
+Build version 15C500b
+Apple Swift version 5.9.2 (swiftlang-5.9.2.2.56 clang-1500.1.0.2.5)
+Target: x86_64-apple-macosx13.0
+rustc 1.82.0 (f6e511eec 2024-10-15)
+cargo 1.82.0 (8f40fc59f 2024-08-21)
+6c578292e8ebbbec708b76986ba8c4bc7c509747
+120deac3062162151622ca4860575a33844ba10b
+Build/CoreBridge/x86_64/liblibrustdesk.dylib: Mach-O 64-bit dynamically linked shared library x86_64
+ platform 1
+    minos 13.0
+      sdk 14.2
+000000000019a1f0 T _rdn_client_connect
+0000000000199ff0 T _rdn_client_create
+000000000019a130 T _rdn_client_destroy
+000000000019afe0 T _rdn_client_disconnect
+0000000000199fd0 T _rdn_core_abi_version
+0000000000199fe0 T _rdn_core_upstream_commit
+13bc070369b358cb54324fbc7ed0e9079bdd15752fe073582b8487f0745fa794  Build/CoreBridge/x86_64/liblibrustdesk.dylib
+RDN_PASSWORD_AVAILABLE=0

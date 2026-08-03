@@ -1,0 +1,25 @@
+Intel acceptance host
+ProductName: macOS
+ProductVersion: 13.7.8
+BuildVersion: 22H730
+Architecture: x86_64
+Xcode: 15.2 (15C500b)
+Swift: 5.9.2
+Rust: 1.82.0
+Selected viewer GPU: Intel(R) UHD Graphics 630, Metal 3
+
+Remote Mac mini source host
+ProductName: macOS
+ProductVersion: 15.7.7
+BuildVersion: 24G720
+Architecture: arm64
+Xcode: 26.3 (17C529)
+Swift: 6.2.4
+Rust: 1.92.0
+GPU: Apple M4 Pro, Metal 3
+Physical output: 4096 x 2304
+UI Looks like: 2048 x 1152 @ 30.00Hz
+
+Connection and credentials
+Transport observed by the Core Bridge: secure relay through the configured Hermes service.
+No peer ID, server address, public key, password, token, or authentication message is stored here.

@@ -1,0 +1,348 @@
+RUSTDESK_CORE_SOURCE_READY commit=6c578292e8ebbbec708b76986ba8c4bc7c509747
+Computing installation plan...
+The following packages are already installed:
+    aom:x64-osx@3.11.0
+    libvpx:x64-osx@1.15.2
+    libyuv:x64-osx@1896#1
+    opus:x64-osx@1.5.2
+Total install time: 573 us
+aom provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(aom CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE unofficial::aom)
+
+aom provides pkg-config modules:
+
+  # Alliance for Open Media AV1 codec library v3.11.0.
+  aom
+
+libvpx provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(unofficial-libvpx CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE unofficial::libvpx::libvpx)
+
+libvpx provides pkg-config modules:
+
+  # WebM Project VPx codec implementation
+  vpx
+
+libyuv provides CMake targets:
+
+  # Unofficial config package and target from vcpkg
+  find_package(libyuv CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE yuv)
+
+opus provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(Opus CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE Opus::opus)
+
+opus provides pkg-config modules:
+
+  # Opus IETF audio codec ( build)
+  opus
+
+All requested installations completed successfully in: 573 us
+VCPKG_READY commit=120deac3062162151622ca4860575a33844ba10b triplet=x64-osx
+warning: rustdesk@1.4.9: src/platform/macos.mm:103:18: warning: 'AuthorizationExecuteWithPrivileges' is deprecated: first deprecated in macOS 10.7 [-Wdeprecated-declarations]
+warning: rustdesk@1.4.9:         status = AuthorizationExecuteWithPrivileges(authRef, process, kAuthorizationFlagDefaults, args, &pipe);
+warning: rustdesk@1.4.9:                  ^
+warning: rustdesk@1.4.9: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Security.framework/Headers/Authorization.h:427:10: note: 'AuthorizationExecuteWithPrivileges' has been explicitly marked deprecated here
+warning: rustdesk@1.4.9: OSStatus AuthorizationExecuteWithPrivileges(AuthorizationRef authorization,
+warning: rustdesk@1.4.9:          ^
+warning: rustdesk@1.4.9: src/platform/macos.mm:141:30: warning: 'CGDisplayModeCopyPixelEncoding' is deprecated: first deprecated in macOS 10.11 - No longer supported [-Wdeprecated-declarations]
+warning: rustdesk@1.4.9:         CFStringRef pixelEncoding = CGDisplayModeCopyPixelEncoding(mode);
+warning: rustdesk@1.4.9:                                     ^
+warning: rustdesk@1.4.9: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreGraphics.framework/Headers/CGDirectDisplay.h:177:34: note: 'CGDisplayModeCopyPixelEncoding' has been explicitly marked deprecated here
+warning: rustdesk@1.4.9: CG_EXTERN CFStringRef __nullable CGDisplayModeCopyPixelEncoding(
+warning: rustdesk@1.4.9:                                  ^
+warning: rustdesk@1.4.9: 2 warnings generated.
+   Compiling rustdesk v1.4.9 (/Users/xiaobei/rustdeskNativePhase2/Vendor/rustdesk)
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `is_installed`
+  --> src/common.rs:42:69
+   |
+42 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:14:16
+   |
+14 |     allow_err, bail,
+   |                ^^^^
+
+warning: unused import: `uuid::Uuid`
+  --> src/ui_session_interface.rs:41:5
+   |
+41 | use uuid::Uuid;
+   |     ^^^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:187:52
+    |
+187 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: unused variable: `evt`
+   --> src/platform/macos.rs:928:9
+    |
+928 |     let evt = serde_json::ser::to_string(&evt).unwrap_or("".to_owned());
+    |         ^^^ help: if this is intentional, prefix it with an underscore: `_evt`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: constant `MOUSE_MOVE_PROTECTION_TIMEOUT` is never used
+   --> src/server/input_service.rs:493:7
+    |
+493 | const MOUSE_MOVE_PROTECTION_TIMEOUT: Duration = Duration::from_millis(1_000);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: constant `MOUSE_ACTIVE_DISTANCE` is never used
+   --> src/server/input_service.rs:495:7
+    |
+495 | const MOUSE_ACTIVE_DISTANCE: i32 = 5;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: variant `SwitchSides` is never constructed
+   --> src/server/connection.rs:262:5
+    |
+257 | enum ConnAuditPrimaryAuth {
+    |      -------------------- variant in this enum
+...
+262 |     SwitchSides = 4,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ConnAuditPrimaryAuth` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `enable_file_transfer` is never read
+   --> src/server/connection.rs:346:5
+    |
+303 | pub struct Connection {
+    |            ---------- field in this struct
+...
+346 |     enable_file_transfer: bool,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `send_switch_login_request` is never used
+    --> src/client.rs:3712:10
+     |
+3712 | async fn send_switch_login_request(
+     |          ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `read_empty_dirs`, `set_confirm_override_file`, and `rename_file` are never used
+   --> src/client/file_trait.rs:54:8
+    |
+5   | pub trait FileManager: Interface {
+    |           ----------- methods in this trait
+...
+54  |     fn read_empty_dirs(&self, path: String, include_hidden: bool) {
+    |        ^^^^^^^^^^^^^^^
+...
+162 |     fn set_confirm_override_file(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+184 |     fn rename_file(&self, act_id: i32, path: String, new_name: String, is_remote: bool) {
+    |        ^^^^^^^^^^^
+
+warning: function `query_online_states` is never used
+    --> src/client.rs:4114:18
+     |
+4114 |     pub async fn query_online_states<F: FnOnce(Vec<String>, Vec<String>)>(ids: Vec<String>, f: F) {
+     |                  ^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_online_stream` is never used
+    --> src/client.rs:4134:14
+     |
+4134 |     async fn create_online_stream() -> ResultType<Stream> {
+     |              ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `query_online_states_` is never used
+    --> src/client.rs:4149:14
+     |
+4149 |     async fn query_online_states_(
+     |              ^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `http_request` and `get_http_status` are never used
+   --> src/ui.rs:614:8
+    |
+198 | impl UI {
+    | ------- methods in this implementation
+...
+614 |     fn http_request(&self, url: String, method: String, body: Option<String>, header: String) {
+    |        ^^^^^^^^^^^^
+...
+630 |     fn get_http_status(&self, url: String) -> Option<String> {
+    |        ^^^^^^^^^^^^^^^
+
+warning: methods `into_string` and `save` are never used
+   --> src/auth_2fa.rs:123:8
+    |
+122 | impl TelegramBot {
+    | ---------------- methods in this implementation
+123 |     fn into_string(&self) -> ResultType<String> {
+    |        ^^^^^^^^^^^
+...
+133 |     fn save(&self) -> ResultType<()> {
+    |        ^^^^
+
+warning: function `get_chatid_telegram` is never used
+   --> src/auth_2fa.rs:165:8
+    |
+165 | pub fn get_chatid_telegram(bot_token: &str) -> ResultType<Option<String>> {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `update_controlling_session_count` is never used
+  --> src/updater.rs:27:8
+   |
+27 | pub fn update_controlling_session_count(count: usize) {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `http_request` is never used
+   --> src/ui_interface.rs:857:8
+    |
+857 | pub fn http_request(url: String, method: String, body: Option<String>, header: String) {
+    |        ^^^^^^^^^^^^
+
+warning: function `get_async_http_status` is never used
+   --> src/ui_interface.rs:877:8
+    |
+877 | pub fn get_async_http_status(url: String) -> Option<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `message` is never used
+    --> src/ui_interface.rs:1033:12
+     |
+1032 | impl DeployResult {
+     | ----------------- method in this implementation
+1033 |     pub fn message(&self) -> String {
+     |            ^^^^^^^
+
+warning: function `has_valid_bot` is never used
+    --> src/ui_interface.rs:1622:8
+     |
+1622 | pub fn has_valid_bot() -> bool {
+     |        ^^^^^^^^^^^^^
+
+warning: function `verify_bot` is never used
+    --> src/ui_interface.rs:1626:8
+     |
+1626 | pub fn verify_bot(token: String) -> String {
+     |        ^^^^^^^^^^
+
+warning: variant `Idle` is never constructed
+  --> src/rdn_bridge.rs:27:5
+   |
+26 | pub enum RDNState {
+   |          -------- variant in this enum
+27 |     Idle = 0,
+   |     ^^^^
+   |
+   = note: `RDNState` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: variant `Unknown` is never constructed
+  --> src/rdn_bridge.rs:41:5
+   |
+40 | pub enum RDNCodec {
+   |          -------- variant in this enum
+41 |     Unknown = 0,
+   |     ^^^^^^^
+   |
+   = note: `RDNCodec` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: enum `HbbHttpResponse` is never used
+  --> src/hbbs_http.rs:17:10
+   |
+17 | pub enum HbbHttpResponse<T> {
+   |          ^^^^^^^^^^^^^^^
+   |
+   = note: `HbbHttpResponse` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: associated function `parse` is never used
+  --> src/hbbs_http.rs:25:12
+   |
+24 | impl<T: DeserializeOwned> HbbHttpResponse<T> {
+   | -------------------------------------------- associated function in this implementation
+25 |     pub fn parse(body: &str) -> ResultType<Self> {
+   |            ^^^^^
+
+warning: multiple fields are never read
+  --> src/hbbs_http/downloader.rs:39:5
+   |
+38 | struct Downloader {
+   |        ---------- fields in this struct
+39 |     data: Vec<u8>,
+   |     ^^^^
+40 |     path: Option<PathBuf>,
+   |     ^^^^
+41 |     // Some file may be empty, so we use Option<u64> to indicate if the size is known
+42 |     total_size: Option<u64>,
+   |     ^^^^^^^^^^
+43 |     downloaded_size: u64,
+   |     ^^^^^^^^^^^^^^^
+44 |     error: Option<String>,
+   |     ^^^^^
+45 |     finished: bool,
+   |     ^^^^^^^^
+46 |     tx_cancel: UnboundedSender<()>,
+   |     ^^^^^^^^^
+
+warning: function `download_file` is never used
+  --> src/hbbs_http/downloader.rs:50:8
+   |
+50 | pub fn download_file(
+   |        ^^^^^^^^^^^^^
+
+warning: function `do_download` is never used
+   --> src/hbbs_http/downloader.rs:163:10
+    |
+163 | async fn do_download(
+    |          ^^^^^^^^^^^
+
+warning: function `get_download_data` is never used
+   --> src/hbbs_http/downloader.rs:274:8
+    |
+274 | pub fn get_download_data(id: &str) -> ResultType<DownloadData> {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `cancel` is never used
+   --> src/hbbs_http/downloader.rs:299:8
+    |
+299 | pub fn cancel(id: &str) {
+    |        ^^^^^^
+
+warning: function `remove` is never used
+   --> src/hbbs_http/downloader.rs:307:8
+    |
+307 | pub fn remove(id: &str) {
+    |        ^^^^^^
+
+warning: function `create_http_client_async_with_url` is never used
+   --> src/hbbs_http/http_client.rs:232:14
+    |
+232 | pub async fn create_http_client_async_with_url(url: &str) -> AsyncClient {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_` is never used
+   --> src/hbbs_http/http_client.rs:251:10
+    |
+251 | async fn create_http_client_async_with_url_(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `rustdesk` (lib) generated 36 warnings (run `cargo fix --lib -p rustdesk` to apply 4 suggestions)
+    Finished `release` profile [optimized] target(s) in 2m 45s
+/Users/xiaobei/rustdeskNativePhase2/Build/CoreBridge/x86_64/liblibrustdesk.dylib: Mach-O 64-bit dynamically linked shared library x86_64
+RUSTDESK_CORE_BUILT path=/Users/xiaobei/rustdeskNativePhase2/Build/CoreBridge/x86_64/liblibrustdesk.dylib

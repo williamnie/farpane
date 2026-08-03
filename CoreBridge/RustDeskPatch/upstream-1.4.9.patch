@@ -1,0 +1,163 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index d909ec3..f45d9fd 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -31,6 +31,7 @@ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+ mediacodec = ["scrap/mediacodec"]
+ plugin_framework = []
++rdn-native-core = []
+ linux-pkg-config = ["magnum-opus/linux-pkg-config", "scrap/linux-pkg-config"]
+ unix-file-copy-paste = [
+     "dep:x11-clipboard",
+diff --git a/src/client.rs b/src/client.rs
+index dcd5941..60f4d23 100644
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -1779,6 +1779,21 @@ impl Deref for LoginConfigHandler {
+ }
+ 
+ impl LoginConfigHandler {
++    #[cfg(feature = "rdn-native-core")]
++    pub fn configure_native_viewer(&mut self, peer_id: &str) {
++        // The custom-server target is `peer@server?key=...`; keep that target
++        // only in `other_server` and use the existing plain peer profile as an
++        // in-memory baseline so session updates cannot create a target-named
++        // profile containing connection configuration.
++        self.id = peer_id.to_owned();
++        self.config = PeerConfig::load(peer_id);
++        self.remember = false;
++        self.config.password.clear();
++        self.config.view_only.v = false;
++        self.config.disable_audio.v = true;
++        self.config.disable_clipboard.v = true;
++    }
++
+     /// Initialize the login config handler.
+     ///
+     /// # Arguments
+@@ -2309,12 +2309,22 @@ impl LoginConfigHandler {
+     }
+ 
+     pub fn get_supported_decoding(&self) -> SupportedDecoding {
+-        Decoder::supported_decodings(
++        let mut decoding = Decoder::supported_decodings(
+             Some(&self.id),
+             use_texture_render(),
+             self.adapter_luid,
+             &self.mark_unsupported,
+-        )
++        );
++        #[cfg(feature = "rdn-native-core")]
++        {
++            // The native bridge consumes encoded HEVC before RustDesk's decoder.
++            decoding.ability_vp8 = 0;
++            decoding.ability_vp9 = 0;
++            decoding.ability_av1 = 0;
++            decoding.ability_h264 = 0;
++            decoding.ability_h265 = 1;
++        }
++        decoding
+     }
+ 
+     /// Parse the image quality option.
+@@ -2762,12 +2772,20 @@ impl LoginConfigHandler {
+     }
+ 
+     pub fn update_supported_decodings(&self) -> Message {
+-        let decoding = scrap::codec::Decoder::supported_decodings(
++        let mut decoding = scrap::codec::Decoder::supported_decodings(
+             Some(&self.id),
+             use_texture_render(),
+             self.adapter_luid,
+             &self.mark_unsupported,
+         );
++        #[cfg(feature = "rdn-native-core")]
++        {
++            decoding.ability_vp8 = 0;
++            decoding.ability_vp9 = 0;
++            decoding.ability_av1 = 0;
++            decoding.ability_h264 = 0;
++            decoding.ability_h265 = 1;
++        }
+         let mut misc = Misc::new();
+         misc.set_option(OptionMessage {
+             supported_decoding: hbb_common::protobuf::MessageField::some(decoding),
+diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
+index c0eb7fb..4bb52bf 100644
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -1330,25 +1330,27 @@ impl<T: InvokeUiSession> Remote<T> {
+                     }
+                     self.video_format = CodecFormat::from(&vf);
+ 
+-                    let display = vf.display as usize;
+-                    if !self.video_threads.contains_key(&display) {
+-                        self.new_video_thread(display);
+-                    }
+-                    let Some(thread) = self.video_threads.get_mut(&display) else {
+-                        return true;
+-                    };
+-                    if Self::contains_key_frame(&vf) {
+-                        thread
+-                            .video_sender
+-                            .send(MediaData::VideoFrame(Box::new(vf)))
+-                            .ok();
+-                    } else {
+-                        let video_queue = thread.video_queue.read().unwrap();
+-                        if video_queue.force_push(vf).is_some() {
+-                            drop(video_queue);
+-                            self.handler.refresh_video(display as _);
++                    if !self.handler.on_encoded_video(&vf) {
++                        let display = vf.display as usize;
++                        if !self.video_threads.contains_key(&display) {
++                            self.new_video_thread(display);
++                        }
++                        let Some(thread) = self.video_threads.get_mut(&display) else {
++                            return true;
++                        };
++                        if Self::contains_key_frame(&vf) {
++                            thread
++                                .video_sender
++                                .send(MediaData::VideoFrame(Box::new(vf)))
++                                .ok();
+                         } else {
+-                            thread.video_sender.send(MediaData::VideoQueue).ok();
++                            let video_queue = thread.video_queue.read().unwrap();
++                            if video_queue.force_push(vf).is_some() {
++                                drop(video_queue);
++                                self.handler.refresh_video(display as _);
++                            } else {
++                                thread.video_sender.send(MediaData::VideoQueue).ok();
++                            }
+                         }
+                     }
+                 }
+diff --git a/src/lib.rs b/src/lib.rs
+index 49cb2b7..b1d6b46 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -63,6 +63,9 @@ mod ui_cm_interface;
+ mod ui_interface;
+ mod ui_session_interface;
+ 
++#[cfg(feature = "rdn-native-core")]
++mod rdn_bridge;
++
+ mod hbbs_http;
+ 
+ #[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
+diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs
+index bf2e04c..b78cdad 100644
+--- a/src/ui_session_interface.rs
++++ b/src/ui_session_interface.rs
+@@ -1746,6 +1746,9 @@ pub trait InvokeUiSession: Send + Sync + Clone + 'static + Sized + Default {
+     fn printer_request(&self, id: i32, path: String);
+     fn handle_screenshot_resp(&self, sid: String, msg: String);
+     fn handle_terminal_response(&self, response: TerminalResponse);
++    fn on_encoded_video(&self, _frame: &VideoFrame) -> bool {
++        false
++    }
+ }
+ 
+ impl<T: InvokeUiSession> Deref for Session<T> {

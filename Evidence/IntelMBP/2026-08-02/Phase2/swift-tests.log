@@ -1,0 +1,61 @@
+[0/1] Planning build
+Building for debugging...
+[1/4] Compiling VideoPipeline PipelineMetrics.swift
+[2/4] Emitting module VideoPipeline
+[3/8] Compiling VideoPipeline VideoToolboxDecoder.swift
+[4/8] Compiling VideoPipeline MetalVideoRenderer.swift
+[5/8] Compiling VideoPipeline LiveHEVCDecoder.swift
+[6/8] Compiling VideoPipeline FixturePlayer.swift
+[7/12] Compiling VideoPipelineTests PipelineMetricsTests.swift
+[8/12] Emitting module VideoPipelineTests
+[8/12] Linking RustDeskNativePackageTests
+[10/12] Emitting module RustDeskNative
+[11/12] Compiling RustDeskNative RustDeskNativeApp.swift
+[11/12] Linking RustDeskNative
+Build complete! (5.11s)
+Test Suite 'All tests' started at 2026-08-02 18:59:37.325.
+Test Suite 'RustDeskNativePackageTests.xctest' started at 2026-08-02 18:59:37.326.
+Test Suite 'AnnexBTests' started at 2026-08-02 18:59:37.326.
+Test Case '-[VideoPipelineTests.AnnexBTests testParsesAUDSeparatedAccessUnitsAndParameterSets]' started.
+Test Case '-[VideoPipelineTests.AnnexBTests testParsesAUDSeparatedAccessUnitsAndParameterSets]' passed (0.002 seconds).
+Test Case '-[VideoPipelineTests.AnnexBTests testRejectsMissingParameterSet]' started.
+Test Case '-[VideoPipelineTests.AnnexBTests testRejectsMissingParameterSet]' passed (0.000 seconds).
+Test Suite 'AnnexBTests' passed at 2026-08-02 18:59:37.329.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+Test Suite 'CoreBridgeContractTests' started at 2026-08-02 18:59:37.329.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testConnectionConfigDoesNotPersistPassword]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testConnectionConfigDoesNotPersistPassword]' passed (0.000 seconds).
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testLoadsBuiltCoreAndVerifiesABIWhenProvided]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testLoadsBuiltCoreAndVerifiesABIWhenProvided]' passed (0.006 seconds).
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testPinsRustDesk149Commit]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testPinsRustDesk149Commit]' passed (0.000 seconds).
+Test Suite 'CoreBridgeContractTests' passed at 2026-08-02 18:59:37.336.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.007 (0.007) seconds
+Test Suite 'EncodedHEVCPacketTests' started at 2026-08-02 18:59:37.336.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesAnnexBAndFindsParameterSets]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesAnnexBAndFindsParameterSets]' passed (0.001 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesFourByteAVCC]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesFourByteAVCC]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsDeclaredFormatMismatch]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsDeclaredFormatMismatch]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsMalformedAVCC]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsMalformedAVCC]' passed (0.000 seconds).
+Test Suite 'EncodedHEVCPacketTests' passed at 2026-08-02 18:59:37.338.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+Test Suite 'PipelineMetricsTests' started at 2026-08-02 18:59:37.338.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsDistinctEncodedFrameRateAndRemoteDimensions]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsDistinctEncodedFrameRateAndRemoteDimensions]' passed (0.003 seconds).
+Test Suite 'PipelineMetricsTests' passed at 2026-08-02 18:59:37.341.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.003 (0.003) seconds
+Test Suite 'RustDeskNativePackageTests.xctest' passed at 2026-08-02 18:59:37.341.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.013 (0.015) seconds
+Test Suite 'All tests' passed at 2026-08-02 18:59:37.341.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.013 (0.016) seconds
+[0/1] Planning build
+Building for production...
+remark: Incremental compilation has been disabled: it is not compatible with whole module optimization
+[1/2] Compiling VideoPipeline AnnexB.swift
+remark: Incremental compilation has been disabled: it is not compatible with whole module optimization
+[2/3] Compiling RustDeskNative RustDeskNativeApp.swift
+[2/3] Linking RustDeskNative
+Build complete! (11.58s)

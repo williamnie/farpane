@@ -1,0 +1,51 @@
+[0/1] Planning build
+Building for debugging...
+[1/4] Emitting module VideoPipeline
+[2/4] Compiling VideoPipeline LiveHEVCDecoder.swift
+[2/6] Linking RustDeskNativePackageTests
+[4/6] Emitting module RustDeskNative
+[5/6] Compiling RustDeskNative RustDeskNativeApp.swift
+[5/6] Linking RustDeskNative
+Build complete! (4.98s)
+Test Suite 'All tests' started at 2026-08-02 23:40:17.732.
+Test Suite 'RustDeskNativePackageTests.xctest' started at 2026-08-02 23:40:17.733.
+Test Suite 'AnnexBTests' started at 2026-08-02 23:40:17.733.
+Test Case '-[VideoPipelineTests.AnnexBTests testParsesAUDSeparatedAccessUnitsAndParameterSets]' started.
+Test Case '-[VideoPipelineTests.AnnexBTests testParsesAUDSeparatedAccessUnitsAndParameterSets]' passed (0.003 seconds).
+Test Case '-[VideoPipelineTests.AnnexBTests testRejectsMissingParameterSet]' started.
+Test Case '-[VideoPipelineTests.AnnexBTests testRejectsMissingParameterSet]' passed (0.000 seconds).
+Test Suite 'AnnexBTests' passed at 2026-08-02 23:40:17.737.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.004 (0.004) seconds
+Test Suite 'CoreBridgeContractTests' started at 2026-08-02 23:40:17.737.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testConnectionConfigDoesNotPersistPassword]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testConnectionConfigDoesNotPersistPassword]' passed (0.000 seconds).
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testLoadsBuiltCoreAndVerifiesABIWhenProvided]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testLoadsBuiltCoreAndVerifiesABIWhenProvided]' passed (0.009 seconds).
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testPinsRustDesk149Commit]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testPinsRustDesk149Commit]' passed (0.000 seconds).
+Test Suite 'CoreBridgeContractTests' passed at 2026-08-02 23:40:17.747.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.010 (0.010) seconds
+Test Suite 'EncodedHEVCPacketTests' started at 2026-08-02 23:40:17.747.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesAnnexBAndFindsParameterSets]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesAnnexBAndFindsParameterSets]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesFourByteAVCC]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesFourByteAVCC]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsDeclaredFormatMismatch]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsDeclaredFormatMismatch]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsMalformedAVCC]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsMalformedAVCC]' passed (0.000 seconds).
+Test Suite 'EncodedHEVCPacketTests' passed at 2026-08-02 23:40:17.748.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'PipelineMetricsTests' started at 2026-08-02 23:40:17.749.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testPreservesLastAvailableCoreNetworkMetrics]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testPreservesLastAvailableCoreNetworkMetrics]' passed (0.001 seconds).
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsAsynchronousDecoderRecoveryDiagnostics]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsAsynchronousDecoderRecoveryDiagnostics]' passed (0.003 seconds).
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsDistinctEncodedFrameRateAndRemoteDimensions]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsDistinctEncodedFrameRateAndRemoteDimensions]' passed (0.003 seconds).
+Test Suite 'PipelineMetricsTests' passed at 2026-08-02 23:40:17.757.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.008 (0.008) seconds
+Test Suite 'RustDeskNativePackageTests.xctest' passed at 2026-08-02 23:40:17.757.
+	 Executed 12 tests, with 0 failures (0 unexpected) in 0.022 (0.024) seconds
+Test Suite 'All tests' passed at 2026-08-02 23:40:17.757.
+	 Executed 12 tests, with 0 failures (0 unexpected) in 0.022 (0.025) seconds

@@ -1,0 +1,8 @@
+CORE_STATE state=connecting code=0 message=connecting
+CORE_LOADED abi=2 upstream=6c578292e8ebbbec708b76986ba8c4bc7c509747 password_source=environment-or-interactive
+PIPELINE_STARTED source=rustdesk-live gpu=Intel(R) UHD Graphics 630 fullscreen=true duration=60.0
+CORE_STATE state=transportReady code=1 message=transport-ready-secure-relay
+CORE_STATE state=authenticated code=0 message=authenticated
+CORE_STATE state=streaming code=0 message=streaming
+CORE_STATE state=disconnected code=0 message=disconnected
+BENCHMARK_WRITTEN /Users/xiaobei/rustdeskNativePhase2/Benchmarks/phase2-live-4k-relay38-preflight-60s.json

@@ -1,0 +1,8 @@
+CORE_STATE state=connecting code=0 message=connecting
+CORE_LOADED abi=1 upstream=6c578292e8ebbbec708b76986ba8c4bc7c509747 password_source=environment-or-interactive
+PIPELINE_STARTED source=rustdesk-live gpu=Intel(R) UHD Graphics 630 fullscreen=false duration=30.0
+CORE_STATE state=transportReady code=0 message=transport-ready
+CORE_STATE state=passwordRequired code=1 message=password-required
+CORE_STATE state=disconnected code=0 message=disconnected
+CORE_STATE state=disconnected code=0 message=disconnected
+BENCHMARK_WRITTEN /Users/xiaobei/rustdeskNativePhase2/Benchmarks/live-smoke/smoke.json
