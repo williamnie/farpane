@@ -9,6 +9,7 @@ let package = Package(
         .library(name: "VideoPipeline", targets: ["VideoPipeline"]),
         .library(name: "CoreBridge", targets: ["CoreBridge"]),
         .library(name: "ViewerInput", targets: ["ViewerInput"]),
+        .library(name: "ConnectionCatalog", targets: ["ConnectionCatalog"]),
         .executable(name: "RustDeskNative", targets: ["RustDeskNative"]),
     ],
     targets: [
@@ -22,9 +23,13 @@ let package = Package(
         .target(name: "CoreBridge", dependencies: ["CoreBridgeShim"]),
         .target(name: "VideoPipeline"),
         .target(name: "ViewerInput", dependencies: ["CoreBridge"]),
+        .target(
+            name: "ConnectionCatalog",
+            linkerSettings: [.linkedFramework("Security")]
+        ),
         .executableTarget(
             name: "RustDeskNative",
-            dependencies: ["VideoPipeline", "CoreBridge", "ViewerInput"]
+            dependencies: ["VideoPipeline", "CoreBridge", "ViewerInput", "ConnectionCatalog"]
         ),
         .testTarget(
             name: "VideoPipelineTests",
@@ -37,6 +42,10 @@ let package = Package(
         .testTarget(
             name: "ViewerInputTests",
             dependencies: ["ViewerInput", "CoreBridge"]
+        ),
+        .testTarget(
+            name: "ConnectionCatalogTests",
+            dependencies: ["ConnectionCatalog"]
         ),
     ]
 )

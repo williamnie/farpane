@@ -1,6 +1,6 @@
 # 出站控制产品界面设计
 
-状态：Proposed / 产品方向已确认，尚未实现  
+状态：Implemented / 本地测试、隔离 Keychain 与签名 AppKit UI 验收通过；真实出站凭据链待操作者复验
 更新时间：2026-08-03  
 系统架构基线：[`architecture.md`](architecture.md)
 
