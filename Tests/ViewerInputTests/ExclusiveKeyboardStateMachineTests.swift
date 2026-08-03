@@ -64,4 +64,30 @@ final class ExclusiveKeyboardStateMachineTests: XCTestCase {
         XCTAssertEqual(machine.state, .inactive)
         XCTAssertFalse(release.suppressLocally)
     }
+
+    func testSuppressesUnbalancedAndDuplicateTransitions() {
+        var machine = ExclusiveKeyboardStateMachine()
+        machine.activate()
+
+        let strayUp = machine.handle(keyCode: 0, isDown: false, modifiers: [])
+        XCTAssertTrue(strayUp.suppressLocally)
+        XCTAssertFalse(strayUp.forwardRemotely)
+
+        XCTAssertTrue(
+            machine.handle(keyCode: 0, isDown: true, modifiers: []).forwardRemotely
+        )
+        XCTAssertFalse(
+            machine.handle(keyCode: 0, isDown: true, modifiers: []).forwardRemotely
+        )
+        XCTAssertTrue(
+            machine.handle(keyCode: 0, isDown: true, modifiers: [], isRepeat: true)
+                .forwardRemotely
+        )
+        XCTAssertTrue(
+            machine.handle(keyCode: 0, isDown: false, modifiers: []).forwardRemotely
+        )
+        XCTAssertFalse(
+            machine.handle(keyCode: 0, isDown: false, modifiers: []).forwardRemotely
+        )
+    }
 }
