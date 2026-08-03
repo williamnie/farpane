@@ -31,7 +31,9 @@ candidate UI; Swift forwards only committed text, while Rust reuses
 `Session::input_string`. The boundary rejects empty, invalid, NUL-containing or
 over-4096-byte input without logging text content.
 
-The opt-in macOS exclusive-keyboard follow-up does not expand the ABI. Swift
-captures supported local key events with a session event tap and continues to
-send only the same ABI v4 semantic keys. RustDesk Core remains solely
-responsible for constructing and transmitting wire-protocol input messages.
+ABI v5 adds a semantic macOS physical-key-position variant for the opt-in
+exclusive-keyboard path. Swift captures supported local key events with a
+session event tap; the bridge feeds those positions into pinned RustDesk Core's
+keyboard-map mode so remote shortcuts and IME composition receive real key
+strokes. RustDesk Core remains solely responsible for constructing and
+transmitting wire-protocol input messages.

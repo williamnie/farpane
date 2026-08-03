@@ -41,6 +41,13 @@ public enum MacKeyMapper {
         return .character(scalar)
     }
 
+    /// Returns a physical key only for positions supported by the native
+    /// viewer. RustDesk Core, rather than Swift, performs protocol mapping.
+    public static func physicalKeyFromHardwareCode(_ keyCode: UInt16) -> CoreKey? {
+        guard keyFromHardwareCode(keyCode) != nil else { return nil }
+        return .physical(keyCode)
+    }
+
     public static func modifiers(from flags: NSEvent.ModifierFlags) -> CoreInputModifiers {
         let flags = flags.intersection(.deviceIndependentFlagsMask)
         var result: CoreInputModifiers = []

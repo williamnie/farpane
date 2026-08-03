@@ -10,6 +10,13 @@ private let exclusiveKeyboardTapCallback: CGEventTapCallBack = { _, type, event,
     return controller.handleTap(type: type, event: event)
 }
 
+private enum ExclusiveTapOutcome {
+    case passThrough
+    case suppressed
+    case beganExit
+    case completedExit
+}
+
 final class ExclusiveKeyboardController: @unchecked Sendable {
     typealias StatusHandler = (
         _ active: Bool,
@@ -24,6 +31,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
     private let recordInputResult: (String, Int32) -> Void
     private let lock = NSLock()
     private var stateMachine = ExclusiveKeyboardStateMachine()
+    private var focusIntent = ExclusiveKeyboardFocusIntent()
     private var remoteHeldKeys: [UInt16: CoreKey] = [:]
     private var tap: CFMachPort?
     private var tapSource: CFRunLoopSource?
@@ -46,16 +54,34 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
     }
 
     func toggle() {
-        if isActive {
+        let shouldDisable = lock.withLock { () -> Bool in
+            if stateMachine.state != .inactive {
+                focusIntent.cancel()
+                return true
+            }
+            focusIntent.request()
+            return false
+        }
+        if shouldDisable {
             disable(message: nil, isError: false)
         } else {
-            enable()
+            resumeIfRequested()
         }
     }
 
-    func enable() {
-        guard !isActive else { return }
+    func suspend(message: String) {
+        lock.withLock {
+            focusIntent.prepareForFocusLoss(state: stateMachine.state)
+        }
+        disable(message: message, isError: false, preserveIntent: true)
+    }
+
+    func resumeIfRequested() {
+        guard lock.withLock({ focusIntent.shouldResume && stateMachine.state == .inactive }) else {
+            return
+        }
         guard hasRequiredPermissions(prompt: true) else {
+            lock.withLock { focusIntent.cancel() }
             notifyStatus(
                 active: false,
                 message: "请在系统设置授予辅助功能和输入监控权限，然后重新点击“独占键盘”",
@@ -77,6 +103,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
             callback: exclusiveKeyboardTapCallback,
             userInfo: context
         ), let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
+            lock.withLock { focusIntent.cancel() }
             notifyStatus(
                 active: false,
                 message: "无法建立键盘独占，请检查系统权限后重试",
@@ -115,8 +142,14 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
         )
     }
 
-    func disable(message: String?, isError: Bool, notify: Bool = true) {
+    func disable(
+        message: String?,
+        isError: Bool,
+        notify: Bool = true,
+        preserveIntent: Bool = false
+    ) {
         let resources = lock.withLock { () -> (Bool, CFMachPort?, CFRunLoopSource?, CFRunLoop?, [CoreKey]) in
+            if !preserveIntent { focusIntent.cancel() }
             let active = stateMachine.state != .inactive || tap != nil
             let resources = (active, tap, tapSource, tapRunLoop, Array(remoteHeldKeys.values))
             tap = nil
@@ -166,18 +199,45 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
         default: return Unmanaged.passUnretained(event)
         }
 
-        let decision = lock.withLock {
-            stateMachine.handle(
+        let outcome = lock.withLock { () -> ExclusiveTapOutcome in
+            let decision = stateMachine.handle(
                 keyCode: keyCode,
                 isDown: isDown,
                 modifiers: modifiers,
                 isRepeat: repeatEvent
             )
-        }
-        guard decision.suppressLocally else { return Unmanaged.passUnretained(event) }
+            guard decision.suppressLocally else { return .passThrough }
+            if decision.beganExit {
+                let keys = Array(remoteHeldKeys.values)
+                remoteHeldKeys.removeAll()
+                releaseRemoteKeys(keys)
+                return .beganExit
+            }
+            if decision.completedExit { return .completedExit }
+            guard decision.forwardRemotely else { return .suppressed }
 
-        if decision.beganExit {
-            releaseAllCapturedKeys()
+            let mappedKey = remoteHeldKeys[keyCode]
+                ?? MacKeyMapper.physicalKeyFromHardwareCode(keyCode)
+            guard let key = mappedKey else {
+                // Unsupported hardware/media keys remain local rather than being silently lost.
+                return .passThrough
+            }
+
+            if repeatEvent {
+                sendAndRecord(CoreKeyEvent(key: key, isDown: true))
+                sendAndRecord(CoreKeyEvent(key: key, isDown: false))
+            } else {
+                if isDown { remoteHeldKeys[keyCode] = key }
+                else { remoteHeldKeys.removeValue(forKey: keyCode) }
+                sendAndRecord(CoreKeyEvent(key: key, isDown: isDown))
+            }
+            return .suppressed
+        }
+
+        switch outcome {
+        case .passThrough:
+            return Unmanaged.passUnretained(event)
+        case .beganExit:
             notifyStatus(
                 active: true,
                 message: "松开 ⌃⌥⇧Esc 以退出键盘独占",
@@ -185,34 +245,14 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
                 didActivate: false
             )
             return nil
-        }
-        if decision.completedExit {
+        case .completedExit:
             DispatchQueue.main.async { [weak self] in
                 self?.disable(message: "已退出键盘独占", isError: false)
             }
             return nil
+        case .suppressed:
+            return nil
         }
-        guard decision.forwardRemotely else { return nil }
-
-        let mappedKey = lock.withLock { remoteHeldKeys[keyCode] }
-            ?? MacKeyMapper.keyFromHardwareCode(keyCode)
-        guard let key = mappedKey else {
-            // Unsupported hardware/media keys remain local rather than being silently lost.
-            return Unmanaged.passUnretained(event)
-        }
-
-        let eventModifiers = modifiersExcludingCurrentKey(key, from: modifiers)
-        if repeatEvent {
-            sendAndRecord(CoreKeyEvent(key: key, isDown: true, modifiers: eventModifiers))
-            sendAndRecord(CoreKeyEvent(key: key, isDown: false, modifiers: eventModifiers))
-        } else {
-            lock.withLock {
-                if isDown { remoteHeldKeys[keyCode] = key }
-                else { remoteHeldKeys.removeValue(forKey: keyCode) }
-            }
-            sendAndRecord(CoreKeyEvent(key: key, isDown: isDown, modifiers: eventModifiers))
-        }
-        return nil
     }
 
     private func hasRequiredPermissions(prompt: Bool) -> Bool {
@@ -223,21 +263,6 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
             listening = CGRequestListenEventAccess()
         }
         return accessibility && listening
-    }
-
-    private func modifiersExcludingCurrentKey(
-        _ key: CoreKey,
-        from modifiers: CoreInputModifiers
-    ) -> CoreInputModifiers {
-        var result = modifiers
-        switch key {
-        case .special(.shift): result.remove(.shift)
-        case .special(.control): result.remove(.control)
-        case .special(.option): result.remove(.option)
-        case .special(.command): result.remove(.command)
-        default: break
-        }
-        return result
     }
 
     private func sendAndRecord(_ event: CoreKeyEvent) {

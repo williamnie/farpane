@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 4u
+#define RDN_ABI_VERSION 5u
 
 typedef struct RDNClient RDNClient;
 
@@ -142,12 +142,16 @@ typedef enum RDNKeyCode {
     RDN_KEY_END = 16,
     RDN_KEY_PAGE_UP = 17,
     RDN_KEY_PAGE_DOWN = 18,
+    /* Native macOS hardware key position. Rust Core maps this through the
+     * pinned RustDesk keyboard map mode so the remote IME sees key strokes. */
+    RDN_KEY_PHYSICAL = 19,
 } RDNKeyCode;
 
 typedef struct RDNKeyEvent {
     uint32_t abi_version;
     RDNKeyCode code;
     uint32_t unicode_scalar;
+    uint32_t hardware_keycode;
     bool down;
     uint32_t modifiers;
 } RDNKeyEvent;

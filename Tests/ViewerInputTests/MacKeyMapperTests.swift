@@ -30,6 +30,9 @@ final class MacKeyMapperTests: XCTestCase {
         XCTAssertEqual(MacKeyMapper.keyFromHardwareCode(49), .special(.space))
         XCTAssertEqual(MacKeyMapper.keyFromHardwareCode(48), .special(.tab))
         XCTAssertNil(MacKeyMapper.keyFromHardwareCode(110))
+        XCTAssertEqual(MacKeyMapper.physicalKeyFromHardwareCode(0), .physical(0))
+        XCTAssertEqual(MacKeyMapper.physicalKeyFromHardwareCode(55), .physical(55))
+        XCTAssertNil(MacKeyMapper.physicalKeyFromHardwareCode(110))
 
         let flags: CGEventFlags = [.maskCommand, .maskShift]
         XCTAssertEqual(MacKeyMapper.modifiers(from: flags), [.command, .shift])

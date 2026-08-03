@@ -9,6 +9,7 @@ final class ViewerMetalView: MTKView {
     var sendText: ((String) -> Int32)?
     var recordInputResult: ((String, Int32) -> Void)?
     var onWindowResignKey: (() -> Void)?
+    var onWindowBecomeKey: (() -> Void)?
 
     private var trackingAreaReference: NSTrackingArea?
     private var remoteSize = CGSize.zero
@@ -16,6 +17,7 @@ final class ViewerMetalView: MTKView {
     private var heldKeys: [UInt16: CoreKey] = [:]
     private var lastRemotePoint: RemotePoint?
     private var resignObserver: NSObjectProtocol?
+    private var becomeObserver: NSObjectProtocol?
     private var pendingMove: CorePointerEvent?
     private var moveFlushScheduled = false
     private var interpretingEvent: NSEvent?
@@ -28,6 +30,7 @@ final class ViewerMetalView: MTKView {
 
     deinit {
         if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
+        if let becomeObserver { NotificationCenter.default.removeObserver(becomeObserver) }
     }
 
     func updateRemoteSize(width: Int, height: Int) {
@@ -37,6 +40,7 @@ final class ViewerMetalView: MTKView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
+        if let becomeObserver { NotificationCenter.default.removeObserver(becomeObserver) }
         resignObserver = window.map { window in
             NotificationCenter.default.addObserver(
                 forName: NSWindow.didResignKeyNotification,
@@ -45,6 +49,15 @@ final class ViewerMetalView: MTKView {
             ) { [weak self] _ in
                 self?.releaseAllInput()
                 self?.onWindowResignKey?()
+            }
+        }
+        becomeObserver = window.map { window in
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didBecomeKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in
+                self?.onWindowBecomeKey?()
             }
         }
     }

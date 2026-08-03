@@ -74,8 +74,9 @@ private struct Options {
 }
 
 @main
-private final class AppDelegate: NSObject, NSApplicationDelegate {
+private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
     private let options = Options(arguments: CommandLine.arguments)
+    private let profileStore = ViewerConnectionProfileStore()
     private var window: NSWindow?
     private var connectionView: ConnectionView?
     private var viewerChrome: ViewerChromeView?
@@ -115,10 +116,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidResignActive(_ notification: Notification) {
-        keyboardController?.disable(
-            message: "应用失去焦点，已退出键盘独占",
-            isError: false
+        keyboardController?.suspend(
+            message: "应用失去焦点，已暂时释放键盘；返回后自动恢复独占"
         )
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        keyboardController?.resumeIfRequested()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -151,7 +155,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
         metrics = nil
         viewerChrome = nil
         viewerView = nil
-        let frame = NSRect(x: 0, y: 0, width: 760, height: 580)
+        let frame = NSRect(x: 0, y: 0, width: 780, height: 680)
         let window = self.window ?? NSWindow(
             contentRect: frame,
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -159,15 +163,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         window.title = "RustDesk Native Viewer"
-        window.minSize = NSSize(width: 680, height: 520)
-        let view = ConnectionView(defaultCorePath: defaultCorePath())
+        window.minSize = NSSize(width: 700, height: 600)
+        let view = ConnectionView(savedProfile: profileStore.load())
+        view.onClearSavedProfile = { [weak self] in self?.profileStore.clear() }
         view.onConnect = { [weak self] draft in
             guard let self else { return }
             do {
-                let coreURL = URL(fileURLWithPath: draft.coreLibrary)
+                let coreURL = URL(fileURLWithPath: self.defaultCorePath())
                 guard FileManager.default.fileExists(atPath: coreURL.path) else {
-                    throw self.usageError("Core 动态库不存在")
+                    throw self.usageError("bundled Core is unavailable")
                 }
+                if draft.rememberProfile { self.profileStore.save(draft.profile) }
+                else { self.profileStore.clear() }
                 let configuration = CoreConnectionConfig(
                     rendezvousServer: draft.rendezvousServer,
                     serverPublicKey: draft.serverPublicKey,
@@ -208,14 +215,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
             source: fixture == nil ? "rustdesk-live" : "fixture"
         )
         let renderer = try MetalVideoRenderer(view: view, preference: options.gpu, metrics: metrics)
-        let chrome = ViewerChromeView(videoView: view, metrics: metrics)
+        let chrome = ViewerChromeView(
+            videoView: view,
+            metrics: metrics,
+            showsAcceptanceControls: automatedRun && fixture == nil
+        )
         let window = self.window ?? NSWindow(
             contentRect: windowFrame,
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        window.title = fixture == nil ? "RustDesk Native Phase 3 — Live" : "RustDesk Native Phase 1 — Fixture"
+        window.title = fixture == nil ? "RustDesk Native Viewer" : "RustDesk Native Viewer — Fixture"
         window.minSize = NSSize(width: 720, height: 480)
         window.contentView = chrome
         if !options.fullscreen || !automatedRun { window.setContentSize(windowFrame.size); window.center() }
@@ -261,18 +272,25 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
                 if isError { metrics.recordExclusiveKeyboardFailure() }
             }
             chrome.onToggleKeyboardGrab = { [weak keyboardController] in keyboardController?.toggle() }
+            chrome.onOpenKeyboardPermissions = { Self.openKeyboardPrivacySettings() }
             view.onWindowResignKey = { [weak keyboardController] in
-                keyboardController?.disable(
-                    message: "窗口失去焦点，已退出键盘独占",
-                    isError: false
+                keyboardController?.suspend(
+                    message: "窗口失去焦点，已暂时释放键盘；返回后自动恢复独占"
                 )
+            }
+            view.onWindowBecomeKey = { [weak keyboardController] in
+                keyboardController?.resumeIfRequested()
             }
             self.keyboardController = keyboardController
         } else {
             keyboardController = nil
         }
         chrome.onToggleFullscreen = { [weak window] in window?.toggleFullScreen(nil) }
-        chrome.onDisconnect = { NSApplication.shared.terminate(nil) }
+        chrome.onDisconnect = { [weak self] in
+            guard let self else { return }
+            if self.automatedRun { NSApplication.shared.terminate(nil) }
+            else { self.showConnectionUI() }
+        }
 
         if let fixture {
             try startFixture(fixture, renderer: renderer, metrics: metrics)
@@ -345,6 +363,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
                 print("CORE_STATE state=\(event.state) code=\(event.code) message=\(event.message)")
                 let chrome = chrome
                 let keyboardController = keyboardController
+                let appDelegate = self
                 DispatchQueue.main.async {
                     chrome?.updateState(Self.connectionStateText(event), isError: Self.isErrorState(event.state))
                     if event.state == .controlReady {
@@ -357,9 +376,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
                             isError: false
                         )
                     }
+                    if Self.isTerminalState(event.state), appDelegate?.automatedRun != true,
+                       appDelegate?.viewerChrome != nil {
+                        appDelegate?.showConnectionUI(error: Self.connectionStateText(event))
+                    }
                 }
-                if event.state == .passwordRequired || event.state == .authenticationFailed ||
-                   event.state == .error || event.state == .disconnected {
+                if Self.isTerminalState(event.state) {
                     if self?.automatedRun == true {
                         DispatchQueue.main.async { NSApplication.shared.terminate(nil) }
                     }
@@ -456,8 +478,35 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private static func openKeyboardPrivacySettings() {
+        let alert = NSAlert()
+        alert.messageText = "允许独占键盘"
+        alert.informativeText = "独占键盘需要“辅助功能”和“输入监控”两项权限。授权后无需保存密码；使用 ⌃⌥⇧Esc 可随时退出独占。"
+        alert.addButton(withTitle: "打开辅助功能")
+        alert.addButton(withTitle: "打开输入监控")
+        alert.addButton(withTitle: "取消")
+        let destination: String
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            destination = "Privacy_Accessibility"
+        case .alertSecondButtonReturn:
+            destination = "Privacy_ListenEvent"
+        default:
+            return
+        }
+        guard let url = URL(
+            string: "x-apple.systempreferences:com.apple.preference.security?\(destination)"
+        ) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     private static func isErrorState(_ state: CoreConnectionState) -> Bool {
         state == .passwordRequired || state == .authenticationFailed || state == .error || state == .disconnected
+    }
+
+    private static func isTerminalState(_ state: CoreConnectionState) -> Bool {
+        state == .passwordRequired || state == .authenticationFailed ||
+            state == .error || state == .disconnected
     }
 
     private static func connectionStateText(_ event: CoreStateEvent) -> String {

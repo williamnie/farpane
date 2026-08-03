@@ -2,7 +2,7 @@
 
 更新时间：2026-08-02
 
-本文件补充 `DESIGN.md`，记录可复用的上游实现及其真实成熟度。结论用于减少重复开发，但不把尚未验证或未合并的代码当作可直接交付的依赖。
+本文件补充 `architecture.md`，记录可复用的上游实现及其真实成熟度。结论用于减少重复开发，但不把尚未验证或未合并的代码当作可直接交付的依赖。
 
 ## 1. SlopDesk：Swift / VideoToolbox / Metal 参考实现
 
@@ -120,6 +120,6 @@ macOS 13 回移要求：
 - `4096x2304 @ 30 FPS` 下 VideoToolbox 输出是否稳定为 NV12、Metal 是否真正呈现。
 - `CVPixelBuffer`、`CVMetalTexture` 和 command buffer 生命周期是否无泄漏/野指针。
 - Intel UHD 630 与 Radeon Pro 5300M 的设备选择是否产生跨 GPU 拷贝。
-- 真实 GUI 运行的 CPU、内存、FPS 和丢帧是否达到 `DESIGN.md` 门槛。
+- 真实 GUI 运行的 CPU、内存、FPS 和丢帧是否达到 `architecture.md` 门槛。
 
 只有这些结果通过后，才进入真实 RustDesk packet/session 集成。
