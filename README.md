@@ -1,4 +1,9 @@
-# RustDesk Native Viewer
+# FarPane
+
+FarPane is a native macOS remote-desktop viewer powered by a pinned RustDesk
+Core. Its public brand, app icon and installed product name are independent
+from the official RustDesk client; the protocol and self-hosted server fields
+retain their RustDesk terminology.
 
 This repository implements the [`docs/architecture.md`](docs/architecture.md)
 Phase 0/1 video pipeline, the
@@ -41,14 +46,14 @@ Scripts/build-universal.sh
 ```
 
 The last command requires one Apple Development signing identity and produces a
-stable-identity universal app at `Build/RustDeskNative.app`. Both arm64 and
+stable-identity universal app at `Build/FarPane.app`. Both arm64 and
 x86_64 Core libraries must be present. Install it at the fixed per-user path:
 
 ```sh
 Scripts/install-local-macos.sh
 ```
 
-The installed product is `~/Applications/RustDesk Native Viewer.app`. Rebuilds
+The installed product is `~/Applications/FarPane.app`. Rebuilds
 change the code hash and build number but retain the same bundle identifier,
 Team ID and designated requirement, so Accessibility and Input Monitoring
 permissions remain attached to the product identity. Ad-hoc signing is allowed
@@ -224,7 +229,7 @@ Scripts/run-exclusive-keyboard-preflight-mbp.sh
 ```
 
 Grant both permissions to the fixed installed bundle path
-`~/Applications/RustDesk Native Viewer.app`; the preflight deliberately
+`~/Applications/FarPane.app`; the preflight deliberately
 launches that stable-identity bundle rather than the transient `.build` path.
 
 The first permission-grant launch is diagnostic only; close and rerun it after
@@ -256,7 +261,7 @@ The generated `.hevc` files are intentionally ignored. Their checked-in
 
 ```sh
 Scripts/benchmark-mbp.sh \
-  Build/RustDeskNative.app \
+  Build/FarPane.app \
   Fixtures/hevc-4096x2304-30.hevc \
   4096 2304 600 high-performance \
   Benchmarks/intel-fullscreen-4k

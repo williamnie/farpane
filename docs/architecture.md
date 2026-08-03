@@ -1,4 +1,4 @@
-# RustDesk Native Viewer 架构基线
+# FarPane 架构基线
 
 状态：Phase 0–3 已实现并完成 Intel/Hermes 验收；后续页面产品化见 `product-ui-design.md`  
 更新时间：2026-08-03  
@@ -100,14 +100,14 @@ flowchart LR
     S --> C
 ```
 
-最终用户只启动一个 `RustDeskNative.app`。Rust 核心作为 App 内部静态库或动态库加载，不要求同时打开官方 RustDesk 客户端。
+最终用户只启动一个 `FarPane.app`。Rust 核心作为 App 内部静态库或动态库加载，不要求同时打开官方 RustDesk 客户端。
 
 运行关系：
 
 ```text
 Hermes:    继续运行现有 hbbs/hbbr
 Mac mini:  继续运行官方 RustDesk 作为被控端
-MacBook:   运行 RustDeskNative.app，官方 RustDesk 控制端可关闭
+MacBook:   运行 FarPane.app，官方 RustDesk 控制端可关闭
 ```
 
 ## 5. 组件设计
@@ -314,8 +314,8 @@ RustDesk Core 从 hbbs 发现中继，强制中继仅作为高级连接模式。
 profile。后续多设备、Keychain 凭据与快速连接以
 `product-ui-design.md` 为准。
 
-macOS 产品包固定使用 `io.rustdesknative.viewer`，由同一 Apple Development
-身份签名并安装到 `~/Applications/RustDesk Native Viewer.app`。构建脚本
+macOS 产品包对外名称为 FarPane，固定使用 `io.rustdesknative.viewer`，由同一
+Apple Development 身份签名并安装到 `~/Applications/FarPane.app`。构建脚本
 必须拒绝把 CDHash 绑定的 ad-hoc 包作为可安装产品，以保证二进制和构建号
 变化后 TCC 仍根据稳定 designated requirement 识别同一应用。辅助功能与
 输入监控只需在首次安装或签名身份真正变化时重新授权。

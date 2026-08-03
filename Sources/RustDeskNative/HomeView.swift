@@ -29,8 +29,10 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onDeviceAction: ((UUID, HomeDeviceAction) -> Void)?
 
     private let serverButton = NSButton()
+    private let serverStatusDot = NSView()
     private let peerField = NSTextField()
-    private let connectButton = NSButton(title: "连接", target: nil, action: nil)
+    private let peerContainer = NSView()
+    private let connectButton = AccentButton(title: "连接", target: nil, action: nil)
     private let filterControl = NSSegmentedControl(
         labels: ["全部", "收藏"],
         trackingMode: .selectOne,
@@ -39,7 +41,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     )
     private let searchField = NSSearchField()
     private let listStack = FlippedStackView()
+    private let countBadge = NSTextField(labelWithString: "0")
     private let statusLabel = NSTextField(labelWithString: "就绪")
+    private let statusDot = NSView()
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
     private var snapshot = HomeSnapshot(
         server: nil,
@@ -58,10 +62,10 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
 
     func apply(_ snapshot: HomeSnapshot) {
         self.snapshot = snapshot
+        let configured = snapshot.server?.isComplete == true
         serverButton.title = snapshot.server?.displayName.nonEmpty ?? "配置服务器"
-        serverButton.contentTintColor = snapshot.server?.isComplete == true
-            ? .secondaryLabelColor
-            : .systemOrange
+        serverButton.contentTintColor = configured ? .secondaryLabelColor : .systemOrange
+        serverStatusDot.layer?.backgroundColor = (configured ? NSColor.systemGreen : NSColor.systemOrange).cgColor
         statusLabel.stringValue = snapshot.statusText
         errorLabel.stringValue = snapshot.errorText
         errorLabel.isHidden = snapshot.errorText.isEmpty
@@ -72,6 +76,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         peerField.isEnabled = snapshot.connectingPeerID == nil
         connectButton.title = snapshot.connectingPeerID == nil ? "连接" : "连接中…"
         serverButton.isEnabled = snapshot.connectingPeerID == nil
+        countBadge.stringValue = "\(snapshot.devices.count)"
         renderDevices()
     }
 
@@ -83,15 +88,32 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         wantsLayer = true
         layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
 
-        let product = NSTextField(labelWithString: "RustDesk Native Viewer")
-        product.font = .systemFont(ofSize: 13, weight: .semibold)
-        product.textColor = .secondaryLabelColor
+        // ---------- Header ----------
+        let brand = NSStackView(views: [BrandLogoView(), brandNameLabel()])
+        brand.orientation = .horizontal
+        brand.alignment = .centerY
+        brand.spacing = 9
+
         let title = NSTextField(labelWithString: "控制远程设备")
-        title.font = .systemFont(ofSize: 30, weight: .semibold)
+        title.font = .systemFont(ofSize: 24, weight: .semibold)
         let subtitle = NSTextField(
             wrappingLabelWithString: "从最近设备快速连接，或输入新的 RustDesk 设备 ID。"
         )
         subtitle.textColor = .secondaryLabelColor
+        subtitle.font = .systemFont(ofSize: 13)
+
+        let headerText = NSStackView(views: [brand, title, subtitle])
+        headerText.orientation = .vertical
+        headerText.alignment = .leading
+        headerText.spacing = 5
+
+        serverStatusDot.wantsLayer = true
+        serverStatusDot.layer?.cornerRadius = 4
+        serverStatusDot.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            serverStatusDot.widthAnchor.constraint(equalToConstant: 8),
+            serverStatusDot.heightAnchor.constraint(equalToConstant: 8),
+        ])
 
         serverButton.bezelStyle = .inline
         serverButton.image = NSImage(
@@ -103,67 +125,151 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         serverButton.action = #selector(openServerSettings)
         serverButton.toolTip = "服务器设置"
 
-        let headerText = NSStackView(views: [product, title, subtitle])
-        headerText.orientation = .vertical
-        headerText.alignment = .leading
-        headerText.spacing = 5
-        let header = NSStackView(views: [headerText, NSView(), serverButton])
+        let serverWrap = NSStackView(views: [serverStatusDot, serverButton])
+        serverWrap.orientation = .horizontal
+        serverWrap.alignment = .centerY
+        serverWrap.spacing = 6
+
+        let header = NSStackView(views: [headerText, NSView(), serverWrap])
         header.orientation = .horizontal
         header.alignment = .top
 
-        peerField.placeholderString = "输入对方设备 ID"
-        peerField.font = .systemFont(ofSize: 17)
-        peerField.focusRingType = .default
+        // ---------- 快速连接卡片 ----------
+        peerField.placeholderString = "输入对方设备 ID，例如 123 456 789"
+        peerField.font = .systemFont(ofSize: 14.5)
+        peerField.isBordered = false
+        peerField.drawsBackground = false
+        peerField.focusRingType = .none
         peerField.delegate = self
         peerField.target = self
         peerField.action = #selector(connectQuickly)
         peerField.setAccessibilityLabel("远端设备 ID")
+        peerField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let peerIcon = NSImageView(image: NSImage(
+            systemSymbolName: "display",
+            accessibilityDescription: "设备"
+        ) ?? NSImage())
+        peerIcon.contentTintColor = .tertiaryLabelColor
+        peerIcon.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            peerIcon.widthAnchor.constraint(equalToConstant: 15),
+            peerIcon.heightAnchor.constraint(equalToConstant: 15),
+        ])
+
+        let hintView = NSView()
+        hintView.wantsLayer = true
+        hintView.layer?.cornerRadius = 9
+        hintView.layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.16).cgColor
+        let hintLabel = NSTextField(labelWithString: "回车连接")
+        hintLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        hintLabel.textColor = .tertiaryLabelColor
+        hintView.addSubview(hintLabel)
+        hintLabel.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hintLabel.leadingAnchor.constraint(equalTo: hintView.leadingAnchor, constant: 9),
+            hintLabel.trailingAnchor.constraint(equalTo: hintView.trailingAnchor, constant: -9),
+            hintLabel.centerYAnchor.constraint(equalTo: hintView.centerYAnchor),
+            hintView.heightAnchor.constraint(equalToConstant: 20),
+        ])
+
+        let fieldRow = NSStackView(views: [peerIcon, peerField, hintView])
+        fieldRow.orientation = .horizontal
+        fieldRow.alignment = .centerY
+        fieldRow.spacing = 8
+        fieldRow.translatesAutoresizingMaskIntoConstraints = false
+
+        peerContainer.wantsLayer = true
+        peerContainer.layer?.cornerRadius = 8
+        peerContainer.layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+        peerContainer.layer?.borderColor = NSColor.separatorColor.cgColor
+        peerContainer.layer?.borderWidth = 1
+        peerContainer.addSubview(fieldRow)
+        NSLayoutConstraint.activate([
+            fieldRow.leadingAnchor.constraint(equalTo: peerContainer.leadingAnchor, constant: 12),
+            fieldRow.trailingAnchor.constraint(equalTo: peerContainer.trailingAnchor, constant: -12),
+            fieldRow.topAnchor.constraint(equalTo: peerContainer.topAnchor),
+            fieldRow.bottomAnchor.constraint(equalTo: peerContainer.bottomAnchor),
+        ])
 
         connectButton.bezelStyle = .rounded
-        connectButton.controlSize = .large
         connectButton.keyEquivalent = "\r"
         connectButton.target = self
         connectButton.action = #selector(connectQuickly)
 
-        let quickRow = NSStackView(views: [peerField, connectButton])
+        let quickRow = NSStackView(views: [peerContainer, connectButton])
         quickRow.orientation = .horizontal
         quickRow.alignment = .centerY
         quickRow.spacing = 12
         quickRow.translatesAutoresizingMaskIntoConstraints = false
-        peerField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         NSLayoutConstraint.activate([
-            peerField.heightAnchor.constraint(equalToConstant: 34),
-            connectButton.widthAnchor.constraint(equalToConstant: 92),
+            peerContainer.heightAnchor.constraint(equalToConstant: 34),
+            connectButton.widthAnchor.constraint(equalToConstant: 82),
+            connectButton.heightAnchor.constraint(equalToConstant: 34),
         ])
+
+        let quickLabel = NSTextField(labelWithString: "快速连接")
+        quickLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        quickLabel.textColor = .tertiaryLabelColor
+
+        let quickCard = NSStackView(views: [quickLabel, quickRow])
+        quickCard.orientation = .vertical
+        quickCard.alignment = .leading
+        quickCard.spacing = 8
 
         let quickContainer = NSView()
         quickContainer.wantsLayer = true
-        quickContainer.layer?.cornerRadius = 14
+        quickContainer.layer?.cornerRadius = 12
         quickContainer.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         quickContainer.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.55).cgColor
         quickContainer.layer?.borderWidth = 1
-        quickContainer.addSubview(quickRow)
+        quickContainer.layer?.shadowColor = NSColor.black.cgColor
+        quickContainer.layer?.shadowOpacity = 0.06
+        quickContainer.layer?.shadowRadius = 3
+        quickContainer.layer?.shadowOffset = CGSize(width: 0, height: 1)
+        quickContainer.addSubview(quickCard)
+        quickCard.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            quickRow.leadingAnchor.constraint(equalTo: quickContainer.leadingAnchor, constant: 18),
-            quickRow.trailingAnchor.constraint(equalTo: quickContainer.trailingAnchor, constant: -18),
-            quickRow.topAnchor.constraint(equalTo: quickContainer.topAnchor, constant: 18),
-            quickRow.bottomAnchor.constraint(equalTo: quickContainer.bottomAnchor, constant: -18),
+            quickCard.leadingAnchor.constraint(equalTo: quickContainer.leadingAnchor, constant: 16),
+            quickCard.trailingAnchor.constraint(equalTo: quickContainer.trailingAnchor, constant: -16),
+            quickCard.topAnchor.constraint(equalTo: quickContainer.topAnchor, constant: 14),
+            quickCard.bottomAnchor.constraint(equalTo: quickContainer.bottomAnchor, constant: -14),
         ])
 
+        // ---------- 列表工具栏 ----------
         let recentTitle = NSTextField(labelWithString: "最近连接")
         recentTitle.font = .systemFont(ofSize: 17, weight: .semibold)
+
+        countBadge.font = .systemFont(ofSize: 12, weight: .semibold)
+        countBadge.textColor = .tertiaryLabelColor
+        countBadge.alignment = .center
+        countBadge.wantsLayer = true
+        countBadge.layer?.cornerRadius = 9
+        countBadge.layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.16).cgColor
+        countBadge.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            countBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 26),
+            countBadge.heightAnchor.constraint(equalToConstant: 18),
+        ])
+
+        let recentWrap = NSStackView(views: [recentTitle, countBadge])
+        recentWrap.orientation = .horizontal
+        recentWrap.alignment = .centerY
+        recentWrap.spacing = 6
+
         filterControl.selectedSegment = 0
         filterControl.target = self
         filterControl.action = #selector(filterChanged)
-        searchField.placeholderString = "搜索"
+        searchField.placeholderString = "搜索名称或 ID"
         searchField.delegate = self
         searchField.setContentHuggingPriority(.required, for: .horizontal)
-        searchField.widthAnchor.constraint(equalToConstant: 190).isActive = true
-        let listToolbar = NSStackView(views: [recentTitle, NSView(), filterControl, searchField])
+        searchField.widthAnchor.constraint(equalToConstant: 200).isActive = true
+        let listToolbar = NSStackView(views: [recentWrap, NSView(), filterControl, searchField])
         listToolbar.orientation = .horizontal
         listToolbar.alignment = .centerY
         listToolbar.spacing = 12
 
+        // ---------- 设备列表 ----------
         listStack.orientation = .vertical
         listStack.alignment = .leading
         listStack.spacing = 0
@@ -178,19 +284,51 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             listStack.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
         ])
 
+        // ---------- 错误提示 ----------
         errorLabel.textColor = .systemRed
         errorLabel.font = .systemFont(ofSize: 12, weight: .medium)
         errorLabel.isHidden = true
-        let statusDot = NSTextField(labelWithString: "●")
-        statusDot.textColor = .systemGreen
-        statusDot.font = .systemFont(ofSize: 9)
+
+        // ---------- 底部状态栏 ----------
+        statusDot.wantsLayer = true
+        statusDot.layer?.cornerRadius = 3.5
+        statusDot.layer?.backgroundColor = NSColor.systemGreen.cgColor
+        statusDot.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            statusDot.widthAnchor.constraint(equalToConstant: 7),
+            statusDot.heightAnchor.constraint(equalToConstant: 7),
+        ])
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.font = .systemFont(ofSize: 12)
-        let footer = NSStackView(views: [statusDot, statusLabel, NSView()])
+
+        let versionText: String
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            versionText = "v\(version)"
+        } else {
+            versionText = ""
+        }
+        let versionBadge = NSView()
+        versionBadge.wantsLayer = true
+        versionBadge.layer?.cornerRadius = 9
+        versionBadge.layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.16).cgColor
+        let versionLabel = NSTextField(labelWithString: versionText)
+        versionLabel.font = .systemFont(ofSize: 11, weight: .semibold)
+        versionLabel.textColor = .secondaryLabelColor
+        versionBadge.addSubview(versionLabel)
+        versionLabel.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            versionLabel.leadingAnchor.constraint(equalTo: versionBadge.leadingAnchor, constant: 9),
+            versionLabel.trailingAnchor.constraint(equalTo: versionBadge.trailingAnchor, constant: -9),
+            versionLabel.centerYAnchor.constraint(equalTo: versionBadge.centerYAnchor),
+            versionBadge.heightAnchor.constraint(equalToConstant: 18),
+        ])
+
+        let footer = NSStackView(views: [statusDot, statusLabel, NSView(), versionBadge])
         footer.orientation = .horizontal
         footer.alignment = .centerY
         footer.spacing = 7
 
+        // ---------- 内容组装 ----------
         let content = NSStackView(views: [
             header,
             quickContainer,
@@ -201,9 +339,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         ])
         content.orientation = .vertical
         content.alignment = .leading
-        content.spacing = 18
-        content.setCustomSpacing(26, after: header)
-        content.setCustomSpacing(26, after: quickContainer)
+        content.spacing = 16
+        content.setCustomSpacing(24, after: header)
+        content.setCustomSpacing(24, after: quickContainer)
         content.setCustomSpacing(8, after: listToolbar)
         content.translatesAutoresizingMaskIntoConstraints = false
         addSubview(content)
@@ -212,12 +350,19 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             view.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
         }
         NSLayoutConstraint.activate([
-            content.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 42),
-            content.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -42),
-            content.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 34),
-            content.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -22),
-            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 210),
+            content.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 38),
+            content.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -38),
+            content.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 28),
+            content.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -18),
+            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 220),
         ])
+    }
+
+    private func brandNameLabel() -> NSTextField {
+        let label = NSTextField(labelWithString: "FarPane")
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        return label
     }
 
     func controlTextDidChange(_ notification: Notification) {
@@ -229,6 +374,27 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         } else {
             renderDevices()
         }
+    }
+
+    func controlTextDidBeginEditing(_ notification: Notification) {
+        if notification.object as? NSTextField === peerField {
+            updatePeerFocus(true)
+        }
+    }
+
+    func controlTextDidEndEditing(_ notification: Notification) {
+        if notification.object as? NSTextField === peerField {
+            updatePeerFocus(false)
+        }
+    }
+
+    private func updatePeerFocus(_ focused: Bool) {
+        guard let layer = peerContainer.layer else { return }
+        layer.borderColor = (focused ? NSColor.controlAccentColor : NSColor.separatorColor).cgColor
+        layer.shadowColor = NSColor.controlAccentColor.cgColor
+        layer.shadowOpacity = focused ? 0.22 : 0
+        layer.shadowRadius = 4
+        layer.shadowOffset = .zero
     }
 
     private func renderDevices() {
@@ -254,15 +420,25 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             label.textColor = .secondaryLabelColor
             label.alignment = .center
             label.font = .systemFont(ofSize: 14)
+            let icon = NSImageView(image: NSImage(
+                systemSymbolName: "desktopcomputer",
+                accessibilityDescription: nil
+            ) ?? NSImage())
+            icon.contentTintColor = .tertiaryLabelColor
+            icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 28, weight: .regular)
             let container = NSView()
             container.addSubview(label)
+            container.addSubview(icon)
             label.translatesAutoresizingMaskIntoConstraints = false
+            icon.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activate([
+                icon.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+                icon.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -16),
                 label.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                label.topAnchor.constraint(equalTo: icon.bottomAnchor, constant: 12),
                 label.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 24),
                 label.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -24),
-                container.heightAnchor.constraint(greaterThanOrEqualToConstant: 170),
+                container.heightAnchor.constraint(greaterThanOrEqualToConstant: 190),
             ])
             listStack.addArrangedSubview(container)
             container.widthAnchor.constraint(equalTo: listStack.widthAnchor).isActive = true
@@ -301,9 +477,185 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     @objc private func filterChanged() { renderDevices() }
 }
 
+// MARK: - 辅助视图
+
 private final class FlippedStackView: NSStackView {
     override var isFlipped: Bool { true }
 }
+
+/// FarPane 品牌标：两块屏幕通过青色光桥连接。
+private final class BrandLogoView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 32),
+            heightAnchor.constraint(equalToConstant: 26),
+        ])
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        guard bounds.width > 0, bounds.height > 0 else { return }
+
+        let sx = bounds.width / 32
+        let sy = bounds.height / 26
+        func point(_ x: CGFloat, _ y: CGFloat) -> NSPoint {
+            NSPoint(x: x * sx, y: y * sy)
+        }
+
+        let bridge = NSBezierPath()
+        bridge.move(to: point(10.5, 9.2))
+        bridge.line(to: point(21.5, 11.2))
+        bridge.line(to: point(21.5, 16.0))
+        bridge.line(to: point(10.5, 18.2))
+        bridge.close()
+        NSGradient(colors: [
+            NSColor(calibratedRed: 0.16, green: 0.84, blue: 1.0, alpha: 1),
+            NSColor(calibratedRed: 0.30, green: 0.70, blue: 1.0, alpha: 1),
+        ])?.draw(in: bridge, angle: 0)
+
+        let left = panePath(
+            outerTop: point(2.5, 4.0),
+            innerTop: point(12.2, 8.4),
+            innerBottom: point(12.2, 19.0),
+            outerBottom: point(2.5, 23.0),
+            roundsLeftEdge: true
+        )
+        NSGradient(colors: [
+            NSColor(calibratedRed: 0.04, green: 0.57, blue: 1.0, alpha: 1),
+            NSColor(calibratedRed: 0.10, green: 0.34, blue: 0.98, alpha: 1),
+        ])?.draw(in: left, angle: -35)
+
+        let right = panePath(
+            outerTop: point(29.5, 4.0),
+            innerTop: point(19.8, 8.4),
+            innerBottom: point(19.8, 19.0),
+            outerBottom: point(29.5, 23.0),
+            roundsLeftEdge: false
+        )
+        NSGradient(colors: [
+            NSColor(calibratedRed: 0.61, green: 0.28, blue: 1.0, alpha: 1),
+            NSColor(calibratedRed: 0.42, green: 0.20, blue: 0.96, alpha: 1),
+        ])?.draw(in: right, angle: 35)
+    }
+
+    private func panePath(
+        outerTop: NSPoint,
+        innerTop: NSPoint,
+        innerBottom: NSPoint,
+        outerBottom: NSPoint,
+        roundsLeftEdge: Bool
+    ) -> NSBezierPath {
+        let path = NSBezierPath()
+        path.move(to: outerTop)
+        path.line(to: innerTop)
+        path.curve(
+            to: innerBottom,
+            controlPoint1: NSPoint(x: innerTop.x, y: innerTop.y + 1.2),
+            controlPoint2: NSPoint(x: innerBottom.x, y: innerBottom.y - 1.2)
+        )
+        path.line(to: outerBottom)
+        let edgeX = outerTop.x
+        let direction: CGFloat = roundsLeftEdge ? -1 : 1
+        path.curve(
+            to: outerTop,
+            controlPoint1: NSPoint(x: edgeX + direction * 0.8, y: outerBottom.y - 0.5),
+            controlPoint2: NSPoint(x: edgeX + direction * 0.8, y: outerTop.y + 0.5)
+        )
+        path.close()
+        return path
+    }
+}
+
+/// accent 纯色填充按钮（hover / 按下 / 禁用状态）
+private final class AccentButton: NSButton {
+    private var isHovering = false
+    private var isPressing = false
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.cornerRadius = 8
+        isBordered = false
+        setButtonType(.momentaryPushIn)
+        font = .systemFont(ofSize: 13.5, weight: .semibold)
+        applyTitleStyle()
+        updateBackground()
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override var isEnabled: Bool {
+        didSet {
+            applyTitleStyle()
+            updateBackground()
+        }
+    }
+
+    override var title: String {
+        didSet { applyTitleStyle() }
+    }
+
+    private func applyTitleStyle() {
+        let color: NSColor = isEnabled ? .white : .white.withAlphaComponent(0.55)
+        attributedTitle = NSAttributedString(string: title, attributes: [
+            .foregroundColor: color,
+            .font: NSFont.systemFont(ofSize: 13.5, weight: .semibold),
+        ])
+    }
+
+    private func updateBackground() {
+        guard let layer else { return }
+        let accent = NSColor.controlAccentColor
+        if !isEnabled {
+            layer.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.4).cgColor
+        } else if isPressing {
+            layer.backgroundColor = (accent.blended(withFraction: 0.18, of: .black) ?? accent).cgColor
+        } else if isHovering {
+            layer.backgroundColor = (accent.blended(withFraction: 0.1, of: .white) ?? accent).cgColor
+        } else {
+            layer.backgroundColor = accent.cgColor
+        }
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self
+        ))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isHovering = true
+        updateBackground()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHovering = false
+        isPressing = false
+        updateBackground()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        isPressing = true
+        updateBackground()
+        super.mouseDown(with: event)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        isPressing = false
+        updateBackground()
+        super.mouseUp(with: event)
+    }
+}
+
+// MARK: - 设备行
 
 private final class DeviceRowView: NSView {
     var onAction: ((HomeDeviceAction) -> Void)?
@@ -332,13 +684,54 @@ private final class DeviceRowView: NSView {
         favoriteButton.target = self
         favoriteButton.action = #selector(toggleFavorite)
 
+        // 设备类型图标
+        let avatarView = NSView()
+        avatarView.wantsLayer = true
+        avatarView.layer?.cornerRadius = 8
+        avatarView.layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.14).cgColor
+        let avatarIcon = NSImageView(image: NSImage(
+            systemSymbolName: "desktopcomputer",
+            accessibilityDescription: "电脑"
+        ) ?? NSImage())
+        avatarIcon.contentTintColor = .secondaryLabelColor
+        avatarView.addSubview(avatarIcon)
+        avatarIcon.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            avatarView.widthAnchor.constraint(equalToConstant: 34),
+            avatarView.heightAnchor.constraint(equalToConstant: 34),
+            avatarIcon.widthAnchor.constraint(equalToConstant: 17),
+            avatarIcon.heightAnchor.constraint(equalToConstant: 17),
+            avatarIcon.centerXAnchor.constraint(equalTo: avatarView.centerXAnchor),
+            avatarIcon.centerYAnchor.constraint(equalTo: avatarView.centerYAnchor),
+        ])
+
         let name = NSTextField(labelWithString: item.device.resolvedDisplayName)
-        name.font = .systemFont(ofSize: 15, weight: .semibold)
+        name.font = .systemFont(ofSize: 14, weight: .semibold)
         name.lineBreakMode = .byTruncatingTail
-        let detail = NSTextField(labelWithString: detailText(item.device))
-        detail.font = .systemFont(ofSize: 12)
-        detail.textColor = .secondaryLabelColor
-        detail.lineBreakMode = .byTruncatingTail
+
+        // meta：ID（等宽数字）· 相对时间 · 已验证徽标
+        let idLabel = NSTextField(labelWithString: formatPeerID(item.device.peerID))
+        idLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        idLabel.textColor = .secondaryLabelColor
+        idLabel.lineBreakMode = .byTruncatingTail
+
+        var metaParts: [NSView] = [idLabel]
+        if let date = item.device.lastSuccessfulConnectionAt {
+            let timeLabel = NSTextField(labelWithString: relativeTime(date))
+            timeLabel.font = .systemFont(ofSize: 12)
+            timeLabel.textColor = .secondaryLabelColor
+            let dotLabel = NSTextField(labelWithString: "·")
+            dotLabel.font = .systemFont(ofSize: 12)
+            dotLabel.textColor = .tertiaryLabelColor
+            let badgeView = verifiedBadge()
+            metaParts.append(contentsOf: [dotLabel, timeLabel, badgeView])
+        }
+        let detail = NSStackView(views: metaParts)
+        detail.orientation = .horizontal
+        detail.alignment = .centerY
+        detail.spacing = 7
+        detail.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         let identity = NSStackView(views: [name, detail])
         identity.orientation = .vertical
         identity.alignment = .leading
@@ -354,6 +747,8 @@ private final class DeviceRowView: NSView {
 
         let connect = NSButton(title: isConnecting ? "连接中…" : "连接", target: self, action: #selector(connect))
         connect.bezelStyle = .rounded
+        connect.contentTintColor = isConnecting ? .tertiaryLabelColor : .controlAccentColor
+        connect.font = .systemFont(ofSize: 13, weight: .semibold)
         connect.isEnabled = !isConnecting
 
         let more = NSButton(
@@ -364,21 +759,40 @@ private final class DeviceRowView: NSView {
         more.bezelStyle = .inline
         more.toolTip = "更多操作"
 
-        let row = NSStackView(views: [favoriteButton, identity, NSView(), credential, connect, more])
+        let row = NSStackView(views: [avatarView, favoriteButton, identity, NSView(), credential, connect, more])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 12
         row.translatesAutoresizingMaskIntoConstraints = false
         addSubview(row)
         NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            row.topAnchor.constraint(equalTo: topAnchor, constant: 10),
-            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 66),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 9),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -9),
+            heightAnchor.constraint(greaterThanOrEqualToConstant: 60),
             connect.widthAnchor.constraint(equalToConstant: 76),
             credential.widthAnchor.constraint(equalToConstant: 18),
         ])
+    }
+
+    private func verifiedBadge() -> NSView {
+        let badgeView = NSView()
+        badgeView.wantsLayer = true
+        badgeView.layer?.cornerRadius = 8
+        badgeView.layer?.backgroundColor = NSColor.systemGreen.withAlphaComponent(0.12).cgColor
+        let label = NSTextField(labelWithString: "已验证")
+        label.font = .systemFont(ofSize: 10.5, weight: .semibold)
+        label.textColor = .systemGreen
+        badgeView.addSubview(label)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: badgeView.leadingAnchor, constant: 7),
+            label.trailingAnchor.constraint(equalTo: badgeView.trailingAnchor, constant: -7),
+            label.centerYAnchor.constraint(equalTo: badgeView.centerYAnchor),
+            badgeView.heightAnchor.constraint(equalToConstant: 17),
+        ])
+        return badgeView
     }
 
     override func updateTrackingAreas() {
@@ -392,21 +806,11 @@ private final class DeviceRowView: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
-        layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.07).cgColor
+        layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.06).cgColor
     }
 
     override func mouseExited(with event: NSEvent) {
         layer?.backgroundColor = NSColor.clear.cgColor
-    }
-
-    private func detailText(_ device: SavedDevice) -> String {
-        let id = formatPeerID(device.peerID)
-        guard let date = device.lastSuccessfulConnectionAt else {
-            return "\(id) · 尚未验证"
-        }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return "\(id) · \(formatter.localizedString(for: date, relativeTo: Date()))"
     }
 
     private func formatPeerID(_ value: String) -> String {
@@ -417,6 +821,12 @@ private final class DeviceRowView: NSView {
             let end = compact.index(start, offsetBy: min(3, compact.count - offset))
             return String(compact[start..<end])
         }.joined(separator: " ")
+    }
+
+    private func relativeTime(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 
     @objc private func connect() { onAction?(.connect) }

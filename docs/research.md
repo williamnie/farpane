@@ -1,4 +1,4 @@
-# RustDesk Native Viewer 参考实现调研
+# FarPane 参考实现调研
 
 更新时间：2026-08-02
 

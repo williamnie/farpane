@@ -12,7 +12,7 @@ if ifconfig awdl0 2>/dev/null | head -1 | grep -q '<[^>]*UP'; then
 fi
 : "${RDN_PASSWORD:?Set RDN_PASSWORD securely in this MBP shell}"
 
-app="$HOME/Applications/RustDesk Native Viewer.app"
+app="$HOME/Applications/FarPane.app"
 core="$app/Contents/Frameworks/liblibrustdesk.dylib"
 prefix_base="$repo_dir/Benchmarks/productization-live-4k-relay-acceptance-1800s"
 prefix="$prefix_base"
@@ -140,7 +140,7 @@ PY
   print "rustDeskCommit=$(git -C "$repo_dir/Vendor/rustdesk" rev-parse HEAD)"
 } > "$stage/environment.txt"
 {
-  print '# RustDesk Native Viewer productization evidence'
+  print '# FarPane productization evidence'
   print
   print 'This directory contains a successful 30-minute real secure-relay run from'
   print 'the stable-identity installed Intel app to the 4096x2304 Mac mini. It also'
