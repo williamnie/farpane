@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_dir=${0:A:h:h}
 build_dir="$repo_dir/Build"
-app_dir="$build_dir/RustDeskNative.app"
+app_dir="$build_dir/FarPane.app"
 build_number=${RDN_BUILD_NUMBER:-$(date +%Y%m%d%H%M)}
 signing_identity=${RDN_CODESIGN_IDENTITY:-}
 signing_mode=stable-identity
@@ -35,6 +35,7 @@ lipo -create \
   -output "$app_dir/Contents/MacOS/RustDeskNative"
 cp "$repo_dir/App/Info.plist" "$app_dir/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$app_dir/Contents/Info.plist"
+cp "$repo_dir/App/FarPane.icns" "$app_dir/Contents/Resources/FarPane.icns"
 cp "$repo_dir/THIRD_PARTY_NOTICES.md" "$app_dir/Contents/Resources/"
 cp "$repo_dir/LICENSES/SlopDesk-MIT.txt" "$app_dir/Contents/Resources/"
 cp "$repo_dir/LICENSES/RustDesk-AGPL-3.0.txt" "$app_dir/Contents/Resources/"

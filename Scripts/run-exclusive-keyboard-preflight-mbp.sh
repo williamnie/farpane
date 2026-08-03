@@ -8,7 +8,7 @@ if [[ "$(uname -m)" != x86_64 ]]; then
 fi
 : "${RDN_PASSWORD:?Set RDN_PASSWORD securely in this MBP shell}"
 
-app="$HOME/Applications/RustDesk Native Viewer.app"
+app="$HOME/Applications/FarPane.app"
 core="$app/Contents/Frameworks/liblibrustdesk.dylib"
 prefix="$repo_dir/Benchmarks/exclusive-keyboard-preflight-$(date +%Y%m%d-%H%M%S)-180s"
 functional_validation="$prefix.functional-validation.txt"

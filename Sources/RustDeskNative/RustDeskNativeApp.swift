@@ -213,7 +213,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             backing: .buffered,
             defer: false
         )
-        window.title = "RustDesk Native Viewer"
+        window.title = "FarPane"
         window.minSize = NSSize(width: 720, height: 560)
         let view = HomeView()
         view.onQuickConnect = { [weak self] peerID in self?.handleQuickConnect(peerID: peerID) }
@@ -621,7 +621,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             backing: .buffered,
             defer: false
         )
-        window.title = fixture == nil ? "RustDesk Native Viewer" : "RustDesk Native Viewer — Fixture"
+        window.title = fixture == nil ? "FarPane" : "FarPane — Fixture"
         window.minSize = NSSize(width: 720, height: 480)
         window.contentView = chrome
         if !options.fullscreen || !automatedRun { window.setContentSize(windowFrame.size); window.center() }

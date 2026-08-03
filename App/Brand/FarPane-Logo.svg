@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 160" role="img" aria-label="FarPane">
+  <defs>
+    <linearGradient id="bridge" x1="52" y1="0" x2="108" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#27D8FF"/>
+      <stop offset="1" stop-color="#4FA9FF"/>
+    </linearGradient>
+    <linearGradient id="left" x1="22" y1="28" x2="68" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A91FF"/>
+      <stop offset="1" stop-color="#1958FA"/>
+    </linearGradient>
+    <linearGradient id="right" x1="138" y1="28" x2="92" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A04AFF"/>
+      <stop offset="1" stop-color="#6B34F5"/>
+    </linearGradient>
+    <style>
+      .wordmark { fill: #0b1244; }
+      @media (prefers-color-scheme: dark) { .wordmark { fill: #f5f7ff; } }
+    </style>
+  </defs>
+  <g transform="translate(12 16)">
+    <path d="M58 48 102 56v22L58 87Z" fill="url(#bridge)"/>
+    <path d="M25 25 62 42c5 2 8 7 8 13v39c0 6-3 11-8 13l-37 16c-7 3-14-2-14-10V35c0-8 7-13 14-10Z" fill="url(#left)"/>
+    <path d="m135 25-37 17c-5 2-8 7-8 13v39c0 6 3 11 8 13l37 16c7 3 14-2 14-10V35c0-8-7-13-14-10Z" fill="url(#right)"/>
+  </g>
+  <text class="wordmark" x="190" y="108" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="78" font-weight="650" letter-spacing="-2">FarPane</text>
+</svg>

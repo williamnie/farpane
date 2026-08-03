@@ -12,7 +12,7 @@ repo_dir=${0:A:h:h}
 long_prefix=${1:A}
 supplement_prefix=${2:A}
 final_4k_prefix=${3:A}
-app="$HOME/Applications/RustDesk Native Viewer.app"
+app="$HOME/Applications/FarPane.app"
 core="$app/Contents/Frameworks/liblibrustdesk.dylib"
 evidence_dir="$repo_dir/Evidence/IntelMBP/$(date +%F)/Productization"
 validation=$(mktemp "${TMPDIR:-/tmp}/rdn-product-validation.XXXXXX")
@@ -249,7 +249,7 @@ cp "$tcc_validation" "$stage/tcc-rebuild-validation.txt"
 } > "$stage/environment.txt"
 
 {
-  print '# RustDesk Native Viewer productization composite evidence'
+  print '# FarPane productization composite evidence'
   print
   print 'This directory combines three real secure-relay runs of the same final installed'
   print 'build. The 1800-second run proves daily input and stability. During that run the'

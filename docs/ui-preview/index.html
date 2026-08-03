@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarPane — 首页 UI 设计稿</title>
+<style>
+  :root {
+    --accent: #0A84FF;
+    --accent-deep: #0066D6;
+    --accent-soft: rgba(10, 132, 255, 0.12);
+    --bg: #F2F2F7;
+    --card: rgba(255, 255, 255, 0.92);
+    --card-border: rgba(0, 0, 0, 0.07);
+    --text: #1D1D1F;
+    --text-2: #6E6E73;
+    --text-3: #AEAEB2;
+    --row-hover: rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+    --input-bg: rgba(255, 255, 255, 0.9);
+    --chip-bg: rgba(0, 0, 0, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #0A84FF;
+      --accent-deep: #409CFF;
+      --accent-soft: rgba(10, 132, 255, 0.22);
+      --bg: #1C1C1E;
+      --card: rgba(44, 44, 46, 0.85);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --text: #F5F5F7;
+      --text-2: #A1A1A6;
+      --text-3: #636366;
+      --row-hover: rgba(255, 255, 255, 0.06);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+      --input-bg: rgba(28, 28, 30, 0.9);
+      --chip-bg: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "PingFang SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #111113;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 56px 24px 72px;
+    gap: 40px;
+  }
+
+  /* ---------- 顶部说明 ---------- */
+  .intro {
+    text-align: center;
+    color: #E8E8ED;
+    max-width: 640px;
+  }
+  .intro h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .intro p { margin-top: 8px; color: #9A9AA2; font-size: 14px; line-height: 1.6; }
+  .intro .tags { margin-top: 14px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .intro .tag {
+    font-size: 12px; color: #C7C7D0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 4px 12px; border-radius: 999px;
+  }
+
+  /* ---------- macOS 窗口外壳 ---------- */
+  .window {
+    width: 860px;
+    background: var(--bg);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+    position: relative;
+  }
+  .titlebar {
+    height: 46px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    background: color-mix(in srgb, var(--bg) 88%, white 6%);
+    border-bottom: 1px solid var(--card-border);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .traffic { display: flex; gap: 8px; }
+  .traffic i {
+    width: 12px; height: 12px; border-radius: 50%;
+    display: block;
+  }
+  .traffic i:nth-child(1) { background: #FF5F57; }
+  .traffic i:nth-child(2) { background: #FEBC2E; }
+  .traffic i:nth-child(3) { background: #28C840; }
+  .window-title {
+    flex: 1; text-align: center;
+    font-size: 13px; font-weight: 600; color: var(--text-2);
+    letter-spacing: 0.01em;
+  }
+  .titlebar .spacer { width: 52px; }
+
+  /* ---------- 主页内容 ---------- */
+  .home {
+    padding: 28px 38px 18px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ---------- Header ---------- */
+  .header { display: flex; align-items: flex-start; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+  .logo {
+    width: 32px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo svg { width: 32px; height: 26px; }
+  .brand span { font-size: 13px; font-weight: 600; color: var(--text-2); letter-spacing: 0.01em; }
+
+  .headline h1 {
+    font-size: 24px; font-weight: 700; letter-spacing: -0.022em;
+    line-height: 1.2;
+  }
+  .headline p { margin-top: 5px; font-size: 13px; color: var(--text-2); }
+
+  .server-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px 7px 11px;
+    border-radius: 9px;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text-2);
+    font-size: 13px; font-weight: 500;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .server-btn:hover { background: color-mix(in srgb, var(--card) 60%, var(--row-hover)); color: var(--text); }
+  .server-btn .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #FF9500; /* 未配置时橙色，已配置变绿 */
+  }
+  .server-btn.configured .dot { background: #34C759; }
+
+  /* ---------- 快速连接卡片 ---------- */
+  .quick-card {
+    margin-top: 24px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    padding: 14px 16px;
+  }
+  .quick-card:focus-within {
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--card-border));
+    box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-sm);
+  }
+  .quick-label {
+    font-size: 11px; font-weight: 600; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .quick-row { display: flex; align-items: center; gap: 12px; }
+
+  .peer-field {
+    flex: 1;
+    display: flex; align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .peer-field:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft), inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .peer-field svg { flex: none; color: var(--text-3); width: 14px; height: 14px; }
+  .peer-field input {
+    flex: 1;
+    border: none; outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    caret-color: var(--accent);
+  }
+  .peer-field input::placeholder {
+    color: var(--text-3);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .peer-field .hint {
+    flex: none;
+    font-size: 11px; color: var(--text-3);
+    background: var(--chip-bg);
+    padding: 3px 9px; border-radius: 999px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  .connect-btn {
+    flex: none;
+    height: 34px;
+    min-width: 82px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13.5px; font-weight: 600;
+    letter-spacing: 0.01em;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .connect-btn:hover { filter: brightness(1.06); }
+  .connect-btn:active { transform: scale(0.98); }
+  .connect-btn:disabled {
+    background: color-mix(in srgb, var(--text-3) 35%, var(--card));
+    color: var(--text-3);
+    box-shadow: none;
+    cursor: default;
+  }
+
+  /* ---------- 列表工具栏 ---------- */
+  .list-toolbar {
+    margin-top: 30px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .list-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .list-title .count {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-3);
+    background: var(--chip-bg);
+    padding: 2px 8px; border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: 2px;
+  }
+  .toolbar-right { display: flex; align-items: center; gap: 10px; }
+  .segmented {
+    display: flex;
+    background: var(--chip-bg);
+    border-radius: 9px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .segmented button {
+    border: none; outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 12px; font-weight: 600;
+    color: var(--text-2);
+    padding: 4px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .segmented button.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+  }
+  .search {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 9px;
+    height: 30px;
+    padding: 0 10px;
+    width: 200px;
+    transition: all 0.2s ease;
+  }
+  .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .search svg { color: var(--text-3); flex: none; }
+  .search input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-family: inherit; font-size: 12.5px; color: var(--text);
+  }
+  .search input::placeholder { color: var(--text-3); }
+
+  /* ---------- 设备列表 ---------- */
+  .list-wrap {
+    margin-top: 14px;
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 14px;
+  }
+  .list-wrap::-webkit-scrollbar { width: 8px; }
+  .list-wrap::-webkit-scrollbar-thumb { background: var(--text-3); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+
+  .device-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    cursor: default;
+    transition: background 0.15s ease;
+  }
+  .device-card:hover { background: var(--row-hover); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 8px;
+    flex: none;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--chip-bg);
+    color: var(--text-2);
+  }
+  .fav-btn {
+    flex: none;
+    border: none; outline: none; background: transparent;
+    color: var(--text-3); cursor: pointer;
+    padding: 4px; border-radius: 6px;
+    display: flex;
+    transition: all 0.15s ease;
+  }
+  .fav-btn:hover { color: #FFB800; background: rgba(255, 184, 0, 0.12); }
+  .fav-btn.on { color: #FFB800; }
+  .dev-info { flex: 1; min-width: 0; }
+  .dev-name {
+    font-size: 14.5px; font-weight: 650;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+  }
+  .dev-meta {
+    font-size: 12px; color: var(--text-2);
+    margin-top: 3px;
+    display: flex; align-items: center; gap: 8px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dev-meta .id { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+  .dev-meta .sep { color: var(--text-3); }
+  .dev-meta .badge {
+    font-size: 10.5px; font-weight: 600;
+    color: #34C759;
+    background: rgba(52, 199, 89, 0.12);
+    padding: 1.5px 7px; border-radius: 999px;
+  }
+  .dev-actions { display: flex; align-items: center; gap: 8px; }
+  .lock { color: var(--text-3); display: flex; }
+  .lock.off { opacity: 0.45; }
+  .row-connect {
+    height: 30px; min-width: 70px; padding: 0 14px;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--accent);
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.15s ease;
+  }
+  .row-connect:hover { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .row-connect:active { transform: scale(0.97); }
+  .more-btn {
+    border: none; outline: none; background: transparent;
+    color: var(--text-3); cursor: pointer;
+    padding: 5px; border-radius: 7px;
+    display: flex;
+    transition: all 0.15s ease;
+  }
+  .more-btn:hover { background: var(--row-hover); color: var(--text); }
+
+  /* 空状态 */
+  .empty {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 52px 0;
+    color: var(--text-3);
+  }
+  .empty .circle {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--chip-bg);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-3);
+  }
+  .empty p { font-size: 13.5px; }
+
+  /* ---------- 底部状态栏 ---------- */
+  .footer {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid var(--card-border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #34C759;
+  }
+  .status-text { font-size: 12px; color: var(--text-2); }
+  .footer .right { margin-left: auto; font-size: 12px; color: var(--text-3); }
+  .footer .version {
+    background: var(--chip-bg);
+    padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+
+  /* ---------- 说明与备注 ---------- */
+  .notes {
+    max-width: 860px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 22px 26px;
+    color: #C7C7D0;
+    font-size: 13.5px;
+    line-height: 1.75;
+  }
+  .notes h2 { font-size: 15px; color: #fff; margin-bottom: 10px; letter-spacing: -0.01em; }
+  .notes ul { padding-left: 20px; }
+  .notes li { margin: 4px 0; }
+  .notes code {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 1px 7px;
+    font-size: 12.5px;
+    color: #8FD0FF;
+  }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <h1>FarPane — 首页重设计</h1>
+    <p>这是基于当前 <code style="font-size:13px;color:#8FD0FF;">HomeView.swift</code> 结构与功能的视觉稿，仅作样式预览。<br>自动适配 macOS 深色 / 浅色模式，可缩放窗口查看响应布局。</p>
+    <div class="tags">
+      <span class="tag">860 × 680 窗口</span>
+      <span class="tag">AppKit 原生可还原</span>
+      <span class="tag">SF Symbols 图标</span>
+      <span class="tag">浅色 / 深色自适应</span>
+    </div>
+  </div>
+
+  <!-- ============ macOS 窗口 ============ -->
+  <div class="window">
+    <div class="titlebar">
+      <div class="traffic"><i></i><i></i><i></i></div>
+      <div class="window-title">FarPane</div>
+      <div class="spacer"></div>
+    </div>
+
+    <div class="home">
+      <!-- Header -->
+      <header class="header">
+        <div>
+          <div class="brand">
+            <div class="logo">
+              <svg viewBox="0 0 160 128" aria-label="FarPane">
+                <defs>
+                  <linearGradient id="brandBridge" x1="52" y1="0" x2="108" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#27D8FF"/><stop offset="1" stop-color="#4FA9FF"/></linearGradient>
+                  <linearGradient id="brandLeft" x1="22" y1="28" x2="68" y2="104" gradientUnits="userSpaceOnUse"><stop stop-color="#0A91FF"/><stop offset="1" stop-color="#1958FA"/></linearGradient>
+                  <linearGradient id="brandRight" x1="138" y1="28" x2="92" y2="104" gradientUnits="userSpaceOnUse"><stop stop-color="#A04AFF"/><stop offset="1" stop-color="#6B34F5"/></linearGradient>
+                </defs>
+                <path d="M58 48 102 56v22L58 87Z" fill="url(#brandBridge)"/>
+                <path d="M25 25 62 42c5 2 8 7 8 13v39c0 6-3 11-8 13l-37 16c-7 3-14-2-14-10V35c0-8 7-13 14-10Z" fill="url(#brandLeft)"/>
+                <path d="m135 25-37 17c-5 2-8 7-8 13v39c0 6 3 11 8 13l37 16c7 3 14-2 14-10V35c0-8-7-13-14-10Z" fill="url(#brandRight)"/>
+              </svg>
+            </div>
+            <span>FarPane</span>
+          </div>
+          <div class="headline">
+            <h1>控制远程设备</h1>
+            <p>从最近设备快速连接，或输入新的 RustDesk 设备 ID。</p>
+          </div>
+        </div>
+        <button class="server-btn configured" title="服务器设置">
+          <span class="dot"></span>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="8" r="2.6"/>
+            <path d="M13.6 8c0-.35-.03-.7-.1-1.03l1.7-1.33-1.6-2.77-2.13.86A6.6 6.6 0 0 0 9.8 2.6L9.6.3H4.4l-.2 2.3a6.6 6.6 0 0 0-1.67 1.13l-2.13-.86-1.6 2.77 1.7 1.33c-.07.33-.1.68-.1 1.03s.03.7.1 1.03l-1.7 1.33 1.6 2.77 2.13-.86c.48.45 1.05.83 1.67 1.13l.2 2.3h5.2l.2-2.3a6.6 6.6 0 0 0 1.67-1.13l2.13.86 1.6-2.77-1.7-1.33c.07-.33.1-.68.1-1.03z"/>
+          </svg>
+          已配置
+        </button>
+      </header>
+
+      <!-- 快速连接 -->
+      <section class="quick-card">
+        <div class="quick-label">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="8" cy="8" r="8" opacity="0.85"/>
+          </svg>
+          快速连接
+        </div>
+        <div class="quick-row">
+          <div class="peer-field">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1.5" y="3" width="13" height="9.5" rx="2"/>
+              <path d="M6.2 15.5h3.6M8 12.5v3"/>
+              <path d="M5 6h6M5 8.5h3.5"/>
+            </svg>
+            <input type="text" placeholder="输入对方设备 ID，例如 123 456 789" spellcheck="false" autocomplete="off">
+            <span class="hint">回车连接 ⏎</span>
+          </div>
+          <button class="connect-btn">连接</button>
+        </div>
+      </section>
+
+      <!-- 列表工具栏 -->
+      <div class="list-toolbar">
+        <div class="list-title">最近连接 <span class="count">3</span></div>
+        <div class="toolbar-right">
+          <div class="segmented">
+            <button class="active">全部</button>
+            <button>收藏</button>
+          </div>
+          <div class="search">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <circle cx="7" cy="7" r="4.6"/>
+              <path d="M10.5 10.5 14 14"/>
+            </svg>
+            <input type="text" placeholder="搜索名称或 ID">
+          </div>
+        </div>
+      </div>
+
+      <!-- 设备列表 -->
+      <div class="list-wrap">
+        <div class="device-card">
+          <div class="avatar">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1.5" y="3" width="13" height="9.5" rx="2"/>
+              <path d="M6.2 15.5h3.6M8 12.5v3"/>
+            </svg>
+          </div>
+          <button class="fav-btn on" title="取消收藏">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1.5l2 4.05 4.47.65-3.23 3.15.76 4.45L8 11.6l-4 2.2.76-4.45L1.53 6.2 6 5.55z"/>
+            </svg>
+          </button>
+          <div class="dev-info">
+            <div class="dev-name">MacBook Pro · 办公室</div>
+            <div class="dev-meta">
+              <span class="id">123 456 789</span>
+              <span class="sep">·</span>
+              <span>5 分钟前</span>
+              <span class="badge">已验证</span>
+            </div>
+          </div>
+          <div class="dev-actions">
+            <span class="lock" title="密码已保存">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="7" width="10" height="8" rx="2"/>
+                <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>
+              </svg>
+            </span>
+            <button class="row-connect">连接</button>
+            <button class="more-btn" title="更多操作">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="3" cy="8" r="1.6"/><circle cx="8" cy="8" r="1.6"/><circle cx="13" cy="8" r="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="device-card">
+          <div class="avatar">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="12" height="8" rx="2"/>
+              <path d="M5 14h6M8 10v4"/>
+            </svg>
+          </div>
+          <button class="fav-btn" title="收藏">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
+              <path d="M8 1.5l2 4.05 4.47.65-3.23 3.15.76 4.45L8 11.6l-4 2.2.76-4.45L1.53 6.2 6 5.55z"/>
+            </svg>
+          </button>
+          <div class="dev-info">
+            <div class="dev-name">研发测试机</div>
+            <div class="dev-meta">
+              <span class="id">987 654 321</span>
+              <span class="sep">·</span>
+              <span>昨天</span>
+            </div>
+          </div>
+          <div class="dev-actions">
+            <span class="lock off" title="未保存密码">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="7" width="10" height="8" rx="2"/>
+                <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2M2 2l12 12"/>
+              </svg>
+            </span>
+            <button class="row-connect">连接</button>
+            <button class="more-btn" title="更多操作">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="3" cy="8" r="1.6"/><circle cx="8" cy="8" r="1.6"/><circle cx="13" cy="8" r="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="device-card">
+          <div class="avatar">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2.5" y="1.5" width="11" height="13" rx="2"/>
+              <path d="M6 11.5h4"/>
+            </svg>
+          </div>
+          <button class="fav-btn" title="收藏">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
+              <path d="M8 1.5l2 4.05 4.47.65-3.23 3.15.76 4.45L8 11.6l-4 2.2.76-4.45L1.53 6.2 6 5.55z"/>
+            </svg>
+          </button>
+          <div class="dev-info">
+            <div class="dev-name">家庭台式机</div>
+            <div class="dev-meta">
+              <span class="id">246 810 121</span>
+              <span class="sep">·</span>
+              <span>3 天前</span>
+            </div>
+          </div>
+          <div class="dev-actions">
+            <span class="lock" title="密码已保存">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="7" width="10" height="8" rx="2"/>
+                <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>
+              </svg>
+            </span>
+            <button class="row-connect">连接</button>
+            <button class="more-btn" title="更多操作">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="3" cy="8" r="1.6"/><circle cx="8" cy="8" r="1.6"/><circle cx="13" cy="8" r="1.6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部状态栏 -->
+      <footer class="footer">
+        <span class="status-dot"></span>
+        <span class="status-text">就绪</span>
+        <span class="right"><span class="version">v1.0.2 · ABI v5</span></span>
+      </footer>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h2>本次优化点（相对当前 HomeView）</h2>
+    <ul>
+      <li><b>快速连接区</b>：从「扁平容器 + 17px 输入框」升级为分组卡片 + 34px 输入框（接近系统 large 控件），内嵌设备图标与「回车连接」提示，聚焦时系统风蓝色 focus ring；连接按钮用 macOS 标准 accent 纯色填充。</li>
+      <li><b>Header</b>：使用 FarPane 图形标和字标，服务器按钮变为带状态指示点的按钮（未配置橙色 / 已配置绿色），标题降为 24px 页面级字号。</li>
+      <li><b>设备列表</b>：每行增加低调的设备类型图标（灰底圆角方块），行距更宽松，悬停整行浅色高亮（同系统设置列表）；ID 等宽数字字体；已验证设备显示绿色徽标。</li>
+      <li><b>原生感</b>：去掉毛玻璃、强阴影、渐变背景与发光装饰；背景为纯 <code>windowBackgroundColor</code>，控件尺寸、圆角、focus ring 对齐 macOS 系统控件。</li>
+      <li><b>细节</b>：状态点、版本号胶囊、空状态图标、滚动条样式，所有控件带 hover/active 反馈。</li>
+    </ul>
+    <p style="margin-top:10px;">💡 深色模式自动生效（系统切换即可预览）。此稿确认后，我会按此视觉在 <code>HomeView.swift</code> 中用 AppKit 等价 API 还原（<code>NSTextField</code> + <code>NSButton</code> + <code>NSVisualEffectView</code> 仅在窗口层）。</p>
+  </div>
+
+</body>
+</html>

@@ -57,7 +57,7 @@ flowchart LR
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│ RustDesk Native Viewer                     当前服务器  ⚙︎   │
+│ FarPane                                    当前服务器  ⚙︎   │
 │                                                              │
 │ 控制远程设备                                                  │
 │ ┌────────────────────────────────────────┐  ┌──────────┐     │
@@ -265,7 +265,7 @@ io.rustdesknative.viewer.device-password
 使用 `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`，不启用 iCloud 同步，不与官方
 RustDesk 共享 access group。
 
-设备列表建议保存在：
+设备列表继续保存在既有兼容路径：
 
 ```text
 ~/Library/Application Support/RustDesk Native Viewer/catalog-v1.json
@@ -479,7 +479,7 @@ Sources/ConnectionCatalog/
 ### 16.3 共存
 
 - `/Applications/RustDesk.app` 可以继续运行并接收入站连接。
-- `~/Applications/RustDesk Native Viewer.app` 可以同时建立出站连接。
+- `~/Applications/FarPane.app` 可以同时建立出站连接。
 - 两个应用的设置、密码、权限身份和系统服务互不覆盖。
 
 ## 17. 完成定义
