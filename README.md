@@ -21,9 +21,10 @@ modifiers and AppKit-committed UTF-8 text through ABI v5. Standard-mode IME
 composition stays local; only committed text crosses the boundary through
 RustDesk Core. Exclusive mode sends macOS physical key positions through the
 pinned Core's keyboard-map path so the remote input method owns composition.
-The AppKit shell currently provides a single-profile connection form, sanitized
-state and error text, full-screen control, a performance HUD and an explicit manual
-remote-feedback checklist. Pointer and keyboard events remain semantic at the
+The AppKit shell provides a multi-device home screen, optional Keychain-backed
+quick connect, sanitized state and error text, a compact full-screen session
+controller, an opt-in performance HUD and an explicit manual remote-feedback
+checklist. Pointer and keyboard events remain semantic at the
 C ABI; the pinned RustDesk Core constructs and sends the actual protocol
 messages after the remote grants control permission.
 
@@ -55,13 +56,16 @@ only for non-TCC development with `RDN_ALLOW_ADHOC_SIGNING=1` and is rejected by
 the installer because its CDHash-bound identity would require authorization
 again after every rebuild.
 
-Launching the installed app without arguments opens the connection form. The
-product UI accepts a RustDesk ID server, server public key, device ID and an
+Launching the installed app without arguments opens the device home screen.
+The server settings accept a RustDesk ID server, server public key and an
 optional force-relay mode; RustDesk Core discovers the actual relay in the
 normal self-hosted configuration. The bundled Core path is intentionally not a
-user-facing setting. The operator may save the non-password connection profile
-locally or clear it from the form. The password field is cleared after
-connection and is never persisted. Automated benchmark
+user-facing setting. Successful devices are retained in a local versioned
+catalog with favorites, aliases and recent-connection time. A fixed password is
+saved only when the operator explicitly opts in, and only in this App's local
+macOS Keychain service; passwords never enter the catalog, `UserDefaults` or
+logs. The legacy single non-password profile is migrated once as an unverified
+device. Automated benchmark
 mode takes connection values from named environment variables and immediately
 removes them from the App process environment; peer/server/key material is not
 placed in command arguments or logs.
