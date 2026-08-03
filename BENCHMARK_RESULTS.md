@@ -188,7 +188,7 @@ Control-Option-Shift-Escape exit chord and releases held remote keys on manual
 exit, focus loss, connection loss or event-tap failure. It records activation
 and failure counters without recording key content.
 
-The Apple Silicon development baseline passes all 28 Swift tests (the optional
+The Apple Silicon development baseline passes all 29 Swift tests (the optional
 built-Core test also passes when pointed at the local arm64 ABI v4 library),
 and the Release build succeeds. These local results do not prove that macOS
 actually intercepts Command-Space or Command-Tab. A clean Intel MBP run through
