@@ -22,7 +22,7 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 4;
+const ABI_VERSION: u32 = 5;
 const MAX_TEXT_BYTES: usize = 4_096;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 
@@ -166,6 +166,7 @@ pub enum RDNKeyCode {
     End = 16,
     PageUp = 17,
     PageDown = 18,
+    Physical = 19,
 }
 
 #[repr(C)]
@@ -173,6 +174,7 @@ pub struct RDNKeyEvent {
     abi_version: u32,
     code: RDNKeyCode,
     unicode_scalar: u32,
+    hardware_keycode: u32,
     down: bool,
     modifiers: u32,
 }
@@ -780,8 +782,15 @@ fn key_name(code: RDNKeyCode, unicode_scalar: u32) -> Option<String> {
         RDNKeyCode::End => "VK_END",
         RDNKeyCode::PageUp => "VK_PRIOR",
         RDNKeyCode::PageDown => "VK_NEXT",
+        RDNKeyCode::Physical => return None,
     };
     Some(special.to_owned())
+}
+
+fn physical_macos_keycode(value: u32) -> Option<i32> {
+    // macOS virtual hardware key positions are 7-bit values. Keeping this
+    // validation in Rust prevents Swift from exposing RustDesk wire details.
+    (value <= 0x7f).then_some(value as i32)
 }
 
 fn modifiers(value: u32) -> Option<(bool, bool, bool, bool)> {
@@ -871,8 +880,21 @@ pub unsafe extern "C" fn rdn_client_send_key(
     if !client.shared.input_allowed.load(Ordering::Acquire) {
         return -6;
     }
-    let Some(name) = key_name(event.code, event.unicode_scalar) else {
-        return -4;
+    let physical_keycode = if event.code == RDNKeyCode::Physical {
+        let Some(keycode) = physical_macos_keycode(event.hardware_keycode) else {
+            return -4;
+        };
+        Some(keycode)
+    } else {
+        None
+    };
+    let name = if physical_keycode.is_none() {
+        let Some(name) = key_name(event.code, event.unicode_scalar) else {
+            return -4;
+        };
+        Some(name)
+    } else {
+        None
     };
     let Some((alt, ctrl, shift, command)) = modifiers(event.modifiers) else {
         return -4;
@@ -881,7 +903,19 @@ pub unsafe extern "C" fn rdn_client_send_key(
     let Some(session) = session else {
         return -3;
     };
-    session.input_key(&name, event.down, false, alt, ctrl, shift, command);
+    if let Some(keycode) = physical_keycode {
+        session.handle_flutter_raw_key_event("map", "", keycode, keycode, 0, event.down);
+        return 0;
+    }
+    session.input_key(
+        name.as_deref().expect("semantic key name was validated"),
+        event.down,
+        false,
+        alt,
+        ctrl,
+        shift,
+        command,
+    );
     0
 }
 
@@ -1070,6 +1104,9 @@ mod tests {
         assert_eq!(key_name(RDNKeyCode::Return, 0).as_deref(), Some("VK_RETURN"));
         assert_eq!(key_name(RDNKeyCode::Command, 0).as_deref(), Some("Meta"));
         assert!(key_name(RDNKeyCode::Character, 0x11_0000).is_none());
+        assert_eq!(physical_macos_keycode(0), Some(0));
+        assert_eq!(physical_macos_keycode(0x7f), Some(0x7f));
+        assert_eq!(physical_macos_keycode(0x80), None);
     }
 
     #[test]

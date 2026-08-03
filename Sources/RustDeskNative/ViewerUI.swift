@@ -1,30 +1,57 @@
 import AppKit
 import VideoPipeline
+import ViewerInput
 
 struct InteractiveConnectionDraft {
-    let coreLibrary: String
     let rendezvousServer: String
     let serverPublicKey: String
     let peerID: String
     let password: String
     let forceRelay: Bool
+    let rememberProfile: Bool
+
+    var profile: ViewerConnectionProfile {
+        ViewerConnectionProfile(
+            rendezvousServer: rendezvousServer,
+            serverPublicKey: serverPublicKey,
+            peerID: peerID,
+            forceRelay: forceRelay
+        )
+    }
 }
 
 final class ConnectionView: NSView {
     var onConnect: ((InteractiveConnectionDraft) -> Void)?
+    var onClearSavedProfile: (() -> Void)?
 
-    private let coreField = NSTextField()
     private let serverField = NSTextField()
     private let keyField = NSTextField()
     private let peerField = NSTextField()
     private let passwordField = NSSecureTextField()
-    private let relayButton = NSButton(checkboxWithTitle: "强制使用 Hermes 中继", target: nil, action: nil)
+    private let relayButton = NSButton(
+        checkboxWithTitle: "始终通过中继连接（受限网络或排障时使用）",
+        target: nil,
+        action: nil
+    )
+    private let rememberButton = NSButton(
+        checkboxWithTitle: "记住服务器与设备 ID",
+        target: nil,
+        action: nil
+    )
+    private let clearButton = NSButton(title: "清除已保存配置", target: nil, action: nil)
     private let errorLabel = NSTextField(labelWithString: "")
     private let connectButton = NSButton(title: "连接", target: nil, action: nil)
 
-    init(defaultCorePath: String) {
+    init(savedProfile: ViewerConnectionProfile?) {
         super.init(frame: .zero)
-        coreField.stringValue = defaultCorePath
+        if let savedProfile {
+            serverField.stringValue = savedProfile.rendezvousServer
+            keyField.stringValue = savedProfile.serverPublicKey
+            peerField.stringValue = savedProfile.peerID
+            relayButton.state = savedProfile.forceRelay ? .on : .off
+        }
+        rememberButton.state = .on
+        clearButton.isHidden = savedProfile == nil
         configure()
     }
 
@@ -40,44 +67,76 @@ final class ConnectionView: NSView {
         wantsLayer = true
         layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
 
-        let title = NSTextField(labelWithString: "RustDesk Native Viewer")
-        title.font = .systemFont(ofSize: 28, weight: .semibold)
-        let subtitle = NSTextField(labelWithString: "连接、认证和输入协议均由固定版本 RustDesk Core 处理")
+        let product = NSTextField(labelWithString: "RustDesk Native Viewer")
+        product.font = .systemFont(ofSize: 13, weight: .semibold)
+        product.textColor = .secondaryLabelColor
+        let title = NSTextField(labelWithString: "连接远程设备")
+        title.font = .systemFont(ofSize: 30, weight: .semibold)
+        let subtitle = NSTextField(
+            wrappingLabelWithString: "连接、认证、加密与输入协议由内置 RustDesk Core 处理。"
+        )
         subtitle.textColor = .secondaryLabelColor
-        let security = NSTextField(wrappingLabelWithString: "密码仅用于本次连接，不会持久化，也不会写入日志或证据。")
+        let security = NSTextField(
+            wrappingLabelWithString: "密码仅用于本次连接，始终不会保存；服务器配置仅在勾选后保存在本机。"
+        )
         security.textColor = .secondaryLabelColor
 
-        let form = NSGridView(views: [
-            [NSTextField(labelWithString: "Core 动态库"), coreField],
-            [NSTextField(labelWithString: "Hermes 服务"), serverField],
-            [NSTextField(labelWithString: "服务公钥"), keyField],
-            [NSTextField(labelWithString: "远端 ID"), peerField],
-            [NSTextField(labelWithString: "密码"), passwordField],
-        ])
-        form.rowSpacing = 12
-        form.columnSpacing = 14
-        form.column(at: 0).xPlacement = .trailing
-        form.column(at: 1).width = 430
-        [coreField, serverField, keyField, peerField, passwordField].forEach {
-            $0.font = .systemFont(ofSize: 14)
-        }
+        peerField.placeholderString = "远端 RustDesk 设备 ID"
+        passwordField.placeholderString = "本次连接使用的密码"
+        serverField.placeholderString = "例如 rustdesk.example.com:21116"
+        keyField.placeholderString = "自建服务器公钥"
 
-        relayButton.state = .on
+        let deviceForm = configuredGrid([
+            [NSTextField(labelWithString: "设备 ID"), peerField],
+            [NSTextField(labelWithString: "访问密码"), passwordField],
+        ])
+        let serverForm = configuredGrid([
+            [NSTextField(labelWithString: "ID 服务器"), serverField],
+            [NSTextField(labelWithString: "服务器公钥"), keyField],
+        ])
+        let serverHelp = NSTextField(
+            wrappingLabelWithString: "通常只需填写 hbbs 地址与公钥；中继地址由 RustDesk Core 自动发现。"
+        )
+        serverHelp.textColor = .tertiaryLabelColor
+        serverHelp.font = .systemFont(ofSize: 12)
+
         connectButton.bezelStyle = .rounded
         connectButton.keyEquivalent = "\r"
         connectButton.target = self
         connectButton.action = #selector(connect)
         errorLabel.textColor = .systemRed
         errorLabel.isHidden = true
+        clearButton.bezelStyle = .inline
+        clearButton.target = self
+        clearButton.action = #selector(clearSavedProfile)
+
+        let persistence = NSStackView(views: [rememberButton, clearButton])
+        persistence.orientation = .horizontal
+        persistence.alignment = .centerY
+        persistence.spacing = 12
 
         let actions = NSStackView(views: [relayButton, NSView(), connectButton])
         actions.orientation = .horizontal
         actions.alignment = .centerY
 
-        let stack = NSStackView(views: [title, subtitle, form, security, errorLabel, actions])
+        let stack = NSStackView(views: [
+            product,
+            title,
+            subtitle,
+            sectionTitle("远程设备"),
+            deviceForm,
+            sectionTitle("服务器"),
+            serverForm,
+            serverHelp,
+            persistence,
+            security,
+            errorLabel,
+            actions,
+        ])
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 18
+        stack.spacing = 14
+        stack.setCustomSpacing(4, after: product)
         stack.setCustomSpacing(6, after: title)
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
@@ -88,27 +147,57 @@ final class ConnectionView: NSView {
             actions.widthAnchor.constraint(equalTo: stack.widthAnchor),
             errorLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             security.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            serverHelp.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
+    }
+
+    private func sectionTitle(_ value: String) -> NSTextField {
+        let label = NSTextField(labelWithString: value)
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        return label
+    }
+
+    private func configuredGrid(_ rows: [[NSView]]) -> NSGridView {
+        let grid = NSGridView(views: rows)
+        grid.rowSpacing = 10
+        grid.columnSpacing = 14
+        grid.column(at: 0).xPlacement = .trailing
+        grid.column(at: 1).width = 430
+        rows.flatMap { $0 }.forEach { view in
+            (view as? NSTextField)?.font = .systemFont(ofSize: 14)
+        }
+        return grid
     }
 
     @objc private func connect() {
         let draft = InteractiveConnectionDraft(
-            coreLibrary: coreField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
             rendezvousServer: serverField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
             serverPublicKey: keyField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
             peerID: peerField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
             password: passwordField.stringValue,
-            forceRelay: relayButton.state == .on
+            forceRelay: relayButton.state == .on,
+            rememberProfile: rememberButton.state == .on
         )
-        guard !draft.coreLibrary.isEmpty, !draft.rendezvousServer.isEmpty,
-              !draft.serverPublicKey.isEmpty, !draft.peerID.isEmpty else {
-            showError("请填写 Core 动态库、Hermes 服务、公钥和远端 ID。")
+        guard !draft.rendezvousServer.isEmpty,
+              !draft.serverPublicKey.isEmpty,
+              !draft.peerID.isEmpty else {
+            showError("请填写设备 ID、RustDesk ID 服务器和服务器公钥。")
             return
         }
         connectButton.isEnabled = false
         errorLabel.isHidden = true
         onConnect?(draft)
         passwordField.stringValue = ""
+    }
+
+    @objc private func clearSavedProfile() {
+        serverField.stringValue = ""
+        keyField.stringValue = ""
+        peerField.stringValue = ""
+        passwordField.stringValue = ""
+        relayButton.state = .off
+        clearButton.isHidden = true
+        onClearSavedProfile?()
     }
 }
 
@@ -117,20 +206,28 @@ final class ViewerChromeView: NSView {
     var onDisconnect: (() -> Void)?
     var onToggleFullscreen: (() -> Void)?
     var onToggleKeyboardGrab: (() -> Void)?
+    var onOpenKeyboardPermissions: (() -> Void)?
 
     private let hudPanel = NSVisualEffectView()
     private let hudLabel = NSTextField(labelWithString: "正在等待视频…")
     private let stateLabel = NSTextField(labelWithString: "正在连接…")
     private let keyboardStatusLabel = NSTextField(labelWithString: "")
     private let keyboardGrabButton = NSButton(title: "独占键盘", target: nil, action: nil)
+    private let keyboardPermissionButton = NSButton(title: "权限设置", target: nil, action: nil)
+    private let showsAcceptanceControls: Bool
     private var hudVisible = true
     private var keyboardGrabActive = false
     private var keyboardGrabAvailable = false
     private weak var metrics: PipelineMetrics?
 
-    init(videoView: ViewerMetalView, metrics: PipelineMetrics) {
+    init(
+        videoView: ViewerMetalView,
+        metrics: PipelineMetrics,
+        showsAcceptanceControls: Bool
+    ) {
         self.videoView = videoView
         self.metrics = metrics
+        self.showsAcceptanceControls = showsAcceptanceControls
         super.init(frame: .zero)
         configure()
     }
@@ -154,6 +251,7 @@ final class ViewerChromeView: NSView {
         keyboardStatusLabel.stringValue = message ?? ""
         keyboardStatusLabel.textColor = isError ? .systemRed : .systemOrange
         keyboardStatusLabel.isHidden = message?.isEmpty != false
+        keyboardPermissionButton.isHidden = !isError
     }
 
     func updateHUD(_ value: PipelineHUDSnapshot) {
@@ -206,10 +304,17 @@ final class ViewerChromeView: NSView {
         keyboardGrabButton.action = #selector(toggleKeyboardGrab)
         keyboardGrabButton.isEnabled = false
         keyboardGrabButton.toolTip = "捕获本机系统快捷键并发送到远端；按 ⌃⌥⇧Esc 退出"
-        let toolbar = NSStackView(views: [
-            stateLabel, NSView(), keyboardStatusLabel, keyboardGrabButton,
-            acceptance, hud, fullscreen, disconnect,
-        ])
+        keyboardPermissionButton.bezelStyle = .inline
+        keyboardPermissionButton.target = self
+        keyboardPermissionButton.action = #selector(openKeyboardPermissions)
+        keyboardPermissionButton.isHidden = true
+        var toolbarViews: [NSView] = [
+            stateLabel, NSView(), keyboardStatusLabel, keyboardPermissionButton,
+            keyboardGrabButton,
+        ]
+        if showsAcceptanceControls { toolbarViews.append(acceptance) }
+        toolbarViews.append(contentsOf: [hud, fullscreen, disconnect])
+        let toolbar = NSStackView(views: toolbarViews)
         toolbar.orientation = .horizontal
         toolbar.alignment = .centerY
         toolbar.spacing = 8
@@ -249,6 +354,8 @@ final class ViewerChromeView: NSView {
 
     @objc private func toggleKeyboardGrab() { onToggleKeyboardGrab?() }
 
+    @objc private func openKeyboardPermissions() { onOpenKeyboardPermissions?() }
+
     @objc private func disconnect() { onDisconnect?() }
 
     @objc private func showChecklist() {
@@ -279,7 +386,7 @@ final class ViewerChromeView: NSView {
         }
         stack.frame = NSRect(x: 0, y: 0, width: 420, height: 272)
         let alert = NSAlert()
-        alert.messageText = "Phase 3 人工功能反馈"
+        alert.messageText = "人工功能反馈"
         alert.informativeText = "只勾选已在真实远端画面中亲自确认成功的项目。"
         alert.accessoryView = stack
         alert.addButton(withTitle: "保存")

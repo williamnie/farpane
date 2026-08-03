@@ -7,11 +7,13 @@
     <key>CFBundleExecutable</key>
     <string>RustDeskNative</string>
     <key>CFBundleIdentifier</key>
-    <string>io.rustdesknative.viewer.prototype</string>
+    <string>io.rustdesknative.viewer</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>RustDeskNative</string>
+    <string>RustDesk Native Viewer</string>
+    <key>CFBundleDisplayName</key>
+    <string>RustDesk Native Viewer</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -22,6 +24,7 @@
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
 </dict>
 </plist>
-

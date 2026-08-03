@@ -1,7 +1,7 @@
-# RustDesk Native Viewer 设计方案
+# RustDesk Native Viewer 架构基线
 
-状态：Draft / 可进入性能原型开发  
-更新时间：2026-08-02  
+状态：Phase 0–3 已实现并完成 Intel/Hermes 验收；后续页面产品化见 `product-ui-design.md`  
+更新时间：2026-08-03  
 目标平台：macOS 13+，首要验收设备为 Intel MacBook Pro
 
 ## 1. 项目目标
@@ -222,7 +222,10 @@ UI 建议使用 SwiftUI 管理普通界面，视频视图通过 `NSViewRepresent
 
 ```text
 rustdeskNative/
-├── DESIGN.md
+├── docs/
+│   ├── README.md
+│   ├── architecture.md
+│   └── product-ui-design.md
 ├── RustDeskNative.xcodeproj
 ├── App/
 │   ├── RustDeskNativeApp.swift
@@ -295,12 +298,35 @@ rustdeskNative/
 
 Phase 3 验收后的兼容性跟进增加可显式开启的“独占键盘”模式：默认标准
 模式继续使用本地 AppKit 输入法；独占模式通过 macOS session event tap
-截获受支持的键盘事件，并仍经 ABI v4 语义事件和 pinned RustDesk Core
-发送，使 `Command-Space`、`Command-Tab` 等系统快捷键由远端处理。
-`Control-Option-Shift-Escape` 是本地逃生组合；窗口或应用失焦、连接失去
-控制权、event tap 被系统停用时必须释放远端按键并恢复本地输入。该跟进
-不修改既有 Phase 3 正式证据，须另行通过 Intel/Hermes 实机验证后才算
-独占快捷键能力验收完成。
+截获受支持的键盘事件，经 ABI v5 传递 macOS 物理键位，并复用 pinned
+RustDesk Core 的 keyboard-map 路径，使 `Command-Space`、`Command-Tab`
+等系统快捷键和输入法组合由远端处理。
+`Control-Option-Shift-Escape` 是本地逃生组合；窗口或应用失焦时必须立即
+释放远端按键并恢复本地输入，用户返回 Viewer 后仅在此前明确开启过独占
+模式时自动恢复。手动关闭、逃生组合、连接失去控制权、权限失败或 event
+tap 被系统停用时必须清除自动恢复意图。该跟进不修改既有 Phase 3 正式
+证据，须另行通过 Intel/Hermes 实机验证后才算独占快捷键能力验收完成。
+
+Phase 3 当前连接界面不得出现验收环境名称或 Core 动态库路径。用户只配置
+设备 ID、一次性密码、RustDesk ID 服务器与服务器公钥；正常部署由
+RustDesk Core 从 hbbs 发现中继，强制中继仅作为高级连接模式。当前实现中
+服务器、公钥与设备 ID 只在用户勾选后保存在本机，密码不进入普通持久化
+profile。后续多设备、Keychain 凭据与快速连接以
+`product-ui-design.md` 为准。
+
+macOS 产品包固定使用 `io.rustdesknative.viewer`，由同一 Apple Development
+身份签名并安装到 `~/Applications/RustDesk Native Viewer.app`。构建脚本
+必须拒绝把 CDHash 绑定的 ad-hoc 包作为可安装产品，以保证二进制和构建号
+变化后 TCC 仍根据稳定 designated requirement 识别同一应用。辅助功能与
+输入监控只需在首次安装或签名身份真正变化时重新授权。
+
+最终安装包 `2026080306` 已在 Intel MBP 完成跨重打包 TCC 验证和真实链路
+组合验收。当前远端运行中由 `4096x2304` 切换至 `3840x2160`，固定分辨率
+单次门禁因此如实失败；同一最终 build 的独立短验分别覆盖
+`4096x2304` 管线以及当前 `3840x2160`、全屏、HUD 和独占键盘自动恢复。
+组合证据位于 `Evidence/IntelMBP/2026-08-03/Productization/`，既有 Phase 3
+证据保持不变。固定 4096x2304 性能基线与允许分辨率切换的产品稳定性门禁
+必须继续分开解释，不能通过降低原性能门槛消除失败记录。
 
 ### Phase 4：稳态与打包
 

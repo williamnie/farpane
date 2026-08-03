@@ -100,3 +100,24 @@ public struct ExclusiveKeyboardStateMachine {
 
     private static let modifierKeyCodes: Set<UInt16> = [54, 55, 56, 60, 58, 61, 59, 62]
 }
+
+/// Remembers an explicit user request while focus is temporarily elsewhere.
+/// Manual exit, an exit chord in progress, permission failure or connection
+/// loss must cancel the request instead of unexpectedly grabbing the keyboard.
+public struct ExclusiveKeyboardFocusIntent {
+    public private(set) var shouldResume = false
+
+    public init() {}
+
+    public mutating func request() {
+        shouldResume = true
+    }
+
+    public mutating func cancel() {
+        shouldResume = false
+    }
+
+    public mutating func prepareForFocusLoss(state: ExclusiveKeyboardState) {
+        if state == .releasingExitChord { cancel() }
+    }
+}

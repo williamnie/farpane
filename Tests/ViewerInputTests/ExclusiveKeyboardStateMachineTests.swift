@@ -90,4 +90,21 @@ final class ExclusiveKeyboardStateMachineTests: XCTestCase {
             machine.handle(keyCode: 0, isDown: false, modifiers: []).forwardRemotely
         )
     }
+
+    func testFocusIntentResumesOnlyAfterTemporaryFocusLoss() {
+        var intent = ExclusiveKeyboardFocusIntent()
+        intent.request()
+        intent.prepareForFocusLoss(state: .active)
+        XCTAssertTrue(intent.shouldResume)
+
+        intent.cancel()
+        XCTAssertFalse(intent.shouldResume)
+    }
+
+    func testFocusIntentCancelsDuringExitChord() {
+        var intent = ExclusiveKeyboardFocusIntent()
+        intent.request()
+        intent.prepareForFocusLoss(state: .releasingExitChord)
+        XCTAssertFalse(intent.shouldResume)
+    }
 }

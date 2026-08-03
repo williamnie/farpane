@@ -1,6 +1,7 @@
-# RustDesk Native Viewer performance prototype
+# RustDesk Native Viewer
 
-This repository implements the `DESIGN.md` Phase 0/1 video pipeline, the
+This repository implements the [`docs/architecture.md`](docs/architecture.md)
+Phase 0/1 video pipeline, the
 accepted Phase 2 RustDesk Core Bridge, and the Phase 3 input/viewer surface.
 The macOS 13+ AppKit viewer can drive fixed HEVC fixtures through
 VideoToolbox hardware decode into NV12 IOSurface-backed `CVPixelBuffer`s, maps
@@ -16,10 +17,12 @@ full-frame RGBA conversion or fallback path.
 
 Phase 3 adds aspect-fit/Retina coordinate mapping, mouse buttons and drag,
 discrete/precise wheel input, basic keyboard events, key repeat, common
-modifiers and AppKit-committed UTF-8 text through ABI v4. IME composition stays
-local; only committed text crosses the boundary through RustDesk Core.
-The AppKit shell provides a non-persistent connection form, sanitized state and
-error text, full-screen control, a performance HUD and an explicit manual
+modifiers and AppKit-committed UTF-8 text through ABI v5. Standard-mode IME
+composition stays local; only committed text crosses the boundary through
+RustDesk Core. Exclusive mode sends macOS physical key positions through the
+pinned Core's keyboard-map path so the remote input method owns composition.
+The AppKit shell currently provides a single-profile connection form, sanitized
+state and error text, full-screen control, a performance HUD and an explicit manual
 remote-feedback checklist. Pointer and keyboard events remain semantic at the
 C ABI; the pinned RustDesk Core constructs and sends the actual protocol
 messages after the remote grants control permission.
@@ -36,11 +39,29 @@ xcodebuild -scheme RustDeskNative \
 Scripts/build-universal.sh
 ```
 
-The last command produces an ad-hoc signed universal app at
-`Build/RustDeskNative.app`.
+The last command requires one Apple Development signing identity and produces a
+stable-identity universal app at `Build/RustDeskNative.app`. Both arm64 and
+x86_64 Core libraries must be present. Install it at the fixed per-user path:
 
-Launching that app without arguments opens the connection form. The password
-field is cleared after connection and is never persisted. Automated benchmark
+```sh
+Scripts/install-local-macos.sh
+```
+
+The installed product is `~/Applications/RustDesk Native Viewer.app`. Rebuilds
+change the code hash and build number but retain the same bundle identifier,
+Team ID and designated requirement, so Accessibility and Input Monitoring
+permissions remain attached to the product identity. Ad-hoc signing is allowed
+only for non-TCC development with `RDN_ALLOW_ADHOC_SIGNING=1` and is rejected by
+the installer because its CDHash-bound identity would require authorization
+again after every rebuild.
+
+Launching the installed app without arguments opens the connection form. The
+product UI accepts a RustDesk ID server, server public key, device ID and an
+optional force-relay mode; RustDesk Core discovers the actual relay in the
+normal self-hosted configuration. The bundled Core path is intentionally not a
+user-facing setting. The operator may save the non-password connection profile
+locally or clear it from the form. The password field is cleared after
+connection and is never persisted. Automated benchmark
 mode takes connection values from named environment variables and immediately
 removes them from the App process environment; peer/server/key material is not
 placed in command arguments or logs.
@@ -136,7 +157,7 @@ status so a recovery cannot masquerade as uninterrupted presentation.
 
 ## Phase 3 acceptance
 
-Build ABI v4 Core and the Release viewer on the Intel MBP, set the password only
+Build the matching Core and Release viewer on the Intel MBP, set the password only
 in its current interactive shell, and launch the Viewer once without arguments
 to verify that an incomplete form produces only the sanitized local error. Then
 close it, start the GPU motion source on the Mac mini, and run:
@@ -168,19 +189,27 @@ operator-confirmed functional checks and all retained performance/stability
 gates. The authoritative sanitized artifacts and verified checksums are under
 `Evidence/IntelMBP/2026-08-03/Phase3/`.
 
+The separate productization acceptance script checks that `awdl0` is already
+down before starting its 30-minute latency/stability run. It never changes the
+interface itself; restore AWDL after the run if AirDrop or peer-to-peer Apple
+features are needed.
+
 ### Exclusive remote keyboard follow-up
 
 The Viewer also provides an explicit `独占键盘` mode for macOS-reserved
 shortcuts such as Command-Space and Command-Tab. Standard mode remains the
 default and keeps AppKit IME composition local. Exclusive mode installs an
 active session event tap, suppresses supported local key events and forwards
-the same semantic key events through ABI v4, so the remote Mac owns shortcut
-and input-source handling. It requires both Accessibility and Input Monitoring
+physical key-position events through ABI v5, so the remote Mac owns shortcut
+and input-source/IME handling. It requires both Accessibility and Input Monitoring
 permission. Passwords, key content and complete input messages are not logged.
 
-Press `Control-Option-Shift-Escape` to leave exclusive mode. The Viewer also
-fails open and releases captured remote keys when the window/app loses focus,
-the connection stops being controllable, or macOS disables the event tap.
+Press `Control-Option-Shift-Escape` to leave exclusive mode. When the
+window/app temporarily loses focus, the Viewer fails open and releases captured
+remote keys; returning to the Viewer automatically restores exclusive mode if
+the user had explicitly enabled it. Manual exit, the escape chord, loss of
+connection control, permission failure, or a disabled event tap clears that
+restore intent.
 Unsupported media and hardware keys remain local. Touch ID, the power button
 and secure-input fields are outside this mode's guarantee.
 
@@ -190,14 +219,24 @@ After permissions are granted, the dedicated three-minute real-link check is:
 Scripts/run-exclusive-keyboard-preflight-mbp.sh
 ```
 
-Grant both permissions to the fixed bundle path
-`~/rustdeskNativePhase2/Build/RustDeskNative.app`; the preflight deliberately
-launches that signed bundle binary rather than the transient `.build` path.
+Grant both permissions to the fixed installed bundle path
+`~/Applications/RustDesk Native Viewer.app`; the preflight deliberately
+launches that stable-identity bundle rather than the transient `.build` path.
 
 The first permission-grant launch is diagnostic only; close and rerun it after
 granting permission. This follow-up does not alter or replace the already
-accepted Phase 3 evidence. It needs its own clean Intel/Hermes validation before
-the exclusive shortcut behavior is described as accepted.
+accepted Phase 3 evidence. Installed build `2026080306` passed the clean Intel
+real-link preflight, including remote shortcuts and IME input, automatic restore
+after temporary focus loss, balanced key events and the local escape chord.
+
+The final productization evidence combines a 1,800-second daily-operation run,
+a focused current-resolution/full-screen/HUD supplement and a 4096x2304
+preflight of the identical final viewer/Core hashes. It also proves that a
+different signed build retained the same designated requirement without a
+repeated TCC grant. The composite validator explicitly retains the original
+single-run fixed-resolution gate failure instead of presenting it as a clean
+4096x2304 run. Sanitized artifacts and verified checksums are under
+`Evidence/IntelMBP/2026-08-03/Productization/`.
 
 ## Generate fixtures
 
@@ -226,6 +265,15 @@ decoded dimensions, hardware-decode status, NV12 format, IOSurface backing or
 decode-error invariants do not hold.
 
 Fresh Intel MBP results and limitations are recorded in
-`BENCHMARK_RESULTS.md`. The authoritative Phase 2 artifacts, sanitized logs,
+[`docs/benchmark-results.md`](docs/benchmark-results.md). The authoritative
+Phase 2 artifacts, sanitized logs,
 raw samples, independent validation and SHA-256 manifests are under
 `Evidence/IntelMBP/2026-08-03/Phase2/`.
+
+## Documentation
+
+The documentation index is [`docs/README.md`](docs/README.md). In particular,
+the approved implementation baseline remains in
+[`docs/architecture.md`](docs/architecture.md), while the proposed multi-device,
+Keychain quick-connect and floating session-controller page work is specified in
+[`docs/product-ui-design.md`](docs/product-ui-design.md).

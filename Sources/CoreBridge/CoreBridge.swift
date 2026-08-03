@@ -175,6 +175,8 @@ public enum CoreSpecialKey: UInt32, Sendable {
 public enum CoreKey: Sendable, Equatable {
     case character(Unicode.Scalar)
     case special(CoreSpecialKey)
+    /// A macOS hardware key position handled by RustDesk Core's map mode.
+    case physical(UInt16)
 }
 
 public struct CoreKeyEvent: Sendable {
@@ -379,11 +381,21 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         case .special(let value):
             code = value.rawValue
             scalar = 0
+        case .physical:
+            code = 19
+            scalar = 0
+        }
+        let hardwareKeycode: UInt32
+        if case .physical(let value) = event.key {
+            hardwareKeycode = UInt32(value)
+        } else {
+            hardwareKeycode = 0
         }
         var raw = RDNKeyEvent(
             abi_version: RDN_ABI_VERSION,
             code: RDNKeyCode(rawValue: code),
             unicode_scalar: scalar,
+            hardware_keycode: hardwareKeycode,
             down: event.isDown,
             modifiers: event.modifiers.rawValue
         )

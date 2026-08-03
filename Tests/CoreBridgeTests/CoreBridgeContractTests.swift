@@ -3,7 +3,7 @@ import XCTest
 
 final class CoreBridgeContractTests: XCTestCase {
     func testPinsRustDesk149Commit() {
-        XCTAssertEqual(RustDeskCoreClient.abiVersion, 4)
+        XCTAssertEqual(RustDeskCoreClient.abiVersion, 5)
         XCTAssertEqual(
             RustDeskCoreClient.expectedUpstreamCommit,
             "6c578292e8ebbbec708b76986ba8c4bc7c509747"
@@ -35,6 +35,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertEqual(CorePointerKind.preciseScroll.rawValue, 4)
         XCTAssertEqual(CoreKey.character("a"), .character("a"))
         XCTAssertEqual(CoreKey.special(.return), .special(.return))
+        XCTAssertEqual(CoreKey.physical(0), .physical(0))
     }
 
     func testLoadsBuiltCoreAndVerifiesABIWhenProvided() throws {

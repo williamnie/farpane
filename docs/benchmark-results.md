@@ -66,7 +66,7 @@ switch. `automatic` remains conservative (low-power first) until a comparable
 full-screen UHD power/thermal run is available; the core 4K acceptance command
 uses `high-performance` explicitly.
 
-The official RustDesk 1.4.9 measurements in `DESIGN.md` were a real networked
+The official RustDesk 1.4.9 measurements in `architecture.md` were a real networked
 desktop session (about 103%-119% CPU at 4096x2304), while this prototype uses a
 fixed synthetic fixture and has no RustDesk Core/network/input work. The results
 therefore prove the native VideoToolbox/IOSurface/Metal pipeline and eliminate
@@ -181,16 +181,61 @@ the authoritative artifacts and verified manifest are under
 ## Exclusive keyboard follow-up status
 
 An opt-in session event tap now captures supported keyboard events before the
-local macOS shortcut handler and forwards semantic keys through the unchanged
-ABI v4 boundary. Standard AppKit/local-IME behavior remains the default. The
+local macOS shortcut handler and forwards macOS physical key positions through
+the ABI v5 boundary into pinned RustDesk Core's keyboard-map path. Standard
+AppKit/local-IME behavior remains the default; exclusive-mode IME composition
+is owned by the remote Mac. The
 exclusive path has a dedicated state machine for the
 Control-Option-Shift-Escape exit chord and releases held remote keys on manual
 exit, focus loss, connection loss or event-tap failure. It records activation
 and failure counters without recording key content.
 
-The Apple Silicon development baseline passes all 29 Swift tests (the optional
-built-Core test also passes when pointed at the local arm64 ABI v4 library),
-and the Release build succeeds. These local results do not prove that macOS
-actually intercepts Command-Space or Command-Tab. A clean Intel MBP run through
-Hermes with Accessibility and Input Monitoring permission is still required;
-the retained Phase 3 acceptance artifacts are unchanged.
+Focus loss releases all held remote keys and suspends the event tap. Returning
+to the Viewer automatically restores exclusive mode only while the user's
+explicit enable intent remains active; manual exit, the escape chord,
+permission/tap failure, or connection loss clears that intent.
+
+The Apple Silicon development baseline and Intel x86_64 build each pass all 33
+Swift tests (including the optional ABI v5 Core load), 9/9 focused Rust bridge
+tests pass, and the Release build succeeds. On the real Intel/Hermes link,
+installed build `2026080306` passed the dedicated 180.074-second preflight with
+2 exclusive activations, 19/19 balanced key events, zero exclusive failures and
+zero rejected events. The operator also confirmed remote shortcuts, IME input,
+the escape chord, and automatic restoration after switching away from and back
+to the Viewer. A rebuilt binary retained the same designated requirement while
+changing CDHash, and macOS required no repeated Accessibility or Input
+Monitoring grant. These focused results supplement rather than modify the
+retained Phase 3 acceptance artifacts.
+
+## Productization composite acceptance
+
+Installed build `2026080306` completed a 1800.111-second real secure-relay
+daily-operation run. It decoded all 46,789 H265 Annex-B frames, presented
+46,431 (99.235%), kept decoder and renderer queues at two, and recorded zero
+decode errors, reference drops, resets, keyframe requests, packet gaps,
+non-NV12 frames or missing IOSurfaces. The 1,801 external samples measured
+5.805% average App CPU, 60.355MB peak RSS, a 0.441178MB/min steady RSS slope
+and 6.330MB early-to-late steady-window growth.
+
+The operator confirmed all ten productization checks. The long run recorded
+960 pointer moves, 11/11 button events, 516 wheel events, 58/58 key events,
+four exclusive-keyboard activations, zero exclusive failures and zero rejected
+input events. Its original single-run gate remains recorded as failed: remote
+display metadata changed from the retained 4096x2304 baseline to 3840x2160,
+and full-screen feedback had been confirmed without using the instrumented
+toolbar action.
+
+A focused 180.094-second supplement on the same final build decoded the current
+3840x2160 stream at 30.954 encoded and 29.546 presented FPS, recorded six
+instrumented full-screen transitions, two HUD transitions, one exclusive
+activation, 37/37 balanced key events and no pipeline/input failure. A separate
+180.074-second preflight of the identical viewer/Core hashes covered the
+4096x2304 path at 28.994/28.380 encoded/presented FPS. Cross-build validation
+used builds `2026080305` and `2026080306`: their CDHashes differed, their stable
+designated requirement matched, and macOS required no repeated Accessibility
+or Input Monitoring grant.
+
+This is deliberately reported as composite evidence, not as a retroactive pass
+of the failed fixed-resolution single-run gate. The verified artifacts are under
+`Evidence/IntelMBP/2026-08-03/Productization/`; the independent accepted Phase 3
+4096x2304 30-minute baseline remains unchanged.
