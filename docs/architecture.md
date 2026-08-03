@@ -221,7 +221,7 @@ UI 建议使用 SwiftUI 管理普通界面，视频视图通过 `NSViewRepresent
 ## 6. 项目结构建议
 
 ```text
-rustdeskNative/
+farpane/
 ├── docs/
 │   ├── README.md
 │   ├── architecture.md
