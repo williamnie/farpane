@@ -20,6 +20,11 @@
 >
 > FarPane is an independent open-source project, not an official RustDesk client. Connection, authentication, encryption, and wire-protocol handling are provided by a pinned RustDesk Core.
 
+> [!WARNING]
+> **当前只支持“我连接别人”。** FarPane 目前是控制端（Viewer），可以从这台 Mac 连接并控制远端设备；“别人连接我”的被控端（Host Mode）尚未实现。
+>
+> **FarPane currently supports outgoing connections only.** It is a Viewer, not yet a Host that other devices can connect to.
+
 ## 中文
 
 FarPane 是面向 macOS 13 及以上系统的原生远程桌面 Viewer。它使用 AppKit 构建桌面界面，通过 VideoToolbox 硬件解码 H265，并用 Metal 直接渲染 NV12 IOSurface，避免在 CPU 上转换整帧 RGBA。
@@ -37,10 +42,24 @@ FarPane 是面向 macOS 13 及以上系统的原生远程桌面 Viewer。它使�
 
 ### 当前状态
 
-FarPane 已完成真实 RustDesk Core、H265、VideoToolbox、Metal 和输入链路验证。Intel MacBook Pro 的已接受基线包含 30 分钟、4096×2304 的真实 Hermes Relay 会话；原始采样和校验文件位于 [`Evidence/`](Evidence/)。
+FarPane 已完成真实 RustDesk Core、H265、VideoToolbox、Metal 和输入链路验证。它当前只完成远程桌面产品的一半：你可以用这台 Mac 连接并控制另一台设备，但还不能让其他设备连接并控制这台 Mac。
+
+最新的产品化验收是在 Intel MacBook Pro 上通过真实 Hermes 安全中继完成的约 30 分钟会话。低 CPU 并非仅是设计目标：
+
+| 指标 | 已接受结果 |
+| --- | --- |
+| 远端画布 | 4096×2304 H265 |
+| 运行时长 | 1,800.111 秒（约 30 分钟） |
+| 平均 Viewer App CPU | **5.805%** |
+| 解码 / 呈现帧数 | 46,789 / 46,431 |
+| 稳定性 | 0 次解码错误、参考帧丢失、解码器重置、关键帧请求或包间断 |
+| RSS 稳态趋势 | 0.441178 MB/分钟 |
+
+这里的 CPU 是该次验收中 FarPane App 进程的平均值，并非不同硬件、分辨率、网络、画面负载或系统进程的总 CPU。原始采样和校验文件位于 [`Evidence/`](Evidence/)，完整条件与限制见 [`docs/benchmark-results.md`](docs/benchmark-results.md)。
 
 当前边界：
 
+- **被控端（Host Mode）尚未实现**；屏幕采集、硬件编码、TCC 权限、后台服务与入站会话仍处于设计阶段，见 [`docs/host-mode-design.md`](docs/host-mode-design.md)。
 - 仅支持 macOS 13 及以上系统。
 - 当前 Viewer 视频链路以 H265 为正式目标。
 - 音频和剪贴板尚未开放。
@@ -152,10 +171,24 @@ FarPane is a native remote-desktop viewer for macOS 13 and later. It uses AppKit
 
 ### Project status
 
-FarPane has been validated over a real RustDesk Core, H265, VideoToolbox, Metal, and input path. The accepted Intel MacBook Pro baseline includes a 30-minute 4096×2304 session over the real Hermes relay. Raw samples and checksum manifests are retained under [`Evidence/`](Evidence/).
+FarPane has been validated over a real RustDesk Core, H265, VideoToolbox, Metal, and input path. It currently delivers one half of a remote-desktop product: this Mac can connect to and control another device, but it cannot yet accept incoming control as a Host.
+
+The latest productization acceptance was a real secure-relay session on an Intel MacBook Pro. Low CPU is measured, not merely an architectural goal:
+
+| Metric | Accepted result |
+| --- | --- |
+| Remote canvas | 4096×2304 H265 |
+| Runtime | 1,800.111 seconds (about 30 minutes) |
+| Average Viewer App CPU | **5.805%** |
+| Decoded / presented frames | 46,789 / 46,431 |
+| Stability | Zero decode errors, reference drops, decoder resets, keyframe requests, or packet gaps |
+| Steady RSS slope | 0.441178 MB/min |
+
+CPU here is the FarPane App process average for that accepted run, not total system CPU or a guarantee for other hardware, resolutions, networks, or workloads. Raw samples and checksum manifests are retained under [`Evidence/`](Evidence/); see [`docs/benchmark-results.md`](docs/benchmark-results.md) for the complete conditions and limitations.
 
 Current boundaries:
 
+- **Host Mode is not implemented.** Screen capture, hardware encoding, TCC permissions, background services, and incoming sessions remain in design; see [`docs/host-mode-design.md`](docs/host-mode-design.md).
 - macOS 13 or later only.
 - H265 is the qualified video path for the current viewer.
 - Audio and clipboard are disabled.
