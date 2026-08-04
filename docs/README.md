@@ -11,6 +11,7 @@
 | [`product-ui-design.md`](product-ui-design.md) | 已实现设计 | 连接首页、Keychain 快速连接和全屏悬浮控制器的页面设计 |
 | [`research.md`](research.md) | 调研快照 | RustDesk 原生 Core 接入和第三方 wrapper 的复用边界 |
 | [`benchmark-results.md`](benchmark-results.md) | 已验证结果 | Intel MBP Phase 0–3、独占键盘与产品化组合验收的性能、稳定性与限制 |
+| [`host-mode-design.md`](host-mode-design.md) | 设计中 | “别人连接我”的 macOS Host Mode 架构、权限、服务与性能门禁 |
 
 权威的逐次原始证据、日志、采样和校验清单位于 `../Evidence/`；本文档目录只做
 设计说明和结果汇总，不复制或替代原始 Evidence。
