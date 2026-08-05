@@ -1,7 +1,7 @@
 # RustDesk Native “别人连接我”详细设计
 
-> 状态：Draft v0.2
-> 日期：2026-08-04
+> 状态：Draft v0.3
+> 日期：2026-08-05
 > 范围：macOS 原生被控端（Host Mode）
 > 目标读者：产品、macOS、Rust、远程桌面协议与测试开发者
 
@@ -1233,8 +1233,11 @@ flowchart TD
 
 1. V1 是否只支持自托管 hbbs/hbbr（H1 前）；
 2. 永久密码为互操作必须保存可恢复 secret 还是可仅保存 verifier，以 pinned core 真实认证链为准（H3 前）；
-3. canonical server config 的产品存储位置与 Host 专用 config-root patch 形态（H4 前）；
-4. 性能门禁使用哪一代 Mac mini 作为主基线（H0 基线采集前）。
+3. canonical server config 的产品存储位置与 Host 专用 config-root patch 形态（H4 前）。
+
+已确认（2026-08-05）：
+
+4. 性能门禁主基线使用 M4 Pro Mac mini（Mac16,11，Apple Silicon，arm64 优先原则一致）；Intel 仍按 §24 冻结决策 7 作独立功能门禁，性能数据单独记录。
 
 ## 25. 完成定义
 
@@ -1257,3 +1260,113 @@ flowchart TD
 - AGPL 对应源码、修改说明、通知和分发义务已通过清单。
 
 在上述证据齐全之前，状态只能是 Spike、MVP 或受限预览，不能声明产品级被控能力完成。
+
+## 26. 分阶段执行计划（已对齐，勿重复规划）
+
+> 本节为 2026-08-05 与用户对齐后的执行计划，按 §21 的 H0–H6 组织：H0 为基线前置，H1–H6 为六个开发环节；其中 H1 进一步拆为 H1a/H1b/H1c 三个执行阶段。后续开发严格按本节顺序推进，每阶段结束汇报证据，满足退出条件才进入下一阶段，不需要重新规划。
+>
+> `[手动]` 表示需要本机用户在真机上操作的任务（TCC 授权、Instruments、官方客户端连接、干净机安装等）；开发侧负责脚本、模板与证据归档。所有任务范围以本文各节为准，不做功能精简。
+
+### 26.1 阶段 0 — H0 基线与许可证门禁（§4.2、§18、§21 H0）
+
+任务：
+
+- H0.1 AGPL 合规清单：核对 `LICENSE`、`THIRD_PARTY_NOTICES.md`、README 许可证节，产出 Host Mode 对应源码、修改说明与网络交互合规清单；
+- H0.2 进程全局状态盘点：盘点 pinned RustDesk 1.4.9 的 `hbb_common::Config`、`APP_NAME`、lazy init 全局项、实际配置文件与 Keychain 读写集；
+- H0.3 Host patch inventory：沿 `video_service.rs`（capturer/encoder 产生端）、`connection.rs`（codec 协商/订阅/RefreshVideo/QoS）、`service.rs`（`send_video_frame`）确定五个接缝——`NativeVideoSource`、codec 能力注入、refresh/IDR、display、config-root——产出可 review 的 patch 清单（约束见 §6.4）；
+- H0.4 `[手动]` 被控端 CPU 基线：开发侧提供采集脚本与 Instruments 模板；用户在 Mac mini 上运行官方 RustDesk host 四场景（静态桌面/普通操作/滚动/视频），归档到 `Evidence/`。
+
+退出条件：知道 CPU 消耗归属（capture/conversion/encode/network/polling/系统进程）；patch/config 边界可 review；AGPL 清单对 Spike 无阻塞。
+
+> 状态（2026-08-05）：**H0 完成**，详见 `docs/host-mode-h0.md`（§1 AGPL 清单、§2 全局状态盘点、§3 patch inventory、§4.4/§4.5 基线数据与归因）。结论：官方客户端 M4 Pro + 4K 已启用 VT 硬编，静态桌面仍 ~36% CPU，消耗归属为 capture 帧缓冲拷贝/转换 + WindowServer 合成；退出条件全部满足，进入阶段 1（H1a）。
+
+### 26.2 阶段 1 — H1a Host Control ABI 与同进程 HostCore（§6.2、§8.1–8.5、§9、§18）
+
+任务：
+
+- H1a.1 Host Control C ABI：新增 `rdn_host_*` 命名空间（`rdn_host_abi_version` / `create` / `start` / `stop` / `command` / `copy_snapshot` / `destroy`），版本化 JSON envelope，password buffer 用后清零，与现有 Viewer ABI v5 并存合同测试（§20.2）；
+- H1a.2 同进程 HostCore：App 打开时在 App 进程内启动 HostCore（§6.2 允许的 Spike 形态），Host 与 outbound Viewer 互斥（§18 规则 1），并用合同测试证明无残留全局状态；
+- H1a.3 稳定 ID 与临时密码：自托管 hbbs/hbbr 注册获得稳定 ID（§9.1）；CSPRNG 临时密码生成/轮换（§9.2）；HostSnapshot 最小字段集（§8.3）。
+
+退出条件：App 打开 → HostCore 启动 → Rendezvous 注册成功 → snapshot 显示 ready；密码不落文件、日志或 crash metadata。
+
+### 26.3 阶段 2 — H1b 媒体链路（§6.4、§11.1、§11.2、§11.4）
+
+任务：
+
+- H1b.1 `rdn-native-host` feature + `NativeVideoSource`：上游最小 patch，不改变无该 feature 的上游行为；encoded access unit 经进程内 Host Media ABI 注入 `GenericService::send_video_frame`（§6.4 patch inventory 五条约束）；
+- H1b.2 ScreenCaptureKit 采集 adapter：单显示器、仅 macOS 13 API、`420v`/`420f` 直出与 BGRA 双路径探测（§11.1）、每帧记录逻辑 copy count；
+- H1b.3 VideoToolbox H.264 编码器：`kVTCompressionPropertyKey_RealTime`、显式硬件加速要求、首个成功 encode callback 后读回 `UsingHardwareAcceleratedVideoEncoder`、softwareFallback 明确化（§11.4）。
+
+退出条件：SCK→VT→Host Media ABI→Rust writer 全链路通；主路径 raw-frame copy 为 0 或 1 次 GPU/pixel-transfer 转换，无 CPU 全帧转换；硬件编码在首帧后确认。
+
+### 26.4 阶段 3 — H1c Golden Connection（§6.4、§11.6、§20.3）
+
+任务：
+
+- H1c.1 framing golden vectors：AVCC/Annex-B wire framing 规范化、SPS/PPS 传递、PTS 单调、keyframe 标志的单元测试与 fixture（framing 以官方控制端黄金连接实测为准，不凭假设）；
+- H1c.2 RefreshVideo→IDR：远端 `RefreshVideo*` 精确映射为当前 VT session 下一帧 IDR（不重启 video service），与 viewer 侧 `rdn_client_request_keyframe` 构成对称恢复链；
+- H1c.3 `[手动]` 官方控制端真机连接：另一台机器用官方 RustDesk stable 连接本机 Host，单显示器、只看画面、H.264 hardware。
+
+退出条件：§21 H1 退出条件全部满足（真实连接链成功、压缩包经现有 Rust service/writer 发送、远端刷新能恢复画面）。
+
+### 26.5 阶段 4 — H2 性能媒体面（§11.3、§11.5、§11.6、§15）
+
+任务：
+
+- H2.1 遥测与 signpost：§15.1 完整指标集 + capture→encode→packet→send 各阶段 os_signpost；
+- H2.2 dirty rect 与自适应 FPS：`dirtyRects` 可用路径 + macOS 13 attachment 缺失降级（有界 FPS + frame status + 背压），滞回与最短驻留防振荡（§11.3）；
+- H2.3 背压与丢帧正确性：bounded queue（§11.6）、drops 按六类原因分类、已编码参考帧不乱丢、reset 必须显式 flush+IDR；
+- H2.4 HEVC 协商与硬编探测：按当前机器/codec/尺寸实测后才向 Rust 广告能力；Intel HEVC 硬编实测通过才参与协商，否则降级（§11.5）；1080p30、4K30 基线归档 `Evidence/`。
+
+退出条件：达到或明确记录 §15.3 初始门禁；任何失败保留为证据，不通过降低真实画布规避。
+
+### 26.6 阶段 5 — H3 认证、权限与输入（§9.3、§9.4、§10、§12）
+
+任务：
+
+- H3.1 永久密码安全存储：Keychain、verifier 优先（以 pinned core 真实认证链为准）、强度/失败限流/冷却由 Rust HostCore 权威执行；
+- H3.2 审批模式与入站 UI：五种 approval mode（§9.4）、IncomingConnectionRequest 弹窗（§10.3）、一个 connectionId 只允许一次最终决定、超时后 approve 必须失败、认证失败速率限制；
+- H3.3 capability policy 与撤销：会话开始 immutable permission snapshot、会话中撤销输入并清空按键状态防 stuck key（§10.2、§12.1）；
+- H3.4 键盘鼠标注入：Rust 会话授权 → 语义事件 → HostInputAdapter → CGEvent 注入；未授权事件在 Rust 层拒绝，迟到 epoch 事件丢弃。
+
+退出条件：未授权输入无法到达 platform adapter；连接状态和权限在 App 重建后仍正确。
+
+### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
+
+任务：
+
+- H4.1 `--host-agent` mode：AppKit 初始化前参数分流，无 Dock 图标/菜单/窗口（§4.3）；
+- H4.2 SMAppService LaunchAgent：注册/审批/取消注册、`requiresApproval` 引导、组件级状态报告，不以进程存在或 plist 存在冒充 ready（§7.2、§13.1）；
+- H4.3 XPC wire 协议：audit token/Team ID/designated requirement 校验、wire 版本 handshake、snapshot-first 重连、command dedupe、agentBootId 对账（§8.6、§14.1）；
+- H4.4 配置隔离与双会话：Host 专用 config-root、单写者文件锁（boot ID/build ID/config revision）、Host ready + outbound Viewer 及双 active session 验收（§18、§20.3）；
+- H4.5 `[手动]` 公证与干净机验收：Developer ID notarization/stapling、带 quarantine 全新安装、LaunchAgent 用户审批、防火墙首启 allow/deny 两条路径（§4.3、§13.5、§20.4）。
+
+退出条件：App 退出后后台仍可被连接；崩溃/版本不匹配状态真实、可恢复；公证构建在干净机完成审批并后台启动。
+
+### 26.8 阶段 7 — H5 恢复、会话边界与稳定性（§13.3、§13.4、§15.2）
+
+任务：
+
+- H5.1 sleep/wake、网络切换、display reconfigure：恢复指数退避与 jitter、旧 epoch 事件隔离、sleep assertion 生命周期（无会话不持有、会话结束立即释放）（§13.4）；
+- H5.2 锁屏/LoginWindow 边界：权威降级为 limited/sessionUnavailable，拒绝输入注入，UI 如实显示 unsupported，不因 launchd 进程存在伪装 ready（§13.3）；
+- H5.3 `[手动]` 30 分钟稳定性：Apple Silicon 与 Intel 分别运行 §15.2 场景矩阵（含电池能耗与 thermal 降级），证据归档 `Evidence/`。
+
+退出条件：各产品目标场景 pass/fail 证据齐全；无 sleep assertion 泄漏、无输入泄漏、无未解释 backlog。
+
+### 26.9 阶段 8 — H6 可选能力（§3.3、§12.2、§21 H6）
+
+任务（每项独立做权限/安全/性能/互操作门禁，逐项验收）：
+
+- H6.1 音频：麦克风采集为原生主路；系统音频 loopback 无官方 API，按既有决策走第三方虚拟设备（如 BlackHole）可选路径；
+- H6.2 剪贴板富类型：read/write 分权、大小上限、事件驱动优先、轮询动态退避（§12.2）；
+- H6.3 文件传输：复用上游 file 服务，独立权限开关，远端文件名/UTI/payload 视为不可信输入；
+- H6.4 多显示器切换：`selectDisplay` 命令与 revisioned display mapping（§12.1）。
+
+### 26.10 共同约定
+
+- 严格按本文档全量范围执行，不做功能裁剪；
+- 服务器沿用现有 Rust core 的自托管 hbbs/hbbr 配置；macOS 13 最低版本不变；
+- 上游修改仅限 §6.4 允许的 patch inventory，全部经 `rdn-native-host` feature 隔离，不污染无 feature 的上游行为；
+- 每阶段证据归档 `Evidence/`，阶段完成后更新本文状态与对应验收记录；
+- §24 已冻结决策与待确认项继续有效，待确认项须在对应阶段开始前确认。
