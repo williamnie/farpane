@@ -1,8 +1,8 @@
 # RustDesk Native “别人连接我”详细设计
 
-> 状态：Draft v0.1  
-> 日期：2026-08-03  
-> 范围：macOS 原生被控端（Host Mode）  
+> 状态：Draft v0.2
+> 日期：2026-08-04
+> 范围：macOS 原生被控端（Host Mode）
 > 目标读者：产品、macOS、Rust、远程桌面协议与测试开发者
 
 ## 1. 摘要
@@ -12,7 +12,7 @@
 - 稳定的本机 ID；
 - 临时密码与永久密码；
 - macOS 系统权限和远程会话权限；
-- 后台服务安装、启动、停止、升级与状态诊断；
+- 后台 Agent 注册、启动、停止、升级与状态诊断；
 - 入站连接审批、会话展示、主动断开；
 - 屏幕采集、硬件编码、加密传输和远程输入；
 - 可量化的 CPU、内存、时延、丢帧和稳定性门禁。
@@ -21,15 +21,16 @@
 
 1. **不从零重写 RustDesk 协议、安全和网络控制面。** ID/Rendezvous、认证、加密、直连/Relay、协议协商和会话控制继续保留在 Rust。
 2. **不把完整 RustDesk GUI 或内部 API 当作 SDK 嵌入。** 上游源码只作为被控端实现和互操作行为的参考/复用来源，项目对 Swift 暴露自有、稳定、语义化的 Host ABI。
-3. **重写并优化 macOS 被控媒体面。** 使用 ScreenCaptureKit、IOSurface/CVPixelBuffer 和 VideoToolbox 建立原生低复制链路；Swift UI 不接触原始帧。
-4. **先做登录用户场景，再产品化后台服务。** 第一阶段在已登录桌面跑通真实链路；之后再引入 LaunchAgent/LaunchDaemon、登录窗口和无人值守能力。
-5. **性能结论必须来自真实链路。** 固定记录机器、输入画布、drawable/capture dimensions、codec、实际硬件编码状态、FPS、CPU、内存、drops、网络和 runtime。
+3. **重写并优化 macOS 被控媒体面。** 使用 ScreenCaptureKit、IOSurface/CVPixelBuffer 和 VideoToolbox 建立原生低复制链路；Product UI 不接触原始帧。
+4. **先做登录用户场景，再产品化后台运行。** 第一阶段在已登录桌面跑通真实链路；之后用 `SMAppService` 管理用户会话 LaunchAgent。V1 不为尚未证明的 root 需求预置 LaunchDaemon。
+5. **Host 媒体接缝是 H1 的首要技术门禁。** VideoToolbox 产物通过独立的进程内 Host Media ABI 注入 Rust `video_service`；codec 协商、订阅、QoS、刷新请求、打包、加密和 Direct/Relay 发送仍由 Rust 权威执行。
+6. **性能结论必须来自真实链路。** 固定记录机器、输入画布、drawable/capture dimensions、codec、实际硬件编码状态、FPS、CPU、内存、drops、网络和 runtime。
 
 推荐的产品级链路如下：
 
 ```mermaid
 flowchart LR
-    UI["SwiftUI App"] -->|"版本化控制 ABI / IPC"| HC["Rust HostCore"]
+    UI["AppKit Product UI"] -->|"版本化控制 ABI / IPC"| HC["Rust HostCore"]
     HC --> CP["ID / Auth / Session / Relay"]
     HC --> HA["macOS Host Adapter"]
     HA --> SCK["ScreenCaptureKit"]
@@ -46,7 +47,7 @@ flowchart LR
 
 现有 viewer 已证明 macOS 原生实现可以显著降低远程画面展示侧的 CPU 占用。被控端比 viewer 多出屏幕采集、颜色格式处理、视频编码、变化检测和发送调度，因此同样存在较大的平台原生化收益。
 
-当前观察到 Mac mini 上官方/现有被控端 CPU 约为 40–50%，但这个数字尚不足以直接归因。正式实现前必须补齐：
+用户曾观察到 Mac mini 上官方/现有被控端 CPU 约为 40–50%，但仓库内现有性能证据是控制端数据，不能用来证实该被控端数字或其归因。正式实现前必须在同一台被控机上重建可重复基线，并补齐：
 
 - Mac mini 型号、CPU 架构和 macOS 版本；
 - Activity Monitor 口径及 Host、WindowServer、videotoolboxd 分进程数据；
@@ -66,22 +67,22 @@ V1 应让用户在一个原生页面中完成以下操作：
 1. 查看并复制稳定的本机 ID；
 2. 查看/刷新临时密码，设置或删除永久密码；
 3. 看懂屏幕录制、辅助功能、输入监控等 macOS 权限状态，并能跳转到对应系统设置；
-4. 安装、启动、停止被控服务，看到准确的组件级服务状态；
+4. 注册、启动、停止后台 HostAgent，看到准确的组件级状态；
 5. 设置允许的远程能力和连接审批模式；
 6. 收到明确的入站请求，查看远端信息并同意或拒绝；
 7. 连接期间持续看到可见指示器，随时禁止输入或断开连接；
-8. 在 App 退出或重启后仍可按用户选择提供后台服务；
-9. 网络变化、休眠唤醒和服务崩溃后能够恢复或给出可诊断的失败状态。
+8. 在 App 退出或重启后仍可按用户选择提供后台 Host；
+9. 网络变化、休眠唤醒和 HostAgent 崩溃后能够恢复或给出可诊断的失败状态。
 
 ### 3.2 技术目标
 
 - Rust 继续作为协议、认证、加密、Relay、codec/session 的权威状态机；
-- Host 数据面不跨 Swift UI ABI 传输原始视频帧；
+- Host 数据面不跨 Product UI/Host Control ABI 传输原始视频帧；
 - 采集到编码优先走 IOSurface/CVPixelBuffer 零拷贝或单次 GPU 转换路径；
 - 明确验证 VideoToolbox 实际使用硬件编码；
 - 所有队列有界，过载时降低帧率/分辨率或丢弃未编码旧帧；
 - 任何压缩参考帧不得静默乱序或随意丢弃；
-- 服务、权限、注册和会话状态均来自权威组件，不用 UI 推测；
+- 后台 Agent、权限、注册和会话状态均来自权威组件，不用 UI 推测；
 - 上游 RustDesk 变更隔离在 adapter 层，不污染 Swift 产品接口。
 
 ### 3.3 V1 非目标
@@ -115,13 +116,16 @@ RustDesk 开源客户端已经包含 `src/server`、Rendezvous、screen capture�
 
 ### 4.2 许可证
 
-RustDesk 客户端仓库使用 AGPL-3.0。任何源码复用、链接和分发方案在产品化前必须完成许可证评估。RustDesk Server Pro 或 Custom Client Generator 不应被默认理解为闭源嵌入 SDK 授权。
+RustDesk 客户端仓库使用 AGPL-3.0；FarPane 顶层 `LICENSE`、README 和 `docs/architecture.md` 已决定按 AGPL-3.0 分发。因此 Host Mode 不再把“开源还是闭源”作为未决架构门禁，而是执行可验证的 AGPL 合规清单。RustDesk Server Pro 或 Custom Client Generator 不应被默认理解为闭源嵌入 SDK 授权。
 
-许可证决策是进入正式产品实现的 P0 外部门禁之一：
+发布前清单至少包括：
 
-- 若项目按 AGPL 兼容方式发布，记录对应源码与分发义务；
-- 若项目计划闭源分发，需获得明确的商业/OEM 授权或采用不触发不兼容义务的架构；
-- 许可证未确认前，只允许内部技术验证，不发布构建。
+- 随二进制提供对应源码、构建脚本和许可证/版权通知；
+- 记录 pinned RustDesk commit、Host patch inventory 和本项目修改说明；
+- 对网络交互场景履行 AGPL 对应源码要求；
+- 产物内保留 `LICENSE`、`THIRD_PARTY_NOTICES.md` 和可访问的源码获取方式。
+
+如未来另立闭源商业版，必须当作新产品/许可范围重新评估，不得沿用本文结论。
 
 ### 4.3 macOS TCC 与代码签名
 
@@ -129,13 +133,16 @@ RustDesk 客户端仓库使用 AGPL-3.0。任何源码复用、链接和分发�
 
 HostAgent 从第一版开始就应使用最终计划中的：
 
-- Bundle ID / helper identifier；
+- App Bundle ID `io.rustdesknative.viewer`；
+- LaunchAgent label / Mach service `io.rustdesknative.viewer.host-agent`；
 - Team ID；
 - designated requirement；
-- 安装路径；
+- 安装路径 `/Applications/FarPane.app`；
 - Hardened Runtime 与 entitlements。
 
-开发签名、正式签名和 adhoc 签名的 TCC 结果必须分开记录。
+已决定 V1 HostAgent 使用同一签名 App executable 的 `--host-agent` 模式，而不是独立 helper 二进制。这使 TCC 和代码签名身份与现有 App 保持一致，同时允许 launchd 在 UI 进程退出后继续运行该 mode。参数分流必须发生在 AppKit 初始化前，HostAgent mode 不创建 Dock 图标、菜单或窗口。
+
+开发签名、正式签名和 adhoc 签名的 TCC 结果必须分开记录。H1 可使用本地开发签名；进入 H4 预览分发前，必须完成 Developer ID notarization、stapling 和带 quarantine 的全新机安装/后台启动验收。未公证构建不得被称为可分发的后台 Host。
 
 参考：
 
@@ -148,7 +155,7 @@ HostAgent 从第一版开始就应使用最终计划中的：
 
 | 项目 | V1 假设 |
 |---|---|
-| 操作系统 | 与当前 Native Viewer 最低 macOS 版本保持一致；若低于 ScreenCaptureKit 目标版本，单独设计 fallback |
+| 操作系统 | macOS 13，与当前 `Package.swift` 一致；只使用 13 可用的 Host 主路 API，后续系统能力用 availability gate |
 | CPU | Apple Silicon 优先，Intel 做功能兼容和独立性能门禁 |
 | Server | 自托管 hbbs/hbbr 优先，配置沿用现有 Rust core |
 | 会话 | 同一时刻最多一个控制会话 |
@@ -156,7 +163,7 @@ HostAgent 从第一版开始就应使用最终计划中的：
 | 显示器 | 首版支持单显示器选择；多显示器切换在后续阶段 |
 | 权限 | 查看屏幕、输入、剪贴板三个独立开关 |
 | 审批 | 临时密码、永久密码、手动确认及组合模式 |
-| 无人值守 | 必须由用户显式启用，默认关闭 |
+| 无人值守 | 必须由用户显式启用，默认关闭；V1 仅支持已登录的 active Aqua session，不支持 LoginWindow/重启后登录 |
 | 连接可见性 | 永远显示菜单栏/窗口状态与主动断开入口 |
 
 ## 6. 总体架构
@@ -165,7 +172,7 @@ HostAgent 从第一版开始就应使用最终计划中的：
 
 系统分成四层：
 
-1. **Product UI**：SwiftUI 页面、菜单栏状态、来访弹窗和系统设置引导；
+1. **Product UI**：AppKit 页面、菜单栏状态、来访弹窗和系统设置引导；
 2. **Host Control API**：稳定、版本化、低频语义 ABI/IPC；
 3. **Rust HostCore**：配置、ID、认证、会话、权限、网络和编码包调度；
 4. **macOS Host Adapter**：采集、编码、输入、剪贴板、TCC、显示和电源事件。
@@ -180,19 +187,18 @@ HostAgent 从第一版开始就应使用最终计划中的：
 
 ### 6.2 进程模型
 
-产品级目标使用三个角色，MVP 可先合并前两个：
+产品级 V1 默认使用两个。H1 Spike 先在 App 进程合并这两个；H4 再以同 executable 的不同 mode 拆成两个进程：
 
 ```mermaid
 flowchart TB
     APP["Native App\nnormal user"]
-    AGENT["HostAgent\nLaunchAgent / GUI or LoginWindow session"]
-    SERVICE["HostService\nLaunchDaemon / privileged"]
+    AGENT["HostAgent\nsame executable --host-agent\nSMAppService LaunchAgent"]
+    FUTURE["Optional PrivilegedService\nnot part of V1"]
     SERVER["hbbs / hbbr"]
 
     APP <-->|"authenticated local IPC"| AGENT
-    APP <-->|"narrow privileged commands"| SERVICE
-    AGENT <-->|"version + health + config handoff"| SERVICE
     AGENT <-->|"ID registration / direct / relay"| SERVER
+    APP -.->|"only after proven root requirement"| FUTURE
 ```
 
 #### Native App
@@ -204,30 +210,63 @@ flowchart TB
 
 #### HostAgent
 
-- 运行在能访问 WindowServer 的会话域；
+- 运行在当前 active Aqua session，能访问 WindowServer；
 - 持有 Rust HostCore；
 - 持有 ScreenCaptureKit、VideoToolbox 和输入 adapter；
 - 与 hbbs/hbbr 建立网络连接；
 - 产生权威 HostSnapshot 和会话事件；
 - 崩溃后由 launchd 按退避策略恢复。
 
-#### HostService
+#### PrivilegedService（V1 不实现）
 
-- 仅负责必须提升权限的安装、卸载、启动策略和系统级配置；
-- 不采集屏幕、不处理视频、不接受任意 shell 命令；
-- 使用严格 allowlist 的 XPC/IPC 接口；
-- 验证调用方 audit token、签名 requirement 和协议版本；
-- 能报告 LaunchAgent 是否安装、加载、崩溃循环或版本不匹配。
+当前 V1 操作清单——注册/取消注册用户 LaunchAgent、启停 HostAgent、读写用户配置、访问用户 Keychain——均不证明需要 root LaunchDaemon。因此：
+
+- H4 先使用 `SMAppService.agent(plistName:)` 管理随 App 签名的 LaunchAgent；
+- 设置页报告 launchd 注册、用户审批、运行、崩溃循环和版本 handshake，不把 plist 存在当成安装成功；
+- 只有未来出现经原型验证、不能用用户会话 API 完成的具体 root 操作，才新建 PrivilegedService 设计和安全审查；
+- 该未来服务仍不得采集屏幕、处理视频、打开任意文件或接受 shell 字符串。
 
 P0 Spike 中可先让 HostCore 跑在 Native App 进程，仅支持“用户已登录且 App 打开”；真实媒体链确认后再拆 HostAgent，避免同时调试性能和 launchd/TCC。
 
-### 6.3 为什么不把采集放进 Swift UI
+### 6.3 为什么不把采集放进 AppKit UI 进程
 
-- Swift UI 退出或重建窗口不应中断后台会话；
+- Product UI 退出或重建窗口不应中断后台会话；
 - 原始帧跨进程/跨 ABI 会增加复制和生命周期复杂度；
-- UI 卡顿、MainActor 堵塞不能反压网络和编码；
+- UI 主线程卡顿不能反压网络和编码；
 - TCC、签名与崩溃恢复应绑定稳定的 HostAgent；
 - HostAgent 可独立采样 CPU、内存、编码器和队列指标。
+
+### 6.4 Host 媒体与 RustDesk server 会话接缝
+
+这是 H1 前必须冻结的最小 Host patch contract。当前 pinned RustDesk 1.4.9 中，`src/server/video_service.rs` 自行创建 capturer/encoder，经 `GenericService::send_video_frame` 把 protobuf `VideoFrame` 发给订阅连接；`src/server/connection.rs` 负责对端 codec 能力、订阅、`RefreshVideo*` 与 QoS 反馈。Native Host 不另起 socket，不绕开这条链。
+
+```mermaid
+flowchart LR
+    NEG["Rust Connection\ncodec negotiation + subscription"] --> CTRL["NativeVideoSource control\ncodec / fps / bitrate / IDR"]
+    CTRL --> SCK["ScreenCaptureKit"]
+    SCK --> VT["VideoToolbox"]
+    VT --> MABI["in-process Host Media ABI\nencoded access units only"]
+    MABI --> WRAP["Rust validation + VideoFrame wrapping"]
+    WRAP --> GS["GenericService::send_video_frame"]
+    GS --> TX["existing encryption + Direct/Relay writers"]
+    TX --> FB["VideoReceived / delay / QoS feedback"]
+    FB --> CTRL
+    REFRESH["RefreshVideo / display change"] --> CTRL
+```
+
+Host patch inventory 只允许包含：
+
+1. 新增独立 feature `rdn-native-host` 和 `rdn_host_bridge.rs`，不改变无该 feature 的上游行为；
+2. 在 `video_service` 的产生者端增加 `NativeVideoSource`，保留原有 service 订阅、display switch、`VideoReceived`、QoS 和 Connection writer；
+3. 将 macOS adapter 实测可用的 H.264/HEVC 能力注入 Rust codec 协商；Rust 仍产生唯一的 `selectedCodec + codecEpoch`，adapter 不能自选 codec；
+4. 将 Rust 的 target FPS/bitrate、subscriber demand、display revision 和刷新请求映射为 adapter 控制事件；
+5. 把经验证的压缩 access unit 包装成现有 `EncodedVideoFrame`/`VideoFrame`，再调用现有 service send 路径。
+
+Host Media ABI 不属于 UI 控制通道。每个 access unit 必须包含 `hostInstanceId`、`connectionEpoch`、`codecEpoch`、canonical display ID/revision、codec、framing、PTS、keyframe/parameter-set flags 和有上限的 bytes。Rust 在调用返回前拷贝到 Rust-owned compressed buffer，或使用经合同测试的显式 ownership-transfer/free callback；不得保留 Swift 临时指针。迟到 epoch、错 codec、过大包、非单调 PTS 和缺失参数集的 IDR 必须 fail closed 并记稳定错误码。
+
+VideoToolbox 常产生 AVCC/HVCC 长度前缀，现有真实 RustDesk 样本主要是 Annex-B。H1 不凭假设固定 wire framing；必须使用官方控制端黄金连接确认 H.264 framing、SPS/PPS 传递和 keyframe 标记，然后在 Media ABI 边界统一规范化。允许压缩包的一次有界拷贝，不得因此引入 raw-frame 拷贝。
+
+刷新有两种语义：远端 `RefreshVideo*`/丢失恢复只触发当前 VT session 的下一帧 IDR；codec、尺寸、display revision 变化才执行 flush→丢弃旧 epoch→重建 encoder→参数集+IDR。不得沿用上游“一律重启 video service”来伪装 keyframe 请求。
 
 ## 7. Host 状态模型
 
@@ -240,6 +279,8 @@ stateDiagram-v2
     Starting --> AwaitingPermission: missing required TCC
     Starting --> Registering: runtime ready
     AwaitingPermission --> Registering: permissions satisfied
+    AwaitingPermission --> Disabled: user disables Host
+    AwaitingPermission --> Failed: signature identity or TCC query failure
     Registering --> Ready: ID registered
     Registering --> Degraded: server unavailable / relay unavailable
     Ready --> IncomingPending: incoming request
@@ -257,13 +298,14 @@ stateDiagram-v2
     Stopping --> Disabled: stopped
 ```
 
-### 7.2 服务状态不是一个 Boolean
+### 7.2 后台状态不是一个 Boolean
 
 UI 不得只展示 `serviceRunning=true/false`。权威快照至少包含：
 
-- `installation`: notInstalled / installing / installed / versionMismatch / uninstalling；
-- `daemon`: stopped / starting / running / degraded / crashLoop / failed；
+- `applicationIdentity`: invalidLocation / developmentSigned / developerIdSigned / notarized / signatureMismatch；
+- `backgroundRegistration`: notRegistered / requiresUserApproval / registered / versionMismatch / unregistering / failed；
 - `agent`: unavailable / stopped / starting / running / wrongSession / crashLoop / failed；
+- `privilegedService`: notRequired（V1 常态）/ requiredButMissing / running / failed；
 - `registration`: offline / resolving / registering / ready / backoff / rejected；
 - `permissions`: screenCapture / accessibility / inputMonitoring / microphone；
 - `hostAvailability`: disabled / limited / ready / connected / degraded；
@@ -276,19 +318,22 @@ UI 不得只展示 `serviceRunning=true/false`。权威快照至少包含：
 3. identity 可读且有效；
 4. 已从权威 Rendezvous 链路获得可用 ID；
 5. 入站监听/打洞/Relay 能力已初始化；
-6. HostAgent 与 App/Service 的协议版本兼容。
+6. HostAgent 与 App 的 XPC wire 协议版本兼容；
+7. 若当前有 active subscriber，媒体 codec epoch 和 adapter 能力已完成 handshake。
 
 ## 8. Host Control ABI / IPC
 
 ### 8.1 设计原则
 
+- 本节区分三个不同合同：进程内 Host Control C ABI、进程内 Host Media C ABI、跨进程 App↔HostAgent XPC wire protocol；三者不共用 pointer 或生命周期语义；
 - 新增独立 Host 命名空间，不在未实现前修改现有 Viewer ABI 语义；
-- C ABI 只传低频控制信息和编码后的诊断快照；
+- Host Control C ABI 只传低频语义控制信息和编码后的诊断快照；
+- Host Media C ABI 只在 HostCore 与同进程 macOS adapter 之间传递媒体控制和压缩 access unit，禁止传 raw frame；
 - 使用 opaque handle，明确 create/start/stop/destroy 生命周期；
 - 每个事件包含 schema version、event ID、host instance ID 和 timestamp；
 - 所有字符串明确 UTF-8、长度和释放方；
 - 任何 password buffer 在使用后立即清零，不写入日志或 crash metadata；
-- 回调不得在 Rust 锁内调用 Swift，也不得要求 MainActor 同步返回；
+- 回调不得在 Rust 锁内调用 Swift，也不得要求 AppKit 主线程同步返回；
 - approve/reject 使用异步 command + result event，避免重入。
 
 ### 8.2 建议接口
@@ -311,7 +356,27 @@ void rdn_host_free_bytes(RdnOwnedBytes bytes);
 void rdn_host_destroy(RdnHostHandle *host);
 ```
 
-控制事件可以使用版本化 JSON/MessagePack envelope，因为频率低、便于演进；原始帧和编码包禁止通过该通道。
+控制事件可以使用版本化 JSON/MessagePack envelope，因为频率低、便于演进；原始帧和编码包禁止通过该控制通道。编码包只能经 §6.4 的 Host Media ABI 进入 Rust。
+
+Host Media ABI 单独版本化，语义草案如下：
+
+```c
+uint32_t rdn_host_media_abi_version(void);
+
+RdnHostResult rdn_host_media_set_capabilities(
+    RdnHostHandle *host,
+    const RdnHostEncoderCapabilities *capabilities);
+
+RdnHostResult rdn_host_media_submit_access_unit(
+    RdnHostHandle *host,
+    const RdnHostEncodedAccessUnit *access_unit);
+
+RdnHostResult rdn_host_media_report_encoder_state(
+    RdnHostHandle *host,
+    const RdnHostEncoderState *state);
+```
+
+Rust 通过 Host callback 发出 `startCapture`、`stopCapture`、`reconfigure(codecEpoch, codec, dimensions, fps, bitrate)` 和 `requestIdr(display, codecEpoch, reason)`。`submit_access_unit` 的成功只表示 Rust 已拷贝/接管该压缩包并通过 epoch/format 校验，不表示远端已收到；远端收到和 QoS 仍来自现有 Rust 反馈链。
 
 ### 8.3 HostSnapshot
 
@@ -326,7 +391,7 @@ temporaryPasswordPresentation
 passwordPolicy
 approvalMode
 unattendedAccessEnabled
-serviceStatus
+backgroundStatus
 systemPermissions[]
 capabilityPolicies[]
 activeConnectionId?
@@ -349,8 +414,8 @@ observedAt
 至少包括：
 
 - enableHost / disableHost；
-- installService / uninstallService；
-- startService / stopService / retryService；
+- registerBackgroundAgent / unregisterBackgroundAgent；
+- startHostAgent / stopHostAgent / retryHostAgent；
 - regenerateTemporaryPassword；
 - setPermanentPassword / clearPermanentPassword；
 - setApprovalMode；
@@ -368,7 +433,7 @@ observedAt
 ### 8.5 Events
 
 - snapshotChanged；
-- serviceOperationProgress；
+- backgroundAgentOperationProgress；
 - incomingConnectionRequested；
 - incomingConnectionExpired；
 - sessionStarted；
@@ -381,13 +446,29 @@ observedAt
 
 事件队列必须合并高频 stats，不能让 UI 消费速度反压 HostCore。
 
+### 8.6 App↔HostAgent XPC wire 协议
+
+H1 中 AppKit controller 通过 Host Control C ABI 直接调用同进程 HostCore。H4 拆进程后，HostCore handle 只存在 HostAgent；App 的 `HostControlClient` 改用 `io.rustdesknative.viewer.host-agent` Mach service，不尝试跨进程传 C pointer 或回调。
+
+Wire envelope 至少包含 `wireVersion`、`messageType`、`requestId/eventId`、`hostInstanceId`、`agentBootId`、`sentAt`、payload length 与类型化 payload。命令是 request/accepted/result 三段式；`accepted` 只说明已入队，不代表注册、启停、审批或断开已完成。
+
+重连语义：
+
+1. App 连接后先交换支持的 wire version 和组件 build ID；不兼容时只允许导出诊断/触发修复，不发 Host command；
+2. handshake 成功后必须先获取全量 HostSnapshot，再从其 `lastEventId` 订阅增量事件；
+3. 断线期间事件可丢，但重连后的权威快照必须收敛最终状态；审批请求不依赖 UI 事件队列存活；
+4. App 可用相同 `commandId` 重试未知结果命令，HostAgent 在有界 dedupe window 内返回原结果，不重复执行；
+5. `agentBootId` 变化表示 Agent 已重启，App 废弃旧 instance 的 pending UI intent，重新以 snapshot 对账。
+
+XPC listener 必须从 audit token 校验 euid、Team ID、`io.rustdesknative.viewer` designated requirement 和安装路径。协议对每类消息设长度/频率上限，不允许任意 selector、任意文件 URL 或类型解档。
+
 ## 9. Identity 与密码
 
 ### 9.1 本机 ID
 
 - identity key 在首次启用 Host 时生成；
 - identity 与 App 窗口生命周期解耦；
-- App 重启、服务重启和小版本升级后保持稳定；
+- App 重启、HostAgent 重启和小版本升级后保持稳定；
 - 用户切换 server 配置时，不隐式重置 identity；
 - “重置本机 ID”是单独的高风险操作，需要明确确认和审计；
 - 私钥不离开 Rust/安全存储边界，不通过 Swift 或日志暴露。
@@ -500,11 +581,12 @@ SCStream callback
 
 硬约束：
 
-- Swift UI 永远不接收 raw frame；
+- Product UI 永远不接收 raw frame；
 - 不允许每帧构造全尺寸 `Data`、`Vec<u8>` 或 `CGImage`；
 - capture adapter 与 encoder 必须在同一 HostAgent 进程；
 - CVPixelBuffer 使用引用计数跨异步编码边界，不复制像素；
 - 若输入像素格式不被硬件编码器接受，优先使用 ScreenCaptureKit 输出配置、CVPixelBufferPool 或 GPU/VideoToolbox pixel transfer；
+- H1 必须在 macOS 13 真机分别探测 SCK `420v`/`420f` 直出和 BGRA 输出；不预设所有系统/显示组合都能稳定直出 NV12；
 - CPU 逐像素 BGRA→NV12/I420 只允许作为带指标的 fallback；
 - 每帧记录逻辑 copy count，性能验收要求主路径 copy count 为 0 或 1 次 GPU 转换。
 
@@ -534,9 +616,11 @@ ScreenCaptureKit 参考：
 - <https://developer.apple.com/documentation/screencapturekit/scstreamconfiguration/minimumframeinterval>
 - <https://developer.apple.com/documentation/screencapturekit/scstreamframeinfo/dirtyrects>
 
+项目最低版本保持 macOS 13。当前 Xcode SDK 头文件中 `SCStreamFrameInfoDirtyRects` 标记为 macOS 12.3+，`queueDepth`、`pixelFormat`、`colorSpaceName` 也不是 macOS 14 专有 API，因此不因这些属性上调最低版本。但实际 sample attachment 可能缺键或给出空数组，adapter 必须安全解析，不得强转或把“无 attachment”解释为“画面永远静止”。macOS 14+ 新属性只能通过 `#available` 进入增强路径。
+
 ### 11.3 变化检测和自适应 FPS
 
-不对完整帧做 CPU hash/diff。优先使用 ScreenCaptureKit `dirtyRects`、frame status 和 display time。
+不对完整帧做 CPU hash/diff。优先使用 ScreenCaptureKit `dirtyRects`、frame status 和 display time。当 `dirtyRects` 缺失/不可信时，降级为“有界固定采集 FPS + frame status + encoder/network 背压”；可在 idle 时逐步降 FPS，但每个心跳窗口必须强制一帧或 IDR 验证收敛，不做 CPU 全屏 diff，也不因空 dirty rect 无期停帧。
 
 建议状态：
 
@@ -562,11 +646,12 @@ ScreenCaptureKit 参考：
 编码器创建必须：
 
 - 优先低时延实时 profile；
+- 设置并读回 `kVTCompressionPropertyKey_RealTime=true`；
 - 显式允许或要求硬件加速；
 - 禁用不必要的帧重排序；
 - 设置合理的 keyframe interval、bitrate 和 data-rate limits；
 - 记录实际 encoder ID；
-- 读取并上报 `UsingHardwareAcceleratedVideoEncoder`；
+- 首个成功 encode callback 后读取并上报 `UsingHardwareAcceleratedVideoEncoder`，不用创建 session 前的默认值作结论；
 - 当硬件编码不可用时，明确进入 softwareFallback，不得继续显示“硬件编码”。
 
 参考：
@@ -584,6 +669,8 @@ ScreenCaptureKit 参考：
 4. 无共同 codec：连接前失败并给稳定错误码。
 
 Codec negotiation 仍由 Rust 控制面完成。macOS adapter 只创建已被选定的 encoder，不自行改变协议结果。
+
+能力探测按当前机器、codec、profile、像素格式和目标尺寸实测，不用“Intel/Apple Silicon”一个布尔值推断。尤其是 Intel HEVC，只有实际创建、完成首帧编码且读回 hardware=true 后才向 Rust 广告可用；否则不参与 HEVC 协商，不在会话中静默转软编。
 
 ### 11.6 背压和丢帧
 
@@ -604,6 +691,7 @@ ScreenCaptureKit callback
 - 已编码 H.264/HEVC 包不能随意丢弃潜在参考帧；
 - 网络堵塞时优先降低采集 FPS、分辨率和码率；
 - 确需重置时，显式 flush/reset encoder 并请求 IDR，不能静默跳过；
+- 远端主动 `RefreshVideo`/`RefreshVideoDisplay` 必须精确映射为对应 display/codec epoch 的下一帧 IDR，与现有 viewer `rdn_client_request_keyframe` 构成对称恢复链；
 - 所有 drops 按原因分类：captureSuperseded、encoderBackpressure、networkBackpressure、reconfigure、invalidFrame、shutdown。
 
 ## 12. 远程输入与剪贴板
@@ -637,49 +725,64 @@ Encrypted protocol event
 - 任何来自远端的文件名、UTI 和 payload 均视为不可信输入；
 - 会话结束清理临时对象和 promise provider。
 
-## 13. 服务安装与生命周期
+## 13. 后台 Agent 注册与生命周期
 
-### 13.1 安装
+### 13.1 注册
 
-推荐使用 Apple 支持的 Service Management/launchd 方式安装签名 helper。安装流程必须：
+使用 `SMAppService` 注册 App bundle 内签名 LaunchAgent plist，其 ProgramArguments 指向同一 App executable 的 `--host-agent` mode。V1 不复制 helper 到系统目录，不安装 LaunchDaemon，也不默认请求管理员授权。注册流程必须：
 
-1. 验证 App 位于支持的安装路径；
-2. 验证 App、HostAgent、HostService 签名和版本；
-3. 请求一次明确的管理员授权；
-4. 原子安装或升级 plist/helper；
-5. 启动并等待权威 health handshake；
-6. 失败时保留可恢复状态，不把 plist 存在当作安装成功。
+1. 验证 App 位于 `/Applications/FarPane.app`，Bundle ID、Team ID、designated requirement 和 notarization 符合当前 channel 的预期；
+2. 验证 LaunchAgent plist label/Mach service/ProgramArguments 与 App build ID 匹配；
+3. 显式说明“App 退出后仍可被连接”并由用户触发注册；
+4. 处理 `requiresApproval`，引导用户到 Login Items/System Settings，不将“已发起注册”展示为 running；
+5. 启动并等待 XPC 版本 handshake、HostSnapshot 和 Rendezvous health；
+6. 升级通过新 App bundle 完成，旧 Agent 安全停止后再启动新 build，失败时保留可恢复状态。
 
 ### 13.2 启动和停止
 
 - enableHost：允许被控，并按策略启动 HostAgent；
 - disableHost：停止接受新连接并断开现有会话，identity 默认保留；
-- stopService：停止运行但不改变用户配置；
-- uninstallService：停止、卸载 helper，明确说明 identity/config 是否保留；
+- stopHostAgent：停止当前 Agent 但不改变用户配置或注册状态；
+- unregisterBackgroundAgent：停止并取消注册 LaunchAgent，明确说明 identity/config 默认保留；
 - App 退出不等于 disableHost；
 - 强制停止必须有超时和最终 kill 策略，但不得丢坏配置。
 
 ### 13.3 登录窗口和多用户
 
-这是产品化高风险项，必须单独验收：
+这是产品化高风险项。V1 明确只支持已登录且当前 active 的 Aqua session：锁屏、LoginWindow、无用户登录和 Fast User Switching 中的非 active session 不允许远程输入，Host 进入 `limited/sessionUnavailable`，暂停采集或只保留有界恢复信令。用户解锁回到同一 session 后可重新检查 TCC 并恢复。“无人值守”在 V1 不意味可跨重启或操作 LoginWindow。
+
+H5 仅评估将来是否可安全扩大边界，不阻塞上述 V1。评估必须覆盖：
 
 - LaunchAgent 在 GUI/Aqua 与 LoginWindow session 的加载行为；
 - Fast User Switching 时哪个 session 可被控制；
 - 屏幕采集和辅助功能授权在不同 session 的有效性；
 - 不能同时启动两个 HostAgent 争用同一 identity/端口；
 - 会话切换时 display、input 和 clipboard adapter 的重新绑定；
-- 无用户登录时若无法满足系统约束，必须显示 unsupported/limited，而不是伪装 ready。
+- 无用户登录时必须继续显示 unsupported/limited，不能因 launchd 进程存在伪装 ready。
 
 参考：<https://github.com/rustdesk/rustdesk/wiki/macOS-Auto%E2%80%90Start-Service-Setup-%28for-Remote---MDM-Deployment%29>
 
 ### 13.4 休眠、唤醒与网络变化
 
+- Host ready 但无活动会话时不持有防休眠 assertion；
+- 经认证且已批准的屏幕会话期间，持有有界的 user-idle sleep assertion 以避免空闲计时器中断会话；
+- assertion 不覆盖用户显式休眠、盒盖、关机或系统低电量/热保护，并在会话结束、认证失效、进入 background-without-session 或 Agent 关闭时立即释放；
+- 设置页需明确说明活动连接可使 Mac 保持唤醒，诊断中记录 assertion 类型/持续时间，不记录画面内容；
 - sleep 前暂停 capture、flush 或关闭 encoder、发送会话状态；
 - wake 后重新枚举 display、检查 TCC、重建 capture/encoder；
 - 网络变化触发 Rendezvous/Relay 恢复，不重置 identity；
 - 恢复有指数退避和 jitter；
 - 旧 connection epoch 的迟到事件不得进入新会话；
 - 超过恢复窗口后结束会话并给出明确 reason。
+
+### 13.5 应用防火墙与入站端口
+
+HostCore 开始入站监听时可能触发 macOS Application Firewall 首次提示。产品必须：
+
+- 在启用 Host 前告知用户可能出现系统入站连接提示，不模仿或遮挡系统对话框；
+- 固定签名/公证身份和安装路径，避免每次升级被当作新程序；
+- 区分 direct listener 不可用、Relay 仍可用与整体 offline，不凭 timeout 猜测用户点了“拒绝”；
+- 验收包含干净机首启的 allow/deny 两条路径，以及 deny 时 forced relay 的真实行为。
 
 ## 14. 安全设计
 
@@ -688,8 +791,8 @@ Encrypted protocol event
 - IPC endpoint 不暴露到网络；
 - 使用 audit token 验证 pid/euid；
 - 校验调用方 code signing requirement；
-- App↔Agent 和 App↔Service 分开授权；
-- privileged service 仅提供枚举式 allowlist command；
+- App↔Agent 只授权同 euid、同 Team ID 且满足 designated requirement 的正版 App；
+- 未来若新增 privileged service，必须另立 threat model 且只提供枚举式 allowlist command；
 - 不接受 shell 字符串、任意文件路径或任意环境变量；
 - 所有消息有 schema version、长度上限和 request ID；
 - 对异常断开和重放请求安全处理。
@@ -731,7 +834,7 @@ HostAgent 内部：
 - encryption/send CPU；
 - RTT、loss、relay/direct、reconnects；
 - end-to-end input-to-photon latency（单独工具测量）；
-- thermal state 和 runtime。
+- thermal state、电源来源、sleep assertion 状态和 runtime。
 
 系统侧：
 
@@ -753,6 +856,8 @@ HostAgent 内部：
 6. 目标产品场景 30 分钟稳定性；
 7. sleep/wake、网络切换、display reconfigure 后重复场景 3；
 8. Intel 与 Apple Silicon 分别运行，不互相替代。
+9. 电池供电下 Host idle 与 active session 的能耗/热状态，验证无会话时不持有 sleep assertion；
+10. HostAgent 后台 ready 时运行 outbound Viewer，以及 Host + Viewer 双 active session 的合并资源预算。
 
 ### 15.3 初始工程目标
 
@@ -767,6 +872,8 @@ HostAgent 内部：
 | 30 分钟稳定性 | 不随时间单调上升 | 无 crash、无未解释 drops、无泄漏趋势 |
 
 CPU 目标必须同时给出 WindowServer 和媒体系统进程；不能通过把工作移到系统进程后只报告 Host CPU 来宣称优化成功。
+
+能耗也是退化门禁：Host idle 不得持有防休眠 assertion 或产生持续 capture callback；active session 的 assertion 持续时间必须与会话时间收敛；热状态达 serious/critical 时 QualityController 必须降 FPS/尺寸，不为保持标称 4K30 持续升温。
 
 ### 15.4 Profiling 方法
 
@@ -805,7 +912,7 @@ CPU 目标必须同时给出 WindowServer 和媒体系统进程；不能通过�
 
 用户可主动导出脱敏诊断包，包含：
 
-- App/Agent/Service 版本与签名摘要；
+- App/Agent 版本与签名/公证摘要；
 - launchd component status；
 - TCC 状态（不含系统数据库原始内容）；
 - server 地址的脱敏形式和连接结果；
@@ -820,7 +927,7 @@ CPU 目标必须同时给出 WindowServer 和媒体系统进程；不能通过�
 | 类别 | 示例 | UI 动作 |
 |---|---|---|
 | permissionRequired | screen capture denied | 打开对应系统设置、重新检测 |
-| serviceOperation | helper version mismatch | 修复/重新安装服务 |
+| backgroundAgentOperation | Agent build/wire version mismatch | 更新 App、重新注册后台 Agent |
 | configuration | invalid hbbs/key | 打开网络配置 |
 | registration | DNS/server rejected | 展示退避和重试，不重置 ID |
 | codecUnavailable | no common/hardware codec | 降级或明确失败 |
@@ -834,12 +941,23 @@ CPU 目标必须同时给出 WindowServer 和媒体系统进程；不能通过�
 ## 18. 配置与迁移
 
 - Host 配置有独立 schema version；
-- 迁移由 Rust HostCore/Service 执行，Swift 不直接修改配置文件；
+- 迁移由 Rust HostCore 执行，Swift 不直接修改 RustDesk/Host 配置文件；
 - 写入采用临时文件 + fsync + atomic replace 或等价安全存储；
 - 迁移失败保留旧配置并进入 degraded/failed；
 - identity、server config、password verifier 和 UI preferences 分开存储；
 - 敏感值进 Keychain，普通策略进版本化配置；
-- 卸载时分别询问“仅移除服务”与“同时删除 ID/配置”。
+- 取消注册后默认保留 ID/配置；删除 identity 是另一个必须二次确认的高风险命令。
+
+上游 `hbb_common::Config`、`APP_NAME` 和部分 codec/session 状态是进程全局的，不允许 App 内 viewer core 与 HostCore 同时对同一 RustDesk 配置目录写入。分阶段规则如下：
+
+1. H1–H3 同进程 Spike 中 Host 与 outbound Viewer 互斥；启动 Host 前关闭 viewer core，并用自动化合同测试证明不存在残留全局状态；
+2. H4/V1 通过进程隔离支持“Host 后台 ready + App outbound Viewer”并存：Viewer 保持现有配置命名空间，HostAgent 在任何 `Config` lazy initialization 前切换到专用 Host 命名空间/配置根；
+3. Host identity、password verifier、host policy 和 registration state 只由 HostAgent 写；App 通过 XPC command 修改，不触碰 Host 文件；
+4. 用户可见的 server 设置只有一份产品级 canonical config，每次修改带 monotonic revision；App 和 Agent 将它作为不可变启动/更新输入，不让两个 Rust core 反向改写同一 `RustDesk.toml`；
+5. HostAgent 启动时获取专用单写者文件锁，lock record 包含 boot ID/build ID/config revision；旧新 Agent 升级重叠时新进程 fail closed，不并发迁移；
+6. H0 必须先盘点 pinned RustDesk 实际读写文件、Keychain 和进程全局项；若单独 `APP_NAME` 不足以完成隔离，在 Host adapter 增加显式 config-root patch，不用环境变量或运行时切换猜测路径。
+
+V1 并存验收至少包含：Host ready 时发起 outbound Viewer；Viewer 会话中接收入站请求；Host 活动会话中启动/停止 Viewer；两侧同时断线/恢复；重启 App 不改变 Host ID。资源预算分开报 Viewer、HostAgent、WindowServer 和媒体进程，不以 ABI 符号可并存替代真实双会话。
 
 ## 19. 上游复用与升级策略
 
@@ -860,7 +978,7 @@ CPU 目标必须同时给出 WindowServer 和媒体系统进程；不能通过�
 - 上游 UI event bus；
 - macOS 屏幕采集热路径；
 - macOS encoder selection 和 frame queue；
-- service status projection；
+- 产品后台状态 projection；
 - 产品权限和诊断 UI。
 
 ### 19.2 升级流程
@@ -873,6 +991,8 @@ CPU 目标必须同时给出 WindowServer 和媒体系统进程；不能通过�
 6. 跑性能基线和 30 分钟稳定性；
 7. 检查许可证和新增依赖；
 8. 全部通过后才更新 pinned revision。
+
+互操作矩阵必须同时固定“Host pinned core 版本”和“官方控制端版本”，至少覆盖与 pinned core 对应的官方版本、当前支持的 stable 版本和当前 Native Viewer。官方控制端升级后若 codec/协议行为漂移，先保存失败证据并评估 patch，不通过过度广告能力或伪造成功绕过。
 
 ## 20. 测试策略
 
@@ -899,6 +1019,8 @@ CPU 目标必须同时给出 WindowServer 和媒体系统进程；不能通过�
 - unknown field/event 的向前兼容；
 - Host ABI 与 Viewer ABI 并存。
 
+其中“ABI 并存”只证明符号、版本和生命周期合同，不代表 Host + Viewer 真实并发已通过；后者必须走 §20.3/§20.4 的双会话验收。
+
 ### 20.3 本地集成测试
 
 - 临时 hbbs/hbbr；
@@ -908,9 +1030,13 @@ CPU 目标必须同时给出 WindowServer 和媒体系统进程；不能通过�
 - approve/reject/timeout；
 - 权限撤销；
 - encoder reset/IDR；
+- 远端 `RefreshVideo*`→指定 display/codec epoch 的下一帧 IDR；
+- AVCC/HVCC↔wire framing、SPS/PPS/VPS 与 keyframe golden vectors；
 - 网络断开恢复；
-- service crash/restart；
-- App UI 重启时活动 Host 状态恢复。
+- HostAgent crash/restart；
+- App UI 重启时活动 Host 状态恢复；
+- App/Agent XPC 断线重连、command dedupe、Agent boot ID 变化和全量 snapshot 对账；
+- HostAgent 与 outbound Viewer 配置隔离及双 active session。
 
 Fixture 和离线协议测试只能证明局部逻辑，不能代替真实 RustDesk 控制端和真实 macOS TCC/VideoToolbox 验收。
 
@@ -924,9 +1050,11 @@ Fixture 和离线协议测试只能证明局部逻辑，不能代替真实 RustD
 - 当前 Native Viewer 控制端；
 - self-hosted direct；
 - self-hosted secure relay；
-- 用户已登录、锁屏、登录窗口、休眠唤醒；
+- 用户已登录、锁屏、登录窗口、休眠唤醒；其中锁屏/LoginWindow 的 V1 通过标准是权威降级为 unsupported/limited 且输入无法注入，不是强行远程操作；
 - 单显示器和显示配置变化；
-- 正式签名构建的 TCC 延续。
+- 正式签名构建的 TCC 延续；
+- Developer ID 公证/stapled 且带 quarantine 的全新安装，包括 LaunchAgent 注册、用户审批、首次入站防火墙 allow/deny；
+- H.264 与 HEVC 在 Apple Silicon/Intel 上的独立硬编探测，不支持 HEVC 硬编的 Intel 必须在协商前降级。
 
 ## 21. 分阶段实施
 
@@ -934,13 +1062,15 @@ Fixture 和离线协议测试只能证明局部逻辑，不能代替真实 RustD
 
 交付：
 
-- 确认许可证/商业授权路径；
+- 完成 AGPL 对应源码、通知、修改说明和网络交互合规清单；
 - 固定上游 commit；
+- 产出 host patch inventory：`video_service`、codec 能力/协商、refresh/IDR、display 和 config-root 接缝；
+- 盘点 pinned core 的进程全局状态和实际配置/Keychain 读写集；
 - 在同一 Mac mini 上测官方 RustDesk host 四场景；
-- 用 Instruments 定位 40–50% 的真实归属；
+- 用 Instruments 重建并定位用户所述 40–50% 的真实归属；
 - 建立性能采集模板。
 
-退出条件：知道 CPU 主要消耗在 capture、conversion、encode、network、polling 还是系统进程，且允许内部复用验证。
+退出条件：知道 CPU 主要消耗在 capture、conversion、encode、network、polling 还是系统进程；Host patch/config 边界可 review；AGPL 清单对内部 Spike 无阻塞。
 
 ### H1：登录用户 Host Spike
 
@@ -949,20 +1079,24 @@ Fixture 和离线协议测试只能证明局部逻辑，不能代替真实 RustD
 - HostCore 在 App 打开时启动；
 - 自托管 hbbs/hbbr 获取稳定 ID；
 - 临时密码；
-- ScreenCaptureKit→VideoToolbox→Rust transport；
+- `rdn-native-host` + `NativeVideoSource` 最小 patch；
+- ScreenCaptureKit→VideoToolbox→Host Media ABI→`GenericService::send_video_frame`→现有 Rust transport；
+- H.264 AVCC/Annex-B framing、SPS/PPS、PTS 和 keyframe golden vectors；
+- 远端 `RefreshVideo*`→VT 下一帧 IDR；
 - 官方 RustDesk 从另一台机器成功连接；
 - 单显示器、只看画面、H.264 hardware。
 
-退出条件：真实连接链成功，硬件编码确认，主路径无 CPU 全帧转换。
+退出条件：真实连接链成功，硬件编码在首帧后确认，远端刷新能恢复画面，压缩包经现有 Rust service/writer 发送，主路径 raw-frame copy count 为 0 或 1 次 GPU/pixel-transfer 转换且无 CPU 全帧转换。
 
 ### H2：性能媒体面
 
 交付：
 
-- dirty rect；
+- dirty rect 可用路径与 attachment 缺失的 macOS 13 降级路径；
 - adaptive FPS/resolution；
 - bounded queue/backpressure；
 - HEVC negotiation；
+- Apple Silicon/Intel 按 codec/尺寸硬编探测；
 - 完整指标和 signpost；
 - 1080p30、4K30 基线。
 
@@ -981,31 +1115,33 @@ Fixture 和离线协议测试只能证明局部逻辑，不能代替真实 RustD
 
 退出条件：未授权输入无法到达 platform adapter，连接状态和权限在 App 重建后仍正确。
 
-### H4：后台服务产品化
+### H4：后台 HostAgent 产品化
 
 交付：
 
-- HostAgent；
-- 最小 HostService；
-- 签名、IPC 验证和版本 handshake；
-- 安装/升级/卸载；
+- 同 executable `--host-agent` mode 与 AppKit 初始化前的 mode dispatch；
+- `SMAppService` LaunchAgent 注册/审批/取消注册，不包含 LaunchDaemon/HostService；
+- XPC audit-token/签名验证、wire 版本 handshake、snapshot-first 重连和 command dedupe；
+- Host/Viewer 配置命名空间隔离、HostAgent 单写者锁与双 active session 验收；
+- Developer ID notarization、stapling、quarantine 全新安装和防火墙首启路径；
 - App 退出后后台运行；
-- 服务组件级状态和诊断。
+- 后台组件级状态和诊断。
 
-退出条件：重启后服务状态真实、可恢复，不以进程存在冒充 ready。
+退出条件：App 重启/退出、Agent 崩溃和版本不匹配后状态真实、可恢复，不以进程存在冒充 ready；带 quarantine 的公证构建能在干净机完成用户审批并后台启动。
 
-### H5：登录窗口、恢复与稳定性
+### H5：恢复、会话边界与稳定性
 
 交付：
 
-- lock/loginwindow 评估和实现；
+- lock/loginwindow/Fast User Switching 的 V1 安全降级与未来可行性评估，不承诺 V1 可远程操作；
 - sleep/wake；
 - 网络切换；
 - display reconfigure；
 - crash recovery；
+- sleep assertion 生命周期、电池能耗与 thermal 降级；
 - 30 分钟 Apple Silicon 与 Intel 证据。
 
-退出条件：产品目标场景均有明确 pass/fail evidence；不支持场景在 UI 中准确降级。
+退出条件：产品目标场景均有明确 pass/fail evidence；锁屏/LoginWindow 不支持边界在 UI 中准确降级且无输入泄漏；无会话时无 sleep assertion 泄漏。
 
 ### H6：可选能力
 
@@ -1025,20 +1161,21 @@ flowchart TD
     H0["H0 Baseline + License"] --> H1["H1 Host Spike"]
     H1 --> H2["H2 Media Performance"]
     H1 --> H3["H3 Auth + Permission + Input"]
-    H2 --> H4["H4 Background Service"]
+    H2 --> H4["H4 Background HostAgent"]
     H3 --> H4
-    H4 --> H5["H5 Recovery + LoginWindow"]
+    H4 --> H5["H5 Recovery + Session Boundary"]
     H5 --> H6["H6 Optional Capabilities"]
 ```
 
 建议进一步拆为独立可 review Issue：
 
-- H0.1 upstream/licensing decision；
+- H0.1 upstream pin/AGPL compliance/patch inventory；
 - H0.2 Mac mini controlled-side baseline；
-- H1.1 Rust inbound session spike；
+- H0.3 Rust config/global-state inventory；
+- H1.1 Rust inbound session + NativeVideoSource seam；
 - H1.2 ScreenCaptureKit adapter；
-- H1.3 VideoToolbox H.264 adapter；
-- H1.4 official-client golden connection；
+- H1.3 VideoToolbox H.264 + Host Media ABI；
+- H1.4 framing/keyframe/official-client golden connection；
 - H2.1 telemetry/signpost；
 - H2.2 dirty rect/adaptive FPS；
 - H2.3 backpressure/drop correctness；
@@ -1048,44 +1185,56 @@ flowchart TD
 - H3.3 input adapter；
 - H3.4 incoming UI/session controls；
 - H4.1 HostAgent process split；
-- H4.2 authenticated IPC；
-- H4.3 service install/upgrade/uninstall；
+- H4.2 authenticated XPC + reconnect/dedupe；
+- H4.3 SMAppService registration/upgrade/unregister；
+- H4.4 Host/Viewer config isolation + concurrent sessions；
+- H4.5 notarization/quarantine/firewall acceptance；
 - H5.1 sleep/network/display recovery；
-- H5.2 loginwindow/TCC/signing；
+- H5.2 lock/loginwindow boundary + TCC/signing；
 - H5.3 30-minute acceptance matrix。
 
-共享 ABI、identity schema、配置 schema 和 root service contract 由主线 Issue 所有；禁止多个实现 Issue 并行私自修改。
+共享 Control/Media ABI、XPC wire protocol、identity schema、配置 schema 和 Host patch inventory 由主线 Issue 所有；禁止多个实现 Issue 并行私自修改。
 
 ## 23. 主要风险与缓解
 
 | 风险 | 影响 | 缓解 |
 |---|---|---|
-| AGPL/商业授权不明确 | 无法合法发布 | H0 先决门禁，不在代码完成后补做 |
+| AGPL 对应源码/通知不完整 | 无法合规发布 | H0 执行可复查的分发清单 |
 | 上游没有稳定 SDK | 升级成本高 | pinned revision + adapter + patch inventory |
+| VT 编码产物绕开 Rust server 会话 | 丢失协商/QoS/加密权威 | NativeVideoSource 注入现有 service/writer，H1 golden connection |
+| 官方控制端协议/codec 漂移 | 新客户端无法连接或花屏 | 固定双向版本矩阵，每次升级跑 framing/keyframe 回归 |
 | TCC/签名漂移 | 升级后无法采集或输入 | 早期固定 identifier/signing，正式签名回归 |
-| LoginWindow/多用户限制 | 无人值守不稳定 | 独立阶段，组件状态明确降级 |
+| 未公证后台 Agent 被 Gatekeeper 拦截 | 安装后无法稳定启动 | H4 Developer ID notarization/stapling/quarantine 干净机验收 |
+| LoginWindow/多用户限制 | 无人值守边界被误解 | V1 只支持 active Aqua session，其余权威降级并拒绝输入 |
 | “允许硬编”但实际软编 | CPU 目标失败 | 读取实际 VideoToolbox 属性并作为门禁 |
 | 原始帧复制隐藏在桥接层 | CPU/内存高 | raw frame 不过 UI ABI，copy count 指标 |
 | 网络堵塞形成帧积压 | 高延迟、高内存 | bounded queues + adaptive controller |
 | 错误丢弃参考帧 | 花屏/解码断链 | 丢弃限于未编码帧，reset + IDR 明确化 |
-| 服务进程存在但实际不可达 | UI 假 ready | 组合 health + persisted component state |
+| HostAgent 进程存在但实际不可达 | UI 假 ready | XPC/version/Rendezvous 组合 health + component snapshot |
+| Host/Viewer 双 core 争用配置/全局状态 | ID 变化、配置损坏、会话串扰 | H1 互斥，H4 进程/配置根隔离 + 单写者锁 + 双会话验收 |
+| 防休眠 assertion 泄漏或高热 | 电池、散热和用户信任受损 | 仅 active session 持有、RAII/崩溃恢复、能耗/thermal 门禁 |
+| Application Firewall 拒绝直连 | 远端误判 Host offline | 首启引导、direct/relay 分状态、allow/deny 真机验收 |
 | 只优化 Host CPU、转移给系统进程 | 性能结论失真 | 同时报 WindowServer/videotoolboxd/总能耗 |
 | 远程输入成为越权通道 | 安全事故 | Rust 权限权威、IPC 校验、默认最小权限 |
 
-## 24. 待确认决策
+## 24. 已冻结决策与剩余待确认项
 
-进入 H1 前需要确认：
+本版已冻结：
 
-1. V1 最低 macOS 版本；
-2. 是否只支持自托管 hbbs/hbbr；
-3. 闭源/开源分发与 RustDesk 授权路径；
-4. H.264 是否为首个强制互操作 codec；
-5. V1 是否必须支持登录窗口无人值守；
-6. V1 是否包含 system audio 和 clipboard；
-7. 永久密码与 identity 的最终存储位置；
-8. HostAgent 使用独立 helper executable 还是同一 executable 的 mode；
-9. Intel Mac 是 release blocker 还是 best-effort compatibility；
-10. 性能门禁使用哪一代 Mac mini 作为主基线。
+1. V1 最低版本为 macOS 13，`dirtyRects` 缺失时有降级而不做 CPU 全帧 diff；
+2. FarPane/Host Mode 按现有 AGPL-3.0 路径分发；
+3. H.264 hardware 是 H1 首个强制互操作 codec，HEVC 在 H2 按真实能力开启；
+4. V1 仅支持 active logged-in Aqua session，不支持 LoginWindow/锁屏输入；
+5. HostAgent 使用同 App executable 的 `--host-agent` mode + `SMAppService` LaunchAgent，V1 无 HostService/LaunchDaemon；
+6. V1 不包含 system audio，clipboard 作为独立功能门禁，不阻塞屏幕/输入核心完成；
+7. Intel 是功能 release blocker，性能门禁独立记录，不用 Apple Silicon 结果代替。
+
+仍需在对应阶段前确认：
+
+1. V1 是否只支持自托管 hbbs/hbbr（H1 前）；
+2. 永久密码为互操作必须保存可恢复 secret 还是可仅保存 verifier，以 pinned core 真实认证链为准（H3 前）；
+3. canonical server config 的产品存储位置与 Host 专用 config-root patch 形态（H4 前）；
+4. 性能门禁使用哪一代 Mac mini 作为主基线（H0 基线采集前）。
 
 ## 25. 完成定义
 
@@ -1093,15 +1242,18 @@ flowchart TD
 
 - 稳定 ID 来自真实 Rendezvous 注册；
 - 临时/永久密码和审批模式按安全策略工作；
-- macOS 权限、服务和连接状态来自权威链；
+- macOS 权限、HostAgent 后台状态和连接状态来自权威链；
 - 官方控制端和 Native Viewer 均完成真实 direct/relay 验收；
 - 输入权限可撤销，断开后无残留按键/会话；
-- App、Agent、Service 重启和版本不匹配行为可诊断；
+- App/Agent 重启、XPC 断线对账和版本不匹配行为可诊断；
+- VT 编码包通过经验证的 NativeVideoSource 注入现有 Rust service/writer，codec/framing/keyframe 合同有 golden tests；
 - 主路径确认 VideoToolbox 硬件编码；
 - 真实尺寸/FPS 下 CPU、内存、drops、latency、runtime 有保存证据；
 - 30 分钟门禁无 crash、无泄漏趋势、无未解释 backlog；
-- 正式签名升级不破坏既有 TCC 或对破坏有明确迁移方案；
-- 许可证和分发义务已经确认。
+- Host/Viewer 配置隔离和双 active session 通过，App 重启不改变 Host ID；
+- 锁屏/LoginWindow 权威降级且远端输入无法注入；
+- 正式签名升级不破坏既有 TCC 或对破坏有明确迁移方案；公证/stapled/quarantine 安装可启动 HostAgent；
+- 无会话时无 sleep assertion 泄漏，active session 能耗/热降级有保存证据；
+- AGPL 对应源码、修改说明、通知和分发义务已通过清单。
 
 在上述证据齐全之前，状态只能是 Spike、MVP 或受限预览，不能声明产品级被控能力完成。
-
