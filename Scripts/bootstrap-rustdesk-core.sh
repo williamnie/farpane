@@ -6,6 +6,7 @@ vendor_dir="$repo_dir/Vendor/rustdesk"
 pinned_commit=6c578292e8ebbbec708b76986ba8c4bc7c509747
 patch_file="$repo_dir/CoreBridge/RustDeskPatch/upstream-1.4.9.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
+host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 
 if [[ ! -d "$vendor_dir/.git" ]]; then
   mkdir -p "${vendor_dir:h}"
@@ -35,6 +36,10 @@ if [[ -e "$vendor_dir/src/rdn_bridge.rs" ]]; then
 else
   cp "$bridge_source" "$vendor_dir/src/rdn_bridge.rs"
 fi
+
+# The host bridge is wholly owned by this repository; the tracked source is
+# authoritative and always synced into the vendor checkout.
+cp "$host_bridge_source" "$vendor_dir/src/rdn_host_bridge.rs"
 
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --check --reverse "$patch_file"

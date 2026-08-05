@@ -1,0 +1,122 @@
+Test Suite 'All tests' started at 2026-08-06 01:02:02.016.
+Test Suite 'RustDeskNativePackageTests.xctest' started at 2026-08-06 01:02:02.017.
+Test Suite 'AnnexBTests' started at 2026-08-06 01:02:02.017.
+Test Case '-[VideoPipelineTests.AnnexBTests testParsesAUDSeparatedAccessUnitsAndParameterSets]' started.
+Test Case '-[VideoPipelineTests.AnnexBTests testParsesAUDSeparatedAccessUnitsAndParameterSets]' passed (0.001 seconds).
+Test Case '-[VideoPipelineTests.AnnexBTests testRejectsMissingParameterSet]' started.
+Test Case '-[VideoPipelineTests.AnnexBTests testRejectsMissingParameterSet]' passed (0.000 seconds).
+Test Suite 'AnnexBTests' passed at 2026-08-06 01:02:02.018.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'AspectFitCoordinateMapperTests' started at 2026-08-06 01:02:02.019.
+Test Case '-[ViewerInputTests.AspectFitCoordinateMapperTests testClampsDragOutsideContentToRemoteEdges]' started.
+Test Case '-[ViewerInputTests.AspectFitCoordinateMapperTests testClampsDragOutsideContentToRemoteEdges]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.AspectFitCoordinateMapperTests testMapsExactBottomRightBoundaryInsideRemoteBounds]' started.
+Test Case '-[ViewerInputTests.AspectFitCoordinateMapperTests testMapsExactBottomRightBoundaryInsideRemoteBounds]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.AspectFitCoordinateMapperTests testMapsPillarboxedAspectFitAndRejectsLetterbox]' started.
+Test Case '-[ViewerInputTests.AspectFitCoordinateMapperTests testMapsPillarboxedAspectFitAndRejectsLetterbox]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.AspectFitCoordinateMapperTests testRetinaBackingScaleDoesNotChangeRemoteMapping]' started.
+Test Case '-[ViewerInputTests.AspectFitCoordinateMapperTests testRetinaBackingScaleDoesNotChangeRemoteMapping]' passed (0.000 seconds).
+Test Suite 'AspectFitCoordinateMapperTests' passed at 2026-08-06 01:02:02.019.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'ConnectionCatalogTests' started at 2026-08-06 01:02:02.019.
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testAuthenticatedDeviceIsUniqueAndSortedByFavoriteThenRecency]' started.
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testAuthenticatedDeviceIsUniqueAndSortedByFavoriteThenRecency]' passed (0.000 seconds).
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testBacksUpCorruptDocumentWithoutChangingOriginal]' started.
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testBacksUpCorruptDocumentWithoutChangingOriginal]' passed (0.002 seconds).
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testCatalogRoundTripDoesNotPersistPasswordSentinel]' started.
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testCatalogRoundTripDoesNotPersistPasswordSentinel]' passed (0.001 seconds).
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testInvalidLegacyProfileIsPreserved]' started.
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testInvalidLegacyProfileIsPreserved]' passed (0.002 seconds).
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testKeychainRoundTripUsesAnIsolatedServiceAndLeavesNoItem]' started.
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testKeychainRoundTripUsesAnIsolatedServiceAndLeavesNoItem]' passed (0.025 seconds).
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testLegacyMigrationIsSuccessfulAndIdempotent]' started.
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testLegacyMigrationIsSuccessfulAndIdempotent]' passed (0.002 seconds).
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testRejectsUnsupportedSchemaWithoutOverwritingIt]' started.
+Test Case '-[ConnectionCatalogTests.ConnectionCatalogTests testRejectsUnsupportedSchemaWithoutOverwritingIt]' passed (0.001 seconds).
+Test Suite 'ConnectionCatalogTests' passed at 2026-08-06 01:02:02.053.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.033 (0.034) seconds
+Test Suite 'CoreBridgeContractTests' started at 2026-08-06 01:02:02.053.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testConnectionConfigDoesNotPersistPassword]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testConnectionConfigDoesNotPersistPassword]' passed (0.000 seconds).
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testLoadsBuiltCoreAndVerifiesABIWhenProvided]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testLoadsBuiltCoreAndVerifiesABIWhenProvided]' passed (0.006 seconds).
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testPhase3InputTypesStaySemantic]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testPhase3InputTypesStaySemantic]' passed (0.000 seconds).
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testPinsRustDesk149Commit]' started.
+Test Case '-[CoreBridgeTests.CoreBridgeContractTests testPinsRustDesk149Commit]' passed (0.000 seconds).
+Test Suite 'CoreBridgeContractTests' passed at 2026-08-06 01:02:02.060.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.006 (0.006) seconds
+Test Suite 'EncodedHEVCPacketTests' started at 2026-08-06 01:02:02.060.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesAnnexBAndFindsParameterSets]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesAnnexBAndFindsParameterSets]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesFourByteAVCC]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testParsesFourByteAVCC]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsDeclaredFormatMismatch]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsDeclaredFormatMismatch]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsMalformedAVCC]' started.
+Test Case '-[VideoPipelineTests.EncodedHEVCPacketTests testRejectsMalformedAVCC]' passed (0.000 seconds).
+Test Suite 'EncodedHEVCPacketTests' passed at 2026-08-06 01:02:02.061.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'ExclusiveKeyboardStateMachineTests' started at 2026-08-06 01:02:02.061.
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testActiveModeSuppressesAndForwardsReservedMacShortcuts]' started.
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testActiveModeSuppressesAndForwardsReservedMacShortcuts]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testExitChordReleasesOnlyAfterEveryChordKeyIsUp]' started.
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testExitChordReleasesOnlyAfterEveryChordKeyIsUp]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testFocusIntentCancelsDuringExitChord]' started.
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testFocusIntentCancelsDuringExitChord]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testFocusIntentResumesOnlyAfterTemporaryFocusLoss]' started.
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testFocusIntentResumesOnlyAfterTemporaryFocusLoss]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testInactiveModePassesEventsToTheLocalSystem]' started.
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testInactiveModePassesEventsToTheLocalSystem]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testManualDeactivateClearsPartialExitChord]' started.
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testManualDeactivateClearsPartialExitChord]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testSuppressesUnbalancedAndDuplicateTransitions]' started.
+Test Case '-[ViewerInputTests.ExclusiveKeyboardStateMachineTests testSuppressesUnbalancedAndDuplicateTransitions]' passed (0.000 seconds).
+Test Suite 'ExclusiveKeyboardStateMachineTests' passed at 2026-08-06 01:02:02.062.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'HostBridgeContractTests' started at 2026-08-06 01:02:02.062.
+Test Case '-[CoreBridgeTests.HostBridgeContractTests testFullHostCoreLifecycle]' started.
+Test Case '-[CoreBridgeTests.HostBridgeContractTests testFullHostCoreLifecycle]' passed (0.019 seconds).
+Test Case '-[CoreBridgeTests.HostBridgeContractTests testHostABISurfaceIsExportedAlongsideViewerABI]' started.
+Test Case '-[CoreBridgeTests.HostBridgeContractTests testHostABISurfaceIsExportedAlongsideViewerABI]' passed (0.000 seconds).
+Test Case '-[CoreBridgeTests.HostBridgeContractTests testShimLoaderResolvesHostSurface]' started.
+Test Case '-[CoreBridgeTests.HostBridgeContractTests testShimLoaderResolvesHostSurface]' passed (0.000 seconds).
+Test Suite 'HostBridgeContractTests' passed at 2026-08-06 01:02:02.082.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.020 (0.020) seconds
+Test Suite 'MacKeyMapperTests' started at 2026-08-06 01:02:02.082.
+Test Case '-[ViewerInputTests.MacKeyMapperTests testMapsBasicTextNavigationAndModifiers]' started.
+Test Case '-[ViewerInputTests.MacKeyMapperTests testMapsBasicTextNavigationAndModifiers]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.MacKeyMapperTests testMapsCommonModifierFlags]' started.
+Test Case '-[ViewerInputTests.MacKeyMapperTests testMapsCommonModifierFlags]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.MacKeyMapperTests testMapsExclusiveHardwareKeysWithoutAppKitTextInput]' started.
+Test Case '-[ViewerInputTests.MacKeyMapperTests testMapsExclusiveHardwareKeysWithoutAppKitTextInput]' passed (0.000 seconds).
+Test Suite 'MacKeyMapperTests' passed at 2026-08-06 01:02:02.082.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'PipelineMetricsTests' started at 2026-08-06 01:02:02.082.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testPersistsPhase3InputAndManualFeedbackEvidence]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testPersistsPhase3InputAndManualFeedbackEvidence]' passed (0.001 seconds).
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testPreservesLastAvailableCoreNetworkMetrics]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testPreservesLastAvailableCoreNetworkMetrics]' passed (0.000 seconds).
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsAsynchronousDecoderRecoveryDiagnostics]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsAsynchronousDecoderRecoveryDiagnostics]' passed (0.003 seconds).
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsDistinctEncodedFrameRateAndRemoteDimensions]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testRecordsDistinctEncodedFrameRateAndRemoteDimensions]' passed (0.003 seconds).
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testSeparatesActivePresentationRateFromEndToEndRate]' started.
+Test Case '-[VideoPipelineTests.PipelineMetricsTests testSeparatesActivePresentationRateFromEndToEndRate]' passed (0.030 seconds).
+Test Suite 'PipelineMetricsTests' passed at 2026-08-06 01:02:02.121.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.038 (0.038) seconds
+Test Suite 'ScrollDeltaMapperTests' started at 2026-08-06 01:02:02.121.
+Test Case '-[ViewerInputTests.ScrollDeltaMapperTests testMapsDiscreteWheelToThreeLineNotchesAndBoundsBursts]' started.
+Test Case '-[ViewerInputTests.ScrollDeltaMapperTests testMapsDiscreteWheelToThreeLineNotchesAndBoundsBursts]' passed (0.000 seconds).
+Test Case '-[ViewerInputTests.ScrollDeltaMapperTests testPreservesPreciseMagnitudeAndUsesTrackpadSemantics]' started.
+Test Case '-[ViewerInputTests.ScrollDeltaMapperTests testPreservesPreciseMagnitudeAndUsesTrackpadSemantics]' passed (0.000 seconds).
+Test Suite 'ScrollDeltaMapperTests' passed at 2026-08-06 01:02:02.121.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'RustDeskNativePackageTests.xctest' passed at 2026-08-06 01:02:02.121.
+	 Executed 41 tests, with 0 failures (0 unexpected) in 0.101 (0.104) seconds
+Test Suite 'All tests' passed at 2026-08-06 01:02:02.121.
+	 Executed 41 tests, with 0 failures (0 unexpected) in 0.101 (0.105) seconds
+◇ Test run started.
+↳ Testing Library Version: 1501
+↳ Target Platform: arm64e-apple-macos14.0
+✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.

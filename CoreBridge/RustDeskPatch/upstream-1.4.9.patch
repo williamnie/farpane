@@ -1,17 +1,18 @@
 diff --git a/Cargo.toml b/Cargo.toml
-index d909ec3..f45d9fd 100644
+index d909ec3..779eeb6 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
-@@ -31,6 +31,7 @@ hwcodec = ["scrap/hwcodec"]
+@@ -31,6 +31,8 @@ hwcodec = ["scrap/hwcodec"]
  vram = ["scrap/vram"]
  mediacodec = ["scrap/mediacodec"]
  plugin_framework = []
 +rdn-native-core = []
++rdn-native-host = []
  linux-pkg-config = ["magnum-opus/linux-pkg-config", "scrap/linux-pkg-config"]
  unix-file-copy-paste = [
      "dep:x11-clipboard",
 diff --git a/src/client.rs b/src/client.rs
-index dcd5941..60f4d23 100644
+index dcd5941..7511f7b 100644
 --- a/src/client.rs
 +++ b/src/client.rs
 @@ -1779,6 +1779,21 @@ impl Deref for LoginConfigHandler {
@@ -36,7 +37,7 @@ index dcd5941..60f4d23 100644
      /// Initialize the login config handler.
      ///
      /// # Arguments
-@@ -2309,12 +2309,22 @@ impl LoginConfigHandler {
+@@ -2309,12 +2324,22 @@ impl LoginConfigHandler {
      }
  
      pub fn get_supported_decoding(&self) -> SupportedDecoding {
@@ -61,7 +62,7 @@ index dcd5941..60f4d23 100644
      }
  
      /// Parse the image quality option.
-@@ -2762,12 +2772,20 @@ impl LoginConfigHandler {
+@@ -2762,12 +2787,20 @@ impl LoginConfigHandler {
      }
  
      pub fn update_supported_decodings(&self) -> Message {
@@ -134,15 +135,18 @@ index c0eb7fb..4bb52bf 100644
                      }
                  }
 diff --git a/src/lib.rs b/src/lib.rs
-index 49cb2b7..b1d6b46 100644
+index 49cb2b7..61e3dec 100644
 --- a/src/lib.rs
 +++ b/src/lib.rs
-@@ -63,6 +63,9 @@ mod ui_cm_interface;
+@@ -63,6 +63,12 @@ mod ui_cm_interface;
  mod ui_interface;
  mod ui_session_interface;
  
 +#[cfg(feature = "rdn-native-core")]
 +mod rdn_bridge;
++
++#[cfg(feature = "rdn-native-host")]
++mod rdn_host_bridge;
 +
  mod hbbs_http;
  
