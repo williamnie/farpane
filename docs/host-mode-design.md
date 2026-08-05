@@ -1290,6 +1290,8 @@ flowchart TD
 
 退出条件：App 打开 → HostCore 启动 → Rendezvous 注册成功 → snapshot 显示 ready；密码不落文件、日志或 crash metadata。
 
+> 状态（2026-08-06）：**H1a.1/H1a.2 完成，H1a.3 待 Hermes key 验收**，详见 `docs/host-mode-h1a.md`。H1a.1：`rdn_host_*` Host Control ABI（`rdn-native-host` feature，JSON envelope，稳定错误码，与 Viewer ABI v5 并存）已实现并通过合同测试；H1a.2：同进程 HostCore 生命周期（config-root 一次性早期隔离 → create fail-closed → 单实例互斥 → start → snapshot ready → 临时密码一次性 reveal/regenerate → stop/destroy → 实例槽位释放）全部以合同测试证明，shim 加载路径与 Swift `HostControlClient` 封装就绪；全量 41/41 通过。H1a.3 的注册验收（§9.1 稳定 ID）被 Hermes hbbs 公钥阻塞，代码侧 `registrationStatus=pending` 已就绪。
+
 ### 26.3 阶段 2 — H1b 媒体链路（§6.4、§11.1、§11.2、§11.4）
 
 任务：

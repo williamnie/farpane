@@ -170,6 +170,83 @@ int32_t rdn_client_send_text(RDNClient *client, const uint8_t *utf8,
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
+/* ------------------------------------------------------------------------ */
+/* Host Control ABI (rdn-native-host, H1a scope)                             */
+/* Low-frequency semantic control only: versioned JSON envelopes for        */
+/* commands/events/snapshots. No raw frames and no encoded packets on this  */
+/* channel; media flows through the separate Host Media ABI later (H1b).    */
+/* ------------------------------------------------------------------------ */
+
+#define RDN_HOST_ABI_VERSION 1u
+
+/* Stable error codes; 0 is success, negatives are contract failures. */
+#define RDN_HOST_OK 0
+#define RDN_HOST_ERR_INVALID_ARG (-1)
+#define RDN_HOST_ERR_ABI_MISMATCH (-2)
+#define RDN_HOST_ERR_BAD_STATE (-3)
+#define RDN_HOST_ERR_NOT_SUPPORTED (-4)
+#define RDN_HOST_ERR_VALIDATION (-5)
+#define RDN_HOST_ERR_INTERNAL (-6)
+
+typedef struct RdnHost RdnHost;
+
+typedef enum RdnHostState {
+    RDN_HOST_STATE_CREATED = 0,
+    RDN_HOST_STATE_STARTING = 1,
+    RDN_HOST_STATE_READY = 2,
+    RDN_HOST_STATE_STOPPING = 3,
+    RDN_HOST_STATE_STOPPED = 4,
+    RDN_HOST_STATE_ERROR = 5,
+} RdnHostState;
+
+typedef enum RdnHostStopReason {
+    RDN_HOST_STOP_USER_REQUEST = 0,
+    RDN_HOST_STOP_APP_EXIT = 1,
+    RDN_HOST_STOP_ERROR = 2,
+} RdnHostStopReason;
+
+/* Owned UTF-8 bytes returned by rdn_host_copy_snapshot; release with
+ * rdn_host_free_bytes. `length` is the valid byte count, `capacity` the
+ * allocation size. */
+typedef struct RdnHostOwnedBytes {
+    uint8_t *data;
+    size_t length;
+    size_t capacity;
+} RdnHostOwnedBytes;
+
+/* Versioned JSON event envelope (§8.5). The payload pointer is only valid
+ * for the duration of the call; copy if it must outlive the callback. */
+typedef void (*RdnHostEventCallback)(void *context, const char *json_utf8,
+                                     size_t length);
+
+typedef struct RdnHostCallbacks {
+    uint32_t abi_version;
+    RdnHostEventCallback on_event;
+    void *context;
+} RdnHostCallbacks;
+
+/* Reserved for future options (canonical server config); zero-initialize. */
+typedef struct RdnHostCreateOptions {
+    uint32_t abi_version;
+} RdnHostCreateOptions;
+
+uint32_t rdn_host_abi_version(void);
+const char *rdn_host_upstream_commit(void);
+
+/* Early config-root entry: must be the first host ABI call in the process,
+ * before any RustDesk config access, and runs exactly once. */
+int32_t rdn_host_set_config_root(const char *app_name, const char *org);
+
+int32_t rdn_host_create(const RdnHostCreateOptions *options,
+                        const RdnHostCallbacks *callbacks, RdnHost **out_host);
+int32_t rdn_host_start(RdnHost *host);
+int32_t rdn_host_stop(RdnHost *host, RdnHostStopReason reason);
+int32_t rdn_host_command(RdnHost *host, const uint8_t *command_json,
+                         size_t length);
+int32_t rdn_host_copy_snapshot(RdnHost *host, RdnHostOwnedBytes *out_snapshot);
+void rdn_host_free_bytes(RdnHostOwnedBytes bytes);
+void rdn_host_destroy(RdnHost *host);
+
 /* Runtime loader used by the Swift package so fixture-only builds do not need
  * the Rust core present. The returned error strings never contain credentials. */
 typedef struct RDNCoreLibrary RDNCoreLibrary;
@@ -198,6 +275,30 @@ int32_t rdn_shim_client_send_key(const RDNCoreLibrary *library,
 int32_t rdn_shim_client_send_text(const RDNCoreLibrary *library,
                                   RDNClient *client, const uint8_t *utf8,
                                   size_t length);
+
+/* Host Control ABI loader surface (rdn-native-host). rdn_shim_open tolerates
+ * cores built without the host feature: rdn_shim_host_available reports whether
+ * the host symbol surface resolved. */
+int rdn_shim_host_available(const RDNCoreLibrary *library);
+uint32_t rdn_shim_host_abi_version(const RDNCoreLibrary *library);
+const char *rdn_shim_host_upstream_commit(const RDNCoreLibrary *library);
+int32_t rdn_shim_host_set_config_root(const RDNCoreLibrary *library,
+                                      const char *app_name, const char *org);
+int32_t rdn_shim_host_create(const RDNCoreLibrary *library,
+                             const RdnHostCreateOptions *options,
+                             const RdnHostCallbacks *callbacks,
+                             RdnHost **out_host);
+int32_t rdn_shim_host_start(const RDNCoreLibrary *library, RdnHost *host);
+int32_t rdn_shim_host_stop(const RDNCoreLibrary *library, RdnHost *host,
+                           RdnHostStopReason reason);
+int32_t rdn_shim_host_command(const RDNCoreLibrary *library, RdnHost *host,
+                              const uint8_t *command_json, size_t length);
+int32_t rdn_shim_host_copy_snapshot(const RDNCoreLibrary *library,
+                                    RdnHost *host,
+                                    RdnHostOwnedBytes *out_snapshot);
+void rdn_shim_host_free_bytes(const RDNCoreLibrary *library,
+                              RdnHostOwnedBytes bytes);
+void rdn_shim_host_destroy(const RDNCoreLibrary *library, RdnHost *host);
 
 #ifdef __cplusplus
 }

@@ -16,6 +16,16 @@ typedef int32_t (*client_send_text_fn)(RDNClient *, const uint8_t *, size_t);
 typedef uint32_t (*abi_version_fn)(void);
 typedef const char *(*upstream_commit_fn)(void);
 
+typedef int32_t (*host_set_config_root_fn)(const char *, const char *);
+typedef int32_t (*host_create_fn)(const RdnHostCreateOptions *,
+                                  const RdnHostCallbacks *, RdnHost **);
+typedef int32_t (*host_start_fn)(RdnHost *);
+typedef int32_t (*host_stop_fn)(RdnHost *, RdnHostStopReason);
+typedef int32_t (*host_command_fn)(RdnHost *, const uint8_t *, size_t);
+typedef int32_t (*host_copy_snapshot_fn)(RdnHost *, RdnHostOwnedBytes *);
+typedef void (*host_free_bytes_fn)(RdnHostOwnedBytes);
+typedef void (*host_destroy_fn)(RdnHost *);
+
 struct RDNCoreLibrary {
     void *handle;
     client_create_fn client_create;
@@ -28,6 +38,17 @@ struct RDNCoreLibrary {
     client_send_text_fn client_send_text;
     abi_version_fn abi_version;
     upstream_commit_fn upstream_commit;
+    int host_available;
+    abi_version_fn host_abi_version;
+    upstream_commit_fn host_upstream_commit;
+    host_set_config_root_fn host_set_config_root;
+    host_create_fn host_create;
+    host_start_fn host_start;
+    host_stop_fn host_stop;
+    host_command_fn host_command;
+    host_copy_snapshot_fn host_copy_snapshot;
+    host_free_bytes_fn host_free_bytes;
+    host_destroy_fn host_destroy;
 };
 
 static void write_error(char *error, size_t size, const char *message) {
@@ -80,6 +101,30 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
         rdn_shim_close(library);
         write_error(error, error_size, "core ABI version mismatch");
         return NULL;
+    }
+    /* Host Control ABI (rdn-native-host): optional surface, resolved
+     * best-effort so viewer-only cores keep loading. All-or-nothing: either
+     * the full host surface resolves or host_available stays 0. */
+    library->host_abi_version = (abi_version_fn)dlsym(handle, "rdn_host_abi_version");
+    library->host_upstream_commit =
+        (upstream_commit_fn)dlsym(handle, "rdn_host_upstream_commit");
+    library->host_set_config_root =
+        (host_set_config_root_fn)dlsym(handle, "rdn_host_set_config_root");
+    library->host_create = (host_create_fn)dlsym(handle, "rdn_host_create");
+    library->host_start = (host_start_fn)dlsym(handle, "rdn_host_start");
+    library->host_stop = (host_stop_fn)dlsym(handle, "rdn_host_stop");
+    library->host_command = (host_command_fn)dlsym(handle, "rdn_host_command");
+    library->host_copy_snapshot =
+        (host_copy_snapshot_fn)dlsym(handle, "rdn_host_copy_snapshot");
+    library->host_free_bytes =
+        (host_free_bytes_fn)dlsym(handle, "rdn_host_free_bytes");
+    library->host_destroy = (host_destroy_fn)dlsym(handle, "rdn_host_destroy");
+    if (library->host_abi_version != NULL && library->host_upstream_commit != NULL &&
+        library->host_set_config_root != NULL && library->host_create != NULL &&
+        library->host_start != NULL && library->host_stop != NULL &&
+        library->host_command != NULL && library->host_copy_snapshot != NULL &&
+        library->host_free_bytes != NULL && library->host_destroy != NULL) {
+        library->host_available = 1;
     }
     return library;
 }
@@ -141,4 +186,77 @@ int32_t rdn_shim_client_send_text(const RDNCoreLibrary *library,
                                   RDNClient *client, const uint8_t *utf8,
                                   size_t length) {
     return library == NULL ? -1 : library->client_send_text(client, utf8, length);
+}
+
+int rdn_shim_host_available(const RDNCoreLibrary *library) {
+    return library == NULL ? 0 : library->host_available;
+}
+
+uint32_t rdn_shim_host_abi_version(const RDNCoreLibrary *library) {
+    return library == NULL || library->host_abi_version == NULL
+               ? 0
+               : library->host_abi_version();
+}
+
+const char *rdn_shim_host_upstream_commit(const RDNCoreLibrary *library) {
+    return library == NULL || library->host_upstream_commit == NULL
+               ? NULL
+               : library->host_upstream_commit();
+}
+
+int32_t rdn_shim_host_set_config_root(const RDNCoreLibrary *library,
+                                      const char *app_name, const char *org) {
+    return library == NULL || library->host_set_config_root == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_set_config_root(app_name, org);
+}
+
+int32_t rdn_shim_host_create(const RDNCoreLibrary *library,
+                             const RdnHostCreateOptions *options,
+                             const RdnHostCallbacks *callbacks,
+                             RdnHost **out_host) {
+    return library == NULL || library->host_create == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_create(options, callbacks, out_host);
+}
+
+int32_t rdn_shim_host_start(const RDNCoreLibrary *library, RdnHost *host) {
+    return library == NULL || library->host_start == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_start(host);
+}
+
+int32_t rdn_shim_host_stop(const RDNCoreLibrary *library, RdnHost *host,
+                           RdnHostStopReason reason) {
+    return library == NULL || library->host_stop == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_stop(host, reason);
+}
+
+int32_t rdn_shim_host_command(const RDNCoreLibrary *library, RdnHost *host,
+                              const uint8_t *command_json, size_t length) {
+    return library == NULL || library->host_command == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_command(host, command_json, length);
+}
+
+int32_t rdn_shim_host_copy_snapshot(const RDNCoreLibrary *library,
+                                    RdnHost *host,
+                                    RdnHostOwnedBytes *out_snapshot) {
+    return library == NULL || library->host_copy_snapshot == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_copy_snapshot(host, out_snapshot);
+}
+
+void rdn_shim_host_free_bytes(const RDNCoreLibrary *library,
+                              RdnHostOwnedBytes bytes) {
+    if (library != NULL && library->host_free_bytes != NULL) {
+        library->host_free_bytes(bytes);
+    }
+}
+
+void rdn_shim_host_destroy(const RDNCoreLibrary *library, RdnHost *host) {
+    if (library != NULL && library->host_destroy != NULL) {
+        library->host_destroy(host);
+    }
 }

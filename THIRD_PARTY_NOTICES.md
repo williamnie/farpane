@@ -11,6 +11,7 @@ Tracked modifications are isolated in:
 
 - `CoreBridge/RustDeskPatch/upstream-1.4.9.patch`
 - `CoreBridge/RustDeskPatch/rdn_bridge.rs`
+- `CoreBridge/RustDeskPatch/rdn_host_bridge.rs`
 - `CoreBridge/include/rustdesk_native.h`
 - `CoreBridge/Shim/rdn_shim.c`
 
@@ -21,6 +22,13 @@ non-persisted viewer session. Phase 3 adds a narrow semantic pointer/keyboard
 ABI and delegates actual input message construction to the pinned RustDesk
 session. Clipboard and audio remain disabled. RustDesk continues to own
 connection, authentication, encryption and protocol handling.
+
+Host Mode (H1a) additionally introduces the `rdn-native-host` feature and
+`rdn_host_bridge.rs`: a separate `rdn_host_*` Host Control C ABI (versioned
+JSON commands/events/snapshots, opaque handle lifecycle, early config-root
+isolation via APP_NAME/ORG, temporary password handling). Without the feature
+the upstream behavior is unchanged; with it, host and viewer cores stay
+mutually exclusive in one process.
 
 Source: <https://github.com/rustdesk/rustdesk/tree/6c578292e8ebbbec708b76986ba8c4bc7c509747>
 
