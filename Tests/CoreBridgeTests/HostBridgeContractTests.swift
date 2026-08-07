@@ -7,6 +7,9 @@ import XCTest
 
 struct HostCreateOptionsRaw {
     var abiVersion: UInt32
+    var rendezvousServer: UnsafePointer<CChar>?
+    var relayServer: UnsafePointer<CChar>?
+    var serverPublicKey: UnsafePointer<CChar>?
 }
 
 struct HostCallbacksRaw {
@@ -25,6 +28,31 @@ struct HostOwnedBytesRaw {
         length = 0
         capacity = 0
     }
+}
+
+struct HostEncoderCapabilitiesRaw {
+    var abiVersion: UInt32
+    var hostInstanceID: UnsafePointer<CChar>?
+    var h264Hardware: UInt32
+    var h265Hardware: UInt32
+    var maxWidth: UInt32
+    var maxHeight: UInt32
+    var maxFPS: UInt32
+}
+
+struct HostEncodedAccessUnitRaw {
+    var abiVersion: UInt32
+    var hostInstanceID: UnsafePointer<CChar>?
+    var connectionEpoch: UInt64
+    var codecEpoch: UInt64
+    var displayID: UInt64
+    var displayRevision: UInt64
+    var codec: UInt32
+    var framing: UInt32
+    var flags: UInt32
+    var presentationTimeUS: UInt64
+    var data: UnsafePointer<UInt8>?
+    var length: Int
 }
 
 /// Event collector reachable from a non-capturing C callback.
@@ -47,7 +75,8 @@ enum HostEventRecorder {
 /// coexist with the viewer ABI v5, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
-    private static let hostABIVersion: UInt32 = 1
+    private static let hostABIVersion: UInt32 = 2
+    private static let hostMediaABIVersion: UInt32 = 1
     private static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
 
     private var handle: UnsafeMutableRawPointer?
@@ -91,6 +120,10 @@ final class HostBridgeContractTests: XCTestCase {
             try rawSymbol("rdn_host_abi_version"),
             to: (@convention(c) () -> UInt32).self)
         XCTAssertEqual(hostABI(), Self.hostABIVersion)
+        let mediaABI = unsafeBitCast(
+            try rawSymbol("rdn_host_media_abi_version"),
+            to: (@convention(c) () -> UInt32).self)
+        XCTAssertEqual(mediaABI(), Self.hostMediaABIVersion)
 
         let commit = unsafeBitCast(
             try rawSymbol("rdn_host_upstream_commit"),
@@ -107,6 +140,9 @@ final class HostBridgeContractTests: XCTestCase {
             "rdn_host_copy_snapshot",
             "rdn_host_free_bytes",
             "rdn_host_destroy",
+            "rdn_host_media_set_capabilities",
+            "rdn_host_media_submit_access_unit",
+            "rdn_host_media_report_encoder_state",
         ]
         for name in surface {
             XCTAssertNotNil(dlsym(handle, name), "host ABI symbol missing: \(name)")
@@ -133,6 +169,9 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertEqual(rdn_shim_abi_version(shimLibrary), 5, "viewer ABI must stay at v5")
         XCTAssertNotEqual(rdn_shim_host_available(shimLibrary), 0)
         XCTAssertEqual(rdn_shim_host_abi_version(shimLibrary), Self.hostABIVersion)
+        XCTAssertEqual(
+            rdn_shim_host_media_abi_version(shimLibrary),
+            Self.hostMediaABIVersion)
         let hostCommit = rdn_shim_host_upstream_commit(shimLibrary).map { String(cString: $0) }
         XCTAssertEqual(hostCommit, Self.expectedUpstreamCommit)
     }
@@ -146,6 +185,27 @@ final class HostBridgeContractTests: XCTestCase {
     /// this process that switches the config root, so the fail-closed
     /// namespace validation runs at the top, before the switch.
     func testFullHostCoreLifecycle() throws {
+        let environment = ProcessInfo.processInfo.environment
+        let liveServer = environment["RDN_HOST_LIVE_SERVER"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let liveKey = environment["RDN_HOST_LIVE_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (liveServer == nil) == (liveKey == nil) else {
+            XCTFail("RDN_HOST_LIVE_SERVER and RDN_HOST_LIVE_KEY must be supplied together")
+            return
+        }
+        let liveRegistration = liveServer != nil
+        let rendezvousServer = strdup(liveServer ?? "127.0.0.1:21116")!
+        let relayServer = strdup("")!
+        let syntheticPublicKey = Data(repeating: 0xA5, count: 32).base64EncodedString()
+        let serverPublicKey = strdup(liveKey ?? syntheticPublicKey)!
+        defer {
+            free(rendezvousServer)
+            free(relayServer)
+            free(serverPublicKey)
+        }
+        let root = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/FarPaneHostTestsRoot")
+        try? FileManager.default.removeItem(at: root)
+        defer { try? FileManager.default.removeItem(at: root) }
         let setConfigRoot = unsafeBitCast(
             try rawSymbol("rdn_host_set_config_root"),
             to: (@convention(c) (UnsafePointer<CChar>?, UnsafePointer<CChar>?) -> Int32).self)
@@ -183,6 +243,12 @@ final class HostBridgeContractTests: XCTestCase {
         let hostDestroy = unsafeBitCast(
             try rawSymbol("rdn_host_destroy"),
             to: (@convention(c) (OpaquePointer?) -> Void).self)
+        let mediaSetCapabilities = unsafeBitCast(
+            try rawSymbol("rdn_host_media_set_capabilities"),
+            to: (@convention(c) (OpaquePointer?, UnsafeRawPointer?) -> Int32).self)
+        let mediaSubmitAccessUnit = unsafeBitCast(
+            try rawSymbol("rdn_host_media_submit_access_unit"),
+            to: (@convention(c) (OpaquePointer?, UnsafeRawPointer?) -> Int32).self)
 
         /// create wrapper: options/callbacks/out are C structs behind raw pointers.
         func create(_ out: inout OpaquePointer?) -> Int32 {
@@ -197,14 +263,32 @@ final class HostBridgeContractTests: XCTestCase {
                 }
             }
         }
-        func copy(_ into: inout HostOwnedBytesRaw) -> Int32 {
+        func copy(_ host: OpaquePointer?, _ into: inout HostOwnedBytesRaw) -> Int32 {
             withUnsafeMutablePointer(to: &into) { ptr in
                 copySnapshot(host, UnsafeMutableRawPointer(ptr))
             }
         }
+        func copyDictionary(_ host: OpaquePointer?) throws -> [String: Any] {
+            var bytes = HostOwnedBytesRaw()
+            XCTAssertEqual(copy(host, &bytes), 0)
+            return try snapshotJSON(bytes, freeBytes: freeBytes)
+        }
+        func waitUntilRegistered(_ host: OpaquePointer?) throws -> [String: Any] {
+            let deadline = Date().addingTimeInterval(30)
+            var snapshot = try copyDictionary(host)
+            while snapshot["registrationStatus"] as? String != "ready", Date() < deadline {
+                Thread.sleep(forTimeInterval: 0.25)
+                snapshot = try copyDictionary(host)
+            }
+            return snapshot
+        }
 
         // create must fail closed before the config-root switch.
-        var options = HostCreateOptionsRaw(abiVersion: Self.hostABIVersion)
+        var options = HostCreateOptionsRaw(
+            abiVersion: Self.hostABIVersion,
+            rendezvousServer: UnsafePointer(rendezvousServer),
+            relayServer: UnsafePointer(relayServer),
+            serverPublicKey: UnsafePointer(serverPublicKey))
         var callbacks = HostCallbacksRaw(
             abiVersion: Self.hostABIVersion,
             onEvent: nil,
@@ -215,6 +299,13 @@ final class HostBridgeContractTests: XCTestCase {
         // Switch the config root once, with a test-only namespace.
         XCTAssertEqual(setConfigRoot("FarPaneHostTests", "FarPaneHostTestsRoot"), 0)
         XCTAssertEqual(setConfigRoot("FarPaneHostTests", "FarPaneHostTestsRoot"), -3)
+
+        // Canonical server configuration is required and validated before
+        // the singleton instance slot is acquired.
+        let validPublicKey = options.serverPublicKey
+        options.serverPublicKey = nil
+        XCTAssertEqual(create(&earlyHost), -1)
+        options.serverPublicKey = validPublicKey
 
         HostEventRecorder.events.removeAll()
         callbacks = HostCallbacksRaw(
@@ -232,17 +323,67 @@ final class HostBridgeContractTests: XCTestCase {
 
         XCTAssertEqual(hostStart(host), 0)
 
-        var snapshot = HostOwnedBytesRaw()
-        XCTAssertEqual(copy(&snapshot), 0)
-        let snapshotDict = try snapshotJSON(snapshot, freeBytes: freeBytes)
-        XCTAssertEqual(snapshotDict["hostState"] as? String, "ready")
-        XCTAssertEqual(snapshotDict["registrationStatus"] as? String, "pending")
+        let snapshotDict = liveRegistration
+            ? try waitUntilRegistered(host)
+            : try copyDictionary(host)
+        XCTAssertEqual(
+            snapshotDict["hostState"] as? String,
+            liveRegistration ? "ready" : "starting")
+        XCTAssertEqual(
+            snapshotDict["registrationStatus"] as? String,
+            liveRegistration ? "ready" : "pending")
         let localId = snapshotDict["localId"] as? String ?? ""
         XCTAssertFalse(localId.isEmpty)
+        let hostInstanceID = snapshotDict["hostInstanceId"] as? String ?? ""
+        XCTAssertFalse(hostInstanceID.isEmpty)
         if let redacted = snapshotDict["temporaryPasswordPresentation"] as? [String: Any] {
             XCTAssertEqual(redacted["policy"] as? String, "redacted")
         } else {
             XCTFail("snapshot must carry temporaryPasswordPresentation")
+        }
+
+        // H1b media surface: capabilities are instance-scoped and ABI
+        // versioned. Encoded bytes are rejected without an authoritative
+        // subscriber route; they must never bypass Rust service negotiation.
+        hostInstanceID.withCString { instanceID in
+            var capabilities = HostEncoderCapabilitiesRaw(
+                abiVersion: Self.hostMediaABIVersion,
+                hostInstanceID: instanceID,
+                h264Hardware: 1,
+                h265Hardware: 0,
+                maxWidth: 4096,
+                maxHeight: 4096,
+                maxFPS: 60
+            )
+            capabilities.abiVersion += 1
+            XCTAssertEqual(withUnsafePointer(to: &capabilities) {
+                mediaSetCapabilities(host, UnsafeRawPointer($0))
+            }, -2)
+            capabilities.abiVersion = Self.hostMediaABIVersion
+            XCTAssertEqual(withUnsafePointer(to: &capabilities) {
+                mediaSetCapabilities(host, UnsafeRawPointer($0))
+            }, 0)
+
+            let packet: [UInt8] = [0, 0, 0, 1, 0x67]
+            packet.withUnsafeBufferPointer { packetBuffer in
+                var accessUnit = HostEncodedAccessUnitRaw(
+                    abiVersion: Self.hostMediaABIVersion,
+                    hostInstanceID: instanceID,
+                    connectionEpoch: 1,
+                    codecEpoch: 1,
+                    displayID: 0,
+                    displayRevision: 1,
+                    codec: 1,
+                    framing: 1,
+                    flags: 3,
+                    presentationTimeUS: 1,
+                    data: packetBuffer.baseAddress,
+                    length: packetBuffer.count
+                )
+                XCTAssertEqual(withUnsafePointer(to: &accessUnit) {
+                    mediaSubmitAccessUnit(host, UnsafeRawPointer($0))
+                }, -3)
+            }
         }
 
         // Regenerate + one-shot reveal (§9.2).
@@ -255,7 +396,7 @@ final class HostBridgeContractTests: XCTestCase {
             hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
         }, 0)
         var revealed = HostOwnedBytesRaw()
-        XCTAssertEqual(copy(&revealed), 0)
+        XCTAssertEqual(copy(host, &revealed), 0)
         let revealedDict = try snapshotJSON(revealed, freeBytes: freeBytes)
         if let presentation = revealedDict["temporaryPasswordPresentation"] as? [String: Any] {
             XCTAssertEqual(presentation["policy"] as? String, "revealed")
@@ -267,7 +408,7 @@ final class HostBridgeContractTests: XCTestCase {
 
         // The reveal is one-shot: the next copy is redacted again.
         var followUp = HostOwnedBytesRaw()
-        XCTAssertEqual(copy(&followUp), 0)
+        XCTAssertEqual(copy(host, &followUp), 0)
         let followUpDict = try snapshotJSON(followUp, freeBytes: freeBytes)
         if let followUpPresentation =
             followUpDict["temporaryPasswordPresentation"] as? [String: Any]
@@ -280,17 +421,23 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertEqual(hostStop(host, 0), 0)
         hostDestroy(host)
 
-        // After destroy the instance slot is free again.
+        // After destroy the instance slot is free again, and the isolated
+        // identity remains stable across a full HostCore restart (§9.1).
         var revivedHost: OpaquePointer?
         XCTAssertEqual(create(&revivedHost), 0)
+        XCTAssertEqual(hostStart(revivedHost), 0)
+        let revivedSnapshot = liveRegistration
+            ? try waitUntilRegistered(revivedHost)
+            : try copyDictionary(revivedHost)
+        XCTAssertEqual(revivedSnapshot["localId"] as? String, localId)
+        if liveRegistration {
+            XCTAssertEqual(revivedSnapshot["registrationStatus"] as? String, "ready")
+        }
+        XCTAssertEqual(hostStop(revivedHost, 0), 0)
         hostDestroy(revivedHost)
 
         XCTAssertFalse(HostEventRecorder.events.isEmpty)
 
-        // Best-effort cleanup of the throwaway config root.
-        let root = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/FarPaneHostTestsRoot")
-        try? FileManager.default.removeItem(at: root)
     }
 
     private func snapshotJSON(

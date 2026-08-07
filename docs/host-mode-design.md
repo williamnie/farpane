@@ -264,7 +264,7 @@ Host patch inventory 只允许包含：
 
 Host Media ABI 不属于 UI 控制通道。每个 access unit 必须包含 `hostInstanceId`、`connectionEpoch`、`codecEpoch`、canonical display ID/revision、codec、framing、PTS、keyframe/parameter-set flags 和有上限的 bytes。Rust 在调用返回前拷贝到 Rust-owned compressed buffer，或使用经合同测试的显式 ownership-transfer/free callback；不得保留 Swift 临时指针。迟到 epoch、错 codec、过大包、非单调 PTS 和缺失参数集的 IDR 必须 fail closed 并记稳定错误码。
 
-VideoToolbox 常产生 AVCC/HVCC 长度前缀，现有真实 RustDesk 样本主要是 Annex-B。H1 不凭假设固定 wire framing；必须使用官方控制端黄金连接确认 H.264 framing、SPS/PPS 传递和 keyframe 标记，然后在 Media ABI 边界统一规范化。允许压缩包的一次有界拷贝，不得因此引入 raw-frame 拷贝。
+VideoToolbox 常产生 AVCC/HVCC 长度前缀，现有真实 RustDesk 样本主要是 Annex-B。H1 不凭假设固定 wire framing；必须使用 FarPane 控制端黄金连接确认协商 codec 的 framing、参数集传递和 keyframe 标记，然后在 Media ABI 边界统一规范化。允许压缩包的一次有界拷贝，不得因此引入 raw-frame 拷贝。
 
 刷新有两种语义：远端 `RefreshVideo*`/丢失恢复只触发当前 VT session 的下一帧 IDR；codec、尺寸、display revision 变化才执行 flush→丢弃旧 epoch→重建 encoder→参数集+IDR。不得沿用上游“一律重启 video service”来伪装 keyframe 请求。
 
@@ -987,12 +987,12 @@ V1 并存验收至少包含：Host ready 时发起 outbound Viewer；Viewer 会�
 2. 记录复用文件和 patch inventory；
 3. 新上游版本先在临时分支执行 compile/focused tests；
 4. 跑协议 golden tests；
-5. 跑官方 RustDesk 控制端互操作矩阵；
+5. 跑受支持 FarPane 控制端版本的互操作矩阵；
 6. 跑性能基线和 30 分钟稳定性；
 7. 检查许可证和新增依赖；
 8. 全部通过后才更新 pinned revision。
 
-互操作矩阵必须同时固定“Host pinned core 版本”和“官方控制端版本”，至少覆盖与 pinned core 对应的官方版本、当前支持的 stable 版本和当前 Native Viewer。官方控制端升级后若 codec/协议行为漂移，先保存失败证据并评估 patch，不通过过度广告能力或伪造成功绕过。
+互操作矩阵必须同时固定“Host pinned core 版本”和“FarPane 控制端版本”，至少覆盖当前支持的旧版与最新 FarPane Viewer。控制端升级后若 codec/协议行为漂移，先保存失败证据并评估 patch，不通过过度广告能力或伪造成功绕过。
 
 ## 20. 测试策略
 
@@ -1046,8 +1046,8 @@ Fixture 和离线协议测试只能证明局部逻辑，不能代替真实 RustD
 
 - Apple Silicon Mac mini 作为被控端；
 - Intel Mac 作为独立兼容门禁；
-- 官方 RustDesk stable 控制端；
-- 当前 Native Viewer 控制端；
+- 当前支持的旧版 FarPane Viewer 控制端；
+- 最新 FarPane Viewer 控制端；
 - self-hosted direct；
 - self-hosted secure relay；
 - 用户已登录、锁屏、登录窗口、休眠唤醒；其中锁屏/LoginWindow 的 V1 通过标准是权威降级为 unsupported/limited 且输入无法注入，不是强行远程操作；
@@ -1083,10 +1083,12 @@ Fixture 和离线协议测试只能证明局部逻辑，不能代替真实 RustD
 - ScreenCaptureKit→VideoToolbox→Host Media ABI→`GenericService::send_video_frame`→现有 Rust transport；
 - H.264 AVCC/Annex-B framing、SPS/PPS、PTS 和 keyframe golden vectors；
 - 远端 `RefreshVideo*`→VT 下一帧 IDR；
-- 官方 RustDesk 从另一台机器成功连接；
-- 单显示器、只看画面、H.264 hardware。
+- FarPane 从另一台机器成功连接；
+- 单显示器、只看画面、会话协商出的 H.264 或 HEVC hardware。
 
 退出条件：真实连接链成功，硬件编码在首帧后确认，远端刷新能恢复画面，压缩包经现有 Rust service/writer 发送，主路径 raw-frame copy count 为 0 或 1 次 GPU/pixel-transfer 转换且无 CPU 全帧转换。
+
+> 状态（2026-08-07）：**H1 完成**。MacBook Pro 上的旧版 FarPane 经 Hermes 连接 Mac mini Host，真实 HEVC hardware 画面持续显示；Viewer 自动 Refresh 触发 route-matched IDR，Host 确认带参数集的关键帧经 Rust writer 发出，同一会话无需重连继续显示；断开后采集/编码停止并回到 ready。结合本机 H.264/HEVC 硬编、raw-frame copy count 与完整自动化证据，H1 退出条件满足。H.264 控制端真机回归保留为后续双 codec 兼容检查。
 
 ### H2：性能媒体面
 
@@ -1202,7 +1204,7 @@ flowchart TD
 | AGPL 对应源码/通知不完整 | 无法合规发布 | H0 执行可复查的分发清单 |
 | 上游没有稳定 SDK | 升级成本高 | pinned revision + adapter + patch inventory |
 | VT 编码产物绕开 Rust server 会话 | 丢失协商/QoS/加密权威 | NativeVideoSource 注入现有 service/writer，H1 golden connection |
-| 官方控制端协议/codec 漂移 | 新客户端无法连接或花屏 | 固定双向版本矩阵，每次升级跑 framing/keyframe 回归 |
+| FarPane 控制端协议/codec 漂移 | 新客户端无法连接或花屏 | 固定双向版本矩阵，每次升级跑 framing/keyframe 回归 |
 | TCC/签名漂移 | 升级后无法采集或输入 | 早期固定 identifier/signing，正式签名回归 |
 | 未公证后台 Agent 被 Gatekeeper 拦截 | 安装后无法稳定启动 | H4 Developer ID notarization/stapling/quarantine 干净机验收 |
 | LoginWindow/多用户限制 | 无人值守边界被误解 | V1 只支持 active Aqua session，其余权威降级并拒绝输入 |
@@ -1246,7 +1248,7 @@ flowchart TD
 - 稳定 ID 来自真实 Rendezvous 注册；
 - 临时/永久密码和审批模式按安全策略工作；
 - macOS 权限、HostAgent 后台状态和连接状态来自权威链；
-- 官方控制端和 Native Viewer 均完成真实 direct/relay 验收；
+- 受支持的旧版与最新 FarPane Viewer 均完成真实 direct/relay 验收；
 - 输入权限可撤销，断开后无残留按键/会话；
 - App/Agent 重启、XPC 断线对账和版本不匹配行为可诊断；
 - VT 编码包通过经验证的 NativeVideoSource 注入现有 Rust service/writer，codec/framing/keyframe 合同有 golden tests；
@@ -1290,7 +1292,7 @@ flowchart TD
 
 退出条件：App 打开 → HostCore 启动 → Rendezvous 注册成功 → snapshot 显示 ready；密码不落文件、日志或 crash metadata。
 
-> 状态（2026-08-06）：**H1a.1/H1a.2 完成，H1a.3 待 Hermes key 验收**，详见 `docs/host-mode-h1a.md`。H1a.1：`rdn_host_*` Host Control ABI（`rdn-native-host` feature，JSON envelope，稳定错误码，与 Viewer ABI v5 并存）已实现并通过合同测试；H1a.2：同进程 HostCore 生命周期（config-root 一次性早期隔离 → create fail-closed → 单实例互斥 → start → snapshot ready → 临时密码一次性 reveal/regenerate → stop/destroy → 实例槽位释放）全部以合同测试证明，shim 加载路径与 Swift `HostControlClient` 封装就绪；全量 41/41 通过。H1a.3 的注册验收（§9.1 稳定 ID）被 Hermes hbbs 公钥阻塞，代码侧 `registrationStatus=pending` 已就绪。
+> 状态（2026-08-07）：**H1a 完成**，详见 `docs/host-mode-h1a.md` 与 `Evidence/HostMode/2026-08-07/h1a-registration.md`。Host ABI v2 已接收并 fail-closed 校验 canonical rendezvous/relay/hbbs 公钥，在隔离配置根中启动可停止、可 join 的真实 Rendezvous runtime；`registrationStatus=ready` 仅由 key confirmed 与 server online state 共同推导。Hermes 实链证明完整 stop/destroy 后再次注册仍使用同一稳定 ID。产品 App 主页已接入 Host 开关、权威状态、稳定 ID 和一次性临时密码显示/轮换；Host 与 outbound Viewer 按 §18 互斥，普通开关复用已隔离的 Host Core，切换 Viewer 或退出 App 才释放动态库。隔离 App 实链验收覆盖首次启动 ready、关闭、重新开启并再次 ready；全量 41/41 与 release build 通过。下一步进入 §26.3 H1b 媒体链路。
 
 ### 26.3 阶段 2 — H1b 媒体链路（§6.4、§11.1、§11.2、§11.4）
 
@@ -1302,15 +1304,22 @@ flowchart TD
 
 退出条件：SCK→VT→Host Media ABI→Rust writer 全链路通；主路径 raw-frame copy 为 0 或 1 次 GPU/pixel-transfer 转换，无 CPU 全帧转换；硬件编码在首帧后确认。
 
+> 状态（2026-08-07）：**H1b.1–H1b.3 与真实订阅闭环完成**，详见 `docs/host-mode-h1b.md`、`Evidence/HostMode/2026-08-07/h1b-media.md` 和 Golden Connection evidence。Host Media ABI v1 已按 instance/connection/codec/display epoch fail closed，并以容量 3 的 Rust-owned 压缩包队列接入 feature-gated `video_service::run_native`；现有 `GenericService::send_video_frame`、subscriber snapshot、`VideoFrameController` ACK、QoS、display/codec switch 与 Refresh→IDR 路径保留。本机测试真实完成 SCK→VT H.264/HEVC 硬编，raw-frame 路径为 0 或 1 次系统 pixel transfer、无 CPU 全帧转换。MacBook Pro 旧版 FarPane 随后建立真实 subscriber，显示 Mac mini 画面，并完成 Refresh→IDR→writer、同会话恢复和 teardown 实链。
+
 ### 26.4 阶段 3 — H1c Golden Connection（§6.4、§11.6、§20.3）
+
+> 范围更新（2026-08-07）：产品目标已明确为 FarPane 控制端 → Hermes → FarPane Host，不再把官方 RustDesk 控制端互操作作为 H1 验收门禁。Host 同时保留 H.264 与 HEVC 硬件编码能力，由 Rust 侧会话能力协商选择唯一的 `selectedCodec + codecEpoch`；不能让两个编码器为同一会话同时运行。当前旧版 FarPane Viewer 只消费 HEVC，因此首个 Golden Connection 先走 HEVC，H.264 继续作为可协商兼容能力保留。
 
 任务：
 
-- H1c.1 framing golden vectors：AVCC/Annex-B wire framing 规范化、SPS/PPS 传递、PTS 单调、keyframe 标志的单元测试与 fixture（framing 以官方控制端黄金连接实测为准，不凭假设）；
+- H1c.1 framing golden vectors：AVCC/HVCC/Annex-B wire framing 规范化、H.264 SPS/PPS 与 HEVC VPS/SPS/PPS 传递、PTS 单调、keyframe 标志的单元测试与 fixture（framing 以 FarPane 控制端黄金连接实测为准，不凭假设）；
 - H1c.2 RefreshVideo→IDR：远端 `RefreshVideo*` 精确映射为当前 VT session 下一帧 IDR（不重启 video service），与 viewer 侧 `rdn_client_request_keyframe` 构成对称恢复链；
-- H1c.3 `[手动]` 官方控制端真机连接：另一台机器用官方 RustDesk stable 连接本机 Host，单显示器、只看画面、H.264 hardware。
+- H1c.3 双 codec Host 路径：H.264 与 HEVC 独立探测并广告真实能力，按会话协商只启动选中的编码器，codec epoch 切换时 flush 并请求新 IDR；
+- H1c.4 `[手动]` FarPane 控制端真机连接：另一台机器先用现有 FarPane Viewer 连接本机 Host，单显示器、只看画面、HEVC hardware；随后补 H.264 会话回归。
 
 退出条件：§21 H1 退出条件全部满足（真实连接链成功、压缩包经现有 Rust service/writer 发送、远端刷新能恢复画面）。
+
+> 状态（2026-08-07）：**H1c.1–H1c.4 完成，Golden Connection 通过**，详见 `docs/host-mode-h1c.md`、`docs/host-mode-h1-golden-connection.md` 与 `Evidence/HostMode/2026-08-07/h1-golden-connection-template.md`。H.264 路径已有严格的 AVCC4/Annex-B parser、真实硬编和 Refresh→IDR 自动化证据；HEVC VideoToolbox 硬件编码器通过真实 VPS/SPS/PPS、startup/requested IDR 与硬件状态读回测试。旧版 FarPane → Mac mini Host 真机 HEVC 会话完成认证、订阅、远端显示、自动 Refresh→IDR→writer、无需重连恢复和 teardown。App 保留 H.264/HEVC 独立能力探测与单 codec/epoch 选择；H.264 控制端真机回归后续补充。
 
 ### 26.5 阶段 4 — H2 性能媒体面（§11.3、§11.5、§11.6、§15）
 

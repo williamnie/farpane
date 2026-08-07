@@ -38,4 +38,8 @@ nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_stop
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_command
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_copy_snapshot
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_destroy
+nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_media_abi_version
+nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_media_set_capabilities
+nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_media_submit_access_unit
+nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_media_report_encoder_state
 print "RUSTDESK_CORE_BUILT path=$output_dir/liblibrustdesk.dylib"

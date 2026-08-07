@@ -1,23 +1,95 @@
 diff --git a/Cargo.toml b/Cargo.toml
-index d909ec3..779eeb6 100644
+index d909ec3..f1bb2fd 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
-@@ -31,6 +31,8 @@ hwcodec = ["scrap/hwcodec"]
- vram = ["scrap/vram"]
- mediacodec = ["scrap/mediacodec"]
+@@ -33,2 +33,4 @@ mediacodec = ["scrap/mediacodec"]
  plugin_framework = []
 +rdn-native-core = []
-+rdn-native-host = []
++rdn-native-host = ["scrap/rdn-native-host"]
  linux-pkg-config = ["magnum-opus/linux-pkg-config", "scrap/linux-pkg-config"]
- unix-file-copy-paste = [
-     "dep:x11-clipboard",
+diff --git a/libs/scrap/Cargo.toml b/libs/scrap/Cargo.toml
+index 505eca2..11fb50e 100644
+--- a/libs/scrap/Cargo.toml
++++ b/libs/scrap/Cargo.toml
+@@ -12,2 +12,3 @@ edition = "2018"
+ [features]
++rdn-native-host = []
+ wayland = ["gstreamer", "gstreamer-app", "gstreamer-video", "dbus", "tracing", "zbus"]
+@@ -67,2 +68 @@ optional = true
+ nokhwa = { git = "https://github.com/rustdesk-org/nokhwa.git", branch = "fix_from_raw_parts", features = ["input-native"] }
+-
+diff --git a/libs/scrap/src/common/codec.rs b/libs/scrap/src/common/codec.rs
+index 9b072e1..7302b5a 100644
+--- a/libs/scrap/src/common/codec.rs
++++ b/libs/scrap/src/common/codec.rs
+@@ -3,3 +3,6 @@ use std::{
+     ops::{Deref, DerefMut},
+-    sync::{Arc, Mutex},
++    sync::{
++        atomic::{AtomicBool, Ordering},
++        Arc, Mutex,
++    },
+     time::Instant,
+@@ -47,2 +50,16 @@ lazy_static::lazy_static! {
+-
++
++#[cfg(feature = "rdn-native-host")]
++static NATIVE_H264_ENCODING: AtomicBool = AtomicBool::new(false);
++#[cfg(feature = "rdn-native-host")]
++static NATIVE_H265_ENCODING: AtomicBool = AtomicBool::new(false);
++
++#[cfg(feature = "rdn-native-host")]
++pub fn set_native_encoding_capabilities(h264: bool, h265: bool) {
++    NATIVE_H264_ENCODING.store(h264, Ordering::Release);
++    NATIVE_H265_ENCODING.store(h265, Ordering::Release);
++}
++
++#[cfg(not(feature = "rdn-native-host"))]
++pub fn set_native_encoding_capabilities(_h264: bool, _h265: bool) {}
++
+ pub const ENCODE_NEED_SWITCH: &'static str = "ENCODE_NEED_SWITCH";
+@@ -232,6 +249,14 @@ impl Encoder {
+         }
+-        let h264_useable =
+-            _all_support_h264_decoding && (h264vram_encoding || h264hw_encoding.is_some());
+-        let h265_useable =
+-            _all_support_h265_decoding && (h265vram_encoding || h265hw_encoding.is_some());
++        #[cfg(feature = "rdn-native-host")]
++        let native_h264_encoding = NATIVE_H264_ENCODING.load(Ordering::Acquire);
++        #[cfg(not(feature = "rdn-native-host"))]
++        let native_h264_encoding = false;
++        #[cfg(feature = "rdn-native-host")]
++        let native_h265_encoding = NATIVE_H265_ENCODING.load(Ordering::Acquire);
++        #[cfg(not(feature = "rdn-native-host"))]
++        let native_h265_encoding = false;
++        let h264_useable = _all_support_h264_decoding
++            && (native_h264_encoding || h264vram_encoding || h264hw_encoding.is_some());
++        let h265_useable = _all_support_h265_decoding
++            && (native_h265_encoding || h265vram_encoding || h265hw_encoding.is_some());
+         let mut format = ENCODE_CODEC_FORMAT.lock().unwrap();
+@@ -297,3 +322,3 @@ impl Encoder {
+             PreferCodec::H264 => {
+-                if h264vram_encoding || h264hw_encoding.is_some() {
++                if native_h264_encoding || h264vram_encoding || h264hw_encoding.is_some() {
+                     CodecFormat::H264
+@@ -304,3 +329,3 @@ impl Encoder {
+             PreferCodec::H265 => {
+-                if h265vram_encoding || h265hw_encoding.is_some() {
++                if native_h265_encoding || h265vram_encoding || h265hw_encoding.is_some() {
+                     CodecFormat::H265
+@@ -343,2 +368,7 @@ impl Encoder {
+         };
++        #[cfg(feature = "rdn-native-host")]
++        {
++            encoding.h264 |= NATIVE_H264_ENCODING.load(Ordering::Acquire);
++            encoding.h265 |= NATIVE_H265_ENCODING.load(Ordering::Acquire);
++        }
+         #[cfg(feature = "hwcodec")]
 diff --git a/src/client.rs b/src/client.rs
 index dcd5941..7511f7b 100644
 --- a/src/client.rs
 +++ b/src/client.rs
-@@ -1779,6 +1779,21 @@ impl Deref for LoginConfigHandler {
- }
- 
+@@ -1781,2 +1781,17 @@ impl Deref for LoginConfigHandler {
  impl LoginConfigHandler {
 +    #[cfg(feature = "rdn-native-core")]
 +    pub fn configure_native_viewer(&mut self, peer_id: &str) {
@@ -35,17 +107,12 @@ index dcd5941..7511f7b 100644
 +    }
 +
      /// Initialize the login config handler.
-     ///
-     /// # Arguments
-@@ -2309,12 +2324,22 @@ impl LoginConfigHandler {
-     }
- 
+@@ -2311,3 +2326,3 @@ impl LoginConfigHandler {
      pub fn get_supported_decoding(&self) -> SupportedDecoding {
 -        Decoder::supported_decodings(
 +        let mut decoding = Decoder::supported_decodings(
              Some(&self.id),
-             use_texture_render(),
-             self.adapter_luid,
+@@ -2316,3 +2331,13 @@ impl LoginConfigHandler {
              &self.mark_unsupported,
 -        )
 +        );
@@ -60,18 +127,12 @@ index dcd5941..7511f7b 100644
 +        }
 +        decoding
      }
- 
-     /// Parse the image quality option.
-@@ -2762,12 +2787,20 @@ impl LoginConfigHandler {
-     }
- 
+@@ -2764,3 +2789,3 @@ impl LoginConfigHandler {
      pub fn update_supported_decodings(&self) -> Message {
 -        let decoding = scrap::codec::Decoder::supported_decodings(
 +        let mut decoding = scrap::codec::Decoder::supported_decodings(
              Some(&self.id),
-             use_texture_render(),
-             self.adapter_luid,
-             &self.mark_unsupported,
+@@ -2770,2 +2795,10 @@ impl LoginConfigHandler {
          );
 +        #[cfg(feature = "rdn-native-core")]
 +        {
@@ -82,15 +143,11 @@ index dcd5941..7511f7b 100644
 +            decoding.ability_h265 = 1;
 +        }
          let mut misc = Misc::new();
-         misc.set_option(OptionMessage {
-             supported_decoding: hbb_common::protobuf::MessageField::some(decoding),
 diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
 index c0eb7fb..4bb52bf 100644
 --- a/src/client/io_loop.rs
 +++ b/src/client/io_loop.rs
-@@ -1330,25 +1330,27 @@ impl<T: InvokeUiSession> Remote<T> {
-                     }
-                     self.video_format = CodecFormat::from(&vf);
+@@ -1332,21 +1332,23 @@ impl<T: InvokeUiSession> Remote<T> {
  
 -                    let display = vf.display as usize;
 -                    if !self.video_threads.contains_key(&display) {
@@ -132,15 +189,11 @@ index c0eb7fb..4bb52bf 100644
 +                                thread.video_sender.send(MediaData::VideoQueue).ok();
 +                            }
                          }
-                     }
-                 }
 diff --git a/src/lib.rs b/src/lib.rs
 index 49cb2b7..61e3dec 100644
 --- a/src/lib.rs
 +++ b/src/lib.rs
-@@ -63,6 +63,12 @@ mod ui_cm_interface;
- mod ui_interface;
- mod ui_session_interface;
+@@ -65,2 +65,8 @@ mod ui_session_interface;
  
 +#[cfg(feature = "rdn-native-core")]
 +mod rdn_bridge;
@@ -149,19 +202,346 @@ index 49cb2b7..61e3dec 100644
 +mod rdn_host_bridge;
 +
  mod hbbs_http;
+diff --git a/src/rendezvous_mediator.rs b/src/rendezvous_mediator.rs
+index 4f5c8fe..e4bfbb9 100644
+--- a/src/rendezvous_mediator.rs
++++ b/src/rendezvous_mediator.rs
+@@ -109,2 +109,15 @@ pub struct RendezvousMediator {
+ impl RendezvousMediator {
++    #[cfg(feature = "rdn-native-host")]
++    pub(crate) fn prepare_native_host_runtime() {
++        SHOULD_EXIT.store(false, Ordering::SeqCst);
++        MANUAL_RESTARTED.store(false, Ordering::SeqCst);
++        Config::reset_online();
++    }
++
++    #[cfg(feature = "rdn-native-host")]
++    pub(crate) fn stop_native_host_runtime() {
++        SHOULD_EXIT.store(true, Ordering::SeqCst);
++        MANUAL_RESTARTED.store(true, Ordering::SeqCst);
++    }
++
+     pub fn restart() {
+diff --git a/src/server/video_service.rs b/src/server/video_service.rs
+index 9d97b1c..8cd7484 100644
+--- a/src/server/video_service.rs
++++ b/src/server/video_service.rs
+@@ -256,2 +256,7 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
+     };
++    #[cfg(feature = "rdn-native-host")]
++    if source.is_monitor() {
++        GenericService::run(&vs, run_native);
++        return vs.sp;
++    }
+     GenericService::run(&vs, run);
+@@ -260,2 +265,254 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
  
- #[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
++#[cfg(feature = "rdn-native-host")]
++struct NativeRouteGuard(crate::rdn_host_bridge::NativeMediaRoute);
++
++#[cfg(feature = "rdn-native-host")]
++impl Drop for NativeRouteGuard {
++    fn drop(&mut self) {
++        crate::rdn_host_bridge::native_media_end_route(&self.0);
++    }
++}
++
++#[cfg(feature = "rdn-native-host")]
++fn native_media_message(
++    packet: crate::rdn_host_bridge::NativeMediaAccessUnit,
++    negotiated_codec: CodecFormat,
++    display_idx: usize,
++) -> ResultType<Message> {
++    let expected_codec = match negotiated_codec {
++        CodecFormat::H264 => crate::rdn_host_bridge::MEDIA_CODEC_H264,
++        CodecFormat::H265 => crate::rdn_host_bridge::MEDIA_CODEC_H265,
++        _ => bail!("native host codec is not negotiated"),
++    };
++    if packet.codec != expected_codec {
++        bail!("native media packet codec does not match negotiated codec");
++    }
++    let _validated_framing = packet.framing;
++    let _validated_parameter_sets = packet.has_parameter_sets;
++    let encoded = EncodedVideoFrame {
++        data: Bytes::from(packet.data),
++        key: packet.keyframe,
++        pts: (packet.pts_us / 1_000).min(i64::MAX as u64) as i64,
++        ..Default::default()
++    };
++    let frames = EncodedVideoFrames {
++        frames: vec![encoded].into(),
++        ..Default::default()
++    };
++    let mut video_frame = VideoFrame::new();
++    match negotiated_codec {
++        CodecFormat::H264 => video_frame.set_h264s(frames),
++        CodecFormat::H265 => video_frame.set_h265s(frames),
++        _ => unreachable!(),
++    }
++    video_frame.display = display_idx as _;
++    let mut message = Message::new();
++    message.set_video_frame(video_frame);
++    Ok(message)
++}
++
++#[cfg(feature = "rdn-native-host")]
++fn run_native(vs: VideoService) -> ResultType<()> {
++    let mut _raii = Raii::new(vs.idx, vs.sp.name());
++    let display_idx = vs.idx;
++    let sp = vs.sp;
++    let display = display_service::get_display_info(display_idx)
++        .ok_or_else(|| anyhow!("native host display is unavailable"))?;
++    let codec_format = Encoder::negotiated_codec();
++    let codec = match codec_format {
++        CodecFormat::H264 => crate::rdn_host_bridge::MEDIA_CODEC_H264,
++        CodecFormat::H265 => crate::rdn_host_bridge::MEDIA_CODEC_H265,
++        _ => bail!("native host codec is not negotiated"),
++    };
++    let (spf, bitrate_kbps) = {
++        let qos = VIDEO_QOS.lock().unwrap();
++        (qos.spf(), qos.bitrate())
++    };
++    // RustDesk encoder/QoS bitrate values are kbps; the native media control
++    // contract and VideoToolbox AverageBitRate use bits per second.
++    let bitrate_bps = bitrate_kbps.saturating_mul(1_000);
++    let fps = (1.0 / spf.as_secs_f64()).round().clamp(1.0, 240.0) as u32;
++    VIDEO_QOS
++        .lock()
++        .unwrap()
++        .set_support_changing_quality(&sp.name(), false);
++    if sp.is_option_true(OPTION_REFRESH) {
++        sp.set_option_bool(OPTION_REFRESH, false);
++    }
++    let route = crate::rdn_host_bridge::native_media_begin_route(
++        display_idx as u64,
++        1,
++        codec,
++        display.width.max(0) as u32,
++        display.height.max(0) as u32,
++        fps,
++        bitrate_bps,
++    )
++    .map_err(|error| anyhow!(error))?;
++    let route = NativeRouteGuard(route);
++    let mut frame_controller = VideoFrameController::new(display_idx);
++    let (mut second_instant, mut send_counter) = (Instant::now(), 0usize);
++    let mut first_dispatch_reported = false;
++    let mut first_ack_reported = false;
++    let mut refresh_pending = false;
++
++    while sp.ok() {
++        if sp.is_option_true(OPTION_REFRESH) {
++            sp.set_option_bool(OPTION_REFRESH, false);
++            refresh_pending = true;
++            crate::rdn_host_bridge::native_media_request_idr(&route.0, "remoteRefresh");
++        }
++        if codec_format != Encoder::negotiated_codec() {
++            log::info!(
++                "switch native source due to codec changed, {:?} -> {:?}",
++                codec_format,
++                Encoder::negotiated_codec()
++            );
++            bail!("SWITCH");
++        }
++        if display_service::get_display_info(display_idx).as_ref() != Some(&display) {
++            if let Some(message) = make_display_changed_msg(display_idx, None, VideoSource::Monitor)
++            {
++                let message = Arc::new(message);
++                sp.send_shared(message.clone());
++                sp.snapshot(move |snapshot| {
++                    snapshot.send_shared(message.clone());
++                    Ok(())
++                })?;
++            }
++            bail!("SWITCH");
++        }
++        sp.snapshot(|snapshot| {
++            if snapshot.has_subscribes() {
++                crate::rdn_host_bridge::native_media_request_idr(&route.0, "newSubscriber");
++                bail!("SWITCH");
++            }
++            Ok(())
++        })?;
++
++        let packet = match route.0.receiver.recv_timeout(Duration::from_millis(100)) {
++            Ok(packet) => packet,
++            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
++            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
++                bail!("native media route disconnected")
++            }
++        };
++        debug_assert_eq!(packet.codec, route.0.codec);
++        let packet_metadata = packet.metadata();
++        let message = native_media_message(packet, codec_format, display_idx)?;
++        let now = Instant::now();
++        frame_controller.reset();
++        let send_conn_ids = sp.send_video_frame(message);
++        let subscriber_count = send_conn_ids.len();
++        if subscriber_count > 0 && !first_dispatch_reported {
++            crate::rdn_host_bridge::native_media_report_milestone(
++                &route.0,
++                crate::rdn_host_bridge::NativeMediaMilestone::FirstPacketDispatched,
++                packet_metadata,
++                subscriber_count,
++            );
++            first_dispatch_reported = true;
++        }
++        if subscriber_count > 0 && refresh_pending && packet_metadata.keyframe {
++            crate::rdn_host_bridge::native_media_report_milestone(
++                &route.0,
++                crate::rdn_host_bridge::NativeMediaMilestone::RefreshKeyframeDispatched,
++                packet_metadata,
++                subscriber_count,
++            );
++            refresh_pending = false;
++        }
++        frame_controller.set_send(now, send_conn_ids);
++        send_counter += 1;
++
++        let mut fetched_conn_ids = HashSet::new();
++        let wait_begin = Instant::now();
++        while wait_begin.elapsed().as_millis() < 3_000 {
++            frame_controller.try_wait_next(&mut fetched_conn_ids, 300);
++            if fetched_conn_ids.len() >= frame_controller.send_conn_ids.len() {
++                break;
++            }
++        }
++        if !first_ack_reported
++            && !frame_controller.send_conn_ids.is_empty()
++            && frame_controller.send_conn_ids.is_subset(&fetched_conn_ids)
++        {
++            crate::rdn_host_bridge::native_media_report_milestone(
++                &route.0,
++                crate::rdn_host_bridge::NativeMediaMilestone::FirstPacketAcknowledged,
++                packet_metadata,
++                frame_controller.send_conn_ids.len(),
++            );
++            first_ack_reported = true;
++        }
++        DISPLAY_CONN_IDS.lock().unwrap().remove(&display_idx);
++        if second_instant.elapsed() >= Duration::from_secs(1) {
++            VIDEO_QOS
++                .lock()
++                .unwrap()
++                .update_display_data(&sp.name(), send_counter);
++            second_instant = Instant::now();
++            send_counter = 0;
++        }
++        let elapsed = now.elapsed();
++        if elapsed < spf {
++            std::thread::sleep(spf - elapsed);
++        }
++    }
++    Ok(())
++}
++
++#[cfg(all(test, feature = "rdn-native-host"))]
++mod native_host_tests {
++    use super::*;
++
++    #[test]
++    fn native_media_message_preserves_h264_payload_metadata_and_display() {
++        let payload = vec![0, 0, 0, 2, 0x65, 0x88];
++        let message = native_media_message(
++            crate::rdn_host_bridge::NativeMediaAccessUnit {
++                codec: crate::rdn_host_bridge::MEDIA_CODEC_H264,
++                framing: 2,
++                pts_us: 42_999,
++                keyframe: true,
++                has_parameter_sets: true,
++                data: payload.clone(),
++            },
++            CodecFormat::H264,
++            3,
++        )
++        .unwrap();
++        let video_frame = match message.union {
++            Some(message::Union::VideoFrame(frame)) => frame,
++            _ => panic!("native media message must contain a video frame"),
++        };
++        assert_eq!(video_frame.display, 3);
++        let frames = match video_frame.union {
++            Some(video_frame::Union::H264s(frames)) => frames,
++            _ => panic!("negotiated H.264 must use the h264s protobuf field"),
++        };
++        assert_eq!(frames.frames.len(), 1);
++        assert_eq!(frames.frames[0].data.as_ref(), payload.as_slice());
++        assert!(frames.frames[0].key);
++        assert_eq!(frames.frames[0].pts, 42);
++    }
++
++    #[test]
++    fn native_media_message_rejects_codec_mismatch() {
++        let result = native_media_message(
++            crate::rdn_host_bridge::NativeMediaAccessUnit {
++                codec: crate::rdn_host_bridge::MEDIA_CODEC_H265,
++                framing: 2,
++                pts_us: 1,
++                keyframe: true,
++                has_parameter_sets: true,
++                data: vec![1],
++            },
++            CodecFormat::H264,
++            0,
++        );
++        assert!(result.is_err());
++    }
++}
++
+ // Capturer object is expensive, avoiding to create it frequently.
 diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs
 index bf2e04c..b78cdad 100644
 --- a/src/ui_session_interface.rs
 +++ b/src/ui_session_interface.rs
-@@ -1746,6 +1746,9 @@ pub trait InvokeUiSession: Send + Sync + Clone + 'static + Sized + Default {
-     fn printer_request(&self, id: i32, path: String);
-     fn handle_screenshot_resp(&self, sid: String, msg: String);
+@@ -1748,2 +1748,5 @@ pub trait InvokeUiSession: Send + Sync + Clone + 'static + Sized + Default {
      fn handle_terminal_response(&self, response: TerminalResponse);
 +    fn on_encoded_video(&self, _frame: &VideoFrame) -> bool {
 +        false
 +    }
  }
- 
- impl<T: InvokeUiSession> Deref for Session<T> {
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+index bdf9cba..d6148b2 100644
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -2094,2 +2094,5 @@ impl Connection {
+     fn try_start_cm(&mut self, peer_id: String, name: String, authorized: bool) {
++        if !connection_manager_required() {
++            return;
++        }
+         self.send_to_cm(ipc::Data::Login {
+@@ -2473,2 +2476,6 @@ impl Connection {
+     fn try_start_cm_ipc(&mut self) {
++        if !connection_manager_required() {
++            self.start_cm_ipc_para.take();
++            return;
++        }
+         if let Some(p) = self.start_cm_ipc_para.take() {
+@@ -6038,1 +6045,20 @@ async fn start_ipc(
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn connection_manager_required_for_native_host(native_host_bound: bool) -> bool {
++    !native_host_bound
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn connection_manager_required() -> bool {
++    #[cfg(feature = "rdn-native-host")]
++    {
++        return connection_manager_required_for_native_host(
++            crate::rdn_host_bridge::native_host_is_bound(),
++        );
++    }
++    #[cfg(not(feature = "rdn-native-host"))]
++    {
++        true
++    }
++}
++
+ // in case screen is sleep and blank, here to activate it
+@@ -6682,1 +6708,7 @@ mod test {
++    #[test]
++    fn native_host_does_not_require_external_connection_manager() {
++        assert!(!connection_manager_required_for_native_host(true));
++        assert!(connection_manager_required_for_native_host(false));
++    }
++
+     #[cfg(target_os = "macos")]

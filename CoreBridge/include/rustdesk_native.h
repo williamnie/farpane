@@ -177,7 +177,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 1u
+#define RDN_HOST_ABI_VERSION 2u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -187,6 +187,12 @@ const char *rdn_core_upstream_commit(void);
 #define RDN_HOST_ERR_NOT_SUPPORTED (-4)
 #define RDN_HOST_ERR_VALIDATION (-5)
 #define RDN_HOST_ERR_INTERNAL (-6)
+#define RDN_HOST_ERR_STALE_EPOCH (-7)
+#define RDN_HOST_ERR_BACKPRESSURE (-8)
+#define RDN_HOST_ERR_PACKET_TOO_LARGE (-9)
+#define RDN_HOST_ERR_NON_MONOTONIC_PTS (-10)
+#define RDN_HOST_ERR_MISSING_PARAMETER_SETS (-11)
+#define RDN_HOST_ERR_CODEC_MISMATCH (-12)
 
 typedef struct RdnHost RdnHost;
 
@@ -225,9 +231,14 @@ typedef struct RdnHostCallbacks {
     void *context;
 } RdnHostCallbacks;
 
-/* Reserved for future options (canonical server config); zero-initialize. */
+/* Canonical self-hosted server configuration. The strings are copied during
+ * rdn_host_create and may be released by the caller when it returns. The
+ * public key is the hbbs key.pub value; never pass the hbbs private key. */
 typedef struct RdnHostCreateOptions {
     uint32_t abi_version;
+    const char *rendezvous_server;
+    const char *relay_server;
+    const char *server_public_key;
 } RdnHostCreateOptions;
 
 uint32_t rdn_host_abi_version(void);
@@ -246,6 +257,70 @@ int32_t rdn_host_command(RdnHost *host, const uint8_t *command_json,
 int32_t rdn_host_copy_snapshot(RdnHost *host, RdnHostOwnedBytes *out_snapshot);
 void rdn_host_free_bytes(RdnHostOwnedBytes bytes);
 void rdn_host_destroy(RdnHost *host);
+
+/* ------------------------------------------------------------------------ */
+/* Host Media ABI (rdn-native-host, H1b scope)                              */
+/* Encoded access units only. Rust copies packet bytes before returning and */
+/* keeps codec negotiation, subscriptions, QoS and transport authoritative. */
+/* ------------------------------------------------------------------------ */
+
+#define RDN_HOST_MEDIA_ABI_VERSION 1u
+#define RDN_HOST_MEDIA_FLAG_KEYFRAME (1u << 0)
+#define RDN_HOST_MEDIA_FLAG_PARAMETER_SETS (1u << 1)
+
+typedef enum RdnHostMediaCodec {
+    RDN_HOST_MEDIA_CODEC_H264 = 1,
+    RDN_HOST_MEDIA_CODEC_H265 = 2,
+} RdnHostMediaCodec;
+
+typedef enum RdnHostMediaFraming {
+    RDN_HOST_MEDIA_FRAMING_ANNEX_B = 1,
+    RDN_HOST_MEDIA_FRAMING_AVCC = 2,
+} RdnHostMediaFraming;
+
+typedef struct RdnHostEncoderCapabilities {
+    uint32_t abi_version;
+    const char *host_instance_id;
+    uint32_t h264_hardware;
+    uint32_t h265_hardware;
+    uint32_t max_width;
+    uint32_t max_height;
+    uint32_t max_fps;
+} RdnHostEncoderCapabilities;
+
+typedef struct RdnHostEncodedAccessUnit {
+    uint32_t abi_version;
+    const char *host_instance_id;
+    uint64_t connection_epoch;
+    uint64_t codec_epoch;
+    uint64_t display_id;
+    uint64_t display_revision;
+    RdnHostMediaCodec codec;
+    RdnHostMediaFraming framing;
+    uint32_t flags;
+    uint64_t pts_us;
+    const uint8_t *data;
+    size_t length;
+} RdnHostEncodedAccessUnit;
+
+typedef struct RdnHostEncoderState {
+    uint32_t abi_version;
+    const char *host_instance_id;
+    uint64_t connection_epoch;
+    uint64_t codec_epoch;
+    RdnHostMediaCodec codec;
+    uint32_t hardware_accelerated;
+    uint32_t software_fallback;
+    const char *encoder_id;
+} RdnHostEncoderState;
+
+uint32_t rdn_host_media_abi_version(void);
+int32_t rdn_host_media_set_capabilities(
+    RdnHost *host, const RdnHostEncoderCapabilities *capabilities);
+int32_t rdn_host_media_submit_access_unit(
+    RdnHost *host, const RdnHostEncodedAccessUnit *access_unit);
+int32_t rdn_host_media_report_encoder_state(
+    RdnHost *host, const RdnHostEncoderState *state);
 
 /* Runtime loader used by the Swift package so fixture-only builds do not need
  * the Rust core present. The returned error strings never contain credentials. */
@@ -299,6 +374,16 @@ int32_t rdn_shim_host_copy_snapshot(const RDNCoreLibrary *library,
 void rdn_shim_host_free_bytes(const RDNCoreLibrary *library,
                               RdnHostOwnedBytes bytes);
 void rdn_shim_host_destroy(const RDNCoreLibrary *library, RdnHost *host);
+uint32_t rdn_shim_host_media_abi_version(const RDNCoreLibrary *library);
+int32_t rdn_shim_host_media_set_capabilities(
+    const RDNCoreLibrary *library, RdnHost *host,
+    const RdnHostEncoderCapabilities *capabilities);
+int32_t rdn_shim_host_media_submit_access_unit(
+    const RDNCoreLibrary *library, RdnHost *host,
+    const RdnHostEncodedAccessUnit *access_unit);
+int32_t rdn_shim_host_media_report_encoder_state(
+    const RDNCoreLibrary *library, RdnHost *host,
+    const RdnHostEncoderState *state);
 
 #ifdef __cplusplus
 }

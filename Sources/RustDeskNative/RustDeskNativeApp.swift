@@ -86,6 +86,8 @@ private struct PendingProductConnection {
 
 @main
 private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
+    private static let hostEnabledDefaultsKey = "farpane.host.enabled"
+
     private let options = Options(arguments: CommandLine.arguments)
     private let catalogStore = DeviceCatalogStore(fileURL: AppDelegate.catalogURL())
     private let credentialStore: DeviceCredentialStore = KeychainDeviceCredentialStore(
@@ -107,6 +109,19 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var player: FixturePlayer?
     private var liveDecoder: LiveHEVCDecoder?
     private var coreClient: RustDeskCoreClient?
+    private var hostClient: HostControlClient?
+    private var hostRuntimeActive = false
+    private var hostMediaPipeline: HostMediaPipeline?
+    private var hostMediaRoute: HostMediaControl?
+    private var hostMediaStatusText: String?
+    private var hostMediaGeneration: UInt64 = 0
+    private var hostMediaCapabilitiesInstanceID = ""
+    private var hostSnapshot: HostCoreSnapshot?
+    private var hostTemporaryPassword = ""
+    private var hostStatusText = "已关闭"
+    private var hostErrorText = ""
+    private var hostPollTimer: Timer?
+    private var hostPasswordHideTimer: Timer?
     private var keyboardController: ExclusiveKeyboardController?
     private var metrics: PipelineMetrics?
     private var memoryTimer: Timer?
@@ -221,12 +236,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onDeviceAction = { [weak self] deviceID, action in
             self?.handleDeviceAction(deviceID: deviceID, action: action)
         }
+        view.onHostToggle = { [weak self] enabled in self?.setHostModeEnabled(enabled) }
+        view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
+        view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
         window.contentView = view
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
         self.window = window
         homeView = view
+        if UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey), !hostRuntimeActive {
+            startHostMode()
+        }
         refreshHomeUI()
         if catalog.server == nil, !catalogMutationBlocked {
             DispatchQueue.main.async { [weak self] in self?.presentServerSettings() }
@@ -257,8 +278,395 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             devices: items,
             statusText: activeAttemptID == nil ? "就绪" : "正在建立安全连接…",
             errorText: error,
-            connectingPeerID: pendingProductConnection?.peerID
+            connectingPeerID: pendingProductConnection?.peerID,
+            host: HostHomeSnapshot(
+                isEnabled: UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey),
+                isRunning: hostRuntimeActive,
+                isStreaming: hostMediaRoute != nil,
+                statusText: hostStatusText,
+                localID: hostSnapshot?.localId ?? "",
+                temporaryPassword: hostTemporaryPassword,
+                errorText: hostErrorText
+            )
         ))
+    }
+
+    private func setHostModeEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Self.hostEnabledDefaultsKey)
+        if enabled {
+            startHostMode()
+        } else {
+            stopHostMode(preservePreference: false, reason: .userRequest)
+        }
+        refreshHomeUI()
+    }
+
+    private func startHostMode() {
+        guard !hostRuntimeActive else { return }
+        guard coreClient == nil else {
+            hostStatusText = "远程控制期间已暂停"
+            hostErrorText = ""
+            return
+        }
+        guard let server = catalog.server, server.isComplete else {
+            hostStatusText = "需要服务器配置"
+            hostErrorText = "请先配置 RustDesk ID 服务器和服务器公钥。"
+            return
+        }
+
+        hostStatusText = "正在连接服务器…"
+        hostMediaStatusText = nil
+        hostErrorText = ""
+        hostSnapshot = nil
+        hostTemporaryPassword = ""
+        do {
+            let coreURL = URL(fileURLWithPath: defaultCorePath())
+            guard FileManager.default.fileExists(atPath: coreURL.path) else {
+                throw HostControlError.load("core unavailable")
+            }
+            let client: HostControlClient
+            if let existing = hostClient {
+                client = existing
+            } else {
+                let created = try HostControlClient(
+                    libraryURL: coreURL,
+                    eventQueue: .main
+                ) { [weak self] event in
+                    self?.handleHostCoreEvent(event)
+                }
+                try created.setConfigRoot(appName: "FarPaneHost", org: "io.rustdesknative")
+                hostClient = created
+                client = created
+            }
+            try client.start(configuration: HostServerConfiguration(
+                rendezvousServer: server.rendezvousServer,
+                serverPublicKey: server.serverPublicKey
+            ))
+            hostRuntimeActive = true
+            refreshHostSnapshot()
+            hostPollTimer?.invalidate()
+            hostPollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+                self?.refreshHostSnapshot()
+            }
+        } catch {
+            hostRuntimeActive = false
+            hostSnapshot = nil
+            hostStatusText = "启动失败"
+            hostErrorText = sanitizedHostError(error)
+        }
+    }
+
+    private func stopHostMode(
+        preservePreference: Bool,
+        reason: HostStopReason,
+        releaseClient: Bool = false
+    ) {
+        hostPollTimer?.invalidate()
+        hostPollTimer = nil
+        hostPasswordHideTimer?.invalidate()
+        hostPasswordHideTimer = nil
+        hostTemporaryPassword = ""
+        hostSnapshot = nil
+        stopHostMediaPipeline()
+        hostMediaCapabilitiesInstanceID = ""
+        if !preservePreference {
+            UserDefaults.standard.set(false, forKey: Self.hostEnabledDefaultsKey)
+        }
+        do {
+            if hostRuntimeActive {
+                try hostClient?.stop(reason: reason)
+            }
+            hostErrorText = ""
+        } catch {
+            hostErrorText = sanitizedHostError(error)
+        }
+        hostRuntimeActive = false
+        if releaseClient { hostClient = nil }
+        hostStatusText = preservePreference ? "远程控制期间已暂停" : "已关闭"
+    }
+
+    private func refreshHostSnapshot() {
+        guard hostRuntimeActive, let hostClient else { return }
+        do {
+            let snapshot = try hostClient.copySnapshot()
+            hostSnapshot = snapshot
+            configureHostMediaCapabilitiesIfNeeded(snapshot: snapshot, client: hostClient)
+        switch snapshot.registrationStatus {
+            case "ready": hostStatusText = hostMediaStatusText ?? "可被连接"
+            case "degraded": hostStatusText = "连接异常"
+            default: hostStatusText = "正在连接服务器…"
+            }
+            hostErrorText = snapshot.lastError == nil ? "" : "Host 服务暂时不可用，将继续重试。"
+        } catch {
+            hostStatusText = "状态不可用"
+            hostErrorText = sanitizedHostError(error)
+        }
+        refreshHomeUI()
+    }
+
+    private func handleHostCoreEvent(_ event: HostCoreEvent) {
+        if let control = event.mediaControl {
+            handleHostMediaControl(control)
+        }
+        if let diagnostic = event.mediaDiagnostic {
+            handleHostMediaDiagnostic(diagnostic)
+        }
+        refreshHostSnapshot()
+    }
+
+    private func configureHostMediaCapabilitiesIfNeeded(
+        snapshot: HostCoreSnapshot,
+        client: HostControlClient
+    ) {
+        guard !snapshot.hostInstanceId.isEmpty,
+              hostMediaCapabilitiesInstanceID != snapshot.hostInstanceId else { return }
+        hostMediaCapabilitiesInstanceID = snapshot.hostInstanceId
+        let h264Hardware = HostH264Encoder.hardwareEncodingSupported
+        let h265Hardware = HostHEVCEncoder.hardwareEncodingSupported
+        guard h264Hardware || h265Hardware else {
+            hostErrorText = "此 Mac 暂时没有可用的视频硬件编码器。"
+            return
+        }
+        do {
+            try client.setMediaCapabilities(
+                hostInstanceID: snapshot.hostInstanceId,
+                capabilities: HostEncoderCapabilities(
+                    h264Hardware: h264Hardware,
+                    h265Hardware: h265Hardware,
+                    maxWidth: 16_384,
+                    maxHeight: 16_384,
+                    maxFPS: 60
+                )
+            )
+        } catch {
+            hostErrorText = sanitizedHostError(error)
+        }
+    }
+
+    private func handleHostMediaControl(_ control: HostMediaControl) {
+        switch control.command {
+        case .startCapture:
+            hostMediaStatusText = "控制端已订阅，正在准备画面…"
+        case .stopCapture:
+            guard hostMediaRoute?.matchesRoute(control) == true else { return }
+            stopHostMediaPipeline()
+        case .requestIdr:
+            guard hostMediaRoute?.matchesRoute(control) == true else { return }
+            if control.reason == "remoteRefresh" {
+                hostMediaStatusText = "远端请求刷新，正在生成关键帧…"
+            }
+            hostMediaPipeline?.requestKeyframe()
+        case .reconfigure:
+            startHostMediaPipeline(control: control)
+        }
+    }
+
+    private func handleHostMediaDiagnostic(_ diagnostic: HostMediaDiagnostic) {
+        guard let route = hostMediaRoute, diagnostic.matchesRoute(route) else { return }
+        switch diagnostic.kind {
+        case .firstPacketDispatched:
+            hostMediaStatusText = "媒体帧已进入 Rust 发送链路"
+        case .firstPacketAcknowledged:
+            hostMediaStatusText = "媒体帧已获远端确认"
+        case .refreshKeyframeDispatched:
+            if diagnostic.isKeyframe && diagnostic.hasParameterSets {
+                hostMediaStatusText = "刷新关键帧已发送"
+            } else {
+                hostErrorText = "刷新关键帧缺少必要的编码参数集。"
+            }
+        }
+        refreshHomeUI()
+    }
+
+    private func startHostMediaPipeline(control: HostMediaControl) {
+        guard let selectedCodec = control.codec else {
+            hostErrorText = "Host 媒体 codec 缺失，已拒绝开始采集。"
+            refreshHomeUI()
+            return
+        }
+        let pipelineCodec: HostPipelineCodec
+        switch selectedCodec {
+        case .h264: pipelineCodec = .h264
+        case .h265: pipelineCodec = .h265
+        }
+        guard hostRuntimeActive,
+              let width = control.width,
+              let height = control.height,
+              let framesPerSecond = control.framesPerSecond,
+              width > 0,
+              height > 0,
+              framesPerSecond > 0,
+              control.displayID <= UInt64(Int.max),
+              let snapshot = hostSnapshot,
+              let client = hostClient else {
+            hostErrorText = "Host 媒体参数无效，已拒绝开始采集。"
+            refreshHomeUI()
+            return
+        }
+        stopHostMediaPipeline()
+        hostMediaGeneration &+= 1
+        let generation = hostMediaGeneration
+        let fallbackBitRate = max(
+            1_000_000,
+            min(40_000_000, Int(width) * Int(height) * Int(framesPerSecond) / 10)
+        )
+        let requestedBitRate = Int(control.bitRate ?? 0)
+        let bitRate = requestedBitRate > 0 ? requestedBitRate : fallbackBitRate
+        let route = control
+        let pipeline = HostMediaPipeline(
+            configuration: HostMediaPipelineConfiguration(
+                codec: pipelineCodec,
+                displayIndex: Int(control.displayID),
+                width: Int(width),
+                height: Int(height),
+                framesPerSecond: Int(framesPerSecond),
+                bitRate: bitRate
+            ),
+            onAccessUnit: { [weak client] accessUnit in
+                guard let client else { return }
+                let packetCodec: HostMediaCodec = accessUnit.codec == .h264 ? .h264 : .h265
+                do {
+                    try client.submit(accessUnit: HostEncodedAccessUnit(
+                        hostInstanceID: snapshot.hostInstanceId,
+                        connectionEpoch: route.connectionEpoch,
+                        codecEpoch: route.codecEpoch,
+                        displayID: route.displayID,
+                        displayRevision: route.displayRevision,
+                        codec: packetCodec,
+                        framing: .avcc,
+                        presentationTimeUS: accessUnit.presentationTimeUS,
+                        isKeyframe: accessUnit.isKeyframe,
+                        hasParameterSets: accessUnit.hasParameterSets,
+                        data: accessUnit.data
+                    ))
+                } catch let error as HostControlError where error.isExpectedMediaDrop {
+                    // Bounded newest-wins behavior: backpressure/stale route
+                    // drops are expected control outcomes, not UI errors.
+                } catch {
+                    DispatchQueue.main.async { [weak self] in
+                        guard self?.hostMediaGeneration == generation else { return }
+                        self?.hostErrorText = self?.sanitizedHostError(error) ?? ""
+                        self?.refreshHomeUI()
+                    }
+                }
+            },
+            onState: { [weak client] state in
+                try? client?.reportEncoderState(
+                    hostInstanceID: snapshot.hostInstanceId,
+                    connectionEpoch: route.connectionEpoch,
+                    codecEpoch: route.codecEpoch,
+                    codec: selectedCodec,
+                    hardwareAccelerated: state.hardwareAccelerated,
+                    softwareFallback: state.softwareFallback,
+                    encoderID: state.encoderID
+                )
+            },
+            onError: { [weak self] _ in
+                DispatchQueue.main.async {
+                    guard self?.hostMediaGeneration == generation else { return }
+                    self?.hostErrorText = "屏幕采集或硬件编码暂时不可用。"
+                    self?.refreshHomeUI()
+                }
+            }
+        )
+        hostMediaPipeline = pipeline
+        hostMediaRoute = control
+        hostMediaStatusText = "正在采集并编码画面…"
+        Task { [weak self, weak pipeline] in
+            guard let self, let pipeline else { return }
+            do {
+                try await pipeline.start()
+            } catch {
+                await pipeline.stop()
+                await MainActor.run {
+                    guard self.hostMediaGeneration == generation else { return }
+                    self.hostMediaPipeline = nil
+                    self.hostMediaRoute = nil
+                    self.hostMediaStatusText = nil
+                    self.hostErrorText = "无法开始屏幕采集，请检查屏幕录制权限。"
+                    self.refreshHomeUI()
+                }
+            }
+        }
+    }
+
+    private func stopHostMediaPipeline() {
+        hostMediaGeneration &+= 1
+        let pipeline = hostMediaPipeline
+        hostMediaPipeline = nil
+        hostMediaRoute = nil
+        hostMediaStatusText = nil
+        pipeline?.cancel()
+        if let pipeline {
+            Task { await pipeline.stop() }
+        }
+    }
+
+    private func revealHostTemporaryPassword() {
+        guard hostRuntimeActive, let hostClient else { return }
+        if !hostTemporaryPassword.isEmpty {
+            hostTemporaryPassword = ""
+            hostPasswordHideTimer?.invalidate()
+            hostPasswordHideTimer = nil
+            refreshHomeUI()
+            return
+        }
+        do {
+            try hostClient.command("revealTemporaryPassword")
+            let snapshot = try hostClient.copySnapshot()
+            hostSnapshot = snapshot
+            hostTemporaryPassword = snapshot.revealedTemporaryPassword ?? ""
+            hostPasswordHideTimer?.invalidate()
+            hostPasswordHideTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: false) { [weak self] _ in
+                self?.hostTemporaryPassword = ""
+                self?.refreshHomeUI()
+            }
+            hostErrorText = ""
+        } catch {
+            hostTemporaryPassword = ""
+            hostErrorText = sanitizedHostError(error)
+        }
+        refreshHomeUI()
+    }
+
+    private func regenerateHostTemporaryPassword() {
+        guard hostRuntimeActive, let hostClient else { return }
+        do {
+            try hostClient.command("regenerateTemporaryPassword")
+            hostTemporaryPassword = ""
+            hostPasswordHideTimer?.invalidate()
+            hostPasswordHideTimer = nil
+            hostErrorText = ""
+            refreshHostSnapshot()
+        } catch {
+            hostErrorText = sanitizedHostError(error)
+            refreshHomeUI()
+        }
+    }
+
+    private func sanitizedHostError(_ error: Error) -> String {
+        switch error {
+        case HostControlError.load, HostControlError.hostSurfaceUnavailable:
+            return "无法加载兼容的 Host Core。"
+        case HostControlError.abiMismatch,
+             HostControlError.mediaABIMismatch,
+             HostControlError.invalidUpstreamCommit:
+            return "Host Core 版本不匹配。"
+        case HostControlError.configRoot:
+            return "Host 配置目录初始化失败。"
+        case HostControlError.create, HostControlError.start:
+            return "Host 服务启动失败，请检查服务器配置。"
+        case HostControlError.command:
+            return "临时密码操作失败，请重试。"
+        case HostControlError.snapshot, HostControlError.snapshotDecode:
+            return "Host 状态暂时无法读取。"
+        case HostControlError.stop:
+            return "Host 服务未能正常停止。"
+        case HostControlError.media:
+            return "Host 媒体链暂时不可用。"
+        default:
+            return "Host 服务暂时不可用。"
+        }
     }
 
     private func handleQuickConnect(peerID: String) {
@@ -348,6 +756,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         usedStoredCredential: Bool
     ) {
         guard activeAttemptID == nil, let server = catalog.server, server.isComplete else { return }
+        if hostRuntimeActive || hostClient != nil {
+            stopHostMode(preservePreference: true, reason: .userRequest, releaseClient: true)
+        }
         let attemptID = UUID()
         activeAttemptID = attemptID
         pendingProductConnection = PendingProductConnection(
@@ -560,10 +971,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func commitCatalog(_ updated: DeviceCatalogDocument) {
         guard !catalogMutationBlocked else { return }
+        let serverChanged = catalog.server != updated.server
         do {
             try catalogStore.save(updated)
             catalog = updated
             homeErrorText = ""
+            if serverChanged,
+               UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey) {
+                stopHostMode(preservePreference: true, reason: .userRequest)
+                startHostMode()
+            }
         } catch {
             homeErrorText = "本地设备列表保存失败，请检查磁盘权限后重试。"
         }
@@ -1023,8 +1440,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     private func finish() {
-        guard !didFinish, let metrics else { return }
+        guard !didFinish else { return }
         didFinish = true
+        stopHostMode(preservePreference: true, reason: .appExit, releaseClient: true)
+        guard let metrics else { return }
         player?.stop()
         keyboardController?.disable(message: nil, isError: false, notify: false)
         viewerView?.releaseAllInput()
