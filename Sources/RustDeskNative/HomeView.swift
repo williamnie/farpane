@@ -6,12 +6,23 @@ struct HomeDeviceItem: Equatable {
     let hasSavedPassword: Bool
 }
 
+struct HostHomeSnapshot: Equatable {
+    var isEnabled: Bool
+    var isRunning: Bool
+    var isStreaming: Bool
+    var statusText: String
+    var localID: String
+    var temporaryPassword: String
+    var errorText: String
+}
+
 struct HomeSnapshot: Equatable {
     var server: ServerConfiguration?
     var devices: [HomeDeviceItem]
     var statusText: String
     var errorText: String
     var connectingPeerID: String?
+    var host: HostHomeSnapshot
 }
 
 enum HomeDeviceAction {
@@ -27,6 +38,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onQuickConnect: ((String) -> Void)?
     var onOpenServerSettings: (() -> Void)?
     var onDeviceAction: ((UUID, HomeDeviceAction) -> Void)?
+    var onHostToggle: ((Bool) -> Void)?
+    var onRevealHostPassword: (() -> Void)?
+    var onRegenerateHostPassword: (() -> Void)?
 
     private let serverButton = NSButton()
     private let serverStatusDot = NSView()
@@ -45,12 +59,29 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let statusLabel = NSTextField(labelWithString: "就绪")
     private let statusDot = NSView()
     private let errorLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostSwitch = NSSwitch()
+    private let hostStatusDot = NSView()
+    private let hostStatusLabel = NSTextField(labelWithString: "已关闭")
+    private let hostIDLabel = NSTextField(labelWithString: "本机 ID：—")
+    private let hostPasswordLabel = NSTextField(labelWithString: "临时密码：未显示")
+    private let hostRevealButton = NSButton()
+    private let hostRegenerateButton = NSButton()
+    private let hostErrorLabel = NSTextField(wrappingLabelWithString: "")
     private var snapshot = HomeSnapshot(
         server: nil,
         devices: [],
         statusText: "就绪",
         errorText: "",
-        connectingPeerID: nil
+        connectingPeerID: nil,
+        host: HostHomeSnapshot(
+            isEnabled: false,
+            isRunning: false,
+            isStreaming: false,
+            statusText: "已关闭",
+            localID: "",
+            temporaryPassword: "",
+            errorText: ""
+        )
     )
 
     override init(frame frameRect: NSRect) {
@@ -76,8 +107,27 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         peerField.isEnabled = snapshot.connectingPeerID == nil
         connectButton.title = snapshot.connectingPeerID == nil ? "连接" : "连接中…"
         serverButton.isEnabled = snapshot.connectingPeerID == nil
+        hostSwitch.state = snapshot.host.isEnabled ? .on : .off
+        hostSwitch.isEnabled = snapshot.connectingPeerID == nil
+        hostStatusLabel.stringValue = snapshot.host.statusText
+        hostStatusDot.layer?.backgroundColor = hostStatusColor(snapshot.host).cgColor
+        hostIDLabel.stringValue = "本机 ID：\(snapshot.host.localID.nonEmpty ?? "—")"
+        hostPasswordLabel.stringValue = "临时密码：\(snapshot.host.temporaryPassword.nonEmpty ?? "未显示")"
+        hostRevealButton.title = snapshot.host.temporaryPassword.isEmpty ? "显示" : "隐藏"
+        hostRevealButton.isEnabled = snapshot.host.isRunning
+        hostRegenerateButton.isEnabled = snapshot.host.isRunning
+        hostErrorLabel.stringValue = snapshot.host.errorText
+        hostErrorLabel.isHidden = snapshot.host.errorText.isEmpty
         countBadge.stringValue = "\(snapshot.devices.count)"
         renderDevices()
+    }
+
+    private func hostStatusColor(_ host: HostHomeSnapshot) -> NSColor {
+        guard host.isEnabled else { return .tertiaryLabelColor }
+        if !host.errorText.isEmpty { return .systemOrange }
+        return host.statusText == "可被连接" || host.isStreaming
+            ? .systemGreen
+            : .systemYellow
     }
 
     func focusQuickConnect() {
@@ -236,6 +286,90 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             quickCard.bottomAnchor.constraint(equalTo: quickContainer.bottomAnchor, constant: -14),
         ])
 
+        // ---------- 本机 Host ----------
+        let hostTitle = NSTextField(labelWithString: "允许连接此 Mac")
+        hostTitle.font = .systemFont(ofSize: 14, weight: .semibold)
+
+        hostStatusDot.wantsLayer = true
+        hostStatusDot.layer?.cornerRadius = 3.5
+        hostStatusDot.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostStatusDot.widthAnchor.constraint(equalToConstant: 7),
+            hostStatusDot.heightAnchor.constraint(equalToConstant: 7),
+        ])
+        hostStatusLabel.font = .systemFont(ofSize: 12)
+        hostStatusLabel.textColor = .secondaryLabelColor
+
+        hostSwitch.target = self
+        hostSwitch.action = #selector(hostToggleChanged)
+        hostSwitch.setAccessibilityLabel("允许连接此 Mac")
+
+        let hostHeader = NSStackView(views: [
+            hostTitle,
+            hostStatusDot,
+            hostStatusLabel,
+            NSView(),
+            hostSwitch,
+        ])
+        hostHeader.orientation = .horizontal
+        hostHeader.alignment = .centerY
+        hostHeader.spacing = 7
+
+        hostIDLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        hostIDLabel.textColor = .secondaryLabelColor
+        hostIDLabel.lineBreakMode = .byTruncatingMiddle
+        hostPasswordLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        hostPasswordLabel.textColor = .secondaryLabelColor
+
+        hostRevealButton.title = "显示"
+        hostRevealButton.bezelStyle = .inline
+        hostRevealButton.target = self
+        hostRevealButton.action = #selector(revealHostPassword)
+        hostRegenerateButton.title = "换一个"
+        hostRegenerateButton.bezelStyle = .inline
+        hostRegenerateButton.target = self
+        hostRegenerateButton.action = #selector(regenerateHostPassword)
+
+        let hostDetails = NSStackView(views: [
+            hostIDLabel,
+            hostPasswordLabel,
+            NSView(),
+            hostRevealButton,
+            hostRegenerateButton,
+        ])
+        hostDetails.orientation = .horizontal
+        hostDetails.alignment = .centerY
+        hostDetails.spacing = 12
+        hostIDLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        hostPasswordLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        hostErrorLabel.textColor = .systemOrange
+        hostErrorLabel.font = .systemFont(ofSize: 11.5, weight: .medium)
+        hostErrorLabel.isHidden = true
+
+        let hostCard = NSStackView(views: [hostHeader, hostDetails, hostErrorLabel])
+        hostCard.orientation = .vertical
+        hostCard.alignment = .leading
+        hostCard.spacing = 7
+        for view in [hostHeader, hostDetails, hostErrorLabel] {
+            view.widthAnchor.constraint(equalTo: hostCard.widthAnchor).isActive = true
+        }
+
+        let hostContainer = NSView()
+        hostContainer.wantsLayer = true
+        hostContainer.layer?.cornerRadius = 12
+        hostContainer.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        hostContainer.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.55).cgColor
+        hostContainer.layer?.borderWidth = 1
+        hostContainer.addSubview(hostCard)
+        hostCard.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostCard.leadingAnchor.constraint(equalTo: hostContainer.leadingAnchor, constant: 16),
+            hostCard.trailingAnchor.constraint(equalTo: hostContainer.trailingAnchor, constant: -16),
+            hostCard.topAnchor.constraint(equalTo: hostContainer.topAnchor, constant: 11),
+            hostCard.bottomAnchor.constraint(equalTo: hostContainer.bottomAnchor, constant: -11),
+        ])
+
         // ---------- 列表工具栏 ----------
         let recentTitle = NSTextField(labelWithString: "最近连接")
         recentTitle.font = .systemFont(ofSize: 17, weight: .semibold)
@@ -332,6 +466,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         let content = NSStackView(views: [
             header,
             quickContainer,
+            hostContainer,
             listToolbar,
             errorLabel,
             scrollView,
@@ -341,12 +476,13 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         content.alignment = .leading
         content.spacing = 16
         content.setCustomSpacing(24, after: header)
-        content.setCustomSpacing(24, after: quickContainer)
+        content.setCustomSpacing(12, after: quickContainer)
+        content.setCustomSpacing(20, after: hostContainer)
         content.setCustomSpacing(8, after: listToolbar)
         content.translatesAutoresizingMaskIntoConstraints = false
         addSubview(content)
 
-        for view in [header, quickContainer, listToolbar, errorLabel, scrollView, footer] {
+        for view in [header, quickContainer, hostContainer, listToolbar, errorLabel, scrollView, footer] {
             view.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
         }
         NSLayoutConstraint.activate([
@@ -354,7 +490,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             content.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -38),
             content.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 28),
             content.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -18),
-            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 220),
+            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 150),
         ])
     }
 
@@ -473,6 +609,12 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     }
 
     @objc private func openServerSettings() { onOpenServerSettings?() }
+
+    @objc private func hostToggleChanged() { onHostToggle?(hostSwitch.state == .on) }
+
+    @objc private func revealHostPassword() { onRevealHostPassword?() }
+
+    @objc private func regenerateHostPassword() { onRegenerateHostPassword?() }
 
     @objc private func filterChanged() { renderDevices() }
 }

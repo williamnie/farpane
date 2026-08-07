@@ -25,6 +25,12 @@ typedef int32_t (*host_command_fn)(RdnHost *, const uint8_t *, size_t);
 typedef int32_t (*host_copy_snapshot_fn)(RdnHost *, RdnHostOwnedBytes *);
 typedef void (*host_free_bytes_fn)(RdnHostOwnedBytes);
 typedef void (*host_destroy_fn)(RdnHost *);
+typedef int32_t (*host_media_set_capabilities_fn)(
+    RdnHost *, const RdnHostEncoderCapabilities *);
+typedef int32_t (*host_media_submit_access_unit_fn)(
+    RdnHost *, const RdnHostEncodedAccessUnit *);
+typedef int32_t (*host_media_report_encoder_state_fn)(
+    RdnHost *, const RdnHostEncoderState *);
 
 struct RDNCoreLibrary {
     void *handle;
@@ -49,6 +55,10 @@ struct RDNCoreLibrary {
     host_copy_snapshot_fn host_copy_snapshot;
     host_free_bytes_fn host_free_bytes;
     host_destroy_fn host_destroy;
+    abi_version_fn host_media_abi_version;
+    host_media_set_capabilities_fn host_media_set_capabilities;
+    host_media_submit_access_unit_fn host_media_submit_access_unit;
+    host_media_report_encoder_state_fn host_media_report_encoder_state;
 };
 
 static void write_error(char *error, size_t size, const char *message) {
@@ -119,11 +129,23 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     library->host_free_bytes =
         (host_free_bytes_fn)dlsym(handle, "rdn_host_free_bytes");
     library->host_destroy = (host_destroy_fn)dlsym(handle, "rdn_host_destroy");
+    library->host_media_abi_version =
+        (abi_version_fn)dlsym(handle, "rdn_host_media_abi_version");
+    library->host_media_set_capabilities = (host_media_set_capabilities_fn)dlsym(
+        handle, "rdn_host_media_set_capabilities");
+    library->host_media_submit_access_unit = (host_media_submit_access_unit_fn)dlsym(
+        handle, "rdn_host_media_submit_access_unit");
+    library->host_media_report_encoder_state = (host_media_report_encoder_state_fn)dlsym(
+        handle, "rdn_host_media_report_encoder_state");
     if (library->host_abi_version != NULL && library->host_upstream_commit != NULL &&
         library->host_set_config_root != NULL && library->host_create != NULL &&
         library->host_start != NULL && library->host_stop != NULL &&
         library->host_command != NULL && library->host_copy_snapshot != NULL &&
-        library->host_free_bytes != NULL && library->host_destroy != NULL) {
+        library->host_free_bytes != NULL && library->host_destroy != NULL &&
+        library->host_media_abi_version != NULL &&
+        library->host_media_set_capabilities != NULL &&
+        library->host_media_submit_access_unit != NULL &&
+        library->host_media_report_encoder_state != NULL) {
         library->host_available = 1;
     }
     return library;
@@ -259,4 +281,34 @@ void rdn_shim_host_destroy(const RDNCoreLibrary *library, RdnHost *host) {
     if (library != NULL && library->host_destroy != NULL) {
         library->host_destroy(host);
     }
+}
+
+uint32_t rdn_shim_host_media_abi_version(const RDNCoreLibrary *library) {
+    return library == NULL || library->host_media_abi_version == NULL
+               ? 0
+               : library->host_media_abi_version();
+}
+
+int32_t rdn_shim_host_media_set_capabilities(
+    const RDNCoreLibrary *library, RdnHost *host,
+    const RdnHostEncoderCapabilities *capabilities) {
+    return library == NULL || library->host_media_set_capabilities == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_media_set_capabilities(host, capabilities);
+}
+
+int32_t rdn_shim_host_media_submit_access_unit(
+    const RDNCoreLibrary *library, RdnHost *host,
+    const RdnHostEncodedAccessUnit *access_unit) {
+    return library == NULL || library->host_media_submit_access_unit == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_media_submit_access_unit(host, access_unit);
+}
+
+int32_t rdn_shim_host_media_report_encoder_state(
+    const RDNCoreLibrary *library, RdnHost *host,
+    const RdnHostEncoderState *state) {
+    return library == NULL || library->host_media_report_encoder_state == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_media_report_encoder_state(host, state);
 }

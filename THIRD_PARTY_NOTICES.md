@@ -23,10 +23,15 @@ ABI and delegates actual input message construction to the pinned RustDesk
 session. Clipboard and audio remain disabled. RustDesk continues to own
 connection, authentication, encryption and protocol handling.
 
-Host Mode (H1a) additionally introduces the `rdn-native-host` feature and
+Host Mode additionally introduces the `rdn-native-host` feature and
 `rdn_host_bridge.rs`: a separate `rdn_host_*` Host Control C ABI (versioned
 JSON commands/events/snapshots, opaque handle lifecycle, early config-root
-isolation via APP_NAME/ORG, temporary password handling). Without the feature
+isolation via APP_NAME/ORG, temporary password handling) and Host Media ABI
+(native encoder capabilities, bounded encoded-access-unit injection and
+encoder-state reporting). The feature-gated native producer in
+`video_service.rs` wraps validated H.264/H.265 packets in the existing
+`VideoFrame` service path; subscriber handling, QoS, refresh control,
+encryption and Direct/Relay writers remain RustDesk-owned. Without the feature
 the upstream behavior is unchanged; with it, host and viewer cores stay
 mutually exclusive in one process.
 

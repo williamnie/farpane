@@ -33,7 +33,8 @@ let package = Package(
         ),
         .testTarget(
             name: "VideoPipelineTests",
-            dependencies: ["VideoPipeline"]
+            dependencies: ["VideoPipeline"],
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "CoreBridgeTests",
