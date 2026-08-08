@@ -219,6 +219,39 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }
 
+    func testHostAgentProcessRunnerComposesLifecycleButRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let processURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcess.swift"
+        )
+        let processSource = try String(contentsOf: processURL, encoding: .utf8)
+
+        XCTAssertTrue(processSource.contains("HostAgentProcessRunner.run("))
+        XCTAssertTrue(processSource.contains(
+            "installTerminationIngress: {\n                try HostAgentProcessSignalController()"
+        ))
+        XCTAssertTrue(processSource.contains(
+            "startRuntime: {\n                HostAgentProcessStartup.prepare("
+        ))
+        XCTAssertTrue(processSource.contains("controller.bind(lifetime: lifetime)"))
+        XCTAssertTrue(processSource.contains(
+            "lifetime.requestTermination(reason: reason)"
+        ))
+        XCTAssertTrue(processSource.contains("lifetime.waitUntilTerminated()"))
+        XCTAssertTrue(processSource.contains("controller.cancel()"))
+        XCTAssertFalse(processSource.contains("fputs("))
+        XCTAssertFalse(processSource.contains("exit("))
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
     func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
