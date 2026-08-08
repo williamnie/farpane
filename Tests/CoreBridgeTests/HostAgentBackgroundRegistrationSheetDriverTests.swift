@@ -58,6 +58,7 @@ final class HostAgentBackgroundRegistrationSheetDriverTests: XCTestCase {
         XCTAssertTrue(source.contains("import CoreBridge"))
         XCTAssertTrue(source.contains(
             "HostAgentBackgroundRegistrationUXOwner.makeProduct(\n"
+                + "                mutationOwner: mutationOwner,\n"
                 + "                performMigrationPreparation: "
                 + "performMigrationPreparation"
         ))

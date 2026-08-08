@@ -1654,6 +1654,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.2u App-owned lazy registration composition 与 typed presentation 已完成自动实现**。AppDelegate 现在惰性强持有 H4.2p sheet driver，并为其注入 H4.2s 的真实 MainActor migration preparation；off-main/self 释放统一以 evidenceUnavailable fail closed。独立 CoreBridge policy 将 persistence/系统审批 prompt、迁移、注册、导航、blocker 与每类脱敏 failure 映射为有界 status/error/tone/busy/retry presentation：active session、pending approval 和残留 ownership 保留不同用户动作语义，registered 只称“后台组件已注册”，绝不冒充 Agent 已运行或“可被连接”。presentation 作为可选覆盖层接入既有 Home Host 状态，driver 从未开始时为 nil，因此当前旧 Host UI 行为不变。App 与 Home 均不存在 `begin` 调用点，本步不会弹 sheet、停止旧 Host、调用 SMAppService 或打开系统设置；下一步仍需设计一个显式产品 intent 来替换旧 Host toggle 的启用语义，再进行真实注册/退出后连接验收。详见 `Evidence/HostMode/2026-08-09/h4-background-registration-presentation.md`。
 
+> 更新（2026-08-09）：**H4.2v shared mutation authority 与 explicit unregistration UX 已完成自动实现**。注册产品 factory 不再内部创建隐藏的 ServiceManagement mutation owner；AppDelegate 现在惰性强持有唯一 product mutation authority 并显式注入 registration sheet，未来关闭流程也必须注入同一实例。新的 toolkit-independent unregistration owner 冻结关闭说明：停止后台组件且不再接受新连接，同时明确设备身份和服务器配置默认保留；只有 request 后的肯定确认才发送 typed unregister intent，取消、错序、并发与 observer 重入均不触发 mutation。返回结果必须同时满足 accepted、`unregistered` 与权威 `notRegistered`，typed service/not-effective failure 保持独立，intent/phase/status 矛盾统一 invalidMutationResult fail closed。共享 owner 的并发测试证明 registration 在途时 opposing unregistration 不能到达 unregister operation。本步未接 AppKit/Home 开关，未执行真实 SMAppService mutation、停止 Agent 或修改注册状态；下一步需为关闭流程建立单-sheet driver 与 typed presentation，再由产品开关显式选择 enable/disable flow。详见 `Evidence/HostMode/2026-08-09/h4-background-unregistration-ux.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

@@ -406,7 +406,14 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
         throws
     {
         let dependencies = RegistrationUXDependencies()
+        let mutationOwner = HostAgentBackgroundRegistrationMutationOwner(
+            assessIdentity: { .invalidApplication },
+            register: {},
+            unregister: {},
+            observeRegistration: { .notRegistered }
+        )
         let owner = HostAgentBackgroundRegistrationUXOwner.makeProduct(
+            mutationOwner: mutationOwner,
             performMigrationPreparation: { dependencies.prepare() }
         )
         XCTAssertEqual(owner.snapshot().phase, .idle)
@@ -423,9 +430,10 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
             encoding: .utf8
         )
 
-        XCTAssertTrue(source.contains(
+        XCTAssertFalse(source.contains(
             "HostAgentBackgroundRegistrationMutationOwner.makeProduct()"
         ))
+        XCTAssertTrue(source.contains("mutationOwner.apply("))
         XCTAssertTrue(source.contains(
             "HostAgentBackgroundApprovalNavigationOwner.makeProduct()"
         ))

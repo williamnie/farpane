@@ -201,8 +201,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 }
             }
         )
+    private lazy var hostAgentBackgroundRegistrationMutationOwner =
+        HostAgentBackgroundRegistrationMutationOwner.makeProduct()
     private lazy var hostAgentBackgroundRegistrationSheetDriver =
         HostAgentBackgroundRegistrationSheetDriver.makeProduct(
+            mutationOwner: hostAgentBackgroundRegistrationMutationOwner,
             performMigrationPreparation: { [weak self] in
                 guard Thread.isMainThread else {
                     return (
