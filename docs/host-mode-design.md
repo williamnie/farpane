@@ -1507,6 +1507,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1a HostAgent pre-AppKit mode dispatch 已完成自动实现**。同一 executable 现以纯参数策略识别 exact `--host-agent`，并在首次 `NSApplication.shared`/`AppDelegate()` 之前分流；普通参数与相似 flag 保持 App 模式。由于 H4 专用配置所有权、单写者锁与 authenticated XPC 尚未建立，Agent 分支当前固定输出脱敏 unavailable 诊断并以 sysexits 69 fail closed，不创建 Dock/菜单/窗口、不启动第二个 HostCore，也不伪装后台 ready。定向 mode/source-order 2/2 与 debug executable exit-69 smoke 通过。未改 Host ABI/Rust/Hermes/配置/依赖，未注册 SMAppService、安装、部署或 push；H4.1 尚未完成，下一步是 Agent bootstrap configuration contract。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-mode-dispatch.md`。
 
+> 更新（2026-08-08）：**H4.1b HostAgent immutable bootstrap configuration contract 已完成自动实现**。新增严格 versioned JSON decoder，只接受正整数 monotonic `configRevision`、有界 build ID，以及唯一 canonical server address/public key；顶层和 server 对象均使用 exact key allowlist，未知 credential 字段、布尔/零/非整数 revision、未来 schema、控制字符、空白污染和超限输入全部 fail closed。Host Rust config namespace 固定为产品常量 `FarPaneHost`/`io.rustdesknative`，不得由磁盘字段或环境变量覆盖。本步仅建立非秘密不可变输入合同，尚未读取/发布配置文件、获取单写者锁、切换 Rust config root、启动 HostCore 或接入 XPC，所以 `--host-agent` 仍以 69 unavailable 退出。定向 3/3 与完整验证以 evidence 为准；未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-configuration.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
