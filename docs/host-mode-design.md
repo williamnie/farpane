@@ -1580,6 +1580,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2i XPC listener code-signing gate 已完成自动实现**。未来 HostAgent listener factory 现在只构造固定 `io.rustdesknative.viewer.host-agent` Mach service，并在 delegate/interface 之前用 macOS 13 `setConnectionCodeSigningRequirement` 安装平台级 peer 过滤；不满足 requirement 的连接由 Foundation 在询问 delegate 前自动拒绝。该 requirement 与 H4.2f 共用同一 Apple generic anchor、`io.rustdesknative.viewer` identifier 和 Team ID authority，真实 `/Applications/FarPane.app` 通过、其他 Apple authority 失败。factory 不接受 name/path/environment override，且不设置 delegate、不 activate/resume、不定义 selector/payload，因此不会启动 IPC 或冒充 authenticated handshake。euid/PID/audit session/token、安装路径、wire version、snapshot-first、dedupe 与 rate limit 仍待后续 admission/runtime；本步不创建 plist、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-listener-signing-gate.md`。
 
+> 更新（2026-08-08）：**H4.2j XPC peer metadata admission 已完成自动实现**。package-scoped 产品 gate 只从 listener delegate 的真实 `NSXPCConnection` 读取内核 security attributes，固定按 PID→euid→audit session→executable 顺序 fail closed：PID 必须有效且不是 Agent 自身，euid 必须等于 `geteuid()`，peer/local ASID 必须有效且相等；local ASID 由 `getaudit_addr` 获取。最后仅以 `proc_pidpath` 按 PID 查询 executable，reported 与 symlink-resolved path 必须同时精确为 `/Applications/FarPane.app/Contents/MacOS/RustDeskNative`，不接受 peer/path/environment 注入。返回状态脱敏且前序失败不查路径。H4.2i 的 listener-level signing requirement 仍是独立第一道门；本步不创建 delegate/interface、不 activate/resume，也未证明 raw audit-token binding、PID lifetime 或真实 SMAppService Agent/App 的同-ASID，故不能称 authenticated IPC 完成。本步不创建 plist、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-peer-metadata-admission.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
