@@ -73,6 +73,43 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(source.contains("HostAgentBootstrap.failClosed()"))
     }
 
+    func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(source.contains(
+            "catalog = try catalogStore.load()\n            reconcileHostAgentBootstrap()"
+        ))
+        let sourceLines = source.split(separator: "\n", omittingEmptySubsequences: false)
+        let catalogSaveLines = sourceLines.indices.filter {
+            sourceLines[$0].contains("catalogStore.save(")
+        }
+        XCTAssertFalse(catalogSaveLines.isEmpty)
+        for saveLine in catalogSaveLines {
+            let endLine = min(sourceLines.endIndex, saveLine + 5)
+            XCTAssertTrue(
+                sourceLines[saveLine..<endLine].contains {
+                    $0.contains("reconcileHostAgentBootstrap()")
+                },
+                "canonical catalog save at line \(saveLine + 1) must reconcile afterward"
+            )
+        }
+        XCTAssertTrue(source.contains(
+            ".reconcileSavedCatalog(from: catalogStore)"
+        ))
+        XCTAssertTrue(source.contains(
+            "hostAgentBootstrapState == .degraded"
+        ))
+        XCTAssertTrue(source.contains(
+            "errorText: combinedHostErrorText"
+        ))
+    }
+
     func testConnectionConfigDoesNotPersistPassword() {
         let config = CoreConnectionConfig(
             rendezvousServer: "192.0.2.1",

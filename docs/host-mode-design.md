@@ -1520,6 +1520,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1f App-owned bootstrap publication coordinator 已完成自动实现**。Coordinator 以现有 projection 为唯一 durable revision authority：缺失从 1 开始；server address/public key 或 Agent build ID 改变时严格 `+1`；仅 catalog device/display name/forceRelay 改变不推进 revision。即使 desired 与现有语义相同也仍进入 H4.1d publication lock，再由 exact bytes/revision 判定 unchanged，避免锁外 stale success。损坏/不安全 projection 不覆盖，revision 达安全整数上限稳定失败，并发 lock busy 保留旧文档；catalog 保存与 build ID 解析仍由 App 调用方负责，Coordinator 不反写 catalog、不启动 HostCore。定向 3/3 与完整验证以 evidence 为准。本步只操作 UUID 测试目录，没有接入产品 App 生命周期或读取用户配置；`--host-agent` 仍以 69 unavailable 退出。未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-coordinator.md`。
 
+> 更新（2026-08-08）：**H4.1g product App bootstrap reconciliation 已完成自动实现**。产品 App 只接受 packaged `CFBundleVersion` 作为有界 Agent build ID；启动成功读取 canonical catalog 后，以及每个 catalog save 成功更新内存 authority 后，集成层都会重新从磁盘读取 canonical document，再调用 H4.1f，因而未保存的内存 server mutation 不能进入 Agent projection。server 尚未完整时保持 waiting；build metadata、catalog reread 或安全发布失败时只把后台 Host 组件标为 degraded，Viewer catalog 的成功保存不回滚，旧 projection 原子保留并可在后续成功 save/load 后重试。Host 卡片显示独立后台配置错误，既有 Viewer 与当前进程内 Host 状态不被伪造成 Agent ready。本步仍不注册/启动 Agent，不读取 projection 启动 HostCore，`--host-agent` 继续以 69 unavailable 退出；未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-product-app-bootstrap-reconciliation.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
