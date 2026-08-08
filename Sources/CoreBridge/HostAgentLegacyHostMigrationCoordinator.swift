@@ -38,7 +38,7 @@ package struct HostAgentLegacyHostMigrationCoordinatorView:
 {
     package let phase: HostAgentLegacyHostMigrationCoordinatorPhase
 
-    fileprivate init(phase: HostAgentLegacyHostMigrationCoordinatorPhase) {
+    package init(phase: HostAgentLegacyHostMigrationCoordinatorPhase) {
         self.phase = phase
     }
 }

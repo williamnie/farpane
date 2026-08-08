@@ -19,10 +19,14 @@ final class HostAgentBackgroundRegistrationSheetDriver {
     private var hasFinished = false
 
     static func makeProduct(
+        performMigrationPreparation: @escaping
+            HostAgentBackgroundRegistrationUXOwner.MigrationPreparation,
         onUpdate: @escaping Update = { _ in }
     ) -> HostAgentBackgroundRegistrationSheetDriver {
         HostAgentBackgroundRegistrationSheetDriver(
-            owner: HostAgentBackgroundRegistrationUXOwner.makeProduct(),
+            owner: HostAgentBackgroundRegistrationUXOwner.makeProduct(
+                performMigrationPreparation: performMigrationPreparation
+            ),
             onUpdate: onUpdate
         )
     }

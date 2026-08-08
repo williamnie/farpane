@@ -562,10 +562,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     @MainActor
     @discardableResult
-    private func prepareLegacyHostForBackgroundRegistration() -> Bool {
-        hostAgentLegacyMigrationCoordinator.apply(
+    private func prepareLegacyHostForBackgroundRegistration() -> (
+        Bool,
+        HostAgentLegacyHostMigrationCoordinatorView
+    ) {
+        let accepted = hostAgentLegacyMigrationCoordinator.apply(
             .prepareForBackgroundRegistration
         )
+        return (accepted, hostAgentLegacyMigrationCoordinator.snapshot())
     }
 
     private func startHostMode() {
