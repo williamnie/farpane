@@ -28,6 +28,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
                 acceptedHandshakeConnectionCount: 0,
                 activeHandshakeConnectionCount: 0,
                 closedHandshakeConnectionCount: 0,
+                listenerActivated: false,
                 cancelled: false
             )
         )
@@ -151,6 +152,79 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         XCTAssertEqual(shell.snapshot().rejectedHandshakeUnavailableCount, 1)
     }
 
+    func testListenerActivationRequiresReadyIdentityAndInvalidatesTerminally() throws {
+        let listener = NSXPCListener.anonymous()
+        let authority = try makeAuthority(ready: false)
+        let recorder = HandshakeConnectionRecorder()
+        let shell = makeShell(
+            listener: listener,
+            authority: authority,
+            recorder: recorder
+        )
+
+        XCTAssertFalse(shell.activate())
+        XCTAssertEqual(recorder.listenerActivationCount, 0)
+        XCTAssertEqual(authority.bind(hostInstanceID: "host-a"), .bound)
+        XCTAssertTrue(shell.activate())
+        XCTAssertFalse(shell.activate())
+        XCTAssertEqual(recorder.listenerActivationCount, 1)
+        XCTAssertTrue(shell.snapshot().listenerActivated)
+
+        authority.invalidate()
+
+        XCTAssertEqual(recorder.listenerInvalidationCount, 1)
+        XCTAssertFalse(shell.snapshot().listenerActivated)
+        XCTAssertTrue(shell.snapshot().cancelled)
+        XCTAssertFalse(shell.activate())
+    }
+
+    func testConcurrentCancelWaitsForActivationThenInvalidatesListener() throws {
+        let listener = NSXPCListener.anonymous()
+        let authority = try makeAuthority(ready: true)
+        let activationEntered = DispatchSemaphore(value: 0)
+        let releaseActivation = DispatchSemaphore(value: 0)
+        let activationReturned = DispatchSemaphore(value: 0)
+        let cancelStarted = DispatchSemaphore(value: 0)
+        let cancelReturned = DispatchSemaphore(value: 0)
+        let listenerInvalidated = DispatchSemaphore(value: 0)
+        let shell = HostAgentXPCListenerAdmissionShell(
+            listener: listener,
+            identityAuthority: authority,
+            assessConnection: { _ in .eligible },
+            nowUnixMilliseconds: { 20 },
+            configureConnection: { _, _, _, _ in },
+            resumeConnection: { _ in },
+            invalidateConnection: { _ in },
+            activateListener: { _ in
+                activationEntered.signal()
+                releaseActivation.wait()
+            },
+            invalidateListener: { _ in
+                listenerInvalidated.signal()
+            }
+        )
+
+        DispatchQueue.global().async {
+            XCTAssertTrue(shell.activate())
+            activationReturned.signal()
+        }
+        XCTAssertEqual(activationEntered.wait(timeout: .now() + 2), .success)
+        DispatchQueue.global().async {
+            cancelStarted.signal()
+            shell.cancel()
+            cancelReturned.signal()
+        }
+        XCTAssertEqual(cancelStarted.wait(timeout: .now() + 2), .success)
+        XCTAssertEqual(cancelReturned.wait(timeout: .now() + 0.05), .timedOut)
+
+        releaseActivation.signal()
+        XCTAssertEqual(activationReturned.wait(timeout: .now() + 2), .success)
+        XCTAssertEqual(cancelReturned.wait(timeout: .now() + 2), .success)
+        XCTAssertEqual(listenerInvalidated.wait(timeout: .now() + 2), .success)
+        XCTAssertTrue(shell.snapshot().cancelled)
+        XCTAssertFalse(shell.snapshot().listenerActivated)
+    }
+
     private let validBootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
 
     private func makeAuthority(
@@ -178,7 +252,9 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
             nowUnixMilliseconds: { 20 },
             configureConnection: recorder.configure,
             resumeConnection: recorder.resume,
-            invalidateConnection: recorder.invalidate
+            invalidateConnection: recorder.invalidate,
+            activateListener: recorder.activateListener,
+            invalidateListener: recorder.invalidateListener
         )
     }
 }
@@ -192,10 +268,14 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
     private var configurations = 0
     private var resumes = 0
     private var invalidations = 0
+    private var listenerActivations = 0
+    private var listenerInvalidations = 0
 
     var configureCount: Int { locked { configurations } }
     var resumeCount: Int { locked { resumes } }
     var invalidateCount: Int { locked { invalidations } }
+    var listenerActivationCount: Int { locked { listenerActivations } }
+    var listenerInvalidationCount: Int { locked { listenerInvalidations } }
     var interfaceProtocolName: String? {
         locked {
             configuredInterface.map { NSStringFromProtocol($0.protocol) }
@@ -227,6 +307,18 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
     func invalidate(_ connection: NSXPCConnection) {
         lock.lock()
         invalidations += 1
+        lock.unlock()
+    }
+
+    func activateListener(_ listener: NSXPCListener) {
+        lock.lock()
+        listenerActivations += 1
+        lock.unlock()
+    }
+
+    func invalidateListener(_ listener: NSXPCListener) {
+        lock.lock()
+        listenerInvalidations += 1
         lock.unlock()
     }
 

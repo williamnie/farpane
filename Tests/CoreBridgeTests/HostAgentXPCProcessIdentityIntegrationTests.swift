@@ -27,7 +27,7 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
         XCTAssertFalse(source.contains("getenv"))
     }
 
-    func testInitialSnapshotBindsIdentityBeforeMediaAndPolling() throws {
+    func testInitialSnapshotBindsIdentityBeforeMediaPollingAndListener() throws {
         let source = try productSource("HostAgentProcess.swift")
 
         try assertOrder(
@@ -44,6 +44,16 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
             in: source,
             "lifetime.bindXPCIdentity(",
             "pollingOwner.start()"
+        )
+        try assertOrder(
+            in: source,
+            "mediaPipelineOwner.start(",
+            "lifetime.activateXPCListener()"
+        )
+        try assertOrder(
+            in: source,
+            "pollingOwner.start()",
+            "lifetime.activateXPCListener()"
         )
     }
 
@@ -86,19 +96,25 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
         ))
     }
 
-    func testCompositionStillCannotAcceptOrActivateXPC() throws {
-        let sources = try [
-            productSource("HostAgentProcessRuntime.swift"),
-            productSource("HostAgentProcessLifetime.swift"),
-            productSource("HostAgentProcess.swift"),
-        ].joined(separator: "\n")
+    func testRuntimeOwnsAdmissionOwnerFromSameAuthorityAndEntryRemainsDisabled() throws {
+        let runtimeSource = try productSource("HostAgentProcessRuntime.swift")
+        let lifetimeSource = try productSource("HostAgentProcessLifetime.swift")
+        let appSource = try productSource("RustDeskNativeApp.swift")
 
-        XCTAssertFalse(sources.contains("NSXPCListener"))
-        XCTAssertFalse(sources.contains("NSXPCConnection"))
-        XCTAssertFalse(sources.contains("shouldAcceptNewConnection"))
-        XCTAssertFalse(sources.contains("activate()"))
-        XCTAssertFalse(sources.contains("resume()"))
-        XCTAssertFalse(sources.contains("exportedObject"))
+        try assertOrder(
+            in: runtimeSource,
+            "HostAgentXPCProcessIdentityAuthority.makeProduct(",
+            "HostAgentXPCListenerAdmissionShell.makeProductShell("
+        )
+        XCTAssertTrue(runtimeSource.contains(
+            "identityAuthority: xpcIdentityAuthority"
+        ))
+        XCTAssertTrue(runtimeSource.contains("xpcAdmissionOwner"))
+        XCTAssertTrue(lifetimeSource.contains(
+            "func activateXPCListener() throws"
+        ))
+        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }
 
     private func productSource(_ name: String) throws -> String {
