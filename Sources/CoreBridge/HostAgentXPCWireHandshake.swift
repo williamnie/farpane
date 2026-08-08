@@ -144,7 +144,7 @@ package enum HostAgentXPCWireHandshakeContract {
         return versions
     }
 
-    fileprivate static func validIdentifier(_ value: String) -> Bool {
+    package static func validIdentifier(_ value: String) -> Bool {
         guard !value.isEmpty,
               value.utf8.count <= maximumIdentifierBytes
         else { return false }
@@ -154,7 +154,7 @@ package enum HostAgentXPCWireHandshakeContract {
         }
     }
 
-    fileprivate static func validCanonicalUUID(_ value: String) -> Bool {
+    package static func validCanonicalUUID(_ value: String) -> Bool {
         guard value.utf8.count == 36,
               let uuid = UUID(uuidString: value)
         else { return false }
