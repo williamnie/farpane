@@ -61,6 +61,19 @@ package enum HostAgentXPCSnapshotClientResult: Equatable, Sendable {
     case invalidState
 }
 
+package enum HostAgentXPCSnapshotClientEventResult: Equatable, Sendable {
+    case events(HostAgentXPCWireEventCursorResponse)
+    case resynchronized(
+        snapshot: HostAgentXPCWireSnapshotResponse,
+        triggeringResponse: HostAgentXPCWireEventCursorResponse
+    )
+    case invalidResponse
+    case disconnected
+    case timedOut
+    case cancelled
+    case invalidState
+}
+
 package enum HostAgentXPCSnapshotClientState: Equatable, Sendable {
     case idle
     case handshaking
@@ -70,6 +83,14 @@ package enum HostAgentXPCSnapshotClientState: Equatable, Sendable {
         lastEventID: UInt64
     )
     case ready(
+        HostAgentXPCSnapshotClientPeerIdentity,
+        lastEventID: UInt64
+    )
+    case fetchingEvents(
+        HostAgentXPCSnapshotClientPeerIdentity,
+        afterEventID: UInt64
+    )
+    case refreshingSnapshot(
         HostAgentXPCSnapshotClientPeerIdentity,
         lastEventID: UInt64
     )
@@ -89,6 +110,10 @@ package protocol HostAgentXPCSnapshotClientTransport: AnyObject, Sendable {
         reply: @escaping @Sendable (Data?) -> Void
     )
     func fetchSnapshot(
+        requestData: Data,
+        reply: @escaping @Sendable (Data?) -> Void
+    )
+    func fetchEvents(
         requestData: Data,
         reply: @escaping @Sendable (Data?) -> Void
     )
@@ -153,6 +178,18 @@ package final class HostAgentXPCSnapshotClientConnectionTransport:
         }
     }
 
+    package func fetchEvents(
+        requestData: Data,
+        reply: @escaping @Sendable (Data?) -> Void
+    ) {
+        invoke(reply: reply) { service, finish in
+            service.fetchEvents(
+                requestData: requestData,
+                reply: finish
+            )
+        }
+    }
+
     package func invalidate() {
         connection.invalidate()
     }
@@ -160,14 +197,14 @@ package final class HostAgentXPCSnapshotClientConnectionTransport:
     private func invoke(
         reply: @escaping @Sendable (Data?) -> Void,
         body: (
-            RDNHostAgentXPCSnapshotService,
+            RDNHostAgentXPCEventService,
             @escaping (Data?) -> Void
         ) -> Void
     ) {
         let relay = HostAgentXPCSnapshotClientReplyRelay(reply: reply)
         guard let service = connection.remoteObjectProxyWithErrorHandler(
             { _ in relay.finish(nil) }
-        ) as? RDNHostAgentXPCSnapshotService else {
+        ) as? RDNHostAgentXPCEventService else {
             relay.finish(nil)
             return
         }
@@ -198,6 +235,8 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
     package typealias Completion = @Sendable
         (HostAgentXPCSnapshotClientResult) -> Void
     package typealias RequestIDSource = @Sendable () -> String
+    package typealias EventCompletion = @Sendable
+        (HostAgentXPCSnapshotClientEventResult) -> Void
     package typealias Clock = @Sendable () -> UInt64
     package typealias TimeoutScheduler = @Sendable (
         _ milliseconds: UInt64,
@@ -218,8 +257,12 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
     private let onConnectionEnded: @Sendable () -> Void
     private var state: HostAgentXPCSnapshotClientState = .idle
     private var completion: Completion?
+    private var eventCompletion: EventCompletion?
+    private var negotiatedWireVersion: UInt64?
     private var handshakeRequest: HostAgentXPCWireHandshakeRequest?
     private var snapshotRequest: HostAgentXPCWireSnapshotRequest?
+    private var eventRequest: HostAgentXPCWireEventCursorRequest?
+    private var refreshTrigger: HostAgentXPCWireEventCursorResponse?
 
     package static func makeProduct(
         previousPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity?,
@@ -338,6 +381,84 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         }
     }
 
+    package func fetchEvents(completion: @escaping EventCompletion) {
+        let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+        let afterEventID: UInt64
+        let wireVersion: UInt64
+        lock.lock()
+        guard case .ready(let peer, let cursor) = state,
+              let negotiatedWireVersion
+        else {
+            lock.unlock()
+            completion(.invalidState)
+            return
+        }
+        peerIdentity = peer
+        afterEventID = cursor
+        wireVersion = negotiatedWireVersion
+        lock.unlock()
+
+        let request: HostAgentXPCWireEventCursorRequest
+        do {
+            request = try HostAgentXPCWireEventCursorRequest(
+                requestID: makeRequestID(),
+                wireVersion: wireVersion,
+                hostInstanceID: peerIdentity.hostInstanceID,
+                agentBootID: peerIdentity.agentBootID,
+                afterEventID: afterEventID,
+                maximumEventCount:
+                    HostAgentXPCWireEventContract.maximumEventCount,
+                sentAtUnixMilliseconds: nowUnixMilliseconds()
+            )
+        } catch {
+            failReadyEventStart(
+                peerIdentity: peerIdentity,
+                afterEventID: afterEventID,
+                completion: completion
+            )
+            return
+        }
+
+        lock.lock()
+        guard state == .ready(
+                peerIdentity,
+                lastEventID: afterEventID
+              ),
+              negotiatedWireVersion == wireVersion
+        else {
+            lock.unlock()
+            completion(.invalidState)
+            return
+        }
+        state = .fetchingEvents(
+            peerIdentity,
+            afterEventID: afterEventID
+        )
+        eventRequest = request
+        eventCompletion = completion
+        lock.unlock()
+
+        do {
+            transport.fetchEvents(requestData: try request.encoded()) {
+                [weak self] data in
+                self?.receiveEvents(
+                    data,
+                    request: request,
+                    peerIdentity: peerIdentity
+                )
+            }
+            scheduleTimeout(Self.requestTimeoutMilliseconds) { [weak self] in
+                self?.requestDidTimeOut(requestID: request.requestID)
+            }
+        } catch {
+            finishEventPending(
+                state: .failed,
+                result: .invalidResponse,
+                invalidateTransport: true
+            )
+        }
+    }
+
     package func cancel() {
         lock.lock()
         switch state {
@@ -353,6 +474,16 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
             lock.unlock()
             transport.invalidate()
             completion?(.cancelled)
+        case .fetchingEvents, .refreshingSnapshot:
+            state = .cancelled
+            eventRequest = nil
+            snapshotRequest = nil
+            refreshTrigger = nil
+            let eventCompletion = self.eventCompletion
+            self.eventCompletion = nil
+            lock.unlock()
+            transport.invalidate()
+            eventCompletion?(.cancelled)
         case .ready:
             state = .cancelled
             lock.unlock()
@@ -440,6 +571,7 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         }
         state = .fetchingSnapshot(peerIdentity)
         handshakeRequest = nil
+        negotiatedWireVersion = wireVersion
         snapshotRequest = request
         lock.unlock()
 
@@ -481,12 +613,30 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
                 requestID: request.requestID,
                 peerIdentity: peerIdentity
             ) {
-                finishPending(
-                    state: .failed,
-                    result: .invalidResponse,
-                    invalidateTransport: true
-                )
+                if isRefreshingSnapshot(
+                    requestID: request.requestID,
+                    peerIdentity: peerIdentity
+                ) {
+                    finishEventPending(
+                        state: .failed,
+                        result: .invalidResponse,
+                        invalidateTransport: true
+                    )
+                } else {
+                    finishPending(
+                        state: .failed,
+                        result: .invalidResponse,
+                        invalidateTransport: true
+                    )
+                }
             }
+            return
+        }
+        if finishRefreshedSnapshot(
+            response,
+            request: request,
+            peerIdentity: peerIdentity
+        ) {
             return
         }
         let transition = identityTransition(to: peerIdentity)
@@ -528,6 +678,193 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         ))
     }
 
+    private func receiveEvents(
+        _ data: Data?,
+        request: HostAgentXPCWireEventCursorRequest,
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+    ) {
+        guard isAwaitingEvents(
+                requestID: request.requestID,
+                peerIdentity: peerIdentity,
+                afterEventID: request.afterEventID
+              ),
+              let data,
+              let response = try? HostAgentXPCWireEventCursorResponse.decode(
+                data
+              ),
+              response.evaluate(for: request) == .correlated
+        else {
+            if isAwaitingEvents(
+                requestID: request.requestID,
+                peerIdentity: peerIdentity,
+                afterEventID: request.afterEventID
+            ) {
+                finishEventPending(
+                    state: .failed,
+                    result: .invalidResponse,
+                    invalidateTransport: true
+                )
+            }
+            return
+        }
+
+        if responseRequiresSnapshot(response) {
+            beginEventResnapshot(
+                response: response,
+                request: request,
+                peerIdentity: peerIdentity
+            )
+            return
+        }
+
+        let nextEventID: UInt64
+        switch response.outcome {
+        case .upToDate:
+            nextEventID = request.afterEventID
+        case .batch:
+            guard let resumeAfterEventID = response.resumeAfterEventID else {
+                finishEventPending(
+                    state: .failed,
+                    result: .invalidResponse,
+                    invalidateTransport: true
+                )
+                return
+            }
+            nextEventID = resumeAfterEventID
+        case .gap, .invalidCursor, .resnapshotRequired:
+            finishEventPending(
+                state: .failed,
+                result: .invalidResponse,
+                invalidateTransport: true
+            )
+            return
+        }
+
+        lock.lock()
+        guard state == .fetchingEvents(
+                peerIdentity,
+                afterEventID: request.afterEventID
+              ),
+              eventRequest?.requestID == request.requestID
+        else {
+            lock.unlock()
+            return
+        }
+        state = .ready(peerIdentity, lastEventID: nextEventID)
+        eventRequest = nil
+        let eventCompletion = self.eventCompletion
+        self.eventCompletion = nil
+        lock.unlock()
+        eventCompletion?(.events(response))
+    }
+
+    private func responseRequiresSnapshot(
+        _ response: HostAgentXPCWireEventCursorResponse
+    ) -> Bool {
+        switch response.outcome {
+        case .gap, .invalidCursor, .resnapshotRequired:
+            return true
+        case .upToDate:
+            return false
+        case .batch:
+            return response.events.contains { event in
+                if case .snapshotChanged = event.payload { return true }
+                return false
+            }
+        }
+    }
+
+    private func beginEventResnapshot(
+        response: HostAgentXPCWireEventCursorResponse,
+        request: HostAgentXPCWireEventCursorRequest,
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+    ) {
+        let snapshotRequest: HostAgentXPCWireSnapshotRequest
+        do {
+            snapshotRequest = try HostAgentXPCWireSnapshotRequest(
+                requestID: makeRequestID(),
+                wireVersion: request.wireVersion,
+                hostInstanceID: peerIdentity.hostInstanceID,
+                agentBootID: peerIdentity.agentBootID,
+                sentAtUnixMilliseconds: nowUnixMilliseconds()
+            )
+        } catch {
+            finishEventPending(
+                state: .failed,
+                result: .invalidResponse,
+                invalidateTransport: true
+            )
+            return
+        }
+
+        lock.lock()
+        guard state == .fetchingEvents(
+                peerIdentity,
+                afterEventID: request.afterEventID
+              ),
+              eventRequest?.requestID == request.requestID
+        else {
+            lock.unlock()
+            return
+        }
+        state = .refreshingSnapshot(
+            peerIdentity,
+            lastEventID: request.afterEventID
+        )
+        eventRequest = nil
+        self.snapshotRequest = snapshotRequest
+        refreshTrigger = response
+        lock.unlock()
+
+        do {
+            transport.fetchSnapshot(requestData: try snapshotRequest.encoded()) {
+                [weak self] data in
+                self?.receiveSnapshot(
+                    data,
+                    request: snapshotRequest,
+                    peerIdentity: peerIdentity
+                )
+            }
+            scheduleTimeout(Self.requestTimeoutMilliseconds) { [weak self] in
+                self?.requestDidTimeOut(requestID: snapshotRequest.requestID)
+            }
+        } catch {
+            finishEventPending(
+                state: .failed,
+                result: .invalidResponse,
+                invalidateTransport: true
+            )
+        }
+    }
+
+    @discardableResult
+    private func finishRefreshedSnapshot(
+        _ response: HostAgentXPCWireSnapshotResponse,
+        request: HostAgentXPCWireSnapshotRequest,
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+    ) -> Bool {
+        lock.lock()
+        guard case .refreshingSnapshot(let expectedPeer, _) = state,
+              expectedPeer == peerIdentity,
+              snapshotRequest?.requestID == request.requestID,
+              let refreshTrigger,
+              let eventCompletion
+        else {
+            lock.unlock()
+            return false
+        }
+        state = .ready(peerIdentity, lastEventID: response.lastEventID)
+        snapshotRequest = nil
+        self.refreshTrigger = nil
+        self.eventCompletion = nil
+        lock.unlock()
+        eventCompletion(.resynchronized(
+            snapshot: response,
+            triggeringResponse: refreshTrigger
+        ))
+        return true
+    }
+
     private func identityTransition(
         to peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
     ) -> HostAgentXPCSnapshotClientIdentityTransition {
@@ -539,15 +876,26 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
 
     private func requestDidTimeOut(requestID: String) {
         lock.lock()
-        let isCurrent = handshakeRequest?.requestID == requestID
-            || snapshotRequest?.requestID == requestID
+        let isInitialRequest = completion != nil
+            && (handshakeRequest?.requestID == requestID
+                || snapshotRequest?.requestID == requestID)
+        let isEventRequest = eventCompletion != nil
+            && (eventRequest?.requestID == requestID
+                || snapshotRequest?.requestID == requestID)
         lock.unlock()
-        guard isCurrent else { return }
-        finishPending(
-            state: .failed,
-            result: .timedOut,
-            invalidateTransport: true
-        )
+        if isEventRequest {
+            finishEventPending(
+                state: .failed,
+                result: .timedOut,
+                invalidateTransport: true
+            )
+        } else if isInitialRequest {
+            finishPending(
+                state: .failed,
+                result: .timedOut,
+                invalidateTransport: true
+            )
+        }
     }
 
     private func transportDidEnd() {
@@ -561,6 +909,16 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
             self.completion = nil
             lock.unlock()
             completion?(.disconnected)
+        case .fetchingEvents, .refreshingSnapshot:
+            state = .disconnected
+            eventRequest = nil
+            snapshotRequest = nil
+            refreshTrigger = nil
+            let eventCompletion = self.eventCompletion
+            self.eventCompletion = nil
+            lock.unlock()
+            eventCompletion?(.disconnected)
+            onConnectionEnded()
         case .ready:
             state = .disconnected
             lock.unlock()
@@ -583,8 +941,60 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
     ) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        return state == .fetchingSnapshot(peerIdentity)
+        switch state {
+        case .fetchingSnapshot(let expectedPeer):
+            return expectedPeer == peerIdentity
+                && snapshotRequest?.requestID == requestID
+        case .refreshingSnapshot(let expectedPeer, _):
+            return expectedPeer == peerIdentity
+                && snapshotRequest?.requestID == requestID
+        default:
+            return false
+        }
+    }
+
+    private func isRefreshingSnapshot(
+        requestID: String,
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+    ) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard case .refreshingSnapshot(let expectedPeer, _) = state else {
+            return false
+        }
+        return expectedPeer == peerIdentity
             && snapshotRequest?.requestID == requestID
+    }
+
+    private func isAwaitingEvents(
+        requestID: String,
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
+        afterEventID: UInt64
+    ) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return state == .fetchingEvents(
+            peerIdentity,
+            afterEventID: afterEventID
+        ) && eventRequest?.requestID == requestID
+    }
+
+    private func failReadyEventStart(
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
+        afterEventID: UInt64,
+        completion: @escaping EventCompletion
+    ) {
+        lock.lock()
+        guard state == .ready(peerIdentity, lastEventID: afterEventID) else {
+            lock.unlock()
+            completion(.invalidState)
+            return
+        }
+        state = .failed
+        negotiatedWireVersion = nil
+        lock.unlock()
+        transport.invalidate()
+        completion(.invalidResponse)
     }
 
     private func finishPending(
@@ -600,12 +1010,36 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         state = terminalState
         handshakeRequest = nil
         snapshotRequest = nil
+        negotiatedWireVersion = nil
         let completion = self.completion
         self.completion = nil
         lock.unlock()
 
         if invalidateTransport { transport.invalidate() }
         completion?(result)
+    }
+
+    private func finishEventPending(
+        state terminalState: HostAgentXPCSnapshotClientState,
+        result: HostAgentXPCSnapshotClientEventResult,
+        invalidateTransport: Bool
+    ) {
+        lock.lock()
+        guard eventCompletion != nil else {
+            lock.unlock()
+            return
+        }
+        state = terminalState
+        eventRequest = nil
+        snapshotRequest = nil
+        refreshTrigger = nil
+        negotiatedWireVersion = nil
+        let eventCompletion = self.eventCompletion
+        self.eventCompletion = nil
+        lock.unlock()
+
+        if invalidateTransport { transport.invalidate() }
+        eventCompletion?(result)
     }
 
     private static let productRequestID: RequestIDSource = {
