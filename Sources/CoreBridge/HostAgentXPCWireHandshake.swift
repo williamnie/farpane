@@ -18,6 +18,30 @@ package enum HostAgentXPCWireHandshakeEvaluation: Equatable, Sendable {
     case invalidResponse
 }
 
+package struct HostAgentXPCWireAgentIdentity: Equatable, Sendable {
+    package let agentBuildID: String
+    package let hostInstanceID: String
+    package let agentBootID: String
+
+    package init(
+        agentBuildID: String,
+        hostInstanceID: String,
+        agentBootID: String
+    ) throws {
+        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
+            agentBuildID
+        ),
+            HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID),
+            HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID)
+        else {
+            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
+        }
+        self.agentBuildID = agentBuildID
+        self.hostInstanceID = hostInstanceID
+        self.agentBootID = agentBootID
+    }
+}
+
 package enum HostAgentXPCWireHandshakeContract {
     package static let currentSchemaVersion: UInt64 = 1
     package static let currentWireVersion: UInt64 = 1
