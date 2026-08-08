@@ -3,9 +3,10 @@ import Foundation
 import XCTest
 
 final class HostAgentXPCProcessIdentityAuthorityTests: XCTestCase {
-    func testProductAuthorityGeneratesOneStableCanonicalBootIdentity() throws {
+    func testProductAuthorityConsumesOneStableCanonicalBootstrapIdentity() throws {
         let authority = try HostAgentXPCProcessIdentityAuthority.makeProduct(
-            agentBuildID: "agent-build"
+            agentBuildID: "agent-build",
+            agentBootID: validBootID
         )
 
         XCTAssertEqual(authority.snapshot(), .waitingForHostInstance)
@@ -28,20 +29,15 @@ final class HostAgentXPCProcessIdentityAuthorityTests: XCTestCase {
         XCTAssertEqual(authority.snapshot(), .ready(firstIdentity))
     }
 
-    func testRejectsBuildBeforeGeneratingBootIdentityAndRejectsInvalidBoot() {
-        var generationCount = 0
-        XCTAssertThrowsError(try HostAgentXPCProcessIdentityAuthority(
+    func testRejectsInvalidBuildAndBootIdentity() {
+        XCTAssertThrowsError(try HostAgentXPCProcessIdentityAuthority.makeProduct(
             agentBuildID: "agent/build",
-            generateAgentBootID: {
-                generationCount += 1
-                return validBootID
-            }
+            agentBootID: validBootID
         ))
-        XCTAssertEqual(generationCount, 0)
 
-        XCTAssertThrowsError(try HostAgentXPCProcessIdentityAuthority(
+        XCTAssertThrowsError(try HostAgentXPCProcessIdentityAuthority.makeProduct(
             agentBuildID: "agent-build",
-            generateAgentBootID: { "not-a-uuid" }
+            agentBootID: "not-a-uuid"
         ))
     }
 
@@ -132,7 +128,8 @@ final class HostAgentXPCProcessIdentityAuthorityTests: XCTestCase {
             encoding: .utf8
         )
 
-        XCTAssertTrue(source.contains("UUID().uuidString.lowercased()"))
+        XCTAssertFalse(source.contains("UUID()"))
+        XCTAssertFalse(source.contains("generateAgentBootID"))
         XCTAssertFalse(source.contains("ProcessInfo"))
         XCTAssertFalse(source.contains("getenv"))
         XCTAssertFalse(source.contains("UserDefaults"))
@@ -147,9 +144,9 @@ final class HostAgentXPCProcessIdentityAuthorityTests: XCTestCase {
     private func makeAuthority() throws
         -> HostAgentXPCProcessIdentityAuthority
     {
-        try HostAgentXPCProcessIdentityAuthority(
+        try HostAgentXPCProcessIdentityAuthority.makeProduct(
             agentBuildID: "agent-build",
-            generateAgentBootID: { validBootID }
+            agentBootID: validBootID
         )
     }
 }

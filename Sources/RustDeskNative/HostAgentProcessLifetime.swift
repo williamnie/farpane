@@ -12,7 +12,10 @@ final class HostAgentProcessLifetime: @unchecked Sendable {
     ) {
         self.gate = HostAgentProcessLifetimeGate(
             runtime: runtime,
-            prepareTermination: prepareTermination,
+            prepareTermination: {
+                runtime.invalidateXPCIdentity()
+                prepareTermination()
+            },
             stopRuntime: { runtime, reason in
                 try runtime.stop(reason: reason)
             }
@@ -31,6 +34,20 @@ final class HostAgentProcessLifetime: @unchecked Sendable {
     func copySnapshot() throws -> HostCoreSnapshot {
         try gate.withRunningRuntime { runtime in
             try runtime.copySnapshot()
+        }
+    }
+
+    func bindXPCIdentity(
+        hostInstanceID: String
+    ) throws -> HostAgentXPCProcessIdentityBindResult {
+        try gate.withRunningRuntime { runtime in
+            runtime.bindXPCIdentity(hostInstanceID: hostInstanceID)
+        }
+    }
+
+    func xpcIdentitySnapshot() throws -> HostAgentXPCProcessIdentityState {
+        try gate.withRunningRuntime { runtime in
+            runtime.xpcIdentitySnapshot()
         }
     }
 
