@@ -293,6 +293,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
                 agentBootID: bootID
             ),
             snapshotState: snapshotState,
+            eventState: try HostAgentEventState(),
             nowUnixMilliseconds: { 20 },
             monotonicMilliseconds: { 1 }
         )

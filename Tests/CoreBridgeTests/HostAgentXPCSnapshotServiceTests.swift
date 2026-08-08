@@ -7,12 +7,12 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     private let hostID = "host-a"
     private let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
 
-    func testFactoryConstructsHandshakePlusSingleSnapshotMethodInterface() throws {
+    func testFactoryConstructsHandshakeSnapshotAndEventMethodInterface() throws {
         let interface = HostAgentXPCSnapshotInterfaceFactory.makeInterface()
 
         XCTAssertEqual(
             NSStringFromProtocol(interface.protocol),
-            "RDNHostAgentXPCSnapshotService"
+            "RDNHostAgentXPCEventService"
         )
         XCTAssertEqual(
             HostAgentXPCSnapshotInterfaceFactory.handshakeSelectorName,
@@ -21,6 +21,10 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         XCTAssertEqual(
             HostAgentXPCSnapshotInterfaceFactory.snapshotSelectorName,
             "fetchSnapshotWithRequestData:reply:"
+        )
+        XCTAssertEqual(
+            HostAgentXPCSnapshotInterfaceFactory.eventSelectorName,
+            "fetchEventsWithRequestData:reply:"
         )
 
         let header = try String(
@@ -32,7 +36,10 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         XCTAssertTrue(header.contains(
             "RDNHostAgentXPCSnapshotService <RDNHostAgentXPCHandshakeService>"
         ))
-        XCTAssertEqual(header.components(separatedBy: "- (void)").count - 1, 2)
+        XCTAssertTrue(header.contains(
+            "RDNHostAgentXPCEventService <RDNHostAgentXPCSnapshotService>"
+        ))
+        XCTAssertEqual(header.components(separatedBy: "- (void)").count - 1, 3)
         XCTAssertTrue(header.contains("NSData *)requestData"))
         XCTAssertTrue(header.contains("NSData * _Nullable responseData"))
         XCTAssertFalse(header.contains("NSArray"))
@@ -167,8 +174,119 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         XCTAssertNotNil(handler.snapshotResponse(for: requestData))
     }
 
+    func testEventFailsClosedUntilSnapshotThenAdvancesExactCursor() throws {
+        let eventState = try makeEventState(count: 2)
+        let clock = SnapshotServiceTestClock(values: [1_000, 2_000, 2_100])
+        let handler = try makeHandler(
+            availableSnapshot: true,
+            eventSequence: 0,
+            eventState: eventState,
+            monotonicMilliseconds: { clock.now() }
+        )
+        let initialEventRequest = try eventRequest(afterEventID: 0)
+
+        XCTAssertNil(handler.eventResponse(
+            for: try initialEventRequest.encoded()
+        ))
+        XCTAssertNotNil(handler.handshakeResponse(
+            for: try handshakeRequest(versions: [1]).encoded()
+        ))
+        XCTAssertNil(handler.eventResponse(
+            for: try initialEventRequest.encoded()
+        ))
+        XCTAssertNotNil(handler.snapshotResponse(
+            for: try snapshotRequest().encoded()
+        ))
+
+        let eventData = try XCTUnwrap(handler.eventResponse(
+            for: initialEventRequest.encoded()
+        ))
+        let response = try HostAgentXPCWireEventCursorResponse.decode(eventData)
+        XCTAssertEqual(response.outcome, .batch)
+        XCTAssertEqual(response.resumeAfterEventID, 2)
+        XCTAssertEqual(response.latestEventID, 2)
+        XCTAssertEqual(
+            handler.stateSnapshot(),
+            .snapshotReady(wireVersion: 1, afterEventID: 2)
+        )
+
+        XCTAssertNil(handler.eventResponse(
+            for: try initialEventRequest.encoded()
+        ))
+        let caughtUp = try eventRequest(afterEventID: 2)
+        let caughtUpData = try XCTUnwrap(handler.eventResponse(
+            for: caughtUp.encoded()
+        ))
+        XCTAssertEqual(
+            try HostAgentXPCWireEventCursorResponse.decode(caughtUpData).outcome,
+            .upToDate
+        )
+    }
+
+    func testGapRequiresAnotherSnapshotBeforeAnyEventRetry() throws {
+        let eventState = try HostAgentEventState(
+            capacity: 2,
+            maximumEventBytes: 4_096
+        )
+        let clock = SnapshotServiceTestClock(values: [1_000, 2_000])
+        let handler = try makeHandler(
+            availableSnapshot: true,
+            eventSequence: 0,
+            eventState: eventState,
+            monotonicMilliseconds: { clock.now() }
+        )
+        XCTAssertNotNil(handler.handshakeResponse(
+            for: try handshakeRequest(versions: [1]).encoded()
+        ))
+        XCTAssertNotNil(handler.snapshotResponse(
+            for: try snapshotRequest().encoded()
+        ))
+        for eventID in 1...3 {
+            _ = eventState.ingest(try event(id: UInt64(eventID)))
+        }
+
+        let request = try eventRequest(afterEventID: 0)
+        let data = try XCTUnwrap(handler.eventResponse(
+            for: request.encoded()
+        ))
+        XCTAssertEqual(
+            try HostAgentXPCWireEventCursorResponse.decode(data).outcome,
+            .gap
+        )
+        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 1))
+        XCTAssertNil(handler.eventResponse(for: try request.encoded()))
+    }
+
+    func testEventRequestsAreRateLimitedIndependentlyFromSnapshot() throws {
+        let clock = SnapshotServiceTestClock(
+            values: [1_000, 2_000, 2_099, 2_100]
+        )
+        let handler = try makeHandler(
+            availableSnapshot: true,
+            eventSequence: 0,
+            monotonicMilliseconds: { clock.now() }
+        )
+        XCTAssertNotNil(handler.handshakeResponse(
+            for: try handshakeRequest(versions: [1]).encoded()
+        ))
+        XCTAssertNotNil(handler.snapshotResponse(
+            for: try snapshotRequest().encoded()
+        ))
+        let requestData = try eventRequest(afterEventID: 0).encoded()
+
+        XCTAssertNotNil(handler.eventResponse(for: requestData))
+        XCTAssertNil(handler.eventResponse(for: requestData))
+        XCTAssertNotNil(handler.eventResponse(for: requestData))
+    }
+
     func testAnonymousXPCConnectionPerformsHandshakeThenSnapshotRoundTrip() throws {
-        let handler = try makeHandler(availableSnapshot: true, eventSequence: 7)
+        let clock = SnapshotServiceTestClock(values: [1_000, 2_000])
+        let handler = try makeHandler(
+            availableSnapshot: true,
+            eventSequence: 7,
+            eventState: makeEventState(count: 7),
+            monotonicMilliseconds: { clock.now() }
+        )
         let interface = HostAgentXPCSnapshotInterfaceFactory.makeInterface()
         let listener = NSXPCListener.anonymous()
         let delegate = SnapshotServiceTestListenerDelegate(
@@ -187,7 +305,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         let proxy = try XCTUnwrap(
             connection.remoteObjectProxyWithErrorHandler { error in
                 XCTFail("anonymous XPC error: \(error.localizedDescription)")
-            } as? RDNHostAgentXPCSnapshotService
+            } as? RDNHostAgentXPCEventService
         )
 
         let handshakeReply = expectation(description: "handshake reply")
@@ -219,6 +337,22 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         )
         XCTAssertEqual(response.lastEventID, 7)
         XCTAssertEqual(response.snapshot.hostState, "ready")
+
+        let eventReply = expectation(description: "event reply")
+        var eventData: Data?
+        proxy.fetchEvents(requestData: try eventRequest(
+            afterEventID: 7
+        ).encoded()) { data in
+            eventData = data
+            eventReply.fulfill()
+        }
+        wait(for: [eventReply], timeout: 2)
+        XCTAssertEqual(
+            try HostAgentXPCWireEventCursorResponse.decode(
+                XCTUnwrap(eventData)
+            ).outcome,
+            .upToDate
+        )
     }
 
     func testServiceSourceCannotOwnConnectionOrExposeEventsAndCommands() throws {
@@ -237,7 +371,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         XCTAssertFalse(source.contains("exportedObject"))
         XCTAssertFalse(source.contains("remoteObject"))
         XCTAssertFalse(source.contains("HostAgentXPCWireCommand"))
-        XCTAssertFalse(source.contains("HostAgentXPCWireEvent"))
+        XCTAssertTrue(source.contains("HostAgentXPCWireEvent"))
     }
 
     private var repositoryRoot: URL {
@@ -250,6 +384,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     private func makeHandler(
         availableSnapshot: Bool,
         eventSequence: UInt64 = 1,
+        eventState: HostAgentEventState? = nil,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock = {
             20
         },
@@ -273,6 +408,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
                 agentBootID: bootID
             ),
             snapshotState: state,
+            eventState: eventState ?? HostAgentEventState(),
             nowUnixMilliseconds: nowUnixMilliseconds,
             monotonicMilliseconds: monotonicMilliseconds
         )
@@ -299,6 +435,44 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             agentBootID: bootID,
             sentAtUnixMilliseconds: 11
         )
+    }
+
+    private func eventRequest(
+        afterEventID: UInt64
+    ) throws -> HostAgentXPCWireEventCursorRequest {
+        try HostAgentXPCWireEventCursorRequest(
+            requestID: "841733af-919b-4dc2-84bb-7134d0951dc9",
+            wireVersion: 1,
+            hostInstanceID: hostID,
+            agentBootID: bootID,
+            afterEventID: afterEventID,
+            maximumEventCount: 64,
+            sentAtUnixMilliseconds: 12
+        )
+    }
+
+    private func makeEventState(count: Int) throws -> HostAgentEventState {
+        let state = try HostAgentEventState(
+            capacity: max(2, count),
+            maximumEventBytes: 4_096
+        )
+        for eventID in 1...count {
+            _ = state.ingest(try event(id: UInt64(eventID)))
+        }
+        return state
+    }
+
+    private func event(id: UInt64) throws -> HostCoreEvent {
+        try XCTUnwrap(HostCoreEvent(rawJSON: JSONSerialization.data(
+            withJSONObject: [
+                "schemaVersion": 1,
+                "eventId": id,
+                "eventType": "snapshotChanged",
+                "hostInstanceId": hostID,
+                "sentAt": 1_700_000_000_000 as UInt64,
+                "payload": [:],
+            ]
+        )))
     }
 
     private func coreSnapshot() throws -> HostCoreSnapshot {

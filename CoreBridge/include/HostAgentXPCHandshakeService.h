@@ -19,6 +19,14 @@ NS_ASSUME_NONNULL_BEGIN
     NS_SWIFT_NAME(fetchSnapshot(requestData:reply:));
 @end
 
+/// Cursor-based event extension. The same connection must complete a
+/// compatible handshake and successfully fetch a snapshot before use.
+@protocol RDNHostAgentXPCEventService <RDNHostAgentXPCSnapshotService>
+- (void)fetchEventsWithRequestData:(NSData *)requestData
+                             reply:(void (^)(NSData * _Nullable responseData))reply
+    NS_SWIFT_NAME(fetchEvents(requestData:reply:));
+@end
+
 NS_ASSUME_NONNULL_END
 
 #endif
