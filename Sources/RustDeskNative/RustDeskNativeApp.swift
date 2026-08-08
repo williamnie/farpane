@@ -157,6 +157,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostMediaCapabilitiesProbeTask: Task<Void, Never>?
     private var hostSnapshot: HostCoreSnapshot?
     private var hostApprovalDecisionGate = HostApprovalDecisionGate()
+    private var hostSessionCommandGate = HostSessionCommandGate()
     private var hostTemporaryPassword = ""
     private var hostStatusText = "已关闭"
     private var hostErrorText = ""
@@ -306,6 +307,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onRejectHostConnection = { [weak self] connectionID in
             self?.resolveHostApproval(connectionID: connectionID, decision: .reject)
         }
+        view.onHostSessionAction = { [weak self] connectionID, action in
+            self?.performHostSessionAction(connectionID: connectionID, action: action)
+        }
         window.contentView = view
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -358,6 +362,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 usingPresetPassword: hostSnapshot?.passwordPolicy.usingPresetPassword ?? false,
                 permanentPasswordChangeAllowed: hostSnapshot?.passwordPolicy.changeAllowed ?? false,
                 pendingApproval: hostApprovalHomeSnapshot(),
+                activeSession: hostActiveSessionHomeSnapshot(),
                 mediaDiagnosticText: hostMediaDiagnosticText(),
                 errorText: hostErrorText
             )
@@ -478,6 +483,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostErrorText = ""
         hostSnapshot = nil
         hostApprovalDecisionGate.reset()
+        hostSessionCommandGate.reset()
         hostTemporaryPassword = ""
         do {
             let coreURL = URL(fileURLWithPath: defaultCorePath())
@@ -529,6 +535,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostTemporaryPassword = ""
         hostSnapshot = nil
         hostApprovalDecisionGate.reset()
+        hostSessionCommandGate.reset()
         stopHostMediaPipeline()
         hostMediaCapabilitiesProbeTask?.cancel()
         hostMediaCapabilitiesProbeTask = nil
@@ -559,6 +566,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             let snapshot = try hostClient.copySnapshot()
             hostSnapshot = snapshot
             refreshed = true
+            hostSessionCommandGate.observe(
+                connectionID: snapshot.activeSession?.connectionId,
+                activeCapabilities: snapshot.activeSession?.activeCapabilities ?? []
+            )
             let shouldRequestAttention = hostApprovalDecisionGate.observe(
                 connectionID: snapshot.pendingApproval?.connectionId
             )
@@ -567,6 +578,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 hostStatusText = hostApprovalDecisionGate.isResolving(
                     connectionID: pending.connectionId
                 ) ? "正在处理连接请求…" : "等待本机批准…"
+            } else if snapshot.activeSession != nil {
+                hostStatusText = hostMediaStatusText ?? "远程会话进行中"
             } else {
                 switch snapshot.registrationStatus {
                 case "ready": hostStatusText = hostMediaStatusText ?? "可被连接"
@@ -636,6 +649,54 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         )
     }
 
+    private func hostActiveSessionHomeSnapshot() -> HostActiveSessionHomeSnapshot? {
+        guard let session = hostSnapshot?.activeSession else { return nil }
+        let activeCapabilities = Set(session.activeCapabilities)
+        let capabilityNames = session.activeCapabilities.compactMap { capability -> String? in
+            switch capability {
+            case "viewDisplay": return "查看屏幕"
+            case "controlKeyboardMouse": return "控制键盘与鼠标"
+            case "readClipboard": return "读取剪贴板"
+            case "writeClipboard": return "写入剪贴板"
+            case "hearSystemAudio": return "收听系统音频"
+            default: return nil
+            }
+        }
+        guard capabilityNames.count == session.activeCapabilities.count else { return nil }
+
+        let claimedName = session.remoteName.isEmpty ? session.remoteId : session.remoteName
+        let identityText = session.remoteName.isEmpty
+            ? "对方声明（未经验证）：\(claimedName)"
+            : "对方声明（未经验证）：\(claimedName) · ID \(session.remoteId)"
+        let platformText = session.remotePlatform.isEmpty ? "未知平台" : session.remotePlatform
+        let startedAt = Date(timeIntervalSince1970: TimeInterval(session.startedAt) / 1_000)
+        let startedText = DateFormatter.localizedString(
+            from: startedAt,
+            dateStyle: .none,
+            timeStyle: .short
+        )
+        let pendingAction: HostSessionHomeAction?
+        switch hostSessionCommandGate.resolvingIntent(connectionID: session.connectionId) {
+        case .disable(.keyboardAndMouse): pendingAction = .disableKeyboardAndMouse
+        case .disable(.clipboard): pendingAction = .disableClipboard
+        case .disable(.systemAudio): pendingAction = .disableSystemAudio
+        case .disconnect: pendingAction = .disconnect
+        case nil: pendingAction = nil
+        }
+
+        return HostActiveSessionHomeSnapshot(
+            connectionID: session.connectionId,
+            remoteIdentityText: identityText,
+            contextText: "\(platformText) · \(startedText) 开始连接",
+            capabilityText: "当前权限：\(capabilityNames.joined(separator: "、"))",
+            canDisableKeyboardAndMouse: activeCapabilities.contains("controlKeyboardMouse"),
+            canDisableClipboard: activeCapabilities.contains("readClipboard")
+                && activeCapabilities.contains("writeClipboard"),
+            canDisableSystemAudio: activeCapabilities.contains("hearSystemAudio"),
+            pendingAction: pendingAction
+        )
+    }
+
     private func requestAttentionForPendingHostApproval() {
         NSApplication.shared.requestUserAttention(.criticalRequest)
         window?.makeKeyAndOrderFront(nil)
@@ -684,6 +745,66 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         if let decisionErrorText {
             hostErrorText = decisionErrorText
+            refreshHomeUI()
+        }
+    }
+
+    private func performHostSessionAction(
+        connectionID: String,
+        action: HostSessionHomeAction
+    ) {
+        guard hostRuntimeActive,
+              let hostClient,
+              hostSnapshot?.activeSession?.connectionId == connectionID
+        else { return }
+
+        let intent: HostSessionCommandIntent
+        switch action {
+        case .disableKeyboardAndMouse: intent = .disable(.keyboardAndMouse)
+        case .disableClipboard: intent = .disable(.clipboard)
+        case .disableSystemAudio: intent = .disable(.systemAudio)
+        case .disconnect: intent = .disconnect
+        }
+        guard hostSessionCommandGate.begin(
+            connectionID: connectionID,
+            intent: intent
+        ) else { return }
+
+        hostErrorText = ""
+        refreshHomeUI()
+        var actionErrorText: String?
+        do {
+            switch intent {
+            case .disable(let capability):
+                try hostClient.disableActiveSessionCapability(
+                    capability,
+                    connectionID: connectionID
+                )
+            case .disconnect:
+                try hostClient.disconnectSession(connectionID: connectionID)
+            }
+        } catch let error as HostControlError {
+            switch error.sessionCommandFailure {
+            case .notFound:
+                actionErrorText = "远程会话已经结束。"
+            case .staleConnection:
+                actionErrorText = "远程会话已更新，请按当前状态重试。"
+            case .unavailable:
+                actionErrorText = "当前会话暂时无法接收本机控制操作。"
+            case nil:
+                actionErrorText = sanitizedHostError(error)
+            }
+        } catch {
+            actionErrorText = sanitizedHostError(error)
+        }
+
+        refreshHostSnapshot()
+        if let actionErrorText {
+            hostSessionCommandGate.complete(
+                connectionID: connectionID,
+                intent: intent
+            )
+            hostErrorText = actionErrorText
             refreshHomeUI()
         }
     }

@@ -163,7 +163,7 @@ public enum HostSessionCommandFailure: Equatable, Sendable {
     case unavailable
 }
 
-public enum HostSessionRevocableCapability: Sendable {
+public enum HostSessionRevocableCapability: Equatable, Sendable {
     case keyboardAndMouse
     case clipboard
     case systemAudio
@@ -173,6 +173,14 @@ public enum HostSessionRevocableCapability: Sendable {
         case .keyboardAndMouse: return "disableInputForActiveSession"
         case .clipboard: return "disableClipboardForActiveSession"
         case .systemAudio: return "disableAudioForActiveSession"
+        }
+    }
+
+    package var snapshotCapabilityNames: Set<String> {
+        switch self {
+        case .keyboardAndMouse: return ["controlKeyboardMouse"]
+        case .clipboard: return ["readClipboard", "writeClipboard"]
+        case .systemAudio: return ["hearSystemAudio"]
         }
     }
 }
@@ -673,6 +681,95 @@ package struct HostApprovalDecisionGate: Sendable {
         currentConnectionID = nil
         decisionInFlightConnectionID = nil
         lastNotifiedConnectionID = nil
+    }
+}
+
+package enum HostSessionCommandIntent: Equatable, Sendable {
+    case disable(HostSessionRevocableCapability)
+    case disconnect
+}
+
+/// Serializes local active-session actions and keeps their completion bound to
+/// the next authoritative Host snapshot. A successful C call only means the
+/// command was queued; it never removes a capability or session optimistically.
+package struct HostSessionCommandGate: Sendable {
+    package private(set) var currentConnectionID: String?
+    package private(set) var commandInFlightConnectionID: String?
+    package private(set) var commandInFlightIntent: HostSessionCommandIntent?
+    private var currentActiveCapabilities = Set<String>()
+
+    package init() {}
+
+    package mutating func observe(
+        connectionID: String?,
+        activeCapabilities: [String]
+    ) {
+        if currentConnectionID != connectionID {
+            commandInFlightConnectionID = nil
+            commandInFlightIntent = nil
+        }
+        currentConnectionID = connectionID
+        currentActiveCapabilities = connectionID == nil ? [] : Set(activeCapabilities)
+
+        guard commandInFlightConnectionID == connectionID,
+              let commandInFlightIntent else {
+            if connectionID == nil {
+                commandInFlightConnectionID = nil
+                self.commandInFlightIntent = nil
+            }
+            return
+        }
+        if case .disable(let capability) = commandInFlightIntent,
+           capability.snapshotCapabilityNames.isDisjoint(with: currentActiveCapabilities) {
+            commandInFlightConnectionID = nil
+            self.commandInFlightIntent = nil
+        }
+    }
+
+    package mutating func begin(
+        connectionID: String,
+        intent: HostSessionCommandIntent
+    ) -> Bool {
+        guard currentConnectionID == connectionID,
+              commandInFlightConnectionID == nil,
+              commandInFlightIntent == nil else { return false }
+        if case .disable(let capability) = intent,
+           !capability.snapshotCapabilityNames.isSubset(of: currentActiveCapabilities) {
+            return false
+        }
+        commandInFlightConnectionID = connectionID
+        commandInFlightIntent = intent
+        return true
+    }
+
+    package mutating func complete(
+        connectionID: String,
+        intent: HostSessionCommandIntent
+    ) {
+        guard commandInFlightConnectionID == connectionID,
+              commandInFlightIntent == intent else { return }
+        commandInFlightConnectionID = nil
+        commandInFlightIntent = nil
+    }
+
+    package func isResolving(connectionID: String) -> Bool {
+        commandInFlightConnectionID == connectionID
+            && commandInFlightIntent != nil
+    }
+
+    package func resolvingIntent(
+        connectionID: String
+    ) -> HostSessionCommandIntent? {
+        commandInFlightConnectionID == connectionID
+            ? commandInFlightIntent
+            : nil
+    }
+
+    package mutating func reset() {
+        currentConnectionID = nil
+        currentActiveCapabilities = []
+        commandInFlightConnectionID = nil
+        commandInFlightIntent = nil
     }
 }
 

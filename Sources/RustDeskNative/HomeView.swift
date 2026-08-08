@@ -15,6 +15,24 @@ struct HostApprovalHomeSnapshot: Equatable {
     var isResolving: Bool
 }
 
+enum HostSessionHomeAction: Equatable {
+    case disableKeyboardAndMouse
+    case disableClipboard
+    case disableSystemAudio
+    case disconnect
+}
+
+struct HostActiveSessionHomeSnapshot: Equatable {
+    var connectionID: String
+    var remoteIdentityText: String
+    var contextText: String
+    var capabilityText: String
+    var canDisableKeyboardAndMouse: Bool
+    var canDisableClipboard: Bool
+    var canDisableSystemAudio: Bool
+    var pendingAction: HostSessionHomeAction?
+}
+
 struct HostHomeSnapshot: Equatable {
     var isEnabled: Bool
     var isRunning: Bool
@@ -27,6 +45,7 @@ struct HostHomeSnapshot: Equatable {
     var usingPresetPassword: Bool
     var permanentPasswordChangeAllowed: Bool
     var pendingApproval: HostApprovalHomeSnapshot?
+    var activeSession: HostActiveSessionHomeSnapshot?
     var mediaDiagnosticText: String
     var errorText: String
 }
@@ -60,6 +79,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onClearHostPermanentPassword: (() -> Void)?
     var onApproveHostConnection: ((String) -> Void)?
     var onRejectHostConnection: ((String) -> Void)?
+    var onHostSessionAction: ((String, HostSessionHomeAction) -> Void)?
 
     private let serverButton = NSButton()
     private let serverStatusDot = NSView()
@@ -96,6 +116,15 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostApprovalExpiryLabel = NSTextField(labelWithString: "")
     private let hostApproveButton = NSButton()
     private let hostRejectButton = NSButton()
+    private let hostSessionContainer = NSView()
+    private let hostSessionTitleLabel = NSTextField(labelWithString: "当前远程会话")
+    private let hostSessionIdentityLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostSessionContextLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostSessionCapabilityLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostDisableInputButton = NSButton()
+    private let hostDisableClipboardButton = NSButton()
+    private let hostDisableAudioButton = NSButton()
+    private let hostDisconnectButton = NSButton()
     private let hostMediaDiagnosticLabel = NSTextField(wrappingLabelWithString: "")
     private let hostErrorLabel = NSTextField(wrappingLabelWithString: "")
     private var snapshot = HomeSnapshot(
@@ -116,6 +145,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             usingPresetPassword: false,
             permanentPasswordChangeAllowed: false,
             pendingApproval: nil,
+            activeSession: nil,
             mediaDiagnosticText: "",
             errorText: ""
         )
@@ -180,6 +210,48 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostApproveButton.isEnabled = false
             hostRejectButton.isEnabled = false
         }
+        if let session = snapshot.host.activeSession {
+            hostSessionIdentityLabel.stringValue = session.remoteIdentityText
+            hostSessionContextLabel.stringValue = session.contextText
+            hostSessionCapabilityLabel.stringValue = session.capabilityText
+            let actionInFlight = session.pendingAction != nil
+            configureSessionButton(
+                hostDisableInputButton,
+                title: "停止键鼠控制",
+                action: .disableKeyboardAndMouse,
+                session: session,
+                capabilityAvailable: session.canDisableKeyboardAndMouse
+            )
+            configureSessionButton(
+                hostDisableClipboardButton,
+                title: "停止剪贴板",
+                action: .disableClipboard,
+                session: session,
+                capabilityAvailable: session.canDisableClipboard
+            )
+            configureSessionButton(
+                hostDisableAudioButton,
+                title: "停止系统音频",
+                action: .disableSystemAudio,
+                session: session,
+                capabilityAvailable: session.canDisableSystemAudio
+            )
+            hostDisconnectButton.title = session.pendingAction == .disconnect
+                ? "正在断开…"
+                : "断开连接"
+            hostDisconnectButton.isEnabled = !actionInFlight
+            hostSessionContainer.isHidden = false
+        } else {
+            hostSessionContainer.isHidden = true
+            for button in [
+                hostDisableInputButton,
+                hostDisableClipboardButton,
+                hostDisableAudioButton,
+                hostDisconnectButton,
+            ] {
+                button.isEnabled = false
+            }
+        }
         hostMediaDiagnosticLabel.stringValue = snapshot.host.mediaDiagnosticText
         hostMediaDiagnosticLabel.isHidden = snapshot.host.mediaDiagnosticText.isEmpty
         hostErrorLabel.stringValue = snapshot.host.errorText
@@ -209,6 +281,18 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             return "永久密码：预设密码生效"
         }
         return "永久密码：未设置"
+    }
+
+    private func configureSessionButton(
+        _ button: NSButton,
+        title: String,
+        action: HostSessionHomeAction,
+        session: HostActiveSessionHomeSnapshot,
+        capabilityAvailable: Bool
+    ) {
+        button.title = session.pendingAction == action ? "处理中…" : title
+        button.isHidden = !capabilityAvailable
+        button.isEnabled = capabilityAvailable && session.pendingAction == nil
     }
 
     func focusQuickConnect() {
@@ -445,6 +529,96 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostPermanentPasswordDetails.alignment = .centerY
         hostPermanentPasswordDetails.spacing = 12
 
+        hostSessionContainer.wantsLayer = true
+        hostSessionContainer.layer?.cornerRadius = 9
+        hostSessionContainer.layer?.backgroundColor = NSColor.systemBlue
+            .withAlphaComponent(0.07).cgColor
+        hostSessionContainer.layer?.borderColor = NSColor.systemBlue
+            .withAlphaComponent(0.4).cgColor
+        hostSessionContainer.layer?.borderWidth = 1
+        hostSessionContainer.isHidden = true
+
+        hostSessionTitleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        hostSessionTitleLabel.textColor = .labelColor
+        hostSessionIdentityLabel.font = .systemFont(ofSize: 12.5, weight: .medium)
+        hostSessionIdentityLabel.textColor = .labelColor
+        hostSessionContextLabel.font = .systemFont(ofSize: 11.5)
+        hostSessionContextLabel.textColor = .secondaryLabelColor
+        hostSessionCapabilityLabel.font = .systemFont(ofSize: 11.5)
+        hostSessionCapabilityLabel.textColor = .secondaryLabelColor
+
+        hostDisableInputButton.title = "停止键鼠控制"
+        hostDisableInputButton.bezelStyle = .rounded
+        hostDisableInputButton.target = self
+        hostDisableInputButton.action = #selector(disableHostSessionInput)
+        hostDisableInputButton.setAccessibilityLabel("停止当前会话的键盘与鼠标控制")
+        hostDisableClipboardButton.title = "停止剪贴板"
+        hostDisableClipboardButton.bezelStyle = .rounded
+        hostDisableClipboardButton.target = self
+        hostDisableClipboardButton.action = #selector(disableHostSessionClipboard)
+        hostDisableClipboardButton.setAccessibilityLabel("停止当前会话的剪贴板访问")
+        hostDisableAudioButton.title = "停止系统音频"
+        hostDisableAudioButton.bezelStyle = .rounded
+        hostDisableAudioButton.target = self
+        hostDisableAudioButton.action = #selector(disableHostSessionAudio)
+        hostDisableAudioButton.setAccessibilityLabel("停止当前会话的系统音频")
+        hostDisconnectButton.title = "断开连接"
+        hostDisconnectButton.bezelStyle = .rounded
+        hostDisconnectButton.contentTintColor = .systemRed
+        hostDisconnectButton.target = self
+        hostDisconnectButton.action = #selector(disconnectHostSession)
+        hostDisconnectButton.setAccessibilityLabel("断开当前远程会话")
+
+        let hostSessionButtons = NSStackView(views: [
+            NSView(),
+            hostDisableInputButton,
+            hostDisableClipboardButton,
+            hostDisableAudioButton,
+            hostDisconnectButton,
+        ])
+        hostSessionButtons.orientation = .horizontal
+        hostSessionButtons.alignment = .centerY
+        hostSessionButtons.spacing = 8
+        let hostSessionStack = NSStackView(views: [
+            hostSessionTitleLabel,
+            hostSessionIdentityLabel,
+            hostSessionContextLabel,
+            hostSessionCapabilityLabel,
+            hostSessionButtons,
+        ])
+        hostSessionStack.orientation = .vertical
+        hostSessionStack.alignment = .leading
+        hostSessionStack.spacing = 5
+        for view in [
+            hostSessionTitleLabel,
+            hostSessionIdentityLabel,
+            hostSessionContextLabel,
+            hostSessionCapabilityLabel,
+            hostSessionButtons,
+        ] {
+            view.widthAnchor.constraint(equalTo: hostSessionStack.widthAnchor).isActive = true
+        }
+        hostSessionContainer.addSubview(hostSessionStack)
+        hostSessionStack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostSessionStack.leadingAnchor.constraint(
+                equalTo: hostSessionContainer.leadingAnchor,
+                constant: 12
+            ),
+            hostSessionStack.trailingAnchor.constraint(
+                equalTo: hostSessionContainer.trailingAnchor,
+                constant: -12
+            ),
+            hostSessionStack.topAnchor.constraint(
+                equalTo: hostSessionContainer.topAnchor,
+                constant: 10
+            ),
+            hostSessionStack.bottomAnchor.constraint(
+                equalTo: hostSessionContainer.bottomAnchor,
+                constant: -10
+            ),
+        ])
+
         hostApprovalContainer.wantsLayer = true
         hostApprovalContainer.layer?.cornerRadius = 9
         hostApprovalContainer.layer?.backgroundColor = NSColor.systemOrange
@@ -534,6 +708,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostHeader,
             hostDetails,
             hostPermanentPasswordDetails,
+            hostSessionContainer,
             hostApprovalContainer,
             hostMediaDiagnosticLabel,
             hostErrorLabel,
@@ -545,6 +720,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostHeader,
             hostDetails,
             hostPermanentPasswordDetails,
+            hostSessionContainer,
             hostApprovalContainer,
             hostMediaDiagnosticLabel,
             hostErrorLabel,
@@ -682,12 +858,16 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         for view in [header, quickContainer, hostContainer, listToolbar, errorLabel, scrollView, footer] {
             view.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
         }
+        let deviceListMinimumHeight = scrollView.heightAnchor.constraint(
+            greaterThanOrEqualToConstant: 80
+        )
+        deviceListMinimumHeight.priority = .defaultHigh
         NSLayoutConstraint.activate([
             content.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 38),
             content.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -38),
             content.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 28),
             content.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -18),
-            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 150),
+            deviceListMinimumHeight,
         ])
     }
 
@@ -827,6 +1007,38 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         guard let approval = snapshot.host.pendingApproval,
               !approval.isResolving else { return }
         onRejectHostConnection?(approval.connectionID)
+    }
+
+    @objc private func disableHostSessionInput() {
+        performHostSessionAction(.disableKeyboardAndMouse)
+    }
+
+    @objc private func disableHostSessionClipboard() {
+        performHostSessionAction(.disableClipboard)
+    }
+
+    @objc private func disableHostSessionAudio() {
+        performHostSessionAction(.disableSystemAudio)
+    }
+
+    @objc private func disconnectHostSession() {
+        performHostSessionAction(.disconnect)
+    }
+
+    private func performHostSessionAction(_ action: HostSessionHomeAction) {
+        guard let session = snapshot.host.activeSession,
+              session.pendingAction == nil else { return }
+        switch action {
+        case .disableKeyboardAndMouse:
+            guard session.canDisableKeyboardAndMouse else { return }
+        case .disableClipboard:
+            guard session.canDisableClipboard else { return }
+        case .disableSystemAudio:
+            guard session.canDisableSystemAudio else { return }
+        case .disconnect:
+            break
+        }
+        onHostSessionAction?(session.connectionID, action)
     }
 
     @objc private func filterChanged() { renderDevices() }

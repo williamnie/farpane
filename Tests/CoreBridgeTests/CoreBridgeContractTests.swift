@@ -222,6 +222,89 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertNil(HostControlError.snapshot(-24).sessionCommandFailure)
     }
 
+    func testHostSessionCommandGateWaitsForAuthoritativeSnapshotConvergence() {
+        var gate = HostSessionCommandGate()
+        let allCapabilities = [
+            "viewDisplay", "controlKeyboardMouse", "readClipboard",
+            "writeClipboard", "hearSystemAudio",
+        ]
+
+        gate.observe(connectionID: nil, activeCapabilities: [])
+        XCTAssertFalse(gate.begin(
+            connectionID: "host:1",
+            intent: .disable(.keyboardAndMouse)
+        ))
+
+        gate.observe(connectionID: "host:1", activeCapabilities: allCapabilities)
+        XCTAssertFalse(gate.begin(
+            connectionID: "host:stale",
+            intent: .disable(.keyboardAndMouse)
+        ))
+        XCTAssertTrue(gate.begin(
+            connectionID: "host:1",
+            intent: .disable(.keyboardAndMouse)
+        ))
+        XCTAssertFalse(gate.begin(connectionID: "host:1", intent: .disconnect))
+        XCTAssertEqual(
+            gate.resolvingIntent(connectionID: "host:1"),
+            .disable(.keyboardAndMouse)
+        )
+
+        // Command acceptance is not completion. The gate remains closed until
+        // the capability actually disappears from the Rust snapshot.
+        gate.observe(connectionID: "host:1", activeCapabilities: allCapabilities)
+        XCTAssertTrue(gate.isResolving(connectionID: "host:1"))
+        gate.observe(
+            connectionID: "host:1",
+            activeCapabilities: allCapabilities.filter { $0 != "controlKeyboardMouse" }
+        )
+        XCTAssertFalse(gate.isResolving(connectionID: "host:1"))
+
+        XCTAssertTrue(gate.begin(
+            connectionID: "host:1",
+            intent: .disable(.clipboard)
+        ))
+        let withoutKeyboard = allCapabilities.filter { $0 != "controlKeyboardMouse" }
+        gate.observe(
+            connectionID: "host:1",
+            activeCapabilities: withoutKeyboard.filter { $0 != "readClipboard" }
+        )
+        XCTAssertTrue(gate.isResolving(connectionID: "host:1"))
+        let viewAndAudio = withoutKeyboard.filter {
+            $0 != "readClipboard" && $0 != "writeClipboard"
+        }
+        gate.observe(connectionID: "host:1", activeCapabilities: viewAndAudio)
+        XCTAssertFalse(gate.isResolving(connectionID: "host:1"))
+
+        XCTAssertTrue(gate.begin(
+            connectionID: "host:1",
+            intent: .disable(.systemAudio)
+        ))
+        gate.complete(connectionID: "host:stale", intent: .disable(.systemAudio))
+        XCTAssertTrue(gate.isResolving(connectionID: "host:1"))
+        gate.complete(connectionID: "host:1", intent: .disable(.systemAudio))
+        XCTAssertFalse(gate.isResolving(connectionID: "host:1"))
+
+        XCTAssertTrue(gate.begin(connectionID: "host:1", intent: .disconnect))
+        gate.observe(
+            connectionID: "host:1",
+            activeCapabilities: viewAndAudio
+        )
+        XCTAssertTrue(gate.isResolving(connectionID: "host:1"))
+        gate.observe(connectionID: nil, activeCapabilities: [])
+        XCTAssertFalse(gate.isResolving(connectionID: "host:1"))
+
+        gate.observe(connectionID: "host:2", activeCapabilities: ["viewDisplay"])
+        XCTAssertFalse(gate.begin(
+            connectionID: "host:2",
+            intent: .disable(.systemAudio)
+        ))
+        XCTAssertTrue(gate.begin(connectionID: "host:2", intent: .disconnect))
+        gate.reset()
+        XCTAssertNil(gate.currentConnectionID)
+        XCTAssertNil(gate.resolvingIntent(connectionID: "host:2"))
+    }
+
     func testHostSnapshotRecoversPendingApprovalAndActiveSessionAndFailsClosed() throws {
         let pending: [String: Any] = [
             "connectionId": "host-instance:7",

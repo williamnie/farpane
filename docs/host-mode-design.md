@@ -1489,6 +1489,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H3.3h3 scoped active-session revoke/disconnect commands 已完成**。Host Control ABI 升至 v6，snapshot/event/media schema 保持 v4/v1/v1；固定命令只接受 command ID、name 与 canonical connection ID，分别通过当前 connection queue 撤销 keyboard/mouse、clipboard、system audio 或发送 `Close`。foreign host、stale ID、无会话与 channel unavailable 有稳定 fail-closed 错误；already-disabled 与重复 disconnect 幂等。connection 继续作为 permission epoch、ordered cleanup、capability snapshot 与 teardown lease 的唯一执行权威，Swift 不乐观更新。完整 Rust 130/130、release core、built-core Swift 131/131、ScriptTests 20/20、Release App 与 20 文件 clean pinned replay 通过。新 core 未部署；active-session UI、TCC/Aqua transition 与真机撤权/断开/rebuild 验收仍未完成，H3.3 保持进行中。详见 `Evidence/HostMode/2026-08-08/h3-active-session-commands.md`。
 
+> 更新（2026-08-08）：**H3.3h4 snapshot-authoritative active-session UI 已完成自动实现**。Home Host card 只从 recoverable snapshot 呈现 untrusted remote metadata、开始时间与 current capabilities，并按 exact canonical connection ID 提供 keyboard/mouse、clipboard、system-audio revoke 和 disconnect。单会话 gate 禁止 stale/duplicate action；command enqueue 不算完成，能力按钮等 snapshot capability 消失、disconnect 等 active session 消失，typed error 才显式释放重试。未改 ABI/Rust/Hermes。gate RED/GREEN 1/1、加载 ABI v6 core 的 Swift 132/132、ScriptTests 20/20 与 Release App build 通过；新包未部署。窗口关闭后的全局活动指示/断开入口、真机卡片/撤权/断开/rebuild 与 TCC/Aqua transition 仍未完成，H3.3 保持进行中。详见 `Evidence/HostMode/2026-08-08/h3-active-session-ui.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
