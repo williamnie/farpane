@@ -511,6 +511,53 @@ public struct HostPendingApproval: Equatable, Sendable {
     }
 }
 
+/// Keeps UI decisions bound to the exact pending request recovered from the
+/// latest Host snapshot. It does not authorize anything itself; Rust remains
+/// authoritative for request identity, deadline and final state.
+package struct HostApprovalDecisionGate: Sendable {
+    package private(set) var currentConnectionID: String?
+    package private(set) var decisionInFlightConnectionID: String?
+    private var lastNotifiedConnectionID: String?
+
+    package init() {}
+
+    /// Returns true once for each newly observed connection ID so the App can
+    /// request local attention without repeating it on every snapshot poll.
+    package mutating func observe(connectionID: String?) -> Bool {
+        currentConnectionID = connectionID
+        if decisionInFlightConnectionID != connectionID {
+            decisionInFlightConnectionID = nil
+        }
+        guard let connectionID,
+              connectionID != lastNotifiedConnectionID else { return false }
+        lastNotifiedConnectionID = connectionID
+        return true
+    }
+
+    /// Atomically accepts one local button action only for the current request.
+    package mutating func beginDecision(connectionID: String) -> Bool {
+        guard currentConnectionID == connectionID,
+              decisionInFlightConnectionID == nil else { return false }
+        decisionInFlightConnectionID = connectionID
+        return true
+    }
+
+    package mutating func completeDecision(connectionID: String) {
+        guard decisionInFlightConnectionID == connectionID else { return }
+        decisionInFlightConnectionID = nil
+    }
+
+    package func isResolving(connectionID: String) -> Bool {
+        decisionInFlightConnectionID == connectionID
+    }
+
+    package mutating func reset() {
+        currentConnectionID = nil
+        decisionInFlightConnectionID = nil
+        lastNotifiedConnectionID = nil
+    }
+}
+
 public struct HostPermanentPasswordPolicy: Sendable {
     public let localPasswordSet: Bool
     public let effectivePasswordSet: Bool

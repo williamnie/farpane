@@ -6,6 +6,15 @@ struct HomeDeviceItem: Equatable {
     let hasSavedPassword: Bool
 }
 
+struct HostApprovalHomeSnapshot: Equatable {
+    var connectionID: String
+    var remoteIdentityText: String
+    var contextText: String
+    var capabilityText: String
+    var expiryText: String
+    var isResolving: Bool
+}
+
 struct HostHomeSnapshot: Equatable {
     var isEnabled: Bool
     var isRunning: Bool
@@ -17,6 +26,7 @@ struct HostHomeSnapshot: Equatable {
     var effectivePermanentPasswordSet: Bool
     var usingPresetPassword: Bool
     var permanentPasswordChangeAllowed: Bool
+    var pendingApproval: HostApprovalHomeSnapshot?
     var mediaDiagnosticText: String
     var errorText: String
 }
@@ -48,6 +58,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onRegenerateHostPassword: (() -> Void)?
     var onSetHostPermanentPassword: (() -> Void)?
     var onClearHostPermanentPassword: (() -> Void)?
+    var onApproveHostConnection: ((String) -> Void)?
+    var onRejectHostConnection: ((String) -> Void)?
 
     private let serverButton = NSButton()
     private let serverStatusDot = NSView()
@@ -76,6 +88,14 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostPermanentPasswordLabel = NSTextField(labelWithString: "永久密码：未设置")
     private let hostSetPermanentPasswordButton = NSButton()
     private let hostClearPermanentPasswordButton = NSButton()
+    private let hostApprovalContainer = NSView()
+    private let hostApprovalTitleLabel = NSTextField(labelWithString: "新的远程连接请求")
+    private let hostApprovalIdentityLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostApprovalContextLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostApprovalCapabilityLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostApprovalExpiryLabel = NSTextField(labelWithString: "")
+    private let hostApproveButton = NSButton()
+    private let hostRejectButton = NSButton()
     private let hostMediaDiagnosticLabel = NSTextField(wrappingLabelWithString: "")
     private let hostErrorLabel = NSTextField(wrappingLabelWithString: "")
     private var snapshot = HomeSnapshot(
@@ -95,6 +115,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             effectivePermanentPasswordSet: false,
             usingPresetPassword: false,
             permanentPasswordChangeAllowed: false,
+            pendingApproval: nil,
             mediaDiagnosticText: "",
             errorText: ""
         )
@@ -145,6 +166,20 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostClearPermanentPasswordButton.isEnabled = snapshot.host.isRunning
             && snapshot.host.permanentPasswordChangeAllowed
             && snapshot.host.localPermanentPasswordSet
+        if let approval = snapshot.host.pendingApproval {
+            hostApprovalIdentityLabel.stringValue = approval.remoteIdentityText
+            hostApprovalContextLabel.stringValue = approval.contextText
+            hostApprovalCapabilityLabel.stringValue = approval.capabilityText
+            hostApprovalExpiryLabel.stringValue = approval.expiryText
+            hostApproveButton.title = approval.isResolving ? "处理中…" : "允许一次"
+            hostApproveButton.isEnabled = !approval.isResolving
+            hostRejectButton.isEnabled = !approval.isResolving
+            hostApprovalContainer.isHidden = false
+        } else {
+            hostApprovalContainer.isHidden = true
+            hostApproveButton.isEnabled = false
+            hostRejectButton.isEnabled = false
+        }
         hostMediaDiagnosticLabel.stringValue = snapshot.host.mediaDiagnosticText
         hostMediaDiagnosticLabel.isHidden = snapshot.host.mediaDiagnosticText.isEmpty
         hostErrorLabel.stringValue = snapshot.host.errorText
@@ -410,6 +445,83 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostPermanentPasswordDetails.alignment = .centerY
         hostPermanentPasswordDetails.spacing = 12
 
+        hostApprovalContainer.wantsLayer = true
+        hostApprovalContainer.layer?.cornerRadius = 9
+        hostApprovalContainer.layer?.backgroundColor = NSColor.systemOrange
+            .withAlphaComponent(0.08).cgColor
+        hostApprovalContainer.layer?.borderColor = NSColor.systemOrange
+            .withAlphaComponent(0.45).cgColor
+        hostApprovalContainer.layer?.borderWidth = 1
+        hostApprovalContainer.isHidden = true
+
+        hostApprovalTitleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        hostApprovalTitleLabel.textColor = .labelColor
+        hostApprovalIdentityLabel.font = .systemFont(ofSize: 12.5, weight: .medium)
+        hostApprovalIdentityLabel.textColor = .labelColor
+        hostApprovalContextLabel.font = .systemFont(ofSize: 11.5)
+        hostApprovalContextLabel.textColor = .secondaryLabelColor
+        hostApprovalCapabilityLabel.font = .systemFont(ofSize: 11.5)
+        hostApprovalCapabilityLabel.textColor = .secondaryLabelColor
+        hostApprovalExpiryLabel.font = .systemFont(ofSize: 11.5, weight: .medium)
+        hostApprovalExpiryLabel.textColor = .systemOrange
+
+        hostApproveButton.title = "允许一次"
+        hostApproveButton.bezelStyle = .rounded
+        hostApproveButton.target = self
+        hostApproveButton.action = #selector(approveHostConnection)
+        hostApproveButton.setAccessibilityLabel("允许远程连接一次")
+        hostRejectButton.title = "拒绝"
+        hostRejectButton.bezelStyle = .rounded
+        hostRejectButton.target = self
+        hostRejectButton.action = #selector(rejectHostConnection)
+        hostRejectButton.setAccessibilityLabel("拒绝远程连接")
+
+        let hostApprovalButtons = NSStackView(views: [NSView(), hostRejectButton, hostApproveButton])
+        hostApprovalButtons.orientation = .horizontal
+        hostApprovalButtons.alignment = .centerY
+        hostApprovalButtons.spacing = 8
+        let hostApprovalStack = NSStackView(views: [
+            hostApprovalTitleLabel,
+            hostApprovalIdentityLabel,
+            hostApprovalContextLabel,
+            hostApprovalCapabilityLabel,
+            hostApprovalExpiryLabel,
+            hostApprovalButtons,
+        ])
+        hostApprovalStack.orientation = .vertical
+        hostApprovalStack.alignment = .leading
+        hostApprovalStack.spacing = 5
+        for view in [
+            hostApprovalTitleLabel,
+            hostApprovalIdentityLabel,
+            hostApprovalContextLabel,
+            hostApprovalCapabilityLabel,
+            hostApprovalExpiryLabel,
+            hostApprovalButtons,
+        ] {
+            view.widthAnchor.constraint(equalTo: hostApprovalStack.widthAnchor).isActive = true
+        }
+        hostApprovalContainer.addSubview(hostApprovalStack)
+        hostApprovalStack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostApprovalStack.leadingAnchor.constraint(
+                equalTo: hostApprovalContainer.leadingAnchor,
+                constant: 12
+            ),
+            hostApprovalStack.trailingAnchor.constraint(
+                equalTo: hostApprovalContainer.trailingAnchor,
+                constant: -12
+            ),
+            hostApprovalStack.topAnchor.constraint(
+                equalTo: hostApprovalContainer.topAnchor,
+                constant: 10
+            ),
+            hostApprovalStack.bottomAnchor.constraint(
+                equalTo: hostApprovalContainer.bottomAnchor,
+                constant: -10
+            ),
+        ])
+
         hostMediaDiagnosticLabel.font = .monospacedDigitSystemFont(ofSize: 11.5, weight: .regular)
         hostMediaDiagnosticLabel.textColor = .secondaryLabelColor
         hostMediaDiagnosticLabel.isHidden = true
@@ -422,6 +534,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostHeader,
             hostDetails,
             hostPermanentPasswordDetails,
+            hostApprovalContainer,
             hostMediaDiagnosticLabel,
             hostErrorLabel,
         ])
@@ -432,6 +545,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostHeader,
             hostDetails,
             hostPermanentPasswordDetails,
+            hostApprovalContainer,
             hostMediaDiagnosticLabel,
             hostErrorLabel,
         ] {
@@ -702,6 +816,18 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     @objc private func setHostPermanentPassword() { onSetHostPermanentPassword?() }
 
     @objc private func clearHostPermanentPassword() { onClearHostPermanentPassword?() }
+
+    @objc private func approveHostConnection() {
+        guard let approval = snapshot.host.pendingApproval,
+              !approval.isResolving else { return }
+        onApproveHostConnection?(approval.connectionID)
+    }
+
+    @objc private func rejectHostConnection() {
+        guard let approval = snapshot.host.pendingApproval,
+              !approval.isResolving else { return }
+        onRejectHostConnection?(approval.connectionID)
+    }
 
     @objc private func filterChanged() { renderDevices() }
 }

@@ -156,6 +156,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostMediaCapabilitiesProbeID: UUID?
     private var hostMediaCapabilitiesProbeTask: Task<Void, Never>?
     private var hostSnapshot: HostCoreSnapshot?
+    private var hostApprovalDecisionGate = HostApprovalDecisionGate()
     private var hostTemporaryPassword = ""
     private var hostStatusText = "已关闭"
     private var hostErrorText = ""
@@ -287,6 +288,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
         view.onSetHostPermanentPassword = { [weak self] in self?.presentHostPermanentPassword() }
         view.onClearHostPermanentPassword = { [weak self] in self?.confirmClearHostPermanentPassword() }
+        view.onApproveHostConnection = { [weak self] connectionID in
+            self?.resolveHostApproval(connectionID: connectionID, decision: .approve)
+        }
+        view.onRejectHostConnection = { [weak self] connectionID in
+            self?.resolveHostApproval(connectionID: connectionID, decision: .reject)
+        }
         window.contentView = view
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -338,6 +345,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 effectivePermanentPasswordSet: hostSnapshot?.passwordPolicy.effectivePasswordSet ?? false,
                 usingPresetPassword: hostSnapshot?.passwordPolicy.usingPresetPassword ?? false,
                 permanentPasswordChangeAllowed: hostSnapshot?.passwordPolicy.changeAllowed ?? false,
+                pendingApproval: hostApprovalHomeSnapshot(),
                 mediaDiagnosticText: hostMediaDiagnosticText(),
                 errorText: hostErrorText
             )
@@ -457,6 +465,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostMediaStatusText = nil
         hostErrorText = ""
         hostSnapshot = nil
+        hostApprovalDecisionGate.reset()
         hostTemporaryPassword = ""
         do {
             let coreURL = URL(fileURLWithPath: defaultCorePath())
@@ -507,6 +516,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostPasswordHideTimer = nil
         hostTemporaryPassword = ""
         hostSnapshot = nil
+        hostApprovalDecisionGate.reset()
         stopHostMediaPipeline()
         hostMediaCapabilitiesProbeTask?.cancel()
         hostMediaCapabilitiesProbeTask = nil
@@ -529,18 +539,33 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         recordHostRuntimeStateEvidence(force: true)
     }
 
-    private func refreshHostSnapshot() {
-        guard hostRuntimeActive, let hostClient else { return }
+    @discardableResult
+    private func refreshHostSnapshot() -> Bool {
+        guard hostRuntimeActive, let hostClient else { return false }
+        var refreshed = false
         do {
             let snapshot = try hostClient.copySnapshot()
             hostSnapshot = snapshot
+            refreshed = true
+            let shouldRequestAttention = hostApprovalDecisionGate.observe(
+                connectionID: snapshot.pendingApproval?.connectionId
+            )
             configureHostMediaCapabilitiesIfNeeded(snapshot: snapshot, client: hostClient)
-        switch snapshot.registrationStatus {
-            case "ready": hostStatusText = hostMediaStatusText ?? "可被连接"
-            case "degraded": hostStatusText = "连接异常"
-            default: hostStatusText = "正在连接服务器…"
+            if let pending = snapshot.pendingApproval {
+                hostStatusText = hostApprovalDecisionGate.isResolving(
+                    connectionID: pending.connectionId
+                ) ? "正在处理连接请求…" : "等待本机批准…"
+            } else {
+                switch snapshot.registrationStatus {
+                case "ready": hostStatusText = hostMediaStatusText ?? "可被连接"
+                case "degraded": hostStatusText = "连接异常"
+                default: hostStatusText = "正在连接服务器…"
+                }
             }
             hostErrorText = snapshot.lastError == nil ? "" : "Host 服务暂时不可用，将继续重试。"
+            if shouldRequestAttention {
+                requestAttentionForPendingHostApproval()
+            }
         } catch {
             hostStatusText = "状态不可用"
             hostErrorText = sanitizedHostError(error)
@@ -548,6 +573,107 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         recordHostRuntimeStateEvidence()
         recordHostMediaLiveLog()
         refreshHomeUI()
+        return refreshed
+    }
+
+    private func hostApprovalHomeSnapshot() -> HostApprovalHomeSnapshot? {
+        guard let pending = hostSnapshot?.pendingApproval else { return nil }
+        let capabilityNames = pending.requestedCapabilities.compactMap { capability -> String? in
+            switch capability {
+            case "viewDisplay": return "查看屏幕"
+            case "controlKeyboardMouse": return "控制键盘与鼠标"
+            case "readClipboard": return "读取剪贴板"
+            case "writeClipboard": return "写入剪贴板"
+            case "hearSystemAudio": return "收听系统音频"
+            default: return nil
+            }
+        }
+        guard capabilityNames.count == pending.requestedCapabilities.count else { return nil }
+
+        let claimedName = pending.remoteName.isEmpty ? pending.remoteId : pending.remoteName
+        let identityText = pending.remoteName.isEmpty
+            ? "对方声明（未经验证）：\(claimedName)"
+            : "对方声明（未经验证）：\(claimedName) · ID \(pending.remoteId)"
+        let platformText = pending.remotePlatform.isEmpty ? "未知平台" : pending.remotePlatform
+        let transportText: String
+        switch pending.transport {
+        case "direct": transportText = "直连"
+        case "relay": transportText = "中继"
+        case "unknown": transportText = "连接方式尚未确认"
+        default: return nil
+        }
+        let nowMilliseconds = UInt64(max(0, Date().timeIntervalSince1970 * 1_000))
+        let remainingMilliseconds = pending.expiresAt > nowMilliseconds
+            ? pending.expiresAt - nowMilliseconds
+            : 0
+        let remainingSeconds = remainingMilliseconds / 1_000
+            + (remainingMilliseconds.isMultiple(of: 1_000) ? 0 : 1)
+        let expiryText = remainingSeconds == 0
+            ? "正在自动拒绝已超时请求"
+            : "约 \(remainingSeconds) 秒后自动拒绝"
+
+        return HostApprovalHomeSnapshot(
+            connectionID: pending.connectionId,
+            remoteIdentityText: identityText,
+            contextText: "\(platformText) · \(transportText) · 每次均需本机批准",
+            capabilityText: "请求权限：\(capabilityNames.joined(separator: "、"))",
+            expiryText: expiryText,
+            isResolving: hostApprovalDecisionGate.isResolving(
+                connectionID: pending.connectionId
+            )
+        )
+    }
+
+    private func requestAttentionForPendingHostApproval() {
+        NSApplication.shared.requestUserAttention(.criticalRequest)
+        window?.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
+    private func resolveHostApproval(
+        connectionID: String,
+        decision: HostApprovalDecision
+    ) {
+        guard hostRuntimeActive,
+              let hostClient,
+              hostSnapshot?.pendingApproval?.connectionId == connectionID,
+              hostApprovalDecisionGate.beginDecision(connectionID: connectionID)
+        else { return }
+
+        hostStatusText = "正在处理连接请求…"
+        hostErrorText = ""
+        refreshHomeUI()
+        var decisionErrorText: String?
+        var decisionCanBeRetried = false
+        do {
+            try hostClient.resolvePendingApproval(
+                connectionID: connectionID,
+                decision: decision
+            )
+        } catch let error as HostControlError {
+            switch error.approvalDecisionFailure {
+            case .notFound, .alreadyFinalized:
+                decisionErrorText = "连接请求已经结束。"
+            case .expired:
+                decisionErrorText = "连接请求已超时并被拒绝。"
+            case nil:
+                decisionErrorText = sanitizedHostError(error)
+                decisionCanBeRetried = true
+            }
+        } catch {
+            decisionErrorText = sanitizedHostError(error)
+            decisionCanBeRetried = true
+        }
+        let snapshotRefreshed = refreshHostSnapshot()
+        if decisionCanBeRetried,
+           snapshotRefreshed,
+           hostSnapshot?.pendingApproval?.connectionId == connectionID {
+            hostApprovalDecisionGate.completeDecision(connectionID: connectionID)
+        }
+        if let decisionErrorText {
+            hostErrorText = decisionErrorText
+            refreshHomeUI()
+        }
     }
 
     private func recordHostMediaLiveLog() {

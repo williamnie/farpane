@@ -288,6 +288,35 @@ final class CoreBridgeContractTests: XCTestCase {
         )))
     }
 
+    func testHostApprovalDecisionGateRejectsStaleAndDuplicateActions() {
+        var gate = HostApprovalDecisionGate()
+        XCTAssertFalse(gate.observe(connectionID: nil))
+
+        XCTAssertTrue(gate.observe(connectionID: "host:1"))
+        XCTAssertFalse(gate.observe(connectionID: "host:1"))
+        XCTAssertFalse(gate.beginDecision(connectionID: "host:stale"))
+        XCTAssertTrue(gate.beginDecision(connectionID: "host:1"))
+        XCTAssertFalse(gate.beginDecision(connectionID: "host:1"))
+        XCTAssertTrue(gate.isResolving(connectionID: "host:1"))
+
+        XCTAssertFalse(gate.observe(connectionID: "host:1"))
+        XCTAssertTrue(gate.isResolving(connectionID: "host:1"))
+        XCTAssertFalse(gate.observe(connectionID: nil))
+        XCTAssertNil(gate.decisionInFlightConnectionID)
+        XCTAssertFalse(gate.beginDecision(connectionID: "host:1"))
+
+        XCTAssertTrue(gate.observe(connectionID: "host:2"))
+        XCTAssertTrue(gate.beginDecision(connectionID: "host:2"))
+        gate.completeDecision(connectionID: "host:stale")
+        XCTAssertTrue(gate.isResolving(connectionID: "host:2"))
+        gate.completeDecision(connectionID: "host:2")
+        XCTAssertNil(gate.decisionInFlightConnectionID)
+
+        gate.reset()
+        XCTAssertNil(gate.currentConnectionID)
+        XCTAssertTrue(gate.observe(connectionID: "host:2"))
+    }
+
     func testHostMediaControlEnvelopeFailsClosedAndTracksRouteEpochs() throws {
         let reconfigure = try XCTUnwrap(try hostEvent(payload: [
             "command": "reconfigure",
