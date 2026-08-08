@@ -171,6 +171,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostErrorText = ""
     private var hostAgentBackgroundRegistrationPresentation:
         HostAgentBackgroundRegistrationPresentation?
+    private var hostAgentBackgroundUnregistrationPresentation:
+        HostAgentBackgroundUnregistrationPresentation?
     private var hostPollTimer: Timer?
     private var hostPasswordHideTimer: Timer?
     private var keyboardController: ExclusiveKeyboardController?
@@ -233,6 +235,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 guard Thread.isMainThread else { return }
                 MainActor.assumeIsolated {
                     self?.applyHostAgentBackgroundRegistrationPresentation(
+                        view
+                    )
+                }
+            }
+        )
+    private lazy var hostAgentBackgroundUnregistrationSheetDriver =
+        HostAgentBackgroundUnregistrationSheetDriver.makeProduct(
+            mutationOwner: hostAgentBackgroundRegistrationMutationOwner,
+            onUpdate: { [weak self] view in
+                guard Thread.isMainThread else { return }
+                MainActor.assumeIsolated {
+                    self?.applyHostAgentBackgroundUnregistrationPresentation(
                         view
                     )
                 }
@@ -432,8 +446,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 isEnabled: UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey),
                 isRunning: hostRuntimeActive,
                 isStreaming: hostMediaRoute != nil,
-                statusText: hostAgentBackgroundRegistrationPresentation?
-                    .statusText ?? hostStatusText,
+                statusText: hostAgentBackgroundUnregistrationPresentation?
+                    .statusText
+                    ?? hostAgentBackgroundRegistrationPresentation?.statusText
+                    ?? hostStatusText,
                 localID: hostSnapshot?.localId ?? "",
                 temporaryPassword: hostTemporaryPassword,
                 localPermanentPasswordSet: hostSnapshot?.passwordPolicy.localPasswordSet ?? false,
@@ -454,6 +470,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             : ""
         return [
             hostErrorText,
+            hostAgentBackgroundUnregistrationPresentation?.errorText ?? "",
             hostAgentBackgroundRegistrationPresentation?.errorText ?? "",
             bootstrapError,
         ]
@@ -620,8 +637,21 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func applyHostAgentBackgroundRegistrationPresentation(
         _ view: HostAgentBackgroundRegistrationUXView
     ) {
+        hostAgentBackgroundUnregistrationPresentation = nil
         hostAgentBackgroundRegistrationPresentation =
             HostAgentBackgroundRegistrationPresentationPolicy.presentation(
+                for: view
+            )
+        refreshHomeUI()
+    }
+
+    @MainActor
+    private func applyHostAgentBackgroundUnregistrationPresentation(
+        _ view: HostAgentBackgroundUnregistrationUXView
+    ) {
+        hostAgentBackgroundRegistrationPresentation = nil
+        hostAgentBackgroundUnregistrationPresentation =
+            HostAgentBackgroundUnregistrationPresentationPolicy.presentation(
                 for: view
             )
         refreshHomeUI()

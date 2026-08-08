@@ -3,9 +3,9 @@ import CoreBridge
 
 /// AppKit rendering boundary for H4.2o typed registration prompts. The driver
 /// owns at most one sheet and validates both a private presentation token and
-/// the UX generation before mapping a response back to the owner. It is not
-/// lazily composed by the App, but remains inert until a future explicit UI
-/// intent calls `begin`; it is not connected to App lifecycle automation.
+/// the UX generation before mapping a response back to the owner. Sequential
+/// attempts are allowed after a terminal result, while construction remains
+/// inert until a future explicit UI intent calls `begin`.
 final class HostAgentBackgroundRegistrationSheetDriver {
     typealias Completion = (HostAgentBackgroundRegistrationUXView) -> Void
     typealias Update = (HostAgentBackgroundRegistrationUXView) -> Void
@@ -16,8 +16,7 @@ final class HostAgentBackgroundRegistrationSheetDriver {
     private var alert: NSAlert?
     private var completion: Completion?
     private var activePresentationToken: UInt64 = 0
-    private var hasStarted = false
-    private var hasFinished = false
+    private var isRunning = false
 
     static func makeProduct(
         mutationOwner: HostAgentBackgroundRegistrationMutationOwner,
@@ -48,11 +47,10 @@ final class HostAgentBackgroundRegistrationSheetDriver {
         completion: @escaping Completion = { _ in }
     ) -> Bool {
         guard Thread.isMainThread,
-              !hasStarted,
-              !hasFinished,
+              !isRunning,
               alert == nil
         else { return false }
-        hasStarted = true
+        isRunning = true
         parentWindow = window
         self.completion = completion
 
@@ -73,7 +71,7 @@ final class HostAgentBackgroundRegistrationSheetDriver {
         on window: NSWindow
     ) -> Bool {
         guard Thread.isMainThread,
-              !hasFinished,
+              isRunning,
               alert == nil,
               activePresentationToken < UInt64.max,
               case .awaitingConfirmation(let prompt) = view.phase
@@ -111,7 +109,7 @@ final class HostAgentBackgroundRegistrationSheetDriver {
         token: UInt64
     ) {
         guard Thread.isMainThread,
-              !hasFinished,
+              isRunning,
               self.alert === alert,
               activePresentationToken == token
         else { return }
@@ -140,7 +138,7 @@ final class HostAgentBackgroundRegistrationSheetDriver {
             return
         }
         DispatchQueue.main.async { [weak self, weak window] in
-            guard let self, let window, !self.hasFinished else { return }
+            guard let self, let window, self.isRunning else { return }
             if !self.present(updated, on: window) {
                 self.finish(updated)
             }
@@ -148,13 +146,13 @@ final class HostAgentBackgroundRegistrationSheetDriver {
     }
 
     private func finish(_ view: HostAgentBackgroundRegistrationUXView) {
-        guard !hasFinished else { return }
-        hasFinished = true
-        alert = nil
-        parentWindow = nil
-        onUpdate(view)
+        guard isRunning else { return }
         let completion = completion
         self.completion = nil
+        alert = nil
+        parentWindow = nil
+        isRunning = false
+        onUpdate(view)
         completion?(view)
     }
 }

@@ -60,7 +60,7 @@ package struct HostAgentBackgroundUnregistrationUXView:
     package let phase: HostAgentBackgroundUnregistrationUXPhase
     package let registration: HostAgentBackgroundRegistrationStatus?
 
-    fileprivate init(
+    package init(
         generation: UInt64,
         phase: HostAgentBackgroundUnregistrationUXPhase,
         registration: HostAgentBackgroundRegistrationStatus?
