@@ -134,6 +134,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var pendingProductConnection: PendingProductConnection?
     private var window: NSWindow?
     private var homeView: HomeView?
+    private var hostSessionStatusItem: NSStatusItem?
+    private var hostSessionIndicatorPresentation: HostSessionIndicatorPresentation?
     private var passwordPrompt: PasswordPromptController?
     private var hostPermanentPasswordPrompt: HostPermanentPasswordPromptController?
     private var serverPrompt: ServerSettingsPromptController?
@@ -227,9 +229,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hasVisibleWindows flag: Bool
     ) -> Bool {
         if !flag {
-            window?.makeKeyAndOrderFront(nil)
+            bringMainWindowForward()
         }
         return true
+    }
+
+    private func bringMainWindowForward() {
+        window?.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
     }
 
     private func launch() throws {
@@ -484,6 +491,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostSnapshot = nil
         hostApprovalDecisionGate.reset()
         hostSessionCommandGate.reset()
+        removeHostSessionStatusItem()
         hostTemporaryPassword = ""
         do {
             let coreURL = URL(fileURLWithPath: defaultCorePath())
@@ -536,6 +544,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostSnapshot = nil
         hostApprovalDecisionGate.reset()
         hostSessionCommandGate.reset()
+        removeHostSessionStatusItem()
         stopHostMediaPipeline()
         hostMediaCapabilitiesProbeTask?.cancel()
         hostMediaCapabilitiesProbeTask = nil
@@ -570,6 +579,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 connectionID: snapshot.activeSession?.connectionId,
                 activeCapabilities: snapshot.activeSession?.activeCapabilities ?? []
             )
+            syncHostSessionStatusItem()
             let shouldRequestAttention = hostApprovalDecisionGate.observe(
                 connectionID: snapshot.pendingApproval?.connectionId
             )
@@ -592,6 +602,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 requestAttentionForPendingHostApproval()
             }
         } catch {
+            removeHostSessionStatusItem()
             hostStatusText = "状态不可用"
             hostErrorText = sanitizedHostError(error)
         }
@@ -771,6 +782,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         ) else { return }
 
         hostErrorText = ""
+        syncHostSessionStatusItem()
         refreshHomeUI()
         var actionErrorText: String?
         do {
@@ -805,8 +817,95 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 intent: intent
             )
             hostErrorText = actionErrorText
+            syncHostSessionStatusItem()
             refreshHomeUI()
         }
+    }
+
+    private func syncHostSessionStatusItem() {
+        guard let session = hostSnapshot?.activeSession,
+              let presentation = HostSessionIndicatorPolicy.presentation(
+                  connectionID: session.connectionId,
+                  remoteID: session.remoteId,
+                  remoteName: session.remoteName,
+                  disconnectInFlight: hostSessionCommandGate.resolvingIntent(
+                      connectionID: session.connectionId
+                  ) == .disconnect
+              )
+        else {
+            removeHostSessionStatusItem()
+            return
+        }
+
+        if hostSessionStatusItem != nil,
+           hostSessionIndicatorPresentation == presentation {
+            return
+        }
+        hostSessionIndicatorPresentation = presentation
+
+        let statusItem = hostSessionStatusItem
+            ?? NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        hostSessionStatusItem = statusItem
+        if let button = statusItem.button {
+            button.image = NSImage(
+                systemSymbolName: "display",
+                accessibilityDescription: presentation.title
+            )
+            button.image?.isTemplate = true
+            button.toolTip = presentation.title
+        }
+
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+
+        let titleItem = NSMenuItem(title: presentation.title, action: nil, keyEquivalent: "")
+        titleItem.isEnabled = false
+        menu.addItem(titleItem)
+
+        let identityItem = NSMenuItem(
+            title: presentation.remoteIdentityText,
+            action: nil,
+            keyEquivalent: ""
+        )
+        identityItem.isEnabled = false
+        menu.addItem(identityItem)
+        menu.addItem(.separator())
+
+        let openItem = NSMenuItem(
+            title: "打开 FarPane",
+            action: #selector(openFarPaneFromStatusItem(_:)),
+            keyEquivalent: ""
+        )
+        openItem.target = self
+        openItem.isEnabled = true
+        menu.addItem(openItem)
+
+        let disconnectItem = NSMenuItem(
+            title: presentation.disconnectTitle,
+            action: #selector(disconnectHostSessionFromStatusItem(_:)),
+            keyEquivalent: ""
+        )
+        disconnectItem.target = self
+        disconnectItem.representedObject = presentation.connectionID
+        disconnectItem.isEnabled = presentation.disconnectEnabled
+        menu.addItem(disconnectItem)
+        statusItem.menu = menu
+    }
+
+    private func removeHostSessionStatusItem() {
+        hostSessionIndicatorPresentation = nil
+        guard let statusItem = hostSessionStatusItem else { return }
+        NSStatusBar.system.removeStatusItem(statusItem)
+        hostSessionStatusItem = nil
+    }
+
+    @objc private func openFarPaneFromStatusItem(_ sender: NSMenuItem) {
+        bringMainWindowForward()
+    }
+
+    @objc private func disconnectHostSessionFromStatusItem(_ sender: NSMenuItem) {
+        guard let connectionID = sender.representedObject as? String else { return }
+        performHostSessionAction(connectionID: connectionID, action: .disconnect)
     }
 
     private func recordHostMediaLiveLog() {
