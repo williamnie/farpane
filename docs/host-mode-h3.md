@@ -2,7 +2,7 @@
 
 - 最后更新：2026-08-08
 - 对应设计：`docs/host-mode-design.md` §8.1–§10、§12、§26.6
-- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker，以及 H3.3/H3.4 的输入授权、epoch、cleanup 和 semantic normalization 自动边界已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 pending snapshot/approve-reject command/Swift UI、H3.3 active session/revoke snapshot contract，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
+- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract，以及 H3.3/H3.4 的输入授权、epoch、cleanup 和 semantic normalization 自动边界已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 Swift 入站 UI/AND mode、H3.3 active session/revoke snapshot contract，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
 
 ## H3.1a verifier authority
 
@@ -66,6 +66,14 @@ request event 只包含有界、去控制字符并显式标记为 untrusted 的�
 
 Rust broker 1/1、登录作用域 1/1、既有单远端槽 2/2、release arm64 core、实际加载该 core 的 Swift 113/113 与 Release App 均通过。H3.2 尚未完成：snapshot schema v2 不含 pending state，generic command 尚未接通 approve/reject，Swift 没有入站确认 UI，App 重建也不能恢复请求。详见 `Evidence/HostMode/2026-08-08/h3-native-pending-approval-broker.md`。
 
+## H3.2b2 recoverable pending approval contract
+
+Host Control ABI 现升至 v4，HostSnapshot 升至 schema v3，并以 `pendingApproval: object | null` 投影 H3.2b1 broker 的当前权威请求。对象复用同一脱敏请求结构：canonical connection ID、有界且标记 untrusted 的远端显示元数据、请求/到期时间、固定 capability、unknown/direct/relay transport、认证方式与有界风险码；不包含地址、密码、密钥或认证 payload。snapshot copy 会先用 broker 的单调 deadline 原子淘汰过期请求，不能把已过期项恢复给重建 UI。
+
+generic command 现只接受精确三字段的 `approveConnection`/`rejectConnection` envelope，并把 connection ID 交回同一 broker；批准发送 Authorize，拒绝发送 Close。不存在、已终结、已过期分别返回稳定 `-21/-22/-23`，超时后批准不会复活连接，未知/额外字段 fail closed。request begin 和所有 final transition 都追加独立 event-schema-v1 `snapshotChanged`；event 与 snapshot 版本继续解耦。
+
+Swift 新增严格 `HostPendingApproval` 解码、typed decision API 和失败分类；pending 字段集合、metadata trust、时间、有界 capability/transport/authentication 均校验，schema v3 尚未定义风险码，因此 risk array 必须为空，未知字段/能力/风险码或旧 snapshot schema 均拒绝。该步尚未加入 Swift 入站弹窗，所以 H3.2 仍未完成；下一步才可让 App 从 snapshot/event 展示一次性同意/拒绝 UI。实现证据见 `Evidence/HostMode/2026-08-08/h3-recoverable-pending-approval-contract.md`。
+
 ## H3.3a ordered input revocation cleanup
 
 pinned Rust connection input worker 新增 connection-scoped `Release` marker。keyboard permission 被撤销时先关闭 permission gate，再在同一输入队列中把 cleanup 排到先前已接受事件之后；connection loop 结束也走相同路径。cleanup 强制释放远端按键、清除 relative-mouse 状态，并按 connection 释放尚未收到 mouse-up 的 left/right/middle/back/forward 按钮。macOS mouse release 与既有注入使用同一串行 platform queue，避免 cleanup 与旧事件重排。
@@ -88,7 +96,7 @@ native Host 生命周期现在最多允许一个已授权 `ConnType::Remote`。a
 
 策略只在完整 native Host instance lifetime 内生效且只约束 remote-control scope；file transfer、port forward、view camera、terminal 与非 native upstream 行为保持兼容。Rust policy/concurrency tests 2/2、epoch 2/2、cleanup 2/2、release core、built-core Host lifecycle/ABI、Swift 全量 109 项及 Release App build 均通过；canonical patch clean replay 后 13 文件一致。详细证据见 `Evidence/HostMode/2026-08-08/h3-single-active-control-session.md`。
 
-H3.3 仍未完成：HostSnapshot/event/command 没有 active-session aggregate/current permission/revoke contract，App rebuild 后不能展示或终止会话；H3.2b single-pending approval 与 H3.4 adapter/CGEvent epoch 也仍待后续。真实双 controller busy/reconnect/stuck-input 验收需要用户在 Mini 上完成。
+H3.3 仍未完成：HostSnapshot/event/command 没有 active-session aggregate/current permission/revoke contract，App rebuild 后不能展示或终止会话；H3.2b2 已补齐 pending approval 合同但尚无 Swift UI，H3.4 adapter/CGEvent epoch 与真机边界仍待后续。真实双 controller busy/reconnect/stuck-input 验收需要用户在 Mini 上完成。
 
 ## H3.3d authorization-bound effective input permission
 
@@ -325,7 +333,7 @@ Viewer ABI 现在要求 Character 的 hardware keycode 为零、Physical 的 Uni
 按 §21 H3 与 §26.6 的交付/退出条件逐条核对后，H3 明确仍未完成，不能把 H3.3/H3.4 的内部输入安全工作等同于产品阶段完成：
 
 - H3.1 的 dedicated mutable-byte password ABI、双端 wipe、set/clear、Rust policy、snapshot 状态与本机 secure-field UI 已在后续 H3.1b 完成；UI 真机验收仍待进行。
-- H3.2 已有五种模式的 policy model 与 native single-pending broker，Rust 登录链可发 incoming request 并处理 timeout/cancel；但 snapshot 尚不能恢复 pending request，approve/reject command 与 App 入站 UI 仍未实现。
+- H3.2 已有五种模式的 policy model、native single-pending broker 和后续 H3.2b2 snapshot/approve-reject 合同；App 入站 UI 与 AND mode runtime mapping 仍未实现。
 - H3.3 已有 connection-scoped permission epoch、ordered cleanup、single active lease 与 final adapter gate；但 HostSnapshot 没有 active session/capability state，generic command 也没有 revoke/disconnect，App 重建不能恢复或操作当前会话。
 - H3.4 的 Rust authorization → typed semantic input → platform adapter 自动链基本闭合，普通单显示器 active-Aqua 的 click/drag/scroll/keyboard/IME/modifier cleanup/断连重连已获 Mini 人工通过；Secure Input、TCC/session transition、多显示器及正式性能 telemetry 仍缺真机证据。
 

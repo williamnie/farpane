@@ -80,6 +80,16 @@ public enum HostControlError: Error, CustomStringConvertible {
         }
     }
 
+    public var approvalDecisionFailure: HostApprovalDecisionFailure? {
+        guard case .command(let code) = self else { return nil }
+        switch code {
+        case Int32(RDN_HOST_ERR_APPROVAL_NOT_FOUND): return .notFound
+        case Int32(RDN_HOST_ERR_APPROVAL_FINALIZED): return .alreadyFinalized
+        case Int32(RDN_HOST_ERR_APPROVAL_EXPIRED): return .expired
+        default: return nil
+        }
+    }
+
     /// Classifies only stable Host Media submit rejections whose production
     /// meaning is known. Internal or future codes stay nil so telemetry cannot
     /// turn an unknown failure into a misleading zero/known drop reason.
@@ -117,6 +127,24 @@ public enum HostPermanentPasswordFailure: Equatable, Sendable {
     case changeDisabled
     case storage
     case unknown
+}
+
+public enum HostApprovalDecisionFailure: Equatable, Sendable {
+    case notFound
+    case alreadyFinalized
+    case expired
+}
+
+public enum HostApprovalDecision: Sendable {
+    case approve
+    case reject
+
+    fileprivate var commandName: String {
+        switch self {
+        case .approve: return "approveConnection"
+        case .reject: return "rejectConnection"
+        }
+    }
 }
 
 /// Keeps secrets out of the low-frequency JSON command channel (§8.1, §9.3).
@@ -311,12 +339,176 @@ public struct HostCoreSnapshot: Sendable {
     public let hostState: String
     public let localId: String
     public let registrationStatus: String
+    public let pendingApproval: HostPendingApproval?
     public let temporaryPasswordPolicy: String
     public let revealedTemporaryPassword: String?
     public let passwordPolicy: HostPermanentPasswordPolicy
     public let lastError: String?
     public let observedAt: UInt64
     public let rawJSON: Data
+
+    public init(rawJSON: Data) throws {
+        guard let object = try? JSONSerialization.jsonObject(with: rawJSON),
+              let json = object as? [String: Any]
+        else {
+            throw HostControlError.snapshotDecode("snapshot is not a JSON object")
+        }
+        guard (json["schemaVersion"] as? NSNumber)?.intValue == 3,
+              let hostInstanceID = json["hostInstanceId"] as? String,
+              !hostInstanceID.isEmpty,
+              let hostState = json["hostState"] as? String,
+              !hostState.isEmpty,
+              let localID = json["localId"] as? String,
+              let registrationStatus = json["registrationStatus"] as? String,
+              !registrationStatus.isEmpty,
+              let observedAt = (json["observedAt"] as? NSNumber)?.uint64Value,
+              observedAt > 0,
+              let presentation = json["temporaryPasswordPresentation"] as? [String: Any],
+              let temporaryPasswordPolicy = presentation["policy"] as? String,
+              ["redacted", "revealed"].contains(temporaryPasswordPolicy),
+              let passwordPolicyJSON = json["passwordPolicy"] as? [String: Any],
+              let strengthPolicy = passwordPolicyJSON["strengthPolicy"] as? [String: Any],
+              let localPasswordSet = passwordPolicyJSON["localPasswordSet"] as? Bool,
+              let effectivePasswordSet = passwordPolicyJSON["effectivePasswordSet"] as? Bool,
+              let usingPresetPassword = passwordPolicyJSON["usingPresetPassword"] as? Bool,
+              let changeAllowed = passwordPolicyJSON["changeAllowed"] as? Bool,
+              let strengthPolicyVersion = (strengthPolicy["version"] as? NSNumber)?.intValue,
+              let minimumCharacters = (strengthPolicy["minimumCharacters"] as? NSNumber)?.intValue,
+              let maximumCharacters = (strengthPolicy["maximumCharacters"] as? NSNumber)?.intValue,
+              let maximumUTF8Bytes = (strengthPolicy["maximumUtf8Bytes"] as? NSNumber)?.intValue,
+              let rejectsControlCharacters = strengthPolicy["rejectsControlCharacters"] as? Bool,
+              let rejectsOuterWhitespace = strengthPolicy["rejectsOuterWhitespace"] as? Bool,
+              let pendingValue = json["pendingApproval"]
+        else {
+            throw HostControlError.snapshotDecode("snapshot contract is missing or invalid")
+        }
+        let revealedTemporaryPassword: String?
+        if temporaryPasswordPolicy == "revealed" {
+            guard let value = presentation["value"] as? String, !value.isEmpty else {
+                throw HostControlError.snapshotDecode(
+                    "revealed temporary password is missing"
+                )
+            }
+            revealedTemporaryPassword = value
+        } else {
+            guard presentation["value"] == nil else {
+                throw HostControlError.snapshotDecode(
+                    "redacted temporary password contains a value"
+                )
+            }
+            revealedTemporaryPassword = nil
+        }
+        let pendingApproval: HostPendingApproval?
+        if pendingValue is NSNull {
+            pendingApproval = nil
+        } else if let pendingJSON = pendingValue as? [String: Any],
+                  let pending = HostPendingApproval(json: pendingJSON)
+        {
+            pendingApproval = pending
+        } else {
+            throw HostControlError.snapshotDecode("pending approval is invalid")
+        }
+        if let lastError = json["lastError"], !(lastError is NSNull), !(lastError is String) {
+            throw HostControlError.snapshotDecode("snapshot last error is invalid")
+        }
+
+        schemaVersion = 3
+        hostInstanceId = hostInstanceID
+        self.hostState = hostState
+        localId = localID
+        self.registrationStatus = registrationStatus
+        self.pendingApproval = pendingApproval
+        self.temporaryPasswordPolicy = temporaryPasswordPolicy
+        self.revealedTemporaryPassword = revealedTemporaryPassword
+        passwordPolicy = HostPermanentPasswordPolicy(
+            localPasswordSet: localPasswordSet,
+            effectivePasswordSet: effectivePasswordSet,
+            usingPresetPassword: usingPresetPassword,
+            changeAllowed: changeAllowed,
+            strengthPolicyVersion: strengthPolicyVersion,
+            minimumCharacters: minimumCharacters,
+            maximumCharacters: maximumCharacters,
+            maximumUTF8Bytes: maximumUTF8Bytes,
+            rejectsControlCharacters: rejectsControlCharacters,
+            rejectsOuterWhitespace: rejectsOuterWhitespace
+        )
+        lastError = json["lastError"] as? String
+        self.observedAt = observedAt
+        self.rawJSON = rawJSON
+    }
+}
+
+public struct HostPendingApproval: Equatable, Sendable {
+    public let connectionId: String
+    public let remoteId: String
+    public let remoteName: String
+    public let remotePlatform: String
+    public let requestedAt: UInt64
+    public let expiresAt: UInt64
+    public let requestedCapabilities: [String]
+    public let transport: String
+    public let authenticationMethod: String
+    public let riskAlerts: [String]
+
+    fileprivate init?(json: [String: Any]) {
+        let expectedKeys = Set([
+            "connectionId", "remoteId", "remoteName", "remotePlatform",
+            "remoteMetadataTrust", "requestedAt", "expiresAt",
+            "requestedCapabilities", "transport", "authenticationMethod",
+            "riskAlerts",
+        ])
+        let allowedCapabilities = Set([
+            "viewDisplay", "controlKeyboardMouse", "readClipboard",
+            "writeClipboard", "hearSystemAudio",
+        ])
+        guard Set(json.keys) == expectedKeys,
+              let connectionID = json["connectionId"] as? String,
+              Self.valid(connectionID, maximumUTF8Bytes: 128, allowEmpty: false),
+              let remoteID = json["remoteId"] as? String,
+              Self.valid(remoteID, maximumUTF8Bytes: 256, allowEmpty: false),
+              let remoteName = json["remoteName"] as? String,
+              Self.valid(remoteName, maximumUTF8Bytes: 256, allowEmpty: true),
+              let remotePlatform = json["remotePlatform"] as? String,
+              Self.valid(remotePlatform, maximumUTF8Bytes: 256, allowEmpty: true),
+              json["remoteMetadataTrust"] as? String == "untrusted",
+              let requestedAt = (json["requestedAt"] as? NSNumber)?.uint64Value,
+              requestedAt > 0,
+              let expiresAt = (json["expiresAt"] as? NSNumber)?.uint64Value,
+              expiresAt > requestedAt,
+              let requestedCapabilities = json["requestedCapabilities"] as? [String],
+              (1...16).contains(requestedCapabilities.count),
+              requestedCapabilities.contains("viewDisplay"),
+              Set(requestedCapabilities).count == requestedCapabilities.count,
+              requestedCapabilities.allSatisfy(allowedCapabilities.contains),
+              let transport = json["transport"] as? String,
+              ["direct", "relay", "unknown"].contains(transport),
+              let authenticationMethod = json["authenticationMethod"] as? String,
+              authenticationMethod == "localApproval",
+              let riskAlerts = json["riskAlerts"] as? [String],
+              riskAlerts.isEmpty
+        else { return nil }
+
+        connectionId = connectionID
+        remoteId = remoteID
+        self.remoteName = remoteName
+        self.remotePlatform = remotePlatform
+        self.requestedAt = requestedAt
+        self.expiresAt = expiresAt
+        self.requestedCapabilities = requestedCapabilities
+        self.transport = transport
+        self.authenticationMethod = authenticationMethod
+        self.riskAlerts = riskAlerts
+    }
+
+    private static func valid(
+        _ value: String,
+        maximumUTF8Bytes: Int,
+        allowEmpty: Bool
+    ) -> Bool {
+        (allowEmpty || !value.isEmpty)
+            && value.utf8.count <= maximumUTF8Bytes
+            && !value.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+    }
 }
 
 public struct HostPermanentPasswordPolicy: Sendable {
@@ -1029,6 +1221,20 @@ public final class HostControlClient: @unchecked Sendable {
         }
     }
 
+    /// Applies the one final local decision allowed for a pending connection.
+    /// Rust remains authoritative for deadline, identity and prior-final state.
+    public func resolvePendingApproval(
+        connectionID: String,
+        decision: HostApprovalDecision,
+        commandId: String = UUID().uuidString
+    ) throws {
+        try command(
+            decision.commandName,
+            commandId: commandId,
+            payload: ["connectionId": connectionID]
+        )
+    }
+
     /// Sends a permanent password only through the mutable secret-buffer ABI.
     /// The supplied Data is zeroed on every return path and must not be reused.
     public func setPermanentPassword(
@@ -1063,53 +1269,7 @@ public final class HostControlClient: @unchecked Sendable {
         }
         let payload = Data(bytes: data, count: bytes.length)
         rdn_shim_host_free_bytes(library, bytes)
-        guard let object = try? JSONSerialization.jsonObject(with: payload),
-            let json = object as? [String: Any]
-        else {
-            throw HostControlError.snapshotDecode("snapshot is not a JSON object")
-        }
-        guard (json["schemaVersion"] as? NSNumber)?.intValue == 2,
-              let presentation = json["temporaryPasswordPresentation"] as? [String: Any],
-              let policy = presentation["policy"] as? String,
-              let passwordPolicyJSON = json["passwordPolicy"] as? [String: Any],
-              let strengthPolicy = passwordPolicyJSON["strengthPolicy"] as? [String: Any],
-              let localPasswordSet = passwordPolicyJSON["localPasswordSet"] as? Bool,
-              let effectivePasswordSet = passwordPolicyJSON["effectivePasswordSet"] as? Bool,
-              let usingPresetPassword = passwordPolicyJSON["usingPresetPassword"] as? Bool,
-              let changeAllowed = passwordPolicyJSON["changeAllowed"] as? Bool,
-              let strengthPolicyVersion = (strengthPolicy["version"] as? NSNumber)?.intValue,
-              let minimumCharacters = (strengthPolicy["minimumCharacters"] as? NSNumber)?.intValue,
-              let maximumCharacters = (strengthPolicy["maximumCharacters"] as? NSNumber)?.intValue,
-              let maximumUTF8Bytes = (strengthPolicy["maximumUtf8Bytes"] as? NSNumber)?.intValue,
-              let rejectsControlCharacters = strengthPolicy["rejectsControlCharacters"] as? Bool,
-              let rejectsOuterWhitespace = strengthPolicy["rejectsOuterWhitespace"] as? Bool
-        else {
-            throw HostControlError.snapshotDecode("snapshot password policy is missing or invalid")
-        }
-        return HostCoreSnapshot(
-            schemaVersion: 2,
-            hostInstanceId: json["hostInstanceId"] as? String ?? "",
-            hostState: json["hostState"] as? String ?? "",
-            localId: json["localId"] as? String ?? "",
-            registrationStatus: json["registrationStatus"] as? String ?? "",
-            temporaryPasswordPolicy: policy,
-            revealedTemporaryPassword: policy == "revealed" ? presentation["value"] as? String : nil,
-            passwordPolicy: HostPermanentPasswordPolicy(
-                localPasswordSet: localPasswordSet,
-                effectivePasswordSet: effectivePasswordSet,
-                usingPresetPassword: usingPresetPassword,
-                changeAllowed: changeAllowed,
-                strengthPolicyVersion: strengthPolicyVersion,
-                minimumCharacters: minimumCharacters,
-                maximumCharacters: maximumCharacters,
-                maximumUTF8Bytes: maximumUTF8Bytes,
-                rejectsControlCharacters: rejectsControlCharacters,
-                rejectsOuterWhitespace: rejectsOuterWhitespace
-            ),
-            lastError: json["lastError"] as? String,
-            observedAt: UInt64((json["observedAt"] as? NSNumber)?.uint64Value ?? 0),
-            rawJSON: payload
-        )
+        return try HostCoreSnapshot(rawJSON: payload)
     }
 
     public func setMediaCapabilities(

@@ -36,7 +36,7 @@ final class CoreBridgeContractTests: XCTestCase {
         let bridge = try String(contentsOf: bridgeURL, encoding: .utf8)
 
         XCTAssertTrue(bridge.contains("const EVENT_SCHEMA_VERSION: u32 = 1;"))
-        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 2;"))
+        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 3;"))
         XCTAssertTrue(bridge.contains("\"schemaVersion\": EVENT_SCHEMA_VERSION"))
         XCTAssertTrue(bridge.contains(
             "map.insert(\"schemaVersion\".into(), json!(SNAPSHOT_SCHEMA_VERSION));"
@@ -189,6 +189,103 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertEqual(HostControlError.permanentPassword(-20).permanentPasswordFailure, .storage)
         XCTAssertEqual(HostControlError.permanentPassword(-999).permanentPasswordFailure, .unknown)
         XCTAssertNil(HostControlError.command(-20).permanentPasswordFailure)
+    }
+
+    func testApprovalDecisionErrorsAreClassifiedSemantically() {
+        XCTAssertEqual(HostControlError.command(-21).approvalDecisionFailure, .notFound)
+        XCTAssertEqual(
+            HostControlError.command(-22).approvalDecisionFailure,
+            .alreadyFinalized
+        )
+        XCTAssertEqual(HostControlError.command(-23).approvalDecisionFailure, .expired)
+        XCTAssertNil(HostControlError.command(-5).approvalDecisionFailure)
+        XCTAssertNil(HostControlError.snapshot(-21).approvalDecisionFailure)
+    }
+
+    func testHostSnapshotRecoversPendingApprovalAndFailsClosed() throws {
+        let pending: [String: Any] = [
+            "connectionId": "host-instance:7",
+            "remoteId": "123456789",
+            "remoteName": "Remote Mac",
+            "remotePlatform": "macOS",
+            "remoteMetadataTrust": "untrusted",
+            "requestedAt": 1_700_000_000_000 as UInt64,
+            "expiresAt": 1_700_000_030_000 as UInt64,
+            "requestedCapabilities": ["viewDisplay", "controlKeyboardMouse"],
+            "transport": "unknown",
+            "authenticationMethod": "localApproval",
+            "riskAlerts": [],
+        ]
+        func document(pendingApproval: Any) -> [String: Any] {
+            [
+                "schemaVersion": 3,
+                "hostInstanceId": "host-instance",
+                "hostState": "ready",
+                "localId": "987654321",
+                "registrationStatus": "ready",
+                "pendingApproval": pendingApproval,
+                "temporaryPasswordPresentation": ["policy": "redacted"],
+                "passwordPolicy": [
+                    "localPasswordSet": false,
+                    "effectivePasswordSet": false,
+                    "usingPresetPassword": false,
+                    "changeAllowed": true,
+                    "strengthPolicy": [
+                        "version": 1,
+                        "minimumCharacters": 6,
+                        "maximumCharacters": 128,
+                        "maximumUtf8Bytes": 512,
+                        "rejectsControlCharacters": true,
+                        "rejectsOuterWhitespace": true,
+                    ],
+                ],
+                "lastError": NSNull(),
+                "observedAt": 1_700_000_001_000 as UInt64,
+            ]
+        }
+
+        let data = try JSONSerialization.data(
+            withJSONObject: document(pendingApproval: pending)
+        )
+        let snapshot = try HostCoreSnapshot(rawJSON: data)
+        XCTAssertEqual(snapshot.schemaVersion, 3)
+        XCTAssertEqual(snapshot.pendingApproval?.connectionId, "host-instance:7")
+        XCTAssertEqual(snapshot.pendingApproval?.remoteName, "Remote Mac")
+        XCTAssertEqual(
+            snapshot.pendingApproval?.requestedCapabilities,
+            ["viewDisplay", "controlKeyboardMouse"]
+        )
+
+        let noPending = try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(pendingApproval: NSNull())
+        ))
+        XCTAssertNil(noPending.pendingApproval)
+
+        var invalidPending = pending
+        invalidPending["remoteMetadataTrust"] = "trusted"
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(pendingApproval: invalidPending)
+        )))
+        invalidPending = pending
+        invalidPending["requestedCapabilities"] = ["viewDisplay", "futureCapability"]
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(pendingApproval: invalidPending)
+        )))
+        invalidPending = pending
+        invalidPending["password"] = "must-not-be-accepted"
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(pendingApproval: invalidPending)
+        )))
+        invalidPending = pending
+        invalidPending["riskAlerts"] = ["futureRiskCode"]
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(pendingApproval: invalidPending)
+        )))
+        var oldSchema = document(pendingApproval: NSNull())
+        oldSchema["schemaVersion"] = 2
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: oldSchema
+        )))
     }
 
     func testHostMediaControlEnvelopeFailsClosedAndTracksRouteEpochs() throws {

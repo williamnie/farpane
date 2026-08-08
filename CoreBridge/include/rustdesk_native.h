@@ -177,7 +177,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 3u
+#define RDN_HOST_ABI_VERSION 4u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -201,6 +201,9 @@ const char *rdn_core_upstream_commit(void);
 #define RDN_HOST_ERR_SECRET_OUTER_WHITESPACE (-18)
 #define RDN_HOST_ERR_CHANGE_DISABLED (-19)
 #define RDN_HOST_ERR_STORAGE (-20)
+#define RDN_HOST_ERR_APPROVAL_NOT_FOUND (-21)
+#define RDN_HOST_ERR_APPROVAL_FINALIZED (-22)
+#define RDN_HOST_ERR_APPROVAL_EXPIRED (-23)
 
 typedef struct RdnHost RdnHost;
 
