@@ -1640,6 +1640,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.2n user-confirmed approval navigation owner 已完成自动实现**。依据本机 macOS SDK 的 `SMAppService` 合同，App 只有在先提示、用户确认希望重新启用 helper 后才能打开 Login Items；新的独立 owner 构造保持 inert，仅 typed `openLoginItemsAfterUserConfirmation` intent 会触发一次权威 registration 重查。只有仍为 requiresApproval 才调用专用 `SMAppService.openSystemSettingsLoginItems()`；notRegistered/enabled 返回 notRequired，notFound/future status 通过既有 adapter 以 serviceUnavailable fail closed。结果固定命名为 navigationRequested，不代表设置窗口真实出现、用户已批准、service enabled 或 Agent ready；并发和 observer 重入不能重复导航。owner 不持有 service、不具备 register/unregister/activation/UserDefaults/UI 能力，也未接 AppKit/SwiftUI；未来 UI 必须先真实展示说明并仅在肯定按钮后发送 typed intent。本步自动测试未调用 product apply，未打开 System Settings、修改 Login Items、启动 Agent、安装/部署/push。详见 `Evidence/HostMode/2026-08-09/h4-approval-navigation-owner.md`。
 
+> 更新（2026-08-09）：**H4.2o background registration UX orchestration 已完成自动实现**。新增 toolkit-independent App-side owner，冻结两段不可跳过的用户说明：首次明确告知启用后即使退出 FarPane，当前已登录用户仍可接受连接；只有肯定确认才调用 H4.2m register。权威结果若为 requiresApproval，再展示“系统设置 > 通用 > 登录项与扩展”说明并强调此时仍不可被连接；只有第二次肯定确认才调用 H4.2n navigation。取消、错序、并发、observer 重入和底层 result/status 矛盾均不触发后续动作并 fail closed；registered、navigationRequested 与 Agent activation/H4.2a ready 始终独立。产品 factory 只强持有惰性的 H4.2m/n owners，不引用 SMAppService、AppKit/SwiftUI、UserDefaults、旧 HostControlClient 或 background activation。审计发现当前 Home Host switch 仍直接控制旧进程内 HostCore，把 registration 接上会造成双 Host 争用，故本步刻意不接该开关/真实 sheet；测试没有调用 product flow、注册服务或打开设置。详见 `Evidence/HostMode/2026-08-09/h4-registration-ux-orchestration.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
