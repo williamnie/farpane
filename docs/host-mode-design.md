@@ -1612,6 +1612,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.3e4a App-side bounded event fetch and authoritative resnapshot 已完成自动实现**。现有 App snapshot-first client/同一 XPC connection 新增显式单批 event fetch：只允许 ready 状态，以 negotiated wire、exact Host/boot identity 和当前 `lastEventId` 构造固定最多 64 条的 request；重复/in-flight/非 ready 调用不发 selector。correlated up-to-date 保持 cursor，普通 batch 只推进到 `resumeAfterEventId`；任何 `snapshotChanged`、gap、invalid-cursor 或 resnapshot-required 都不向调用方发布可能过期的增量状态，而是自动以新 request ID 重取同一 identity 的 authoritative snapshot，成功后用其 `lastEventId` 恢复 ready，并同时返回 trigger 与新 snapshot。event/refresh 各有 5 秒 timeout，malformed/uncorrelated/nil、断线、取消与迟到 reply 均 one-shot fail closed；真实 anonymous XPC 已验证 App client 的 snapshot→event batch 往返。当前仍是调用方驱动的 bounded fetch，尚未实现 100 ms 以上 cadence、持续 catch-up/idle polling owner 或 App lifecycle/UI/readiness composition；不定义 Host command，也不启用顶层 Agent entry。详见 `Evidence/HostMode/2026-08-09/h4-xpc-event-client-fetch.md`。
 
+> 更新（2026-08-09）：**H4.3e4b single-start App event polling owner 已完成自动实现**。新增的 App-side owner 只有在 client 已 ready 时才能一次性 start，初次立即 fetch；任一时刻只允许一个在途 request。typed batch 的 `hasMore=true` 与 authoritative resync 后固定等待 100 ms 再追赶，追平 batch/up-to-date 固定进入 500 ms idle poll，因此不会违反 Agent 每连接 100 ms event limit。所有 delay 都由 owner 持有唯一 cancellable task；cancel-before-start、scheduled cancel、in-flight cancel、connection end 和 terminal client result 均以 generation/state 门禁一次性终止，迟到 callback 不能交付或重新排程。生产 scheduler 使用专用 utility queue 的 cancellable `DispatchWorkItem`，真实延迟与取消已有 smoke。当前 owner 尚未由 App lifecycle 强持有，也未把 snapshot/event 投影接到 readiness/UI；因此不宣称产品已自动启动订阅。详见 `Evidence/HostMode/2026-08-09/h4-xpc-event-polling-owner.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
