@@ -414,3 +414,9 @@ transition policy 明确禁止 disabled→platform recovered 自动升权；adap
 H3.4ad 的单一 platform bool 已拆成 Accessibility trusted 与 active Aqua 两个 observation，并由 connection-local state 记住撤权原因。只有先前有效的控制会话因锁屏/off-console 暂时失去 Aqua authority 时才 arm restore；回到同一 current-process Aqua session 后恢复 keyboard/mouse，并以新的 permission generation 同步 active capabilities 与 Viewer。初始即 locked 的连接不会凭 unlock 自动新增控制能力。
 
 Accessibility 一旦变为 untrusted 会清除 Aqua restore arm 并锁存拒绝；之后系统重新 trusted 不会在旧会话自动升权。只有新的显式本机 enable 且实时 TCC trusted 才能清除 latch。撤销仍复用 ordered `Release`，恢复仍经过 connection epoch，最终 adapter 的逐事件 platform gate 不变。定向状态矩阵 1/1、完整 Rust 131/131、release core、全新 inode 加载的 built-core Swift 133/133、ScriptTests 20/20、arm64 Release build 与 16 文件 clean replay 均通过。未改 ABI/protobuf/Hermes，也未部署。`limited/sessionUnavailable` 原因、Secure Input 及锁屏/FUS/TCC transition 真机证据仍待后续。详见 `Evidence/HostMode/2026-08-08/h3-platform-authority-recovery-state.md`。
+
+## Host Mode build gate — atomic release core publication
+
+H3.4ae 验证期间的 built-core `Code Signature Invalid` 已收敛到独立构建竞态：旧脚本用 `cp` 原地覆盖公开 dylib inode，dyld 可能命中该 vnode 的旧 linker-signature cache。release core 现在先复制到最终目录内的隐藏 staging 文件，在 staging 上完成全部 Mach-O/symbol checks，再以同目录 rename 发布；失败只清理 staging，旧公开 core 保持完整。
+
+ScriptTest 完成 RED/GREEN；真实重复构建使公开 inode 从旧值切换到新值且无 staging 残留。source/published bytes 与 mode 一致、签名有效，随后直接从公开路径运行 built-core loader 1/1、Swift 133/133、ScriptTests 21/21 与 arm64 Release build 均通过，不再需要复制到临时 inode。未改 ABI/core 行为/Hermes/CI/依赖，也未部署。详见 `Evidence/HostMode/2026-08-08/host-core-atomic-publication.md`。

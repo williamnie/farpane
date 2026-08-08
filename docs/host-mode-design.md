@@ -1497,6 +1497,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H3.4ae Native Host platform-authority recovery state 已完成自动实现**。平台 observation 现拆分 Accessibility trusted 与 active Aqua；connection-local state 只为“先前有效、随后 Aqua 暂时不可用”的会话 arm 同会话恢复，恢复时创建新的 permission generation 并同步 Viewer/active capabilities。Accessibility 任意时刻撤权都会清除 restore arm、锁存拒绝，系统重新 trusted 不会在旧会话自动升权；初始 locked/off-console 连接也不会因 unlock 自动新增控制能力。最终 adapter 的逐事件 gate 与 ordered Release 保持。未改 ABI/snapshot/protobuf/Hermes。状态矩阵 1/1、完整 Rust 131/131、release core、全新 inode 加载的 built-core Swift 133/133、ScriptTests 20/20、arm64 Release build 与 16 文件 clean replay 通过；未部署。`limited/sessionUnavailable` 原因、Secure Input、锁屏/FUS/TCC 真机 transition 仍待后续，H3 保持进行中。详见 `Evidence/HostMode/2026-08-08/h3-platform-authority-recovery-state.md`。
 
+> 交付门禁修复（2026-08-08）：**release Host Core atomic publication 已完成**。H3.4ae 验证中的 built-core `Code Signature Invalid` 并非 ABI 回归，而是旧构建脚本原地覆盖公开 dylib inode 后触发 macOS linker-signature cache 竞态。脚本现先在最终目录内 staging、完成既有 Mach-O/symbol checks，再以同目录 rename 发布新 inode；失败保持旧 core 不变。ScriptTest RED/GREEN、真实 inode 变化与零 staging 残留、签名/字节/mode 校验、直接公开路径 built-core loader、Swift 133/133、ScriptTests 21/21 和 arm64 Release build 均通过。未改 Host ABI/core 行为/Hermes/CI/依赖，也未部署。详见 `Evidence/HostMode/2026-08-08/host-core-atomic-publication.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
