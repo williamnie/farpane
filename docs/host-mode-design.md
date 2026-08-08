@@ -1642,6 +1642,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.2o background registration UX orchestration 已完成自动实现**。新增 toolkit-independent App-side owner，冻结两段不可跳过的用户说明：首次明确告知启用后即使退出 FarPane，当前已登录用户仍可接受连接；只有肯定确认才调用 H4.2m register。权威结果若为 requiresApproval，再展示“系统设置 > 通用 > 登录项与扩展”说明并强调此时仍不可被连接；只有第二次肯定确认才调用 H4.2n navigation。取消、错序、并发、observer 重入和底层 result/status 矛盾均不触发后续动作并 fail closed；registered、navigationRequested 与 Agent activation/H4.2a ready 始终独立。产品 factory 只强持有惰性的 H4.2m/n owners，不引用 SMAppService、AppKit/SwiftUI、UserDefaults、旧 HostControlClient 或 background activation。审计发现当前 Home Host switch 仍直接控制旧进程内 HostCore，把 registration 接上会造成双 Host 争用，故本步刻意不接该开关/真实 sheet；测试没有调用 product flow、注册服务或打开设置。详见 `Evidence/HostMode/2026-08-09/h4-registration-ux-orchestration.md`。
 
+> 更新（2026-08-09）：**H4.2p AppKit registration sheet driver 已完成自动实现**。产品 target 新增惰性单-sheet driver，首次 begin 只请求 H4.2o prompt，并直接使用 typed title/message/confirm/cancel copy 通过非阻塞 `beginSheetModal` 呈现；四种按钮响应由 CoreBridge exact policy 唯一映射到 matching confirm/cancel intent，不存在字符串/按钮序号驱动业务逻辑。每个 sheet 同时捕获私有 presentation token、UX generation 和完整 prompt，completion 在任何 intent 前重新对账；旧 sheet 的迟到/重复回调不能操作新状态。第二段 requiresApproval sheet 只在第一段确认后 H4.2o 发布更高 generation 的 awaitingConfirmation 时，于 main queue 下一拍展示；其他终态只回调，不自动注册、导航、activation 或 ready。driver 已编入 executable 但 AppDelegate/Home 没有引用，构造也不产生系统动作；focused 自动测试只动态验证纯 response mapping 并审计 AppKit source，未实际显示 GUI、注册服务或打开设置。当前 legacy Host toggle 继续隔离，直到 single-owner migration gate 完成。详见 `Evidence/HostMode/2026-08-09/h4-registration-sheet-driver.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
