@@ -17,14 +17,14 @@ index 505eca2..11fb50e 100644
 +++ b/libs/scrap/Cargo.toml
 @@ -10,6 +10,7 @@ authors = ["Ram <quadrupleslap@gmail.com>"]
  edition = "2018"
- 
+
  [features]
 +rdn-native-host = []
  wayland = ["gstreamer", "gstreamer-app", "gstreamer-video", "dbus", "tracing", "zbus"]
  mediacodec = ["ndk"]
  linux-pkg-config = ["dep:pkg-config"]
 @@ -65,4 +66,3 @@ optional = true
- 
+
  [target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
  nokhwa = { git = "https://github.com/rustdesk-org/nokhwa.git", branch = "fix_from_raw_parts", features = ["input-native"] }
 -
@@ -43,11 +43,11 @@ index 9b072e1..7302b5a 100644
 +    },
      time::Instant,
  };
- 
+
 @@ -45,6 +48,20 @@ lazy_static::lazy_static! {
      static ref USABLE_ENCODING: Arc<Mutex<Option<SupportedEncoding>>> = Arc::new(Mutex::new(None));
  }
- 
+
 +#[cfg(feature = "rdn-native-host")]
 +static NATIVE_H264_ENCODING: AtomicBool = AtomicBool::new(false);
 +#[cfg(feature = "rdn-native-host")]
@@ -63,7 +63,7 @@ index 9b072e1..7302b5a 100644
 +pub fn set_native_encoding_capabilities(_h264: bool, _h265: bool) {}
 +
  pub const ENCODE_NEED_SWITCH: &'static str = "ENCODE_NEED_SWITCH";
- 
+
  #[derive(Debug, Clone)]
 @@ -230,10 +247,18 @@ impl Encoder {
                      HwRamEncoder::try_get(CodecFormat::H265).map_or(None, |c| Some(c.name));
@@ -123,7 +123,7 @@ index dcd5941..7511f7b 100644
 +++ b/src/client.rs
 @@ -1779,6 +1779,21 @@ impl Deref for LoginConfigHandler {
  }
- 
+
  impl LoginConfigHandler {
 +    #[cfg(feature = "rdn-native-core")]
 +    pub fn configure_native_viewer(&mut self, peer_id: &str) {
@@ -145,7 +145,7 @@ index dcd5941..7511f7b 100644
      /// # Arguments
 @@ -2309,12 +2324,22 @@ impl LoginConfigHandler {
      }
- 
+
      pub fn get_supported_decoding(&self) -> SupportedDecoding {
 -        Decoder::supported_decodings(
 +        let mut decoding = Decoder::supported_decodings(
@@ -166,11 +166,11 @@ index dcd5941..7511f7b 100644
 +        }
 +        decoding
      }
- 
+
      /// Parse the image quality option.
 @@ -2762,12 +2787,20 @@ impl LoginConfigHandler {
      }
- 
+
      pub fn update_supported_decodings(&self) -> Message {
 -        let decoding = scrap::codec::Decoder::supported_decodings(
 +        let mut decoding = scrap::codec::Decoder::supported_decodings(
@@ -197,7 +197,7 @@ index c0eb7fb..4bb52bf 100644
 @@ -1330,25 +1330,27 @@ impl<T: InvokeUiSession> Remote<T> {
                      }
                      self.video_format = CodecFormat::from(&vf);
- 
+
 -                    let display = vf.display as usize;
 -                    if !self.video_threads.contains_key(&display) {
 -                        self.new_video_thread(display);
@@ -247,7 +247,7 @@ index 49cb2b7..61e3dec 100644
 @@ -63,6 +63,12 @@ mod ui_cm_interface;
  mod ui_interface;
  mod ui_session_interface;
- 
+
 +#[cfg(feature = "rdn-native-core")]
 +mod rdn_bridge;
 +
@@ -255,7 +255,7 @@ index 49cb2b7..61e3dec 100644
 +mod rdn_host_bridge;
 +
  mod hbbs_http;
- 
+
  #[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
 diff --git a/src/platform/macos.rs b/src/platform/macos.rs
 index 2e68cf5..53d464c 100644
@@ -275,7 +275,7 @@ index 2e68cf5..53d464c 100644
  use core_graphics::{
      display::{kCGNullWindowID, kCGWindowListOptionOnScreenOnly, CGWindowListCopyWindowInfo},
 @@ -60,6 +62,7 @@ static CG_CURSOR_MUTEX: Mutex<()> = Mutex::new(());
- 
+
  extern "C" {
      fn CGSCurrentCursorSeed() -> i32;
 +    fn CGSessionCopyCurrentDictionary() -> CFDictionaryRef;
@@ -285,7 +285,7 @@ index 2e68cf5..53d464c 100644
 @@ -674,6 +677,56 @@ pub fn is_prelogin() -> bool {
      get_active_userid() == "0"
  }
- 
+
 +fn active_aqua_session_from_flags(
 +    on_console: Option<bool>,
 +    login_done: Option<bool>,
@@ -393,7 +393,7 @@ index 4f5c8fe..e4bfbb9 100644
 +++ b/src/rendezvous_mediator.rs
 @@ -107,6 +107,19 @@ pub struct RendezvousMediator {
  }
- 
+
  impl RendezvousMediator {
 +    #[cfg(feature = "rdn-native-host")]
 +    pub(crate) fn prepare_native_host_runtime() {
@@ -425,7 +425,7 @@ index 89a17a9..b0b23d5 100644
 @@ -87,6 +87,54 @@ pub struct ConnectionMeta {
      pub controlled_context: Option<ControlledContext>,
  }
- 
+
 +#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 +pub(crate) enum ConnectionTransport {
 +    Direct,
@@ -478,7 +478,7 @@ index 89a17a9..b0b23d5 100644
  const CONFIG_SYNC_INTERVAL_SECS: f32 = 0.3;
  #[cfg(any(target_os = "macos", target_os = "linux"))]
 @@ -96,6 +144,8 @@ const CONFIG_SYNC_INITIAL_WAIT_SECS: u64 = 3;
- 
+
  lazy_static::lazy_static! {
      pub static ref CHILD_PROCESS: Childs = Default::default();
 +    static ref CONNECTION_TRANSPORTS: Mutex<HashMap<i32, ConnectionTransport>> =
@@ -532,7 +532,7 @@ index 89a17a9..b0b23d5 100644
 +    .await?;
      Ok(())
  }
- 
+
 @@ -838,3 +916,42 @@ pub async fn stop_main_window_process() {
          }
      }
@@ -577,7 +577,7 @@ index 89a17a9..b0b23d5 100644
 +    }
 +}
 diff --git a/src/server/connection.rs b/src/server/connection.rs
-index bdf9cba..82cbf94 100644
+index bdf9cba..be900d9 100644
 --- a/src/server/connection.rs
 +++ b/src/server/connection.rs
 @@ -55,7 +55,7 @@ use scrap::camera;
@@ -592,7 +592,7 @@ index bdf9cba..82cbf94 100644
 @@ -83,6 +83,9 @@ lazy_static::lazy_static! {
      static ref WAKELOCK_KEEP_AWAKE_OPTION: Arc::<Mutex<Option<bool>>> = Default::default();
  }
- 
+
 +const LOGIN_FAILURE_TOTAL_LIMIT: i32 = 30;
 +const LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES: i32 = 30;
 +
@@ -601,7 +601,7 @@ index bdf9cba..82cbf94 100644
  lazy_static::lazy_static! {
 @@ -184,7 +187,7 @@ pub struct ConnInner {
  }
- 
+
  struct InputMouse {
 -    msg: MouseEvent,
 +    msg: NormalizedMouseInput,
@@ -611,7 +611,7 @@ index bdf9cba..82cbf94 100644
 @@ -192,13 +195,161 @@ struct InputMouse {
      show_cursor: bool,
  }
- 
+
 +#[cfg(not(any(target_os = "android", target_os = "ios")))]
 +#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 +struct InputPermissionSnapshot(u64);
@@ -776,7 +776,7 @@ index bdf9cba..82cbf94 100644
 @@ -209,6 +360,76 @@ enum MessageInput {
      BlockOffPlugin(String),
  }
- 
+
 +#[cfg(not(any(target_os = "android", target_os = "ios")))]
 +fn block_input_permission_runtime_action(was_enabled: bool, enabled: bool) -> Option<MessageInput> {
 +    (was_enabled && !enabled).then_some(MessageInput::BlockOff)
@@ -853,7 +853,7 @@ index bdf9cba..82cbf94 100644
 @@ -252,6 +473,134 @@ impl AuthConnType {
      }
  }
- 
+
 +#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 +enum ConnectionManagerPresentation {
 +    PendingApproval,
@@ -1069,7 +1069,7 @@ index bdf9cba..82cbf94 100644
              server_audit_file: "".to_owned(),
 @@ -642,7 +1028,13 @@ impl Connection {
          );
- 
+
          #[cfg(not(any(target_os = "android", target_os = "ios")))]
 -        std::thread::spawn(move || Self::handle_input(_rx_input, tx_cloned));
 +        {
@@ -1080,7 +1080,7 @@ index bdf9cba..82cbf94 100644
 +            });
 +        }
          let mut second_timer = crate::rustdesk_interval(time::interval(Duration::from_secs(1)));
- 
+
          #[cfg(feature = "unix-file-copy-paste")]
 @@ -711,7 +1103,9 @@ impl Connection {
                          ipc::Data::SwitchPermission{name, enabled} => {
@@ -1115,7 +1115,19 @@ index bdf9cba..82cbf94 100644
                                  conn.send_permission(Permission::BlockInput, enabled).await;
                              } else if &name == "privacy_mode" {
                                  // Keep permission state and runtime state consistent:
-@@ -1012,13 +1421,18 @@ impl Connection {
+@@ -818,6 +1227,11 @@ impl Connection {
+                                 conn.privacy_mode = enabled;
+                                 conn.send_permission(Permission::PrivacyMode, enabled).await;
+                             }
++                            #[cfg(all(
++                                feature = "rdn-native-host",
++                                not(any(target_os = "android", target_os = "ios"))
++                            ))]
++                            conn.sync_native_session_capabilities();
+                         }
+                         ipc::Data::RawMessage(bytes) => {
+                             allow_err!(conn.stream.send_raw(bytes).await);
+@@ -1012,13 +1426,18 @@ impl Connection {
                                      conn.on_close("stop service", false).await;
                                      break;
                                  }
@@ -1135,7 +1147,7 @@ index bdf9cba..82cbf94 100644
                          }
                          Some(message::Union::CursorPosition(pos)) => {
                              #[cfg(not(any(target_os = "android", target_os = "ios")))]
-@@ -1133,6 +1547,11 @@ impl Connection {
+@@ -1133,6 +1552,11 @@ impl Connection {
              conn.lr.my_id.clone(),
          );
          video_service::notify_video_frame_fetched_by_conn_id(id, None);
@@ -1147,7 +1159,7 @@ index bdf9cba..82cbf94 100644
          if conn.authorized {
              password::update_temporary_password();
          }
-@@ -1150,12 +1569,34 @@ impl Connection {
+@@ -1150,12 +1574,34 @@ impl Connection {
              #[cfg(not(any(target_os = "android", target_os = "ios")))]
              try_stop_record_cursor_pos();
          }
@@ -1171,7 +1183,7 @@ index bdf9cba..82cbf94 100644
          conn.on_close("End", true).await;
          log::info!("#{} connection loop exited", id);
      }
- 
+
      #[cfg(not(any(target_os = "android", target_os = "ios")))]
 -    fn handle_input(receiver: std_mpsc::Receiver<MessageInput>, tx: Sender) {
 +    fn handle_input(
@@ -1183,7 +1195,7 @@ index bdf9cba..82cbf94 100644
          let mut block_input_mode = false;
          #[cfg(any(target_os = "windows", target_os = "macos"))]
          {
-@@ -1166,89 +1607,137 @@ impl Connection {
+@@ -1166,89 +1612,137 @@ impl Connection {
          reset_input_ondisconn();
          loop {
              match receiver.recv_timeout(std::time::Duration::from_millis(500)) {
@@ -1393,7 +1405,7 @@ index bdf9cba..82cbf94 100644
                          break;
                      }
                  }
-@@ -1654,7 +2143,6 @@ impl Connection {
+@@ -1654,7 +2148,6 @@ impl Connection {
          if !self.connect_port_forward_if_needed().await {
              return false;
          }
@@ -1401,7 +1413,7 @@ index bdf9cba..82cbf94 100644
          let (conn_type, auth_conn_type) = if self.file_transfer.is_some() {
              (1, AuthConnType::FileTransfer)
          } else if self.port_forward_socket.is_some() {
-@@ -1666,13 +2154,19 @@ impl Connection {
+@@ -1666,13 +2159,38 @@ impl Connection {
          } else {
              (0, AuthConnType::Remote)
          };
@@ -1418,12 +1430,31 @@ index bdf9cba..82cbf94 100644
 +            self.send_login_error(NATIVE_HOST_CONTROL_BUSY).await;
 +            return false;
 +        };
++        #[cfg(all(
++            feature = "rdn-native-host",
++            not(any(target_os = "android", target_os = "ios"))
++        ))]
++        if native_host_single_remote_active()
++            && auth_conn_type == AuthConnType::Remote
++            && !crate::rdn_host_bridge::native_host_begin_session(
++                self.inner.id(),
++                self.lr.my_id.clone(),
++                self.lr.my_name.clone(),
++                self.lr.my_platform.clone(),
++                self.native_session_initial_capabilities(),
++                self.native_session_active_capabilities(),
++                self.native_approval_sender.clone(),
++            )
++        {
++            self.send_login_error(NATIVE_HOST_CONTROL_BUSY).await;
++            return false;
++        }
 +        self.authed_conn_id = Some(authed_conn_id);
 +        self.authorized = true;
          self.session_last_recv_time = SESSIONS
              .lock()
              .unwrap()
-@@ -1896,7 +2390,7 @@ impl Connection {
+@@ -1896,7 +2414,7 @@ impl Connection {
                      // But the displays may be updated later, before creating the video capturer.
                      #[cfg(target_os = "macos")]
                      {
@@ -1432,7 +1463,7 @@ index bdf9cba..82cbf94 100644
                      }
                      pi.displays = displays;
                      pi.current_display = self.display_idx as _;
-@@ -1932,6 +2426,8 @@ impl Connection {
+@@ -1932,6 +2450,8 @@ impl Connection {
          self.update_scoped_login_options().await;
          if let Some((dir, show_hidden)) = self.file_transfer.clone() {
              self.keyboard = false;
@@ -1441,7 +1472,7 @@ index bdf9cba..82cbf94 100644
              let dir = if !dir.is_empty() && std::path::Path::new(&dir).is_dir() {
                  &dir
              } else {
-@@ -1945,12 +2441,16 @@ impl Connection {
+@@ -1945,12 +2465,16 @@ impl Connection {
          } else if self.terminal {
              self.keyboard = false;
              #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -1458,7 +1489,7 @@ index bdf9cba..82cbf94 100644
              self.send_permission(Permission::Keyboard, false).await;
          } else if sub_service {
              if !wait_session_id_confirm {
-@@ -1980,7 +2480,6 @@ impl Connection {
+@@ -1980,7 +2504,6 @@ impl Connection {
      fn try_sub_monitor_services(&mut self) {
          let is_remote = self.is_remote();
          if is_remote && !self.services_subed {
@@ -1466,7 +1497,7 @@ index bdf9cba..82cbf94 100644
              if let Some(s) = self.server.upgrade() {
                  let mut noperms = Vec::new();
                  if !self.peer_keyboard_enabled() && !self.show_remote_cursor {
-@@ -2008,7 +2507,10 @@ impl Connection {
+@@ -2008,7 +2531,10 @@ impl Connection {
                  self.auto_disconnect_timer = Self::get_auto_disconenct_timer();
                  s.try_add_primay_video_service();
                  s.add_connection(self.inner.clone(), &noperms);
@@ -1476,11 +1507,52 @@ index bdf9cba..82cbf94 100644
 +            self.sync_effective_input_permission();
          }
      }
- 
-@@ -2064,6 +2566,27 @@ impl Connection {
+
+@@ -2064,6 +2590,68 @@ impl Connection {
          self.keyboard && !self.disable_keyboard
      }
- 
+
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    fn native_session_initial_capabilities(
++        &self,
++    ) -> crate::rdn_host_bridge::NativeSessionCapabilities {
++        crate::rdn_host_bridge::NativeSessionCapabilities::new(
++            self.keyboard,
++            self.clipboard,
++            self.audio,
++        )
++    }
++
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    fn native_session_active_capabilities(
++        &self,
++    ) -> crate::rdn_host_bridge::NativeSessionCapabilities {
++        crate::rdn_host_bridge::NativeSessionCapabilities::new(
++            self.peer_keyboard_enabled(),
++            self.clipboard_enabled(),
++            self.audio_enabled(),
++        )
++    }
++
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    fn sync_native_session_capabilities(&self) {
++        if self.authorized && self.is_remote() && native_host_single_remote_active() {
++            crate::rdn_host_bridge::native_host_update_session_capabilities(
++                self.inner.id(),
++                self.native_session_active_capabilities(),
++            );
++        }
++    }
++
 +    #[cfg(not(any(target_os = "android", target_os = "ios")))]
 +    fn sync_effective_input_permission(&self) {
 +        let enabled = effective_input_permission_enabled(
@@ -1505,10 +1577,10 @@ index bdf9cba..82cbf94 100644
      fn clipboard_enabled(&self) -> bool {
          self.clipboard && !self.disable_clipboard
      }
-@@ -2091,7 +2614,54 @@ impl Connection {
+@@ -2091,7 +2679,54 @@ impl Connection {
              && crate::get_builtin_option(keys::OPTION_ONE_WAY_FILE_TRANSFER) != "Y"
      }
- 
+
 -    fn try_start_cm(&mut self, peer_id: String, name: String, authorized: bool) {
 +    fn try_start_cm(
 +        &mut self,
@@ -1561,7 +1633,7 @@ index bdf9cba..82cbf94 100644
          self.send_to_cm(ipc::Data::Login {
              id: self.inner.id(),
              is_file_transfer: self.file_transfer.is_some(),
-@@ -2101,7 +2671,7 @@ impl Connection {
+@@ -2101,7 +2736,7 @@ impl Connection {
              peer_id,
              name,
              avatar: self.lr.avatar.clone(),
@@ -1570,7 +1642,7 @@ index bdf9cba..82cbf94 100644
              keyboard: self.keyboard,
              clipboard: self.clipboard,
              audio: self.audio,
-@@ -2158,39 +2728,73 @@ impl Connection {
+@@ -2158,39 +2793,73 @@ impl Connection {
      #[cfg(not(any(target_os = "android", target_os = "ios")))]
      fn input_mouse(
          &self,
@@ -1615,7 +1687,7 @@ index bdf9cba..82cbf94 100644
 -            .ok();
 +            .is_ok()
      }
- 
+
      #[inline]
      #[cfg(not(any(target_os = "android", target_os = "ios")))]
 -    fn input_pointer(&self, msg: PointerDeviceEvent, conn_id: i32) {
@@ -1638,7 +1710,7 @@ index bdf9cba..82cbf94 100644
 +            }))
 +            .is_ok()
      }
- 
+
      #[inline]
      #[cfg(not(any(target_os = "android", target_os = "ios")))]
 -    fn input_key(&self, msg: KeyEvent, press: bool) {
@@ -1657,10 +1729,10 @@ index bdf9cba..82cbf94 100644
 +            }))
 +            .is_ok()
      }
- 
+
      fn verify_h1(&self, h1: &[u8]) -> bool {
-@@ -2471,6 +3075,10 @@ impl Connection {
- 
+@@ -2471,6 +3140,10 @@ impl Connection {
+
      #[cfg(not(any(target_os = "android", target_os = "ios")))]
      fn try_start_cm_ipc(&mut self) {
 +        if !connection_manager_required() {
@@ -1670,7 +1742,7 @@ index bdf9cba..82cbf94 100644
          if let Some(p) = self.start_cm_ipc_para.take() {
              tokio::spawn(async move {
                  #[cfg(windows)]
-@@ -2683,7 +3291,11 @@ impl Connection {
+@@ -2683,7 +3356,11 @@ impl Connection {
                          return keep_alive;
                      }
                  }
@@ -1683,7 +1755,7 @@ index bdf9cba..82cbf94 100644
                  if hbb_common::get_version_number(&lr.version)
                      >= hbb_common::get_version_number("1.2.0")
                  {
-@@ -2698,7 +3310,11 @@ impl Connection {
+@@ -2698,7 +3375,11 @@ impl Connection {
                      if !self.send_logon_response_and_keep_alive().await {
                          return false;
                      }
@@ -1696,7 +1768,7 @@ index bdf9cba..82cbf94 100644
                  } else {
                      self.send_login_error(err_msg).await;
                  }
-@@ -2712,7 +3328,11 @@ impl Connection {
+@@ -2712,7 +3393,11 @@ impl Connection {
                              return keep_alive;
                          }
                      }
@@ -1709,7 +1781,7 @@ index bdf9cba..82cbf94 100644
                  } else {
                      self.send_login_error(
                          crate::client::LOGIN_MSG_DESKTOP_SESSION_NOT_READY_PASSWORD_EMPTY,
-@@ -2730,7 +3350,11 @@ impl Connection {
+@@ -2730,7 +3415,11 @@ impl Connection {
                      if err_msg.is_empty() {
                          self.send_login_error(crate::client::LOGIN_MSG_PASSWORD_WRONG)
                              .await;
@@ -1722,7 +1794,7 @@ index bdf9cba..82cbf94 100644
                      } else {
                          self.send_login_error(
                              crate::client::LOGIN_MSG_DESKTOP_SESSION_NOT_READY_PASSWORD_WRONG,
-@@ -2745,7 +3369,11 @@ impl Connection {
+@@ -2745,7 +3434,11 @@ impl Connection {
                          if !self.send_logon_response_and_keep_alive().await {
                              return false;
                          }
@@ -1735,7 +1807,7 @@ index bdf9cba..82cbf94 100644
                      } else {
                          self.send_login_error(err_msg).await;
                      }
-@@ -2769,7 +3397,7 @@ impl Connection {
+@@ -2769,7 +3462,7 @@ impl Connection {
                          self.try_start_cm(
                              self.lr.my_id.to_owned(),
                              self.lr.my_name.to_owned(),
@@ -1744,7 +1816,7 @@ index bdf9cba..82cbf94 100644
                          );
                          if !tfa.hwid.is_empty() && Self::enable_trusted_devices() {
                              Config::add_trusted_device(TrustedDevice {
-@@ -2824,7 +3452,7 @@ impl Connection {
+@@ -2824,7 +3517,7 @@ impl Connection {
                              self.try_start_cm(
                                  lr.my_id.clone(),
                                  lr.my_name.clone(),
@@ -1753,7 +1825,7 @@ index bdf9cba..82cbf94 100644
                              );
                              #[cfg(not(any(target_os = "android", target_os = "ios")))]
                              self.try_start_cm_ipc();
-@@ -2847,34 +3475,71 @@ impl Connection {
+@@ -2847,34 +3540,71 @@ impl Connection {
                          log::debug!("call_main_service_pointer_input fail:{}", e);
                      }
                      #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -1833,7 +1905,7 @@ index bdf9cba..82cbf94 100644
                      self.update_auto_disconnect_timer();
                  }
                  Some(message::Union::PointerDeviceEvent(pde)) => {
-@@ -2910,10 +3575,36 @@ impl Connection {
+@@ -2910,10 +3640,36 @@ impl Connection {
                          log::debug!("call_main_service_pointer_input fail:{}", e);
                      }
                      #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -1863,16 +1935,16 @@ index bdf9cba..82cbf94 100644
 +                        if native_host_input_commits_activity(native_host_active, pointer_queued) {
 +                            MOUSE_MOVE_TIME.store(get_time(), Ordering::SeqCst);
 +                        }
-                     }
++                    }
 +                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
 +                    if native_host_input_commits_activity(native_host_active, pointer_queued) {
 +                        self.update_auto_disconnect_timer();
-+                    }
+                     }
 +                    #[cfg(any(target_os = "android", target_os = "ios"))]
                      self.update_auto_disconnect_timer();
                  }
                  #[cfg(any(target_os = "ios"))]
-@@ -2978,61 +3669,68 @@ impl Connection {
+@@ -2978,61 +3734,68 @@ impl Connection {
                      if self.is_authed_view_camera_conn() {
                          return true;
                      }
@@ -1894,7 +1966,7 @@ index bdf9cba..82cbf94 100644
 -                        // https://github.com/rustdesk/rustdesk/issues/8633
 -                        MOUSE_MOVE_TIME.store(get_time(), Ordering::SeqCst);
 +                        let is_enter = me.is_enter();
- 
+
 -                        let key = match me.mode.enum_value() {
 -                            Ok(KeyboardMode::Map) => {
 -                                Some(crate::keyboard::keycode_to_rdev_key(me.chr()))
@@ -1911,7 +1983,7 @@ index bdf9cba..82cbf94 100644
 -                        .filter(crate::keyboard::is_modifier);
 +                        let key = me.physical_modifier();
 +                        let key_action = me.action;
- 
+
                          // handle all down as press
                          // fix unexpected repeating key on remote linux, seems also fix abnormal alt/shift, which
                          // make sure all key are released
@@ -1926,7 +1998,7 @@ index bdf9cba..82cbf94 100644
 -                            me.press
 +                            me.action == SemanticKeyAction::Press
                          };
- 
+
 -                        if let Some(key) = key {
 -                            if is_press {
 -                                self.pressed_modifiers.insert(key);
@@ -1979,8 +2051,8 @@ index bdf9cba..82cbf94 100644
                  }
                  Some(message::Union::Clipboard(cb)) => {
                      if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {
-@@ -3937,23 +4635,69 @@ impl Connection {
- 
+@@ -3937,23 +4700,69 @@ impl Connection {
+
      fn bump_failure_entry(mut cur: (i32, i32, i32), time: i32) -> (i32, i32, i32) {
          if cur.0 == time {
 -            cur.1 += 1;
@@ -1995,7 +2067,7 @@ index bdf9cba..82cbf94 100644
          }
          cur
      }
- 
+
 +    fn normalize_failure_entry_after_cooldown(
 +        failure: (i32, i32, i32),
 +        time: i32,
@@ -2045,7 +2117,7 @@ index bdf9cba..82cbf94 100644
      fn update_failure(&self, failure: ((i32, i32, i32), i32), remove: bool, i: usize) {
          self.update_failure_with_scope(failure, remove, i, FailureScope::Default);
      }
- 
+
      fn update_failure_with_scope(
          &self,
 -        (failure, time): ((i32, i32, i32), i32),
@@ -2053,8 +2125,8 @@ index bdf9cba..82cbf94 100644
          remove: bool,
          i: usize,
          scope: FailureScope,
-@@ -3968,16 +4712,14 @@ impl Connection {
- 
+@@ -3968,16 +4777,14 @@ impl Connection {
+
          let map_mutex = &LOGIN_FAILURES[i];
          if remove {
 -            if failure.0 != 0 {
@@ -2078,7 +2150,7 @@ index bdf9cba..82cbf94 100644
              }
              return;
          }
-@@ -4006,17 +4748,20 @@ impl Connection {
+@@ -4006,17 +4813,20 @@ impl Connection {
          prefix_num: i8,
          thresh: i32,
      ) -> Option<(((i32, i32, i32), i32), bool)> {
@@ -2089,7 +2161,7 @@ index bdf9cba..82cbf94 100644
 -            .copied()
 -            .unwrap_or((0, 0, 0));
 +        let failure_prefix = Self::failure_entry_with_cooldown(i, prefix, time, thresh);
- 
+
          if failure_prefix.2 > thresh {
 +            let remaining_minutes =
 +                Self::cumulative_failure_cooldown_remaining_minutes(failure_prefix, time, thresh)
@@ -2107,9 +2179,9 @@ index bdf9cba..82cbf94 100644
              ))
              .await;
              self.post_alarm_audit(
-@@ -4092,15 +4837,26 @@ impl Connection {
+@@ -4092,15 +4902,26 @@ impl Connection {
          }
- 
+
          // checks IPv6 and IPv4 direct addresses
 -        let failure = LOGIN_FAILURES[i]
 -            .lock()
@@ -2119,7 +2191,7 @@ index bdf9cba..82cbf94 100644
 -            .unwrap_or((0, 0, 0));
 +        let failure =
 +            Self::failure_entry_with_cooldown(i, &self.ip, time, LOGIN_FAILURE_TOTAL_LIMIT);
- 
+
 -        let res = if failure.2 > 30 {
 -            self.send_login_error("Too many wrong attempts").await;
 +        let res = if failure.2 > LOGIN_FAILURE_TOTAL_LIMIT {
@@ -2142,10 +2214,10 @@ index bdf9cba..82cbf94 100644
              self.post_alarm_audit(
                  AlarmAuditType::ExceedThirtyAttempts,
                  json!({
-@@ -4138,6 +4894,13 @@ impl Connection {
+@@ -4138,6 +4959,13 @@ impl Connection {
          });
      }
- 
+
 +    #[cfg(target_os = "macos")]
 +    fn update_input_displays(&mut self, displays: &[DisplayInfo]) {
 +        if self.retina.set_displays(displays) {
@@ -2156,16 +2228,16 @@ index bdf9cba..82cbf94 100644
      async fn handle_switch_display(&mut self, s: SwitchDisplay) {
          let display_idx = s.display as usize;
          if self.display_idx != display_idx {
-@@ -4197,6 +4960,8 @@ impl Connection {
+@@ -4197,6 +5025,8 @@ impl Connection {
          }
          lock.subscribe(&new_service_name, self.inner.clone(), true);
          self.display_idx = display_idx;
 +        #[cfg(target_os = "macos")]
 +        self.input_mapping.advance();
      }
- 
+
      #[cfg(windows)]
-@@ -4531,6 +5296,8 @@ impl Connection {
+@@ -4531,6 +5361,8 @@ impl Connection {
          if let Ok(q) = o.disable_keyboard.enum_value() {
              if q != BoolOption::NotSet {
                  self.disable_keyboard = q == BoolOption::Yes;
@@ -2174,10 +2246,22 @@ index bdf9cba..82cbf94 100644
                  if let Some(s) = self.server.upgrade() {
                      s.write().unwrap().subscribe(
                          super::clipboard_service::NAME,
-@@ -6035,6 +6802,25 @@ async fn start_ipc(
+@@ -4643,6 +5475,11 @@ impl Connection {
+                 }
+             }
+         }
++        #[cfg(all(
++            feature = "rdn-native-host",
++            not(any(target_os = "android", target_os = "ios"))
++        ))]
++        self.sync_native_session_capabilities();
+     }
+
+     async fn turn_on_privacy(&mut self, impl_key: String) {
+@@ -6035,6 +6872,25 @@ async fn start_ipc(
      }
  }
- 
+
 +#[cfg(not(any(target_os = "android", target_os = "ios")))]
 +fn connection_manager_required_for_native_host(native_host_bound: bool) -> bool {
 +    !native_host_bound
@@ -2200,10 +2284,10 @@ index bdf9cba..82cbf94 100644
  // in case screen is sleep and blank, here to activate it
  fn try_activate_screen() {
      #[cfg(windows)]
-@@ -6180,10 +6966,44 @@ impl FileRemoveLogControl {
+@@ -6180,10 +7036,44 @@ impl FileRemoveLogControl {
      }
  }
- 
+
 +fn incoming_wakelock_display(
 +    keep_awake: bool,
 +    conn_count: usize,
@@ -2245,7 +2329,7 @@ index bdf9cba..82cbf94 100644
      std::thread::spawn(move || {
          let mut wakelock: Option<WakeLock> = None;
          let mut last_display = false;
-@@ -6194,13 +7014,19 @@ fn start_wakelock_thread() -> std::sync::mpsc::Sender<(usize, usize)> {
+@@ -6194,13 +7084,19 @@ fn start_wakelock_thread() -> std::sync::mpsc::Sender<(usize, usize)> {
                          keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS,
                      );
                      *WAKELOCK_KEEP_AWAKE_OPTION.lock().unwrap() = Some(keep_awake);
@@ -2267,7 +2351,7 @@ index bdf9cba..82cbf94 100644
                          if let Some(_w) = wakelock.as_mut() {
                              if display != last_display {
                                  #[cfg(any(target_os = "windows", target_os = "macos"))]
-@@ -6268,7 +7094,14 @@ impl Default for PortableState {
+@@ -6268,7 +7164,14 @@ impl Default for PortableState {
  impl Drop for Connection {
      fn drop(&mut self) {
          #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -2280,10 +2364,10 @@ index bdf9cba..82cbf94 100644
 +        } else {
 +            self.release_pressed_modifiers();
 +        }
- 
+
          if let Some(s) = self.terminal_generic_service.as_ref() {
              s.join();
-@@ -6347,29 +7180,58 @@ struct Retina {
+@@ -6347,29 +7250,58 @@ struct Retina {
  #[cfg(target_os = "macos")]
  impl Retina {
      #[inline]
@@ -2296,7 +2380,7 @@ index bdf9cba..82cbf94 100644
 +        self.displays = displays.to_vec();
 +        true
      }
- 
+
      #[inline]
 -    fn on_mouse_event(&mut self, e: &mut MouseEvent, current: usize) {
 -        let evt_type = e.mask & crate::input::MOUSE_TYPE_MASK;
@@ -2355,11 +2439,11 @@ index bdf9cba..82cbf94 100644
 +        }
 +        true
      }
- 
+
      #[inline]
-@@ -6463,23 +7325,33 @@ mod raii {
+@@ -6463,23 +7395,33 @@ mod raii {
      pub struct AuthedConnID(i32, AuthConnType);
- 
+
      impl AuthedConnID {
 -        pub fn new(
 +        pub fn try_new(
@@ -2394,19 +2478,31 @@ index bdf9cba..82cbf94 100644
              Self::check_wake_lock();
              use std::sync::Once;
              static _ONCE: Once = Once::new();
-@@ -6492,7 +7364,7 @@ mod raii {
+@@ -6492,7 +7434,7 @@ mod raii {
                      .unwrap()
                      .on_connection_open(conn_id);
              }
 -            Self(conn_id, conn_type)
 +            Some(Self(conn_id, conn_type))
          }
- 
+
          fn check_wake_lock() {
-@@ -6679,27 +7551,1144 @@ mod test {
+@@ -6607,6 +7549,11 @@ mod raii {
+
+     impl Drop for AuthedConnID {
+         fn drop(&mut self) {
++            #[cfg(all(
++                feature = "rdn-native-host",
++                not(any(target_os = "android", target_os = "ios"))
++            ))]
++            crate::rdn_host_bridge::native_host_end_session(self.0);
+             if self.1 == AuthConnType::Remote || self.1 == AuthConnType::ViewCamera {
+                 scrap::codec::Encoder::update(scrap::codec::EncodingUpdate::Remove(self.0));
+                 video_service::VIDEO_QOS
+@@ -6679,27 +7626,1144 @@ mod test {
      #[allow(unused)]
      use super::*;
- 
+
 -    #[cfg(target_os = "macos")]
 +    #[cfg(not(any(target_os = "android", target_os = "ios")))]
      #[test]
@@ -3574,7 +3670,7 @@ index 91a2901..2ad35e9 100644
 @@ -27,6 +27,441 @@ use std::{
      time::{self, Duration, Instant},
  };
- 
+
 +pub(crate) type InputAdapterGate = Box<dyn FnOnce() -> bool + Send>;
 +
 +#[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -4012,7 +4108,7 @@ index 91a2901..2ad35e9 100644
 +
  #[cfg(windows)]
  use winapi::um::winuser::WHEEL_DELTA;
- 
+
 @@ -450,6 +885,8 @@ lazy_static::lazy_static! {
          Arc::new(Mutex::new(Enigo::new()))
      };
@@ -4025,7 +4121,7 @@ index 91a2901..2ad35e9 100644
 @@ -473,6 +910,44 @@ fn set_relative_mouse_active(conn: i32, active: bool) {
      }
  }
- 
+
 +fn remote_mouse_button(button: i32) -> Option<MouseButton> {
 +    match button {
 +        MOUSE_BUTTON_LEFT => Some(MouseButton::Left),
@@ -4138,7 +4234,7 @@ index 91a2901..2ad35e9 100644
 +        handle_mouse_(&input.event, conn, username, argb, simulate, show_cursor);
 +    }
  }
- 
+
  // to-do: merge handle_mouse and handle_pointer
  #[allow(unreachable_code)]
  pub fn handle_pointer(evt: &PointerDeviceEvent, conn: i32) {
@@ -4192,12 +4288,12 @@ index 91a2901..2ad35e9 100644
 +        handle_pointer_(&input.event, conn);
 +    }
  }
- 
+
  pub fn fix_key_down_timeout_loop() {
 @@ -802,6 +1357,50 @@ pub fn fix_key_down_timeout_at_exit() {
      log::info!("fix_key_down_timeout_at_exit");
  }
- 
+
 +/// Releases remote input accepted before a permission revocation or session
 +/// close. Call this through the connection's ordered input queue so no earlier
 +/// queued event can re-press a key or button after cleanup.
@@ -4246,7 +4342,7 @@ index 91a2901..2ad35e9 100644
  #[cfg(target_os = "linux")]
  pub fn clear_remapped_keycode() {
 @@ -850,7 +1449,15 @@ pub fn release_device_modifiers() {
- 
+
  #[inline]
  fn release_record_key(record_key: KeysDown) {
 -    let func = move || match record_key {
@@ -4274,7 +4370,7 @@ index 91a2901..2ad35e9 100644
 -    func();
 +    }
  }
- 
+
  fn fix_key_down_timeout(force: bool) {
 @@ -1132,42 +1734,19 @@ pub fn handle_mouse_simulation_(evt: &MouseEvent, conn: i32) {
                  };
@@ -4357,7 +4453,7 @@ index 91a2901..2ad35e9 100644
 +        handle_key_(&input.event);
 +    }
  }
- 
+
  #[inline]
  #[cfg(target_os = "windows")]
  pub fn handle_key(evt: &KeyEvent) {
@@ -4384,7 +4480,7 @@ index 91a2901..2ad35e9 100644
 +        crate::portable_service::client::handle_key(&input.event);
 +    }
  }
- 
+
  #[inline]
  #[cfg(target_os = "macos")]
  pub fn handle_key(evt: &KeyEvent) {
@@ -4498,7 +4594,7 @@ index 4394213..4906aef 100644
  #[cfg(target_os = "windows")]
  use std::sync::Arc;
 +use std::sync::Mutex;
- 
+
  const OS_CREDENTIAL_LOGIN_TOTAL_IDLE_RESET_MS: i64 = 120 * 60 * 1_000;
  const OS_CREDENTIAL_LOGIN_BACKOFF_BASE_SECONDS: i64 = 15;
 diff --git a/src/server/video_qos.rs b/src/server/video_qos.rs
@@ -4513,11 +4609,11 @@ index b02f6ad..e5c27d3 100644
 +    collections::{HashSet, VecDeque},
      time::{Duration, Instant},
  };
- 
+
 @@ -101,6 +101,17 @@ struct DisplayData {
      support_changing_quality: bool,
  }
- 
+
 +#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 +pub(crate) struct RouteNetworkSnapshot {
 +    pub(crate) subscriber_count: usize,
@@ -4577,7 +4673,7 @@ index b02f6ad..e5c27d3 100644
 +        snapshot
 +    }
  }
- 
+
  // User session management
 @@ -593,3 +644,41 @@ impl RttCalculator {
          None
@@ -4637,7 +4733,7 @@ index 9d97b1c..d6891a8 100644
      GenericService::run(&vs, run);
      vs.sp
  }
- 
+
 +#[cfg(feature = "rdn-native-host")]
 +struct NativeRouteGuard(crate::rdn_host_bridge::NativeMediaRoute);
 +
@@ -4938,7 +5034,7 @@ index 1e0efc0..1b0a5e4 100644
 --- a/src/server/wayland.rs
 +++ b/src/server/wayland.rs
 @@ -10,8 +10,8 @@ use std::io;
- 
+
  use crate::{
      client::{
 -        SCRAP_OTHER_VERSION_OR_X11_REQUIRED, SCRAP_UBUNTU_HIGHER_REQUIRED,
@@ -4960,5 +5056,5 @@ index bf2e04c..b78cdad 100644
 +        false
 +    }
  }
- 
+
  impl<T: InvokeUiSession> Deref for Session<T> {

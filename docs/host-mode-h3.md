@@ -2,7 +2,7 @@
 
 - 最后更新：2026-08-08
 - 对应设计：`docs/host-mode-design.md` §8.1–§10、§12、§26.6
-- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract、H3.2b3 snapshot-authoritative Swift 入站 UI，以及 H3.3/H3.4 的输入授权、epoch、cleanup 和 semantic normalization 自动边界已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 入站 UI 真机验收/AND mode、H3.3 active session/revoke snapshot contract，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
+- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract、H3.2b3 snapshot-authoritative Swift 入站 UI，以及 H3.3/H3.4 的输入授权、epoch、cleanup、semantic normalization 与 Rust 内部 active-session authority 自动边界已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 入站 UI 真机验收/AND mode、H3.3 active-session shared snapshot/revoke/disconnect contract，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
 
 ## H3.1a verifier authority
 
@@ -145,6 +145,14 @@ connection 现在把 configured permission、Native Host instance lifetime 与 p
 RED 精确证明 Native Host + unsupported platform 仍返回 true，GREEN 与 capability/revoke/disconnect/permission/adapter/release/single-session/session-scope 回归合计 15/15；release core、built-core lifecycle/ABI、Swift 109 项与 Release App 均通过，canonical patch clean replay 后 13 文件一致。本步没有修改 Host ABI、HostSnapshot、protobuf、Hermes、根依赖或平台实现。详见 `Evidence/HostMode/2026-08-08/h3-native-block-input-capability.md`。
 
 H3.3 的 active-session snapshot/revoke/disconnect 与 App rebuild 恢复仍未完成；macOS block-input 不再需要真机“锁定”验收，因为产品已明确不广告该 no-op capability。若未来实现真实 macOS platform support，应以新的 capability/probe 与可恢复真机验收重新开启。
+
+## H3.3h1 Rust internal active-session authority
+
+已授权的 Native Host `Remote` connection 现在会在既有单会话 lease 成功、`authorized` 提交前，向独立 Rust broker 原子登记活动会话；broker 以 Host instance ID 与 core connection ID 组成不含远端输入的 canonical connection ID，并保存有界、脱敏且明确标记 untrusted 的远端显示元数据、开始时间、immutable initial capabilities 与当前 active capabilities。完全相同的重复登记幂等，异构同 ID、第二会话和无 Host binding 均 fail closed。
+
+本机 `SwitchPermission`、远端 option 变更与连接清理分别同步 capability change 和 session end；结束只挂在既有 `AuthedConnID::drop` cleanup-completion lease 后，Host unbind/reset 还会向残留 connection 发送 `Close`。事件只承载固定 allowlist capability 与脱敏状态，并继续用 `snapshotChanged` 通知后续 shared snapshot consumer。Rust broker/lifecycle 定向 2/2、完整 Rust lib 129/129、release arm64 core、带新 core 的 Swift 130/130、ScriptTests 20/20、Release App build 与 clean pinned replay 均通过。详见 `Evidence/HostMode/2026-08-08/h3-active-session-authority.md`。
+
+这是 H3.3 shared contract 的内部前置步骤，不等同于产品会话管理已完成：HostSnapshot/ABI 还没有 active-session aggregate，App rebuild 后不能恢复显示，也还没有精确 revoke/disconnect command；TCC/Aqua session transition 也不会主动刷新这份 capability 状态。当前 core 未部署到 Mini，已安装版本继续保留已验证的窗口生命周期修复。
 
 ## H3.4a macOS input-adapter epoch gate
 

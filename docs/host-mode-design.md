@@ -1481,6 +1481,8 @@ flowchart TD
 
 > 真机生命周期修复（2026-08-08）：build `20260808124438` 在 Mini 上的“自行关闭”不是 crash。系统日志显示唯一窗口先关闭，AppKit 随后正常 terminate，LaunchServices 记录 exit status 0；根因是产品 App 无条件把 last-window close 当作进程退出，而 `applicationWillTerminate` 会按设计停止当前 in-process Host。现在 Host runtime active 时关闭最后窗口不再终止进程，Dock reopen 会恢复窗口；非 Host 会话与显式 Quit 保持原语义。策略测试 2/2、Swift 130 项、ScriptTests 20/20 和 Release executable build 通过，真机 close/reopen 仍待下一包。详见 `Evidence/HostMode/2026-08-08/h3-active-host-window-lifecycle.md`。
 
+> 更新（2026-08-08）：**H3.3h1 Rust internal active-session authority 已完成**。已授权 Remote connection 现在在既有单会话 lease 内登记唯一 broker snapshot，使用 canonical connection ID、有界且标记 untrusted 的显示元数据、immutable initial capabilities 与当前 active capabilities；本机/远端 permission transition、cleanup-completion end 与 Host reset/Close 共用该 authority，重复/冲突/无 binding 均 fail closed。Rust 定向 2/2、完整 129/129、release core、built-core Swift 130/130、ScriptTests 20/20、Release App 与 20 文件 clean pinned replay 均通过。本步未改 Host ABI/schema、protobuf 或 Hermes，也未部署到 Mini；shared active-session snapshot、精确 revoke/disconnect、App rebuild 恢复与 TCC/session transition 同步仍待下一步，不能据此宣称 H3.3 完成。详见 `Evidence/HostMode/2026-08-08/h3-active-session-authority.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
