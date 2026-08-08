@@ -22,10 +22,14 @@ package enum HostAgentXPCProcessIdentityState: Equatable, Sendable {
 /// exactly one authoritative Host instance. Any identity contradiction is
 /// terminal so a later IPC owner cannot handshake under ambiguous identity.
 package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
+    package typealias InvalidationObserver = @Sendable () -> Void
+
     private let lock = NSLock()
     private let agentBuildID: String
     private let agentBootID: String
     private var state: HostAgentXPCProcessIdentityState = .waitingForHostInstance
+    private var invalidationObserver: InvalidationObserver?
+    private var invalidationDelivered = false
 
     package static func makeProduct(
         agentBuildID: String,
@@ -50,14 +54,16 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
         hostInstanceID: String
     ) -> HostAgentXPCProcessIdentityBindResult {
         lock.lock()
-        defer { lock.unlock() }
 
         if case .invalidated = state {
+            lock.unlock()
             return .rejected(.invalidated)
         }
         guard HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID)
         else {
-            state = .invalidated
+            let observer = transitionToInvalidatedLocked()
+            lock.unlock()
+            observer?()
             return .rejected(.invalidHostInstance)
         }
         switch state {
@@ -68,31 +74,84 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
                     hostInstanceID: hostInstanceID,
                     agentBootID: agentBootID
                 ))
+                lock.unlock()
                 return .bound
             } catch {
-                state = .invalidated
+                let observer = transitionToInvalidatedLocked()
+                lock.unlock()
+                observer?()
                 return .rejected(.invalidHostInstance)
             }
         case .ready(let identity):
             guard identity.hostInstanceID == hostInstanceID else {
-                state = .invalidated
+                let observer = transitionToInvalidatedLocked()
+                lock.unlock()
+                observer?()
                 return .rejected(.conflictingHostInstance)
             }
+            lock.unlock()
             return .unchanged
         case .invalidated:
+            lock.unlock()
             return .rejected(.invalidated)
         }
     }
 
     package func invalidate() {
         lock.lock()
-        state = .invalidated
+        let observer = transitionToInvalidatedLocked()
         lock.unlock()
+        observer?()
+    }
+
+    /// Installs the sole process-lifetime teardown observer. If identity was
+    /// already invalidated, delivery occurs synchronously after releasing the
+    /// authority lock. A second observer is rejected without replacement.
+    @discardableResult
+    package func installInvalidationObserver(
+        _ observer: @escaping InvalidationObserver
+    ) -> Bool {
+        lock.lock()
+        guard invalidationObserver == nil else {
+            lock.unlock()
+            return false
+        }
+        invalidationObserver = observer
+        let shouldDeliver: Bool
+        if case .invalidated = state, !invalidationDelivered {
+            invalidationDelivered = true
+            shouldDeliver = true
+        } else {
+            shouldDeliver = false
+        }
+        lock.unlock()
+        if shouldDeliver { observer() }
+        return true
+    }
+
+    /// Serializes a connection's handshake-only configuration and resume with
+    /// identity invalidation. The body must not re-enter this authority.
+    package func withReadyIdentityForAdmission<T>(
+        _ body: (HostAgentXPCWireAgentIdentity) -> T
+    ) -> T? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard case .ready(let identity) = state else { return nil }
+        return body(identity)
     }
 
     package func snapshot() -> HostAgentXPCProcessIdentityState {
         lock.lock()
         defer { lock.unlock() }
         return state
+    }
+
+    private func transitionToInvalidatedLocked() -> InvalidationObserver? {
+        state = .invalidated
+        guard !invalidationDelivered, let invalidationObserver else {
+            return nil
+        }
+        invalidationDelivered = true
+        return invalidationObserver
     }
 }

@@ -1594,6 +1594,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.3c3 snapshot/XPC identity safety synchronization 已完成自动实现**。snapshot refresh coordinator 的 bind 现在强制同时提供一次性 identity invalidation callback；后续 Core snapshot copy 失败或 publish 精确判定 Host instance mismatch 时，以固定脱敏 reason 在 coordinator lock 外至多通知一次，真实产品通过 weak lifetime 与 running gate 永久 invalidate XPC identity。stale event sequence/observedAt 仍只按 snapshot policy 拒绝或降级，不被误判为 process identity contradiction；后续 snapshot 恢复也不能复活 identity。initial failure/启动窗口矛盾会使首次 bind fail closed 并走既有 sanitized termination。当前仍未启用 Agent entry、listener/connection/interface installation；H4.2k 继续全拒绝。未修改 Host Control/Media ABI、XPC schema、Rust/Hermes/SMAppService/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-snapshot-identity-synchronization.md`。
 
+> 更新（2026-08-08）：**H4.3c4 identity-authorized handshake connection lifecycle 已完成自动实现**。H4.2k shell 现在只有在 fixed listener、H4.2j peer gate 与 process identity ready 同时成立时，才在 identity authority 的原子 admission 临界区内安装 H4.3b 唯一 interface/immutable handler、设置 interruption/invalidation cleanup、登记活动连接并 resume；waiting/invalidated/cancelled 均在配置前拒绝。authority 新增唯一 invalidation observer，Host identity 矛盾或 termination 会在锁外至多通知一次，owner 随即 terminal cancel 并清空/失效所有连接；interruption/invalidation 清理幂等。活动 handshake connection 固定最多 8 条并在配置前预留容量，第 9 条 fail closed。diagnostics 仅保留脱敏 saturating counts，旧 interface-unavailable 计数更名为真实 handshake-unavailable。当前 listener 仍未 activate、Agent entry 仍禁用，且 connection 只有 handshake selector，不含 snapshot/event/Host command。未修改 Host Control/Media ABI、XPC schema/selector、Rust/Hermes/SMAppService/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-handshake-admission-lifecycle.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
