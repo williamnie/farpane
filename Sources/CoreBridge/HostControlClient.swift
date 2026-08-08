@@ -1,6 +1,13 @@
 import CoreBridgeShim
 import Foundation
 
+package enum HostMediaSubmissionDropReason: Equatable, Sendable {
+    case networkBackpressure
+    case reconfigure
+    case invalidFrame
+    case shutdown
+}
+
 /// Contract errors for the Host Control ABI (§8.1). Codes mirror the stable
 /// `RDN_HOST_ERR_*` values so callers can distinguish fail-closed states.
 public enum HostControlError: Error, CustomStringConvertible {
@@ -13,6 +20,9 @@ public enum HostControlError: Error, CustomStringConvertible {
     case create(Int32)
     case start(Int32)
     case command(Int32)
+    case permanentPassword(Int32)
+    case invalidCommandEnvelope
+    case sensitiveCommandRequiresDedicatedABI
     case snapshot(Int32)
     case snapshotDecode(String)
     case stop(Int32)
@@ -29,6 +39,10 @@ public enum HostControlError: Error, CustomStringConvertible {
         case .create(let code): return "host create failed: \(code)"
         case .start(let code): return "host start failed: \(code)"
         case .command(let code): return "host command rejected: \(code)"
+        case .permanentPassword(let code): return "permanent password rejected: \(code)"
+        case .invalidCommandEnvelope: return "host command envelope is invalid"
+        case .sensitiveCommandRequiresDedicatedABI:
+            return "sensitive host command requires the dedicated secret-buffer ABI"
         case .snapshot(let code): return "host snapshot copy failed: \(code)"
         case .snapshotDecode(let message): return "host snapshot decode failed: \(message)"
         case .stop(let code): return "host stop failed: \(code)"
@@ -38,7 +52,161 @@ public enum HostControlError: Error, CustomStringConvertible {
 
     public var isExpectedMediaDrop: Bool {
         guard case .media(let code) = self else { return false }
-        return code == -8 || code == -7 || code == -3
+        return code == Int32(RDN_HOST_ERR_BACKPRESSURE)
+            || code == Int32(RDN_HOST_ERR_STALE_EPOCH)
+            || code == Int32(RDN_HOST_ERR_BAD_STATE)
+    }
+
+    /// A packet rejected by the bounded encoded queue may be referenced by
+    /// later VideoToolbox output. Arm a fresh IDR to bound that missing chain;
+    /// stale routes and shutdowns must not affect a new route.
+    public var requiresMediaKeyframeRecovery: Bool {
+        guard case .media(let code) = self else { return false }
+        return code == Int32(RDN_HOST_ERR_BACKPRESSURE)
+    }
+
+    public var permanentPasswordFailure: HostPermanentPasswordFailure? {
+        guard case .permanentPassword(let code) = self else { return nil }
+        switch code {
+        case Int32(RDN_HOST_ERR_SECRET_EMPTY): return .empty
+        case Int32(RDN_HOST_ERR_SECRET_TOO_SHORT): return .tooShort
+        case Int32(RDN_HOST_ERR_SECRET_TOO_LONG): return .tooLong
+        case Int32(RDN_HOST_ERR_SECRET_OUTER_WHITESPACE): return .outerWhitespace
+        case Int32(RDN_HOST_ERR_SECRET_INVALID_UTF8): return .invalidUTF8
+        case Int32(RDN_HOST_ERR_SECRET_FORBIDDEN_CHARACTER): return .forbiddenCharacter
+        case Int32(RDN_HOST_ERR_CHANGE_DISABLED): return .changeDisabled
+        case Int32(RDN_HOST_ERR_STORAGE): return .storage
+        default: return .unknown
+        }
+    }
+
+    /// Classifies only stable Host Media submit rejections whose production
+    /// meaning is known. Internal or future codes stay nil so telemetry cannot
+    /// turn an unknown failure into a misleading zero/known drop reason.
+    package var mediaSubmissionDropReason: HostMediaSubmissionDropReason? {
+        guard case .media(let code) = self else { return nil }
+        switch code {
+        case Int32(RDN_HOST_ERR_BACKPRESSURE):
+            return .networkBackpressure
+        case Int32(RDN_HOST_ERR_STALE_EPOCH):
+            return .reconfigure
+        case Int32(RDN_HOST_ERR_BAD_STATE):
+            return .shutdown
+        case Int32(RDN_HOST_ERR_INVALID_ARG),
+             Int32(RDN_HOST_ERR_ABI_MISMATCH),
+             Int32(RDN_HOST_ERR_NOT_SUPPORTED),
+             Int32(RDN_HOST_ERR_VALIDATION),
+             Int32(RDN_HOST_ERR_PACKET_TOO_LARGE),
+             Int32(RDN_HOST_ERR_NON_MONOTONIC_PTS),
+             Int32(RDN_HOST_ERR_MISSING_PARAMETER_SETS),
+             Int32(RDN_HOST_ERR_CODEC_MISMATCH):
+            return .invalidFrame
+        default:
+            return nil
+        }
+    }
+}
+
+public enum HostPermanentPasswordFailure: Equatable, Sendable {
+    case empty
+    case tooShort
+    case tooLong
+    case outerWhitespace
+    case invalidUTF8
+    case forbiddenCharacter
+    case changeDisabled
+    case storage
+    case unknown
+}
+
+/// Keeps secrets out of the low-frequency JSON command channel (§8.1, §9.3).
+///
+/// Permanent-password input must eventually use a dedicated mutable byte
+/// buffer ABI so both caller and callee can wipe it. JSONSerialization creates
+/// immutable/copying storage and is therefore never an acceptable transport
+/// for a password, credential, token, private key, or recovery material.
+package enum HostCommandEnvelopePolicy {
+    private static let reservedKeys = Set(["commandid", "name"])
+    private static let sensitiveKeyFragments = [
+        "password", "passcode", "credential", "secret", "token",
+        "privatekey", "recoverykey",
+    ]
+
+    package static func envelope(
+        commandName: String,
+        commandID: String,
+        payload: [String: Any]
+    ) throws -> [String: Any] {
+        guard !commandName.isEmpty,
+              !commandID.isEmpty,
+              commandName.utf8.count <= 128,
+              commandID.utf8.count <= 128
+        else {
+            throw HostControlError.invalidCommandEnvelope
+        }
+        if normalized(commandName) == "setpermanentpassword" {
+            throw HostControlError.sensitiveCommandRequiresDedicatedABI
+        }
+        try validateDictionary(payload, rejectReservedKeys: true)
+        var envelope = payload
+        envelope["commandId"] = commandID
+        envelope["name"] = commandName
+        return envelope
+    }
+
+    private static func validateDictionary(
+        _ dictionary: [String: Any],
+        rejectReservedKeys: Bool
+    ) throws {
+        for (key, value) in dictionary {
+            let normalizedKey = normalized(key)
+            guard !rejectReservedKeys || !reservedKeys.contains(normalizedKey) else {
+                throw HostControlError.invalidCommandEnvelope
+            }
+            guard !sensitiveKeyFragments.contains(where: normalizedKey.contains) else {
+                throw HostControlError.sensitiveCommandRequiresDedicatedABI
+            }
+            try validateValue(value)
+        }
+    }
+
+    private static func validateValue(_ value: Any) throws {
+        if value is Data || value is NSData {
+            throw HostControlError.sensitiveCommandRequiresDedicatedABI
+        }
+        if let dictionary = value as? [String: Any] {
+            try validateDictionary(dictionary, rejectReservedKeys: false)
+            return
+        }
+        if let array = value as? [Any] {
+            for element in array { try validateValue(element) }
+        }
+    }
+
+    private static func normalized(_ value: String) -> String {
+        String(value.lowercased().unicodeScalars.filter {
+            CharacterSet.alphanumerics.contains($0)
+        })
+    }
+}
+
+/// Owns the Swift half of the dedicated secret-buffer contract. The caller's
+/// mutable Data is wiped after both success and thrown/error paths; Rust also
+/// wipes the same bytes before its C ABI call returns.
+package enum HostSecretBufferPolicy {
+    package static func withMutableBytes<Result>(
+        _ secret: inout Data,
+        _ body: (UnsafeMutablePointer<UInt8>?, Int) throws -> Result
+    ) rethrows -> Result {
+        defer {
+            if !secret.isEmpty {
+                secret.resetBytes(in: 0..<secret.count)
+            }
+        }
+        return try secret.withUnsafeMutableBytes { rawBuffer in
+            let buffer = rawBuffer.bindMemory(to: UInt8.self)
+            return try body(buffer.baseAddress, buffer.count)
+        }
     }
 }
 
@@ -145,9 +313,23 @@ public struct HostCoreSnapshot: Sendable {
     public let registrationStatus: String
     public let temporaryPasswordPolicy: String
     public let revealedTemporaryPassword: String?
+    public let passwordPolicy: HostPermanentPasswordPolicy
     public let lastError: String?
     public let observedAt: UInt64
     public let rawJSON: Data
+}
+
+public struct HostPermanentPasswordPolicy: Sendable {
+    public let localPasswordSet: Bool
+    public let effectivePasswordSet: Bool
+    public let usingPresetPassword: Bool
+    public let changeAllowed: Bool
+    public let strengthPolicyVersion: Int
+    public let minimumCharacters: Int
+    public let maximumCharacters: Int
+    public let maximumUTF8Bytes: Int
+    public let rejectsControlCharacters: Bool
+    public let rejectsOuterWhitespace: Bool
 }
 
 /// Versioned event envelope delivered on the host event channel (§8.5).
@@ -225,6 +407,94 @@ public struct HostMediaDiagnostic: Sendable {
     public let isKeyframe: Bool
     public let hasParameterSets: Bool
     public let subscriberCount: UInt32
+}
+
+/// Low-frequency, aggregate occupancy sampled at the production Rust encoded
+/// queue. This event is carried by the existing Host event callback and does
+/// not expose payload bytes, peer identity, transport credentials, or server
+/// material.
+public struct HostMediaQueueDiagnostic: Sendable {
+    public enum Kind: String, Sendable {
+        case sample
+        case routeStopped
+    }
+
+    public let kind: Kind
+    public let connectionEpoch: UInt64
+    public let codecEpoch: UInt64
+    public let displayID: UInt64
+    public let displayRevision: UInt64
+    public let currentDepth: UInt32
+    public let maximumDepth: UInt32
+    public let capacity: UInt32
+}
+
+/// Route-scoped cumulative wall-clock measurements from the synchronous
+/// RustDesk video-service loop. Dispatch wall covers subscriber channel fanout;
+/// confirmation wait covers the existing frame-controller fetch wait. Neither
+/// value is encryption CPU time, socket-send time, RTT, nor remote ACK latency.
+public struct HostMediaWriterDiagnostic: Sendable {
+    public enum Kind: String, Sendable {
+        case sample
+        case routeStopped
+    }
+
+    public let kind: Kind
+    public let connectionEpoch: UInt64
+    public let codecEpoch: UInt64
+    public let displayID: UInt64
+    public let displayRevision: UInt64
+    public let cycles: UInt64
+    public let subscriberDispatches: UInt64
+    public let dispatchWallTotalUS: UInt64
+    public let maximumDispatchWallUS: UInt64
+    public let confirmationWaitTotalUS: UInt64
+    public let maximumConfirmationWaitUS: UInt64
+    public let completedConfirmations: UInt64
+    public let timedOutConfirmations: UInt64
+}
+
+/// Low-frequency route-scoped network estimates from RustDesk's existing QoS
+/// TestDelay path. Missing samples remain nil; no peer identity, transport
+/// classification, packet-loss estimate, or server material is exported.
+public struct HostMediaNetworkDiagnostic: Sendable {
+    public enum Kind: String, Sendable {
+        case sample
+        case routeStopped
+    }
+
+    public let kind: Kind
+    public let connectionEpoch: UInt64
+    public let codecEpoch: UInt64
+    public let displayID: UInt64
+    public let displayRevision: UInt64
+    public let subscriberCount: UInt32
+    public let qosSubscriberCount: UInt32
+    public let delaySampledSubscribers: UInt32
+    public let rttSampledSubscribers: UInt32
+    public let responseDelayedSubscribers: UInt32
+    public let worstNetworkDelayMS: UInt32?
+    public let worstRTTMS: UInt32?
+}
+
+/// Route-scoped transport classification retained by the Rust connection
+/// lifecycle registry. Only aggregate counts are exported; unknown remains an
+/// explicit category instead of being inferred as direct or relay.
+public struct HostMediaTransportDiagnostic: Sendable {
+    public enum Kind: String, Sendable {
+        case sample
+        case routeStopped
+    }
+
+    public let kind: Kind
+    public let connectionEpoch: UInt64
+    public let codecEpoch: UInt64
+    public let displayID: UInt64
+    public let displayRevision: UInt64
+    public let subscriberCount: UInt32
+    public let directSubscribers: UInt32
+    public let relaySubscribers: UInt32
+    public let unknownSubscribers: UInt32
 }
 
 public extension HostCoreEvent {
@@ -335,6 +605,209 @@ public extension HostCoreEvent {
         )
     }
 
+    var mediaQueueDiagnostic: HostMediaQueueDiagnostic? {
+        guard eventType == "mediaQueueDiagnostic",
+              let object = try? JSONSerialization.jsonObject(with: rawJSON),
+              let envelope = object as? [String: Any],
+              let payload = envelope["payload"] as? [String: Any],
+              let rawKind = payload["kind"] as? String,
+              let kind = HostMediaQueueDiagnostic.Kind(rawValue: rawKind)
+        else { return nil }
+        func uint64(_ key: String) -> UInt64? {
+            guard let number = payload[key] as? NSNumber,
+                  number.int64Value >= 0,
+                  number.doubleValue.rounded(.towardZero) == number.doubleValue
+            else { return nil }
+            return number.uint64Value
+        }
+        guard let connectionEpoch = uint64("connectionEpoch"), connectionEpoch > 0,
+              let codecEpoch = uint64("codecEpoch"), codecEpoch > 0,
+              let displayID = uint64("displayId"),
+              let displayRevision = uint64("displayRevision"), displayRevision > 0,
+              let currentDepth = uint64("currentDepth"), currentDepth <= UInt32.max,
+              let maximumDepth = uint64("maximumDepth"), maximumDepth <= UInt32.max,
+              let capacity = uint64("capacity"), capacity > 0, capacity <= UInt32.max,
+              currentDepth <= maximumDepth,
+              maximumDepth <= capacity
+        else { return nil }
+        return HostMediaQueueDiagnostic(
+            kind: kind,
+            connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch,
+            displayID: displayID,
+            displayRevision: displayRevision,
+            currentDepth: UInt32(currentDepth),
+            maximumDepth: UInt32(maximumDepth),
+            capacity: UInt32(capacity)
+        )
+    }
+
+    var mediaWriterDiagnostic: HostMediaWriterDiagnostic? {
+        guard eventType == "mediaWriterDiagnostic",
+              let object = try? JSONSerialization.jsonObject(with: rawJSON),
+              let envelope = object as? [String: Any],
+              let payload = envelope["payload"] as? [String: Any],
+              let rawKind = payload["kind"] as? String,
+              let kind = HostMediaWriterDiagnostic.Kind(rawValue: rawKind)
+        else { return nil }
+        func uint64(_ key: String) -> UInt64? {
+            guard let number = payload[key] as? NSNumber,
+                  number.int64Value >= 0,
+                  number.doubleValue.isFinite,
+                  number.doubleValue.rounded(.towardZero) == number.doubleValue
+            else { return nil }
+            return number.uint64Value
+        }
+        guard let connectionEpoch = uint64("connectionEpoch"), connectionEpoch > 0,
+              let codecEpoch = uint64("codecEpoch"), codecEpoch > 0,
+              let displayID = uint64("displayId"),
+              let displayRevision = uint64("displayRevision"), displayRevision > 0,
+              let cycles = uint64("cycles"),
+              let subscriberDispatches = uint64("subscriberDispatches"),
+              let dispatchWallTotalUS = uint64("dispatchWallTotalUs"),
+              let maximumDispatchWallUS = uint64("maximumDispatchWallUs"),
+              let confirmationWaitTotalUS = uint64("confirmationWaitTotalUs"),
+              let maximumConfirmationWaitUS = uint64("maximumConfirmationWaitUs"),
+              let completedConfirmations = uint64("completedConfirmations"),
+              let timedOutConfirmations = uint64("timedOutConfirmations"),
+              maximumDispatchWallUS <= dispatchWallTotalUS,
+              maximumConfirmationWaitUS <= confirmationWaitTotalUS
+        else { return nil }
+        let (confirmationCycles, overflow) = completedConfirmations.addingReportingOverflow(
+            timedOutConfirmations
+        )
+        guard !overflow, confirmationCycles == cycles else { return nil }
+        if cycles == 0 {
+            guard subscriberDispatches == 0,
+                  dispatchWallTotalUS == 0,
+                  maximumDispatchWallUS == 0,
+                  confirmationWaitTotalUS == 0,
+                  maximumConfirmationWaitUS == 0
+            else { return nil }
+        } else {
+            guard subscriberDispatches >= cycles else { return nil }
+        }
+        return HostMediaWriterDiagnostic(
+            kind: kind,
+            connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch,
+            displayID: displayID,
+            displayRevision: displayRevision,
+            cycles: cycles,
+            subscriberDispatches: subscriberDispatches,
+            dispatchWallTotalUS: dispatchWallTotalUS,
+            maximumDispatchWallUS: maximumDispatchWallUS,
+            confirmationWaitTotalUS: confirmationWaitTotalUS,
+            maximumConfirmationWaitUS: maximumConfirmationWaitUS,
+            completedConfirmations: completedConfirmations,
+            timedOutConfirmations: timedOutConfirmations
+        )
+    }
+
+    var mediaNetworkDiagnostic: HostMediaNetworkDiagnostic? {
+        guard eventType == "mediaNetworkDiagnostic",
+              let object = try? JSONSerialization.jsonObject(with: rawJSON),
+              let envelope = object as? [String: Any],
+              let payload = envelope["payload"] as? [String: Any],
+              let rawKind = payload["kind"] as? String,
+              let kind = HostMediaNetworkDiagnostic.Kind(rawValue: rawKind)
+        else { return nil }
+        func uint64(_ key: String) -> UInt64? {
+            guard let number = payload[key] as? NSNumber,
+                  number.int64Value >= 0,
+                  number.doubleValue.isFinite,
+                  number.doubleValue.rounded(.towardZero) == number.doubleValue
+            else { return nil }
+            return number.uint64Value
+        }
+        func uint32(_ key: String) -> UInt32? {
+            guard let value = uint64(key), value <= UInt32.max else { return nil }
+            return UInt32(value)
+        }
+        func nullableUInt32(_ key: String) -> UInt32?? {
+            guard payload.keys.contains(key) else { return nil }
+            if payload[key] is NSNull { return .some(nil) }
+            guard let value = uint32(key) else { return nil }
+            return .some(value)
+        }
+        guard let connectionEpoch = uint64("connectionEpoch"), connectionEpoch > 0,
+              let codecEpoch = uint64("codecEpoch"), codecEpoch > 0,
+              let displayID = uint64("displayId"),
+              let displayRevision = uint64("displayRevision"), displayRevision > 0,
+              let subscriberCount = uint32("subscriberCount"),
+              let qosSubscriberCount = uint32("qosSubscriberCount"),
+              let delaySampledSubscribers = uint32("delaySampledSubscribers"),
+              let rttSampledSubscribers = uint32("rttSampledSubscribers"),
+              let responseDelayedSubscribers = uint32("responseDelayedSubscribers"),
+              let parsedNetworkDelay = nullableUInt32("worstNetworkDelayMs"),
+              let parsedRTT = nullableUInt32("worstRttMs"),
+              qosSubscriberCount <= subscriberCount,
+              delaySampledSubscribers <= qosSubscriberCount,
+              rttSampledSubscribers <= delaySampledSubscribers,
+              responseDelayedSubscribers <= qosSubscriberCount,
+              (delaySampledSubscribers == 0) == (parsedNetworkDelay == nil),
+              (rttSampledSubscribers == 0) == (parsedRTT == nil)
+        else { return nil }
+        return HostMediaNetworkDiagnostic(
+            kind: kind,
+            connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch,
+            displayID: displayID,
+            displayRevision: displayRevision,
+            subscriberCount: subscriberCount,
+            qosSubscriberCount: qosSubscriberCount,
+            delaySampledSubscribers: delaySampledSubscribers,
+            rttSampledSubscribers: rttSampledSubscribers,
+            responseDelayedSubscribers: responseDelayedSubscribers,
+            worstNetworkDelayMS: parsedNetworkDelay,
+            worstRTTMS: parsedRTT
+        )
+    }
+
+    var mediaTransportDiagnostic: HostMediaTransportDiagnostic? {
+        guard eventType == "mediaTransportDiagnostic",
+              let object = try? JSONSerialization.jsonObject(with: rawJSON),
+              let envelope = object as? [String: Any],
+              let payload = envelope["payload"] as? [String: Any],
+              let rawKind = payload["kind"] as? String,
+              let kind = HostMediaTransportDiagnostic.Kind(rawValue: rawKind)
+        else { return nil }
+        func uint64(_ key: String) -> UInt64? {
+            guard let number = payload[key] as? NSNumber,
+                  number.int64Value >= 0,
+                  number.doubleValue.isFinite,
+                  number.doubleValue.rounded(.towardZero) == number.doubleValue
+            else { return nil }
+            return number.uint64Value
+        }
+        func uint32(_ key: String) -> UInt32? {
+            guard let value = uint64(key), value <= UInt32.max else { return nil }
+            return UInt32(value)
+        }
+        guard let connectionEpoch = uint64("connectionEpoch"), connectionEpoch > 0,
+              let codecEpoch = uint64("codecEpoch"), codecEpoch > 0,
+              let displayID = uint64("displayId"),
+              let displayRevision = uint64("displayRevision"), displayRevision > 0,
+              let subscriberCount = uint32("subscriberCount"),
+              let directSubscribers = uint32("directSubscribers"),
+              let relaySubscribers = uint32("relaySubscribers"),
+              let unknownSubscribers = uint32("unknownSubscribers"),
+              UInt64(directSubscribers) + UInt64(relaySubscribers)
+                + UInt64(unknownSubscribers) == UInt64(subscriberCount)
+        else { return nil }
+        return HostMediaTransportDiagnostic(
+            kind: kind,
+            connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch,
+            displayID: displayID,
+            displayRevision: displayRevision,
+            subscriberCount: subscriberCount,
+            directSubscribers: directSubscribers,
+            relaySubscribers: relaySubscribers,
+            unknownSubscribers: unknownSubscribers
+        )
+    }
+
 }
 
 public extension HostMediaControl {
@@ -349,6 +822,42 @@ public extension HostMediaControl {
 }
 
 public extension HostMediaDiagnostic {
+    func matchesRoute(_ route: HostMediaControl) -> Bool {
+        connectionEpoch == route.connectionEpoch
+            && codecEpoch == route.codecEpoch
+            && displayID == route.displayID
+            && displayRevision == route.displayRevision
+    }
+}
+
+public extension HostMediaQueueDiagnostic {
+    func matchesRoute(_ route: HostMediaControl) -> Bool {
+        connectionEpoch == route.connectionEpoch
+            && codecEpoch == route.codecEpoch
+            && displayID == route.displayID
+            && displayRevision == route.displayRevision
+    }
+}
+
+public extension HostMediaWriterDiagnostic {
+    func matchesRoute(_ route: HostMediaControl) -> Bool {
+        connectionEpoch == route.connectionEpoch
+            && codecEpoch == route.codecEpoch
+            && displayID == route.displayID
+            && displayRevision == route.displayRevision
+    }
+}
+
+public extension HostMediaNetworkDiagnostic {
+    func matchesRoute(_ route: HostMediaControl) -> Bool {
+        connectionEpoch == route.connectionEpoch
+            && codecEpoch == route.codecEpoch
+            && displayID == route.displayID
+            && displayRevision == route.displayRevision
+    }
+}
+
+public extension HostMediaTransportDiagnostic {
     func matchesRoute(_ route: HostMediaControl) -> Bool {
         connectionEpoch == route.connectionEpoch
             && codecEpoch == route.codecEpoch
@@ -498,8 +1007,11 @@ public final class HostControlClient: @unchecked Sendable {
     /// Sends a versioned command envelope (§8.4). `payload` entries are merged
     /// into the envelope body.
     public func command(_ name: String, commandId: String = UUID().uuidString, payload: [String: Any] = [:]) throws {
-        var envelope: [String: Any] = ["commandId": commandId, "name": name]
-        for (key, value) in payload { envelope[key] = value }
+        let envelope = try HostCommandEnvelopePolicy.envelope(
+            commandName: name,
+            commandID: commandId,
+            payload: payload
+        )
         let data = try JSONSerialization.data(withJSONObject: envelope)
         lock.lock()
         let result: Int32
@@ -514,6 +1026,26 @@ public final class HostControlClient: @unchecked Sendable {
         lock.unlock()
         guard result == Int32(RDN_HOST_OK) else {
             throw HostControlError.command(result)
+        }
+    }
+
+    /// Sends a permanent password only through the mutable secret-buffer ABI.
+    /// The supplied Data is zeroed on every return path and must not be reused.
+    public func setPermanentPassword(
+        _ passwordUTF8: inout Data,
+        commandId: String = UUID().uuidString
+    ) throws {
+        let result = HostSecretBufferPolicy.withMutableBytes(&passwordUTF8) { bytes, count in
+            lock.lock()
+            defer { lock.unlock() }
+            guard let handle = host else { return Int32(RDN_HOST_ERR_BAD_STATE) }
+            return commandId.withCString { commandID in
+                rdn_shim_host_set_permanent_password(
+                    library, handle, commandID, bytes, count)
+            }
+        }
+        guard result == Int32(RDN_HOST_OK) else {
+            throw HostControlError.permanentPassword(result)
         }
     }
 
@@ -536,16 +1068,44 @@ public final class HostControlClient: @unchecked Sendable {
         else {
             throw HostControlError.snapshotDecode("snapshot is not a JSON object")
         }
-        let presentation = json["temporaryPasswordPresentation"] as? [String: Any] ?? [:]
-        let policy = presentation["policy"] as? String ?? "redacted"
+        guard (json["schemaVersion"] as? NSNumber)?.intValue == 2,
+              let presentation = json["temporaryPasswordPresentation"] as? [String: Any],
+              let policy = presentation["policy"] as? String,
+              let passwordPolicyJSON = json["passwordPolicy"] as? [String: Any],
+              let strengthPolicy = passwordPolicyJSON["strengthPolicy"] as? [String: Any],
+              let localPasswordSet = passwordPolicyJSON["localPasswordSet"] as? Bool,
+              let effectivePasswordSet = passwordPolicyJSON["effectivePasswordSet"] as? Bool,
+              let usingPresetPassword = passwordPolicyJSON["usingPresetPassword"] as? Bool,
+              let changeAllowed = passwordPolicyJSON["changeAllowed"] as? Bool,
+              let strengthPolicyVersion = (strengthPolicy["version"] as? NSNumber)?.intValue,
+              let minimumCharacters = (strengthPolicy["minimumCharacters"] as? NSNumber)?.intValue,
+              let maximumCharacters = (strengthPolicy["maximumCharacters"] as? NSNumber)?.intValue,
+              let maximumUTF8Bytes = (strengthPolicy["maximumUtf8Bytes"] as? NSNumber)?.intValue,
+              let rejectsControlCharacters = strengthPolicy["rejectsControlCharacters"] as? Bool,
+              let rejectsOuterWhitespace = strengthPolicy["rejectsOuterWhitespace"] as? Bool
+        else {
+            throw HostControlError.snapshotDecode("snapshot password policy is missing or invalid")
+        }
         return HostCoreSnapshot(
-            schemaVersion: (json["schemaVersion"] as? NSNumber)?.intValue ?? 0,
+            schemaVersion: 2,
             hostInstanceId: json["hostInstanceId"] as? String ?? "",
             hostState: json["hostState"] as? String ?? "",
             localId: json["localId"] as? String ?? "",
             registrationStatus: json["registrationStatus"] as? String ?? "",
             temporaryPasswordPolicy: policy,
             revealedTemporaryPassword: policy == "revealed" ? presentation["value"] as? String : nil,
+            passwordPolicy: HostPermanentPasswordPolicy(
+                localPasswordSet: localPasswordSet,
+                effectivePasswordSet: effectivePasswordSet,
+                usingPresetPassword: usingPresetPassword,
+                changeAllowed: changeAllowed,
+                strengthPolicyVersion: strengthPolicyVersion,
+                minimumCharacters: minimumCharacters,
+                maximumCharacters: maximumCharacters,
+                maximumUTF8Bytes: maximumUTF8Bytes,
+                rejectsControlCharacters: rejectsControlCharacters,
+                rejectsOuterWhitespace: rejectsOuterWhitespace
+            ),
             lastError: json["lastError"] as? String,
             observedAt: UInt64((json["observedAt"] as? NSNumber)?.uint64Value ?? 0),
             rawJSON: payload

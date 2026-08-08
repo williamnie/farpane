@@ -75,7 +75,7 @@ enum HostEventRecorder {
 /// coexist with the viewer ABI v5, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
-    private static let hostABIVersion: UInt32 = 2
+    private static let hostABIVersion: UInt32 = 3
     private static let hostMediaABIVersion: UInt32 = 1
     private static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
 
@@ -137,6 +137,7 @@ final class HostBridgeContractTests: XCTestCase {
             "rdn_host_start",
             "rdn_host_stop",
             "rdn_host_command",
+            "rdn_host_set_permanent_password",
             "rdn_host_copy_snapshot",
             "rdn_host_free_bytes",
             "rdn_host_destroy",
@@ -231,6 +232,19 @@ final class HostBridgeContractTests: XCTestCase {
         let hostCommand = unsafeBitCast(
             try rawSymbol("rdn_host_command"),
             to: (@convention(c) (OpaquePointer?, UnsafePointer<UInt8>?, Int) -> Int32).self)
+        let setPermanentPassword = unsafeBitCast(
+            try rawSymbol("rdn_host_set_permanent_password"),
+            to: (@convention(c) (
+                OpaquePointer?, UnsafePointer<CChar>?, UnsafeMutablePointer<UInt8>?, Int
+            ) -> Int32).self)
+
+        var noHostSecret = Array("no-host-canary".utf8)
+        XCTAssertEqual(noHostSecret.withUnsafeMutableBufferPointer { buffer in
+            "pw-no-host".withCString { commandID in
+                setPermanentPassword(nil, commandID, buffer.baseAddress, buffer.count)
+            }
+        }, -1)
+        XCTAssertEqual(noHostSecret, [UInt8](repeating: 0, count: "no-host-canary".utf8.count))
         let copySnapshot = unsafeBitCast(
             try rawSymbol("rdn_host_copy_snapshot"),
             to: (@convention(c) (OpaquePointer?, UnsafeMutableRawPointer?) -> Int32).self)
@@ -326,6 +340,7 @@ final class HostBridgeContractTests: XCTestCase {
         let snapshotDict = liveRegistration
             ? try waitUntilRegistered(host)
             : try copyDictionary(host)
+        XCTAssertEqual(snapshotDict["schemaVersion"] as? Int, 2)
         XCTAssertEqual(
             snapshotDict["hostState"] as? String,
             liveRegistration ? "ready" : "starting")
@@ -341,6 +356,74 @@ final class HostBridgeContractTests: XCTestCase {
         } else {
             XCTFail("snapshot must carry temporaryPasswordPresentation")
         }
+        if let passwordPolicy = snapshotDict["passwordPolicy"] as? [String: Any],
+           let strengthPolicy = passwordPolicy["strengthPolicy"] as? [String: Any]
+        {
+            XCTAssertEqual(passwordPolicy["localPasswordSet"] as? Bool, false)
+            XCTAssertEqual(passwordPolicy["effectivePasswordSet"] as? Bool, false)
+            XCTAssertEqual(passwordPolicy["usingPresetPassword"] as? Bool, false)
+            XCTAssertEqual(passwordPolicy["changeAllowed"] as? Bool, true)
+            XCTAssertEqual(strengthPolicy["version"] as? Int, 1)
+            XCTAssertEqual(strengthPolicy["minimumCharacters"] as? Int, 6)
+            XCTAssertEqual(strengthPolicy["maximumCharacters"] as? Int, 128)
+            XCTAssertEqual(strengthPolicy["maximumUtf8Bytes"] as? Int, 512)
+        } else {
+            XCTFail("snapshot must carry the permanent-password policy")
+        }
+
+        func assertSetPassword(
+            _ bytes: [UInt8], expectedCode: Int32, commandID: String
+        ) {
+            var mutableBytes = bytes
+            let result = commandID.withCString { commandID in
+                mutableBytes.withUnsafeMutableBufferPointer { buffer in
+                    setPermanentPassword(host, commandID, buffer.baseAddress, buffer.count)
+                }
+            }
+            XCTAssertEqual(result, expectedCode)
+            XCTAssertEqual(mutableBytes, [UInt8](repeating: 0, count: bytes.count))
+        }
+
+        // Every accepted pointer is wiped, including stable policy rejects.
+        assertSetPassword([], expectedCode: -14, commandID: "pw-empty")
+        assertSetPassword([0xFF, 0xFE], expectedCode: -13, commandID: "pw-utf8")
+        assertSetPassword(Array("short".utf8), expectedCode: -15, commandID: "pw-short")
+        assertSetPassword(Array(" leading-space".utf8), expectedCode: -18, commandID: "pw-space")
+        assertSetPassword(Array("valid\npassword".utf8), expectedCode: -17, commandID: "pw-control")
+        assertSetPassword(
+            [UInt8](repeating: 0x61, count: 513),
+            expectedCode: -16,
+            commandID: "pw-long")
+        var invalidCommandSecret = Array("invalid-command-canary".utf8)
+        XCTAssertEqual(invalidCommandSecret.withUnsafeMutableBufferPointer { buffer in
+            setPermanentPassword(host, nil, buffer.baseAddress, buffer.count)
+        }, -1)
+        XCTAssertEqual(
+            invalidCommandSecret,
+            [UInt8](repeating: 0, count: "invalid-command-canary".utf8.count))
+
+        let canaryPassword = "H3-canary-9f4a"
+        assertSetPassword(Array(canaryPassword.utf8), expectedCode: 0, commandID: "pw-set")
+        let passwordSetSnapshot = try copyDictionary(host)
+        let passwordSetPolicy = try XCTUnwrap(
+            passwordSetSnapshot["passwordPolicy"] as? [String: Any])
+        XCTAssertEqual(passwordSetPolicy["localPasswordSet"] as? Bool, true)
+        XCTAssertEqual(passwordSetPolicy["effectivePasswordSet"] as? Bool, true)
+        let serializedSnapshot = String(
+            data: try JSONSerialization.data(withJSONObject: passwordSetSnapshot),
+            encoding: .utf8) ?? ""
+        XCTAssertFalse(serializedSnapshot.contains(canaryPassword))
+        XCTAssertFalse(HostEventRecorder.events.joined().contains(canaryPassword))
+
+        let clearPermanentPassword = #"{"commandId":"pw-clear","name":"clearPermanentPassword"}"#
+        XCTAssertEqual(clearPermanentPassword.utf8CString.withUnsafeBytes {
+            hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
+        }, 0)
+        let passwordClearedSnapshot = try copyDictionary(host)
+        let passwordClearedPolicy = try XCTUnwrap(
+            passwordClearedSnapshot["passwordPolicy"] as? [String: Any])
+        XCTAssertEqual(passwordClearedPolicy["localPasswordSet"] as? Bool, false)
+        XCTAssertEqual(passwordClearedPolicy["effectivePasswordSet"] as? Bool, false)
 
         // H1b media surface: capabilities are instance-scoped and ABI
         // versioned. Encoded bytes are rejected without an authoritative
@@ -437,6 +520,12 @@ final class HostBridgeContractTests: XCTestCase {
         hostDestroy(revivedHost)
 
         XCTAssertFalse(HostEventRecorder.events.isEmpty)
+        for encodedEvent in HostEventRecorder.events {
+            let data = try XCTUnwrap(encodedEvent.data(using: .utf8))
+            let object = try JSONSerialization.jsonObject(with: data)
+            let envelope = try XCTUnwrap(object as? [String: Any])
+            XCTAssertEqual(envelope["schemaVersion"] as? Int, 1)
+        }
 
     }
 

@@ -57,6 +57,7 @@ public enum HostH264EncoderError: Error, CustomStringConvertible {
     case prepare(OSStatus)
     case encode(OSStatus)
     case callback(OSStatus)
+    case frameDropped
     case malformedSample
 
     public var description: String {
@@ -67,6 +68,7 @@ public enum HostH264EncoderError: Error, CustomStringConvertible {
         case .prepare(let status): return "VTCompressionSession prepare failed: \(status)"
         case .encode(let status): return "VideoToolbox encode submit failed: \(status)"
         case .callback(let status): return "VideoToolbox encode callback failed: \(status)"
+        case .frameDropped: return "VideoToolbox dropped an H.264 frame"
         case .malformedSample: return "VideoToolbox returned a malformed H.264 sample"
         }
     }
@@ -74,9 +76,11 @@ public enum HostH264EncoderError: Error, CustomStringConvertible {
 
 private final class HostEncodeFrameContext {
     let logicalRawFrameCopyCount: Int
+    let presentationTimeUS: UInt64
 
-    init(logicalRawFrameCopyCount: Int) {
+    init(logicalRawFrameCopyCount: Int, presentationTimeUS: UInt64) {
         self.logicalRawFrameCopyCount = logicalRawFrameCopyCount
+        self.presentationTimeUS = presentationTimeUS
     }
 }
 
@@ -87,6 +91,7 @@ public final class HostH264Encoder: @unchecked Sendable {
     public typealias AccessUnitHandler = @Sendable (HostH264AccessUnit) -> Void
     public typealias StateHandler = @Sendable (HostEncoderRuntimeState) -> Void
     public typealias ErrorHandler = @Sendable (HostH264EncoderError) -> Void
+    public typealias DropHandler = @Sendable (UInt64, HostMediaDropReason) -> Void
 
     public static var hardwareEncodingSupported: Bool {
         var session: VTCompressionSession?
@@ -116,6 +121,7 @@ public final class HostH264Encoder: @unchecked Sendable {
     private let onAccessUnit: AccessUnitHandler
     private let onState: StateHandler
     private let onError: ErrorHandler
+    private let onDrop: DropHandler
     private var session: VTCompressionSession?
     private var forceNextKeyframe = true
     private var reportedRuntimeState = false
@@ -125,6 +131,7 @@ public final class HostH264Encoder: @unchecked Sendable {
         sourcePixelFormat: OSType,
         onAccessUnit: @escaping AccessUnitHandler,
         onState: @escaping StateHandler,
+        onDrop: @escaping DropHandler = { _, _ in },
         onError: @escaping ErrorHandler
     ) throws {
         guard configuration.isValid,
@@ -134,6 +141,7 @@ public final class HostH264Encoder: @unchecked Sendable {
         self.configuration = configuration
         self.onAccessUnit = onAccessUnit
         self.onState = onState
+        self.onDrop = onDrop
         self.onError = onError
 
         let encoderSpecification: [CFString: Any] = [
@@ -225,7 +233,15 @@ public final class HostH264Encoder: @unchecked Sendable {
             return value
         }
         let context = Unmanaged.passRetained(HostEncodeFrameContext(
-            logicalRawFrameCopyCount: logicalRawFrameCopyCount
+            logicalRawFrameCopyCount: logicalRawFrameCopyCount,
+            presentationTimeUS: UInt64(max(
+                0,
+                CMTimeConvertScale(
+                    presentationTime,
+                    timescale: 1_000_000,
+                    method: .default
+                ).value
+            ))
         ))
         let frameProperties: CFDictionary? = shouldForceKeyframe
             ? [kVTEncodeFrameOptionKey_ForceKeyFrame: true] as CFDictionary
@@ -244,6 +260,11 @@ public final class HostH264Encoder: @unchecked Sendable {
             context.release()
             lock.withLock { forceNextKeyframe = true }
             throw HostH264EncoderError.encode(status)
+        }
+        guard !flags.contains(.frameDropped) else {
+            context.release()
+            lock.withLock { forceNextKeyframe = true }
+            throw HostH264EncoderError.frameDropped
         }
     }
 
@@ -265,17 +286,36 @@ public final class HostH264Encoder: @unchecked Sendable {
     }
 
     private static let outputCallback: VTCompressionOutputCallback = {
-        refcon, frameRefcon, status, _, sampleBuffer in
+        refcon, frameRefcon, status, infoFlags, sampleBuffer in
         let frameContext = frameRefcon.map {
             Unmanaged<HostEncodeFrameContext>.fromOpaque($0).takeRetainedValue()
         }
         guard let refcon else { return }
         let encoder = Unmanaged<HostH264Encoder>.fromOpaque(refcon).takeUnretainedValue()
         guard status == noErr else {
+            if let frameContext {
+                encoder.onDrop(
+                    frameContext.presentationTimeUS,
+                    status == kVTVideoEncoderNotAvailableNowErr
+                        ? .encoderBackpressure
+                        : .invalidFrame
+                )
+            }
             encoder.onError(.callback(status))
             return
         }
+        guard !infoFlags.contains(.frameDropped) else {
+            if let frameContext {
+                encoder.onDrop(frameContext.presentationTimeUS, .encoderBackpressure)
+            }
+            encoder.requestKeyframe()
+            encoder.onError(.frameDropped)
+            return
+        }
         guard let sampleBuffer, let frameContext else {
+            if let frameContext {
+                encoder.onDrop(frameContext.presentationTimeUS, .invalidFrame)
+            }
             encoder.onError(.malformedSample)
             return
         }
@@ -285,8 +325,10 @@ public final class HostH264Encoder: @unchecked Sendable {
                 logicalRawFrameCopyCount: frameContext.logicalRawFrameCopyCount
             )
         } catch let error as HostH264EncoderError {
+            encoder.onDrop(frameContext.presentationTimeUS, .invalidFrame)
             encoder.onError(error)
         } catch {
+            encoder.onDrop(frameContext.presentationTimeUS, .invalidFrame)
             encoder.onError(.malformedSample)
         }
     }

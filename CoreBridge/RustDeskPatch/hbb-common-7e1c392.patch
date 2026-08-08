@@ -1,0 +1,54 @@
+diff --git a/src/config.rs b/src/config.rs
+index 1391ed4..af4529e 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -1329,8 +1329,14 @@ impl Config {
+         // Keep salt stable for user-initiated permanent password updates.
+         // Salt should only change when service->user sync updates storage and salt as a pair.
+         Self::ensure_permanent_password_salt(config);
+-        let h1 = compute_permanent_password_h1(password, &config.salt);
+-        encode_permanent_password_encrypted_storage_from_h1(&h1)
++        let mut h1 = compute_permanent_password_h1(password, &config.salt);
++        Self::encode_permanent_password_storage_and_wipe_h1(&mut h1)
++    }
++
++    fn encode_permanent_password_storage_and_wipe_h1(h1: &mut [u8; 32]) -> Option<String> {
++        let storage = encode_permanent_password_encrypted_storage_from_h1(h1);
++        sodiumoxide::utils::memzero(h1);
++        storage
+     }
+ 
+     /// Returns the locally persisted permanent password storage and salt (NOT the hard/preset one).
+@@ -3345,6 +3351,15 @@ mod tests {
+         test()
+     }
+ 
++    #[test]
++    fn test_permanent_password_h1_is_wiped_after_storage_encoding() {
++        sodiumoxide::init().unwrap();
++        let mut h1 = [0xA5; 32];
++        let storage = Config::encode_permanent_password_storage_and_wipe_h1(&mut h1);
++        assert!(storage.is_some());
++        assert_eq!(h1, [0; 32]);
++    }
++
+     #[test]
+     fn test_serialize() {
+         let cfg: Config = Default::default();
+diff --git a/src/password_security.rs b/src/password_security.rs
+index 3f5f324..2fa79dd 100644
+--- a/src/password_security.rs
++++ b/src/password_security.rs
+@@ -2,6 +2,12 @@ use crate::config::Config;
+ use sodiumoxide::{base64, crypto::secretbox};
+ use std::sync::{Arc, RwLock};
+ 
++/// Wipes caller-owned secret bytes through libsodium without requiring every
++/// embedding crate to add its own sodiumoxide dependency.
++pub fn memzero_secret(bytes: &mut [u8]) {
++    sodiumoxide::utils::memzero(bytes);
++}
++
+ lazy_static::lazy_static! {
+     pub static ref TEMPORARY_PASSWORD:Arc<RwLock<String>> = Arc::new(RwLock::new(get_auto_password()));
+ }

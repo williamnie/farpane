@@ -2,27 +2,39 @@ diff --git a/Cargo.toml b/Cargo.toml
 index d909ec3..f1bb2fd 100644
 --- a/Cargo.toml
 +++ b/Cargo.toml
-@@ -33,2 +33,4 @@ mediacodec = ["scrap/mediacodec"]
+@@ -31,6 +31,8 @@ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+ mediacodec = ["scrap/mediacodec"]
  plugin_framework = []
 +rdn-native-core = []
 +rdn-native-host = ["scrap/rdn-native-host"]
  linux-pkg-config = ["magnum-opus/linux-pkg-config", "scrap/linux-pkg-config"]
+ unix-file-copy-paste = [
+     "dep:x11-clipboard",
 diff --git a/libs/scrap/Cargo.toml b/libs/scrap/Cargo.toml
 index 505eca2..11fb50e 100644
 --- a/libs/scrap/Cargo.toml
 +++ b/libs/scrap/Cargo.toml
-@@ -12,2 +12,3 @@ edition = "2018"
+@@ -10,6 +10,7 @@ authors = ["Ram <quadrupleslap@gmail.com>"]
+ edition = "2018"
+ 
  [features]
 +rdn-native-host = []
  wayland = ["gstreamer", "gstreamer-app", "gstreamer-video", "dbus", "tracing", "zbus"]
-@@ -67,2 +68 @@ optional = true
+ mediacodec = ["ndk"]
+ linux-pkg-config = ["dep:pkg-config"]
+@@ -65,4 +66,3 @@ optional = true
+ 
+ [target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
  nokhwa = { git = "https://github.com/rustdesk-org/nokhwa.git", branch = "fix_from_raw_parts", features = ["input-native"] }
 -
 diff --git a/libs/scrap/src/common/codec.rs b/libs/scrap/src/common/codec.rs
 index 9b072e1..7302b5a 100644
 --- a/libs/scrap/src/common/codec.rs
 +++ b/libs/scrap/src/common/codec.rs
-@@ -3,3 +3,6 @@ use std::{
+@@ -1,7 +1,10 @@
+ use std::{
+     collections::HashMap,
      ops::{Deref, DerefMut},
 -    sync::{Arc, Mutex},
 +    sync::{
@@ -30,9 +42,12 @@ index 9b072e1..7302b5a 100644
 +        Arc, Mutex,
 +    },
      time::Instant,
-@@ -47,2 +50,16 @@ lazy_static::lazy_static! {
--
-+
+ };
+ 
+@@ -45,6 +48,20 @@ lazy_static::lazy_static! {
+     static ref USABLE_ENCODING: Arc<Mutex<Option<SupportedEncoding>>> = Arc::new(Mutex::new(None));
+ }
+ 
 +#[cfg(feature = "rdn-native-host")]
 +static NATIVE_H264_ENCODING: AtomicBool = AtomicBool::new(false);
 +#[cfg(feature = "rdn-native-host")]
@@ -48,7 +63,11 @@ index 9b072e1..7302b5a 100644
 +pub fn set_native_encoding_capabilities(_h264: bool, _h265: bool) {}
 +
  pub const ENCODE_NEED_SWITCH: &'static str = "ENCODE_NEED_SWITCH";
-@@ -232,6 +249,14 @@ impl Encoder {
+ 
+ #[derive(Debug, Clone)]
+@@ -230,10 +247,18 @@ impl Encoder {
+                     HwRamEncoder::try_get(CodecFormat::H265).map_or(None, |c| Some(c.name));
+             }
          }
 -        let h264_useable =
 -            _all_support_h264_decoding && (h264vram_encoding || h264hw_encoding.is_some());
@@ -67,17 +86,28 @@ index 9b072e1..7302b5a 100644
 +        let h265_useable = _all_support_h265_decoding
 +            && (native_h265_encoding || h265vram_encoding || h265hw_encoding.is_some());
          let mut format = ENCODE_CODEC_FORMAT.lock().unwrap();
-@@ -297,3 +322,3 @@ impl Encoder {
+         let preferences: Vec<_> = decodings
+             .iter()
+@@ -295,14 +320,14 @@ impl Encoder {
+             PreferCodec::VP9 => CodecFormat::VP9,
+             PreferCodec::AV1 => CodecFormat::AV1,
              PreferCodec::H264 => {
 -                if h264vram_encoding || h264hw_encoding.is_some() {
 +                if native_h264_encoding || h264vram_encoding || h264hw_encoding.is_some() {
                      CodecFormat::H264
-@@ -304,3 +329,3 @@ impl Encoder {
+                 } else {
+                     auto_codec
+                 }
+             }
              PreferCodec::H265 => {
 -                if h265vram_encoding || h265hw_encoding.is_some() {
 +                if native_h265_encoding || h265vram_encoding || h265hw_encoding.is_some() {
                      CodecFormat::H265
-@@ -343,2 +368,7 @@ impl Encoder {
+                 } else {
+                     auto_codec
+@@ -341,6 +366,11 @@ impl Encoder {
+             .into(),
+             ..Default::default()
          };
 +        #[cfg(feature = "rdn-native-host")]
 +        {
@@ -85,11 +115,15 @@ index 9b072e1..7302b5a 100644
 +            encoding.h265 |= NATIVE_H265_ENCODING.load(Ordering::Acquire);
 +        }
          #[cfg(feature = "hwcodec")]
+         if enable_hwcodec_option() {
+             encoding.h264 |= HwRamEncoder::try_get(CodecFormat::H264).is_some();
 diff --git a/src/client.rs b/src/client.rs
 index dcd5941..7511f7b 100644
 --- a/src/client.rs
 +++ b/src/client.rs
-@@ -1781,2 +1781,17 @@ impl Deref for LoginConfigHandler {
+@@ -1779,6 +1779,21 @@ impl Deref for LoginConfigHandler {
+ }
+ 
  impl LoginConfigHandler {
 +    #[cfg(feature = "rdn-native-core")]
 +    pub fn configure_native_viewer(&mut self, peer_id: &str) {
@@ -107,12 +141,17 @@ index dcd5941..7511f7b 100644
 +    }
 +
      /// Initialize the login config handler.
-@@ -2311,3 +2326,3 @@ impl LoginConfigHandler {
+     ///
+     /// # Arguments
+@@ -2309,12 +2324,22 @@ impl LoginConfigHandler {
+     }
+ 
      pub fn get_supported_decoding(&self) -> SupportedDecoding {
 -        Decoder::supported_decodings(
 +        let mut decoding = Decoder::supported_decodings(
              Some(&self.id),
-@@ -2316,3 +2331,13 @@ impl LoginConfigHandler {
+             use_texture_render(),
+             self.adapter_luid,
              &self.mark_unsupported,
 -        )
 +        );
@@ -127,12 +166,18 @@ index dcd5941..7511f7b 100644
 +        }
 +        decoding
      }
-@@ -2764,3 +2789,3 @@ impl LoginConfigHandler {
+ 
+     /// Parse the image quality option.
+@@ -2762,12 +2787,20 @@ impl LoginConfigHandler {
+     }
+ 
      pub fn update_supported_decodings(&self) -> Message {
 -        let decoding = scrap::codec::Decoder::supported_decodings(
 +        let mut decoding = scrap::codec::Decoder::supported_decodings(
              Some(&self.id),
-@@ -2770,2 +2795,10 @@ impl LoginConfigHandler {
+             use_texture_render(),
+             self.adapter_luid,
+             &self.mark_unsupported,
          );
 +        #[cfg(feature = "rdn-native-core")]
 +        {
@@ -143,11 +188,15 @@ index dcd5941..7511f7b 100644
 +            decoding.ability_h265 = 1;
 +        }
          let mut misc = Misc::new();
+         misc.set_option(OptionMessage {
+             supported_decoding: hbb_common::protobuf::MessageField::some(decoding),
 diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
 index c0eb7fb..4bb52bf 100644
 --- a/src/client/io_loop.rs
 +++ b/src/client/io_loop.rs
-@@ -1332,21 +1332,23 @@ impl<T: InvokeUiSession> Remote<T> {
+@@ -1330,25 +1330,27 @@ impl<T: InvokeUiSession> Remote<T> {
+                     }
+                     self.video_format = CodecFormat::from(&vf);
  
 -                    let display = vf.display as usize;
 -                    if !self.video_threads.contains_key(&display) {
@@ -189,11 +238,15 @@ index c0eb7fb..4bb52bf 100644
 +                                thread.video_sender.send(MediaData::VideoQueue).ok();
 +                            }
                          }
+                     }
+                 }
 diff --git a/src/lib.rs b/src/lib.rs
 index 49cb2b7..61e3dec 100644
 --- a/src/lib.rs
 +++ b/src/lib.rs
-@@ -65,2 +65,8 @@ mod ui_session_interface;
+@@ -63,6 +63,12 @@ mod ui_cm_interface;
+ mod ui_interface;
+ mod ui_session_interface;
  
 +#[cfg(feature = "rdn-native-core")]
 +mod rdn_bridge;
@@ -202,11 +255,145 @@ index 49cb2b7..61e3dec 100644
 +mod rdn_host_bridge;
 +
  mod hbbs_http;
+ 
+ #[cfg(any(target_os = "windows", target_os = "linux", target_os = "macos"))]
+diff --git a/src/platform/macos.rs b/src/platform/macos.rs
+index 2e68cf5..53d464c 100644
+--- a/src/platform/macos.rs
++++ b/src/platform/macos.rs
+@@ -10,8 +10,10 @@ use cocoa::{
+ };
+ use core_foundation::{
+     array::{CFArrayGetCount, CFArrayGetValueAtIndex},
+-    dictionary::CFDictionaryRef,
+-    string::CFStringRef,
++    base::TCFType,
++    boolean::{kCFBooleanFalse, kCFBooleanTrue, CFBooleanRef},
++    dictionary::{CFDictionary, CFDictionaryGetValue, CFDictionaryRef},
++    string::{CFString, CFStringRef},
+ };
+ use core_graphics::{
+     display::{kCGNullWindowID, kCGWindowListOptionOnScreenOnly, CGWindowListCopyWindowInfo},
+@@ -60,6 +62,7 @@ static CG_CURSOR_MUTEX: Mutex<()> = Mutex::new(());
+ 
+ extern "C" {
+     fn CGSCurrentCursorSeed() -> i32;
++    fn CGSessionCopyCurrentDictionary() -> CFDictionaryRef;
+     fn CGEventCreate(r: *const c_void) -> *const c_void;
+     fn CGEventGetLocation(e: *const c_void) -> CGPoint;
+     static kAXTrustedCheckOptionPrompt: CFStringRef;
+@@ -674,6 +677,56 @@ pub fn is_prelogin() -> bool {
+     get_active_userid() == "0"
+ }
+ 
++fn active_aqua_session_from_flags(
++    on_console: Option<bool>,
++    login_done: Option<bool>,
++    locked: Option<bool>,
++) -> bool {
++    on_console == Some(true) && login_done == Some(true) && locked == Some(false)
++}
++
++fn session_dictionary_boolean(
++    dictionary: &CFDictionary,
++    key: &str,
++    missing_value: Option<bool>,
++) -> Option<bool> {
++    let key = CFString::new(key);
++    let value = unsafe {
++        CFDictionaryGetValue(
++            dictionary.as_concrete_TypeRef(),
++            key.as_concrete_TypeRef() as _,
++        ) as CFBooleanRef
++    };
++    if value.is_null() {
++        return missing_value;
++    }
++    unsafe {
++        if value == kCFBooleanTrue {
++            Some(true)
++        } else if value == kCFBooleanFalse {
++            Some(false)
++        } else {
++            None
++        }
++    }
++}
++
++pub fn is_active_aqua_session() -> bool {
++    autoreleasepool(|| unsafe {
++        let dictionary = CGSessionCopyCurrentDictionary();
++        if dictionary.is_null() {
++            return false;
++        }
++        let dictionary = CFDictionary::wrap_under_create_rule(dictionary);
++        active_aqua_session_from_flags(
++            session_dictionary_boolean(&dictionary, "kCGSSessionOnConsoleKey", None),
++            session_dictionary_boolean(&dictionary, "kCGSessionLoginDoneKey", None),
++            // Unlike the other required flags, unlocked sessions omit this key.
++            session_dictionary_boolean(&dictionary, "CGSSessionScreenIsLocked", Some(false)),
++        )
++    })
++}
++
+ // https://stackoverflow.com/questions/11505255/osx-check-if-the-screen-is-locked
+ // No "CGSSessionScreenIsLocked" can be found when macOS is not locked.
+ //
+@@ -1228,3 +1281,47 @@ fn get_bundle_id() -> Option<String> {
+         Some(bundle_id_str)
+     }
+ }
++
++#[cfg(test)]
++mod native_host_session_tests {
++    use super::*;
++
++    #[test]
++    fn native_host_active_aqua_session_fails_closed_on_unknown_or_unavailable_states() {
++        assert!(active_aqua_session_from_flags(
++            Some(true),
++            Some(true),
++            Some(false)
++        ));
++        assert!(!active_aqua_session_from_flags(
++            Some(true),
++            Some(true),
++            Some(true)
++        ));
++        assert!(!active_aqua_session_from_flags(
++            Some(false),
++            Some(true),
++            Some(false)
++        ));
++        assert!(!active_aqua_session_from_flags(
++            Some(true),
++            Some(false),
++            Some(false)
++        ));
++        assert!(!active_aqua_session_from_flags(
++            None,
++            Some(true),
++            Some(false)
++        ));
++        assert!(!active_aqua_session_from_flags(
++            Some(true),
++            None,
++            Some(false)
++        ));
++        assert!(!active_aqua_session_from_flags(
++            Some(true),
++            Some(true),
++            None
++        ));
++    }
++}
 diff --git a/src/rendezvous_mediator.rs b/src/rendezvous_mediator.rs
 index 4f5c8fe..e4bfbb9 100644
 --- a/src/rendezvous_mediator.rs
 +++ b/src/rendezvous_mediator.rs
-@@ -109,2 +109,15 @@ pub struct RendezvousMediator {
+@@ -107,6 +107,19 @@ pub struct RendezvousMediator {
+ }
+ 
  impl RendezvousMediator {
 +    #[cfg(feature = "rdn-native-host")]
 +    pub(crate) fn prepare_native_host_runtime() {
@@ -222,11 +409,4225 @@ index 4f5c8fe..e4bfbb9 100644
 +    }
 +
      pub fn restart() {
+         SHOULD_EXIT.store(true, Ordering::SeqCst);
+         MANUAL_RESTARTED.store(true, Ordering::SeqCst);
+diff --git a/src/server.rs b/src/server.rs
+index 89a17a9..b0b23d5 100644
+--- a/src/server.rs
++++ b/src/server.rs
+@@ -1,5 +1,5 @@
+ use std::{
+-    collections::HashMap,
++    collections::{HashMap, HashSet},
+     net::SocketAddr,
+     sync::{Arc, Mutex, RwLock, Weak},
+     time::Duration,
+@@ -87,6 +87,54 @@ pub struct ConnectionMeta {
+     pub controlled_context: Option<ControlledContext>,
+ }
+ 
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub(crate) enum ConnectionTransport {
++    Direct,
++    Relay,
++}
++
++#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
++pub(crate) struct RouteTransportSnapshot {
++    pub(crate) subscriber_count: usize,
++    pub(crate) direct_subscribers: usize,
++    pub(crate) relay_subscribers: usize,
++    pub(crate) unknown_subscribers: usize,
++}
++
++struct ConnectionTransportRegistration(i32);
++
++impl ConnectionTransportRegistration {
++    fn new(connection_id: i32, transport: ConnectionTransport) -> Self {
++        CONNECTION_TRANSPORTS
++            .lock()
++            .unwrap()
++            .insert(connection_id, transport);
++        Self(connection_id)
++    }
++}
++
++impl Drop for ConnectionTransportRegistration {
++    fn drop(&mut self) {
++        CONNECTION_TRANSPORTS.lock().unwrap().remove(&self.0);
++    }
++}
++
++pub(crate) fn route_transport_snapshot(connection_ids: &HashSet<i32>) -> RouteTransportSnapshot {
++    let transports = CONNECTION_TRANSPORTS.lock().unwrap();
++    let mut snapshot = RouteTransportSnapshot {
++        subscriber_count: connection_ids.len(),
++        ..Default::default()
++    };
++    for connection_id in connection_ids {
++        match transports.get(connection_id) {
++            Some(ConnectionTransport::Direct) => snapshot.direct_subscribers += 1,
++            Some(ConnectionTransport::Relay) => snapshot.relay_subscribers += 1,
++            None => snapshot.unknown_subscribers += 1,
++        }
++    }
++    snapshot
++}
++
+ #[cfg(any(target_os = "macos", target_os = "linux"))]
+ const CONFIG_SYNC_INTERVAL_SECS: f32 = 0.3;
+ #[cfg(any(target_os = "macos", target_os = "linux"))]
+@@ -96,6 +144,8 @@ const CONFIG_SYNC_INITIAL_WAIT_SECS: u64 = 3;
+ 
+ lazy_static::lazy_static! {
+     pub static ref CHILD_PROCESS: Childs = Default::default();
++    static ref CONNECTION_TRANSPORTS: Mutex<HashMap<i32, ConnectionTransport>> =
++        Default::default();
+     // A client server used to provide local services(audio, video, clipboard, etc.)
+     // for all initiative connections.
+     //
+@@ -199,9 +249,29 @@ pub async fn create_tcp_connection(
+     addr: SocketAddr,
+     secure: bool,
+     meta: ConnectionMeta,
++) -> ResultType<()> {
++    create_connection_with_transport(
++        server,
++        stream,
++        addr,
++        secure,
++        meta,
++        ConnectionTransport::Direct,
++    )
++    .await
++}
++
++async fn create_connection_with_transport(
++    server: ServerPtr,
++    stream: Stream,
++    addr: SocketAddr,
++    secure: bool,
++    meta: ConnectionMeta,
++    transport: ConnectionTransport,
+ ) -> ResultType<()> {
+     let mut stream = stream;
+     let id = server.write().unwrap().get_new_id();
++    let _transport_registration = ConnectionTransportRegistration::new(id, transport);
+     let (sk, pk) = Config::get_key_pair();
+     if secure && pk.len() == sign::PUBLICKEYBYTES && sk.len() == sign::SECRETKEYBYTES {
+         let mut sk_ = [0u8; sign::SECRETKEYBYTES];
+@@ -333,7 +403,15 @@ async fn create_relay_connection_(
+         ..Default::default()
+     });
+     stream.send(&msg_out).await?;
+-    create_tcp_connection(server, stream, peer_addr, secure, meta).await?;
++    create_connection_with_transport(
++        server,
++        stream,
++        peer_addr,
++        secure,
++        meta,
++        ConnectionTransport::Relay,
++    )
++    .await?;
+     Ok(())
+ }
+ 
+@@ -838,3 +916,42 @@ pub async fn stop_main_window_process() {
+         }
+     }
+ }
++
++#[cfg(all(test, feature = "rdn-native-host"))]
++mod route_transport_tests {
++    use super::*;
++
++    #[test]
++    fn route_snapshot_counts_authoritative_transport_and_cleans_lifecycle() {
++        let direct_id = 2_000_000_001;
++        let relay_id = 2_000_000_002;
++        let unknown_id = 2_000_000_003;
++        let direct = ConnectionTransportRegistration::new(direct_id, ConnectionTransport::Direct);
++        let relay = ConnectionTransportRegistration::new(relay_id, ConnectionTransport::Relay);
++        let route = HashSet::from([direct_id, relay_id, unknown_id]);
++
++        assert_eq!(
++            route_transport_snapshot(&route),
++            RouteTransportSnapshot {
++                subscriber_count: 3,
++                direct_subscribers: 1,
++                relay_subscribers: 1,
++                unknown_subscribers: 1,
++            }
++        );
++
++        drop(direct);
++        assert_eq!(
++            route_transport_snapshot(&route),
++            RouteTransportSnapshot {
++                subscriber_count: 3,
++                direct_subscribers: 0,
++                relay_subscribers: 1,
++                unknown_subscribers: 2,
++            }
++        );
++
++        drop(relay);
++        assert_eq!(route_transport_snapshot(&route).unknown_subscribers, 3);
++    }
++}
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+index bdf9cba..82cbf94 100644
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -55,7 +55,7 @@ use scrap::camera;
+ use serde_derive::Serialize;
+ use serde_json::{json, value::Value};
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-use std::sync::atomic::Ordering;
++use std::sync::atomic::{AtomicU64, Ordering};
+ use std::{
+     collections::HashSet,
+     net::Ipv6Addr,
+@@ -83,6 +83,9 @@ lazy_static::lazy_static! {
+     static ref WAKELOCK_KEEP_AWAKE_OPTION: Arc::<Mutex<Option<bool>>> = Default::default();
+ }
+ 
++const LOGIN_FAILURE_TOTAL_LIMIT: i32 = 30;
++const LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES: i32 = 30;
++
+ #[cfg(feature = "flutter")]
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+ lazy_static::lazy_static! {
+@@ -184,7 +187,7 @@ pub struct ConnInner {
+ }
+ 
+ struct InputMouse {
+-    msg: MouseEvent,
++    msg: NormalizedMouseInput,
+     conn_id: i32,
+     username: String,
+     argb: u32,
+@@ -192,13 +195,161 @@ struct InputMouse {
+     show_cursor: bool,
+ }
+ 
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++struct InputPermissionSnapshot(u64);
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++struct InputMappingSnapshot(u64);
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[derive(Debug)]
++struct InputPermissionEpoch {
++    // Even values are disabled; odd values are enabled. Keeping both the
++    // generation and permission bit in one atomic prevents torn snapshots.
++    state: AtomicU64,
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++impl InputPermissionEpoch {
++    fn new(enabled: bool) -> Self {
++        Self {
++            state: AtomicU64::new(u64::from(enabled)),
++        }
++    }
++
++    /// Returns true only when this call rotated the permission generation.
++    fn set_enabled(&self, enabled: bool) -> bool {
++        let mut current = self.state.load(Ordering::Acquire);
++        loop {
++            if current % 2 == u64::from(enabled) {
++                return false;
++            }
++            // Never wrap because an old snapshot could otherwise become valid
++            // again. Saturation is fail-closed and practically unreachable.
++            if enabled && current >= u64::MAX - 1 {
++                return false;
++            }
++            let next = current.checked_add(1).unwrap_or(u64::MAX - 1);
++            match self.state.compare_exchange_weak(
++                current,
++                next,
++                Ordering::AcqRel,
++                Ordering::Acquire,
++            ) {
++                Ok(_) => return true,
++                Err(actual) => current = actual,
++            }
++        }
++    }
++
++    fn snapshot(&self) -> Option<InputPermissionSnapshot> {
++        let state = self.state.load(Ordering::Acquire);
++        (state % 2 == 1).then_some(InputPermissionSnapshot(state))
++    }
++
++    fn accepts(&self, snapshot: InputPermissionSnapshot) -> bool {
++        snapshot.0 % 2 == 1 && self.state.load(Ordering::Acquire) == snapshot.0
++    }
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[derive(Debug)]
++struct InputMappingEpoch {
++    // Zero is permanently invalid. Reaching u64::MAX fails closed instead of
++    // wrapping and making an old display mapping generation valid again.
++    state: AtomicU64,
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++impl InputMappingEpoch {
++    fn new() -> Self {
++        Self {
++            state: AtomicU64::new(1),
++        }
++    }
++
++    fn advance(&self) {
++        let mut current = self.state.load(Ordering::Acquire);
++        loop {
++            if current == 0 {
++                return;
++            }
++            let next = current.checked_add(1).unwrap_or(0);
++            match self.state.compare_exchange_weak(
++                current,
++                next,
++                Ordering::AcqRel,
++                Ordering::Acquire,
++            ) {
++                Ok(_) => return,
++                Err(actual) => current = actual,
++            }
++        }
++    }
++
++    fn snapshot(&self) -> Option<InputMappingSnapshot> {
++        let state = self.state.load(Ordering::Acquire);
++        (state != 0).then_some(InputMappingSnapshot(state))
++    }
++
++    fn accepts(&self, snapshot: InputMappingSnapshot) -> bool {
++        snapshot.0 != 0 && self.state.load(Ordering::Acquire) == snapshot.0
++    }
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++enum InputAuthorization {
++    Required(InputPermissionSnapshot),
++    NonInjecting,
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++impl InputAuthorization {
++    fn is_current(self, permission: &InputPermissionEpoch) -> bool {
++        match self {
++            Self::Required(snapshot) => permission.accepts(snapshot),
++            Self::NonInjecting => true,
++        }
++    }
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn input_adapter_gate(
++    authorization: InputAuthorization,
++    mapping_snapshot: Option<InputMappingSnapshot>,
++    permission: Arc<InputPermissionEpoch>,
++    mapping: Arc<InputMappingEpoch>,
++) -> InputAdapterGate {
++    Box::new(move || {
++        authorization.is_current(&permission)
++            && mapping_snapshot
++                .map(|snapshot| mapping.accepts(snapshot))
++                .unwrap_or(true)
++    })
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++struct AuthorizedInput<T> {
++    payload: T,
++    authorization: InputAuthorization,
++    mapping_snapshot: Option<InputMappingSnapshot>,
++}
++
+ enum MessageInput {
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-    Mouse(InputMouse),
++    Mouse(AuthorizedInput<InputMouse>),
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-    Key((KeyEvent, bool)),
++    Key(AuthorizedInput<NormalizedKeyInput>),
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-    Pointer((PointerDeviceEvent, i32)),
++    Pointer(AuthorizedInput<(NormalizedPointerInput, i32)>),
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    Release {
++        conn_id: i32,
++        cleanup_lease: Option<raii::AuthedConnID>,
++    },
+     BlockOn,
+     BlockOff,
+     #[cfg(all(feature = "flutter", feature = "plugin_framework"))]
+@@ -209,6 +360,76 @@ enum MessageInput {
+     BlockOffPlugin(String),
+ }
+ 
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn block_input_permission_runtime_action(was_enabled: bool, enabled: bool) -> Option<MessageInput> {
++    (was_enabled && !enabled).then_some(MessageInput::BlockOff)
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++struct InputReceiverErrorAction {
++    block_input: Option<bool>,
++    exit: bool,
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn input_receiver_error_action(
++    block_input_mode: bool,
++    error: std_mpsc::RecvTimeoutError,
++) -> InputReceiverErrorAction {
++    let exit = error == std_mpsc::RecvTimeoutError::Disconnected;
++    InputReceiverErrorAction {
++        // A timeout reasserts the active local block. A disconnected sender is
++        // terminal, so release the block before the input thread exits.
++        block_input: block_input_mode.then_some(!exit),
++        exit,
++    }
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++impl MessageInput {
++    fn is_authorized(
++        &self,
++        permission: &InputPermissionEpoch,
++        mapping: &InputMappingEpoch,
++    ) -> bool {
++        match self {
++            Self::Mouse(input) => input.is_current(permission, mapping),
++            Self::Key(input) => input.is_current(permission, mapping),
++            Self::Pointer(input) => input.is_current(permission, mapping),
++            Self::Release { .. } | Self::BlockOn | Self::BlockOff => true,
++            #[cfg(all(feature = "flutter", feature = "plugin_framework"))]
++            Self::BlockOnPlugin(_) | Self::BlockOffPlugin(_) => true,
++        }
++    }
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++impl<T> AuthorizedInput<T> {
++    fn is_current(&self, permission: &InputPermissionEpoch, mapping: &InputMappingEpoch) -> bool {
++        self.authorization.is_current(permission)
++            && self
++                .mapping_snapshot
++                .map(|snapshot| mapping.accepts(snapshot))
++                .unwrap_or(true)
++    }
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn effective_input_permission_enabled(
++    authorized: bool,
++    remote_session: bool,
++    display_service_ready: bool,
++    local_keyboard_allowed: bool,
++    peer_keyboard_disabled: bool,
++) -> bool {
++    authorized
++        && remote_session
++        && display_service_ready
++        && local_keyboard_allowed
++        && !peer_keyboard_disabled
++}
++
+ #[derive(Clone, Debug, Hash, Eq, PartialEq)]
+ pub struct SessionKey {
+     peer_id: String,
+@@ -252,6 +473,134 @@ impl AuthConnType {
+     }
+ }
+ 
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++enum ConnectionManagerPresentation {
++    PendingApproval,
++    AuthenticationFailure,
++    Authorized,
++}
++
++impl ConnectionManagerPresentation {
++    fn authorized(self) -> bool {
++        self == Self::Authorized
++    }
++}
++
++const NATIVE_HOST_CONTROL_BUSY: &str = "Another remote control session is active";
++
++fn native_host_single_remote_active() -> bool {
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    {
++        crate::rdn_host_bridge::native_host_instance_is_live()
++    }
++    #[cfg(not(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    )))]
++    {
++        false
++    }
++}
++
++fn native_host_local_approval_supported(is_remote: bool, approve_mode: ApproveMode) -> bool {
++    is_remote && matches!(approve_mode, ApproveMode::Click | ApproveMode::Both)
++}
++
++fn native_host_block_input_permission_enabled(
++    configured: bool,
++    native_host_active: bool,
++    platform_supported: bool,
++) -> bool {
++    configured && (!native_host_active || platform_supported)
++}
++
++fn native_host_pointer_input_kind_enabled(
++    native_host_active: bool,
++    platform_scale_supported: bool,
++    kind: SemanticPointerKind,
++) -> bool {
++    !native_host_active
++        || (platform_scale_supported && matches!(kind, SemanticPointerKind::ScaleUpdate { .. }))
++}
++
++fn normalize_supported_pointer_input(
++    event: PointerDeviceEvent,
++    native_host_active: bool,
++    platform_scale_supported: bool,
++) -> Option<NormalizedPointerInput> {
++    let input = NormalizedPointerInput::from_wire(event)?;
++    native_host_pointer_input_kind_enabled(native_host_active, platform_scale_supported, input.kind)
++        .then_some(input)
++}
++
++fn native_host_key_input_kind_enabled(
++    native_host_active: bool,
++    platform_sas_supported: bool,
++    kind: SemanticKeyKind,
++) -> bool {
++    !native_host_active
++        || !matches!(kind, SemanticKeyKind::LegacyControl(ControlKey::CtrlAltDel))
++        || platform_sas_supported
++}
++
++fn native_host_input_commits_activity(native_host_active: bool, queued: bool) -> bool {
++    !native_host_active || queued
++}
++
++fn native_host_key_tracks_modifier(native_host_active: bool, queued: bool) -> bool {
++    !native_host_active || queued
++}
++
++fn native_host_uses_ordered_modifier_cleanup(native_host_active: bool) -> bool {
++    native_host_active
++}
++
++fn native_host_holds_remote_lease_through_cleanup(
++    native_host_active: bool,
++    conn_type: Option<AuthConnType>,
++) -> bool {
++    native_host_active && conn_type == Some(AuthConnType::Remote)
++}
++
++fn tracked_modifier_down_after_action(
++    native_host_active: bool,
++    upstream_is_press: bool,
++    action: SemanticKeyAction,
++) -> Option<bool> {
++    if !native_host_active {
++        return Some(upstream_is_press);
++    }
++    match action {
++        SemanticKeyAction::Down => Some(true),
++        SemanticKeyAction::Up | SemanticKeyAction::Press => Some(false),
++        SemanticKeyAction::Text => None,
++    }
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn commit_mouse_activity(is_left_button_up: bool) {
++    if is_left_button_up {
++        CLICK_TIME.store(get_time(), Ordering::SeqCst);
++    } else {
++        MOUSE_MOVE_TIME.store(get_time(), Ordering::SeqCst);
++    }
++}
++
++fn native_host_remote_slot_available(
++    native_host_active: bool,
++    requested: AuthConnType,
++    existing: impl IntoIterator<Item = AuthConnType>,
++) -> bool {
++    !native_host_active
++        || requested != AuthConnType::Remote
++        || !existing
++            .into_iter()
++            .any(|conn_type| conn_type == AuthConnType::Remote)
++}
++
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ #[repr(i64)]
+ enum ConnAuditPrimaryAuth {
+@@ -315,6 +664,11 @@ pub struct Connection {
+     port_forward_socket: Option<Framed<TcpStream, BytesCodec>>,
+     port_forward_address: String,
+     tx_to_cm: mpsc::UnboundedSender<ipc::Data>,
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    native_approval_sender: mpsc::UnboundedSender<ipc::Data>,
+     authorized: bool,
+     require_2fa: Option<totp_rs::TOTP>,
+     keyboard: bool,
+@@ -348,6 +702,10 @@ pub struct Connection {
+     audio_sender: Option<MediaSender>,
+     // audio by the remote peer/client
+     tx_input: std_mpsc::Sender<MessageInput>,
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    input_permission: Arc<InputPermissionEpoch>,
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    input_mapping: Arc<InputMappingEpoch>,
+     // handle input messages
+     video_ack_required: bool,
+     server_audit_conn: String,
+@@ -479,6 +837,22 @@ impl Connection {
+         let (tx, mut rx) = mpsc::unbounded_channel::<(Instant, Arc<Message>)>();
+         let (tx_video, mut rx_video) = mpsc::unbounded_channel::<(Instant, Arc<Message>)>();
+         let (tx_input, _rx_input) = std_mpsc::channel();
++        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++        let keyboard = native_host_platform_input_permission_allows(Self::permission(
++            keys::OPTION_ENABLE_KEYBOARD,
++            &control_permissions,
++        ));
++        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++        // Local policy is only one prerequisite. Keep injection disabled until
++        // both authentication and the remote display service are ready.
++        let input_permission = Arc::new(InputPermissionEpoch::new(false));
++        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++        let input_mapping = Arc::new(InputMappingEpoch::new());
++        let block_input = native_host_block_input_permission_enabled(
++            Self::permission(keys::OPTION_ENABLE_BLOCK_INPUT, &control_permissions),
++            native_host_single_remote_active(),
++            cfg!(target_os = "windows"),
++        );
+         let (tx_from_authed, mut rx_from_authed) = mpsc::unbounded_channel::<ipc::Data>();
+         let mut hbbs_rx = crate::hbbs_http::sync::signal_receiver();
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+@@ -516,7 +890,15 @@ impl Connection {
+             port_forward_socket: None,
+             port_forward_address: "".to_owned(),
+             tx_to_cm,
++            #[cfg(all(
++                feature = "rdn-native-host",
++                not(any(target_os = "android", target_os = "ios"))
++            ))]
++            native_approval_sender: tx_from_cm_holder.clone(),
+             authorized: false,
++            #[cfg(not(any(target_os = "android", target_os = "ios")))]
++            keyboard,
++            #[cfg(any(target_os = "android", target_os = "ios"))]
+             keyboard: Self::permission(keys::OPTION_ENABLE_KEYBOARD, &control_permissions),
+             clipboard: Self::permission(keys::OPTION_ENABLE_CLIPBOARD, &control_permissions),
+             audio: Self::permission(keys::OPTION_ENABLE_AUDIO, &control_permissions),
+@@ -524,7 +906,7 @@ impl Connection {
+             file: Self::permission(keys::OPTION_ENABLE_FILE_TRANSFER, &control_permissions),
+             restart: Self::permission(keys::OPTION_ENABLE_REMOTE_RESTART, &control_permissions),
+             recording: Self::permission(keys::OPTION_ENABLE_RECORD_SESSION, &control_permissions),
+-            block_input: Self::permission(keys::OPTION_ENABLE_BLOCK_INPUT, &control_permissions),
++            block_input,
+             privacy_mode: Self::permission(keys::OPTION_ENABLE_PRIVACY_MODE, &control_permissions),
+             control_permissions,
+             last_test_delay: None,
+@@ -543,6 +925,10 @@ impl Connection {
+             #[cfg(not(any(target_os = "android", target_os = "ios")))]
+             show_my_cursor: false,
+             tx_input,
++            #[cfg(not(any(target_os = "android", target_os = "ios")))]
++            input_permission,
++            #[cfg(not(any(target_os = "android", target_os = "ios")))]
++            input_mapping,
+             video_ack_required: false,
+             server_audit_conn: "".to_owned(),
+             server_audit_file: "".to_owned(),
+@@ -642,7 +1028,13 @@ impl Connection {
+         );
+ 
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-        std::thread::spawn(move || Self::handle_input(_rx_input, tx_cloned));
++        {
++            let input_permission = conn.input_permission.clone();
++            let input_mapping = conn.input_mapping.clone();
++            std::thread::spawn(move || {
++                Self::handle_input(_rx_input, tx_cloned, input_permission, input_mapping)
++            });
++        }
+         let mut second_timer = crate::rustdesk_interval(time::interval(Duration::from_secs(1)));
+ 
+         #[cfg(feature = "unix-file-copy-paste")]
+@@ -711,7 +1103,9 @@ impl Connection {
+                         ipc::Data::SwitchPermission{name, enabled} => {
+                             log::info!("Change permission {} -> {}", name, enabled);
+                             if &name == "keyboard" {
++                                let enabled = native_host_platform_input_permission_allows(enabled);
+                                 conn.keyboard = enabled;
++                                conn.sync_effective_input_permission();
+                                 conn.send_permission(Permission::Keyboard, enabled).await;
+                                 if let Some(s) = conn.server.upgrade() {
+                                     s.write().unwrap().subscribe(
+@@ -775,7 +1169,22 @@ impl Connection {
+                                 conn.recording = enabled;
+                                 conn.send_permission(Permission::Recording, enabled).await;
+                             } else if &name == "block_input" {
++                                let enabled = native_host_block_input_permission_enabled(
++                                    enabled,
++                                    native_host_single_remote_active(),
++                                    cfg!(target_os = "windows"),
++                                );
++                                let was_enabled = conn.block_input;
+                                 conn.block_input = enabled;
++                                #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                                if let Some(action) = block_input_permission_runtime_action(
++                                    was_enabled,
++                                    enabled,
++                                ) {
++                                    // Keep the local runtime synchronized with the capability:
++                                    // permission revoke must release an already-active block.
++                                    conn.tx_input.send(action).ok();
++                                }
+                                 conn.send_permission(Permission::BlockInput, enabled).await;
+                             } else if &name == "privacy_mode" {
+                                 // Keep permission state and runtime state consistent:
+@@ -1012,13 +1421,18 @@ impl Connection {
+                                     conn.on_close("stop service", false).await;
+                                     break;
+                                 }
++                                #[cfg(target_os = "macos")]
++                                Some(misc::Union::SwitchDisplay(_)) => {
++                                    let displays = super::display_service::get_sync_displays();
++                                    conn.update_input_displays(&displays);
++                                }
+                                 _ => {},
+                             }
+                         }
+                         Some(message::Union::PeerInfo(_pi)) => {
+                             conn.refresh_video_display(None);
+                             #[cfg(target_os = "macos")]
+-                            conn.retina.set_displays(&_pi.displays);
++                            conn.update_input_displays(&_pi.displays);
+                         }
+                         Some(message::Union::CursorPosition(pos)) => {
+                             #[cfg(not(any(target_os = "android", target_os = "ios")))]
+@@ -1133,6 +1547,11 @@ impl Connection {
+             conn.lr.my_id.clone(),
+         );
+         video_service::notify_video_frame_fetched_by_conn_id(id, None);
++        #[cfg(all(
++            feature = "rdn-native-host",
++            not(any(target_os = "android", target_os = "ios"))
++        ))]
++        crate::rdn_host_bridge::native_host_cancel_approval(id);
+         if conn.authorized {
+             password::update_temporary_password();
+         }
+@@ -1150,12 +1569,34 @@ impl Connection {
+             #[cfg(not(any(target_os = "android", target_os = "ios")))]
+             try_stop_record_cursor_pos();
+         }
++        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++        {
++            let _ = conn.input_permission.set_enabled(false);
++            conn.input_mapping.advance();
++            let cleanup_lease = native_host_holds_remote_lease_through_cleanup(
++                native_host_single_remote_active(),
++                conn.authed_conn_type(),
++            )
++            .then(|| conn.authed_conn_id.take())
++            .flatten();
++            conn.tx_input
++                .send(MessageInput::Release {
++                    conn_id: conn.inner.id(),
++                    cleanup_lease,
++                })
++                .ok();
++        }
+         conn.on_close("End", true).await;
+         log::info!("#{} connection loop exited", id);
+     }
+ 
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-    fn handle_input(receiver: std_mpsc::Receiver<MessageInput>, tx: Sender) {
++    fn handle_input(
++        receiver: std_mpsc::Receiver<MessageInput>,
++        tx: Sender,
++        input_permission: Arc<InputPermissionEpoch>,
++        input_mapping: Arc<InputMappingEpoch>,
++    ) {
+         let mut block_input_mode = false;
+         #[cfg(any(target_os = "windows", target_os = "macos"))]
+         {
+@@ -1166,89 +1607,137 @@ impl Connection {
+         reset_input_ondisconn();
+         loop {
+             match receiver.recv_timeout(std::time::Duration::from_millis(500)) {
+-                Ok(v) => match v {
+-                    MessageInput::Mouse(mouse_input) => {
+-                        handle_mouse(
+-                            &mouse_input.msg,
+-                            mouse_input.conn_id,
+-                            mouse_input.username,
+-                            mouse_input.argb,
+-                            mouse_input.simulate,
+-                            mouse_input.show_cursor,
+-                        );
++                Ok(v) => {
++                    if !v.is_authorized(&input_permission, &input_mapping) {
++                        continue;
+                     }
+-                    MessageInput::Key((mut msg, press)) => {
+-                        // Set the press state to false, use `down` only in `handle_key()`.
+-                        msg.press = false;
+-                        if press {
+-                            msg.down = true;
+-                        }
+-                        handle_key(&msg);
+-                        if press {
+-                            msg.down = false;
+-                            handle_key(&msg);
++                    match v {
++                        MessageInput::Mouse(input) => {
++                            let adapter_gate = input_adapter_gate(
++                                input.authorization,
++                                input.mapping_snapshot,
++                                input_permission.clone(),
++                                input_mapping.clone(),
++                            );
++                            let mouse_input = input.payload;
++                            handle_normalized_mouse_with_gate(
++                                &mouse_input.msg,
++                                mouse_input.conn_id,
++                                mouse_input.username,
++                                mouse_input.argb,
++                                mouse_input.simulate,
++                                mouse_input.show_cursor,
++                                Some(adapter_gate),
++                            );
+                         }
+-                    }
+-                    MessageInput::Pointer((msg, id)) => {
+-                        handle_pointer(&msg, id);
+-                    }
+-                    MessageInput::BlockOn => {
+-                        let (ok, msg) = crate::platform::block_input(true);
+-                        if ok {
+-                            block_input_mode = true;
+-                        } else {
+-                            Self::send_block_input_error(
+-                                &tx,
+-                                back_notification::BlockInputState::BlkOnFailed,
+-                                msg,
++                        MessageInput::Key(input) => {
++                            let authorization = input.authorization;
++                            let mapping_snapshot = input.mapping_snapshot;
++                            let mut msg = input.payload;
++                            let press = msg.action == SemanticKeyAction::Press;
++                            // Set the press state to false, use `down` only in `handle_key()`.
++                            msg.event.press = false;
++                            if press {
++                                msg.event.down = true;
++                            }
++                            handle_normalized_key_with_gate(
++                                &msg,
++                                Some(input_adapter_gate(
++                                    authorization,
++                                    mapping_snapshot,
++                                    input_permission.clone(),
++                                    input_mapping.clone(),
++                                )),
+                             );
++                            if press {
++                                msg.event.down = false;
++                                handle_normalized_key_with_gate(
++                                    &msg,
++                                    Some(input_adapter_gate(
++                                        authorization,
++                                        mapping_snapshot,
++                                        input_permission.clone(),
++                                        input_mapping.clone(),
++                                    )),
++                                );
++                            }
+                         }
+-                    }
+-                    MessageInput::BlockOff => {
+-                        let (ok, msg) = crate::platform::block_input(false);
+-                        if ok {
+-                            block_input_mode = false;
+-                        } else {
+-                            Self::send_block_input_error(
+-                                &tx,
+-                                back_notification::BlockInputState::BlkOffFailed,
+-                                msg,
++                        MessageInput::Pointer(input) => {
++                            let adapter_gate = input_adapter_gate(
++                                input.authorization,
++                                input.mapping_snapshot,
++                                input_permission.clone(),
++                                input_mapping.clone(),
+                             );
++                            let (msg, id) = input.payload;
++                            handle_normalized_pointer_with_gate(&msg, id, Some(adapter_gate));
+                         }
+-                    }
+-                    #[cfg(all(feature = "flutter", feature = "plugin_framework"))]
+-                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-                    MessageInput::BlockOnPlugin(_peer) => {
+-                        let (ok, _msg) = crate::platform::block_input(true);
+-                        if ok {
+-                            block_input_mode = true;
++                        MessageInput::Release {
++                            conn_id,
++                            cleanup_lease,
++                        } => {
++                            release_remote_input_state_then(conn_id, move || {
++                                drop(cleanup_lease);
++                            });
+                         }
+-                        let _r = PLUGIN_BLOCK_INPUT_TX_RX
+-                            .0
+-                            .lock()
+-                            .unwrap()
+-                            .send(block_input_mode);
+-                    }
+-                    #[cfg(all(feature = "flutter", feature = "plugin_framework"))]
+-                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-                    MessageInput::BlockOffPlugin(_peer) => {
+-                        let (ok, _msg) = crate::platform::block_input(false);
+-                        if ok {
+-                            block_input_mode = false;
++                        MessageInput::BlockOn => {
++                            let (ok, msg) = crate::platform::block_input(true);
++                            if ok {
++                                block_input_mode = true;
++                            } else {
++                                Self::send_block_input_error(
++                                    &tx,
++                                    back_notification::BlockInputState::BlkOnFailed,
++                                    msg,
++                                );
++                            }
++                        }
++                        MessageInput::BlockOff => {
++                            let (ok, msg) = crate::platform::block_input(false);
++                            if ok {
++                                block_input_mode = false;
++                            } else {
++                                Self::send_block_input_error(
++                                    &tx,
++                                    back_notification::BlockInputState::BlkOffFailed,
++                                    msg,
++                                );
++                            }
++                        }
++                        #[cfg(all(feature = "flutter", feature = "plugin_framework"))]
++                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                        MessageInput::BlockOnPlugin(_peer) => {
++                            let (ok, _msg) = crate::platform::block_input(true);
++                            if ok {
++                                block_input_mode = true;
++                            }
++                            let _r = PLUGIN_BLOCK_INPUT_TX_RX
++                                .0
++                                .lock()
++                                .unwrap()
++                                .send(block_input_mode);
++                        }
++                        #[cfg(all(feature = "flutter", feature = "plugin_framework"))]
++                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                        MessageInput::BlockOffPlugin(_peer) => {
++                            let (ok, _msg) = crate::platform::block_input(false);
++                            if ok {
++                                block_input_mode = false;
++                            }
++                            let _r = PLUGIN_BLOCK_INPUT_TX_RX
++                                .0
++                                .lock()
++                                .unwrap()
++                                .send(block_input_mode);
+                         }
+-                        let _r = PLUGIN_BLOCK_INPUT_TX_RX
+-                            .0
+-                            .lock()
+-                            .unwrap()
+-                            .send(block_input_mode);
+                     }
+-                },
++                }
+                 Err(err) => {
+-                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-                    if block_input_mode {
+-                        let _ = crate::platform::block_input(true);
++                    let action = input_receiver_error_action(block_input_mode, err);
++                    if let Some(block) = action.block_input {
++                        let _ = crate::platform::block_input(block);
+                     }
+-                    if std_mpsc::RecvTimeoutError::Disconnected == err {
++                    if action.exit {
+                         break;
+                     }
+                 }
+@@ -1654,7 +2143,6 @@ impl Connection {
+         if !self.connect_port_forward_if_needed().await {
+             return false;
+         }
+-        self.authorized = true;
+         let (conn_type, auth_conn_type) = if self.file_transfer.is_some() {
+             (1, AuthConnType::FileTransfer)
+         } else if self.port_forward_socket.is_some() {
+@@ -1666,13 +2154,19 @@ impl Connection {
+         } else {
+             (0, AuthConnType::Remote)
+         };
+-        self.authed_conn_id = Some(self::raii::AuthedConnID::new(
++        let Some(authed_conn_id) = self::raii::AuthedConnID::try_new(
+             self.inner.id(),
+             auth_conn_type,
+             self.session_key(),
+             self.tx_from_authed.clone(),
+             self.lr.clone(),
+-        ));
++            native_host_single_remote_active(),
++        ) else {
++            self.send_login_error(NATIVE_HOST_CONTROL_BUSY).await;
++            return false;
++        };
++        self.authed_conn_id = Some(authed_conn_id);
++        self.authorized = true;
+         self.session_last_recv_time = SESSIONS
+             .lock()
+             .unwrap()
+@@ -1896,7 +2390,7 @@ impl Connection {
+                     // But the displays may be updated later, before creating the video capturer.
+                     #[cfg(target_os = "macos")]
+                     {
+-                        self.retina.set_displays(&displays);
++                        self.update_input_displays(&displays);
+                     }
+                     pi.displays = displays;
+                     pi.current_display = self.display_idx as _;
+@@ -1932,6 +2426,8 @@ impl Connection {
+         self.update_scoped_login_options().await;
+         if let Some((dir, show_hidden)) = self.file_transfer.clone() {
+             self.keyboard = false;
++            #[cfg(not(any(target_os = "android", target_os = "ios")))]
++            let _ = self.input_permission.set_enabled(false);
+             let dir = if !dir.is_empty() && std::path::Path::new(&dir).is_dir() {
+                 &dir
+             } else {
+@@ -1945,12 +2441,16 @@ impl Connection {
+         } else if self.terminal {
+             self.keyboard = false;
+             #[cfg(not(any(target_os = "android", target_os = "ios")))]
++            let _ = self.input_permission.set_enabled(false);
++            #[cfg(not(any(target_os = "android", target_os = "ios")))]
+             self.init_terminal_service().await;
+         } else if self.view_camera {
+             if !wait_session_id_confirm {
+                 self.try_sub_camera_displays();
+             }
+             self.keyboard = false;
++            #[cfg(not(any(target_os = "android", target_os = "ios")))]
++            let _ = self.input_permission.set_enabled(false);
+             self.send_permission(Permission::Keyboard, false).await;
+         } else if sub_service {
+             if !wait_session_id_confirm {
+@@ -1980,7 +2480,6 @@ impl Connection {
+     fn try_sub_monitor_services(&mut self) {
+         let is_remote = self.is_remote();
+         if is_remote && !self.services_subed {
+-            self.services_subed = true;
+             if let Some(s) = self.server.upgrade() {
+                 let mut noperms = Vec::new();
+                 if !self.peer_keyboard_enabled() && !self.show_remote_cursor {
+@@ -2008,7 +2507,10 @@ impl Connection {
+                 self.auto_disconnect_timer = Self::get_auto_disconenct_timer();
+                 s.try_add_primay_video_service();
+                 s.add_connection(self.inner.clone(), &noperms);
++                self.services_subed = true;
+             }
++            #[cfg(not(any(target_os = "android", target_os = "ios")))]
++            self.sync_effective_input_permission();
+         }
+     }
+ 
+@@ -2064,6 +2566,27 @@ impl Connection {
+         self.keyboard && !self.disable_keyboard
+     }
+ 
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    fn sync_effective_input_permission(&self) {
++        let enabled = effective_input_permission_enabled(
++            self.authorized,
++            self.is_remote(),
++            self.services_subed,
++            self.keyboard,
++            self.disable_keyboard,
++        );
++        if self.input_permission.set_enabled(enabled) && !enabled {
++            // The epoch rotation invalidates queued injection events. Keep the
++            // release behind those now-stale entries in the same input queue.
++            self.tx_input
++                .send(MessageInput::Release {
++                    conn_id: self.inner.id(),
++                    cleanup_lease: None,
++                })
++                .ok();
++        }
++    }
++
+     fn clipboard_enabled(&self) -> bool {
+         self.clipboard && !self.disable_clipboard
+     }
+@@ -2091,7 +2614,54 @@ impl Connection {
+             && crate::get_builtin_option(keys::OPTION_ONE_WAY_FILE_TRANSFER) != "Y"
+     }
+ 
+-    fn try_start_cm(&mut self, peer_id: String, name: String, authorized: bool) {
++    fn try_start_cm(
++        &mut self,
++        peer_id: String,
++        name: String,
++        presentation: ConnectionManagerPresentation,
++    ) {
++        if !connection_manager_required() {
++            #[cfg(all(
++                feature = "rdn-native-host",
++                not(any(target_os = "android", target_os = "ios"))
++            ))]
++            if presentation == ConnectionManagerPresentation::PendingApproval
++                && crate::rdn_host_bridge::native_host_is_bound()
++            {
++                if !native_host_local_approval_supported(self.is_remote(), password::approve_mode())
++                {
++                    let _ = self.native_approval_sender.send(ipc::Data::Close);
++                    return;
++                }
++                let peer_option = self.options_in_login.as_ref();
++                let peer_disables = |selector: fn(&OptionMessage) -> BoolOption| {
++                    peer_option
++                        .map(selector)
++                        .map(|value| value == BoolOption::Yes)
++                        .unwrap_or(false)
++                };
++                let mut requested_capabilities = vec!["viewDisplay".to_owned()];
++                if !peer_disables(|option| option.disable_keyboard.enum_value_or_default()) {
++                    requested_capabilities.push("controlKeyboardMouse".to_owned());
++                }
++                if !peer_disables(|option| option.disable_clipboard.enum_value_or_default()) {
++                    requested_capabilities.push("readClipboard".to_owned());
++                    requested_capabilities.push("writeClipboard".to_owned());
++                }
++                if !peer_disables(|option| option.disable_audio.enum_value_or_default()) {
++                    requested_capabilities.push("hearSystemAudio".to_owned());
++                }
++                let _ = crate::rdn_host_bridge::native_host_begin_approval(
++                    self.inner.id(),
++                    peer_id,
++                    name,
++                    self.lr.my_platform.clone(),
++                    requested_capabilities,
++                    self.native_approval_sender.clone(),
++                );
++            }
++            return;
++        }
+         self.send_to_cm(ipc::Data::Login {
+             id: self.inner.id(),
+             is_file_transfer: self.file_transfer.is_some(),
+@@ -2101,7 +2671,7 @@ impl Connection {
+             peer_id,
+             name,
+             avatar: self.lr.avatar.clone(),
+-            authorized,
++            authorized: presentation.authorized(),
+             keyboard: self.keyboard,
+             clipboard: self.clipboard,
+             audio: self.audio,
+@@ -2158,39 +2728,73 @@ impl Connection {
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+     fn input_mouse(
+         &self,
+-        msg: MouseEvent,
++        msg: NormalizedMouseInput,
+         conn_id: i32,
+         username: String,
+         argb: u32,
+         simulate: bool,
+         show_cursor: bool,
+-    ) {
++        mapping_snapshot: Option<InputMappingSnapshot>,
++    ) -> bool {
++        let authorization = if simulate {
++            let Some(snapshot) = self.input_permission.snapshot() else {
++                return false;
++            };
++            InputAuthorization::Required(snapshot)
++        } else {
++            InputAuthorization::NonInjecting
++        };
+         self.tx_input
+-            .send(MessageInput::Mouse(InputMouse {
+-                msg,
+-                conn_id,
+-                username,
+-                argb,
+-                simulate,
+-                show_cursor,
++            .send(MessageInput::Mouse(AuthorizedInput {
++                payload: InputMouse {
++                    msg,
++                    conn_id,
++                    username,
++                    argb,
++                    simulate,
++                    show_cursor,
++                },
++                authorization,
++                mapping_snapshot,
+             }))
+-            .ok();
++            .is_ok()
+     }
+ 
+     #[inline]
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-    fn input_pointer(&self, msg: PointerDeviceEvent, conn_id: i32) {
++    fn input_pointer(
++        &self,
++        msg: NormalizedPointerInput,
++        conn_id: i32,
++        mapping_snapshot: Option<InputMappingSnapshot>,
++    ) -> bool {
++        let Some(snapshot) = self.input_permission.snapshot() else {
++            return false;
++        };
+         self.tx_input
+-            .send(MessageInput::Pointer((msg, conn_id)))
+-            .ok();
++            .send(MessageInput::Pointer(AuthorizedInput {
++                payload: (msg, conn_id),
++                authorization: InputAuthorization::Required(snapshot),
++                mapping_snapshot,
++            }))
++            .is_ok()
+     }
+ 
+     #[inline]
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-    fn input_key(&self, msg: KeyEvent, press: bool) {
++    fn input_key(&self, msg: NormalizedKeyInput) -> bool {
+         // to-do: if is the legacy mode, and the key is function key "LockScreen".
+         // Switch to the primary display.
+-        self.tx_input.send(MessageInput::Key((msg, press))).ok();
++        let Some(snapshot) = self.input_permission.snapshot() else {
++            return false;
++        };
++        self.tx_input
++            .send(MessageInput::Key(AuthorizedInput {
++                payload: msg,
++                authorization: InputAuthorization::Required(snapshot),
++                mapping_snapshot: None,
++            }))
++            .is_ok()
+     }
+ 
+     fn verify_h1(&self, h1: &[u8]) -> bool {
+@@ -2471,6 +3075,10 @@ impl Connection {
+ 
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+     fn try_start_cm_ipc(&mut self) {
++        if !connection_manager_required() {
++            self.start_cm_ipc_para.take();
++            return;
++        }
+         if let Some(p) = self.start_cm_ipc_para.take() {
+             tokio::spawn(async move {
+                 #[cfg(windows)]
+@@ -2683,7 +3291,11 @@ impl Connection {
+                         return keep_alive;
+                     }
+                 }
+-                self.try_start_cm(lr.my_id, lr.my_name, false);
++                self.try_start_cm(
++                    lr.my_id,
++                    lr.my_name,
++                    ConnectionManagerPresentation::PendingApproval,
++                );
+                 if hbb_common::get_version_number(&lr.version)
+                     >= hbb_common::get_version_number("1.2.0")
+                 {
+@@ -2698,7 +3310,11 @@ impl Connection {
+                     if !self.send_logon_response_and_keep_alive().await {
+                         return false;
+                     }
+-                    self.try_start_cm(lr.my_id.clone(), lr.my_name.clone(), self.authorized);
++                    self.try_start_cm(
++                        lr.my_id.clone(),
++                        lr.my_name.clone(),
++                        ConnectionManagerPresentation::Authorized,
++                    );
+                 } else {
+                     self.send_login_error(err_msg).await;
+                 }
+@@ -2712,7 +3328,11 @@ impl Connection {
+                             return keep_alive;
+                         }
+                     }
+-                    self.try_start_cm(lr.my_id, lr.my_name, false);
++                    self.try_start_cm(
++                        lr.my_id,
++                        lr.my_name,
++                        ConnectionManagerPresentation::PendingApproval,
++                    );
+                 } else {
+                     self.send_login_error(
+                         crate::client::LOGIN_MSG_DESKTOP_SESSION_NOT_READY_PASSWORD_EMPTY,
+@@ -2730,7 +3350,11 @@ impl Connection {
+                     if err_msg.is_empty() {
+                         self.send_login_error(crate::client::LOGIN_MSG_PASSWORD_WRONG)
+                             .await;
+-                        self.try_start_cm(lr.my_id, lr.my_name, false);
++                        self.try_start_cm(
++                            lr.my_id,
++                            lr.my_name,
++                            ConnectionManagerPresentation::AuthenticationFailure,
++                        );
+                     } else {
+                         self.send_login_error(
+                             crate::client::LOGIN_MSG_DESKTOP_SESSION_NOT_READY_PASSWORD_WRONG,
+@@ -2745,7 +3369,11 @@ impl Connection {
+                         if !self.send_logon_response_and_keep_alive().await {
+                             return false;
+                         }
+-                        self.try_start_cm(lr.my_id, lr.my_name, self.authorized);
++                        self.try_start_cm(
++                            lr.my_id,
++                            lr.my_name,
++                            ConnectionManagerPresentation::Authorized,
++                        );
+                     } else {
+                         self.send_login_error(err_msg).await;
+                     }
+@@ -2769,7 +3397,7 @@ impl Connection {
+                         self.try_start_cm(
+                             self.lr.my_id.to_owned(),
+                             self.lr.my_name.to_owned(),
+-                            self.authorized,
++                            ConnectionManagerPresentation::Authorized,
+                         );
+                         if !tfa.hwid.is_empty() && Self::enable_trusted_devices() {
+                             Config::add_trusted_device(TrustedDevice {
+@@ -2824,7 +3452,7 @@ impl Connection {
+                             self.try_start_cm(
+                                 lr.my_id.clone(),
+                                 lr.my_name.clone(),
+-                                self.authorized,
++                                ConnectionManagerPresentation::Authorized,
+                             );
+                             #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                             self.try_start_cm_ipc();
+@@ -2847,34 +3475,71 @@ impl Connection {
+                         log::debug!("call_main_service_pointer_input fail:{}", e);
+                     }
+                     #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                    let Some(mut me) = NormalizedMouseInput::from_wire(me) else {
++                        return true;
++                    };
++                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                    let native_host_active = native_host_single_remote_active();
++                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                    let mut mouse_queued = false;
++                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                     if self.peer_keyboard_enabled() {
+-                        if is_left_up(&me) {
+-                            CLICK_TIME.store(get_time(), Ordering::SeqCst);
+-                        } else {
+-                            MOUSE_MOVE_TIME.store(get_time(), Ordering::SeqCst);
++                        let is_left_button_up = me.is_left_button_up();
++                        if !native_host_active {
++                            commit_mouse_activity(is_left_button_up);
++                        }
++                        #[cfg(target_os = "macos")]
++                        let Some(mapping_snapshot) = self.input_mapping.snapshot() else {
++                            return true;
++                        };
++                        #[cfg(target_os = "macos")]
++                        if !self.retina.on_mouse_event(&mut me, self.display_idx) {
++                            return true;
+                         }
++                        #[cfg(not(target_os = "macos"))]
++                        let mapping_snapshot = None;
+                         #[cfg(target_os = "macos")]
+-                        self.retina.on_mouse_event(&mut me, self.display_idx);
+-                        self.input_mouse(
++                        let mapping_snapshot = Some(mapping_snapshot);
++                        mouse_queued = self.input_mouse(
+                             me,
+                             self.inner.id(),
+                             self.lr.my_name.clone(),
+                             self.peer_argb,
+                             true,
+                             self.show_my_cursor,
++                            mapping_snapshot,
+                         );
++                        if native_host_active && mouse_queued {
++                            commit_mouse_activity(is_left_button_up);
++                        }
+                     } else if self.show_my_cursor {
+                         #[cfg(target_os = "macos")]
+-                        self.retina.on_mouse_event(&mut me, self.display_idx);
+-                        self.input_mouse(
++                        let Some(mapping_snapshot) = self.input_mapping.snapshot() else {
++                            return true;
++                        };
++                        #[cfg(target_os = "macos")]
++                        if !self.retina.on_mouse_event(&mut me, self.display_idx) {
++                            return true;
++                        }
++                        #[cfg(not(target_os = "macos"))]
++                        let mapping_snapshot = None;
++                        #[cfg(target_os = "macos")]
++                        let mapping_snapshot = Some(mapping_snapshot);
++                        mouse_queued = self.input_mouse(
+                             me,
+                             self.inner.id(),
+                             self.lr.my_name.clone(),
+                             self.peer_argb,
+                             false,
+                             true,
++                            mapping_snapshot,
+                         );
+                     }
++                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                    if native_host_input_commits_activity(native_host_active, mouse_queued) {
++                        self.update_auto_disconnect_timer();
++                    }
++                    #[cfg(any(target_os = "android", target_os = "ios"))]
+                     self.update_auto_disconnect_timer();
+                 }
+                 Some(message::Union::PointerDeviceEvent(pde)) => {
+@@ -2910,10 +3575,36 @@ impl Connection {
+                         log::debug!("call_main_service_pointer_input fail:{}", e);
+                     }
+                     #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                    let native_host_active = native_host_single_remote_active();
++                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                    let mut pointer_queued = false;
++                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                     if self.peer_keyboard_enabled() {
+-                        MOUSE_MOVE_TIME.store(get_time(), Ordering::SeqCst);
+-                        self.input_pointer(pde, self.inner.id());
++                        let Some(pde) = normalize_supported_pointer_input(
++                            pde,
++                            native_host_active,
++                            cfg!(target_os = "windows"),
++                        ) else {
++                            return true;
++                        };
++                        #[cfg(target_os = "macos")]
++                        let Some(mapping_snapshot) = self.input_mapping.snapshot() else {
++                            return true;
++                        };
++                        #[cfg(not(target_os = "macos"))]
++                        let mapping_snapshot = None;
++                        #[cfg(target_os = "macos")]
++                        let mapping_snapshot = Some(mapping_snapshot);
++                        pointer_queued = self.input_pointer(pde, self.inner.id(), mapping_snapshot);
++                        if native_host_input_commits_activity(native_host_active, pointer_queued) {
++                            MOUSE_MOVE_TIME.store(get_time(), Ordering::SeqCst);
++                        }
+                     }
++                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                    if native_host_input_commits_activity(native_host_active, pointer_queued) {
++                        self.update_auto_disconnect_timer();
++                    }
++                    #[cfg(any(target_os = "android", target_os = "ios"))]
+                     self.update_auto_disconnect_timer();
+                 }
+                 #[cfg(any(target_os = "ios"))]
+@@ -2978,61 +3669,68 @@ impl Connection {
+                     if self.is_authed_view_camera_conn() {
+                         return true;
+                     }
++                    let native_host_active = native_host_single_remote_active();
++                    let mut key_queued = false;
+                     if self.peer_keyboard_enabled() {
+-                        if is_enter(&me) {
+-                            CLICK_TIME.store(get_time(), Ordering::SeqCst);
++                        let Some(mut me) = NormalizedKeyInput::from_wire(me) else {
++                            return true;
++                        };
++                        if !native_host_key_input_kind_enabled(
++                            native_host_active,
++                            cfg!(target_os = "windows"),
++                            me.kind,
++                        ) {
++                            return true;
+                         }
+-                        // https://github.com/rustdesk/rustdesk/issues/8633
+-                        MOUSE_MOVE_TIME.store(get_time(), Ordering::SeqCst);
++                        let is_enter = me.is_enter();
+ 
+-                        let key = match me.mode.enum_value() {
+-                            Ok(KeyboardMode::Map) => {
+-                                Some(crate::keyboard::keycode_to_rdev_key(me.chr()))
+-                            }
+-                            Ok(KeyboardMode::Translate) => {
+-                                if let Some(key_event::Union::Chr(code)) = me.union {
+-                                    Some(crate::keyboard::keycode_to_rdev_key(code & 0x0000FFFF))
+-                                } else {
+-                                    None
+-                                }
+-                            }
+-                            _ => None,
+-                        }
+-                        .filter(crate::keyboard::is_modifier);
++                        let key = me.physical_modifier();
++                        let key_action = me.action;
+ 
+                         // handle all down as press
+                         // fix unexpected repeating key on remote linux, seems also fix abnormal alt/shift, which
+                         // make sure all key are released
+                         // https://github.com/rustdesk/rustdesk/issues/6793
+                         let is_press = if cfg!(target_os = "linux") {
+-                            (me.press || me.down) && !(crate::is_modifier(&me) || key.is_some())
++                            matches!(
++                                me.action,
++                                SemanticKeyAction::Down | SemanticKeyAction::Press
++                            ) && !(me.is_modifier() || key.is_some())
+                         } else {
+-                            me.press
++                            me.action == SemanticKeyAction::Press
+                         };
+ 
+-                        if let Some(key) = key {
+-                            if is_press {
+-                                self.pressed_modifiers.insert(key);
+-                            } else {
+-                                self.pressed_modifiers.remove(&key);
+-                            }
+-                        }
+-
+                         if is_press {
+-                            match me.union {
+-                                Some(key_event::Union::Unicode(_))
+-                                | Some(key_event::Union::Seq(_)) => {
+-                                    self.input_key(me, false);
+-                                }
+-                                _ => {
+-                                    self.input_key(me, true);
++                            me.promote_to_press();
++                        }
++                        key_queued = self.input_key(me);
++                        if native_host_key_tracks_modifier(native_host_active, key_queued) {
++                            if let (Some(key), Some(modifier_down)) = (
++                                key,
++                                tracked_modifier_down_after_action(
++                                    native_host_active,
++                                    is_press,
++                                    key_action,
++                                ),
++                            ) {
++                                if modifier_down {
++                                    self.pressed_modifiers.insert(key);
++                                } else {
++                                    self.pressed_modifiers.remove(&key);
+                                 }
+                             }
+-                        } else {
+-                            self.input_key(me, false);
++                        }
++                        if native_host_input_commits_activity(native_host_active, key_queued) {
++                            if is_enter {
++                                CLICK_TIME.store(get_time(), Ordering::SeqCst);
++                            }
++                            // https://github.com/rustdesk/rustdesk/issues/8633
++                            MOUSE_MOVE_TIME.store(get_time(), Ordering::SeqCst);
+                         }
+                     }
+-                    self.update_auto_disconnect_timer();
++                    if native_host_input_commits_activity(native_host_active, key_queued) {
++                        self.update_auto_disconnect_timer();
++                    }
+                 }
+                 Some(message::Union::Clipboard(cb)) => {
+                     if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {
+@@ -3937,23 +4635,69 @@ impl Connection {
+ 
+     fn bump_failure_entry(mut cur: (i32, i32, i32), time: i32) -> (i32, i32, i32) {
+         if cur.0 == time {
+-            cur.1 += 1;
+-            cur.2 += 1;
++            cur.1 = cur.1.saturating_add(1);
++            cur.2 = cur.2.saturating_add(1);
+         } else {
+             cur.0 = time;
+             cur.1 = 1;
+-            cur.2 += 1;
++            cur.2 = cur.2.saturating_add(1);
+         }
+         cur
+     }
+ 
++    fn normalize_failure_entry_after_cooldown(
++        failure: (i32, i32, i32),
++        time: i32,
++        total_limit: i32,
++    ) -> (i32, i32, i32) {
++        if failure.2 > total_limit
++            && time.saturating_sub(failure.0) >= LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES
++        {
++            (0, 0, 0)
++        } else {
++            failure
++        }
++    }
++
++    fn cumulative_failure_cooldown_remaining_minutes(
++        failure: (i32, i32, i32),
++        time: i32,
++        total_limit: i32,
++    ) -> Option<i32> {
++        if failure.2 <= total_limit {
++            return None;
++        }
++        Some(
++            failure
++                .0
++                .saturating_add(LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES)
++                .saturating_sub(time)
++                .clamp(1, LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES),
++        )
++    }
++
++    fn failure_entry_with_cooldown(
++        i: usize,
++        key: &str,
++        time: i32,
++        total_limit: i32,
++    ) -> (i32, i32, i32) {
++        let mut failures = LOGIN_FAILURES[i].lock().unwrap();
++        let current = failures.get(key).copied().unwrap_or((0, 0, 0));
++        let normalized = Self::normalize_failure_entry_after_cooldown(current, time, total_limit);
++        if normalized != current {
++            failures.remove(key);
++        }
++        normalized
++    }
++
+     fn update_failure(&self, failure: ((i32, i32, i32), i32), remove: bool, i: usize) {
+         self.update_failure_with_scope(failure, remove, i, FailureScope::Default);
+     }
+ 
+     fn update_failure_with_scope(
+         &self,
+-        (failure, time): ((i32, i32, i32), i32),
++        (_failure, time): ((i32, i32, i32), i32),
+         remove: bool,
+         i: usize,
+         scope: FailureScope,
+@@ -3968,16 +4712,14 @@ impl Connection {
+ 
+         let map_mutex = &LOGIN_FAILURES[i];
+         if remove {
+-            if failure.0 != 0 {
+-                if let Some((p64, p56, p48)) = self.get_ipv6_prefixes() {
+-                    let mut m = map_mutex.lock().unwrap();
+-                    m.remove(&p64);
+-                    m.remove(&p56);
+-                    m.remove(&p48);
+-                    m.remove(&self.ip);
+-                } else {
+-                    map_mutex.lock().unwrap().remove(&self.ip);
+-                }
++            if let Some((p64, p56, p48)) = self.get_ipv6_prefixes() {
++                let mut m = map_mutex.lock().unwrap();
++                m.remove(&p64);
++                m.remove(&p56);
++                m.remove(&p48);
++                m.remove(&self.ip);
++            } else {
++                map_mutex.lock().unwrap().remove(&self.ip);
+             }
+             return;
+         }
+@@ -4006,17 +4748,20 @@ impl Connection {
+         prefix_num: i8,
+         thresh: i32,
+     ) -> Option<(((i32, i32, i32), i32), bool)> {
+-        let failure_prefix = LOGIN_FAILURES[i]
+-            .lock()
+-            .unwrap()
+-            .get(prefix)
+-            .copied()
+-            .unwrap_or((0, 0, 0));
++        let failure_prefix = Self::failure_entry_with_cooldown(i, prefix, time, thresh);
+ 
+         if failure_prefix.2 > thresh {
++            let remaining_minutes =
++                Self::cumulative_failure_cooldown_remaining_minutes(failure_prefix, time, thresh)
++                    .unwrap_or(LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES);
++            let minutes_label = if remaining_minutes == 1 {
++                "minute"
++            } else {
++                "minutes"
++            };
+             self.send_login_error(format!(
+-                "Too many wrong attempts for IPv6 prefix /{}",
+-                prefix_num
++                "Too many wrong attempts for IPv6 prefix /{}. Please try again in {} {}.",
++                prefix_num, remaining_minutes, minutes_label
+             ))
+             .await;
+             self.post_alarm_audit(
+@@ -4092,15 +4837,26 @@ impl Connection {
+         }
+ 
+         // checks IPv6 and IPv4 direct addresses
+-        let failure = LOGIN_FAILURES[i]
+-            .lock()
+-            .unwrap()
+-            .get(&self.ip)
+-            .copied()
+-            .unwrap_or((0, 0, 0));
++        let failure =
++            Self::failure_entry_with_cooldown(i, &self.ip, time, LOGIN_FAILURE_TOTAL_LIMIT);
+ 
+-        let res = if failure.2 > 30 {
+-            self.send_login_error("Too many wrong attempts").await;
++        let res = if failure.2 > LOGIN_FAILURE_TOTAL_LIMIT {
++            let remaining_minutes = Self::cumulative_failure_cooldown_remaining_minutes(
++                failure,
++                time,
++                LOGIN_FAILURE_TOTAL_LIMIT,
++            )
++            .unwrap_or(LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES);
++            let minutes_label = if remaining_minutes == 1 {
++                "minute"
++            } else {
++                "minutes"
++            };
++            self.send_login_error(format!(
++                "Too many wrong attempts. Please try again in {} {}.",
++                remaining_minutes, minutes_label
++            ))
++            .await;
+             self.post_alarm_audit(
+                 AlarmAuditType::ExceedThirtyAttempts,
+                 json!({
+@@ -4138,6 +4894,13 @@ impl Connection {
+         });
+     }
+ 
++    #[cfg(target_os = "macos")]
++    fn update_input_displays(&mut self, displays: &[DisplayInfo]) {
++        if self.retina.set_displays(displays) {
++            self.input_mapping.advance();
++        }
++    }
++
+     async fn handle_switch_display(&mut self, s: SwitchDisplay) {
+         let display_idx = s.display as usize;
+         if self.display_idx != display_idx {
+@@ -4197,6 +4960,8 @@ impl Connection {
+         }
+         lock.subscribe(&new_service_name, self.inner.clone(), true);
+         self.display_idx = display_idx;
++        #[cfg(target_os = "macos")]
++        self.input_mapping.advance();
+     }
+ 
+     #[cfg(windows)]
+@@ -4531,6 +5296,8 @@ impl Connection {
+         if let Ok(q) = o.disable_keyboard.enum_value() {
+             if q != BoolOption::NotSet {
+                 self.disable_keyboard = q == BoolOption::Yes;
++                #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                self.sync_effective_input_permission();
+                 if let Some(s) = self.server.upgrade() {
+                     s.write().unwrap().subscribe(
+                         super::clipboard_service::NAME,
+@@ -6035,6 +6802,25 @@ async fn start_ipc(
+     }
+ }
+ 
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn connection_manager_required_for_native_host(native_host_bound: bool) -> bool {
++    !native_host_bound
++}
++
++#[cfg(not(any(target_os = "android", target_os = "ios")))]
++fn connection_manager_required() -> bool {
++    #[cfg(feature = "rdn-native-host")]
++    {
++        return connection_manager_required_for_native_host(
++            crate::rdn_host_bridge::native_host_is_bound(),
++        );
++    }
++    #[cfg(not(feature = "rdn-native-host"))]
++    {
++        true
++    }
++}
++
+ // in case screen is sleep and blank, here to activate it
+ fn try_activate_screen() {
+     #[cfg(windows)]
+@@ -6180,10 +6966,44 @@ impl FileRemoveLogControl {
+     }
+ }
+ 
++fn incoming_wakelock_display(
++    keep_awake: bool,
++    conn_count: usize,
++    remote_count: usize,
++    native_host_mode: bool,
++) -> Option<bool> {
++    if !keep_awake {
++        return None;
++    }
++    if native_host_mode {
++        // FarPane Host keeps the CPU available for an authenticated screen
++        // session without forcing the physical display to remain lit. Other
++        // authenticated scopes do not own a Host screen assertion.
++        return (remote_count > 0).then_some(false);
++    }
++    (conn_count > 0).then_some(remote_count > 0)
++}
++
++fn native_host_wakelock_mode() -> bool {
++    #[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++    {
++        return crate::rdn_host_bridge::native_host_is_bound();
++    }
++    #[cfg(not(all(target_os = "macos", feature = "rdn-native-host")))]
++    {
++        false
++    }
++}
++
+ fn start_wakelock_thread() -> std::sync::mpsc::Sender<(usize, usize)> {
+     // Check if we should keep awake during incoming sessions
+     use crate::platform::{get_wakelock, WakeLock};
+     let (tx, rx) = std::sync::mpsc::channel::<(usize, usize)>();
++    // The lazy sender is first touched by an authenticated inbound
++    // connection. Pin the mode for the thread lifetime so Host shutdown does
++    // not briefly fall back to the upstream display-on policy while the
++    // remaining connections are being closed.
++    let native_host_mode = native_host_wakelock_mode();
+     std::thread::spawn(move || {
+         let mut wakelock: Option<WakeLock> = None;
+         let mut last_display = false;
+@@ -6194,13 +7014,19 @@ fn start_wakelock_thread() -> std::sync::mpsc::Sender<(usize, usize)> {
+                         keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS,
+                     );
+                     *WAKELOCK_KEEP_AWAKE_OPTION.lock().unwrap() = Some(keep_awake);
+-                    if conn_count == 0 || !keep_awake {
++                    let display = incoming_wakelock_display(
++                        keep_awake,
++                        conn_count,
++                        remote_count,
++                        native_host_mode,
++                    );
++                    if display.is_none() {
+                         if wakelock.is_some() {
+                             wakelock = None;
+                             log::info!("drop wakelock");
+                         }
+                     } else {
+-                        let mut display = remote_count > 0;
++                        let mut display = display.unwrap_or(false);
+                         if let Some(_w) = wakelock.as_mut() {
+                             if display != last_display {
+                                 #[cfg(any(target_os = "windows", target_os = "macos"))]
+@@ -6268,7 +7094,14 @@ impl Default for PortableState {
+ impl Drop for Connection {
+     fn drop(&mut self) {
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-        self.release_pressed_modifiers();
++        if native_host_uses_ordered_modifier_cleanup(native_host_single_remote_active()) {
++            // Revocation and connection-loop teardown already enqueue Release
++            // behind accepted input. Do not race that serialized cleanup with
++            // an out-of-band rdev release from the connection thread.
++            self.pressed_modifiers.clear();
++        } else {
++            self.release_pressed_modifiers();
++        }
+ 
+         if let Some(s) = self.terminal_generic_service.as_ref() {
+             s.join();
+@@ -6347,29 +7180,58 @@ struct Retina {
+ #[cfg(target_os = "macos")]
+ impl Retina {
+     #[inline]
+-    fn set_displays(&mut self, displays: &Vec<DisplayInfo>) {
+-        self.displays = displays.clone();
++    fn set_displays(&mut self, displays: &[DisplayInfo]) -> bool {
++        if self.displays == displays {
++            return false;
++        }
++        self.displays = displays.to_vec();
++        true
+     }
+ 
+     #[inline]
+-    fn on_mouse_event(&mut self, e: &mut MouseEvent, current: usize) {
+-        let evt_type = e.mask & crate::input::MOUSE_TYPE_MASK;
+-        // Delta-based events do not contain absolute coordinates.
+-        // Avoid applying Retina coordinate scaling to them.
+-        if evt_type == crate::input::MOUSE_TYPE_WHEEL
+-            || evt_type == crate::input::MOUSE_TYPE_TRACKPAD
+-            || evt_type == crate::input::MOUSE_TYPE_MOVE_RELATIVE
+-        {
+-            return;
++    fn on_mouse_event(&mut self, input: &mut NormalizedMouseInput, current: usize) -> bool {
++        match input.kind {
++            SemanticMouseKind::RelativeMove
++            | SemanticMouseKind::DiscreteScroll
++            | SemanticMouseKind::PreciseScroll => return true,
++            // Upstream button events may use (0, 0) as an explicit
++            // "coordinates unavailable" sentinel. Injection itself is
++            // button-only, so preserve that compatibility boundary.
++            SemanticMouseKind::ButtonDown(_) | SemanticMouseKind::ButtonUp(_)
++                if input.event.x == 0 && input.event.y == 0 =>
++            {
++                return true;
++            }
++            SemanticMouseKind::AbsoluteMove
++            | SemanticMouseKind::ButtonDown(_)
++            | SemanticMouseKind::ButtonUp(_) => {}
+         }
+         let Some(d) = self.displays.get(current) else {
+-            return;
++            return false;
+         };
+         let s = d.scale;
+-        if s > 1.0 && e.x >= d.x && e.y >= d.y && e.x < d.x + d.width && e.y < d.y + d.height {
+-            e.x = d.x + ((e.x - d.x) as f64 / s) as i32;
+-            e.y = d.y + ((e.y - d.y) as f64 / s) as i32;
++        let Some(max_x) = d.x.checked_add(d.width) else {
++            return false;
++        };
++        let Some(max_y) = d.y.checked_add(d.height) else {
++            return false;
++        };
++        if !s.is_finite()
++            || s <= 0.0
++            || d.width <= 0
++            || d.height <= 0
++            || input.event.x < d.x
++            || input.event.y < d.y
++            || input.event.x >= max_x
++            || input.event.y >= max_y
++        {
++            return false;
+         }
++        if s > 1.0 {
++            input.event.x = d.x + ((input.event.x - d.x) as f64 / s) as i32;
++            input.event.y = d.y + ((input.event.y - d.y) as f64 / s) as i32;
++        }
++        true
+     }
+ 
+     #[inline]
+@@ -6463,23 +7325,33 @@ mod raii {
+     pub struct AuthedConnID(i32, AuthConnType);
+ 
+     impl AuthedConnID {
+-        pub fn new(
++        pub fn try_new(
+             conn_id: i32,
+             conn_type: AuthConnType,
+             session_key: SessionKey,
+             sender: mpsc::UnboundedSender<Data>,
+             lr: LoginRequest,
+-        ) -> Self {
++            native_host_active: bool,
++        ) -> Option<Self> {
+             let printer = conn_type == crate::server::AuthConnType::Remote
+                 && crate::is_support_remote_print(&lr.version)
+                 && lr.my_platform == hbb_common::whoami::Platform::Windows.to_string();
+-            AUTHED_CONNS.lock().unwrap().push(AuthedConn {
++            let mut authed_connections = AUTHED_CONNS.lock().unwrap();
++            if !native_host_remote_slot_available(
++                native_host_active,
++                conn_type,
++                authed_connections.iter().map(|conn| conn.conn_type),
++            ) {
++                return None;
++            }
++            authed_connections.push(AuthedConn {
+                 conn_id,
+                 conn_type,
+                 session_key,
+                 sender,
+                 printer,
+             });
++            drop(authed_connections);
+             Self::check_wake_lock();
+             use std::sync::Once;
+             static _ONCE: Once = Once::new();
+@@ -6492,7 +7364,7 @@ mod raii {
+                     .unwrap()
+                     .on_connection_open(conn_id);
+             }
+-            Self(conn_id, conn_type)
++            Some(Self(conn_id, conn_type))
+         }
+ 
+         fn check_wake_lock() {
+@@ -6679,27 +7551,1144 @@ mod test {
+     #[allow(unused)]
+     use super::*;
+ 
+-    #[cfg(target_os = "macos")]
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+     #[test]
+-    fn retina() {
+-        let mut retina = Retina {
+-            displays: vec![DisplayInfo {
+-                x: 10,
+-                y: 10,
+-                width: 1000,
+-                height: 1000,
+-                scale: 2.0,
+-                ..Default::default()
+-            }],
+-        };
+-        let mut mouse: MouseEvent = MouseEvent {
+-            x: 510,
+-            y: 510,
++    fn input_receiver_disconnect_releases_local_block_before_exit() {
++        assert_eq!(
++            input_receiver_error_action(true, std_mpsc::RecvTimeoutError::Timeout),
++            InputReceiverErrorAction {
++                block_input: Some(true),
++                exit: false,
++            }
++        );
++        assert_eq!(
++            input_receiver_error_action(false, std_mpsc::RecvTimeoutError::Timeout),
++            InputReceiverErrorAction {
++                block_input: None,
++                exit: false,
++            }
++        );
++        assert_eq!(
++            input_receiver_error_action(true, std_mpsc::RecvTimeoutError::Disconnected),
++            InputReceiverErrorAction {
++                block_input: Some(false),
++                exit: true,
++            }
++        );
++        assert_eq!(
++            input_receiver_error_action(false, std_mpsc::RecvTimeoutError::Disconnected),
++            InputReceiverErrorAction {
++                block_input: None,
++                exit: true,
++            }
++        );
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn local_block_input_permission_revoke_enqueues_runtime_unblock() {
++        assert!(matches!(
++            block_input_permission_runtime_action(true, false),
++            Some(MessageInput::BlockOff)
++        ));
++        assert!(block_input_permission_runtime_action(true, true).is_none());
++        assert!(block_input_permission_runtime_action(false, false).is_none());
++        assert!(block_input_permission_runtime_action(false, true).is_none());
++    }
++
++    #[test]
++    fn native_host_block_input_capability_fails_closed_on_unsupported_platforms() {
++        assert!(!native_host_block_input_permission_enabled(
++            true, true, false
++        ));
++        assert!(native_host_block_input_permission_enabled(true, true, true));
++        assert!(!native_host_block_input_permission_enabled(
++            false, true, true
++        ));
++        assert!(native_host_block_input_permission_enabled(
++            true, false, false
++        ));
++    }
++
++    #[test]
++    fn native_host_pointer_input_fails_closed_on_unsupported_platforms() {
++        assert!(!native_host_pointer_input_kind_enabled(
++            true,
++            false,
++            SemanticPointerKind::ScaleUpdate { ended: false }
++        ));
++        assert!(native_host_pointer_input_kind_enabled(
++            true,
++            true,
++            SemanticPointerKind::ScaleUpdate { ended: false }
++        ));
++        assert!(!native_host_pointer_input_kind_enabled(
++            true,
++            true,
++            SemanticPointerKind::PanUpdate
++        ));
++        assert!(native_host_pointer_input_kind_enabled(
++            false,
++            false,
++            SemanticPointerKind::PanUpdate
++        ));
++
++        assert!(
++            normalize_supported_pointer_input(PointerDeviceEvent::new(), false, false).is_none()
++        );
++
++        let mut scale = TouchEvent::new();
++        scale.set_scale_update(TouchScaleUpdate {
++            scale: 100,
+             ..Default::default()
+-        };
+-        retina.on_mouse_event(&mut mouse, 0);
+-        assert_eq!(mouse.x, 260);
+-        assert_eq!(mouse.y, 260);
++        });
++        let mut scale_event = PointerDeviceEvent::new();
++        scale_event.set_touch_event(scale);
++        assert!(normalize_supported_pointer_input(scale_event.clone(), true, false).is_none());
++        assert!(normalize_supported_pointer_input(scale_event, true, true).is_some());
++
++        let mut pan = TouchEvent::new();
++        pan.set_pan_update(TouchPanUpdate {
++            x: 1,
++            y: -1,
++            ..Default::default()
++        });
++        let mut pan_event = PointerDeviceEvent::new();
++        pan_event.set_touch_event(pan);
++        assert!(normalize_supported_pointer_input(pan_event.clone(), true, true).is_none());
++        assert!(normalize_supported_pointer_input(pan_event, false, false).is_some());
++    }
++
++    #[test]
++    fn native_host_input_activity_requires_queue_admission() {
++        assert!(!native_host_input_commits_activity(true, false));
++        assert!(native_host_input_commits_activity(true, true));
++        assert!(native_host_input_commits_activity(false, false));
++        assert!(native_host_input_commits_activity(false, true));
++    }
++
++    #[test]
++    fn native_host_key_modifier_tracking_requires_queue_admission() {
++        assert!(!native_host_key_tracks_modifier(true, false));
++        assert!(native_host_key_tracks_modifier(true, true));
++        assert!(native_host_key_tracks_modifier(false, false));
++        assert!(native_host_key_tracks_modifier(false, true));
++    }
++
++    #[test]
++    fn native_host_privileged_key_fails_closed_on_unsupported_platforms() {
++        let sas = SemanticKeyKind::LegacyControl(ControlKey::CtrlAltDel);
++        let lock_screen = SemanticKeyKind::LegacyControl(ControlKey::LockScreen);
++
++        assert!(!native_host_key_input_kind_enabled(true, false, sas));
++        assert!(native_host_key_input_kind_enabled(true, true, sas));
++        assert!(native_host_key_input_kind_enabled(false, false, sas));
++        assert!(native_host_key_input_kind_enabled(true, false, lock_screen));
++    }
++
++    #[test]
++    fn native_host_modifier_tracking_follows_typed_key_action() {
++        assert_eq!(
++            tracked_modifier_down_after_action(true, false, SemanticKeyAction::Down),
++            Some(true)
++        );
++        assert_eq!(
++            tracked_modifier_down_after_action(true, true, SemanticKeyAction::Up),
++            Some(false)
++        );
++        assert_eq!(
++            tracked_modifier_down_after_action(true, true, SemanticKeyAction::Press),
++            Some(false)
++        );
++        assert_eq!(
++            tracked_modifier_down_after_action(true, false, SemanticKeyAction::Text),
++            None
++        );
++
++        assert_eq!(
++            tracked_modifier_down_after_action(false, false, SemanticKeyAction::Down),
++            Some(false)
++        );
++        assert_eq!(
++            tracked_modifier_down_after_action(false, true, SemanticKeyAction::Press),
++            Some(true)
++        );
++    }
++
++    #[test]
++    fn native_host_modifier_drop_uses_ordered_cleanup() {
++        assert!(native_host_uses_ordered_modifier_cleanup(true));
++        assert!(!native_host_uses_ordered_modifier_cleanup(false));
++    }
++
++    #[test]
++    fn native_host_remote_lease_is_held_through_ordered_cleanup() {
++        assert!(native_host_holds_remote_lease_through_cleanup(
++            true,
++            Some(AuthConnType::Remote)
++        ));
++        for conn_type in [
++            None,
++            Some(AuthConnType::FileTransfer),
++            Some(AuthConnType::PortForward),
++            Some(AuthConnType::ViewCamera),
++            Some(AuthConnType::Terminal),
++        ] {
++            assert!(!native_host_holds_remote_lease_through_cleanup(
++                true, conn_type
++            ));
++        }
++        assert!(!native_host_holds_remote_lease_through_cleanup(
++            false,
++            Some(AuthConnType::Remote)
++        ));
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn effective_input_permission_requires_authorized_ready_remote_session() {
++        let prerequisites = [
++            (false, true, true, true, false),
++            (true, false, true, true, false),
++            (true, true, false, true, false),
++            (true, true, true, false, false),
++            (true, true, true, true, true),
++        ];
++        for (authorized, remote, ready, local_allowed, peer_disabled) in prerequisites {
++            assert!(!effective_input_permission_enabled(
++                authorized,
++                remote,
++                ready,
++                local_allowed,
++                peer_disabled,
++            ));
++        }
++
++        let permission = InputPermissionEpoch::new(false);
++        assert!(permission.snapshot().is_none());
++        assert!(permission.set_enabled(effective_input_permission_enabled(
++            true, true, true, true, false,
++        )));
++        let snapshot = permission
++            .snapshot()
++            .expect("authorized ready remote input becomes enabled");
++        let mapping = InputMappingEpoch::new();
++        let mut key = KeyEvent::new();
++        key.set_control_key(ControlKey::Escape);
++        let queued = MessageInput::Key(AuthorizedInput {
++            payload: NormalizedKeyInput::from_wire(key).expect("escape key is canonical"),
++            authorization: InputAuthorization::Required(snapshot),
++            mapping_snapshot: None,
++        });
++        assert!(queued.is_authorized(&permission, &mapping));
++
++        assert!(permission.set_enabled(effective_input_permission_enabled(
++            true, true, true, true, true,
++        )));
++        assert!(permission.snapshot().is_none());
++        assert!(!queued.is_authorized(&permission, &mapping));
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn input_permission_epoch_rejects_queued_snapshots_after_revocation() {
++        let permission = InputPermissionEpoch::new(true);
++        let mapping = InputMappingEpoch::new();
++        let first = permission.snapshot().expect("input starts enabled");
++        let mut key = KeyEvent::new();
++        key.set_control_key(ControlKey::Escape);
++        let queued = MessageInput::Key(AuthorizedInput {
++            payload: NormalizedKeyInput::from_wire(key).expect("escape key is canonical"),
++            authorization: InputAuthorization::Required(first),
++            mapping_snapshot: None,
++        });
++        assert!(permission.accepts(first));
++        assert!(queued.is_authorized(&permission, &mapping));
++
++        assert!(permission.set_enabled(false));
++        assert!(permission.snapshot().is_none());
++        assert!(!permission.accepts(first));
++        assert!(!queued.is_authorized(&permission, &mapping));
++
++        assert!(permission.set_enabled(true));
++        let second = permission.snapshot().expect("input was re-enabled");
++        assert_ne!(first, second);
++        assert!(!permission.accepts(first));
++        assert!(permission.accepts(second));
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn input_permission_epoch_is_stable_and_preserves_non_injecting_cursor_updates() {
++        let permission = InputPermissionEpoch::new(true);
++        let snapshot = permission.snapshot().expect("input starts enabled");
++        assert!(!permission.set_enabled(true));
++        assert!(permission.accepts(snapshot));
++
++        assert!(permission.set_enabled(false));
++        assert!(!InputAuthorization::Required(snapshot).is_current(&permission));
++        assert!(InputAuthorization::NonInjecting.is_current(&permission));
++        assert!(!permission.set_enabled(false));
++        assert!(permission.snapshot().is_none());
++
++        let saturated = InputPermissionEpoch {
++            state: AtomicU64::new(u64::MAX - 1),
++        };
++        assert!(!saturated.set_enabled(true));
++        assert!(saturated.snapshot().is_none());
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn input_adapter_gate_rechecks_epoch_when_platform_task_executes() {
++        let permission = Arc::new(InputPermissionEpoch::new(true));
++        let mapping = Arc::new(InputMappingEpoch::new());
++        let first = permission.snapshot().expect("input starts enabled");
++        let current_gate = input_adapter_gate(
++            InputAuthorization::Required(first),
++            None,
++            permission.clone(),
++            mapping.clone(),
++        );
++        assert!(current_gate());
++
++        let stale_gate = input_adapter_gate(
++            InputAuthorization::Required(first),
++            None,
++            permission.clone(),
++            mapping.clone(),
++        );
++        assert!(permission.set_enabled(false));
++        assert!(!stale_gate());
++
++        assert!(permission.set_enabled(true));
++        let second = permission.snapshot().expect("input was re-enabled");
++        assert_ne!(first, second);
++        let old_generation_gate = input_adapter_gate(
++            InputAuthorization::Required(first),
++            None,
++            permission.clone(),
++            mapping.clone(),
++        );
++        let new_generation_gate = input_adapter_gate(
++            InputAuthorization::Required(second),
++            None,
++            permission.clone(),
++            mapping.clone(),
++        );
++        assert!(!old_generation_gate());
++        assert!(new_generation_gate());
++
++        assert!(permission.set_enabled(false));
++        let cursor_only_gate = input_adapter_gate(
++            InputAuthorization::NonInjecting,
++            None,
++            permission.clone(),
++            mapping.clone(),
++        );
++        assert!(cursor_only_gate());
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn input_mapping_epoch_rejects_stale_platform_tasks() {
++        let permission = Arc::new(InputPermissionEpoch::new(true));
++        let mapping = Arc::new(InputMappingEpoch::new());
++        let authorization =
++            InputAuthorization::Required(permission.snapshot().expect("input starts enabled"));
++        let first = mapping.snapshot().expect("mapping starts valid");
++        let current_gate = input_adapter_gate(
++            authorization,
++            Some(first),
++            permission.clone(),
++            mapping.clone(),
++        );
++        assert!(current_gate());
++
++        let stale_gate = input_adapter_gate(
++            authorization,
++            Some(first),
++            permission.clone(),
++            mapping.clone(),
++        );
++        mapping.advance();
++        assert!(!stale_gate());
++
++        let second = mapping.snapshot().expect("advanced mapping stays valid");
++        assert_ne!(first, second);
++        let current_gate = input_adapter_gate(
++            authorization,
++            Some(second),
++            permission.clone(),
++            mapping.clone(),
++        );
++        assert!(current_gate());
++        let stale_second_gate = input_adapter_gate(
++            authorization,
++            Some(second),
++            permission.clone(),
++            mapping.clone(),
++        );
++        mapping.advance();
++        assert!(!stale_second_gate());
++
++        let saturated = InputMappingEpoch {
++            state: AtomicU64::new(u64::MAX),
++        };
++        let last = saturated
++            .snapshot()
++            .expect("last mapping is initially valid");
++        saturated.advance();
++        assert!(saturated.snapshot().is_none());
++        assert!(!saturated.accepts(last));
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn input_mapping_epoch_rejects_queued_and_cursor_only_messages() {
++        let permission = InputPermissionEpoch::new(true);
++        let mapping = InputMappingEpoch::new();
++        let mapping_snapshot = mapping.snapshot().expect("mapping starts valid");
++        let queued = MessageInput::Mouse(AuthorizedInput {
++            payload: InputMouse {
++                msg: NormalizedMouseInput::from_wire(MouseEvent::new())
++                    .expect("zero-mask move is canonical"),
++                conn_id: 1,
++                username: String::new(),
++                argb: 0,
++                simulate: true,
++                show_cursor: false,
++            },
++            authorization: InputAuthorization::Required(
++                permission.snapshot().expect("input starts enabled"),
++            ),
++            mapping_snapshot: Some(mapping_snapshot),
++        });
++        let cursor_only = MessageInput::Mouse(AuthorizedInput {
++            payload: InputMouse {
++                msg: NormalizedMouseInput::from_wire(MouseEvent::new())
++                    .expect("zero-mask move is canonical"),
++                conn_id: 1,
++                username: String::new(),
++                argb: 0,
++                simulate: false,
++                show_cursor: true,
++            },
++            authorization: InputAuthorization::NonInjecting,
++            mapping_snapshot: Some(mapping_snapshot),
++        });
++        assert!(queued.is_authorized(&permission, &mapping));
++        assert!(cursor_only.is_authorized(&permission, &mapping));
++
++        mapping.advance();
++        assert!(!queued.is_authorized(&permission, &mapping));
++        assert!(!cursor_only.is_authorized(&permission, &mapping));
++        assert!(permission.snapshot().is_some());
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn normalizes_wire_mouse_semantics_before_queueing() {
++        let absolute = NormalizedMouseInput::from_wire(MouseEvent {
++            x: 12,
++            y: 34,
++            ..Default::default()
++        })
++        .expect("absolute move is canonical");
++        assert_eq!(absolute.kind, SemanticMouseKind::AbsoluteMove);
++        assert_eq!((absolute.event.x, absolute.event.y), (12, 34));
++
++        let drag = NormalizedMouseInput::from_wire(MouseEvent {
++            mask: crate::input::MOUSE_TYPE_MOVE
++                | ((crate::input::MOUSE_BUTTON_LEFT | crate::input::MOUSE_BUTTON_RIGHT) << 3),
++            x: 56,
++            y: 78,
++            ..Default::default()
++        })
++        .expect("absolute drag with known held buttons is canonical");
++        assert_eq!(drag.kind, SemanticMouseKind::AbsoluteMove);
++        assert_eq!((drag.event.x, drag.event.y), (56, 78));
++
++        let relative = NormalizedMouseInput::from_wire(MouseEvent {
++            mask: crate::input::MOUSE_TYPE_MOVE_RELATIVE,
++            x: i32::MAX,
++            y: i32::MIN,
++            ..Default::default()
++        })
++        .expect("relative move is canonical");
++        assert_eq!(relative.kind, SemanticMouseKind::RelativeMove);
++        assert_eq!(
++            (relative.event.x, relative.event.y),
++            (
++                NormalizedMouseInput::MAX_RELATIVE_DELTA,
++                -NormalizedMouseInput::MAX_RELATIVE_DELTA
++            )
++        );
++        assert!(NormalizedMouseInput::from_wire(MouseEvent {
++            mask: crate::input::MOUSE_TYPE_MOVE_RELATIVE,
++            x: 0,
++            y: 0,
++            ..Default::default()
++        })
++        .is_none());
++
++        let scroll = NormalizedMouseInput::from_wire(MouseEvent {
++            mask: crate::input::MOUSE_TYPE_TRACKPAD,
++            x: 500,
++            y: -500,
++            ..Default::default()
++        })
++        .expect("trackpad scroll is canonical");
++        assert_eq!(scroll.kind, SemanticMouseKind::PreciseScroll);
++        assert_eq!(
++            (scroll.event.x, scroll.event.y),
++            (
++                NormalizedMouseInput::MAX_SCROLL_DELTA,
++                -NormalizedMouseInput::MAX_SCROLL_DELTA
++            )
++        );
++        for scroll_type in [
++            crate::input::MOUSE_TYPE_WHEEL,
++            crate::input::MOUSE_TYPE_TRACKPAD,
++        ] {
++            assert!(NormalizedMouseInput::from_wire(MouseEvent {
++                mask: scroll_type,
++                x: 0,
++                y: 0,
++                ..Default::default()
++            })
++            .is_none());
++        }
++
++        let left_up = NormalizedMouseInput::from_wire(MouseEvent {
++            mask: crate::input::MOUSE_TYPE_UP | (crate::input::MOUSE_BUTTON_LEFT << 3),
++            ..Default::default()
++        })
++        .expect("single button up is canonical");
++        assert!(left_up.is_left_button_up());
++
++        for invalid_mask in [
++            6,
++            crate::input::MOUSE_TYPE_DOWN,
++            crate::input::MOUSE_TYPE_MOVE | (0x20 << 3),
++            crate::input::MOUSE_TYPE_WHEEL | (crate::input::MOUSE_BUTTON_LEFT << 3),
++            crate::input::MOUSE_TYPE_DOWN
++                | ((crate::input::MOUSE_BUTTON_LEFT | crate::input::MOUSE_BUTTON_RIGHT) << 3),
++        ] {
++            assert!(NormalizedMouseInput::from_wire(MouseEvent {
++                mask: invalid_mask,
++                ..Default::default()
++            })
++            .is_none());
++        }
++
++        let mut invalid_modifier = MouseEvent::new();
++        invalid_modifier.modifiers.push(ControlKey::Unknown.into());
++        assert!(NormalizedMouseInput::from_wire(invalid_modifier).is_none());
++
++        let mut duplicate_modifier = MouseEvent::new();
++        duplicate_modifier.modifiers.push(ControlKey::Shift.into());
++        duplicate_modifier.modifiers.push(ControlKey::Shift.into());
++        assert!(NormalizedMouseInput::from_wire(duplicate_modifier).is_none());
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn normalizes_wire_pointer_semantics_before_queueing() {
++        fn pointer_with_touch(touch: TouchEvent) -> PointerDeviceEvent {
++            let mut event = PointerDeviceEvent::new();
++            event.set_touch_event(touch);
++            event
++        }
++
++        assert!(NormalizedPointerInput::from_wire(PointerDeviceEvent::new()).is_none());
++        assert!(NormalizedPointerInput::from_wire(pointer_with_touch(TouchEvent::new())).is_none());
++
++        let mut scale = TouchEvent::new();
++        scale.set_scale_update(TouchScaleUpdate {
++            scale: i32::MAX,
++            ..Default::default()
++        });
++        let scale = NormalizedPointerInput::from_wire(pointer_with_touch(scale))
++            .expect("scale update is canonical");
++        assert_eq!(
++            scale.kind,
++            SemanticPointerKind::ScaleUpdate { ended: false }
++        );
++        let pointer_device_event::Union::TouchEvent(scale_touch) =
++            scale.event.union.as_ref().expect("touch union is present")
++        else {
++            panic!("expected touch event");
++        };
++        let touch_event::Union::ScaleUpdate(scale_update) =
++            scale_touch.union.as_ref().expect("scale union is present")
++        else {
++            panic!("expected scale update");
++        };
++        assert_eq!(
++            scale_update.scale,
++            NormalizedPointerInput::MAX_SCALE_DELTA_MILLI
++        );
++
++        let mut scale_end = TouchEvent::new();
++        scale_end.set_scale_update(TouchScaleUpdate {
++            scale: 0,
++            ..Default::default()
++        });
++        let scale_end = NormalizedPointerInput::from_wire(pointer_with_touch(scale_end))
++            .expect("zero scale terminates the gesture");
++        assert_eq!(
++            scale_end.kind,
++            SemanticPointerKind::ScaleUpdate { ended: true }
++        );
++
++        let mut pan_update = TouchEvent::new();
++        pan_update.set_pan_update(TouchPanUpdate {
++            x: i32::MAX,
++            y: i32::MIN,
++            ..Default::default()
++        });
++        let pan_update = NormalizedPointerInput::from_wire(pointer_with_touch(pan_update))
++            .expect("pan update is canonical");
++        assert_eq!(pan_update.kind, SemanticPointerKind::PanUpdate);
++        let pointer_device_event::Union::TouchEvent(pan_touch) = pan_update
++            .event
++            .union
++            .as_ref()
++            .expect("touch union is present")
++        else {
++            panic!("expected touch event");
++        };
++        let touch_event::Union::PanUpdate(pan_delta) =
++            pan_touch.union.as_ref().expect("pan union is present")
++        else {
++            panic!("expected pan update");
++        };
++        assert_eq!(
++            (pan_delta.x, pan_delta.y),
++            (
++                NormalizedPointerInput::MAX_PAN_DELTA,
++                -NormalizedPointerInput::MAX_PAN_DELTA
++            )
++        );
++
++        let mut pan_start = TouchEvent::new();
++        pan_start.set_pan_start(TouchPanStart {
++            x: 12,
++            y: 34,
++            ..Default::default()
++        });
++        let pan_start = NormalizedPointerInput::from_wire(pointer_with_touch(pan_start))
++            .expect("pan start is canonical");
++        assert_eq!(pan_start.kind, SemanticPointerKind::PanStart);
++        let pointer_device_event::Union::TouchEvent(pan_start_touch) = pan_start
++            .event
++            .union
++            .as_ref()
++            .expect("touch union is present")
++        else {
++            panic!("expected touch event");
++        };
++        let touch_event::Union::PanStart(pan_start_coordinates) = pan_start_touch
++            .union
++            .as_ref()
++            .expect("pan start union is present")
++        else {
++            panic!("expected pan start");
++        };
++        assert_eq!((pan_start_coordinates.x, pan_start_coordinates.y), (12, 34));
++
++        let mut pan_end = TouchEvent::new();
++        pan_end.set_pan_end(TouchPanEnd {
++            x: 56,
++            y: 78,
++            ..Default::default()
++        });
++        let pan_end = NormalizedPointerInput::from_wire(pointer_with_touch(pan_end))
++            .expect("pan end is canonical");
++        assert_eq!(pan_end.kind, SemanticPointerKind::PanEnd);
++        let pointer_device_event::Union::TouchEvent(pan_end_touch) = pan_end
++            .event
++            .union
++            .as_ref()
++            .expect("touch union is present")
++        else {
++            panic!("expected touch event");
++        };
++        let touch_event::Union::PanEnd(pan_end_coordinates) = pan_end_touch
++            .union
++            .as_ref()
++            .expect("pan end union is present")
++        else {
++            panic!("expected pan end");
++        };
++        assert_eq!((pan_end_coordinates.x, pan_end_coordinates.y), (56, 78));
++
++        let mut invalid_modifier = pointer_with_touch(TouchEvent {
++            union: Some(touch_event::Union::ScaleUpdate(TouchScaleUpdate {
++                scale: 1,
++                ..Default::default()
++            })),
++            ..Default::default()
++        });
++        invalid_modifier.modifiers.push(ControlKey::Unknown.into());
++        assert!(NormalizedPointerInput::from_wire(invalid_modifier).is_none());
++
++        let mut duplicate_modifier = pointer_with_touch(TouchEvent {
++            union: Some(touch_event::Union::PanEnd(TouchPanEnd::default())),
++            ..Default::default()
++        });
++        duplicate_modifier.modifiers.push(ControlKey::Shift.into());
++        duplicate_modifier.modifiers.push(ControlKey::Shift.into());
++        assert!(NormalizedPointerInput::from_wire(duplicate_modifier).is_none());
++    }
++
++    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[test]
++    fn normalizes_wire_key_semantics_before_queueing() {
++        fn legacy_control(control: ControlKey, down: bool, press: bool) -> KeyEvent {
++            let mut event = KeyEvent {
++                down,
++                press,
++                mode: KeyboardMode::Legacy.into(),
++                ..Default::default()
++            };
++            event.set_control_key(control);
++            event
++        }
++
++        assert!(NormalizedKeyInput::from_wire(KeyEvent::new()).is_none());
++
++        let enter =
++            NormalizedKeyInput::from_wire(legacy_control(ControlKey::NumpadEnter, true, false))
++                .expect("numpad enter down is canonical");
++        assert_eq!(
++            enter.kind,
++            SemanticKeyKind::LegacyControl(ControlKey::NumpadEnter)
++        );
++        assert_eq!(enter.action, SemanticKeyAction::Down);
++        assert!(enter.is_enter());
++
++        let modifier =
++            NormalizedKeyInput::from_wire(legacy_control(ControlKey::RShift, false, false))
++                .expect("right shift up is canonical");
++        assert_eq!(modifier.action, SemanticKeyAction::Up);
++        assert!(modifier.is_modifier());
++
++        let pressed =
++            NormalizedKeyInput::from_wire(legacy_control(ControlKey::Escape, false, true))
++                .expect("escape press is canonical");
++        assert_eq!(pressed.action, SemanticKeyAction::Press);
++        assert!(
++            NormalizedKeyInput::from_wire(legacy_control(ControlKey::Escape, true, true,))
++                .is_none()
++        );
++        assert!(
++            NormalizedKeyInput::from_wire(legacy_control(ControlKey::Unknown, true, false,))
++                .is_none()
++        );
++        for unsupported in [
++            ControlKey::VolumeMute,
++            ControlKey::VolumeUp,
++            ControlKey::VolumeDown,
++            ControlKey::Power,
++        ] {
++            assert!(
++                NormalizedKeyInput::from_wire(legacy_control(unsupported, true, false,)).is_none()
++            );
++        }
++
++        for function_key in [ControlKey::CtrlAltDel, ControlKey::LockScreen] {
++            let down = NormalizedKeyInput::from_wire(legacy_control(function_key, true, false))
++                .expect("privileged function-key down is canonical");
++            assert_eq!(down.action, SemanticKeyAction::Down);
++            assert!(
++                NormalizedKeyInput::from_wire(legacy_control(function_key, false, false,))
++                    .is_none()
++            );
++            assert!(
++                NormalizedKeyInput::from_wire(legacy_control(function_key, false, true,)).is_none()
++            );
++            let mut modified = legacy_control(function_key, true, false);
++            modified.modifiers.push(ControlKey::Shift.into());
++            assert!(NormalizedKeyInput::from_wire(modified).is_none());
++        }
++
++        let mut automatic = KeyEvent {
++            down: true,
++            mode: KeyboardMode::Auto.into(),
++            ..Default::default()
++        };
++        automatic.set_chr('ß' as u32);
++        let automatic = NormalizedKeyInput::from_wire(automatic)
++            .expect("auto mode retains legacy character compatibility");
++        assert_eq!(automatic.kind, SemanticKeyKind::LegacyCharacter);
++
++        for invalid_scalar in [0, 0xD800, 0x11_0000] {
++            let mut event = KeyEvent::new();
++            event.set_unicode(invalid_scalar);
++            assert!(NormalizedKeyInput::from_wire(event).is_none());
++        }
++
++        let mut text = KeyEvent {
++            down: true,
++            press: true,
++            mode: KeyboardMode::Translate.into(),
++            ..Default::default()
++        };
++        text.set_seq("hello 世界".to_owned());
++        let text = NormalizedKeyInput::from_wire(text).expect("bounded UTF-8 text is canonical");
++        assert_eq!(text.kind, SemanticKeyKind::TranslatedSequence);
++        assert_eq!(text.action, SemanticKeyAction::Text);
++        assert!(!text.event.down);
++        assert!(!text.event.press);
++
++        for invalid_sequence in [
++            String::new(),
++            "nul\0byte".to_owned(),
++            "x".repeat(NormalizedKeyInput::MAX_SEQUENCE_BYTES + 1),
++        ] {
++            let mut event = KeyEvent::new();
++            event.set_seq(invalid_sequence);
++            assert!(NormalizedKeyInput::from_wire(event).is_none());
++        }
++
++        let mut mapped = KeyEvent {
++            down: true,
++            mode: KeyboardMode::Map.into(),
++            ..Default::default()
++        };
++        mapped.set_chr(0);
++        let mapped = NormalizedKeyInput::from_wire(mapped)
++            .expect("macOS virtual keycode zero is a valid physical position");
++        assert_eq!(mapped.kind, SemanticKeyKind::MappedPhysical);
++
++        let mut translated = KeyEvent {
++            down: true,
++            mode: KeyboardMode::Translate.into(),
++            ..Default::default()
++        };
++        translated.set_chr(0x7f);
++        let translated = NormalizedKeyInput::from_wire(translated)
++            .expect("bounded translated position is canonical");
++        assert_eq!(translated.kind, SemanticKeyKind::TranslatedPhysical);
++
++        #[cfg(target_os = "macos")]
++        {
++            let mut out_of_range = KeyEvent {
++                down: true,
++                mode: KeyboardMode::Map.into(),
++                ..Default::default()
++            };
++            out_of_range.set_chr(0x80);
++            assert!(NormalizedKeyInput::from_wire(out_of_range).is_none());
++        }
++
++        let mut wrong_union = legacy_control(ControlKey::Escape, true, false);
++        wrong_union.mode = KeyboardMode::Map.into();
++        assert!(NormalizedKeyInput::from_wire(wrong_union).is_none());
++
++        let mut unknown_mode = legacy_control(ControlKey::Escape, true, false);
++        unknown_mode.mode = hbb_common::protobuf::EnumOrUnknown::from_i32(999);
++        assert!(NormalizedKeyInput::from_wire(unknown_mode).is_none());
++
++        let mut invalid_modifier = legacy_control(ControlKey::Escape, true, false);
++        invalid_modifier.modifiers.push(ControlKey::Unknown.into());
++        assert!(NormalizedKeyInput::from_wire(invalid_modifier).is_none());
++
++        let mut duplicate_modifier = legacy_control(ControlKey::Escape, true, false);
++        duplicate_modifier.modifiers.push(ControlKey::Shift.into());
++        duplicate_modifier.modifiers.push(ControlKey::Shift.into());
++        assert!(NormalizedKeyInput::from_wire(duplicate_modifier).is_none());
++
++        let mut duplicate_alt_alias = legacy_control(ControlKey::Escape, true, false);
++        duplicate_alt_alias.modifiers.push(ControlKey::Alt.into());
++        duplicate_alt_alias
++            .modifiers
++            .push(ControlKey::Option.into());
++        assert!(NormalizedKeyInput::from_wire(duplicate_alt_alias).is_none());
++
++        let mut canonical_modifiers = legacy_control(ControlKey::Escape, true, false);
++        canonical_modifiers.modifiers.push(ControlKey::RAlt.into());
++        canonical_modifiers
++            .modifiers
++            .push(ControlKey::CapsLock.into());
++        assert!(NormalizedKeyInput::from_wire(canonical_modifiers).is_some());
++    }
++
++    #[test]
++    fn cumulative_login_failure_cooldown_is_bounded_and_resets_bucket() {
++        const FAILURE_MINUTE: i32 = 10_000;
++        const TEST_KEY: &str = "198.51.100.77";
++        let blocked = (FAILURE_MINUTE, 1, LOGIN_FAILURE_TOTAL_LIMIT + 1);
++
++        assert_eq!(
++            Connection::cumulative_failure_cooldown_remaining_minutes(
++                blocked,
++                FAILURE_MINUTE,
++                LOGIN_FAILURE_TOTAL_LIMIT,
++            ),
++            Some(LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES)
++        );
++        assert_eq!(
++            Connection::cumulative_failure_cooldown_remaining_minutes(
++                blocked,
++                FAILURE_MINUTE + LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES - 1,
++                LOGIN_FAILURE_TOTAL_LIMIT,
++            ),
++            Some(1)
++        );
++        assert_eq!(
++            Connection::normalize_failure_entry_after_cooldown(
++                blocked,
++                FAILURE_MINUTE + LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES - 1,
++                LOGIN_FAILURE_TOTAL_LIMIT,
++            ),
++            blocked
++        );
++        assert_eq!(
++            Connection::normalize_failure_entry_after_cooldown(
++                blocked,
++                FAILURE_MINUTE + LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES,
++                LOGIN_FAILURE_TOTAL_LIMIT,
++            ),
++            (0, 0, 0)
++        );
++
++        LOGIN_FAILURES[0]
++            .lock()
++            .unwrap()
++            .insert(TEST_KEY.to_owned(), blocked);
++        let reset = Connection::failure_entry_with_cooldown(
++            0,
++            TEST_KEY,
++            FAILURE_MINUTE + LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES,
++            LOGIN_FAILURE_TOTAL_LIMIT,
++        );
++        assert_eq!(reset, (0, 0, 0));
++        assert!(!LOGIN_FAILURES[0].lock().unwrap().contains_key(TEST_KEY));
++        assert_eq!(
++            Connection::bump_failure_entry(
++                reset,
++                FAILURE_MINUTE + LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES
++            ),
++            (FAILURE_MINUTE + LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES, 1, 1)
++        );
++    }
++
++    #[test]
++    fn cumulative_login_failure_cooldown_preserves_thresholds_and_saturates() {
++        const FAILURE_MINUTE: i32 = 20_000;
++        let at_limit = (FAILURE_MINUTE, 7, LOGIN_FAILURE_TOTAL_LIMIT);
++        assert_eq!(
++            Connection::cumulative_failure_cooldown_remaining_minutes(
++                at_limit,
++                FAILURE_MINUTE,
++                LOGIN_FAILURE_TOTAL_LIMIT,
++            ),
++            None
++        );
++        assert_eq!(
++            Connection::normalize_failure_entry_after_cooldown(
++                at_limit,
++                FAILURE_MINUTE + LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES,
++                LOGIN_FAILURE_TOTAL_LIMIT,
++            ),
++            at_limit
++        );
++
++        let saturated =
++            Connection::bump_failure_entry((FAILURE_MINUTE, i32::MAX, i32::MAX), FAILURE_MINUTE);
++        assert_eq!(saturated, (FAILURE_MINUTE, i32::MAX, i32::MAX));
++
++        let prefix_blocked = (FAILURE_MINUTE, 1, 61);
++        assert_eq!(
++            Connection::normalize_failure_entry_after_cooldown(
++                prefix_blocked,
++                FAILURE_MINUTE + LOGIN_FAILURE_TOTAL_COOLDOWN_MINUTES,
++                60,
++            ),
++            (0, 0, 0)
++        );
++    }
++
++    #[test]
++    fn native_host_pending_approval_is_remote_and_mode_scoped() {
++        assert!(native_host_local_approval_supported(
++            true,
++            ApproveMode::Click
++        ));
++        assert!(native_host_local_approval_supported(
++            true,
++            ApproveMode::Both
++        ));
++        assert!(!native_host_local_approval_supported(
++            true,
++            ApproveMode::Password
++        ));
++        assert!(!native_host_local_approval_supported(
++            false,
++            ApproveMode::Click
++        ));
++        assert!(!ConnectionManagerPresentation::PendingApproval.authorized());
++        assert!(!ConnectionManagerPresentation::AuthenticationFailure.authorized());
++        assert!(ConnectionManagerPresentation::Authorized.authorized());
++    }
++
++    #[test]
++    fn native_host_remote_slot_policy_is_scope_and_mode_specific() {
++        assert!(native_host_remote_slot_available(
++            true,
++            AuthConnType::Remote,
++            [],
++        ));
++        assert!(!native_host_remote_slot_available(
++            true,
++            AuthConnType::Remote,
++            [AuthConnType::Remote],
++        ));
++        assert!(native_host_remote_slot_available(
++            true,
++            AuthConnType::FileTransfer,
++            [AuthConnType::Remote],
++        ));
++        assert!(native_host_remote_slot_available(
++            true,
++            AuthConnType::Remote,
++            [AuthConnType::FileTransfer, AuthConnType::ViewCamera],
++        ));
++        assert!(native_host_remote_slot_available(
++            false,
++            AuthConnType::Remote,
++            [AuthConnType::Remote],
++        ));
++    }
++
++    #[test]
++    fn native_host_remote_slot_check_and_reservation_is_single_winner() {
++        let slots = Arc::new(Mutex::new(Vec::<AuthConnType>::new()));
++        let barrier = Arc::new(std::sync::Barrier::new(8));
++        let contenders = (0..8)
++            .map(|_| {
++                let slots = slots.clone();
++                let barrier = barrier.clone();
++                std::thread::spawn(move || {
++                    barrier.wait();
++                    let mut slots = slots.lock().unwrap();
++                    if native_host_remote_slot_available(
++                        true,
++                        AuthConnType::Remote,
++                        slots.iter().copied(),
++                    ) {
++                        slots.push(AuthConnType::Remote);
++                        true
++                    } else {
++                        false
++                    }
++                })
++            })
++            .collect::<Vec<_>>();
++        let winners = contenders
++            .into_iter()
++            .map(|contender| contender.join().unwrap())
++            .filter(|won| *won)
++            .count();
++        assert_eq!(winners, 1);
++
++        slots.lock().unwrap().clear();
++        assert!(native_host_remote_slot_available(
++            true,
++            AuthConnType::Remote,
++            slots.lock().unwrap().iter().copied(),
++        ));
++    }
++
++    #[test]
++    fn native_host_does_not_require_external_connection_manager() {
++        assert!(!connection_manager_required_for_native_host(true));
++        assert!(connection_manager_required_for_native_host(false));
++    }
++
++    #[test]
++    fn native_host_wakelock_requires_remote_screen_without_display_assertion() {
++        assert_eq!(incoming_wakelock_display(true, 1, 1, true), Some(false));
++        assert_eq!(incoming_wakelock_display(true, 2, 0, true), None);
++        assert_eq!(incoming_wakelock_display(false, 1, 1, true), None);
++    }
++
++    #[test]
++    fn upstream_wakelock_policy_is_unchanged() {
++        assert_eq!(incoming_wakelock_display(true, 1, 0, false), Some(false));
++        assert_eq!(incoming_wakelock_display(true, 1, 1, false), Some(true));
++        assert_eq!(incoming_wakelock_display(true, 0, 0, false), None);
++    }
++
++    #[cfg(target_os = "macos")]
++    #[test]
++    fn retina() {
++        let display = DisplayInfo {
++            x: 10,
++            y: 10,
++            width: 1000,
++            height: 1000,
++            scale: 2.0,
++            ..Default::default()
++        };
++        let mut retina = Retina::default();
++        assert!(retina.set_displays(std::slice::from_ref(&display)));
++        assert!(!retina.set_displays(std::slice::from_ref(&display)));
++        let mut mouse = NormalizedMouseInput::from_wire(MouseEvent {
++            x: 510,
++            y: 510,
++            ..Default::default()
++        })
++        .unwrap();
++        assert!(retina.on_mouse_event(&mut mouse, 0));
++        assert_eq!(mouse.event.x, 260);
++        assert_eq!(mouse.event.y, 260);
++
++        let mut relative = NormalizedMouseInput::from_wire(MouseEvent {
++            mask: crate::input::MOUSE_TYPE_MOVE_RELATIVE,
++            x: 12,
++            y: -8,
++            ..Default::default()
++        })
++        .unwrap();
++        assert!(retina.on_mouse_event(&mut relative, usize::MAX));
++        assert_eq!((relative.event.x, relative.event.y), (12, -8));
++
++        let mut unmapped = NormalizedMouseInput::from_wire(MouseEvent::new()).unwrap();
++        assert!(!retina.on_mouse_event(&mut unmapped, 1));
++
++        let mut out_of_bounds = NormalizedMouseInput::from_wire(MouseEvent {
++            x: 1_010,
++            y: 10,
++            ..Default::default()
++        })
++        .unwrap();
++        assert!(!retina.on_mouse_event(&mut out_of_bounds, 0));
++
++        let mut button_sentinel = NormalizedMouseInput::from_wire(MouseEvent {
++            mask: crate::input::MOUSE_TYPE_UP | (crate::input::MOUSE_BUTTON_LEFT << 3),
++            ..Default::default()
++        })
++        .unwrap();
++        assert!(retina.on_mouse_event(&mut button_sentinel, usize::MAX));
++
++        let invalid_display = DisplayInfo {
++            scale: 0.0,
++            ..display.clone()
++        };
++        assert!(retina.set_displays(&[invalid_display]));
++        let mut invalid_mapping = NormalizedMouseInput::from_wire(MouseEvent {
++            x: 10,
++            y: 10,
++            ..Default::default()
++        })
++        .unwrap();
++        assert!(!retina.on_mouse_event(&mut invalid_mapping, 0));
++        assert!(retina.set_displays(&[display]));
++
+         let pos = CursorPosition {
+             x: 260,
+             y: 260,
+diff --git a/src/server/input_service.rs b/src/server/input_service.rs
+index 91a2901..2ad35e9 100644
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -27,6 +27,441 @@ use std::{
+     time::{self, Duration, Instant},
+ };
+ 
++pub(crate) type InputAdapterGate = Box<dyn FnOnce() -> bool + Send>;
++
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++pub(crate) enum SemanticMouseButton {
++    Left,
++    Right,
++    Middle,
++    Back,
++    Forward,
++}
++
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++pub(crate) enum SemanticMouseKind {
++    AbsoluteMove,
++    RelativeMove,
++    ButtonDown(SemanticMouseButton),
++    ButtonUp(SemanticMouseButton),
++    DiscreteScroll,
++    PreciseScroll,
++}
++
++#[derive(Clone)]
++pub(crate) struct NormalizedMouseInput {
++    pub(crate) event: MouseEvent,
++    pub(crate) kind: SemanticMouseKind,
++}
++
++impl NormalizedMouseInput {
++    pub(crate) const MAX_RELATIVE_DELTA: i32 = 10_000;
++    pub(crate) const MAX_SCROLL_DELTA: i32 = 120;
++    const VALID_HELD_BUTTONS: i32 = MOUSE_BUTTON_LEFT
++        | MOUSE_BUTTON_RIGHT
++        | MOUSE_BUTTON_WHEEL
++        | MOUSE_BUTTON_BACK
++        | MOUSE_BUTTON_FORWARD;
++
++    pub(crate) fn from_wire(mut event: MouseEvent) -> Option<Self> {
++        if !input_modifiers_are_canonical(&event.modifiers) {
++            return None;
++        }
++
++        let event_type = event.mask & MOUSE_TYPE_MASK;
++        let buttons = event.mask >> 3;
++        let kind = match event_type {
++            // Absolute move carries the controller's currently held buttons
++            // during a drag. The adapter does not re-press them, but the mask
++            // must survive typed normalization for upstream compatibility.
++            MOUSE_TYPE_MOVE if buttons & !Self::VALID_HELD_BUTTONS == 0 => {
++                SemanticMouseKind::AbsoluteMove
++            }
++            MOUSE_TYPE_MOVE_RELATIVE if buttons == 0 => {
++                event.x = event
++                    .x
++                    .clamp(-Self::MAX_RELATIVE_DELTA, Self::MAX_RELATIVE_DELTA);
++                event.y = event
++                    .y
++                    .clamp(-Self::MAX_RELATIVE_DELTA, Self::MAX_RELATIVE_DELTA);
++                if event.x == 0 && event.y == 0 {
++                    return None;
++                }
++                SemanticMouseKind::RelativeMove
++            }
++            MOUSE_TYPE_DOWN => SemanticMouseKind::ButtonDown(Self::button(buttons)?),
++            MOUSE_TYPE_UP => SemanticMouseKind::ButtonUp(Self::button(buttons)?),
++            MOUSE_TYPE_WHEEL if buttons == 0 => {
++                event.x = event
++                    .x
++                    .clamp(-Self::MAX_SCROLL_DELTA, Self::MAX_SCROLL_DELTA);
++                event.y = event
++                    .y
++                    .clamp(-Self::MAX_SCROLL_DELTA, Self::MAX_SCROLL_DELTA);
++                if event.x == 0 && event.y == 0 {
++                    return None;
++                }
++                SemanticMouseKind::DiscreteScroll
++            }
++            MOUSE_TYPE_TRACKPAD if buttons == 0 => {
++                event.x = event
++                    .x
++                    .clamp(-Self::MAX_SCROLL_DELTA, Self::MAX_SCROLL_DELTA);
++                event.y = event
++                    .y
++                    .clamp(-Self::MAX_SCROLL_DELTA, Self::MAX_SCROLL_DELTA);
++                if event.x == 0 && event.y == 0 {
++                    return None;
++                }
++                SemanticMouseKind::PreciseScroll
++            }
++            _ => return None,
++        };
++        Some(Self { event, kind })
++    }
++
++    fn button(value: i32) -> Option<SemanticMouseButton> {
++        match value {
++            MOUSE_BUTTON_LEFT => Some(SemanticMouseButton::Left),
++            MOUSE_BUTTON_RIGHT => Some(SemanticMouseButton::Right),
++            MOUSE_BUTTON_WHEEL => Some(SemanticMouseButton::Middle),
++            MOUSE_BUTTON_BACK => Some(SemanticMouseButton::Back),
++            MOUSE_BUTTON_FORWARD => Some(SemanticMouseButton::Forward),
++            _ => None,
++        }
++    }
++
++    pub(crate) fn is_left_button_up(&self) -> bool {
++        self.kind == SemanticMouseKind::ButtonUp(SemanticMouseButton::Left)
++    }
++}
++
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++pub(crate) enum SemanticPointerKind {
++    ScaleUpdate { ended: bool },
++    PanStart,
++    PanUpdate,
++    PanEnd,
++}
++
++#[derive(Clone)]
++pub(crate) struct NormalizedPointerInput {
++    pub(crate) event: PointerDeviceEvent,
++    pub(crate) kind: SemanticPointerKind,
++}
++
++impl NormalizedPointerInput {
++    pub(crate) const MAX_SCALE_DELTA_MILLI: i32 = 1_000;
++    pub(crate) const MAX_PAN_DELTA: i32 = 10_000;
++
++    pub(crate) fn from_wire(mut event: PointerDeviceEvent) -> Option<Self> {
++        if !input_modifiers_are_canonical(&event.modifiers) {
++            return None;
++        }
++        let touch = match event.union.as_mut()? {
++            pointer_device_event::Union::TouchEvent(touch) => touch,
++            _ => return None,
++        };
++        let kind = match touch.union.as_mut()? {
++            touch_event::Union::ScaleUpdate(scale) => {
++                scale.scale = scale
++                    .scale
++                    .clamp(-Self::MAX_SCALE_DELTA_MILLI, Self::MAX_SCALE_DELTA_MILLI);
++                SemanticPointerKind::ScaleUpdate {
++                    ended: scale.scale == 0,
++                }
++            }
++            touch_event::Union::PanStart(_) => SemanticPointerKind::PanStart,
++            touch_event::Union::PanUpdate(pan) => {
++                pan.x = pan.x.clamp(-Self::MAX_PAN_DELTA, Self::MAX_PAN_DELTA);
++                pan.y = pan.y.clamp(-Self::MAX_PAN_DELTA, Self::MAX_PAN_DELTA);
++                SemanticPointerKind::PanUpdate
++            }
++            touch_event::Union::PanEnd(_) => SemanticPointerKind::PanEnd,
++            _ => return None,
++        };
++        Some(Self { event, kind })
++    }
++}
++
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++pub(crate) enum SemanticKeyKind {
++    LegacyControl(ControlKey),
++    LegacyCharacter,
++    LegacyUnicode,
++    LegacySequence,
++    MappedPhysical,
++    TranslatedPhysical,
++    TranslatedSequence,
++    #[cfg(target_os = "windows")]
++    WindowsHotkey,
++}
++
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
++pub(crate) enum SemanticKeyAction {
++    Down,
++    Up,
++    Press,
++    Text,
++}
++
++#[derive(Clone)]
++pub(crate) struct NormalizedKeyInput {
++    pub(crate) event: KeyEvent,
++    pub(crate) kind: SemanticKeyKind,
++    pub(crate) action: SemanticKeyAction,
++}
++
++impl NormalizedKeyInput {
++    pub(crate) const MAX_SEQUENCE_BYTES: usize = 4_096;
++
++    pub(crate) fn from_wire(mut event: KeyEvent) -> Option<Self> {
++        if !key_modifiers_are_canonical(&event.modifiers) {
++            return None;
++        }
++        let mode = event.mode.enum_value().ok()?;
++        let kind = match (mode, event.union.as_ref()?) {
++            (KeyboardMode::Legacy | KeyboardMode::Auto, key_event::Union::ControlKey(control)) => {
++                let control = control.enum_value().ok()?;
++                if !legacy_control_key_is_supported(control) {
++                    return None;
++                }
++                SemanticKeyKind::LegacyControl(control)
++            }
++            (KeyboardMode::Legacy | KeyboardMode::Auto, key_event::Union::Chr(value)) => {
++                char::from_u32(*value).filter(|value| *value != '\0')?;
++                SemanticKeyKind::LegacyCharacter
++            }
++            (KeyboardMode::Legacy | KeyboardMode::Auto, key_event::Union::Unicode(value)) => {
++                char::from_u32(*value).filter(|value| *value != '\0')?;
++                SemanticKeyKind::LegacyUnicode
++            }
++            (KeyboardMode::Legacy | KeyboardMode::Auto, key_event::Union::Seq(sequence)) => {
++                if !key_sequence_is_canonical(sequence) {
++                    return None;
++                }
++                SemanticKeyKind::LegacySequence
++            }
++            (KeyboardMode::Map, key_event::Union::Chr(code))
++                if position_keycode_is_canonical(*code, false) =>
++            {
++                SemanticKeyKind::MappedPhysical
++            }
++            (KeyboardMode::Translate, key_event::Union::Chr(code))
++                if position_keycode_is_canonical(*code, true) =>
++            {
++                SemanticKeyKind::TranslatedPhysical
++            }
++            (KeyboardMode::Translate, key_event::Union::Seq(sequence)) => {
++                if !key_sequence_is_canonical(sequence) {
++                    return None;
++                }
++                SemanticKeyKind::TranslatedSequence
++            }
++            #[cfg(target_os = "windows")]
++            (KeyboardMode::Translate, key_event::Union::Win2winHotkey(_)) => {
++                SemanticKeyKind::WindowsHotkey
++            }
++            _ => return None,
++        };
++
++        let action = if matches!(
++            kind,
++            SemanticKeyKind::LegacyUnicode
++                | SemanticKeyKind::LegacySequence
++                | SemanticKeyKind::TranslatedSequence
++        ) {
++            event.down = false;
++            event.press = false;
++            SemanticKeyAction::Text
++        } else if event.press {
++            if event.down {
++                return None;
++            }
++            SemanticKeyAction::Press
++        } else if event.down {
++            SemanticKeyAction::Down
++        } else {
++            SemanticKeyAction::Up
++        };
++
++        if matches!(
++            kind,
++            SemanticKeyKind::LegacyControl(ControlKey::CtrlAltDel | ControlKey::LockScreen)
++        ) && (action != SemanticKeyAction::Down || !event.modifiers.is_empty())
++        {
++            return None;
++        }
++
++        Some(Self {
++            event,
++            kind,
++            action,
++        })
++    }
++
++    pub(crate) fn is_enter(&self) -> bool {
++        matches!(
++            self.kind,
++            SemanticKeyKind::LegacyControl(ControlKey::Return | ControlKey::NumpadEnter)
++        )
++    }
++
++    pub(crate) fn is_modifier(&self) -> bool {
++        matches!(
++            self.kind,
++            SemanticKeyKind::LegacyControl(
++                ControlKey::Alt
++                    | ControlKey::Control
++                    | ControlKey::Meta
++                    | ControlKey::RAlt
++                    | ControlKey::RControl
++                    | ControlKey::RShift
++                    | ControlKey::RWin
++                    | ControlKey::Shift
++            )
++        )
++    }
++
++    pub(crate) fn physical_modifier(&self) -> Option<rdev::Key> {
++        if !matches!(
++            self.kind,
++            SemanticKeyKind::MappedPhysical | SemanticKeyKind::TranslatedPhysical
++        ) {
++            return None;
++        }
++        let code = if self.kind == SemanticKeyKind::TranslatedPhysical {
++            self.event.chr() & 0x0000_FFFF
++        } else {
++            self.event.chr()
++        };
++        let key = crate::keyboard::keycode_to_rdev_key(code);
++        crate::keyboard::is_modifier(&key).then_some(key)
++    }
++
++    pub(crate) fn promote_to_press(&mut self) {
++        self.action = SemanticKeyAction::Press;
++        self.event.down = false;
++        self.event.press = true;
++    }
++}
++
++fn key_sequence_is_canonical(sequence: &str) -> bool {
++    !sequence.is_empty()
++        && sequence.len() <= NormalizedKeyInput::MAX_SEQUENCE_BYTES
++        && !sequence.contains('\0')
++}
++
++fn legacy_control_key_is_supported(control: ControlKey) -> bool {
++    matches!(control, ControlKey::CtrlAltDel | ControlKey::LockScreen)
++        || KEY_MAP.contains_key(&control.value())
++}
++
++fn position_keycode_is_canonical(code: u32, translated: bool) -> bool {
++    #[cfg(target_os = "macos")]
++    {
++        let _ = translated;
++        return code <= 0x7f;
++    }
++    #[cfg(target_os = "windows")]
++    {
++        return if translated {
++            code >> 16 <= 0xff
++        } else {
++            code <= u16::MAX as u32
++        };
++    }
++    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
++    {
++        let _ = translated;
++        code <= u16::MAX as u32
++    }
++}
++
++fn key_modifiers_are_canonical(modifiers: &[EnumOrUnknown<ControlKey>]) -> bool {
++    let mut seen = 0_u16;
++    for modifier in modifiers {
++        let bit = match modifier.value() {
++            value
++                if value == ControlKey::Alt.value()
++                    || value == ControlKey::Option.value()
++                    || value == ControlKey::Menu.value() =>
++            {
++                1 << 0
++            }
++            value if value == ControlKey::Control.value() => 1 << 1,
++            value if value == ControlKey::Shift.value() => 1 << 2,
++            value if value == ControlKey::Meta.value() => 1 << 3,
++            value if value == ControlKey::RAlt.value() => 1 << 4,
++            value if value == ControlKey::RControl.value() => 1 << 5,
++            value if value == ControlKey::RShift.value() => 1 << 6,
++            value if value == ControlKey::RWin.value() => 1 << 7,
++            value if value == ControlKey::CapsLock.value() => 1 << 8,
++            value if value == ControlKey::NumLock.value() => 1 << 9,
++            _ => return false,
++        };
++        if seen & bit != 0 {
++            return false;
++        }
++        seen |= bit;
++    }
++    true
++}
++
++fn input_modifiers_are_canonical(modifiers: &[EnumOrUnknown<ControlKey>]) -> bool {
++    let mut seen = 0_u8;
++    for modifier in modifiers {
++        let bit = match modifier.value() {
++            value if value == ControlKey::Alt.value() => 1 << 0,
++            value if value == ControlKey::Control.value() => 1 << 1,
++            value if value == ControlKey::Shift.value() => 1 << 2,
++            value if value == ControlKey::Meta.value() => 1 << 3,
++            _ => return false,
++        };
++        if seen & bit != 0 {
++            return false;
++        }
++        seen |= bit;
++    }
++    true
++}
++
++#[inline]
++fn input_adapter_gate_allows(gate: Option<InputAdapterGate>) -> bool {
++    gate.map(|gate| gate()).unwrap_or(true)
++}
++
++pub(crate) fn native_host_accessibility_permission_enabled(
++    configured: bool,
++    native_host_active: bool,
++    accessibility_trusted: bool,
++) -> bool {
++    configured && (!native_host_active || accessibility_trusted)
++}
++
++#[inline]
++pub(crate) fn native_host_platform_input_permission_allows(configured: bool) -> bool {
++    if !configured {
++        return false;
++    }
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    {
++        let native_host_active = crate::rdn_host_bridge::native_host_instance_is_live();
++        if !native_host_active {
++            return true;
++        }
++        return native_host_accessibility_permission_enabled(
++            crate::platform::macos::is_active_aqua_session(),
++            native_host_active,
++            crate::platform::macos::is_process_trusted(false),
++        );
++    }
++    #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++    {
++        true
++    }
++}
++
+ #[cfg(windows)]
+ use winapi::um::winuser::WHEEL_DELTA;
+ 
+@@ -450,6 +885,8 @@ lazy_static::lazy_static! {
+         Arc::new(Mutex::new(Enigo::new()))
+     };
+     static ref KEYS_DOWN: Arc<Mutex<HashMap<KeysDown, Instant>>> = Default::default();
++    static ref REMOTE_MOUSE_BUTTONS_DOWN: Arc<Mutex<HashMap<i32, HashSet<i32>>>> =
++        Default::default();
+     static ref LATEST_PEER_INPUT_CURSOR: Arc<Mutex<Input>> = Default::default();
+     static ref LATEST_SYS_CURSOR_POS: Arc<Mutex<(Option<Instant>, (i32, i32))>> = Arc::new(Mutex::new((None, (INVALID_CURSOR_POS, INVALID_CURSOR_POS))));
+     // Track connections that are currently using relative mouse movement.
+@@ -473,6 +910,44 @@ fn set_relative_mouse_active(conn: i32, active: bool) {
+     }
+ }
+ 
++fn remote_mouse_button(button: i32) -> Option<MouseButton> {
++    match button {
++        MOUSE_BUTTON_LEFT => Some(MouseButton::Left),
++        MOUSE_BUTTON_RIGHT => Some(MouseButton::Right),
++        MOUSE_BUTTON_WHEEL => Some(MouseButton::Middle),
++        MOUSE_BUTTON_BACK => Some(MouseButton::Back),
++        MOUSE_BUTTON_FORWARD => Some(MouseButton::Forward),
++        _ => None,
++    }
++}
++
++fn record_remote_mouse_button(conn: i32, button: i32, down: bool) {
++    let mut states = REMOTE_MOUSE_BUTTONS_DOWN.lock().unwrap();
++    if down {
++        states.entry(conn).or_default().insert(button);
++        return;
++    }
++    let remove_connection = states
++        .get_mut(&conn)
++        .map(|buttons| {
++            buttons.remove(&button);
++            buttons.is_empty()
++        })
++        .unwrap_or(false);
++    if remove_connection {
++        states.remove(&conn);
++    }
++}
++
++fn take_remote_mouse_buttons(conn: i32) -> Vec<i32> {
++    REMOTE_MOUSE_BUTTONS_DOWN
++        .lock()
++        .unwrap()
++        .remove(&conn)
++        .map(|buttons| buttons.into_iter().collect())
++        .unwrap_or_default()
++}
++
+ #[inline]
+ fn is_relative_mouse_active(conn: i32) -> bool {
+     RELATIVE_MOUSE_CONNS.lock().unwrap().contains(&conn)
+@@ -750,34 +1225,114 @@ pub fn handle_mouse(
+     argb: u32,
+     simulate: bool,
+     show_cursor: bool,
++) {
++    handle_mouse_with_gate(evt, conn, username, argb, simulate, show_cursor, None);
++}
++
++#[allow(unreachable_code)]
++pub(crate) fn handle_mouse_with_gate(
++    evt: &MouseEvent,
++    conn: i32,
++    username: String,
++    argb: u32,
++    simulate: bool,
++    show_cursor: bool,
++    gate: Option<InputAdapterGate>,
++) {
++    let Some(input) = NormalizedMouseInput::from_wire(evt.clone()) else {
++        return;
++    };
++    handle_normalized_mouse_with_gate(&input, conn, username, argb, simulate, show_cursor, gate);
++}
++
++#[allow(unreachable_code)]
++pub(crate) fn handle_normalized_mouse_with_gate(
++    input: &NormalizedMouseInput,
++    conn: i32,
++    username: String,
++    argb: u32,
++    simulate: bool,
++    show_cursor: bool,
++    gate: Option<InputAdapterGate>,
+ ) {
+     #[cfg(target_os = "macos")]
+     {
+         // having GUI (--server has tray, it is GUI too), run main GUI thread, otherwise crash
+-        let evt = evt.clone();
+-        QUEUE.exec_async(move || handle_mouse_(&evt, conn, username, argb, simulate, show_cursor));
++        let input = input.clone();
++        QUEUE.exec_async(move || {
++            if input_adapter_gate_allows(gate)
++                && (!simulate || native_host_platform_input_permission_allows(true))
++            {
++                handle_mouse_(&input.event, conn, username, argb, simulate, show_cursor);
++            }
++        });
+         return;
+     }
+-    #[cfg(windows)]
+-    crate::portable_service::client::handle_mouse(evt, conn, username, argb, simulate, show_cursor);
+-    #[cfg(not(windows))]
+-    handle_mouse_(evt, conn, username, argb, simulate, show_cursor);
++    #[cfg(not(target_os = "macos"))]
++    {
++        if !input_adapter_gate_allows(gate) {
++            return;
++        }
++        #[cfg(windows)]
++        crate::portable_service::client::handle_mouse(
++            &input.event,
++            conn,
++            username,
++            argb,
++            simulate,
++            show_cursor,
++        );
++        #[cfg(not(windows))]
++        handle_mouse_(&input.event, conn, username, argb, simulate, show_cursor);
++    }
+ }
+ 
+ // to-do: merge handle_mouse and handle_pointer
+ #[allow(unreachable_code)]
+ pub fn handle_pointer(evt: &PointerDeviceEvent, conn: i32) {
++    handle_pointer_with_gate(evt, conn, None);
++}
++
++#[allow(unreachable_code)]
++pub(crate) fn handle_pointer_with_gate(
++    evt: &PointerDeviceEvent,
++    conn: i32,
++    gate: Option<InputAdapterGate>,
++) {
++    let Some(input) = NormalizedPointerInput::from_wire(evt.clone()) else {
++        return;
++    };
++    handle_normalized_pointer_with_gate(&input, conn, gate);
++}
++
++#[allow(unreachable_code)]
++pub(crate) fn handle_normalized_pointer_with_gate(
++    input: &NormalizedPointerInput,
++    conn: i32,
++    gate: Option<InputAdapterGate>,
++) {
+     #[cfg(target_os = "macos")]
+     {
+         // having GUI, run main GUI thread, otherwise crash
+-        let evt = evt.clone();
+-        QUEUE.exec_async(move || handle_pointer_(&evt, conn));
++        let input = input.clone();
++        QUEUE.exec_async(move || {
++            if input_adapter_gate_allows(gate) && native_host_platform_input_permission_allows(true)
++            {
++                handle_pointer_(&input.event, conn);
++            }
++        });
+         return;
+     }
+-    #[cfg(windows)]
+-    crate::portable_service::client::handle_pointer(evt, conn);
+-    #[cfg(not(windows))]
+-    handle_pointer_(evt, conn);
++    #[cfg(not(target_os = "macos"))]
++    {
++        if !input_adapter_gate_allows(gate) {
++            return;
++        }
++        #[cfg(windows)]
++        crate::portable_service::client::handle_pointer(&input.event, conn);
++        #[cfg(not(windows))]
++        handle_pointer_(&input.event, conn);
++    }
+ }
+ 
+ pub fn fix_key_down_timeout_loop() {
+@@ -802,6 +1357,50 @@ pub fn fix_key_down_timeout_at_exit() {
+     log::info!("fix_key_down_timeout_at_exit");
+ }
+ 
++/// Releases remote input accepted before a permission revocation or session
++/// close. Call this through the connection's ordered input queue so no earlier
++/// queued event can re-press a key or button after cleanup.
++pub fn release_remote_input_state_then<F>(conn: i32, completion: F)
++where
++    F: FnOnce() + Send + 'static,
++{
++    #[cfg(target_os = "macos")]
++    {
++        // Execute the state snapshot and releases on the same serial queue as
++        // macOS input. This prevents cleanup from observing empty state while
++        // an earlier authorized adapter task is still waiting to run.
++        QUEUE.exec_async(move || {
++            release_remote_input_state_now(conn);
++            completion();
++        });
++    }
++    #[cfg(not(target_os = "macos"))]
++    {
++        release_remote_input_state_now(conn);
++        completion();
++    }
++}
++
++fn release_remote_input_state_now(conn: i32) {
++    let pressed_keys = KEYS_DOWN
++        .lock()
++        .unwrap()
++        .drain()
++        .map(|(record_key, _)| record_key)
++        .collect::<Vec<_>>();
++    for record_key in pressed_keys {
++        release_record_key_now(record_key);
++    }
++    set_relative_mouse_active(conn, false);
++    let buttons = take_remote_mouse_buttons(conn);
++    let mut en = ENIGO.lock().unwrap();
++    for raw_button in buttons {
++        if let Some(button) = remote_mouse_button(raw_button) {
++            en.mouse_up(button);
++        }
++    }
++}
++
+ #[inline]
+ #[cfg(target_os = "linux")]
+ pub fn clear_remapped_keycode() {
+@@ -850,7 +1449,15 @@ pub fn release_device_modifiers() {
+ 
+ #[inline]
+ fn release_record_key(record_key: KeysDown) {
+-    let func = move || match record_key {
++    #[cfg(target_os = "macos")]
++    QUEUE.exec_async(move || release_record_key_now(record_key));
++    #[cfg(not(target_os = "macos"))]
++    release_record_key_now(record_key);
++}
++
++#[inline]
++fn release_record_key_now(record_key: KeysDown) {
++    match record_key {
+         KeysDown::RdevKey(raw_key) => {
+             simulate_(&EventType::KeyRelease(RdevKey::RawKey(raw_key)));
+         }
+@@ -860,12 +1467,7 @@ fn release_record_key(record_key: KeysDown) {
+                 log::debug!("Fixed {:?} timeout", key);
+             }
+         }
+-    };
+-
+-    #[cfg(target_os = "macos")]
+-    QUEUE.exec_async(func);
+-    #[cfg(not(target_os = "macos"))]
+-    func();
++    }
+ }
+ 
+ fn fix_key_down_timeout(force: bool) {
+@@ -1132,42 +1734,19 @@ pub fn handle_mouse_simulation_(evt: &MouseEvent, conn: i32) {
+                 };
+             }
+         }
+-        MOUSE_TYPE_DOWN => match buttons {
+-            MOUSE_BUTTON_LEFT => {
+-                allow_err!(en.mouse_down(MouseButton::Left));
+-            }
+-            MOUSE_BUTTON_RIGHT => {
+-                allow_err!(en.mouse_down(MouseButton::Right));
+-            }
+-            MOUSE_BUTTON_WHEEL => {
+-                allow_err!(en.mouse_down(MouseButton::Middle));
+-            }
+-            MOUSE_BUTTON_BACK => {
+-                allow_err!(en.mouse_down(MouseButton::Back));
+-            }
+-            MOUSE_BUTTON_FORWARD => {
+-                allow_err!(en.mouse_down(MouseButton::Forward));
+-            }
+-            _ => {}
+-        },
+-        MOUSE_TYPE_UP => match buttons {
+-            MOUSE_BUTTON_LEFT => {
+-                en.mouse_up(MouseButton::Left);
+-            }
+-            MOUSE_BUTTON_RIGHT => {
+-                en.mouse_up(MouseButton::Right);
+-            }
+-            MOUSE_BUTTON_WHEEL => {
+-                en.mouse_up(MouseButton::Middle);
+-            }
+-            MOUSE_BUTTON_BACK => {
+-                en.mouse_up(MouseButton::Back);
++        MOUSE_TYPE_DOWN => {
++            if let Some(button) = remote_mouse_button(buttons) {
++                if en.mouse_down(button).is_ok() {
++                    record_remote_mouse_button(conn, buttons, true);
++                }
+             }
+-            MOUSE_BUTTON_FORWARD => {
+-                en.mouse_up(MouseButton::Forward);
++        }
++        MOUSE_TYPE_UP => {
++            if let Some(button) = remote_mouse_button(buttons) {
++                en.mouse_up(button);
++                record_remote_mouse_button(conn, buttons, false);
+             }
+-            _ => {}
+-        },
++        }
+         MOUSE_TYPE_WHEEL | MOUSE_TYPE_TRACKPAD => {
+             #[allow(unused_mut)]
+             let mut x = -evt.x;
+@@ -1337,21 +1916,83 @@ pub async fn lock_screen() {
+ #[inline]
+ #[cfg(target_os = "linux")]
+ pub fn handle_key(evt: &KeyEvent) {
+-    handle_key_(evt);
++    handle_key_with_gate(evt, None);
++}
++
++#[inline]
++#[cfg(target_os = "linux")]
++pub(crate) fn handle_key_with_gate(evt: &KeyEvent, gate: Option<InputAdapterGate>) {
++    let Some(input) = NormalizedKeyInput::from_wire(evt.clone()) else {
++        return;
++    };
++    handle_normalized_key_with_gate(&input, gate);
++}
++
++#[inline]
++#[cfg(target_os = "linux")]
++pub(crate) fn handle_normalized_key_with_gate(
++    input: &NormalizedKeyInput,
++    gate: Option<InputAdapterGate>,
++) {
++    if input_adapter_gate_allows(gate) {
++        handle_key_(&input.event);
++    }
+ }
+ 
+ #[inline]
+ #[cfg(target_os = "windows")]
+ pub fn handle_key(evt: &KeyEvent) {
+-    crate::portable_service::client::handle_key(evt);
++    handle_key_with_gate(evt, None);
++}
++
++#[inline]
++#[cfg(target_os = "windows")]
++pub(crate) fn handle_key_with_gate(evt: &KeyEvent, gate: Option<InputAdapterGate>) {
++    let Some(input) = NormalizedKeyInput::from_wire(evt.clone()) else {
++        return;
++    };
++    handle_normalized_key_with_gate(&input, gate);
++}
++
++#[inline]
++#[cfg(target_os = "windows")]
++pub(crate) fn handle_normalized_key_with_gate(
++    input: &NormalizedKeyInput,
++    gate: Option<InputAdapterGate>,
++) {
++    if input_adapter_gate_allows(gate) {
++        crate::portable_service::client::handle_key(&input.event);
++    }
+ }
+ 
+ #[inline]
+ #[cfg(target_os = "macos")]
+ pub fn handle_key(evt: &KeyEvent) {
++    handle_key_with_gate(evt, None);
++}
++
++#[inline]
++#[cfg(target_os = "macos")]
++pub(crate) fn handle_key_with_gate(evt: &KeyEvent, gate: Option<InputAdapterGate>) {
++    let Some(input) = NormalizedKeyInput::from_wire(evt.clone()) else {
++        return;
++    };
++    handle_normalized_key_with_gate(&input, gate);
++}
++
++#[inline]
++#[cfg(target_os = "macos")]
++pub(crate) fn handle_normalized_key_with_gate(
++    input: &NormalizedKeyInput,
++    gate: Option<InputAdapterGate>,
++) {
+     // having GUI, run main GUI thread, otherwise crash
+-    let evt = evt.clone();
+-    QUEUE.exec_async(move || handle_key_(&evt));
++    let input = input.clone();
++    QUEUE.exec_async(move || {
++        if input_adapter_gate_allows(gate) && native_host_platform_input_permission_allows(true) {
++            handle_key_(&input.event);
++        }
++    });
+     // Key sleep is required for macOS.
+     // If we don't sleep, the key press/release events may not take effect.
+     //
+@@ -2473,3 +3114,67 @@ lazy_static::lazy_static! {
+         (ControlKey::Delete, true),
+     ].iter().map(|(a, b)| (a.value(), b.clone())).collect();
+ }
++
++#[cfg(test)]
++mod native_host_input_release_tests {
++    use super::*;
++
++    #[test]
++    fn native_host_accessibility_permission_fails_closed_when_untrusted() {
++        assert!(!native_host_accessibility_permission_enabled(
++            true, true, false
++        ));
++        assert!(native_host_accessibility_permission_enabled(
++            true, true, true
++        ));
++        assert!(native_host_accessibility_permission_enabled(
++            true, false, false
++        ));
++        assert!(!native_host_accessibility_permission_enabled(
++            false, true, true
++        ));
++    }
++
++    #[test]
++    fn remote_mouse_button_tracking_is_connection_scoped_and_drains_once() {
++        const FIRST: i32 = -91_001;
++        const SECOND: i32 = -91_002;
++        let _ = take_remote_mouse_buttons(FIRST);
++        let _ = take_remote_mouse_buttons(SECOND);
++
++        record_remote_mouse_button(FIRST, MOUSE_BUTTON_LEFT, true);
++        record_remote_mouse_button(FIRST, MOUSE_BUTTON_RIGHT, true);
++        record_remote_mouse_button(SECOND, MOUSE_BUTTON_WHEEL, true);
++        record_remote_mouse_button(FIRST, MOUSE_BUTTON_RIGHT, false);
++
++        assert_eq!(take_remote_mouse_buttons(FIRST), vec![MOUSE_BUTTON_LEFT]);
++        assert!(take_remote_mouse_buttons(FIRST).is_empty());
++        assert_eq!(take_remote_mouse_buttons(SECOND), vec![MOUSE_BUTTON_WHEEL]);
++        assert!(take_remote_mouse_buttons(SECOND).is_empty());
++    }
++
++    #[test]
++    fn remote_mouse_button_mapping_rejects_non_button_masks() {
++        assert_eq!(
++            remote_mouse_button(MOUSE_BUTTON_LEFT),
++            Some(MouseButton::Left)
++        );
++        assert_eq!(
++            remote_mouse_button(MOUSE_BUTTON_RIGHT),
++            Some(MouseButton::Right)
++        );
++        assert_eq!(
++            remote_mouse_button(MOUSE_BUTTON_WHEEL),
++            Some(MouseButton::Middle)
++        );
++        assert_eq!(
++            remote_mouse_button(MOUSE_BUTTON_BACK),
++            Some(MouseButton::Back)
++        );
++        assert_eq!(
++            remote_mouse_button(MOUSE_BUTTON_FORWARD),
++            Some(MouseButton::Forward)
++        );
++        assert_eq!(remote_mouse_button(i32::MAX), None);
++    }
++}
+diff --git a/src/server/login_failure_check.rs b/src/server/login_failure_check.rs
+index 4394213..4906aef 100644
+--- a/src/server/login_failure_check.rs
++++ b/src/server/login_failure_check.rs
+@@ -2,9 +2,9 @@ use crate::AlarmAuditType;
+ use hbb_common::get_time;
+ #[cfg(target_os = "windows")]
+ use hbb_common::tokio::sync::{Mutex as TokioMutex, OwnedMutexGuard};
+-use std::sync::Mutex;
+ #[cfg(target_os = "windows")]
+ use std::sync::Arc;
++use std::sync::Mutex;
+ 
+ const OS_CREDENTIAL_LOGIN_TOTAL_IDLE_RESET_MS: i64 = 120 * 60 * 1_000;
+ const OS_CREDENTIAL_LOGIN_BACKOFF_BASE_SECONDS: i64 = 15;
+diff --git a/src/server/video_qos.rs b/src/server/video_qos.rs
+index b02f6ad..e5c27d3 100644
+--- a/src/server/video_qos.rs
++++ b/src/server/video_qos.rs
+@@ -1,7 +1,7 @@
+ use super::*;
+ use scrap::codec::{Quality, BR_BALANCED, BR_BEST, BR_SPEED};
+ use std::{
+-    collections::VecDeque,
++    collections::{HashSet, VecDeque},
+     time::{Duration, Instant},
+ };
+ 
+@@ -101,6 +101,17 @@ struct DisplayData {
+     support_changing_quality: bool,
+ }
+ 
++#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
++pub(crate) struct RouteNetworkSnapshot {
++    pub(crate) subscriber_count: usize,
++    pub(crate) qos_subscriber_count: usize,
++    pub(crate) delay_sampled_subscribers: usize,
++    pub(crate) rtt_sampled_subscribers: usize,
++    pub(crate) response_delayed_subscribers: usize,
++    pub(crate) worst_network_delay_ms: Option<u32>,
++    pub(crate) worst_rtt_ms: Option<u32>,
++}
++
+ // Main QoS controller structure
+ pub struct VideoQoS {
+     fps: u32,
+@@ -178,6 +189,46 @@ impl VideoQoS {
+     pub fn in_vbr_state(&self) -> bool {
+         self.abr_config && self.displays.iter().all(|e| e.1.support_changing_quality)
+     }
++
++    /// Returns only QoS values belonging to the subscribers that received the
++    /// current display route. Users without TestDelay history remain
++    /// explicitly unsampled instead of inheriting the 150 ms control default.
++    pub(crate) fn route_network_snapshot(
++        &self,
++        connection_ids: &HashSet<i32>,
++    ) -> RouteNetworkSnapshot {
++        let mut snapshot = RouteNetworkSnapshot {
++            subscriber_count: connection_ids.len(),
++            ..Default::default()
++        };
++        for connection_id in connection_ids {
++            let Some(user) = self.users.get(connection_id) else {
++                continue;
++            };
++            snapshot.qos_subscriber_count += 1;
++            if !user.delay.delay_history.is_empty() {
++                snapshot.delay_sampled_subscribers += 1;
++                let delay = user.delay.avg_delay();
++                snapshot.worst_network_delay_ms = Some(
++                    snapshot
++                        .worst_network_delay_ms
++                        .map_or(delay, |current| current.max(delay)),
++                );
++            }
++            if let Some(rtt) = user.delay.rtt_calculator.get_rtt() {
++                snapshot.rtt_sampled_subscribers += 1;
++                snapshot.worst_rtt_ms = Some(
++                    snapshot
++                        .worst_rtt_ms
++                        .map_or(rtt, |current| current.max(rtt)),
++                );
++            }
++            if user.delay.response_delayed {
++                snapshot.response_delayed_subscribers += 1;
++            }
++        }
++        snapshot
++    }
+ }
+ 
+ // User session management
+@@ -593,3 +644,41 @@ impl RttCalculator {
+         None
+     }
+ }
++
++#[cfg(test)]
++mod route_network_tests {
++    use super::*;
++
++    #[test]
++    fn route_snapshot_filters_users_and_preserves_unavailable_samples() {
++        let mut qos = VideoQoS::default();
++        qos.on_connection_open(1);
++        qos.on_connection_open(2);
++        qos.on_connection_open(3);
++
++        let route = HashSet::from([1, 2, 99]);
++        let empty = qos.route_network_snapshot(&route);
++        assert_eq!(empty.subscriber_count, 3);
++        assert_eq!(empty.qos_subscriber_count, 2);
++        assert_eq!(empty.delay_sampled_subscribers, 0);
++        assert_eq!(empty.rtt_sampled_subscribers, 0);
++        assert_eq!(empty.worst_network_delay_ms, None);
++        assert_eq!(empty.worst_rtt_ms, None);
++
++        for _ in 0..RttCalculator::MIN_SAMPLES {
++            qos.user_network_delay(1, 20);
++            qos.user_network_delay(2, 200);
++            qos.user_network_delay(3, 900);
++        }
++        qos.users.get_mut(&2).unwrap().delay.response_delayed = true;
++
++        let sampled = qos.route_network_snapshot(&route);
++        assert_eq!(sampled.subscriber_count, 3);
++        assert_eq!(sampled.qos_subscriber_count, 2);
++        assert_eq!(sampled.delay_sampled_subscribers, 2);
++        assert_eq!(sampled.rtt_sampled_subscribers, 2);
++        assert_eq!(sampled.response_delayed_subscribers, 1);
++        assert_eq!(sampled.worst_network_delay_ms, Some(200));
++        assert_eq!(sampled.worst_rtt_ms, Some(200));
++    }
++}
 diff --git a/src/server/video_service.rs b/src/server/video_service.rs
-index 9d97b1c..8cd7484 100644
+index 9d97b1c..d6891a8 100644
 --- a/src/server/video_service.rs
 +++ b/src/server/video_service.rs
-@@ -256,2 +256,7 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
+@@ -254,10 +254,307 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
+         idx,
+         source,
      };
 +    #[cfg(feature = "rdn-native-host")]
 +    if source.is_monitor() {
@@ -234,7 +4635,8 @@ index 9d97b1c..8cd7484 100644
 +        return vs.sp;
 +    }
      GenericService::run(&vs, run);
-@@ -260,2 +265,254 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
+     vs.sp
+ }
  
 +#[cfg(feature = "rdn-native-host")]
 +struct NativeRouteGuard(crate::rdn_host_bridge::NativeMediaRoute);
@@ -364,7 +4766,10 @@ index 9d97b1c..8cd7484 100644
 +        })?;
 +
 +        let packet = match route.0.receiver.recv_timeout(Duration::from_millis(100)) {
-+            Ok(packet) => packet,
++            Ok(packet) => {
++                crate::rdn_host_bridge::native_media_record_dequeued(&route.0);
++                packet
++            }
 +            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
 +            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
 +                bail!("native media route disconnected")
@@ -375,7 +4780,10 @@ index 9d97b1c..8cd7484 100644
 +        let message = native_media_message(packet, codec_format, display_idx)?;
 +        let now = Instant::now();
 +        frame_controller.reset();
++        let dispatch_begin = Instant::now();
 +        let send_conn_ids = sp.send_video_frame(message);
++        let dispatch_wall = dispatch_begin.elapsed();
++        let route_connection_ids = send_conn_ids.clone();
 +        let subscriber_count = send_conn_ids.len();
 +        if subscriber_count > 0 && !first_dispatch_reported {
 +            crate::rdn_host_bridge::native_media_report_milestone(
@@ -406,6 +4814,16 @@ index 9d97b1c..8cd7484 100644
 +                break;
 +            }
 +        }
++        let confirmation_wait = wait_begin.elapsed();
++        let confirmation_complete = !frame_controller.send_conn_ids.is_empty()
++            && frame_controller.send_conn_ids.is_subset(&fetched_conn_ids);
++        crate::rdn_host_bridge::native_media_record_writer_cycle(
++            &route.0,
++            subscriber_count,
++            dispatch_wall,
++            confirmation_wait,
++            confirmation_complete,
++        );
 +        if !first_ack_reported
 +            && !frame_controller.send_conn_ids.is_empty()
 +            && frame_controller.send_conn_ids.is_subset(&fetched_conn_ids)
@@ -420,6 +4838,30 @@ index 9d97b1c..8cd7484 100644
 +        }
 +        DISPLAY_CONN_IDS.lock().unwrap().remove(&display_idx);
 +        if second_instant.elapsed() >= Duration::from_secs(1) {
++            crate::rdn_host_bridge::native_media_report_queue_depth(&route.0);
++            crate::rdn_host_bridge::native_media_report_writer_timing(&route.0);
++            let network = VIDEO_QOS
++                .lock()
++                .unwrap()
++                .route_network_snapshot(&route_connection_ids);
++            crate::rdn_host_bridge::native_media_report_network(
++                &route.0,
++                network.subscriber_count,
++                network.qos_subscriber_count,
++                network.delay_sampled_subscribers,
++                network.rtt_sampled_subscribers,
++                network.response_delayed_subscribers,
++                network.worst_network_delay_ms,
++                network.worst_rtt_ms,
++            );
++            let transport = crate::server::route_transport_snapshot(&route_connection_ids);
++            crate::rdn_host_bridge::native_media_report_transport(
++                &route.0,
++                transport.subscriber_count,
++                transport.direct_subscribers,
++                transport.relay_subscribers,
++                transport.unknown_subscribers,
++            );
 +            VIDEO_QOS
 +                .lock()
 +                .unwrap()
@@ -489,59 +4931,34 @@ index 9d97b1c..8cd7484 100644
 +}
 +
  // Capturer object is expensive, avoiding to create it frequently.
+ fn create_capturer(
+     privacy_mode_id: i32,
+diff --git a/src/server/wayland.rs b/src/server/wayland.rs
+index 1e0efc0..1b0a5e4 100644
+--- a/src/server/wayland.rs
++++ b/src/server/wayland.rs
+@@ -10,8 +10,8 @@ use std::io;
+ 
+ use crate::{
+     client::{
+-        SCRAP_OTHER_VERSION_OR_X11_REQUIRED, SCRAP_UBUNTU_HIGHER_REQUIRED,
+-        SCRAP_X11_REQUIRED, SCRAP_XDP_PORTAL_UNAVAILABLE,
++        SCRAP_OTHER_VERSION_OR_X11_REQUIRED, SCRAP_UBUNTU_HIGHER_REQUIRED, SCRAP_X11_REQUIRED,
++        SCRAP_XDP_PORTAL_UNAVAILABLE,
+     },
+     platform::linux::is_x11,
+ };
 diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs
 index bf2e04c..b78cdad 100644
 --- a/src/ui_session_interface.rs
 +++ b/src/ui_session_interface.rs
-@@ -1748,2 +1748,5 @@ pub trait InvokeUiSession: Send + Sync + Clone + 'static + Sized + Default {
+@@ -1746,6 +1746,9 @@ pub trait InvokeUiSession: Send + Sync + Clone + 'static + Sized + Default {
+     fn printer_request(&self, id: i32, path: String);
+     fn handle_screenshot_resp(&self, sid: String, msg: String);
      fn handle_terminal_response(&self, response: TerminalResponse);
 +    fn on_encoded_video(&self, _frame: &VideoFrame) -> bool {
 +        false
 +    }
  }
-diff --git a/src/server/connection.rs b/src/server/connection.rs
-index bdf9cba..d6148b2 100644
---- a/src/server/connection.rs
-+++ b/src/server/connection.rs
-@@ -2094,2 +2094,5 @@ impl Connection {
-     fn try_start_cm(&mut self, peer_id: String, name: String, authorized: bool) {
-+        if !connection_manager_required() {
-+            return;
-+        }
-         self.send_to_cm(ipc::Data::Login {
-@@ -2473,2 +2476,6 @@ impl Connection {
-     fn try_start_cm_ipc(&mut self) {
-+        if !connection_manager_required() {
-+            self.start_cm_ipc_para.take();
-+            return;
-+        }
-         if let Some(p) = self.start_cm_ipc_para.take() {
-@@ -6038,1 +6045,20 @@ async fn start_ipc(
-+#[cfg(not(any(target_os = "android", target_os = "ios")))]
-+fn connection_manager_required_for_native_host(native_host_bound: bool) -> bool {
-+    !native_host_bound
-+}
-+
-+#[cfg(not(any(target_os = "android", target_os = "ios")))]
-+fn connection_manager_required() -> bool {
-+    #[cfg(feature = "rdn-native-host")]
-+    {
-+        return connection_manager_required_for_native_host(
-+            crate::rdn_host_bridge::native_host_is_bound(),
-+        );
-+    }
-+    #[cfg(not(feature = "rdn-native-host"))]
-+    {
-+        true
-+    }
-+}
-+
- // in case screen is sleep and blank, here to activate it
-@@ -6682,1 +6708,7 @@ mod test {
-+    #[test]
-+    fn native_host_does_not_require_external_connection_manager() {
-+        assert!(!connection_manager_required_for_native_host(true));
-+        assert!(connection_manager_required_for_native_host(false));
-+    }
-+
-     #[cfg(target_os = "macos")]
+ 
+ impl<T: InvokeUiSession> Deref for Session<T> {

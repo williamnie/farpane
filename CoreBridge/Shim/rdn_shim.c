@@ -22,6 +22,8 @@ typedef int32_t (*host_create_fn)(const RdnHostCreateOptions *,
 typedef int32_t (*host_start_fn)(RdnHost *);
 typedef int32_t (*host_stop_fn)(RdnHost *, RdnHostStopReason);
 typedef int32_t (*host_command_fn)(RdnHost *, const uint8_t *, size_t);
+typedef int32_t (*host_set_permanent_password_fn)(RdnHost *, const char *,
+                                                  uint8_t *, size_t);
 typedef int32_t (*host_copy_snapshot_fn)(RdnHost *, RdnHostOwnedBytes *);
 typedef void (*host_free_bytes_fn)(RdnHostOwnedBytes);
 typedef void (*host_destroy_fn)(RdnHost *);
@@ -52,6 +54,7 @@ struct RDNCoreLibrary {
     host_start_fn host_start;
     host_stop_fn host_stop;
     host_command_fn host_command;
+    host_set_permanent_password_fn host_set_permanent_password;
     host_copy_snapshot_fn host_copy_snapshot;
     host_free_bytes_fn host_free_bytes;
     host_destroy_fn host_destroy;
@@ -124,6 +127,9 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     library->host_start = (host_start_fn)dlsym(handle, "rdn_host_start");
     library->host_stop = (host_stop_fn)dlsym(handle, "rdn_host_stop");
     library->host_command = (host_command_fn)dlsym(handle, "rdn_host_command");
+    library->host_set_permanent_password =
+        (host_set_permanent_password_fn)dlsym(
+            handle, "rdn_host_set_permanent_password");
     library->host_copy_snapshot =
         (host_copy_snapshot_fn)dlsym(handle, "rdn_host_copy_snapshot");
     library->host_free_bytes =
@@ -140,7 +146,9 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     if (library->host_abi_version != NULL && library->host_upstream_commit != NULL &&
         library->host_set_config_root != NULL && library->host_create != NULL &&
         library->host_start != NULL && library->host_stop != NULL &&
-        library->host_command != NULL && library->host_copy_snapshot != NULL &&
+        library->host_command != NULL &&
+        library->host_set_permanent_password != NULL &&
+        library->host_copy_snapshot != NULL &&
         library->host_free_bytes != NULL && library->host_destroy != NULL &&
         library->host_media_abi_version != NULL &&
         library->host_media_set_capabilities != NULL &&
@@ -260,6 +268,15 @@ int32_t rdn_shim_host_command(const RDNCoreLibrary *library, RdnHost *host,
     return library == NULL || library->host_command == NULL
                ? RDN_HOST_ERR_NOT_SUPPORTED
                : library->host_command(host, command_json, length);
+}
+
+int32_t rdn_shim_host_set_permanent_password(
+    const RDNCoreLibrary *library, RdnHost *host, const char *command_id,
+    uint8_t *password_utf8, size_t password_length) {
+    return library == NULL || library->host_set_permanent_password == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_set_permanent_password(
+                     host, command_id, password_utf8, password_length);
 }
 
 int32_t rdn_shim_host_copy_snapshot(const RDNCoreLibrary *library,

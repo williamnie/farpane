@@ -36,6 +36,7 @@ nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_create
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_start
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_stop
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_command
+nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_set_permanent_password
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_copy_snapshot
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_destroy
 nm -gU "$output_dir/liblibrustdesk.dylib" | grep -q _rdn_host_media_abi_version

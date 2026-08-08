@@ -28,6 +28,7 @@ required_symbols=(
   _rdn_host_abi_version
   _rdn_host_start
   _rdn_host_copy_snapshot
+  _rdn_host_set_permanent_password
   _rdn_host_media_abi_version
   _rdn_host_media_set_capabilities
   _rdn_host_media_submit_access_unit
@@ -44,6 +45,8 @@ done
 git -C "$repo_dir/Vendor/rustdesk" diff --check
 git -C "$repo_dir/Vendor/rustdesk" apply --check --reverse \
   "$repo_dir/CoreBridge/RustDeskPatch/upstream-1.4.9.patch"
+git -C "$repo_dir/Vendor/rustdesk/libs/hbb_common" apply --check --reverse \
+  "$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 
 cd "$repo_dir"
 swift build -c release
