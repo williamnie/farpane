@@ -1,18 +1,15 @@
 import AppKit
 import CoreBridge
 
-/// AppKit rendering boundary for H4.2o typed registration prompts. The driver
-/// owns at most one sheet and validates both a private presentation token and
-/// the UX generation before mapping a response back to the owner. Sequential
-/// attempts are allowed after a terminal result, while construction remains
-/// inert until a future explicit UI intent calls `begin`.
-final class HostAgentBackgroundRegistrationSheetDriver {
-    typealias Completion = (HostAgentBackgroundRegistrationUXView) -> Void
-    typealias Update = (HostAgentBackgroundRegistrationUXView) -> Void
+/// AppKit rendering boundary for explicit background unregistration. Each
+/// attempt owns at most one sheet; sequential attempts are allowed only after
+/// the previous attempt reached a terminal typed result.
+final class HostAgentBackgroundUnregistrationSheetDriver {
+    typealias Completion = (HostAgentBackgroundUnregistrationUXView) -> Void
+    typealias Update = (HostAgentBackgroundUnregistrationUXView) -> Void
 
-    private let owner: HostAgentBackgroundRegistrationUXOwner
+    private let owner: HostAgentBackgroundUnregistrationUXOwner
     private let onUpdate: Update
-    private weak var parentWindow: NSWindow?
     private var alert: NSAlert?
     private var completion: Completion?
     private var activePresentationToken: UInt64 = 0
@@ -20,21 +17,18 @@ final class HostAgentBackgroundRegistrationSheetDriver {
 
     static func makeProduct(
         mutationOwner: HostAgentBackgroundRegistrationMutationOwner,
-        performMigrationPreparation: @escaping
-            HostAgentBackgroundRegistrationUXOwner.MigrationPreparation,
         onUpdate: @escaping Update = { _ in }
-    ) -> HostAgentBackgroundRegistrationSheetDriver {
-        HostAgentBackgroundRegistrationSheetDriver(
-            owner: HostAgentBackgroundRegistrationUXOwner.makeProduct(
-                mutationOwner: mutationOwner,
-                performMigrationPreparation: performMigrationPreparation
+    ) -> HostAgentBackgroundUnregistrationSheetDriver {
+        HostAgentBackgroundUnregistrationSheetDriver(
+            owner: HostAgentBackgroundUnregistrationUXOwner.makeProduct(
+                mutationOwner: mutationOwner
             ),
             onUpdate: onUpdate
         )
     }
 
     init(
-        owner: HostAgentBackgroundRegistrationUXOwner,
+        owner: HostAgentBackgroundUnregistrationUXOwner,
         onUpdate: @escaping Update = { _ in }
     ) {
         self.owner = owner
@@ -51,10 +45,9 @@ final class HostAgentBackgroundRegistrationSheetDriver {
               alert == nil
         else { return false }
         isRunning = true
-        parentWindow = window
         self.completion = completion
 
-        guard owner.apply(.requestBackgroundRegistration) else {
+        guard owner.apply(.requestBackgroundUnregistration) else {
             finish(owner.snapshot())
             return false
         }
@@ -67,7 +60,7 @@ final class HostAgentBackgroundRegistrationSheetDriver {
     }
 
     private func present(
-        _ view: HostAgentBackgroundRegistrationUXView,
+        _ view: HostAgentBackgroundUnregistrationUXView,
         on window: NSWindow
     ) -> Bool {
         guard Thread.isMainThread,
@@ -81,7 +74,7 @@ final class HostAgentBackgroundRegistrationSheetDriver {
         let token = activePresentationToken
         let generation = view.generation
         let alert = NSAlert()
-        alert.alertStyle = .informational
+        alert.alertStyle = .warning
         alert.messageText = prompt.title
         alert.informativeText = prompt.message
         alert.addButton(withTitle: prompt.confirmButtonTitle)
@@ -104,7 +97,7 @@ final class HostAgentBackgroundRegistrationSheetDriver {
     private func handleResponse(
         _ response: NSApplication.ModalResponse,
         alert: NSAlert,
-        prompt: HostAgentBackgroundRegistrationUXPrompt,
+        prompt: HostAgentBackgroundUnregistrationUXPrompt,
         generation: UInt64,
         token: UInt64
     ) {
@@ -123,34 +116,21 @@ final class HostAgentBackgroundRegistrationSheetDriver {
             return
         }
 
-        let intent = HostAgentBackgroundRegistrationSheetResponsePolicy.intent(
-            promptKind: prompt.kind,
-            confirmed: response == .alertFirstButtonReturn
-        )
+        let intent =
+            HostAgentBackgroundUnregistrationSheetResponsePolicy.intent(
+                confirmed: response == .alertFirstButtonReturn
+            )
         _ = owner.apply(intent)
-        let updated = owner.snapshot()
-
-        guard case .awaitingConfirmation = updated.phase,
-              updated.generation > generation,
-              let window = parentWindow
-        else {
-            finish(updated)
-            return
-        }
-        DispatchQueue.main.async { [weak self, weak window] in
-            guard let self, let window, self.isRunning else { return }
-            if !self.present(updated, on: window) {
-                self.finish(updated)
-            }
-        }
+        finish(owner.snapshot())
     }
 
-    private func finish(_ view: HostAgentBackgroundRegistrationUXView) {
+    private func finish(
+        _ view: HostAgentBackgroundUnregistrationUXView
+    ) {
         guard isRunning else { return }
         let completion = completion
         self.completion = nil
         alert = nil
-        parentWindow = nil
         isRunning = false
         onUpdate(view)
         completion?(view)
