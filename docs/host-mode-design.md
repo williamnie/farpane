@@ -1626,6 +1626,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.1ab HostAgent top-level entry eligibility preflight 已完成自动实现**。在真实 runner dispatch 前新增只读 gate：argv 必须精确为 `RustDeskNative --host-agent` 或固定 `/Applications/FarPane.app/Contents/MacOS/RustDeskNative --host-agent`，缺失、额外、混合 fixture、lookalike flag、相对/搬移/归一化别名路径均在读取身份前拒绝。随后复用 H4.2h registration identity gate，顺序验证固定嵌入 LaunchAgent plist、`/Applications/FarPane.app` bundle metadata 与 Apple-issued Team/signing requirement；local development channel 才产生 bounded build eligibility，伪造 build token fail closed。Developer ID channel 在 H4.5 独立 notarization evidence 尚未落地前固定拒绝，不能仅凭签名启动分发 Agent。product preflight 不接受 path/data/env override，不启动 runtime、不修改 registration；顶层 dispatch 仍固定 69，下一步需先把 rejection 映射为脱敏 terminal result。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-entry-preflight.md`。
 
+> 更新（2026-08-09）：**H4.1ac HostAgent sanitized entry orchestration 已完成自动实现**。新的纯编排边界只执行一次 entry assessment：所有 typed rejection 都在 runner 前关闭；eligible evidence 会再次校验 bounded build identifier，再把同一份 eligibility 恰好传给 runner 一次并原样保留其 structured process result。entry rejection 现在统一进入 terminal reporter，以固定脱敏文本映射稳定 sysexits：invocation 为 64，launch/application identity 为 78，签名/notarization 为 77；诊断写失败不改变退出码，也不输出路径、build identifier、底层 Error 或签名数据。真实 pre-AppKit `AppDelegate.main` 仍未调用该编排器/runner，`--host-agent` 继续固定 69 fail closed；本步未启动 Core、读取真实配置、联网、注册或部署 Agent。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-entry-orchestration.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
