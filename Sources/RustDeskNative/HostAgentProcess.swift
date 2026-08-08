@@ -56,12 +56,18 @@ enum HostAgentProcess {
                 guard case .success(let lifetime) = result else {
                     return result
                 }
-                guard snapshotCoordinator.bind(copySnapshot: { [weak lifetime] in
-                    guard let lifetime else {
-                        throw HostAgentSnapshotCopyAccessError.lifetimeUnavailable
+                guard snapshotCoordinator.bind(
+                    copySnapshot: { [weak lifetime] in
+                        guard let lifetime else {
+                            throw HostAgentSnapshotCopyAccessError.lifetimeUnavailable
+                        }
+                        return try lifetime.copySnapshot()
+                    },
+                    onIdentityInvalidationRequired: { [weak lifetime] _ in
+                        guard let lifetime else { return }
+                        try? lifetime.invalidateXPCIdentity()
                     }
-                    return try lifetime.copySnapshot()
-                }) else {
+                ) else {
                     _ = lifetime.requestTermination(reason: .error)
                     _ = lifetime.waitUntilTerminated()
                     return .failure(HostAgentStartupFailure(kind: .internalFailure))
