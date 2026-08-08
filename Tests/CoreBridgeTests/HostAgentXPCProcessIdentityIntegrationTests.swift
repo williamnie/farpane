@@ -7,7 +7,8 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
 
         try assertOrder(
             in: source,
-            "let bootstrapContext = try HostAgentBootstrapContext.prepare()",
+            "let bootstrapContext = try HostAgentBootstrapContext.prepare(\n"
+                + "            expectedAgentBuildID: expectedAgentBuildID",
             "HostAgentXPCProcessIdentityAuthority.makeProduct("
         )
         try assertOrder(

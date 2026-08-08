@@ -7,6 +7,7 @@ import Foundation
 /// loop remains intentionally disabled until its lifecycle owner is complete.
 enum HostAgentProcessStartup {
     static func prepare(
+        expectedAgentBuildID: String,
         eventState: HostAgentEventState,
         snapshotState: HostAgentSnapshotState,
         eventQueue: DispatchQueue = DispatchQueue(
@@ -19,6 +20,7 @@ enum HostAgentProcessStartup {
         HostAgentProcessStartupRunner.start(
             startRuntime: {
                 let runtime = try HostAgentProcessRuntime.start(
+                    expectedAgentBuildID: expectedAgentBuildID,
                     eventState: eventState,
                     snapshotState: snapshotState,
                     eventQueue: eventQueue,

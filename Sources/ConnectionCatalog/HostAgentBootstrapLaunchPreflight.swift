@@ -34,7 +34,7 @@ public final class HostAgentBootstrapLaunchPreflight: @unchecked Sendable {
         return try prepare(expectedAgentBuildID: expectedAgentBuildID)
     }
 
-    func prepare(
+    package func prepare(
         expectedAgentBuildID: String
     ) throws -> HostAgentBootstrapConfiguration {
         guard HostAgentBootstrapConfiguration.validAgentBuildID(expectedAgentBuildID) else {
