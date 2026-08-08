@@ -1560,6 +1560,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1z Agent startup media-control delivery 已完成自动实现**。新的有界 delivery gate 覆盖 Core event callback 已安装但 process-owned media pipeline 尚未激活的启动窗口：只保留已完成 typed/bounded journal 校验的 `HostMediaControl`，最多 16 条并在 runtime binding 后、capability probe 前同步 FIFO drain；active 阶段继续由同一 gate 串行交付，避免 accepted route state 已前进但 `startCapture/reconfigure` 被 idle owner 静默丢失。第 17 条会清空 pending queue、terminal overflow 并使 startup fail closed；termination 先停止新控制、丢弃 queued control 并等待在途 delivery，再 drain log/route/runtime。snapshot 仅包含 lifecycle、数量和 in-flight bit，不包含 raw control/route/key/server/屏幕内容。本步只修复未来真实 Agent 入口所需的竞态，入口仍 exit 69，不宣称已定位或修复 Mini GUI 自退；不修改 ABI/Rust/Hermes/XPC wire/SMAppService，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-agent-startup-media-control-delivery.md`。
 
+> 更新（2026-08-08）：**H4.1aa Agent terminal result reporting 已完成自动实现**。唯一 terminal reporter 现在把 structured process result 映射为至多一条固定脱敏 stderr 行与稳定 sysexits；成功 stop 不输出，stderr 关闭/写失败不改变退出码，也不保留底层 Error。当前 pre-AppKit fail-closed 分支已通过 `.unavailable` result 使用同一路径，移除了 App 入口重复的诊断与 69 常量，debug/release 的可观察行为保持不变。入口审计同时确认现有 DispatchSource signal + lifetime condition wait 已提供无 AppKit、无 busy loop 的等待机制，不需要额外 RunLoop。由于 authenticated XPC consumer 尚未建立，本步仍不调用真实 process runner、不加载 Core/读取配置/联网，不伪装后台 ready；不修改 ABI/XPC wire/Rust/Hermes/SMAppService，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-agent-terminal-reporting.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

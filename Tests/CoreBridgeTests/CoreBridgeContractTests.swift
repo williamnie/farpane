@@ -71,6 +71,13 @@ final class CoreBridgeContractTests: XCTestCase {
 
         XCTAssertLessThan(dispatch.lowerBound, appKitBootstrap.lowerBound)
         XCTAssertTrue(source.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(source.contains(
+            "HostAgentProcessTerminalReporter.report(.unavailable)"
+        ))
+        XCTAssertFalse(source.contains("unavailableExitCode"))
+        XCTAssertFalse(source.contains(
+            "fputs(\"FarPane HostAgent runtime is not available"
+        ))
     }
 
     func testHostAgentProcessRuntimeUsesOneBootstrapAuthorityButRemainsDisabled() throws {

@@ -118,14 +118,12 @@ private extension HostMediaSubmissionDropReason {
 }
 
 private enum HostAgentBootstrap {
-    private static let unavailableExitCode: Int32 = 69 // sysexits EX_UNAVAILABLE
-
     /// H4.1a only reserves and isolates the process role. Until the dedicated
-    /// config ownership and authenticated XPC runtime exist, starting a second
-    /// HostCore would violate the single-writer/session contract.
+    /// authenticated XPC runtime exists, starting HostCore would expose an
+    /// unreachable background authority. Keep the real entry fail-closed, but
+    /// use the same structured terminal reporter as the future process runner.
     static func failClosed() -> Never {
-        fputs("FarPane HostAgent runtime is not available in this build.\n", stderr)
-        exit(unavailableExitCode)
+        exit(HostAgentProcessTerminalReporter.report(.unavailable))
     }
 }
 
