@@ -1614,6 +1614,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.3e4b single-start App event polling owner 已完成自动实现**。新增的 App-side owner 只有在 client 已 ready 时才能一次性 start，初次立即 fetch；任一时刻只允许一个在途 request。typed batch 的 `hasMore=true` 与 authoritative resync 后固定等待 100 ms 再追赶，追平 batch/up-to-date 固定进入 500 ms idle poll，因此不会违反 Agent 每连接 100 ms event limit。所有 delay 都由 owner 持有唯一 cancellable task；cancel-before-start、scheduled cancel、in-flight cancel、connection end 和 terminal client result 均以 generation/state 门禁一次性终止，迟到 callback 不能交付或重新排程。生产 scheduler 使用专用 utility queue 的 cancellable `DispatchWorkItem`，真实延迟与取消已有 smoke。当前 owner 尚未由 App lifecycle 强持有，也未把 snapshot/event 投影接到 readiness/UI；因此不宣称产品已自动启动订阅。详见 `Evidence/HostMode/2026-08-09/h4-xpc-event-polling-owner.md`。
 
+> 更新（2026-08-09）：**H4.3e4c App-side XPC session lifecycle composition 已完成自动实现**。新增的独立生命周期从固定产品 factory 创建 snapshot-first client，并只在 initial authoritative snapshot 已交给 typed projection sink 后创建、强持有并启动唯一 polling owner；identity replacement reset、initial snapshot、增量 event 与 authoritative resync 都经同一 projection 边界交付。cancel、connection end、client/poll terminal 与 polling start failure 都先停止 owner、再取消 client，最后只通知一次脱敏 terminal reason；迟到 callback 不可复活。独立 recursive delivery gate 使已接受投影与 terminal 通知线性化，避免断线通知越过正在交付的 event。当前生命周期仍未接入 SwiftUI/App readiness，也不启用顶层 Agent entry、Host command 或自动重连，故不宣称后台 Host 已进入产品 ready。详见 `Evidence/HostMode/2026-08-09/h4-xpc-session-lifecycle.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
