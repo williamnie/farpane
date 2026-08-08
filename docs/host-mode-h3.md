@@ -396,3 +396,9 @@ pinned core 的真实 setter 已确认可作为唯一 Rust authority：它为本
 专用入口可以使用 caller-owned mutable UTF-8 bytes，Rust 借用而不复制、调用 in-process setter，并以现有 libsodium `memzero` 在所有返回路径清零；Swift 用 mutable `Data` 调用并在 `defer` 中再次 `resetBytes`。正式实现还必须清零 setter 内部的 H1 临时数组。AppKit secure field 的系统内部副本不可由应用证明擦除，只能立即清空控件并保证显式 transfer buffer 的双端 wipe。
 
 该检查点当时尚未修改 ABI；其建议合同现已由 ABI v3/schema v2 实现。readiness 原始证据保留于 `Evidence/HostMode/2026-08-08/h3-permanent-password-secret-buffer-readiness.md`，最终实现证据见 `Evidence/HostMode/2026-08-08/h3-permanent-password-secret-buffer.md`。
+
+## H3.3h5 global active-session indicator
+
+Home 窗口内的活动会话卡片不能覆盖用户关闭唯一窗口后的 §14.3 可见性要求。App 现在只根据成功解码的 active-session snapshot 创建菜单栏状态项；无会话、Host reset/stop 或 snapshot 不可用时立即移除。菜单显示固定的共享提示与明确标记为“对方声明（未经验证）”的远端身份，并提供“打开 FarPane”和“断开连接”。
+
+断开菜单项携带 snapshot 的 canonical connection ID 作为内部 represented object，但不向用户展示；App 执行前再次核对当前 snapshot，并复用 H3.3h4 的 exact-session command gate。命令入队后显示“正在断开…”且禁止重复操作，直到 authoritative snapshot 收敛。定向策略测试 3/3、加载 ABI v6 core 的 Swift 133/133、ScriptTests 20/20 与 arm64 Release build 全部通过；未改 ABI/Rust/Hermes，也未部署。真实菜单栏可见性、关窗后打开/断开仍待 Mini 与控制端验收。详见 `Evidence/HostMode/2026-08-08/h3-active-session-indicator.md`。

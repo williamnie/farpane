@@ -1491,6 +1491,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H3.3h4 snapshot-authoritative active-session UI 已完成自动实现**。Home Host card 只从 recoverable snapshot 呈现 untrusted remote metadata、开始时间与 current capabilities，并按 exact canonical connection ID 提供 keyboard/mouse、clipboard、system-audio revoke 和 disconnect。单会话 gate 禁止 stale/duplicate action；command enqueue 不算完成，能力按钮等 snapshot capability 消失、disconnect 等 active session 消失，typed error 才显式释放重试。未改 ABI/Rust/Hermes。gate RED/GREEN 1/1、加载 ABI v6 core 的 Swift 132/132、ScriptTests 20/20 与 Release App build 通过；新包未部署。窗口关闭后的全局活动指示/断开入口、真机卡片/撤权/断开/rebuild 与 TCC/Aqua transition 仍未完成，H3.3 保持进行中。详见 `Evidence/HostMode/2026-08-08/h3-active-session-ui.md`。
 
+> 更新（2026-08-08）：**H3.3h5 global active-session indicator 已完成自动实现**。活动会话现在由成功解码的 recoverable snapshot 创建菜单栏可见指示；无会话、Host reset/stop 或 snapshot 不可用时立即移除。菜单提供“打开 FarPane”和 snapshot-scoped“断开连接”，canonical connection ID 仅作内部 action routing，执行前仍由现有 command gate 与当前 snapshot 双重核对；断开处理中禁用重复操作。未改 ABI/Rust/Hermes。策略 RED/GREEN、加载 ABI v6 core 的 Swift 133/133、ScriptTests 20/20 与 arm64 Release build 通过；未部署。真实菜单栏可见性、关窗后打开/断开，以及 TCC/Aqua transition 仍待真机验收，H3.3 保持进行中。详见 `Evidence/HostMode/2026-08-08/h3-active-session-indicator.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
