@@ -1638,6 +1638,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.2m explicit registration mutation owner 已完成自动实现**。App 侧新增唯一、构造惰性的 typed owner，只有显式 `registerBackgroundAgent` / `unregisterBackgroundAgent` intent 才能触达固定 `SMAppService.agent(plistName:)`；注册紧邻 mutation 重跑 H4.2d–h/l signed identity/lifecycle gate，当前只允许已验证的本地 Apple Development channel，Developer ID 在 H4.5 notarization evidence 前继续拒绝。取消注册刻意不受当前 registration eligibility 阻断，保证损坏/升级后的恢复路径仍可用。register/unregister 返回或抛错均不直接决定结果，owner 随后读取权威 service status，分别发布 registered、requiresApproval、unregistered、not-effective 或 serviceUnavailable；因此 enabled/调用成功都不会冒充 H4.2a ready。mutation 期间并发 intent 与 observer 重入均拒绝，不保留 NSError、路径、签名或 build token。本步只建立尚未接 UI/App lifecycle 的产品 mutation capability；测试未调用 product mutation，未修改真实 Login Items、未启动 Agent、未打开 System Settings、未安装/部署/push。详见 `Evidence/HostMode/2026-08-09/h4-registration-mutation-owner.md`。
 
+> 更新（2026-08-09）：**H4.2n user-confirmed approval navigation owner 已完成自动实现**。依据本机 macOS SDK 的 `SMAppService` 合同，App 只有在先提示、用户确认希望重新启用 helper 后才能打开 Login Items；新的独立 owner 构造保持 inert，仅 typed `openLoginItemsAfterUserConfirmation` intent 会触发一次权威 registration 重查。只有仍为 requiresApproval 才调用专用 `SMAppService.openSystemSettingsLoginItems()`；notRegistered/enabled 返回 notRequired，notFound/future status 通过既有 adapter 以 serviceUnavailable fail closed。结果固定命名为 navigationRequested，不代表设置窗口真实出现、用户已批准、service enabled 或 Agent ready；并发和 observer 重入不能重复导航。owner 不持有 service、不具备 register/unregister/activation/UserDefaults/UI 能力，也未接 AppKit/SwiftUI；未来 UI 必须先真实展示说明并仅在肯定按钮后发送 typed intent。本步自动测试未调用 product apply，未打开 System Settings、修改 Login Items、启动 Agent、安装/部署/push。详见 `Evidence/HostMode/2026-08-09/h4-approval-navigation-owner.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
