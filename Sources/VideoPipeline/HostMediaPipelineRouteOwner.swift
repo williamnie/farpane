@@ -87,11 +87,20 @@ public protocol HostMediaPipelineLifecycle: AnyObject {
 
 extension HostMediaPipeline: HostMediaPipelineLifecycle {}
 
+public struct HostMediaPipelineRouteTelemetrySnapshot: Sendable {
+  public let route: HostMediaPipelineRouteIdentity
+  public let telemetry: HostMediaTelemetrySnapshot
+}
+
 public struct HostMediaPipelineRouteOwnerSnapshot: Sendable {
   public let desiredRoute: HostMediaPipelineRouteIdentity?
   public let activeRoute: HostMediaPipelineRouteIdentity?
+  public let activeTelemetry: HostMediaPipelineRouteTelemetrySnapshot?
+  public let lastCompletedTelemetry: HostMediaPipelineRouteTelemetrySnapshot?
   public let scheduledOperationCount: UInt64
   public let completedOperationCount: UInt64
+  public let pendingOperationCount: Int
+  public let rejectedTelemetryUpdateCount: UInt64
   public let cancelled: Bool
 }
 
@@ -124,6 +133,12 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
     var active: Bool
   }
 
+  private struct RetainedTelemetry {
+    let generation: UInt64
+    let route: HostMediaPipelineRouteIdentity
+    let telemetry: HostMediaTelemetry
+  }
+
   private let condition = NSCondition()
   private let operationQueue = DispatchQueue(
     label: "io.farpane.host-media-route-owner",
@@ -135,10 +150,13 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
   private let onFailure: FailureHandler
   private var desiredRoute: HostMediaPipelineRouteIdentity?
   private var current: CurrentPipeline?
+  private var retiringTelemetry: RetainedTelemetry?
+  private var lastCompletedTelemetry: RetainedTelemetry?
   private var generation: UInt64 = 0
   private var scheduledOperationCount: UInt64 = 0
   private var completedOperationCount: UInt64 = 0
   private var pendingOperationCount = 0
+  private var rejectedTelemetryUpdateCount: UInt64 = 0
   private var cancelled = false
 
   public init(
@@ -216,8 +234,9 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
       condition.unlock()
       return false
     }
+    let stopsDesiredRoute = desiredRoute == route
     generation += 1
-    if desiredRoute == route { desiredRoute = nil }
+    if stopsDesiredRoute { desiredRoute = nil }
     scheduleOperationLocked()
     let startingPipeline = current?.route == route && current?.active == false
       ? current?.pipeline
@@ -227,7 +246,7 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
     startingPipeline?.cancel()
     operationQueue.async { [self] in
       defer { finishOperation() }
-      stopCurrentOnQueue(matching: route)
+      stopCurrentOnQueue(matching: stopsDesiredRoute ? nil : route)
     }
     return true
   }
@@ -252,14 +271,149 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
 
   public func snapshot() -> HostMediaPipelineRouteOwnerSnapshot {
     condition.lock()
-    defer { condition.unlock() }
+    let desiredRoute = desiredRoute
+    let active = current?.active == true ? current : nil
+    let completed = lastCompletedTelemetry
+    let scheduledOperationCount = scheduledOperationCount
+    let completedOperationCount = completedOperationCount
+    let pendingOperationCount = pendingOperationCount
+    let rejectedTelemetryUpdateCount = rejectedTelemetryUpdateCount
+    let cancelled = cancelled
+    condition.unlock()
     return HostMediaPipelineRouteOwnerSnapshot(
       desiredRoute: desiredRoute,
-      activeRoute: current?.active == true ? current?.route : nil,
+      activeRoute: active?.route,
+      activeTelemetry: active.map {
+        HostMediaPipelineRouteTelemetrySnapshot(
+          route: $0.route,
+          telemetry: $0.pipeline.telemetry.snapshot()
+        )
+      },
+      lastCompletedTelemetry: completed.map {
+        HostMediaPipelineRouteTelemetrySnapshot(
+          route: $0.route,
+          telemetry: $0.telemetry.snapshot()
+        )
+      },
       scheduledOperationCount: scheduledOperationCount,
       completedOperationCount: completedOperationCount,
+      pendingOperationCount: pendingOperationCount,
+      rejectedTelemetryUpdateCount: rejectedTelemetryUpdateCount,
       cancelled: cancelled
     )
+  }
+
+  /// Cheap route lookup for control/diagnostic admission. Unlike `snapshot()`,
+  /// this does not sample or sort telemetry on the event callback queue.
+  public func routeIdentities(
+    includingRetainedTelemetry: Bool = false
+  ) -> [HostMediaPipelineRouteIdentity] {
+    condition.lock()
+    var routes = [current?.route, desiredRoute].compactMap { $0 }
+    if includingRetainedTelemetry {
+      routes.append(contentsOf: [
+        retiringTelemetry?.route,
+        lastCompletedTelemetry?.route,
+      ].compactMap { $0 })
+    }
+    condition.unlock()
+    var unique: [HostMediaPipelineRouteIdentity] = []
+    for route in routes where !unique.contains(route) {
+      unique.append(route)
+    }
+    return unique
+  }
+
+  @discardableResult
+  public func recordEncodedQueueDepth(
+    route: HostMediaPipelineRouteIdentity,
+    current: Int,
+    maximum: Int,
+    capacity: Int,
+    finalized: Bool
+  ) -> Bool {
+    updateTelemetry(route: route) {
+      $0.recordEncodedQueueDepth(
+        current: current,
+        maximum: maximum,
+        capacity: capacity,
+        finalized: finalized
+      )
+    }
+  }
+
+  @discardableResult
+  public func recordWriterTiming(
+    route: HostMediaPipelineRouteIdentity,
+    cycles: UInt64,
+    subscriberDispatches: UInt64,
+    dispatchWallTotalUS: UInt64,
+    maximumDispatchWallUS: UInt64,
+    confirmationWaitTotalUS: UInt64,
+    maximumConfirmationWaitUS: UInt64,
+    completedConfirmations: UInt64,
+    timedOutConfirmations: UInt64,
+    finalized: Bool
+  ) -> Bool {
+    updateTelemetry(route: route) {
+      $0.recordWriterTiming(
+        cycles: cycles,
+        subscriberDispatches: subscriberDispatches,
+        dispatchWallTotalUS: dispatchWallTotalUS,
+        maximumDispatchWallUS: maximumDispatchWallUS,
+        confirmationWaitTotalUS: confirmationWaitTotalUS,
+        maximumConfirmationWaitUS: maximumConfirmationWaitUS,
+        completedConfirmations: completedConfirmations,
+        timedOutConfirmations: timedOutConfirmations,
+        finalized: finalized
+      )
+    }
+  }
+
+  @discardableResult
+  public func recordNetworkMetrics(
+    route: HostMediaPipelineRouteIdentity,
+    subscriberCount: Int,
+    qosSubscriberCount: Int,
+    delaySampledSubscribers: Int,
+    rttSampledSubscribers: Int,
+    responseDelayedSubscribers: Int,
+    networkDelayMS: Int?,
+    roundTripTimeMS: Int?,
+    finalized: Bool
+  ) -> Bool {
+    updateTelemetry(route: route) {
+      $0.recordNetworkMetrics(
+        subscriberCount: subscriberCount,
+        qosSubscriberCount: qosSubscriberCount,
+        delaySampledSubscribers: delaySampledSubscribers,
+        rttSampledSubscribers: rttSampledSubscribers,
+        responseDelayedSubscribers: responseDelayedSubscribers,
+        networkDelayMS: networkDelayMS,
+        roundTripTimeMS: roundTripTimeMS,
+        finalized: finalized
+      )
+    }
+  }
+
+  @discardableResult
+  public func recordTransportMetrics(
+    route: HostMediaPipelineRouteIdentity,
+    subscriberCount: Int,
+    directSubscribers: Int,
+    relaySubscribers: Int,
+    unknownSubscribers: Int,
+    finalized: Bool
+  ) -> Bool {
+    updateTelemetry(route: route) {
+      $0.recordTransportMetrics(
+        subscriberCount: subscriberCount,
+        directSubscribers: directSubscribers,
+        relaySubscribers: relaySubscribers,
+        unknownSubscribers: unknownSubscribers,
+        finalized: finalized
+      )
+    }
   }
 
   package func waitUntilIdle() {
@@ -344,10 +498,16 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
     }
     if current?.generation == operationGeneration { current = nil }
     if desiredRoute == route.identity { desiredRoute = nil }
+    retiringTelemetry = RetainedTelemetry(
+      generation: operationGeneration,
+      route: route.identity,
+      telemetry: pipeline.telemetry
+    )
     condition.unlock()
 
     pipeline.cancel()
     blockingStop(pipeline)
+    finishRetiringTelemetry(generation: operationGeneration)
     if startResult.isFailure {
       onFailure(route.identity, .startFailed)
     }
@@ -465,9 +625,57 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
       return
     }
     self.current = nil
+    retiringTelemetry = RetainedTelemetry(
+      generation: current.generation,
+      route: current.route,
+      telemetry: current.pipeline.telemetry
+    )
     condition.unlock()
     current.pipeline.cancel()
     blockingStop(current.pipeline)
+    finishRetiringTelemetry(generation: current.generation)
+  }
+
+  private func updateTelemetry(
+    route: HostMediaPipelineRouteIdentity,
+    _ update: (HostMediaTelemetry) -> Bool
+  ) -> Bool {
+    condition.lock()
+    let telemetry: HostMediaTelemetry?
+    if current?.route == route {
+      telemetry = current?.pipeline.telemetry
+    } else if retiringTelemetry?.route == route {
+      telemetry = retiringTelemetry?.telemetry
+    } else if lastCompletedTelemetry?.route == route {
+      telemetry = lastCompletedTelemetry?.telemetry
+    } else {
+      telemetry = nil
+    }
+    condition.unlock()
+    guard let telemetry else {
+      recordTelemetryUpdateRejection()
+      return false
+    }
+    let accepted = update(telemetry)
+    if !accepted { recordTelemetryUpdateRejection() }
+    return accepted
+  }
+
+  private func finishRetiringTelemetry(generation: UInt64) {
+    condition.lock()
+    if retiringTelemetry?.generation == generation {
+      lastCompletedTelemetry = retiringTelemetry
+      retiringTelemetry = nil
+    }
+    condition.unlock()
+  }
+
+  private func recordTelemetryUpdateRejection() {
+    condition.lock()
+    if rejectedTelemetryUpdateCount < UInt64.max {
+      rejectedTelemetryUpdateCount += 1
+    }
+    condition.unlock()
   }
 
   private func clearDesiredRouteIfCurrent(

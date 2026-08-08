@@ -438,6 +438,47 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }
 
+    func testHostAgentOwnsRouteScopedMediaDiagnosticsButRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let ownerURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentMediaPipelineOwner.swift"
+        )
+        let ownerSource = try String(contentsOf: ownerURL, encoding: .utf8)
+        XCTAssertTrue(ownerSource.contains("func consume(_ event: HostCoreEvent)"))
+        XCTAssertTrue(ownerSource.contains("event.mediaDiagnostic"))
+        XCTAssertTrue(ownerSource.contains("event.mediaQueueDiagnostic"))
+        XCTAssertTrue(ownerSource.contains("event.mediaWriterDiagnostic"))
+        XCTAssertTrue(ownerSource.contains("event.mediaNetworkDiagnostic"))
+        XCTAssertTrue(ownerSource.contains("event.mediaTransportDiagnostic"))
+        XCTAssertTrue(ownerSource.contains("routeOwner.recordEncodedQueueDepth("))
+        XCTAssertTrue(ownerSource.contains("routeOwner.recordWriterTiming("))
+        XCTAssertTrue(ownerSource.contains("routeOwner.recordNetworkMetrics("))
+        XCTAssertTrue(ownerSource.contains("routeOwner.recordTransportMetrics("))
+        XCTAssertTrue(ownerSource.contains("func snapshot() -> HostAgentMediaPipelineSnapshot"))
+
+        let processURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcess.swift"
+        )
+        let processSource = try String(contentsOf: processURL, encoding: .utf8)
+        let diagnosticConsume = try XCTUnwrap(processSource.range(
+            of: "mediaPipelineOwner.consume(event)"
+        ))
+        let externalForward = try XCTUnwrap(processSource.range(
+            of: "onEvent(event)"
+        ))
+        XCTAssertLessThan(diagnosticConsume.lowerBound, externalForward.lowerBound)
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentMediaPipelineSnapshot("))
+        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
     func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -1094,6 +1135,12 @@ final class CoreBridgeContractTests: XCTestCase {
             eventType: "mediaDiagnostic"
         )?.mediaDiagnostic)
         invalid = payload
+        invalid["connectionEpoch"] = true
+        XCTAssertNil(try hostEvent(
+            payload: invalid,
+            eventType: "mediaDiagnostic"
+        )?.mediaDiagnostic)
+        invalid = payload
         invalid["framing"] = "unknown"
         XCTAssertNil(try hostEvent(
             payload: invalid,
@@ -1142,6 +1189,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(diagnostic.matchesRoute(route))
 
         let invalidMutations: [(inout [String: Any]) -> Void] = [
+            { $0["connectionEpoch"] = true },
             { $0["currentDepth"] = 4 },
             { $0["maximumDepth"] = 4 },
             { $0["capacity"] = 0 },
@@ -1204,6 +1252,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(diagnostic.matchesRoute(route))
 
         let invalidMutations: [(inout [String: Any]) -> Void] = [
+            { $0["connectionEpoch"] = true },
             { $0["subscriberDispatches"] = 2 },
             { $0["maximumDispatchWallUs"] = 121 },
             { $0["maximumConfirmationWaitUs"] = 901 },
@@ -1282,6 +1331,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertNil(unavailable.worstRTTMS)
 
         let invalidMutations: [(inout [String: Any]) -> Void] = [
+            { $0["connectionEpoch"] = true },
             { $0["qosSubscriberCount"] = 3 },
             { $0["delaySampledSubscribers"] = 3 },
             { $0["rttSampledSubscribers"] = 3 },
@@ -1343,6 +1393,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(diagnostic.matchesRoute(route))
 
         let invalidMutations: [(inout [String: Any]) -> Void] = [
+            { $0["connectionEpoch"] = true },
             { $0["unknownSubscribers"] = 0 },
             { $0["directSubscribers"] = -1 },
             { $0["relaySubscribers"] = 1.5 },

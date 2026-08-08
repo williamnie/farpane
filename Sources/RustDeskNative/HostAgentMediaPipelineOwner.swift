@@ -3,6 +3,36 @@ import CoreGraphics
 import Foundation
 import VideoPipeline
 
+enum HostAgentMediaPipelineLifecycleStatus: String, Sendable {
+    case idle
+    case active
+    case cancelling
+    case cancelled
+}
+
+enum HostAgentMediaCapabilityStatus: String, Sendable {
+    case notStarted
+    case probing
+    case ready
+    case failed
+    case cancelled
+}
+
+struct HostAgentMediaPipelineSnapshot: Sendable {
+    let lifecycleStatus: HostAgentMediaPipelineLifecycleStatus
+    let capabilityStatus: HostAgentMediaCapabilityStatus
+    let capabilityFailures: UInt64
+    let pipelineStartFailures: UInt64
+    let pipelineRuntimeFailures: UInt64
+    let rejectedControls: UInt64
+    let acceptedMediaDiagnostics: UInt64
+    let acceptedTelemetryUpdates: UInt64
+    let rejectedDiagnostics: UInt64
+    let lastMediaDiagnosticKind: HostMediaDiagnostic.Kind?
+    let lastMediaDiagnosticRoute: HostMediaPipelineRouteIdentity?
+    let routeOwner: HostMediaPipelineRouteOwnerSnapshot
+}
+
 /// Process-owned adapter from typed Rust media controls to the real
 /// ScreenCaptureKit/VideoToolbox pipeline. It never touches AppDelegate/UI.
 final class HostAgentMediaPipelineOwner: @unchecked Sendable {
@@ -20,6 +50,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private var state: State = .idle
     private var capabilityTask: Task<Void, Never>?
     private var capabilityInFlight = false
+    private var diagnosticsInFlight = 0
 
     init() {
         let runtimeBinding = HostAgentMediaRuntimeBinding()
@@ -70,6 +101,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         state = .active
         capabilityInFlight = true
         condition.unlock()
+        status.recordCapabilityProbeStarted()
 
         let task = Task { [weak self] in
             guard let self else { return }
@@ -122,6 +154,76 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         }
     }
 
+    /// Consumes only already-sanitized Rust media diagnostics. Non-media
+    /// events are ignored; malformed or stale media diagnostics are counted
+    /// but never mutate another route's telemetry.
+    func consume(_ event: HostCoreEvent) {
+        condition.lock()
+        guard case .active = state else {
+            condition.unlock()
+            return
+        }
+        diagnosticsInFlight += 1
+        condition.unlock()
+        defer {
+            condition.lock()
+            diagnosticsInFlight -= 1
+            condition.broadcast()
+            condition.unlock()
+        }
+
+        switch event.eventType {
+        case "mediaDiagnostic":
+            guard let diagnostic = event.mediaDiagnostic else {
+                status.recordDiagnosticRejection()
+                return
+            }
+            consume(diagnostic)
+        case "mediaQueueDiagnostic":
+            guard let diagnostic = event.mediaQueueDiagnostic else {
+                status.recordDiagnosticRejection()
+                return
+            }
+            consume(diagnostic)
+        case "mediaWriterDiagnostic":
+            guard let diagnostic = event.mediaWriterDiagnostic else {
+                status.recordDiagnosticRejection()
+                return
+            }
+            consume(diagnostic)
+        case "mediaNetworkDiagnostic":
+            guard let diagnostic = event.mediaNetworkDiagnostic else {
+                status.recordDiagnosticRejection()
+                return
+            }
+            consume(diagnostic)
+        case "mediaTransportDiagnostic":
+            guard let diagnostic = event.mediaTransportDiagnostic else {
+                status.recordDiagnosticRejection()
+                return
+            }
+            consume(diagnostic)
+        default:
+            return
+        }
+    }
+
+    func snapshot() -> HostAgentMediaPipelineSnapshot {
+        condition.lock()
+        let lifecycleStatus: HostAgentMediaPipelineLifecycleStatus
+        switch state {
+        case .idle: lifecycleStatus = .idle
+        case .active: lifecycleStatus = .active
+        case .cancelling: lifecycleStatus = .cancelling
+        case .cancelled: lifecycleStatus = .cancelled
+        }
+        condition.unlock()
+        return status.snapshot(
+            lifecycleStatus: lifecycleStatus,
+            routeOwner: routeOwner.snapshot()
+        )
+    }
+
     /// Terminal and idempotent. Drains SCK/VT before invalidating weak runtime
     /// access, then waits for a capability probe/set operation to finish.
     func cancelAndWait() {
@@ -139,6 +241,9 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         case .idle, .active:
             state = .cancelling
             let task = capabilityTask
+            while diagnosticsInFlight > 0 {
+                condition.wait()
+            }
             condition.unlock()
             task?.cancel()
         }
@@ -151,6 +256,9 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             condition.wait()
         }
         capabilityTask = nil
+        condition.unlock()
+        status.recordCancelled()
+        condition.lock()
         state = .cancelled
         condition.broadcast()
         condition.unlock()
@@ -168,13 +276,20 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             status.recordCapabilityFailure()
             return
         }
+        guard let maxWidth = UInt32(exactly: discovered.maxWidth),
+              let maxHeight = UInt32(exactly: discovered.maxHeight),
+              let maxFPS = UInt32(exactly: discovered.maxFPS)
+        else {
+            status.recordCapabilityFailure()
+            return
+        }
         do {
             try runtimeBinding.setMediaCapabilities(HostEncoderCapabilities(
                 h264Hardware: discovered.h264Hardware,
                 h265Hardware: discovered.h265Hardware,
-                maxWidth: UInt32(discovered.maxWidth),
-                maxHeight: UInt32(discovered.maxHeight),
-                maxFPS: UInt32(discovered.maxFPS)
+                maxWidth: maxWidth,
+                maxHeight: maxHeight,
+                maxFPS: maxFPS
             ))
             status.recordCapabilitiesReady()
         } catch {
@@ -193,8 +308,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private func matchingRoute(
         for control: HostMediaControl
     ) -> HostMediaPipelineRouteIdentity? {
-        let snapshot = routeOwner.snapshot()
-        for route in [snapshot.activeRoute, snapshot.desiredRoute].compactMap({ $0 }) {
+        for route in routeOwner.routeIdentities() {
             if route.connectionEpoch == control.connectionEpoch
                 && route.codecEpoch == control.codecEpoch
                 && route.displayID == control.displayID
@@ -204,6 +318,127 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             }
         }
         return nil
+    }
+
+    private func diagnosticRoute(
+        connectionEpoch: UInt64,
+        codecEpoch: UInt64,
+        displayID: UInt64,
+        displayRevision: UInt64,
+        codec: HostPipelineCodec? = nil
+    ) -> HostMediaPipelineRouteIdentity? {
+        routeOwner.routeIdentities(includingRetainedTelemetry: true).first { route in
+            route.connectionEpoch == connectionEpoch
+                && route.codecEpoch == codecEpoch
+                && route.displayID == displayID
+                && route.displayRevision == displayRevision
+                && (codec == nil || route.codec == codec)
+        }
+    }
+
+    private func consume(_ diagnostic: HostMediaDiagnostic) {
+        let codec: HostPipelineCodec = diagnostic.codec == .h264 ? .h264 : .h265
+        guard diagnostic.framing == .avcc,
+              let route = diagnosticRoute(
+                connectionEpoch: diagnostic.connectionEpoch,
+                codecEpoch: diagnostic.codecEpoch,
+                displayID: diagnostic.displayID,
+                displayRevision: diagnostic.displayRevision,
+                codec: codec
+              ),
+              diagnostic.kind != .refreshKeyframeDispatched
+                || (diagnostic.isKeyframe && diagnostic.hasParameterSets)
+        else {
+            status.recordDiagnosticRejection()
+            return
+        }
+        status.recordMediaDiagnostic(kind: diagnostic.kind, route: route)
+    }
+
+    private func consume(_ diagnostic: HostMediaQueueDiagnostic) {
+        guard let route = diagnosticRoute(
+            connectionEpoch: diagnostic.connectionEpoch,
+            codecEpoch: diagnostic.codecEpoch,
+            displayID: diagnostic.displayID,
+            displayRevision: diagnostic.displayRevision
+        ) else {
+            status.recordDiagnosticRejection()
+            return
+        }
+        status.recordTelemetryUpdate(accepted: routeOwner.recordEncodedQueueDepth(
+            route: route,
+            current: Int(diagnostic.currentDepth),
+            maximum: Int(diagnostic.maximumDepth),
+            capacity: Int(diagnostic.capacity),
+            finalized: diagnostic.kind == .routeStopped
+        ))
+    }
+
+    private func consume(_ diagnostic: HostMediaWriterDiagnostic) {
+        guard let route = diagnosticRoute(
+            connectionEpoch: diagnostic.connectionEpoch,
+            codecEpoch: diagnostic.codecEpoch,
+            displayID: diagnostic.displayID,
+            displayRevision: diagnostic.displayRevision
+        ) else {
+            status.recordDiagnosticRejection()
+            return
+        }
+        status.recordTelemetryUpdate(accepted: routeOwner.recordWriterTiming(
+            route: route,
+            cycles: diagnostic.cycles,
+            subscriberDispatches: diagnostic.subscriberDispatches,
+            dispatchWallTotalUS: diagnostic.dispatchWallTotalUS,
+            maximumDispatchWallUS: diagnostic.maximumDispatchWallUS,
+            confirmationWaitTotalUS: diagnostic.confirmationWaitTotalUS,
+            maximumConfirmationWaitUS: diagnostic.maximumConfirmationWaitUS,
+            completedConfirmations: diagnostic.completedConfirmations,
+            timedOutConfirmations: diagnostic.timedOutConfirmations,
+            finalized: diagnostic.kind == .routeStopped
+        ))
+    }
+
+    private func consume(_ diagnostic: HostMediaNetworkDiagnostic) {
+        guard let route = diagnosticRoute(
+            connectionEpoch: diagnostic.connectionEpoch,
+            codecEpoch: diagnostic.codecEpoch,
+            displayID: diagnostic.displayID,
+            displayRevision: diagnostic.displayRevision
+        ) else {
+            status.recordDiagnosticRejection()
+            return
+        }
+        status.recordTelemetryUpdate(accepted: routeOwner.recordNetworkMetrics(
+            route: route,
+            subscriberCount: Int(diagnostic.subscriberCount),
+            qosSubscriberCount: Int(diagnostic.qosSubscriberCount),
+            delaySampledSubscribers: Int(diagnostic.delaySampledSubscribers),
+            rttSampledSubscribers: Int(diagnostic.rttSampledSubscribers),
+            responseDelayedSubscribers: Int(diagnostic.responseDelayedSubscribers),
+            networkDelayMS: diagnostic.worstNetworkDelayMS.map(Int.init),
+            roundTripTimeMS: diagnostic.worstRTTMS.map(Int.init),
+            finalized: diagnostic.kind == .routeStopped
+        ))
+    }
+
+    private func consume(_ diagnostic: HostMediaTransportDiagnostic) {
+        guard let route = diagnosticRoute(
+            connectionEpoch: diagnostic.connectionEpoch,
+            codecEpoch: diagnostic.codecEpoch,
+            displayID: diagnostic.displayID,
+            displayRevision: diagnostic.displayRevision
+        ) else {
+            status.recordDiagnosticRejection()
+            return
+        }
+        status.recordTelemetryUpdate(accepted: routeOwner.recordTransportMetrics(
+            route: route,
+            subscriberCount: Int(diagnostic.subscriberCount),
+            directSubscribers: Int(diagnostic.directSubscribers),
+            relaySubscribers: Int(diagnostic.relaySubscribers),
+            unknownSubscribers: Int(diagnostic.unknownSubscribers),
+            finalized: diagnostic.kind == .routeStopped
+        ))
     }
 
     private static func route(
@@ -413,26 +648,44 @@ private enum HostAgentDisplayCapabilityTarget {
 
 private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
     private let lock = NSLock()
-    private var capabilitiesReady = false
+    private var capabilityStatus: HostAgentMediaCapabilityStatus = .notStarted
     private var capabilityFailures: UInt64 = 0
-    private var pipelineFailures: UInt64 = 0
+    private var pipelineStartFailures: UInt64 = 0
+    private var pipelineRuntimeFailures: UInt64 = 0
     private var rejectedControls: UInt64 = 0
+    private var acceptedMediaDiagnostics: UInt64 = 0
+    private var acceptedTelemetryUpdates: UInt64 = 0
+    private var rejectedDiagnostics: UInt64 = 0
+    private var lastMediaDiagnosticKind: HostMediaDiagnostic.Kind?
+    private var lastMediaDiagnosticRoute: HostMediaPipelineRouteIdentity?
+
+    func recordCapabilityProbeStarted() {
+        lock.lock()
+        capabilityStatus = .probing
+        lock.unlock()
+    }
 
     func recordCapabilitiesReady() {
         lock.lock()
-        capabilitiesReady = true
+        capabilityStatus = .ready
         lock.unlock()
     }
 
     func recordCapabilityFailure() {
         lock.lock()
+        capabilityStatus = .failed
         incrementSaturating(&capabilityFailures)
         lock.unlock()
     }
 
-    func record(failure _: HostMediaPipelineRouteFailure) {
+    func record(failure: HostMediaPipelineRouteFailure) {
         lock.lock()
-        incrementSaturating(&pipelineFailures)
+        switch failure {
+        case .startFailed:
+            incrementSaturating(&pipelineStartFailures)
+        case .runtimeFailed:
+            incrementSaturating(&pipelineRuntimeFailures)
+        }
         lock.unlock()
     }
 
@@ -440,6 +693,61 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
         lock.lock()
         incrementSaturating(&rejectedControls)
         lock.unlock()
+    }
+
+    func recordMediaDiagnostic(
+        kind: HostMediaDiagnostic.Kind,
+        route: HostMediaPipelineRouteIdentity
+    ) {
+        lock.lock()
+        incrementSaturating(&acceptedMediaDiagnostics)
+        lastMediaDiagnosticKind = kind
+        lastMediaDiagnosticRoute = route
+        lock.unlock()
+    }
+
+    func recordTelemetryUpdate(accepted: Bool) {
+        lock.lock()
+        if accepted {
+            incrementSaturating(&acceptedTelemetryUpdates)
+        } else {
+            incrementSaturating(&rejectedDiagnostics)
+        }
+        lock.unlock()
+    }
+
+    func recordDiagnosticRejection() {
+        lock.lock()
+        incrementSaturating(&rejectedDiagnostics)
+        lock.unlock()
+    }
+
+    func recordCancelled() {
+        lock.lock()
+        capabilityStatus = .cancelled
+        lock.unlock()
+    }
+
+    func snapshot(
+        lifecycleStatus: HostAgentMediaPipelineLifecycleStatus,
+        routeOwner: HostMediaPipelineRouteOwnerSnapshot
+    ) -> HostAgentMediaPipelineSnapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        return HostAgentMediaPipelineSnapshot(
+            lifecycleStatus: lifecycleStatus,
+            capabilityStatus: capabilityStatus,
+            capabilityFailures: capabilityFailures,
+            pipelineStartFailures: pipelineStartFailures,
+            pipelineRuntimeFailures: pipelineRuntimeFailures,
+            rejectedControls: rejectedControls,
+            acceptedMediaDiagnostics: acceptedMediaDiagnostics,
+            acceptedTelemetryUpdates: acceptedTelemetryUpdates,
+            rejectedDiagnostics: rejectedDiagnostics,
+            lastMediaDiagnosticKind: lastMediaDiagnosticKind,
+            lastMediaDiagnosticRoute: lastMediaDiagnosticRoute,
+            routeOwner: routeOwner
+        )
     }
 
     private func incrementSaturating(_ value: inout UInt64) {

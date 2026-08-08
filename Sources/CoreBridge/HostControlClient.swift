@@ -1081,7 +1081,9 @@ public extension HostCoreEvent {
         else { return nil }
         func uint64(_ key: String) -> UInt64? {
             guard let number = payload[key] as? NSNumber,
+                  CFGetTypeID(number) != CFBooleanGetTypeID(),
                   number.int64Value >= 0,
+                  number.doubleValue.isFinite,
                   number.doubleValue.rounded(.towardZero) == number.doubleValue
             else { return nil }
             return number.uint64Value
@@ -1131,7 +1133,9 @@ public extension HostCoreEvent {
         else { return nil }
         func uint64(_ key: String) -> UInt64? {
             guard let number = payload[key] as? NSNumber,
+                  CFGetTypeID(number) != CFBooleanGetTypeID(),
                   number.int64Value >= 0,
+                  number.doubleValue.isFinite,
                   number.doubleValue.rounded(.towardZero) == number.doubleValue
             else { return nil }
             return number.uint64Value
@@ -1168,6 +1172,7 @@ public extension HostCoreEvent {
         else { return nil }
         func uint64(_ key: String) -> UInt64? {
             guard let number = payload[key] as? NSNumber,
+                  CFGetTypeID(number) != CFBooleanGetTypeID(),
                   number.int64Value >= 0,
                   number.doubleValue.isFinite,
                   number.doubleValue.rounded(.towardZero) == number.doubleValue
@@ -1230,6 +1235,7 @@ public extension HostCoreEvent {
         else { return nil }
         func uint64(_ key: String) -> UInt64? {
             guard let number = payload[key] as? NSNumber,
+                  CFGetTypeID(number) != CFBooleanGetTypeID(),
                   number.int64Value >= 0,
                   number.doubleValue.isFinite,
                   number.doubleValue.rounded(.towardZero) == number.doubleValue
@@ -1290,6 +1296,7 @@ public extension HostCoreEvent {
         else { return nil }
         func uint64(_ key: String) -> UInt64? {
             guard let number = payload[key] as? NSNumber,
+                  CFGetTypeID(number) != CFBooleanGetTypeID(),
                   number.int64Value >= 0,
                   number.doubleValue.isFinite,
                   number.doubleValue.rounded(.towardZero) == number.doubleValue
