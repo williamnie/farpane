@@ -1566,6 +1566,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2b SMAppService status adapter 已完成自动实现**。package-scoped 只读 adapter 按本机 macOS SDK 的 macOS 13 合同精确映射 notRegistered/enabled/requiresApproval/notFound，用户拒绝或撤销 consent 保持 requiresApproval，notFound 与未来 `@unknown default` 都 fail closed 为 serviceUnavailable。adapter 只接收已取得的 status，不接受 plist/path/service 注入，也不调用 agent/register/unregister/open settings；enabled 仍只是 H4.2a 的一份证据，不能单独 ready。本步不读取真实 service、不创建 plist/修改 bundle、不定义 XPC schema、不启动 Core；不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-smappservice-status-adapter.md`。
 
+> 更新（2026-08-08）：**H4.2c SMAppService read-only observer 已完成自动实现**。package-scoped 产品 observer 以唯一固定 `io.rustdesknative.viewer.host-agent.plist` 定位调用 App 的 `Contents/Library/LaunchAgents` service，只执行 `SMAppService.agent(plistName:).status` 并交给 H4.2b；它不接受参数/环境/URL/Bundle path override，也不具备 register/unregister/open settings 能力。动态测试对不含该 plist 的 SwiftPM test bundle 做真实只读 observation，结果 fail closed 为 serviceUnavailable，未创建文件或系统注册项。固定名称本步只冻结定位，尚未创建/打包 plist 或定义 launchd keys/升级语义；registration 仍不能越过 handshake/snapshot/Rendezvous readiness。本步不定义 XPC schema、不启动 Core；不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-smappservice-readonly-observer.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
