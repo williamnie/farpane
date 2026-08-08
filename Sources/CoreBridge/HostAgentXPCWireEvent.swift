@@ -310,10 +310,14 @@ package enum HostAgentXPCWireEventContract {
     }
 
     fileprivate static func project(
-        _ record: HostAgentEventRecord
+        _ record: HostAgentEventRecord,
+        expectedHostInstanceID: String
     ) throws -> EventProjection {
         guard let envelope = try? StrictCoreEventEnvelope(record: record)
         else { return .requiresSnapshot }
+        guard record.event.hostInstanceId == expectedHostInstanceID else {
+            return .requiresSnapshot
+        }
         if stateInvalidatingEventTypes.contains(envelope.eventType) {
             return .event(try HostAgentXPCWireEvent(
                 eventID: record.sequence,
@@ -656,7 +660,10 @@ package struct HostAgentXPCWireEventCursorResponse: Equatable, Sendable {
             }
             var events: [HostAgentXPCWireEvent] = []
             for record in records {
-                switch try HostAgentXPCWireEventContract.project(record) {
+                switch try HostAgentXPCWireEventContract.project(
+                    record,
+                    expectedHostInstanceID: identity.hostInstanceID
+                ) {
                 case .suppressed:
                     continue
                 case .requiresSnapshot:

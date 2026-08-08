@@ -274,6 +274,9 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(processSource.contains(
             "eventState.consume(event) { event, sequence in"
         ))
+        XCTAssertTrue(processSource.contains(
+            "HostAgentProcessStartup.prepare(\n                    eventState: eventState"
+        ))
 
         let appURL = repositoryRoot
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")

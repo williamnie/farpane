@@ -7,7 +7,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         let listener = NSXPCListener.anonymous()
         let authority = try makeAuthority(ready: false)
         let recorder = HandshakeConnectionRecorder()
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: listener,
             authority: authority,
             recorder: recorder
@@ -39,16 +39,18 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         let authority = try makeAuthority(ready: true)
         let recorder = HandshakeConnectionRecorder()
         let snapshotState = HostAgentSnapshotState()
+        let eventState = try makeEventState(count: 7)
         _ = snapshotState.publish(
             try coreSnapshot(),
             eventSequence: 7,
             expectedHostInstanceID: "host-a"
         )
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: listener,
             authority: authority,
             recorder: recorder,
-            snapshotState: snapshotState
+            snapshotState: snapshotState,
+            eventState: eventState
         )
 
         XCTAssertTrue(shell.listener(
@@ -59,7 +61,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         XCTAssertEqual(recorder.resumeCount, 1)
         XCTAssertEqual(
             recorder.interfaceProtocolName,
-            "RDNHostAgentXPCSnapshotService"
+            "RDNHostAgentXPCEventService"
         )
         XCTAssertNil(try recorder.performValidSnapshot())
         let response = try recorder.performValidHandshake()
@@ -70,6 +72,10 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         XCTAssertEqual(snapshot.lastEventID, 7)
         XCTAssertEqual(snapshot.snapshot.hostState, "ready")
         XCTAssertEqual(
+            try recorder.performValidEvents(afterEventID: 7)?.outcome,
+            .upToDate
+        )
+        XCTAssertEqual(
             shell.snapshot().activeHandshakeConnectionCount,
             1
         )
@@ -79,7 +85,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         let listener = NSXPCListener.anonymous()
         let authority = try makeAuthority(ready: true)
         let recorder = HandshakeConnectionRecorder()
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: listener,
             authority: authority,
             recorder: recorder
@@ -101,7 +107,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         let listener = NSXPCListener.anonymous()
         let authority = try makeAuthority(ready: true)
         let recorder = HandshakeConnectionRecorder()
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: listener,
             authority: authority,
             recorder: recorder
@@ -128,7 +134,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         let listener = NSXPCListener.anonymous()
         let authority = try makeAuthority(ready: true)
         let recorder = HandshakeConnectionRecorder()
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: listener,
             authority: authority,
             recorder: recorder
@@ -167,7 +173,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         let listener = NSXPCListener.anonymous()
         let authority = try makeAuthority(ready: false)
         let recorder = HandshakeConnectionRecorder()
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: listener,
             authority: authority,
             recorder: recorder
@@ -202,6 +208,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
             listener: listener,
             identityAuthority: authority,
             snapshotState: HostAgentSnapshotState(),
+            eventState: try HostAgentEventState(),
             assessConnection: { _ in .eligible },
             nowUnixMilliseconds: { 20 },
             monotonicMilliseconds: { 20 },
@@ -257,12 +264,14 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         listener: NSXPCListener,
         authority: HostAgentXPCProcessIdentityAuthority,
         recorder: HandshakeConnectionRecorder,
-        snapshotState: HostAgentSnapshotState = HostAgentSnapshotState()
-    ) -> HostAgentXPCListenerAdmissionShell {
-        HostAgentXPCListenerAdmissionShell(
+        snapshotState: HostAgentSnapshotState = HostAgentSnapshotState(),
+        eventState: HostAgentEventState? = nil
+    ) throws -> HostAgentXPCListenerAdmissionShell {
+        try HostAgentXPCListenerAdmissionShell(
             listener: listener,
             identityAuthority: authority,
             snapshotState: snapshotState,
+            eventState: eventState ?? HostAgentEventState(),
             assessConnection: { _ in .eligible },
             nowUnixMilliseconds: { 20 },
             monotonicMilliseconds: { 20 },
@@ -272,6 +281,27 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
             activateListener: recorder.activateListener,
             invalidateListener: recorder.invalidateListener
         )
+    }
+
+    private func makeEventState(count: Int) throws -> HostAgentEventState {
+        let state = try HostAgentEventState(
+            capacity: max(2, count),
+            maximumEventBytes: 4_096
+        )
+        for eventID in 1...count {
+            let event = try XCTUnwrap(HostCoreEvent(rawJSON:
+                JSONSerialization.data(withJSONObject: [
+                    "schemaVersion": 1,
+                    "eventId": eventID,
+                    "eventType": "snapshotChanged",
+                    "hostInstanceId": "host-a",
+                    "sentAt": 1_700_000_000_000 as UInt64,
+                    "payload": [:],
+                ])
+            ))
+            _ = state.ingest(event)
+        }
+        return state
     }
 
     private func coreSnapshot() throws -> HostCoreSnapshot {
@@ -409,6 +439,25 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
             for: try request.encoded()
         ) else { return nil }
         return try HostAgentXPCWireSnapshotResponse.decode(response)
+    }
+
+    func performValidEvents(
+        afterEventID: UInt64
+    ) throws -> HostAgentXPCWireEventCursorResponse? {
+        let handler = try XCTUnwrap(locked { configuredHandler })
+        let request = try HostAgentXPCWireEventCursorRequest(
+            requestID: "841733af-919b-4dc2-84bb-7134d0951dc9",
+            wireVersion: 1,
+            hostInstanceID: "host-a",
+            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
+            afterEventID: afterEventID,
+            maximumEventCount: 64,
+            sentAtUnixMilliseconds: 12
+        )
+        guard let response = handler.eventResponse(
+            for: try request.encoded()
+        ) else { return nil }
+        return try HostAgentXPCWireEventCursorResponse.decode(response)
     }
 
     private func locked<T>(_ body: () -> T) -> T {

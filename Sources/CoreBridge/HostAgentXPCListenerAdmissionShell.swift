@@ -77,6 +77,7 @@ package final class HostAgentXPCListenerAdmissionShell:
     private let listener: NSXPCListener
     private let identityAuthority: HostAgentXPCProcessIdentityAuthority
     private let snapshotState: HostAgentSnapshotState
+    private let eventState: HostAgentEventState
     private let assessConnection: ConnectionAssessor
     private let nowUnixMilliseconds: HostAgentXPCHandshakeHandler.Clock
     private let monotonicMilliseconds:
@@ -97,7 +98,8 @@ package final class HostAgentXPCListenerAdmissionShell:
 
     package static func makeProductShell(
         identityAuthority: HostAgentXPCProcessIdentityAuthority,
-        snapshotState: HostAgentSnapshotState
+        snapshotState: HostAgentSnapshotState,
+        eventState: HostAgentEventState
     )
         -> HostAgentXPCListenerAdmissionShell
     {
@@ -106,6 +108,7 @@ package final class HostAgentXPCListenerAdmissionShell:
             listener: listener,
             identityAuthority: identityAuthority,
             snapshotState: snapshotState,
+            eventState: eventState,
             assessConnection: HostAgentXPCPeerAdmissionGate.assess,
             nowUnixMilliseconds: productClock,
             monotonicMilliseconds: productMonotonicClock,
@@ -121,6 +124,7 @@ package final class HostAgentXPCListenerAdmissionShell:
         listener: NSXPCListener,
         identityAuthority: HostAgentXPCProcessIdentityAuthority,
         snapshotState: HostAgentSnapshotState,
+        eventState: HostAgentEventState,
         assessConnection: @escaping ConnectionAssessor,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
         monotonicMilliseconds: @escaping
@@ -134,6 +138,7 @@ package final class HostAgentXPCListenerAdmissionShell:
         self.listener = listener
         self.identityAuthority = identityAuthority
         self.snapshotState = snapshotState
+        self.eventState = eventState
         self.assessConnection = assessConnection
         self.nowUnixMilliseconds = nowUnixMilliseconds
         self.monotonicMilliseconds = monotonicMilliseconds
@@ -280,6 +285,7 @@ package final class HostAgentXPCListenerAdmissionShell:
         let handler = HostAgentXPCSnapshotSessionHandler(
             identity: identity,
             snapshotState: snapshotState,
+            eventState: eventState,
             nowUnixMilliseconds: nowUnixMilliseconds,
             monotonicMilliseconds: monotonicMilliseconds
         )

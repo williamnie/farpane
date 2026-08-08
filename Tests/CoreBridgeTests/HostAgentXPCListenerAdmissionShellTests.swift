@@ -6,7 +6,8 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
     func testProductShellStartsConfiguredButInactiveAndSanitized() throws {
         let shell = HostAgentXPCListenerAdmissionShell.makeProductShell(
             identityAuthority: try makeAuthority(),
-            snapshotState: HostAgentSnapshotState()
+            snapshotState: HostAgentSnapshotState(),
+            eventState: try HostAgentEventState()
         )
 
         XCTAssertEqual(
@@ -35,7 +36,7 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         ]
         let listener = NSXPCListener.anonymous()
         let recorder = XPCAdmissionStatusRecorder(statuses: statuses)
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: listener,
             identityAuthority: try makeAuthority(),
             assessConnection: recorder.assess
@@ -66,7 +67,7 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
 
     func testEligiblePeerStillFailsClosedUntilIdentityIsReady() throws {
         let listener = NSXPCListener.anonymous()
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: listener,
             identityAuthority: try makeAuthority(),
             assessConnection: { _ in .eligible }
@@ -94,7 +95,7 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
     func testForeignListenerIsRejectedBeforeAssessingConnection() throws {
         let ownedListener = NSXPCListener.anonymous()
         var assessmentCount = 0
-        let shell = makeShell(
+        let shell = try makeShell(
             listener: ownedListener,
             identityAuthority: try makeAuthority(),
             assessConnection: { _ in
@@ -170,11 +171,12 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         identityAuthority: HostAgentXPCProcessIdentityAuthority,
         assessConnection: @escaping HostAgentXPCListenerAdmissionShell
             .ConnectionAssessor
-    ) -> HostAgentXPCListenerAdmissionShell {
-        HostAgentXPCListenerAdmissionShell(
+    ) throws -> HostAgentXPCListenerAdmissionShell {
+        try HostAgentXPCListenerAdmissionShell(
             listener: listener,
             identityAuthority: identityAuthority,
             snapshotState: HostAgentSnapshotState(),
+            eventState: HostAgentEventState(),
             assessConnection: assessConnection,
             nowUnixMilliseconds: { 20 },
             monotonicMilliseconds: { 20 },

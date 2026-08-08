@@ -263,6 +263,29 @@ final class HostAgentXPCWireEventTests: XCTestCase {
         }
     }
 
+    func testForeignJournalHostRequiresSnapshotInsteadOfRebindingWireIdentity()
+        throws
+    {
+        let state = try HostAgentEventState(capacity: 2, maximumEventBytes: 4_096)
+        _ = state.ingest(try event(
+            id: 1,
+            type: "snapshotChanged",
+            payload: [:],
+            hostInstanceID: "host-foreign"
+        ))
+        let request = try cursorRequest(maximumEventCount: 2)
+        let response = try HostAgentXPCWireEventCursorResponse.make(
+            for: request,
+            identity: try identity(),
+            replay: state.replay(afterSequence: 0, limit: 2),
+            sentAtUnixMilliseconds: 20
+        )
+
+        XCTAssertEqual(response.outcome, .resnapshotRequired)
+        XCTAssertEqual(response.hostInstanceID, hostID)
+        XCTAssertEqual(response.events, [])
+    }
+
     func testResponseDecodeRejectsContradictoryShapeAndCorrelation() throws {
         let request = try cursorRequest()
         let state = try HostAgentEventState(capacity: 2, maximumEventBytes: 4_096)
@@ -379,13 +402,14 @@ final class HostAgentXPCWireEventTests: XCTestCase {
         id: UInt64,
         type: String,
         payload: [String: Any],
-        additionalTopLevel: [String: Any] = [:]
+        additionalTopLevel: [String: Any] = [:],
+        hostInstanceID: String? = nil
     ) throws -> HostCoreEvent {
         var envelope: [String: Any] = [
             "schemaVersion": 1,
             "eventId": id,
             "eventType": type,
-            "hostInstanceId": hostID,
+            "hostInstanceId": hostInstanceID ?? hostID,
             "sentAt": 1_700_000_000_000 as UInt64,
             "payload": payload,
         ]
