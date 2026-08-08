@@ -90,6 +90,16 @@ public enum HostControlError: Error, CustomStringConvertible {
         }
     }
 
+    public var sessionCommandFailure: HostSessionCommandFailure? {
+        guard case .command(let code) = self else { return nil }
+        switch code {
+        case Int32(RDN_HOST_ERR_SESSION_NOT_FOUND): return .notFound
+        case Int32(RDN_HOST_ERR_SESSION_STALE): return .staleConnection
+        case Int32(RDN_HOST_ERR_SESSION_COMMAND_UNAVAILABLE): return .unavailable
+        default: return nil
+        }
+    }
+
     /// Classifies only stable Host Media submit rejections whose production
     /// meaning is known. Internal or future codes stay nil so telemetry cannot
     /// turn an unknown failure into a misleading zero/known drop reason.
@@ -143,6 +153,26 @@ public enum HostApprovalDecision: Sendable {
         switch self {
         case .approve: return "approveConnection"
         case .reject: return "rejectConnection"
+        }
+    }
+}
+
+public enum HostSessionCommandFailure: Equatable, Sendable {
+    case notFound
+    case staleConnection
+    case unavailable
+}
+
+public enum HostSessionRevocableCapability: Sendable {
+    case keyboardAndMouse
+    case clipboard
+    case systemAudio
+
+    package var commandName: String {
+        switch self {
+        case .keyboardAndMouse: return "disableInputForActiveSession"
+        case .clipboard: return "disableClipboardForActiveSession"
+        case .systemAudio: return "disableAudioForActiveSession"
         }
     }
 }
@@ -1365,6 +1395,34 @@ public final class HostControlClient: @unchecked Sendable {
     ) throws {
         try command(
             decision.commandName,
+            commandId: commandId,
+            payload: ["connectionId": connectionID]
+        )
+    }
+
+    /// Revokes one capability only for the currently active, exact session.
+    /// The Rust session broker validates identity and remains authoritative for
+    /// the capability snapshot emitted after the connection applies the change.
+    public func disableActiveSessionCapability(
+        _ capability: HostSessionRevocableCapability,
+        connectionID: String,
+        commandId: String = UUID().uuidString
+    ) throws {
+        try command(
+            capability.commandName,
+            commandId: commandId,
+            payload: ["connectionId": connectionID]
+        )
+    }
+
+    /// Requests ordered connection teardown for the exact active session.
+    /// Repeating the request is idempotent while that session is still active.
+    public func disconnectSession(
+        connectionID: String,
+        commandId: String = UUID().uuidString
+    ) throws {
+        try command(
+            "disconnectSession",
             commandId: commandId,
             payload: ["connectionId": connectionID]
         )

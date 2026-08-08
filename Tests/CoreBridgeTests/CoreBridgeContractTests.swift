@@ -202,6 +202,26 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertNil(HostControlError.snapshot(-21).approvalDecisionFailure)
     }
 
+    func testActiveSessionCommandsAreTypedAndErrorsAreClassified() {
+        XCTAssertEqual(
+            HostSessionRevocableCapability.keyboardAndMouse.commandName,
+            "disableInputForActiveSession"
+        )
+        XCTAssertEqual(
+            HostSessionRevocableCapability.clipboard.commandName,
+            "disableClipboardForActiveSession"
+        )
+        XCTAssertEqual(
+            HostSessionRevocableCapability.systemAudio.commandName,
+            "disableAudioForActiveSession"
+        )
+        XCTAssertEqual(HostControlError.command(-24).sessionCommandFailure, .notFound)
+        XCTAssertEqual(HostControlError.command(-25).sessionCommandFailure, .staleConnection)
+        XCTAssertEqual(HostControlError.command(-26).sessionCommandFailure, .unavailable)
+        XCTAssertNil(HostControlError.command(-5).sessionCommandFailure)
+        XCTAssertNil(HostControlError.snapshot(-24).sessionCommandFailure)
+    }
+
     func testHostSnapshotRecoversPendingApprovalAndActiveSessionAndFailsClosed() throws {
         let pending: [String: Any] = [
             "connectionId": "host-instance:7",

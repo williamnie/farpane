@@ -31,7 +31,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 5;
+const HOST_ABI_VERSION: u32 = 6;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 4;
@@ -84,6 +84,9 @@ const RDN_HOST_ERR_STORAGE: i32 = -20;
 const RDN_HOST_ERR_APPROVAL_NOT_FOUND: i32 = -21;
 const RDN_HOST_ERR_APPROVAL_FINALIZED: i32 = -22;
 const RDN_HOST_ERR_APPROVAL_EXPIRED: i32 = -23;
+const RDN_HOST_ERR_SESSION_NOT_FOUND: i32 = -24;
+const RDN_HOST_ERR_SESSION_STALE: i32 = -25;
+const RDN_HOST_ERR_SESSION_COMMAND_UNAVAILABLE: i32 = -26;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -644,6 +647,7 @@ impl NativeSessionSnapshot {
 struct NativeActiveSession {
     snapshot: NativeSessionSnapshot,
     command_sender: tokio::sync::mpsc::UnboundedSender<crate::ipc::Data>,
+    disconnect_requested: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -652,6 +656,23 @@ enum NativeSessionStartResult {
     Existing,
     Busy,
     Invalid,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeSessionCommand {
+    DisableInput,
+    DisableClipboard,
+    DisableAudio,
+    Disconnect,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeSessionCommandResult {
+    Queued,
+    NoChange,
+    NotFound,
+    Stale,
+    Unavailable,
 }
 
 #[derive(Default)]
@@ -696,6 +717,62 @@ impl NativeSessionBroker {
         }
         active.snapshot.active_capabilities = active_capabilities;
         Some(active.snapshot.clone())
+    }
+
+    fn command(
+        &mut self,
+        connection_id: &str,
+        command: NativeSessionCommand,
+    ) -> NativeSessionCommandResult {
+        let Some(active) = self.active.as_mut() else {
+            return NativeSessionCommandResult::NotFound;
+        };
+        if active.snapshot.connection_id != connection_id {
+            return NativeSessionCommandResult::Stale;
+        }
+
+        let data = match command {
+            NativeSessionCommand::DisableInput => {
+                if !active.snapshot.active_capabilities.control_keyboard_mouse {
+                    return NativeSessionCommandResult::NoChange;
+                }
+                crate::ipc::Data::SwitchPermission {
+                    name: "keyboard".to_owned(),
+                    enabled: false,
+                }
+            }
+            NativeSessionCommand::DisableClipboard => {
+                if !active.snapshot.active_capabilities.clipboard {
+                    return NativeSessionCommandResult::NoChange;
+                }
+                crate::ipc::Data::SwitchPermission {
+                    name: "clipboard".to_owned(),
+                    enabled: false,
+                }
+            }
+            NativeSessionCommand::DisableAudio => {
+                if !active.snapshot.active_capabilities.system_audio {
+                    return NativeSessionCommandResult::NoChange;
+                }
+                crate::ipc::Data::SwitchPermission {
+                    name: "audio".to_owned(),
+                    enabled: false,
+                }
+            }
+            NativeSessionCommand::Disconnect => {
+                if active.disconnect_requested {
+                    return NativeSessionCommandResult::NoChange;
+                }
+                crate::ipc::Data::Close
+            }
+        };
+        if active.command_sender.send(data).is_err() {
+            return NativeSessionCommandResult::Unavailable;
+        }
+        if command == NativeSessionCommand::Disconnect {
+            active.disconnect_requested = true;
+        }
+        NativeSessionCommandResult::Queued
     }
 
     fn end(&mut self, core_connection_id: i32) -> Option<NativeActiveSession> {
@@ -1195,6 +1272,7 @@ pub(crate) fn native_host_begin_session(
     let result = SESSION_BROKER.lock().unwrap().begin(NativeActiveSession {
         snapshot: snapshot.clone(),
         command_sender,
+        disconnect_requested: false,
     });
     match result {
         NativeSessionStartResult::Accepted => {
@@ -2347,6 +2425,27 @@ fn approval_connection_id(envelope: &Value) -> Result<&str, i32> {
     }
 }
 
+fn session_connection_id(envelope: &Value) -> Result<&str, i32> {
+    let Some(object) = envelope.as_object() else {
+        return Err(RDN_HOST_ERR_VALIDATION);
+    };
+    if object.len() != 3
+        || !object.contains_key("commandId")
+        || !object.contains_key("name")
+        || !object.contains_key("connectionId")
+    {
+        return Err(RDN_HOST_ERR_VALIDATION);
+    }
+    match object.get("connectionId").and_then(Value::as_str) {
+        Some(value)
+            if !value.is_empty() && value.len() <= 128 && !value.chars().any(char::is_control) =>
+        {
+            Ok(value)
+        }
+        _ => Err(RDN_HOST_ERR_VALIDATION),
+    }
+}
+
 fn handle_approval_command(
     host: &mut RdnHost,
     command_id: &str,
@@ -2385,6 +2484,65 @@ fn handle_approval_command(
         NativeApprovalResolveResult::NotFound => {
             host.emit_command_result(command_id, "rejected", "approval-not-found");
             RDN_HOST_ERR_APPROVAL_NOT_FOUND
+        }
+    }
+}
+
+fn handle_session_command(
+    host: &mut RdnHost,
+    command_id: &str,
+    command: NativeSessionCommand,
+    envelope: &Value,
+) -> i32 {
+    let connection_id = match session_connection_id(envelope) {
+        Ok(value) => value,
+        Err(code) => {
+            host.emit_command_result(command_id, "rejected", "session-command-invalid");
+            return code;
+        }
+    };
+    let expected_prefix = format!("{}:", host.instance_id);
+    if !connection_id.starts_with(&expected_prefix) {
+        host.emit_command_result(command_id, "rejected", "session-not-found");
+        return RDN_HOST_ERR_SESSION_NOT_FOUND;
+    }
+
+    match SESSION_BROKER
+        .lock()
+        .unwrap()
+        .command(connection_id, command)
+    {
+        NativeSessionCommandResult::Queued => {
+            let detail = match command {
+                NativeSessionCommand::DisableInput => "session-input-disable-queued",
+                NativeSessionCommand::DisableClipboard => "session-clipboard-disable-queued",
+                NativeSessionCommand::DisableAudio => "session-audio-disable-queued",
+                NativeSessionCommand::Disconnect => "session-disconnect-queued",
+            };
+            host.emit_command_result(command_id, "ok", detail);
+            RDN_HOST_OK
+        }
+        NativeSessionCommandResult::NoChange => {
+            let detail = match command {
+                NativeSessionCommand::DisableInput => "session-input-already-disabled",
+                NativeSessionCommand::DisableClipboard => "session-clipboard-already-disabled",
+                NativeSessionCommand::DisableAudio => "session-audio-already-disabled",
+                NativeSessionCommand::Disconnect => "session-disconnect-already-requested",
+            };
+            host.emit_command_result(command_id, "ok", detail);
+            RDN_HOST_OK
+        }
+        NativeSessionCommandResult::NotFound => {
+            host.emit_command_result(command_id, "rejected", "session-not-found");
+            RDN_HOST_ERR_SESSION_NOT_FOUND
+        }
+        NativeSessionCommandResult::Stale => {
+            host.emit_command_result(command_id, "rejected", "session-stale");
+            RDN_HOST_ERR_SESSION_STALE
+        }
+        NativeSessionCommandResult::Unavailable => {
+            host.emit_command_result(command_id, "error", "session-command-unavailable");
+            RDN_HOST_ERR_SESSION_COMMAND_UNAVAILABLE
         }
     }
 }
@@ -2438,6 +2596,27 @@ fn handle_command(host: &mut RdnHost, command_id: &str, name: &str, envelope: &V
         }
         "rejectConnection" => {
             handle_approval_command(host, command_id, NativeApprovalDecision::Reject, envelope)
+        }
+        "disableInputForActiveSession" => handle_session_command(
+            host,
+            command_id,
+            NativeSessionCommand::DisableInput,
+            envelope,
+        ),
+        "disableClipboardForActiveSession" => handle_session_command(
+            host,
+            command_id,
+            NativeSessionCommand::DisableClipboard,
+            envelope,
+        ),
+        "disableAudioForActiveSession" => handle_session_command(
+            host,
+            command_id,
+            NativeSessionCommand::DisableAudio,
+            envelope,
+        ),
+        "disconnectSession" => {
+            handle_session_command(host, command_id, NativeSessionCommand::Disconnect, envelope)
         }
         _ => {
             host.emit_command_result(command_id, "unknownCommand", name);
@@ -3024,6 +3203,7 @@ mod tests {
                 active_capabilities,
             },
             command_sender,
+            disconnect_requested: false,
         }
     }
 
@@ -3180,6 +3360,201 @@ mod tests {
         assert!(encoded.contains("RemoteMac"));
         assert!(!encoded.contains("Remote\\nMac"));
         assert!(encoded.contains("hostStopped"));
+    }
+
+    #[test]
+    fn native_active_session_commands_are_exact_scoped_and_fail_closed() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let events = Mutex::new(Vec::new());
+        let mut host = ready_test_host("session-command-host");
+        host.callbacks = RdnHostCallbacks {
+            abi_version: HOST_ABI_VERSION,
+            on_event: Some(collect_test_event),
+            context: &events as *const Mutex<Vec<Value>> as *mut c_void,
+        };
+        bind_media_host(&host);
+        let _guard = BoundMediaTestGuard;
+
+        let initial = NativeSessionCapabilities::new(true, true, true);
+        let (command_sender, mut command_receiver) = tokio::sync::mpsc::unbounded_channel();
+        assert!(native_host_begin_session(
+            17,
+            "remote-id".to_owned(),
+            "Remote Mac".to_owned(),
+            "macOS".to_owned(),
+            initial,
+            initial,
+            command_sender,
+        ));
+
+        let malformed = json!({
+            "commandId": "session-malformed",
+            "name": "disableInputForActiveSession",
+            "connectionId": "session-command-host:17",
+            "ignored": true,
+        });
+        assert_eq!(
+            handle_command(
+                &mut host,
+                "session-malformed",
+                "disableInputForActiveSession",
+                &malformed,
+            ),
+            RDN_HOST_ERR_VALIDATION
+        );
+        assert!(command_receiver.try_recv().is_err());
+
+        for (command_id, name, expected) in [
+            (
+                "session-input",
+                "disableInputForActiveSession",
+                crate::ipc::Data::SwitchPermission {
+                    name: "keyboard".to_owned(),
+                    enabled: false,
+                },
+            ),
+            (
+                "session-clipboard",
+                "disableClipboardForActiveSession",
+                crate::ipc::Data::SwitchPermission {
+                    name: "clipboard".to_owned(),
+                    enabled: false,
+                },
+            ),
+            (
+                "session-audio",
+                "disableAudioForActiveSession",
+                crate::ipc::Data::SwitchPermission {
+                    name: "audio".to_owned(),
+                    enabled: false,
+                },
+            ),
+        ] {
+            let envelope = json!({
+                "commandId": command_id,
+                "name": name,
+                "connectionId": "session-command-host:17",
+            });
+            assert_eq!(
+                handle_command(&mut host, command_id, name, &envelope),
+                RDN_HOST_OK
+            );
+            match (command_receiver.try_recv().unwrap(), expected) {
+                (
+                    crate::ipc::Data::SwitchPermission { name, enabled },
+                    crate::ipc::Data::SwitchPermission {
+                        name: expected_name,
+                        enabled: expected_enabled,
+                    },
+                ) => {
+                    assert_eq!(name, expected_name);
+                    assert_eq!(enabled, expected_enabled);
+                }
+                _ => panic!("unexpected session permission command"),
+            }
+        }
+
+        native_host_update_session_capabilities(
+            17,
+            NativeSessionCapabilities::new(false, false, false),
+        );
+        let already_disabled = json!({
+            "commandId": "session-input-already-disabled",
+            "name": "disableInputForActiveSession",
+            "connectionId": "session-command-host:17",
+        });
+        assert_eq!(
+            handle_command(
+                &mut host,
+                "session-input-already-disabled",
+                "disableInputForActiveSession",
+                &already_disabled,
+            ),
+            RDN_HOST_OK
+        );
+        assert!(command_receiver.try_recv().is_err());
+
+        let stale = json!({
+            "commandId": "session-stale",
+            "name": "disconnectSession",
+            "connectionId": "session-command-host:18",
+        });
+        assert_eq!(
+            handle_command(&mut host, "session-stale", "disconnectSession", &stale),
+            RDN_HOST_ERR_SESSION_STALE
+        );
+        let foreign = json!({
+            "commandId": "session-foreign",
+            "name": "disconnectSession",
+            "connectionId": "other-host:17",
+        });
+        assert_eq!(
+            handle_command(&mut host, "session-foreign", "disconnectSession", &foreign),
+            RDN_HOST_ERR_SESSION_NOT_FOUND
+        );
+
+        let disconnect = json!({
+            "commandId": "session-disconnect",
+            "name": "disconnectSession",
+            "connectionId": "session-command-host:17",
+        });
+        assert_eq!(
+            handle_command(
+                &mut host,
+                "session-disconnect",
+                "disconnectSession",
+                &disconnect,
+            ),
+            RDN_HOST_OK
+        );
+        assert!(matches!(
+            command_receiver.try_recv(),
+            Ok(crate::ipc::Data::Close)
+        ));
+        assert_eq!(
+            handle_command(
+                &mut host,
+                "session-disconnect-again",
+                "disconnectSession",
+                &disconnect,
+            ),
+            RDN_HOST_OK
+        );
+        assert!(command_receiver.try_recv().is_err());
+
+        native_host_end_session(17);
+        assert_eq!(
+            handle_command(&mut host, "session-ended", "disconnectSession", &disconnect,),
+            RDN_HOST_ERR_SESSION_NOT_FOUND
+        );
+
+        let (dead_sender, dead_receiver) = tokio::sync::mpsc::unbounded_channel();
+        drop(dead_receiver);
+        assert!(native_host_begin_session(
+            19,
+            "remote-id".to_owned(),
+            "Remote Mac".to_owned(),
+            "macOS".to_owned(),
+            initial,
+            initial,
+            dead_sender,
+        ));
+        let unavailable = json!({
+            "commandId": "session-unavailable",
+            "name": "disableInputForActiveSession",
+            "connectionId": "session-command-host:19",
+        });
+        assert_eq!(
+            handle_command(
+                &mut host,
+                "session-unavailable",
+                "disableInputForActiveSession",
+                &unavailable,
+            ),
+            RDN_HOST_ERR_SESSION_COMMAND_UNAVAILABLE
+        );
+        native_host_end_session(19);
     }
 
     #[test]
