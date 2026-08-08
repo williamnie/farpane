@@ -155,7 +155,7 @@ final class HostAgentLegacyHostProductEvidencePolicyTests: XCTestCase {
             appSource.components(
                 separatedBy: "prepareLegacyHostForBackgroundRegistration()"
             ).count - 1,
-            2
+            3
         )
         XCTAssertFalse(homeSource.contains(
             "prepareLegacyHostForBackgroundRegistration"
