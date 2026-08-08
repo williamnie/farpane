@@ -7,6 +7,7 @@ package struct HostAgentXPCListenerAdmissionSnapshot: Equatable, Sendable {
     package let acceptedHandshakeConnectionCount: UInt64
     package let activeHandshakeConnectionCount: UInt64
     package let closedHandshakeConnectionCount: UInt64
+    package let listenerActivated: Bool
     package let cancelled: Bool
 
     package init(
@@ -16,6 +17,7 @@ package struct HostAgentXPCListenerAdmissionSnapshot: Equatable, Sendable {
         acceptedHandshakeConnectionCount: UInt64,
         activeHandshakeConnectionCount: UInt64,
         closedHandshakeConnectionCount: UInt64,
+        listenerActivated: Bool,
         cancelled: Bool
     ) {
         self.connectionAttemptCount = connectionAttemptCount
@@ -27,6 +29,7 @@ package struct HostAgentXPCListenerAdmissionSnapshot: Equatable, Sendable {
         self.activeHandshakeConnectionCount =
             activeHandshakeConnectionCount
         self.closedHandshakeConnectionCount = closedHandshakeConnectionCount
+        self.listenerActivated = listenerActivated
         self.cancelled = cancelled
     }
 }
@@ -56,13 +59,21 @@ package final class HostAgentXPCListenerAdmissionShell:
         ConnectionLifecycleHandlers
     ) -> Void
     typealias ConnectionAction = (NSXPCConnection) -> Void
+    typealias ListenerAction = (NSXPCListener) -> Void
 
     private enum ConnectionEndReason: Equatable, Sendable {
         case interrupted
         case invalidated
     }
 
-    private let lock = NSLock()
+    private enum ListenerState: Equatable, Sendable {
+        case inactive
+        case activating
+        case active
+        case cancelled
+    }
+
+    private let lock = NSCondition()
     private let listener: NSXPCListener
     private let identityAuthority: HostAgentXPCProcessIdentityAuthority
     private let assessConnection: ConnectionAssessor
@@ -70,12 +81,15 @@ package final class HostAgentXPCListenerAdmissionShell:
     private let configureConnection: ConnectionConfigurator
     private let resumeConnection: ConnectionAction
     private let invalidateConnection: ConnectionAction
+    private let activateListener: ListenerAction
+    private let invalidateListener: ListenerAction
     private var connectionAttemptCount: UInt64 = 0
     private var rejectedPeerIdentityCount: UInt64 = 0
     private var rejectedHandshakeUnavailableCount: UInt64 = 0
     private var acceptedHandshakeConnectionCount: UInt64 = 0
     private var closedHandshakeConnectionCount: UInt64 = 0
     private var activeConnections: [ObjectIdentifier: NSXPCConnection] = [:]
+    private var listenerState: ListenerState = .inactive
     private var cancelled = false
 
     package static func makeProductShell(
@@ -91,7 +105,9 @@ package final class HostAgentXPCListenerAdmissionShell:
             nowUnixMilliseconds: productClock,
             configureConnection: configureProductConnection,
             resumeConnection: { connection in connection.resume() },
-            invalidateConnection: { connection in connection.invalidate() }
+            invalidateConnection: { connection in connection.invalidate() },
+            activateListener: { listener in listener.activate() },
+            invalidateListener: { listener in listener.invalidate() }
         )
     }
 
@@ -102,7 +118,9 @@ package final class HostAgentXPCListenerAdmissionShell:
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
         configureConnection: @escaping ConnectionConfigurator,
         resumeConnection: @escaping ConnectionAction,
-        invalidateConnection: @escaping ConnectionAction
+        invalidateConnection: @escaping ConnectionAction,
+        activateListener: @escaping ListenerAction,
+        invalidateListener: @escaping ListenerAction
     ) {
         self.listener = listener
         self.identityAuthority = identityAuthority
@@ -111,6 +129,8 @@ package final class HostAgentXPCListenerAdmissionShell:
         self.configureConnection = configureConnection
         self.resumeConnection = resumeConnection
         self.invalidateConnection = invalidateConnection
+        self.activateListener = activateListener
+        self.invalidateListener = invalidateListener
         super.init()
         listener.delegate = self
         let observerInstalled = identityAuthority.installInvalidationObserver {
@@ -153,23 +173,41 @@ package final class HostAgentXPCListenerAdmissionShell:
         return true
     }
 
+    /// One-shot activation is serialized with process identity invalidation.
+    /// The fixed listener remains inactive until the identity is ready.
+    @discardableResult
+    package func activate() -> Bool {
+        identityAuthority.withReadyIdentityForAdmission { [self] _ in
+            activateWhileIdentityIsReady()
+        } == true
+    }
+
     /// Terminally rejects new admission and invalidates every accepted
     /// handshake-only connection. Safe for repeated and concurrent callers.
     package func cancel() {
         lock.lock()
+        while listenerState == .activating {
+            lock.wait()
+        }
         guard !cancelled else {
             lock.unlock()
             return
         }
         cancelled = true
+        let shouldInvalidateListener = listenerState == .active
+        listenerState = .cancelled
         let connections = Array(activeConnections.values)
         activeConnections.removeAll(keepingCapacity: false)
         addSaturating(
             UInt64(connections.count),
             to: &closedHandshakeConnectionCount
         )
+        lock.broadcast()
         lock.unlock()
 
+        if shouldInvalidateListener {
+            invalidateListener(listener)
+        }
         for connection in connections {
             invalidateConnection(connection)
         }
@@ -187,8 +225,27 @@ package final class HostAgentXPCListenerAdmissionShell:
                 acceptedHandshakeConnectionCount,
             activeHandshakeConnectionCount: UInt64(activeConnections.count),
             closedHandshakeConnectionCount: closedHandshakeConnectionCount,
+            listenerActivated: listenerState == .active,
             cancelled: cancelled
         )
+    }
+
+    private func activateWhileIdentityIsReady() -> Bool {
+        lock.lock()
+        guard !cancelled, listenerState == .inactive else {
+            lock.unlock()
+            return false
+        }
+        listenerState = .activating
+        lock.unlock()
+
+        activateListener(listener)
+
+        lock.lock()
+        listenerState = .active
+        lock.broadcast()
+        lock.unlock()
+        return true
     }
 
     private func configureAndResume(

@@ -17,6 +17,7 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
                 acceptedHandshakeConnectionCount: 0,
                 activeHandshakeConnectionCount: 0,
                 closedHandshakeConnectionCount: 0,
+                listenerActivated: false,
                 cancelled: false
             )
         )
@@ -56,6 +57,7 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
                 acceptedHandshakeConnectionCount: 0,
                 activeHandshakeConnectionCount: 0,
                 closedHandshakeConnectionCount: 0,
+                listenerActivated: false,
                 cancelled: false
             )
         )
@@ -82,6 +84,7 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
                 acceptedHandshakeConnectionCount: 0,
                 activeHandshakeConnectionCount: 0,
                 closedHandshakeConnectionCount: 0,
+                listenerActivated: false,
                 cancelled: false
             )
         )
@@ -113,12 +116,13 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
                 acceptedHandshakeConnectionCount: 0,
                 activeHandshakeConnectionCount: 0,
                 closedHandshakeConnectionCount: 0,
+                listenerActivated: false,
                 cancelled: false
             )
         )
     }
 
-    func testProductSourceOwnsHandshakeOnlySurfaceWithoutListenerActivation() throws {
+    func testProductSourceOwnsHandshakeOnlySurfaceAndExplicitListenerLifecycle() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -134,7 +138,6 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         XCTAssertTrue(source.contains(
             "HostAgentXPCPeerAdmissionGate.assess"
         ))
-        XCTAssertFalse(source.contains(".activate()"))
         XCTAssertTrue(source.contains("connection.resume()"))
         XCTAssertTrue(source.contains(
             "HostAgentXPCHandshakeInterfaceFactory.makeInterface()"
@@ -143,7 +146,8 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         XCTAssertTrue(source.contains("connection.exportedObject"))
         XCTAssertTrue(source.contains("connection.interruptionHandler"))
         XCTAssertTrue(source.contains("connection.invalidationHandler"))
-        XCTAssertFalse(source.contains("listener.activate()"))
+        XCTAssertTrue(source.contains("listener.activate()"))
+        XCTAssertTrue(source.contains("listener.invalidate()"))
         XCTAssertFalse(source.contains("listener.resume()"))
         XCTAssertFalse(source.contains("remoteObjectInterface"))
         XCTAssertFalse(source.contains("HostAgentSnapshotProjection"))
@@ -173,7 +177,9 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
             nowUnixMilliseconds: { 20 },
             configureConnection: { _, _, _, _ in },
             resumeConnection: { _ in },
-            invalidateConnection: { _ in }
+            invalidateConnection: { _ in },
+            activateListener: { _ in },
+            invalidateListener: { _ in }
         )
     }
 }

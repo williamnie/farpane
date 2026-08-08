@@ -3,18 +3,21 @@ import CoreBridge
 import Foundation
 
 /// Product assembly boundary for the future `--host-agent` process. This is
-/// deliberately not dispatched yet: authenticated control IPC and the Agent
-/// run loop remain required before replacing the fail-closed mode gate.
+/// deliberately not dispatched yet: snapshot-first/control IPC and the Agent
+/// entry remain required before replacing the fail-closed mode gate.
 final class HostAgentProcessRuntime: @unchecked Sendable {
     private let ownedRuntime: HostAgentOwnedCoreRuntime<HostAgentBootstrapContext>
     private let xpcIdentityAuthority: HostAgentXPCProcessIdentityAuthority
+    private let xpcAdmissionOwner: HostAgentXPCListenerAdmissionShell
 
     private init(
         ownedRuntime: HostAgentOwnedCoreRuntime<HostAgentBootstrapContext>,
-        xpcIdentityAuthority: HostAgentXPCProcessIdentityAuthority
+        xpcIdentityAuthority: HostAgentXPCProcessIdentityAuthority,
+        xpcAdmissionOwner: HostAgentXPCListenerAdmissionShell
     ) {
         self.ownedRuntime = ownedRuntime
         self.xpcIdentityAuthority = xpcIdentityAuthority
+        self.xpcAdmissionOwner = xpcAdmissionOwner
     }
 
     deinit {
@@ -34,6 +37,10 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                 agentBuildID: bootstrapContext.leaseRecord.agentBuildID,
                 agentBootID:
                     bootstrapContext.leaseRecord.agentBootID.uuidString.lowercased()
+            )
+        let xpcAdmissionOwner =
+            HostAgentXPCListenerAdmissionShell.makeProductShell(
+                identityAuthority: xpcIdentityAuthority
             )
         let ownedRuntime = try HostAgentOwnedCoreRuntime.start(
             bootstrapOwner: bootstrapContext
@@ -57,7 +64,8 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
         }
         return HostAgentProcessRuntime(
             ownedRuntime: ownedRuntime,
-            xpcIdentityAuthority: xpcIdentityAuthority
+            xpcIdentityAuthority: xpcIdentityAuthority,
+            xpcAdmissionOwner: xpcAdmissionOwner
         )
     }
 
@@ -78,6 +86,10 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
 
     func invalidateXPCIdentity() {
         xpcIdentityAuthority.invalidate()
+    }
+
+    func activateXPCListener() -> Bool {
+        xpcAdmissionOwner.activate()
     }
 
     func copySnapshot() throws -> HostCoreSnapshot {

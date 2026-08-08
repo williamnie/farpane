@@ -57,6 +57,12 @@ final class HostAgentProcessLifetime: @unchecked Sendable {
         }
     }
 
+    func activateXPCListener() throws -> Bool {
+        try gate.withRunningRuntime { runtime in
+            runtime.activateXPCListener()
+        }
+    }
+
     func setMediaCapabilities(
         hostInstanceID: String,
         capabilities: HostEncoderCapabilities

@@ -99,6 +99,11 @@ enum HostAgentProcess {
                     _ = lifetime.waitUntilTerminated()
                     return .failure(HostAgentStartupFailure(kind: .internalFailure))
                 }
+                guard (try? lifetime.activateXPCListener()) == true else {
+                    _ = lifetime.requestTermination(reason: .error)
+                    _ = lifetime.waitUntilTerminated()
+                    return .failure(HostAgentStartupFailure(kind: .internalFailure))
+                }
                 return .success(lifetime)
             },
             bindTermination: { controller, lifetime in
