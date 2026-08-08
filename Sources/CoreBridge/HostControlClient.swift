@@ -1028,14 +1028,16 @@ public extension HostCoreEvent {
         }
         func uint64(_ key: String) -> UInt64? {
             guard let number = payload[key] as? NSNumber,
+                  CFGetTypeID(number) != CFBooleanGetTypeID(),
                   number.int64Value >= 0,
+                  number.doubleValue.isFinite,
                   number.doubleValue.rounded(.towardZero) == number.doubleValue
             else { return nil }
             return number.uint64Value
         }
         func uint32(_ key: String) -> UInt32? {
-            guard let number = payload[key] as? NSNumber else { return nil }
-            return number.uint64Value <= UInt32.max ? number.uint32Value : nil
+            guard let value = uint64(key), value <= UInt32.max else { return nil }
+            return UInt32(value)
         }
         guard let connectionEpoch = uint64("connectionEpoch"), connectionEpoch > 0,
               let codecEpoch = uint64("codecEpoch"), codecEpoch > 0,
