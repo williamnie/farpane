@@ -138,20 +138,19 @@ package final class HostAgentBackgroundRegistrationUXOwner:
     )
 
     package static func makeProduct(
+        mutationOwner: HostAgentBackgroundRegistrationMutationOwner,
         performMigrationPreparation: @escaping MigrationPreparation,
         observer: @escaping Observer = { _ in }
     ) -> HostAgentBackgroundRegistrationUXOwner {
-        let registrationOwner =
-            HostAgentBackgroundRegistrationMutationOwner.makeProduct()
         let navigationOwner =
             HostAgentBackgroundApprovalNavigationOwner.makeProduct()
         return HostAgentBackgroundRegistrationUXOwner(
             performMigrationPreparation: performMigrationPreparation,
             performRegistration: {
-                let accepted = registrationOwner.apply(
+                let accepted = mutationOwner.apply(
                     .registerBackgroundAgent
                 )
-                return (accepted, registrationOwner.snapshot())
+                return (accepted, mutationOwner.snapshot())
             },
             performApprovalNavigation: {
                 let accepted = navigationOwner.apply(

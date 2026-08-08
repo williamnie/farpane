@@ -168,7 +168,13 @@ final class HostAgentBackgroundRegistrationPresentationPolicyTests:
             "private lazy var hostAgentBackgroundRegistrationSheetDriver"
         ))
         XCTAssertTrue(appSource.contains(
+            "private lazy var hostAgentBackgroundRegistrationMutationOwner"
+        ))
+        XCTAssertTrue(appSource.contains(
             "HostAgentBackgroundRegistrationSheetDriver.makeProduct("
+        ))
+        XCTAssertTrue(appSource.contains(
+            "mutationOwner: hostAgentBackgroundRegistrationMutationOwner"
         ))
         XCTAssertTrue(appSource.contains(
             "self?.prepareLegacyHostForBackgroundRegistration()"
