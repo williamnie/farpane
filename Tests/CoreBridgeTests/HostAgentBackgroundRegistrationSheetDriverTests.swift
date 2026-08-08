@@ -57,7 +57,13 @@ final class HostAgentBackgroundRegistrationSheetDriverTests: XCTestCase {
         XCTAssertTrue(source.contains("import AppKit"))
         XCTAssertTrue(source.contains("import CoreBridge"))
         XCTAssertTrue(source.contains(
-            "HostAgentBackgroundRegistrationUXOwner.makeProduct()"
+            "HostAgentBackgroundRegistrationUXOwner.makeProduct(\n"
+                + "                performMigrationPreparation: "
+                + "performMigrationPreparation"
+        ))
+        XCTAssertFalse(source.contains(
+            "static func makeProduct(\n"
+                + "        onUpdate:"
         ))
         XCTAssertTrue(source.contains("Thread.isMainThread"))
         XCTAssertTrue(source.contains("let alert = NSAlert()"))

@@ -45,8 +45,10 @@ package enum HostAgentBackgroundRegistrationUXFailure:
     Equatable,
     Sendable
 {
+    case migration(HostAgentLegacyHostMigrationCoordinatorFailure)
     case registration(HostAgentBackgroundRegistrationMutationFailure)
     case approvalNavigation(HostAgentBackgroundApprovalNavigationFailure)
+    case invalidMigrationResult
     case invalidRegistrationResult
     case invalidApprovalNavigationResult
     case generationExhausted
@@ -55,6 +57,8 @@ package enum HostAgentBackgroundRegistrationUXFailure:
 package enum HostAgentBackgroundRegistrationUXPhase: Equatable, Sendable {
     case idle
     case awaitingConfirmation(HostAgentBackgroundRegistrationUXPrompt)
+    case preparingLegacyHost
+    case migrationBlocked(Set<HostAgentLegacyHostMigrationBlocker>)
     case registering
     case registered
     case navigating
@@ -88,6 +92,10 @@ package struct HostAgentBackgroundRegistrationUXView: Equatable, Sendable {
 package final class HostAgentBackgroundRegistrationUXOwner:
     @unchecked Sendable
 {
+    package typealias MigrationPreparation = @Sendable () -> (
+        Bool,
+        HostAgentLegacyHostMigrationCoordinatorView
+    )
     package typealias Observer = @Sendable
         (HostAgentBackgroundRegistrationUXView) -> Void
     package typealias RegistrationOperation = @Sendable () -> (
@@ -118,6 +126,7 @@ package final class HostAgentBackgroundRegistrationUXOwner:
 
     private let stateLock = NSLock()
     private let deliveryLock = NSRecursiveLock()
+    private let performMigrationPreparation: MigrationPreparation
     private let performRegistration: RegistrationOperation
     private let performApprovalNavigation: ApprovalNavigationOperation
     private let observer: Observer
@@ -129,6 +138,7 @@ package final class HostAgentBackgroundRegistrationUXOwner:
     )
 
     package static func makeProduct(
+        performMigrationPreparation: @escaping MigrationPreparation,
         observer: @escaping Observer = { _ in }
     ) -> HostAgentBackgroundRegistrationUXOwner {
         let registrationOwner =
@@ -136,6 +146,7 @@ package final class HostAgentBackgroundRegistrationUXOwner:
         let navigationOwner =
             HostAgentBackgroundApprovalNavigationOwner.makeProduct()
         return HostAgentBackgroundRegistrationUXOwner(
+            performMigrationPreparation: performMigrationPreparation,
             performRegistration: {
                 let accepted = registrationOwner.apply(
                     .registerBackgroundAgent
@@ -153,10 +164,12 @@ package final class HostAgentBackgroundRegistrationUXOwner:
     }
 
     package init(
+        performMigrationPreparation: @escaping MigrationPreparation,
         performRegistration: @escaping RegistrationOperation,
         performApprovalNavigation: @escaping ApprovalNavigationOperation,
         observer: @escaping Observer = { _ in }
     ) {
+        self.performMigrationPreparation = performMigrationPreparation
         self.performRegistration = performRegistration
         self.performApprovalNavigation = performApprovalNavigation
         self.observer = observer
@@ -191,9 +204,11 @@ package final class HostAgentBackgroundRegistrationUXOwner:
             allowed: { phase in
                 switch phase {
                 case .idle, .registered, .navigationRequested,
-                     .approvalNoLongerRequired, .cancelled, .failed:
+                     .approvalNoLongerRequired, .migrationBlocked,
+                     .cancelled, .failed:
                     return true
-                case .awaitingConfirmation, .registering, .navigating:
+                case .awaitingConfirmation, .preparingLegacyHost,
+                     .registering, .navigating:
                     return false
                 }
             },
@@ -222,7 +237,24 @@ package final class HostAgentBackgroundRegistrationUXOwner:
     private func confirmRegistration() -> Bool {
         guard beginOperation(
             expectedPrompt: .backgroundPersistence,
-            phase: .registering
+            phase: .preparingLegacyHost
+        ) else { return false }
+
+        let (migrationAccepted, migration) = performMigrationPreparation()
+        let migrationResolution = resolveMigration(
+            accepted: migrationAccepted,
+            migration: migration
+        )
+        if let terminalPhase = migrationResolution.phase {
+            return finishOperation(
+                phase: terminalPhase,
+                registration: nil,
+                result: migrationResolution.result
+            )
+        }
+        guard advanceOperation(
+            phase: .registering,
+            registration: nil
         ) else { return false }
 
         let (accepted, mutation) = performRegistration()
@@ -339,6 +371,57 @@ package final class HostAgentBackgroundRegistrationUXOwner:
         stateLock.unlock()
         deliveryLock.unlock()
         return finalResult
+    }
+
+    private func advanceOperation(
+        phase: HostAgentBackgroundRegistrationUXPhase,
+        registration: HostAgentBackgroundRegistrationStatus?
+    ) -> Bool {
+        deliveryLock.lock()
+        stateLock.lock()
+        guard transitionInFlight else {
+            stateLock.unlock()
+            deliveryLock.unlock()
+            return false
+        }
+        guard view.generation < UInt64.max else {
+            replaceViewLocked(
+                phase: .failed(.generationExhausted),
+                registration: registration
+            )
+            let publication = view
+            transitionInFlight = false
+            stateLock.unlock()
+            observer(publication)
+            deliveryLock.unlock()
+            return false
+        }
+        replaceViewLocked(phase: phase, registration: registration)
+        let publication = view
+        stateLock.unlock()
+        observer(publication)
+        deliveryLock.unlock()
+        return true
+    }
+
+    private func resolveMigration(
+        accepted: Bool,
+        migration: HostAgentLegacyHostMigrationCoordinatorView
+    ) -> (
+        phase: HostAgentBackgroundRegistrationUXPhase?,
+        result: Bool
+    ) {
+        switch migration.phase {
+        case .readyForRegistration where accepted:
+            return (nil, true)
+        case .blocked(let blockers) where !accepted:
+            return (.migrationBlocked(blockers), false)
+        case .failed(let failure) where !accepted:
+            return (.failed(.migration(failure)), false)
+        case .idle, .assessing, .quiescing, .readyForRegistration,
+             .blocked, .failed:
+            return (.failed(.invalidMigrationResult), false)
+        }
     }
 
     private func resolveRegistration(
