@@ -33,6 +33,47 @@ public enum HostAgentProcessRunResult: Equatable, Sendable {
     }
 }
 
+package enum HostAgentProcessTerminalResult: Equatable, Sendable {
+    case unavailable
+    case process(HostAgentProcessRunResult)
+
+    fileprivate var exitCode: Int32 {
+        switch self {
+        case .unavailable:
+            return 69 // EX_UNAVAILABLE
+        case .process(let result):
+            return result.exitCode
+        }
+    }
+
+    fileprivate var diagnostic: String? {
+        switch self {
+        case .unavailable:
+            return "FarPane HostAgent runtime is not available in this build."
+        case .process(let result):
+            return result.diagnostic
+        }
+    }
+}
+
+/// Writes at most one fixed, sanitized diagnostic line and returns the stable
+/// sysexits value that the executable should use. Diagnostic I/O failure never
+/// changes the process result or retains an underlying Foundation error.
+package enum HostAgentProcessTerminalReporter {
+    @discardableResult
+    package static func report(
+        _ result: HostAgentProcessTerminalResult,
+        to output: FileHandle = .standardError
+    ) -> Int32 {
+        if let diagnostic = result.diagnostic,
+           let bytes = (diagnostic + "\n").data(using: .utf8)
+        {
+            try? output.write(contentsOf: bytes)
+        }
+        return result.exitCode
+    }
+}
+
 /// Runs one HostAgent lifetime in strict process order: termination ingress is
 /// installed before startup, bound to the successful runtime, then cancelled
 /// only after startup failure or a terminal stop outcome.
