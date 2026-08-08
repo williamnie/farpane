@@ -86,7 +86,7 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         )
     }
 
-    private static func strictUInt64(_ value: Any?) -> UInt64? {
+    static func strictUInt64(_ value: Any?) -> UInt64? {
         guard let number = value as? NSNumber,
               CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
         let double = number.doubleValue
