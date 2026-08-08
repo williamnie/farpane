@@ -1604,6 +1604,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.3d3 App-side snapshot-first XPC session client 已完成自动实现**。新增的独立 App 侧 client 只连接固定 Mach service，并使用 bundle preflight 给出的真实 App build identity；每个实例只能执行一次 `start`，严格按 handshake request/compatible correlated response → exact Host/boot snapshot request/correlated response 的顺序进入 ready。首次 observation、同一 peer 与任一 build/Host/boot identity replacement 被显式区分；replacement 必须先同步触发旧 UI intent reset，之后才允许发布新 snapshot。握手/快照各有 5 秒 timeout，malformed、uncorrelated、incompatible、interruption/invalidation、重复 start 与 cancel 均 terminal fail closed，迟到 reply 不能复活 session；ready 后断线另行通知未来 owner 重新 snapshot-first 对账。生产 `NSXPCConnection` transport 以 reply relay 合并 remote error/reply，真实 anonymous XPC 已验证整条 client→handler 往返。当前 client 尚未接入 App UI/readiness，也没有 event/command selector，不启用顶层 Agent entry，故不宣称后台 Host 可用。详见 `Evidence/HostMode/2026-08-08/h4-xpc-snapshot-client.md`。
 
+> 更新（2026-08-08）：**H4.3e1 Agent event journal catch-up authority 已完成自动实现**。现有 boot-lifetime bounded journal 新增与 ingest 共用同一把锁的原子 replay 查询，直接消费 snapshot 的 `lastEventID` local arrival-order cursor；产品默认单批 64 条、显式上限 256。空 journal/追到 latest 返回 up-to-date；连续窗口返回按 sequence 排序的 bounded batch、同一原子视图的 latest 与 `hasMore`；cursor 的下一条恰为 first-available 时仍可追赶，更早则明确返回 gap 并要求重新 snapshot；未来 cursor 与无效 batch limit fail closed。该查询只返回进程内 package-scoped record，尚未序列化或跨 XPC 传递 `HostCoreEvent.rawJSON`，因此不把未审计 payload 冒充 typed wire event。下一步需在此 authority 上定义严格脱敏的 event cursor/batch Data contract，再接 session selector/client；当前不接 UI/readiness/command，也不启用顶层 Agent entry。详见 `Evidence/HostMode/2026-08-08/h4-agent-event-replay-authority.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

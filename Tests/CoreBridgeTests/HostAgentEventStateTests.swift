@@ -187,6 +187,117 @@ final class HostAgentEventStateTests: XCTestCase {
         XCTAssertEqual(snapshot.evictedEventCount, 0)
     }
 
+    func testReplayReturnsAtomicBoundedContiguousBatches() throws {
+        let state = try HostAgentEventState(capacity: 4, maximumEventBytes: 4_096)
+
+        assertUpToDate(
+            try state.replay(afterSequence: 0, limit: 2),
+            latestSequence: 0
+        )
+        for eventID in 1...3 {
+            XCTAssertEqual(
+                state.ingest(try event(id: UInt64(eventID), host: "host-a")),
+                .accepted(sequence: UInt64(eventID))
+            )
+        }
+
+        assertBatch(
+            try state.replay(afterSequence: 0, limit: 2),
+            sequences: [1, 2],
+            sourceEventIDs: [1, 2],
+            latestSequence: 3,
+            hasMore: true
+        )
+        assertBatch(
+            try state.replay(afterSequence: 2, limit: 2),
+            sequences: [3],
+            sourceEventIDs: [3],
+            latestSequence: 3,
+            hasMore: false
+        )
+        assertUpToDate(
+            try state.replay(afterSequence: 3, limit: 2),
+            latestSequence: 3
+        )
+    }
+
+    func testReplayDistinguishesEvictionGapFromExactWindowBoundary() throws {
+        let state = try HostAgentEventState(capacity: 2, maximumEventBytes: 4_096)
+        for eventID in 1...3 {
+            _ = state.ingest(try event(id: UInt64(eventID), host: "host-a"))
+        }
+
+        guard case .gap(let firstAvailable, let latest) =
+            try state.replay(afterSequence: 0, limit: 2)
+        else { return XCTFail("expected replay gap") }
+        XCTAssertEqual(firstAvailable, 2)
+        XCTAssertEqual(latest, 3)
+
+        assertBatch(
+            try state.replay(afterSequence: 1, limit: 2),
+            sequences: [2, 3],
+            sourceEventIDs: [2, 3],
+            latestSequence: 3,
+            hasMore: false
+        )
+    }
+
+    func testReplayRejectsFutureCursorAndInvalidLimits() throws {
+        let state = try HostAgentEventState(capacity: 2, maximumEventBytes: 4_096)
+        _ = state.ingest(try event(id: 1, host: "host-a"))
+
+        guard case .invalidCursor(let latest) =
+            try state.replay(afterSequence: 2, limit: 1)
+        else { return XCTFail("expected invalid future cursor") }
+        XCTAssertEqual(latest, 1)
+
+        for invalidLimit in [0, 257] {
+            XCTAssertThrowsError(try state.replay(
+                afterSequence: 0,
+                limit: invalidLimit
+            )) { error in
+                XCTAssertEqual(
+                    error as? HostAgentEventReplayError,
+                    .invalidLimit
+                )
+            }
+        }
+    }
+
+    private func assertUpToDate(
+        _ result: HostAgentEventReplayResult,
+        latestSequence: UInt64,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        guard case .upToDate(let actualLatest) = result else {
+            return XCTFail("expected up-to-date replay", file: file, line: line)
+        }
+        XCTAssertEqual(actualLatest, latestSequence, file: file, line: line)
+    }
+
+    private func assertBatch(
+        _ result: HostAgentEventReplayResult,
+        sequences: [UInt64],
+        sourceEventIDs: [UInt64],
+        latestSequence: UInt64,
+        hasMore: Bool,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        guard case .batch(let records, let latest, let actualHasMore) = result
+        else { return XCTFail("expected replay batch", file: file, line: line) }
+        XCTAssertEqual(records.map(\.sequence), sequences, file: file, line: line)
+        XCTAssertEqual(
+            records.map(\.event.eventId),
+            sourceEventIDs,
+            file: file,
+            line: line
+        )
+        XCTAssertEqual(latest, latestSequence, file: file, line: line)
+        XCTAssertEqual(actualHasMore, hasMore, file: file, line: line)
+    }
+
     private func event(
         id: UInt64,
         type: String = "snapshotChanged",
