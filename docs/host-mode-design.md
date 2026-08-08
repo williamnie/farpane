@@ -1530,6 +1530,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1k config-root-first Host Core runtime gate 已完成自动实现**。新增 runtime owner 只接受最小 control surface，并严格执行 `setConfigRoot → start`：root 失败绝不调用 start/stop，start 失败不构造 runtime 且要求 concrete client 在抛错前清理 partial create（现有 `HostControlClient` 已在 start failure 分支 destroy handle）。只有成功 start 才建立 owner；显式 stop 与 deinit app-exit stop 至多一次，即使底层 stop 抛错也不重复 teardown，因为现有 client 在返回错误前已清空并 destroy handle。本步不冻结重复 namespace authority，固定 `FarPaneHost`/`io.rustdesknative` 与 server 必须由下一步同一 H4.1j context 传入；尚未接 `--host-agent` 或加载真实 Core，exit 69 不变。未改 C ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-config-root-first-core-runtime.md`。
 
+> 更新（2026-08-08）：**H4.1l owned HostAgent process runtime composition 已完成自动实现**。新的通用 owner 把一个成功启动的 `HostAgentCoreRuntime` 与同一 bootstrap authority 绑定：Core 整个运行期强持有 context/单写者 lease，显式 stop、析构和 stop 抛错均先完成一次 Core teardown attempt，再按 `Core runtime → bootstrap context/lease` 顺序释放；runtime factory 失败则不返回半初始化 owner。executable 装配层严格先执行无参数产品 `HostAgentBootstrapContext.prepare()`，随后才创建 `HostControlClient`，并只从该 context 的 validated configuration 传入固定 namespace、rendezvous server 与 public key，杜绝第二配置来源。本步刻意只编译装配层而不从 `--host-agent` 分支调用，故 pre-AppKit exit 69 门禁保持；未加载真实 Core、联网或读取真实配置，未改 ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-owned-host-agent-process-runtime.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

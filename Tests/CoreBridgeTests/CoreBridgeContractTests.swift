@@ -73,6 +73,34 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(source.contains("HostAgentBootstrap.failClosed()"))
     }
 
+    func testHostAgentProcessRuntimeUsesOneBootstrapAuthorityButRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let runtimeURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/HostAgentProcessRuntime.swift")
+        let runtimeSource = try String(contentsOf: runtimeURL, encoding: .utf8)
+        let contextPreparation = try XCTUnwrap(runtimeSource.range(
+            of: "HostAgentBootstrapContext.prepare()"
+        ))
+        let clientCreation = try XCTUnwrap(runtimeSource.range(of: "HostControlClient("))
+
+        XCTAssertLessThan(contextPreparation.lowerBound, clientCreation.lowerBound)
+        XCTAssertTrue(runtimeSource.contains("bootstrapOwner: bootstrapContext"))
+        XCTAssertTrue(runtimeSource.contains("let configuration = context.configuration"))
+        XCTAssertTrue(runtimeSource.contains("configAppName: configuration.hostConfigAppName"))
+        XCTAssertTrue(runtimeSource.contains("configOrganization: configuration.hostConfigOrganization"))
+        XCTAssertTrue(runtimeSource.contains("rendezvousServer: configuration.rendezvousServer"))
+        XCTAssertTrue(runtimeSource.contains("serverPublicKey: configuration.serverPublicKey"))
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentProcessRuntime.start("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
     func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
