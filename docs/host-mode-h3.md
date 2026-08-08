@@ -2,7 +2,7 @@
 
 - 最后更新：2026-08-08
 - 对应设计：`docs/host-mode-design.md` §8.1–§10、§12、§26.6
-- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract、H3.2b3 snapshot-authoritative Swift 入站 UI，以及 H3.3/H3.4 的输入授权、epoch、cleanup、semantic normalization、Rust active-session authority、recoverable snapshot、scoped revoke/disconnect command 与 Home active-session card 已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 入站 UI 真机验收/AND mode、H3.3 全局 active-session indicator/transition 与真机 UI 验收，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
+- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract、H3.2b3 snapshot-authoritative Swift 入站 UI，以及 H3.3/H3.4 的输入授权、epoch、cleanup、semantic normalization、Rust active-session authority、recoverable snapshot、scoped revoke/disconnect、Home active-session card、全局活动指示和 platform-authority revoke transition 已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 入站 UI 真机验收/AND mode、H3.3 全局指示/撤权/断开的真机 UI 验收，以及 H3.4 Secure Input、带原因的 TCC/session limited 状态、active Aqua 安全恢复、多显示器和正式性能证据。
 
 ## H3.1a verifier authority
 
@@ -402,3 +402,9 @@ pinned core 的真实 setter 已确认可作为唯一 Rust authority：它为本
 Home 窗口内的活动会话卡片不能覆盖用户关闭唯一窗口后的 §14.3 可见性要求。App 现在只根据成功解码的 active-session snapshot 创建菜单栏状态项；无会话、Host reset/stop 或 snapshot 不可用时立即移除。菜单显示固定的共享提示与明确标记为“对方声明（未经验证）”的远端身份，并提供“打开 FarPane”和“断开连接”。
 
 断开菜单项携带 snapshot 的 canonical connection ID 作为内部 represented object，但不向用户展示；App 执行前再次核对当前 snapshot，并复用 H3.3h4 的 exact-session command gate。命令入队后显示“正在断开…”且禁止重复操作，直到 authoritative snapshot 收敛。定向策略测试 3/3、加载 ABI v6 core 的 Swift 133/133、ScriptTests 20/20 与 arm64 Release build 全部通过；未改 ABI/Rust/Hermes，也未部署。真实菜单栏可见性、关窗后打开/断开仍待 Mini 与控制端验收。详见 `Evidence/HostMode/2026-08-08/h3-active-session-indicator.md`。
+
+## H3.4ad Native Host platform-authority transition revoke
+
+最终 macOS adapter 已在每个输入任务执行前复查 Accessibility 与 active Aqua authority，但此前运行中的 connection 不会主动旋转 permission epoch、清理已按下状态或更新 active capabilities。Native Host Remote connection 现在在既有一秒 timer 上复查同一 authority；一旦当前 `keyboard=true` 而平台拒绝，就单向切为 false，复用 `sync_effective_input_permission()` 使旧队列 generation 失效并排入 ordered `Release`，再同步 broker active capabilities、Viewer permission 及 clipboard/cursor subscription。
+
+transition policy 明确禁止 disabled→platform recovered 自动升权；adapter 的逐事件 gate 仍是立即拒绝边界，timer 只负责 lifecycle 收敛。定向 policy 1/1、完整 Rust 131/131、release core、加载新 core 的 Swift 133/133、ScriptTests 20/20、arm64 Release build 与 16 文件 clean replay 全部通过。未改 ABI/protobuf/Hermes，也未部署。现有 snapshot 只能表达 `controlKeyboardMouse` 已消失，尚不能区分 TCC/锁屏/off-console 原因；同会话安全恢复和真机 cleanup 仍待后续。详见 `Evidence/HostMode/2026-08-08/h3-platform-authority-transition-revoke.md`。
