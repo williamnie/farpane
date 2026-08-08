@@ -1526,6 +1526,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1i HostAgent single-writer lease 已完成自动实现**。固定私有 `.host-agent-runtime-v1.lock` 以同 inode nonblocking exclusive `flock` 作为活跃所有权权威；`0600` regular file 必须归当前 euid、单硬链接，所在目录必须精确 `0700`，symlink、宽权限、hard link 或错误类型均不改写并 fail closed。versioned strict record 只含 canonical Agent boot UUID、build ID 与正 config revision，不含 server/key/密码/token；获取锁后在同一 descriptor 上 truncate/write/fsync/readback，并同步目录。第二实例返回 `alreadyHeld` 且 live record 原字节保持；显式 release/deinit 幂等释放，锁空闲后新 boot 可覆盖 crash 遗留 record，避免以文件存在冒充 live owner。本步尚未由 `--host-agent` 持有 lease，也未切换 Rust config root/创建 HostCore，exit 69 不变；未改 ABI/Rust/Hermes/依赖，未读取真实配置，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-single-writer-lease.md`。
 
+> 更新（2026-08-08）：**H4.1j owned HostAgent bootstrap context 已完成自动实现**。无参数产品入口现在严格按 `secure preflight → one process boot UUID → single-writer lease` 建立同一 process-lifetime context，并同时持有 validated configuration、boot identity 与 lease record；调用方必须在 Host runtime 整个生命周期保留该 owner，context 析构即释放 lease。preflight 失败不会创建/改写 lease；live context 存在时第二 context 返回 `alreadyHeld` 且 record 不变；首 context 析构后下一 boot 可接管。产品 API 不接受路径/build/UUID 注入，测试注入保持 module-internal。本步仍未从 `--host-agent` 调用 context、切换 config root 或创建 HostCore，exit 69 不变；未改 ABI/Rust/Hermes/依赖，未读取真实配置，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-context.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
