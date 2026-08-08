@@ -2,7 +2,7 @@
 
 - 最后更新：2026-08-08
 - 对应设计：`docs/host-mode-design.md` §8.1–§10、§12、§26.6
-- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract，以及 H3.3/H3.4 的输入授权、epoch、cleanup 和 semantic normalization 自动边界已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 Swift 入站 UI/AND mode、H3.3 active session/revoke snapshot contract，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
+- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract、H3.2b3 snapshot-authoritative Swift 入站 UI，以及 H3.3/H3.4 的输入授权、epoch、cleanup 和 semantic normalization 自动边界已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 入站 UI 真机验收/AND mode、H3.3 active session/revoke snapshot contract，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
 
 ## H3.1a verifier authority
 
@@ -73,6 +73,14 @@ Host Control ABI 现升至 v4，HostSnapshot 升至 schema v3，并以 `pendingA
 generic command 现只接受精确三字段的 `approveConnection`/`rejectConnection` envelope，并把 connection ID 交回同一 broker；批准发送 Authorize，拒绝发送 Close。不存在、已终结、已过期分别返回稳定 `-21/-22/-23`，超时后批准不会复活连接，未知/额外字段 fail closed。request begin 和所有 final transition 都追加独立 event-schema-v1 `snapshotChanged`；event 与 snapshot 版本继续解耦。
 
 Swift 新增严格 `HostPendingApproval` 解码、typed decision API 和失败分类；pending 字段集合、metadata trust、时间、有界 capability/transport/authentication 均校验，schema v3 尚未定义风险码，因此 risk array 必须为空，未知字段/能力/风险码或旧 snapshot schema 均拒绝。该步尚未加入 Swift 入站弹窗，所以 H3.2 仍未完成；下一步才可让 App 从 snapshot/event 展示一次性同意/拒绝 UI。实现证据见 `Evidence/HostMode/2026-08-08/h3-recoverable-pending-approval-contract.md`。
+
+## H3.2b3 snapshot-authoritative incoming approval UI
+
+App 的 Host 卡片现在会从每次权威 `HostSnapshot.pendingApproval` 重建本机确认提示，而不把 `incomingConnectionRequested` event 当作第二套状态。提示明确把远端名称、ID 和平台标为“对方声明（未经验证）”，展示 allowlist capability、direct/relay/unknown transport 与基于 wall-clock 字段的剩余时间；Rust broker 的单调 deadline 仍是过期权威。
+
+每个新 connection ID 只请求一次系统注意并把 FarPane 窗口带到前台。允许/拒绝按钮只提交当前快照的精确 ID，App gate 会拒绝陈旧 ID 和重复点击；提交期间不乐观移除请求或宣告成功，只有后续权威快照才能结束 UI。not-found、already-finalized 和 expired race 使用稳定脱敏文案，未知命令失败在快照仍确认同一 pending 时才允许重试。Host stop/start 会清空 UI gate，App UI 重建则继续从同一 pending snapshot 恢复。
+
+自动验证覆盖 gate 的 notify 去重、stale/double-click/in-flight/reset 行为，带实际 arm64 Host Core 的 Swift 全量 128/128、ScriptTests 20/20 与 release App 均通过；详见 `Evidence/HostMode/2026-08-08/h3-incoming-approval-ui.md`。该步没有修改 Host ABI/schema、RustDesk protobuf、Hermes 或认证秘密链。批准、拒绝、30 秒超时、提示重建以及先前 H.265 crash fix 的 4 分钟回归仍需新包在 Mini/MBP 真机验证；`passwordAndLocalApproval` AND mode 仍 fail closed，因此 H3.2 尚未整体关闭。
 
 ## H3.3a ordered input revocation cleanup
 
