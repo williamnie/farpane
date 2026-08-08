@@ -1622,6 +1622,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.3e4f read-only background component health composition 已完成自动实现**。新的 App-owned health authority 把固定 `SMAppService` observer 的 registration 与 e4e→e4d 投影派生的 handshake、authoritative snapshot、Rendezvous evidence 合成为单一单调 generation readiness view；registration enabled 或 XPC connecting 均不能单独成为 ready。注册撤销与运行态退化会在同一串行 publication 边界立即撤回 ready；重复/迟到 projection generation 幂等忽略，同 generation mutation、不可能的 component tuple 与 health generation exhaustion 永久 fail closed。产品 composition 强持有 health/projection/reconnect 三个唯一 owner，构造时只做一次只读 registration observation，reconnect owner 保持 idle；显式 registration refresh 也不具备 register/unregister/settings 或自动启动能力。当前尚未定义 App activation policy、接 SwiftUI/UI model、调用 owner start，也不启用 Agent entry。详见 `Evidence/HostMode/2026-08-09/h4-background-health-composition.md`。
 
+> 更新（2026-08-09）：**H4.3e4g explicit App-side background activation owner 已完成自动实现**。新的稳定 owner 只接受 typed `hostEnabled`、`hostDisabled` 与 `applicationWillTerminate` intent；构造保持 inert，明确 enable 才为该 activation epoch 创建 e4f product composition 并启动其 reconnect owner。由于 e4e runtime 为一次性，disable→enable 必须创建全新 composition/epoch；disable 和 App termination 都先撤下当前 runtime、取消 observation，再发布状态，旧 health callback、blocking factory/start completion 与 observer reentrant disable 均不能启动或复活旧 runtime。factory/start/health sequence failure 只发布稳定脱敏 failure，显式后续 enable 可新建 epoch 重试；App termination 永久拒绝复活。App 退出只终止本地观察，不被解释成 disableHost，也不修改 durable intent/identity/registration。当前 owner 尚未接 UserDefaults、旧进程内 `HostControlClient`、AppKit/SwiftUI 或产品 App lifecycle，且不执行 SMAppService mutation、不启用 Agent entry。详见 `Evidence/HostMode/2026-08-09/h4-background-activation-owner.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
