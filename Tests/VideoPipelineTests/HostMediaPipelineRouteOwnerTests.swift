@@ -79,6 +79,54 @@ final class HostMediaPipelineRouteOwnerTests: XCTestCase {
     XCTAssertEqual(owner.snapshot().activeRoute, second.identity)
   }
 
+  func testLifecycleObserverPublishesStartedAndStoppedRoutesInDrainOrder() {
+    let factory = RecordingRoutePipelineFactory()
+    let recorder = RouteOwnerRecorder()
+    let owner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      lifecycleObserver: HostMediaPipelineRouteLifecycleObserver(
+        onStarted: { route, telemetry in
+          recorder.recordLifecycle(
+            .started(route),
+            requestedFPS: telemetry.snapshot().requestedFPS
+          )
+        },
+        onStartFailed: { route, telemetry in
+          recorder.recordLifecycle(
+            .startFailed(route),
+            requestedFPS: telemetry.snapshot().requestedFPS
+          )
+        },
+        onStopped: { route, telemetry in
+          recorder.recordLifecycle(
+            .stopped(route),
+            requestedFPS: telemetry.snapshot().requestedFPS
+          )
+        }
+      ),
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let first = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+    let second = makeRoute(connectionEpoch: 12, codecEpoch: 22, codec: .h265)
+
+    XCTAssertTrue(owner.reconfigure(first))
+    owner.waitUntilIdle()
+    XCTAssertTrue(owner.reconfigure(second))
+    owner.waitUntilIdle()
+    XCTAssertTrue(owner.stop(route: second.identity))
+    owner.waitUntilIdle()
+
+    XCTAssertEqual(recorder.lifecycleEvents, [
+      .started(first.identity),
+      .stopped(first.identity),
+      .started(second.identity),
+      .stopped(second.identity),
+    ])
+    XCTAssertEqual(recorder.lifecycleRequestedFPS, [30, 30, 30, 30])
+  }
+
   func testBackpressureRecoveryTargetsOnlyCurrentGeneration() {
     let factory = RecordingRoutePipelineFactory()
     let owner = HostMediaPipelineRouteOwner(
@@ -108,6 +156,14 @@ final class HostMediaPipelineRouteOwnerTests: XCTestCase {
     let recorder = RouteOwnerRecorder()
     let owner = HostMediaPipelineRouteOwner(
       pipelineFactory: factory.make,
+      lifecycleObserver: HostMediaPipelineRouteLifecycleObserver(
+        onStartFailed: { route, telemetry in
+          recorder.recordLifecycle(
+            .startFailed(route),
+            requestedFPS: telemetry.snapshot().requestedFPS
+          )
+        }
+      ),
       onSubmit: { _, _ in .accepted },
       onEncoderState: { _, _ in },
       onFailure: { route, failure in
@@ -124,6 +180,40 @@ final class HostMediaPipelineRouteOwnerTests: XCTestCase {
     XCTAssertEqual(recorder.failures.count, 1)
     XCTAssertEqual(recorder.failures.first?.0, route.identity)
     XCTAssertEqual(recorder.failures.first?.1, .startFailed)
+    XCTAssertEqual(recorder.lifecycleEvents, [.startFailed(route.identity)])
+    XCTAssertEqual(recorder.lifecycleRequestedFPS, [30])
+    XCTAssertNil(owner.snapshot().activeRoute)
+  }
+
+  func testFactoryFailurePublishesLifecycleFailureWithoutCreatingPipeline() {
+    let recorder = RouteOwnerRecorder()
+    let owner = HostMediaPipelineRouteOwner(
+      pipelineFactory: { _, _, _ in
+        throw RoutePipelineTestFailure.start
+      },
+      lifecycleObserver: HostMediaPipelineRouteLifecycleObserver(
+        onStartFailed: { route, telemetry in
+          recorder.recordLifecycle(
+            .startFailed(route),
+            requestedFPS: telemetry.snapshot().requestedFPS
+          )
+        }
+      ),
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { route, failure in
+        recorder.recordFailure(route: route, failure: failure)
+      }
+    )
+    let route = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+
+    XCTAssertTrue(owner.reconfigure(route))
+    owner.waitUntilIdle()
+
+    XCTAssertEqual(recorder.failures.first?.1, .startFailed)
+    XCTAssertEqual(recorder.lifecycleEvents, [.startFailed(route.identity)])
+    XCTAssertEqual(recorder.lifecycleRequestedFPS, [30])
+    XCTAssertNil(owner.snapshot().desiredRoute)
     XCTAssertNil(owner.snapshot().activeRoute)
   }
 
@@ -553,6 +643,8 @@ private final class RouteOwnerRecorder: @unchecked Sendable {
   private(set) var submissions: [(HostMediaPipelineRouteIdentity, HostMediaAccessUnit)] = []
   private(set) var states: [(HostMediaPipelineRouteIdentity, HostEncoderRuntimeState)] = []
   private(set) var failures: [(HostMediaPipelineRouteIdentity, HostMediaPipelineRouteFailure)] = []
+  private(set) var lifecycleEvents: [RouteLifecycleEvent] = []
+  private(set) var lifecycleRequestedFPS: [Int] = []
 
   func recordSubmission(
     route: HostMediaPipelineRouteIdentity,
@@ -580,4 +672,20 @@ private final class RouteOwnerRecorder: @unchecked Sendable {
     failures.append((route, failure))
     lock.unlock()
   }
+
+  func recordLifecycle(
+    _ event: RouteLifecycleEvent,
+    requestedFPS: Int
+  ) {
+    lock.lock()
+    lifecycleEvents.append(event)
+    lifecycleRequestedFPS.append(requestedFPS)
+    lock.unlock()
+  }
+}
+
+private enum RouteLifecycleEvent: Equatable {
+  case started(HostMediaPipelineRouteIdentity)
+  case startFailed(HostMediaPipelineRouteIdentity)
+  case stopped(HostMediaPipelineRouteIdentity)
 }

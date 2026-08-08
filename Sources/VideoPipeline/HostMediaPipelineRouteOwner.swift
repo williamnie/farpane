@@ -60,6 +60,30 @@ public enum HostMediaPipelineRouteFailure: Equatable, Sendable {
   case runtimeFailed
 }
 
+/// Sanitized route lifecycle hooks. The observer receives only the typed route
+/// identity and its in-memory telemetry; it never receives pipeline errors,
+/// frame contents, encoded payloads, credentials, or server configuration.
+public struct HostMediaPipelineRouteLifecycleObserver: Sendable {
+  public typealias Handler = @Sendable (
+    HostMediaPipelineRouteIdentity,
+    HostMediaTelemetry
+  ) -> Void
+
+  public let onStarted: Handler
+  public let onStartFailed: Handler
+  public let onStopped: Handler
+
+  public init(
+    onStarted: @escaping Handler = { _, _ in },
+    onStartFailed: @escaping Handler = { _, _ in },
+    onStopped: @escaping Handler = { _, _ in }
+  ) {
+    self.onStarted = onStarted
+    self.onStartFailed = onStartFailed
+    self.onStopped = onStopped
+  }
+}
+
 public struct HostMediaPipelineRouteCallbacks: Sendable {
   public let onAccessUnit: @Sendable (HostMediaAccessUnit) -> Void
   public let onState: @Sendable (HostEncoderRuntimeState) -> Void
@@ -145,6 +169,7 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
     qos: .userInitiated
   )
   private let pipelineFactory: PipelineFactory
+  private let lifecycleObserver: HostMediaPipelineRouteLifecycleObserver
   private let onSubmit: SubmissionHandler
   private let onEncoderState: EncoderStateHandler
   private let onFailure: FailureHandler
@@ -169,11 +194,13 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
         onError: callbacks.onError
       )
     },
+    lifecycleObserver: HostMediaPipelineRouteLifecycleObserver = .init(),
     onSubmit: @escaping SubmissionHandler,
     onEncoderState: @escaping EncoderStateHandler,
     onFailure: @escaping FailureHandler
   ) {
     self.pipelineFactory = pipelineFactory
+    self.lifecycleObserver = lifecycleObserver
     self.onSubmit = onSubmit
     self.onEncoderState = onEncoderState
     self.onFailure = onFailure
@@ -463,6 +490,7 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
       pipeline = try pipelineFactory(route.configuration, telemetry, callbacks)
     } catch {
       clearDesiredRouteIfCurrent(route.identity, generation: operationGeneration)
+      lifecycleObserver.onStartFailed(route.identity, telemetry)
       onFailure(route.identity, .startFailed)
       return
     }
@@ -494,6 +522,7 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
     if stillCurrent, startResult.isSuccess {
       current?.active = true
       condition.unlock()
+      lifecycleObserver.onStarted(route.identity, pipeline.telemetry)
       return
     }
     if current?.generation == operationGeneration { current = nil }
@@ -509,6 +538,7 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
     blockingStop(pipeline)
     finishRetiringTelemetry(generation: operationGeneration)
     if startResult.isFailure {
+      lifecycleObserver.onStartFailed(route.identity, pipeline.telemetry)
       onFailure(route.identity, .startFailed)
     }
   }
@@ -634,6 +664,9 @@ public final class HostMediaPipelineRouteOwner: @unchecked Sendable {
     current.pipeline.cancel()
     blockingStop(current.pipeline)
     finishRetiringTelemetry(generation: current.generation)
+    if current.active {
+      lifecycleObserver.onStopped(current.route, current.pipeline.telemetry)
+    }
   }
 
   private func updateTelemetry(
