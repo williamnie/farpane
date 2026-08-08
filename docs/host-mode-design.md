@@ -1576,6 +1576,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2g registration identity gate 已完成自动实现**。package-scoped 组合门禁固定按 LaunchAgent plist→main bundle→code signature 顺序收敛 H4.2d–f，任何一步失败都返回稳定脱敏状态并停止后续 inspector；签名 evidence 的 identifier/Team ID 在组合层再次精确核对。Apple Development 只得到带 packaged build ID 的 local-development eligibility，Developer ID 在没有 H4.5 独立 notarization evidence 时固定保持 distribution-notarization-required，不存在伪装 distribution-ready 的路径。产品 API 不接受 bundle/signature/path override；当前 gate 仍只验证候选 plist bytes，尚未证明它来自签名 bundle 的固定 asset，也未验证 lifecycle keys，故不能据此注册或显示后台 ready。本步不调用 ServiceManagement、不创建/打包 plist、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-registration-identity-gate.md`。
 
+> 更新（2026-08-08）：**H4.2h fixed signed LaunchAgent asset reader 已完成自动实现**。产品 registration identity gate 已移除候选 plist bytes 注入，只从 `Bundle.main/Contents/Library/LaunchAgents/io.rustdesknative.viewer.host-agent.plist` 读取；reader 以 `open/openat + O_NOFOLLOW` descriptor-relative 遍历逐级拒绝 bundle/目录/文件软链，并要求可信 owner、目录与文件 group/world 不可写、单硬链接 regular file、1...64 KiB。完整读取后再次对账同一 descriptor 的 device/inode/mode/owner/link-count/size/mtime/ctime，替换、增长或 metadata mutation 均 fail closed。当前尚未创建/打包该 asset，因此产品入口真实保持 `invalidLaunchAgent`；后续全 bundle signature preflight 才能把该资源绑定到已验证签名。本步不冻结 `RunAtLoad`/`KeepAlive`、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push；公共 API 缺少“保持注册但停止 Agent”的 lifecycle 冲突仍保持 open。详见 `Evidence/HostMode/2026-08-08/h4-launch-agent-asset-reader.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

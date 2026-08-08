@@ -12,10 +12,18 @@ package enum HostAgentRegistrationIdentityStatus: Equatable, Sendable {
 /// performing registration. Eligibility here is identity-only: lifecycle,
 /// explicit user intent and ServiceManagement state remain separate gates.
 package enum HostAgentRegistrationIdentityGate {
-    package static func assessMainBundle(
-        launchAgentPlistData: Data
-    ) -> HostAgentRegistrationIdentityStatus {
-        assess(
+    package static func assessMainBundle()
+        -> HostAgentRegistrationIdentityStatus
+    {
+        let launchAgentPlistData: Data
+        do {
+            launchAgentPlistData = try HostAgentLaunchAgentAssetReader
+                .readMainBundle()
+        } catch {
+            return .invalidLaunchAgent
+        }
+
+        return assess(
             launchAgentPlistData: launchAgentPlistData,
             inspectBundle: {
                 try HostAgentRegistrationBundlePreflight.inspectMainBundle()
