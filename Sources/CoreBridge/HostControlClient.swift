@@ -392,7 +392,7 @@ public struct HostCoreSnapshot: Sendable {
         else {
             throw HostControlError.snapshotDecode("snapshot is not a JSON object")
         }
-        guard (json["schemaVersion"] as? NSNumber)?.intValue == 4,
+        guard (json["schemaVersion"] as? NSNumber)?.intValue == 5,
               let hostInstanceID = json["hostInstanceId"] as? String,
               !hostInstanceID.isEmpty,
               let hostState = json["hostState"] as? String,
@@ -465,7 +465,7 @@ public struct HostCoreSnapshot: Sendable {
             throw HostControlError.snapshotDecode("snapshot last error is invalid")
         }
 
-        schemaVersion = 4
+        schemaVersion = 5
         hostInstanceId = hostInstanceID
         self.hostState = hostState
         localId = localID
@@ -492,6 +492,19 @@ public struct HostCoreSnapshot: Sendable {
     }
 }
 
+public enum HostSessionInputAvailability: String, Equatable, Sendable {
+    case available
+    case disabled
+    case limited
+}
+
+public enum HostSessionInputUnavailableReason: String, Equatable, Sendable {
+    case localPolicyDisabled
+    case remoteDisabled
+    case accessibilityDenied
+    case sessionUnavailable
+}
+
 public struct HostActiveSession: Equatable, Sendable {
     public let connectionId: String
     public let remoteId: String
@@ -500,12 +513,14 @@ public struct HostActiveSession: Equatable, Sendable {
     public let startedAt: UInt64
     public let initialCapabilities: [String]
     public let activeCapabilities: [String]
+    public let inputAvailability: HostSessionInputAvailability
+    public let inputUnavailableReason: HostSessionInputUnavailableReason?
 
     fileprivate init?(json: [String: Any], hostInstanceID: String) {
         let expectedKeys = Set([
             "connectionId", "remoteId", "remoteName", "remotePlatform",
             "remoteMetadataTrust", "startedAt", "initialCapabilities",
-            "activeCapabilities",
+            "activeCapabilities", "inputAvailability", "inputUnavailableReason",
         ])
         let allowedCapabilities = Set([
             "viewDisplay", "controlKeyboardMouse", "readClipboard",
@@ -526,9 +541,24 @@ public struct HostActiveSession: Equatable, Sendable {
               startedAt > 0,
               let initialCapabilities = json["initialCapabilities"] as? [String],
               let activeCapabilities = json["activeCapabilities"] as? [String],
+              let inputAvailabilityValue = json["inputAvailability"] as? String,
+              let inputAvailability = HostSessionInputAvailability(
+                  rawValue: inputAvailabilityValue
+              ),
+              let inputUnavailableReasonValue = json["inputUnavailableReason"],
               Self.validCapabilities(initialCapabilities, allowed: allowedCapabilities),
               Self.validCapabilities(activeCapabilities, allowed: allowedCapabilities),
-              Set(activeCapabilities).isSubset(of: Set(initialCapabilities))
+              Set(activeCapabilities).isSubset(of: Set(initialCapabilities)),
+              let inputUnavailableReason = Self.inputUnavailableReason(
+                  from: inputUnavailableReasonValue
+              ),
+              Self.validInputAvailability(
+                  inputAvailability,
+                  reason: inputUnavailableReason,
+                  controlsKeyboardAndMouse: activeCapabilities.contains(
+                      "controlKeyboardMouse"
+                  )
+              )
         else { return nil }
 
         connectionId = connectionID
@@ -538,6 +568,36 @@ public struct HostActiveSession: Equatable, Sendable {
         self.startedAt = startedAt
         self.initialCapabilities = initialCapabilities
         self.activeCapabilities = activeCapabilities
+        self.inputAvailability = inputAvailability
+        self.inputUnavailableReason = inputUnavailableReason
+    }
+
+    private static func inputUnavailableReason(
+        from value: Any
+    ) -> HostSessionInputUnavailableReason?? {
+        if value is NSNull { return .some(nil) }
+        guard let rawValue = value as? String,
+              let reason = HostSessionInputUnavailableReason(rawValue: rawValue)
+        else { return nil }
+        return .some(reason)
+    }
+
+    private static func validInputAvailability(
+        _ availability: HostSessionInputAvailability,
+        reason: HostSessionInputUnavailableReason?,
+        controlsKeyboardAndMouse: Bool
+    ) -> Bool {
+        switch (availability, reason, controlsKeyboardAndMouse) {
+        case (.available, nil, true):
+            return true
+        case (.disabled, .localPolicyDisabled, false),
+             (.disabled, .remoteDisabled, false),
+             (.limited, .accessibilityDenied, false),
+             (.limited, .sessionUnavailable, false):
+            return true
+        default:
+            return false
+        }
     }
 
     private static func validCapabilities(

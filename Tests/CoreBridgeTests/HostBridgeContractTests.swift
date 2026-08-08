@@ -75,7 +75,7 @@ enum HostEventRecorder {
 /// coexist with the viewer ABI v5, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
-    private static let hostABIVersion: UInt32 = 6
+    private static let hostABIVersion: UInt32 = 7
     private static let hostMediaABIVersion: UInt32 = 1
     private static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
 
@@ -340,7 +340,7 @@ final class HostBridgeContractTests: XCTestCase {
         let snapshotDict = liveRegistration
             ? try waitUntilRegistered(host)
             : try copyDictionary(host)
-        XCTAssertEqual(snapshotDict["schemaVersion"] as? Int, 4)
+        XCTAssertEqual(snapshotDict["schemaVersion"] as? Int, 5)
         XCTAssertTrue(snapshotDict["pendingApproval"] is NSNull)
         XCTAssertTrue(snapshotDict["activeSession"] is NSNull)
         XCTAssertEqual(
