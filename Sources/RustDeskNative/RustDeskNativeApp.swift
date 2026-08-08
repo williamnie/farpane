@@ -150,6 +150,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var coreClient: RustDeskCoreClient?
     private var hostClient: HostControlClient?
     private var hostRuntimeActive = false
+    private var hostRuntimeQuiescenceConfirmed = true
     private var hostMediaPipeline: HostMediaPipeline?
     private var hostMediaEvidenceWriter: HostMediaTelemetryEvidenceWriter?
     private var hostMediaLiveLogWriter: HostMediaTelemetryLiveLogWriter?
@@ -178,6 +179,26 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var startedAt = Date()
     private var didFinish = false
     private var automatedRun = false
+    private lazy var hostAgentLegacyMigrationCoordinator =
+        HostAgentLegacyHostMigrationCoordinator(
+            captureEvidence: { [weak self] in
+                guard Thread.isMainThread else {
+                    return HostAgentLegacyHostProductEvidencePolicy
+                        .unavailableEvidence
+                }
+                return MainActor.assumeIsolated {
+                    self?.captureLegacyHostMigrationEvidence()
+                        ?? HostAgentLegacyHostProductEvidencePolicy
+                        .unavailableEvidence
+                }
+            },
+            requestQuiescence: { [weak self] in
+                guard Thread.isMainThread else { return .failed }
+                return MainActor.assumeIsolated {
+                    self?.requestLegacyHostQuiescence() ?? .failed
+                }
+            }
+        )
 
     static func main() {
         if RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments)
@@ -501,8 +522,59 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         refreshHomeUI()
     }
 
+    @MainActor
+    private func captureLegacyHostMigrationEvidence()
+        -> HostAgentLegacyHostMigrationEvidence
+    {
+        HostAgentLegacyHostProductEvidencePolicy.evidence(
+            HostAgentLegacyHostProductObservation(
+                preferenceEnabled: UserDefaults.standard.bool(
+                    forKey: Self.hostEnabledDefaultsKey
+                ),
+                runtimeActive: hostRuntimeActive,
+                clientRetained: hostClient != nil,
+                session: hostSnapshot.map { snapshot in
+                    .available(
+                        pendingApproval: snapshot.pendingApproval != nil,
+                        activeSession: snapshot.activeSession != nil
+                    )
+                } ?? .unavailable,
+                mediaPipelineActive: hostMediaPipeline != nil,
+                pollerActive: hostPollTimer != nil,
+                runtimeQuiescenceConfirmed: hostRuntimeQuiescenceConfirmed
+            )
+        )
+    }
+
+    @MainActor
+    private func requestLegacyHostQuiescence()
+        -> HostAgentLegacyHostQuiescenceRequestResult
+    {
+        guard hostSnapshot?.pendingApproval == nil,
+              hostSnapshot?.activeSession == nil
+        else { return .failed }
+        return stopHostMode(
+            preservePreference: false,
+            reason: .userRequest,
+            releaseClient: true
+        ) ? .completed : .failed
+    }
+
+    @MainActor
+    @discardableResult
+    private func prepareLegacyHostForBackgroundRegistration() -> Bool {
+        hostAgentLegacyMigrationCoordinator.apply(
+            .prepareForBackgroundRegistration
+        )
+    }
+
     private func startHostMode() {
         guard !hostRuntimeActive else { return }
+        guard hostRuntimeQuiescenceConfirmed else {
+            hostStatusText = "停止状态待确认"
+            hostErrorText = "无法确认旧的被控端已停止；请重新启动 FarPane 后重试。"
+            return
+        }
         guard coreClient == nil else {
             hostStatusText = "远程控制期间已暂停"
             hostErrorText = ""
@@ -547,6 +619,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 serverPublicKey: server.serverPublicKey
             ))
             hostRuntimeActive = true
+            hostRuntimeQuiescenceConfirmed = true
             refreshHostSnapshot()
             hostPollTimer?.invalidate()
             hostPollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
@@ -562,11 +635,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    @discardableResult
     private func stopHostMode(
         preservePreference: Bool,
         reason: HostStopReason,
         releaseClient: Bool = false
-    ) {
+    ) -> Bool {
         hostPollTimer?.invalidate()
         hostPollTimer = nil
         hostPasswordHideTimer?.invalidate()
@@ -585,18 +659,32 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         if !preservePreference {
             UserDefaults.standard.set(false, forKey: Self.hostEnabledDefaultsKey)
         }
-        do {
-            if hostRuntimeActive {
-                try hostClient?.stop(reason: reason)
+        var stopSucceeded = hostRuntimeQuiescenceConfirmed
+        if hostRuntimeActive, hostRuntimeQuiescenceConfirmed {
+            if let hostClient {
+                do {
+                    try hostClient.stop(reason: reason)
+                    stopSucceeded = true
+                } catch {
+                    stopSucceeded = false
+                    hostErrorText = sanitizedHostError(error)
+                }
+            } else {
+                stopSucceeded = false
+                hostErrorText = "无法确认被控端已停止；请重新启动 FarPane 后重试。"
             }
-            hostErrorText = ""
-        } catch {
-            hostErrorText = sanitizedHostError(error)
         }
-        hostRuntimeActive = false
-        if releaseClient { hostClient = nil }
-        hostStatusText = preservePreference ? "远程控制期间已暂停" : "已关闭"
+        if stopSucceeded {
+            hostErrorText = ""
+            hostRuntimeActive = false
+        }
+        hostRuntimeQuiescenceConfirmed = stopSucceeded
+        if releaseClient, stopSucceeded { hostClient = nil }
+        hostStatusText = stopSucceeded
+            ? (preservePreference ? "远程控制期间已暂停" : "已关闭")
+            : "停止状态待确认"
         recordHostRuntimeStateEvidence(force: true)
+        return stopSucceeded
     }
 
     @discardableResult
@@ -1753,8 +1841,17 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         usedStoredCredential: Bool
     ) {
         guard activeAttemptID == nil, let server = catalog.server, server.isComplete else { return }
-        if hostRuntimeActive || hostClient != nil {
-            stopHostMode(preservePreference: true, reason: .userRequest, releaseClient: true)
+        if hostRuntimeActive || hostClient != nil
+            || !hostRuntimeQuiescenceConfirmed {
+            guard stopHostMode(
+                preservePreference: true,
+                reason: .userRequest,
+                releaseClient: true
+            ) else {
+                homeErrorText = "无法确认被控端已停止，已取消本次连接；请重新启动 FarPane 后重试。"
+                refreshHomeUI()
+                return
+            }
         }
         let attemptID = UUID()
         activeAttemptID = attemptID
@@ -1979,8 +2076,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             homeErrorText = ""
             if serverChanged,
                UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey) {
-                stopHostMode(preservePreference: true, reason: .userRequest)
-                startHostMode()
+                if stopHostMode(
+                    preservePreference: true,
+                    reason: .userRequest
+                ) {
+                    startHostMode()
+                }
             }
         } catch {
             homeErrorText = "本地设备列表保存失败，请检查磁盘权限后重试。"
