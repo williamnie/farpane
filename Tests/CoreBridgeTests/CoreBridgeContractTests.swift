@@ -386,6 +386,38 @@ final class CoreBridgeContractTests: XCTestCase {
         ))
         XCTAssertLessThan(mediaCancel.lowerBound, pollingCancel.lowerBound)
 
+        let ownerURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentMediaPipelineOwner.swift"
+        )
+        let ownerSource = try String(contentsOf: ownerURL, encoding: .utf8)
+        XCTAssertTrue(ownerSource.contains(
+            "HostAgentMediaControlDeliveryGate()"
+        ))
+        XCTAssertTrue(ownerSource.contains("controlDeliveryGate.submit(control)"))
+        XCTAssertTrue(ownerSource.contains("controlDeliveryGate.activate"))
+        XCTAssertTrue(ownerSource.contains("controlDeliveryGate.cancelAndWait()"))
+        XCTAssertTrue(ownerSource.contains("controlIngress: controlDeliveryGate.snapshot()"))
+        let mediaControlActivation = try XCTUnwrap(
+            ownerSource.range(of: "controlDeliveryGate.activate")
+        )
+        let capabilityProbeStart = try XCTUnwrap(
+            ownerSource.range(of: "capabilityInFlight = true")
+        )
+        XCTAssertLessThan(
+            mediaControlActivation.lowerBound,
+            capabilityProbeStart.lowerBound
+        )
+        let mediaControlCancel = try XCTUnwrap(
+            ownerSource.range(of: "controlDeliveryGate.cancelAndWait()")
+        )
+        let mediaRouteCancel = try XCTUnwrap(
+            ownerSource.range(of: "routeOwner.cancelAndWait()")
+        )
+        XCTAssertLessThan(mediaControlCancel.lowerBound, mediaRouteCancel.lowerBound)
+        XCTAssertFalse(ownerSource.contains(
+            "guard case .active = state else {\n            condition.unlock()\n            return\n        }\n        condition.unlock()\n\n        switch control.command"
+        ))
+
         let appURL = repositoryRoot
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)

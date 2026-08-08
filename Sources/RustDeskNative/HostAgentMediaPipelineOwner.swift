@@ -30,6 +30,7 @@ struct HostAgentMediaPipelineSnapshot: Sendable {
     let rejectedDiagnostics: UInt64
     let lastMediaDiagnosticKind: HostMediaDiagnostic.Kind?
     let lastMediaDiagnosticRoute: HostMediaPipelineRouteIdentity?
+    let controlIngress: HostAgentMediaControlDeliverySnapshot
     let routeOwner: HostMediaPipelineRouteOwnerSnapshot
     let liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
 }
@@ -47,6 +48,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private let condition = NSCondition()
     private let runtimeBinding: HostAgentMediaRuntimeBinding
     private let status: HostAgentMediaPipelineStatus
+    private let controlDeliveryGate: HostAgentMediaControlDeliveryGate
     private let liveLogCoordinator: HostMediaPipelineLiveLogCoordinator
     private let liveLogPollingOwner: HostAgentMediaLiveLogPollingOwner
     private let routeOwner: HostMediaPipelineRouteOwner
@@ -61,6 +63,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         let liveLogCoordinator = HostMediaPipelineLiveLogCoordinator()
         self.runtimeBinding = runtimeBinding
         self.status = status
+        self.controlDeliveryGate = HostAgentMediaControlDeliveryGate()
         self.liveLogCoordinator = liveLogCoordinator
         self.liveLogPollingOwner = HostAgentMediaLiveLogPollingOwner(
             coordinator: liveLogCoordinator
@@ -108,6 +111,20 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             return false
         }
         state = .active
+        condition.unlock()
+
+        guard controlDeliveryGate.activate(deliver: { [weak self] control in
+            self?.deliver(control)
+        }) else {
+            cancelAndWait()
+            return false
+        }
+
+        condition.lock()
+        guard case .active = state else {
+            condition.unlock()
+            return false
+        }
         capabilityInFlight = true
         condition.unlock()
         _ = liveLogPollingOwner.start()
@@ -128,13 +145,13 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     }
 
     func handle(_ control: HostMediaControl) {
-        condition.lock()
-        guard case .active = state else {
-            condition.unlock()
-            return
+        let disposition = controlDeliveryGate.submit(control)
+        if disposition == .rejected {
+            status.recordControlRejection()
         }
-        condition.unlock()
+    }
 
+    private func deliver(_ control: HostMediaControl) {
         switch control.command {
         case .startCapture:
             // H4.1u has already recorded the pending route. Rust follows this
@@ -230,6 +247,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         condition.unlock()
         return status.snapshot(
             lifecycleStatus: lifecycleStatus,
+            controlIngress: controlDeliveryGate.snapshot(),
             routeOwner: routeOwner.snapshot(),
             liveLog: liveLogCoordinator.snapshot()
         )
@@ -260,6 +278,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             task?.cancel()
         }
 
+        controlDeliveryGate.cancelAndWait()
         liveLogPollingOwner.cancel()
         routeOwner.cancelAndWait()
         liveLogCoordinator.cancel()
@@ -744,6 +763,7 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
 
     func snapshot(
         lifecycleStatus: HostAgentMediaPipelineLifecycleStatus,
+        controlIngress: HostAgentMediaControlDeliverySnapshot,
         routeOwner: HostMediaPipelineRouteOwnerSnapshot,
         liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
     ) -> HostAgentMediaPipelineSnapshot {
@@ -761,6 +781,7 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
             rejectedDiagnostics: rejectedDiagnostics,
             lastMediaDiagnosticKind: lastMediaDiagnosticKind,
             lastMediaDiagnosticRoute: lastMediaDiagnosticRoute,
+            controlIngress: controlIngress,
             routeOwner: routeOwner,
             liveLog: liveLog
         )
