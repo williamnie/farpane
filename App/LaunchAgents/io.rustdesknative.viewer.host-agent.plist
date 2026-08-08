@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>io.rustdesknative.viewer.host-agent</string>
+    <key>BundleProgram</key>
+    <string>Contents/MacOS/RustDeskNative</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>RustDeskNative</string>
+        <string>--host-agent</string>
+    </array>
+    <key>MachServices</key>
+    <dict>
+        <key>io.rustdesknative.viewer.host-agent</key>
+        <true/>
+    </dict>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+    <key>KeepAlive</key>
+    <dict>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>ExitTimeOut</key>
+    <integer>10</integer>
+</dict>
+</plist>

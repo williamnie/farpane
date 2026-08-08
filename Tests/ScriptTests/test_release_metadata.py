@@ -24,6 +24,20 @@ class ReleaseMetadataTests(unittest.TestCase):
         for package in ("libyuv", "aom", "libvpx", "opus"):
             self.assertIn(f'"$vcpkg_license_root/{package}/copyright"', script)
 
+    def test_launch_agent_asset_is_bundled_before_app_signing(self) -> None:
+        script = (REPO_ROOT / "Scripts" / "build-universal.sh").read_text(
+            encoding="utf-8"
+        )
+        asset_name = "io.rustdesknative.viewer.host-agent.plist"
+
+        self.assertIn(f'App/LaunchAgents/{asset_name}', script)
+        self.assertIn(f'Contents/Library/LaunchAgents/{asset_name}', script)
+        self.assertIn("plutil -lint", script)
+        self.assertLess(
+            script.index(f'App/LaunchAgents/{asset_name}'),
+            script.index('codesign --force --sign "$signing_identity" --timestamp=none "$app_dir"'),
+        )
+
     def test_release_workflow_verifies_before_publishing(self) -> None:
         workflow = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(
             encoding="utf-8"

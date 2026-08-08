@@ -140,6 +140,10 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
                 "MachServices": [
                     "io.rustdesknative.viewer.host-agent": true,
                 ],
+                "LimitLoadToSessionType": "Aqua",
+                "KeepAlive": ["Crashed": true],
+                "ThrottleInterval": 10,
+                "ExitTimeOut": 10,
             ],
             format: .xml,
             options: 0
