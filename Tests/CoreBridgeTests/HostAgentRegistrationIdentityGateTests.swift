@@ -114,12 +114,10 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
         )
     }
 
-    func testProductAssessmentFailsClosedInTheSwiftPMTestBundle() throws {
+    func testProductAssessmentFailsClosedWithoutTheSignedAsset() {
         XCTAssertEqual(
-            HostAgentRegistrationIdentityGate.assessMainBundle(
-                launchAgentPlistData: try plistData()
-            ),
-            .invalidApplication
+            HostAgentRegistrationIdentityGate.assessMainBundle(),
+            .invalidLaunchAgent
         )
     }
 
