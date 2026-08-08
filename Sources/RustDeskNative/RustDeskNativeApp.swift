@@ -117,6 +117,18 @@ private extension HostMediaSubmissionDropReason {
     }
 }
 
+private enum HostAgentBootstrap {
+    private static let unavailableExitCode: Int32 = 69 // sysexits EX_UNAVAILABLE
+
+    /// H4.1a only reserves and isolates the process role. Until the dedicated
+    /// config ownership and authenticated XPC runtime exist, starting a second
+    /// HostCore would violate the single-writer/session contract.
+    static func failClosed() -> Never {
+        fputs("FarPane HostAgent runtime is not available in this build.\n", stderr)
+        exit(unavailableExitCode)
+    }
+}
+
 @main
 private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
     private static let hostEnabledDefaultsKey = "farpane.host.enabled"
@@ -177,6 +189,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var automatedRun = false
 
     static func main() {
+        if RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments)
+            == .hostAgent {
+            HostAgentBootstrap.failClosed()
+        }
         let application = NSApplication.shared
         let delegate = AppDelegate()
         application.delegate = delegate

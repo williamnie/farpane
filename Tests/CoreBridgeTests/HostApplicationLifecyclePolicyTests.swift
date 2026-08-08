@@ -2,6 +2,25 @@ import CoreBridge
 import XCTest
 
 final class HostApplicationLifecyclePolicyTests: XCTestCase {
+    func testProductProcessModeRecognizesOnlyExactHostAgentFlag() {
+        XCTAssertEqual(
+            RustDeskNativeProcessModePolicy.resolve(arguments: ["FarPane"]),
+            .application
+        )
+        XCTAssertEqual(
+            RustDeskNativeProcessModePolicy.resolve(arguments: [
+                "FarPane", "--fixture", "sample.h265", "--host-agent",
+            ]),
+            .hostAgent
+        )
+        XCTAssertEqual(
+            RustDeskNativeProcessModePolicy.resolve(arguments: [
+                "FarPane", "--host-agent=false",
+            ]),
+            .application
+        )
+    }
+
     func testLastWindowCloseKeepsActiveHostAlive() {
         XCTAssertFalse(
             HostApplicationLifecyclePolicy.shouldTerminateAfterLastWindowClosed(
