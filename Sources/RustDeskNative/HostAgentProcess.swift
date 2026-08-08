@@ -29,6 +29,7 @@ enum HostAgentProcess {
             },
             startRuntime: {
                 let result = HostAgentProcessStartup.prepare(
+                    snapshotState: snapshotState,
                     prepareTermination: {
                         mediaState.cancelAndWait()
                         mediaPipelineOwner.cancelAndWait()

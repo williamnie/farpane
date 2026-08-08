@@ -7,6 +7,7 @@ import Foundation
 /// loop remains intentionally disabled until its lifecycle owner is complete.
 enum HostAgentProcessStartup {
     static func prepare(
+        snapshotState: HostAgentSnapshotState,
         eventQueue: DispatchQueue = DispatchQueue(
             label: "io.farpane.host-agent.startup-events",
             qos: .userInitiated
@@ -17,6 +18,7 @@ enum HostAgentProcessStartup {
         HostAgentProcessStartupRunner.start(
             startRuntime: {
                 let runtime = try HostAgentProcessRuntime.start(
+                    snapshotState: snapshotState,
                     eventQueue: eventQueue,
                     onEvent: onEvent
                 )

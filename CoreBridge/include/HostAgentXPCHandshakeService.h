@@ -11,6 +11,14 @@ NS_ASSUME_NONNULL_BEGIN
     NS_SWIFT_NAME(performHandshake(requestData:reply:));
 @end
 
+/// Snapshot-first extension used only after the inherited handshake has
+/// negotiated a compatible wire version on the same XPC connection.
+@protocol RDNHostAgentXPCSnapshotService <RDNHostAgentXPCHandshakeService>
+- (void)fetchSnapshotWithRequestData:(NSData *)requestData
+                               reply:(void (^)(NSData * _Nullable responseData))reply
+    NS_SWIFT_NAME(fetchSnapshot(requestData:reply:));
+@end
+
 NS_ASSUME_NONNULL_END
 
 #endif

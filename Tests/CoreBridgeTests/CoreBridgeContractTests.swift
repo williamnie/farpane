@@ -316,6 +316,8 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         let runtimeSource = try String(contentsOf: runtimeURL, encoding: .utf8)
         XCTAssertTrue(runtimeSource.contains("ownedRuntime.copySnapshot()"))
+        XCTAssertTrue(runtimeSource.contains("snapshotState: HostAgentSnapshotState"))
+        XCTAssertTrue(runtimeSource.contains("snapshotState: snapshotState"))
         let lifetimeURL = repositoryRoot.appendingPathComponent(
             "Sources/RustDeskNative/HostAgentProcessLifetime.swift"
         )

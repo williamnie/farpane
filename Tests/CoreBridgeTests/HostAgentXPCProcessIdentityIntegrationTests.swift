@@ -109,6 +109,9 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
         XCTAssertTrue(runtimeSource.contains(
             "identityAuthority: xpcIdentityAuthority"
         ))
+        XCTAssertTrue(runtimeSource.contains(
+            "snapshotState: snapshotState"
+        ))
         XCTAssertTrue(runtimeSource.contains("xpcAdmissionOwner"))
         XCTAssertTrue(lifetimeSource.contains(
             "func activateXPCListener() throws"

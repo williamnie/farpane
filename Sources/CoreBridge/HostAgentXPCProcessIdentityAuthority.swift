@@ -129,8 +129,8 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
         return true
     }
 
-    /// Serializes a connection's handshake-only configuration and resume with
-    /// identity invalidation. The body must not re-enter this authority.
+    /// Serializes authenticated service configuration/resume with identity
+    /// invalidation. The body must not re-enter this authority.
     package func withReadyIdentityForAdmission<T>(
         _ body: (HostAgentXPCWireAgentIdentity) -> T
     ) -> T? {
