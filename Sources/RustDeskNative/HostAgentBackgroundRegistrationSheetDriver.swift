@@ -4,7 +4,8 @@ import CoreBridge
 /// AppKit rendering boundary for H4.2o typed registration prompts. The driver
 /// owns at most one sheet and validates both a private presentation token and
 /// the UX generation before mapping a response back to the owner. It is not
-/// connected to the legacy in-process Host toggle or App lifecycle yet.
+/// lazily composed by the App, but remains inert until a future explicit UI
+/// intent calls `begin`; it is not connected to App lifecycle automation.
 final class HostAgentBackgroundRegistrationSheetDriver {
     typealias Completion = (HostAgentBackgroundRegistrationUXView) -> Void
     typealias Update = (HostAgentBackgroundRegistrationUXView) -> Void

@@ -155,13 +155,16 @@ final class HostAgentLegacyHostProductEvidencePolicyTests: XCTestCase {
             appSource.components(
                 separatedBy: "prepareLegacyHostForBackgroundRegistration()"
             ).count - 1,
-            1
+            2
         )
         XCTAssertFalse(homeSource.contains(
             "prepareLegacyHostForBackgroundRegistration"
         ))
+        XCTAssertTrue(appSource.contains(
+            "private lazy var hostAgentBackgroundRegistrationSheetDriver"
+        ))
         XCTAssertFalse(appSource.contains(
-            "HostAgentBackgroundRegistrationSheetDriver"
+            "hostAgentBackgroundRegistrationSheetDriver.begin("
         ))
     }
 

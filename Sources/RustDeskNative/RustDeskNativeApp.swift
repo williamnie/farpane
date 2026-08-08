@@ -169,6 +169,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostTemporaryPassword = ""
     private var hostStatusText = "已关闭"
     private var hostErrorText = ""
+    private var hostAgentBackgroundRegistrationPresentation:
+        HostAgentBackgroundRegistrationPresentation?
     private var hostPollTimer: Timer?
     private var hostPasswordHideTimer: Timer?
     private var keyboardController: ExclusiveKeyboardController?
@@ -196,6 +198,40 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 guard Thread.isMainThread else { return .failed }
                 return MainActor.assumeIsolated {
                     self?.requestLegacyHostQuiescence() ?? .failed
+                }
+            }
+        )
+    private lazy var hostAgentBackgroundRegistrationSheetDriver =
+        HostAgentBackgroundRegistrationSheetDriver.makeProduct(
+            performMigrationPreparation: { [weak self] in
+                guard Thread.isMainThread else {
+                    return (
+                        false,
+                        HostAgentLegacyHostMigrationCoordinatorView(
+                            phase: .failed(
+                                .assessment(.evidenceUnavailable)
+                            )
+                        )
+                    )
+                }
+                return MainActor.assumeIsolated {
+                    self?.prepareLegacyHostForBackgroundRegistration()
+                        ?? (
+                            false,
+                            HostAgentLegacyHostMigrationCoordinatorView(
+                                phase: .failed(
+                                    .assessment(.evidenceUnavailable)
+                                )
+                            )
+                        )
+                }
+            },
+            onUpdate: { [weak self] view in
+                guard Thread.isMainThread else { return }
+                MainActor.assumeIsolated {
+                    self?.applyHostAgentBackgroundRegistrationPresentation(
+                        view
+                    )
                 }
             }
         )
@@ -393,7 +429,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 isEnabled: UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey),
                 isRunning: hostRuntimeActive,
                 isStreaming: hostMediaRoute != nil,
-                statusText: hostStatusText,
+                statusText: hostAgentBackgroundRegistrationPresentation?
+                    .statusText ?? hostStatusText,
                 localID: hostSnapshot?.localId ?? "",
                 temporaryPassword: hostTemporaryPassword,
                 localPermanentPasswordSet: hostSnapshot?.passwordPolicy.localPasswordSet ?? false,
@@ -412,7 +449,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let bootstrapError = hostAgentBootstrapState == .degraded
             ? "后台 Host 配置暂时不可用。"
             : ""
-        return [hostErrorText, bootstrapError]
+        return [
+            hostErrorText,
+            hostAgentBackgroundRegistrationPresentation?.errorText ?? "",
+            bootstrapError,
+        ]
             .filter { !$0.isEmpty }
             .joined(separator: "\n")
     }
@@ -570,6 +611,17 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             .prepareForBackgroundRegistration
         )
         return (accepted, hostAgentLegacyMigrationCoordinator.snapshot())
+    }
+
+    @MainActor
+    private func applyHostAgentBackgroundRegistrationPresentation(
+        _ view: HostAgentBackgroundRegistrationUXView
+    ) {
+        hostAgentBackgroundRegistrationPresentation =
+            HostAgentBackgroundRegistrationPresentationPolicy.presentation(
+                for: view
+            )
+        refreshHomeUI()
     }
 
     private func startHostMode() {
