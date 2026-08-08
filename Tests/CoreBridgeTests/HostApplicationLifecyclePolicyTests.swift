@@ -127,4 +127,60 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
             unavailableReason: .remoteDisabled
         ))
     }
+
+    func testActiveAquaSessionAllowsCaptureOnlyForUnlockedLoggedInConsoleUser() {
+        XCTAssertTrue(HostActiveAquaSessionPolicy.isAvailable(
+            onConsole: true,
+            loginDone: true,
+            screenLocked: false
+        ))
+        XCTAssertTrue(HostActiveAquaSessionPolicy.isAvailable(
+            onConsole: true,
+            loginDone: true,
+            screenLocked: nil
+        ))
+        XCTAssertTrue(HostActiveAquaSessionPolicy.isAvailable(sessionDictionary: [
+            "kCGSSessionOnConsoleKey": true,
+            "kCGSessionLoginDoneKey": true,
+        ]))
+
+        XCTAssertFalse(HostActiveAquaSessionPolicy.isAvailable(
+            onConsole: false,
+            loginDone: true,
+            screenLocked: false
+        ))
+        XCTAssertFalse(HostActiveAquaSessionPolicy.isAvailable(
+            onConsole: true,
+            loginDone: false,
+            screenLocked: false
+        ))
+        XCTAssertFalse(HostActiveAquaSessionPolicy.isAvailable(
+            onConsole: true,
+            loginDone: true,
+            screenLocked: true
+        ))
+    }
+
+    func testActiveAquaSessionPolicyFailsClosedWhenRequiredFlagsAreMissing() {
+        XCTAssertFalse(HostActiveAquaSessionPolicy.isAvailable(
+            onConsole: nil,
+            loginDone: true,
+            screenLocked: false
+        ))
+        XCTAssertFalse(HostActiveAquaSessionPolicy.isAvailable(
+            onConsole: true,
+            loginDone: nil,
+            screenLocked: false
+        ))
+
+        XCTAssertFalse(HostActiveAquaSessionPolicy.isAvailable(sessionDictionary: [
+            "kCGSSessionOnConsoleKey": 1,
+            "kCGSessionLoginDoneKey": true,
+        ]))
+        XCTAssertFalse(HostActiveAquaSessionPolicy.isAvailable(sessionDictionary: [
+            "kCGSSessionOnConsoleKey": true,
+            "kCGSessionLoginDoneKey": true,
+            "CGSSessionScreenIsLocked": "false",
+        ]))
+    }
 }

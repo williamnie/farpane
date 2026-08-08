@@ -164,6 +164,23 @@ class HostMediaLiveAnalyzerTests(unittest.TestCase):
         self.assertEqual(result["sourceSchemaVersion"], 1)
         self.assertNotIn("captureCallbackCount", result)
 
+    def test_accepts_capture_suspended_as_a_final_capture_lifecycle_event(self) -> None:
+        records = self._valid_records()
+        records[-1]["event"] = "captureSuspended"
+        self._write(records)
+        legacy_result = ANALYZER.analyze(self.log_path)
+        self.assertEqual(legacy_result["validationStatus"], "fail")
+
+        for record in records:
+            record["schemaVersion"] = 3
+        self._write(records)
+
+        result = ANALYZER.analyze(self.log_path)
+
+        self.assertEqual(result["validationStatus"], "pass")
+        self.assertEqual(result["recordCount"], 5)
+        self.assertEqual(result["periodicSampleCount"], 3)
+
     def test_fails_closed_on_invalid_or_nonmonotonic_v2_capture_counts(self) -> None:
         records = self._valid_records()
         records[1]["captureFrameStatusCounts"]["rawStatus"] = 99

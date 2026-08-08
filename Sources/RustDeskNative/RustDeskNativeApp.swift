@@ -152,6 +152,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostMediaLiveLogWriter: HostMediaTelemetryLiveLogWriter?
     private var hostRuntimeStateEvidenceWriter: HostRuntimeStateEvidenceWriter?
     private var hostMediaRoute: HostMediaControl?
+    private var hostMediaSuspendedForSessionUnavailable = false
     private var hostMediaStatusText: String?
     private var hostMediaGeneration: UInt64 = 0
     private var hostMediaCapabilitiesInstanceID = ""
@@ -575,6 +576,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             let snapshot = try hostClient.copySnapshot()
             hostSnapshot = snapshot
             refreshed = true
+            syncHostMediaCaptureAvailability(activeSession: snapshot.activeSession)
             hostSessionCommandGate.observe(
                 connectionID: snapshot.activeSession?.connectionId,
                 activeCapabilities: snapshot.activeSession?.activeCapabilities ?? []
@@ -608,6 +610,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 requestAttentionForPendingHostApproval()
             }
         } catch {
+            suspendHostMediaPipelineForSessionUnavailable()
             removeHostSessionStatusItem()
             hostStatusText = "状态不可用"
             hostErrorText = sanitizedHostError(error)
@@ -1070,6 +1073,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    private func syncHostMediaCaptureAvailability(activeSession: HostActiveSession?) {
+        guard hostMediaRoute != nil else { return }
+        if activeSession == nil || !HostActiveAquaSessionAuthority.currentSessionIsAvailable() {
+            suspendHostMediaPipelineForSessionUnavailable()
+        } else {
+            resumeHostMediaPipelineAfterSessionRecovery()
+        }
+    }
+
     private func handleHostMediaDiagnostic(_ diagnostic: HostMediaDiagnostic) {
         guard let route = hostMediaRoute, diagnostic.matchesRoute(route) else { return }
         switch diagnostic.kind {
@@ -1179,6 +1191,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
               let snapshot = hostSnapshot,
               let client = hostClient else {
             hostErrorText = "Host 媒体参数无效，已拒绝开始采集。"
+            refreshHomeUI()
+            return
+        }
+        if snapshot.activeSession == nil
+            || !HostActiveAquaSessionAuthority.currentSessionIsAvailable() {
+            stopHostMediaPipeline()
+            hostMediaRoute = control
+            hostMediaSuspendedForSessionUnavailable = true
+            hostMediaStatusText = "当前 Mac 会话不可用，画面采集已暂停"
+            recordHostRuntimeStateEvidence(force: true)
             refreshHomeUI()
             return
         }
@@ -1358,6 +1380,60 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    private func suspendHostMediaPipelineForSessionUnavailable() {
+        guard !hostMediaSuspendedForSessionUnavailable || hostMediaPipeline != nil else { return }
+        guard let route = hostMediaRoute else { return }
+        hostMediaSuspendedForSessionUnavailable = true
+        guard let pipeline = hostMediaPipeline else {
+            hostMediaStatusText = "当前 Mac 会话不可用，画面采集已暂停"
+            recordHostRuntimeStateEvidence(force: true)
+            return
+        }
+
+        hostMediaGeneration &+= 1
+        let evidenceWriter = hostMediaEvidenceWriter
+        let liveLogWriter = hostMediaLiveLogWriter
+        hostMediaPipeline = nil
+        hostMediaEvidenceWriter = nil
+        hostMediaLiveLogWriter = nil
+        hostMediaStatusText = "当前 Mac 会话不可用，画面采集已暂停"
+        recordHostRuntimeStateEvidence(force: true)
+        pipeline.cancel()
+        Task {
+            await pipeline.stop()
+            if let evidenceWriter {
+                do {
+                    try evidenceWriter.write(snapshot: pipeline.telemetry.snapshot())
+                } catch {
+                    fputs("Host telemetry evidence write failed.\n", stderr)
+                }
+            }
+            if let liveLogWriter {
+                do {
+                    try liveLogWriter.record(
+                        snapshot: pipeline.telemetry.snapshot(),
+                        event: .captureSuspended
+                    )
+                } catch {
+                    fputs("Host media live log write failed.\n", stderr)
+                }
+            }
+        }
+        // The Rust route remains authoritative while only the process-local
+        // capture/encoder pipeline is stopped. This exact route is reused when
+        // the same Aqua session becomes available again.
+        hostMediaRoute = route
+    }
+
+    private func resumeHostMediaPipelineAfterSessionRecovery() {
+        guard hostMediaSuspendedForSessionUnavailable,
+              hostMediaPipeline == nil,
+              let route = hostMediaRoute else { return }
+        hostMediaSuspendedForSessionUnavailable = false
+        hostMediaStatusText = "当前 Mac 会话已恢复，正在恢复画面…"
+        startHostMediaPipeline(control: route)
+    }
+
     private func stopHostMediaPipeline() {
         hostMediaGeneration &+= 1
         let pipeline = hostMediaPipeline
@@ -1367,6 +1443,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostMediaEvidenceWriter = nil
         hostMediaLiveLogWriter = nil
         hostMediaRoute = nil
+        hostMediaSuspendedForSessionUnavailable = false
         hostMediaStatusText = nil
         recordHostRuntimeStateEvidence(force: true)
         pipeline?.cancel()
