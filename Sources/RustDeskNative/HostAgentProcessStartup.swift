@@ -12,13 +12,14 @@ enum HostAgentProcessStartup {
             qos: .userInitiated
         ),
         onEvent: @escaping @Sendable (HostCoreEvent) -> Void
-    ) -> Result<HostAgentProcessRuntime, HostAgentStartupFailure> {
+    ) -> Result<HostAgentProcessLifetime, HostAgentStartupFailure> {
         HostAgentProcessStartupRunner.start(
             startRuntime: {
-                try HostAgentProcessRuntime.start(
+                let runtime = try HostAgentProcessRuntime.start(
                     eventQueue: eventQueue,
                     onEvent: onEvent
                 )
+                return HostAgentProcessLifetime(runtime: runtime)
             },
             classifyError: classify
         )
