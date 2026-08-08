@@ -336,6 +336,12 @@ Viewer ABI 现在要求 Character 的 hardware keycode 为零、Physical 的 Uni
 
 同次观察的编码/呈现帧率约为 9–12 FPS，随后约 8.3 FPS。它落在 adaptive cadence 的 low-motion 档附近，但当前没有“持续运动期间”的 cadence/encode/queue/renderer 时间序列，因此不能据此判定正常或异常，也不能把它作为 30 FPS 性能验收。若持续拖拽/滚动时仍保持该范围，应回到 H2 performance runner 分层定位。详见 `Evidence/HostMode/2026-08-08/h3-mini-input-acceptance.md`。
 
+## H3.4ac active Host last-window lifecycle
+
+Mini 现场退出证据确认 build `20260808124438` 没有 crash：AppKit 在关闭唯一窗口后执行了正常 termination，LaunchServices 记录 exit status 0；既有 `applicationShouldTerminateAfterLastWindowClosed` 无条件返回 true，使 `applicationWillTerminate` 随即停止 Host，因此远端断开。
+
+现在 last-window 决策以本进程 Host runtime 为权威：Host active 时关窗口只关闭产品窗口、不结束 Host；普通非 Host 会话仍保持原退出语义。再次从 Dock 打开 FarPane 会恢复被保留的窗口；显式 Quit 仍走原有有序 Host shutdown。策略定向测试 2/2、Swift 全量 130 项（4 项 built-core 条件跳过）0 failure、ScriptTests 20/20 与 Release executable build 均通过。安装态尚未更新，下一包仍需一次真实关窗→连接保持→Dock 重开验收。详见 `Evidence/HostMode/2026-08-08/h3-active-host-window-lifecycle.md`。
+
 ## H3 automatic completion audit
 
 按 §21 H3 与 §26.6 的交付/退出条件逐条核对后，H3 明确仍未完成，不能把 H3.3/H3.4 的内部输入安全工作等同于产品阶段完成：
