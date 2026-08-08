@@ -1572,6 +1572,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2e registration bundle identity preflight 已完成自动实现**。package-scoped 产品 preflight 只从 `Bundle.main` 读取并同时校验原始/解析后 URL，要求本地 bundle 精确位于 `/Applications/FarPane.app`，Info.plist 的 Bundle ID/package type/executable 固定为 `io.rustdesknative.viewer`/`APPL`/`RustDeskNative`，`CFBundleVersion` 与 H4.1 bootstrap 的 128-byte token 合同一致；用户目录副本、network URL、symlink 漂移、类型或 metadata 错误全部 fail closed。它只关闭 §13.1 非签名 identity 边界，Team ID/designated requirement/channel notarization 仍需独立证据。Apple 公共 `SMAppService` 没有保持注册的独立 stop API，而 unregister 会改变注册状态，故 crash recovery 与 `stopHostAgent` 的 lifecycle 冲突保持 open，未冻结 `KeepAlive`/`RunAtLoad`。本步不创建/打包 plist、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-registration-bundle-preflight.md`。
 
+> 更新（2026-08-08）：**H4.2f registration code-signature preflight 已完成自动实现**。产品只读 preflight 先执行 H4.2e，再由 Security.framework 以 check-all-architectures/check-nested-code/strict-validation 校验整个 App；固定 code requirement 同时要求 `io.rustdesknative.viewer`、Team ID `3J43F8H829` 与 Apple generic anchor，并按 Apple 官方证书 OID 区分 Apple Development 和 Developer ID Application，不读取个人 certificate CN。校验后只返回 identifier/Team/channel，证书链、路径、requirement 与底层错误不外泄；当前 `/Applications/FarPane.app` 的真实开发签名通过，其他 Apple authority fail closed。development 仅表示本地开发 channel，notarization/stapling/quarantine 继续由 H4.5 证明。本步不读取私钥、不修改 Keychain/App/service、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-registration-code-signature-preflight.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
