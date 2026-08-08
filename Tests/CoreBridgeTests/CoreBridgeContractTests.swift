@@ -84,9 +84,17 @@ final class CoreBridgeContractTests: XCTestCase {
         let contextPreparation = try XCTUnwrap(runtimeSource.range(
             of: "HostAgentBootstrapContext.prepare()"
         ))
+        let coreLocation = try XCTUnwrap(runtimeSource.range(
+            of: "HostAgentBundledCoreLocator.locate()"
+        ))
         let clientCreation = try XCTUnwrap(runtimeSource.range(of: "HostControlClient("))
 
+        XCTAssertLessThan(contextPreparation.lowerBound, coreLocation.lowerBound)
+        XCTAssertLessThan(coreLocation.lowerBound, clientCreation.lowerBound)
         XCTAssertLessThan(contextPreparation.lowerBound, clientCreation.lowerBound)
+        XCTAssertFalse(runtimeSource.contains("static func start(\n        libraryURL: URL"))
+        XCTAssertFalse(runtimeSource.contains("ProcessInfo.processInfo.environment"))
+        XCTAssertFalse(runtimeSource.contains("currentDirectoryPath"))
         XCTAssertTrue(runtimeSource.contains("bootstrapOwner: bootstrapContext"))
         XCTAssertTrue(runtimeSource.contains("let configuration = context.configuration"))
         XCTAssertTrue(runtimeSource.contains("configAppName: configuration.hostConfigAppName"))
