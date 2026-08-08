@@ -1636,6 +1636,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.2l signed LaunchAgent lifecycle asset 已完成自动实现**。LaunchAgent plist 现在是 exact allowlist contract：固定 label/BundleProgram/完整 argv/唯一 Mach service，并限制为 Aqua session；`KeepAlive={Crashed=true}` 只对真实 crash 自动重启，干净 exit 后回到 Mach-service demand，避免 `stopHostAgent` 在保持注册时立即被无条件拉起。`KeepAlive` 按本机 `launchd.plist(5)` 隐式提供首次 load，故禁止额外 `RunAtLoad`；throttle 与 SIGTERM→SIGKILL 宽限均固定 10 秒。任何缺失/替代 lifecycle、额外 EnvironmentVariables/log path/watch/process-type/disabled key 均 fail closed。仓库新增固定 plist，universal build 在 App 外层签名前 lint、复制、设为 0644 并 byte-compare，随后由 bundle signature seal；当前未调用 SMAppService、未安装或注册服务。详见 `Evidence/HostMode/2026-08-09/h4-launch-agent-lifecycle-asset.md`。
 
+> 更新（2026-08-09）：**H4.2m explicit registration mutation owner 已完成自动实现**。App 侧新增唯一、构造惰性的 typed owner，只有显式 `registerBackgroundAgent` / `unregisterBackgroundAgent` intent 才能触达固定 `SMAppService.agent(plistName:)`；注册紧邻 mutation 重跑 H4.2d–h/l signed identity/lifecycle gate，当前只允许已验证的本地 Apple Development channel，Developer ID 在 H4.5 notarization evidence 前继续拒绝。取消注册刻意不受当前 registration eligibility 阻断，保证损坏/升级后的恢复路径仍可用。register/unregister 返回或抛错均不直接决定结果，owner 随后读取权威 service status，分别发布 registered、requiresApproval、unregistered、not-effective 或 serviceUnavailable；因此 enabled/调用成功都不会冒充 H4.2a ready。mutation 期间并发 intent 与 observer 重入均拒绝，不保留 NSError、路径、签名或 build token。本步只建立尚未接 UI/App lifecycle 的产品 mutation capability；测试未调用 product mutation，未修改真实 Login Items、未启动 Agent、未打开 System Settings、未安装/部署/push。详见 `Evidence/HostMode/2026-08-09/h4-registration-mutation-owner.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
