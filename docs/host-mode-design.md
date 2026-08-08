@@ -1634,6 +1634,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.1af real pre-AppKit HostAgent dispatch 已完成自动实现**。`AppDelegate.main` 的 exact `--host-agent` role 分支现直接以 `HostAgentProcessBootstrap.run()` 返回值退出，调用严格早于首次 `NSApplication.shared` 与 `AppDelegate()`；旧的固定 `.unavailable`/69 占位已移除。真实 debug executable 的普通 build-path invocation 在 argv gate 返回 64，伪装固定 LaunchAgent argv0 后进入 signed asset gate 并因当前尚未打包 plist 返回 78；两条路径都只输出一行固定脱敏诊断，orchestrator 合同证明 rejection 不创建 state、不读取 bootstrap projection、不加载 Core 或联网。合法已安装 Apple Development Agent 现在具备进入完整 runtime 的代码路径，但本步没有安装/注册/启动该路径，真实启动、SIGTERM teardown 与重连仍待 Mini 验收；Developer ID 继续被 notarization gate 拒绝。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-real-dispatch.md`。
 
+> 更新（2026-08-09）：**H4.2l signed LaunchAgent lifecycle asset 已完成自动实现**。LaunchAgent plist 现在是 exact allowlist contract：固定 label/BundleProgram/完整 argv/唯一 Mach service，并限制为 Aqua session；`KeepAlive={Crashed=true}` 只对真实 crash 自动重启，干净 exit 后回到 Mach-service demand，避免 `stopHostAgent` 在保持注册时立即被无条件拉起。`KeepAlive` 按本机 `launchd.plist(5)` 隐式提供首次 load，故禁止额外 `RunAtLoad`；throttle 与 SIGTERM→SIGKILL 宽限均固定 10 秒。任何缺失/替代 lifecycle、额外 EnvironmentVariables/log path/watch/process-type/disabled key 均 fail closed。仓库新增固定 plist，universal build 在 App 外层签名前 lint、复制、设为 0644 并 byte-compare，随后由 bundle signature seal；当前未调用 SMAppService、未安装或注册服务。详见 `Evidence/HostMode/2026-08-09/h4-launch-agent-lifecycle-asset.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

@@ -4,6 +4,9 @@ set -euo pipefail
 repo_dir=${0:A:h:h}
 build_dir="$repo_dir/Build"
 app_dir="$build_dir/FarPane.app"
+launch_agent_source="$repo_dir/App/LaunchAgents/io.rustdesknative.viewer.host-agent.plist"
+launch_agent_dir="$app_dir/Contents/Library/LaunchAgents"
+launch_agent_target="$app_dir/Contents/Library/LaunchAgents/io.rustdesknative.viewer.host-agent.plist"
 build_number=${RDN_BUILD_NUMBER:-$(date +%Y%m%d%H%M)}
 signing_identity=${RDN_CODESIGN_IDENTITY:-}
 signing_mode=stable-identity
@@ -28,7 +31,8 @@ cd "$repo_dir"
 swift build -c release --arch arm64
 swift build -c release --arch x86_64
 
-mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources" "$app_dir/Contents/Frameworks"
+mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources" \
+  "$app_dir/Contents/Frameworks" "$launch_agent_dir"
 rm -f "$app_dir/Contents/Resources/SlopDesk-MIT.txt"
 rm -f "$app_dir/Contents/Resources/RustDesk-AGPL-3.0.txt"
 lipo -create \
@@ -37,6 +41,11 @@ lipo -create \
   -output "$app_dir/Contents/MacOS/RustDeskNative"
 cp "$repo_dir/App/Info.plist" "$app_dir/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$app_dir/Contents/Info.plist"
+/usr/bin/plutil -lint "$launch_agent_source" >/dev/null
+cp "$launch_agent_source" "$launch_agent_target"
+chmod 0644 "$launch_agent_target"
+/usr/bin/plutil -lint "$launch_agent_target" >/dev/null
+/usr/bin/cmp -s "$launch_agent_source" "$launch_agent_target"
 cp "$repo_dir/App/FarPane.icns" "$app_dir/Contents/Resources/FarPane.icns"
 cp "$repo_dir/THIRD_PARTY_NOTICES.md" "$app_dir/Contents/Resources/"
 cp "$repo_dir/LICENSE" "$app_dir/Contents/Resources/FarPane-AGPL-3.0.txt"

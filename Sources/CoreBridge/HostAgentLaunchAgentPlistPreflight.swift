@@ -9,16 +9,31 @@ package enum HostAgentLaunchAgentPlistPreflightError: Error, Equatable {
     case invalidBundleProgram
     case invalidProgramArguments
     case invalidMachServices
+    case invalidLifecyclePolicy
 }
 
-/// Validates the immutable product identity of the embedded LaunchAgent plist.
-/// Lifecycle policy keys remain outside this preflight until registration and
-/// restart semantics are implemented.
+/// Validates the complete immutable embedded LaunchAgent declaration. The job
+/// is Aqua-only, restarts only after an actual crash, and otherwise returns to
+/// Mach-service demand after a clean stop.
 package enum HostAgentLaunchAgentPlistPreflight {
     package static let label = "io.rustdesknative.viewer.host-agent"
     package static let bundleProgram = "Contents/MacOS/RustDeskNative"
     package static let programArguments = ["RustDeskNative", "--host-agent"]
     package static let maximumPayloadBytes = 64 * 1_024
+    package static let sessionType = "Aqua"
+    package static let throttleInterval = 10
+    package static let exitTimeOut = 10
+
+    private static let allowedKeys: Set<String> = [
+        "Label",
+        "BundleProgram",
+        "ProgramArguments",
+        "MachServices",
+        "LimitLoadToSessionType",
+        "KeepAlive",
+        "ThrottleInterval",
+        "ExitTimeOut",
+    ]
 
     private static let forbiddenKeys: Set<String> = [
         "Program",
@@ -48,6 +63,9 @@ package enum HostAgentLaunchAgentPlistPreflight {
         guard forbiddenKeys.isDisjoint(with: propertyList.keys) else {
             throw HostAgentLaunchAgentPlistPreflightError.forbiddenConfiguration
         }
+        guard propertyList.keys.allSatisfy(allowedKeys.contains) else {
+            throw HostAgentLaunchAgentPlistPreflightError.forbiddenConfiguration
+        }
         guard propertyList["Label"] as? String == label else {
             throw HostAgentLaunchAgentPlistPreflightError.invalidLabel
         }
@@ -59,6 +77,14 @@ package enum HostAgentLaunchAgentPlistPreflight {
         }
         guard hasExactMachService(propertyList["MachServices"]) else {
             throw HostAgentLaunchAgentPlistPreflightError.invalidMachServices
+        }
+        guard Set(propertyList.keys) == allowedKeys,
+              propertyList["LimitLoadToSessionType"] as? String == sessionType,
+              hasExactKeepAlive(propertyList["KeepAlive"]),
+              propertyList["ThrottleInterval"] as? Int == throttleInterval,
+              propertyList["ExitTimeOut"] as? Int == exitTimeOut
+        else {
+            throw HostAgentLaunchAgentPlistPreflightError.invalidLifecyclePolicy
         }
     }
 
@@ -73,5 +99,16 @@ package enum HostAgentLaunchAgentPlistPreflight {
 
         return CFGetTypeID(enabled as CFTypeRef) == CFBooleanGetTypeID()
             && (enabled as? Bool) == true
+    }
+
+    private static func hasExactKeepAlive(_ value: Any?) -> Bool {
+        guard let policy = value as? [String: Any],
+              policy.count == 1,
+              let crashed = policy["Crashed"]
+        else {
+            return false
+        }
+        return CFGetTypeID(crashed as CFTypeRef) == CFBooleanGetTypeID()
+            && (crashed as? Bool) == true
     }
 }
