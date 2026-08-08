@@ -1574,6 +1574,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2f registration code-signature preflight 已完成自动实现**。产品只读 preflight 先执行 H4.2e，再由 Security.framework 以 check-all-architectures/check-nested-code/strict-validation 校验整个 App；固定 code requirement 同时要求 `io.rustdesknative.viewer`、Team ID `3J43F8H829` 与 Apple generic anchor，并按 Apple 官方证书 OID 区分 Apple Development 和 Developer ID Application，不读取个人 certificate CN。校验后只返回 identifier/Team/channel，证书链、路径、requirement 与底层错误不外泄；当前 `/Applications/FarPane.app` 的真实开发签名通过，其他 Apple authority fail closed。development 仅表示本地开发 channel，notarization/stapling/quarantine 继续由 H4.5 证明。本步不读取私钥、不修改 Keychain/App/service、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-registration-code-signature-preflight.md`。
 
+> 更新（2026-08-08）：**H4.2g registration identity gate 已完成自动实现**。package-scoped 组合门禁固定按 LaunchAgent plist→main bundle→code signature 顺序收敛 H4.2d–f，任何一步失败都返回稳定脱敏状态并停止后续 inspector；签名 evidence 的 identifier/Team ID 在组合层再次精确核对。Apple Development 只得到带 packaged build ID 的 local-development eligibility，Developer ID 在没有 H4.5 独立 notarization evidence 时固定保持 distribution-notarization-required，不存在伪装 distribution-ready 的路径。产品 API 不接受 bundle/signature/path override；当前 gate 仍只验证候选 plist bytes，尚未证明它来自签名 bundle 的固定 asset，也未验证 lifecycle keys，故不能据此注册或显示后台 ready。本步不调用 ServiceManagement、不创建/打包 plist、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-registration-identity-gate.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
