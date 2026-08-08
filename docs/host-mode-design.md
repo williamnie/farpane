@@ -1495,6 +1495,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H3.4ad Native Host platform-authority transition revoke 已完成自动实现**。最终 adapter 已能即时拒绝 Accessibility/active Aqua 失效后的输入，但旧 connection permission、ordered cleanup 与 active capabilities 不会主动收敛；现在已认证 Remote 会话在既有一秒 timer 上复查同一 platform authority，失效时单向撤销 keyboard/mouse、旋转 epoch、排入 ordered Release，并同步 Viewer 与 recoverable active capabilities。disabled→platform recovered 不自动升权。未改 ABI/snapshot/protobuf/Hermes。定向 1/1、完整 Rust 131/131、release core、built-core Swift 133/133、ScriptTests 20/20、arm64 Release build 与 16 文件 clean replay 通过；未部署。`limited/sessionUnavailable` 原因、active Aqua 与 TCC 分离恢复、系统级 cleanup 和锁屏/FUS 真机证据仍待后续，H3 保持进行中。详见 `Evidence/HostMode/2026-08-08/h3-platform-authority-transition-revoke.md`。
 
+> 更新（2026-08-08）：**H3.4ae Native Host platform-authority recovery state 已完成自动实现**。平台 observation 现拆分 Accessibility trusted 与 active Aqua；connection-local state 只为“先前有效、随后 Aqua 暂时不可用”的会话 arm 同会话恢复，恢复时创建新的 permission generation 并同步 Viewer/active capabilities。Accessibility 任意时刻撤权都会清除 restore arm、锁存拒绝，系统重新 trusted 不会在旧会话自动升权；初始 locked/off-console 连接也不会因 unlock 自动新增控制能力。最终 adapter 的逐事件 gate 与 ordered Release 保持。未改 ABI/snapshot/protobuf/Hermes。状态矩阵 1/1、完整 Rust 131/131、release core、全新 inode 加载的 built-core Swift 133/133、ScriptTests 20/20、arm64 Release build 与 16 文件 clean replay 通过；未部署。`limited/sessionUnavailable` 原因、Secure Input、锁屏/FUS/TCC 真机 transition 仍待后续，H3 保持进行中。详见 `Evidence/HostMode/2026-08-08/h3-platform-authority-recovery-state.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
