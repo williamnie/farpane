@@ -46,7 +46,7 @@ class HostMediaLiveAnalyzerTests(unittest.TestCase):
             causes = ["networkDelay"] if observed_pressure != "none" else []
         return {
             "schema": "farpane-host-media-live",
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "sequence": sequence,
             "capturedAt": self._captured_at(sequence),
             "monotonicNanoseconds": sequence * 1_000_000_000,
@@ -62,6 +62,23 @@ class HostMediaLiveAnalyzerTests(unittest.TestCase):
             "captureAppliedFPS": applied_fps,
             "captureContentState": content_state,
             "captureDirtyMetadataTrusted": False,
+            "captureCallbackCount": sequence,
+            "captureFrameStatusCounts": {
+                "complete": sequence,
+                "idle": 0,
+                "blank": 0,
+                "suspended": 0,
+                "started": 0,
+                "stopped": 0,
+                "missingOrInvalid": 0,
+                "unknown": 0,
+            },
+            "captureCompleteDirtyRectsCounts": {
+                "absent": sequence,
+                "unrecognized": 0,
+                "recognizedEmpty": 0,
+                "recognizedNonEmpty": 0,
+            },
             "captureAppliedPressureLevel": applied_pressure,
             "captureObservedPressureLevel": observed_pressure,
             "capturePressureCauses": causes,
@@ -115,6 +132,7 @@ class HostMediaLiveAnalyzerTests(unittest.TestCase):
 
         self.assertEqual(result["validationStatus"], "pass")
         self.assertEqual(result["performanceVerdict"], "diagnostic-only")
+        self.assertEqual(result["sourceSchemaVersion"], 2)
         self.assertEqual(result["recordCount"], 5)
         self.assertEqual(result["periodicSampleCount"], 3)
         self.assertEqual(result["durationSeconds"], 2.0)
@@ -127,6 +145,49 @@ class HostMediaLiveAnalyzerTests(unittest.TestCase):
         self.assertEqual(len(result["regimes"]), 2)
         self.assertEqual(result["regimes"][0]["pressureCauses"], ["networkDelay"])
         self.assertEqual(result["regimes"][1]["observedPressure"], "none")
+        self.assertEqual(result["captureCallbackCount"], 5)
+        self.assertEqual(result["captureFrameStatusCounts"]["complete"], 5)
+        self.assertEqual(result["captureCompleteDirtyRectsCounts"]["absent"], 5)
+
+    def test_accepts_legacy_schema_v1_without_v2_capture_counts(self) -> None:
+        records = self._valid_records()
+        for record in records:
+            record["schemaVersion"] = 1
+            record.pop("captureCallbackCount")
+            record.pop("captureFrameStatusCounts")
+            record.pop("captureCompleteDirtyRectsCounts")
+        self._write(records)
+
+        result = ANALYZER.analyze(self.log_path)
+
+        self.assertEqual(result["validationStatus"], "pass")
+        self.assertEqual(result["sourceSchemaVersion"], 1)
+        self.assertNotIn("captureCallbackCount", result)
+
+    def test_fails_closed_on_invalid_or_nonmonotonic_v2_capture_counts(self) -> None:
+        records = self._valid_records()
+        records[1]["captureFrameStatusCounts"]["rawStatus"] = 99
+        records[2]["captureCompleteDirtyRectsCounts"].pop("recognizedEmpty")
+        records[3]["captureCompleteDirtyRectsCounts"]["absent"] = 3
+        records[4]["captureCallbackCount"] = 2
+        records[4]["captureFrameStatusCounts"]["complete"] = 2
+        records[4]["captureCompleteDirtyRectsCounts"]["absent"] = 2
+        self._write(records)
+
+        result = ANALYZER.analyze(self.log_path)
+
+        self.assertEqual(result["validationStatus"], "fail")
+        self.assertTrue(
+            any("unknown fields: rawStatus" in failure for failure in result["failures"])
+        )
+        self.assertTrue(
+            any("missing fields: recognizedEmpty" in failure for failure in result["failures"])
+        )
+        self.assertIn(
+            "record 4 dirty rect counts do not sum to complete frames",
+            result["failures"],
+        )
+        self.assertIn("captureCallbackCount moves backwards", result["failures"])
 
     def test_fails_closed_on_sequence_unknown_field_and_missing_final_event(self) -> None:
         records = self._valid_records()[:-1]
@@ -143,6 +204,23 @@ class HostMediaLiveAnalyzerTests(unittest.TestCase):
             any("unknown fields: password" in failure for failure in result["failures"])
         )
         self.assertNotIn("regimes", result)
+
+    def test_rejects_noninteger_schema_version_without_crashing(self) -> None:
+        records = self._valid_records()
+        records[0]["schemaVersion"] = []
+        self._write(records)
+
+        result = ANALYZER.analyze(self.log_path)
+
+        self.assertEqual(result["validationStatus"], "fail")
+        self.assertIn(
+            "record 1 has an unsupported schema version",
+            result["failures"],
+        )
+        self.assertIn(
+            "schema version is not an integer throughout the route",
+            result["failures"],
+        )
 
     def test_rejects_nonfinite_json_and_periodic_count_above_bound(self) -> None:
         malformed = json.dumps(self._record(1, "routeStarted")) + "\n"

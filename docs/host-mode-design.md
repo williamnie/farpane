@@ -1471,6 +1471,8 @@ flowchart TD
 
 > 真机结果（2026-08-08）：H2.2.14 build `20260808033459` 的安装 executable 与交付 ZIP hash 一致；158.45 秒/156 周期日志通过严格校验，但仍为 content 156/156 high-motion、dirty metadata 0/156 trusted、idle cadence 0。该 route 未连续提供可用 `SCFrameStatusIdle`，所以自动 fallback 没有改善静止判定，H2.2 仍未完成。下一小步先增加脱敏的 frame-status/dirty-attachment availability 分布，禁止用固定降帧或 CPU 全屏 diff 猜测修复。详见同一 H2.2.14 evidence。
 
+> 更新（2026-08-08）：**H2.2.15 ScreenCaptureKit metadata availability diagnostic 已完成自动实现**。capture callback 现原子累计脱敏 frame-status 分类，以及仅针对 complete frame 的 dirtyRects absent/unrecognized/recognized-empty/recognized-nonempty 分类；不保存原始 status、attachment 值、矩形、像素、身份或 payload。live JSONL 以 additive schema v2 输出累计计数，严格分析器仍兼容 v1，并对 v2 的精确 allowlist、计数守恒、非负与单调性 fail closed。cadence/pressure policy、Host ABI/wire/Hermes/route-stop schema 均未改变。真实 Mini 分布仍待新包静止→运动→静止日志，不能在此之前选择下一种 activity authority。详见 `Evidence/HostMode/2026-08-08/h2-sck-metadata-availability-diagnostic.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

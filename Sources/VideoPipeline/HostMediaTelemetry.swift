@@ -26,6 +26,33 @@ public struct HostMediaDropCounts: Equatable, Sendable {
   }
 }
 
+public struct HostCaptureFrameStatusCounts: Equatable, Sendable {
+  public let complete: Int
+  public let idle: Int
+  public let blank: Int
+  public let suspended: Int
+  public let started: Int
+  public let stopped: Int
+  public let missingOrInvalid: Int
+  public let unknown: Int
+
+  public var total: Int {
+    [complete, idle, blank, suspended, started, stopped, missingOrInvalid, unknown]
+      .reduce(0, +)
+  }
+}
+
+public struct HostCaptureDirtyRectsAttachmentCounts: Equatable, Sendable {
+  public let absent: Int
+  public let unrecognized: Int
+  public let recognizedEmpty: Int
+  public let recognizedNonEmpty: Int
+
+  public var total: Int {
+    absent + unrecognized + recognizedEmpty + recognizedNonEmpty
+  }
+}
+
 public struct HostMediaTelemetrySnapshot: Equatable, Sendable {
   public let codec: HostPipelineCodec
   public let requestedWidth: Int
@@ -35,6 +62,8 @@ public struct HostMediaTelemetrySnapshot: Equatable, Sendable {
   public let captureHeight: Int?
   public let pixelFormat: String?
   public let captureCallbacks: Int
+  public let captureFrameStatusCounts: HostCaptureFrameStatusCounts
+  public let captureCompleteDirtyRectsCounts: HostCaptureDirtyRectsAttachmentCounts
   public let validFrames: Int
   public let actualFPS: Double
   public let recentCaptureFPS: Double
@@ -155,6 +184,9 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
   private var captureHeight: Int?
   private var pixelFormat: String?
   private var captureCallbacks = 0
+  private var captureFrameStatusCounts: [HostCaptureFrameStatusKind: Int] = [:]
+  private var captureCompleteDirtyRectsCounts:
+    [HostCaptureDirtyRectsAttachmentState: Int] = [:]
   private var validFrames = 0
   private var firstValidFrameNS: UInt64?
   private var lastValidFrameNS: UInt64?
@@ -268,8 +300,14 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
     processTimer?.cancel()
   }
 
-  public func recordCaptureCallback() {
-    locked { captureCallbacks += 1 }
+  func recordCaptureSample(_ metadata: HostCaptureSampleMetadataAvailability) {
+    locked {
+      captureCallbacks += 1
+      captureFrameStatusCounts[metadata.frameStatus, default: 0] += 1
+      if let state = metadata.completeFrameDirtyRects {
+        captureCompleteDirtyRectsCounts[state, default: 0] += 1
+      }
+    }
   }
 
   public func recordCapturedFrame(_ frame: HostCapturedFrame) {
@@ -756,6 +794,22 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
         captureHeight: captureHeight,
         pixelFormat: pixelFormat,
         captureCallbacks: captureCallbacks,
+        captureFrameStatusCounts: HostCaptureFrameStatusCounts(
+          complete: captureFrameStatusCounts[.complete, default: 0],
+          idle: captureFrameStatusCounts[.idle, default: 0],
+          blank: captureFrameStatusCounts[.blank, default: 0],
+          suspended: captureFrameStatusCounts[.suspended, default: 0],
+          started: captureFrameStatusCounts[.started, default: 0],
+          stopped: captureFrameStatusCounts[.stopped, default: 0],
+          missingOrInvalid: captureFrameStatusCounts[.missingOrInvalid, default: 0],
+          unknown: captureFrameStatusCounts[.unknown, default: 0]
+        ),
+        captureCompleteDirtyRectsCounts: HostCaptureDirtyRectsAttachmentCounts(
+          absent: captureCompleteDirtyRectsCounts[.absent, default: 0],
+          unrecognized: captureCompleteDirtyRectsCounts[.unrecognized, default: 0],
+          recognizedEmpty: captureCompleteDirtyRectsCounts[.recognizedEmpty, default: 0],
+          recognizedNonEmpty: captureCompleteDirtyRectsCounts[.recognizedNonEmpty, default: 0]
+        ),
         validFrames: validFrames,
         actualFPS: actualFPS,
         recentCaptureFPS: recentCaptureFPS,

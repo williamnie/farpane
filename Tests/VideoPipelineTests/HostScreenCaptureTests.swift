@@ -1,4 +1,5 @@
 import CoreVideo
+import Foundation
 import ScreenCaptureKit
 import XCTest
 @testable import VideoPipeline
@@ -68,5 +69,73 @@ final class HostScreenCaptureTests: XCTestCase {
                 .ignore
             )
         }
+    }
+
+    func testClassifiesOnlySanitizedMetadataAvailability() {
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.metadataAvailability(from: nil),
+            HostCaptureSampleMetadataAvailability(
+                frameStatus: .missingOrInvalid,
+                completeFrameDirtyRects: nil
+            )
+        )
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.metadataAvailability(from: [
+                .status: NSNumber(value: 999),
+            ]),
+            HostCaptureSampleMetadataAvailability(
+                frameStatus: .unknown,
+                completeFrameDirtyRects: nil
+            )
+        )
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.metadataAvailability(from: [
+                .status: NSNumber(value: SCFrameStatus.complete.rawValue),
+            ]),
+            HostCaptureSampleMetadataAvailability(
+                frameStatus: .complete,
+                completeFrameDirtyRects: .absent
+            )
+        )
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.metadataAvailability(from: [
+                .status: NSNumber(value: SCFrameStatus.complete.rawValue),
+                .dirtyRects: "unexpected",
+            ]),
+            HostCaptureSampleMetadataAvailability(
+                frameStatus: .complete,
+                completeFrameDirtyRects: .unrecognized
+            )
+        )
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.metadataAvailability(from: [
+                .status: NSNumber(value: SCFrameStatus.complete.rawValue),
+                .dirtyRects: [NSValue](),
+            ]),
+            HostCaptureSampleMetadataAvailability(
+                frameStatus: .complete,
+                completeFrameDirtyRects: .recognizedEmpty
+            )
+        )
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.metadataAvailability(from: [
+                .status: NSNumber(value: SCFrameStatus.complete.rawValue),
+                .dirtyRects: [NSValue(rect: CGRect(x: 1, y: 2, width: 3, height: 4))],
+            ]),
+            HostCaptureSampleMetadataAvailability(
+                frameStatus: .complete,
+                completeFrameDirtyRects: .recognizedNonEmpty
+            )
+        )
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.metadataAvailability(from: [
+                .status: NSNumber(value: SCFrameStatus.idle.rawValue),
+                .dirtyRects: [NSValue(rect: CGRect(x: 1, y: 2, width: 3, height: 4))],
+            ]),
+            HostCaptureSampleMetadataAvailability(
+                frameStatus: .idle,
+                completeFrameDirtyRects: nil
+            )
+        )
     }
 }

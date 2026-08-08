@@ -16,7 +16,7 @@ from typing import Any
 
 
 SCHEMA = "farpane-host-media-live"
-SCHEMA_VERSION = 1
+SUPPORTED_SCHEMA_VERSIONS = {1, 2}
 MAXIMUM_PERIODIC_RECORDS = 3_600
 EVENTS = {"routeStarted", "periodic", "routeStopped", "routeStartFailed"}
 FINAL_EVENTS = {"routeStopped", "routeStartFailed"}
@@ -79,6 +79,27 @@ OPTIONAL_KEYS = {
     "lowPowerModeEnabled",
 }
 ALLOWED_KEYS = REQUIRED_KEYS | OPTIONAL_KEYS
+V2_REQUIRED_KEYS = {
+    "captureCallbackCount",
+    "captureFrameStatusCounts",
+    "captureCompleteDirtyRectsCounts",
+}
+FRAME_STATUS_COUNT_KEYS = {
+    "complete",
+    "idle",
+    "blank",
+    "suspended",
+    "started",
+    "stopped",
+    "missingOrInvalid",
+    "unknown",
+}
+DIRTY_RECTS_COUNT_KEYS = {
+    "absent",
+    "unrecognized",
+    "recognizedEmpty",
+    "recognizedNonEmpty",
+}
 
 
 def usage() -> None:
@@ -145,15 +166,19 @@ def validate_record(
     failures: list[str],
 ) -> None:
     label = f"record {index + 1}"
-    missing = REQUIRED_KEYS - record.keys()
-    unknown = record.keys() - ALLOWED_KEYS
+    schema_version = record.get("schemaVersion")
+    is_v2 = is_integer(schema_version) and schema_version == 2
+    required_keys = REQUIRED_KEYS | (V2_REQUIRED_KEYS if is_v2 else set())
+    allowed_keys = ALLOWED_KEYS | (V2_REQUIRED_KEYS if is_v2 else set())
+    missing = required_keys - record.keys()
+    unknown = record.keys() - allowed_keys
     if missing:
         failures.append(f"{label} is missing fields: {','.join(sorted(missing))}")
     if unknown:
         failures.append(f"{label} has unknown fields: {','.join(sorted(unknown))}")
     if record.get("schema") != SCHEMA:
         failures.append(f"{label} has an unexpected schema")
-    if record.get("schemaVersion") != SCHEMA_VERSION:
+    if not is_integer(schema_version) or schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         failures.append(f"{label} has an unsupported schema version")
     if not is_integer(record.get("sequence")) or record.get("sequence", 0) <= 0:
         failures.append(f"{label} has an invalid sequence")
@@ -248,6 +273,64 @@ def validate_record(
             or depth > capacity
         ):
             failures.append(f"{label} has an invalid encoded queue sample")
+    if is_v2:
+        validate_v2_capture_counts(record, label, failures)
+
+
+def validate_count_map(
+    value: Any,
+    expected_keys: set[str],
+    label: str,
+    failures: list[str],
+) -> bool:
+    if not isinstance(value, dict):
+        failures.append(f"{label} is not an object")
+        return False
+    missing = expected_keys - value.keys()
+    unknown = value.keys() - expected_keys
+    if missing:
+        failures.append(f"{label} is missing fields: {','.join(sorted(missing))}")
+    if unknown:
+        failures.append(f"{label} has unknown fields: {','.join(sorted(unknown))}")
+    if any(not is_integer(item) or item < 0 for item in value.values()):
+        failures.append(f"{label} has an invalid count")
+        return False
+    return not missing and not unknown
+
+
+def validate_v2_capture_counts(
+    record: dict[str, Any],
+    label: str,
+    failures: list[str],
+) -> None:
+    callback_count = record.get("captureCallbackCount")
+    callback_count_valid = is_integer(callback_count) and callback_count >= 0
+    if not callback_count_valid:
+        failures.append(f"{label} has an invalid captureCallbackCount")
+    frame_counts = record.get("captureFrameStatusCounts")
+    frame_counts_valid = validate_count_map(
+        frame_counts,
+        FRAME_STATUS_COUNT_KEYS,
+        f"{label} captureFrameStatusCounts",
+        failures,
+    )
+    dirty_counts = record.get("captureCompleteDirtyRectsCounts")
+    dirty_counts_valid = validate_count_map(
+        dirty_counts,
+        DIRTY_RECTS_COUNT_KEYS,
+        f"{label} captureCompleteDirtyRectsCounts",
+        failures,
+    )
+    if (
+        callback_count_valid
+        and frame_counts_valid
+        and sum(frame_counts.values()) != callback_count
+    ):
+        failures.append(f"{label} capture frame status counts do not sum to callbacks")
+    if frame_counts_valid and dirty_counts_valid and (
+        sum(dirty_counts.values()) != frame_counts["complete"]
+    ):
+        failures.append(f"{label} dirty rect counts do not sum to complete frames")
 
 
 def distribution(records: list[dict[str, Any]], field: str) -> dict[str, int]:
@@ -334,6 +417,43 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
             failures.append("a final lifecycle event must occur exactly once")
         if any(event != "periodic" for event in events[1:-1]):
             failures.append("non-periodic lifecycle event appears inside the route")
+        schema_versions = [record.get("schemaVersion") for record in records]
+        if not all(is_integer(version) for version in schema_versions):
+            failures.append("schema version is not an integer throughout the route")
+        elif len(set(schema_versions)) != 1:
+            failures.append("schema version changes inside the route")
+        elif schema_versions[0] == 2:
+            cumulative_fields = (
+                "captureCallbackCount",
+                "captureFrameStatusCounts",
+                "captureCompleteDirtyRectsCounts",
+            )
+            for field in cumulative_fields:
+                values = [record.get(field) for record in records]
+                if field == "captureCallbackCount":
+                    if all(is_integer(value) for value in values) and any(
+                        later < earlier
+                        for earlier, later in zip(values, values[1:])
+                    ):
+                        failures.append(f"{field} moves backwards")
+                    continue
+                expected_keys = (
+                    FRAME_STATUS_COUNT_KEYS
+                    if field == "captureFrameStatusCounts"
+                    else DIRTY_RECTS_COUNT_KEYS
+                )
+                if all(
+                    isinstance(value, dict)
+                    and value.keys() == expected_keys
+                    and all(is_integer(item) for item in value.values())
+                    for value in values
+                ):
+                    for key in expected_keys:
+                        if any(
+                            later[key] < earlier[key]
+                            for earlier, later in zip(values, values[1:])
+                        ):
+                            failures.append(f"{field}.{key} moves backwards")
 
     periodic = [record for record in records if record.get("event") == "periodic"]
     if len(periodic) > MAXIMUM_PERIODIC_RECORDS:
@@ -350,6 +470,12 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
         "recordCount": len(records),
         "periodicSampleCount": len(periodic),
     }
+    if records:
+        source_versions = [record.get("schemaVersion") for record in records]
+        if all(is_integer(version) for version in source_versions) and len(
+            set(source_versions)
+        ) == 1:
+            result["sourceSchemaVersion"] = source_versions[0]
     if failures or not periodic:
         return result
 
@@ -418,6 +544,18 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
             "regimes": regimes,
         }
     )
+    if records[-1]["schemaVersion"] == 2:
+        result.update(
+            {
+                "captureCallbackCount": records[-1]["captureCallbackCount"],
+                "captureFrameStatusCounts": records[-1][
+                    "captureFrameStatusCounts"
+                ],
+                "captureCompleteDirtyRectsCounts": records[-1][
+                    "captureCompleteDirtyRectsCounts"
+                ],
+            }
+        )
     return result
 
 

@@ -270,6 +270,12 @@ adapter 现在只将 `.idle` 送入独立的 fallback observation：连续完整
 
 Mini 随后的 H2.2.14 真机会话已证明交付身份与构建 `20260808033459` 一致，158.45 秒/156 周期日志也通过严格 schema/lifecycle 校验；但 content 仍为 156/156 high-motion、dirty metadata 0/156 trusted，且没有任何 idle cadence sample。由此不能把 fallback 自动实现冒充真实生效：该 route 没有连续提供可用 idle status，静止与运动阶段仍无法由现有日志区分。下一步必须先记录脱敏的 frame-status 与 dirty-attachment presence/type 分布，再决定是修正 attachment parsing、capture configuration，还是设计新的非像素变化 authority；不得直接猜测固定降帧或加入 CPU 全屏 diff。
 
+## H2.2.15 ScreenCaptureKit metadata availability diagnostic
+
+为区分“没有收到 idle status”和“收到但未形成连续窗口”，capture callback 现以同一 telemetry lock 原子累计 ScreenCaptureKit frame status：complete、idle、blank、suspended、started、stopped、missing/invalid、unknown。仅对 complete frame 额外累计 dirtyRects attachment 为 absent、unrecognized、recognized-empty 或 recognized-nonempty。统计不保存 status 原始值、attachment key/value、矩形坐标、像素、ID 或 payload，也不读取画面。
+
+live JSONL 以 additive schema v2 写出 callback 总数和两组累计分布；严格分析器同时接受既有 v1，且对 v2 要求精确字段集合、非负整数、frame-status 总和等于 callback 总数、dirtyRects 总和等于 complete 数量，并拒绝 route 内 schema 混用或任一累计值倒退。该步没有修改 cadence/pressure policy、Host ABI、wire、Hermes、route-stop evidence、依赖、CI 或根配置。自动实现与验证记录于 `Evidence/HostMode/2026-08-08/h2-sck-metadata-availability-diagnostic.md`；真实分布仍需新构建的静止→运动→静止日志。
+
 ## H2.3.1 encoded queue full/disconnect policy
 
 Rust Host media route 的容量 3 `sync_channel` 现在通过单一内部 `try_enqueue_native_media` policy 提交已编码 access unit：

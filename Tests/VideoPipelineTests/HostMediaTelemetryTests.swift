@@ -11,6 +11,63 @@ private struct HostMediaNoopStageRecorder: HostMediaStageRecording {
 }
 
 final class HostMediaTelemetryTests: XCTestCase {
+  func testTracksSanitizedCaptureMetadataAvailabilityAtomically() {
+    let telemetry = HostMediaTelemetry(
+      configuration: HostMediaPipelineConfiguration(
+        codec: .h265,
+        displayIndex: 0,
+        width: 1_920,
+        height: 1_080,
+        framesPerSecond: 30,
+        bitRate: 4_000_000
+      ),
+      stageRecorder: HostMediaNoopStageRecorder()
+    )
+    telemetry.recordCaptureSample(HostCaptureSampleMetadataAvailability(
+      frameStatus: .complete,
+      completeFrameDirtyRects: .absent
+    ))
+    telemetry.recordCaptureSample(HostCaptureSampleMetadataAvailability(
+      frameStatus: .complete,
+      completeFrameDirtyRects: .recognizedNonEmpty
+    ))
+    telemetry.recordCaptureSample(HostCaptureSampleMetadataAvailability(
+      frameStatus: .idle,
+      completeFrameDirtyRects: nil
+    ))
+    telemetry.recordCaptureSample(HostCaptureSampleMetadataAvailability(
+      frameStatus: .missingOrInvalid,
+      completeFrameDirtyRects: nil
+    ))
+
+    let snapshot = telemetry.snapshot()
+    XCTAssertEqual(snapshot.captureCallbacks, 4)
+    XCTAssertEqual(snapshot.captureFrameStatusCounts, HostCaptureFrameStatusCounts(
+      complete: 2,
+      idle: 1,
+      blank: 0,
+      suspended: 0,
+      started: 0,
+      stopped: 0,
+      missingOrInvalid: 1,
+      unknown: 0
+    ))
+    XCTAssertEqual(snapshot.captureFrameStatusCounts.total, snapshot.captureCallbacks)
+    XCTAssertEqual(
+      snapshot.captureCompleteDirtyRectsCounts,
+      HostCaptureDirtyRectsAttachmentCounts(
+        absent: 1,
+        unrecognized: 0,
+        recognizedEmpty: 0,
+        recognizedNonEmpty: 1
+      )
+    )
+    XCTAssertEqual(
+      snapshot.captureCompleteDirtyRectsCounts.total,
+      snapshot.captureFrameStatusCounts.complete
+    )
+  }
+
   func testReportsRecentCaptureRateAndDecaysAfterFiveSecondWindow() throws {
     let telemetry = HostMediaTelemetry(
       configuration: HostMediaPipelineConfiguration(
