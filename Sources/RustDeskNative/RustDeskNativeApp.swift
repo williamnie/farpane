@@ -135,12 +135,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private let options = Options(arguments: CommandLine.arguments)
     private let catalogStore = DeviceCatalogStore(fileURL: AppDelegate.catalogURL())
+    private lazy var hostAgentBootstrapIntegration = try? HostAgentBootstrapProductIntegration()
     private let credentialStore: DeviceCredentialStore = KeychainDeviceCredentialStore(
         service: ProcessInfo.processInfo.environment["RDN_KEYCHAIN_SERVICE"]
             ?? KeychainDeviceCredentialStore.defaultService
     )
     private var catalog = DeviceCatalogDocument()
     private var catalogMutationBlocked = false
+    private var hostAgentBootstrapState: HostAgentBootstrapProductIntegrationState =
+        .waitingForServer
     private var homeErrorText = ""
     private var activeAttemptID: UUID?
     private var pendingProductConnection: PendingProductConnection?
@@ -279,9 +282,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 homeErrorText = "旧连接配置无法读取，原数据已保留；请重新配置服务器。"
             }
             catalog = try catalogStore.load()
+            reconcileHostAgentBootstrap()
         } catch {
             catalog = DeviceCatalogDocument()
             catalogMutationBlocked = true
+            hostAgentBootstrapState = .degraded
             homeErrorText = "本地设备列表无法读取，原文件已保留。请从服务器设置中确认后重建。"
         }
     }
@@ -389,9 +394,27 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 pendingApproval: hostApprovalHomeSnapshot(),
                 activeSession: hostActiveSessionHomeSnapshot(),
                 mediaDiagnosticText: hostMediaDiagnosticText(),
-                errorText: hostErrorText
+                errorText: combinedHostErrorText
             )
         ))
+    }
+
+    private var combinedHostErrorText: String {
+        let bootstrapError = hostAgentBootstrapState == .degraded
+            ? "后台 Host 配置暂时不可用。"
+            : ""
+        return [hostErrorText, bootstrapError]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+    }
+
+    private func reconcileHostAgentBootstrap() {
+        guard let hostAgentBootstrapIntegration else {
+            hostAgentBootstrapState = .degraded
+            return
+        }
+        hostAgentBootstrapState = hostAgentBootstrapIntegration
+            .reconcileSavedCatalog(from: catalogStore)
     }
 
     private func hostMediaDiagnosticText() -> String {
@@ -1799,6 +1822,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             }
             try catalogStore.save(updated)
             catalog = updated
+            reconcileHostAgentBootstrap()
             homeErrorText = ""
         } catch {
             if pending.savePassword, !pending.deviceExisted {
@@ -1902,6 +1926,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 _ = updated.removeDevice(id: device.id)
                 try self.catalogStore.save(updated)
                 self.catalog = updated
+                self.reconcileHostAgentBootstrap()
                 self.homeErrorText = ""
             } catch {
                 self.homeErrorText = "设备未删除：无法安全清理本地记录或钥匙串密码。"
@@ -1927,6 +1952,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     try self.catalogStore.save(empty)
                     self.catalog = empty
                     self.catalogMutationBlocked = false
+                    self.reconcileHostAgentBootstrap()
                     self.homeErrorText = ""
                     self.refreshHomeUI()
                     self.presentServerSettings()
@@ -1961,6 +1987,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         do {
             try catalogStore.save(updated)
             catalog = updated
+            reconcileHostAgentBootstrap()
             homeErrorText = ""
             if serverChanged,
                UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey) {

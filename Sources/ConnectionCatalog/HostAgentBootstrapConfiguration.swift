@@ -68,7 +68,7 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         guard let configRevision = strictUInt64(document["configRevision"]),
               (1...maximumConfigRevision).contains(configRevision),
               let agentBuildID = document["agentBuildID"] as? String,
-              validToken(agentBuildID, maximumUTF8Bytes: 128),
+              validAgentBuildID(agentBuildID),
               let server = document["server"] as? [String: Any],
               Set(server.keys) == Set(["rendezvousServer", "serverPublicKey"]),
               let rendezvousServer = server["rendezvousServer"] as? String,
@@ -95,6 +95,10 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
               double <= Double(maximumConfigRevision),
               double.rounded(.towardZero) == double else { return nil }
         return number.uint64Value
+    }
+
+    static func validAgentBuildID(_ value: String) -> Bool {
+        validToken(value, maximumUTF8Bytes: 128)
     }
 
     private static func validToken(_ value: String, maximumUTF8Bytes: Int) -> Bool {
