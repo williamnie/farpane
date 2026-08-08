@@ -159,6 +159,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostMediaCapabilitiesProbeID: UUID?
     private var hostMediaCapabilitiesProbeTask: Task<Void, Never>?
     private var hostSnapshot: HostCoreSnapshot?
+    private var hostActiveAquaSessionAvailable: Bool?
     private var hostApprovalDecisionGate = HostApprovalDecisionGate()
     private var hostSessionCommandGate = HostSessionCommandGate()
     private var hostTemporaryPassword = ""
@@ -490,6 +491,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostMediaStatusText = nil
         hostErrorText = ""
         hostSnapshot = nil
+        hostActiveAquaSessionAvailable = nil
         hostApprovalDecisionGate.reset()
         hostSessionCommandGate.reset()
         removeHostSessionStatusItem()
@@ -526,6 +528,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         } catch {
             hostRuntimeActive = false
             hostSnapshot = nil
+            hostActiveAquaSessionAvailable = nil
             hostStatusText = "启动失败"
             hostErrorText = sanitizedHostError(error)
             recordHostRuntimeStateEvidence(force: true)
@@ -543,6 +546,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostPasswordHideTimer = nil
         hostTemporaryPassword = ""
         hostSnapshot = nil
+        hostActiveAquaSessionAvailable = nil
         hostApprovalDecisionGate.reset()
         hostSessionCommandGate.reset()
         removeHostSessionStatusItem()
@@ -576,7 +580,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             let snapshot = try hostClient.copySnapshot()
             hostSnapshot = snapshot
             refreshed = true
-            syncHostMediaCaptureAvailability(activeSession: snapshot.activeSession)
+            let activeAquaSessionAvailable = snapshot.activeSession != nil
+                && HostActiveAquaSessionAuthority.currentSessionIsAvailable()
+            hostActiveAquaSessionAvailable = snapshot.activeSession == nil
+                ? nil
+                : activeAquaSessionAvailable
+            syncHostMediaCaptureAvailability(
+                activeSession: snapshot.activeSession,
+                activeAquaSessionAvailable: activeAquaSessionAvailable
+            )
             hostSessionCommandGate.observe(
                 connectionID: snapshot.activeSession?.connectionId,
                 activeCapabilities: snapshot.activeSession?.activeCapabilities ?? []
@@ -591,13 +603,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     connectionID: pending.connectionId
                 ) ? "正在处理连接请求…" : "等待本机批准…"
             } else if let session = snapshot.activeSession,
-                      let inputPresentation = HostSessionInputPresentationPolicy.presentation(
-                          availability: session.inputAvailability,
-                          unavailableReason: session.inputUnavailableReason
+                      let sessionPresentation = HostSessionPresentationPolicy.presentation(
+                          activeAquaSessionAvailable: activeAquaSessionAvailable,
+                          inputAvailability: session.inputAvailability,
+                          inputUnavailableReason: session.inputUnavailableReason
                       ) {
-                hostStatusText = session.inputAvailability == .limited
-                    ? inputPresentation.overallStatusText
-                    : (hostMediaStatusText ?? inputPresentation.overallStatusText)
+                hostStatusText = !activeAquaSessionAvailable
+                    || session.inputAvailability == .limited
+                    ? sessionPresentation.overallStatusText
+                    : (hostMediaStatusText ?? sessionPresentation.overallStatusText)
             } else {
                 switch snapshot.registrationStatus {
                 case "ready": hostStatusText = hostMediaStatusText ?? "可被连接"
@@ -610,6 +624,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 requestAttentionForPendingHostApproval()
             }
         } catch {
+            hostActiveAquaSessionAvailable = hostSnapshot?.activeSession == nil ? nil : false
             suspendHostMediaPipelineForSessionUnavailable()
             removeHostSessionStatusItem()
             hostStatusText = "状态不可用"
@@ -703,13 +718,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         case .disconnect: pendingAction = .disconnect
         case nil: pendingAction = nil
         }
-        guard let inputPresentation = HostSessionInputPresentationPolicy.presentation(
-            availability: session.inputAvailability,
-            unavailableReason: session.inputUnavailableReason
+        guard let sessionPresentation = HostSessionPresentationPolicy.presentation(
+            activeAquaSessionAvailable: hostActiveAquaSessionAvailable == true,
+            inputAvailability: session.inputAvailability,
+            inputUnavailableReason: session.inputUnavailableReason
         ) else { return nil }
         let capabilityText = [
             "当前权限：\(capabilityNames.joined(separator: "、"))",
-            inputPresentation.detailText,
+            sessionPresentation.detailText,
         ].compactMap { $0 }.joined(separator: "；")
 
         return HostActiveSessionHomeSnapshot(
@@ -845,6 +861,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                   connectionID: session.connectionId,
                   remoteID: session.remoteId,
                   remoteName: session.remoteName,
+                  activeAquaSessionAvailable: hostActiveAquaSessionAvailable == true,
                   inputAvailability: session.inputAvailability,
                   inputUnavailableReason: session.inputUnavailableReason,
                   disconnectInFlight: hostSessionCommandGate.resolvingIntent(
@@ -1073,9 +1090,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
-    private func syncHostMediaCaptureAvailability(activeSession: HostActiveSession?) {
+    private func syncHostMediaCaptureAvailability(
+        activeSession: HostActiveSession?,
+        activeAquaSessionAvailable: Bool
+    ) {
         guard hostMediaRoute != nil else { return }
-        if activeSession == nil || !HostActiveAquaSessionAuthority.currentSessionIsAvailable() {
+        if activeSession == nil || !activeAquaSessionAvailable {
             suspendHostMediaPipelineForSessionUnavailable()
         } else {
             resumeHostMediaPipelineAfterSessionRecovery()

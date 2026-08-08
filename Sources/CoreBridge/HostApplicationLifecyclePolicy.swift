@@ -68,6 +68,30 @@ public enum HostSessionInputPresentationPolicy {
     }
 }
 
+/// Combines independent GUI-session and input authorities for all Host UI.
+/// The decoded input tuple must be valid even when the Aqua-session boundary
+/// overrides its presentation, so malformed state never manufactures a card.
+public enum HostSessionPresentationPolicy {
+    public static func presentation(
+        activeAquaSessionAvailable: Bool,
+        inputAvailability: HostSessionInputAvailability,
+        inputUnavailableReason: HostSessionInputUnavailableReason?
+    ) -> HostSessionInputPresentation? {
+        guard let inputPresentation = HostSessionInputPresentationPolicy.presentation(
+            availability: inputAvailability,
+            unavailableReason: inputUnavailableReason
+        ) else { return nil }
+        guard activeAquaSessionAvailable else {
+            return HostSessionInputPresentation(
+                overallStatusText: "远程会话受限：当前 Mac 会话不可用",
+                detailText: "画面采集已暂停；远程键盘与鼠标不可用：当前 Mac 处于锁屏、登录窗口或其他用户会话",
+                statusItemTitle: "FarPane 远程会话受限"
+            )
+        }
+        return inputPresentation
+    }
+}
+
 /// Mirrors the pinned Rust platform gate: only an unlocked, logged-in console
 /// Aqua session may capture. The lock key is omitted by macOS while unlocked;
 /// required flags and non-CFBoolean values fail closed.
@@ -124,6 +148,7 @@ public enum HostSessionIndicatorPolicy {
         connectionID: String?,
         remoteID: String,
         remoteName: String,
+        activeAquaSessionAvailable: Bool = true,
         inputAvailability: HostSessionInputAvailability = .available,
         inputUnavailableReason: HostSessionInputUnavailableReason? = nil,
         disconnectInFlight: Bool
@@ -132,9 +157,10 @@ public enum HostSessionIndicatorPolicy {
               valid(connectionID, maximumUTF8Bytes: 128, allowEmpty: false),
               valid(remoteID, maximumUTF8Bytes: 256, allowEmpty: false),
               valid(remoteName, maximumUTF8Bytes: 256, allowEmpty: true),
-              let inputPresentation = HostSessionInputPresentationPolicy.presentation(
-                  availability: inputAvailability,
-                  unavailableReason: inputUnavailableReason
+              let sessionPresentation = HostSessionPresentationPolicy.presentation(
+                  activeAquaSessionAvailable: activeAquaSessionAvailable,
+                  inputAvailability: inputAvailability,
+                  inputUnavailableReason: inputUnavailableReason
               )
         else { return nil }
 
@@ -143,7 +169,7 @@ public enum HostSessionIndicatorPolicy {
             : "对方声明（未经验证）：\(remoteName) · ID \(remoteID)"
         return HostSessionIndicatorPresentation(
             connectionID: connectionID,
-            title: inputPresentation.statusItemTitle,
+            title: sessionPresentation.statusItemTitle,
             remoteIdentityText: identityText,
             disconnectTitle: disconnectInFlight ? "正在断开…" : "断开连接",
             disconnectEnabled: !disconnectInFlight

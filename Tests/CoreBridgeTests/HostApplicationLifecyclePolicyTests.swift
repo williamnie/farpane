@@ -81,6 +81,17 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
             disconnectInFlight: false
         )
         XCTAssertEqual(limited?.title, "FarPane 远程会话受限")
+
+        let lockedViewOnly = HostSessionIndicatorPolicy.presentation(
+            connectionID: "host:session-1",
+            remoteID: "peer-1",
+            remoteName: "MacBook Pro",
+            activeAquaSessionAvailable: false,
+            inputAvailability: .disabled,
+            inputUnavailableReason: .localPolicyDisabled,
+            disconnectInFlight: false
+        )
+        XCTAssertEqual(lockedViewOnly?.title, "FarPane 远程会话受限")
     }
 
     func testInputPresentationExplainsAuthoritativeLimitAndRejectsContradictions() {
@@ -182,5 +193,48 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
             "kCGSessionLoginDoneKey": true,
             "CGSSessionScreenIsLocked": "false",
         ]))
+    }
+
+    func testSessionPresentationMakesAquaAvailabilityOverrideInputStatus() {
+        let lockedViewOnly = HostSessionPresentationPolicy.presentation(
+            activeAquaSessionAvailable: false,
+            inputAvailability: .disabled,
+            inputUnavailableReason: .localPolicyDisabled
+        )
+        XCTAssertEqual(
+            lockedViewOnly?.overallStatusText,
+            "远程会话受限：当前 Mac 会话不可用"
+        )
+        XCTAssertEqual(
+            lockedViewOnly?.detailText,
+            "画面采集已暂停；远程键盘与鼠标不可用：当前 Mac 处于锁屏、登录窗口或其他用户会话"
+        )
+        XCTAssertEqual(lockedViewOnly?.statusItemTitle, "FarPane 远程会话受限")
+
+        let lockedAccessibilityDenied = HostSessionPresentationPolicy.presentation(
+            activeAquaSessionAvailable: false,
+            inputAvailability: .limited,
+            inputUnavailableReason: .accessibilityDenied
+        )
+        XCTAssertEqual(lockedAccessibilityDenied, lockedViewOnly)
+
+        let activeAccessibilityDenied = HostSessionPresentationPolicy.presentation(
+            activeAquaSessionAvailable: true,
+            inputAvailability: .limited,
+            inputUnavailableReason: .accessibilityDenied
+        )
+        XCTAssertEqual(
+            activeAccessibilityDenied,
+            HostSessionInputPresentationPolicy.presentation(
+                availability: .limited,
+                unavailableReason: .accessibilityDenied
+            )
+        )
+
+        XCTAssertNil(HostSessionPresentationPolicy.presentation(
+            activeAquaSessionAvailable: false,
+            inputAvailability: .available,
+            inputUnavailableReason: .sessionUnavailable
+        ))
     }
 }

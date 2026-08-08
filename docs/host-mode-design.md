@@ -1503,6 +1503,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H5.2a active Aqua media suspension 已完成自动实现**。in-process Host 的 SCK/VideoToolbox pipeline 现在直接消费严格 `CGSession` authority：仅 logged-in、on-console、unlocked Aqua session 允许采集，缺失/非布尔 flag、snapshot 不可用、锁屏/LoginWindow/off-console 均 fail closed；该门禁独立于键鼠 capability，因此 view-only/TCC denied/local-disabled 会话也覆盖。暂停同步取消编码提交并异步停止 SCK，但保留 Rust media route；同一 session 恢复后使用 exact route 自动重建 pipeline，无需控制端重连。脱敏 live log 升至 schema v3 并以 `captureSuspended` 记录本段终态，strict analyzer 对 v1/v2 保持兼容且只在 v3 接受新事件。Swift 136 项（4 项条件跳过）0 failure、ScriptTests 与 arm64 Release build 通过。未安装/部署/push；锁屏/FUS 真机、后台顶层 `hostAvailability` 与所有 UI session availability 仍待后续，不能据此宣称 H5.2 完成。详见 `Evidence/HostMode/2026-08-08/h5-active-aqua-media-suspension.md`。
 
+> 更新（2026-08-08）：**H5.2b active Aqua session presentation 已完成自动实现**。App 现在在每次 authoritative snapshot refresh 只读取一次严格 `CGSession` authority，同一结果同时驱动媒体 lifecycle、主状态、Home 活动会话卡与菜单栏。组合 presentation 先验证 Rust input availability/reason tuple，再由 Aqua unavailable 覆盖为 `远程会话受限：当前 Mac 会话不可用`，并明确画面采集已暂停；因此 view-only、local/remote-disabled 与 TCC denied 会话锁屏时不再继续声称正在共享屏幕，矛盾 tuple 仍 fail closed。未改 Host ABI/snapshot、Rust、Hermes 或远端协议。定向策略 7/7 通过；完整 Swift/ScriptTests/arm64 Release build 以本步 evidence 为准。未安装/部署/push；后台顶层 `hostAvailability`、LoginWindow readiness 和锁屏/FUS 真机 UI 仍待后续，不能据此宣称 H5.2 完成。详见 `Evidence/HostMode/2026-08-08/h5-active-aqua-session-presentation.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
