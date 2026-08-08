@@ -1564,6 +1564,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2a Background component readiness policy 已完成自动实现**。App 侧 package-scoped 纯 policy 现在把 ServiceManagement registration、authenticated handshake、权威 snapshot 和 Rendezvous registration 作为四份独立证据；registration 明确区分 notRegistered/requiresApproval/enabled/serviceUnavailable，enabled 之后仍须 handshake compatible、snapshot available、Rendezvous registered 才能 ready。因而“已调用 register”、等待用户审批、launchd enabled、PID/进程存在、XPC 可达或本地已有 ID 均不能单独冒充可连接；version mismatch、snapshot 未同步和 Rendezvous checking/offline 保留为稳定非 ready 状态。本步不定义 XPC message/schema，不 import/use ServiceManagement、不创建 plist/注册服务、不启动 Core；不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-background-component-readiness.md`。
 
+> 更新（2026-08-08）：**H4.2b SMAppService status adapter 已完成自动实现**。package-scoped 只读 adapter 按本机 macOS SDK 的 macOS 13 合同精确映射 notRegistered/enabled/requiresApproval/notFound，用户拒绝或撤销 consent 保持 requiresApproval，notFound 与未来 `@unknown default` 都 fail closed 为 serviceUnavailable。adapter 只接收已取得的 status，不接受 plist/path/service 注入，也不调用 agent/register/unregister/open settings；enabled 仍只是 H4.2a 的一份证据，不能单独 ready。本步不读取真实 service、不创建 plist/修改 bundle、不定义 XPC schema、不启动 Core；不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-smappservice-status-adapter.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
