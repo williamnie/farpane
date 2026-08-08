@@ -22,6 +22,21 @@ package struct HostAgentEventRecord: Sendable {
     package let event: HostCoreEvent
 }
 
+package enum HostAgentEventReplayError: Error, Equatable {
+    case invalidLimit
+}
+
+package enum HostAgentEventReplayResult: Sendable {
+    case upToDate(latestSequence: UInt64)
+    case batch(
+        records: [HostAgentEventRecord],
+        latestSequence: UInt64,
+        hasMore: Bool
+    )
+    case gap(firstAvailableSequence: UInt64, latestSequence: UInt64)
+    case invalidCursor(latestSequence: UInt64)
+}
+
 package struct HostAgentEventStateSnapshot: Sendable {
     package let hostInstanceID: String?
     package let firstAvailableSequence: UInt64?
@@ -37,9 +52,11 @@ package struct HostAgentEventStateSnapshot: Sendable {
 package final class HostAgentEventState: @unchecked Sendable {
     package static let productCapacity = 256
     package static let productMaximumEventBytes = 16 * 1_024
+    package static let productReplayBatchSize = 64
 
     private static let allowedCapacity = 1...1_024
     private static let allowedMaximumEventBytes = 256...(64 * 1_024)
+    private static let allowedReplayBatchSize = 1...productCapacity
 
     private let lock = NSLock()
     private let capacity: Int
@@ -127,6 +144,50 @@ package final class HostAgentEventState: @unchecked Sendable {
             evictedEventCount: evictedEventCount,
             rejectedEventCount: rejectedEventCount,
             records: records
+        )
+    }
+
+    /// Returns a single atomic journal view after the snapshot/event cursor.
+    /// A gap means the caller must discard incremental state and fetch a new
+    /// authoritative snapshot before attempting another replay.
+    package func replay(
+        afterSequence: UInt64,
+        limit: Int = HostAgentEventState.productReplayBatchSize
+    ) throws -> HostAgentEventReplayResult {
+        guard Self.allowedReplayBatchSize.contains(limit) else {
+            throw HostAgentEventReplayError.invalidLimit
+        }
+
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard afterSequence <= latestSequence else {
+            return .invalidCursor(latestSequence: latestSequence)
+        }
+        guard afterSequence < latestSequence else {
+            return .upToDate(latestSequence: latestSequence)
+        }
+        guard let firstAvailableSequence = records.first?.sequence else {
+            return .invalidCursor(latestSequence: latestSequence)
+        }
+        let nextSequence = afterSequence + 1
+        guard nextSequence >= firstAvailableSequence else {
+            return .gap(
+                firstAvailableSequence: firstAvailableSequence,
+                latestSequence: latestSequence
+            )
+        }
+
+        let batch = Array(records.lazy
+            .drop(while: { $0.sequence <= afterSequence })
+            .prefix(limit))
+        guard let lastSequence = batch.last?.sequence else {
+            return .invalidCursor(latestSequence: latestSequence)
+        }
+        return .batch(
+            records: batch,
+            latestSequence: latestSequence,
+            hasMore: lastSequence < latestSequence
         )
     }
 
