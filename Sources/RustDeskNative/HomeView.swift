@@ -35,6 +35,7 @@ struct HostActiveSessionHomeSnapshot: Equatable {
 
 struct HostHomeSnapshot: Equatable {
     var isEnabled: Bool
+    var isControlEnabled: Bool
     var isRunning: Bool
     var isStreaming: Bool
     var statusText: String
@@ -135,6 +136,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         connectingPeerID: nil,
         host: HostHomeSnapshot(
             isEnabled: false,
+            isControlEnabled: false,
             isRunning: false,
             isStreaming: false,
             statusText: "已关闭",
@@ -176,6 +178,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         serverButton.isEnabled = snapshot.connectingPeerID == nil
         hostSwitch.state = snapshot.host.isEnabled ? .on : .off
         hostSwitch.isEnabled = snapshot.connectingPeerID == nil
+            && snapshot.host.isControlEnabled
         hostStatusLabel.stringValue = snapshot.host.statusText
         hostStatusDot.layer?.backgroundColor = hostStatusColor(snapshot.host).cgColor
         hostIDLabel.stringValue = "本机 ID：\(snapshot.host.localID.nonEmpty ?? "—")"

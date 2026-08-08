@@ -175,7 +175,7 @@ final class HostAgentBackgroundProductRoutingPolicyTests: XCTestCase {
         }
     }
 
-    func testAppOwnsDedicatedMainActorRoutingButHomeIsNotSwitchedYet() throws {
+    func testAppOwnsDedicatedMainActorRoutingAndHomeUsesProductRoute() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -222,8 +222,9 @@ final class HostAgentBackgroundProductRoutingPolicyTests: XCTestCase {
                 + "            .applicationWillTerminate"
         ))
         XCTAssertTrue(appSource.contains(
-            "view.onHostToggle = { [weak self] enabled in "
-                + "self?.setHostModeEnabled(enabled) }"
+            "view.onHostToggle = { [weak self] enabled in\n"
+                + "            self?.handleHostProductToggle(enabled)\n"
+                + "        }"
         ))
         XCTAssertFalse(homeSource.contains(
             "beginHostAgentBackgroundRegistration"

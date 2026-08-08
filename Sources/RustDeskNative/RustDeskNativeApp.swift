@@ -173,6 +173,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         HostAgentBackgroundRegistrationPresentation?
     private var hostAgentBackgroundUnregistrationPresentation:
         HostAgentBackgroundUnregistrationPresentation?
+    private var hostAgentBackgroundRegistrationStatus:
+        HostAgentBackgroundRegistrationStatus = .serviceUnavailable
+    private var hostAgentBackgroundFlow: HostAgentBackgroundHomeFlow?
+    private var hostAgentBackgroundOwnershipErrorText = ""
     private var hostPollTimer: Timer?
     private var hostPasswordHideTimer: Timer?
     private var keyboardController: ExclusiveKeyboardController?
@@ -206,7 +210,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private lazy var hostAgentBackgroundRegistrationMutationOwner =
         HostAgentBackgroundRegistrationMutationOwner.makeProduct()
     private lazy var hostAgentBackgroundActivationOwner =
-        HostAgentBackgroundActivationOwner.makeProduct()
+        HostAgentBackgroundActivationOwner.makeProduct(
+            observer: { [weak self] view in
+                DispatchQueue.main.async { [weak self] in
+                    self?.applyHostAgentBackgroundActivationView(view)
+                }
+            }
+        )
     private lazy var hostAgentBackgroundRegistrationSheetDriver =
         HostAgentBackgroundRegistrationSheetDriver.makeProduct(
             mutationOwner: hostAgentBackgroundRegistrationMutationOwner,
@@ -320,22 +330,63 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func routeHostAgentBackgroundRegistrationCompletion(
         _ view: HostAgentBackgroundRegistrationUXView
     ) {
-        applyHostAgentBackgroundProductRoutingDecision(
+        guard hostAgentBackgroundFlow == .registration else {
+            applyHostAgentBackgroundProductRoutingDecision(
+                .invalidCompletion
+            )
+            refreshHomeUI()
+            return
+        }
+        hostAgentBackgroundFlow = nil
+        let decision =
             HostAgentBackgroundProductRoutingPolicy.registrationDecision(
                 view
             )
+        acceptHostAgentBackgroundRegistration(
+            view.registration,
+            decision: decision
         )
+        applyHostAgentBackgroundProductRoutingDecision(decision)
+        refreshHomeUI()
     }
 
     @MainActor
     private func routeHostAgentBackgroundUnregistrationCompletion(
         _ view: HostAgentBackgroundUnregistrationUXView
     ) {
-        applyHostAgentBackgroundProductRoutingDecision(
+        guard hostAgentBackgroundFlow == .unregistration else {
+            applyHostAgentBackgroundProductRoutingDecision(
+                .invalidCompletion
+            )
+            refreshHomeUI()
+            return
+        }
+        hostAgentBackgroundFlow = nil
+        let decision =
             HostAgentBackgroundProductRoutingPolicy.unregistrationDecision(
                 view
             )
+        acceptHostAgentBackgroundRegistration(
+            view.registration,
+            decision: decision
         )
+        applyHostAgentBackgroundProductRoutingDecision(decision)
+        refreshHomeUI()
+    }
+
+    @MainActor
+    private func acceptHostAgentBackgroundRegistration(
+        _ registration: HostAgentBackgroundRegistrationStatus?,
+        decision: HostAgentBackgroundProductRoutingDecision
+    ) {
+        if decision == .invalidCompletion {
+            hostAgentBackgroundRegistrationStatus = .serviceUnavailable
+            hostAgentBackgroundOwnershipErrorText =
+                "后台组件返回了不一致状态；已停止本地观察。"
+        } else if let registration {
+            hostAgentBackgroundRegistrationStatus = registration
+            hostAgentBackgroundOwnershipErrorText = ""
+        }
     }
 
     @MainActor
@@ -353,6 +404,32 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    @MainActor
+    private func applyHostAgentBackgroundActivationView(
+        _ view: HostAgentBackgroundActivationView
+    ) {
+        switch view.phase {
+        case .monitoring(_, let readiness):
+            hostAgentBackgroundRegistrationStatus = readiness.registration
+            switch readiness.registration {
+            case .notRegistered:
+                hostAgentBackgroundOwnershipErrorText = ""
+                _ = hostAgentBackgroundActivationOwner.apply(.hostDisabled)
+            case .serviceUnavailable:
+                hostAgentBackgroundOwnershipErrorText =
+                    "无法确认后台组件注册状态；已暂停开关。"
+            case .enabled, .requiresApproval:
+                hostAgentBackgroundOwnershipErrorText = ""
+            }
+        case .failed:
+            hostAgentBackgroundOwnershipErrorText =
+                "后台组件状态观察失败；可以关闭后重试。"
+        case .idle, .starting, .disabled, .terminated:
+            break
+        }
+        refreshHomeUI()
+    }
+
     func applicationDidResignActive(_ notification: Notification) {
         keyboardController?.suspend(
             message: "应用失去焦点，已暂时释放键盘；返回后自动恢复独占"
@@ -361,6 +438,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     func applicationDidBecomeActive(_ notification: Notification) {
         keyboardController?.resumeIfRequested()
+        reconcileHostProductOwnership()
+        hostAgentBackgroundActivationOwner.refreshRegistration()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -450,7 +529,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onDeviceAction = { [weak self] deviceID, action in
             self?.handleDeviceAction(deviceID: deviceID, action: action)
         }
-        view.onHostToggle = { [weak self] enabled in self?.setHostModeEnabled(enabled) }
+        view.onHostToggle = { [weak self] enabled in
+            self?.handleHostProductToggle(enabled)
+        }
         view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
         view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
         view.onSetHostPermanentPassword = { [weak self] in self?.presentHostPermanentPassword() }
@@ -470,9 +551,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         NSApplication.shared.activate(ignoringOtherApps: true)
         self.window = window
         homeView = view
-        if UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey), !hostRuntimeActive {
-            startHostMode()
-        }
+        reconcileHostProductOwnership()
         refreshHomeUI()
         if catalog.server == nil, !catalogMutationBlocked {
             DispatchQueue.main.async { [weak self] in self?.presentServerSettings() }
@@ -498,6 +577,17 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         if credentialError, error.isEmpty {
             error = "部分钥匙串密码暂时无法读取；连接时将要求手动输入。"
         }
+        let legacyAssessment = MainActor.assumeIsolated {
+            HostAgentLegacyHostMigrationGate.assess(
+                captureLegacyHostMigrationEvidence()
+            )
+        }
+        let hostControl =
+            HostAgentBackgroundHomeRoutingPolicy.controlState(
+                registration: hostAgentBackgroundRegistrationStatus,
+                legacy: legacyAssessment,
+                flow: hostAgentBackgroundFlow
+            )
         homeView.apply(HomeSnapshot(
             server: catalog.server,
             devices: items,
@@ -505,13 +595,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             errorText: error,
             connectingPeerID: pendingProductConnection?.peerID,
             host: HostHomeSnapshot(
-                isEnabled: UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey),
+                isEnabled: hostControl.isOn,
+                isControlEnabled: hostControl.isInteractive,
                 isRunning: hostRuntimeActive,
                 isStreaming: hostMediaRoute != nil,
-                statusText: hostAgentBackgroundUnregistrationPresentation?
-                    .statusText
-                    ?? hostAgentBackgroundRegistrationPresentation?.statusText
-                    ?? hostStatusText,
+                statusText: hostProductStatusText,
                 localID: hostSnapshot?.localId ?? "",
                 temporaryPassword: hostTemporaryPassword,
                 localPermanentPasswordSet: hostSnapshot?.passwordPolicy.localPasswordSet ?? false,
@@ -534,10 +622,32 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             hostErrorText,
             hostAgentBackgroundUnregistrationPresentation?.errorText ?? "",
             hostAgentBackgroundRegistrationPresentation?.errorText ?? "",
+            hostAgentBackgroundOwnershipErrorText,
             bootstrapError,
         ]
             .filter { !$0.isEmpty }
             .joined(separator: "\n")
+    }
+
+    private var hostProductStatusText: String {
+        if let presentation =
+            hostAgentBackgroundUnregistrationPresentation
+        {
+            return presentation.statusText
+        }
+        if let presentation = hostAgentBackgroundRegistrationPresentation {
+            return presentation.statusText
+        }
+        switch hostAgentBackgroundRegistrationStatus {
+        case .notRegistered:
+            return hostStatusText
+        case .requiresApproval:
+            return "等待系统允许后台组件"
+        case .enabled:
+            return "后台组件已注册，正在检查可连接状态…"
+        case .serviceUnavailable:
+            return "后台组件注册状态不可用"
+        }
     }
 
     private func reconcileHostAgentBootstrap() {
@@ -635,14 +745,125 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         return "（\(prefix)\(causes.joined(separator: "，"))）"
     }
 
-    private func setHostModeEnabled(_ enabled: Bool) {
-        UserDefaults.standard.set(enabled, forKey: Self.hostEnabledDefaultsKey)
-        if enabled {
-            startHostMode()
-        } else {
-            stopHostMode(preservePreference: false, reason: .userRequest)
+    private func handleHostProductToggle(_ enabled: Bool) {
+        guard Thread.isMainThread else { return }
+        MainActor.assumeIsolated {
+            handleHostProductToggleOnMain(enabled)
+        }
+    }
+
+    @MainActor
+    private func handleHostProductToggleOnMain(_ enabled: Bool) {
+        let legacy = HostAgentLegacyHostMigrationGate.assess(
+            captureLegacyHostMigrationEvidence()
+        )
+        let route = HostAgentBackgroundHomeRoutingPolicy.toggleRoute(
+            requestedEnabled: enabled,
+            registration: hostAgentBackgroundRegistrationStatus,
+            legacy: legacy,
+            flow: hostAgentBackgroundFlow
+        )
+        switch route {
+        case .noAction:
+            break
+        case .stopLegacyHost:
+            _ = stopHostMode(
+                preservePreference: false,
+                reason: .userRequest,
+                releaseClient: true
+            )
+        case .beginRegistration:
+            hostAgentBackgroundFlow = .registration
+            if !beginHostAgentBackgroundRegistration() {
+                hostAgentBackgroundFlow = nil
+            }
+        case .beginUnregistration:
+            hostAgentBackgroundFlow = .unregistration
+            if !beginHostAgentBackgroundUnregistration() {
+                hostAgentBackgroundFlow = nil
+            }
         }
         refreshHomeUI()
+    }
+
+    private func reconcileHostProductOwnership() {
+        guard Thread.isMainThread else { return }
+        MainActor.assumeIsolated {
+            reconcileHostProductOwnershipOnMain()
+        }
+    }
+
+    @MainActor
+    private func reconcileHostProductOwnershipOnMain() {
+        guard hostAgentBackgroundFlow == nil else { return }
+        hostAgentBackgroundRegistrationStatus =
+            HostAgentBackgroundServiceObserver.observeRegistrationStatus()
+        let legacy = HostAgentLegacyHostMigrationGate.assess(
+            captureLegacyHostMigrationEvidence()
+        )
+        let route = HostAgentBackgroundHomeRoutingPolicy.launchRoute(
+            registration: hostAgentBackgroundRegistrationStatus,
+            legacy: legacy
+        )
+        switch route {
+        case .preserveLegacyHost:
+            hostAgentBackgroundOwnershipErrorText = ""
+            _ = hostAgentBackgroundActivationOwner.apply(.hostDisabled)
+            if UserDefaults.standard.bool(
+                forKey: Self.hostEnabledDefaultsKey
+            ), !hostRuntimeActive {
+                startHostMode()
+            }
+        case .observeBackground:
+            hostAgentBackgroundOwnershipErrorText = ""
+            _ = hostAgentBackgroundActivationOwner.apply(.hostEnabled)
+            hostAgentBackgroundActivationOwner.refreshRegistration()
+        case .quiesceLegacyThenObserveBackground:
+            reconcileRegisteredBackgroundAgainstLegacyHost()
+        case .hold:
+            _ = hostAgentBackgroundActivationOwner.apply(.hostDisabled)
+            updateHeldHostProductError(legacy: legacy)
+        }
+    }
+
+    @MainActor
+    private func reconcileRegisteredBackgroundAgainstLegacyHost() {
+        let (accepted, migration) =
+            prepareLegacyHostForBackgroundRegistration()
+        guard accepted, migration.phase == .readyForRegistration else {
+            hostAgentBackgroundOwnershipErrorText =
+                "后台组件已注册，但旧版 Host 尚未安全停止；已暂停新的控制操作。"
+            _ = hostAgentBackgroundActivationOwner.apply(.hostDisabled)
+            return
+        }
+
+        hostAgentBackgroundRegistrationStatus =
+            HostAgentBackgroundServiceObserver.observeRegistrationStatus()
+        switch hostAgentBackgroundRegistrationStatus {
+        case .enabled, .requiresApproval:
+            hostAgentBackgroundOwnershipErrorText = ""
+            _ = hostAgentBackgroundActivationOwner.apply(.hostEnabled)
+            hostAgentBackgroundActivationOwner.refreshRegistration()
+        case .notRegistered, .serviceUnavailable:
+            hostAgentBackgroundOwnershipErrorText =
+                "后台组件注册状态已变化；已停止本地观察。"
+            _ = hostAgentBackgroundActivationOwner.apply(.hostDisabled)
+        }
+    }
+
+    @MainActor
+    private func updateHeldHostProductError(
+        legacy: HostAgentLegacyHostMigrationAssessment
+    ) {
+        if hostAgentBackgroundRegistrationStatus == .serviceUnavailable {
+            hostAgentBackgroundOwnershipErrorText =
+                "无法确认后台组件注册状态；为避免同时启动两个 Host，已暂停开关。"
+        } else if case .failed = legacy {
+            hostAgentBackgroundOwnershipErrorText =
+                "无法确认旧版 Host 是否已停止；已暂停开关。"
+        } else {
+            hostAgentBackgroundOwnershipErrorText = ""
+        }
     }
 
     @MainActor

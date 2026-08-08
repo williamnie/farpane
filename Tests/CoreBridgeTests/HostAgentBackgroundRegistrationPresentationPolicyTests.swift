@@ -186,7 +186,7 @@ final class HostAgentBackgroundRegistrationPresentationPolicyTests:
             "hostAgentBackgroundUnregistrationPresentation = nil"
         ))
         XCTAssertTrue(appSource.contains(
-            "?? hostAgentBackgroundRegistrationPresentation?.statusText"
+            "if let presentation = hostAgentBackgroundRegistrationPresentation"
         ))
         XCTAssertTrue(appSource.contains(
             "hostAgentBackgroundRegistrationPresentation?.errorText"
