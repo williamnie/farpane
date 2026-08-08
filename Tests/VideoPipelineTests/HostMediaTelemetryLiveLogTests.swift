@@ -124,6 +124,129 @@ final class HostMediaTelemetryLiveLogTests: XCTestCase {
     }
   }
 
+  func testDefaultWriterRetainsOnlyRecentOwnedProductLogs() throws {
+    let fixture = makeFixture()
+    let fileManager = FileManager.default
+    defer { try? fileManager.removeItem(at: fixture.directory) }
+    try fileManager.createDirectory(
+      at: fixture.directory,
+      withIntermediateDirectories: true
+    )
+    let capturedAt = Date(timeIntervalSince1970: 1_700_000_000)
+    let stale = try makeProductLog(
+      index: 1,
+      in: fixture.directory,
+      modifiedAt: capturedAt.addingTimeInterval(-8 * 24 * 60 * 60)
+    )
+    let oldestRecent = try makeProductLog(
+      index: 2,
+      in: fixture.directory,
+      modifiedAt: capturedAt.addingTimeInterval(-400)
+    )
+    let secondOldestRecent = try makeProductLog(
+      index: 3,
+      in: fixture.directory,
+      modifiedAt: capturedAt.addingTimeInterval(-300)
+    )
+    let retainedRecent = try makeProductLog(
+      index: 4,
+      in: fixture.directory,
+      modifiedAt: capturedAt.addingTimeInterval(-200)
+    )
+    let newestRecent = try makeProductLog(
+      index: 5,
+      in: fixture.directory,
+      modifiedAt: capturedAt.addingTimeInterval(-100)
+    )
+    let unrelated = fixture.directory.appendingPathComponent("operator-notes.jsonl")
+    try Data("keep".utf8).write(to: unrelated)
+    let symlink = productLogURL(index: 6, in: fixture.directory)
+    try fileManager.createSymbolicLink(
+      at: symlink,
+      withDestinationURL: unrelated
+    )
+    let hardLink = productLogURL(index: 7, in: fixture.directory)
+    try fileManager.linkItem(at: unrelated, to: hardLink)
+    let matchingDirectory = productLogURL(index: 8, in: fixture.directory)
+    try fileManager.createDirectory(
+      at: matchingDirectory,
+      withIntermediateDirectories: false
+    )
+
+    let writer = try HostMediaTelemetryLiveLogWriter.makeDefault(
+      in: fixture.directory,
+      capturedAt: capturedAt,
+      maximumRetainedFiles: 3,
+      maximumRetentionAge: 7 * 24 * 60 * 60,
+      fileManager: fileManager
+    )
+
+    XCTAssertFalse(fileManager.fileExists(atPath: stale.path))
+    XCTAssertFalse(fileManager.fileExists(atPath: oldestRecent.path))
+    XCTAssertFalse(fileManager.fileExists(atPath: secondOldestRecent.path))
+    XCTAssertTrue(fileManager.fileExists(atPath: retainedRecent.path))
+    XCTAssertTrue(fileManager.fileExists(atPath: newestRecent.path))
+    XCTAssertTrue(fileManager.fileExists(atPath: unrelated.path))
+    XCTAssertNotNil(try? fileManager.destinationOfSymbolicLink(atPath: symlink.path))
+    XCTAssertTrue(fileManager.fileExists(atPath: hardLink.path))
+    XCTAssertTrue(fileManager.fileExists(atPath: matchingDirectory.path))
+    XCTAssertTrue(fileManager.fileExists(atPath: writer.outputURL.path))
+  }
+
+  func testDefaultWriterFailsClosedWhenRetentionCannotDelete() throws {
+    let fixture = makeFixture()
+    let fileManager = FileManager.default
+    defer { try? fileManager.removeItem(at: fixture.directory) }
+    try fileManager.createDirectory(
+      at: fixture.directory,
+      withIntermediateDirectories: true
+    )
+    let capturedAt = Date(timeIntervalSince1970: 1_700_000_000)
+    let existing = try makeProductLog(
+      index: 1,
+      in: fixture.directory,
+      modifiedAt: capturedAt.addingTimeInterval(-100)
+    )
+
+    XCTAssertThrowsError(try HostMediaTelemetryLiveLogWriter.makeDefault(
+      in: fixture.directory,
+      capturedAt: capturedAt,
+      maximumRetainedFiles: 1,
+      maximumRetentionAge: 7 * 24 * 60 * 60,
+      retentionRemoval: { _ in
+        throw HostMediaLiveLogRemovalFailure.denied
+      }
+    )) { error in
+      XCTAssertEqual(error as? HostMediaLiveLogError, .retentionFailed)
+    }
+    XCTAssertTrue(fileManager.fileExists(atPath: existing.path))
+    XCTAssertEqual(
+      try fileManager.contentsOfDirectory(atPath: fixture.directory.path).count,
+      1
+    )
+  }
+
+  func testDefaultWriterRejectsInvalidRetentionPolicy() throws {
+    let fixture = makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+
+    XCTAssertEqual(HostMediaTelemetryLiveLogWriter.maximumRetainedLogFiles, 24)
+    XCTAssertEqual(
+      HostMediaTelemetryLiveLogWriter.maximumRetentionAge,
+      7 * 24 * 60 * 60
+    )
+
+    for (maximumFiles, maximumAge) in [(0, 60.0), (1, 0.0), (1, .nan)] {
+      XCTAssertThrowsError(try HostMediaTelemetryLiveLogWriter.makeDefault(
+        in: fixture.directory,
+        maximumRetainedFiles: maximumFiles,
+        maximumRetentionAge: maximumAge
+      )) { error in
+        XCTAssertEqual(error as? HostMediaLiveLogError, .invalidRetentionPolicy)
+      }
+    }
+  }
+
   private var expectedKeys: Set<String> {
     [
       "schema", "schemaVersion", "sequence", "capturedAt",
@@ -204,4 +327,29 @@ final class HostMediaTelemetryLiveLogTests: XCTestCase {
       .appendingPathComponent(UUID().uuidString, isDirectory: true)
     return (directory, directory.appendingPathComponent("host-media.jsonl"))
   }
+
+  private func makeProductLog(
+    index: Int,
+    in directory: URL,
+    modifiedAt: Date
+  ) throws -> URL {
+    let url = productLogURL(index: index, in: directory)
+    try Data("{}\n".utf8).write(to: url)
+    try FileManager.default.setAttributes(
+      [.modificationDate: modifiedAt],
+      ofItemAtPath: url.path
+    )
+    return url
+  }
+
+  private func productLogURL(index: Int, in directory: URL) -> URL {
+    let uuid = String(format: "00000000-0000-0000-0000-%012d", index)
+    return directory.appendingPathComponent(
+      "host-media-live-2026-08-08T000000Z-\(uuid).jsonl"
+    )
+  }
+}
+
+private enum HostMediaLiveLogRemovalFailure: Error {
+  case denied
 }

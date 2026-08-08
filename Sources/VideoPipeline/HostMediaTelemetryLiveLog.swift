@@ -5,6 +5,8 @@ public enum HostMediaLiveLogError: Error, Equatable {
   case outputMustBeJSONLines
   case outputAlreadyExists
   case invalidMaximumPeriodicRecords
+  case invalidRetentionPolicy
+  case retentionFailed
 }
 
 public enum HostMediaLiveLogEvent: String, Sendable {
@@ -31,6 +33,16 @@ package protocol HostMediaLiveLogRecording: Sendable {
 /// credentials, display identifiers, frame contents and encoded payloads.
 public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
   public static let minimumPeriodicIntervalNanoseconds: UInt64 = 1_000_000_000
+  public static let maximumRetainedLogFiles = 24
+  public static let maximumRetentionAge: TimeInterval = 7 * 24 * 60 * 60
+
+  private static let productLogPrefix = "host-media-live-"
+  private static let productLogSuffix = ".jsonl"
+
+  private struct RetentionCandidate {
+    let url: URL
+    let modifiedAt: Date
+  }
 
   private struct FrameStatusCounts: Codable {
     let complete: Int
@@ -218,13 +230,133 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
       .appendingPathComponent("Logs", isDirectory: true)
       .appendingPathComponent("FarPane", isDirectory: true)
       .appendingPathComponent("HostMedia", isDirectory: true)
-    let timestamp = ISO8601DateFormatter().string(from: capturedAt)
-      .replacingOccurrences(of: ":", with: "")
-    let filename = "host-media-live-\(timestamp)-\(UUID().uuidString).jsonl"
-    return try HostMediaTelemetryLiveLogWriter(
-      outputURL: directory.appendingPathComponent(filename, isDirectory: false),
+    return try makeDefault(
+      in: directory,
+      capturedAt: capturedAt,
+      maximumRetainedFiles: maximumRetainedLogFiles,
+      maximumRetentionAge: maximumRetentionAge,
       fileManager: fileManager
     )
+  }
+
+  package static func makeDefault(
+    in directory: URL,
+    capturedAt: Date = Date(),
+    maximumRetainedFiles: Int = maximumRetainedLogFiles,
+    maximumRetentionAge: TimeInterval = maximumRetentionAge,
+    fileManager: FileManager = .default,
+    retentionRemoval: (URL) throws -> Void = unlinkRetainedLog
+  ) throws -> HostMediaTelemetryLiveLogWriter {
+    guard NSString(string: directory.path).isAbsolutePath else {
+      throw HostMediaLiveLogError.outputPathMustBeAbsolute
+    }
+    guard maximumRetainedFiles > 0,
+          maximumRetentionAge.isFinite,
+          maximumRetentionAge > 0
+    else {
+      throw HostMediaLiveLogError.invalidRetentionPolicy
+    }
+    let standardizedDirectory = directory.standardizedFileURL
+    try fileManager.createDirectory(
+      at: standardizedDirectory,
+      withIntermediateDirectories: true
+    )
+    try enforceRetention(
+      in: standardizedDirectory,
+      capturedAt: capturedAt,
+      maximumExistingFiles: maximumRetainedFiles - 1,
+      maximumRetentionAge: maximumRetentionAge,
+      fileManager: fileManager,
+      retentionRemoval: retentionRemoval
+    )
+    let timestamp = ISO8601DateFormatter().string(from: capturedAt)
+      .replacingOccurrences(of: ":", with: "")
+    let filename = "\(productLogPrefix)\(timestamp)-\(UUID().uuidString)\(productLogSuffix)"
+    return try HostMediaTelemetryLiveLogWriter(
+      outputURL: standardizedDirectory.appendingPathComponent(
+        filename,
+        isDirectory: false
+      ),
+      fileManager: fileManager
+    )
+  }
+
+  private static func enforceRetention(
+    in directory: URL,
+    capturedAt: Date,
+    maximumExistingFiles: Int,
+    maximumRetentionAge: TimeInterval,
+    fileManager: FileManager,
+    retentionRemoval: (URL) throws -> Void
+  ) throws {
+    let urls: [URL]
+    do {
+      urls = try fileManager.contentsOfDirectory(
+        at: directory,
+        includingPropertiesForKeys: nil,
+        options: [.skipsHiddenFiles]
+      )
+    } catch {
+      throw HostMediaLiveLogError.retentionFailed
+    }
+    var candidates: [RetentionCandidate] = []
+    for url in urls where isProductLogFilename(url.lastPathComponent) {
+      let attributes: [FileAttributeKey: Any]
+      do {
+        attributes = try fileManager.attributesOfItem(atPath: url.path)
+      } catch {
+        throw HostMediaLiveLogError.retentionFailed
+      }
+      guard attributes[.type] as? FileAttributeType == .typeRegular,
+            (attributes[.ownerAccountID] as? NSNumber)?.uint32Value
+              == UInt32(geteuid()),
+            (attributes[.referenceCount] as? NSNumber)?.intValue == 1
+      else { continue }
+      candidates.append(RetentionCandidate(
+        url: url,
+        modifiedAt: attributes[.modificationDate] as? Date ?? .distantPast
+      ))
+    }
+    candidates.sort {
+      if $0.modifiedAt != $1.modifiedAt { return $0.modifiedAt < $1.modifiedAt }
+      return $0.url.lastPathComponent < $1.url.lastPathComponent
+    }
+
+    let cutoff = capturedAt.addingTimeInterval(-maximumRetentionAge)
+    let stale = candidates.filter { $0.modifiedAt < cutoff }
+    let recent = candidates.filter { $0.modifiedAt >= cutoff }
+    let overflowCount = max(0, recent.count - maximumExistingFiles)
+    let removals = stale + recent.prefix(overflowCount)
+    do {
+      for candidate in removals {
+        try retentionRemoval(candidate.url)
+      }
+    } catch {
+      throw HostMediaLiveLogError.retentionFailed
+    }
+  }
+
+  private static func isProductLogFilename(_ filename: String) -> Bool {
+    guard filename.hasPrefix(productLogPrefix),
+          filename.hasSuffix(productLogSuffix)
+    else { return false }
+    let stem = filename
+      .dropFirst(productLogPrefix.count)
+      .dropLast(productLogSuffix.count)
+    guard stem.count > 37 else { return false }
+    let uuidStart = stem.index(stem.endIndex, offsetBy: -36)
+    guard stem[stem.index(before: uuidStart)] == "-" else { return false }
+    return UUID(uuidString: String(stem[uuidStart...])) != nil
+  }
+
+  /// `unlink` removes one directory entry and never recursively removes a
+  /// directory if the path changes after metadata validation.
+  private static func unlinkRetainedLog(_ url: URL) throws {
+    let result = url.withUnsafeFileSystemRepresentation { path -> Int32 in
+      guard let path else { return -1 }
+      return unlink(path)
+    }
+    guard result == 0 else { throw HostMediaLiveLogError.retentionFailed }
   }
 
   /// Periodic samples are bounded to one line per second. Lifecycle records
