@@ -17,11 +17,23 @@ public final class HostAgentBootstrapConfigurationReader: @unchecked Sendable {
 
     private let directoryURL: URL
 
+    public convenience init(fileManager: FileManager = .default) throws {
+        try self.init(
+            directoryURL: HostAgentBootstrapProductLayout.directoryURL(
+                fileManager: fileManager
+            )
+        )
+    }
+
     init(directoryURL: URL) {
         self.directoryURL = directoryURL
     }
 
     public func load() throws -> HostAgentBootstrapConfiguration {
+        try HostAgentBootstrapConfiguration.decode(readDocument())
+    }
+
+    func readDocument() throws -> Data {
         guard NSString(string: directoryURL.path).isAbsolutePath,
               directoryURL.standardizedFileURL.path == directoryURL.path
         else { throw HostAgentBootstrapConfigurationReaderError.insecureDirectory }
@@ -47,6 +59,10 @@ public final class HostAgentBootstrapConfigurationReader: @unchecked Sendable {
               directoryStatus.st_mode & 0o777 == 0o700
         else { throw HostAgentBootstrapConfigurationReaderError.insecureDirectory }
 
+        return try Self.readDocument(fromDirectoryDescriptor: directoryDescriptor)
+    }
+
+    static func readDocument(fromDirectoryDescriptor directoryDescriptor: Int32) throws -> Data {
         let configurationDescriptor = Darwin.openat(
             directoryDescriptor,
             Self.configurationFileName,
@@ -79,11 +95,10 @@ public final class HostAgentBootstrapConfigurationReader: @unchecked Sendable {
             <= HostAgentBootstrapConfiguration.maximumDocumentBytes
         else { throw HostAgentBootstrapConfigurationError.documentTooLarge }
 
-        let data = try readBounded(from: configurationDescriptor)
-        return try HostAgentBootstrapConfiguration.decode(data)
+        return try readBounded(from: configurationDescriptor)
     }
 
-    private func readBounded(from descriptor: Int32) throws -> Data {
+    private static func readBounded(from descriptor: Int32) throws -> Data {
         let maximumBytes = HostAgentBootstrapConfiguration.maximumDocumentBytes
         var data = Data()
         var buffer = [UInt8](repeating: 0, count: 8 * 1_024)

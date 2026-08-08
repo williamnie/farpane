@@ -1237,11 +1237,14 @@ flowchart TD
 
 1. V1 是否只支持自托管 hbbs/hbbr（H1 前）；
 2. 永久密码为互操作必须保存可恢复 secret 还是可仅保存 verifier，以 pinned core 真实认证链为准（H3 前）；
-3. canonical server config 的产品存储位置与 Host 专用 config-root patch 形态（H4 前）。
 
 已确认（2026-08-05）：
 
 4. 性能门禁主基线使用 M4 Pro Mac mini（Mac16,11，Apple Silicon，arm64 优先原则一致）；Intel 仍按 §24 冻结决策 7 作独立功能门禁，性能数据单独记录。
+
+已确认（2026-08-08）：
+
+3. canonical server config 继续只由既有 `~/Library/Application Support/RustDesk Native Viewer/catalog-v1.json` 保存和编辑；App 将其投影为 `HostAgent/bootstrap-v1.json`，Agent 只读且用 monotonic revision 对账。Rust Host identity/policy/config 继续使用 `FarPaneHost`/`io.rustdesknative` 专用命名空间。projection 不是第二个可编辑 server authority，也不包含密码、token 或 server private key。
 
 ## 25. 完成定义
 
@@ -1510,6 +1513,8 @@ flowchart TD
 > 更新（2026-08-08）：**H4.1b HostAgent immutable bootstrap configuration contract 已完成自动实现**。新增严格 versioned JSON decoder，只接受正整数 monotonic `configRevision`、有界 build ID，以及唯一 canonical server address/public key；顶层和 server 对象均使用 exact key allowlist，未知 credential 字段、布尔/零/非整数 revision、未来 schema、控制字符、空白污染和超限输入全部 fail closed。Host Rust config namespace 固定为产品常量 `FarPaneHost`/`io.rustdesknative`，不得由磁盘字段或环境变量覆盖。本步仅建立非秘密不可变输入合同，尚未读取/发布配置文件、获取单写者锁、切换 Rust config root、启动 HostCore 或接入 XPC，所以 `--host-agent` 仍以 69 unavailable 退出。定向 3/3 与完整验证以 evidence 为准；未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-configuration.md`。
 
 > 更新（2026-08-08）：**H4.1c HostAgent secure bootstrap reader 已完成自动实现**。Reader 只从上层产品 authority 选定目录中的固定 `bootstrap-v1.json` 读取，目录 URL 不进入 wire；读取使用 `open/openat + O_NOFOLLOW + fstat`，在同一文件描述符上要求当前 euid owner、目录 `0700`、regular file `0600`、单硬链接和 64 KiB 上限。缺失、目录/文件 symlink、非 regular file、过宽权限、错误 owner/类型、硬链接及读取异常均稳定 fail closed，成功后仍须通过 H4.1b strict decoder。本步刻意未冻结 §24 待确认的产品存储根，也未实现临时文件、fsync、atomic replace、revision compare 或单写者 lease；`--host-agent` 仍以 69 unavailable 退出。定向 3/3 与完整验证以 evidence 为准；未读取用户配置、未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-reader.md`。
+
+> 更新（2026-08-08）：**H4.1d HostAgent atomic bootstrap publication 已完成自动实现**。§24 的存储所有权现已冻结：既有 Viewer catalog 保持唯一可编辑 canonical server config；Agent projection 固定在相邻私有 `HostAgent/bootstrap-v1.json`，Rust Host identity/config 仍位于独立 `FarPaneHost` namespace。Publisher 先执行 H4.1b strict decode，再以私有 fixed lock + nonblocking `flock` 串行化 existing revision 对账；完全相同 revision/bytes 幂等返回 unchanged，回退或同 revision mutation fail closed。新文档写入同目录 `0600` O_EXCL 临时文件，完整 write + file fsync 后 `renameat` 原子替换并 fsync directory；失败保留旧文档且不留本轮临时文件。定向 5/5 与完整验证以 evidence 为准。本步未创建真实产品目录/配置、未接 HostCore/XPC/SMAppService，`--host-agent` 仍以 69 unavailable 退出；未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-publication.md`。
 
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
