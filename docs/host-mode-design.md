@@ -1630,6 +1630,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.1ad HostAgent product entry state/build ownership 已完成自动实现**。唯一 product entry driver 现在为每个 boot 恰好创建一组全新的 bounded event journal、sanitized snapshot authority 与 ordered media-control authority，并把 H4.1ab eligibility 的同一 build identifier 贯穿 process/startup/runtime，最终由 bootstrap projection exact-match 后才获取单写者 lease。伪造 typed build ID 在创建 state 前 fail closed，state 构造异常稳定收敛为 sanitized internal failure；旧的外部 event/media 空观察 seam 已移除，accepted event 只进入 process-owned snapshot/media/diagnostic 消费链。package-only expected-build bridge 不接受 path/env/Bundle override，也不形成新的磁盘 authority。真实 `AppDelegate.main` 仍未调用 product entry/orchestrator，`--host-agent` 继续固定 69；本步未读取真实配置、启动 Core、联网、安装、注册或部署 Agent。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-product-entry-driver.md`。
 
+> 更新（2026-08-09）：**H4.1ae HostAgent process bootstrap composition 已完成自动实现**。唯一无参数产品 bootstrap 现把 H4.1ab preflight、H4.1ac sanitized orchestrator、H4.1ad product entry driver 与 H4.1aa terminal reporter 严格组合为 `assess → eligible-only run → exactly-once report`。rejection 不触及 state/Core/runtime，eligible process result 原样进入 reporter；组合层不捕获 raw Error、不读环境/替代 path、不直接 I/O 或 `exit`，产品绑定只使用各既有 product authority。真实 `AppDelegate.main` 仍未调用该 bootstrap，继续走固定 unavailable 69；因此本步未读取真实配置、启动 Core、联网、安装、注册或部署 Agent。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-process-bootstrap.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
