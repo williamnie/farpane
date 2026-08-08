@@ -35,16 +35,16 @@ package enum HostAgentRegistrationCodeSignaturePreflight {
         "io.rustdesknative.viewer"
     package static let expectedTeamIdentifier = "3J43F8H829"
 
-    private static let baseRequirement = """
+    package static let productRequirement = """
     identifier "io.rustdesknative.viewer" and anchor apple generic and \
     certificate leaf[subject.OU] = "3J43F8H829"
     """
     private static let developmentRequirement = """
-    \(baseRequirement) and \
+    \(productRequirement) and \
     certificate 1[field.1.2.840.113635.100.6.2.1] exists
     """
     private static let developerIDRequirement = """
-    \(baseRequirement) and \
+    \(productRequirement) and \
     certificate 1[field.1.2.840.113635.100.6.2.6] exists and \
     certificate leaf[field.1.2.840.113635.100.6.1.13] exists
     """
@@ -81,7 +81,7 @@ package enum HostAgentRegistrationCodeSignaturePreflight {
                 .codeUnavailable
         }
 
-        guard try satisfies(baseRequirement, code: staticCode) else {
+        guard try satisfies(productRequirement, code: staticCode) else {
             throw HostAgentRegistrationCodeSignaturePreflightError
                 .signatureMismatch
         }

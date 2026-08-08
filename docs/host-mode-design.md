@@ -1578,6 +1578,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2h fixed signed LaunchAgent asset reader 已完成自动实现**。产品 registration identity gate 已移除候选 plist bytes 注入，只从 `Bundle.main/Contents/Library/LaunchAgents/io.rustdesknative.viewer.host-agent.plist` 读取；reader 以 `open/openat + O_NOFOLLOW` descriptor-relative 遍历逐级拒绝 bundle/目录/文件软链，并要求可信 owner、目录与文件 group/world 不可写、单硬链接 regular file、1...64 KiB。完整读取后再次对账同一 descriptor 的 device/inode/mode/owner/link-count/size/mtime/ctime，替换、增长或 metadata mutation 均 fail closed。当前尚未创建/打包该 asset，因此产品入口真实保持 `invalidLaunchAgent`；后续全 bundle signature preflight 才能把该资源绑定到已验证签名。本步不冻结 `RunAtLoad`/`KeepAlive`、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push；公共 API 缺少“保持注册但停止 Agent”的 lifecycle 冲突仍保持 open。详见 `Evidence/HostMode/2026-08-08/h4-launch-agent-asset-reader.md`。
 
+> 更新（2026-08-08）：**H4.2i XPC listener code-signing gate 已完成自动实现**。未来 HostAgent listener factory 现在只构造固定 `io.rustdesknative.viewer.host-agent` Mach service，并在 delegate/interface 之前用 macOS 13 `setConnectionCodeSigningRequirement` 安装平台级 peer 过滤；不满足 requirement 的连接由 Foundation 在询问 delegate 前自动拒绝。该 requirement 与 H4.2f 共用同一 Apple generic anchor、`io.rustdesknative.viewer` identifier 和 Team ID authority，真实 `/Applications/FarPane.app` 通过、其他 Apple authority 失败。factory 不接受 name/path/environment override，且不设置 delegate、不 activate/resume、不定义 selector/payload，因此不会启动 IPC 或冒充 authenticated handshake。euid/PID/audit session/token、安装路径、wire version、snapshot-first、dedupe 与 rate limit 仍待后续 admission/runtime；本步不创建 plist、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-listener-signing-gate.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
