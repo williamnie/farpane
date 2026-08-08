@@ -168,9 +168,9 @@ final class HostAgentBackgroundUnregistrationPresentationPolicyTests:
         XCTAssertTrue(appSource.contains(
             "hostAgentBackgroundUnregistrationPresentation?.errorText"
         ))
-        XCTAssertFalse(appSource.contains(
-            "hostAgentBackgroundUnregistrationSheetDriver.begin("
-        ))
+        XCTAssertEqual(appSource.components(
+            separatedBy: "hostAgentBackgroundUnregistrationSheetDriver.begin("
+        ).count - 1, 1)
         XCTAssertFalse(homeSource.contains(
             "HostAgentBackgroundUnregistrationSheetDriver"
         ))

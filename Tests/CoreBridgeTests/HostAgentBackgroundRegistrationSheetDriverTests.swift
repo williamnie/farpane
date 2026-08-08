@@ -101,7 +101,7 @@ final class HostAgentBackgroundRegistrationSheetDriverTests: XCTestCase {
         XCTAssertFalse(source.contains("getenv"))
     }
 
-    func testDriverIsLazilyComposedButHasNoBeginCallSite() throws {
+    func testDriverIsLazilyComposedWithOneDedicatedBeginSeam() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -122,9 +122,9 @@ final class HostAgentBackgroundRegistrationSheetDriverTests: XCTestCase {
         XCTAssertTrue(appSource.contains(
             "private lazy var hostAgentBackgroundRegistrationSheetDriver"
         ))
-        XCTAssertFalse(appSource.contains(
-            "hostAgentBackgroundRegistrationSheetDriver.begin("
-        ))
+        XCTAssertEqual(appSource.components(
+            separatedBy: "hostAgentBackgroundRegistrationSheetDriver.begin("
+        ).count - 1, 1)
         XCTAssertFalse(homeSource.contains(
             "HostAgentBackgroundRegistrationSheetDriver"
         ))
