@@ -205,6 +205,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         )
     private lazy var hostAgentBackgroundRegistrationMutationOwner =
         HostAgentBackgroundRegistrationMutationOwner.makeProduct()
+    private lazy var hostAgentBackgroundActivationOwner =
+        HostAgentBackgroundActivationOwner.makeProduct()
     private lazy var hostAgentBackgroundRegistrationSheetDriver =
         HostAgentBackgroundRegistrationSheetDriver.makeProduct(
             mutationOwner: hostAgentBackgroundRegistrationMutationOwner,
@@ -288,7 +290,67 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        _ = hostAgentBackgroundActivationOwner.apply(
+            .applicationWillTerminate
+        )
         finish()
+    }
+
+    @MainActor
+    private func beginHostAgentBackgroundRegistration() -> Bool {
+        guard let window else { return false }
+        return hostAgentBackgroundRegistrationSheetDriver.begin(
+            on: window
+        ) { [weak self] view in
+            self?.routeHostAgentBackgroundRegistrationCompletion(view)
+        }
+    }
+
+    @MainActor
+    private func beginHostAgentBackgroundUnregistration() -> Bool {
+        guard let window else { return false }
+        return hostAgentBackgroundUnregistrationSheetDriver.begin(
+            on: window
+        ) { [weak self] view in
+            self?.routeHostAgentBackgroundUnregistrationCompletion(view)
+        }
+    }
+
+    @MainActor
+    private func routeHostAgentBackgroundRegistrationCompletion(
+        _ view: HostAgentBackgroundRegistrationUXView
+    ) {
+        applyHostAgentBackgroundProductRoutingDecision(
+            HostAgentBackgroundProductRoutingPolicy.registrationDecision(
+                view
+            )
+        )
+    }
+
+    @MainActor
+    private func routeHostAgentBackgroundUnregistrationCompletion(
+        _ view: HostAgentBackgroundUnregistrationUXView
+    ) {
+        applyHostAgentBackgroundProductRoutingDecision(
+            HostAgentBackgroundProductRoutingPolicy.unregistrationDecision(
+                view
+            )
+        )
+    }
+
+    @MainActor
+    private func applyHostAgentBackgroundProductRoutingDecision(
+        _ decision: HostAgentBackgroundProductRoutingDecision
+    ) {
+        switch decision {
+        case .noChange:
+            break
+        case .enableAndRefresh:
+            _ = hostAgentBackgroundActivationOwner.apply(.hostEnabled)
+            hostAgentBackgroundActivationOwner.refreshRegistration()
+        case .disable, .invalidCompletion:
+            _ = hostAgentBackgroundActivationOwner.apply(.hostDisabled)
+        }
     }
 
     func applicationDidResignActive(_ notification: Notification) {

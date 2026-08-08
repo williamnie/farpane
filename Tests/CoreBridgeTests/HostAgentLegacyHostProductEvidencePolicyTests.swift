@@ -163,9 +163,9 @@ final class HostAgentLegacyHostProductEvidencePolicyTests: XCTestCase {
         XCTAssertTrue(appSource.contains(
             "private lazy var hostAgentBackgroundRegistrationSheetDriver"
         ))
-        XCTAssertFalse(appSource.contains(
-            "hostAgentBackgroundRegistrationSheetDriver.begin("
-        ))
+        XCTAssertEqual(appSource.components(
+            separatedBy: "hostAgentBackgroundRegistrationSheetDriver.begin("
+        ).count - 1, 1)
     }
 
     func testStopFailureRemainsUnconfirmedAndBlocksDependentStarts() throws {

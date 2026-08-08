@@ -191,7 +191,7 @@ final class HostAgentBackgroundRegistrationPresentationPolicyTests:
         XCTAssertTrue(appSource.contains(
             "hostAgentBackgroundRegistrationPresentation?.errorText"
         ))
-        XCTAssertFalse(appSource.contains(
+        XCTAssertTrue(appSource.contains(
             "hostAgentBackgroundRegistrationSheetDriver.begin("
         ))
         XCTAssertFalse(homeSource.contains(
