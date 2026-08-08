@@ -346,13 +346,44 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         let processSource = try String(contentsOf: processURL, encoding: .utf8)
         XCTAssertTrue(processSource.contains("HostAgentSnapshotPollingOwner("))
-        XCTAssertTrue(processSource.contains("prepareTermination: pollingOwner.cancel"))
+        XCTAssertTrue(processSource.contains("prepareTermination: {"))
+        XCTAssertTrue(processSource.contains("pollingOwner.cancel()"))
         XCTAssertTrue(processSource.contains("pollingOwner.start()"))
 
         let appURL = repositoryRoot
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentSnapshotPollingOwner("))
+        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
+    func testHostAgentOwnsOrderedMediaControlIngressButRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let processURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcess.swift"
+        )
+        let processSource = try String(contentsOf: processURL, encoding: .utf8)
+        XCTAssertTrue(processSource.contains("mediaState: HostAgentMediaControlState"))
+        XCTAssertTrue(processSource.contains("onMediaControl:"))
+        XCTAssertTrue(processSource.contains("mediaState.consume("))
+        XCTAssertTrue(processSource.contains("eventSequence: sequence"))
+        XCTAssertTrue(processSource.contains("onAccepted: onMediaControl"))
+        let mediaCancel = try XCTUnwrap(processSource.range(
+            of: "mediaState.cancelAndWait()"
+        ))
+        let pollingCancel = try XCTUnwrap(processSource.range(
+            of: "pollingOwner.cancel()"
+        ))
+        XCTAssertLessThan(mediaCancel.lowerBound, pollingCancel.lowerBound)
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentMediaControlState("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }

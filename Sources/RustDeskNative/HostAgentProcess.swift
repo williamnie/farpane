@@ -12,6 +12,8 @@ enum HostAgentProcess {
     static func run(
         eventState: HostAgentEventState,
         snapshotState: HostAgentSnapshotState,
+        mediaState: HostAgentMediaControlState,
+        onMediaControl: @escaping @Sendable (HostMediaControl) -> Void,
         onEvent: @escaping @Sendable (HostCoreEvent) -> Void
     ) -> HostAgentProcessRunResult {
         let snapshotCoordinator = HostAgentSnapshotRefreshCoordinator(
@@ -26,12 +28,20 @@ enum HostAgentProcess {
             },
             startRuntime: {
                 let result = HostAgentProcessStartup.prepare(
-                    prepareTermination: pollingOwner.cancel,
+                    prepareTermination: {
+                        mediaState.cancelAndWait()
+                        pollingOwner.cancel()
+                    },
                     onEvent: { event in
                         eventState.consume(event) { event, sequence in
                             snapshotCoordinator.requestRefresh(
                                 eventSequence: sequence,
                                 hostInstanceID: event.hostInstanceId
+                            )
+                            mediaState.consume(
+                                event,
+                                eventSequence: sequence,
+                                onAccepted: onMediaControl
                             )
                             onEvent(event)
                         }
