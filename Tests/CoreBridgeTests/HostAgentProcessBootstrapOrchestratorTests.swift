@@ -90,7 +90,7 @@ final class HostAgentProcessBootstrapOrchestratorTests: XCTestCase {
         )
     }
 
-    func testProductBootstrapIsExactAndRealEntryRemainsFailClosed() throws {
+    func testProductBootstrapIsExactAndRealEntryUsesOnlyBootstrap() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -127,8 +127,9 @@ final class HostAgentProcessBootstrapOrchestratorTests: XCTestCase {
         XCTAssertFalse(productSource.contains("getenv"))
         XCTAssertFalse(productSource.contains("exit("))
 
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
-        XCTAssertFalse(appSource.contains("HostAgentProcessBootstrap.run()"))
+        XCTAssertTrue(appSource.contains(
+            "exit(HostAgentProcessBootstrap.run())"
+        ))
         XCTAssertFalse(appSource.contains(
             "HostAgentProcessEntryOrchestrator.resolve("
         ))
