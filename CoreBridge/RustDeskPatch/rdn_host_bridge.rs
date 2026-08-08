@@ -17,7 +17,7 @@
 // - temporary passwords never appear in logs; snapshot presentation is
 //   redacted unless explicitly revealed for one copy.
 
-use hbb_common::{config, password_security};
+use hbb_common::{config, password_security, tokio};
 use serde_json::{json, Map, Value};
 use std::{
     collections::HashMap,
@@ -28,18 +28,25 @@ use std::{
         Arc, Mutex,
     },
     thread::JoinHandle,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 2;
+const HOST_ABI_VERSION: u32 = 3;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
-const SNAPSHOT_SCHEMA_VERSION: u32 = 1;
+const EVENT_SCHEMA_VERSION: u32 = 1;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 2;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_NAME_BYTES: usize = 64;
 const MAX_SERVER_BYTES: usize = 512;
 const MAX_SERVER_PUBLIC_KEY_BYTES: usize = 1024;
 const MAX_ENCODER_ID_BYTES: usize = 128;
+const PERMANENT_PASSWORD_POLICY_VERSION: u32 = 1;
+const PERMANENT_PASSWORD_MIN_CHARACTERS: usize = 6;
+const PERMANENT_PASSWORD_MAX_CHARACTERS: usize = 128;
+const PERMANENT_PASSWORD_MAX_UTF8_BYTES: usize = 512;
+const NATIVE_APPROVAL_TIMEOUT_MS: u64 = 30_000;
+const MAX_REMOTE_METADATA_BYTES: usize = 256;
 const MAX_MEDIA_ACCESS_UNIT_BYTES: usize = 8 * 1024 * 1024;
 const MEDIA_QUEUE_CAPACITY: usize = 3;
 const MEDIA_FLAG_KEYFRAME: u32 = 1 << 0;
@@ -66,6 +73,14 @@ const RDN_HOST_ERR_PACKET_TOO_LARGE: i32 = -9;
 const RDN_HOST_ERR_NON_MONOTONIC_PTS: i32 = -10;
 const RDN_HOST_ERR_MISSING_PARAMETER_SETS: i32 = -11;
 const RDN_HOST_ERR_CODEC_MISMATCH: i32 = -12;
+const RDN_HOST_ERR_SECRET_INVALID_UTF8: i32 = -13;
+const RDN_HOST_ERR_SECRET_EMPTY: i32 = -14;
+const RDN_HOST_ERR_SECRET_TOO_SHORT: i32 = -15;
+const RDN_HOST_ERR_SECRET_TOO_LONG: i32 = -16;
+const RDN_HOST_ERR_SECRET_FORBIDDEN_CHARACTER: i32 = -17;
+const RDN_HOST_ERR_SECRET_OUTER_WHITESPACE: i32 = -18;
+const RDN_HOST_ERR_CHANGE_DISABLED: i32 = -19;
+const RDN_HOST_ERR_STORAGE: i32 = -20;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -204,6 +219,92 @@ struct HostRuntime {
 
 struct RuntimeFinished(Arc<AtomicBool>);
 
+/// Caller-owned secret bytes borrowed across the C ABI. Every return path
+/// after a valid pointer/length pair reaches this guard and wipes the complete
+/// caller buffer with libsodium before Rust releases the borrow.
+struct SecretBuffer<'a> {
+    bytes: &'a mut [u8],
+}
+
+impl SecretBuffer<'_> {
+    unsafe fn from_raw_parts(pointer: *mut u8, length: usize) -> Self {
+        Self {
+            bytes: std::slice::from_raw_parts_mut(pointer, length),
+        }
+    }
+
+    fn bytes(&self) -> &[u8] {
+        self.bytes
+    }
+}
+
+impl Drop for SecretBuffer<'_> {
+    fn drop(&mut self) {
+        password_security::memzero_secret(self.bytes);
+    }
+}
+
+#[derive(Clone, Copy)]
+struct PasswordPolicyRejection {
+    code: i32,
+    detail: &'static str,
+}
+
+fn validate_permanent_password(bytes: &[u8]) -> Result<&str, PasswordPolicyRejection> {
+    if bytes.is_empty() {
+        return Err(PasswordPolicyRejection {
+            code: RDN_HOST_ERR_SECRET_EMPTY,
+            detail: "permanent-password-empty",
+        });
+    }
+    if bytes.len() > PERMANENT_PASSWORD_MAX_UTF8_BYTES {
+        return Err(PasswordPolicyRejection {
+            code: RDN_HOST_ERR_SECRET_TOO_LONG,
+            detail: "permanent-password-too-long",
+        });
+    }
+    let password = std::str::from_utf8(bytes).map_err(|_| PasswordPolicyRejection {
+        code: RDN_HOST_ERR_SECRET_INVALID_UTF8,
+        detail: "permanent-password-invalid-utf8",
+    })?;
+    let character_count = password.chars().count();
+    if character_count < PERMANENT_PASSWORD_MIN_CHARACTERS {
+        return Err(PasswordPolicyRejection {
+            code: RDN_HOST_ERR_SECRET_TOO_SHORT,
+            detail: "permanent-password-too-short",
+        });
+    }
+    if character_count > PERMANENT_PASSWORD_MAX_CHARACTERS {
+        return Err(PasswordPolicyRejection {
+            code: RDN_HOST_ERR_SECRET_TOO_LONG,
+            detail: "permanent-password-too-long",
+        });
+    }
+    if password.chars().any(char::is_control) {
+        return Err(PasswordPolicyRejection {
+            code: RDN_HOST_ERR_SECRET_FORBIDDEN_CHARACTER,
+            detail: "permanent-password-forbidden-character",
+        });
+    }
+    if password
+        .chars()
+        .next()
+        .map(char::is_whitespace)
+        .unwrap_or(false)
+        || password
+            .chars()
+            .next_back()
+            .map(char::is_whitespace)
+            .unwrap_or(false)
+    {
+        return Err(PasswordPolicyRejection {
+            code: RDN_HOST_ERR_SECRET_OUTER_WHITESPACE,
+            detail: "permanent-password-outer-whitespace",
+        });
+    }
+    Ok(password)
+}
+
 #[derive(Clone)]
 struct MediaHostBinding {
     instance_id: String,
@@ -227,6 +328,10 @@ struct MediaRoute {
     display_revision: u64,
     codec: u32,
     sender: SyncSender<NativeMediaAccessUnit>,
+    queue_telemetry: Arc<NativeMediaQueueTelemetry>,
+    writer_telemetry: Arc<NativeMediaWriterTelemetry>,
+    network_telemetry: Arc<NativeMediaNetworkTelemetry>,
+    transport_telemetry: Arc<NativeMediaTransportTelemetry>,
     last_pts_us: Option<u64>,
     needs_parameter_sets: bool,
 }
@@ -238,6 +343,217 @@ struct MediaBroker {
     routes: HashMap<u64, MediaRoute>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NativeApprovalRequest {
+    connection_id: String,
+    core_connection_id: i32,
+    remote_id: String,
+    remote_name: String,
+    remote_platform: String,
+    requested_at_ms: u64,
+    expires_at_ms: u64,
+    requested_capabilities: Vec<String>,
+}
+
+impl NativeApprovalRequest {
+    fn event_payload(&self) -> Value {
+        json!({
+            "connectionId": self.connection_id,
+            "remoteId": self.remote_id,
+            "remoteName": self.remote_name,
+            "remotePlatform": self.remote_platform,
+            "remoteMetadataTrust": "untrusted",
+            "requestedAt": self.requested_at_ms,
+            "expiresAt": self.expires_at_ms,
+            "requestedCapabilities": self.requested_capabilities,
+            "transport": "unknown",
+            "authenticationMethod": "localApproval",
+            "riskAlerts": [],
+        })
+    }
+}
+
+struct PendingNativeApproval {
+    request: NativeApprovalRequest,
+    deadline: Instant,
+    decision_sender: tokio::sync::mpsc::UnboundedSender<crate::ipc::Data>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeApprovalFinalStatus {
+    Approved,
+    Rejected,
+    Expired,
+    Cancelled,
+}
+
+impl NativeApprovalFinalStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Approved => "approved",
+            Self::Rejected => "rejected",
+            Self::Expired => "expired",
+            Self::Cancelled => "cancelled",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeApprovalStartResult {
+    Accepted,
+    Existing,
+    Busy,
+    Finalized,
+    Unavailable,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeApprovalDecision {
+    Approve,
+    Reject,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeApprovalResolveResult {
+    Approved,
+    Rejected,
+    Expired,
+    AlreadyFinal,
+    NotFound,
+}
+
+struct NativeApprovalCompletion {
+    pending: PendingNativeApproval,
+    status: NativeApprovalFinalStatus,
+}
+
+#[derive(Default)]
+struct NativeApprovalBroker {
+    pending: Option<PendingNativeApproval>,
+    last_finalized: Option<(String, NativeApprovalFinalStatus)>,
+}
+
+impl NativeApprovalBroker {
+    fn begin(&mut self, pending: PendingNativeApproval) -> NativeApprovalStartResult {
+        if self
+            .last_finalized
+            .as_ref()
+            .map(|(connection_id, _)| connection_id == &pending.request.connection_id)
+            .unwrap_or(false)
+        {
+            return NativeApprovalStartResult::Finalized;
+        }
+        if let Some(current) = self.pending.as_ref() {
+            return if current.request.connection_id == pending.request.connection_id {
+                NativeApprovalStartResult::Existing
+            } else {
+                NativeApprovalStartResult::Busy
+            };
+        }
+        self.pending = Some(pending);
+        NativeApprovalStartResult::Accepted
+    }
+
+    fn resolve(
+        &mut self,
+        connection_id: &str,
+        decision: NativeApprovalDecision,
+        now: Instant,
+    ) -> (
+        NativeApprovalResolveResult,
+        Option<NativeApprovalCompletion>,
+    ) {
+        let Some(pending) = self.pending.as_ref() else {
+            let already_final = self
+                .last_finalized
+                .as_ref()
+                .map(|(finalized_id, _)| finalized_id == connection_id)
+                .unwrap_or(false);
+            return (
+                if already_final {
+                    NativeApprovalResolveResult::AlreadyFinal
+                } else {
+                    NativeApprovalResolveResult::NotFound
+                },
+                None,
+            );
+        };
+        if pending.request.connection_id != connection_id {
+            return (NativeApprovalResolveResult::NotFound, None);
+        }
+
+        let (status, result) = if now >= pending.deadline {
+            (
+                NativeApprovalFinalStatus::Expired,
+                NativeApprovalResolveResult::Expired,
+            )
+        } else {
+            match decision {
+                NativeApprovalDecision::Approve => (
+                    NativeApprovalFinalStatus::Approved,
+                    NativeApprovalResolveResult::Approved,
+                ),
+                NativeApprovalDecision::Reject => (
+                    NativeApprovalFinalStatus::Rejected,
+                    NativeApprovalResolveResult::Rejected,
+                ),
+            }
+        };
+        let Some(pending) = self.pending.take() else {
+            return (NativeApprovalResolveResult::NotFound, None);
+        };
+        self.last_finalized = Some((pending.request.connection_id.clone(), status));
+        (result, Some(NativeApprovalCompletion { pending, status }))
+    }
+
+    fn expire(&mut self, connection_id: &str, now: Instant) -> Option<NativeApprovalCompletion> {
+        let should_expire = self
+            .pending
+            .as_ref()
+            .map(|pending| {
+                pending.request.connection_id == connection_id && now >= pending.deadline
+            })
+            .unwrap_or(false);
+        if !should_expire {
+            return None;
+        }
+        let pending = self.pending.take()?;
+        self.last_finalized = Some((
+            pending.request.connection_id.clone(),
+            NativeApprovalFinalStatus::Expired,
+        ));
+        Some(NativeApprovalCompletion {
+            pending,
+            status: NativeApprovalFinalStatus::Expired,
+        })
+    }
+
+    fn cancel(&mut self, core_connection_id: i32) -> Option<NativeApprovalCompletion> {
+        let matches = self
+            .pending
+            .as_ref()
+            .map(|pending| pending.request.core_connection_id == core_connection_id)
+            .unwrap_or(false);
+        if !matches {
+            return None;
+        }
+        let pending = self.pending.take()?;
+        self.last_finalized = Some((
+            pending.request.connection_id.clone(),
+            NativeApprovalFinalStatus::Cancelled,
+        ));
+        Some(NativeApprovalCompletion {
+            pending,
+            status: NativeApprovalFinalStatus::Cancelled,
+        })
+    }
+
+    fn reset(&mut self) -> Option<PendingNativeApproval> {
+        self.last_finalized = None;
+        self.pending.take()
+    }
+}
+
 pub(crate) struct NativeMediaAccessUnit {
     pub(crate) codec: u32,
     pub(crate) framing: u32,
@@ -245,6 +561,253 @@ pub(crate) struct NativeMediaAccessUnit {
     pub(crate) keyframe: bool,
     pub(crate) has_parameter_sets: bool,
     pub(crate) data: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeMediaQueueDropReason {
+    NetworkBackpressure,
+    Shutdown,
+}
+
+#[derive(Default)]
+struct NativeMediaQueueState {
+    depth: usize,
+    maximum_depth: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct NativeMediaQueueSnapshot {
+    current_depth: usize,
+    maximum_depth: usize,
+}
+
+#[derive(Default)]
+struct NativeMediaQueueTelemetry {
+    state: Mutex<NativeMediaQueueState>,
+}
+
+impl NativeMediaQueueTelemetry {
+    fn try_enqueue(
+        &self,
+        sender: &SyncSender<NativeMediaAccessUnit>,
+        packet: NativeMediaAccessUnit,
+    ) -> Result<(), (NativeMediaQueueDropReason, NativeMediaAccessUnit)> {
+        // Hold the small counter lock across try_send so the receiver cannot
+        // decrement before a successful enqueue has published its depth.
+        let mut state = self.state.lock().unwrap();
+        match sender.try_send(packet) {
+            Ok(()) => {
+                state.depth += 1;
+                state.maximum_depth = state.maximum_depth.max(state.depth);
+                Ok(())
+            }
+            Err(TrySendError::Full(packet)) => {
+                Err((NativeMediaQueueDropReason::NetworkBackpressure, packet))
+            }
+            Err(TrySendError::Disconnected(packet)) => {
+                Err((NativeMediaQueueDropReason::Shutdown, packet))
+            }
+        }
+    }
+
+    fn record_dequeued(&self) {
+        let mut state = self.state.lock().unwrap();
+        state.depth = state.depth.saturating_sub(1);
+    }
+
+    fn snapshot(&self) -> NativeMediaQueueSnapshot {
+        let state = self.state.lock().unwrap();
+        NativeMediaQueueSnapshot {
+            current_depth: state.depth,
+            maximum_depth: state.maximum_depth,
+        }
+    }
+}
+
+#[derive(Default)]
+struct NativeMediaWriterState {
+    cycles: u64,
+    subscriber_dispatches: u64,
+    dispatch_wall_total_us: u64,
+    maximum_dispatch_wall_us: u64,
+    confirmation_wait_total_us: u64,
+    maximum_confirmation_wait_us: u64,
+    completed_confirmations: u64,
+    timed_out_confirmations: u64,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct NativeMediaWriterSnapshot {
+    cycles: u64,
+    subscriber_dispatches: u64,
+    dispatch_wall_total_us: u64,
+    maximum_dispatch_wall_us: u64,
+    confirmation_wait_total_us: u64,
+    maximum_confirmation_wait_us: u64,
+    completed_confirmations: u64,
+    timed_out_confirmations: u64,
+}
+
+#[derive(Default)]
+struct NativeMediaWriterTelemetry {
+    state: Mutex<NativeMediaWriterState>,
+}
+
+impl NativeMediaWriterTelemetry {
+    fn record(
+        &self,
+        subscriber_count: usize,
+        dispatch_wall: Duration,
+        confirmation_wait: Duration,
+        confirmation_complete: bool,
+    ) {
+        if subscriber_count == 0 {
+            return;
+        }
+        let dispatch_us = duration_microseconds(dispatch_wall);
+        let confirmation_us = duration_microseconds(confirmation_wait);
+        let mut state = self.state.lock().unwrap();
+        state.cycles = state.cycles.saturating_add(1);
+        state.subscriber_dispatches = state
+            .subscriber_dispatches
+            .saturating_add(subscriber_count.min(u64::MAX as usize) as u64);
+        state.dispatch_wall_total_us = state.dispatch_wall_total_us.saturating_add(dispatch_us);
+        state.maximum_dispatch_wall_us = state.maximum_dispatch_wall_us.max(dispatch_us);
+        state.confirmation_wait_total_us = state
+            .confirmation_wait_total_us
+            .saturating_add(confirmation_us);
+        state.maximum_confirmation_wait_us =
+            state.maximum_confirmation_wait_us.max(confirmation_us);
+        if confirmation_complete {
+            state.completed_confirmations = state.completed_confirmations.saturating_add(1);
+        } else {
+            state.timed_out_confirmations = state.timed_out_confirmations.saturating_add(1);
+        }
+    }
+
+    fn snapshot(&self) -> NativeMediaWriterSnapshot {
+        let state = self.state.lock().unwrap();
+        NativeMediaWriterSnapshot {
+            cycles: state.cycles,
+            subscriber_dispatches: state.subscriber_dispatches,
+            dispatch_wall_total_us: state.dispatch_wall_total_us,
+            maximum_dispatch_wall_us: state.maximum_dispatch_wall_us,
+            confirmation_wait_total_us: state.confirmation_wait_total_us,
+            maximum_confirmation_wait_us: state.maximum_confirmation_wait_us,
+            completed_confirmations: state.completed_confirmations,
+            timed_out_confirmations: state.timed_out_confirmations,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct NativeMediaNetworkSnapshot {
+    subscriber_count: u64,
+    qos_subscriber_count: u64,
+    delay_sampled_subscribers: u64,
+    rtt_sampled_subscribers: u64,
+    response_delayed_subscribers: u64,
+    worst_network_delay_ms: Option<u32>,
+    worst_rtt_ms: Option<u32>,
+}
+
+#[derive(Default)]
+struct NativeMediaNetworkTelemetry {
+    latest: Mutex<NativeMediaNetworkSnapshot>,
+}
+
+impl NativeMediaNetworkTelemetry {
+    fn record(
+        &self,
+        subscriber_count: usize,
+        qos_subscriber_count: usize,
+        delay_sampled_subscribers: usize,
+        rtt_sampled_subscribers: usize,
+        response_delayed_subscribers: usize,
+        worst_network_delay_ms: Option<u32>,
+        worst_rtt_ms: Option<u32>,
+    ) -> bool {
+        if qos_subscriber_count > subscriber_count
+            || delay_sampled_subscribers > qos_subscriber_count
+            || rtt_sampled_subscribers > delay_sampled_subscribers
+            || response_delayed_subscribers > qos_subscriber_count
+            || (delay_sampled_subscribers == 0) != worst_network_delay_ms.is_none()
+            || (rtt_sampled_subscribers == 0) != worst_rtt_ms.is_none()
+        {
+            return false;
+        }
+        *self.latest.lock().unwrap() = NativeMediaNetworkSnapshot {
+            subscriber_count: subscriber_count.min(u64::MAX as usize) as u64,
+            qos_subscriber_count: qos_subscriber_count.min(u64::MAX as usize) as u64,
+            delay_sampled_subscribers: delay_sampled_subscribers.min(u64::MAX as usize) as u64,
+            rtt_sampled_subscribers: rtt_sampled_subscribers.min(u64::MAX as usize) as u64,
+            response_delayed_subscribers: response_delayed_subscribers.min(u64::MAX as usize)
+                as u64,
+            worst_network_delay_ms,
+            worst_rtt_ms,
+        };
+        true
+    }
+
+    fn snapshot(&self) -> NativeMediaNetworkSnapshot {
+        *self.latest.lock().unwrap()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct NativeMediaTransportSnapshot {
+    subscriber_count: u64,
+    direct_subscribers: u64,
+    relay_subscribers: u64,
+    unknown_subscribers: u64,
+}
+
+#[derive(Default)]
+struct NativeMediaTransportTelemetry {
+    latest: Mutex<NativeMediaTransportSnapshot>,
+}
+
+impl NativeMediaTransportTelemetry {
+    fn record(
+        &self,
+        subscriber_count: usize,
+        direct_subscribers: usize,
+        relay_subscribers: usize,
+        unknown_subscribers: usize,
+    ) -> bool {
+        let Some(classified_subscribers) = direct_subscribers.checked_add(relay_subscribers) else {
+            return false;
+        };
+        let Some(all_subscribers) = classified_subscribers.checked_add(unknown_subscribers) else {
+            return false;
+        };
+        if all_subscribers != subscriber_count {
+            return false;
+        }
+        *self.latest.lock().unwrap() = NativeMediaTransportSnapshot {
+            subscriber_count: subscriber_count.min(u64::MAX as usize) as u64,
+            direct_subscribers: direct_subscribers.min(u64::MAX as usize) as u64,
+            relay_subscribers: relay_subscribers.min(u64::MAX as usize) as u64,
+            unknown_subscribers: unknown_subscribers.min(u64::MAX as usize) as u64,
+        };
+        true
+    }
+
+    fn snapshot(&self) -> NativeMediaTransportSnapshot {
+        *self.latest.lock().unwrap()
+    }
+}
+
+fn duration_microseconds(duration: Duration) -> u64 {
+    duration.as_micros().min(u64::MAX as u128) as u64
+}
+
+fn try_enqueue_native_media(
+    sender: &SyncSender<NativeMediaAccessUnit>,
+    telemetry: &NativeMediaQueueTelemetry,
+    packet: NativeMediaAccessUnit,
+) -> Result<(), (NativeMediaQueueDropReason, NativeMediaAccessUnit)> {
+    telemetry.try_enqueue(sender, packet)
 }
 
 #[derive(Clone, Copy)]
@@ -280,6 +843,10 @@ pub(crate) struct NativeMediaRoute {
     pub(crate) display_revision: u64,
     pub(crate) codec: u32,
     pub(crate) receiver: Receiver<NativeMediaAccessUnit>,
+    queue_telemetry: Arc<NativeMediaQueueTelemetry>,
+    writer_telemetry: Arc<NativeMediaWriterTelemetry>,
+    network_telemetry: Arc<NativeMediaNetworkTelemetry>,
+    transport_telemetry: Arc<NativeMediaTransportTelemetry>,
 }
 
 static NEXT_CONNECTION_EPOCH: AtomicU64 = AtomicU64::new(1);
@@ -287,6 +854,8 @@ static NEXT_CODEC_EPOCH: AtomicU64 = AtomicU64::new(1);
 
 lazy_static::lazy_static! {
     static ref MEDIA_BROKER: Mutex<MediaBroker> = Mutex::new(MediaBroker::default());
+    static ref APPROVAL_BROKER: Mutex<NativeApprovalBroker> =
+        Mutex::new(NativeApprovalBroker::default());
 }
 
 fn emit_bound_event(binding: &MediaHostBinding, event_type: &str, payload: Value) {
@@ -294,7 +863,7 @@ fn emit_bound_event(binding: &MediaHostBinding, event_type: &str, payload: Value
         return;
     };
     let envelope = json!({
-        "schemaVersion": SNAPSHOT_SCHEMA_VERSION,
+        "schemaVersion": EVENT_SCHEMA_VERSION,
         "eventId": binding.event_id.fetch_add(1, Ordering::Relaxed),
         "eventType": event_type,
         "hostInstanceId": binding.instance_id,
@@ -313,7 +882,146 @@ fn emit_bound_event(binding: &MediaHostBinding, event_type: &str, payload: Value
     };
 }
 
+fn bounded_remote_metadata(value: String) -> String {
+    let mut result = String::new();
+    for character in value.chars().filter(|character| !character.is_control()) {
+        if result.len() + character.len_utf8() > MAX_REMOTE_METADATA_BYTES {
+            break;
+        }
+        result.push(character);
+    }
+    result
+}
+
+fn emit_native_approval_completion(completion: &NativeApprovalCompletion) {
+    let signal = match completion.status {
+        NativeApprovalFinalStatus::Approved => crate::ipc::Data::Authorize,
+        NativeApprovalFinalStatus::Rejected | NativeApprovalFinalStatus::Expired => {
+            crate::ipc::Data::Close
+        }
+        NativeApprovalFinalStatus::Cancelled => return,
+    };
+    let _ = completion.pending.decision_sender.send(signal);
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "incomingConnectionResolved",
+            json!({
+                "connectionId": completion.pending.request.connection_id,
+                "status": completion.status.as_str(),
+            }),
+        );
+    }
+}
+
+fn expire_native_approval(connection_id: &str) {
+    let completion = APPROVAL_BROKER
+        .lock()
+        .unwrap()
+        .expire(connection_id, Instant::now());
+    if let Some(completion) = completion {
+        emit_native_approval_completion(&completion);
+    }
+}
+
+pub(crate) fn native_host_begin_approval(
+    core_connection_id: i32,
+    remote_id: String,
+    remote_name: String,
+    remote_platform: String,
+    requested_capabilities: Vec<String>,
+    decision_sender: tokio::sync::mpsc::UnboundedSender<crate::ipc::Data>,
+) -> NativeApprovalStartResult {
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    let Some(binding) = binding else {
+        return NativeApprovalStartResult::Unavailable;
+    };
+    let requested_at_ms = now_unix_millis();
+    let connection_id = format!("{}:{core_connection_id}", binding.instance_id);
+    let request = NativeApprovalRequest {
+        connection_id: connection_id.clone(),
+        core_connection_id,
+        remote_id: bounded_remote_metadata(remote_id),
+        remote_name: bounded_remote_metadata(remote_name),
+        remote_platform: bounded_remote_metadata(remote_platform),
+        requested_at_ms,
+        expires_at_ms: requested_at_ms.saturating_add(NATIVE_APPROVAL_TIMEOUT_MS),
+        requested_capabilities,
+    };
+    let result = APPROVAL_BROKER
+        .lock()
+        .unwrap()
+        .begin(PendingNativeApproval {
+            request: request.clone(),
+            deadline: Instant::now() + Duration::from_millis(NATIVE_APPROVAL_TIMEOUT_MS),
+            decision_sender: decision_sender.clone(),
+        });
+    match result {
+        NativeApprovalStartResult::Accepted => {
+            emit_bound_event(
+                &binding,
+                "incomingConnectionRequest",
+                request.event_payload(),
+            );
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(NATIVE_APPROVAL_TIMEOUT_MS)).await;
+                expire_native_approval(&connection_id);
+            });
+        }
+        NativeApprovalStartResult::Busy
+        | NativeApprovalStartResult::Finalized
+        | NativeApprovalStartResult::Unavailable => {
+            let _ = decision_sender.send(crate::ipc::Data::Close);
+        }
+        NativeApprovalStartResult::Existing => {}
+    }
+    result
+}
+
+#[allow(dead_code)] // consumed by the Host command boundary in the next H3.2 step
+pub(crate) fn native_host_resolve_approval(
+    connection_id: &str,
+    decision: NativeApprovalDecision,
+) -> NativeApprovalResolveResult {
+    let (result, completion) =
+        APPROVAL_BROKER
+            .lock()
+            .unwrap()
+            .resolve(connection_id, decision, Instant::now());
+    if let Some(completion) = completion {
+        emit_native_approval_completion(&completion);
+    }
+    result
+}
+
+pub(crate) fn native_host_cancel_approval(core_connection_id: i32) {
+    let completion = APPROVAL_BROKER.lock().unwrap().cancel(core_connection_id);
+    let Some(completion) = completion else {
+        return;
+    };
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "incomingConnectionResolved",
+            json!({
+                "connectionId": completion.pending.request.connection_id,
+                "status": completion.status.as_str(),
+            }),
+        );
+    }
+}
+
+fn reset_native_approval_broker() {
+    let pending = APPROVAL_BROKER.lock().unwrap().reset();
+    if let Some(pending) = pending {
+        let _ = pending.decision_sender.send(crate::ipc::Data::Close);
+    }
+}
+
 fn bind_media_host(host: &RdnHost) {
+    reset_native_approval_broker();
     let mut broker = MEDIA_BROKER.lock().unwrap();
     broker.routes.clear();
     broker.capabilities = MediaCapabilities::default();
@@ -333,21 +1041,97 @@ pub(crate) fn native_host_is_bound() -> bool {
     MEDIA_BROKER.lock().unwrap().binding.is_some()
 }
 
+/// Stable for the full native Host instance lifetime, including the interval
+/// where stop has unbound media but server connections are still draining.
+pub(crate) fn native_host_instance_is_live() -> bool {
+    HOST_INSTANCE_LIVE.load(Ordering::Acquire)
+}
+
 fn unbind_media_host() {
+    reset_native_approval_broker();
     let (binding, routes) = {
         let mut broker = MEDIA_BROKER.lock().unwrap();
         let binding = broker.binding.take();
         let routes = broker
             .routes
             .drain()
-            .map(|(display, route)| (display, route.connection_epoch, route.codec_epoch))
+            .map(|(display, route)| {
+                (
+                    display,
+                    route.connection_epoch,
+                    route.codec_epoch,
+                    route.display_revision,
+                    route.queue_telemetry.snapshot(),
+                    route.writer_telemetry.snapshot(),
+                    route.network_telemetry.snapshot(),
+                    route.transport_telemetry.snapshot(),
+                )
+            })
             .collect::<Vec<_>>();
         broker.capabilities = MediaCapabilities::default();
         (binding, routes)
     };
     scrap::codec::set_native_encoding_capabilities(false, false);
     if let Some(binding) = binding {
-        for (display_id, connection_epoch, codec_epoch) in routes {
+        for (
+            display_id,
+            connection_epoch,
+            codec_epoch,
+            display_revision,
+            queue,
+            writer,
+            network,
+            transport,
+        ) in routes
+        {
+            emit_bound_event(
+                &binding,
+                "mediaQueueDiagnostic",
+                native_media_queue_payload(
+                    "routeStopped",
+                    connection_epoch,
+                    codec_epoch,
+                    display_id,
+                    display_revision,
+                    queue,
+                ),
+            );
+            emit_bound_event(
+                &binding,
+                "mediaWriterDiagnostic",
+                native_media_writer_payload(
+                    "routeStopped",
+                    connection_epoch,
+                    codec_epoch,
+                    display_id,
+                    display_revision,
+                    writer,
+                ),
+            );
+            emit_bound_event(
+                &binding,
+                "mediaNetworkDiagnostic",
+                native_media_network_payload(
+                    "routeStopped",
+                    connection_epoch,
+                    codec_epoch,
+                    display_id,
+                    display_revision,
+                    network,
+                ),
+            );
+            emit_bound_event(
+                &binding,
+                "mediaTransportDiagnostic",
+                native_media_transport_payload(
+                    "routeStopped",
+                    connection_epoch,
+                    codec_epoch,
+                    display_id,
+                    display_revision,
+                    transport,
+                ),
+            );
             emit_bound_event(
                 &binding,
                 "mediaControl",
@@ -372,6 +1156,10 @@ pub(crate) fn native_media_begin_route(
     bitrate: u32,
 ) -> Result<NativeMediaRoute, &'static str> {
     let (sender, receiver) = sync_channel(MEDIA_QUEUE_CAPACITY);
+    let queue_telemetry = Arc::new(NativeMediaQueueTelemetry::default());
+    let writer_telemetry = Arc::new(NativeMediaWriterTelemetry::default());
+    let network_telemetry = Arc::new(NativeMediaNetworkTelemetry::default());
+    let transport_telemetry = Arc::new(NativeMediaTransportTelemetry::default());
     let connection_epoch = NEXT_CONNECTION_EPOCH.fetch_add(1, Ordering::Relaxed);
     let codec_epoch = NEXT_CODEC_EPOCH.fetch_add(1, Ordering::Relaxed);
     let binding = {
@@ -405,6 +1193,10 @@ pub(crate) fn native_media_begin_route(
                 display_revision,
                 codec,
                 sender,
+                queue_telemetry: queue_telemetry.clone(),
+                writer_telemetry: writer_telemetry.clone(),
+                network_telemetry: network_telemetry.clone(),
+                transport_telemetry: transport_telemetry.clone(),
                 last_pts_us: None,
                 needs_parameter_sets: true,
             },
@@ -450,6 +1242,225 @@ pub(crate) fn native_media_begin_route(
         display_revision,
         codec,
         receiver,
+        queue_telemetry,
+        writer_telemetry,
+        network_telemetry,
+        transport_telemetry,
+    })
+}
+
+pub(crate) fn native_media_record_dequeued(route: &NativeMediaRoute) {
+    route.queue_telemetry.record_dequeued();
+}
+
+pub(crate) fn native_media_report_queue_depth(route: &NativeMediaRoute) {
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "mediaQueueDiagnostic",
+            native_media_queue_payload(
+                "sample",
+                route.connection_epoch,
+                route.codec_epoch,
+                route.display_id,
+                route.display_revision,
+                route.queue_telemetry.snapshot(),
+            ),
+        );
+    }
+}
+
+pub(crate) fn native_media_record_writer_cycle(
+    route: &NativeMediaRoute,
+    subscriber_count: usize,
+    dispatch_wall: Duration,
+    confirmation_wait: Duration,
+    confirmation_complete: bool,
+) {
+    route.writer_telemetry.record(
+        subscriber_count,
+        dispatch_wall,
+        confirmation_wait,
+        confirmation_complete,
+    );
+}
+
+pub(crate) fn native_media_report_writer_timing(route: &NativeMediaRoute) {
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "mediaWriterDiagnostic",
+            native_media_writer_payload(
+                "sample",
+                route.connection_epoch,
+                route.codec_epoch,
+                route.display_id,
+                route.display_revision,
+                route.writer_telemetry.snapshot(),
+            ),
+        );
+    }
+}
+
+pub(crate) fn native_media_report_network(
+    route: &NativeMediaRoute,
+    subscriber_count: usize,
+    qos_subscriber_count: usize,
+    delay_sampled_subscribers: usize,
+    rtt_sampled_subscribers: usize,
+    response_delayed_subscribers: usize,
+    worst_network_delay_ms: Option<u32>,
+    worst_rtt_ms: Option<u32>,
+) {
+    if !route.network_telemetry.record(
+        subscriber_count,
+        qos_subscriber_count,
+        delay_sampled_subscribers,
+        rtt_sampled_subscribers,
+        response_delayed_subscribers,
+        worst_network_delay_ms,
+        worst_rtt_ms,
+    ) {
+        return;
+    }
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "mediaNetworkDiagnostic",
+            native_media_network_payload(
+                "sample",
+                route.connection_epoch,
+                route.codec_epoch,
+                route.display_id,
+                route.display_revision,
+                route.network_telemetry.snapshot(),
+            ),
+        );
+    }
+}
+
+pub(crate) fn native_media_report_transport(
+    route: &NativeMediaRoute,
+    subscriber_count: usize,
+    direct_subscribers: usize,
+    relay_subscribers: usize,
+    unknown_subscribers: usize,
+) {
+    if !route.transport_telemetry.record(
+        subscriber_count,
+        direct_subscribers,
+        relay_subscribers,
+        unknown_subscribers,
+    ) {
+        return;
+    }
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "mediaTransportDiagnostic",
+            native_media_transport_payload(
+                "sample",
+                route.connection_epoch,
+                route.codec_epoch,
+                route.display_id,
+                route.display_revision,
+                route.transport_telemetry.snapshot(),
+            ),
+        );
+    }
+}
+
+fn native_media_queue_payload(
+    kind: &str,
+    connection_epoch: u64,
+    codec_epoch: u64,
+    display_id: u64,
+    display_revision: u64,
+    queue: NativeMediaQueueSnapshot,
+) -> Value {
+    json!({
+        "kind": kind,
+        "connectionEpoch": connection_epoch,
+        "codecEpoch": codec_epoch,
+        "displayId": display_id,
+        "displayRevision": display_revision,
+        "currentDepth": queue.current_depth,
+        "maximumDepth": queue.maximum_depth,
+        "capacity": MEDIA_QUEUE_CAPACITY,
+    })
+}
+
+fn native_media_writer_payload(
+    kind: &str,
+    connection_epoch: u64,
+    codec_epoch: u64,
+    display_id: u64,
+    display_revision: u64,
+    writer: NativeMediaWriterSnapshot,
+) -> Value {
+    json!({
+        "kind": kind,
+        "connectionEpoch": connection_epoch,
+        "codecEpoch": codec_epoch,
+        "displayId": display_id,
+        "displayRevision": display_revision,
+        "cycles": writer.cycles,
+        "subscriberDispatches": writer.subscriber_dispatches,
+        "dispatchWallTotalUs": writer.dispatch_wall_total_us,
+        "maximumDispatchWallUs": writer.maximum_dispatch_wall_us,
+        "confirmationWaitTotalUs": writer.confirmation_wait_total_us,
+        "maximumConfirmationWaitUs": writer.maximum_confirmation_wait_us,
+        "completedConfirmations": writer.completed_confirmations,
+        "timedOutConfirmations": writer.timed_out_confirmations,
+    })
+}
+
+fn native_media_network_payload(
+    kind: &str,
+    connection_epoch: u64,
+    codec_epoch: u64,
+    display_id: u64,
+    display_revision: u64,
+    network: NativeMediaNetworkSnapshot,
+) -> Value {
+    json!({
+        "kind": kind,
+        "connectionEpoch": connection_epoch,
+        "codecEpoch": codec_epoch,
+        "displayId": display_id,
+        "displayRevision": display_revision,
+        "subscriberCount": network.subscriber_count,
+        "qosSubscriberCount": network.qos_subscriber_count,
+        "delaySampledSubscribers": network.delay_sampled_subscribers,
+        "rttSampledSubscribers": network.rtt_sampled_subscribers,
+        "responseDelayedSubscribers": network.response_delayed_subscribers,
+        "worstNetworkDelayMs": network.worst_network_delay_ms,
+        "worstRttMs": network.worst_rtt_ms,
+    })
+}
+
+fn native_media_transport_payload(
+    kind: &str,
+    connection_epoch: u64,
+    codec_epoch: u64,
+    display_id: u64,
+    display_revision: u64,
+    transport: NativeMediaTransportSnapshot,
+) -> Value {
+    json!({
+        "kind": kind,
+        "connectionEpoch": connection_epoch,
+        "codecEpoch": codec_epoch,
+        "displayId": display_id,
+        "displayRevision": display_revision,
+        "subscriberCount": transport.subscriber_count,
+        "directSubscribers": transport.direct_subscribers,
+        "relaySubscribers": transport.relay_subscribers,
+        "unknownSubscribers": transport.unknown_subscribers,
     })
 }
 
@@ -544,6 +1555,54 @@ pub(crate) fn native_media_end_route(route: &NativeMediaRoute) {
         }
     };
     if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "mediaQueueDiagnostic",
+            native_media_queue_payload(
+                "routeStopped",
+                route.connection_epoch,
+                route.codec_epoch,
+                route.display_id,
+                route.display_revision,
+                route.queue_telemetry.snapshot(),
+            ),
+        );
+        emit_bound_event(
+            &binding,
+            "mediaWriterDiagnostic",
+            native_media_writer_payload(
+                "routeStopped",
+                route.connection_epoch,
+                route.codec_epoch,
+                route.display_id,
+                route.display_revision,
+                route.writer_telemetry.snapshot(),
+            ),
+        );
+        emit_bound_event(
+            &binding,
+            "mediaNetworkDiagnostic",
+            native_media_network_payload(
+                "routeStopped",
+                route.connection_epoch,
+                route.codec_epoch,
+                route.display_id,
+                route.display_revision,
+                route.network_telemetry.snapshot(),
+            ),
+        );
+        emit_bound_event(
+            &binding,
+            "mediaTransportDiagnostic",
+            native_media_transport_payload(
+                "routeStopped",
+                route.connection_epoch,
+                route.codec_epoch,
+                route.display_id,
+                route.display_revision,
+                route.transport_telemetry.snapshot(),
+            ),
+        );
         emit_bound_event(
             &binding,
             "mediaControl",
@@ -689,6 +1748,23 @@ impl RdnHost {
         map.insert("hostState".into(), json!(state_name(self.state)));
         map.insert("localId".into(), json!(self.local_id));
         map.insert("temporaryPasswordPresentation".into(), presentation);
+        map.insert(
+            "passwordPolicy".into(),
+            json!({
+                "localPasswordSet": config::Config::has_local_permanent_password(),
+                "effectivePasswordSet": config::Config::has_permanent_password(),
+                "usingPresetPassword": config::Config::is_using_preset_password(),
+                "changeAllowed": !config::Config::is_disable_change_permanent_password(),
+                "strengthPolicy": {
+                    "version": PERMANENT_PASSWORD_POLICY_VERSION,
+                    "minimumCharacters": PERMANENT_PASSWORD_MIN_CHARACTERS,
+                    "maximumCharacters": PERMANENT_PASSWORD_MAX_CHARACTERS,
+                    "maximumUtf8Bytes": PERMANENT_PASSWORD_MAX_UTF8_BYTES,
+                    "rejectsControlCharacters": true,
+                    "rejectsOuterWhitespace": true,
+                },
+            }),
+        );
         map.insert("registrationStatus".into(), json!(self.registration_status));
         map.insert(
             "lastError".into(),
@@ -895,6 +1971,14 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     );
     config::Config::set_option("relay-server".to_owned(), host.relay_server.clone());
     config::Config::set_option("key".to_owned(), host.server_public_key.clone());
+    // FarPane Host owns an active authenticated screen route as a bounded
+    // user-idle sleep assertion. The connection lifecycle releases it when
+    // the last remote screen session ends; native mode never forces the
+    // physical display to stay lit.
+    config::Config::set_option(
+        config::keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS.to_owned(),
+        "Y".to_owned(),
+    );
     // First identity access inside the isolated root generates and persists
     // the stable ID/key pair (§9.1).
     host.local_id = config::Config::get_id();
@@ -958,26 +2042,53 @@ fn parse_envelope(bytes: &[u8]) -> Result<Value, i32> {
     serde_json::from_slice(bytes).map_err(|_| RDN_HOST_ERR_VALIDATION)
 }
 
-fn handle_command(host: &mut RdnHost, command_id: &str, name: &str) {
+fn handle_command(host: &mut RdnHost, command_id: &str, name: &str) -> i32 {
     match name {
         "enableHost" => {
             // Host already runs in-process for the H1a spike; accept as no-op.
             host.emit_command_result(command_id, "ok", "host-enabled");
+            RDN_HOST_OK
         }
         "disableHost" => {
             host.emit_command_result(command_id, "ok", "host-disabled");
+            RDN_HOST_OK
         }
         "regenerateTemporaryPassword" => {
             password_security::update_temporary_password();
             host.emit_command_result(command_id, "ok", "temporary-password-regenerated");
             host.emit_snapshot_changed();
+            RDN_HOST_OK
         }
         "revealTemporaryPassword" => {
             host.reveal_temporary_password = true;
             host.emit_command_result(command_id, "ok", "temporary-password-revealed");
+            RDN_HOST_OK
+        }
+        "clearPermanentPassword" => {
+            if config::Config::is_disable_change_permanent_password() {
+                host.emit_command_result(
+                    command_id,
+                    "rejected",
+                    "permanent-password-change-disabled",
+                );
+                RDN_HOST_ERR_CHANGE_DISABLED
+            } else if config::Config::set_permanent_password("") {
+                let detail = if config::Config::has_permanent_password() {
+                    "permanent-password-local-cleared-preset-still-effective"
+                } else {
+                    "permanent-password-local-cleared"
+                };
+                host.emit_command_result(command_id, "ok", detail);
+                host.emit_snapshot_changed();
+                RDN_HOST_OK
+            } else {
+                host.emit_command_result(command_id, "error", "permanent-password-storage-failed");
+                RDN_HOST_ERR_STORAGE
+            }
         }
         _ => {
             host.emit_command_result(command_id, "unknownCommand", name);
+            RDN_HOST_OK
         }
     }
 }
@@ -1007,7 +2118,62 @@ pub unsafe extern "C" fn rdn_host_command(
         Some(value) if !value.is_empty() => value.to_owned(),
         _ => return RDN_HOST_ERR_VALIDATION,
     };
-    handle_command(host, &command_id, &name);
+    handle_command(host, &command_id, &name)
+}
+
+/// Dedicated permanent-password ingress (§9.3). Password bytes never enter
+/// JSON, logging, command-line arguments or persistent Swift storage. Rust
+/// borrows the caller-owned mutable buffer and SecretBuffer wipes it on every
+/// path after pointer validation; the Swift wrapper performs a second wipe.
+#[no_mangle]
+pub unsafe extern "C" fn rdn_host_set_permanent_password(
+    host: *mut RdnHost,
+    command_id: *const c_char,
+    password_utf8: *mut u8,
+    password_length: usize,
+) -> i32 {
+    if password_utf8.is_null() && password_length != 0 {
+        return RDN_HOST_ERR_INVALID_ARG;
+    }
+    let secret = if password_utf8.is_null() {
+        None
+    } else {
+        Some(SecretBuffer::from_raw_parts(password_utf8, password_length))
+    };
+    let Some(host) = host.as_mut() else {
+        return RDN_HOST_ERR_INVALID_ARG;
+    };
+    let command_id = match required_string(command_id) {
+        Ok(value)
+            if !value.is_empty() && value.len() <= 128 && !value.chars().any(char::is_control) =>
+        {
+            value
+        }
+        Ok(_) => return RDN_HOST_ERR_VALIDATION,
+        Err(code) => return code,
+    };
+    let bytes = secret.as_ref().map(SecretBuffer::bytes).unwrap_or_default();
+    let password = match validate_permanent_password(bytes) {
+        Ok(password) => password,
+        Err(rejection) => {
+            host.emit_command_result(&command_id, "rejected", rejection.detail);
+            return rejection.code;
+        }
+    };
+    if config::Config::is_disable_change_permanent_password() {
+        host.emit_command_result(
+            &command_id,
+            "rejected",
+            "permanent-password-change-disabled",
+        );
+        return RDN_HOST_ERR_CHANGE_DISABLED;
+    }
+    if !config::Config::set_permanent_password(password) {
+        host.emit_command_result(&command_id, "error", "permanent-password-storage-failed");
+        return RDN_HOST_ERR_STORAGE;
+    }
+    host.emit_command_result(&command_id, "ok", "permanent-password-set");
+    host.emit_snapshot_changed();
     RDN_HOST_OK
 }
 
@@ -1189,14 +2355,14 @@ pub unsafe extern "C" fn rdn_host_media_submit_access_unit(
         has_parameter_sets,
         data,
     };
-    match route.sender.try_send(packet) {
+    match try_enqueue_native_media(&route.sender, &route.queue_telemetry, packet) {
         Ok(()) => {
             route.last_pts_us = Some(access_unit.pts_us);
             route.needs_parameter_sets = false;
             RDN_HOST_OK
         }
-        Err(TrySendError::Full(_)) => RDN_HOST_ERR_BACKPRESSURE,
-        Err(TrySendError::Disconnected(_)) => RDN_HOST_ERR_BAD_STATE,
+        Err((NativeMediaQueueDropReason::NetworkBackpressure, _)) => RDN_HOST_ERR_BACKPRESSURE,
+        Err((NativeMediaQueueDropReason::Shutdown, _)) => RDN_HOST_ERR_BAD_STATE,
     }
 }
 
@@ -1265,6 +2431,255 @@ pub unsafe extern "C" fn rdn_host_destroy(host: *mut RdnHost) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::CString;
+
+    static MEDIA_BROKER_TEST_LOCK: Mutex<()> = Mutex::new(());
+    static PASSWORD_COMMAND_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    struct BuiltinSettingGuard {
+        key: &'static str,
+        previous: Option<String>,
+    }
+
+    impl BuiltinSettingGuard {
+        fn set(key: &'static str, value: &str) -> Self {
+            let previous = config::BUILTIN_SETTINGS
+                .write()
+                .unwrap()
+                .insert(key.to_owned(), value.to_owned());
+            Self { key, previous }
+        }
+    }
+
+    impl Drop for BuiltinSettingGuard {
+        fn drop(&mut self) {
+            let mut settings = config::BUILTIN_SETTINGS.write().unwrap();
+            if let Some(previous) = &self.previous {
+                settings.insert(self.key.to_owned(), previous.clone());
+            } else {
+                settings.remove(self.key);
+            }
+        }
+    }
+
+    unsafe extern "C" fn collect_test_event(
+        context: *mut c_void,
+        json: *const c_char,
+        length: usize,
+    ) {
+        if context.is_null() || json.is_null() || length == 0 {
+            return;
+        }
+        let sink = &*(context as *const Mutex<Vec<Value>>);
+        let bytes = std::slice::from_raw_parts(json as *const u8, length);
+        if let Ok(event) = serde_json::from_slice(bytes) {
+            sink.lock().unwrap().push(event);
+        }
+    }
+
+    struct BoundMediaTestGuard;
+
+    impl Drop for BoundMediaTestGuard {
+        fn drop(&mut self) {
+            unbind_media_host();
+        }
+    }
+
+    fn ready_test_host(instance_id: &str) -> RdnHost {
+        RdnHost {
+            instance_id: instance_id.to_owned(),
+            state: RdnHostState::Ready,
+            local_id: "test-local-id".to_owned(),
+            registration_status: "ready",
+            reveal_temporary_password: false,
+            last_error: None,
+            event_id: Arc::new(AtomicU64::new(0)),
+            callbacks: RdnHostCallbacks {
+                abi_version: HOST_ABI_VERSION,
+                on_event: None,
+                context: std::ptr::null_mut(),
+            },
+            rendezvous_server: String::new(),
+            relay_server: String::new(),
+            server_public_key: String::new(),
+            runtime: None,
+        }
+    }
+
+    #[test]
+    fn permanent_password_change_disabled_wipes_secret_and_propagates_clear_error() {
+        let _lock = PASSWORD_COMMAND_TEST_LOCK.lock().unwrap();
+        let _setting =
+            BuiltinSettingGuard::set(config::keys::OPTION_DISABLE_CHANGE_PERMANENT_PASSWORD, "Y");
+        let events = Mutex::new(Vec::new());
+        let mut host = ready_test_host("password-disabled-host");
+        host.callbacks = RdnHostCallbacks {
+            abi_version: HOST_ABI_VERSION,
+            on_event: Some(collect_test_event),
+            context: &events as *const Mutex<Vec<Value>> as *mut c_void,
+        };
+
+        let command_id = CString::new("password-disabled").unwrap();
+        let mut secret = b"valid-password".to_vec();
+        let result = unsafe {
+            rdn_host_set_permanent_password(
+                &mut host,
+                command_id.as_ptr(),
+                secret.as_mut_ptr(),
+                secret.len(),
+            )
+        };
+        assert_eq!(result, RDN_HOST_ERR_CHANGE_DISABLED);
+        assert!(secret.iter().all(|byte| *byte == 0));
+
+        assert_eq!(
+            handle_command(&mut host, "clear-disabled", "clearPermanentPassword"),
+            RDN_HOST_ERR_CHANGE_DISABLED
+        );
+        let encoded = serde_json::to_string(&*events.lock().unwrap()).unwrap();
+        assert!(encoded.contains("permanent-password-change-disabled"));
+        assert!(!encoded.contains("valid-password"));
+    }
+
+    fn pending_approval_fixture(
+        connection_id: &str,
+        core_connection_id: i32,
+        deadline: Instant,
+    ) -> (
+        PendingNativeApproval,
+        tokio::sync::mpsc::UnboundedReceiver<crate::ipc::Data>,
+    ) {
+        let (decision_sender, decision_receiver) = tokio::sync::mpsc::unbounded_channel();
+        (
+            PendingNativeApproval {
+                request: NativeApprovalRequest {
+                    connection_id: connection_id.to_owned(),
+                    core_connection_id,
+                    remote_id: "remote-id".to_owned(),
+                    remote_name: "Remote Mac".to_owned(),
+                    remote_platform: "macOS".to_owned(),
+                    requested_at_ms: 1_000,
+                    expires_at_ms: 31_000,
+                    requested_capabilities: vec![
+                        "viewDisplay".to_owned(),
+                        "controlKeyboardMouse".to_owned(),
+                    ],
+                },
+                deadline,
+                decision_sender,
+            },
+            decision_receiver,
+        )
+    }
+
+    #[test]
+    fn native_approval_broker_is_single_final_and_expiry_safe() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let base = Instant::now();
+        let deadline = base + Duration::from_secs(30);
+        let mut broker = NativeApprovalBroker::default();
+
+        let (first, mut first_receiver) = pending_approval_fixture("host:1", 1, deadline);
+        assert_eq!(broker.begin(first), NativeApprovalStartResult::Accepted);
+        let (duplicate, _duplicate_receiver) = pending_approval_fixture("host:1", 1, deadline);
+        assert_eq!(broker.begin(duplicate), NativeApprovalStartResult::Existing);
+        let (busy, _busy_receiver) = pending_approval_fixture("host:2", 2, deadline);
+        assert_eq!(broker.begin(busy), NativeApprovalStartResult::Busy);
+
+        let (result, completion) = broker.resolve(
+            "host:1",
+            NativeApprovalDecision::Approve,
+            base + Duration::from_secs(29),
+        );
+        assert_eq!(result, NativeApprovalResolveResult::Approved);
+        let completion = completion.unwrap();
+        assert_eq!(completion.status, NativeApprovalFinalStatus::Approved);
+        emit_native_approval_completion(&completion);
+        assert!(matches!(
+            first_receiver.try_recv(),
+            Ok(crate::ipc::Data::Authorize)
+        ));
+        let (result, completion) = broker.resolve(
+            "host:1",
+            NativeApprovalDecision::Reject,
+            base + Duration::from_secs(29),
+        );
+        assert_eq!(result, NativeApprovalResolveResult::AlreadyFinal);
+        assert!(completion.is_none());
+
+        let second_deadline = base + Duration::from_secs(60);
+        let (second, mut second_receiver) = pending_approval_fixture("host:2", 2, second_deadline);
+        assert_eq!(broker.begin(second), NativeApprovalStartResult::Accepted);
+        assert!(broker
+            .expire("host:2", second_deadline - Duration::from_millis(1))
+            .is_none());
+        let completion = broker.expire("host:2", second_deadline).unwrap();
+        assert_eq!(completion.status, NativeApprovalFinalStatus::Expired);
+        emit_native_approval_completion(&completion);
+        assert!(matches!(
+            second_receiver.try_recv(),
+            Ok(crate::ipc::Data::Close)
+        ));
+        let (result, completion) =
+            broker.resolve("host:2", NativeApprovalDecision::Approve, second_deadline);
+        assert_eq!(result, NativeApprovalResolveResult::AlreadyFinal);
+        assert!(completion.is_none());
+
+        let (third, mut third_receiver) =
+            pending_approval_fixture("host:3", 3, base + Duration::from_secs(90));
+        assert_eq!(broker.begin(third), NativeApprovalStartResult::Accepted);
+        let cancelled = broker.cancel(3).unwrap();
+        assert_eq!(cancelled.status, NativeApprovalFinalStatus::Cancelled);
+        assert!(third_receiver.try_recv().is_err());
+        let (finalized, _finalized_receiver) =
+            pending_approval_fixture("host:3", 3, base + Duration::from_secs(90));
+        assert_eq!(
+            broker.begin(finalized),
+            NativeApprovalStartResult::Finalized
+        );
+    }
+
+    fn submit_h264_access_unit(
+        host: &mut RdnHost,
+        route: &NativeMediaRoute,
+        instance_id: &CString,
+        pts_us: u64,
+        keyframe: bool,
+    ) -> i32 {
+        let data = [pts_us as u8];
+        let flags = if keyframe {
+            MEDIA_FLAG_KEYFRAME | MEDIA_FLAG_PARAMETER_SETS
+        } else {
+            0
+        };
+        let access_unit = RdnHostEncodedAccessUnit {
+            abi_version: HOST_MEDIA_ABI_VERSION,
+            host_instance_id: instance_id.as_ptr(),
+            connection_epoch: route.connection_epoch,
+            codec_epoch: route.codec_epoch,
+            display_id: route.display_id,
+            display_revision: route.display_revision,
+            codec: MEDIA_CODEC_H264,
+            framing: MEDIA_FRAMING_AVCC,
+            flags,
+            pts_us,
+            data: data.as_ptr(),
+            length: data.len(),
+        };
+        unsafe { rdn_host_media_submit_access_unit(host, &access_unit) }
+    }
+
+    fn media_packet(pts_us: u64, keyframe: bool) -> NativeMediaAccessUnit {
+        NativeMediaAccessUnit {
+            codec: MEDIA_CODEC_H264,
+            framing: MEDIA_FRAMING_AVCC,
+            pts_us,
+            keyframe,
+            has_parameter_sets: keyframe,
+            data: vec![pts_us as u8],
+        }
+    }
 
     #[test]
     fn rejects_namespace_components_that_could_escape_directories() {
@@ -1298,6 +2713,10 @@ mod tests {
             display_revision: 3,
             codec: MEDIA_CODEC_H264,
             receiver,
+            queue_telemetry: Arc::new(NativeMediaQueueTelemetry::default()),
+            writer_telemetry: Arc::new(NativeMediaWriterTelemetry::default()),
+            network_telemetry: Arc::new(NativeMediaNetworkTelemetry::default()),
+            transport_telemetry: Arc::new(NativeMediaTransportTelemetry::default()),
         };
         let packet = NativeMediaPacketMetadata {
             framing: MEDIA_FRAMING_AVCC,
@@ -1338,5 +2757,351 @@ mod tests {
             1,
         )
         .is_none());
+    }
+
+    #[test]
+    fn full_media_queue_rejects_newest_without_evicting_encoded_packets() {
+        let (sender, receiver) = sync_channel(MEDIA_QUEUE_CAPACITY);
+        let telemetry = NativeMediaQueueTelemetry::default();
+        for (pts_us, keyframe) in [(100, true), (200, false), (300, false)] {
+            assert!(
+                try_enqueue_native_media(&sender, &telemetry, media_packet(pts_us, keyframe))
+                    .is_ok()
+            );
+        }
+        assert_eq!(
+            telemetry.snapshot(),
+            NativeMediaQueueSnapshot {
+                current_depth: MEDIA_QUEUE_CAPACITY,
+                maximum_depth: MEDIA_QUEUE_CAPACITY,
+            }
+        );
+
+        let (reason, rejected) =
+            try_enqueue_native_media(&sender, &telemetry, media_packet(400, false))
+                .expect_err("a full encoded queue must reject the new packet");
+        assert_eq!(reason, NativeMediaQueueDropReason::NetworkBackpressure);
+        assert_eq!(rejected.pts_us, 400);
+        assert_eq!(
+            telemetry.snapshot(),
+            NativeMediaQueueSnapshot {
+                current_depth: MEDIA_QUEUE_CAPACITY,
+                maximum_depth: MEDIA_QUEUE_CAPACITY,
+            }
+        );
+
+        let retained = (0..MEDIA_QUEUE_CAPACITY)
+            .map(|_| {
+                let packet = receiver.try_recv().expect("queued packet");
+                telemetry.record_dequeued();
+                packet
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            telemetry.snapshot(),
+            NativeMediaQueueSnapshot {
+                current_depth: 0,
+                maximum_depth: MEDIA_QUEUE_CAPACITY,
+            }
+        );
+        assert_eq!(
+            retained
+                .iter()
+                .map(|packet| packet.pts_us)
+                .collect::<Vec<_>>(),
+            vec![100, 200, 300]
+        );
+        assert_eq!(
+            retained
+                .iter()
+                .map(|packet| packet.keyframe)
+                .collect::<Vec<_>>(),
+            vec![true, false, false]
+        );
+    }
+
+    #[test]
+    fn public_access_unit_api_reports_saturation_then_accepts_replacement_idr() {
+        let _serial = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        let mut host = ready_test_host("queue-saturation-host");
+        bind_media_host(&host);
+        let _bound = BoundMediaTestGuard;
+        {
+            let mut broker = MEDIA_BROKER.lock().unwrap();
+            broker.capabilities = MediaCapabilities {
+                h264_hardware: true,
+                h265_hardware: false,
+                max_width: 1_920,
+                max_height: 1_080,
+                max_fps: 60,
+            };
+        }
+        let route = native_media_begin_route(0, 1, MEDIA_CODEC_H264, 1_920, 1_080, 30, 4_000_000)
+            .expect("test route should use the production bounded queue");
+        let instance_id = CString::new(host.instance_id.clone()).unwrap();
+
+        for (pts_us, keyframe) in [(100, true), (200, false), (300, false)] {
+            assert_eq!(
+                submit_h264_access_unit(&mut host, &route, &instance_id, pts_us, keyframe),
+                RDN_HOST_OK
+            );
+        }
+        assert_eq!(
+            route.queue_telemetry.snapshot(),
+            NativeMediaQueueSnapshot {
+                current_depth: 3,
+                maximum_depth: 3,
+            }
+        );
+        assert_eq!(
+            submit_h264_access_unit(&mut host, &route, &instance_id, 400, false),
+            RDN_HOST_ERR_BACKPRESSURE
+        );
+
+        let first = route.receiver.try_recv().expect("first queued IDR");
+        native_media_record_dequeued(&route);
+        assert_eq!(first.pts_us, 100);
+        assert!(first.keyframe);
+        assert!(first.has_parameter_sets);
+
+        // A rejected submit must not advance route state. Reusing its PTS for
+        // the replacement generation's IDR is therefore valid once one queue
+        // slot is available.
+        assert_eq!(
+            submit_h264_access_unit(&mut host, &route, &instance_id, 400, true),
+            RDN_HOST_OK
+        );
+        assert_eq!(
+            route.queue_telemetry.snapshot(),
+            NativeMediaQueueSnapshot {
+                current_depth: 3,
+                maximum_depth: 3,
+            }
+        );
+        let retained = (0..MEDIA_QUEUE_CAPACITY)
+            .map(|_| {
+                let packet = route.receiver.try_recv().expect("retained queued packet");
+                native_media_record_dequeued(&route);
+                packet
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            route.queue_telemetry.snapshot(),
+            NativeMediaQueueSnapshot {
+                current_depth: 0,
+                maximum_depth: 3,
+            }
+        );
+        assert_eq!(
+            retained
+                .iter()
+                .map(|packet| packet.pts_us)
+                .collect::<Vec<_>>(),
+            vec![200, 300, 400]
+        );
+        assert!(!retained[0].keyframe);
+        assert!(!retained[1].keyframe);
+        assert!(retained[2].keyframe);
+        assert!(retained[2].has_parameter_sets);
+    }
+
+    #[test]
+    fn disconnected_media_queue_classifies_shutdown_and_returns_packet() {
+        let (sender, receiver) = sync_channel(MEDIA_QUEUE_CAPACITY);
+        let telemetry = NativeMediaQueueTelemetry::default();
+        drop(receiver);
+
+        let (reason, rejected) =
+            try_enqueue_native_media(&sender, &telemetry, media_packet(500, true))
+                .expect_err("a disconnected queue must reject the packet");
+        assert_eq!(reason, NativeMediaQueueDropReason::Shutdown);
+        assert_eq!(rejected.pts_us, 500);
+        assert!(rejected.keyframe);
+        assert!(rejected.has_parameter_sets);
+        assert_eq!(telemetry.snapshot(), NativeMediaQueueSnapshot::default());
+    }
+
+    #[test]
+    fn media_queue_payload_is_sanitized_and_bounded() {
+        let payload = native_media_queue_payload(
+            "routeStopped",
+            7,
+            9,
+            0,
+            3,
+            NativeMediaQueueSnapshot {
+                current_depth: 1,
+                maximum_depth: MEDIA_QUEUE_CAPACITY,
+            },
+        );
+        assert_eq!(payload["kind"], "routeStopped");
+        assert_eq!(payload["connectionEpoch"], 7);
+        assert_eq!(payload["codecEpoch"], 9);
+        assert_eq!(payload["displayId"], 0);
+        assert_eq!(payload["displayRevision"], 3);
+        assert_eq!(payload["currentDepth"], 1);
+        assert_eq!(payload["maximumDepth"], MEDIA_QUEUE_CAPACITY);
+        assert_eq!(payload["capacity"], MEDIA_QUEUE_CAPACITY);
+        let encoded = payload.to_string().to_ascii_lowercase();
+        for forbidden in ["peer", "server", "password", "publickey", "payload", "data"] {
+            assert!(!encoded.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn writer_timing_aggregates_only_route_scoped_wall_measurements() {
+        let telemetry = NativeMediaWriterTelemetry::default();
+        telemetry.record(
+            0,
+            Duration::from_micros(99),
+            Duration::from_millis(99),
+            false,
+        );
+        telemetry.record(2, Duration::from_micros(15), Duration::from_millis(2), true);
+        telemetry.record(
+            1,
+            Duration::from_micros(10),
+            Duration::from_millis(3),
+            false,
+        );
+        let snapshot = NativeMediaWriterSnapshot {
+            cycles: 2,
+            subscriber_dispatches: 3,
+            dispatch_wall_total_us: 25,
+            maximum_dispatch_wall_us: 15,
+            confirmation_wait_total_us: 5_000,
+            maximum_confirmation_wait_us: 3_000,
+            completed_confirmations: 1,
+            timed_out_confirmations: 1,
+        };
+        assert_eq!(telemetry.snapshot(), snapshot);
+        let payload = native_media_writer_payload("sample", 7, 9, 0, 3, snapshot);
+        assert_eq!(payload["cycles"], 2);
+        assert_eq!(payload["subscriberDispatches"], 3);
+        assert_eq!(payload["dispatchWallTotalUs"], 25);
+        assert_eq!(payload["maximumConfirmationWaitUs"], 3_000);
+        let encoded = payload.to_string().to_ascii_lowercase();
+        for forbidden in ["peer", "server", "password", "publickey", "payload", "data"] {
+            assert!(!encoded.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn network_payload_preserves_sample_availability_and_count_bounds() {
+        let telemetry = NativeMediaNetworkTelemetry::default();
+        assert!(telemetry.record(3, 2, 2, 1, 1, Some(180), Some(42)));
+        assert!(!telemetry.record(1, 2, 2, 1, 1, Some(180), Some(42)));
+        assert!(!telemetry.record(3, 2, 0, 0, 0, Some(180), None));
+        let snapshot = NativeMediaNetworkSnapshot {
+            subscriber_count: 3,
+            qos_subscriber_count: 2,
+            delay_sampled_subscribers: 2,
+            rtt_sampled_subscribers: 1,
+            response_delayed_subscribers: 1,
+            worst_network_delay_ms: Some(180),
+            worst_rtt_ms: Some(42),
+        };
+        assert_eq!(telemetry.snapshot(), snapshot);
+        let payload = native_media_network_payload("sample", 7, 9, 0, 3, snapshot);
+        assert_eq!(payload["subscriberCount"], 3);
+        assert_eq!(payload["qosSubscriberCount"], 2);
+        assert_eq!(payload["delaySampledSubscribers"], 2);
+        assert_eq!(payload["rttSampledSubscribers"], 1);
+        assert_eq!(payload["responseDelayedSubscribers"], 1);
+        assert_eq!(payload["worstNetworkDelayMs"], 180);
+        assert_eq!(payload["worstRttMs"], 42);
+        let encoded = payload.to_string().to_ascii_lowercase();
+        for forbidden in ["peer", "server", "password", "publickey", "payload", "data"] {
+            assert!(!encoded.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn transport_payload_preserves_unknown_and_rejects_inconsistent_counts() {
+        let telemetry = NativeMediaTransportTelemetry::default();
+        assert!(telemetry.record(4, 2, 1, 1));
+        assert!(!telemetry.record(4, 2, 1, 0));
+        let snapshot = NativeMediaTransportSnapshot {
+            subscriber_count: 4,
+            direct_subscribers: 2,
+            relay_subscribers: 1,
+            unknown_subscribers: 1,
+        };
+        assert_eq!(telemetry.snapshot(), snapshot);
+        let payload = native_media_transport_payload("sample", 7, 9, 0, 3, snapshot);
+        assert_eq!(payload["subscriberCount"], 4);
+        assert_eq!(payload["directSubscribers"], 2);
+        assert_eq!(payload["relaySubscribers"], 1);
+        assert_eq!(payload["unknownSubscribers"], 1);
+        let encoded = payload.to_string().to_ascii_lowercase();
+        for forbidden in ["peer", "server", "password", "publickey", "payload", "data"] {
+            assert!(!encoded.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn route_stop_emits_final_queue_sample_before_stop_control() {
+        let _serial = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        let events = Mutex::new(Vec::<Value>::new());
+        let mut host = ready_test_host("queue-event-host");
+        host.callbacks.on_event = Some(collect_test_event);
+        host.callbacks.context = &events as *const _ as *mut c_void;
+        bind_media_host(&host);
+        let _bound = BoundMediaTestGuard;
+        {
+            let mut broker = MEDIA_BROKER.lock().unwrap();
+            broker.capabilities = MediaCapabilities {
+                h264_hardware: true,
+                h265_hardware: false,
+                max_width: 1_920,
+                max_height: 1_080,
+                max_fps: 60,
+            };
+        }
+        let route = native_media_begin_route(0, 3, MEDIA_CODEC_H264, 1_920, 1_080, 30, 4_000_000)
+            .expect("test route");
+        let instance_id = CString::new(host.instance_id.clone()).unwrap();
+        assert_eq!(
+            submit_h264_access_unit(&mut host, &route, &instance_id, 100, true),
+            RDN_HOST_OK
+        );
+        native_media_record_writer_cycle(
+            &route,
+            1,
+            Duration::from_micros(10),
+            Duration::from_millis(2),
+            true,
+        );
+        native_media_report_queue_depth(&route);
+        native_media_report_writer_timing(&route);
+        native_media_report_network(&route, 1, 1, 1, 1, 0, Some(25), Some(20));
+        native_media_report_transport(&route, 1, 0, 1, 0);
+        native_media_end_route(&route);
+
+        let events = events.lock().unwrap();
+        let tail = &events[events.len() - 9..];
+        assert_eq!(tail[0]["eventType"], "mediaQueueDiagnostic");
+        assert_eq!(tail[0]["payload"]["kind"], "sample");
+        assert_eq!(tail[1]["eventType"], "mediaWriterDiagnostic");
+        assert_eq!(tail[1]["payload"]["kind"], "sample");
+        assert_eq!(tail[2]["eventType"], "mediaNetworkDiagnostic");
+        assert_eq!(tail[2]["payload"]["kind"], "sample");
+        assert_eq!(tail[3]["eventType"], "mediaTransportDiagnostic");
+        assert_eq!(tail[3]["payload"]["kind"], "sample");
+        assert_eq!(tail[4]["eventType"], "mediaQueueDiagnostic");
+        assert_eq!(tail[4]["payload"]["kind"], "routeStopped");
+        assert_eq!(tail[4]["payload"]["currentDepth"], 1);
+        assert_eq!(tail[4]["payload"]["maximumDepth"], 1);
+        assert_eq!(tail[5]["eventType"], "mediaWriterDiagnostic");
+        assert_eq!(tail[5]["payload"]["kind"], "routeStopped");
+        assert_eq!(tail[5]["payload"]["cycles"], 1);
+        assert_eq!(tail[6]["eventType"], "mediaNetworkDiagnostic");
+        assert_eq!(tail[6]["payload"]["kind"], "routeStopped");
+        assert_eq!(tail[6]["payload"]["worstRttMs"], 20);
+        assert_eq!(tail[7]["eventType"], "mediaTransportDiagnostic");
+        assert_eq!(tail[7]["payload"]["kind"], "routeStopped");
+        assert_eq!(tail[7]["payload"]["relaySubscribers"], 1);
+        assert_eq!(tail[8]["eventType"], "mediaControl");
+        assert_eq!(tail[8]["payload"]["command"], "stopCapture");
     }
 }

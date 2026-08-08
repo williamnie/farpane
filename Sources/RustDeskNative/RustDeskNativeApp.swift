@@ -84,6 +84,39 @@ private struct PendingProductConnection {
     let usedStoredCredential: Bool
 }
 
+/// Breaks the construction cycle between the pipeline and its access-unit
+/// callback while keeping backpressure recovery on the encoder callback
+/// boundary. A late callback can only reach its own (possibly cancelled)
+/// pipeline, never the next route stored by AppDelegate.
+private final class HostMediaPipelineReference: @unchecked Sendable {
+    private let lock = NSLock()
+    private weak var pipeline: HostMediaPipeline?
+
+    func bind(_ pipeline: HostMediaPipeline) {
+        lock.lock()
+        self.pipeline = pipeline
+        lock.unlock()
+    }
+
+    func recoverFromEncodedPacketDrop() {
+        lock.lock()
+        let pipeline = pipeline
+        lock.unlock()
+        pipeline?.recoverFromEncodedPacketDrop()
+    }
+}
+
+private extension HostMediaSubmissionDropReason {
+    var telemetryReason: HostMediaDropReason {
+        switch self {
+        case .networkBackpressure: return .networkBackpressure
+        case .reconfigure: return .reconfigure
+        case .invalidFrame: return .invalidFrame
+        case .shutdown: return .shutdown
+        }
+    }
+}
+
 @main
 private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
     private static let hostEnabledDefaultsKey = "farpane.host.enabled"
@@ -102,6 +135,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var window: NSWindow?
     private var homeView: HomeView?
     private var passwordPrompt: PasswordPromptController?
+    private var hostPermanentPasswordPrompt: HostPermanentPasswordPromptController?
     private var serverPrompt: ServerSettingsPromptController?
     private var viewerChrome: ViewerChromeView?
     private var viewerView: ViewerMetalView?
@@ -112,10 +146,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostClient: HostControlClient?
     private var hostRuntimeActive = false
     private var hostMediaPipeline: HostMediaPipeline?
+    private var hostMediaEvidenceWriter: HostMediaTelemetryEvidenceWriter?
+    private var hostMediaLiveLogWriter: HostMediaTelemetryLiveLogWriter?
+    private var hostRuntimeStateEvidenceWriter: HostRuntimeStateEvidenceWriter?
     private var hostMediaRoute: HostMediaControl?
     private var hostMediaStatusText: String?
     private var hostMediaGeneration: UInt64 = 0
     private var hostMediaCapabilitiesInstanceID = ""
+    private var hostMediaCapabilitiesProbeID: UUID?
+    private var hostMediaCapabilitiesProbeTask: Task<Void, Never>?
     private var hostSnapshot: HostCoreSnapshot?
     private var hostTemporaryPassword = ""
     private var hostStatusText = "已关闭"
@@ -146,6 +185,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        do {
+            hostRuntimeStateEvidenceWriter = try HostRuntimeStateEvidenceWriter.configured()
+        } catch {
+            hostRuntimeStateEvidenceWriter = nil
+            fputs("Host runtime-state evidence output is invalid or already exists.\n", stderr)
+        }
+        recordHostRuntimeStateEvidence(force: true)
         do {
             try launch()
         } catch {
@@ -239,6 +285,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onHostToggle = { [weak self] enabled in self?.setHostModeEnabled(enabled) }
         view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
         view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
+        view.onSetHostPermanentPassword = { [weak self] in self?.presentHostPermanentPassword() }
+        view.onClearHostPermanentPassword = { [weak self] in self?.confirmClearHostPermanentPassword() }
         window.contentView = view
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -286,9 +334,100 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 statusText: hostStatusText,
                 localID: hostSnapshot?.localId ?? "",
                 temporaryPassword: hostTemporaryPassword,
+                localPermanentPasswordSet: hostSnapshot?.passwordPolicy.localPasswordSet ?? false,
+                effectivePermanentPasswordSet: hostSnapshot?.passwordPolicy.effectivePasswordSet ?? false,
+                usingPresetPassword: hostSnapshot?.passwordPolicy.usingPresetPassword ?? false,
+                permanentPasswordChangeAllowed: hostSnapshot?.passwordPolicy.changeAllowed ?? false,
+                mediaDiagnosticText: hostMediaDiagnosticText(),
                 errorText: hostErrorText
             )
         ))
+    }
+
+    private func hostMediaDiagnosticText() -> String {
+        guard let snapshot = hostMediaPipeline?.telemetry.snapshot() else { return "" }
+        let averageFPS = snapshot.validFrames > 1
+            ? String(format: "%.1f", snapshot.actualFPS)
+            : "—"
+        let recentFPS = snapshot.validFrames > 1
+            ? String(format: "%.1f", snapshot.recentCaptureFPS)
+            : "—"
+        let recentEncodedFPS = snapshot.encodedPackets > 1
+            ? String(format: "%.1f", snapshot.recentEncodedFPS)
+            : "—"
+        let recentSendAcceptedFPS = snapshot.sendAccepted > 1
+            ? String(format: "%.1f", snapshot.recentSendAcceptedFPS)
+            : "—"
+        let contentState: String
+        switch snapshot.captureContentState {
+        case .idle: contentState = "静止"
+        case .lowMotion: contentState = "低活动"
+        case .interactive: contentState = "交互"
+        case .highMotion: contentState = "高活动"
+        }
+        let pressure: String
+        switch snapshot.capturePressureLevel {
+        case .none: pressure = "无"
+        case .moderate: pressure = "中"
+        case .severe: pressure = "高"
+        }
+        let pressureDetail = hostPressureDiagnosticText(snapshot)
+        let updateState = snapshot.captureConfigurationUpdateInFlight ? " · 调档中" : ""
+        let cadence = "\(snapshot.captureTargetFPS)/\(snapshot.captureAppliedFPS)"
+        return "近5秒 采集/编码/入Rust \(recentFPS)/\(recentEncodedFPS)"
+            + "/\(recentSendAcceptedFPS) FPS · 采集均值 \(averageFPS)"
+            + "\n目标/已应用 \(cadence) · \(contentState) · 压力 \(pressure)"
+            + "\(pressureDetail)\(updateState)"
+    }
+
+    private func hostPressureDiagnosticText(_ snapshot: HostMediaTelemetrySnapshot) -> String {
+        let observed: String
+        switch snapshot.captureObservedPressureLevel {
+        case .none: observed = "无"
+        case .moderate: observed = "中"
+        case .severe: observed = "高"
+        }
+        let causes = snapshot.capturePressureCauses.map { cause -> String in
+            switch cause {
+            case .thermalState:
+                return "热状态 \(snapshot.thermalState ?? "未知")"
+            case .lowPowerMode:
+                return "低电量模式"
+            case .encodeInFlight:
+                return "编码在途 \(snapshot.encodeInFlight)"
+            case .encodeLatency:
+                return String(
+                    format: "编码延迟 %.1fms",
+                    snapshot.latestEncodeLatencyMS ?? 0
+                )
+            case .consecutiveSendDrops:
+                return "连续入Rust失败 \(snapshot.consecutiveSendDrops)"
+            case .recentSendDropRate:
+                return String(
+                    format: "入Rust丢弃 %.0f%%/%d",
+                    snapshot.recentSendDropRate * 100,
+                    snapshot.recentSendOutcomeCount
+                )
+            case .encodedQueue:
+                return "Rust队列 \(snapshot.encodedQueueDepth ?? 0)"
+                    + "/\(snapshot.encodedQueueCapacity ?? 0)"
+            case .networkDelay:
+                return "网络延迟 \(snapshot.networkDelayMS ?? 0)ms"
+            case .roundTripTime:
+                return "RTT \(snapshot.roundTripTimeMS ?? 0)ms"
+            case .responseDelayed:
+                return "响应延迟订阅 \(snapshot.responseDelayedSubscribers)"
+            }
+        }
+        if causes.isEmpty {
+            return snapshot.captureObservedPressureLevel == snapshot.capturePressureLevel
+                ? ""
+                : "（当前 \(observed)，滞回恢复中）"
+        }
+        let prefix = snapshot.captureObservedPressureLevel == snapshot.capturePressureLevel
+            ? ""
+            : "当前 \(observed)："
+        return "（\(prefix)\(causes.joined(separator: "，"))）"
     }
 
     private func setHostModeEnabled(_ enabled: Bool) {
@@ -353,6 +492,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             hostSnapshot = nil
             hostStatusText = "启动失败"
             hostErrorText = sanitizedHostError(error)
+            recordHostRuntimeStateEvidence(force: true)
         }
     }
 
@@ -368,6 +508,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostTemporaryPassword = ""
         hostSnapshot = nil
         stopHostMediaPipeline()
+        hostMediaCapabilitiesProbeTask?.cancel()
+        hostMediaCapabilitiesProbeTask = nil
+        hostMediaCapabilitiesProbeID = nil
         hostMediaCapabilitiesInstanceID = ""
         if !preservePreference {
             UserDefaults.standard.set(false, forKey: Self.hostEnabledDefaultsKey)
@@ -383,6 +526,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostRuntimeActive = false
         if releaseClient { hostClient = nil }
         hostStatusText = preservePreference ? "远程控制期间已暂停" : "已关闭"
+        recordHostRuntimeStateEvidence(force: true)
     }
 
     private func refreshHostSnapshot() {
@@ -401,7 +545,41 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             hostStatusText = "状态不可用"
             hostErrorText = sanitizedHostError(error)
         }
+        recordHostRuntimeStateEvidence()
+        recordHostMediaLiveLog()
         refreshHomeUI()
+    }
+
+    private func recordHostMediaLiveLog() {
+        guard let writer = hostMediaLiveLogWriter,
+              let telemetry = hostMediaPipeline?.telemetry else { return }
+        do {
+            try writer.record(snapshot: telemetry.snapshot())
+        } catch {
+            hostMediaLiveLogWriter = nil
+            fputs("Host media live log write failed.\n", stderr)
+        }
+    }
+
+    private func recordHostRuntimeStateEvidence(force: Bool = false) {
+        guard let writer = hostRuntimeStateEvidenceWriter else { return }
+        let snapshotObservedAt = hostSnapshot.flatMap { snapshot in
+            snapshot.observedAt > 0 ? snapshot.observedAt : nil
+        }
+        do {
+            try writer.record(
+                hostRuntimeActive: hostRuntimeActive,
+                hostState: hostSnapshot?.hostState ?? "unavailable",
+                registrationStatus: hostSnapshot?.registrationStatus ?? "unavailable",
+                hostSnapshotObservedAtUnixMilliseconds: snapshotObservedAt,
+                mediaRouteActive: hostMediaRoute != nil,
+                mediaPipelineActive: hostMediaPipeline != nil,
+                force: force
+            )
+        } catch {
+            hostRuntimeStateEvidenceWriter = nil
+            fputs("Host runtime-state evidence write failed.\n", stderr)
+        }
     }
 
     private func handleHostCoreEvent(_ event: HostCoreEvent) {
@@ -410,6 +588,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         if let diagnostic = event.mediaDiagnostic {
             handleHostMediaDiagnostic(diagnostic)
+        }
+        if let queueDiagnostic = event.mediaQueueDiagnostic {
+            handleHostMediaQueueDiagnostic(queueDiagnostic)
+        }
+        if let writerDiagnostic = event.mediaWriterDiagnostic {
+            handleHostMediaWriterDiagnostic(writerDiagnostic)
+        }
+        if let networkDiagnostic = event.mediaNetworkDiagnostic {
+            handleHostMediaNetworkDiagnostic(networkDiagnostic)
+        }
+        if let transportDiagnostic = event.mediaTransportDiagnostic {
+            handleHostMediaTransportDiagnostic(transportDiagnostic)
         }
         refreshHostSnapshot()
     }
@@ -421,26 +611,71 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard !snapshot.hostInstanceId.isEmpty,
               hostMediaCapabilitiesInstanceID != snapshot.hostInstanceId else { return }
         hostMediaCapabilitiesInstanceID = snapshot.hostInstanceId
-        let h264Hardware = HostH264Encoder.hardwareEncodingSupported
-        let h265Hardware = HostHEVCEncoder.hardwareEncodingSupported
-        guard h264Hardware || h265Hardware else {
-            hostErrorText = "此 Mac 暂时没有可用的视频硬件编码器。"
+        guard let target = hostMediaCapabilityTarget() else {
+            hostErrorText = "无法为当前显示器建立安全的视频硬件能力探测。"
             return
         }
-        do {
-            try client.setMediaCapabilities(
-                hostInstanceID: snapshot.hostInstanceId,
-                capabilities: HostEncoderCapabilities(
-                    h264Hardware: h264Hardware,
-                    h265Hardware: h265Hardware,
-                    maxWidth: 16_384,
-                    maxHeight: 16_384,
-                    maxFPS: 60
-                )
+        hostMediaCapabilitiesProbeTask?.cancel()
+        let probeID = UUID()
+        let instanceID = snapshot.hostInstanceId
+        hostMediaCapabilitiesProbeID = probeID
+        hostMediaStatusText = "正在验证本机硬件编码能力…"
+        hostMediaCapabilitiesProbeTask = Task { @MainActor [weak self, weak client] in
+            let discovered = await HostHardwareEncoderCapabilityDiscovery.discover(
+                target: target
             )
-        } catch {
-            hostErrorText = sanitizedHostError(error)
+            guard let self,
+                  self.hostMediaCapabilitiesProbeID == probeID,
+                  self.hostRuntimeActive,
+                  self.hostMediaCapabilitiesInstanceID == instanceID,
+                  self.hostSnapshot?.hostInstanceId == instanceID,
+                  self.hostClient === client,
+                  let client else { return }
+            self.hostMediaCapabilitiesProbeTask = nil
+            self.hostMediaCapabilitiesProbeID = nil
+            guard let discovered else {
+                self.hostMediaStatusText = nil
+                self.hostErrorText = "当前显示器尺寸没有通过视频硬件编码首帧验证。"
+                self.refreshHomeUI()
+                return
+            }
+            do {
+                try client.setMediaCapabilities(
+                    hostInstanceID: instanceID,
+                    capabilities: HostEncoderCapabilities(
+                        h264Hardware: discovered.h264Hardware,
+                        h265Hardware: discovered.h265Hardware,
+                        maxWidth: UInt32(discovered.maxWidth),
+                        maxHeight: UInt32(discovered.maxHeight),
+                        maxFPS: UInt32(discovered.maxFPS)
+                    )
+                )
+                self.hostMediaStatusText = nil
+            } catch {
+                self.hostMediaStatusText = nil
+                self.hostErrorText = self.sanitizedHostError(error)
+            }
+            self.refreshHomeUI()
         }
+    }
+
+    private func hostMediaCapabilityTarget() -> HostHardwareEncoderCapabilityTarget? {
+        let displays = NSScreen.screens.compactMap { screen -> (Int, Int, Int)? in
+            guard let number = screen.deviceDescription[
+                NSDeviceDescriptionKey("NSScreenNumber")
+            ] as? NSNumber else { return nil }
+            let displayID = CGDirectDisplayID(number.uint32Value)
+            let width = CGDisplayPixelsWide(displayID)
+            let height = CGDisplayPixelsHigh(displayID)
+            guard width > 0, height > 0 else { return nil }
+            return (width, height, screen.maximumFramesPerSecond)
+        }
+        guard !displays.isEmpty else { return nil }
+        return HostHardwareEncoderCapabilityTarget(
+            width: displays.map(\.0).max() ?? 0,
+            height: displays.map(\.1).max() ?? 0,
+            maximumFramesPerSecond: min(60, max(1, displays.map(\.2).max() ?? 60))
+        )
     }
 
     private func handleHostMediaControl(_ control: HostMediaControl) {
@@ -478,6 +713,76 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         refreshHomeUI()
     }
 
+    private func handleHostMediaQueueDiagnostic(
+        _ diagnostic: HostMediaQueueDiagnostic
+    ) {
+        guard let route = hostMediaRoute,
+              diagnostic.matchesRoute(route),
+              let telemetry = hostMediaPipeline?.telemetry
+        else { return }
+        telemetry.recordEncodedQueueDepth(
+            current: Int(diagnostic.currentDepth),
+            maximum: Int(diagnostic.maximumDepth),
+            capacity: Int(diagnostic.capacity),
+            finalized: diagnostic.kind == .routeStopped
+        )
+    }
+
+    private func handleHostMediaWriterDiagnostic(
+        _ diagnostic: HostMediaWriterDiagnostic
+    ) {
+        guard let route = hostMediaRoute,
+              diagnostic.matchesRoute(route),
+              let telemetry = hostMediaPipeline?.telemetry
+        else { return }
+        telemetry.recordWriterTiming(
+            cycles: diagnostic.cycles,
+            subscriberDispatches: diagnostic.subscriberDispatches,
+            dispatchWallTotalUS: diagnostic.dispatchWallTotalUS,
+            maximumDispatchWallUS: diagnostic.maximumDispatchWallUS,
+            confirmationWaitTotalUS: diagnostic.confirmationWaitTotalUS,
+            maximumConfirmationWaitUS: diagnostic.maximumConfirmationWaitUS,
+            completedConfirmations: diagnostic.completedConfirmations,
+            timedOutConfirmations: diagnostic.timedOutConfirmations,
+            finalized: diagnostic.kind == .routeStopped
+        )
+    }
+
+    private func handleHostMediaNetworkDiagnostic(
+        _ diagnostic: HostMediaNetworkDiagnostic
+    ) {
+        guard let route = hostMediaRoute,
+              diagnostic.matchesRoute(route),
+              let telemetry = hostMediaPipeline?.telemetry
+        else { return }
+        telemetry.recordNetworkMetrics(
+            subscriberCount: Int(diagnostic.subscriberCount),
+            qosSubscriberCount: Int(diagnostic.qosSubscriberCount),
+            delaySampledSubscribers: Int(diagnostic.delaySampledSubscribers),
+            rttSampledSubscribers: Int(diagnostic.rttSampledSubscribers),
+            responseDelayedSubscribers: Int(diagnostic.responseDelayedSubscribers),
+            networkDelayMS: diagnostic.worstNetworkDelayMS.map(Int.init),
+            roundTripTimeMS: diagnostic.worstRTTMS.map(Int.init),
+            finalized: diagnostic.kind == .routeStopped
+        )
+    }
+
+    private func handleHostMediaTransportDiagnostic(
+        _ diagnostic: HostMediaTransportDiagnostic
+    ) {
+        guard let route = hostMediaRoute,
+              diagnostic.matchesRoute(route),
+              let telemetry = hostMediaPipeline?.telemetry
+        else { return }
+        telemetry.recordTransportMetrics(
+            subscriberCount: Int(diagnostic.subscriberCount),
+            directSubscribers: Int(diagnostic.directSubscribers),
+            relaySubscribers: Int(diagnostic.relaySubscribers),
+            unknownSubscribers: Int(diagnostic.unknownSubscribers),
+            finalized: diagnostic.kind == .routeStopped
+        )
+    }
+
     private func startHostMediaPipeline(control: HostMediaControl) {
         guard let selectedCodec = control.codec else {
             hostErrorText = "Host 媒体 codec 缺失，已拒绝开始采集。"
@@ -513,18 +818,42 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let requestedBitRate = Int(control.bitRate ?? 0)
         let bitRate = requestedBitRate > 0 ? requestedBitRate : fallbackBitRate
         let route = control
+        let pipelineConfiguration = HostMediaPipelineConfiguration(
+            codec: pipelineCodec,
+            displayIndex: Int(control.displayID),
+            width: Int(width),
+            height: Int(height),
+            framesPerSecond: Int(framesPerSecond),
+            bitRate: bitRate
+        )
+        let telemetry = HostMediaTelemetry(configuration: pipelineConfiguration)
+        telemetry.markDropReasonsInstrumented([.networkBackpressure])
+        let evidenceWriter: HostMediaTelemetryEvidenceWriter?
+        do {
+            evidenceWriter = try HostMediaTelemetryEvidenceWriter.configured()
+        } catch {
+            evidenceWriter = nil
+            fputs("Host telemetry evidence output is invalid or already exists.\n", stderr)
+        }
+        let liveLogWriter: HostMediaTelemetryLiveLogWriter?
+        do {
+            liveLogWriter = try HostMediaTelemetryLiveLogWriter.makeDefault()
+        } catch {
+            liveLogWriter = nil
+            fputs("Host media live log could not be created.\n", stderr)
+        }
+        let pipelineReference = HostMediaPipelineReference()
         let pipeline = HostMediaPipeline(
-            configuration: HostMediaPipelineConfiguration(
-                codec: pipelineCodec,
-                displayIndex: Int(control.displayID),
-                width: Int(width),
-                height: Int(height),
-                framesPerSecond: Int(framesPerSecond),
-                bitRate: bitRate
-            ),
+            configuration: pipelineConfiguration,
+            telemetry: telemetry,
             onAccessUnit: { [weak client] accessUnit in
                 guard let client else { return }
                 let packetCodec: HostMediaCodec = accessUnit.codec == .h264 ? .h264 : .h265
+                telemetry.record(
+                    .sendSubmit,
+                    presentationTimeUS: accessUnit.presentationTimeUS,
+                    byteCount: accessUnit.data.count
+                )
                 do {
                     try client.submit(accessUnit: HostEncodedAccessUnit(
                         hostInstanceID: snapshot.hostInstanceId,
@@ -539,10 +868,40 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                         hasParameterSets: accessUnit.hasParameterSets,
                         data: accessUnit.data
                     ))
+                    telemetry.record(
+                        .sendAccepted,
+                        presentationTimeUS: accessUnit.presentationTimeUS,
+                        byteCount: accessUnit.data.count
+                    )
                 } catch let error as HostControlError where error.isExpectedMediaDrop {
-                    // Bounded newest-wins behavior: backpressure/stale route
-                    // drops are expected control outcomes, not UI errors.
+                    // Queue backpressure may reject an encoded reference
+                    // packet. Reset this route's encoder generation so old
+                    // callbacks stop and the replacement begins with an IDR.
+                    telemetry.record(
+                        .sendDropped,
+                        presentationTimeUS: accessUnit.presentationTimeUS,
+                        byteCount: accessUnit.data.count
+                    )
+                    if let reason = error.mediaSubmissionDropReason {
+                        telemetry.recordDrop(reason.telemetryReason)
+                    } else {
+                        telemetry.recordUnclassifiedDrop()
+                    }
+                    if error.requiresMediaKeyframeRecovery {
+                        pipelineReference.recoverFromEncodedPacketDrop()
+                    }
                 } catch {
+                    telemetry.record(
+                        .sendDropped,
+                        presentationTimeUS: accessUnit.presentationTimeUS,
+                        byteCount: accessUnit.data.count
+                    )
+                    if let hostError = error as? HostControlError,
+                       let reason = hostError.mediaSubmissionDropReason {
+                        telemetry.recordDrop(reason.telemetryReason)
+                    } else {
+                        telemetry.recordUnclassifiedDrop()
+                    }
                     DispatchQueue.main.async { [weak self] in
                         guard self?.hostMediaGeneration == generation else { return }
                         self?.hostErrorText = self?.sanitizedHostError(error) ?? ""
@@ -569,21 +928,56 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 }
             }
         )
+        pipelineReference.bind(pipeline)
         hostMediaPipeline = pipeline
+        hostMediaEvidenceWriter = evidenceWriter
+        hostMediaLiveLogWriter = liveLogWriter
         hostMediaRoute = control
         hostMediaStatusText = "正在采集并编码画面…"
+        if let liveLogWriter {
+            do {
+                try liveLogWriter.record(
+                    snapshot: telemetry.snapshot(),
+                    event: .routeStarted
+                )
+            } catch {
+                hostMediaLiveLogWriter = nil
+                fputs("Host media live log write failed.\n", stderr)
+            }
+        }
+        recordHostRuntimeStateEvidence(force: true)
         Task { [weak self, weak pipeline] in
             guard let self, let pipeline else { return }
             do {
                 try await pipeline.start()
             } catch {
                 await pipeline.stop()
+                if let evidenceWriter {
+                    do {
+                        try evidenceWriter.write(snapshot: telemetry.snapshot())
+                    } catch {
+                        fputs("Host telemetry evidence write failed.\n", stderr)
+                    }
+                }
+                if let liveLogWriter {
+                    do {
+                        try liveLogWriter.record(
+                            snapshot: telemetry.snapshot(),
+                            event: .routeStartFailed
+                        )
+                    } catch {
+                        fputs("Host media live log write failed.\n", stderr)
+                    }
+                }
                 await MainActor.run {
                     guard self.hostMediaGeneration == generation else { return }
                     self.hostMediaPipeline = nil
+                    self.hostMediaEvidenceWriter = nil
+                    self.hostMediaLiveLogWriter = nil
                     self.hostMediaRoute = nil
                     self.hostMediaStatusText = nil
                     self.hostErrorText = "无法开始屏幕采集，请检查屏幕录制权限。"
+                    self.recordHostRuntimeStateEvidence(force: true)
                     self.refreshHomeUI()
                 }
             }
@@ -593,12 +987,36 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func stopHostMediaPipeline() {
         hostMediaGeneration &+= 1
         let pipeline = hostMediaPipeline
+        let evidenceWriter = hostMediaEvidenceWriter
+        let liveLogWriter = hostMediaLiveLogWriter
         hostMediaPipeline = nil
+        hostMediaEvidenceWriter = nil
+        hostMediaLiveLogWriter = nil
         hostMediaRoute = nil
         hostMediaStatusText = nil
+        recordHostRuntimeStateEvidence(force: true)
         pipeline?.cancel()
         if let pipeline {
-            Task { await pipeline.stop() }
+            Task {
+                await pipeline.stop()
+                if let evidenceWriter {
+                    do {
+                        try evidenceWriter.write(snapshot: pipeline.telemetry.snapshot())
+                    } catch {
+                        fputs("Host telemetry evidence write failed.\n", stderr)
+                    }
+                }
+                if let liveLogWriter {
+                    do {
+                        try liveLogWriter.record(
+                            snapshot: pipeline.telemetry.snapshot(),
+                            event: .routeStopped
+                        )
+                    } catch {
+                        fputs("Host media live log write failed.\n", stderr)
+                    }
+                }
+            }
         }
     }
 
@@ -644,6 +1062,69 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    private func presentHostPermanentPassword() {
+        guard hostRuntimeActive,
+              let hostClient,
+              let policy = hostSnapshot?.passwordPolicy,
+              policy.changeAllowed,
+              let window else { return }
+        let prompt = HostPermanentPasswordPromptController()
+        hostPermanentPasswordPrompt = prompt
+        prompt.begin(on: window, policy: policy) { [weak self] secret in
+            guard let self else {
+                secret?.wipe()
+                return
+            }
+            self.hostPermanentPasswordPrompt = nil
+            guard let secret else { return }
+            defer { secret.wipe() }
+            guard self.hostRuntimeActive, self.hostClient === hostClient else {
+                self.hostErrorText = "Host 状态已变化，请重新设置永久密码。"
+                self.refreshHomeUI()
+                return
+            }
+            do {
+                try hostClient.setPermanentPassword(&secret.data)
+                self.hostErrorText = ""
+                self.refreshHostSnapshot()
+            } catch {
+                self.hostErrorText = self.sanitizedHostError(error)
+                self.refreshHomeUI()
+            }
+        }
+    }
+
+    private func confirmClearHostPermanentPassword() {
+        guard hostRuntimeActive,
+              let hostClient,
+              let policy = hostSnapshot?.passwordPolicy,
+              policy.changeAllowed,
+              policy.localPasswordSet,
+              let window else { return }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "清除本机永久密码？"
+        alert.informativeText = "清除后将不能再使用这个本机永久密码连接；临时密码不受影响。"
+            + "如果管理员预设了密码，预设密码仍会生效。"
+        alert.addButton(withTitle: "清除")
+        alert.addButton(withTitle: "取消")
+        alert.beginSheetModal(for: window) { [weak self, weak hostClient] response in
+            guard response == .alertFirstButtonReturn,
+                  let self,
+                  let hostClient,
+                  self.hostRuntimeActive,
+                  self.hostClient === hostClient else { return }
+            do {
+                try hostClient.command("clearPermanentPassword")
+                self.hostErrorText = ""
+                self.refreshHostSnapshot()
+            } catch {
+                self.hostErrorText = self.sanitizedHostError(error)
+                self.refreshHomeUI()
+            }
+        }
+    }
+
     private func sanitizedHostError(_ error: Error) -> String {
         switch error {
         case HostControlError.load, HostControlError.hostSurfaceUnavailable:
@@ -657,7 +1138,25 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         case HostControlError.create, HostControlError.start:
             return "Host 服务启动失败，请检查服务器配置。"
         case HostControlError.command:
-            return "临时密码操作失败，请重试。"
+            return "Host 设置操作失败，请重试。"
+        case HostControlError.permanentPassword:
+            let failure = (error as? HostControlError)?.permanentPasswordFailure
+            switch failure {
+            case .empty, .tooShort:
+                return "永久密码长度不足。"
+            case .tooLong:
+                return "永久密码过长。"
+            case .outerWhitespace:
+                return "永久密码首尾不能是空白字符。"
+            case .invalidUTF8, .forbiddenCharacter:
+                return "永久密码包含不支持的字符。"
+            case .changeDisabled:
+                return "永久密码由管理员管理，当前不允许更改。"
+            case .storage:
+                return "永久密码未能安全保存，请重试。"
+            case .unknown, .none:
+                return "永久密码设置失败，请重试。"
+            }
         case HostControlError.snapshot, HostControlError.snapshotDecode:
             return "Host 状态暂时无法读取。"
         case HostControlError.stop:

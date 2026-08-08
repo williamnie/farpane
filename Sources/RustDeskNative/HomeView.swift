@@ -13,6 +13,11 @@ struct HostHomeSnapshot: Equatable {
     var statusText: String
     var localID: String
     var temporaryPassword: String
+    var localPermanentPasswordSet: Bool
+    var effectivePermanentPasswordSet: Bool
+    var usingPresetPassword: Bool
+    var permanentPasswordChangeAllowed: Bool
+    var mediaDiagnosticText: String
     var errorText: String
 }
 
@@ -41,6 +46,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onHostToggle: ((Bool) -> Void)?
     var onRevealHostPassword: (() -> Void)?
     var onRegenerateHostPassword: (() -> Void)?
+    var onSetHostPermanentPassword: (() -> Void)?
+    var onClearHostPermanentPassword: (() -> Void)?
 
     private let serverButton = NSButton()
     private let serverStatusDot = NSView()
@@ -66,6 +73,10 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostPasswordLabel = NSTextField(labelWithString: "临时密码：未显示")
     private let hostRevealButton = NSButton()
     private let hostRegenerateButton = NSButton()
+    private let hostPermanentPasswordLabel = NSTextField(labelWithString: "永久密码：未设置")
+    private let hostSetPermanentPasswordButton = NSButton()
+    private let hostClearPermanentPasswordButton = NSButton()
+    private let hostMediaDiagnosticLabel = NSTextField(wrappingLabelWithString: "")
     private let hostErrorLabel = NSTextField(wrappingLabelWithString: "")
     private var snapshot = HomeSnapshot(
         server: nil,
@@ -80,6 +91,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             statusText: "已关闭",
             localID: "",
             temporaryPassword: "",
+            localPermanentPasswordSet: false,
+            effectivePermanentPasswordSet: false,
+            usingPresetPassword: false,
+            permanentPasswordChangeAllowed: false,
+            mediaDiagnosticText: "",
             errorText: ""
         )
     )
@@ -116,6 +132,21 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostRevealButton.title = snapshot.host.temporaryPassword.isEmpty ? "显示" : "隐藏"
         hostRevealButton.isEnabled = snapshot.host.isRunning
         hostRegenerateButton.isEnabled = snapshot.host.isRunning
+        hostPermanentPasswordLabel.stringValue = permanentPasswordStatus(snapshot.host)
+        if snapshot.host.localPermanentPasswordSet {
+            hostSetPermanentPasswordButton.title = "更改"
+        } else if snapshot.host.usingPresetPassword {
+            hostSetPermanentPasswordButton.title = "替换"
+        } else {
+            hostSetPermanentPasswordButton.title = "设置"
+        }
+        hostSetPermanentPasswordButton.isEnabled = snapshot.host.isRunning
+            && snapshot.host.permanentPasswordChangeAllowed
+        hostClearPermanentPasswordButton.isEnabled = snapshot.host.isRunning
+            && snapshot.host.permanentPasswordChangeAllowed
+            && snapshot.host.localPermanentPasswordSet
+        hostMediaDiagnosticLabel.stringValue = snapshot.host.mediaDiagnosticText
+        hostMediaDiagnosticLabel.isHidden = snapshot.host.mediaDiagnosticText.isEmpty
         hostErrorLabel.stringValue = snapshot.host.errorText
         hostErrorLabel.isHidden = snapshot.host.errorText.isEmpty
         countBadge.stringValue = "\(snapshot.devices.count)"
@@ -128,6 +159,21 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         return host.statusText == "可被连接" || host.isStreaming
             ? .systemGreen
             : .systemYellow
+    }
+
+    private func permanentPasswordStatus(_ host: HostHomeSnapshot) -> String {
+        if !host.permanentPasswordChangeAllowed {
+            return host.effectivePermanentPasswordSet
+                ? "永久密码：由管理员管理"
+                : "永久密码：不允许更改"
+        }
+        if host.localPermanentPasswordSet {
+            return "永久密码：已设置"
+        }
+        if host.usingPresetPassword || host.effectivePermanentPasswordSet {
+            return "永久密码：预设密码生效"
+        }
+        return "永久密码：未设置"
     }
 
     func focusQuickConnect() {
@@ -343,15 +389,52 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostIDLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         hostPasswordLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
+        hostPermanentPasswordLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        hostPermanentPasswordLabel.textColor = .secondaryLabelColor
+        hostSetPermanentPasswordButton.title = "设置"
+        hostSetPermanentPasswordButton.bezelStyle = .inline
+        hostSetPermanentPasswordButton.target = self
+        hostSetPermanentPasswordButton.action = #selector(setHostPermanentPassword)
+        hostClearPermanentPasswordButton.title = "清除"
+        hostClearPermanentPasswordButton.bezelStyle = .inline
+        hostClearPermanentPasswordButton.target = self
+        hostClearPermanentPasswordButton.action = #selector(clearHostPermanentPassword)
+
+        let hostPermanentPasswordDetails = NSStackView(views: [
+            hostPermanentPasswordLabel,
+            NSView(),
+            hostSetPermanentPasswordButton,
+            hostClearPermanentPasswordButton,
+        ])
+        hostPermanentPasswordDetails.orientation = .horizontal
+        hostPermanentPasswordDetails.alignment = .centerY
+        hostPermanentPasswordDetails.spacing = 12
+
+        hostMediaDiagnosticLabel.font = .monospacedDigitSystemFont(ofSize: 11.5, weight: .regular)
+        hostMediaDiagnosticLabel.textColor = .secondaryLabelColor
+        hostMediaDiagnosticLabel.isHidden = true
+
         hostErrorLabel.textColor = .systemOrange
         hostErrorLabel.font = .systemFont(ofSize: 11.5, weight: .medium)
         hostErrorLabel.isHidden = true
 
-        let hostCard = NSStackView(views: [hostHeader, hostDetails, hostErrorLabel])
+        let hostCard = NSStackView(views: [
+            hostHeader,
+            hostDetails,
+            hostPermanentPasswordDetails,
+            hostMediaDiagnosticLabel,
+            hostErrorLabel,
+        ])
         hostCard.orientation = .vertical
         hostCard.alignment = .leading
         hostCard.spacing = 7
-        for view in [hostHeader, hostDetails, hostErrorLabel] {
+        for view in [
+            hostHeader,
+            hostDetails,
+            hostPermanentPasswordDetails,
+            hostMediaDiagnosticLabel,
+            hostErrorLabel,
+        ] {
             view.widthAnchor.constraint(equalTo: hostCard.widthAnchor).isActive = true
         }
 
@@ -615,6 +698,10 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     @objc private func revealHostPassword() { onRevealHostPassword?() }
 
     @objc private func regenerateHostPassword() { onRegenerateHostPassword?() }
+
+    @objc private func setHostPermanentPassword() { onSetHostPermanentPassword?() }
+
+    @objc private func clearHostPermanentPassword() { onClearHostPermanentPassword?() }
 
     @objc private func filterChanged() { renderDevices() }
 }

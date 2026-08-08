@@ -177,7 +177,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 2u
+#define RDN_HOST_ABI_VERSION 3u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -193,6 +193,14 @@ const char *rdn_core_upstream_commit(void);
 #define RDN_HOST_ERR_NON_MONOTONIC_PTS (-10)
 #define RDN_HOST_ERR_MISSING_PARAMETER_SETS (-11)
 #define RDN_HOST_ERR_CODEC_MISMATCH (-12)
+#define RDN_HOST_ERR_SECRET_INVALID_UTF8 (-13)
+#define RDN_HOST_ERR_SECRET_EMPTY (-14)
+#define RDN_HOST_ERR_SECRET_TOO_SHORT (-15)
+#define RDN_HOST_ERR_SECRET_TOO_LONG (-16)
+#define RDN_HOST_ERR_SECRET_FORBIDDEN_CHARACTER (-17)
+#define RDN_HOST_ERR_SECRET_OUTER_WHITESPACE (-18)
+#define RDN_HOST_ERR_CHANGE_DISABLED (-19)
+#define RDN_HOST_ERR_STORAGE (-20)
 
 typedef struct RdnHost RdnHost;
 
@@ -254,6 +262,12 @@ int32_t rdn_host_start(RdnHost *host);
 int32_t rdn_host_stop(RdnHost *host, RdnHostStopReason reason);
 int32_t rdn_host_command(RdnHost *host, const uint8_t *command_json,
                          size_t length);
+/* Dedicated secret ingress. The caller owns a mutable UTF-8 buffer; Rust
+ * wipes all `password_length` bytes before returning after a valid pointer
+ * has been accepted. The caller must wipe its storage again after the call. */
+int32_t rdn_host_set_permanent_password(RdnHost *host, const char *command_id,
+                                        uint8_t *password_utf8,
+                                        size_t password_length);
 int32_t rdn_host_copy_snapshot(RdnHost *host, RdnHostOwnedBytes *out_snapshot);
 void rdn_host_free_bytes(RdnHostOwnedBytes bytes);
 void rdn_host_destroy(RdnHost *host);
@@ -368,6 +382,9 @@ int32_t rdn_shim_host_stop(const RDNCoreLibrary *library, RdnHost *host,
                            RdnHostStopReason reason);
 int32_t rdn_shim_host_command(const RDNCoreLibrary *library, RdnHost *host,
                               const uint8_t *command_json, size_t length);
+int32_t rdn_shim_host_set_permanent_password(
+    const RDNCoreLibrary *library, RdnHost *host, const char *command_id,
+    uint8_t *password_utf8, size_t password_length);
 int32_t rdn_shim_host_copy_snapshot(const RDNCoreLibrary *library,
                                     RdnHost *host,
                                     RdnHostOwnedBytes *out_snapshot);

@@ -1,5 +1,6 @@
 import AppKit
 import ConnectionCatalog
+import CoreBridge
 
 struct PasswordPromptResult {
     let password: String
@@ -59,6 +60,111 @@ final class PasswordPromptController {
             completion(PasswordPromptResult(password: value, saveToKeychain: shouldSave))
         }
         alert.window.initialFirstResponder = passwordField
+    }
+}
+
+/// Single-owner mutable transport for a Host permanent password. AppKit's
+/// secure text field controls its own internal storage, but FarPane never
+/// keeps an additional String property: the explicit UTF-8 transfer buffer is
+/// wiped by HostControlClient and again on this object's teardown.
+final class HostPermanentPasswordSecret {
+    var data = Data()
+
+    func wipe() {
+        if !data.isEmpty {
+            data.resetBytes(in: 0..<data.count)
+        }
+    }
+
+    deinit { wipe() }
+}
+
+final class HostPermanentPasswordPromptController {
+    private let passwordField = NSSecureTextField()
+    private let confirmationField = NSSecureTextField()
+    private var alert: NSAlert?
+
+    func begin(
+        on window: NSWindow,
+        policy: HostPermanentPasswordPolicy,
+        completion: @escaping (HostPermanentPasswordSecret?) -> Void
+    ) {
+        passwordField.stringValue = ""
+        confirmationField.stringValue = ""
+        passwordField.placeholderString = "输入永久密码"
+        confirmationField.placeholderString = "再次输入"
+        passwordField.setAccessibilityLabel("永久密码")
+        confirmationField.setAccessibilityLabel("确认永久密码")
+
+        let form = NSGridView(views: [
+            [NSTextField(labelWithString: "永久密码"), passwordField],
+            [NSTextField(labelWithString: "确认密码"), confirmationField],
+        ])
+        form.rowSpacing = 10
+        form.columnSpacing = 12
+        form.column(at: 0).xPlacement = .trailing
+        form.column(at: 1).width = 360
+
+        let hint = NSTextField(wrappingLabelWithString:
+            "使用 \(policy.minimumCharacters)–\(policy.maximumCharacters) 个字符，最多 "
+                + "\(policy.maximumUTF8Bytes) 个 UTF-8 字节；首尾不能是空白字符。"
+        )
+        hint.font = .systemFont(ofSize: 11)
+        hint.textColor = .secondaryLabelColor
+        let stack = NSStackView(views: [form, hint])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 11
+        stack.frame = NSRect(x: 0, y: 0, width: 470, height: 84)
+
+        let alert = NSAlert()
+        alert.messageText = policy.localPasswordSet ? "更改永久密码" : "设置永久密码"
+        alert.informativeText = "密码只会送入本机 Host Core，并保存为不可读回的验证数据。"
+        alert.accessoryView = stack
+        alert.addButton(withTitle: policy.localPasswordSet ? "更改" : "设置")
+        alert.addButton(withTitle: "取消")
+        self.alert = alert
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self else { return }
+            let secret = HostPermanentPasswordSecret()
+            secret.data.append(contentsOf: self.passwordField.stringValue.utf8)
+            var confirmation = Data(self.confirmationField.stringValue.utf8)
+            self.passwordField.stringValue = ""
+            self.confirmationField.stringValue = ""
+            self.alert = nil
+            defer {
+                if !confirmation.isEmpty {
+                    confirmation.resetBytes(in: 0..<confirmation.count)
+                }
+            }
+            guard response == .alertFirstButtonReturn else {
+                secret.wipe()
+                completion(nil)
+                return
+            }
+            guard !secret.data.isEmpty, secret.data == confirmation else {
+                secret.wipe()
+                self.showValidationError(on: window, policy: policy, completion: completion)
+                return
+            }
+            completion(secret)
+        }
+        alert.window.initialFirstResponder = passwordField
+    }
+
+    private func showValidationError(
+        on window: NSWindow,
+        policy: HostPermanentPasswordPolicy,
+        completion: @escaping (HostPermanentPasswordSecret?) -> Void
+    ) {
+        let error = NSAlert()
+        error.alertStyle = .warning
+        error.messageText = "两次输入不一致"
+        error.informativeText = "请重新输入并确认永久密码。"
+        error.addButton(withTitle: "返回")
+        error.beginSheetModal(for: window) { [weak self] _ in
+            self?.begin(on: window, policy: policy, completion: completion)
+        }
     }
 }
 

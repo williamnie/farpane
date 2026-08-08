@@ -6,8 +6,8 @@
 
 use crate::client::{Data, QualityStatus};
 use crate::common::input::{
-    MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_WHEEL, MOUSE_TYPE_DOWN,
-    MOUSE_TYPE_MOVE, MOUSE_TYPE_TRACKPAD, MOUSE_TYPE_UP, MOUSE_TYPE_WHEEL,
+    MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_WHEEL, MOUSE_TYPE_DOWN, MOUSE_TYPE_MOVE,
+    MOUSE_TYPE_TRACKPAD, MOUSE_TYPE_UP, MOUSE_TYPE_WHEEL,
 };
 use crate::ui_session_interface::{io_loop, InvokeUiSession, Session};
 use hbb_common::{message_proto::*, rendezvous_proto::ConnType};
@@ -113,8 +113,7 @@ const MODIFIER_SHIFT: u32 = 1 << 0;
 const MODIFIER_CONTROL: u32 = 1 << 1;
 const MODIFIER_OPTION: u32 = 1 << 2;
 const MODIFIER_COMMAND: u32 = 1 << 3;
-const VALID_MODIFIERS: u32 =
-    MODIFIER_SHIFT | MODIFIER_CONTROL | MODIFIER_OPTION | MODIFIER_COMMAND;
+const VALID_MODIFIERS: u32 = MODIFIER_SHIFT | MODIFIER_CONTROL | MODIFIER_OPTION | MODIFIER_COMMAND;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -336,10 +335,8 @@ impl InvokeUiSession for BridgeUi {
             self.shared
                 .remote_keyboard_enabled
                 .store(value, Ordering::Release);
-            let allowed = input_is_allowed(
-                self.shared.authenticated.load(Ordering::Acquire),
-                value,
-            );
+            let allowed =
+                input_is_allowed(self.shared.authenticated.load(Ordering::Acquire), value);
             self.shared.input_allowed.store(allowed, Ordering::Release);
             if allowed {
                 self.shared
@@ -500,7 +497,11 @@ fn housekeeping_message() -> Message {
 fn native_stream_fps(force_relay: bool) -> i32 {
     // RustDesk's own adaptive controller leaves more scheduling margin on a
     // relay (4/5 of decoder rate) than on a direct connection (9/10).
-    if force_relay { 38 } else { 36 }
+    if force_relay {
+        38
+    } else {
+        36
+    }
 }
 
 fn input_is_allowed(authenticated: bool, remote_keyboard_enabled: bool) -> bool {
@@ -686,7 +687,9 @@ pub unsafe extern "C" fn rdn_client_connect(
             if !configuration_sent {
                 if let Some(sender) = housekeeping_session.sender.read().unwrap().as_ref() {
                     if sender
-                        .send(Data::Message(native_stream_configuration_message(custom_fps)))
+                        .send(Data::Message(native_stream_configuration_message(
+                            custom_fps,
+                        )))
                         .is_err()
                     {
                         break;
@@ -753,17 +756,39 @@ fn pointer_mask(kind: RDNPointerKind, buttons: u32) -> Option<i32> {
     if buttons & POINTER_BUTTON_MIDDLE != 0 {
         upstream_buttons |= MOUSE_BUTTON_WHEEL;
     }
-    if matches!(kind, RDNPointerKind::Down | RDNPointerKind::Up)
-        && upstream_buttons.count_ones() != 1
-    {
-        return None;
+    match kind {
+        RDNPointerKind::Down | RDNPointerKind::Up if upstream_buttons.count_ones() != 1 => {
+            return None;
+        }
+        RDNPointerKind::Scroll | RDNPointerKind::PreciseScroll if upstream_buttons != 0 => {
+            return None;
+        }
+        _ => {}
     }
     Some(event_type | (upstream_buttons << 3))
 }
 
+fn pointer_payload_fields_are_canonical(
+    kind: RDNPointerKind,
+    x: i32,
+    y: i32,
+    scroll_x: i32,
+    scroll_y: i32,
+) -> bool {
+    if matches!(kind, RDNPointerKind::Scroll | RDNPointerKind::PreciseScroll) {
+        x == 0 && y == 0
+    } else {
+        scroll_x == 0 && scroll_y == 0
+    }
+}
+
 fn key_name(code: RDNKeyCode, unicode_scalar: u32) -> Option<String> {
     let special = match code {
-        RDNKeyCode::Character => return char::from_u32(unicode_scalar).map(|value| value.to_string()),
+        RDNKeyCode::Character => {
+            return char::from_u32(unicode_scalar)
+                .filter(|value| *value != '\0')
+                .map(|value| value.to_string())
+        }
         RDNKeyCode::Escape => "VK_ESCAPE",
         RDNKeyCode::Return => "VK_RETURN",
         RDNKeyCode::Tab => "VK_TAB",
@@ -785,6 +810,18 @@ fn key_name(code: RDNKeyCode, unicode_scalar: u32) -> Option<String> {
         RDNKeyCode::Physical => return None,
     };
     Some(special.to_owned())
+}
+
+fn key_payload_fields_are_canonical(
+    code: RDNKeyCode,
+    unicode_scalar: u32,
+    hardware_keycode: u32,
+) -> bool {
+    match code {
+        RDNKeyCode::Character => hardware_keycode == 0,
+        RDNKeyCode::Physical => unicode_scalar == 0,
+        _ => unicode_scalar == 0 && hardware_keycode == 0,
+    }
 }
 
 fn physical_macos_keycode(value: u32) -> Option<i32> {
@@ -809,6 +846,21 @@ fn clamp_pointer_coordinates(x: i32, y: i32, dimensions: (u32, u32)) -> Option<(
     let maximum_x = dimensions.0.checked_sub(1)?.min(i32::MAX as u32) as i32;
     let maximum_y = dimensions.1.checked_sub(1)?.min(i32::MAX as u32) as i32;
     Some((x.clamp(0, maximum_x), y.clamp(0, maximum_y)))
+}
+
+fn normalized_pointer_coordinates(
+    kind: RDNPointerKind,
+    x: i32,
+    y: i32,
+    scroll_x: i32,
+    scroll_y: i32,
+    dimensions: (u32, u32),
+) -> Option<(i32, i32)> {
+    if matches!(kind, RDNPointerKind::Scroll | RDNPointerKind::PreciseScroll) {
+        let point = (scroll_x.clamp(-120, 120), scroll_y.clamp(-120, 120));
+        return (point != (0, 0)).then_some(point);
+    }
+    clamp_pointer_coordinates(x, y, dimensions)
 }
 
 fn validated_text(bytes: &[u8]) -> Option<&str> {
@@ -837,6 +889,15 @@ pub unsafe extern "C" fn rdn_client_send_pointer(
     if !client.shared.input_allowed.load(Ordering::Acquire) {
         return -6;
     }
+    if !pointer_payload_fields_are_canonical(
+        event.kind,
+        event.x,
+        event.y,
+        event.scroll_x,
+        event.scroll_y,
+    ) {
+        return -4;
+    }
     let Some(mask) = pointer_mask(event.kind, event.buttons) else {
         return -4;
     };
@@ -847,17 +908,16 @@ pub unsafe extern "C" fn rdn_client_send_pointer(
     let Some(session) = session else {
         return -3;
     };
-    let (x, y) = if matches!(
+    let dimensions = *client.shared.dimensions.read().unwrap();
+    let Some((x, y)) = normalized_pointer_coordinates(
         event.kind,
-        RDNPointerKind::Scroll | RDNPointerKind::PreciseScroll
-    ) {
-        (event.scroll_x.clamp(-120, 120), event.scroll_y.clamp(-120, 120))
-    } else {
-        let dimensions = *client.shared.dimensions.read().unwrap();
-        let Some(point) = clamp_pointer_coordinates(event.x, event.y, dimensions) else {
-            return -5;
-        };
-        point
+        event.x,
+        event.y,
+        event.scroll_x,
+        event.scroll_y,
+        dimensions,
+    ) else {
+        return -5;
     };
     session.send_mouse(mask, x, y, alt, ctrl, shift, command);
     0
@@ -879,6 +939,9 @@ pub unsafe extern "C" fn rdn_client_send_key(
     }
     if !client.shared.input_allowed.load(Ordering::Acquire) {
         return -6;
+    }
+    if !key_payload_fields_are_canonical(event.code, event.unicode_scalar, event.hardware_keycode) {
+        return -4;
     }
     let physical_keycode = if event.code == RDNKeyCode::Physical {
         let Some(keycode) = physical_macos_keycode(event.hardware_keycode) else {
@@ -1089,21 +1152,109 @@ mod tests {
             Some(MOUSE_TYPE_UP | (MOUSE_BUTTON_RIGHT << 3))
         );
         assert_eq!(pointer_mask(RDNPointerKind::Down, 0), None);
-        assert_eq!(pointer_mask(RDNPointerKind::Scroll, 0), Some(MOUSE_TYPE_WHEEL));
+        assert_eq!(
+            pointer_mask(
+                RDNPointerKind::Move,
+                POINTER_BUTTON_LEFT | POINTER_BUTTON_RIGHT
+            ),
+            Some(MOUSE_TYPE_MOVE | ((MOUSE_BUTTON_LEFT | MOUSE_BUTTON_RIGHT) << 3))
+        );
+        assert_eq!(
+            pointer_mask(RDNPointerKind::Scroll, 0),
+            Some(MOUSE_TYPE_WHEEL)
+        );
+        assert_eq!(
+            pointer_mask(RDNPointerKind::Scroll, POINTER_BUTTON_LEFT),
+            None
+        );
         assert_eq!(
             pointer_mask(RDNPointerKind::PreciseScroll, 0),
             Some(MOUSE_TYPE_TRACKPAD)
         );
+        assert_eq!(
+            pointer_mask(RDNPointerKind::PreciseScroll, POINTER_BUTTON_RIGHT),
+            None
+        );
+        assert!(pointer_payload_fields_are_canonical(
+            RDNPointerKind::Move,
+            10,
+            20,
+            0,
+            0
+        ));
+        assert!(!pointer_payload_fields_are_canonical(
+            RDNPointerKind::Down,
+            10,
+            20,
+            1,
+            0
+        ));
+        assert!(pointer_payload_fields_are_canonical(
+            RDNPointerKind::Scroll,
+            0,
+            0,
+            3,
+            -3
+        ));
+        assert!(!pointer_payload_fields_are_canonical(
+            RDNPointerKind::PreciseScroll,
+            1,
+            0,
+            3,
+            -3
+        ));
         assert_eq!(clamp_pointer_coordinates(-1, 200, (100, 50)), Some((0, 49)));
         assert_eq!(clamp_pointer_coordinates(0, 0, (0, 50)), None);
+        assert_eq!(
+            normalized_pointer_coordinates(RDNPointerKind::Scroll, 0, 0, 0, 0, (0, 0)),
+            None
+        );
+        assert_eq!(
+            normalized_pointer_coordinates(RDNPointerKind::PreciseScroll, 0, 0, 500, -500, (0, 0)),
+            Some((120, -120))
+        );
     }
 
     #[test]
     fn maps_basic_semantic_keys() {
-        assert_eq!(key_name(RDNKeyCode::Character, 'a' as u32).as_deref(), Some("a"));
-        assert_eq!(key_name(RDNKeyCode::Return, 0).as_deref(), Some("VK_RETURN"));
+        assert_eq!(
+            key_name(RDNKeyCode::Character, 'a' as u32).as_deref(),
+            Some("a")
+        );
+        assert_eq!(
+            key_name(RDNKeyCode::Return, 0).as_deref(),
+            Some("VK_RETURN")
+        );
         assert_eq!(key_name(RDNKeyCode::Command, 0).as_deref(), Some("Meta"));
+        assert!(key_name(RDNKeyCode::Character, 0).is_none());
         assert!(key_name(RDNKeyCode::Character, 0x11_0000).is_none());
+        assert!(key_payload_fields_are_canonical(
+            RDNKeyCode::Character,
+            'a' as u32,
+            0
+        ));
+        assert!(!key_payload_fields_are_canonical(
+            RDNKeyCode::Character,
+            'a' as u32,
+            1
+        ));
+        assert!(key_payload_fields_are_canonical(RDNKeyCode::Return, 0, 0));
+        assert!(!key_payload_fields_are_canonical(
+            RDNKeyCode::Return,
+            'a' as u32,
+            0
+        ));
+        assert!(!key_payload_fields_are_canonical(RDNKeyCode::Return, 0, 1));
+        assert!(key_payload_fields_are_canonical(
+            RDNKeyCode::Physical,
+            0,
+            55
+        ));
+        assert!(!key_payload_fields_are_canonical(
+            RDNKeyCode::Physical,
+            'a' as u32,
+            55
+        ));
         assert_eq!(physical_macos_keycode(0), Some(0));
         assert_eq!(physical_macos_keycode(0x7f), Some(0x7f));
         assert_eq!(physical_macos_keycode(0x80), None);
