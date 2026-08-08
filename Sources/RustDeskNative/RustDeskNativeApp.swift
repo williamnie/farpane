@@ -216,7 +216,19 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        HostApplicationLifecyclePolicy.shouldTerminateAfterLastWindowClosed(
+            hostRuntimeActive: hostRuntimeActive
+        )
+    }
+
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows flag: Bool
+    ) -> Bool {
+        if !flag {
+            window?.makeKeyAndOrderFront(nil)
+        }
+        return true
     }
 
     private func launch() throws {

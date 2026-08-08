@@ -1479,6 +1479,8 @@ flowchart TD
 
 > 真机失败与修复（2026-08-08）：H2.2.15 build `20260808120005` 的 schema-v2 日志运行 162.30 秒后没有 final lifecycle，Mini 同时生成 `EXC_BAD_ACCESS/SIGSEGV` crash report；它与当天 build `20260808092002` 的既有 crash 同构，均落在 H.265 `HostHEVCEncoder.encode(...)` 的 retained frame-context 释放。根因是 VideoToolbox 接受帧并可能同步 callback/消费 context 后，调用方又在 `infoFlagsOut.FrameDropped` 分支释放同一对象。H.264/H.265 现统一为 submission 非 `noErr` 才由调用方释放；接受后的 completion/drop/context 只由 output callback 负责。2,000 帧 H.265 硬编在 malloc scribble 下通过；仍需新包超过 162 秒并正常 route final 的真机回归。该次日志另证明 3,745 个 complete frame 的 dirtyRects 全为 unrecognized，下一 activity-authority 小步应分类其脱敏运行时表示。详见 `Evidence/HostMode/2026-08-08/h2-videotoolbox-frame-context-ownership.md`。
 
+> 真机生命周期修复（2026-08-08）：build `20260808124438` 在 Mini 上的“自行关闭”不是 crash。系统日志显示唯一窗口先关闭，AppKit 随后正常 terminate，LaunchServices 记录 exit status 0；根因是产品 App 无条件把 last-window close 当作进程退出，而 `applicationWillTerminate` 会按设计停止当前 in-process Host。现在 Host runtime active 时关闭最后窗口不再终止进程，Dock reopen 会恢复窗口；非 Host 会话与显式 Quit 保持原语义。策略测试 2/2、Swift 130 项、ScriptTests 20/20 和 Release executable build 通过，真机 close/reopen 仍待下一包。详见 `Evidence/HostMode/2026-08-08/h3-active-host-window-lifecycle.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
