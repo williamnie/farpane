@@ -17,11 +17,8 @@ public final class HostAgentBootstrapProductIntegration: @unchecked Sendable {
     private let coordinator: HostAgentBootstrapPublicationCoordinator
     private let agentBuildID: String
 
-    public convenience init(
-        fileManager: FileManager = .default,
-        bundle: Bundle = .main
-    ) throws {
-        guard let applicationSupportURL = fileManager.urls(
+    public convenience init() throws {
+        guard let applicationSupportURL = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
         ).first else {
@@ -29,7 +26,7 @@ public final class HostAgentBootstrapProductIntegration: @unchecked Sendable {
         }
         try self.init(
             applicationSupportURL: applicationSupportURL,
-            agentBuildID: Self.agentBuildID(from: bundle.infoDictionary)
+            agentBuildID: Self.agentBuildID(from: Bundle.main.infoDictionary)
         )
     }
 
@@ -62,9 +59,9 @@ public final class HostAgentBootstrapProductIntegration: @unchecked Sendable {
     }
 
     static func agentBuildID(from infoDictionary: [String: Any]?) throws -> String {
-        guard let value = infoDictionary?["CFBundleVersion"] as? String,
-              HostAgentBootstrapConfiguration.validAgentBuildID(value)
-        else {
+        guard let value = HostAgentBootstrapBuildIdentifier.resolve(
+            from: infoDictionary
+        ) else {
             throw HostAgentBootstrapProductIntegrationError.buildIdentifierUnavailable
         }
         return value
