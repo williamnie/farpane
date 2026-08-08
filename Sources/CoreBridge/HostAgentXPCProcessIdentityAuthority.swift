@@ -22,34 +22,26 @@ package enum HostAgentXPCProcessIdentityState: Equatable, Sendable {
 /// exactly one authoritative Host instance. Any identity contradiction is
 /// terminal so a later IPC owner cannot handshake under ambiguous identity.
 package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
-    typealias BootIdentityGenerator = () -> String
-
     private let lock = NSLock()
     private let agentBuildID: String
     private let agentBootID: String
     private var state: HostAgentXPCProcessIdentityState = .waitingForHostInstance
 
-    package static func makeProduct(agentBuildID: String) throws -> Self {
-        try Self(
-            agentBuildID: agentBuildID,
-            generateAgentBootID: { UUID().uuidString.lowercased() }
-        )
-    }
-
-    init(
+    package static func makeProduct(
         agentBuildID: String,
-        generateAgentBootID: BootIdentityGenerator
-    ) throws {
+        agentBootID: String
+    ) throws -> Self {
         guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
             agentBuildID
-        ) else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
-        let agentBootID = generateAgentBootID()
-        guard HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID)
+        ),
+            HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID)
         else {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
         }
+        return Self(agentBuildID: agentBuildID, agentBootID: agentBootID)
+    }
+
+    private init(agentBuildID: String, agentBootID: String) {
         self.agentBuildID = agentBuildID
         self.agentBootID = agentBootID
     }

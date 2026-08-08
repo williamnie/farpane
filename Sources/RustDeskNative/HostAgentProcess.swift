@@ -66,8 +66,20 @@ enum HostAgentProcess {
                     _ = lifetime.waitUntilTerminated()
                     return .failure(HostAgentStartupFailure(kind: .internalFailure))
                 }
-                guard let hostInstanceID = snapshotState.snapshot().hostInstanceID,
-                      mediaPipelineOwner.start(
+                guard let hostInstanceID = snapshotState.snapshot().hostInstanceID
+                else {
+                    _ = lifetime.requestTermination(reason: .error)
+                    _ = lifetime.waitUntilTerminated()
+                    return .failure(HostAgentStartupFailure(kind: .internalFailure))
+                }
+                guard (try? lifetime.bindXPCIdentity(
+                    hostInstanceID: hostInstanceID
+                )) == .bound else {
+                    _ = lifetime.requestTermination(reason: .error)
+                    _ = lifetime.waitUntilTerminated()
+                    return .failure(HostAgentStartupFailure(kind: .internalFailure))
+                }
+                guard mediaPipelineOwner.start(
                         lifetime: lifetime,
                         hostInstanceID: hostInstanceID
                       )

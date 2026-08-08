@@ -7,11 +7,18 @@ import Foundation
 /// run loop remain required before replacing the fail-closed mode gate.
 final class HostAgentProcessRuntime: @unchecked Sendable {
     private let ownedRuntime: HostAgentOwnedCoreRuntime<HostAgentBootstrapContext>
+    private let xpcIdentityAuthority: HostAgentXPCProcessIdentityAuthority
 
     private init(
-        ownedRuntime: HostAgentOwnedCoreRuntime<HostAgentBootstrapContext>
+        ownedRuntime: HostAgentOwnedCoreRuntime<HostAgentBootstrapContext>,
+        xpcIdentityAuthority: HostAgentXPCProcessIdentityAuthority
     ) {
         self.ownedRuntime = ownedRuntime
+        self.xpcIdentityAuthority = xpcIdentityAuthority
+    }
+
+    deinit {
+        xpcIdentityAuthority.invalidate()
     }
 
     static func start(
@@ -22,6 +29,12 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
         onEvent: @escaping @Sendable (HostCoreEvent) -> Void
     ) throws -> HostAgentProcessRuntime {
         let bootstrapContext = try HostAgentBootstrapContext.prepare()
+        let xpcIdentityAuthority = try
+            HostAgentXPCProcessIdentityAuthority.makeProduct(
+                agentBuildID: bootstrapContext.leaseRecord.agentBuildID,
+                agentBootID:
+                    bootstrapContext.leaseRecord.agentBootID.uuidString.lowercased()
+            )
         let ownedRuntime = try HostAgentOwnedCoreRuntime.start(
             bootstrapOwner: bootstrapContext
         ) { context in
@@ -42,11 +55,29 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                 )
             )
         }
-        return HostAgentProcessRuntime(ownedRuntime: ownedRuntime)
+        return HostAgentProcessRuntime(
+            ownedRuntime: ownedRuntime,
+            xpcIdentityAuthority: xpcIdentityAuthority
+        )
     }
 
     func stop(reason: HostStopReason) throws {
+        xpcIdentityAuthority.invalidate()
         try ownedRuntime.stop(reason: reason)
+    }
+
+    func bindXPCIdentity(
+        hostInstanceID: String
+    ) -> HostAgentXPCProcessIdentityBindResult {
+        xpcIdentityAuthority.bind(hostInstanceID: hostInstanceID)
+    }
+
+    func xpcIdentitySnapshot() -> HostAgentXPCProcessIdentityState {
+        xpcIdentityAuthority.snapshot()
+    }
+
+    func invalidateXPCIdentity() {
+        xpcIdentityAuthority.invalidate()
     }
 
     func copySnapshot() throws -> HostCoreSnapshot {
