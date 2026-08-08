@@ -90,7 +90,7 @@ package enum HostAgentRegistrationBundlePreflight {
         return url.standardizedFileURL.path == expectedBundlePath
     }
 
-    private static func validBuildIdentifier(_ value: String) -> Bool {
+    package static func validBuildIdentifier(_ value: String) -> Bool {
         guard !value.isEmpty,
               value.utf8.count <= maximumBuildIdentifierBytes
         else {
