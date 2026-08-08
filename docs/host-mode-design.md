@@ -1556,6 +1556,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1x Agent-owned sanitized media live log 已完成自动实现**。HostAgent media owner 现在按真实 route lifecycle 创建自己的 schema v3 脱敏 JSONL：成功启动写 `routeStarted`，唯一 1 秒 non-reentrant timer 写 periodic，SCK/VT 完成 drain 后写 `routeStopped`，pipeline factory/start failure 单独写 `routeStartFailed`。每条 route 的 periodic 上限继续固定为 3,600；完整 route identity 只用于内存 exact correlation，不传给 writer，旧 route terminal event 不能封口新日志，文件/path/Error、server/key、peer/display ID、屏幕内容及 encoded payload 均不进入 snapshot 或日志。termination 先停止并排空 periodic tick，再 drain pipeline 取得最终 telemetry，最后 terminal seal coordinator；writer 创建/写入失败只累计有界脱敏计数，不影响 Core/media teardown。测试 writer 完全注入且未访问真实用户日志目录；Agent 入口仍禁用，故本步不宣称后台真实落盘或修复了已观察到的 GUI 自退，也不修改 ABI/Rust/Hermes/XPC wire，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-agent-media-live-log.md`。
 
+> 更新（2026-08-08）：**H4.1y Agent media log retention 已完成自动实现**。产品默认 live-log 路径现在在每条 route 创建前执行固定 retention：只识别 `host-media-live-...-<UUID>.jsonl`、当前 effective user 所有、link count 为 1 的普通文件，先淘汰修改时间超过 7 天的旧文件，再按 modification date/filename 删除最旧项，使新文件创建后最多保留 24 条 route 日志；其他 JSONL、目录、symbolic link 和 hard link 一律不碰。淘汰使用只删除单个目录项、不会递归目录的 POSIX `unlink`；无效策略、目录枚举/metadata 或任一删除失败均 fail closed，不创建新日志也不暴露底层路径/Error；显式 output URL writer 保持无自动删除语义。动态测试只在 UUID 临时目录真实验证清理和非目标保护，未读取或改动用户日志。该策略依赖既有 H4 单写者 lease，不新增跨进程 authority；Agent 入口仍禁用，不修改 ABI/Rust/Hermes/XPC wire，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-agent-media-log-retention.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
