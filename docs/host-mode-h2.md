@@ -276,6 +276,16 @@ Mini 随后的 H2.2.14 真机会话已证明交付身份与构建 `2026080803345
 
 live JSONL 以 additive schema v2 写出 callback 总数和两组累计分布；严格分析器同时接受既有 v1，且对 v2 要求精确字段集合、非负整数、frame-status 总和等于 callback 总数、dirtyRects 总和等于 complete 数量，并拒绝 route 内 schema 混用或任一累计值倒退。该步没有修改 cadence/pressure policy、Host ABI、wire、Hermes、route-stop evidence、依赖、CI 或根配置。自动实现与验证记录于 `Evidence/HostMode/2026-08-08/h2-sck-metadata-availability-diagnostic.md`；真实分布仍需新构建的静止→运动→静止日志。
 
+Mini 的 build `20260808120005` 真机会话写入 158 条 schema-v2 记录并运行 162.30 秒，但在 final lifecycle 写入前崩溃，因此不能通过完整日志验收。最后累计 3,754 个 capture callback，其中 complete 3,745、idle 9；3,745 个 complete frame 的 dirtyRects attachment 全部为 unrecognized。该结果证明当前 adapter 确实收到了 attachment，但其运行时表示未被现有 `[CGRect]`/`NSArray` 解码覆盖；activity authority 的下一步应针对脱敏 representation 分类，而不是继续把它记录成 absent 或猜测像素变化。同时这次失败暴露了下述独立 H.265 frame-context 生命周期崩溃。
+
+## H2.2.16 VideoToolbox frame-context single ownership
+
+Mini 在 build `20260808092002` 与 `20260808120005` 上分别生成两份同构 crash report：均为 `EXC_BAD_ACCESS/SIGSEGV`，faulting queue 均是 `io.farpane.host-raw-frame-handoff`，顶层产品栈均落在 `HostHEVCEncoder.encode(...)` 返回释放对象时。最新路由明确为 H.265，并在崩溃前出现 encoded queue full 与高 send-drop pressure。
+
+编码器此前把每帧 context 以 `Unmanaged.passRetained` 交给 `sourceFrameRefcon`，output callback 用 `takeRetainedValue` 消费；但 `VTCompressionSessionEncodeFrame` 返回 `noErr + FrameDropped` 时，调用方又立即 `release()`。VideoToolbox 允许同步完成并在函数返回前调用 callback，因此同一 context 会被释放两次。现在 H.264 与 H.265 都只在 submission status 非 `noErr`、即 VideoToolbox 未接受帧时由调用方释放；一旦接受，completion/drop 与 context 释放全部由 output callback 单独负责，调用方不再读取 `infoFlagsOut`。
+
+2,000 帧快速 H.265 hardware submission 在 `MallocScribble`/`MallocPreScribble` 下通过，真实 H.264/H.265 encoder 与 pipeline 回归继续作为自动门禁。修复与真机 crash/log 证据记录于 `Evidence/HostMode/2026-08-08/h2-videotoolbox-frame-context-ownership.md`；只有新构建持续运行超过 162 秒且正常写出 route final lifecycle，才能关闭真机回归。
+
 ## H2.3.1 encoded queue full/disconnect policy
 
 Rust Host media route 的容量 3 `sync_channel` 现在通过单一内部 `try_enqueue_native_media` policy 提交已编码 access unit：

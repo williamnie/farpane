@@ -36,6 +36,47 @@ private final class HostHEVCEncoderTestResult: @unchecked Sendable {
 }
 
 final class HostHEVCEncoderTests: XCTestCase {
+  func testRapidHardwareHEVCSubmissionKeepsFrameContextSingleOwner() throws {
+    guard HostHEVCEncoder.hardwareEncodingSupported else {
+      throw XCTSkip("HEVC hardware encode is unavailable on this machine")
+    }
+    let resultBox = HostHEVCEncoderTestResult()
+    let encoder = try HostHEVCEncoder(
+      configuration: HostHEVCEncoderConfiguration(
+        width: 128,
+        height: 128,
+        framesPerSecond: 60,
+        averageBitRate: 500_000
+      ),
+      sourcePixelFormat: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+      onAccessUnit: { resultBox.set(accessUnit: $0) },
+      onState: { resultBox.set(runtimeState: $0) },
+      onError: { resultBox.set(error: $0) }
+    )
+    let pixelBuffer = try makeNV12Buffer(width: 128, height: 128)
+
+    // Submit faster than real time so VideoToolbox can exercise its
+    // synchronous/asynchronous drop paths. A noErr submission transfers the
+    // retained frame context exclusively to the output callback.
+    for frameNumber in 1...2_000 {
+      try encoder.encode(
+        pixelBuffer: pixelBuffer,
+        presentationTime: CMTime(value: Int64(frameNumber), timescale: 60),
+        logicalRawFrameCopyCount: 0
+      )
+    }
+    encoder.invalidate()
+
+    let (accessUnits, state, callbackError) = resultBox.snapshot()
+    XCTAssertFalse(accessUnits.isEmpty)
+    XCTAssertEqual(state?.hardwareAccelerated, true)
+    if let callbackError {
+      guard case .frameDropped = callbackError else {
+        return XCTFail("unexpected HEVC callback error: \(callbackError)")
+      }
+    }
+  }
+
   func testHardwareHEVCEncodeReportsStateAndRequestedIDR() throws {
     guard HostHEVCEncoder.hardwareEncodingSupported else {
       throw XCTSkip("HEVC hardware encode is unavailable on this machine")

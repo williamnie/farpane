@@ -75,4 +75,6 @@ The executable and bundled core are arm64. Stable Apple Development signing, non
 
 ## Real Mini validation
 
-Pending installation of build `20260808120005`. Run one uninterrupted route with approximately 15 seconds static, 15 seconds continuous motion, and 15 seconds static, then disconnect normally. The newest local schema-v2 log will decide whether idle status exists and whether dirtyRects is absent or merely decoded with an unsupported attachment representation.
+Build `20260808120005` produced 158 schema-v2 records over 162.30 seconds. It observed 3,754 capture callbacks: 3,745 complete and 9 idle. All 3,745 complete callbacks classified dirtyRects as `unrecognized`; none were absent, recognized-empty or recognized-nonempty. This establishes that the attachment exists in a runtime representation not covered by the current decoder.
+
+The run is not a valid completion or performance acceptance: it has no final lifecycle record, and macOS generated a matching `EXC_BAD_ACCESS` crash report at the terminal timestamp. The independent H.265 frame-context ownership fault and fix are recorded in `h2-videotoolbox-frame-context-ownership.md`. A fixed build must repeat the run and disconnect normally before this evidence can close.
