@@ -414,6 +414,33 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(ownerSource.contains("routeOwner.requestKeyframe("))
         XCTAssertTrue(ownerSource.contains("routeOwner.stop(route:"))
         XCTAssertTrue(ownerSource.contains("routeOwner.cancelAndWait()"))
+        XCTAssertTrue(ownerSource.contains("HostMediaPipelineLiveLogCoordinator()"))
+        XCTAssertTrue(ownerSource.contains("lifecycleObserver: liveLogCoordinator.lifecycleObserver"))
+        XCTAssertTrue(ownerSource.contains("HostAgentMediaLiveLogPollingOwner("))
+        XCTAssertTrue(ownerSource.contains("liveLogPollingOwner.start()"))
+        let liveLogPollCancel = try XCTUnwrap(ownerSource.range(
+            of: "liveLogPollingOwner.cancel()"
+        ))
+        let routeCancel = try XCTUnwrap(ownerSource.range(
+            of: "routeOwner.cancelAndWait()"
+        ))
+        let liveLogSeal = try XCTUnwrap(ownerSource.range(
+            of: "liveLogCoordinator.cancel()"
+        ))
+        XCTAssertLessThan(liveLogPollCancel.lowerBound, routeCancel.lowerBound)
+        XCTAssertLessThan(routeCancel.lowerBound, liveLogSeal.lowerBound)
+
+        let liveLogPollingURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentMediaLiveLogPollingOwner.swift"
+        )
+        let liveLogPollingSource = try String(
+            contentsOf: liveLogPollingURL,
+            encoding: .utf8
+        )
+        XCTAssertTrue(liveLogPollingSource.contains("repeating: .seconds(1)"))
+        XCTAssertTrue(liveLogPollingSource.contains("gate.beginTick()"))
+        XCTAssertTrue(liveLogPollingSource.contains("gate.cancelAndWait()"))
+        XCTAssertTrue(liveLogPollingSource.contains("coordinator.recordPeriodic()"))
 
         let processURL = repositoryRoot.appendingPathComponent(
             "Sources/RustDeskNative/HostAgentProcess.swift"

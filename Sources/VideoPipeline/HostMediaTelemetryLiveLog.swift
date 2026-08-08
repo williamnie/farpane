@@ -15,6 +15,16 @@ public enum HostMediaLiveLogEvent: String, Sendable {
   case routeStartFailed
 }
 
+package protocol HostMediaLiveLogRecording: Sendable {
+  @discardableResult
+  func record(
+    snapshot: HostMediaTelemetrySnapshot,
+    event: HostMediaLiveLogEvent,
+    capturedAt: Date,
+    monotonicNanoseconds: UInt64
+  ) throws -> Bool
+}
+
 /// Sanitized, per-route performance history written by the Host app.
 ///
 /// The allowlist intentionally excludes local/peer IDs, server configuration,
@@ -262,6 +272,8 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
     }
   }
 }
+
+extension HostMediaTelemetryLiveLogWriter: HostMediaLiveLogRecording {}
 
 private extension NSLock {
   func withLiveLogLock<T>(_ body: () throws -> T) rethrows -> T {

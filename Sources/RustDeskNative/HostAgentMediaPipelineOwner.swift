@@ -31,6 +31,7 @@ struct HostAgentMediaPipelineSnapshot: Sendable {
     let lastMediaDiagnosticKind: HostMediaDiagnostic.Kind?
     let lastMediaDiagnosticRoute: HostMediaPipelineRouteIdentity?
     let routeOwner: HostMediaPipelineRouteOwnerSnapshot
+    let liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
 }
 
 /// Process-owned adapter from typed Rust media controls to the real
@@ -46,6 +47,8 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private let condition = NSCondition()
     private let runtimeBinding: HostAgentMediaRuntimeBinding
     private let status: HostAgentMediaPipelineStatus
+    private let liveLogCoordinator: HostMediaPipelineLiveLogCoordinator
+    private let liveLogPollingOwner: HostAgentMediaLiveLogPollingOwner
     private let routeOwner: HostMediaPipelineRouteOwner
     private var state: State = .idle
     private var capabilityTask: Task<Void, Never>?
@@ -55,9 +58,15 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     init() {
         let runtimeBinding = HostAgentMediaRuntimeBinding()
         let status = HostAgentMediaPipelineStatus()
+        let liveLogCoordinator = HostMediaPipelineLiveLogCoordinator()
         self.runtimeBinding = runtimeBinding
         self.status = status
+        self.liveLogCoordinator = liveLogCoordinator
+        self.liveLogPollingOwner = HostAgentMediaLiveLogPollingOwner(
+            coordinator: liveLogCoordinator
+        )
         self.routeOwner = HostMediaPipelineRouteOwner(
+            lifecycleObserver: liveLogCoordinator.lifecycleObserver,
             onSubmit: { route, unit in
                 runtimeBinding.submit(route: route, unit: unit)
             },
@@ -101,6 +110,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         state = .active
         capabilityInFlight = true
         condition.unlock()
+        _ = liveLogPollingOwner.start()
         status.recordCapabilityProbeStarted()
 
         let task = Task { [weak self] in
@@ -220,12 +230,14 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         condition.unlock()
         return status.snapshot(
             lifecycleStatus: lifecycleStatus,
-            routeOwner: routeOwner.snapshot()
+            routeOwner: routeOwner.snapshot(),
+            liveLog: liveLogCoordinator.snapshot()
         )
     }
 
-    /// Terminal and idempotent. Drains SCK/VT before invalidating weak runtime
-    /// access, then waits for a capability probe/set operation to finish.
+    /// Terminal and idempotent. Stops new periodic samples, drains SCK/VT so
+    /// the final route record is written, then seals the log coordinator before
+    /// invalidating weak runtime access.
     func cancelAndWait() {
         condition.lock()
         switch state {
@@ -248,7 +260,9 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             task?.cancel()
         }
 
+        liveLogPollingOwner.cancel()
         routeOwner.cancelAndWait()
+        liveLogCoordinator.cancel()
         runtimeBinding.cancel()
 
         condition.lock()
@@ -730,7 +744,8 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
 
     func snapshot(
         lifecycleStatus: HostAgentMediaPipelineLifecycleStatus,
-        routeOwner: HostMediaPipelineRouteOwnerSnapshot
+        routeOwner: HostMediaPipelineRouteOwnerSnapshot,
+        liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
     ) -> HostAgentMediaPipelineSnapshot {
         lock.lock()
         defer { lock.unlock() }
@@ -746,7 +761,8 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
             rejectedDiagnostics: rejectedDiagnostics,
             lastMediaDiagnosticKind: lastMediaDiagnosticKind,
             lastMediaDiagnosticRoute: lastMediaDiagnosticRoute,
-            routeOwner: routeOwner
+            routeOwner: routeOwner,
+            liveLog: liveLog
         )
     }
 
