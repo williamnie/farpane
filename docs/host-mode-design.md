@@ -1568,6 +1568,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2c SMAppService read-only observer 已完成自动实现**。package-scoped 产品 observer 以唯一固定 `io.rustdesknative.viewer.host-agent.plist` 定位调用 App 的 `Contents/Library/LaunchAgents` service，只执行 `SMAppService.agent(plistName:).status` 并交给 H4.2b；它不接受参数/环境/URL/Bundle path override，也不具备 register/unregister/open settings 能力。动态测试对不含该 plist 的 SwiftPM test bundle 做真实只读 observation，结果 fail closed 为 serviceUnavailable，未创建文件或系统注册项。固定名称本步只冻结定位，尚未创建/打包 plist 或定义 launchd keys/升级语义；registration 仍不能越过 handshake/snapshot/Rendezvous readiness。本步不定义 XPC schema、不启动 Core；不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-smappservice-readonly-observer.md`。
 
+> 更新（2026-08-08）：**H4.2d LaunchAgent plist identity preflight 已完成自动实现**。package-scoped 纯数据 preflight 在任何 ServiceManagement mutation 前固定并验证 `io.rustdesknative.viewer.host-agent` label/唯一 enabled Mach service、bundle-relative `Contents/MacOS/RustDeskNative` 与完整 `["RustDeskNative", "--host-agent"]` argv；64 KiB 上限、语法/类型错误、绝对 `Program`、特权 system-domain `UserName`/`GroupName`、附加 service/argument 全部 fail closed。依据本机 SDK/`launchd.plist` 合同，`BundleProgram` 负责同 App executable 路径而 `ProgramArguments` 保留完整 argv。本步刻意不冻结 `RunAtLoad`/`KeepAlive` 等 lifecycle/restart policy，不创建/打包真实 plist，不调用 register/unregister，不定义 XPC schema；不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-launch-agent-plist-preflight.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
