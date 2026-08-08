@@ -31,10 +31,10 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 3;
+const HOST_ABI_VERSION: u32 = 4;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
-const SNAPSHOT_SCHEMA_VERSION: u32 = 2;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 3;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_NAME_BYTES: usize = 64;
@@ -81,6 +81,9 @@ const RDN_HOST_ERR_SECRET_FORBIDDEN_CHARACTER: i32 = -17;
 const RDN_HOST_ERR_SECRET_OUTER_WHITESPACE: i32 = -18;
 const RDN_HOST_ERR_CHANGE_DISABLED: i32 = -19;
 const RDN_HOST_ERR_STORAGE: i32 = -20;
+const RDN_HOST_ERR_APPROVAL_NOT_FOUND: i32 = -21;
+const RDN_HOST_ERR_APPROVAL_FINALIZED: i32 = -22;
+const RDN_HOST_ERR_APPROVAL_EXPIRED: i32 = -23;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -552,6 +555,25 @@ impl NativeApprovalBroker {
         self.last_finalized = None;
         self.pending.take()
     }
+
+    fn snapshot(
+        &mut self,
+        now: Instant,
+    ) -> (
+        Option<NativeApprovalRequest>,
+        Option<NativeApprovalCompletion>,
+    ) {
+        let expired_connection_id = self
+            .pending
+            .as_ref()
+            .filter(|pending| now >= pending.deadline)
+            .map(|pending| pending.request.connection_id.clone());
+        let completion = expired_connection_id
+            .as_deref()
+            .and_then(|connection_id| self.expire(connection_id, now));
+        let request = self.pending.as_ref().map(|pending| pending.request.clone());
+        (request, completion)
+    }
 }
 
 pub(crate) struct NativeMediaAccessUnit {
@@ -895,13 +917,15 @@ fn bounded_remote_metadata(value: String) -> String {
 
 fn emit_native_approval_completion(completion: &NativeApprovalCompletion) {
     let signal = match completion.status {
-        NativeApprovalFinalStatus::Approved => crate::ipc::Data::Authorize,
+        NativeApprovalFinalStatus::Approved => Some(crate::ipc::Data::Authorize),
         NativeApprovalFinalStatus::Rejected | NativeApprovalFinalStatus::Expired => {
-            crate::ipc::Data::Close
+            Some(crate::ipc::Data::Close)
         }
-        NativeApprovalFinalStatus::Cancelled => return,
+        NativeApprovalFinalStatus::Cancelled => None,
     };
-    let _ = completion.pending.decision_sender.send(signal);
+    if let Some(signal) = signal {
+        let _ = completion.pending.decision_sender.send(signal);
+    }
     let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
     if let Some(binding) = binding {
         emit_bound_event(
@@ -912,6 +936,7 @@ fn emit_native_approval_completion(completion: &NativeApprovalCompletion) {
                 "status": completion.status.as_str(),
             }),
         );
+        emit_bound_event(&binding, "snapshotChanged", json!({}));
     }
 }
 
@@ -964,6 +989,7 @@ pub(crate) fn native_host_begin_approval(
                 "incomingConnectionRequest",
                 request.event_payload(),
             );
+            emit_bound_event(&binding, "snapshotChanged", json!({}));
             tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_millis(NATIVE_APPROVAL_TIMEOUT_MS)).await;
                 expire_native_approval(&connection_id);
@@ -979,7 +1005,6 @@ pub(crate) fn native_host_begin_approval(
     result
 }
 
-#[allow(dead_code)] // consumed by the Host command boundary in the next H3.2 step
 pub(crate) fn native_host_resolve_approval(
     connection_id: &str,
     decision: NativeApprovalDecision,
@@ -997,20 +1022,22 @@ pub(crate) fn native_host_resolve_approval(
 
 pub(crate) fn native_host_cancel_approval(core_connection_id: i32) {
     let completion = APPROVAL_BROKER.lock().unwrap().cancel(core_connection_id);
-    let Some(completion) = completion else {
-        return;
-    };
-    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
-    if let Some(binding) = binding {
-        emit_bound_event(
-            &binding,
-            "incomingConnectionResolved",
-            json!({
-                "connectionId": completion.pending.request.connection_id,
-                "status": completion.status.as_str(),
-            }),
-        );
+    if let Some(completion) = completion {
+        emit_native_approval_completion(&completion);
     }
+}
+
+fn native_host_pending_approval_snapshot(host_instance_id: &str) -> Option<Value> {
+    let (request, completion) = APPROVAL_BROKER.lock().unwrap().snapshot(Instant::now());
+    if let Some(completion) = completion {
+        emit_native_approval_completion(&completion);
+    }
+    let request = request?;
+    let expected_prefix = format!("{host_instance_id}:");
+    request
+        .connection_id
+        .starts_with(&expected_prefix)
+        .then(|| request.event_payload())
 }
 
 fn reset_native_approval_broker() {
@@ -1747,6 +1774,10 @@ impl RdnHost {
         map.insert("hostInstanceId".into(), json!(self.instance_id));
         map.insert("hostState".into(), json!(state_name(self.state)));
         map.insert("localId".into(), json!(self.local_id));
+        map.insert(
+            "pendingApproval".into(),
+            native_host_pending_approval_snapshot(&self.instance_id).unwrap_or(Value::Null),
+        );
         map.insert("temporaryPasswordPresentation".into(), presentation);
         map.insert(
             "passwordPolicy".into(),
@@ -2042,7 +2073,70 @@ fn parse_envelope(bytes: &[u8]) -> Result<Value, i32> {
     serde_json::from_slice(bytes).map_err(|_| RDN_HOST_ERR_VALIDATION)
 }
 
-fn handle_command(host: &mut RdnHost, command_id: &str, name: &str) -> i32 {
+fn approval_connection_id(envelope: &Value) -> Result<&str, i32> {
+    let Some(object) = envelope.as_object() else {
+        return Err(RDN_HOST_ERR_VALIDATION);
+    };
+    if object.len() != 3
+        || !object.contains_key("commandId")
+        || !object.contains_key("name")
+        || !object.contains_key("connectionId")
+    {
+        return Err(RDN_HOST_ERR_VALIDATION);
+    }
+    match object.get("connectionId").and_then(Value::as_str) {
+        Some(value)
+            if !value.is_empty() && value.len() <= 128 && !value.chars().any(char::is_control) =>
+        {
+            Ok(value)
+        }
+        _ => Err(RDN_HOST_ERR_VALIDATION),
+    }
+}
+
+fn handle_approval_command(
+    host: &mut RdnHost,
+    command_id: &str,
+    decision: NativeApprovalDecision,
+    envelope: &Value,
+) -> i32 {
+    let connection_id = match approval_connection_id(envelope) {
+        Ok(value) => value,
+        Err(code) => {
+            host.emit_command_result(command_id, "rejected", "approval-command-invalid");
+            return code;
+        }
+    };
+    let expected_prefix = format!("{}:", host.instance_id);
+    if !connection_id.starts_with(&expected_prefix) {
+        host.emit_command_result(command_id, "rejected", "approval-not-found");
+        return RDN_HOST_ERR_APPROVAL_NOT_FOUND;
+    }
+    match native_host_resolve_approval(connection_id, decision) {
+        NativeApprovalResolveResult::Approved => {
+            host.emit_command_result(command_id, "ok", "approval-approved");
+            RDN_HOST_OK
+        }
+        NativeApprovalResolveResult::Rejected => {
+            host.emit_command_result(command_id, "ok", "approval-rejected");
+            RDN_HOST_OK
+        }
+        NativeApprovalResolveResult::Expired => {
+            host.emit_command_result(command_id, "rejected", "approval-expired");
+            RDN_HOST_ERR_APPROVAL_EXPIRED
+        }
+        NativeApprovalResolveResult::AlreadyFinal => {
+            host.emit_command_result(command_id, "rejected", "approval-already-finalized");
+            RDN_HOST_ERR_APPROVAL_FINALIZED
+        }
+        NativeApprovalResolveResult::NotFound => {
+            host.emit_command_result(command_id, "rejected", "approval-not-found");
+            RDN_HOST_ERR_APPROVAL_NOT_FOUND
+        }
+    }
+}
+
+fn handle_command(host: &mut RdnHost, command_id: &str, name: &str, envelope: &Value) -> i32 {
     match name {
         "enableHost" => {
             // Host already runs in-process for the H1a spike; accept as no-op.
@@ -2086,6 +2180,12 @@ fn handle_command(host: &mut RdnHost, command_id: &str, name: &str) -> i32 {
                 RDN_HOST_ERR_STORAGE
             }
         }
+        "approveConnection" => {
+            handle_approval_command(host, command_id, NativeApprovalDecision::Approve, envelope)
+        }
+        "rejectConnection" => {
+            handle_approval_command(host, command_id, NativeApprovalDecision::Reject, envelope)
+        }
         _ => {
             host.emit_command_result(command_id, "unknownCommand", name);
             RDN_HOST_OK
@@ -2115,10 +2215,14 @@ pub unsafe extern "C" fn rdn_host_command(
         _ => return RDN_HOST_ERR_VALIDATION,
     };
     let name = match envelope.get("name").and_then(Value::as_str) {
-        Some(value) if !value.is_empty() => value.to_owned(),
+        Some(value)
+            if !value.is_empty() && value.len() <= 128 && !value.chars().any(char::is_control) =>
+        {
+            value.to_owned()
+        }
         _ => return RDN_HOST_ERR_VALIDATION,
     };
-    handle_command(host, &command_id, &name)
+    handle_command(host, &command_id, &name, &envelope)
 }
 
 /// Dedicated permanent-password ingress (§9.3). Password bytes never enter
@@ -2533,7 +2637,15 @@ mod tests {
         assert!(secret.iter().all(|byte| *byte == 0));
 
         assert_eq!(
-            handle_command(&mut host, "clear-disabled", "clearPermanentPassword"),
+            handle_command(
+                &mut host,
+                "clear-disabled",
+                "clearPermanentPassword",
+                &json!({
+                    "commandId": "clear-disabled",
+                    "name": "clearPermanentPassword",
+                }),
+            ),
             RDN_HOST_ERR_CHANGE_DISABLED
         );
         let encoded = serde_json::to_string(&*events.lock().unwrap()).unwrap();
@@ -2638,6 +2750,142 @@ mod tests {
             broker.begin(finalized),
             NativeApprovalStartResult::Finalized
         );
+    }
+
+    #[test]
+    fn native_approval_snapshot_and_commands_are_recoverable_and_fail_closed() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let events = Mutex::new(Vec::new());
+        let mut host = ready_test_host("approval-command-host");
+        host.callbacks = RdnHostCallbacks {
+            abi_version: HOST_ABI_VERSION,
+            on_event: Some(collect_test_event),
+            context: &events as *const Mutex<Vec<Value>> as *mut c_void,
+        };
+
+        let (pending, mut approve_receiver) = pending_approval_fixture(
+            "approval-command-host:7",
+            7,
+            Instant::now() + Duration::from_secs(30),
+        );
+        assert_eq!(
+            APPROVAL_BROKER.lock().unwrap().begin(pending),
+            NativeApprovalStartResult::Accepted
+        );
+        let snapshot = host.snapshot_json();
+        assert_eq!(snapshot["schemaVersion"], SNAPSHOT_SCHEMA_VERSION);
+        assert_eq!(
+            snapshot["pendingApproval"]["connectionId"],
+            "approval-command-host:7"
+        );
+        assert_eq!(
+            snapshot["pendingApproval"]["remoteMetadataTrust"],
+            "untrusted"
+        );
+
+        let approve = json!({
+            "commandId": "approval-approve",
+            "name": "approveConnection",
+            "connectionId": "approval-command-host:7",
+        });
+        assert_eq!(
+            handle_command(&mut host, "approval-approve", "approveConnection", &approve,),
+            RDN_HOST_OK
+        );
+        assert!(matches!(
+            approve_receiver.try_recv(),
+            Ok(crate::ipc::Data::Authorize)
+        ));
+        assert!(host.snapshot_json()["pendingApproval"].is_null());
+        assert_eq!(
+            handle_command(&mut host, "approval-late", "approveConnection", &approve,),
+            RDN_HOST_ERR_APPROVAL_FINALIZED
+        );
+
+        let malformed = json!({
+            "commandId": "approval-malformed",
+            "name": "rejectConnection",
+            "connectionId": "approval-command-host:8",
+            "ignored": true,
+        });
+        assert_eq!(
+            handle_command(
+                &mut host,
+                "approval-malformed",
+                "rejectConnection",
+                &malformed,
+            ),
+            RDN_HOST_ERR_VALIDATION
+        );
+
+        let (reject_pending, mut reject_receiver) = pending_approval_fixture(
+            "approval-command-host:8",
+            8,
+            Instant::now() + Duration::from_secs(30),
+        );
+        assert_eq!(
+            APPROVAL_BROKER.lock().unwrap().begin(reject_pending),
+            NativeApprovalStartResult::Accepted
+        );
+        let reject = json!({
+            "commandId": "approval-reject",
+            "name": "rejectConnection",
+            "connectionId": "approval-command-host:8",
+        });
+        assert_eq!(
+            handle_command(&mut host, "approval-reject", "rejectConnection", &reject,),
+            RDN_HOST_OK
+        );
+        assert!(matches!(
+            reject_receiver.try_recv(),
+            Ok(crate::ipc::Data::Close)
+        ));
+
+        let (expired_pending, mut expired_receiver) = pending_approval_fixture(
+            "approval-command-host:9",
+            9,
+            Instant::now() - Duration::from_millis(1),
+        );
+        assert_eq!(
+            APPROVAL_BROKER.lock().unwrap().begin(expired_pending),
+            NativeApprovalStartResult::Accepted
+        );
+        let expired = json!({
+            "commandId": "approval-expired",
+            "name": "approveConnection",
+            "connectionId": "approval-command-host:9",
+        });
+        assert_eq!(
+            handle_command(&mut host, "approval-expired", "approveConnection", &expired,),
+            RDN_HOST_ERR_APPROVAL_EXPIRED
+        );
+        assert!(matches!(
+            expired_receiver.try_recv(),
+            Ok(crate::ipc::Data::Close)
+        ));
+
+        let (snapshot_expired, mut snapshot_expired_receiver) = pending_approval_fixture(
+            "approval-command-host:10",
+            10,
+            Instant::now() - Duration::from_millis(1),
+        );
+        assert_eq!(
+            APPROVAL_BROKER.lock().unwrap().begin(snapshot_expired),
+            NativeApprovalStartResult::Accepted
+        );
+        assert!(host.snapshot_json()["pendingApproval"].is_null());
+        assert!(matches!(
+            snapshot_expired_receiver.try_recv(),
+            Ok(crate::ipc::Data::Close)
+        ));
+
+        let encoded_events = serde_json::to_string(&*events.lock().unwrap()).unwrap();
+        assert!(encoded_events.contains("approval-approved"));
+        assert!(encoded_events.contains("approval-rejected"));
+        assert!(encoded_events.contains("approval-expired"));
+        assert!(!encoded_events.contains("decision_sender"));
+        unbind_media_host();
     }
 
     fn submit_h264_access_unit(
