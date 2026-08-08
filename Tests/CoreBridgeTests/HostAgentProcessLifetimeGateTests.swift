@@ -142,6 +142,29 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
             )
         }
     }
+
+    func testPreparesTerminationBeforeStopExactlyOnceOutsideConditionLock() {
+        let recorder = LifetimeEventRecorder()
+        let runtime = NSObject()
+        var gate: HostAgentProcessLifetimeGate<NSObject>!
+        gate = HostAgentProcessLifetimeGate(
+            runtime: runtime,
+            prepareTermination: {
+                recorder.append(.terminationPrepared)
+                XCTAssertFalse(gate.requestTermination(reason: .error))
+            },
+            stopRuntime: { _, reason in
+                recorder.append(.stop(reason))
+            }
+        )
+
+        XCTAssertTrue(gate.requestTermination(reason: .appExit))
+        XCTAssertFalse(gate.requestTermination(reason: .userRequest))
+        XCTAssertEqual(recorder.events, [
+            .terminationPrepared,
+            .stop(.appExit),
+        ])
+    }
 }
 
 private enum LifetimeTestFailure: Error {
@@ -149,6 +172,7 @@ private enum LifetimeTestFailure: Error {
 }
 
 private enum LifetimeEvent: Equatable {
+    case terminationPrepared
     case stop(HostStopReason)
     case stopEntered(HostStopReason)
     case stopFinished(HostStopReason)

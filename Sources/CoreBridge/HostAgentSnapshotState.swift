@@ -157,12 +157,16 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         let hostInstanceID: String?
     }
 
-    private let lock = NSLock()
+    private let lock = NSCondition()
     private let state: HostAgentSnapshotState
     private var copySnapshot: (() throws -> HostCoreSnapshot)?
     private var pending: RefreshRequest?
+    private var pollPending = false
     private var refreshing = false
+    private var cancelled = false
     private var lastCompletedSequence: UInt64?
+    private var latestEventSequence: UInt64 = 0
+    private var latestHostInstanceID: String?
 
     package init(state: HostAgentSnapshotState) {
         self.state = state
@@ -173,7 +177,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         copySnapshot: @escaping () throws -> HostCoreSnapshot
     ) -> Bool {
         lock.lock()
-        guard self.copySnapshot == nil else {
+        guard !cancelled, self.copySnapshot == nil else {
             lock.unlock()
             return false
         }
@@ -196,6 +200,14 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         hostInstanceID: String
     ) {
         lock.lock()
+        guard !cancelled else {
+            lock.unlock()
+            return
+        }
+        if eventSequence >= latestEventSequence {
+            latestEventSequence = eventSequence
+            latestHostInstanceID = hostInstanceID
+        }
         if let lastCompletedSequence, eventSequence <= lastCompletedSequence {
             lock.unlock()
             return
@@ -224,6 +236,47 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         drain(startingWith: request, copySnapshot: copySnapshot)
     }
 
+    /// Periodic registration refresh. Multiple ticks arriving during one copy
+    /// coalesce into one additional copy at the current event sequence.
+    package func requestPoll() {
+        lock.lock()
+        guard !cancelled else {
+            lock.unlock()
+            return
+        }
+        guard let copySnapshot else {
+            pollPending = true
+            lock.unlock()
+            return
+        }
+        guard !refreshing else {
+            pollPending = true
+            lock.unlock()
+            return
+        }
+        let request = RefreshRequest(
+            eventSequence: latestEventSequence,
+            hostInstanceID: latestHostInstanceID
+        )
+        refreshing = true
+        lock.unlock()
+        drain(startingWith: request, copySnapshot: copySnapshot)
+    }
+
+    /// Stops accepting refreshes and waits for the current copy/drain loop.
+    /// Must not be invoked by the active copy closure itself.
+    package func cancelAndWait() {
+        lock.lock()
+        cancelled = true
+        pending = nil
+        pollPending = false
+        while refreshing {
+            lock.wait()
+        }
+        copySnapshot = nil
+        lock.unlock()
+    }
+
     private func drain(
         startingWith initialRequest: RefreshRequest,
         copySnapshot: @escaping () throws -> HostCoreSnapshot
@@ -242,6 +295,14 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
             }
 
             lock.lock()
+            if cancelled {
+                pending = nil
+                pollPending = false
+                refreshing = false
+                lock.broadcast()
+                lock.unlock()
+                return
+            }
             if let lastCompletedSequence {
                 if request.eventSequence > lastCompletedSequence {
                     self.lastCompletedSequence = request.eventSequence
@@ -256,8 +317,18 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
                 lock.unlock()
                 continue
             }
+            if pollPending {
+                pollPending = false
+                request = RefreshRequest(
+                    eventSequence: latestEventSequence,
+                    hostInstanceID: latestHostInstanceID
+                )
+                lock.unlock()
+                continue
+            }
             pending = nil
             refreshing = false
+            lock.broadcast()
             lock.unlock()
             return
         }

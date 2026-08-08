@@ -161,6 +161,51 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(state.snapshot().projection?.observedAt, 101)
     }
 
+    func testCoordinatorPollRefreshesWithoutAdvancingEventSequence() throws {
+        let state = HostAgentSnapshotState()
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
+        let source = SnapshotCopySource(snapshots: [
+            try coreSnapshot(host: "host-a", observedAt: 100),
+            try coreSnapshot(host: "host-a", observedAt: 101),
+        ])
+
+        XCTAssertTrue(coordinator.bind(copySnapshot: source.copy))
+        XCTAssertEqual(state.snapshot().eventSequence, 0)
+        coordinator.requestPoll()
+
+        let view = state.snapshot()
+        XCTAssertEqual(source.callCount, 2)
+        XCTAssertEqual(view.status, .available)
+        XCTAssertEqual(view.refreshGeneration, 2)
+        XCTAssertEqual(view.eventSequence, 0)
+        XCTAssertEqual(view.projection?.observedAt, 101)
+    }
+
+    func testCoordinatorCoalescesPollArrivingDuringRefresh() throws {
+        let state = HostAgentSnapshotState()
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
+        let source = BlockingSnapshotCopySource(snapshots: [
+            try coreSnapshot(host: "host-a", observedAt: 100),
+            try coreSnapshot(host: "host-a", observedAt: 101),
+        ])
+        let bound = expectation(description: "coordinator bound after poll")
+
+        DispatchQueue.global().async {
+            XCTAssertTrue(coordinator.bind(copySnapshot: source.copy))
+            bound.fulfill()
+        }
+        XCTAssertEqual(source.firstCopyEntered.wait(timeout: .now() + 2), .success)
+        coordinator.requestPoll()
+        coordinator.requestPoll()
+        source.releaseFirstCopy.signal()
+        wait(for: [bound], timeout: 2)
+
+        XCTAssertEqual(source.callCount, 2)
+        XCTAssertEqual(state.snapshot().refreshGeneration, 2)
+        XCTAssertEqual(state.snapshot().eventSequence, 0)
+        XCTAssertEqual(state.snapshot().projection?.observedAt, 101)
+    }
+
     func testCoordinatorDrainsRequestArrivingDuringRefresh() throws {
         let state = HostAgentSnapshotState()
         let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
@@ -206,6 +251,39 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(attempts, 2)
         XCTAssertEqual(state.snapshot().status, .available)
         XCTAssertEqual(state.snapshot().projection?.hostInstanceID, "host-a")
+    }
+
+    func testCoordinatorCancelWaitsForRefreshAndRejectsFutureRequests() throws {
+        let state = HostAgentSnapshotState()
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
+        let source = BlockingSnapshotCopySource(snapshots: [
+            try coreSnapshot(host: "host-a", observedAt: 100),
+            try coreSnapshot(host: "host-a", observedAt: 101),
+        ])
+        let bound = expectation(description: "coordinator bind returned")
+        let cancelReturned = DispatchSemaphore(value: 0)
+
+        DispatchQueue.global().async {
+            XCTAssertTrue(coordinator.bind(copySnapshot: source.copy))
+            bound.fulfill()
+        }
+        XCTAssertEqual(source.firstCopyEntered.wait(timeout: .now() + 2), .success)
+        DispatchQueue.global().async {
+            coordinator.cancelAndWait()
+            cancelReturned.signal()
+        }
+        XCTAssertEqual(cancelReturned.wait(timeout: .now() + 0.05), .timedOut)
+        coordinator.requestPoll()
+        coordinator.requestRefresh(eventSequence: 1, hostInstanceID: "host-a")
+        source.releaseFirstCopy.signal()
+        wait(for: [bound], timeout: 2)
+        XCTAssertEqual(cancelReturned.wait(timeout: .now() + 2), .success)
+
+        coordinator.requestPoll()
+        coordinator.requestRefresh(eventSequence: 2, hostInstanceID: "host-a")
+        XCTAssertFalse(coordinator.bind(copySnapshot: source.copy))
+        XCTAssertEqual(source.callCount, 1)
+        XCTAssertEqual(state.snapshot().refreshGeneration, 1)
     }
 
     private func coreSnapshot(

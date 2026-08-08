@@ -6,9 +6,13 @@ import Foundation
 final class HostAgentProcessLifetime: @unchecked Sendable {
     private let gate: HostAgentProcessLifetimeGate<HostAgentProcessRuntime>
 
-    init(runtime: HostAgentProcessRuntime) {
+    init(
+        runtime: HostAgentProcessRuntime,
+        prepareTermination: @escaping () -> Void = {}
+    ) {
         self.gate = HostAgentProcessLifetimeGate(
             runtime: runtime,
+            prepareTermination: prepareTermination,
             stopRuntime: { runtime, reason in
                 try runtime.stop(reason: reason)
             }

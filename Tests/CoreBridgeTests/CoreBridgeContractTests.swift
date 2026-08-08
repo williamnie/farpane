@@ -172,7 +172,10 @@ final class CoreBridgeContractTests: XCTestCase {
             "let runtime = try HostAgentProcessRuntime.start("
         ))
         XCTAssertTrue(startupSource.contains(
-            "return HostAgentProcessLifetime(runtime: runtime)"
+            "return HostAgentProcessLifetime("
+        ))
+        XCTAssertTrue(startupSource.contains(
+            "prepareTermination: prepareTermination"
         ))
 
         let lifetimeURL = repositoryRoot
@@ -316,6 +319,40 @@ final class CoreBridgeContractTests: XCTestCase {
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentSnapshotState("))
+        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
+    func testHostAgentSnapshotPollingIsCancelledBeforeCoreStopButRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let pollingURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentSnapshotPollingOwner.swift"
+        )
+        let pollingSource = try String(contentsOf: pollingURL, encoding: .utf8)
+        XCTAssertTrue(pollingSource.contains("DispatchSource.makeTimerSource("))
+        XCTAssertTrue(pollingSource.contains("repeating: .milliseconds(500)"))
+        XCTAssertTrue(pollingSource.contains("leeway: .milliseconds(50)"))
+        XCTAssertTrue(pollingSource.contains("gate.beginTick()"))
+        XCTAssertTrue(pollingSource.contains("snapshotCoordinator.requestPoll()"))
+        XCTAssertTrue(pollingSource.contains("gate.cancelAndWait()"))
+        XCTAssertTrue(pollingSource.contains("snapshotCoordinator.cancelAndWait()"))
+        XCTAssertTrue(pollingSource.contains("timer.cancel()"))
+
+        let processURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcess.swift"
+        )
+        let processSource = try String(contentsOf: processURL, encoding: .utf8)
+        XCTAssertTrue(processSource.contains("HostAgentSnapshotPollingOwner("))
+        XCTAssertTrue(processSource.contains("prepareTermination: pollingOwner.cancel"))
+        XCTAssertTrue(processSource.contains("pollingOwner.start()"))
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentSnapshotPollingOwner("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }
