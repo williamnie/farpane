@@ -93,3 +93,31 @@ Install the next Mini build and run an uninterrupted static/continuous-motion/st
 3. H2.2.13 prevents transient `2/3` queue samples from recreating `30↔15` oscillation.
 
 If static periods remain high-motion, that is evidence that this ScreenCaptureKit route does not emit usable idle callbacks; no CPU full-screen diff or guessed idle result should be added without a separate bounded design step.
+
+## Real Mini validation
+
+The user installed the H2.2.14 delivery in `/Applications`. The installed app reported build `20260808033459`; its executable SHA-256 exactly matched the executable extracted from the delivery ZIP, and strict deep signature verification passed. This rules out a stale or different binary.
+
+The resulting production log passed the H2.2.12 schema and lifecycle validator:
+
+```text
+duration: 158.450 seconds
+records: 158 total, 156 periodic, one start and one stop
+codec: H.265, requested 30 FPS
+capture / encode / Rust-admission median: 23.462 / 23.506 / 22.747 FPS
+capture→encode / encode→Rust median absolute gap: 0.113 / 1.004 FPS
+content high-motion: 156/156
+dirty metadata trusted: 0/156
+idle cadence samples: 0
+cadence: 30/30=116, 30/15=12, 15/15=24, 5/5=4
+applied pressure: none=128, moderate=24, severe=4
+current causes: encoded queue=17
+```
+
+Host process CPU was 10.45% on average and 16.74% at maximum, physical-footprint peak was 39,486,664 bytes, all available thermal samples were nominal, and low-power mode stayed disabled on AC. The encoded queue reached `3/3` twice; all eight isolated periodic `2/3` runs and ten of eleven two-sample runs had no encoded-queue cause, so H2.2.13 still avoided transient pressure in this independent session.
+
+### Verdict
+
+The automatic policy and fail-safe behavior are intact, but the production route did not provide enough `.idle` observations to fill the fallback window. Therefore H2.2.14 did not improve static classification on this Mini and is not accepted as a real performance fix. The log does not distinguish “no idle status emitted” from “some idle status emitted but never sustained,” because schema v1 intentionally does not count frame-status availability.
+
+The next bounded diagnostic should record only sanitized counts/distributions for `SCFrameStatus` and dirty-rect attachment presence/recognized type/empty array. It must not record rectangles, pixels or raw attachment values. That evidence should decide whether to correct attachment parsing/configuration or select another non-pixel activity authority; fixed guessed throttling and CPU full-screen diff remain prohibited.

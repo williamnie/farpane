@@ -268,6 +268,8 @@ adapter 现在只将 `.idle` 送入独立的 fallback observation：连续完整
 
 该变化不读取像素、不做 CPU hash/diff，不新增 timer 或无期停帧机制，也不修改 Host ABI、wire、live-log schema、Hermes、依赖或根配置。验证和交付记录于 `Evidence/HostMode/2026-08-08/h2-screencapturekit-idle-status-fallback.md`；Mini 上能否实际持续收到 idle status、静止档是否稳定以及运动后是否立即恢复仍需要新构建自动日志证明。
 
+Mini 随后的 H2.2.14 真机会话已证明交付身份与构建 `20260808033459` 一致，158.45 秒/156 周期日志也通过严格 schema/lifecycle 校验；但 content 仍为 156/156 high-motion、dirty metadata 0/156 trusted，且没有任何 idle cadence sample。由此不能把 fallback 自动实现冒充真实生效：该 route 没有连续提供可用 idle status，静止与运动阶段仍无法由现有日志区分。下一步必须先记录脱敏的 frame-status 与 dirty-attachment presence/type 分布，再决定是修正 attachment parsing、capture configuration，还是设计新的非像素变化 authority；不得直接猜测固定降帧或加入 CPU 全屏 diff。
+
 ## H2.3.1 encoded queue full/disconnect policy
 
 Rust Host media route 的容量 3 `sync_channel` 现在通过单一内部 `try_enqueue_native_media` policy 提交已编码 access unit：
