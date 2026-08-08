@@ -15,7 +15,6 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
     }
 
     static func start(
-        libraryURL: URL,
         eventQueue: DispatchQueue = DispatchQueue(
             label: "io.farpane.host-agent.events",
             qos: .userInitiated
@@ -26,6 +25,7 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
         let ownedRuntime = try HostAgentOwnedCoreRuntime.start(
             bootstrapOwner: bootstrapContext
         ) { context in
+            let libraryURL = try HostAgentBundledCoreLocator.locate()
             let client = try HostControlClient(
                 libraryURL: libraryURL,
                 eventQueue: eventQueue,
