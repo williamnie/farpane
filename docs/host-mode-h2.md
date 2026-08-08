@@ -260,6 +260,14 @@ queue near-full 现改为连续三个一秒 production sample 均为 `capacity-1
 
 同一日志还证明 dirty metadata 97/97 不可信，content 全程 fail-safe high-motion；这是独立的静态场景效率问题，不在本步用猜测修复。验证与交付记录于 `Evidence/HostMode/2026-08-08/h2-sustained-near-full-queue-pressure.md`。
 
+## H2.2.14 ScreenCaptureKit idle-status fallback
+
+Mini 后续 H2.2.13 真机会话又覆盖 359.6 秒、352 个周期样本并通过严格校验；dirty metadata 仍为 0/352 trusted、content 为 352/352 high-motion，进一步证明该 production route 没有可用 dirty-rect authority。SDK 合同同时明确 `SCFrameStatusIdle` 表示显示内容未变化且没有生成新帧；当前 adapter 此前却和 blank/suspended/started/stopped 一样直接忽略 idle，导致 §11.3 已设计的 frame-status 降级路径实际上没有接入。
+
+adapter 现在只将 `.idle` 送入独立的 fallback observation：连续完整窗口并满足既有 minimum dwell 后才允许降至 idle/3 FPS，且仍保持 `dirtyMetadataTrusted=false`，不把 frame status 冒充 dirty rect。任何 `.complete` 帧若仍缺 dirty metadata，会清空 fallback 窗口并立即恢复 fail-safe high-motion/协商上限；blank、suspended、started、stopped 继续只作为生命周期信号忽略。pressure ceiling、滞回、queue、编码器和网络门禁继续由原 authority 决定。
+
+该变化不读取像素、不做 CPU hash/diff，不新增 timer 或无期停帧机制，也不修改 Host ABI、wire、live-log schema、Hermes、依赖或根配置。验证和交付记录于 `Evidence/HostMode/2026-08-08/h2-screencapturekit-idle-status-fallback.md`；Mini 上能否实际持续收到 idle status、静止档是否稳定以及运动后是否立即恢复仍需要新构建自动日志证明。
+
 ## H2.3.1 encoded queue full/disconnect policy
 
 Rust Host media route 的容量 3 `sync_channel` 现在通过单一内部 `try_enqueue_native_media` policy 提交已编码 access unit：

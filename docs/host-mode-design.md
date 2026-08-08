@@ -1467,6 +1467,8 @@ flowchart TD
 
 > 修复（2026-08-08）：**H2.2.13 sustained near-full queue pressure 已完成自动实现**。Mini 的 98.4 秒/97 周期首份 live log 通过严格校验，capture/encode/Rust admission 中位数 `20.646/20.649/20.509 FPS`、阶段 gap `0.122/0.000 FPS`；队列只出现 19 个离散 `2/3`、从未采到 `3/3`，但原单样本 near-full 门禁造成 40 个 applied-moderate 样本和反复 `30↔15` 调档。现只有连续三个一秒 `capacity-1` sample 才触发 moderate；full 仍立即 severe，send-drop/encode/network/environment 门禁不变。未改 queue capacity、Host ABI/wire/Hermes/依赖。日志同时证明 dirty metadata 97/97 untrusted、content 全程 high-motion，该独立效率缺口留给下一步。详见 `Evidence/HostMode/2026-08-08/h2-sustained-near-full-queue-pressure.md`。
 
+> 修复（2026-08-08）：**H2.2.14 ScreenCaptureKit idle-status fallback 已完成自动实现**。H2.2.13 Mini 真机会话追加了 359.6 秒/352 周期样本，仍为 dirty metadata 0/352 trusted、content 352/352 high-motion；源码审计进一步发现 adapter 丢弃了 SDK 明确定义为“显示未变化且未生成新帧”的 `SCFrameStatusIdle`，因此 §11.3 的 frame-status fallback 未真正接入。现只有连续完整窗口的 idle status 且满足既有 dwell 才允许降至 idle/3 FPS，并保持 dirty-metadata untrusted；任一缺 dirtyRects 的 complete frame 仍立即 fail-safe 回 high-motion/协商上限，blank/suspended/started/stopped 不参与降档。未读取像素、未做 CPU diff，Host ABI/wire/live-log schema/Hermes/依赖均未改；真实 idle status 可用性和静止→运动恢复仍待新包日志。详见 `Evidence/HostMode/2026-08-08/h2-screencapturekit-idle-status-fallback.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

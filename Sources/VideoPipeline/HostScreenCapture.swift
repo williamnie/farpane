@@ -92,6 +92,12 @@ public enum HostScreenCaptureError: Error, CustomStringConvertible {
     }
 }
 
+enum HostCaptureFrameStatusDisposition: Equatable {
+    case complete
+    case idleFallback
+    case ignore
+}
+
 /// macOS 13-compatible single-display ScreenCaptureKit adapter (§11.1/§11.2).
 /// It requests 420f first and classifies the actual delivered IOSurface on
 /// every frame, so a system BGRA fallback remains explicit and measurable.
@@ -248,6 +254,14 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         return SCFrameStatus(rawValue: raw.intValue)
     }
 
+    static func disposition(for frameStatus: SCFrameStatus) -> HostCaptureFrameStatusDisposition {
+        switch frameStatus {
+        case .complete: return .complete
+        case .idle: return .idleFallback
+        default: return .ignore
+        }
+    }
+
     private static func dirtyMetadata(
         from sampleBuffer: CMSampleBuffer,
         pixelBuffer: CVPixelBuffer
@@ -279,7 +293,7 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
 
     private func updateCadence(
         for stream: SCStream,
-        dirtyAreaRatio: Double?
+        observation: HostCaptureCadenceObservation
     ) {
         let now = DispatchTime.now().uptimeNanoseconds
         let backpressure = pressureProvider()
@@ -288,11 +302,20 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
             guard self.stream === stream,
                   let captureConfiguration,
                   var cadenceController else { return nil }
-            let decision = cadenceController.observe(
-                dirtyAreaRatio: dirtyAreaRatio,
-                backpressure: backpressure,
-                nowNanoseconds: now
-            )
+            let decision: HostCaptureCadenceDecision
+            switch observation {
+            case .completeFrame(let dirtyAreaRatio):
+                decision = cadenceController.observe(
+                    dirtyAreaRatio: dirtyAreaRatio,
+                    backpressure: backpressure,
+                    nowNanoseconds: now
+                )
+            case .idleFrameStatus:
+                decision = cadenceController.observeIdleFrameStatus(
+                    backpressure: backpressure,
+                    nowNanoseconds: now
+                )
+            }
             self.cadenceController = cadenceController
             decisionToReport = decision
             guard decision.framesPerSecond != appliedFramesPerSecond,
@@ -363,10 +386,17 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
             onDrop(.invalidFrame)
             return
         }
-        // idle/blank/suspended/started/stopped explicitly mean that SCK did
-        // not generate a new complete frame; they are state signals, not a
-        // hidden application drop and must not be mislabeled.
-        guard status == .complete else { return }
+        switch Self.disposition(for: status) {
+        case .idleFallback:
+            updateCadence(for: stream, observation: .idleFrameStatus)
+            return
+        case .ignore:
+            // blank/suspended/started/stopped are lifecycle state signals,
+            // not hidden application drops and must not be mislabeled.
+            return
+        case .complete:
+            break
+        }
         guard let pixelBuffer = sampleBuffer.imageBuffer else {
             onDrop(.invalidFrame)
             return
@@ -388,7 +418,10 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
             dirtyRectCount: dirtyMetadata.count,
             dirtyAreaRatio: dirtyMetadata.areaRatio
         ))
-        updateCadence(for: stream, dirtyAreaRatio: dirtyMetadata.areaRatio)
+        updateCadence(
+            for: stream,
+            observation: .completeFrame(dirtyMetadata.areaRatio)
+        )
     }
 
     public func stream(_ stream: SCStream, didStopWithError error: Error) {
@@ -400,6 +433,11 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
         if cancelled { onCadence(.configurationCancelled) }
         onError(.streamStopped(String(describing: error)))
     }
+}
+
+private enum HostCaptureCadenceObservation {
+    case completeFrame(Double?)
+    case idleFrameStatus
 }
 
 private extension NSLock {

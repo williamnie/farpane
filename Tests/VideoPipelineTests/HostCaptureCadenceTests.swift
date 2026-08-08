@@ -338,6 +338,90 @@ final class HostCaptureCadenceTests: XCTestCase {
     XCTAssertFalse(invalid.dirtyMetadataTrusted)
   }
 
+  func testIdleFrameStatusFallbackDemotesWithoutTrustingDirtyMetadata() {
+    var controller = HostCaptureCadenceController(
+      maximumFramesPerSecond: 30,
+      windowSize: 4,
+      minimumDwellTime: 2,
+      startedAtNanoseconds: 0
+    )
+
+    for time in [0.5, 1.0, 1.5] {
+      let held = controller.observeIdleFrameStatus(
+        backpressure: .clear,
+        nowNanoseconds: nanoseconds(time)
+      )
+      XCTAssertEqual(held.contentState, .highMotion)
+      XCTAssertEqual(held.framesPerSecond, 30)
+      XCTAssertFalse(held.dirtyMetadataTrusted)
+    }
+
+    let idle = controller.observeIdleFrameStatus(
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(2)
+    )
+    XCTAssertEqual(idle.contentState, .idle)
+    XCTAssertEqual(idle.framesPerSecond, 3)
+    XCTAssertFalse(idle.dirtyMetadataTrusted)
+  }
+
+  func testCompleteFrameWithoutDirtyMetadataEscapesIdleStatusFallback() {
+    var controller = HostCaptureCadenceController(
+      maximumFramesPerSecond: 30,
+      windowSize: 2,
+      minimumDwellTime: 0,
+      startedAtNanoseconds: 0
+    )
+    _ = controller.observeIdleFrameStatus(
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(1)
+    )
+    let idle = controller.observeIdleFrameStatus(
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(2)
+    )
+    XCTAssertEqual(idle.contentState, .idle)
+    XCTAssertEqual(idle.framesPerSecond, 3)
+
+    let changed = controller.observe(
+      dirtyAreaRatio: nil,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(2.1)
+    )
+    XCTAssertEqual(changed.contentState, .highMotion)
+    XCTAssertEqual(changed.framesPerSecond, 30)
+    XCTAssertFalse(changed.dirtyMetadataTrusted)
+  }
+
+  func testIdleStatusFallbackKeepsPressureCeilingAuthoritative() {
+    var controller = HostCaptureCadenceController(
+      maximumFramesPerSecond: 30,
+      windowSize: 2,
+      minimumDwellTime: 0,
+      startedAtNanoseconds: 0
+    )
+    let severe = HostCaptureBackpressure(
+      encodeInFlight: 0,
+      latestEncodeLatencyMS: nil,
+      recentSendOutcomeCount: 8,
+      recentSendDropRate: 0.25,
+      consecutiveSendDrops: 0
+    )
+
+    _ = controller.observeIdleFrameStatus(
+      backpressure: severe,
+      nowNanoseconds: nanoseconds(1)
+    )
+    let idle = controller.observeIdleFrameStatus(
+      backpressure: severe,
+      nowNanoseconds: nanoseconds(2)
+    )
+    XCTAssertEqual(idle.contentState, .idle)
+    XCTAssertEqual(idle.pressureLevel, .severe)
+    XCTAssertEqual(idle.framesPerSecond, 3)
+    XCTAssertFalse(idle.dirtyMetadataTrusted)
+  }
+
   func testEveryTierIsBoundedByNegotiatedMaximum() {
     var controller = HostCaptureCadenceController(
       maximumFramesPerSecond: 15,
