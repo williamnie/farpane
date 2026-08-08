@@ -188,6 +188,37 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(lifetimeSource.contains("signal("))
     }
 
+    func testHostAgentSignalIngressUsesDispatchSourcesAndRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let signalURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcessSignalController.swift"
+        )
+        let signalSource = try String(contentsOf: signalURL, encoding: .utf8)
+
+        XCTAssertTrue(signalSource.contains("HostAgentTerminationRequestLatch"))
+        XCTAssertTrue(signalSource.contains("DispatchSource.makeSignalSource("))
+        XCTAssertTrue(signalSource.contains("SIGTERM"))
+        XCTAssertTrue(signalSource.contains("SIGINT"))
+        XCTAssertTrue(signalSource.contains("sigaction(signalNumber,"))
+        XCTAssertTrue(signalSource.contains("__sa_handler = SIG_IGN"))
+        XCTAssertTrue(signalSource.contains("source.cancel()"))
+        XCTAssertTrue(signalSource.contains("restoreSignalDispositions()"))
+        XCTAssertTrue(signalSource.contains(
+            "lifetime.requestTermination(reason: .appExit)"
+        ))
+        XCTAssertFalse(signalSource.contains("Darwin.signal("))
+        XCTAssertFalse(signalSource.contains("__sa_sigaction"))
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentProcessSignalController("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
     func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
