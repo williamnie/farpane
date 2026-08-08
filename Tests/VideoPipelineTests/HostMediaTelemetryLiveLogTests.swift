@@ -61,13 +61,28 @@ final class HostMediaTelemetryLiveLogTests: XCTestCase {
       "routeStarted", "periodic", "periodic", "routeStopped",
     ])
     XCTAssertEqual(records[1]["schema"] as? String, "farpane-host-media-live")
-    XCTAssertEqual(records[1]["schemaVersion"] as? Int, 1)
+    XCTAssertEqual(records[1]["schemaVersion"] as? Int, 2)
     XCTAssertEqual(records[1]["recentWindowSeconds"] as? Int, 5)
     XCTAssertEqual(records[1]["codec"] as? String, "h264")
     XCTAssertEqual(records[1]["requestedFPS"] as? Int, 30)
     XCTAssertEqual(records[1]["captureTargetFPS"] as? Int, 15)
     XCTAssertEqual(records[1]["captureAppliedFPS"] as? Int, 15)
     XCTAssertEqual(records[1]["captureContentState"] as? String, "highMotion")
+    XCTAssertEqual(records[1]["captureCallbackCount"] as? Int, 3)
+    XCTAssertEqual(
+      records[1]["captureFrameStatusCounts"] as? [String: Int],
+      [
+        "complete": 2, "idle": 1, "blank": 0, "suspended": 0,
+        "started": 0, "stopped": 0, "missingOrInvalid": 0, "unknown": 0,
+      ]
+    )
+    XCTAssertEqual(
+      records[1]["captureCompleteDirtyRectsCounts"] as? [String: Int],
+      [
+        "absent": 1, "unrecognized": 0,
+        "recognizedEmpty": 1, "recognizedNonEmpty": 0,
+      ]
+    )
     XCTAssertEqual(records[1]["captureAppliedPressureLevel"] as? String, "moderate")
     XCTAssertEqual(records[1]["captureObservedPressureLevel"] as? String, "moderate")
     XCTAssertEqual(records[1]["capturePressureCauses"] as? [String], ["networkDelay"])
@@ -117,6 +132,8 @@ final class HostMediaTelemetryLiveLogTests: XCTestCase {
       "requestedFPS", "recentCaptureFPS", "recentEncodedFPS",
       "recentRustAdmissionFPS", "captureAverageFPS", "captureTargetFPS",
       "captureAppliedFPS", "captureContentState", "captureDirtyMetadataTrusted",
+      "captureCallbackCount", "captureFrameStatusCounts",
+      "captureCompleteDirtyRectsCounts",
       "latestDirtyAreaRatio", "captureAppliedPressureLevel",
       "captureObservedPressureLevel", "capturePressureCauses",
       "captureConfigurationUpdateInFlight", "encodeInFlight",
@@ -147,6 +164,18 @@ final class HostMediaTelemetryLiveLogTests: XCTestCase {
       pressureLevel: .moderate
     )))
     telemetry.recordCaptureCadence(.configurationApplied(framesPerSecond: 15))
+    telemetry.recordCaptureSample(HostCaptureSampleMetadataAvailability(
+      frameStatus: .complete,
+      completeFrameDirtyRects: .absent
+    ))
+    telemetry.recordCaptureSample(HostCaptureSampleMetadataAvailability(
+      frameStatus: .complete,
+      completeFrameDirtyRects: .recognizedEmpty
+    ))
+    telemetry.recordCaptureSample(HostCaptureSampleMetadataAvailability(
+      frameStatus: .idle,
+      completeFrameDirtyRects: nil
+    ))
     XCTAssertTrue(telemetry.recordNetworkMetrics(
       subscriberCount: 1,
       qosSubscriberCount: 1,

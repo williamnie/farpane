@@ -224,7 +224,9 @@ public final class HostMediaPipeline: @unchecked Sendable {
   public func start() async throws {
     let capture = HostScreenCaptureAdapter(
       onFrame: { [weak self] frame in self?.enqueue(frame) },
-      onSample: { [weak self] in self?.telemetry.recordCaptureCallback() },
+      onSample: { [weak self] metadata in
+        self?.telemetry.recordCaptureSample(metadata)
+      },
       onDrop: { [weak self] reason in self?.telemetry.recordDrop(reason) },
       onCadence: { [weak self] event in self?.telemetry.recordCaptureCadence(event) },
       pressureProvider: { [weak self] in

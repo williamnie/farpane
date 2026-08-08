@@ -21,6 +21,42 @@ public enum HostMediaLiveLogEvent: String, Sendable {
 public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
   public static let minimumPeriodicIntervalNanoseconds: UInt64 = 1_000_000_000
 
+  private struct FrameStatusCounts: Codable {
+    let complete: Int
+    let idle: Int
+    let blank: Int
+    let suspended: Int
+    let started: Int
+    let stopped: Int
+    let missingOrInvalid: Int
+    let unknown: Int
+
+    init(_ counts: HostCaptureFrameStatusCounts) {
+      complete = counts.complete
+      idle = counts.idle
+      blank = counts.blank
+      suspended = counts.suspended
+      started = counts.started
+      stopped = counts.stopped
+      missingOrInvalid = counts.missingOrInvalid
+      unknown = counts.unknown
+    }
+  }
+
+  private struct DirtyRectsAttachmentCounts: Codable {
+    let absent: Int
+    let unrecognized: Int
+    let recognizedEmpty: Int
+    let recognizedNonEmpty: Int
+
+    init(_ counts: HostCaptureDirtyRectsAttachmentCounts) {
+      absent = counts.absent
+      unrecognized = counts.unrecognized
+      recognizedEmpty = counts.recognizedEmpty
+      recognizedNonEmpty = counts.recognizedNonEmpty
+    }
+  }
+
   private struct Record: Codable {
     let schema: String
     let schemaVersion: Int
@@ -39,6 +75,9 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
     let captureAppliedFPS: Int
     let captureContentState: String
     let captureDirtyMetadataTrusted: Bool
+    let captureCallbackCount: Int
+    let captureFrameStatusCounts: FrameStatusCounts
+    let captureCompleteDirtyRectsCounts: DirtyRectsAttachmentCounts
     let latestDirtyAreaRatio: Double?
     let captureAppliedPressureLevel: String
     let captureObservedPressureLevel: String
@@ -70,7 +109,7 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
       monotonicNanoseconds: UInt64
     ) {
       schema = "farpane-host-media-live"
-      schemaVersion = 1
+      schemaVersion = 2
       self.sequence = sequence
       self.capturedAt = capturedAt
       self.monotonicNanoseconds = monotonicNanoseconds
@@ -86,6 +125,11 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
       captureAppliedFPS = snapshot.captureAppliedFPS
       captureContentState = snapshot.captureContentState.rawValue
       captureDirtyMetadataTrusted = snapshot.captureDirtyMetadataTrusted
+      captureCallbackCount = snapshot.captureCallbacks
+      captureFrameStatusCounts = FrameStatusCounts(snapshot.captureFrameStatusCounts)
+      captureCompleteDirtyRectsCounts = DirtyRectsAttachmentCounts(
+        snapshot.captureCompleteDirtyRectsCounts
+      )
       latestDirtyAreaRatio = snapshot.latestDirtyAreaRatio
       captureAppliedPressureLevel = snapshot.capturePressureLevel.rawValue
       captureObservedPressureLevel = snapshot.captureObservedPressureLevel.rawValue

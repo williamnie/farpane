@@ -98,12 +98,37 @@ enum HostCaptureFrameStatusDisposition: Equatable {
     case ignore
 }
 
+enum HostCaptureFrameStatusKind: String, CaseIterable, Sendable {
+    case complete
+    case idle
+    case blank
+    case suspended
+    case started
+    case stopped
+    case missingOrInvalid
+    case unknown
+}
+
+enum HostCaptureDirtyRectsAttachmentState: String, CaseIterable, Sendable {
+    case absent
+    case unrecognized
+    case recognizedEmpty
+    case recognizedNonEmpty
+}
+
+struct HostCaptureSampleMetadataAvailability: Equatable, Sendable {
+    let frameStatus: HostCaptureFrameStatusKind
+    /// Present only when frameStatus is `.complete`.
+    let completeFrameDirtyRects: HostCaptureDirtyRectsAttachmentState?
+}
+
 /// macOS 13-compatible single-display ScreenCaptureKit adapter (§11.1/§11.2).
 /// It requests 420f first and classifies the actual delivered IOSurface on
 /// every frame, so a system BGRA fallback remains explicit and measurable.
 public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     public typealias FrameHandler = @Sendable (HostCapturedFrame) -> Void
     public typealias SampleHandler = @Sendable () -> Void
+    typealias MetadataHandler = @Sendable (HostCaptureSampleMetadataAvailability) -> Void
     typealias DropHandler = @Sendable (HostMediaDropReason) -> Void
     public typealias ErrorHandler = @Sendable (HostScreenCaptureError) -> Void
     typealias CadenceHandler = @Sendable (HostCaptureCadenceEvent) -> Void
@@ -121,7 +146,7 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     )
     private let lock = NSLock()
     private let onFrame: FrameHandler
-    private let onSample: SampleHandler
+    private let onSample: MetadataHandler
     private let onDrop: DropHandler
     private let onCadence: CadenceHandler
     private let pressureProvider: PressureProvider
@@ -140,7 +165,7 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     ) {
         self.init(
             onFrame: onFrame,
-            onSample: onSample,
+            onSample: { _ in onSample() },
             onDrop: { _ in },
             onCadence: { _ in },
             pressureProvider: { .clear },
@@ -150,7 +175,7 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
 
     init(
         onFrame: @escaping FrameHandler,
-        onSample: @escaping SampleHandler,
+        onSample: @escaping MetadataHandler,
         onDrop: @escaping DropHandler,
         onCadence: @escaping CadenceHandler,
         pressureProvider: @escaping PressureProvider,
@@ -245,13 +270,63 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         try? await stream.stopCapture()
     }
 
-    private static func frameStatus(from sampleBuffer: CMSampleBuffer) -> SCFrameStatus? {
+    private static func frameAttachments(
+        from sampleBuffer: CMSampleBuffer
+    ) -> [SCStreamFrameInfo: Any]? {
         guard let attachments = CMSampleBufferGetSampleAttachmentsArray(
             sampleBuffer,
             createIfNecessary: false
         ) as? [[SCStreamFrameInfo: Any]],
-        let raw = attachments.first?[.status] as? NSNumber else { return nil }
+        let first = attachments.first else { return nil }
+        return first
+    }
+
+    private static func frameStatus(
+        from attachments: [SCStreamFrameInfo: Any]?
+    ) -> SCFrameStatus? {
+        guard let raw = attachments?[.status] as? NSNumber else { return nil }
         return SCFrameStatus(rawValue: raw.intValue)
+    }
+
+    static func metadataAvailability(
+        from attachments: [SCStreamFrameInfo: Any]?
+    ) -> HostCaptureSampleMetadataAvailability {
+        guard let raw = attachments?[.status] as? NSNumber else {
+            return HostCaptureSampleMetadataAvailability(
+                frameStatus: .missingOrInvalid,
+                completeFrameDirtyRects: nil
+            )
+        }
+        guard let status = SCFrameStatus(rawValue: raw.intValue) else {
+            return HostCaptureSampleMetadataAvailability(
+                frameStatus: .unknown,
+                completeFrameDirtyRects: nil
+            )
+        }
+        let statusKind: HostCaptureFrameStatusKind
+        switch status {
+        case .complete: statusKind = .complete
+        case .idle: statusKind = .idle
+        case .blank: statusKind = .blank
+        case .suspended: statusKind = .suspended
+        case .started: statusKind = .started
+        case .stopped: statusKind = .stopped
+        @unknown default: statusKind = .unknown
+        }
+        return HostCaptureSampleMetadataAvailability(
+            frameStatus: statusKind,
+            completeFrameDirtyRects: status == .complete
+                ? dirtyRectsAttachmentState(from: attachments)
+                : nil
+        )
+    }
+
+    private static func dirtyRectsAttachmentState(
+        from attachments: [SCStreamFrameInfo: Any]?
+    ) -> HostCaptureDirtyRectsAttachmentState {
+        guard let raw = attachments?[.dirtyRects] else { return .absent }
+        guard let rects = raw as? [CGRect] else { return .unrecognized }
+        return rects.isEmpty ? .recognizedEmpty : .recognizedNonEmpty
     }
 
     static func disposition(for frameStatus: SCFrameStatus) -> HostCaptureFrameStatusDisposition {
@@ -263,22 +338,18 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     }
 
     private static func dirtyMetadata(
-        from sampleBuffer: CMSampleBuffer,
+        from attachments: [SCStreamFrameInfo: Any]?,
         pixelBuffer: CVPixelBuffer
     ) -> (count: Int?, areaRatio: Double?) {
-        guard let attachments = CMSampleBufferGetSampleAttachmentsArray(
-            sampleBuffer,
-            createIfNecessary: false
-        ) as? [[SCStreamFrameInfo: Any]],
-        let first = attachments.first else { return (nil, nil) }
-        guard let rects = first[.dirtyRects] as? [CGRect] else { return (nil, nil) }
+        guard let attachments else { return (nil, nil) }
+        guard let rects = attachments[.dirtyRects] as? [CGRect] else { return (nil, nil) }
         let fallbackBounds = CGRect(
             x: 0,
             y: 0,
             width: CVPixelBufferGetWidth(pixelBuffer),
             height: CVPixelBufferGetHeight(pixelBuffer)
         )
-        let bounds = (first[.contentRect] as? CGRect ?? fallbackBounds).standardized
+        let bounds = (attachments[.contentRect] as? CGRect ?? fallbackBounds).standardized
         guard bounds.width > 0, bounds.height > 0 else { return (rects.count, nil) }
         let dirtyArea = rects.reduce(0.0) { partial, rect in
             let clipped = rect.standardized.intersection(bounds)
@@ -377,12 +448,13 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
         of outputType: SCStreamOutputType
     ) {
         guard outputType == .screen else { return }
-        onSample()
+        let attachments = Self.frameAttachments(from: sampleBuffer)
+        onSample(Self.metadataAvailability(from: attachments))
         guard sampleBuffer.isValid else {
             onDrop(.invalidFrame)
             return
         }
-        guard let status = Self.frameStatus(from: sampleBuffer) else {
+        guard let status = Self.frameStatus(from: attachments) else {
             onDrop(.invalidFrame)
             return
         }
@@ -408,7 +480,7 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
             return
         }
         let dirtyMetadata = Self.dirtyMetadata(
-            from: sampleBuffer,
+            from: attachments,
             pixelBuffer: pixelBuffer
         )
         onFrame(HostCapturedFrame(
