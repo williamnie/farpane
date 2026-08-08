@@ -1542,6 +1542,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1q disabled HostAgent process runner composition 已完成自动实现**。通用 runner 固定 `install termination ingress → start runtime → bind lifetime → blocking wait → cancel ingress` 的进程顺序；ingress 安装失败不接触 runtime，startup failure 在撤销 ingress 前只返回既有脱敏 failure，bind 异常会以 `.error` 发起一次有序 stop，terminal stop failure 固定映射为 sysexits 70 与无控制字符诊断，正常 stop 为 exit 0 且无诊断。产品组合层接入 H4.1n–p 的真实 startup/lifetime/signal 组件，并强制调用方提供 authoritative Host event consumer，不内置丢弃事件占位。它不打印、不调用 `exit`，且 `RustDeskNativeApp.swift` 仍不调用该 runner，因此 `--host-agent` 继续固定 exit 69，未加载真实 Core、联网或发送真实信号。本步未改 ABI/Rust/Hermes/依赖，未读真实配置/密钥，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-process-runner-composition.md`。
 
+> 更新（2026-08-08）：**H4.1r bounded Agent-owned Host event state 已完成自动实现**。新增的 boot-lifetime 内存 journal 以锁保护并按实际 callback 到达顺序分配连续 local sequence，不错误假设 Rust 多线程 eventId 按数值顺序到达；第一条 accepted event 固定 hostInstance，后续零 eventId、跨 instance、当前保留窗口内重复、超过 16 KiB 的 envelope 和 sequence exhaustion 全部 fail closed。产品上限固定 256 条/单条 16 KiB（最多约 4 MiB raw envelope），越界配置拒绝，满窗只淘汰最旧记录并累计 saturating eviction/rejection 计数；snapshot 明确 first-available/latest sequence，供后续 snapshot-first XPC 判断 catch-up gap。事件先成功 journal，才在锁外交给显式 downstream consumer，rejected event 不下发；journal 不写磁盘/日志、不定义或修改 XPC wire/Host ABI。产品 runner 现强制接收该 state，但入口仍未创建 state 或调用 runner，`--host-agent` 继续 exit 69。本步未联网、未读真实配置/密钥，未改 Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-agent-event-state.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

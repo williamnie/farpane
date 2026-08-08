@@ -252,6 +252,29 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }
 
+    func testHostAgentProcessJournalsBeforeForwardingAcceptedEvents() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let processURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcess.swift"
+        )
+        let processSource = try String(contentsOf: processURL, encoding: .utf8)
+
+        XCTAssertTrue(processSource.contains("eventState: HostAgentEventState"))
+        XCTAssertTrue(processSource.contains(
+            "eventState.consume(event, onAccepted: onEvent)"
+        ))
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentEventState("))
+        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
     func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

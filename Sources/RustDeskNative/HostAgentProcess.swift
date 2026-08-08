@@ -6,6 +6,7 @@ import Foundation
 /// deliberately neither prints diagnostics nor exits the process.
 enum HostAgentProcess {
     static func run(
+        eventState: HostAgentEventState,
         onEvent: @escaping @Sendable (HostCoreEvent) -> Void
     ) -> HostAgentProcessRunResult {
         HostAgentProcessRunner.run(
@@ -14,7 +15,9 @@ enum HostAgentProcess {
             },
             startRuntime: {
                 HostAgentProcessStartup.prepare(
-                    onEvent: onEvent
+                    onEvent: { event in
+                        eventState.consume(event, onAccepted: onEvent)
+                    }
                 )
             },
             bindTermination: { controller, lifetime in
