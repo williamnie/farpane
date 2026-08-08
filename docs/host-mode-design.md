@@ -1646,6 +1646,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.2q legacy Host single-owner migration gate 已完成自动实现**。新增只读 CoreBridge gate，把旧 Host preference、runtime、retained client、待审批、活跃会话、媒体管线与轮询器作为七项独立 typed evidence；只有全部明确 absent 才产生 eligible。任一 evidence unavailable 都以 evidenceUnavailable fail closed；runtime 已停却仍报告待审批/活跃会话/媒体/轮询，或 client 已释放却仍报告任一 runtime-owned 责任，均以 inconsistentEvidence 拒绝。完整且一致但仍占用的状态返回 exact blocker set，不会把 preference 已关闭但 runtime 正在收尾的过渡状态误判为矛盾。gate 不读产品框架或偏好、不持有旧 client，也没有停止旧 Host、断开会话、注册 Agent 或启动 background runtime 的能力；当前 UI/registration driver 仍未接旧 Host toggle。下一步需由独立 App-side quiescence coordinator 安全地请求旧 Host 停止并以 fresh evidence 复核 gate，迁移前仍不得形成双 Host owner。详见 `Evidence/HostMode/2026-08-09/h4-legacy-host-migration-gate.md`。
 
+> 更新（2026-08-09）：**H4.2r legacy Host quiescence coordinator 已完成自动实现**。新的构造惰性 CoreBridge coordinator 只响应显式 `prepareForBackgroundRegistration` intent，先采集一次 H4.2q evidence；已经静止时不做 mutation，未知/矛盾 evidence 原样 fail closed。初始 blocker 含 pending approval 或 active session 时直接保留 exact blockers，绝不自动停止或打断交互工作；仅有 preference、空闲 runtime、retained client、media/poller 残留时，才调用一次注入的 quiescence request。请求返回后无条件重新采集 fresh evidence 并重跑 H4.2q；request failure 即使 fresh tuple 看似静止也固定失败，request completed 但仍有 blocker/未知/矛盾也不能进入 registration。并发或依赖重入 intent 不能重复 quiescence。coordinator 不引用产品 UI、偏好、旧 client 或 ServiceManagement，也未连接 AppDelegate/H4.2o/p；因此本步没有停止真实 Host、断开会话或注册 Agent。下一步需建立 MainActor product evidence/quiescence adapter，并修正当前 stop 路径不得在 Core stop 抛错后仍宣称 runtime 已静止。详见 `Evidence/HostMode/2026-08-09/h4-legacy-host-quiescence-coordinator.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
