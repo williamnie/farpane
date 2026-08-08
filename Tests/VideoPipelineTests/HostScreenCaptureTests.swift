@@ -1,4 +1,5 @@
 import CoreVideo
+import ScreenCaptureKit
 import XCTest
 @testable import VideoPipeline
 
@@ -45,5 +46,27 @@ final class HostScreenCaptureTests: XCTestCase {
             kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
             kCVPixelFormatType_32BGRA,
         ])
+    }
+
+    func testOnlyIdleFrameStatusEntersMissingDirtyMetadataFallback() {
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.disposition(for: .complete),
+            .complete
+        )
+        XCTAssertEqual(
+            HostScreenCaptureAdapter.disposition(for: .idle),
+            .idleFallback
+        )
+        for status in [
+            SCFrameStatus.blank,
+            .suspended,
+            .started,
+            .stopped,
+        ] {
+            XCTAssertEqual(
+                HostScreenCaptureAdapter.disposition(for: status),
+                .ignore
+            )
+        }
     }
 }

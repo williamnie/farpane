@@ -281,6 +281,39 @@ public struct HostCaptureCadenceController: Sendable {
       return decision
     }
 
+    return observeMotionRatio(
+      dirtyAreaRatio,
+      dirtyMetadataTrusted: true,
+      nowNanoseconds: nowNanoseconds
+    )
+  }
+
+  /// ScreenCaptureKit explicitly reports `.idle` when the display did not
+  /// change and no new frame was generated. This is the only missing-dirty-
+  /// rect fallback that may lower content demand: complete frames without
+  /// dirty metadata continue to fail safe through `observe(nil, ...)`.
+  @discardableResult
+  mutating func observeIdleFrameStatus(
+    backpressure: HostCaptureBackpressure,
+    nowNanoseconds: UInt64
+  ) -> HostCaptureCadenceDecision {
+    updatePressure(backpressure, nowNanoseconds: nowNanoseconds)
+    return observeMotionRatio(
+      0,
+      dirtyMetadataTrusted: false,
+      nowNanoseconds: nowNanoseconds
+    )
+  }
+
+  private mutating func observeMotionRatio(
+    _ dirtyAreaRatio: Double,
+    dirtyMetadataTrusted: Bool,
+    nowNanoseconds: UInt64
+  ) -> HostCaptureCadenceDecision {
+    if decision.dirtyMetadataTrusted != dirtyMetadataTrusted {
+      dirtyRatios.removeAll(keepingCapacity: true)
+    }
+
     dirtyRatios.append(min(1, max(0, dirtyAreaRatio)))
     if dirtyRatios.count > windowSize {
       dirtyRatios.removeFirst(dirtyRatios.count - windowSize)
@@ -292,20 +325,29 @@ public struct HostCaptureCadenceController: Sendable {
     let currentRank = Self.rank(of: decision.contentState)
     let candidateRank = Self.rank(of: candidate)
     if candidateRank < currentRank, dirtyRatios.count < windowSize {
-      decision = makeDecision(for: decision.contentState, dirtyMetadataTrusted: true)
+      decision = makeDecision(
+        for: decision.contentState,
+        dirtyMetadataTrusted: dirtyMetadataTrusted
+      )
       return decision
     }
 
     let dwellElapsed = nowNanoseconds >= lastTransitionNanoseconds
       && nowNanoseconds - lastTransitionNanoseconds >= minimumDwellNanoseconds
     guard candidate == decision.contentState || dwellElapsed else {
-      decision = makeDecision(for: decision.contentState, dirtyMetadataTrusted: true)
+      decision = makeDecision(
+        for: decision.contentState,
+        dirtyMetadataTrusted: dirtyMetadataTrusted
+      )
       return decision
     }
     if candidate != decision.contentState {
       lastTransitionNanoseconds = nowNanoseconds
     }
-    decision = makeDecision(for: candidate, dirtyMetadataTrusted: true)
+    decision = makeDecision(
+      for: candidate,
+      dirtyMetadataTrusted: dirtyMetadataTrusted
+    )
     return decision
   }
 
