@@ -576,6 +576,147 @@ impl NativeApprovalBroker {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeSessionCapabilities {
+    control_keyboard_mouse: bool,
+    clipboard: bool,
+    system_audio: bool,
+}
+
+impl NativeSessionCapabilities {
+    pub(crate) fn new(control_keyboard_mouse: bool, clipboard: bool, system_audio: bool) -> Self {
+        Self {
+            control_keyboard_mouse,
+            clipboard,
+            system_audio,
+        }
+    }
+
+    fn names(self) -> Vec<&'static str> {
+        let mut names = vec!["viewDisplay"];
+        if self.control_keyboard_mouse {
+            names.push("controlKeyboardMouse");
+        }
+        if self.clipboard {
+            names.push("readClipboard");
+            names.push("writeClipboard");
+        }
+        if self.system_audio {
+            names.push("hearSystemAudio");
+        }
+        names
+    }
+
+    fn is_subset_of(self, other: Self) -> bool {
+        (!self.control_keyboard_mouse || other.control_keyboard_mouse)
+            && (!self.clipboard || other.clipboard)
+            && (!self.system_audio || other.system_audio)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NativeSessionSnapshot {
+    connection_id: String,
+    core_connection_id: i32,
+    remote_id: String,
+    remote_name: String,
+    remote_platform: String,
+    started_at_ms: u64,
+    initial_capabilities: NativeSessionCapabilities,
+    active_capabilities: NativeSessionCapabilities,
+}
+
+impl NativeSessionSnapshot {
+    fn event_payload(&self) -> Value {
+        json!({
+            "connectionId": self.connection_id,
+            "remoteId": self.remote_id,
+            "remoteName": self.remote_name,
+            "remotePlatform": self.remote_platform,
+            "remoteMetadataTrust": "untrusted",
+            "startedAt": self.started_at_ms,
+            "initialCapabilities": self.initial_capabilities.names(),
+            "activeCapabilities": self.active_capabilities.names(),
+        })
+    }
+}
+
+struct NativeActiveSession {
+    snapshot: NativeSessionSnapshot,
+    command_sender: tokio::sync::mpsc::UnboundedSender<crate::ipc::Data>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeSessionStartResult {
+    Accepted,
+    Existing,
+    Busy,
+    Invalid,
+}
+
+#[derive(Default)]
+struct NativeSessionBroker {
+    active: Option<NativeActiveSession>,
+}
+
+impl NativeSessionBroker {
+    fn begin(&mut self, session: NativeActiveSession) -> NativeSessionStartResult {
+        if !session
+            .snapshot
+            .active_capabilities
+            .is_subset_of(session.snapshot.initial_capabilities)
+        {
+            return NativeSessionStartResult::Invalid;
+        }
+        if let Some(active) = self.active.as_ref() {
+            return if active.snapshot.connection_id == session.snapshot.connection_id {
+                if active.snapshot == session.snapshot {
+                    NativeSessionStartResult::Existing
+                } else {
+                    NativeSessionStartResult::Invalid
+                }
+            } else {
+                NativeSessionStartResult::Busy
+            };
+        }
+        self.active = Some(session);
+        NativeSessionStartResult::Accepted
+    }
+
+    fn update_capabilities(
+        &mut self,
+        core_connection_id: i32,
+        active_capabilities: NativeSessionCapabilities,
+    ) -> Option<NativeSessionSnapshot> {
+        let active = self.active.as_mut()?;
+        if active.snapshot.core_connection_id != core_connection_id
+            || active.snapshot.active_capabilities == active_capabilities
+        {
+            return None;
+        }
+        active.snapshot.active_capabilities = active_capabilities;
+        Some(active.snapshot.clone())
+    }
+
+    fn end(&mut self, core_connection_id: i32) -> Option<NativeActiveSession> {
+        let matches = self
+            .active
+            .as_ref()
+            .map(|active| active.snapshot.core_connection_id == core_connection_id)
+            .unwrap_or(false);
+        matches.then(|| self.active.take()).flatten()
+    }
+
+    fn reset(&mut self) -> Option<NativeActiveSession> {
+        self.active.take()
+    }
+
+    #[cfg(test)]
+    fn snapshot(&self) -> Option<NativeSessionSnapshot> {
+        self.active.as_ref().map(|active| active.snapshot.clone())
+    }
+}
+
 pub(crate) struct NativeMediaAccessUnit {
     pub(crate) codec: u32,
     pub(crate) framing: u32,
@@ -878,6 +1019,8 @@ lazy_static::lazy_static! {
     static ref MEDIA_BROKER: Mutex<MediaBroker> = Mutex::new(MediaBroker::default());
     static ref APPROVAL_BROKER: Mutex<NativeApprovalBroker> =
         Mutex::new(NativeApprovalBroker::default());
+    static ref SESSION_BROKER: Mutex<NativeSessionBroker> =
+        Mutex::new(NativeSessionBroker::default());
 }
 
 fn emit_bound_event(binding: &MediaHostBinding, event_type: &str, payload: Value) {
@@ -1027,6 +1170,84 @@ pub(crate) fn native_host_cancel_approval(core_connection_id: i32) {
     }
 }
 
+pub(crate) fn native_host_begin_session(
+    core_connection_id: i32,
+    remote_id: String,
+    remote_name: String,
+    remote_platform: String,
+    initial_capabilities: NativeSessionCapabilities,
+    active_capabilities: NativeSessionCapabilities,
+    command_sender: tokio::sync::mpsc::UnboundedSender<crate::ipc::Data>,
+) -> bool {
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    let Some(binding) = binding else {
+        return false;
+    };
+    let snapshot = NativeSessionSnapshot {
+        connection_id: format!("{}:{core_connection_id}", binding.instance_id),
+        core_connection_id,
+        remote_id: bounded_remote_metadata(remote_id),
+        remote_name: bounded_remote_metadata(remote_name),
+        remote_platform: bounded_remote_metadata(remote_platform),
+        started_at_ms: now_unix_millis(),
+        initial_capabilities,
+        active_capabilities,
+    };
+    let result = SESSION_BROKER.lock().unwrap().begin(NativeActiveSession {
+        snapshot: snapshot.clone(),
+        command_sender,
+    });
+    match result {
+        NativeSessionStartResult::Accepted => {
+            emit_bound_event(&binding, "sessionStarted", snapshot.event_payload());
+            emit_bound_event(&binding, "snapshotChanged", json!({}));
+            true
+        }
+        NativeSessionStartResult::Existing => true,
+        NativeSessionStartResult::Busy | NativeSessionStartResult::Invalid => false,
+    }
+}
+
+pub(crate) fn native_host_update_session_capabilities(
+    core_connection_id: i32,
+    active_capabilities: NativeSessionCapabilities,
+) {
+    let snapshot = SESSION_BROKER
+        .lock()
+        .unwrap()
+        .update_capabilities(core_connection_id, active_capabilities);
+    let Some(snapshot) = snapshot else { return };
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "sessionCapabilitiesChanged",
+            json!({
+                "connectionId": snapshot.connection_id,
+                "activeCapabilities": snapshot.active_capabilities.names(),
+            }),
+        );
+        emit_bound_event(&binding, "snapshotChanged", json!({}));
+    }
+}
+
+pub(crate) fn native_host_end_session(core_connection_id: i32) {
+    let ended = SESSION_BROKER.lock().unwrap().end(core_connection_id);
+    let Some(ended) = ended else { return };
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "sessionEnded",
+            json!({
+                "connectionId": ended.snapshot.connection_id,
+                "reason": "connectionClosed",
+            }),
+        );
+        emit_bound_event(&binding, "snapshotChanged", json!({}));
+    }
+}
+
 fn native_host_pending_approval_snapshot(host_instance_id: &str) -> Option<Value> {
     let (request, completion) = APPROVAL_BROKER.lock().unwrap().snapshot(Instant::now());
     if let Some(completion) = completion {
@@ -1047,8 +1268,27 @@ fn reset_native_approval_broker() {
     }
 }
 
+fn reset_native_session_broker(reason: &str) {
+    let active = SESSION_BROKER.lock().unwrap().reset();
+    let Some(active) = active else { return };
+    let _ = active.command_sender.send(crate::ipc::Data::Close);
+    let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
+    if let Some(binding) = binding {
+        emit_bound_event(
+            &binding,
+            "sessionEnded",
+            json!({
+                "connectionId": active.snapshot.connection_id,
+                "reason": reason,
+            }),
+        );
+        emit_bound_event(&binding, "snapshotChanged", json!({}));
+    }
+}
+
 fn bind_media_host(host: &RdnHost) {
     reset_native_approval_broker();
+    reset_native_session_broker("hostRebound");
     let mut broker = MEDIA_BROKER.lock().unwrap();
     broker.routes.clear();
     broker.capabilities = MediaCapabilities::default();
@@ -1076,6 +1316,7 @@ pub(crate) fn native_host_instance_is_live() -> bool {
 
 fn unbind_media_host() {
     reset_native_approval_broker();
+    reset_native_session_broker("hostStopped");
     let (binding, routes) = {
         let mut broker = MEDIA_BROKER.lock().unwrap();
         let binding = broker.binding.take();
@@ -2750,6 +2991,159 @@ mod tests {
             broker.begin(finalized),
             NativeApprovalStartResult::Finalized
         );
+    }
+
+    fn active_session_fixture(
+        connection_id: &str,
+        core_connection_id: i32,
+        initial_capabilities: NativeSessionCapabilities,
+        active_capabilities: NativeSessionCapabilities,
+    ) -> NativeActiveSession {
+        let (command_sender, _command_receiver) = tokio::sync::mpsc::unbounded_channel();
+        NativeActiveSession {
+            snapshot: NativeSessionSnapshot {
+                connection_id: connection_id.to_owned(),
+                core_connection_id,
+                remote_id: "remote-id".to_owned(),
+                remote_name: "Remote Mac".to_owned(),
+                remote_platform: "macOS".to_owned(),
+                started_at_ms: 1_000,
+                initial_capabilities,
+                active_capabilities,
+            },
+            command_sender,
+        }
+    }
+
+    #[test]
+    fn native_active_session_broker_is_single_and_capability_snapshot_safe() {
+        let initial = NativeSessionCapabilities::new(true, true, true);
+        let active = NativeSessionCapabilities::new(true, false, true);
+        let mut broker = NativeSessionBroker::default();
+        assert_eq!(
+            broker.begin(active_session_fixture("host:1", 1, initial, active)),
+            NativeSessionStartResult::Accepted
+        );
+        assert_eq!(
+            broker.begin(active_session_fixture("host:1", 1, initial, active)),
+            NativeSessionStartResult::Existing
+        );
+        assert_eq!(
+            broker.begin(active_session_fixture("host:2", 2, initial, active)),
+            NativeSessionStartResult::Busy
+        );
+
+        let snapshot = broker.snapshot().unwrap();
+        assert_eq!(snapshot.connection_id, "host:1");
+        assert_eq!(
+            snapshot.initial_capabilities.names(),
+            vec![
+                "viewDisplay",
+                "controlKeyboardMouse",
+                "readClipboard",
+                "writeClipboard",
+                "hearSystemAudio",
+            ]
+        );
+        assert_eq!(
+            snapshot.active_capabilities.names(),
+            vec!["viewDisplay", "controlKeyboardMouse", "hearSystemAudio"]
+        );
+        assert_eq!(snapshot.event_payload()["remoteMetadataTrust"], "untrusted");
+
+        let revoked = NativeSessionCapabilities::new(false, false, true);
+        assert!(broker.update_capabilities(9, revoked).is_none());
+        assert_eq!(
+            broker
+                .update_capabilities(1, revoked)
+                .unwrap()
+                .active_capabilities,
+            revoked
+        );
+        assert!(broker.update_capabilities(1, revoked).is_none());
+        assert!(broker.end(9).is_none());
+        assert_eq!(broker.end(1).unwrap().snapshot.connection_id, "host:1");
+        assert!(broker.snapshot().is_none());
+
+        let no_keyboard = NativeSessionCapabilities::new(false, true, true);
+        assert_eq!(
+            broker.begin(active_session_fixture(
+                "host:3",
+                3,
+                no_keyboard,
+                NativeSessionCapabilities::new(true, true, true),
+            )),
+            NativeSessionStartResult::Invalid
+        );
+    }
+
+    #[test]
+    fn native_active_session_lifecycle_emits_sanitized_events_and_closes_on_reset() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let events = Mutex::new(Vec::new());
+        let mut host = ready_test_host("session-host");
+        host.callbacks = RdnHostCallbacks {
+            abi_version: HOST_ABI_VERSION,
+            on_event: Some(collect_test_event),
+            context: &events as *const Mutex<Vec<Value>> as *mut c_void,
+        };
+        bind_media_host(&host);
+        let _guard = BoundMediaTestGuard;
+
+        let initial = NativeSessionCapabilities::new(true, true, true);
+        let active = NativeSessionCapabilities::new(true, true, false);
+        let (first_sender, mut first_receiver) = tokio::sync::mpsc::unbounded_channel();
+        assert!(native_host_begin_session(
+            7,
+            "remote-id".to_owned(),
+            "Remote\nMac".to_owned(),
+            "macOS".to_owned(),
+            initial,
+            active,
+            first_sender,
+        ));
+        assert_eq!(
+            SESSION_BROKER
+                .lock()
+                .unwrap()
+                .snapshot()
+                .unwrap()
+                .connection_id,
+            "session-host:7"
+        );
+        native_host_update_session_capabilities(
+            7,
+            NativeSessionCapabilities::new(false, true, false),
+        );
+        native_host_end_session(7);
+        assert!(SESSION_BROKER.lock().unwrap().snapshot().is_none());
+        assert!(first_receiver.try_recv().is_err());
+
+        let (second_sender, mut second_receiver) = tokio::sync::mpsc::unbounded_channel();
+        assert!(native_host_begin_session(
+            8,
+            "remote-id-2".to_owned(),
+            "Second Mac".to_owned(),
+            "macOS".to_owned(),
+            initial,
+            initial,
+            second_sender,
+        ));
+        reset_native_session_broker("hostStopped");
+        assert!(matches!(
+            second_receiver.try_recv(),
+            Ok(crate::ipc::Data::Close)
+        ));
+        assert!(SESSION_BROKER.lock().unwrap().snapshot().is_none());
+
+        let encoded = serde_json::to_string(&*events.lock().unwrap()).unwrap();
+        assert!(encoded.contains("sessionStarted"));
+        assert!(encoded.contains("sessionCapabilitiesChanged"));
+        assert!(encoded.contains("sessionEnded"));
+        assert!(encoded.contains("RemoteMac"));
+        assert!(!encoded.contains("Remote\\nMac"));
+        assert!(encoded.contains("hostStopped"));
     }
 
     #[test]
