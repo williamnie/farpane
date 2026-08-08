@@ -1540,6 +1540,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1p latched DispatchSource signal ingress 已完成自动实现**。一次性 termination latch 允许 SIGTERM/SIGINT 在 runtime bind 前到达并锁存，或在 bind 后即时交付；first request/bind wins，delivery 在锁外执行、可安全重入，交付后 handler 立即释放。executable controller 只管理固定 SIGTERM/SIGINT：先以 `sigaction(SIG_IGN)` 保存/替换原 disposition，再激活两个 `DispatchSourceSignal`，Swift/锁只在 dispatch event handler 运行，不在 POSIX signal handler 中执行；bind 将请求映射为 H4.1o lifetime 的一次 `.appExit` termination。cancel/deinit 幂等 cancel source 并逆序恢复原 dispositions；首次信号不提前恢复默认 disposition，避免 Core stop 期间第二信号直接终止进程。本步已动态验证 latch，真实 controller 经 debug/release 编译和 source contract，但因入口仍禁用，未发送真实进程信号或声称 signal smoke；`--host-agent` 继续 exit 69。未联网、未读真实配置/密钥，未改 ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-dispatch-signal-ingress.md`。
 
+> 更新（2026-08-08）：**H4.1q disabled HostAgent process runner composition 已完成自动实现**。通用 runner 固定 `install termination ingress → start runtime → bind lifetime → blocking wait → cancel ingress` 的进程顺序；ingress 安装失败不接触 runtime，startup failure 在撤销 ingress 前只返回既有脱敏 failure，bind 异常会以 `.error` 发起一次有序 stop，terminal stop failure 固定映射为 sysexits 70 与无控制字符诊断，正常 stop 为 exit 0 且无诊断。产品组合层接入 H4.1n–p 的真实 startup/lifetime/signal 组件，并强制调用方提供 authoritative Host event consumer，不内置丢弃事件占位。它不打印、不调用 `exit`，且 `RustDeskNativeApp.swift` 仍不调用该 runner，因此 `--host-agent` 继续固定 exit 69，未加载真实 Core、联网或发送真实信号。本步未改 ABI/Rust/Hermes/依赖，未读真实配置/密钥，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-process-runner-composition.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
