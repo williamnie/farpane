@@ -157,6 +157,37 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }
 
+    func testHostAgentStartupSuccessOwnsLifetimeGateButInstallsNoSignals() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let startupURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/HostAgentProcessStartup.swift")
+        let startupSource = try String(contentsOf: startupURL, encoding: .utf8)
+        XCTAssertTrue(startupSource.contains(
+            ") -> Result<HostAgentProcessLifetime, HostAgentStartupFailure>"
+        ))
+        XCTAssertTrue(startupSource.contains(
+            "let runtime = try HostAgentProcessRuntime.start("
+        ))
+        XCTAssertTrue(startupSource.contains(
+            "return HostAgentProcessLifetime(runtime: runtime)"
+        ))
+
+        let lifetimeURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/HostAgentProcessLifetime.swift")
+        let lifetimeSource = try String(contentsOf: lifetimeURL, encoding: .utf8)
+        XCTAssertTrue(lifetimeSource.contains(
+            "HostAgentProcessLifetimeGate<HostAgentProcessRuntime>"
+        ))
+        XCTAssertTrue(lifetimeSource.contains("try runtime.stop(reason: reason)"))
+        XCTAssertTrue(lifetimeSource.contains("requestTermination(reason:"))
+        XCTAssertTrue(lifetimeSource.contains("waitUntilTerminated()"))
+        XCTAssertFalse(lifetimeSource.contains("DispatchSource.makeSignalSource"))
+        XCTAssertFalse(lifetimeSource.contains("signal("))
+    }
+
     func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
