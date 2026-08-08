@@ -108,6 +108,38 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         XCTAssertEqual(recorder.events.last, .bootstrapReleased)
     }
 
+    func testCopiesSnapshotThroughOwnedRuntimeOnlyBeforeStop() throws {
+        let recorder = HostAgentLifecycleRecorder()
+        let client = OwnedRuntimeRecordingClient(recorder: recorder)
+        var bootstrapOwner: HostAgentTestBootstrapOwner? = .init(recorder: recorder)
+        weak let weakBootstrapOwner = bootstrapOwner
+        let runtime = try HostAgentOwnedCoreRuntime.start(
+            bootstrapOwner: try XCTUnwrap(bootstrapOwner)
+        ) { _ in
+            recorder.append(.runtimeFactory)
+            return try self.startCore(client: client)
+        }
+        bootstrapOwner = nil
+
+        let snapshot = try runtime.copySnapshot()
+        XCTAssertEqual(snapshot.hostInstanceId, "owned-runtime-host")
+        XCTAssertNotNil(weakBootstrapOwner)
+        XCTAssertEqual(recorder.events.last, .coreCopySnapshot)
+
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(try runtime.copySnapshot()) { error in
+            XCTAssertEqual(
+                error as? HostAgentCoreRuntimeAccessError,
+                .notRunning
+            )
+        }
+        XCTAssertNil(weakBootstrapOwner)
+        XCTAssertEqual(
+            recorder.events.filter { $0 == .coreCopySnapshot }.count,
+            1
+        )
+    }
+
     private func startCore(
         client: OwnedRuntimeRecordingClient
     ) throws -> HostAgentCoreRuntime {
@@ -128,6 +160,7 @@ private enum HostAgentLifecycleEvent: Equatable {
     case runtimeFactory
     case configRoot
     case coreStart
+    case coreCopySnapshot
     case coreStop(HostStopReason)
     case bootstrapReleased
 }
@@ -178,5 +211,38 @@ private final class OwnedRuntimeRecordingClient: HostAgentCoreControlSurface {
     func stop(reason: HostStopReason) throws {
         recorder.append(.coreStop(reason))
         if failStop { throw OwnedRuntimeTestFailure.stop }
+    }
+
+    func copySnapshot() throws -> HostCoreSnapshot {
+        recorder.append(.coreCopySnapshot)
+        let document: [String: Any] = [
+            "schemaVersion": 5,
+            "hostInstanceId": "owned-runtime-host",
+            "hostState": "ready",
+            "localId": "123456789",
+            "registrationStatus": "ready",
+            "pendingApproval": NSNull(),
+            "activeSession": NSNull(),
+            "temporaryPasswordPresentation": ["policy": "redacted"],
+            "passwordPolicy": [
+                "localPasswordSet": false,
+                "effectivePasswordSet": false,
+                "usingPresetPassword": false,
+                "changeAllowed": true,
+                "strengthPolicy": [
+                    "version": 1,
+                    "minimumCharacters": 6,
+                    "maximumCharacters": 128,
+                    "maximumUtf8Bytes": 512,
+                    "rejectsControlCharacters": true,
+                    "rejectsOuterWhitespace": true,
+                ],
+            ],
+            "lastError": NSNull(),
+            "observedAt": 1_700_000_000_000 as UInt64,
+        ]
+        return try HostCoreSnapshot(
+            rawJSON: JSONSerialization.data(withJSONObject: document)
+        )
     }
 }

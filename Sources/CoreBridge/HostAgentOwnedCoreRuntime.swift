@@ -55,4 +55,14 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
         }
         try runtimeToRelease?.stop(reason: reason)
     }
+
+    /// Copies from the same Core owner while it is still protected from stop.
+    public func copySnapshot() throws -> HostCoreSnapshot {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard let runtime else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        return try runtime.copySnapshot()
+    }
 }

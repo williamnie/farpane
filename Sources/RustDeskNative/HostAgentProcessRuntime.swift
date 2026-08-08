@@ -48,4 +48,8 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
     func stop(reason: HostStopReason) throws {
         try ownedRuntime.stop(reason: reason)
     }
+
+    func copySnapshot() throws -> HostCoreSnapshot {
+        try ownedRuntime.copySnapshot()
+    }
 }

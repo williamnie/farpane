@@ -100,6 +100,32 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
         }, [.stop(.error)])
     }
 
+    func testCopiesSnapshotOnlyWhileRuntimeIsRunning() throws {
+        let client = RecordingHostAgentCoreClient()
+        let runtime = try HostAgentCoreRuntime.start(
+            client: client,
+            configAppName: "FarPaneHost",
+            configOrganization: "io.rustdesknative",
+            serverConfiguration: serverConfiguration()
+        )
+
+        let snapshot = try runtime.copySnapshot()
+        XCTAssertEqual(snapshot.hostInstanceId, "host-agent-test")
+        XCTAssertEqual(client.operations.last, .copySnapshot)
+
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(try runtime.copySnapshot()) { error in
+            XCTAssertEqual(
+                error as? HostAgentCoreRuntimeAccessError,
+                .notRunning
+            )
+        }
+        XCTAssertEqual(
+            client.operations.filter { $0 == .copySnapshot }.count,
+            1
+        )
+    }
+
     private func serverConfiguration() -> HostServerConfiguration {
         HostServerConfiguration(
             rendezvousServer: "one.example.invalid:21116",
@@ -117,6 +143,7 @@ private enum TestFailure: Error, Equatable {
 private enum RecordedOperation: Equatable {
     case setConfigRoot(String, String)
     case start(String, String, String)
+    case copySnapshot
     case stop(HostStopReason)
 }
 
@@ -145,5 +172,38 @@ private final class RecordingHostAgentCoreClient: HostAgentCoreControlSurface {
     func stop(reason: HostStopReason) throws {
         operations.append(.stop(reason))
         if failure == .stop { throw TestFailure.stop }
+    }
+
+    func copySnapshot() throws -> HostCoreSnapshot {
+        operations.append(.copySnapshot)
+        let document: [String: Any] = [
+            "schemaVersion": 5,
+            "hostInstanceId": "host-agent-test",
+            "hostState": "ready",
+            "localId": "123456789",
+            "registrationStatus": "ready",
+            "pendingApproval": NSNull(),
+            "activeSession": NSNull(),
+            "temporaryPasswordPresentation": ["policy": "redacted"],
+            "passwordPolicy": [
+                "localPasswordSet": false,
+                "effectivePasswordSet": false,
+                "usingPresetPassword": false,
+                "changeAllowed": true,
+                "strengthPolicy": [
+                    "version": 1,
+                    "minimumCharacters": 6,
+                    "maximumCharacters": 128,
+                    "maximumUtf8Bytes": 512,
+                    "rejectsControlCharacters": true,
+                    "rejectsOuterWhitespace": true,
+                ],
+            ],
+            "lastError": NSNull(),
+            "observedAt": 1_700_000_000_000 as UInt64,
+        ]
+        return try HostCoreSnapshot(
+            rawJSON: JSONSerialization.data(withJSONObject: document)
+        )
     }
 }

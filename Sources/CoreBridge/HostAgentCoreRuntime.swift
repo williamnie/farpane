@@ -5,10 +5,15 @@ import Foundation
 public protocol HostAgentCoreControlSurface: AnyObject {
     func setConfigRoot(appName: String, org: String) throws
     func start(configuration: HostServerConfiguration) throws
+    func copySnapshot() throws -> HostCoreSnapshot
     func stop(reason: HostStopReason) throws
 }
 
 extension HostControlClient: HostAgentCoreControlSurface {}
+
+public enum HostAgentCoreRuntimeAccessError: Error, Equatable {
+    case notRunning
+}
 
 /// Owns one successfully started HostCore and enforces config-root-first
 /// initialization. Loading/creating the concrete control surface and retaining
@@ -49,5 +54,14 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
         stopped = true
         stateLock.unlock()
         try client.stop(reason: reason)
+    }
+
+    public func copySnapshot() throws -> HostCoreSnapshot {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard !stopped else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        return try client.copySnapshot()
     }
 }
