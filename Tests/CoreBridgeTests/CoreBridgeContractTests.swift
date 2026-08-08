@@ -233,9 +233,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(processSource.contains(
             "installTerminationIngress: {\n                try HostAgentProcessSignalController()"
         ))
-        XCTAssertTrue(processSource.contains(
-            "startRuntime: {\n                HostAgentProcessStartup.prepare("
-        ))
+        XCTAssertTrue(processSource.contains("HostAgentProcessStartup.prepare("))
         XCTAssertTrue(processSource.contains("controller.bind(lifetime: lifetime)"))
         XCTAssertTrue(processSource.contains(
             "lifetime.requestTermination(reason: reason)"
@@ -264,13 +262,60 @@ final class CoreBridgeContractTests: XCTestCase {
 
         XCTAssertTrue(processSource.contains("eventState: HostAgentEventState"))
         XCTAssertTrue(processSource.contains(
-            "eventState.consume(event, onAccepted: onEvent)"
+            "eventState.consume(event) { event, sequence in"
         ))
 
         let appURL = repositoryRoot
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentEventState("))
+        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
+    func testHostAgentProcessPublishesSanitizedSnapshotsButRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let snapshotURL = repositoryRoot.appendingPathComponent(
+            "Sources/CoreBridge/HostAgentSnapshotState.swift"
+        )
+        let snapshotSource = try String(contentsOf: snapshotURL, encoding: .utf8)
+        XCTAssertTrue(snapshotSource.contains("HostAgentSnapshotProjection"))
+        XCTAssertTrue(snapshotSource.contains(
+            "temporaryPasswordPolicy = \"redacted\""
+        ))
+        XCTAssertFalse(snapshotSource.contains("snapshot.rawJSON"))
+        XCTAssertFalse(snapshotSource.contains("snapshot.revealedTemporaryPassword"))
+
+        let processURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcess.swift"
+        )
+        let processSource = try String(contentsOf: processURL, encoding: .utf8)
+        XCTAssertTrue(processSource.contains("snapshotState: HostAgentSnapshotState"))
+        XCTAssertTrue(processSource.contains("HostAgentSnapshotRefreshCoordinator("))
+        XCTAssertTrue(processSource.contains("event, sequence in"))
+        XCTAssertTrue(processSource.contains("snapshotCoordinator.requestRefresh("))
+        XCTAssertTrue(processSource.contains("[weak lifetime]"))
+        XCTAssertTrue(processSource.contains("lifetime.copySnapshot()"))
+        XCTAssertTrue(processSource.contains("onEvent(event)"))
+
+        let runtimeURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+        )
+        let runtimeSource = try String(contentsOf: runtimeURL, encoding: .utf8)
+        XCTAssertTrue(runtimeSource.contains("ownedRuntime.copySnapshot()"))
+        let lifetimeURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcessLifetime.swift"
+        )
+        let lifetimeSource = try String(contentsOf: lifetimeURL, encoding: .utf8)
+        XCTAssertTrue(lifetimeSource.contains("gate.withRunningRuntime"))
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentSnapshotState("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }

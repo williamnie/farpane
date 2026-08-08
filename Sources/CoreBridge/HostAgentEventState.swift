@@ -109,11 +109,11 @@ package final class HostAgentEventState: @unchecked Sendable {
     @discardableResult
     package func consume(
         _ event: HostCoreEvent,
-        onAccepted: (HostCoreEvent) -> Void
+        onAccepted: (HostCoreEvent, UInt64) -> Void
     ) -> HostAgentEventIngestResult {
         let result = ingest(event)
-        guard case .accepted = result else { return result }
-        onAccepted(event)
+        guard case .accepted(let sequence) = result else { return result }
+        onAccepted(event, sequence)
         return result
     }
 

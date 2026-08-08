@@ -23,4 +23,10 @@ final class HostAgentProcessLifetime: @unchecked Sendable {
     func waitUntilTerminated() -> HostAgentProcessTerminationOutcome {
         gate.waitUntilTerminated()
     }
+
+    func copySnapshot() throws -> HostCoreSnapshot {
+        try gate.withRunningRuntime { runtime in
+            try runtime.copySnapshot()
+        }
+    }
 }

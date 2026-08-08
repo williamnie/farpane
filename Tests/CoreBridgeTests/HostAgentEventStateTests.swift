@@ -52,14 +52,15 @@ final class HostAgentEventStateTests: XCTestCase {
         var visibleSequences: [UInt64] = []
 
         XCTAssertEqual(
-            state.consume(acceptedEvent) { event in
+            state.consume(acceptedEvent) { event, sequence in
                 forwardedEventIDs.append(event.eventId)
-                visibleSequences.append(state.snapshot().latestSequence)
+                visibleSequences.append(sequence)
+                XCTAssertEqual(state.snapshot().latestSequence, sequence)
             },
             .accepted(sequence: 1)
         )
         XCTAssertEqual(
-            state.consume(acceptedEvent) { event in
+            state.consume(acceptedEvent) { event, _ in
                 forwardedEventIDs.append(event.eventId)
             },
             .rejected(.duplicateEventID)

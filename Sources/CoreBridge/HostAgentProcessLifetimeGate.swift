@@ -1,5 +1,9 @@
 import Foundation
 
+public enum HostAgentProcessLifetimeAccessError: Error, Equatable {
+    case notRunning
+}
+
 /// Sanitized result published after the single runtime stop attempt finishes.
 public struct HostAgentProcessTerminationOutcome: Equatable, Sendable {
     public enum Status: Equatable, Sendable {
@@ -86,5 +90,19 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
             }
             condition.wait()
         }
+    }
+
+    /// Provides a strong reference only while the gate is still running.
+    /// Runtime-specific serialization remains owned by the runtime itself.
+    public func withRunningRuntime<Value>(
+        _ body: (Runtime) throws -> Value
+    ) throws -> Value {
+        condition.lock()
+        guard case .running(let runtime) = state else {
+            condition.unlock()
+            throw HostAgentProcessLifetimeAccessError.notRunning
+        }
+        condition.unlock()
+        return try body(runtime)
     }
 }

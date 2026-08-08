@@ -124,6 +124,24 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
             .runtimeReleased,
         ])
     }
+
+    func testAccessesRuntimeOnlyBeforeTerminationIsClaimed() throws {
+        let runtime = NSObject()
+        let gate = HostAgentProcessLifetimeGate(
+            runtime: runtime,
+            stopRuntime: { _, _ in }
+        )
+
+        let accessed = try gate.withRunningRuntime { $0 }
+        XCTAssertTrue(accessed === runtime)
+        XCTAssertTrue(gate.requestTermination(reason: .appExit))
+        XCTAssertThrowsError(try gate.withRunningRuntime { $0 }) { error in
+            XCTAssertEqual(
+                error as? HostAgentProcessLifetimeAccessError,
+                .notRunning
+            )
+        }
+    }
 }
 
 private enum LifetimeTestFailure: Error {
