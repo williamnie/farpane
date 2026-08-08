@@ -1522,6 +1522,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1g product App bootstrap reconciliation 已完成自动实现**。产品 App 只接受 packaged `CFBundleVersion` 作为有界 Agent build ID；启动成功读取 canonical catalog 后，以及每个 catalog save 成功更新内存 authority 后，集成层都会重新从磁盘读取 canonical document，再调用 H4.1f，因而未保存的内存 server mutation 不能进入 Agent projection。server 尚未完整时保持 waiting；build metadata、catalog reread 或安全发布失败时只把后台 Host 组件标为 degraded，Viewer catalog 的成功保存不回滚，旧 projection 原子保留并可在后续成功 save/load 后重试。Host 卡片显示独立后台配置错误，既有 Viewer 与当前进程内 Host 状态不被伪造成 Agent ready。本步仍不注册/启动 Agent，不读取 projection 启动 HostCore，`--host-agent` 继续以 69 unavailable 退出；未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-product-app-bootstrap-reconciliation.md`。
 
+> 更新（2026-08-08）：**H4.1h HostAgent immutable launch preflight 已完成自动实现**。新增的只读启动门禁在固定 user Application Support 产品布局上复用 H4.1c secure reader，并要求 projection 的 `agentBuildID` 与当前 packaged `CFBundleVersion` 精确相等；产品 API 不接受磁盘路径、环境变量或调用方 build 字符串。无效/缺失 build metadata 在接触文件系统前稳定失败，build mismatch、缺失/不安全/损坏 projection 均 fail closed，返回的 configuration 已包含 strict 正 revision 与固定 `FarPaneHost`/`io.rustdesknative` namespace，原文档不被修改。本步仅提供下一启动阶段可消费的 preflight，尚未从 `--host-agent` 调用、获取单写者锁、切换 Rust config root 或创建 HostCore，故 exit 69 保持不变；未改 ABI/Rust/Hermes/依赖，未读取真实产品配置，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-launch-preflight.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
