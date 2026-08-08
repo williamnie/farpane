@@ -1534,6 +1534,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1m bundled Host Core immutable locator 已完成自动实现**。HostAgent 产品装配 API 不再接受 dylib URL；唯一产品 authority 固定为 `Bundle.main.privateFrameworksURL/liblibrustdesk.dylib`，没有环境变量、当前目录、开发 Build 目录或相邻路径 fallback。locator 在加载前要求 Frameworks 为 root/当前 euid 所有且不可 group/world writable 的真实目录，Core 为同 owner、非空、单硬链接、不可 group/world writable的 regular file；目录/文件 symlink、hard link、空/缺失/宽权限和任意替代文件名均 fail closed。取得固定 URL 后仍由现有 `HostControlClient` 验证 Host ABI v7、Host Media ABI v1、viewer/host pinned upstream commit 后才允许 H4.1k config-root/start；任一失败经 H4.1l 自动释放 context/lease。本步不等同于 H4.5 Developer ID/notarization/Library Validation，也未启用 `--host-agent`，exit 69 保持；未联网、未读取真实配置/密钥，未改 ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-bundled-host-core-locator.md`。
 
+> 更新（2026-08-08）：**H4.1n sanitized structured Agent startup result 已完成自动实现**。通用 startup runner 现把 throwing runtime factory 收敛为 `Result<Runtime, HostAgentStartupFailure>`；failure 只持有固定枚举 kind，不保留 underlying Error、路径、server/key/build ID 或自由文本。六类稳定结果映射为 sysexits：configuration `78`、ownership/already-running `75`、Core unavailable/incompatible `69`、runtime/internal `70`，诊断均为无控制字符的固定英文句子。executable classifier 将 bootstrap/config、single-writer lease、bundled Core locator、HostControl load/ABI/commit 与 config-root/create/start 错误分别归类，未知错误 fail closed 为 internal；成功路径不调用 classifier。该 prepare 层接受未来 Agent event consumer，但本步不输出原始错误、不调用 `exit`，也不从 `RustDeskNativeApp.swift` 启用，故当前 `--host-agent` 仍固定 exit 69；未联网、未读真实配置/密钥，未改 ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-structured-agent-startup-result.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

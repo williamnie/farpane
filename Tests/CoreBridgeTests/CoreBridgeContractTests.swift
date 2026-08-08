@@ -109,6 +109,54 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }
 
+    func testHostAgentStartupClassifierIsStructuredAndRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let startupURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/HostAgentProcessStartup.swift")
+        let startupSource = try String(contentsOf: startupURL, encoding: .utf8)
+
+        XCTAssertTrue(startupSource.contains("HostAgentProcessStartupRunner.start("))
+        XCTAssertTrue(startupSource.contains("HostAgentProcessRuntime.start("))
+        XCTAssertTrue(startupSource.contains("HostAgentSingleWriterLeaseError"))
+        XCTAssertTrue(startupSource.contains("HostAgentBootstrapConfigurationError"))
+        XCTAssertTrue(startupSource.contains("HostAgentBundledCoreLocatorError"))
+        XCTAssertTrue(startupSource.contains("HostControlError"))
+        XCTAssertTrue(startupSource.contains(
+            "case .alreadyHeld:\n                return HostAgentStartupFailure(kind: .alreadyRunning)"
+        ))
+        XCTAssertTrue(startupSource.contains(
+            "default:\n                return HostAgentStartupFailure(kind: .runtimeOwnershipUnavailable)"
+        ))
+        XCTAssertTrue(startupSource.contains(
+            "if error is HostAgentBundledCoreLocatorError {\n            return HostAgentStartupFailure(kind: .coreUnavailable)"
+        ))
+        XCTAssertTrue(startupSource.contains(
+            "case .configRoot(_), .create(_), .start(_):\n                return HostAgentStartupFailure(kind: .runtimeStartupFailed)"
+        ))
+        for kind in [
+            "configurationUnavailable",
+            "runtimeOwnershipUnavailable",
+            "alreadyRunning",
+            "coreUnavailable",
+            "runtimeStartupFailed",
+            "internalFailure",
+        ] {
+            XCTAssertTrue(startupSource.contains("kind: .\(kind)"))
+        }
+        XCTAssertFalse(startupSource.contains("localizedDescription"))
+        XCTAssertFalse(startupSource.contains("String(describing:"))
+        XCTAssertFalse(startupSource.contains("error.description"))
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentProcessStartup.prepare("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
     func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
