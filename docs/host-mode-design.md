@@ -1562,6 +1562,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1aa Agent terminal result reporting 已完成自动实现**。唯一 terminal reporter 现在把 structured process result 映射为至多一条固定脱敏 stderr 行与稳定 sysexits；成功 stop 不输出，stderr 关闭/写失败不改变退出码，也不保留底层 Error。当前 pre-AppKit fail-closed 分支已通过 `.unavailable` result 使用同一路径，移除了 App 入口重复的诊断与 69 常量，debug/release 的可观察行为保持不变。入口审计同时确认现有 DispatchSource signal + lifetime condition wait 已提供无 AppKit、无 busy loop 的等待机制，不需要额外 RunLoop。由于 authenticated XPC consumer 尚未建立，本步仍不调用真实 process runner、不加载 Core/读取配置/联网，不伪装后台 ready；不修改 ABI/XPC wire/Rust/Hermes/SMAppService，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-agent-terminal-reporting.md`。
 
+> 更新（2026-08-08）：**H4.2a Background component readiness policy 已完成自动实现**。App 侧 package-scoped 纯 policy 现在把 ServiceManagement registration、authenticated handshake、权威 snapshot 和 Rendezvous registration 作为四份独立证据；registration 明确区分 notRegistered/requiresApproval/enabled/serviceUnavailable，enabled 之后仍须 handshake compatible、snapshot available、Rendezvous registered 才能 ready。因而“已调用 register”、等待用户审批、launchd enabled、PID/进程存在、XPC 可达或本地已有 ID 均不能单独冒充可连接；version mismatch、snapshot 未同步和 Rendezvous checking/offline 保留为稳定非 ready 状态。本步不定义 XPC message/schema，不 import/use ServiceManagement、不创建 plist/注册服务、不启动 Core；不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-background-component-readiness.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
