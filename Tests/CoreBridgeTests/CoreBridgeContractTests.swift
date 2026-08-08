@@ -56,6 +56,23 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(patch.contains("\"kCGSessionOnConsoleKey\""))
     }
 
+    func testHostAgentModeDispatchPrecedesNSApplicationBootstrap() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+        let dispatch = try XCTUnwrap(source.range(
+            of: "RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments)"
+        ))
+        let appKitBootstrap = try XCTUnwrap(source.range(of: "NSApplication.shared"))
+
+        XCTAssertLessThan(dispatch.lowerBound, appKitBootstrap.lowerBound)
+        XCTAssertTrue(source.contains("HostAgentBootstrap.failClosed()"))
+    }
+
     func testConnectionConfigDoesNotPersistPassword() {
         let config = CoreConnectionConfig(
             rendezvousServer: "192.0.2.1",
