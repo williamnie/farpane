@@ -25,6 +25,7 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
     }
 
     static func start(
+        expectedAgentBuildID: String,
         eventState: HostAgentEventState,
         snapshotState: HostAgentSnapshotState,
         eventQueue: DispatchQueue = DispatchQueue(
@@ -33,7 +34,9 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
         ),
         onEvent: @escaping @Sendable (HostCoreEvent) -> Void
     ) throws -> HostAgentProcessRuntime {
-        let bootstrapContext = try HostAgentBootstrapContext.prepare()
+        let bootstrapContext = try HostAgentBootstrapContext.prepare(
+            expectedAgentBuildID: expectedAgentBuildID
+        )
         let xpcIdentityAuthority = try
             HostAgentXPCProcessIdentityAuthority.makeProduct(
                 agentBuildID: bootstrapContext.leaseRecord.agentBuildID,

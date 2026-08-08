@@ -89,7 +89,8 @@ final class CoreBridgeContractTests: XCTestCase {
             .appendingPathComponent("Sources/RustDeskNative/HostAgentProcessRuntime.swift")
         let runtimeSource = try String(contentsOf: runtimeURL, encoding: .utf8)
         let contextPreparation = try XCTUnwrap(runtimeSource.range(
-            of: "HostAgentBootstrapContext.prepare()"
+            of: "HostAgentBootstrapContext.prepare(\n"
+                + "            expectedAgentBuildID: expectedAgentBuildID"
         ))
         let coreLocation = try XCTUnwrap(runtimeSource.range(
             of: "HostAgentBundledCoreLocator.locate()"
@@ -260,7 +261,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }
 
-    func testHostAgentProcessJournalsBeforeForwardingAcceptedEvents() throws {
+    func testHostAgentProcessJournalsBeforeInternalConsumers() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -275,8 +276,24 @@ final class CoreBridgeContractTests: XCTestCase {
             "eventState.consume(event) { event, sequence in"
         ))
         XCTAssertTrue(processSource.contains(
-            "HostAgentProcessStartup.prepare(\n                    eventState: eventState"
+            "expectedAgentBuildID: expectedAgentBuildID,\n"
+                + "                    eventState: eventState"
         ))
+        let journal = try XCTUnwrap(processSource.range(
+            of: "eventState.consume(event) { event, sequence in"
+        ))
+        let snapshotRefresh = try XCTUnwrap(processSource.range(
+            of: "snapshotCoordinator.requestRefresh("
+        ))
+        let mediaControl = try XCTUnwrap(processSource.range(
+            of: "mediaState.consume("
+        ))
+        let mediaDiagnostic = try XCTUnwrap(processSource.range(
+            of: "mediaPipelineOwner.consume(event)"
+        ))
+        XCTAssertLessThan(journal.lowerBound, snapshotRefresh.lowerBound)
+        XCTAssertLessThan(journal.lowerBound, mediaControl.lowerBound)
+        XCTAssertLessThan(journal.lowerBound, mediaDiagnostic.lowerBound)
 
         let appURL = repositoryRoot
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
@@ -312,7 +329,9 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(processSource.contains("snapshotCoordinator.requestRefresh("))
         XCTAssertTrue(processSource.contains("[weak lifetime]"))
         XCTAssertTrue(processSource.contains("lifetime.copySnapshot()"))
-        XCTAssertTrue(processSource.contains("onEvent(event)"))
+        XCTAssertFalse(processSource.contains("onEvent(event)"))
+        XCTAssertFalse(processSource.contains("onEvent: @escaping"))
+        XCTAssertTrue(processSource.contains("mediaPipelineOwner.consume(event)"))
 
         let runtimeURL = repositoryRoot.appendingPathComponent(
             "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
@@ -380,16 +399,14 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         let processSource = try String(contentsOf: processURL, encoding: .utf8)
         XCTAssertTrue(processSource.contains("mediaState: HostAgentMediaControlState"))
-        XCTAssertTrue(processSource.contains("onMediaControl:"))
+        XCTAssertFalse(processSource.contains("onMediaControl:"))
+        XCTAssertFalse(processSource.contains("onMediaControl(control)"))
         XCTAssertTrue(processSource.contains("mediaState.consume("))
         XCTAssertTrue(processSource.contains("eventSequence: sequence"))
-        let pipelineHandle = try XCTUnwrap(processSource.range(
-            of: "mediaPipelineOwner.handle(control)"
+        XCTAssertTrue(processSource.contains(
+            "onAccepted: { control in\n"
+                + "                                    mediaPipelineOwner.handle(control)"
         ))
-        let externalForward = try XCTUnwrap(processSource.range(
-            of: "onMediaControl(control)"
-        ))
-        XCTAssertLessThan(pipelineHandle.lowerBound, externalForward.lowerBound)
         let mediaCancel = try XCTUnwrap(processSource.range(
             of: "mediaState.cancelAndWait()"
         ))
@@ -537,10 +554,11 @@ final class CoreBridgeContractTests: XCTestCase {
         let diagnosticConsume = try XCTUnwrap(processSource.range(
             of: "mediaPipelineOwner.consume(event)"
         ))
-        let externalForward = try XCTUnwrap(processSource.range(
-            of: "onEvent(event)"
+        let journal = try XCTUnwrap(processSource.range(
+            of: "eventState.consume(event) { event, sequence in"
         ))
-        XCTAssertLessThan(diagnosticConsume.lowerBound, externalForward.lowerBound)
+        XCTAssertLessThan(journal.lowerBound, diagnosticConsume.lowerBound)
+        XCTAssertFalse(processSource.contains("onEvent(event)"))
 
         let appURL = repositoryRoot
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")

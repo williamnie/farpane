@@ -6,15 +6,14 @@ private enum HostAgentSnapshotCopyAccessError: Error {
 }
 
 /// Complete process-lifetime composition for the future `--host-agent` entry.
-/// The caller must provide the authoritative Host event consumer; this type
-/// deliberately neither prints diagnostics nor exits the process.
+/// All accepted Host events are consumed by process-owned authorities; this
+/// type deliberately neither prints diagnostics nor exits the process.
 enum HostAgentProcess {
     static func run(
+        expectedAgentBuildID: String,
         eventState: HostAgentEventState,
         snapshotState: HostAgentSnapshotState,
-        mediaState: HostAgentMediaControlState,
-        onMediaControl: @escaping @Sendable (HostMediaControl) -> Void,
-        onEvent: @escaping @Sendable (HostCoreEvent) -> Void
+        mediaState: HostAgentMediaControlState
     ) -> HostAgentProcessRunResult {
         let snapshotCoordinator = HostAgentSnapshotRefreshCoordinator(
             state: snapshotState
@@ -29,6 +28,7 @@ enum HostAgentProcess {
             },
             startRuntime: {
                 let result = HostAgentProcessStartup.prepare(
+                    expectedAgentBuildID: expectedAgentBuildID,
                     eventState: eventState,
                     snapshotState: snapshotState,
                     prepareTermination: {
@@ -47,11 +47,9 @@ enum HostAgentProcess {
                                 eventSequence: sequence,
                                 onAccepted: { control in
                                     mediaPipelineOwner.handle(control)
-                                    onMediaControl(control)
                                 }
                             )
                             mediaPipelineOwner.consume(event)
-                            onEvent(event)
                         }
                     }
                 )

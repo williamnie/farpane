@@ -1628,6 +1628,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.1ac HostAgent sanitized entry orchestration 已完成自动实现**。新的纯编排边界只执行一次 entry assessment：所有 typed rejection 都在 runner 前关闭；eligible evidence 会再次校验 bounded build identifier，再把同一份 eligibility 恰好传给 runner 一次并原样保留其 structured process result。entry rejection 现在统一进入 terminal reporter，以固定脱敏文本映射稳定 sysexits：invocation 为 64，launch/application identity 为 78，签名/notarization 为 77；诊断写失败不改变退出码，也不输出路径、build identifier、底层 Error 或签名数据。真实 pre-AppKit `AppDelegate.main` 仍未调用该编排器/runner，`--host-agent` 继续固定 69 fail closed；本步未启动 Core、读取真实配置、联网、注册或部署 Agent。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-entry-orchestration.md`。
 
+> 更新（2026-08-09）：**H4.1ad HostAgent product entry state/build ownership 已完成自动实现**。唯一 product entry driver 现在为每个 boot 恰好创建一组全新的 bounded event journal、sanitized snapshot authority 与 ordered media-control authority，并把 H4.1ab eligibility 的同一 build identifier 贯穿 process/startup/runtime，最终由 bootstrap projection exact-match 后才获取单写者 lease。伪造 typed build ID 在创建 state 前 fail closed，state 构造异常稳定收敛为 sanitized internal failure；旧的外部 event/media 空观察 seam 已移除，accepted event 只进入 process-owned snapshot/media/diagnostic 消费链。package-only expected-build bridge 不接受 path/env/Bundle override，也不形成新的磁盘 authority。真实 `AppDelegate.main` 仍未调用 product entry/orchestrator，`--host-agent` 继续固定 69；本步未读取真实配置、启动 Core、联网、安装、注册或部署 Agent。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-product-entry-driver.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

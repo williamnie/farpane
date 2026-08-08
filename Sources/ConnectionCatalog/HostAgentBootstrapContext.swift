@@ -26,6 +26,24 @@ public final class HostAgentBootstrapContext: @unchecked Sendable {
 
     public static func prepare() throws -> HostAgentBootstrapContext {
         let configuration = try HostAgentBootstrapLaunchPreflight().prepare()
+        return try prepare(configuration: configuration)
+    }
+
+    /// Package-only entry bridge. The expected identifier has already passed
+    /// the installed application identity gate and must match the immutable
+    /// projection before this process may acquire its single-writer lease.
+    package static func prepare(
+        expectedAgentBuildID: String
+    ) throws -> HostAgentBootstrapContext {
+        let configuration = try HostAgentBootstrapLaunchPreflight().prepare(
+            expectedAgentBuildID: expectedAgentBuildID
+        )
+        return try prepare(configuration: configuration)
+    }
+
+    private static func prepare(
+        configuration: HostAgentBootstrapConfiguration
+    ) throws -> HostAgentBootstrapContext {
         let agentBootID = UUID()
         let lease = try HostAgentSingleWriterLease.acquire(
             configuration: configuration,
