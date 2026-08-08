@@ -243,7 +243,6 @@ public final class HostHEVCEncoder: @unchecked Sendable {
       shouldForceKeyframe
       ? [kVTEncodeFrameOptionKey_ForceKeyFrame: true] as CFDictionary
       : nil
-    var flags = VTEncodeInfoFlags()
     let status = VTCompressionSessionEncodeFrame(
       session,
       imageBuffer: pixelBuffer,
@@ -251,18 +250,18 @@ public final class HostHEVCEncoder: @unchecked Sendable {
       duration: .invalid,
       frameProperties: frameProperties,
       sourceFrameRefcon: context.toOpaque(),
-      infoFlagsOut: &flags
+      infoFlagsOut: nil
     )
     guard status == noErr else {
       context.release()
       lock.withLock { forceNextKeyframe = true }
       throw HostHEVCEncoderError.encode(status)
     }
-    guard !flags.contains(.frameDropped) else {
-      context.release()
-      lock.withLock { forceNextKeyframe = true }
-      throw HostHEVCEncoderError.frameDropped
-    }
+    // Once VideoToolbox accepts the frame, its output callback owns the
+    // retained context. A synchronous frame drop may invoke that callback
+    // before this function returns, so reading infoFlagsOut and releasing the
+    // same context here would double-release it. The callback's infoFlags is
+    // the single authority for accepted-frame completion and drop handling.
   }
 
   public func invalidate() {
