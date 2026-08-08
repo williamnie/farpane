@@ -1558,6 +1558,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1y Agent media log retention 已完成自动实现**。产品默认 live-log 路径现在在每条 route 创建前执行固定 retention：只识别 `host-media-live-...-<UUID>.jsonl`、当前 effective user 所有、link count 为 1 的普通文件，先淘汰修改时间超过 7 天的旧文件，再按 modification date/filename 删除最旧项，使新文件创建后最多保留 24 条 route 日志；其他 JSONL、目录、symbolic link 和 hard link 一律不碰。淘汰使用只删除单个目录项、不会递归目录的 POSIX `unlink`；无效策略、目录枚举/metadata 或任一删除失败均 fail closed，不创建新日志也不暴露底层路径/Error；显式 output URL writer 保持无自动删除语义。动态测试只在 UUID 临时目录真实验证清理和非目标保护，未读取或改动用户日志。该策略依赖既有 H4 单写者 lease，不新增跨进程 authority；Agent 入口仍禁用，不修改 ABI/Rust/Hermes/XPC wire，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-agent-media-log-retention.md`。
 
+> 更新（2026-08-08）：**H4.1z Agent startup media-control delivery 已完成自动实现**。新的有界 delivery gate 覆盖 Core event callback 已安装但 process-owned media pipeline 尚未激活的启动窗口：只保留已完成 typed/bounded journal 校验的 `HostMediaControl`，最多 16 条并在 runtime binding 后、capability probe 前同步 FIFO drain；active 阶段继续由同一 gate 串行交付，避免 accepted route state 已前进但 `startCapture/reconfigure` 被 idle owner 静默丢失。第 17 条会清空 pending queue、terminal overflow 并使 startup fail closed；termination 先停止新控制、丢弃 queued control 并等待在途 delivery，再 drain log/route/runtime。snapshot 仅包含 lifecycle、数量和 in-flight bit，不包含 raw control/route/key/server/屏幕内容。本步只修复未来真实 Agent 入口所需的竞态，入口仍 exit 69，不宣称已定位或修复 Mini GUI 自退；不修改 ABI/Rust/Hermes/XPC wire/SMAppService，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-agent-startup-media-control-delivery.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
