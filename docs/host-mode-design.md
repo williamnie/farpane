@@ -1538,6 +1538,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1o single-stop Agent lifetime gate 已完成自动实现**。通用 lifetime gate 以 condition-backed `running → stopping → terminated` 三态强持有成功 runtime；首个 termination reason 原子生效并同步执行唯一 stop attempt，stopping/terminated 期间的并发、重复或 stop 回调重入请求立即返回 false，不等待、不改变 reason、不重复 stop。等待者在 sanitized `stopped|stopFailed` outcome 发布前阻塞，底层 stop Error 不进入结果；gate 析构时若仍 running，以 `appExit` 走同一路径。H4.1n 的成功值现改为产品 `HostAgentProcessLifetime`，而非裸 runtime，因此未来入口若保留 success owner，不会因局部变量离开而提前释放 Core/context/lease。本步刻意未安装 POSIX handler/DispatchSource signal、未输出诊断、未进入 wait/run loop，也未从 App 入口启用，故 `--host-agent` 仍固定 exit 69；未联网、未读真实配置/密钥，未改 ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-agent-lifetime-gate.md`。
 
+> 更新（2026-08-08）：**H4.1p latched DispatchSource signal ingress 已完成自动实现**。一次性 termination latch 允许 SIGTERM/SIGINT 在 runtime bind 前到达并锁存，或在 bind 后即时交付；first request/bind wins，delivery 在锁外执行、可安全重入，交付后 handler 立即释放。executable controller 只管理固定 SIGTERM/SIGINT：先以 `sigaction(SIG_IGN)` 保存/替换原 disposition，再激活两个 `DispatchSourceSignal`，Swift/锁只在 dispatch event handler 运行，不在 POSIX signal handler 中执行；bind 将请求映射为 H4.1o lifetime 的一次 `.appExit` termination。cancel/deinit 幂等 cancel source 并逆序恢复原 dispositions；首次信号不提前恢复默认 disposition，避免 Core stop 期间第二信号直接终止进程。本步已动态验证 latch，真实 controller 经 debug/release 编译和 source contract，但因入口仍禁用，未发送真实进程信号或声称 signal smoke；`--host-agent` 继续 exit 69。未联网、未读真实配置/密钥，未改 ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-dispatch-signal-ingress.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
