@@ -49,19 +49,18 @@ final class HostMediaTelemetryLiveLogTests: XCTestCase {
     ))
     XCTAssertTrue(try writer.record(
       snapshot: snapshot,
-      event: .routeStopped,
-      capturedAt: Date(timeIntervalSince1970: 1_700_000_001.2),
-      monotonicNanoseconds: 2_200_000_000
+      event: .captureSuspended,
+      capturedAt: Date(timeIntervalSince1970: 1_700_000_001.15),
+      monotonicNanoseconds: 2_150_000_000
     ))
-
     let records = try readRecords(fixture.output)
     XCTAssertEqual(records.count, 4)
     XCTAssertEqual(records.map { $0["sequence"] as? Int }, [1, 2, 3, 4])
     XCTAssertEqual(records.map { $0["event"] as? String }, [
-      "routeStarted", "periodic", "periodic", "routeStopped",
+      "routeStarted", "periodic", "periodic", "captureSuspended",
     ])
     XCTAssertEqual(records[1]["schema"] as? String, "farpane-host-media-live")
-    XCTAssertEqual(records[1]["schemaVersion"] as? Int, 2)
+    XCTAssertEqual(records[1]["schemaVersion"] as? Int, 3)
     XCTAssertEqual(records[1]["recentWindowSeconds"] as? Int, 5)
     XCTAssertEqual(records[1]["codec"] as? String, "h264")
     XCTAssertEqual(records[1]["requestedFPS"] as? Int, 30)

@@ -1,3 +1,5 @@
+import CoreFoundation
+import CoreGraphics
 import Foundation
 
 public enum HostApplicationLifecyclePolicy {
@@ -63,6 +65,54 @@ public enum HostSessionInputPresentationPolicy {
         default:
             return nil
         }
+    }
+}
+
+/// Mirrors the pinned Rust platform gate: only an unlocked, logged-in console
+/// Aqua session may capture. The lock key is omitted by macOS while unlocked;
+/// required flags and non-CFBoolean values fail closed.
+public enum HostActiveAquaSessionPolicy {
+    private static let onConsoleKey = "kCGSSessionOnConsoleKey"
+    private static let loginDoneKey = "kCGSessionLoginDoneKey"
+    private static let screenLockedKey = "CGSSessionScreenIsLocked"
+
+    public static func isAvailable(
+        onConsole: Bool?,
+        loginDone: Bool?,
+        screenLocked: Bool?
+    ) -> Bool {
+        onConsole == true && loginDone == true && screenLocked != true
+    }
+
+    public static func isAvailable(sessionDictionary: [String: Any]) -> Bool {
+        let screenLocked: Bool?
+        if let value = sessionDictionary[screenLockedKey] {
+            guard let parsed = strictBoolean(value) else { return false }
+            screenLocked = parsed
+        } else {
+            screenLocked = false
+        }
+        return isAvailable(
+            onConsole: strictBoolean(sessionDictionary[onConsoleKey]),
+            loginDone: strictBoolean(sessionDictionary[loginDoneKey]),
+            screenLocked: screenLocked
+        )
+    }
+
+    private static func strictBoolean(_ value: Any?) -> Bool? {
+        guard let value else { return nil }
+        let cfValue = value as CFTypeRef
+        guard CFGetTypeID(cfValue) == CFBooleanGetTypeID(),
+              let number = value as? NSNumber else { return nil }
+        return number.boolValue
+    }
+}
+
+public enum HostActiveAquaSessionAuthority {
+    public static func currentSessionIsAvailable() -> Bool {
+        guard let dictionary = CGSessionCopyCurrentDictionary() as? [String: Any]
+        else { return false }
+        return HostActiveAquaSessionPolicy.isAvailable(sessionDictionary: dictionary)
     }
 }
 

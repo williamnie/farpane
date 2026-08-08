@@ -16,10 +16,19 @@ from typing import Any
 
 
 SCHEMA = "farpane-host-media-live"
-SUPPORTED_SCHEMA_VERSIONS = {1, 2}
+SUPPORTED_SCHEMA_VERSIONS = {1, 2, 3}
 MAXIMUM_PERIODIC_RECORDS = 3_600
-EVENTS = {"routeStarted", "periodic", "routeStopped", "routeStartFailed"}
-FINAL_EVENTS = {"routeStopped", "routeStartFailed"}
+LEGACY_EVENTS = {"routeStarted", "periodic", "routeStopped", "routeStartFailed"}
+EVENTS_BY_SCHEMA = {
+    1: LEGACY_EVENTS,
+    2: LEGACY_EVENTS,
+    3: LEGACY_EVENTS | {"captureSuspended"},
+}
+FINAL_EVENTS_BY_SCHEMA = {
+    1: {"routeStopped", "routeStartFailed"},
+    2: {"routeStopped", "routeStartFailed"},
+    3: {"routeStopped", "routeStartFailed", "captureSuspended"},
+}
 CODECS = {"h264", "h265"}
 CONTENT_STATES = {"idle", "lowMotion", "interactive", "highMotion"}
 PRESSURE_LEVELS = {"none", "moderate", "severe"}
@@ -167,9 +176,9 @@ def validate_record(
 ) -> None:
     label = f"record {index + 1}"
     schema_version = record.get("schemaVersion")
-    is_v2 = is_integer(schema_version) and schema_version == 2
-    required_keys = REQUIRED_KEYS | (V2_REQUIRED_KEYS if is_v2 else set())
-    allowed_keys = ALLOWED_KEYS | (V2_REQUIRED_KEYS if is_v2 else set())
+    has_capture_counts = is_integer(schema_version) and schema_version in {2, 3}
+    required_keys = REQUIRED_KEYS | (V2_REQUIRED_KEYS if has_capture_counts else set())
+    allowed_keys = ALLOWED_KEYS | (V2_REQUIRED_KEYS if has_capture_counts else set())
     missing = required_keys - record.keys()
     unknown = record.keys() - allowed_keys
     if missing:
@@ -189,7 +198,10 @@ def validate_record(
         or record.get("monotonicNanoseconds", -1) < 0
     ):
         failures.append(f"{label} has an invalid monotonic timestamp")
-    if record.get("event") not in EVENTS:
+    allowed_events = set()
+    if is_integer(schema_version):
+        allowed_events = EVENTS_BY_SCHEMA.get(schema_version, set())
+    if record.get("event") not in allowed_events:
         failures.append(f"{label} has an invalid lifecycle event")
     if record.get("recentWindowSeconds") != 5:
         failures.append(f"{label} has an unexpected recent window")
@@ -273,7 +285,7 @@ def validate_record(
             or depth > capacity
         ):
             failures.append(f"{label} has an invalid encoded queue sample")
-    if is_v2:
+    if has_capture_counts:
         validate_v2_capture_counts(record, label, failures)
 
 
@@ -407,13 +419,17 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
         ):
             failures.append("capturedAt timestamps move backwards")
         events = [record.get("event") for record in records]
+        route_schema_version = records[0].get("schemaVersion")
+        final_events = set()
+        if is_integer(route_schema_version):
+            final_events = FINAL_EVENTS_BY_SCHEMA.get(route_schema_version, set())
         if events[0] != "routeStarted":
             failures.append("first record is not routeStarted")
-        if events[-1] not in FINAL_EVENTS:
+        if events[-1] not in final_events:
             failures.append("last record is not a final lifecycle event")
         if events.count("routeStarted") != 1:
             failures.append("routeStarted must occur exactly once")
-        if sum(event in FINAL_EVENTS for event in events) != 1:
+        if sum(event in final_events for event in events) != 1:
             failures.append("a final lifecycle event must occur exactly once")
         if any(event != "periodic" for event in events[1:-1]):
             failures.append("non-periodic lifecycle event appears inside the route")
@@ -422,7 +438,7 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
             failures.append("schema version is not an integer throughout the route")
         elif len(set(schema_versions)) != 1:
             failures.append("schema version changes inside the route")
-        elif schema_versions[0] == 2:
+        elif schema_versions[0] in {2, 3}:
             cumulative_fields = (
                 "captureCallbackCount",
                 "captureFrameStatusCounts",
@@ -544,7 +560,7 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
             "regimes": regimes,
         }
     )
-    if records[-1]["schemaVersion"] == 2:
+    if records[-1]["schemaVersion"] in {2, 3}:
         result.update(
             {
                 "captureCallbackCount": records[-1]["captureCallbackCount"],

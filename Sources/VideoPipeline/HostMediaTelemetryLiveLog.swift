@@ -10,6 +10,7 @@ public enum HostMediaLiveLogError: Error, Equatable {
 public enum HostMediaLiveLogEvent: String, Sendable {
   case routeStarted
   case periodic
+  case captureSuspended
   case routeStopped
   case routeStartFailed
 }
@@ -109,7 +110,7 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
       monotonicNanoseconds: UInt64
     ) {
       schema = "farpane-host-media-live"
-      schemaVersion = 2
+      schemaVersion = 3
       self.sequence = sequence
       self.capturedAt = capturedAt
       self.monotonicNanoseconds = monotonicNanoseconds
