@@ -193,6 +193,183 @@ final class HostMediaPipelineRouteOwnerTests: XCTestCase {
     owner.cancelAndWait()
   }
 
+  func testRecordsRustDiagnosticsForActiveAndJustCompletedRoute() {
+    let factory = RecordingRoutePipelineFactory()
+    let owner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let route = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+
+    XCTAssertTrue(owner.reconfigure(route))
+    owner.waitUntilIdle()
+    XCTAssertTrue(owner.recordEncodedQueueDepth(
+      route: route.identity,
+      current: 2,
+      maximum: 3,
+      capacity: 4,
+      finalized: false
+    ))
+    XCTAssertTrue(owner.recordWriterTiming(
+      route: route.identity,
+      cycles: 2,
+      subscriberDispatches: 3,
+      dispatchWallTotalUS: 100,
+      maximumDispatchWallUS: 60,
+      confirmationWaitTotalUS: 500,
+      maximumConfirmationWaitUS: 300,
+      completedConfirmations: 2,
+      timedOutConfirmations: 0,
+      finalized: false
+    ))
+    XCTAssertTrue(owner.recordNetworkMetrics(
+      route: route.identity,
+      subscriberCount: 1,
+      qosSubscriberCount: 1,
+      delaySampledSubscribers: 1,
+      rttSampledSubscribers: 1,
+      responseDelayedSubscribers: 0,
+      networkDelayMS: 20,
+      roundTripTimeMS: 30,
+      finalized: false
+    ))
+    XCTAssertTrue(owner.recordTransportMetrics(
+      route: route.identity,
+      subscriberCount: 1,
+      directSubscribers: 0,
+      relaySubscribers: 1,
+      unknownSubscribers: 0,
+      finalized: false
+    ))
+
+    let active = try! XCTUnwrap(owner.snapshot().activeTelemetry)
+    XCTAssertEqual(active.route, route.identity)
+    XCTAssertEqual(active.telemetry.encodedQueueDepth, 2)
+    XCTAssertEqual(active.telemetry.writerCycles, 2)
+    XCTAssertEqual(active.telemetry.networkDelayMS, 20)
+    XCTAssertEqual(active.telemetry.relaySubscribers, 1)
+
+    XCTAssertTrue(owner.stop(route: route.identity))
+    owner.waitUntilIdle()
+    XCTAssertTrue(owner.recordEncodedQueueDepth(
+      route: route.identity,
+      current: 0,
+      maximum: 3,
+      capacity: 4,
+      finalized: true
+    ))
+    let completed = try! XCTUnwrap(owner.snapshot().lastCompletedTelemetry)
+    XCTAssertEqual(completed.route, route.identity)
+    XCTAssertEqual(completed.telemetry.encodedQueueDepth, 0)
+    XCTAssertTrue(completed.telemetry.encodedQueueFinalized)
+    XCTAssertNil(owner.snapshot().activeTelemetry)
+  }
+
+  func testKeepsDiagnosticsRouteScopedAndBoundsCompletedHistory() {
+    let factory = RecordingRoutePipelineFactory()
+    let owner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let first = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+    let second = makeRoute(connectionEpoch: 12, codecEpoch: 22, codec: .h265)
+    let stale = makeRoute(connectionEpoch: 10, codecEpoch: 20)
+
+    XCTAssertTrue(owner.reconfigure(first))
+    owner.waitUntilIdle()
+    XCTAssertTrue(owner.reconfigure(second))
+    owner.waitUntilIdle()
+    XCTAssertTrue(owner.recordEncodedQueueDepth(
+      route: first.identity,
+      current: 1,
+      maximum: 1,
+      capacity: 3,
+      finalized: true
+    ))
+    XCTAssertFalse(owner.recordEncodedQueueDepth(
+      route: stale.identity,
+      current: 1,
+      maximum: 1,
+      capacity: 3,
+      finalized: false
+    ))
+
+    let snapshot = owner.snapshot()
+    XCTAssertEqual(snapshot.activeTelemetry?.route, second.identity)
+    XCTAssertNil(snapshot.activeTelemetry?.telemetry.encodedQueueDepth)
+    XCTAssertEqual(snapshot.lastCompletedTelemetry?.route, first.identity)
+    XCTAssertEqual(snapshot.lastCompletedTelemetry?.telemetry.encodedQueueDepth, 1)
+    XCTAssertEqual(snapshot.rejectedTelemetryUpdateCount, 1)
+    XCTAssertEqual(snapshot.pendingOperationCount, 0)
+    XCTAssertEqual(owner.routeIdentities(), [second.identity])
+    let retained = owner.routeIdentities(includingRetainedTelemetry: true)
+    XCTAssertEqual(retained.count, 2)
+    XCTAssertTrue(retained.contains(first.identity))
+    XCTAssertTrue(retained.contains(second.identity))
+  }
+
+  func testStoppingQueuedReplacementAlsoStopsSupersededActiveRoute() {
+    let factory = RecordingRoutePipelineFactory()
+    let owner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let first = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+    let replacement = makeRoute(connectionEpoch: 12, codecEpoch: 22, codec: .h265)
+
+    XCTAssertTrue(owner.reconfigure(first))
+    owner.waitUntilIdle()
+    let firstPipeline = try! XCTUnwrap(factory.pipelines.first)
+    XCTAssertTrue(owner.reconfigure(replacement))
+    XCTAssertTrue(owner.stop(route: replacement.identity))
+    owner.waitUntilIdle()
+
+    XCTAssertNil(owner.snapshot().activeRoute)
+    XCTAssertNil(owner.snapshot().desiredRoute)
+    XCTAssertEqual(firstPipeline.operations, [.start, .cancel, .stop])
+    XCTAssertEqual(factory.pipelines.count, 1)
+  }
+
+  func testAcceptsFinalDiagnosticWhilePipelineStopIsDraining() {
+    let stopGate = RoutePipelineAsyncStartGate()
+    let factory = RecordingRoutePipelineFactory(stopGate: stopGate)
+    let owner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let route = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+
+    XCTAssertTrue(owner.reconfigure(route))
+    owner.waitUntilIdle()
+    XCTAssertTrue(owner.stop(route: route.identity))
+    XCTAssertEqual(stopGate.entered.wait(timeout: .now() + 2), .success)
+    XCTAssertTrue(owner.recordEncodedQueueDepth(
+      route: route.identity,
+      current: 0,
+      maximum: 2,
+      capacity: 3,
+      finalized: true
+    ))
+    stopGate.release()
+    owner.waitUntilIdle()
+
+    XCTAssertEqual(
+      owner.snapshot().lastCompletedTelemetry?.telemetry.encodedQueueDepth,
+      0
+    )
+    XCTAssertTrue(
+      owner.snapshot().lastCompletedTelemetry?.telemetry.encodedQueueFinalized == true
+    )
+  }
+
   private func makeRoute(
     connectionEpoch: UInt64,
     codecEpoch: UInt64,
@@ -235,6 +412,7 @@ private final class RecordingRoutePipeline: HostMediaPipelineLifecycle, @uncheck
   private let callbacks: HostMediaPipelineRouteCallbacks
   private let startFailure: Bool
   private let startGate: RoutePipelineAsyncStartGate?
+  private let stopGate: RoutePipelineAsyncStartGate?
   private let lock = NSLock()
   private var recordedOperations: [RoutePipelineOperation] = []
 
@@ -242,12 +420,14 @@ private final class RecordingRoutePipeline: HostMediaPipelineLifecycle, @uncheck
     telemetry: HostMediaTelemetry,
     callbacks: HostMediaPipelineRouteCallbacks,
     startFailure: Bool,
-    startGate: RoutePipelineAsyncStartGate?
+    startGate: RoutePipelineAsyncStartGate?,
+    stopGate: RoutePipelineAsyncStartGate?
   ) {
     self.telemetry = telemetry
     self.callbacks = callbacks
     self.startFailure = startFailure
     self.startGate = startGate
+    self.stopGate = stopGate
   }
 
   var operations: [RoutePipelineOperation] {
@@ -265,7 +445,10 @@ private final class RecordingRoutePipeline: HostMediaPipelineLifecycle, @uncheck
   func requestKeyframe() { append(.requestKeyframe) }
   func recoverFromEncodedPacketDrop() { append(.recover) }
   func cancel() { append(.cancel) }
-  func stop() async { append(.stop) }
+  func stop() async {
+    append(.stop)
+    if let stopGate { await stopGate.wait() }
+  }
 
   func emitAccessUnit(codec: HostPipelineCodec = .h264) {
     callbacks.onAccessUnit(HostMediaAccessUnit(
@@ -297,14 +480,17 @@ private final class RecordingRoutePipelineFactory: @unchecked Sendable {
   private let lock = NSLock()
   private let startFailure: Bool
   private let startGate: RoutePipelineAsyncStartGate?
+  private let stopGate: RoutePipelineAsyncStartGate?
   private var recordedPipelines: [RecordingRoutePipeline] = []
 
   init(
     startFailure: Bool = false,
-    startGate: RoutePipelineAsyncStartGate? = nil
+    startGate: RoutePipelineAsyncStartGate? = nil,
+    stopGate: RoutePipelineAsyncStartGate? = nil
   ) {
     self.startFailure = startFailure
     self.startGate = startGate
+    self.stopGate = stopGate
   }
 
   var pipelines: [RecordingRoutePipeline] {
@@ -322,7 +508,8 @@ private final class RecordingRoutePipelineFactory: @unchecked Sendable {
       telemetry: telemetry,
       callbacks: callbacks,
       startFailure: startFailure,
-      startGate: startGate
+      startGate: startGate,
+      stopGate: stopGate
     )
     lock.lock()
     recordedPipelines.append(pipeline)

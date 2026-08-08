@@ -48,6 +48,7 @@ enum HostAgentProcess {
                                     onMediaControl(control)
                                 }
                             )
+                            mediaPipelineOwner.consume(event)
                             onEvent(event)
                         }
                     }
