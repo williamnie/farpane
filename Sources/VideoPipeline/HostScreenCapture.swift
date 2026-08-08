@@ -157,6 +157,8 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     private var appliedFramesPerSecond: Int?
     private var configurationUpdateInFlight = false
     private var nextConfigurationRetryNanoseconds: UInt64 = 0
+    private var terminallyCancelled = false
+    private var stopTask: Task<Void, Never>?
 
     public convenience init(
         onFrame: @escaping FrameHandler,
@@ -192,10 +194,16 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
 
     public func start(configuration: HostCaptureConfiguration) async throws {
         guard configuration.isValid else { throw HostScreenCaptureError.invalidConfiguration }
+        guard lock.withLock({ !terminallyCancelled }) else {
+            throw HostScreenCaptureError.streamStopped("cancelled")
+        }
         let content = try await SCShareableContent.excludingDesktopWindows(
             false,
             onScreenWindowsOnly: true
         )
+        guard lock.withLock({ !terminallyCancelled }) else {
+            throw HostScreenCaptureError.streamStopped("cancelled")
+        }
         guard content.displays.indices.contains(configuration.displayIndex) else {
             throw HostScreenCaptureError.displayUnavailable
         }
@@ -218,16 +226,24 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
             delegate: self
         )
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: captureQueue)
-        lock.withLock {
+        let mayStart = lock.withLock { () -> Bool in
+            guard !terminallyCancelled else { return false }
             self.stream = stream
             self.captureConfiguration = configuration
             self.cadenceController = cadenceController
             self.appliedFramesPerSecond = configuration.framesPerSecond
             self.configurationUpdateInFlight = false
             self.nextConfigurationRetryNanoseconds = 0
+            return true
+        }
+        guard mayStart else {
+            throw HostScreenCaptureError.streamStopped("cancelled")
         }
         do {
             try await stream.startCapture()
+            guard lock.withLock({ !terminallyCancelled && self.stream === stream }) else {
+                throw HostScreenCaptureError.streamStopped("cancelled")
+            }
         } catch {
             let cancelled = lock.withLock { () -> Bool in
                 guard self.stream === stream else { return false }
@@ -261,13 +277,27 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     }
 
     public func stop() async {
-        let (stream, cancelled) = lock.withLock { () -> (SCStream?, Bool) in
-            let value = self.stream
-            return (value, clearStreamState())
+        cancel()
+        let task = lock.withLock { stopTask }
+        await task?.value
+    }
+
+    /// Synchronously makes this adapter terminal, then asks ScreenCaptureKit
+    /// to stop outside the lock. `stop()` joins the same task before teardown.
+    public func cancel() {
+        let cancelledUpdate = lock.withLock { () -> Bool in
+            terminallyCancelled = true
+            if stopTask != nil { return false }
+            let stream = self.stream
+            let cancelledUpdate = clearStreamState()
+            guard let stream else { return cancelledUpdate }
+            let task = Task {
+                do { try await stream.stopCapture() } catch {}
+            }
+            stopTask = task
+            return cancelledUpdate
         }
-        if cancelled { onCadence(.configurationCancelled) }
-        guard let stream else { return }
-        try? await stream.stopCapture()
+        if cancelledUpdate { onCadence(.configurationCancelled) }
     }
 
     private static func frameAttachments(

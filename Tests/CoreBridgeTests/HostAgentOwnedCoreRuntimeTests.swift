@@ -140,6 +140,66 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         )
     }
 
+    func testMediaOperationsStayWithinOwnedRuntimeLifetime() throws {
+        let recorder = HostAgentLifecycleRecorder()
+        let client = OwnedRuntimeRecordingClient(recorder: recorder)
+        let runtime = try HostAgentOwnedCoreRuntime.start(
+            bootstrapOwner: HostAgentTestBootstrapOwner(recorder: recorder)
+        ) { _ in
+            recorder.append(.runtimeFactory)
+            return try self.startCore(client: client)
+        }
+        let capabilities = HostEncoderCapabilities(
+            h264Hardware: true,
+            h265Hardware: true,
+            maxWidth: 1_920,
+            maxHeight: 1_080,
+            maxFPS: 30
+        )
+        let accessUnit = HostEncodedAccessUnit(
+            hostInstanceID: "owned-runtime-host",
+            connectionEpoch: 11,
+            codecEpoch: 21,
+            displayID: 0,
+            displayRevision: 3,
+            codec: .h264,
+            framing: .avcc,
+            presentationTimeUS: 10,
+            isKeyframe: true,
+            hasParameterSets: true,
+            data: Data([0, 0, 0, 1])
+        )
+
+        try runtime.setMediaCapabilities(
+            hostInstanceID: "owned-runtime-host",
+            capabilities: capabilities
+        )
+        try runtime.submit(accessUnit: accessUnit)
+        try runtime.reportEncoderState(
+            hostInstanceID: "owned-runtime-host",
+            connectionEpoch: 11,
+            codecEpoch: 21,
+            codec: .h264,
+            hardwareAccelerated: true,
+            softwareFallback: false,
+            encoderID: "test-encoder"
+        )
+        XCTAssertEqual(Array(recorder.events.suffix(3)), [
+            .coreSetMediaCapabilities,
+            .coreSubmitMedia,
+            .coreReportEncoderState,
+        ])
+
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(try runtime.submit(accessUnit: accessUnit)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertEqual(
+            recorder.events.filter { $0 == .coreSubmitMedia }.count,
+            1
+        )
+    }
+
     private func startCore(
         client: OwnedRuntimeRecordingClient
     ) throws -> HostAgentCoreRuntime {
@@ -161,6 +221,9 @@ private enum HostAgentLifecycleEvent: Equatable {
     case configRoot
     case coreStart
     case coreCopySnapshot
+    case coreSetMediaCapabilities
+    case coreSubmitMedia
+    case coreReportEncoderState
     case coreStop(HostStopReason)
     case bootstrapReleased
 }
@@ -244,5 +307,28 @@ private final class OwnedRuntimeRecordingClient: HostAgentCoreControlSurface {
         return try HostCoreSnapshot(
             rawJSON: JSONSerialization.data(withJSONObject: document)
         )
+    }
+
+    func setMediaCapabilities(
+        hostInstanceID: String,
+        capabilities: HostEncoderCapabilities
+    ) throws {
+        recorder.append(.coreSetMediaCapabilities)
+    }
+
+    func submit(accessUnit: HostEncodedAccessUnit) throws {
+        recorder.append(.coreSubmitMedia)
+    }
+
+    func reportEncoderState(
+        hostInstanceID: String,
+        connectionEpoch: UInt64,
+        codecEpoch: UInt64,
+        codec: HostMediaCodec,
+        hardwareAccelerated: Bool,
+        softwareFallback: Bool,
+        encoderID: String
+    ) throws {
+        recorder.append(.coreReportEncoderState)
     }
 }

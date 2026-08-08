@@ -52,4 +52,38 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
     func copySnapshot() throws -> HostCoreSnapshot {
         try ownedRuntime.copySnapshot()
     }
+
+    func setMediaCapabilities(
+        hostInstanceID: String,
+        capabilities: HostEncoderCapabilities
+    ) throws {
+        try ownedRuntime.setMediaCapabilities(
+            hostInstanceID: hostInstanceID,
+            capabilities: capabilities
+        )
+    }
+
+    func submit(accessUnit: HostEncodedAccessUnit) throws {
+        try ownedRuntime.submit(accessUnit: accessUnit)
+    }
+
+    func reportEncoderState(
+        hostInstanceID: String,
+        connectionEpoch: UInt64,
+        codecEpoch: UInt64,
+        codec: HostMediaCodec,
+        hardwareAccelerated: Bool,
+        softwareFallback: Bool,
+        encoderID: String
+    ) throws {
+        try ownedRuntime.reportEncoderState(
+            hostInstanceID: hostInstanceID,
+            connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch,
+            codec: codec,
+            hardwareAccelerated: hardwareAccelerated,
+            softwareFallback: softwareFallback,
+            encoderID: encoderID
+        )
+    }
 }
