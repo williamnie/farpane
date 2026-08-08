@@ -83,7 +83,7 @@ package struct HostAgentBackgroundProjectionSessionBinding: Sendable {
         HostAgentXPCSnapshotClientPeerIdentity?
     package let sink: HostAgentXPCSessionProjectionSink
 
-    fileprivate init(
+    package init(
         previousPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity?,
         sink: HostAgentXPCSessionProjectionSink
     ) {
