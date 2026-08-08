@@ -1592,6 +1592,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.3c2 lease-bound XPC identity process composition 已完成自动实现**。真实 `HostAgentProcessRuntime.start` 现在只在 secure bootstrap/single-writer lease 成功后，从 immutable lease record 读取 exact agent build ID 与同一 boot UUID（仅为 wire 转 lowercase），不再生成第二个 ID；authority 与 owned Core runtime 同寿命。initial snapshot 同步成功后必须先以 snapshot authority 的 exact Host instance 首次 bind，随后才 start media pipeline/polling；失败走既有 sanitized startup termination。`HostAgentProcessLifetime` 在 media/poll teardown 和 Core stop 前首先 invalidate identity，runtime stop/deinit 再幂等兜底。当前仍未启用 Agent entry、listener/connection/interface installation，也未开放 snapshot/event/Host command wire；H4.2k 继续全拒绝。未修改 Host Control/Media ABI、Rust/Hermes/SMAppService/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-process-identity-composition.md`。
 
+> 更新（2026-08-08）：**H4.3c3 snapshot/XPC identity safety synchronization 已完成自动实现**。snapshot refresh coordinator 的 bind 现在强制同时提供一次性 identity invalidation callback；后续 Core snapshot copy 失败或 publish 精确判定 Host instance mismatch 时，以固定脱敏 reason 在 coordinator lock 外至多通知一次，真实产品通过 weak lifetime 与 running gate 永久 invalidate XPC identity。stale event sequence/observedAt 仍只按 snapshot policy 拒绝或降级，不被误判为 process identity contradiction；后续 snapshot 恢复也不能复活 identity。initial failure/启动窗口矛盾会使首次 bind fail closed 并走既有 sanitized termination。当前仍未启用 Agent entry、listener/connection/interface installation；H4.2k 继续全拒绝。未修改 Host Control/Media ABI、XPC schema、Rust/Hermes/SMAppService/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-snapshot-identity-synchronization.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

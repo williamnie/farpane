@@ -19,6 +19,14 @@ package enum HostAgentSnapshotPublishResult: Equatable, Sendable {
     case rejected(HostAgentSnapshotRejectionReason)
 }
 
+/// Sanitized reasons that terminally invalidate the process-lifetime XPC
+/// handshake identity. Stale sequencing or observation time only degrades
+/// snapshot availability and does not assert a contradictory process identity.
+package enum HostAgentSnapshotIdentityInvalidationReason: Equatable, Sendable {
+    case copyFailed
+    case hostInstanceMismatch
+}
+
 /// Durable-in-memory projection for future snapshot-first IPC. The one-shot
 /// revealed password and source raw JSON are intentionally not represented.
 package struct HostAgentSnapshotProjection: Sendable {
@@ -160,6 +168,9 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
     private let lock = NSCondition()
     private let state: HostAgentSnapshotState
     private var copySnapshot: (() throws -> HostCoreSnapshot)?
+    private var onIdentityInvalidationRequired:
+        ((HostAgentSnapshotIdentityInvalidationReason) -> Void)?
+    private var identityInvalidationDelivered = false
     private var pending: RefreshRequest?
     private var pollPending = false
     private var refreshing = false
@@ -174,14 +185,22 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
 
     @discardableResult
     package func bind(
-        copySnapshot: @escaping () throws -> HostCoreSnapshot
+        copySnapshot: @escaping () throws -> HostCoreSnapshot,
+        onIdentityInvalidationRequired: @escaping (
+            HostAgentSnapshotIdentityInvalidationReason
+        ) -> Void
     ) -> Bool {
         lock.lock()
-        guard !cancelled, self.copySnapshot == nil else {
+        guard !cancelled,
+              self.copySnapshot == nil,
+              self.onIdentityInvalidationRequired == nil
+        else {
             lock.unlock()
             return false
         }
         self.copySnapshot = copySnapshot
+        self.onIdentityInvalidationRequired =
+            onIdentityInvalidationRequired
         if pending == nil {
             pending = RefreshRequest(eventSequence: 0, hostInstanceID: nil)
         }
@@ -274,6 +293,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
             lock.wait()
         }
         copySnapshot = nil
+        onIdentityInvalidationRequired = nil
         lock.unlock()
     }
 
@@ -285,13 +305,17 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         while true {
             do {
                 let snapshot = try copySnapshot()
-                state.publish(
+                let result = state.publish(
                     snapshot,
                     eventSequence: request.eventSequence,
                     expectedHostInstanceID: request.hostInstanceID
                 )
+                if result == .rejected(.hostInstanceMismatch) {
+                    requireIdentityInvalidation(.hostInstanceMismatch)
+                }
             } catch {
                 state.recordCopyFailure(eventSequence: request.eventSequence)
+                requireIdentityInvalidation(.copyFailed)
             }
 
             lock.lock()
@@ -338,5 +362,20 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         let request = pending
         pending = nil
         return request
+    }
+
+    private func requireIdentityInvalidation(
+        _ reason: HostAgentSnapshotIdentityInvalidationReason
+    ) {
+        lock.lock()
+        guard !identityInvalidationDelivered,
+              let onIdentityInvalidationRequired
+        else {
+            lock.unlock()
+            return
+        }
+        identityInvalidationDelivered = true
+        lock.unlock()
+        onIdentityInvalidationRequired(reason)
     }
 }

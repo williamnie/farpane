@@ -63,6 +63,29 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
         )
     }
 
+    func testSnapshotAuthorityFailureInvalidatesThroughRunningLifetimeGate() throws {
+        let processSource = try productSource("HostAgentProcess.swift")
+        let lifetimeSource = try productSource("HostAgentProcessLifetime.swift")
+
+        XCTAssertTrue(processSource.contains(
+            "onIdentityInvalidationRequired: { [weak lifetime] _ in"
+        ))
+        try assertOrder(
+            in: processSource,
+            "onIdentityInvalidationRequired:",
+            "try? lifetime.invalidateXPCIdentity()"
+        )
+        XCTAssertTrue(lifetimeSource.contains(
+            """
+            func invalidateXPCIdentity() throws {
+                    try gate.withRunningRuntime { runtime in
+                        runtime.invalidateXPCIdentity()
+                    }
+                }
+            """
+        ))
+    }
+
     func testCompositionStillCannotAcceptOrActivateXPC() throws {
         let sources = try [
             productSource("HostAgentProcessRuntime.swift"),
