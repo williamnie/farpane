@@ -36,7 +36,7 @@ final class CoreBridgeContractTests: XCTestCase {
         let bridge = try String(contentsOf: bridgeURL, encoding: .utf8)
 
         XCTAssertTrue(bridge.contains("const EVENT_SCHEMA_VERSION: u32 = 1;"))
-        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 4;"))
+        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 5;"))
         XCTAssertTrue(bridge.contains("\"schemaVersion\": EVENT_SCHEMA_VERSION"))
         XCTAssertTrue(bridge.contains(
             "map.insert(\"schemaVersion\".into(), json!(SNAPSHOT_SCHEMA_VERSION));"
@@ -330,13 +330,15 @@ final class CoreBridgeContractTests: XCTestCase {
                 "viewDisplay", "controlKeyboardMouse", "readClipboard", "writeClipboard",
             ],
             "activeCapabilities": ["viewDisplay", "controlKeyboardMouse"],
+            "inputAvailability": "available",
+            "inputUnavailableReason": NSNull(),
         ]
         func document(
             pendingApproval: Any,
             activeSession: Any = NSNull()
         ) -> [String: Any] {
             [
-                "schemaVersion": 4,
+                "schemaVersion": 5,
                 "hostInstanceId": "host-instance",
                 "hostState": "ready",
                 "localId": "987654321",
@@ -370,7 +372,7 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )
         let snapshot = try HostCoreSnapshot(rawJSON: data)
-        XCTAssertEqual(snapshot.schemaVersion, 4)
+        XCTAssertEqual(snapshot.schemaVersion, 5)
         XCTAssertEqual(snapshot.pendingApproval?.connectionId, "host-instance:7")
         XCTAssertEqual(snapshot.pendingApproval?.remoteName, "Remote Mac")
         XCTAssertEqual(
@@ -387,6 +389,8 @@ final class CoreBridgeContractTests: XCTestCase {
             snapshot.activeSession?.activeCapabilities,
             ["viewDisplay", "controlKeyboardMouse"]
         )
+        XCTAssertEqual(snapshot.activeSession?.inputAvailability, .available)
+        XCTAssertNil(snapshot.activeSession?.inputUnavailableReason)
 
         let noPending = try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: document(pendingApproval: NSNull())
@@ -456,6 +460,51 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )))
         invalidSession = activeSession
+        invalidSession["activeCapabilities"] = ["viewDisplay"]
+        invalidSession["inputAvailability"] = "available"
+        invalidSession["inputUnavailableReason"] = NSNull()
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                activeSession: invalidSession
+            )
+        )))
+        invalidSession = activeSession
+        invalidSession["activeCapabilities"] = ["viewDisplay"]
+        invalidSession["inputAvailability"] = "limited"
+        invalidSession["inputUnavailableReason"] = "sessionUnavailable"
+        let limitedSnapshot = try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                activeSession: invalidSession
+            )
+        ))
+        XCTAssertEqual(limitedSnapshot.activeSession?.inputAvailability, .limited)
+        XCTAssertEqual(
+            limitedSnapshot.activeSession?.inputUnavailableReason,
+            .sessionUnavailable
+        )
+        invalidSession = activeSession
+        invalidSession["activeCapabilities"] = ["viewDisplay"]
+        invalidSession["inputAvailability"] = "disabled"
+        invalidSession["inputUnavailableReason"] = "accessibilityDenied"
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                activeSession: invalidSession
+            )
+        )))
+        invalidSession = activeSession
+        invalidSession["activeCapabilities"] = ["viewDisplay"]
+        invalidSession["inputAvailability"] = "limited"
+        invalidSession["inputUnavailableReason"] = "futureReason"
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                activeSession: invalidSession
+            )
+        )))
+        invalidSession = activeSession
         invalidSession["password"] = "must-not-be-accepted"
         XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: document(
@@ -464,7 +513,7 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )))
         var oldSchema = document(pendingApproval: NSNull())
-        oldSchema["schemaVersion"] = 3
+        oldSchema["schemaVersion"] = 4
         XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: oldSchema
         )))

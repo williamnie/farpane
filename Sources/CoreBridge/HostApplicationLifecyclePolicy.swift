@@ -18,6 +18,54 @@ public struct HostSessionIndicatorPresentation: Equatable, Sendable {
     public let disconnectEnabled: Bool
 }
 
+public struct HostSessionInputPresentation: Equatable, Sendable {
+    public let overallStatusText: String
+    public let detailText: String?
+    public let statusItemTitle: String
+}
+
+public enum HostSessionInputPresentationPolicy {
+    public static func presentation(
+        availability: HostSessionInputAvailability,
+        unavailableReason: HostSessionInputUnavailableReason?
+    ) -> HostSessionInputPresentation? {
+        switch (availability, unavailableReason) {
+        case (.available, nil):
+            return HostSessionInputPresentation(
+                overallStatusText: "远程会话进行中",
+                detailText: nil,
+                statusItemTitle: "FarPane 正在共享屏幕"
+            )
+        case (.disabled, .localPolicyDisabled):
+            return HostSessionInputPresentation(
+                overallStatusText: "远程会话进行中",
+                detailText: "键盘与鼠标已由本机停用",
+                statusItemTitle: "FarPane 正在共享屏幕"
+            )
+        case (.disabled, .remoteDisabled):
+            return HostSessionInputPresentation(
+                overallStatusText: "远程会话进行中",
+                detailText: "键盘与鼠标已由控制端停用",
+                statusItemTitle: "FarPane 正在共享屏幕"
+            )
+        case (.limited, .accessibilityDenied):
+            return HostSessionInputPresentation(
+                overallStatusText: "远程会话受限：键鼠辅助功能权限不可用",
+                detailText: "键盘与鼠标已暂停：重新授权后，请在本机重新启用键鼠控制",
+                statusItemTitle: "FarPane 远程会话受限"
+            )
+        case (.limited, .sessionUnavailable):
+            return HostSessionInputPresentation(
+                overallStatusText: "远程会话受限：当前 Mac 会话不可用",
+                detailText: "键盘与鼠标已暂停：当前 Mac 处于锁屏、登录窗口或其他用户会话",
+                statusItemTitle: "FarPane 远程会话受限"
+            )
+        default:
+            return nil
+        }
+    }
+}
+
 /// Produces the global active-session indicator from the same exact-session
 /// snapshot authority used by the in-window controls. Invalid or ambiguous
 /// inputs fail closed so a stale menu can never manufacture a control target.
@@ -26,12 +74,18 @@ public enum HostSessionIndicatorPolicy {
         connectionID: String?,
         remoteID: String,
         remoteName: String,
+        inputAvailability: HostSessionInputAvailability = .available,
+        inputUnavailableReason: HostSessionInputUnavailableReason? = nil,
         disconnectInFlight: Bool
     ) -> HostSessionIndicatorPresentation? {
         guard let connectionID,
               valid(connectionID, maximumUTF8Bytes: 128, allowEmpty: false),
               valid(remoteID, maximumUTF8Bytes: 256, allowEmpty: false),
-              valid(remoteName, maximumUTF8Bytes: 256, allowEmpty: true)
+              valid(remoteName, maximumUTF8Bytes: 256, allowEmpty: true),
+              let inputPresentation = HostSessionInputPresentationPolicy.presentation(
+                  availability: inputAvailability,
+                  unavailableReason: inputUnavailableReason
+              )
         else { return nil }
 
         let identityText = remoteName.isEmpty
@@ -39,7 +93,7 @@ public enum HostSessionIndicatorPolicy {
             : "对方声明（未经验证）：\(remoteName) · ID \(remoteID)"
         return HostSessionIndicatorPresentation(
             connectionID: connectionID,
-            title: "FarPane 正在共享屏幕",
+            title: inputPresentation.statusItemTitle,
             remoteIdentityText: identityText,
             disconnectTitle: disconnectInFlight ? "正在断开…" : "断开连接",
             disconnectEnabled: !disconnectInFlight

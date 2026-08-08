@@ -577,7 +577,7 @@ index 89a17a9..b0b23d5 100644
 +    }
 +}
 diff --git a/src/server/connection.rs b/src/server/connection.rs
-index bdf9cba..b0de9d3 100644
+index bdf9cba..ef1dac4 100644
 --- a/src/server/connection.rs
 +++ b/src/server/connection.rs
 @@ -55,7 +55,7 @@ use scrap::camera;
@@ -773,7 +773,7 @@ index bdf9cba..b0de9d3 100644
      BlockOn,
      BlockOff,
      #[cfg(all(feature = "flutter", feature = "plugin_framework"))]
-@@ -209,6 +360,167 @@ enum MessageInput {
+@@ -209,6 +360,183 @@ enum MessageInput {
      BlockOffPlugin(String),
  }
 
@@ -878,6 +878,22 @@ index bdf9cba..b0de9d3 100644
 +        self.effective
 +    }
 +
++    fn unavailable_reason(
++        &self,
++    ) -> Option<crate::rdn_host_bridge::NativeSessionInputUnavailableReason> {
++        use crate::rdn_host_bridge::NativeSessionInputUnavailableReason;
++
++        if self.effective {
++            None
++        } else if !self.configured {
++            Some(NativeSessionInputUnavailableReason::LocalPolicyDisabled)
++        } else if !self.accessibility_latched {
++            Some(NativeSessionInputUnavailableReason::AccessibilityDenied)
++        } else {
++            Some(NativeSessionInputUnavailableReason::SessionUnavailable)
++        }
++    }
++
 +    fn should_observe(&self) -> bool {
 +        self.configured && self.accessibility_latched && (self.effective || self.aqua_restore_armed)
 +    }
@@ -941,7 +957,7 @@ index bdf9cba..b0de9d3 100644
  #[derive(Clone, Debug, Hash, Eq, PartialEq)]
  pub struct SessionKey {
      peer_id: String,
-@@ -252,6 +564,134 @@ impl AuthConnType {
+@@ -252,6 +580,134 @@ impl AuthConnType {
      }
  }
 
@@ -1076,7 +1092,7 @@ index bdf9cba..b0de9d3 100644
  #[derive(Clone, Copy, Debug, Eq, PartialEq)]
  #[repr(i64)]
  enum ConnAuditPrimaryAuth {
-@@ -315,9 +755,19 @@ pub struct Connection {
+@@ -315,9 +771,19 @@ pub struct Connection {
      port_forward_socket: Option<Framed<TcpStream, BytesCodec>>,
      port_forward_address: String,
      tx_to_cm: mpsc::UnboundedSender<ipc::Data>,
@@ -1096,7 +1112,7 @@ index bdf9cba..b0de9d3 100644
      clipboard: bool,
      audio: bool,
      file: bool,
-@@ -348,6 +798,10 @@ pub struct Connection {
+@@ -348,6 +814,10 @@ pub struct Connection {
      audio_sender: Option<MediaSender>,
      // audio by the remote peer/client
      tx_input: std_mpsc::Sender<MessageInput>,
@@ -1107,7 +1123,7 @@ index bdf9cba..b0de9d3 100644
      // handle input messages
      video_ack_required: bool,
      server_audit_conn: String,
-@@ -479,6 +933,43 @@ impl Connection {
+@@ -479,6 +949,43 @@ impl Connection {
          let (tx, mut rx) = mpsc::unbounded_channel::<(Instant, Arc<Message>)>();
          let (tx_video, mut rx_video) = mpsc::unbounded_channel::<(Instant, Arc<Message>)>();
          let (tx_input, _rx_input) = std_mpsc::channel();
@@ -1151,7 +1167,7 @@ index bdf9cba..b0de9d3 100644
          let (tx_from_authed, mut rx_from_authed) = mpsc::unbounded_channel::<ipc::Data>();
          let mut hbbs_rx = crate::hbbs_http::sync::signal_receiver();
          #[cfg(not(any(target_os = "android", target_os = "ios")))]
-@@ -516,15 +1007,28 @@ impl Connection {
+@@ -516,15 +1023,28 @@ impl Connection {
              port_forward_socket: None,
              port_forward_address: "".to_owned(),
              tx_to_cm,
@@ -1181,7 +1197,7 @@ index bdf9cba..b0de9d3 100644
              privacy_mode: Self::permission(keys::OPTION_ENABLE_PRIVACY_MODE, &control_permissions),
              control_permissions,
              last_test_delay: None,
-@@ -543,6 +1047,10 @@ impl Connection {
+@@ -543,6 +1063,10 @@ impl Connection {
              #[cfg(not(any(target_os = "android", target_os = "ios")))]
              show_my_cursor: false,
              tx_input,
@@ -1192,7 +1208,7 @@ index bdf9cba..b0de9d3 100644
              video_ack_required: false,
              server_audit_conn: "".to_owned(),
              server_audit_file: "".to_owned(),
-@@ -642,7 +1150,13 @@ impl Connection {
+@@ -642,7 +1166,13 @@ impl Connection {
          );
 
          #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -1207,7 +1223,7 @@ index bdf9cba..b0de9d3 100644
          let mut second_timer = crate::rustdesk_interval(time::interval(Duration::from_secs(1)));
 
          #[cfg(feature = "unix-file-copy-paste")]
-@@ -711,7 +1225,19 @@ impl Connection {
+@@ -711,7 +1241,19 @@ impl Connection {
                          ipc::Data::SwitchPermission{name, enabled} => {
                              log::info!("Change permission {} -> {}", name, enabled);
                              if &name == "keyboard" {
@@ -1227,7 +1243,7 @@ index bdf9cba..b0de9d3 100644
                                  conn.send_permission(Permission::Keyboard, enabled).await;
                                  if let Some(s) = conn.server.upgrade() {
                                      s.write().unwrap().subscribe(
-@@ -775,7 +1301,22 @@ impl Connection {
+@@ -775,7 +1317,22 @@ impl Connection {
                                  conn.recording = enabled;
                                  conn.send_permission(Permission::Recording, enabled).await;
                              } else if &name == "block_input" {
@@ -1250,7 +1266,7 @@ index bdf9cba..b0de9d3 100644
                                  conn.send_permission(Permission::BlockInput, enabled).await;
                              } else if &name == "privacy_mode" {
                                  // Keep permission state and runtime state consistent:
-@@ -818,6 +1359,11 @@ impl Connection {
+@@ -818,6 +1375,11 @@ impl Connection {
                                  conn.privacy_mode = enabled;
                                  conn.send_permission(Permission::PrivacyMode, enabled).await;
                              }
@@ -1262,7 +1278,7 @@ index bdf9cba..b0de9d3 100644
                          }
                          ipc::Data::RawMessage(bytes) => {
                              allow_err!(conn.stream.send_raw(bytes).await);
-@@ -1012,13 +1558,18 @@ impl Connection {
+@@ -1012,13 +1574,18 @@ impl Connection {
                                      conn.on_close("stop service", false).await;
                                      break;
                                  }
@@ -1282,7 +1298,7 @@ index bdf9cba..b0de9d3 100644
                          }
                          Some(message::Union::CursorPosition(pos)) => {
                              #[cfg(not(any(target_os = "android", target_os = "ios")))]
-@@ -1067,6 +1618,11 @@ impl Connection {
+@@ -1067,6 +1634,11 @@ impl Connection {
                  _ = second_timer.tick() => {
                      #[cfg(windows)]
                      conn.portable_check();
@@ -1294,7 +1310,7 @@ index bdf9cba..b0de9d3 100644
                      raii::AuthedConnID::check_wake_lock_on_setting_changed();
                      if let Some((instant, minute)) = conn.auto_disconnect_timer.as_ref() {
                          if instant.elapsed().as_secs() > minute * 60 {
-@@ -1133,6 +1689,11 @@ impl Connection {
+@@ -1133,6 +1705,11 @@ impl Connection {
              conn.lr.my_id.clone(),
          );
          video_service::notify_video_frame_fetched_by_conn_id(id, None);
@@ -1306,7 +1322,7 @@ index bdf9cba..b0de9d3 100644
          if conn.authorized {
              password::update_temporary_password();
          }
-@@ -1150,12 +1711,34 @@ impl Connection {
+@@ -1150,12 +1727,34 @@ impl Connection {
              #[cfg(not(any(target_os = "android", target_os = "ios")))]
              try_stop_record_cursor_pos();
          }
@@ -1342,7 +1358,7 @@ index bdf9cba..b0de9d3 100644
          let mut block_input_mode = false;
          #[cfg(any(target_os = "windows", target_os = "macos"))]
          {
-@@ -1166,89 +1749,137 @@ impl Connection {
+@@ -1166,89 +1765,137 @@ impl Connection {
          reset_input_ondisconn();
          loop {
              match receiver.recv_timeout(std::time::Duration::from_millis(500)) {
@@ -1552,7 +1568,7 @@ index bdf9cba..b0de9d3 100644
                          break;
                      }
                  }
-@@ -1654,7 +2285,6 @@ impl Connection {
+@@ -1654,7 +2301,6 @@ impl Connection {
          if !self.connect_port_forward_if_needed().await {
              return false;
          }
@@ -1560,7 +1576,7 @@ index bdf9cba..b0de9d3 100644
          let (conn_type, auth_conn_type) = if self.file_transfer.is_some() {
              (1, AuthConnType::FileTransfer)
          } else if self.port_forward_socket.is_some() {
-@@ -1666,13 +2296,38 @@ impl Connection {
+@@ -1666,21 +2312,47 @@ impl Connection {
          } else {
              (0, AuthConnType::Remote)
          };
@@ -1572,6 +1588,14 @@ index bdf9cba..b0de9d3 100644
              self.tx_from_authed.clone(),
              self.lr.clone(),
 -        ));
+-        self.session_last_recv_time = SESSIONS
+-            .lock()
+-            .unwrap()
+-            .get(&self.session_key())
+-            .map(|s| s.last_recv_time.clone());
+-        self.normalize_conn_audit_auth_fields();
+-        let mut audit = json!({"peer": ((&self.lr.my_id, &self.lr.my_name)), "type": conn_type});
+-        if self.conn_audit_primary_auth != ConnAuditPrimaryAuth::None {
 +            native_host_single_remote_active(),
 +        ) else {
 +            self.send_login_error(NATIVE_HOST_CONTROL_BUSY).await;
@@ -1590,6 +1614,7 @@ index bdf9cba..b0de9d3 100644
 +                self.lr.my_platform.clone(),
 +                self.native_session_initial_capabilities(),
 +                self.native_session_active_capabilities(),
++                self.native_session_input_availability(),
 +                self.native_approval_sender.clone(),
 +            )
 +        {
@@ -1598,10 +1623,18 @@ index bdf9cba..b0de9d3 100644
 +        }
 +        self.authed_conn_id = Some(authed_conn_id);
 +        self.authorized = true;
-         self.session_last_recv_time = SESSIONS
-             .lock()
-             .unwrap()
-@@ -1896,7 +2551,7 @@ impl Connection {
++        self.session_last_recv_time = SESSIONS
++            .lock()
++            .unwrap()
++            .get(&self.session_key())
++            .map(|s| s.last_recv_time.clone());
++        self.normalize_conn_audit_auth_fields();
++        let mut audit = json!({"peer": ((&self.lr.my_id, &self.lr.my_name)), "type": conn_type});
++        if self.conn_audit_primary_auth != ConnAuditPrimaryAuth::None {
+             audit["primary_auth"] = json!(self.conn_audit_primary_auth.as_i64());
+         }
+         if self.conn_audit_two_factor != ConnAuditTwoFactor::None {
+@@ -1896,7 +2568,7 @@ impl Connection {
                      // But the displays may be updated later, before creating the video capturer.
                      #[cfg(target_os = "macos")]
                      {
@@ -1610,7 +1643,7 @@ index bdf9cba..b0de9d3 100644
                      }
                      pi.displays = displays;
                      pi.current_display = self.display_idx as _;
-@@ -1932,6 +2587,8 @@ impl Connection {
+@@ -1932,6 +2604,8 @@ impl Connection {
          self.update_scoped_login_options().await;
          if let Some((dir, show_hidden)) = self.file_transfer.clone() {
              self.keyboard = false;
@@ -1619,7 +1652,7 @@ index bdf9cba..b0de9d3 100644
              let dir = if !dir.is_empty() && std::path::Path::new(&dir).is_dir() {
                  &dir
              } else {
-@@ -1945,12 +2602,16 @@ impl Connection {
+@@ -1945,12 +2619,16 @@ impl Connection {
          } else if self.terminal {
              self.keyboard = false;
              #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -1636,7 +1669,7 @@ index bdf9cba..b0de9d3 100644
              self.send_permission(Permission::Keyboard, false).await;
          } else if sub_service {
              if !wait_session_id_confirm {
-@@ -1980,7 +2641,6 @@ impl Connection {
+@@ -1980,7 +2658,6 @@ impl Connection {
      fn try_sub_monitor_services(&mut self) {
          let is_remote = self.is_remote();
          if is_remote && !self.services_subed {
@@ -1644,7 +1677,7 @@ index bdf9cba..b0de9d3 100644
              if let Some(s) = self.server.upgrade() {
                  let mut noperms = Vec::new();
                  if !self.peer_keyboard_enabled() && !self.show_remote_cursor {
-@@ -2008,7 +2668,10 @@ impl Connection {
+@@ -2008,7 +2685,10 @@ impl Connection {
                  self.auto_disconnect_timer = Self::get_auto_disconenct_timer();
                  s.try_add_primay_video_service();
                  s.add_connection(self.inner.clone(), &noperms);
@@ -1655,12 +1688,10 @@ index bdf9cba..b0de9d3 100644
          }
      }
 
-@@ -2064,8 +2727,128 @@ impl Connection {
+@@ -2064,6 +2744,162 @@ impl Connection {
          self.keyboard && !self.disable_keyboard
      }
 
--    fn clipboard_enabled(&self) -> bool {
--        self.clipboard && !self.disable_clipboard
 +    #[cfg(all(
 +        feature = "rdn-native-host",
 +        not(any(target_os = "android", target_os = "ios"))
@@ -1693,11 +1724,47 @@ index bdf9cba..b0de9d3 100644
 +        feature = "rdn-native-host",
 +        not(any(target_os = "android", target_os = "ios"))
 +    ))]
++    fn native_session_input_availability(
++        &self,
++    ) -> crate::rdn_host_bridge::NativeSessionInputAvailability {
++        use crate::rdn_host_bridge::{
++            NativeSessionInputAvailability, NativeSessionInputUnavailableReason,
++        };
++
++        match self.native_platform_input_state.unavailable_reason() {
++            Some(NativeSessionInputUnavailableReason::LocalPolicyDisabled) => {
++                NativeSessionInputAvailability::disabled(
++                    NativeSessionInputUnavailableReason::LocalPolicyDisabled,
++                )
++            }
++            Some(NativeSessionInputUnavailableReason::AccessibilityDenied) => {
++                NativeSessionInputAvailability::limited(
++                    NativeSessionInputUnavailableReason::AccessibilityDenied,
++                )
++            }
++            Some(NativeSessionInputUnavailableReason::SessionUnavailable) => {
++                NativeSessionInputAvailability::limited(
++                    NativeSessionInputUnavailableReason::SessionUnavailable,
++                )
++            }
++            Some(NativeSessionInputUnavailableReason::RemoteDisabled) => unreachable!(),
++            None if self.disable_keyboard => NativeSessionInputAvailability::disabled(
++                NativeSessionInputUnavailableReason::RemoteDisabled,
++            ),
++            None => NativeSessionInputAvailability::available(),
++        }
++    }
++
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
 +    fn sync_native_session_capabilities(&self) {
 +        if self.authorized && self.is_remote() && native_host_single_remote_active() {
 +            crate::rdn_host_bridge::native_host_update_session_capabilities(
 +                self.inner.id(),
 +                self.native_session_active_capabilities(),
++                self.native_session_input_availability(),
 +            );
 +        }
 +    }
@@ -1781,12 +1848,10 @@ index bdf9cba..b0de9d3 100644
 +        }
 +    }
 +
-+    fn clipboard_enabled(&self) -> bool {
-+        self.clipboard && !self.disable_clipboard
+     fn clipboard_enabled(&self) -> bool {
+         self.clipboard && !self.disable_clipboard
      }
-
-     #[inline]
-@@ -2091,7 +2874,54 @@ impl Connection {
+@@ -2091,7 +2927,54 @@ impl Connection {
              && crate::get_builtin_option(keys::OPTION_ONE_WAY_FILE_TRANSFER) != "Y"
      }
 
@@ -1842,7 +1907,7 @@ index bdf9cba..b0de9d3 100644
          self.send_to_cm(ipc::Data::Login {
              id: self.inner.id(),
              is_file_transfer: self.file_transfer.is_some(),
-@@ -2101,7 +2931,7 @@ impl Connection {
+@@ -2101,7 +2984,7 @@ impl Connection {
              peer_id,
              name,
              avatar: self.lr.avatar.clone(),
@@ -1851,7 +1916,7 @@ index bdf9cba..b0de9d3 100644
              keyboard: self.keyboard,
              clipboard: self.clipboard,
              audio: self.audio,
-@@ -2158,39 +2988,73 @@ impl Connection {
+@@ -2158,39 +3041,73 @@ impl Connection {
      #[cfg(not(any(target_os = "android", target_os = "ios")))]
      fn input_mouse(
          &self,
@@ -1940,7 +2005,7 @@ index bdf9cba..b0de9d3 100644
      }
 
      fn verify_h1(&self, h1: &[u8]) -> bool {
-@@ -2471,6 +3335,10 @@ impl Connection {
+@@ -2471,6 +3388,10 @@ impl Connection {
 
      #[cfg(not(any(target_os = "android", target_os = "ios")))]
      fn try_start_cm_ipc(&mut self) {
@@ -1951,7 +2016,7 @@ index bdf9cba..b0de9d3 100644
          if let Some(p) = self.start_cm_ipc_para.take() {
              tokio::spawn(async move {
                  #[cfg(windows)]
-@@ -2683,7 +3551,11 @@ impl Connection {
+@@ -2683,7 +3604,11 @@ impl Connection {
                          return keep_alive;
                      }
                  }
@@ -1964,7 +2029,7 @@ index bdf9cba..b0de9d3 100644
                  if hbb_common::get_version_number(&lr.version)
                      >= hbb_common::get_version_number("1.2.0")
                  {
-@@ -2698,7 +3570,11 @@ impl Connection {
+@@ -2698,7 +3623,11 @@ impl Connection {
                      if !self.send_logon_response_and_keep_alive().await {
                          return false;
                      }
@@ -1977,7 +2042,7 @@ index bdf9cba..b0de9d3 100644
                  } else {
                      self.send_login_error(err_msg).await;
                  }
-@@ -2712,7 +3588,11 @@ impl Connection {
+@@ -2712,7 +3641,11 @@ impl Connection {
                              return keep_alive;
                          }
                      }
@@ -1990,7 +2055,7 @@ index bdf9cba..b0de9d3 100644
                  } else {
                      self.send_login_error(
                          crate::client::LOGIN_MSG_DESKTOP_SESSION_NOT_READY_PASSWORD_EMPTY,
-@@ -2730,7 +3610,11 @@ impl Connection {
+@@ -2730,7 +3663,11 @@ impl Connection {
                      if err_msg.is_empty() {
                          self.send_login_error(crate::client::LOGIN_MSG_PASSWORD_WRONG)
                              .await;
@@ -2003,7 +2068,7 @@ index bdf9cba..b0de9d3 100644
                      } else {
                          self.send_login_error(
                              crate::client::LOGIN_MSG_DESKTOP_SESSION_NOT_READY_PASSWORD_WRONG,
-@@ -2745,7 +3629,11 @@ impl Connection {
+@@ -2745,7 +3682,11 @@ impl Connection {
                          if !self.send_logon_response_and_keep_alive().await {
                              return false;
                          }
@@ -2016,7 +2081,7 @@ index bdf9cba..b0de9d3 100644
                      } else {
                          self.send_login_error(err_msg).await;
                      }
-@@ -2769,7 +3657,7 @@ impl Connection {
+@@ -2769,7 +3710,7 @@ impl Connection {
                          self.try_start_cm(
                              self.lr.my_id.to_owned(),
                              self.lr.my_name.to_owned(),
@@ -2025,7 +2090,7 @@ index bdf9cba..b0de9d3 100644
                          );
                          if !tfa.hwid.is_empty() && Self::enable_trusted_devices() {
                              Config::add_trusted_device(TrustedDevice {
-@@ -2824,7 +3712,7 @@ impl Connection {
+@@ -2824,7 +3765,7 @@ impl Connection {
                              self.try_start_cm(
                                  lr.my_id.clone(),
                                  lr.my_name.clone(),
@@ -2034,7 +2099,7 @@ index bdf9cba..b0de9d3 100644
                              );
                              #[cfg(not(any(target_os = "android", target_os = "ios")))]
                              self.try_start_cm_ipc();
-@@ -2847,34 +3735,71 @@ impl Connection {
+@@ -2847,34 +3788,71 @@ impl Connection {
                          log::debug!("call_main_service_pointer_input fail:{}", e);
                      }
                      #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -2114,7 +2179,7 @@ index bdf9cba..b0de9d3 100644
                      self.update_auto_disconnect_timer();
                  }
                  Some(message::Union::PointerDeviceEvent(pde)) => {
-@@ -2910,10 +3835,36 @@ impl Connection {
+@@ -2910,10 +3888,36 @@ impl Connection {
                          log::debug!("call_main_service_pointer_input fail:{}", e);
                      }
                      #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -2153,7 +2218,7 @@ index bdf9cba..b0de9d3 100644
                      self.update_auto_disconnect_timer();
                  }
                  #[cfg(any(target_os = "ios"))]
-@@ -2978,61 +3929,68 @@ impl Connection {
+@@ -2978,61 +3982,68 @@ impl Connection {
                      if self.is_authed_view_camera_conn() {
                          return true;
                      }
@@ -2260,7 +2325,7 @@ index bdf9cba..b0de9d3 100644
                  }
                  Some(message::Union::Clipboard(cb)) => {
                      if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {
-@@ -3937,23 +4895,69 @@ impl Connection {
+@@ -3937,23 +4948,69 @@ impl Connection {
 
      fn bump_failure_entry(mut cur: (i32, i32, i32), time: i32) -> (i32, i32, i32) {
          if cur.0 == time {
@@ -2334,7 +2399,7 @@ index bdf9cba..b0de9d3 100644
          remove: bool,
          i: usize,
          scope: FailureScope,
-@@ -3968,16 +4972,14 @@ impl Connection {
+@@ -3968,16 +5025,14 @@ impl Connection {
 
          let map_mutex = &LOGIN_FAILURES[i];
          if remove {
@@ -2359,7 +2424,7 @@ index bdf9cba..b0de9d3 100644
              }
              return;
          }
-@@ -4006,17 +5008,20 @@ impl Connection {
+@@ -4006,17 +5061,20 @@ impl Connection {
          prefix_num: i8,
          thresh: i32,
      ) -> Option<(((i32, i32, i32), i32), bool)> {
@@ -2388,7 +2453,7 @@ index bdf9cba..b0de9d3 100644
              ))
              .await;
              self.post_alarm_audit(
-@@ -4092,15 +5097,26 @@ impl Connection {
+@@ -4092,15 +5150,26 @@ impl Connection {
          }
 
          // checks IPv6 and IPv4 direct addresses
@@ -2423,7 +2488,7 @@ index bdf9cba..b0de9d3 100644
              self.post_alarm_audit(
                  AlarmAuditType::ExceedThirtyAttempts,
                  json!({
-@@ -4138,6 +5154,13 @@ impl Connection {
+@@ -4138,6 +5207,13 @@ impl Connection {
          });
      }
 
@@ -2437,7 +2502,7 @@ index bdf9cba..b0de9d3 100644
      async fn handle_switch_display(&mut self, s: SwitchDisplay) {
          let display_idx = s.display as usize;
          if self.display_idx != display_idx {
-@@ -4197,6 +5220,8 @@ impl Connection {
+@@ -4197,6 +5273,8 @@ impl Connection {
          }
          lock.subscribe(&new_service_name, self.inner.clone(), true);
          self.display_idx = display_idx;
@@ -2446,7 +2511,7 @@ index bdf9cba..b0de9d3 100644
      }
 
      #[cfg(windows)]
-@@ -4531,6 +5556,8 @@ impl Connection {
+@@ -4531,6 +5609,8 @@ impl Connection {
          if let Ok(q) = o.disable_keyboard.enum_value() {
              if q != BoolOption::NotSet {
                  self.disable_keyboard = q == BoolOption::Yes;
@@ -2455,7 +2520,7 @@ index bdf9cba..b0de9d3 100644
                  if let Some(s) = self.server.upgrade() {
                      s.write().unwrap().subscribe(
                          super::clipboard_service::NAME,
-@@ -4643,6 +5670,11 @@ impl Connection {
+@@ -4643,6 +5723,11 @@ impl Connection {
                  }
              }
          }
@@ -2467,7 +2532,7 @@ index bdf9cba..b0de9d3 100644
      }
 
      async fn turn_on_privacy(&mut self, impl_key: String) {
-@@ -6035,6 +7067,25 @@ async fn start_ipc(
+@@ -6035,6 +7120,25 @@ async fn start_ipc(
      }
  }
 
@@ -2493,7 +2558,7 @@ index bdf9cba..b0de9d3 100644
  // in case screen is sleep and blank, here to activate it
  fn try_activate_screen() {
      #[cfg(windows)]
-@@ -6180,10 +7231,44 @@ impl FileRemoveLogControl {
+@@ -6180,10 +7284,44 @@ impl FileRemoveLogControl {
      }
  }
 
@@ -2538,7 +2603,7 @@ index bdf9cba..b0de9d3 100644
      std::thread::spawn(move || {
          let mut wakelock: Option<WakeLock> = None;
          let mut last_display = false;
-@@ -6194,13 +7279,19 @@ fn start_wakelock_thread() -> std::sync::mpsc::Sender<(usize, usize)> {
+@@ -6194,13 +7332,19 @@ fn start_wakelock_thread() -> std::sync::mpsc::Sender<(usize, usize)> {
                          keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS,
                      );
                      *WAKELOCK_KEEP_AWAKE_OPTION.lock().unwrap() = Some(keep_awake);
@@ -2560,7 +2625,7 @@ index bdf9cba..b0de9d3 100644
                          if let Some(_w) = wakelock.as_mut() {
                              if display != last_display {
                                  #[cfg(any(target_os = "windows", target_os = "macos"))]
-@@ -6268,7 +7359,14 @@ impl Default for PortableState {
+@@ -6268,7 +7412,14 @@ impl Default for PortableState {
  impl Drop for Connection {
      fn drop(&mut self) {
          #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -2576,7 +2641,7 @@ index bdf9cba..b0de9d3 100644
 
          if let Some(s) = self.terminal_generic_service.as_ref() {
              s.join();
-@@ -6347,29 +7445,58 @@ struct Retina {
+@@ -6347,33 +7498,62 @@ struct Retina {
  #[cfg(target_os = "macos")]
  impl Retina {
      #[inline]
@@ -2625,6 +2690,11 @@ index bdf9cba..b0de9d3 100644
 -        if s > 1.0 && e.x >= d.x && e.y >= d.y && e.x < d.x + d.width && e.y < d.y + d.height {
 -            e.x = d.x + ((e.x - d.x) as f64 / s) as i32;
 -            e.y = d.y + ((e.y - d.y) as f64 / s) as i32;
+-        }
+-    }
+-
+-    #[inline]
+-    fn on_cursor_pos(&mut self, pos: &CursorPosition, current: usize) -> Option<Message> {
 +        let Some(max_x) = d.x.checked_add(d.width) else {
 +            return false;
 +        };
@@ -2645,12 +2715,16 @@ index bdf9cba..b0de9d3 100644
 +        if s > 1.0 {
 +            input.event.x = d.x + ((input.event.x - d.x) as f64 / s) as i32;
 +            input.event.y = d.y + ((input.event.y - d.y) as f64 / s) as i32;
-         }
++        }
 +        true
-     }
-
-     #[inline]
-@@ -6463,23 +7590,33 @@ mod raii {
++    }
++
++    #[inline]
++    fn on_cursor_pos(&mut self, pos: &CursorPosition, current: usize) -> Option<Message> {
+         let Some(d) = self.displays.get(current) else {
+             return None;
+         };
+@@ -6463,23 +7643,33 @@ mod raii {
      pub struct AuthedConnID(i32, AuthConnType);
 
      impl AuthedConnID {
@@ -2687,7 +2761,7 @@ index bdf9cba..b0de9d3 100644
              Self::check_wake_lock();
              use std::sync::Once;
              static _ONCE: Once = Once::new();
-@@ -6492,7 +7629,7 @@ mod raii {
+@@ -6492,7 +7682,7 @@ mod raii {
                      .unwrap()
                      .on_connection_open(conn_id);
              }
@@ -2696,7 +2770,7 @@ index bdf9cba..b0de9d3 100644
          }
 
          fn check_wake_lock() {
-@@ -6607,6 +7744,11 @@ mod raii {
+@@ -6607,6 +7797,11 @@ mod raii {
 
      impl Drop for AuthedConnID {
          fn drop(&mut self) {
@@ -2708,32 +2782,12 @@ index bdf9cba..b0de9d3 100644
              if self.1 == AuthConnType::Remote || self.1 == AuthConnType::ViewCamera {
                  scrap::codec::Encoder::update(scrap::codec::EncodingUpdate::Remove(self.0));
                  video_service::VIDEO_QOS
-@@ -6679,27 +7821,1185 @@ mod test {
+@@ -6679,27 +7874,1204 @@ mod test {
      #[allow(unused)]
      use super::*;
 
--    #[cfg(target_os = "macos")]
 +    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-     #[test]
--    fn retina() {
--        let mut retina = Retina {
--            displays: vec![DisplayInfo {
--                x: 10,
--                y: 10,
--                width: 1000,
--                height: 1000,
--                scale: 2.0,
--                ..Default::default()
--            }],
--        };
--        let mut mouse: MouseEvent = MouseEvent {
--            x: 510,
--            y: 510,
--            ..Default::default()
--        };
--        retina.on_mouse_event(&mut mouse, 0);
--        assert_eq!(mouse.x, 260);
--        assert_eq!(mouse.y, 260);
++    #[test]
 +    fn input_receiver_disconnect_releases_local_block_before_exit() {
 +        assert_eq!(
 +            input_receiver_error_action(true, std_mpsc::RecvTimeoutError::Timeout),
@@ -2976,12 +3030,19 @@ index bdf9cba..b0de9d3 100644
 +    ))]
 +    #[test]
 +    fn native_host_platform_input_state_separates_aqua_recovery_from_tcc_latch() {
++        use crate::rdn_host_bridge::NativeSessionInputUnavailableReason;
++
 +        let mut state = NativeHostPlatformInputState::new(true, true, true);
 +        assert!(state.effective());
++        assert_eq!(state.unavailable_reason(), None);
 +        assert!(state.should_observe());
 +
 +        assert_eq!(state.observe(true, false), Some(false));
 +        assert!(!state.effective());
++        assert_eq!(
++            state.unavailable_reason(),
++            Some(NativeSessionInputUnavailableReason::SessionUnavailable)
++        );
 +        assert!(state.should_observe());
 +        assert_eq!(state.observe(true, true), Some(true));
 +        assert!(state.effective());
@@ -2990,12 +3051,20 @@ index bdf9cba..b0de9d3 100644
 +        assert_eq!(state.observe(false, false), None);
 +        assert_eq!(state.observe(true, true), None);
 +        assert!(!state.effective());
++        assert_eq!(
++            state.unavailable_reason(),
++            Some(NativeSessionInputUnavailableReason::AccessibilityDenied)
++        );
 +        assert!(!state.should_observe());
 +
 +        assert_eq!(state.set_configured(true, true, true), Some(true));
 +        assert!(state.effective());
 +        assert_eq!(state.set_configured(false, true, true), Some(false));
 +        assert!(!state.effective());
++        assert_eq!(
++            state.unavailable_reason(),
++            Some(NativeSessionInputUnavailableReason::LocalPolicyDisabled)
++        );
 +        assert!(!state.should_observe());
 +
 +        let mut tcc_revoked = NativeHostPlatformInputState::new(true, true, true);
@@ -3006,6 +3075,10 @@ index bdf9cba..b0de9d3 100644
 +
 +        let mut initially_locked = NativeHostPlatformInputState::new(true, true, false);
 +        assert!(!initially_locked.effective());
++        assert_eq!(
++            initially_locked.unavailable_reason(),
++            Some(NativeSessionInputUnavailableReason::SessionUnavailable)
++        );
 +        assert!(!initially_locked.should_observe());
 +        assert_eq!(initially_locked.observe(true, true), None);
 +        assert!(!initially_locked.effective());
@@ -3845,9 +3918,18 @@ index bdf9cba..b0de9d3 100644
 +        assert_eq!(incoming_wakelock_display(true, 0, 0, false), None);
 +    }
 +
-+    #[cfg(target_os = "macos")]
-+    #[test]
-+    fn retina() {
+     #[cfg(target_os = "macos")]
+     #[test]
+     fn retina() {
+-        let mut retina = Retina {
+-            displays: vec![DisplayInfo {
+-                x: 10,
+-                y: 10,
+-                width: 1000,
+-                height: 1000,
+-                scale: 2.0,
+-                ..Default::default()
+-            }],
 +        let display = DisplayInfo {
 +            x: 10,
 +            y: 10,
@@ -3855,14 +3937,15 @@ index bdf9cba..b0de9d3 100644
 +            height: 1000,
 +            scale: 2.0,
 +            ..Default::default()
-+        };
+         };
+-        let mut mouse: MouseEvent = MouseEvent {
 +        let mut retina = Retina::default();
 +        assert!(retina.set_displays(std::slice::from_ref(&display)));
 +        assert!(!retina.set_displays(std::slice::from_ref(&display)));
 +        let mut mouse = NormalizedMouseInput::from_wire(MouseEvent {
-+            x: 510,
-+            y: 510,
-+            ..Default::default()
+             x: 510,
+             y: 510,
+             ..Default::default()
 +        })
 +        .unwrap();
 +        assert!(retina.on_mouse_event(&mut mouse, 0));
@@ -3900,7 +3983,10 @@ index bdf9cba..b0de9d3 100644
 +        let invalid_display = DisplayInfo {
 +            scale: 0.0,
 +            ..display.clone()
-+        };
+         };
+-        retina.on_mouse_event(&mut mouse, 0);
+-        assert_eq!(mouse.x, 260);
+-        assert_eq!(mouse.y, 260);
 +        assert!(retina.set_displays(&[invalid_display]));
 +        let mut invalid_mapping = NormalizedMouseInput::from_wire(MouseEvent {
 +            x: 10,

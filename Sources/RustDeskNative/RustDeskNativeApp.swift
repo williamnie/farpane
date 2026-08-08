@@ -588,8 +588,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 hostStatusText = hostApprovalDecisionGate.isResolving(
                     connectionID: pending.connectionId
                 ) ? "正在处理连接请求…" : "等待本机批准…"
-            } else if snapshot.activeSession != nil {
-                hostStatusText = hostMediaStatusText ?? "远程会话进行中"
+            } else if let session = snapshot.activeSession,
+                      let inputPresentation = HostSessionInputPresentationPolicy.presentation(
+                          availability: session.inputAvailability,
+                          unavailableReason: session.inputUnavailableReason
+                      ) {
+                hostStatusText = session.inputAvailability == .limited
+                    ? inputPresentation.overallStatusText
+                    : (hostMediaStatusText ?? inputPresentation.overallStatusText)
             } else {
                 switch snapshot.registrationStatus {
                 case "ready": hostStatusText = hostMediaStatusText ?? "可被连接"
@@ -694,12 +700,20 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         case .disconnect: pendingAction = .disconnect
         case nil: pendingAction = nil
         }
+        guard let inputPresentation = HostSessionInputPresentationPolicy.presentation(
+            availability: session.inputAvailability,
+            unavailableReason: session.inputUnavailableReason
+        ) else { return nil }
+        let capabilityText = [
+            "当前权限：\(capabilityNames.joined(separator: "、"))",
+            inputPresentation.detailText,
+        ].compactMap { $0 }.joined(separator: "；")
 
         return HostActiveSessionHomeSnapshot(
             connectionID: session.connectionId,
             remoteIdentityText: identityText,
             contextText: "\(platformText) · \(startedText) 开始连接",
-            capabilityText: "当前权限：\(capabilityNames.joined(separator: "、"))",
+            capabilityText: capabilityText,
             canDisableKeyboardAndMouse: activeCapabilities.contains("controlKeyboardMouse"),
             canDisableClipboard: activeCapabilities.contains("readClipboard")
                 && activeCapabilities.contains("writeClipboard"),
@@ -828,6 +842,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                   connectionID: session.connectionId,
                   remoteID: session.remoteId,
                   remoteName: session.remoteName,
+                  inputAvailability: session.inputAvailability,
+                  inputUnavailableReason: session.inputUnavailableReason,
                   disconnectInFlight: hostSessionCommandGate.resolvingIntent(
                       connectionID: session.connectionId
                   ) == .disconnect

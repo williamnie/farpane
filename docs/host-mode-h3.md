@@ -420,3 +420,9 @@ Accessibility 一旦变为 untrusted 会清除 Aqua restore arm 并锁存拒绝�
 H3.4ae 验证期间的 built-core `Code Signature Invalid` 已收敛到独立构建竞态：旧脚本用 `cp` 原地覆盖公开 dylib inode，dyld 可能命中该 vnode 的旧 linker-signature cache。release core 现在先复制到最终目录内的隐藏 staging 文件，在 staging 上完成全部 Mach-O/symbol checks，再以同目录 rename 发布；失败只清理 staging，旧公开 core 保持完整。
 
 ScriptTest 完成 RED/GREEN；真实重复构建使公开 inode 从旧值切换到新值且无 staging 残留。source/published bytes 与 mode 一致、签名有效，随后直接从公开路径运行 built-core loader 1/1、Swift 133/133、ScriptTests 21/21 与 arm64 Release build 均通过，不再需要复制到临时 inode。未改 ABI/core 行为/Hermes/CI/依赖，也未部署。详见 `Evidence/HostMode/2026-08-08/host-core-atomic-publication.md`。
+
+## H3.4af active-session input availability authority
+
+connection 已经能区分本机关闭、控制端关闭、Accessibility TCC latch 与 active Aqua/LoginWindow/off-console 不可用，但 snapshot 过去只显示 `controlKeyboardMouse` 消失，产品无法解释原因。Host Control ABI 现升至 v7、snapshot schema 升至 v5；active session 新增严格配对的 `inputAvailability` 与 `inputUnavailableReason`，Rust broker 会在原因变化但 capability 不变时仍发布 authoritative update。
+
+Swift strict decoder 拒绝未知/矛盾组合，Home 状态、会话卡与菜单栏统一通过 presentation policy 显示 `disabled` 或 `limited/sessionUnavailable|accessibilityDenied`，不会由 UI 猜测原因。完整 Rust 131/131、release core、实际加载新 core 的 Swift 134/134、ScriptTests 21/21、arm64 Release build 与 16 patched + 2 bridge clean replay 通过。未安装/部署/push；Secure Input 策略、锁屏时媒体暂停、顶层后台 `hostAvailability` 与真机 transition 仍未完成。详见 `Evidence/HostMode/2026-08-08/h3-active-session-input-availability.md`。

@@ -31,10 +31,10 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 6;
+const HOST_ABI_VERSION: u32 = 7;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
-const SNAPSHOT_SCHEMA_VERSION: u32 = 4;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 5;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_NAME_BYTES: usize = 64;
@@ -617,6 +617,86 @@ impl NativeSessionCapabilities {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeSessionInputUnavailableReason {
+    LocalPolicyDisabled,
+    RemoteDisabled,
+    AccessibilityDenied,
+    SessionUnavailable,
+}
+
+impl NativeSessionInputUnavailableReason {
+    fn name(self) -> &'static str {
+        match self {
+            Self::LocalPolicyDisabled => "localPolicyDisabled",
+            Self::RemoteDisabled => "remoteDisabled",
+            Self::AccessibilityDenied => "accessibilityDenied",
+            Self::SessionUnavailable => "sessionUnavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeSessionInputAvailability {
+    Available,
+    Disabled(NativeSessionInputUnavailableReason),
+    Limited(NativeSessionInputUnavailableReason),
+}
+
+impl NativeSessionInputAvailability {
+    pub(crate) fn available() -> Self {
+        Self::Available
+    }
+
+    pub(crate) fn disabled(reason: NativeSessionInputUnavailableReason) -> Self {
+        debug_assert!(matches!(
+            reason,
+            NativeSessionInputUnavailableReason::LocalPolicyDisabled
+                | NativeSessionInputUnavailableReason::RemoteDisabled
+        ));
+        Self::Disabled(reason)
+    }
+
+    pub(crate) fn limited(reason: NativeSessionInputUnavailableReason) -> Self {
+        debug_assert!(matches!(
+            reason,
+            NativeSessionInputUnavailableReason::AccessibilityDenied
+                | NativeSessionInputUnavailableReason::SessionUnavailable
+        ));
+        Self::Limited(reason)
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Available => "available",
+            Self::Disabled(_) => "disabled",
+            Self::Limited(_) => "limited",
+        }
+    }
+
+    fn reason(self) -> Option<&'static str> {
+        match self {
+            Self::Available => None,
+            Self::Disabled(reason) | Self::Limited(reason) => Some(reason.name()),
+        }
+    }
+
+    fn is_valid(self, control_keyboard_mouse: bool) -> bool {
+        match self {
+            Self::Available => control_keyboard_mouse,
+            Self::Disabled(
+                NativeSessionInputUnavailableReason::LocalPolicyDisabled
+                | NativeSessionInputUnavailableReason::RemoteDisabled,
+            ) => !control_keyboard_mouse,
+            Self::Limited(
+                NativeSessionInputUnavailableReason::AccessibilityDenied
+                | NativeSessionInputUnavailableReason::SessionUnavailable,
+            ) => !control_keyboard_mouse,
+            Self::Disabled(_) | Self::Limited(_) => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct NativeSessionSnapshot {
     connection_id: String,
@@ -627,6 +707,7 @@ struct NativeSessionSnapshot {
     started_at_ms: u64,
     initial_capabilities: NativeSessionCapabilities,
     active_capabilities: NativeSessionCapabilities,
+    input_availability: NativeSessionInputAvailability,
 }
 
 impl NativeSessionSnapshot {
@@ -640,6 +721,8 @@ impl NativeSessionSnapshot {
             "startedAt": self.started_at_ms,
             "initialCapabilities": self.initial_capabilities.names(),
             "activeCapabilities": self.active_capabilities.names(),
+            "inputAvailability": self.input_availability.name(),
+            "inputUnavailableReason": self.input_availability.reason(),
         })
     }
 }
@@ -686,6 +769,9 @@ impl NativeSessionBroker {
             .snapshot
             .active_capabilities
             .is_subset_of(session.snapshot.initial_capabilities)
+            || !session.snapshot.input_availability.is_valid(
+                session.snapshot.active_capabilities.control_keyboard_mouse,
+            )
         {
             return NativeSessionStartResult::Invalid;
         }
@@ -708,14 +794,22 @@ impl NativeSessionBroker {
         &mut self,
         core_connection_id: i32,
         active_capabilities: NativeSessionCapabilities,
+        input_availability: NativeSessionInputAvailability,
     ) -> Option<NativeSessionSnapshot> {
         let active = self.active.as_mut()?;
         if active.snapshot.core_connection_id != core_connection_id
-            || active.snapshot.active_capabilities == active_capabilities
+            || !active_capabilities.is_subset_of(active.snapshot.initial_capabilities)
+            || !input_availability.is_valid(active_capabilities.control_keyboard_mouse)
+        {
+            return None;
+        }
+        if active.snapshot.active_capabilities == active_capabilities
+            && active.snapshot.input_availability == input_availability
         {
             return None;
         }
         active.snapshot.active_capabilities = active_capabilities;
+        active.snapshot.input_availability = input_availability;
         Some(active.snapshot.clone())
     }
 
@@ -1253,6 +1347,7 @@ pub(crate) fn native_host_begin_session(
     remote_platform: String,
     initial_capabilities: NativeSessionCapabilities,
     active_capabilities: NativeSessionCapabilities,
+    input_availability: NativeSessionInputAvailability,
     command_sender: tokio::sync::mpsc::UnboundedSender<crate::ipc::Data>,
 ) -> bool {
     let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
@@ -1268,6 +1363,7 @@ pub(crate) fn native_host_begin_session(
         started_at_ms: now_unix_millis(),
         initial_capabilities,
         active_capabilities,
+        input_availability,
     };
     let result = SESSION_BROKER.lock().unwrap().begin(NativeActiveSession {
         snapshot: snapshot.clone(),
@@ -1288,11 +1384,12 @@ pub(crate) fn native_host_begin_session(
 pub(crate) fn native_host_update_session_capabilities(
     core_connection_id: i32,
     active_capabilities: NativeSessionCapabilities,
+    input_availability: NativeSessionInputAvailability,
 ) {
     let snapshot = SESSION_BROKER
         .lock()
         .unwrap()
-        .update_capabilities(core_connection_id, active_capabilities);
+        .update_capabilities(core_connection_id, active_capabilities, input_availability);
     let Some(snapshot) = snapshot else { return };
     let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
     if let Some(binding) = binding {
@@ -1302,6 +1399,8 @@ pub(crate) fn native_host_update_session_capabilities(
             json!({
                 "connectionId": snapshot.connection_id,
                 "activeCapabilities": snapshot.active_capabilities.names(),
+                "inputAvailability": snapshot.input_availability.name(),
+                "inputUnavailableReason": snapshot.input_availability.reason(),
             }),
         );
         emit_bound_event(&binding, "snapshotChanged", json!({}));
@@ -3201,6 +3300,13 @@ mod tests {
                 started_at_ms: 1_000,
                 initial_capabilities,
                 active_capabilities,
+                input_availability: if active_capabilities.control_keyboard_mouse {
+                    NativeSessionInputAvailability::available()
+                } else {
+                    NativeSessionInputAvailability::disabled(
+                        NativeSessionInputUnavailableReason::LocalPolicyDisabled,
+                    )
+                },
             },
             command_sender,
             disconnect_requested: false,
@@ -3244,15 +3350,36 @@ mod tests {
         assert_eq!(snapshot.event_payload()["remoteMetadataTrust"], "untrusted");
 
         let revoked = NativeSessionCapabilities::new(false, false, true);
-        assert!(broker.update_capabilities(9, revoked).is_none());
+        let unavailable = NativeSessionInputAvailability::limited(
+            NativeSessionInputUnavailableReason::SessionUnavailable,
+        );
+        assert!(broker
+            .update_capabilities(9, revoked, unavailable)
+            .is_none());
         assert_eq!(
             broker
-                .update_capabilities(1, revoked)
+                .update_capabilities(1, revoked, unavailable)
                 .unwrap()
-                .active_capabilities,
+                .input_availability,
+            unavailable
+        );
+        assert_eq!(
+            broker.snapshot().unwrap().active_capabilities,
             revoked
         );
-        assert!(broker.update_capabilities(1, revoked).is_none());
+        let accessibility_denied = NativeSessionInputAvailability::limited(
+            NativeSessionInputUnavailableReason::AccessibilityDenied,
+        );
+        assert_eq!(
+            broker
+                .update_capabilities(1, revoked, accessibility_denied)
+                .unwrap()
+                .input_availability,
+            accessibility_denied
+        );
+        assert!(broker
+            .update_capabilities(1, revoked, accessibility_denied)
+            .is_none());
         assert!(broker.end(9).is_none());
         assert_eq!(broker.end(1).unwrap().snapshot.connection_id, "host:1");
         assert!(broker.snapshot().is_none());
@@ -3293,10 +3420,11 @@ mod tests {
             "macOS".to_owned(),
             initial,
             active,
+            NativeSessionInputAvailability::available(),
             first_sender,
         ));
         let active_snapshot = host.snapshot_json();
-        assert_eq!(active_snapshot["schemaVersion"], 4);
+        assert_eq!(active_snapshot["schemaVersion"], 5);
         assert_eq!(
             active_snapshot["activeSession"]["connectionId"],
             "session-host:7"
@@ -3315,6 +3443,11 @@ mod tests {
             ])
         );
         assert_eq!(
+            active_snapshot["activeSession"]["inputAvailability"],
+            "available"
+        );
+        assert!(active_snapshot["activeSession"]["inputUnavailableReason"].is_null());
+        assert_eq!(
             SESSION_BROKER
                 .lock()
                 .unwrap()
@@ -3326,10 +3459,21 @@ mod tests {
         native_host_update_session_capabilities(
             7,
             NativeSessionCapabilities::new(false, true, false),
+            NativeSessionInputAvailability::limited(
+                NativeSessionInputUnavailableReason::SessionUnavailable,
+            ),
         );
         assert_eq!(
             host.snapshot_json()["activeSession"]["activeCapabilities"],
             json!(["viewDisplay", "readClipboard", "writeClipboard"])
+        );
+        assert_eq!(
+            host.snapshot_json()["activeSession"]["inputAvailability"],
+            "limited"
+        );
+        assert_eq!(
+            host.snapshot_json()["activeSession"]["inputUnavailableReason"],
+            "sessionUnavailable"
         );
         native_host_end_session(7);
         assert!(SESSION_BROKER.lock().unwrap().snapshot().is_none());
@@ -3344,6 +3488,7 @@ mod tests {
             "macOS".to_owned(),
             initial,
             initial,
+            NativeSessionInputAvailability::available(),
             second_sender,
         ));
         reset_native_session_broker("hostStopped");
@@ -3385,6 +3530,7 @@ mod tests {
             "macOS".to_owned(),
             initial,
             initial,
+            NativeSessionInputAvailability::available(),
             command_sender,
         ));
 
@@ -3458,6 +3604,9 @@ mod tests {
         native_host_update_session_capabilities(
             17,
             NativeSessionCapabilities::new(false, false, false),
+            NativeSessionInputAvailability::disabled(
+                NativeSessionInputUnavailableReason::LocalPolicyDisabled,
+            ),
         );
         let already_disabled = json!({
             "commandId": "session-input-already-disabled",
@@ -3538,6 +3687,7 @@ mod tests {
             "macOS".to_owned(),
             initial,
             initial,
+            NativeSessionInputAvailability::available(),
             dead_sender,
         ));
         let unavailable = json!({

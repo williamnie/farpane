@@ -1499,6 +1499,8 @@ flowchart TD
 
 > 交付门禁修复（2026-08-08）：**release Host Core atomic publication 已完成**。H3.4ae 验证中的 built-core `Code Signature Invalid` 并非 ABI 回归，而是旧构建脚本原地覆盖公开 dylib inode 后触发 macOS linker-signature cache 竞态。脚本现先在最终目录内 staging、完成既有 Mach-O/symbol checks，再以同目录 rename 发布新 inode；失败保持旧 core 不变。ScriptTest RED/GREEN、真实 inode 变化与零 staging 残留、签名/字节/mode 校验、直接公开路径 built-core loader、Swift 133/133、ScriptTests 21/21 和 arm64 Release build 均通过。未改 Host ABI/core 行为/Hermes/CI/依赖，也未部署。详见 `Evidence/HostMode/2026-08-08/host-core-atomic-publication.md`。
 
+> 更新（2026-08-08）：**H3.4af active-session input availability authority 已完成自动实现**。Host Control ABI 升至 v7、snapshot schema 升至 v5；active session 现从唯一 connection/session broker 权威投影 `available|disabled|limited` 与 `localPolicyDisabled|remoteDisabled|accessibilityDenied|sessionUnavailable`，并严格绑定 `controlKeyboardMouse` capability。原因改变即使 capability 不变也会发布新 snapshot/event；Swift decoder 与 Home/菜单栏 presentation 对未知或矛盾组合 fail closed，锁屏/LoginWindow/off-console 与 TCC 不再只显示模糊的“无键鼠权限”。完整 Rust 131/131、release core、实际加载新 core 的 Swift 134/134、ScriptTests 21/21、arm64 Release build与 clean pinned replay 通过。未安装/部署/push；这不是完整 H5.2：媒体 pause/bounded recovery、后台顶层 `hostAvailability`、Secure Input 决策与锁屏/FUS/TCC 真机 transition 仍待后续。详见 `Evidence/HostMode/2026-08-08/h3-active-session-input-availability.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
