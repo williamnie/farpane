@@ -1586,6 +1586,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.3a strict XPC wire handshake contract 已完成自动实现**。独立于 listener/runtime 的有界 Data contract 现以 exact-key schema v1 固定 request/response，交换 supported wire versions、组件 build ID、request ID、Host instance ID、agent boot ID 与发送时间；每份最多 8 KiB，版本列表最多 8 项且严格递增唯一，UUID/token/整数均严格校验。当前产品 wire version 只有固定 authority `[1]`，Agent 选择双方最高共同版本；无交集返回 selected=null 的 correlated incompatible，App 再核对 request ID、交集与选择，矛盾响应稳定 fail closed。时间戳尚不代表 freshness/replay 证明。本步不引用 XPC interface/listener/connection，不激活 IPC，也不定义 Host command/snapshot/event；H4.2k 继续拒绝全部连接。未修改 Host Control/Media ABI、Rust/Hermes/SMAppService/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-wire-handshake-contract.md`。
 
+> 更新（2026-08-08）：**H4.3b Clang-backed XPC handshake interface/handler 已完成自动实现**。本机 SDK/运行探针确认纯 Swift `@objc protocol` 缺少 NSXPC 所需 extended method signature，因此 CoreBridgeShim 新增唯一 required Objective-C selector `performHandshakeWithRequestData:reply:`，只允许 nonnull NSData request 与 nullable NSData response；没有 collection/URL/Error/proxy/任意 object。固定 factory 可真实构造 `NSXPCInterface`；immutable handler 只持有严格 Agent build/Host instance/boot identity 与 sendable clock，按 H4.3a 执行 bounded decode→固定版本协商→bounded encode，合法/不兼容分别返回 correlated typed response，畸形/超限/无效 identity/clock 只返回 nil 且 reply 一次。本步没有把 interface/object 安装到 connection，不 accept/activate/resume listener，不定义 snapshot/event/Host command；H4.2k 仍全拒绝。未修改 Host Control/Media C ABI、Rust/Hermes/SMAppService/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-handshake-service.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
