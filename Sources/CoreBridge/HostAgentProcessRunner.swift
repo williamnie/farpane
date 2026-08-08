@@ -35,12 +35,15 @@ public enum HostAgentProcessRunResult: Equatable, Sendable {
 
 package enum HostAgentProcessTerminalResult: Equatable, Sendable {
     case unavailable
+    case entryRejected(HostAgentProcessEntryFailure)
     case process(HostAgentProcessRunResult)
 
     fileprivate var exitCode: Int32 {
         switch self {
         case .unavailable:
             return 69 // EX_UNAVAILABLE
+        case .entryRejected(let failure):
+            return failure.exitCode
         case .process(let result):
             return result.exitCode
         }
@@ -50,6 +53,8 @@ package enum HostAgentProcessTerminalResult: Equatable, Sendable {
         switch self {
         case .unavailable:
             return "FarPane HostAgent runtime is not available in this build."
+        case .entryRejected(let failure):
+            return failure.diagnostic
         case .process(let result):
             return result.diagnostic
         }
