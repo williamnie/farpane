@@ -1624,6 +1624,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.3e4g explicit App-side background activation owner 已完成自动实现**。新的稳定 owner 只接受 typed `hostEnabled`、`hostDisabled` 与 `applicationWillTerminate` intent；构造保持 inert，明确 enable 才为该 activation epoch 创建 e4f product composition 并启动其 reconnect owner。由于 e4e runtime 为一次性，disable→enable 必须创建全新 composition/epoch；disable 和 App termination 都先撤下当前 runtime、取消 observation，再发布状态，旧 health callback、blocking factory/start completion 与 observer reentrant disable 均不能启动或复活旧 runtime。factory/start/health sequence failure 只发布稳定脱敏 failure，显式后续 enable 可新建 epoch 重试；App termination 永久拒绝复活。App 退出只终止本地观察，不被解释成 disableHost，也不修改 durable intent/identity/registration。当前 owner 尚未接 UserDefaults、旧进程内 `HostControlClient`、AppKit/SwiftUI 或产品 App lifecycle，且不执行 SMAppService mutation、不启用 Agent entry。详见 `Evidence/HostMode/2026-08-09/h4-background-activation-owner.md`。
 
+> 更新（2026-08-09）：**H4.1ab HostAgent top-level entry eligibility preflight 已完成自动实现**。在真实 runner dispatch 前新增只读 gate：argv 必须精确为 `RustDeskNative --host-agent` 或固定 `/Applications/FarPane.app/Contents/MacOS/RustDeskNative --host-agent`，缺失、额外、混合 fixture、lookalike flag、相对/搬移/归一化别名路径均在读取身份前拒绝。随后复用 H4.2h registration identity gate，顺序验证固定嵌入 LaunchAgent plist、`/Applications/FarPane.app` bundle metadata 与 Apple-issued Team/signing requirement；local development channel 才产生 bounded build eligibility，伪造 build token fail closed。Developer ID channel 在 H4.5 独立 notarization evidence 尚未落地前固定拒绝，不能仅凭签名启动分发 Agent。product preflight 不接受 path/data/env override，不启动 runtime、不修改 registration；顶层 dispatch 仍固定 69，下一步需先把 rejection 映射为脱敏 terminal result。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-entry-preflight.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
