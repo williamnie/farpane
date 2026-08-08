@@ -70,6 +70,233 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         XCTAssertEqual(transport.invalidateCount, 1)
     }
 
+    func testEventFetchUsesSnapshotCursorAndAdvancesCorrelatedBatch() throws {
+        let transport = SnapshotClientTestTransport()
+        let source = SnapshotClientTestSource()
+        let eventResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        let duplicateResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        let client = try makeClient(transport: transport, source: source)
+        client.start { _ in }
+        try completeReady(transport: transport, eventSequence: 0)
+
+        client.fetchEvents { eventResults.append($0) }
+        client.fetchEvents { duplicateResults.append($0) }
+
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .fetchingEvents(try peerIdentity(), afterEventID: 0)
+        )
+        XCTAssertEqual(transport.eventRequestCount, 1)
+        XCTAssertEqual(duplicateResults.values, [.invalidState])
+        let request = try HostAgentXPCWireEventCursorRequest.decode(
+            XCTUnwrap(transport.lastEventRequest)
+        )
+        XCTAssertEqual(request.afterEventID, 0)
+        XCTAssertEqual(
+            request.maximumEventCount,
+            HostAgentXPCWireEventContract.maximumEventCount
+        )
+        let response = try eventResponse(
+            for: request,
+            events: [try event(
+                id: 41,
+                type: "commandResult",
+                payload: [
+                    "commandId": "command-1",
+                    "status": "ok",
+                    "detail": "completed",
+                ]
+            )]
+        )
+        transport.replyToEvents(try response.encoded())
+
+        XCTAssertEqual(eventResults.values, [.events(response)])
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .ready(try peerIdentity(), lastEventID: 1)
+        )
+        XCTAssertEqual(transport.snapshotRequestCount, 1)
+        XCTAssertEqual(transport.invalidateCount, 0)
+    }
+
+    func testGapAutomaticallyResnapshotsBeforeReturningToReady() throws {
+        let transport = SnapshotClientTestTransport()
+        let source = SnapshotClientTestSource()
+        let results = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        let client = try makeClient(transport: transport, source: source)
+        client.start { _ in }
+        try completeReady(transport: transport, eventSequence: 0)
+        client.fetchEvents { results.append($0) }
+        let eventRequest = try HostAgentXPCWireEventCursorRequest.decode(
+            XCTUnwrap(transport.lastEventRequest)
+        )
+        let gap = try eventResponse(
+            for: eventRequest,
+            events: [
+                try event(id: 1, type: "sessionStarted", payload: [:]),
+                try event(id: 2, type: "sessionEnded", payload: [:]),
+                try event(id: 3, type: "permissionChanged", payload: [:]),
+            ],
+            capacity: 2
+        )
+        XCTAssertEqual(gap.outcome, .gap)
+
+        transport.replyToEvents(try gap.encoded())
+
+        XCTAssertEqual(results.values, [])
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .refreshingSnapshot(try peerIdentity(), lastEventID: 0)
+        )
+        XCTAssertEqual(transport.snapshotRequestCount, 2)
+        let refreshRequest = try HostAgentXPCWireSnapshotRequest.decode(
+            XCTUnwrap(transport.lastSnapshotRequest)
+        )
+        let refreshed = try HostAgentXPCWireSnapshotResponse.decode(
+            snapshotResponse(
+                for: refreshRequest,
+                hostID: hostID,
+                bootID: bootID,
+                eventSequence: 3
+            )
+        )
+        transport.replyToSnapshot(try refreshed.encoded())
+
+        XCTAssertEqual(results.values, [.resynchronized(
+            snapshot: refreshed,
+            triggeringResponse: gap
+        )])
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .ready(try peerIdentity(), lastEventID: 3)
+        )
+        XCTAssertEqual(transport.invalidateCount, 0)
+    }
+
+    func testSnapshotChangedBatchResnapshotsInsteadOfPublishingStaleState()
+        throws
+    {
+        let transport = SnapshotClientTestTransport()
+        let source = SnapshotClientTestSource()
+        let results = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        let client = try makeClient(transport: transport, source: source)
+        client.start { _ in }
+        try completeReady(transport: transport, eventSequence: 0)
+        client.fetchEvents { results.append($0) }
+        let eventRequest = try HostAgentXPCWireEventCursorRequest.decode(
+            XCTUnwrap(transport.lastEventRequest)
+        )
+        let changed = try eventResponse(
+            for: eventRequest,
+            events: [try event(
+                id: 1,
+                type: "sessionCapabilitiesChanged",
+                payload: [:]
+            )]
+        )
+
+        transport.replyToEvents(try changed.encoded())
+
+        XCTAssertEqual(results.values, [])
+        XCTAssertEqual(transport.snapshotRequestCount, 2)
+        let refreshRequest = try HostAgentXPCWireSnapshotRequest.decode(
+            XCTUnwrap(transport.lastSnapshotRequest)
+        )
+        let refreshed = try HostAgentXPCWireSnapshotResponse.decode(
+            snapshotResponse(
+                for: refreshRequest,
+                hostID: hostID,
+                bootID: bootID,
+                eventSequence: 1
+            )
+        )
+        transport.replyToSnapshot(try refreshed.encoded())
+
+        XCTAssertEqual(results.values, [.resynchronized(
+            snapshot: refreshed,
+            triggeringResponse: changed
+        )])
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .ready(try peerIdentity(), lastEventID: 1)
+        )
+    }
+
+    func testInvalidEventResponseFailsClosedAndLateReplyCannotRevive() throws {
+        let transport = SnapshotClientTestTransport()
+        let source = SnapshotClientTestSource()
+        let results = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        let client = try makeClient(transport: transport, source: source)
+        client.start { _ in }
+        try completeReady(transport: transport, eventSequence: 0)
+        client.fetchEvents { results.append($0) }
+        let request = try HostAgentXPCWireEventCursorRequest.decode(
+            XCTUnwrap(transport.lastEventRequest)
+        )
+        let late = try eventResponse(for: request, events: [])
+
+        transport.replyToEvents(Data())
+        transport.replyToEvents(try late.encoded())
+
+        XCTAssertEqual(results.values, [.invalidResponse])
+        XCTAssertEqual(client.stateSnapshot(), .failed)
+        XCTAssertEqual(transport.invalidateCount, 1)
+    }
+
+    func testEventTimeoutAndCancellationAreTerminalAndOneShot() throws {
+        let timeoutTransport = SnapshotClientTestTransport()
+        let timeoutSource = SnapshotClientTestSource()
+        let timeoutResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        let timeoutClient = try makeClient(
+            transport: timeoutTransport,
+            source: timeoutSource
+        )
+        timeoutClient.start { _ in }
+        try completeReady(transport: timeoutTransport, eventSequence: 0)
+        timeoutClient.fetchEvents { timeoutResults.append($0) }
+        timeoutSource.fireLastTimeout()
+
+        XCTAssertEqual(timeoutResults.values, [.timedOut])
+        XCTAssertEqual(timeoutClient.stateSnapshot(), .failed)
+        XCTAssertEqual(timeoutTransport.invalidateCount, 1)
+
+        let cancelTransport = SnapshotClientTestTransport()
+        let cancelSource = SnapshotClientTestSource()
+        let cancelResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        let cancelClient = try makeClient(
+            transport: cancelTransport,
+            source: cancelSource
+        )
+        cancelClient.start { _ in }
+        try completeReady(transport: cancelTransport, eventSequence: 0)
+        cancelClient.fetchEvents { cancelResults.append($0) }
+        let request = try HostAgentXPCWireEventCursorRequest.decode(
+            XCTUnwrap(cancelTransport.lastEventRequest)
+        )
+        let late = try eventResponse(for: request, events: [])
+
+        cancelClient.cancel()
+        cancelTransport.replyToEvents(try late.encoded())
+
+        XCTAssertEqual(cancelResults.values, [.cancelled])
+        XCTAssertEqual(cancelClient.stateSnapshot(), .cancelled)
+        XCTAssertEqual(cancelTransport.invalidateCount, 1)
+    }
+
     func testPreviousIdentityIsOfferedAndReplacementResetsBeforeDelivery() throws {
         let transport = SnapshotClientTestTransport()
         let source = SnapshotClientTestSource()
@@ -283,9 +510,19 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         let snapshotState = HostAgentSnapshotState()
         _ = snapshotState.publish(
             try coreSnapshot(hostID: hostID),
-            eventSequence: 9,
+            eventSequence: 0,
             expectedHostInstanceID: hostID
         )
+        let eventState = try HostAgentEventState()
+        _ = eventState.ingest(try event(
+            id: 41,
+            type: "commandResult",
+            payload: [
+                "commandId": "command-1",
+                "status": "ok",
+                "detail": "completed",
+            ]
+        ))
         let handler = try HostAgentXPCSnapshotSessionHandler(
             identity: HostAgentXPCWireAgentIdentity(
                 agentBuildID: "agent-build",
@@ -293,7 +530,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
                 agentBootID: bootID
             ),
             snapshotState: snapshotState,
-            eventState: try HostAgentEventState(),
+            eventState: eventState,
             nowUnixMilliseconds: { 20 },
             monotonicMilliseconds: { 1 }
         )
@@ -323,13 +560,28 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         guard case .ready(let snapshot, let peer, .firstObservation)? =
             results.values.first
         else { return XCTFail("expected ready XPC snapshot") }
-        XCTAssertEqual(snapshot.lastEventID, 9)
+        XCTAssertEqual(snapshot.lastEventID, 0)
         XCTAssertEqual(snapshot.snapshot.hostState, "ready")
         XCTAssertEqual(peer, try peerIdentity())
-        XCTAssertEqual(client.stateSnapshot(), .ready(peer, lastEventID: 9))
+        XCTAssertEqual(client.stateSnapshot(), .ready(peer, lastEventID: 0))
+
+        let eventCompleted = expectation(description: "event client ready")
+        let eventResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        client.fetchEvents {
+            eventResults.append($0)
+            eventCompleted.fulfill()
+        }
+        wait(for: [eventCompleted], timeout: 2)
+        guard case .events(let eventResponse)? = eventResults.values.first
+        else { return XCTFail("expected event batch") }
+        XCTAssertEqual(eventResponse.outcome, .batch)
+        XCTAssertEqual(eventResponse.resumeAfterEventID, 1)
+        XCTAssertEqual(client.stateSnapshot(), .ready(peer, lastEventID: 1))
     }
 
-    func testProductFactorySourceFixesMachServiceAndExposesNoEventOrCommand() throws {
+    func testProductFactorySourceFixesMachServiceAndExposesNoCommand() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -354,7 +606,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         XCTAssertFalse(source.contains("ProcessInfo"))
         XCTAssertFalse(source.contains("UserDefaults"))
         XCTAssertFalse(source.contains("getenv"))
-        XCTAssertFalse(source.contains("HostAgentXPCWireEvent"))
+        XCTAssertTrue(source.contains("HostAgentXPCWireEvent"))
         XCTAssertFalse(source.contains("HostAgentXPCWireCommand"))
         XCTAssertFalse(source.contains("NSURL"))
     }
@@ -467,6 +719,45 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         ).encoded()
     }
 
+    private func eventResponse(
+        for request: HostAgentXPCWireEventCursorRequest,
+        events: [HostCoreEvent],
+        capacity: Int = HostAgentEventState.productCapacity
+    ) throws -> HostAgentXPCWireEventCursorResponse {
+        let state = try HostAgentEventState(capacity: capacity)
+        for event in events { _ = state.ingest(event) }
+        return try HostAgentXPCWireEventCursorResponse.make(
+            for: request,
+            identity: HostAgentXPCWireAgentIdentity(
+                agentBuildID: "agent-build",
+                hostInstanceID: hostID,
+                agentBootID: bootID
+            ),
+            replay: state.replay(
+                afterSequence: request.afterEventID,
+                limit: request.maximumEventCount
+            ),
+            sentAtUnixMilliseconds: 22
+        )
+    }
+
+    private func event(
+        id: UInt64,
+        type: String,
+        payload: [String: Any]
+    ) throws -> HostCoreEvent {
+        try XCTUnwrap(HostCoreEvent(rawJSON: JSONSerialization.data(
+            withJSONObject: [
+                "schemaVersion": 1,
+                "eventId": id,
+                "eventType": type,
+                "hostInstanceId": hostID,
+                "sentAt": 1_700_000_000_000 as UInt64,
+                "payload": payload,
+            ]
+        )))
+    }
+
     private func coreSnapshot(hostID: String) throws -> HostCoreSnapshot {
         try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: [
@@ -526,8 +817,10 @@ private final class SnapshotClientTestSource: @unchecked Sendable {
     private var requestIDs = [
         "287fd5f2-98b7-4183-ac81-6973cef9a610",
         "151db9a9-7dd3-4fea-93af-1b6c10840676",
+        "841733af-919b-4dc2-84bb-7134d0951dc9",
+        "f3b55fb3-bc9f-443a-9a73-7769eb35875d",
     ]
-    private var times: [UInt64] = [10, 11]
+    private var times: [UInt64] = [10, 11, 12, 13]
     private var scheduledTimeouts: [@Sendable () -> Void] = []
 
     func nextRequestID() -> String {
@@ -557,6 +850,13 @@ private final class SnapshotClientTestSource: @unchecked Sendable {
         lock.unlock()
         timeout()
     }
+
+    func fireLastTimeout() {
+        lock.lock()
+        let timeout = scheduledTimeouts.removeLast()
+        lock.unlock()
+        timeout()
+    }
 }
 
 private final class SnapshotClientTestTransport:
@@ -568,17 +868,21 @@ private final class SnapshotClientTestTransport:
     private var invalidation: (@Sendable () -> Void)?
     private var handshakeReply: (@Sendable (Data?) -> Void)?
     private var snapshotReply: (@Sendable (Data?) -> Void)?
+    private var eventReply: (@Sendable (Data?) -> Void)?
     private var starts = 0
     private var invalidations = 0
     private var handshakeRequests: [Data] = []
     private var snapshotRequests: [Data] = []
+    private var eventRequests: [Data] = []
 
     var startCount: Int { locked { starts } }
     var invalidateCount: Int { locked { invalidations } }
     var handshakeRequestCount: Int { locked { handshakeRequests.count } }
     var snapshotRequestCount: Int { locked { snapshotRequests.count } }
+    var eventRequestCount: Int { locked { eventRequests.count } }
     var lastHandshakeRequest: Data? { locked { handshakeRequests.last } }
     var lastSnapshotRequest: Data? { locked { snapshotRequests.last } }
+    var lastEventRequest: Data? { locked { eventRequests.last } }
 
     func start(
         onInterruption: @escaping @Sendable () -> Void,
@@ -611,6 +915,16 @@ private final class SnapshotClientTestTransport:
         lock.unlock()
     }
 
+    func fetchEvents(
+        requestData: Data,
+        reply: @escaping @Sendable (Data?) -> Void
+    ) {
+        lock.lock()
+        eventRequests.append(requestData)
+        eventReply = reply
+        lock.unlock()
+    }
+
     func invalidate() {
         lock.lock()
         invalidations += 1
@@ -623,6 +937,10 @@ private final class SnapshotClientTestTransport:
 
     func replyToSnapshot(_ data: Data?) {
         locked { snapshotReply }?(data)
+    }
+
+    func replyToEvents(_ data: Data?) {
+        locked { eventReply }?(data)
     }
 
     func triggerInterruption() {
