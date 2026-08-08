@@ -3,56 +3,125 @@ import Foundation
 package struct HostAgentXPCListenerAdmissionSnapshot: Equatable, Sendable {
     package let connectionAttemptCount: UInt64
     package let rejectedPeerIdentityCount: UInt64
-    package let rejectedInterfaceUnavailableCount: UInt64
+    package let rejectedHandshakeUnavailableCount: UInt64
+    package let acceptedHandshakeConnectionCount: UInt64
+    package let activeHandshakeConnectionCount: UInt64
+    package let closedHandshakeConnectionCount: UInt64
+    package let cancelled: Bool
 
     package init(
         connectionAttemptCount: UInt64,
         rejectedPeerIdentityCount: UInt64,
-        rejectedInterfaceUnavailableCount: UInt64
+        rejectedHandshakeUnavailableCount: UInt64,
+        acceptedHandshakeConnectionCount: UInt64,
+        activeHandshakeConnectionCount: UInt64,
+        closedHandshakeConnectionCount: UInt64,
+        cancelled: Bool
     ) {
         self.connectionAttemptCount = connectionAttemptCount
         self.rejectedPeerIdentityCount = rejectedPeerIdentityCount
-        self.rejectedInterfaceUnavailableCount =
-            rejectedInterfaceUnavailableCount
+        self.rejectedHandshakeUnavailableCount =
+            rejectedHandshakeUnavailableCount
+        self.acceptedHandshakeConnectionCount =
+            acceptedHandshakeConnectionCount
+        self.activeHandshakeConnectionCount =
+            activeHandshakeConnectionCount
+        self.closedHandshakeConnectionCount = closedHandshakeConnectionCount
+        self.cancelled = cancelled
     }
 }
 
 /// Owns the signed Mach-service listener and its first delegate boundary.
-/// Until a typed, versioned interface exists, every connection is rejected,
-/// including peers that pass identity admission.
+/// Only an identity-eligible peer admitted under the ready process identity can
+/// receive the fixed handshake-only service. Listener activation remains a
+/// separate process-composition responsibility.
 package final class HostAgentXPCListenerAdmissionShell:
     NSObject,
     NSXPCListenerDelegate,
     @unchecked Sendable
 {
+    package static let maximumActiveHandshakeConnectionCount = 8
+
     typealias ConnectionAssessor = (NSXPCConnection)
         -> HostAgentXPCPeerAdmissionStatus
+    typealias ConnectionLifecycleHandler = @Sendable () -> Void
+    struct ConnectionLifecycleHandlers: Sendable {
+        let onInterruption: ConnectionLifecycleHandler
+        let onInvalidation: ConnectionLifecycleHandler
+    }
+    typealias ConnectionConfigurator = (
+        NSXPCConnection,
+        NSXPCInterface,
+        HostAgentXPCHandshakeHandler,
+        ConnectionLifecycleHandlers
+    ) -> Void
+    typealias ConnectionAction = (NSXPCConnection) -> Void
+
+    private enum ConnectionEndReason: Equatable, Sendable {
+        case interrupted
+        case invalidated
+    }
 
     private let lock = NSLock()
     private let listener: NSXPCListener
+    private let identityAuthority: HostAgentXPCProcessIdentityAuthority
     private let assessConnection: ConnectionAssessor
+    private let nowUnixMilliseconds: HostAgentXPCHandshakeHandler.Clock
+    private let configureConnection: ConnectionConfigurator
+    private let resumeConnection: ConnectionAction
+    private let invalidateConnection: ConnectionAction
     private var connectionAttemptCount: UInt64 = 0
     private var rejectedPeerIdentityCount: UInt64 = 0
-    private var rejectedInterfaceUnavailableCount: UInt64 = 0
+    private var rejectedHandshakeUnavailableCount: UInt64 = 0
+    private var acceptedHandshakeConnectionCount: UInt64 = 0
+    private var closedHandshakeConnectionCount: UInt64 = 0
+    private var activeConnections: [ObjectIdentifier: NSXPCConnection] = [:]
+    private var cancelled = false
 
-    package static func makeProductShell()
+    package static func makeProductShell(
+        identityAuthority: HostAgentXPCProcessIdentityAuthority
+    )
         -> HostAgentXPCListenerAdmissionShell
     {
         let listener = HostAgentXPCListenerFactory.makeListener()
         return HostAgentXPCListenerAdmissionShell(
             listener: listener,
-            assessConnection: HostAgentXPCPeerAdmissionGate.assess
+            identityAuthority: identityAuthority,
+            assessConnection: HostAgentXPCPeerAdmissionGate.assess,
+            nowUnixMilliseconds: productClock,
+            configureConnection: configureProductConnection,
+            resumeConnection: { connection in connection.resume() },
+            invalidateConnection: { connection in connection.invalidate() }
         )
     }
 
     init(
         listener: NSXPCListener,
-        assessConnection: @escaping ConnectionAssessor
+        identityAuthority: HostAgentXPCProcessIdentityAuthority,
+        assessConnection: @escaping ConnectionAssessor,
+        nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
+        configureConnection: @escaping ConnectionConfigurator,
+        resumeConnection: @escaping ConnectionAction,
+        invalidateConnection: @escaping ConnectionAction
     ) {
         self.listener = listener
+        self.identityAuthority = identityAuthority
         self.assessConnection = assessConnection
+        self.nowUnixMilliseconds = nowUnixMilliseconds
+        self.configureConnection = configureConnection
+        self.resumeConnection = resumeConnection
+        self.invalidateConnection = invalidateConnection
         super.init()
         listener.delegate = self
+        let observerInstalled = identityAuthority.installInvalidationObserver {
+            [weak self] in
+            self?.cancel()
+        }
+        if !observerInstalled { cancel() }
+    }
+
+    deinit {
+        cancel()
     }
 
     package func listener(
@@ -60,28 +129,50 @@ package final class HostAgentXPCListenerAdmissionShell:
         shouldAcceptNewConnection newConnection: NSXPCConnection
     ) -> Bool {
         guard listener === self.listener else {
+            recordAttempt(rejectedPeerIdentity: true)
+            return false
+        }
+        recordAttempt(rejectedPeerIdentity: false)
+        let admission = assessConnection(newConnection)
+        guard admission == .eligible else {
             recordRejectedPeerIdentity()
             return false
         }
-        let admission = assessConnection(newConnection)
 
-        lock.lock()
-        incrementSaturating(&connectionAttemptCount)
-        if admission == .eligible {
-            incrementSaturating(&rejectedInterfaceUnavailableCount)
-        } else {
-            incrementSaturating(&rejectedPeerIdentityCount)
+        let admitted = identityAuthority.withReadyIdentityForAdmission {
+            [self] identity in
+            configureAndResume(
+                newConnection,
+                identity: identity
+            )
         }
-        lock.unlock()
-
-        return false
+        guard admitted == true else {
+            recordRejectedHandshakeUnavailable()
+            return false
+        }
+        return true
     }
 
-    private func recordRejectedPeerIdentity() {
+    /// Terminally rejects new admission and invalidates every accepted
+    /// handshake-only connection. Safe for repeated and concurrent callers.
+    package func cancel() {
         lock.lock()
-        incrementSaturating(&connectionAttemptCount)
-        incrementSaturating(&rejectedPeerIdentityCount)
+        guard !cancelled else {
+            lock.unlock()
+            return
+        }
+        cancelled = true
+        let connections = Array(activeConnections.values)
+        activeConnections.removeAll(keepingCapacity: false)
+        addSaturating(
+            UInt64(connections.count),
+            to: &closedHandshakeConnectionCount
+        )
         lock.unlock()
+
+        for connection in connections {
+            invalidateConnection(connection)
+        }
     }
 
     package func snapshot() -> HostAgentXPCListenerAdmissionSnapshot {
@@ -90,12 +181,139 @@ package final class HostAgentXPCListenerAdmissionShell:
         return HostAgentXPCListenerAdmissionSnapshot(
             connectionAttemptCount: connectionAttemptCount,
             rejectedPeerIdentityCount: rejectedPeerIdentityCount,
-            rejectedInterfaceUnavailableCount:
-                rejectedInterfaceUnavailableCount
+            rejectedHandshakeUnavailableCount:
+                rejectedHandshakeUnavailableCount,
+            acceptedHandshakeConnectionCount:
+                acceptedHandshakeConnectionCount,
+            activeHandshakeConnectionCount: UInt64(activeConnections.count),
+            closedHandshakeConnectionCount: closedHandshakeConnectionCount,
+            cancelled: cancelled
         )
+    }
+
+    private func configureAndResume(
+        _ connection: NSXPCConnection,
+        identity: HostAgentXPCWireAgentIdentity
+    ) -> Bool {
+        let identifier = ObjectIdentifier(connection)
+        lock.lock()
+        guard !cancelled,
+              activeConnections.count
+                < Self.maximumActiveHandshakeConnectionCount,
+              activeConnections[identifier] == nil
+        else {
+            lock.unlock()
+            return false
+        }
+        activeConnections[identifier] = connection
+        lock.unlock()
+
+        let interface = HostAgentXPCHandshakeInterfaceFactory.makeInterface()
+        let handler = HostAgentXPCHandshakeHandler(
+            identity: identity,
+            nowUnixMilliseconds: nowUnixMilliseconds
+        )
+        configureConnection(
+            connection,
+            interface,
+            handler,
+            ConnectionLifecycleHandlers(
+                onInterruption: { [weak self] in
+                    self?.connectionDidEnd(
+                        identifier,
+                        reason: .interrupted
+                    )
+                },
+                onInvalidation: { [weak self] in
+                    self?.connectionDidEnd(
+                        identifier,
+                        reason: .invalidated
+                    )
+                }
+            )
+        )
+
+        lock.lock()
+        guard !cancelled,
+              activeConnections[identifier] === connection
+        else {
+            lock.unlock()
+            return false
+        }
+        incrementSaturating(&acceptedHandshakeConnectionCount)
+        lock.unlock()
+
+        resumeConnection(connection)
+        return true
+    }
+
+    private func connectionDidEnd(
+        _ identifier: ObjectIdentifier,
+        reason: ConnectionEndReason
+    ) {
+        lock.lock()
+        guard let connection = activeConnections.removeValue(
+            forKey: identifier
+        ) else {
+            lock.unlock()
+            return
+        }
+        incrementSaturating(&closedHandshakeConnectionCount)
+        lock.unlock()
+
+        if reason == .interrupted {
+            invalidateConnection(connection)
+        }
+    }
+
+    private func recordAttempt(rejectedPeerIdentity: Bool) {
+        lock.lock()
+        incrementSaturating(&connectionAttemptCount)
+        if rejectedPeerIdentity {
+            incrementSaturating(&rejectedPeerIdentityCount)
+        }
+        lock.unlock()
+    }
+
+    private func recordRejectedPeerIdentity() {
+        lock.lock()
+        incrementSaturating(&rejectedPeerIdentityCount)
+        lock.unlock()
+    }
+
+    private func recordRejectedHandshakeUnavailable() {
+        lock.lock()
+        incrementSaturating(&rejectedHandshakeUnavailableCount)
+        lock.unlock()
+    }
+
+    private static let productClock: HostAgentXPCHandshakeHandler.Clock = {
+        let milliseconds = Date().timeIntervalSince1970 * 1_000
+        guard milliseconds.isFinite,
+              milliseconds > 0,
+              milliseconds <= 9_007_199_254_740_991
+        else { return 0 }
+        return UInt64(milliseconds.rounded(.towardZero))
+    }
+
+    private static func configureProductConnection(
+        _ connection: NSXPCConnection,
+        _ interface: NSXPCInterface,
+        _ handler: HostAgentXPCHandshakeHandler,
+        _ lifecycle: ConnectionLifecycleHandlers
+    ) {
+        connection.exportedInterface = interface
+        connection.exportedObject = handler
+        connection.interruptionHandler = lifecycle.onInterruption
+        connection.invalidationHandler = lifecycle.onInvalidation
     }
 
     private func incrementSaturating(_ value: inout UInt64) {
         if value < UInt64.max { value += 1 }
+    }
+
+    private func addSaturating(_ addition: UInt64, to value: inout UInt64) {
+        let (sum, overflow) = value.addingReportingOverflow(addition)
+        value = overflow ? UInt64.max : sum
     }
 }

@@ -3,20 +3,26 @@ import Foundation
 import XCTest
 
 final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
-    func testProductShellStartsConfiguredButInactiveAndSanitized() {
-        let shell = HostAgentXPCListenerAdmissionShell.makeProductShell()
+    func testProductShellStartsConfiguredButInactiveAndSanitized() throws {
+        let shell = HostAgentXPCListenerAdmissionShell.makeProductShell(
+            identityAuthority: try makeAuthority()
+        )
 
         XCTAssertEqual(
             shell.snapshot(),
             HostAgentXPCListenerAdmissionSnapshot(
                 connectionAttemptCount: 0,
                 rejectedPeerIdentityCount: 0,
-                rejectedInterfaceUnavailableCount: 0
+                rejectedHandshakeUnavailableCount: 0,
+                acceptedHandshakeConnectionCount: 0,
+                activeHandshakeConnectionCount: 0,
+                closedHandshakeConnectionCount: 0,
+                cancelled: false
             )
         )
     }
 
-    func testRejectsEveryIneligiblePeerWithoutInterfaceFallback() {
+    func testRejectsEveryIneligiblePeerWithoutInterfaceFallback() throws {
         let statuses: [HostAgentXPCPeerAdmissionStatus] = [
             .invalidProcess,
             .differentUser,
@@ -27,8 +33,9 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         ]
         let listener = NSXPCListener.anonymous()
         let recorder = XPCAdmissionStatusRecorder(statuses: statuses)
-        let shell = HostAgentXPCListenerAdmissionShell(
+        let shell = makeShell(
             listener: listener,
+            identityAuthority: try makeAuthority(),
             assessConnection: recorder.assess
         )
 
@@ -45,15 +52,20 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
             HostAgentXPCListenerAdmissionSnapshot(
                 connectionAttemptCount: UInt64(statuses.count),
                 rejectedPeerIdentityCount: UInt64(statuses.count),
-                rejectedInterfaceUnavailableCount: 0
+                rejectedHandshakeUnavailableCount: 0,
+                acceptedHandshakeConnectionCount: 0,
+                activeHandshakeConnectionCount: 0,
+                closedHandshakeConnectionCount: 0,
+                cancelled: false
             )
         )
     }
 
-    func testEligiblePeerStillFailsClosedUntilTypedInterfaceExists() {
+    func testEligiblePeerStillFailsClosedUntilIdentityIsReady() throws {
         let listener = NSXPCListener.anonymous()
-        let shell = HostAgentXPCListenerAdmissionShell(
+        let shell = makeShell(
             listener: listener,
+            identityAuthority: try makeAuthority(),
             assessConnection: { _ in .eligible }
         )
 
@@ -66,16 +78,21 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
             HostAgentXPCListenerAdmissionSnapshot(
                 connectionAttemptCount: 1,
                 rejectedPeerIdentityCount: 0,
-                rejectedInterfaceUnavailableCount: 1
+                rejectedHandshakeUnavailableCount: 1,
+                acceptedHandshakeConnectionCount: 0,
+                activeHandshakeConnectionCount: 0,
+                closedHandshakeConnectionCount: 0,
+                cancelled: false
             )
         )
     }
 
-    func testForeignListenerIsRejectedBeforeAssessingConnection() {
+    func testForeignListenerIsRejectedBeforeAssessingConnection() throws {
         let ownedListener = NSXPCListener.anonymous()
         var assessmentCount = 0
-        let shell = HostAgentXPCListenerAdmissionShell(
+        let shell = makeShell(
             listener: ownedListener,
+            identityAuthority: try makeAuthority(),
             assessConnection: { _ in
                 assessmentCount += 1
                 return .eligible
@@ -92,12 +109,16 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
             HostAgentXPCListenerAdmissionSnapshot(
                 connectionAttemptCount: 1,
                 rejectedPeerIdentityCount: 1,
-                rejectedInterfaceUnavailableCount: 0
+                rejectedHandshakeUnavailableCount: 0,
+                acceptedHandshakeConnectionCount: 0,
+                activeHandshakeConnectionCount: 0,
+                closedHandshakeConnectionCount: 0,
+                cancelled: false
             )
         )
     }
 
-    func testProductSourceOwnsNoActivationOrWireSurface() throws {
+    func testProductSourceOwnsHandshakeOnlySurfaceWithoutListenerActivation() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -114,11 +135,46 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
             "HostAgentXPCPeerAdmissionGate.assess"
         ))
         XCTAssertFalse(source.contains(".activate()"))
-        XCTAssertFalse(source.contains(".resume()"))
-        XCTAssertFalse(source.contains("NSXPCInterface"))
-        XCTAssertFalse(source.contains("exportedInterface"))
-        XCTAssertFalse(source.contains("exportedObject"))
+        XCTAssertTrue(source.contains("connection.resume()"))
+        XCTAssertTrue(source.contains(
+            "HostAgentXPCHandshakeInterfaceFactory.makeInterface()"
+        ))
+        XCTAssertTrue(source.contains("connection.exportedInterface"))
+        XCTAssertTrue(source.contains("connection.exportedObject"))
+        XCTAssertTrue(source.contains("connection.interruptionHandler"))
+        XCTAssertTrue(source.contains("connection.invalidationHandler"))
+        XCTAssertFalse(source.contains("listener.activate()"))
+        XCTAssertFalse(source.contains("listener.resume()"))
         XCTAssertFalse(source.contains("remoteObjectInterface"))
+        XCTAssertFalse(source.contains("HostAgentSnapshotProjection"))
+        XCTAssertFalse(source.contains("HostCoreEvent"))
+        XCTAssertFalse(source.contains("Host command"))
+    }
+
+    private func makeAuthority() throws
+        -> HostAgentXPCProcessIdentityAuthority
+    {
+        try HostAgentXPCProcessIdentityAuthority.makeProduct(
+            agentBuildID: "agent-build",
+            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7"
+        )
+    }
+
+    private func makeShell(
+        listener: NSXPCListener,
+        identityAuthority: HostAgentXPCProcessIdentityAuthority,
+        assessConnection: @escaping HostAgentXPCListenerAdmissionShell
+            .ConnectionAssessor
+    ) -> HostAgentXPCListenerAdmissionShell {
+        HostAgentXPCListenerAdmissionShell(
+            listener: listener,
+            identityAuthority: identityAuthority,
+            assessConnection: assessConnection,
+            nowUnixMilliseconds: { 20 },
+            configureConnection: { _, _, _, _ in },
+            resumeConnection: { _ in },
+            invalidateConnection: { _ in }
+        )
     }
 }
 
