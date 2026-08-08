@@ -1518,6 +1518,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1e HostAgent product directory + catalog projection preparation 已完成自动实现**。固定布局的创建现从系统 user Application Support descriptor 开始，逐层使用 `mkdirat/openat(O_DIRECTORY|O_NOFOLLOW)`；Application Support 与兼容 catalog parent 必须为当前 euid directory 且不可 group/world writable，新建目录强制 `0700` 并同步 parent。既有 `HostAgent` 必须已经精确 `0700`，symlink、错误 owner/type 或宽权限一律拒绝，不静默 chmod。纯 projection builder 只从当前 schema catalog 取 rendezvous/public key，并加入调用方提供的 revision/build ID；device、display name、forceRelay、密码/token/private key 均不编码，sorted JSON 生成后再次经 H4.1b strict decoder 自校验。定向 5/5 与完整验证以 evidence 为准。本步只操作 UUID 测试目录，没有读取/创建用户产品配置；尚未定义 App build/revision authority 或调用 publication，`--host-agent` 仍以 69 unavailable 退出。未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-preparation.md`。
 
+> 更新（2026-08-08）：**H4.1f App-owned bootstrap publication coordinator 已完成自动实现**。Coordinator 以现有 projection 为唯一 durable revision authority：缺失从 1 开始；server address/public key 或 Agent build ID 改变时严格 `+1`；仅 catalog device/display name/forceRelay 改变不推进 revision。即使 desired 与现有语义相同也仍进入 H4.1d publication lock，再由 exact bytes/revision 判定 unchanged，避免锁外 stale success。损坏/不安全 projection 不覆盖，revision 达安全整数上限稳定失败，并发 lock busy 保留旧文档；catalog 保存与 build ID 解析仍由 App 调用方负责，Coordinator 不反写 catalog、不启动 HostCore。定向 3/3 与完整验证以 evidence 为准。本步只操作 UUID 测试目录，没有接入产品 App 生命周期或读取用户配置；`--host-agent` 仍以 69 unavailable 退出。未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-coordinator.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
