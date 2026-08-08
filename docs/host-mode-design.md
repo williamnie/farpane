@@ -1616,6 +1616,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.3e4c App-side XPC session lifecycle composition 已完成自动实现**。新增的独立生命周期从固定产品 factory 创建 snapshot-first client，并只在 initial authoritative snapshot 已交给 typed projection sink 后创建、强持有并启动唯一 polling owner；identity replacement reset、initial snapshot、增量 event 与 authoritative resync 都经同一 projection 边界交付。cancel、connection end、client/poll terminal 与 polling start failure 都先停止 owner、再取消 client，最后只通知一次脱敏 terminal reason；迟到 callback 不可复活。独立 recursive delivery gate 使已接受投影与 terminal 通知线性化，避免断线通知越过正在交付的 event。当前生命周期仍未接入 SwiftUI/App readiness，也不启用顶层 Agent entry、Host command 或自动重连，故不宣称后台 Host 已进入产品 ready。详见 `Evidence/HostMode/2026-08-09/h4-xpc-session-lifecycle.md`。
 
+> 更新（2026-08-09）：**H4.3e4d App-owned background projection authority 已完成自动实现**。持久 App authority 每次会话发放带单调 epoch 的 typed sink，并把最后一次已验证 peer identity 交给下一次 snapshot-first client；新会话开始即撤下旧快照，旧 epoch 的迟到 snapshot/event/terminal 全部静默失效。initial identity transition 必须与 previous peer 及 replacement reset 精确一致；available 投影只保留 peer identity、严格 snapshot payload 与 snapshot event cursor，不保留 request ID、原始 Data 或 transport。command-only/suppressed batch 只推进私有 cursor，不产生空 UI 更新；本应触发 resnapshot 的 state-changing event 若直接到达、foreign identity、cursor 倒退或错误 resync 一律清空投影并 fail closed。authoritative resync 原子替换完整投影；terminal 清空旧 snapshot，并保守派生 handshake/snapshot/Rendezvous component health。当前仍不读取 SMAppService registration、不接 SwiftUI/readiness 自动启动、不定义 Host command 或自动重连，也不启用顶层 Agent entry。详见 `Evidence/HostMode/2026-08-09/h4-background-projection-authority.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
