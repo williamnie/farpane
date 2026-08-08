@@ -1570,6 +1570,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2d LaunchAgent plist identity preflight 已完成自动实现**。package-scoped 纯数据 preflight 在任何 ServiceManagement mutation 前固定并验证 `io.rustdesknative.viewer.host-agent` label/唯一 enabled Mach service、bundle-relative `Contents/MacOS/RustDeskNative` 与完整 `["RustDeskNative", "--host-agent"]` argv；64 KiB 上限、语法/类型错误、绝对 `Program`、特权 system-domain `UserName`/`GroupName`、附加 service/argument 全部 fail closed。依据本机 SDK/`launchd.plist` 合同，`BundleProgram` 负责同 App executable 路径而 `ProgramArguments` 保留完整 argv。本步刻意不冻结 `RunAtLoad`/`KeepAlive` 等 lifecycle/restart policy，不创建/打包真实 plist，不调用 register/unregister，不定义 XPC schema；不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-launch-agent-plist-preflight.md`。
 
+> 更新（2026-08-08）：**H4.2e registration bundle identity preflight 已完成自动实现**。package-scoped 产品 preflight 只从 `Bundle.main` 读取并同时校验原始/解析后 URL，要求本地 bundle 精确位于 `/Applications/FarPane.app`，Info.plist 的 Bundle ID/package type/executable 固定为 `io.rustdesknative.viewer`/`APPL`/`RustDeskNative`，`CFBundleVersion` 与 H4.1 bootstrap 的 128-byte token 合同一致；用户目录副本、network URL、symlink 漂移、类型或 metadata 错误全部 fail closed。它只关闭 §13.1 非签名 identity 边界，Team ID/designated requirement/channel notarization 仍需独立证据。Apple 公共 `SMAppService` 没有保持注册的独立 stop API，而 unregister 会改变注册状态，故 crash recovery 与 `stopHostAgent` 的 lifecycle 冲突保持 open，未冻结 `KeepAlive`/`RunAtLoad`。本步不创建/打包 plist、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-registration-bundle-preflight.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
