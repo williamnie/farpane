@@ -164,7 +164,7 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
                 + "HostAgentBootstrapLaunchPreflight().prepare()"
         ))
 
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
         XCTAssertFalse(appSource.contains("HostAgentProcessProductEntry.run("))
         XCTAssertFalse(appSource.contains(
             "HostAgentProcessEntryOrchestrator.resolve("

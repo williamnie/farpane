@@ -1632,6 +1632,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H4.1ae HostAgent process bootstrap composition 已完成自动实现**。唯一无参数产品 bootstrap 现把 H4.1ab preflight、H4.1ac sanitized orchestrator、H4.1ad product entry driver 与 H4.1aa terminal reporter 严格组合为 `assess → eligible-only run → exactly-once report`。rejection 不触及 state/Core/runtime，eligible process result 原样进入 reporter；组合层不捕获 raw Error、不读环境/替代 path、不直接 I/O 或 `exit`，产品绑定只使用各既有 product authority。真实 `AppDelegate.main` 仍未调用该 bootstrap，继续走固定 unavailable 69；因此本步未读取真实配置、启动 Core、联网、安装、注册或部署 Agent。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-process-bootstrap.md`。
 
+> 更新（2026-08-09）：**H4.1af real pre-AppKit HostAgent dispatch 已完成自动实现**。`AppDelegate.main` 的 exact `--host-agent` role 分支现直接以 `HostAgentProcessBootstrap.run()` 返回值退出，调用严格早于首次 `NSApplication.shared` 与 `AppDelegate()`；旧的固定 `.unavailable`/69 占位已移除。真实 debug executable 的普通 build-path invocation 在 argv gate 返回 64，伪装固定 LaunchAgent argv0 后进入 signed asset gate 并因当前尚未打包 plist 返回 78；两条路径都只输出一行固定脱敏诊断，orchestrator 合同证明 rejection 不创建 state、不读取 bootstrap projection、不加载 Core 或联网。合法已安装 Apple Development Agent 现在具备进入完整 runtime 的代码路径，但本步没有安装/注册/启动该路径，真实启动、SIGTERM teardown 与重连仍待 Mini 验收；Developer ID 继续被 notarization gate 拒绝。详见 `Evidence/HostMode/2026-08-09/h4-host-agent-real-dispatch.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：

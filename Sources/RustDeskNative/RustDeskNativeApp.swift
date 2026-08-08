@@ -117,16 +117,6 @@ private extension HostMediaSubmissionDropReason {
     }
 }
 
-private enum HostAgentBootstrap {
-    /// H4.1a only reserves and isolates the process role. Until the dedicated
-    /// authenticated XPC runtime exists, starting HostCore would expose an
-    /// unreachable background authority. Keep the real entry fail-closed, but
-    /// use the same structured terminal reporter as the future process runner.
-    static func failClosed() -> Never {
-        exit(HostAgentProcessTerminalReporter.report(.unavailable))
-    }
-}
-
 @main
 private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
     private static let hostEnabledDefaultsKey = "farpane.host.enabled"
@@ -192,7 +182,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     static func main() {
         if RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments)
             == .hostAgent {
-            HostAgentBootstrap.failClosed()
+            exit(HostAgentProcessBootstrap.run())
         }
         let application = NSApplication.shared
         let delegate = AppDelegate()

@@ -198,7 +198,7 @@ final class HostAgentProcessEntryOrchestratorTests: XCTestCase {
         XCTAssertFalse(source.contains("getenv"))
         XCTAssertFalse(source.contains("exit("))
 
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
         XCTAssertFalse(appSource.contains(
             "HostAgentProcessEntryOrchestrator.resolve("
         ))

@@ -70,8 +70,8 @@ final class CoreBridgeContractTests: XCTestCase {
         let appKitBootstrap = try XCTUnwrap(source.range(of: "NSApplication.shared"))
 
         XCTAssertLessThan(dispatch.lowerBound, appKitBootstrap.lowerBound)
-        XCTAssertTrue(source.contains("HostAgentBootstrap.failClosed()"))
-        XCTAssertTrue(source.contains(
+        XCTAssertTrue(source.contains("exit(HostAgentProcessBootstrap.run())"))
+        XCTAssertFalse(source.contains(
             "HostAgentProcessTerminalReporter.report(.unavailable)"
         ))
         XCTAssertFalse(source.contains("unavailableExitCode"))
@@ -80,7 +80,7 @@ final class CoreBridgeContractTests: XCTestCase {
         ))
     }
 
-    func testHostAgentProcessRuntimeUsesOneBootstrapAuthorityButRemainsDisabled() throws {
+    func testHostAgentProcessRuntimeUsesOneBootstrapAuthorityAndProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -114,10 +114,10 @@ final class CoreBridgeContractTests: XCTestCase {
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentProcessRuntime.start("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
-    func testHostAgentStartupClassifierIsStructuredAndRemainsDisabled() throws {
+    func testHostAgentStartupClassifierIsStructuredAndUsesProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -162,7 +162,7 @@ final class CoreBridgeContractTests: XCTestCase {
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentProcessStartup.prepare("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
     func testHostAgentStartupSuccessOwnsLifetimeGateButInstallsNoSignals() throws {
@@ -199,7 +199,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(lifetimeSource.contains("signal("))
     }
 
-    func testHostAgentSignalIngressUsesDispatchSourcesAndRemainsDisabled() throws {
+    func testHostAgentSignalIngressUsesDispatchSourcesAndProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -227,10 +227,10 @@ final class CoreBridgeContractTests: XCTestCase {
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentProcessSignalController("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
-    func testHostAgentProcessRunnerComposesLifecycleButRemainsDisabled() throws {
+    func testHostAgentProcessRunnerComposesLifecycleAndUsesProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -258,7 +258,7 @@ final class CoreBridgeContractTests: XCTestCase {
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
     func testHostAgentProcessJournalsBeforeInternalConsumers() throws {
@@ -300,10 +300,10 @@ final class CoreBridgeContractTests: XCTestCase {
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentEventState("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
-    func testHostAgentProcessPublishesSanitizedSnapshotsButRemainsDisabled() throws {
+    func testHostAgentProcessPublishesSanitizedSnapshotsWithProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -351,10 +351,10 @@ final class CoreBridgeContractTests: XCTestCase {
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentSnapshotState("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
-    func testHostAgentSnapshotPollingIsCancelledBeforeCoreStopButRemainsDisabled() throws {
+    func testHostAgentSnapshotPollingIsCancelledBeforeCoreStopWithProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -386,10 +386,10 @@ final class CoreBridgeContractTests: XCTestCase {
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentSnapshotPollingOwner("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
-    func testHostAgentOwnsOrderedMediaControlIngressButRemainsDisabled() throws {
+    func testHostAgentOwnsOrderedMediaControlIngressWithProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -452,10 +452,10 @@ final class CoreBridgeContractTests: XCTestCase {
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentMediaControlState("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
-    func testHostAgentOwnsRealMediaPipelineButRemainsDisabled() throws {
+    func testHostAgentOwnsRealMediaPipelineWithProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -523,10 +523,10 @@ final class CoreBridgeContractTests: XCTestCase {
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentMediaPipelineOwner("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
-    func testHostAgentOwnsRouteScopedMediaDiagnosticsButRemainsDisabled() throws {
+    func testHostAgentOwnsRouteScopedMediaDiagnosticsWithProductDispatch() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -565,7 +565,7 @@ final class CoreBridgeContractTests: XCTestCase {
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentMediaPipelineSnapshot("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
     func testProductAppPublishesOnlyAfterCanonicalCatalogReadOrSave() throws {

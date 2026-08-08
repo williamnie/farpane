@@ -140,7 +140,7 @@ final class HostAgentProcessEntryPreflightTests: XCTestCase {
         )
     }
 
-    func testSourceIsReadOnlyAndEntryRemainsUndispatched() throws {
+    func testSourceIsReadOnlyAndEntryUsesOnlyProductBootstrap() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -171,7 +171,7 @@ final class HostAgentProcessEntryPreflightTests: XCTestCase {
         XCTAssertFalse(preflightSource.contains("AppKit"))
         XCTAssertFalse(preflightSource.contains("HostAgentProcess.run("))
 
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
         XCTAssertFalse(appSource.contains(
             "HostAgentProcessEntryPreflight.assessMainProcess()"
         ))

@@ -97,7 +97,7 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
         ))
     }
 
-    func testRuntimeOwnsAdmissionOwnerFromSameAuthorityAndEntryRemainsDisabled() throws {
+    func testRuntimeOwnsAdmissionOwnerFromSameAuthorityAndEntryUsesBootstrap() throws {
         let runtimeSource = try productSource("HostAgentProcessRuntime.swift")
         let lifetimeSource = try productSource("HostAgentProcessLifetime.swift")
         let appSource = try productSource("RustDeskNativeApp.swift")
@@ -121,7 +121,7 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
             "func activateXPCListener() throws"
         ))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
     }
 
     private func productSource(_ name: String) throws -> String {
