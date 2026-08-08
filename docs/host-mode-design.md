@@ -1582,6 +1582,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.2j XPC peer metadata admission 已完成自动实现**。package-scoped 产品 gate 只从 listener delegate 的真实 `NSXPCConnection` 读取内核 security attributes，固定按 PID→euid→audit session→executable 顺序 fail closed：PID 必须有效且不是 Agent 自身，euid 必须等于 `geteuid()`，peer/local ASID 必须有效且相等；local ASID 由 `getaudit_addr` 获取。最后仅以 `proc_pidpath` 按 PID 查询 executable，reported 与 symlink-resolved path 必须同时精确为 `/Applications/FarPane.app/Contents/MacOS/RustDeskNative`，不接受 peer/path/environment 注入。返回状态脱敏且前序失败不查路径。H4.2i 的 listener-level signing requirement 仍是独立第一道门；本步不创建 delegate/interface、不 activate/resume，也未证明 raw audit-token binding、PID lifetime 或真实 SMAppService Agent/App 的同-ASID，故不能称 authenticated IPC 完成。本步不创建 plist、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-peer-metadata-admission.md`。
 
+> 更新（2026-08-08）：**H4.2k fail-closed XPC listener admission shell 已完成自动实现**。新的 package-scoped owner 只持有 H4.2i 固定签名 Mach-service listener，并把自己设为 delegate；foreign listener 在读取 metadata 前拒绝，owned listener 的连接先过 H4.2j gate。由于 typed/versioned interface 尚未定义，identity eligible 也固定拒绝，不存在 fallback interface/selector/exported object。shell 不暴露 listener 或 activate/resume/configurator API，只以 NSLock 保护三个 saturating 脱敏计数：attempt、peer-identity rejection、interface-unavailable rejection；不保留 PID/uid/ASID/path/签名/Error。本步没有启动 IPC、定义 wire schema、启用 HostAgent 或改变 readiness，也不创建 plist、不调用 ServiceManagement mutation、不修改 ABI/Rust/Hermes/根配置，未安装/部署/push。详见 `Evidence/HostMode/2026-08-08/h4-xpc-listener-admission-shell.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
