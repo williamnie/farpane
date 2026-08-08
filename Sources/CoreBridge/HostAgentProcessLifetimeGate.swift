@@ -33,14 +33,17 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
     }
 
     private let condition = NSCondition()
+    private let prepareTermination: () -> Void
     private let stopRuntime: (Runtime, HostStopReason) throws -> Void
     private var state: State
 
     public init(
         runtime: Runtime,
+        prepareTermination: @escaping () -> Void = {},
         stopRuntime: @escaping (Runtime, HostStopReason) throws -> Void
     ) {
         self.state = .running(runtime)
+        self.prepareTermination = prepareTermination
         self.stopRuntime = stopRuntime
     }
 
@@ -59,6 +62,8 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
         }
         state = .stopping
         condition.unlock()
+
+        prepareTermination()
 
         let status: HostAgentProcessTerminationOutcome.Status
         do {

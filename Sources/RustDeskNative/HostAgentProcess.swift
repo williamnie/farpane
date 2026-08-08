@@ -17,12 +17,16 @@ enum HostAgentProcess {
         let snapshotCoordinator = HostAgentSnapshotRefreshCoordinator(
             state: snapshotState
         )
+        let pollingOwner = HostAgentSnapshotPollingOwner(
+            snapshotCoordinator: snapshotCoordinator
+        )
         return HostAgentProcessRunner.run(
             installTerminationIngress: {
                 try HostAgentProcessSignalController()
             },
             startRuntime: {
                 let result = HostAgentProcessStartup.prepare(
+                    prepareTermination: pollingOwner.cancel,
                     onEvent: { event in
                         eventState.consume(event) { event, sequence in
                             snapshotCoordinator.requestRefresh(
@@ -42,6 +46,11 @@ enum HostAgentProcess {
                     }
                     return try lifetime.copySnapshot()
                 }) else {
+                    _ = lifetime.requestTermination(reason: .error)
+                    _ = lifetime.waitUntilTerminated()
+                    return .failure(HostAgentStartupFailure(kind: .internalFailure))
+                }
+                guard pollingOwner.start() else {
                     _ = lifetime.requestTermination(reason: .error)
                     _ = lifetime.waitUntilTerminated()
                     return .failure(HostAgentStartupFailure(kind: .internalFailure))

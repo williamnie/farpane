@@ -11,6 +11,7 @@ enum HostAgentProcessStartup {
             label: "io.farpane.host-agent.startup-events",
             qos: .userInitiated
         ),
+        prepareTermination: @escaping () -> Void = {},
         onEvent: @escaping @Sendable (HostCoreEvent) -> Void
     ) -> Result<HostAgentProcessLifetime, HostAgentStartupFailure> {
         HostAgentProcessStartupRunner.start(
@@ -19,7 +20,10 @@ enum HostAgentProcessStartup {
                     eventQueue: eventQueue,
                     onEvent: onEvent
                 )
-                return HostAgentProcessLifetime(runtime: runtime)
+                return HostAgentProcessLifetime(
+                    runtime: runtime,
+                    prepareTermination: prepareTermination
+                )
             },
             classifyError: classify
         )
