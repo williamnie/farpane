@@ -31,10 +31,10 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 4;
+const HOST_ABI_VERSION: u32 = 5;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
-const SNAPSHOT_SCHEMA_VERSION: u32 = 3;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 4;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_NAME_BYTES: usize = 64;
@@ -711,7 +711,6 @@ impl NativeSessionBroker {
         self.active.take()
     }
 
-    #[cfg(test)]
     fn snapshot(&self) -> Option<NativeSessionSnapshot> {
         self.active.as_ref().map(|active| active.snapshot.clone())
     }
@@ -1259,6 +1258,15 @@ fn native_host_pending_approval_snapshot(host_instance_id: &str) -> Option<Value
         .connection_id
         .starts_with(&expected_prefix)
         .then(|| request.event_payload())
+}
+
+fn native_host_active_session_snapshot(host_instance_id: &str) -> Option<Value> {
+    let snapshot = SESSION_BROKER.lock().unwrap().snapshot()?;
+    let expected_prefix = format!("{host_instance_id}:");
+    snapshot
+        .connection_id
+        .starts_with(&expected_prefix)
+        .then(|| snapshot.event_payload())
 }
 
 fn reset_native_approval_broker() {
@@ -2018,6 +2026,10 @@ impl RdnHost {
         map.insert(
             "pendingApproval".into(),
             native_host_pending_approval_snapshot(&self.instance_id).unwrap_or(Value::Null),
+        );
+        map.insert(
+            "activeSession".into(),
+            native_host_active_session_snapshot(&self.instance_id).unwrap_or(Value::Null),
         );
         map.insert("temporaryPasswordPresentation".into(), presentation);
         map.insert(
@@ -3103,6 +3115,25 @@ mod tests {
             active,
             first_sender,
         ));
+        let active_snapshot = host.snapshot_json();
+        assert_eq!(active_snapshot["schemaVersion"], 4);
+        assert_eq!(
+            active_snapshot["activeSession"]["connectionId"],
+            "session-host:7"
+        );
+        assert_eq!(
+            active_snapshot["activeSession"]["remoteMetadataTrust"],
+            "untrusted"
+        );
+        assert_eq!(
+            active_snapshot["activeSession"]["activeCapabilities"],
+            json!([
+                "viewDisplay",
+                "controlKeyboardMouse",
+                "readClipboard",
+                "writeClipboard"
+            ])
+        );
         assert_eq!(
             SESSION_BROKER
                 .lock()
@@ -3116,8 +3147,13 @@ mod tests {
             7,
             NativeSessionCapabilities::new(false, true, false),
         );
+        assert_eq!(
+            host.snapshot_json()["activeSession"]["activeCapabilities"],
+            json!(["viewDisplay", "readClipboard", "writeClipboard"])
+        );
         native_host_end_session(7);
         assert!(SESSION_BROKER.lock().unwrap().snapshot().is_none());
+        assert!(host.snapshot_json()["activeSession"].is_null());
         assert!(first_receiver.try_recv().is_err());
 
         let (second_sender, mut second_receiver) = tokio::sync::mpsc::unbounded_channel();

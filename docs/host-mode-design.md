@@ -1483,6 +1483,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H3.3h1 Rust internal active-session authority 已完成**。已授权 Remote connection 现在在既有单会话 lease 内登记唯一 broker snapshot，使用 canonical connection ID、有界且标记 untrusted 的显示元数据、immutable initial capabilities 与当前 active capabilities；本机/远端 permission transition、cleanup-completion end 与 Host reset/Close 共用该 authority，重复/冲突/无 binding 均 fail closed。Rust 定向 2/2、完整 129/129、release core、built-core Swift 130/130、ScriptTests 20/20、Release App 与 20 文件 clean pinned replay 均通过。本步未改 Host ABI/schema、protobuf 或 Hermes，也未部署到 Mini；shared active-session snapshot、精确 revoke/disconnect、App rebuild 恢复与 TCC/session transition 同步仍待下一步，不能据此宣称 H3.3 完成。详见 `Evidence/HostMode/2026-08-08/h3-active-session-authority.md`。
 
+> 更新（2026-08-08）：**H3.3h2 recoverable active-session snapshot contract 已完成**。经既有 ABI 授权，Host Control ABI 升至 v5、HostSnapshot 升至 schema v4，新增 nullable `activeSession`，直接从唯一 Rust broker 恢复 canonical connection ID、untrusted bounded metadata、startedAt、immutable initial capabilities 与 active capabilities；event schema 独立保持 v1。Swift strict decoder 要求精确字段、当前 Host instance binding、固定 capability allowlist/clipboard pairing、active subset initial，并拒绝未知字段/能力、伪 trust、越权 active 与旧 schema。完整 Rust 129/129、release core、built-core Swift 130/130、ScriptTests 20/20、Release App 与 20 文件 clean replay 通过。新 core 未部署；精确 revoke/disconnect、活动会话 UI、TCC/session transition 同步与真机重建验收仍未完成，H3.3 保持进行中。详见 `Evidence/HostMode/2026-08-08/h3-active-session-snapshot.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
