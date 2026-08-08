@@ -371,7 +371,13 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(processSource.contains("onMediaControl:"))
         XCTAssertTrue(processSource.contains("mediaState.consume("))
         XCTAssertTrue(processSource.contains("eventSequence: sequence"))
-        XCTAssertTrue(processSource.contains("onAccepted: onMediaControl"))
+        let pipelineHandle = try XCTUnwrap(processSource.range(
+            of: "mediaPipelineOwner.handle(control)"
+        ))
+        let externalForward = try XCTUnwrap(processSource.range(
+            of: "onMediaControl(control)"
+        ))
+        XCTAssertLessThan(pipelineHandle.lowerBound, externalForward.lowerBound)
         let mediaCancel = try XCTUnwrap(processSource.range(
             of: "mediaState.cancelAndWait()"
         ))
@@ -384,6 +390,50 @@ final class CoreBridgeContractTests: XCTestCase {
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
         let appSource = try String(contentsOf: appURL, encoding: .utf8)
         XCTAssertFalse(appSource.contains("HostAgentMediaControlState("))
+        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
+        XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
+    }
+
+    func testHostAgentOwnsRealMediaPipelineButRemainsDisabled() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let ownerURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentMediaPipelineOwner.swift"
+        )
+        let ownerSource = try String(contentsOf: ownerURL, encoding: .utf8)
+        XCTAssertTrue(ownerSource.contains("HostMediaPipelineRouteOwner("))
+        XCTAssertTrue(ownerSource.contains("HostHardwareEncoderCapabilityDiscovery.discover("))
+        XCTAssertTrue(ownerSource.contains("CGGetActiveDisplayList("))
+        XCTAssertTrue(ownerSource.contains("lifetime.setMediaCapabilities("))
+        XCTAssertTrue(ownerSource.contains("lifetime.submit(accessUnit:"))
+        XCTAssertTrue(ownerSource.contains("lifetime.reportEncoderState("))
+        XCTAssertTrue(ownerSource.contains("framing: .avcc"))
+        XCTAssertTrue(ownerSource.contains("routeOwner.reconfigure("))
+        XCTAssertTrue(ownerSource.contains("routeOwner.requestKeyframe("))
+        XCTAssertTrue(ownerSource.contains("routeOwner.stop(route:"))
+        XCTAssertTrue(ownerSource.contains("routeOwner.cancelAndWait()"))
+
+        let processURL = repositoryRoot.appendingPathComponent(
+            "Sources/RustDeskNative/HostAgentProcess.swift"
+        )
+        let processSource = try String(contentsOf: processURL, encoding: .utf8)
+        XCTAssertTrue(processSource.contains("HostAgentMediaPipelineOwner()"))
+        XCTAssertTrue(processSource.contains("mediaPipelineOwner.handle"))
+        XCTAssertTrue(processSource.contains("mediaPipelineOwner.start("))
+        let pipelineCancel = try XCTUnwrap(processSource.range(
+            of: "mediaPipelineOwner.cancelAndWait()"
+        ))
+        let pollingCancel = try XCTUnwrap(processSource.range(
+            of: "pollingOwner.cancel()"
+        ))
+        XCTAssertLessThan(pipelineCancel.lowerBound, pollingCancel.lowerBound)
+
+        let appURL = repositoryRoot
+            .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")
+        let appSource = try String(contentsOf: appURL, encoding: .utf8)
+        XCTAssertFalse(appSource.contains("HostAgentMediaPipelineOwner("))
         XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
         XCTAssertTrue(appSource.contains("HostAgentBootstrap.failClosed()"))
     }

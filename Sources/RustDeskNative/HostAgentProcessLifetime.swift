@@ -33,4 +33,44 @@ final class HostAgentProcessLifetime: @unchecked Sendable {
             try runtime.copySnapshot()
         }
     }
+
+    func setMediaCapabilities(
+        hostInstanceID: String,
+        capabilities: HostEncoderCapabilities
+    ) throws {
+        try gate.withRunningRuntime { runtime in
+            try runtime.setMediaCapabilities(
+                hostInstanceID: hostInstanceID,
+                capabilities: capabilities
+            )
+        }
+    }
+
+    func submit(accessUnit: HostEncodedAccessUnit) throws {
+        try gate.withRunningRuntime { runtime in
+            try runtime.submit(accessUnit: accessUnit)
+        }
+    }
+
+    func reportEncoderState(
+        hostInstanceID: String,
+        connectionEpoch: UInt64,
+        codecEpoch: UInt64,
+        codec: HostMediaCodec,
+        hardwareAccelerated: Bool,
+        softwareFallback: Bool,
+        encoderID: String
+    ) throws {
+        try gate.withRunningRuntime { runtime in
+            try runtime.reportEncoderState(
+                hostInstanceID: hostInstanceID,
+                connectionEpoch: connectionEpoch,
+                codecEpoch: codecEpoch,
+                codec: codec,
+                hardwareAccelerated: hardwareAccelerated,
+                softwareFallback: softwareFallback,
+                encoderID: encoderID
+            )
+        }
+    }
 }

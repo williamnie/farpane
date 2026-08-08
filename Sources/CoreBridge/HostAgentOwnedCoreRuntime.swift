@@ -65,4 +65,53 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
         }
         return try runtime.copySnapshot()
     }
+
+    public func setMediaCapabilities(
+        hostInstanceID: String,
+        capabilities: HostEncoderCapabilities
+    ) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard let runtime else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        try runtime.setMediaCapabilities(
+            hostInstanceID: hostInstanceID,
+            capabilities: capabilities
+        )
+    }
+
+    public func submit(accessUnit: HostEncodedAccessUnit) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard let runtime else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        try runtime.submit(accessUnit: accessUnit)
+    }
+
+    public func reportEncoderState(
+        hostInstanceID: String,
+        connectionEpoch: UInt64,
+        codecEpoch: UInt64,
+        codec: HostMediaCodec,
+        hardwareAccelerated: Bool,
+        softwareFallback: Bool,
+        encoderID: String
+    ) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard let runtime else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        try runtime.reportEncoderState(
+            hostInstanceID: hostInstanceID,
+            connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch,
+            codec: codec,
+            hardwareAccelerated: hardwareAccelerated,
+            softwareFallback: softwareFallback,
+            encoderID: encoderID
+        )
+    }
 }

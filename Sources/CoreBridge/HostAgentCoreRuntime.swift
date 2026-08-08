@@ -6,6 +6,20 @@ public protocol HostAgentCoreControlSurface: AnyObject {
     func setConfigRoot(appName: String, org: String) throws
     func start(configuration: HostServerConfiguration) throws
     func copySnapshot() throws -> HostCoreSnapshot
+    func setMediaCapabilities(
+        hostInstanceID: String,
+        capabilities: HostEncoderCapabilities
+    ) throws
+    func submit(accessUnit: HostEncodedAccessUnit) throws
+    func reportEncoderState(
+        hostInstanceID: String,
+        connectionEpoch: UInt64,
+        codecEpoch: UInt64,
+        codec: HostMediaCodec,
+        hardwareAccelerated: Bool,
+        softwareFallback: Bool,
+        encoderID: String
+    ) throws
     func stop(reason: HostStopReason) throws
 }
 
@@ -63,5 +77,54 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
             throw HostAgentCoreRuntimeAccessError.notRunning
         }
         return try client.copySnapshot()
+    }
+
+    public func setMediaCapabilities(
+        hostInstanceID: String,
+        capabilities: HostEncoderCapabilities
+    ) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard !stopped else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        try client.setMediaCapabilities(
+            hostInstanceID: hostInstanceID,
+            capabilities: capabilities
+        )
+    }
+
+    public func submit(accessUnit: HostEncodedAccessUnit) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard !stopped else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        try client.submit(accessUnit: accessUnit)
+    }
+
+    public func reportEncoderState(
+        hostInstanceID: String,
+        connectionEpoch: UInt64,
+        codecEpoch: UInt64,
+        codec: HostMediaCodec,
+        hardwareAccelerated: Bool,
+        softwareFallback: Bool,
+        encoderID: String
+    ) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard !stopped else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        try client.reportEncoderState(
+            hostInstanceID: hostInstanceID,
+            connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch,
+            codec: codec,
+            hardwareAccelerated: hardwareAccelerated,
+            softwareFallback: softwareFallback,
+            encoderID: encoderID
+        )
     }
 }

@@ -261,7 +261,7 @@ public final class HostMediaPipeline: @unchecked Sendable {
   /// boundary, while a fresh encoder starts with an IDR and parameter sets.
   /// CompleteFrames/invalidate runs away from the VideoToolbox callback to
   /// avoid reentrant waiting on the callback that requested recovery.
-  package func recoverFromEncodedPacketDrop() {
+  public func recoverFromEncodedPacketDrop() {
     let encoder = lock.withLock { () -> HostMediaActiveEncoder? in
       guard active, let encoder = self.encoder else { return nil }
       encoderGeneration.invalidateCurrent()
@@ -275,16 +275,18 @@ public final class HostMediaPipeline: @unchecked Sendable {
   /// Synchronously prevents any further encoded submission. Stream shutdown
   /// remains async but is safe to finish after the Rust route is removed.
   public func cancel() {
-    let (encoder, cancelledFrames) = lock.withLock {
-      () -> (HostMediaActiveEncoder?, Int) in
+    let (capture, encoder, cancelledFrames) = lock.withLock {
+      () -> (HostScreenCaptureAdapter?, HostMediaActiveEncoder?, Int) in
       active = false
+      let capture = self.capture
       let value = self.encoder
       self.encoder = nil
       let cancelled = rawFrameHandoff.cancelPending()
       telemetry.recordRawFrameQueueDepth(cancelled.depth)
-      return (value, cancelled.cancelledPendingFrames)
+      return (capture, value, cancelled.cancelledPendingFrames)
     }
     telemetry.recordDrop(.shutdown, count: cancelledFrames)
+    capture?.cancel()
     encoder?.invalidate()
   }
 

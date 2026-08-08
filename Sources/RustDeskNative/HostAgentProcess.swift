@@ -22,6 +22,7 @@ enum HostAgentProcess {
         let pollingOwner = HostAgentSnapshotPollingOwner(
             snapshotCoordinator: snapshotCoordinator
         )
+        let mediaPipelineOwner = HostAgentMediaPipelineOwner()
         return HostAgentProcessRunner.run(
             installTerminationIngress: {
                 try HostAgentProcessSignalController()
@@ -30,6 +31,7 @@ enum HostAgentProcess {
                 let result = HostAgentProcessStartup.prepare(
                     prepareTermination: {
                         mediaState.cancelAndWait()
+                        mediaPipelineOwner.cancelAndWait()
                         pollingOwner.cancel()
                     },
                     onEvent: { event in
@@ -41,7 +43,10 @@ enum HostAgentProcess {
                             mediaState.consume(
                                 event,
                                 eventSequence: sequence,
-                                onAccepted: onMediaControl
+                                onAccepted: { control in
+                                    mediaPipelineOwner.handle(control)
+                                    onMediaControl(control)
+                                }
                             )
                             onEvent(event)
                         }
@@ -56,6 +61,16 @@ enum HostAgentProcess {
                     }
                     return try lifetime.copySnapshot()
                 }) else {
+                    _ = lifetime.requestTermination(reason: .error)
+                    _ = lifetime.waitUntilTerminated()
+                    return .failure(HostAgentStartupFailure(kind: .internalFailure))
+                }
+                guard let hostInstanceID = snapshotState.snapshot().hostInstanceID,
+                      mediaPipelineOwner.start(
+                        lifetime: lifetime,
+                        hostInstanceID: hostInstanceID
+                      )
+                else {
                     _ = lifetime.requestTermination(reason: .error)
                     _ = lifetime.waitUntilTerminated()
                     return .failure(HostAgentStartupFailure(kind: .internalFailure))
