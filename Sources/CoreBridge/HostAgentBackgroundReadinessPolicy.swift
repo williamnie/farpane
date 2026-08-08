@@ -30,6 +30,7 @@ package enum HostAgentBackgroundAvailability: Equatable, Sendable {
     case incompatible
     case waitingForSnapshot
     case rendezvousUnavailable
+    case runtimeEvidenceInvalid
     case ready
 }
 
