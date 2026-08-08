@@ -1509,6 +1509,8 @@ flowchart TD
 
 > 更新（2026-08-08）：**H4.1b HostAgent immutable bootstrap configuration contract 已完成自动实现**。新增严格 versioned JSON decoder，只接受正整数 monotonic `configRevision`、有界 build ID，以及唯一 canonical server address/public key；顶层和 server 对象均使用 exact key allowlist，未知 credential 字段、布尔/零/非整数 revision、未来 schema、控制字符、空白污染和超限输入全部 fail closed。Host Rust config namespace 固定为产品常量 `FarPaneHost`/`io.rustdesknative`，不得由磁盘字段或环境变量覆盖。本步仅建立非秘密不可变输入合同，尚未读取/发布配置文件、获取单写者锁、切换 Rust config root、启动 HostCore 或接入 XPC，所以 `--host-agent` 仍以 69 unavailable 退出。定向 3/3 与完整验证以 evidence 为准；未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-configuration.md`。
 
+> 更新（2026-08-08）：**H4.1c HostAgent secure bootstrap reader 已完成自动实现**。Reader 只从上层产品 authority 选定目录中的固定 `bootstrap-v1.json` 读取，目录 URL 不进入 wire；读取使用 `open/openat + O_NOFOLLOW + fstat`，在同一文件描述符上要求当前 euid owner、目录 `0700`、regular file `0600`、单硬链接和 64 KiB 上限。缺失、目录/文件 symlink、非 regular file、过宽权限、错误 owner/类型、硬链接及读取异常均稳定 fail closed，成功后仍须通过 H4.1b strict decoder。本步刻意未冻结 §24 待确认的产品存储根，也未实现临时文件、fsync、atomic replace、revision compare 或单写者 lease；`--host-agent` 仍以 69 unavailable 退出。定向 3/3 与完整验证以 evidence 为准；未读取用户配置、未改 Host ABI/Rust/Hermes/依赖，未安装、部署或 push。详见 `Evidence/HostMode/2026-08-08/h4-host-agent-bootstrap-reader.md`。
+
 ### 26.7 阶段 6 — H4 后台 HostAgent 产品化（§6.2、§8.6、§13、§18）
 
 任务：
