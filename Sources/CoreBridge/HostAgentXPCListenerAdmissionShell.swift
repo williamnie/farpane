@@ -36,7 +36,7 @@ package struct HostAgentXPCListenerAdmissionSnapshot: Equatable, Sendable {
 
 /// Owns the signed Mach-service listener and its first delegate boundary.
 /// Only an identity-eligible peer admitted under the ready process identity can
-/// receive the fixed handshake-only service. Listener activation remains a
+/// receive the fixed handshake-plus-snapshot service. Listener activation is a
 /// separate process-composition responsibility.
 package final class HostAgentXPCListenerAdmissionShell:
     NSObject,
@@ -55,7 +55,7 @@ package final class HostAgentXPCListenerAdmissionShell:
     typealias ConnectionConfigurator = (
         NSXPCConnection,
         NSXPCInterface,
-        HostAgentXPCHandshakeHandler,
+        HostAgentXPCSnapshotSessionHandler,
         ConnectionLifecycleHandlers
     ) -> Void
     typealias ConnectionAction = (NSXPCConnection) -> Void
@@ -76,8 +76,11 @@ package final class HostAgentXPCListenerAdmissionShell:
     private let lock = NSCondition()
     private let listener: NSXPCListener
     private let identityAuthority: HostAgentXPCProcessIdentityAuthority
+    private let snapshotState: HostAgentSnapshotState
     private let assessConnection: ConnectionAssessor
     private let nowUnixMilliseconds: HostAgentXPCHandshakeHandler.Clock
+    private let monotonicMilliseconds:
+        HostAgentXPCSnapshotSessionHandler.MonotonicClock
     private let configureConnection: ConnectionConfigurator
     private let resumeConnection: ConnectionAction
     private let invalidateConnection: ConnectionAction
@@ -93,7 +96,8 @@ package final class HostAgentXPCListenerAdmissionShell:
     private var cancelled = false
 
     package static func makeProductShell(
-        identityAuthority: HostAgentXPCProcessIdentityAuthority
+        identityAuthority: HostAgentXPCProcessIdentityAuthority,
+        snapshotState: HostAgentSnapshotState
     )
         -> HostAgentXPCListenerAdmissionShell
     {
@@ -101,8 +105,10 @@ package final class HostAgentXPCListenerAdmissionShell:
         return HostAgentXPCListenerAdmissionShell(
             listener: listener,
             identityAuthority: identityAuthority,
+            snapshotState: snapshotState,
             assessConnection: HostAgentXPCPeerAdmissionGate.assess,
             nowUnixMilliseconds: productClock,
+            monotonicMilliseconds: productMonotonicClock,
             configureConnection: configureProductConnection,
             resumeConnection: { connection in connection.resume() },
             invalidateConnection: { connection in connection.invalidate() },
@@ -114,8 +120,11 @@ package final class HostAgentXPCListenerAdmissionShell:
     init(
         listener: NSXPCListener,
         identityAuthority: HostAgentXPCProcessIdentityAuthority,
+        snapshotState: HostAgentSnapshotState,
         assessConnection: @escaping ConnectionAssessor,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
+        monotonicMilliseconds: @escaping
+            HostAgentXPCSnapshotSessionHandler.MonotonicClock,
         configureConnection: @escaping ConnectionConfigurator,
         resumeConnection: @escaping ConnectionAction,
         invalidateConnection: @escaping ConnectionAction,
@@ -124,8 +133,10 @@ package final class HostAgentXPCListenerAdmissionShell:
     ) {
         self.listener = listener
         self.identityAuthority = identityAuthority
+        self.snapshotState = snapshotState
         self.assessConnection = assessConnection
         self.nowUnixMilliseconds = nowUnixMilliseconds
+        self.monotonicMilliseconds = monotonicMilliseconds
         self.configureConnection = configureConnection
         self.resumeConnection = resumeConnection
         self.invalidateConnection = invalidateConnection
@@ -183,7 +194,7 @@ package final class HostAgentXPCListenerAdmissionShell:
     }
 
     /// Terminally rejects new admission and invalidates every accepted
-    /// handshake-only connection. Safe for repeated and concurrent callers.
+    /// handshake/snapshot connection. Safe for repeated and concurrent callers.
     package func cancel() {
         lock.lock()
         while listenerState == .activating {
@@ -265,10 +276,12 @@ package final class HostAgentXPCListenerAdmissionShell:
         activeConnections[identifier] = connection
         lock.unlock()
 
-        let interface = HostAgentXPCHandshakeInterfaceFactory.makeInterface()
-        let handler = HostAgentXPCHandshakeHandler(
+        let interface = HostAgentXPCSnapshotInterfaceFactory.makeInterface()
+        let handler = HostAgentXPCSnapshotSessionHandler(
             identity: identity,
-            nowUnixMilliseconds: nowUnixMilliseconds
+            snapshotState: snapshotState,
+            nowUnixMilliseconds: nowUnixMilliseconds,
+            monotonicMilliseconds: monotonicMilliseconds
         )
         configureConnection(
             connection,
@@ -353,10 +366,15 @@ package final class HostAgentXPCListenerAdmissionShell:
         return UInt64(milliseconds.rounded(.towardZero))
     }
 
+    private static let productMonotonicClock:
+        HostAgentXPCSnapshotSessionHandler.MonotonicClock = {
+        DispatchTime.now().uptimeNanoseconds / 1_000_000
+    }
+
     private static func configureProductConnection(
         _ connection: NSXPCConnection,
         _ interface: NSXPCInterface,
-        _ handler: HostAgentXPCHandshakeHandler,
+        _ handler: HostAgentXPCSnapshotSessionHandler,
         _ lifecycle: ConnectionLifecycleHandlers
     ) {
         connection.exportedInterface = interface

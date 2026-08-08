@@ -34,14 +34,21 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         )
     }
 
-    func testReadyIdentityInstallsOnlyHandshakeServiceThenResumes() throws {
+    func testReadyIdentityInstallsHandshakeThenSnapshotServiceAndResumes() throws {
         let listener = NSXPCListener.anonymous()
         let authority = try makeAuthority(ready: true)
         let recorder = HandshakeConnectionRecorder()
+        let snapshotState = HostAgentSnapshotState()
+        _ = snapshotState.publish(
+            try coreSnapshot(),
+            eventSequence: 7,
+            expectedHostInstanceID: "host-a"
+        )
         let shell = makeShell(
             listener: listener,
             authority: authority,
-            recorder: recorder
+            recorder: recorder,
+            snapshotState: snapshotState
         )
 
         XCTAssertTrue(shell.listener(
@@ -52,12 +59,16 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         XCTAssertEqual(recorder.resumeCount, 1)
         XCTAssertEqual(
             recorder.interfaceProtocolName,
-            "RDNHostAgentXPCHandshakeService"
+            "RDNHostAgentXPCSnapshotService"
         )
+        XCTAssertNil(try recorder.performValidSnapshot())
         let response = try recorder.performValidHandshake()
         XCTAssertEqual(response.agentBuildID, "agent-build")
         XCTAssertEqual(response.hostInstanceID, "host-a")
         XCTAssertEqual(response.agentBootID, validBootID)
+        let snapshot = try XCTUnwrap(recorder.performValidSnapshot())
+        XCTAssertEqual(snapshot.lastEventID, 7)
+        XCTAssertEqual(snapshot.snapshot.hostState, "ready")
         XCTAssertEqual(
             shell.snapshot().activeHandshakeConnectionCount,
             1
@@ -190,8 +201,10 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         let shell = HostAgentXPCListenerAdmissionShell(
             listener: listener,
             identityAuthority: authority,
+            snapshotState: HostAgentSnapshotState(),
             assessConnection: { _ in .eligible },
             nowUnixMilliseconds: { 20 },
+            monotonicMilliseconds: { 20 },
             configureConnection: { _, _, _, _ in },
             resumeConnection: { _ in },
             invalidateConnection: { _ in },
@@ -243,13 +256,16 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
     private func makeShell(
         listener: NSXPCListener,
         authority: HostAgentXPCProcessIdentityAuthority,
-        recorder: HandshakeConnectionRecorder
+        recorder: HandshakeConnectionRecorder,
+        snapshotState: HostAgentSnapshotState = HostAgentSnapshotState()
     ) -> HostAgentXPCListenerAdmissionShell {
         HostAgentXPCListenerAdmissionShell(
             listener: listener,
             identityAuthority: authority,
+            snapshotState: snapshotState,
             assessConnection: { _ in .eligible },
             nowUnixMilliseconds: { 20 },
+            monotonicMilliseconds: { 20 },
             configureConnection: recorder.configure,
             resumeConnection: recorder.resume,
             invalidateConnection: recorder.invalidate,
@@ -257,12 +273,43 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
             invalidateListener: recorder.invalidateListener
         )
     }
+
+    private func coreSnapshot() throws -> HostCoreSnapshot {
+        try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: [
+                "schemaVersion": 5,
+                "hostInstanceId": "host-a",
+                "hostState": "ready",
+                "localId": "123456789",
+                "registrationStatus": "ready",
+                "pendingApproval": NSNull(),
+                "activeSession": NSNull(),
+                "temporaryPasswordPresentation": ["policy": "redacted"],
+                "passwordPolicy": [
+                    "localPasswordSet": true,
+                    "effectivePasswordSet": true,
+                    "usingPresetPassword": false,
+                    "changeAllowed": true,
+                    "strengthPolicy": [
+                        "version": 1,
+                        "minimumCharacters": 6,
+                        "maximumCharacters": 128,
+                        "maximumUtf8Bytes": 512,
+                        "rejectsControlCharacters": true,
+                        "rejectsOuterWhitespace": true,
+                    ],
+                ],
+                "lastError": NSNull(),
+                "observedAt": 15,
+            ]
+        ))
+    }
 }
 
 private final class HandshakeConnectionRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var configuredInterface: NSXPCInterface?
-    private var configuredHandler: HostAgentXPCHandshakeHandler?
+    private var configuredHandler: HostAgentXPCSnapshotSessionHandler?
     private var interruptionHandler: (() -> Void)?
     private var invalidationHandler: (() -> Void)?
     private var configurations = 0
@@ -285,7 +332,7 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
     func configure(
         _ connection: NSXPCConnection,
         _ interface: NSXPCInterface,
-        _ handler: HostAgentXPCHandshakeHandler,
+        _ handler: HostAgentXPCSnapshotSessionHandler,
         _ lifecycle: HostAgentXPCListenerAdmissionShell
             .ConnectionLifecycleHandlers
     ) {
@@ -341,8 +388,27 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
             knownAgentBootID: nil,
             sentAtUnixMilliseconds: 10
         )
-        let response = try XCTUnwrap(handler.response(for: request.encoded()))
+        let response = try XCTUnwrap(handler.handshakeResponse(
+            for: request.encoded()
+        ))
         return try HostAgentXPCWireHandshakeResponse.decode(response)
+    }
+
+    func performValidSnapshot() throws
+        -> HostAgentXPCWireSnapshotResponse?
+    {
+        let handler = try XCTUnwrap(locked { configuredHandler })
+        let request = try HostAgentXPCWireSnapshotRequest(
+            requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
+            wireVersion: 1,
+            hostInstanceID: "host-a",
+            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
+            sentAtUnixMilliseconds: 11
+        )
+        guard let response = handler.snapshotResponse(
+            for: try request.encoded()
+        ) else { return nil }
+        return try HostAgentXPCWireSnapshotResponse.decode(response)
     }
 
     private func locked<T>(_ body: () -> T) -> T {

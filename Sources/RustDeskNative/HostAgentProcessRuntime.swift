@@ -25,6 +25,7 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
     }
 
     static func start(
+        snapshotState: HostAgentSnapshotState,
         eventQueue: DispatchQueue = DispatchQueue(
             label: "io.farpane.host-agent.events",
             qos: .userInitiated
@@ -40,7 +41,8 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
             )
         let xpcAdmissionOwner =
             HostAgentXPCListenerAdmissionShell.makeProductShell(
-                identityAuthority: xpcIdentityAuthority
+                identityAuthority: xpcIdentityAuthority,
+                snapshotState: snapshotState
             )
         let ownedRuntime = try HostAgentOwnedCoreRuntime.start(
             bootstrapOwner: bootstrapContext

@@ -5,7 +5,8 @@ import XCTest
 final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
     func testProductShellStartsConfiguredButInactiveAndSanitized() throws {
         let shell = HostAgentXPCListenerAdmissionShell.makeProductShell(
-            identityAuthority: try makeAuthority()
+            identityAuthority: try makeAuthority(),
+            snapshotState: HostAgentSnapshotState()
         )
 
         XCTAssertEqual(
@@ -122,7 +123,7 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         )
     }
 
-    func testProductSourceOwnsHandshakeOnlySurfaceAndExplicitListenerLifecycle() throws {
+    func testProductSourceOwnsSnapshotFirstSurfaceAndExplicitListenerLifecycle() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -140,7 +141,7 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         ))
         XCTAssertTrue(source.contains("connection.resume()"))
         XCTAssertTrue(source.contains(
-            "HostAgentXPCHandshakeInterfaceFactory.makeInterface()"
+            "HostAgentXPCSnapshotInterfaceFactory.makeInterface()"
         ))
         XCTAssertTrue(source.contains("connection.exportedInterface"))
         XCTAssertTrue(source.contains("connection.exportedObject"))
@@ -173,8 +174,10 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         HostAgentXPCListenerAdmissionShell(
             listener: listener,
             identityAuthority: identityAuthority,
+            snapshotState: HostAgentSnapshotState(),
             assessConnection: assessConnection,
             nowUnixMilliseconds: { 20 },
+            monotonicMilliseconds: { 20 },
             configureConnection: { _, _, _, _ in },
             resumeConnection: { _ in },
             invalidateConnection: { _ in },

@@ -25,8 +25,13 @@ final class HostAgentXPCHandshakeServiceTests: XCTestCase {
             ),
             encoding: .utf8
         )
+        let handshakeDeclaration = try XCTUnwrap(
+            header.components(
+                separatedBy: "/// Snapshot-first extension"
+            ).first
+        )
         XCTAssertEqual(
-            header.components(separatedBy: "- (void)").count - 1,
+            handshakeDeclaration.components(separatedBy: "- (void)").count - 1,
             1
         )
         XCTAssertTrue(header.contains("NSData *)requestData"))
