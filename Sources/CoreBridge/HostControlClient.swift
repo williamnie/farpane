@@ -340,6 +340,7 @@ public struct HostCoreSnapshot: Sendable {
     public let localId: String
     public let registrationStatus: String
     public let pendingApproval: HostPendingApproval?
+    public let activeSession: HostActiveSession?
     public let temporaryPasswordPolicy: String
     public let revealedTemporaryPassword: String?
     public let passwordPolicy: HostPermanentPasswordPolicy
@@ -353,7 +354,7 @@ public struct HostCoreSnapshot: Sendable {
         else {
             throw HostControlError.snapshotDecode("snapshot is not a JSON object")
         }
-        guard (json["schemaVersion"] as? NSNumber)?.intValue == 3,
+        guard (json["schemaVersion"] as? NSNumber)?.intValue == 4,
               let hostInstanceID = json["hostInstanceId"] as? String,
               !hostInstanceID.isEmpty,
               let hostState = json["hostState"] as? String,
@@ -378,7 +379,8 @@ public struct HostCoreSnapshot: Sendable {
               let maximumUTF8Bytes = (strengthPolicy["maximumUtf8Bytes"] as? NSNumber)?.intValue,
               let rejectsControlCharacters = strengthPolicy["rejectsControlCharacters"] as? Bool,
               let rejectsOuterWhitespace = strengthPolicy["rejectsOuterWhitespace"] as? Bool,
-              let pendingValue = json["pendingApproval"]
+              let pendingValue = json["pendingApproval"],
+              let activeSessionValue = json["activeSession"]
         else {
             throw HostControlError.snapshotDecode("snapshot contract is missing or invalid")
         }
@@ -408,16 +410,30 @@ public struct HostCoreSnapshot: Sendable {
         } else {
             throw HostControlError.snapshotDecode("pending approval is invalid")
         }
+        let activeSession: HostActiveSession?
+        if activeSessionValue is NSNull {
+            activeSession = nil
+        } else if let activeSessionJSON = activeSessionValue as? [String: Any],
+                  let session = HostActiveSession(
+                      json: activeSessionJSON,
+                      hostInstanceID: hostInstanceID
+                  )
+        {
+            activeSession = session
+        } else {
+            throw HostControlError.snapshotDecode("active session is invalid")
+        }
         if let lastError = json["lastError"], !(lastError is NSNull), !(lastError is String) {
             throw HostControlError.snapshotDecode("snapshot last error is invalid")
         }
 
-        schemaVersion = 3
+        schemaVersion = 4
         hostInstanceId = hostInstanceID
         self.hostState = hostState
         localId = localID
         self.registrationStatus = registrationStatus
         self.pendingApproval = pendingApproval
+        self.activeSession = activeSession
         self.temporaryPasswordPolicy = temporaryPasswordPolicy
         self.revealedTemporaryPassword = revealedTemporaryPassword
         passwordPolicy = HostPermanentPasswordPolicy(
@@ -435,6 +451,78 @@ public struct HostCoreSnapshot: Sendable {
         lastError = json["lastError"] as? String
         self.observedAt = observedAt
         self.rawJSON = rawJSON
+    }
+}
+
+public struct HostActiveSession: Equatable, Sendable {
+    public let connectionId: String
+    public let remoteId: String
+    public let remoteName: String
+    public let remotePlatform: String
+    public let startedAt: UInt64
+    public let initialCapabilities: [String]
+    public let activeCapabilities: [String]
+
+    fileprivate init?(json: [String: Any], hostInstanceID: String) {
+        let expectedKeys = Set([
+            "connectionId", "remoteId", "remoteName", "remotePlatform",
+            "remoteMetadataTrust", "startedAt", "initialCapabilities",
+            "activeCapabilities",
+        ])
+        let allowedCapabilities = Set([
+            "viewDisplay", "controlKeyboardMouse", "readClipboard",
+            "writeClipboard", "hearSystemAudio",
+        ])
+        guard Set(json.keys) == expectedKeys,
+              let connectionID = json["connectionId"] as? String,
+              Self.valid(connectionID, maximumUTF8Bytes: 128, allowEmpty: false),
+              connectionID.hasPrefix("\(hostInstanceID):"),
+              let remoteID = json["remoteId"] as? String,
+              Self.valid(remoteID, maximumUTF8Bytes: 256, allowEmpty: false),
+              let remoteName = json["remoteName"] as? String,
+              Self.valid(remoteName, maximumUTF8Bytes: 256, allowEmpty: true),
+              let remotePlatform = json["remotePlatform"] as? String,
+              Self.valid(remotePlatform, maximumUTF8Bytes: 256, allowEmpty: true),
+              json["remoteMetadataTrust"] as? String == "untrusted",
+              let startedAt = (json["startedAt"] as? NSNumber)?.uint64Value,
+              startedAt > 0,
+              let initialCapabilities = json["initialCapabilities"] as? [String],
+              let activeCapabilities = json["activeCapabilities"] as? [String],
+              Self.validCapabilities(initialCapabilities, allowed: allowedCapabilities),
+              Self.validCapabilities(activeCapabilities, allowed: allowedCapabilities),
+              Set(activeCapabilities).isSubset(of: Set(initialCapabilities))
+        else { return nil }
+
+        connectionId = connectionID
+        remoteId = remoteID
+        self.remoteName = remoteName
+        self.remotePlatform = remotePlatform
+        self.startedAt = startedAt
+        self.initialCapabilities = initialCapabilities
+        self.activeCapabilities = activeCapabilities
+    }
+
+    private static func validCapabilities(
+        _ capabilities: [String],
+        allowed: Set<String>
+    ) -> Bool {
+        let capabilitySet = Set(capabilities)
+        return (1...16).contains(capabilities.count)
+            && capabilitySet.count == capabilities.count
+            && capabilitySet.contains("viewDisplay")
+            && capabilitySet.isSubset(of: allowed)
+            && capabilitySet.contains("readClipboard")
+                == capabilitySet.contains("writeClipboard")
+    }
+
+    private static func valid(
+        _ value: String,
+        maximumUTF8Bytes: Int,
+        allowEmpty: Bool
+    ) -> Bool {
+        (allowEmpty || !value.isEmpty)
+            && value.utf8.count <= maximumUTF8Bytes
+            && !value.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
     }
 }
 

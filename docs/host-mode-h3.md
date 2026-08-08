@@ -2,7 +2,7 @@
 
 - 最后更新：2026-08-08
 - 对应设计：`docs/host-mode-design.md` §8.1–§10、§12、§26.6
-- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract、H3.2b3 snapshot-authoritative Swift 入站 UI，以及 H3.3/H3.4 的输入授权、epoch、cleanup、semantic normalization 与 Rust 内部 active-session authority 自动边界已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 入站 UI 真机验收/AND mode、H3.3 active-session shared snapshot/revoke/disconnect contract，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
+- 状态：H3 进行中。H3.1a verifier authority/JSON secret firewall、H3.1b dedicated secret-buffer ABI 与本机 secure-field UI、H3.1c bounded login cooldown 已完成；H3.2a policy model、H3.2b1 native pending-request broker、H3.2b2 recoverable snapshot/decision contract、H3.2b3 snapshot-authoritative Swift 入站 UI，以及 H3.3/H3.4 的输入授权、epoch、cleanup、semantic normalization、Rust active-session authority 与 recoverable snapshot 已完成多项。Mini 上的点击、拖拽、滚动、键盘/输入法、修饰键清理和断线重连真机矩阵已通过。仍未完成的是 H3.1b 密码 UI 真机验收、H3.2 入站 UI 真机验收/AND mode、H3.3 active-session revoke/disconnect/UI contract，以及 H3.4 Secure Input、TCC/session transition、多显示器和正式性能证据。
 
 ## H3.1a verifier authority
 
@@ -152,7 +152,17 @@ H3.3 的 active-session snapshot/revoke/disconnect 与 App rebuild 恢复仍未�
 
 本机 `SwitchPermission`、远端 option 变更与连接清理分别同步 capability change 和 session end；结束只挂在既有 `AuthedConnID::drop` cleanup-completion lease 后，Host unbind/reset 还会向残留 connection 发送 `Close`。事件只承载固定 allowlist capability 与脱敏状态，并继续用 `snapshotChanged` 通知后续 shared snapshot consumer。Rust broker/lifecycle 定向 2/2、完整 Rust lib 129/129、release arm64 core、带新 core 的 Swift 130/130、ScriptTests 20/20、Release App build 与 clean pinned replay 均通过。详见 `Evidence/HostMode/2026-08-08/h3-active-session-authority.md`。
 
-这是 H3.3 shared contract 的内部前置步骤，不等同于产品会话管理已完成：HostSnapshot/ABI 还没有 active-session aggregate，App rebuild 后不能恢复显示，也还没有精确 revoke/disconnect command；TCC/Aqua session transition 也不会主动刷新这份 capability 状态。当前 core 未部署到 Mini，已安装版本继续保留已验证的窗口生命周期修复。
+这是 H3.3 shared contract 的内部前置步骤，不等同于产品会话管理已完成。后续 H3.3h2 已把同一 authority 投影为 recoverable HostSnapshot，但仍没有精确 revoke/disconnect command 或产品 UI；TCC/Aqua session transition 也不会主动刷新这份 capability 状态。当前 core 未部署到 Mini，已安装版本继续保留已验证的窗口生命周期修复。
+
+## H3.3h2 recoverable active-session snapshot contract
+
+经既有 Host ABI 修改授权，Host Control ABI 升至 v5、HostSnapshot 升至 schema v4，event schema 继续独立保持 v1。新增的 nullable `activeSession` 直接从 H3.3h1 的唯一 Rust broker 复制 canonical connection ID、有界且标记 untrusted 的远端显示元数据、开始时间、immutable initial capabilities 与 active capabilities；Host instance prefix 不匹配时 fail closed 为 null，不从事件重建第二套状态。
+
+Swift `HostCoreSnapshot` 新增严格 `HostActiveSession` decoder：对象字段集合必须精确匹配，connection ID 必须绑定当前 Host instance，字符串禁止控制字符并受 UTF-8 长度限制；capability 必须来自固定 allowlist、无重复、包含 `viewDisplay`，clipboard read/write 必须成对，active 必须是 initial 的子集。未知字段、未知能力、伪 trusted metadata、越权 active capability 和旧 schema 均拒绝。App 的既有 snapshot poll/`snapshotChanged` 刷新链因此可在 rebuild 后恢复 typed session state，但本步没有增加会话 UI。
+
+Swift/Rust RED 分别精确失败于缺少 `activeSession` 类型和 snapshot 仍为 schema 3；GREEN 后完整 Rust 129/129、release arm64 core、built-core Swift 130/130、ScriptTests 20/20、Release App 与 20 文件 clean pinned replay 均通过。详见 `Evidence/HostMode/2026-08-08/h3-active-session-snapshot.md`。
+
+H3.3 尚未完成：还没有绑定 canonical connection ID 的 revoke keyboard/mouse、clipboard、audio 与 disconnect command，也没有 Host 卡片的活动会话展示/本机控制；TCC/Aqua session transition 主动同步与真机撤权 backlog/重建验收仍待后续。新 core 未部署到 Mini，避免在 shared command contract 完成前制造 ABI 不兼容的中间安装版本。
 
 ## H3.4a macOS input-adapter epoch gate
 
