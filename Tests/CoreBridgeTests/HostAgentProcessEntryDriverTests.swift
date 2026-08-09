@@ -148,6 +148,23 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
         XCTAssertTrue(processSource.contains(
             "expectedAgentBuildID: String"
         ))
+        XCTAssertTrue(processSource.contains(
+            "HostViewerConcurrencyEvidenceProcessOwner()"
+        ))
+        XCTAssertTrue(processSource.contains(
+            ".configureHostAgent(\n"
+                + "            expectedAgentBuildID: expectedAgentBuildID"
+        ))
+        XCTAssertTrue(processSource.contains(
+            "_ = concurrencyEvidenceOwner.terminateAndWait()"
+        ))
+        let evidenceConfigure = try XCTUnwrap(processSource.range(
+            of: ".configureHostAgent("
+        ))
+        let processRun = try XCTUnwrap(processSource.range(
+            of: "HostAgentProcessRunner.run("
+        ))
+        XCTAssertLessThan(evidenceConfigure.lowerBound, processRun.lowerBound)
         XCTAssertTrue(runtimeSource.contains(
             "HostAgentBootstrapContext.prepare(\n"
                 + "            expectedAgentBuildID: expectedAgentBuildID"

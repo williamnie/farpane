@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "application-host-observation-contract-required",
+            "host-agent-process-owner-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -106,6 +106,18 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["applicationHostEvidenceCompositionRemainsFailClosed"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostAgentProcessOwnerUsesPreflightedBuildAndRole"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostAgentProcessOwnerRejectsViewerEventsWithoutFailure"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostAgentProductOwnsEvidenceAcrossRunResult"]
         )
         self.assertTrue(
             document["remainingBoundary"]

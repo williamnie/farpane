@@ -85,6 +85,9 @@ def main() -> int:
             / "Sources/VideoPipeline/"
             / "HostViewerConcurrencyEvidenceProcessOwner.swift"
         ),
+        "host_agent_process": (
+            repository / "Sources/RustDeskNative/HostAgentProcess.swift"
+        ),
         "h4_audit": (
             repository
             / "Evidence/HostMode/2026-08-09/"
@@ -119,6 +122,7 @@ def main() -> int:
     pair_validator = sources["pair_validator"]
     lifecycle_writer = sources["lifecycle_writer"]
     lifecycle_process_owner = sources["lifecycle_process_owner"]
+    host_agent_process = sources["host_agent_process"]
     h4_audit = sources["h4_audit"]
 
     target_validator = (
@@ -490,6 +494,39 @@ def main() -> int:
             and "HostViewerConcurrencyEvidenceDigest.hostInstanceScope("
                 not in app
         ),
+        "hostAgentProcessOwnerUsesPreflightedBuildAndRole": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                "public func configureHostAgent(",
+                "expectedAgentBuildID: String",
+                "role: .hostAgent",
+                "explicitBuildIdentity: expectedAgentBuildID",
+                "configuredRole = role",
+            )
+        ),
+        "hostAgentProcessOwnerRejectsViewerEventsWithoutFailure": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                "configuredRole == .application",
+                "let writer,",
+                ".viewer(transition.observation)",
+            )
+        ),
+        "hostAgentProductOwnsEvidenceAcrossRunResult": (
+            all(
+                marker in host_agent_process
+                for marker in (
+                    "HostViewerConcurrencyEvidenceProcessOwner()",
+                    ".configureHostAgent(",
+                    "expectedAgentBuildID: expectedAgentBuildID",
+                    "defer {",
+                    "_ = concurrencyEvidenceOwner.terminateAndWait()",
+                    "HostAgentProcessRunner.run(",
+                )
+            )
+            and host_agent_process.find(".configureHostAgent(")
+            < host_agent_process.find("HostAgentProcessRunner.run(")
+        ),
         "fiveScenarioMatrixValidatorIsStillMissing": (
             not target_validator.exists()
         ),
@@ -670,6 +707,30 @@ def main() -> int:
         "separateHostRuntimeEvidencePath": line_number(
             app, "private func recordHostRuntimeStateEvidence("
         ),
+        "hostAgentOwnerConfiguration": line_number(
+            lifecycle_process_owner, "public func configureHostAgent("
+        ),
+        "hostAgentOwnerRole": line_number(
+            lifecycle_process_owner, "role: .hostAgent"
+        ),
+        "hostAgentOwnerPreflightedBuild": line_number(
+            lifecycle_process_owner,
+            "explicitBuildIdentity: expectedAgentBuildID",
+        ),
+        "hostAgentViewerRoleGate": line_number(
+            lifecycle_process_owner, "configuredRole == .application"
+        ),
+        "hostAgentProductEvidenceOwner": line_number(
+            host_agent_process,
+            "HostViewerConcurrencyEvidenceProcessOwner()",
+        ),
+        "hostAgentProductEvidenceConfigure": line_number(
+            host_agent_process, ".configureHostAgent("
+        ),
+        "hostAgentProductEvidenceTermination": line_number(
+            host_agent_process,
+            "_ = concurrencyEvidenceOwner.terminateAndWait()",
+        ),
         "hostRecoveryKinds": line_number(
             recovery_evidence, "case sleepWake"
         ),
@@ -751,7 +812,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "application-host-observation-contract-required"
+            "host-agent-process-owner-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -803,7 +864,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "application-host-observation-contract-required"
+    expected_status = "host-agent-process-owner-implemented"
     return 0 if result["status"] == expected_status else 1
 
 
