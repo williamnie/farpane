@@ -74,6 +74,11 @@ def main() -> int:
             repository
             / "Sources/VideoPipeline/HostViewerConcurrencyEvidence.swift"
         ),
+        "lifecycle_process_owner": (
+            repository
+            / "Sources/VideoPipeline/"
+            / "HostViewerConcurrencyEvidenceProcessOwner.swift"
+        ),
         "h4_audit": (
             repository
             / "Evidence/HostMode/2026-08-09/"
@@ -105,6 +110,7 @@ def main() -> int:
     combined_validator = sources["combined_validator"]
     pair_validator = sources["pair_validator"]
     lifecycle_writer = sources["lifecycle_writer"]
+    lifecycle_process_owner = sources["lifecycle_process_owner"]
     h4_audit = sources["h4_audit"]
 
     target_validator = (
@@ -295,6 +301,61 @@ def main() -> int:
                 "try outputHandle.synchronize()",
             )
         ),
+        "applicationProcessOwnerDerivesSanitizedSystemIdentity": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                '"FARPANE_HOST_VIEWER_CONCURRENCY_SCENARIO"',
+                'Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion")',
+                "PROC_PIDTBSDINFO",
+                "info.pbi_start_tvsec > 0",
+                "HostViewerConcurrencyEvidenceDigest.processStartIdentity(",
+                "HostViewerConcurrencyEvidenceDigest.buildIdentity(",
+                "HostViewerConcurrencyEvidenceDigest.scenarioCorrelation(",
+                "role: .application",
+            )
+        ),
+        "applicationProcessOwnerIsDefaultOffAndBestEffort": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                "A missing output key reaches",
+                "status = .disabled",
+                "status = .unavailable",
+                "incrementSaturating(&configurationFailures)",
+                "incrementSaturating(&recordFailures)",
+                "@discardableResult\n  public func configureApplication(",
+                "@discardableResult\n  public func terminateAndWait()",
+            )
+        ),
+        "applicationProcessOwnerRecordsOneTerminalLifecycle": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                "try candidate.record(\n            .processStarted",
+                "try writer.record(\n          .processTerminating",
+                "processStartedRecords = 1",
+                "processTerminatingRecords = 1",
+                "status = .terminated",
+            )
+        ),
+        "applicationProductOwnsEvidenceAcrossEveryRunExit": (
+            all(
+                marker in app
+                for marker in (
+                    "HostViewerConcurrencyEvidenceProcessOwner()",
+                    "_ = delegate.hostViewerConcurrencyEvidenceOwner",
+                    ".configureApplication()",
+                    "_ = hostViewerConcurrencyEvidenceOwner.terminateAndWait()",
+                    "func applicationWillTerminate(",
+                )
+            )
+            and app.count(
+                "_ = hostViewerConcurrencyEvidenceOwner.terminateAndWait()"
+            ) == 2
+            and app.find("exit(HostAgentProcessBootstrap.run())")
+            < app.find("let delegate = AppDelegate()")
+            < app.find(".configureApplication()")
+            < app.find("application.delegate = delegate")
+            < app.find("application.run()")
+        ),
         "fiveScenarioMatrixValidatorIsStillMissing": (
             not target_validator.exists()
         ),
@@ -374,6 +435,41 @@ def main() -> int:
         ),
         "lifecycleWriterNoOverwrite": line_number(
             lifecycle_writer, "options: .withoutOverwriting"
+        ),
+        "applicationOwnerScenarioAuthority": line_number(
+            lifecycle_process_owner,
+            '"FARPANE_HOST_VIEWER_CONCURRENCY_SCENARIO"',
+        ),
+        "applicationOwnerBuildAuthority": line_number(
+            lifecycle_process_owner,
+            'Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion")',
+        ),
+        "applicationOwnerProcessStartAuthority": line_number(
+            lifecycle_process_owner, "PROC_PIDTBSDINFO"
+        ),
+        "applicationOwnerDefaultOff": line_number(
+            lifecycle_process_owner, "status = .disabled"
+        ),
+        "applicationOwnerStartRecord": line_number(
+            lifecycle_process_owner, ".processStarted"
+        ),
+        "applicationOwnerTerminationRecord": line_number(
+            lifecycle_process_owner, ".processTerminating"
+        ),
+        "applicationOwnerUnavailable": line_number(
+            lifecycle_process_owner, "status = .unavailable"
+        ),
+        "applicationProductOwner": line_number(
+            app, "HostViewerConcurrencyEvidenceProcessOwner()"
+        ),
+        "applicationProductConfigure": line_number(
+            app, ".configureApplication()"
+        ),
+        "applicationStartupFailureTermination": line_number(
+            app, "RustDeskNative startup failed:"
+        ),
+        "applicationWillTerminateEvidence": line_number(
+            app, "func applicationWillTerminate(_ notification: Notification)"
         ),
         "hostRecoveryKinds": line_number(
             recovery_evidence, "case sleepWake"
@@ -456,7 +552,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "writer-implemented"
+            "application-process-owner-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -495,7 +591,7 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "application-lifecycle-evidence-process-owner"
+            "application-viewer-lifecycle-evidence-composition"
         ),
         "remainingBoundary": {
             "authoritativeLifecycleCompositionStillRequiresImplementation": True,
@@ -505,7 +601,11 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "writer-implemented" else 1
+    return (
+        0
+        if result["status"] == "application-process-owner-implemented"
+        else 1
+    )
 
 
 if __name__ == "__main__":
