@@ -8,20 +8,17 @@ struct HostAgentSleepWakeRecoveryProductOperations: Sendable {
     let withdrawAvailability: @Sendable () -> Bool
     let publishSuspending: @Sendable () -> Bool
     let releaseSleepAssertion: @Sendable () -> Bool
-    let resumeRegistration: @Sendable () -> Bool
     let publishAvailable: @Sendable () -> Bool
 
     init(
         withdrawAvailability: @escaping @Sendable () -> Bool,
         publishSuspending: @escaping @Sendable () -> Bool,
         releaseSleepAssertion: @escaping @Sendable () -> Bool,
-        resumeRegistration: @escaping @Sendable () -> Bool,
         publishAvailable: @escaping @Sendable () -> Bool
     ) {
         self.withdrawAvailability = withdrawAvailability
         self.publishSuspending = publishSuspending
         self.releaseSleepAssertion = releaseSleepAssertion
-        self.resumeRegistration = resumeRegistration
         self.publishAvailable = publishAvailable
     }
 }
@@ -33,13 +30,17 @@ struct HostAgentSleepWakeRecoveryProductOperations: Sendable {
 final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
     private let owner: HostAgentSleepWakeRecoveryOwner
     private let displayTCCAuthority: HostAgentDisplayTCCRecoveryAuthority
+    private let registrationRecoveryOwner:
+        HostAgentRegistrationRecoveryPollingOwner
 
     init(
         mediaPipelineOwner: HostAgentMediaPipelineOwner,
         displayTCCAuthority: HostAgentDisplayTCCRecoveryAuthority,
+        registrationRecoveryOwner: HostAgentRegistrationRecoveryPollingOwner,
         operations: HostAgentSleepWakeRecoveryProductOperations
     ) {
         self.displayTCCAuthority = displayTCCAuthority
+        self.registrationRecoveryOwner = registrationRecoveryOwner
         self.owner = HostAgentSleepWakeRecoveryOwner(
             operations: HostAgentSleepWakeRecoveryOperations(
                 withdrawAvailability: operations.withdrawAvailability,
@@ -60,7 +61,12 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
                         completion: completion
                     )
                 },
-                resumeRegistration: operations.resumeRegistration,
+                beginRegistrationRecovery: { epoch, completion in
+                    registrationRecoveryOwner.start(
+                        epoch: epoch,
+                        completion: completion
+                    )
+                },
                 publishAvailable: operations.publishAvailable
             )
         )
@@ -78,6 +84,10 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
         displayTCCAuthority.snapshot()
     }
 
+    func registrationSnapshot() -> HostAgentRegistrationRecoveryState {
+        registrationRecoveryOwner.stateSnapshot()
+    }
+
     @discardableResult
     func systemWillSleep() -> Bool {
         owner.systemWillSleep()
@@ -90,6 +100,7 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
 
     func cancel() {
         owner.cancel()
+        registrationRecoveryOwner.cancelAndWait()
         displayTCCAuthority.cancel()
     }
 }

@@ -44,6 +44,11 @@ state. The test does not infer readiness from the `resumeAfterWake` return.
   `contract-implemented`, no missing evidence; only synchronous product
   composition remains open.
 
+Historical note: this H5.1l-a result was committed as `a0f3977`. H5.1l-b later
+advanced the audit to schema 4 by replacing the synchronous registration seam;
+the schema-3 result above remains the fresh verification recorded for this
+earlier boundary.
+
 ## Remaining boundary
 
 H5.1l is not complete. H5.1l-b must replace the executable composition's
