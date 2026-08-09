@@ -5,6 +5,9 @@ import Foundation
 public protocol HostAgentCoreControlSurface: AnyObject {
     func setConfigRoot(appName: String, org: String) throws
     func start(configuration: HostServerConfiguration) throws
+    func beginSleep(epoch: UInt64) throws
+    func finishSleep(epoch: UInt64) throws
+    func resumeAfterWake(epoch: UInt64) throws
     func copySnapshot() throws -> HostCoreSnapshot
     func setMediaCapabilities(
         hostInstanceID: String,
@@ -93,6 +96,24 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
         return try client.copySnapshot()
     }
 
+    public func beginSleep(epoch: UInt64) throws {
+        try withRunningClient { client in
+            try client.beginSleep(epoch: epoch)
+        }
+    }
+
+    public func finishSleep(epoch: UInt64) throws {
+        try withRunningClient { client in
+            try client.finishSleep(epoch: epoch)
+        }
+    }
+
+    public func resumeAfterWake(epoch: UInt64) throws {
+        try withRunningClient { client in
+            try client.resumeAfterWake(epoch: epoch)
+        }
+    }
+
     public func setMediaCapabilities(
         hostInstanceID: String,
         capabilities: HostEncoderCapabilities
@@ -167,5 +188,16 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
                 commandId: command.commandID
             )
         }
+    }
+
+    private func withRunningClient<Value>(
+        _ body: (any HostAgentCoreControlSurface) throws -> Value
+    ) throws -> Value {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard !stopped else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        return try body(client)
     }
 }

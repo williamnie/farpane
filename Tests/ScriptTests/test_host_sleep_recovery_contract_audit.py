@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 class HostSleepRecoveryContractAuditTests(unittest.TestCase):
-    def test_registration_convergence_and_remaining_process_boundary_are_checked(self):
+    def test_lifetime_sleep_abi_and_remaining_process_boundary_are_checked(self):
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             ["python3", "Scripts/audit-host-sleep-recovery-contract.py"],
@@ -17,7 +17,7 @@ class HostSleepRecoveryContractAuditTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
         document = json.loads(completed.stdout)
         self.assertEqual(document["schema"], "farpane-host-sleep-recovery-contract-audit")
-        self.assertEqual(document["schemaVersion"], 4)
+        self.assertEqual(document["schemaVersion"], 5)
         self.assertEqual(document["status"], "contract-implemented")
         self.assertEqual(document["missingEvidence"], [])
         implementation = document["implementation"]
@@ -35,11 +35,11 @@ class HostSleepRecoveryContractAuditTests(unittest.TestCase):
             ],
         )
         self.assertNotIn(
-            "compositionRegistrationStillSynchronous",
+            "sleepPreparationABIOperationsStillUnbound",
             document["remainingBoundary"],
         )
         self.assertTrue(
-            document["remainingBoundary"]["sleepPreparationABIOperationsStillUnbound"]
+            document["remainingBoundary"]["processProjectionOperationsUnbound"]
         )
         self.assertTrue(
             document["remainingBoundary"]["processSleepWakeCompositionAbsent"]

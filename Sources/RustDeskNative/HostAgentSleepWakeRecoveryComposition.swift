@@ -5,20 +5,14 @@ import Foundation
 /// composition. Each closure must be backed by one authoritative HostAgent
 /// subsystem before the composition can be installed in the running process.
 struct HostAgentSleepWakeRecoveryProductOperations: Sendable {
-    let withdrawAvailability: @Sendable () -> Bool
-    let publishSuspending: @Sendable () -> Bool
-    let releaseSleepAssertion: @Sendable () -> Bool
-    let publishAvailable: @Sendable () -> Bool
+    let publishSuspending: @Sendable (_ epoch: UInt64) -> Bool
+    let publishAvailable: @Sendable (_ epoch: UInt64) -> Bool
 
     init(
-        withdrawAvailability: @escaping @Sendable () -> Bool,
-        publishSuspending: @escaping @Sendable () -> Bool,
-        releaseSleepAssertion: @escaping @Sendable () -> Bool,
-        publishAvailable: @escaping @Sendable () -> Bool
+        publishSuspending: @escaping @Sendable (_ epoch: UInt64) -> Bool,
+        publishAvailable: @escaping @Sendable (_ epoch: UInt64) -> Bool
     ) {
-        self.withdrawAvailability = withdrawAvailability
         self.publishSuspending = publishSuspending
-        self.releaseSleepAssertion = releaseSleepAssertion
         self.publishAvailable = publishAvailable
     }
 }
@@ -36,19 +30,57 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
     init(
         mediaPipelineOwner: HostAgentMediaPipelineOwner,
         displayTCCAuthority: HostAgentDisplayTCCRecoveryAuthority,
-        registrationRecoveryOwner: HostAgentRegistrationRecoveryPollingOwner,
+        lifetime: HostAgentProcessLifetime,
+        expectedHostInstanceID: String,
         operations: HostAgentSleepWakeRecoveryProductOperations
     ) {
+        let registrationRecoveryOwner =
+            HostAgentRegistrationRecoveryPollingOwner.makeProduct(
+                expectedHostInstanceID: expectedHostInstanceID,
+                resume: { epoch in
+                    do {
+                        try lifetime.resumeAfterWake(epoch: epoch)
+                        return true
+                    } catch {
+                        return false
+                    }
+                },
+                observe: {
+                    do {
+                        return .snapshot(try lifetime.copySnapshot())
+                    } catch HostAgentProcessLifetimeAccessError.notRunning {
+                        return .failed
+                    } catch {
+                        return .unavailable
+                    }
+                }
+            )
         self.displayTCCAuthority = displayTCCAuthority
         self.registrationRecoveryOwner = registrationRecoveryOwner
         self.owner = HostAgentSleepWakeRecoveryOwner(
             operations: HostAgentSleepWakeRecoveryOperations(
-                withdrawAvailability: operations.withdrawAvailability,
-                publishSuspending: operations.publishSuspending,
+                withdrawAvailability: { epoch in
+                    do {
+                        try lifetime.beginSleep(epoch: epoch)
+                        return true
+                    } catch {
+                        return false
+                    }
+                },
+                publishSuspending: { epoch in
+                    operations.publishSuspending(epoch)
+                },
                 pauseMediaAndFlush: {
                     mediaPipelineOwner.pauseMediaAndFlushForSleep()
                 },
-                releaseSleepAssertion: operations.releaseSleepAssertion,
+                releaseSleepAssertion: { epoch in
+                    do {
+                        try lifetime.finishSleep(epoch: epoch)
+                        return true
+                    } catch {
+                        return false
+                    }
+                },
                 reenumerateDisplays: {
                     displayTCCAuthority.reenumerateDisplays()
                 },
@@ -67,7 +99,9 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
                         completion: completion
                     )
                 },
-                publishAvailable: operations.publishAvailable
+                publishAvailable: { epoch in
+                    operations.publishAvailable(epoch)
+                }
             )
         )
     }
