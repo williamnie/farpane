@@ -38,7 +38,7 @@ class HostOptionalCapabilityGateAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "clipboard-read-write-policy-contract",
+            "independent-directional-revoke-contract",
         )
 
 

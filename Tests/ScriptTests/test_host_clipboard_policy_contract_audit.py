@@ -33,12 +33,12 @@ class HostClipboardPolicyContractAuditTests(unittest.TestCase):
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(document["claims"]["readWritePolicyRepresentable"])
         self.assertFalse(document["claims"]["clipboardDataPathEnabled"])
-        self.assertFalse(document["claims"]["boundedSmallTextImplemented"])
+        self.assertTrue(document["claims"]["boundedSmallTextImplemented"])
         self.assertFalse(document["claims"]["richClipboardImplemented"])
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "bounded-small-text-directional-gates",
+            "independent-directional-revoke-contract",
         )
 
 

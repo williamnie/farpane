@@ -17,7 +17,11 @@
 // - temporary passwords never appear in logs; snapshot presentation is
 //   redacted unless explicitly revealed for one copy.
 
-use hbb_common::{config, password_security, tokio, toml};
+use hbb_common::{
+    config,
+    message_proto::{message, Clipboard, ClipboardFormat, Message},
+    password_security, tokio, toml,
+};
 use serde_json::{json, Map, Value};
 use std::{
     collections::HashMap,
@@ -37,6 +41,7 @@ const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
+const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_NAME_BYTES: usize = 64;
 const MAX_SERVER_BYTES: usize = 512;
 const MAX_SERVER_PUBLIC_KEY_BYTES: usize = 1024;
@@ -450,6 +455,7 @@ impl NativeDisplayReconfigureProvenance {
 struct MediaBroker {
     binding: Option<MediaHostBinding>,
     capabilities: MediaCapabilities,
+    clipboard_policy: NativeClipboardPolicy,
     routes: HashMap<u64, MediaRoute>,
     display_revisions: HashMap<u64, u64>,
     pending_display_reconfigures: HashMap<u64, NativeDisplayReconfigureProvenance>,
@@ -685,7 +691,7 @@ impl NativeApprovalBroker {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct NativeClipboardPolicy {
     remote_read: bool,
     remote_write: bool,
@@ -703,6 +709,14 @@ impl NativeClipboardPolicy {
         Self::new(enabled, enabled)
     }
 
+    fn allows_remote_read(self) -> bool {
+        self.remote_read
+    }
+
+    fn allows_remote_write(self) -> bool {
+        self.remote_write
+    }
+
     fn any_enabled(self) -> bool {
         self.remote_read || self.remote_write
     }
@@ -711,6 +725,91 @@ impl NativeClipboardPolicy {
         (!self.remote_read || other.remote_read)
             && (!self.remote_write || other.remote_write)
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeClipboardDirection {
+    RemoteRead,
+    RemoteWrite,
+}
+
+fn native_host_clipboard_policy() -> NativeClipboardPolicy {
+    let broker = MEDIA_BROKER.lock().unwrap();
+    if broker.binding.is_some() {
+        broker.clipboard_policy
+    } else {
+        NativeClipboardPolicy::default()
+    }
+}
+
+fn native_host_small_text_clipboard(clipboard: &Clipboard) -> bool {
+    if clipboard.format.enum_value() != Ok(ClipboardFormat::Text)
+        || !clipboard.special_name.is_empty()
+        || clipboard.width != 0
+        || clipboard.height != 0
+        || clipboard.content.is_empty()
+        || clipboard.content.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES
+    {
+        return false;
+    }
+    let decoded = if clipboard.compress {
+        hbb_common::compress::decompress_with_limit(
+            &clipboard.content,
+            MAX_CLIPBOARD_TEXT_UTF8_BYTES,
+        )
+        .ok()
+    } else {
+        Some(clipboard.content.to_vec())
+    };
+    decoded
+        .filter(|bytes| !bytes.is_empty())
+        .and_then(|bytes| String::from_utf8(bytes).ok())
+        .is_some()
+}
+
+fn native_host_clipboard_direction_allows(
+    policy: NativeClipboardPolicy,
+    direction: NativeClipboardDirection,
+    clipboards: &[Clipboard],
+) -> bool {
+    let direction_allowed = match direction {
+        NativeClipboardDirection::RemoteRead => policy.allows_remote_read(),
+        NativeClipboardDirection::RemoteWrite => policy.allows_remote_write(),
+    };
+    direction_allowed
+        && clipboards.len() == 1
+        && clipboards.first().is_some_and(native_host_small_text_clipboard)
+}
+
+pub(crate) fn native_host_clipboard_remote_read_enabled() -> bool {
+    native_host_clipboard_policy().allows_remote_read()
+}
+
+pub(crate) fn native_host_allows_outgoing_clipboard_message(message: &Message) -> bool {
+    let policy = native_host_clipboard_policy();
+    match message.union.as_ref() {
+        Some(message::Union::Clipboard(clipboard)) => native_host_clipboard_direction_allows(
+            policy,
+            NativeClipboardDirection::RemoteRead,
+            std::slice::from_ref(clipboard),
+        ),
+        Some(message::Union::MultiClipboards(clipboards)) => {
+            native_host_clipboard_direction_allows(
+                policy,
+                NativeClipboardDirection::RemoteRead,
+                &clipboards.clipboards,
+            )
+        }
+        _ => true,
+    }
+}
+
+pub(crate) fn native_host_allows_remote_clipboard_write(clipboards: &[Clipboard]) -> bool {
+    native_host_clipboard_direction_allows(
+        native_host_clipboard_policy(),
+        NativeClipboardDirection::RemoteWrite,
+        clipboards,
+    )
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1635,6 +1734,10 @@ fn bind_media_host(host: &RdnHost) {
     broker.display_revisions.clear();
     broker.pending_display_reconfigures.clear();
     broker.capabilities = MediaCapabilities::default();
+    broker.clipboard_policy = NativeClipboardPolicy::bidirectional(config::option2bool(
+        config::keys::OPTION_ENABLE_CLIPBOARD,
+        &config::Config::get_option(config::keys::OPTION_ENABLE_CLIPBOARD),
+    ));
     broker.binding = Some(MediaHostBinding {
         instance_id: host.instance_id.clone(),
         callback: host.callbacks.on_event,
@@ -1682,6 +1785,7 @@ fn unbind_media_host() {
         broker.display_revisions.clear();
         broker.pending_display_reconfigures.clear();
         broker.capabilities = MediaCapabilities::default();
+        broker.clipboard_policy = NativeClipboardPolicy::default();
         (binding, routes)
     };
     scrap::codec::set_native_encoding_capabilities(false, false);
@@ -4888,6 +4992,89 @@ mod tests {
                 false,
             )
         );
+    }
+
+    fn clipboard_fixture(content: Vec<u8>, compress: bool, format: ClipboardFormat) -> Clipboard {
+        Clipboard {
+            compress,
+            content: content.into(),
+            format: format.into(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn native_clipboard_data_plane_gates_read_and_write_independently() {
+        let text = clipboard_fixture(b"small text".to_vec(), false, ClipboardFormat::Text);
+        let clipboards = std::slice::from_ref(&text);
+        let read_only = NativeClipboardPolicy::new(true, false);
+        let write_only = NativeClipboardPolicy::new(false, true);
+
+        assert!(native_host_clipboard_direction_allows(
+            read_only,
+            NativeClipboardDirection::RemoteRead,
+            clipboards,
+        ));
+        assert!(!native_host_clipboard_direction_allows(
+            read_only,
+            NativeClipboardDirection::RemoteWrite,
+            clipboards,
+        ));
+        assert!(!native_host_clipboard_direction_allows(
+            write_only,
+            NativeClipboardDirection::RemoteRead,
+            clipboards,
+        ));
+        assert!(native_host_clipboard_direction_allows(
+            write_only,
+            NativeClipboardDirection::RemoteWrite,
+            clipboards,
+        ));
+        assert!(!native_host_clipboard_direction_allows(
+            NativeClipboardPolicy::new(true, true),
+            NativeClipboardDirection::RemoteRead,
+            &[text.clone(), text],
+        ));
+    }
+
+    #[test]
+    fn native_clipboard_data_plane_accepts_only_bounded_utf8_plain_text() {
+        let at_limit = vec![b'a'; MAX_CLIPBOARD_TEXT_UTF8_BYTES];
+        assert!(native_host_small_text_clipboard(&clipboard_fixture(
+            at_limit.clone(),
+            false,
+            ClipboardFormat::Text,
+        )));
+        assert!(!native_host_small_text_clipboard(&clipboard_fixture(
+            vec![b'a'; MAX_CLIPBOARD_TEXT_UTF8_BYTES + 1],
+            false,
+            ClipboardFormat::Text,
+        )));
+
+        let compressed_at_limit = hbb_common::compress::compress(&at_limit);
+        assert!(native_host_small_text_clipboard(&clipboard_fixture(
+            compressed_at_limit,
+            true,
+            ClipboardFormat::Text,
+        )));
+        let compressed_over_limit =
+            hbb_common::compress::compress(&vec![b'a'; MAX_CLIPBOARD_TEXT_UTF8_BYTES + 1]);
+        assert!(!native_host_small_text_clipboard(&clipboard_fixture(
+            compressed_over_limit,
+            true,
+            ClipboardFormat::Text,
+        )));
+
+        assert!(!native_host_small_text_clipboard(&clipboard_fixture(
+            vec![0xff],
+            false,
+            ClipboardFormat::Text,
+        )));
+        assert!(!native_host_small_text_clipboard(&clipboard_fixture(
+            b"<b>rich</b>".to_vec(),
+            false,
+            ClipboardFormat::Html,
+        )));
     }
 
     #[test]
