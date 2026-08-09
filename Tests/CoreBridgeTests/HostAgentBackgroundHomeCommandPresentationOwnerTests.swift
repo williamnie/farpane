@@ -496,6 +496,67 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         )
     }
 
+    func testDispatchExecutesExactlyOneOwnerAndNeverFallsBack() {
+        var calls: [String] = []
+        let performLegacy:
+            HostAgentHomeCommandDispatchPolicy.PerformLegacy =
+            { action, connectionID in
+                calls.append("legacy:\(action):\(connectionID)")
+                return true
+            }
+        let submitBackground:
+            HostAgentHomeCommandDispatchPolicy.SubmitBackground =
+            { action in
+                calls.append("background:\(action)")
+                return false
+            }
+        let retryBackground:
+            HostAgentHomeCommandDispatchPolicy.RetryBackground =
+            { action in
+                calls.append("retry:\(action)")
+                return true
+            }
+
+        XCTAssertFalse(HostAgentHomeCommandDispatchPolicy.dispatch(
+            route: .none,
+            performLegacy: performLegacy,
+            submitBackground: submitBackground,
+            retryBackground: retryBackground
+        ))
+        XCTAssertEqual(calls, [])
+
+        XCTAssertTrue(HostAgentHomeCommandDispatchPolicy.dispatch(
+            route: .legacy(
+                action: .approveIncoming,
+                connectionID: "host-a:pending-1"
+            ),
+            performLegacy: performLegacy,
+            submitBackground: submitBackground,
+            retryBackground: retryBackground
+        ))
+        XCTAssertEqual(calls, [
+            "legacy:approveIncoming:host-a:pending-1",
+        ])
+
+        calls = []
+        XCTAssertFalse(HostAgentHomeCommandDispatchPolicy.dispatch(
+            route: .background(action: .disconnect),
+            performLegacy: performLegacy,
+            submitBackground: submitBackground,
+            retryBackground: retryBackground
+        ))
+        XCTAssertEqual(calls, ["background:disconnect"])
+
+        calls = []
+        XCTAssertTrue(HostAgentHomeCommandDispatchPolicy.dispatch(
+            route: .backgroundRetry(action: .disableClipboard),
+            performLegacy: performLegacy,
+            submitBackground: submitBackground,
+            retryBackground: retryBackground
+        ))
+        XCTAssertEqual(calls, ["retry:disableClipboard"])
+    }
+
     func testRouteReplacementDropsOldAttemptAndLateCallback() throws {
         let first = try commandFixture(epoch: 9)
         let second = try commandFixture(epoch: 10)
@@ -666,7 +727,7 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertEqual(retryDependencies.commandIDCount, 1)
     }
 
-    func testProductFactoryIsInertAndAppOwnsReadOnlyProjectionOnly()
+    func testProductFactoryIsInertAndAppDispatchesOnlyValidatedRoutes()
         throws
     {
         let activationOwner = HostAgentBackgroundActivationOwner.makeProduct()
@@ -700,6 +761,12 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             ),
             encoding: .utf8
         )
+        let dispatchSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/CoreBridge/HostAgentHomeCommandDispatchPolicy.swift"
+            ),
+            encoding: .utf8
+        )
         for forbidden in [
             "import AppKit", "import SwiftUI", "HostControlClient",
             "UserDefaults", "SMAppService",
@@ -717,6 +784,12 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertFalse(routingSource.contains("HostControlClient"))
         XCTAssertFalse(routingSource.contains(".submit("))
         XCTAssertFalse(routingSource.contains("retryCommand("))
+        for forbidden in [
+            "import AppKit", "import SwiftUI", "HostControlClient",
+            "UserDefaults", "SMAppService",
+        ] {
+            XCTAssertFalse(dispatchSource.contains(forbidden), forbidden)
+        }
         let appSource = try String(
             contentsOf: repositoryRoot.appendingPathComponent(
                 "Sources/RustDeskNative/RustDeskNativeApp.swift"
@@ -739,17 +812,31 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertTrue(appSource.contains(
             "HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy"
         ))
-        XCTAssertFalse(appSource.contains(
-            "hostAgentBackgroundCommandPresentationOwner.submit("
+        XCTAssertTrue(appSource.contains(
+            "dispatchHostHomeCommand(.perform("
         ))
-        XCTAssertFalse(appSource.contains(
-            "hostAgentBackgroundCommandPresentationOwner.retry("
+        XCTAssertTrue(appSource.contains(
+            "HostAgentHomeCommandRoutingPolicy.route("
+        ))
+        XCTAssertTrue(appSource.contains(
+            "HostAgentHomeCommandDispatchPolicy.dispatch("
+        ))
+        XCTAssertEqual(
+            appSource.components(separatedBy: ".submit(action)").count - 1,
+            1
+        )
+        XCTAssertEqual(
+            appSource.components(separatedBy: ".retry()").count - 1,
+            1
+        )
+        XCTAssertTrue(appSource.contains(
+            "approval.allowsCommands"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "session.allowsCommands"
         ))
         XCTAssertFalse(homeSource.contains(
             "HostAgentBackgroundHomeCommandPresentationView"
-        ))
-        XCTAssertFalse(appSource.contains(
-            "HostAgentHomeCommandRoutingPolicy"
         ))
         XCTAssertFalse(homeSource.contains(
             "HostAgentHomeCommandRoute"

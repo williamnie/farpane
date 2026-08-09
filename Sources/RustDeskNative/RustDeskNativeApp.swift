@@ -584,13 +584,23 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onSetHostPermanentPassword = { [weak self] in self?.presentHostPermanentPassword() }
         view.onClearHostPermanentPassword = { [weak self] in self?.confirmClearHostPermanentPassword() }
         view.onApproveHostConnection = { [weak self] connectionID in
-            self?.resolveHostApproval(connectionID: connectionID, decision: .approve)
+            _ = self?.dispatchHostHomeCommand(.perform(
+                action: .approveIncoming,
+                connectionID: connectionID
+            ))
         }
         view.onRejectHostConnection = { [weak self] connectionID in
-            self?.resolveHostApproval(connectionID: connectionID, decision: .reject)
+            _ = self?.dispatchHostHomeCommand(.perform(
+                action: .rejectIncoming,
+                connectionID: connectionID
+            ))
         }
         view.onHostSessionAction = { [weak self] connectionID, action in
-            self?.performHostSessionAction(connectionID: connectionID, action: action)
+            guard let self else { return }
+            _ = self.dispatchHostHomeCommand(.perform(
+                action: self.hostAgentCommandAction(for: action),
+                connectionID: connectionID
+            ))
         }
         window.contentView = view
         window.center()
@@ -1415,6 +1425,47 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    private func hostAgentCommandAction(
+        for action: HostSessionHomeAction
+    ) -> HostAgentBackgroundHomeCommandAction {
+        switch action {
+        case .disableKeyboardAndMouse: return .disableKeyboardAndMouse
+        case .disableClipboard: return .disableClipboard
+        case .disableSystemAudio: return .disableSystemAudio
+        case .disconnect: return .disconnect
+        }
+    }
+
+    private func enabledHostHomeCommandActions(
+        approval: HostApprovalHomeSnapshot?,
+        session: HostActiveSessionHomeSnapshot?
+    ) -> [HostAgentBackgroundHomeCommandAction] {
+        var actions: [HostAgentBackgroundHomeCommandAction] = []
+        if let approval,
+           approval.allowsCommands,
+           !approval.isResolving
+        {
+            actions.append(.approveIncoming)
+            actions.append(.rejectIncoming)
+        }
+        if let session,
+           session.allowsCommands,
+           session.pendingAction == nil
+        {
+            if session.canDisableKeyboardAndMouse {
+                actions.append(.disableKeyboardAndMouse)
+            }
+            if session.canDisableClipboard {
+                actions.append(.disableClipboard)
+            }
+            if session.canDisableSystemAudio {
+                actions.append(.disableSystemAudio)
+            }
+            actions.append(.disconnect)
+        }
+        return actions
+    }
+
     private func hostCapabilityNames(
         _ capabilities: [String]
     ) -> [String]? {
@@ -1488,15 +1539,142 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
 
-    private func resolveHostApproval(
+    @discardableResult
+    private func dispatchHostHomeCommand(
+        _ request: HostAgentHomeCommandRequest
+    ) -> Bool {
+        guard Thread.isMainThread else { return false }
+        return MainActor.assumeIsolated {
+            dispatchHostHomeCommandOnMain(request)
+        }
+    }
+
+    @MainActor
+    private func dispatchHostHomeCommandOnMain(
+        _ request: HostAgentHomeCommandRequest
+    ) -> Bool {
+        let usesLegacyHost =
+            hostAgentBackgroundRegistrationStatus == .notRegistered
+                && hostAgentBackgroundFlow == nil
+        let owner: HostAgentHomeCommandOwner
+        if usesLegacyHost {
+            owner = .legacy
+        } else if hostAgentBackgroundFlow == nil,
+                  hostAgentBackgroundRegistrationStatus == .enabled
+        {
+            owner = .background
+        } else {
+            owner = .unavailable
+        }
+
+        let backgroundSnapshot =
+            HostAgentBackgroundHomeSnapshotProjectionPolicy.presentation(
+                phase: hostAgentBackgroundActivationView?.phase,
+                projection: hostAgentBackgroundActivationView?.projection
+            )
+        let approval = usesLegacyHost
+            ? hostApprovalHomeSnapshot()
+            : backgroundHostApprovalHomeSnapshot(
+                backgroundSnapshot,
+                command: hostAgentBackgroundCommandPresentation
+            )
+        let session = usesLegacyHost
+            ? hostActiveSessionHomeSnapshot()
+            : backgroundHostActiveSessionHomeSnapshot(
+                backgroundSnapshot,
+                command: hostAgentBackgroundCommandPresentation
+            )
+        let visibleTargets = HostAgentHomeCommandVisibleTargets(
+            approvalConnectionID: approval?.connectionID,
+            sessionConnectionID: session?.connectionID,
+            enabledActions: enabledHostHomeCommandActions(
+                approval: approval,
+                session: session
+            )
+        )
+        let commandView = owner == .background
+            ? hostAgentBackgroundCommandPresentationOwner.snapshot()
+            : nil
+        let route = HostAgentHomeCommandRoutingPolicy.route(
+            request: request,
+            owner: owner,
+            visibleTargets: visibleTargets,
+            legacyCommandsAvailable: usesLegacyHost && hostRuntimeActive,
+            phase: hostAgentBackgroundActivationView?.phase,
+            projection: hostAgentBackgroundActivationView?.projection,
+            commandView: commandView
+        )
+        return HostAgentHomeCommandDispatchPolicy.dispatch(
+            route: route,
+            performLegacy: { [weak self] action, connectionID in
+                self?.performLegacyHostHomeCommand(
+                    action: action,
+                    connectionID: connectionID
+                ) ?? false
+            },
+            submitBackground: { [weak self] action in
+                self?.hostAgentBackgroundCommandPresentationOwner
+                    .submit(action) ?? false
+            },
+            retryBackground: { [weak self] action in
+                guard let self,
+                      self.hostAgentBackgroundCommandPresentationOwner
+                        .snapshot().command.activeAction == action
+                else { return false }
+                return self.hostAgentBackgroundCommandPresentationOwner
+                    .retry()
+            }
+        )
+    }
+
+    private func performLegacyHostHomeCommand(
+        action: HostAgentBackgroundHomeCommandAction,
+        connectionID: String
+    ) -> Bool {
+        switch action {
+        case .approveIncoming:
+            return resolveLegacyHostApproval(
+                connectionID: connectionID,
+                decision: .approve
+            )
+        case .rejectIncoming:
+            return resolveLegacyHostApproval(
+                connectionID: connectionID,
+                decision: .reject
+            )
+        case .disableKeyboardAndMouse:
+            return performLegacyHostSessionAction(
+                connectionID: connectionID,
+                action: .disableKeyboardAndMouse
+            )
+        case .disableClipboard:
+            return performLegacyHostSessionAction(
+                connectionID: connectionID,
+                action: .disableClipboard
+            )
+        case .disableSystemAudio:
+            return performLegacyHostSessionAction(
+                connectionID: connectionID,
+                action: .disableSystemAudio
+            )
+        case .disconnect:
+            return performLegacyHostSessionAction(
+                connectionID: connectionID,
+                action: .disconnect
+            )
+        }
+    }
+
+    @discardableResult
+    private func resolveLegacyHostApproval(
         connectionID: String,
         decision: HostApprovalDecision
-    ) {
+    ) -> Bool {
         guard hostRuntimeActive,
               let hostClient,
               hostSnapshot?.pendingApproval?.connectionId == connectionID,
               hostApprovalDecisionGate.beginDecision(connectionID: connectionID)
-        else { return }
+        else { return false }
 
         hostStatusText = "正在处理连接请求…"
         hostErrorText = ""
@@ -1532,16 +1710,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             hostErrorText = decisionErrorText
             refreshHomeUI()
         }
+        return true
     }
 
-    private func performHostSessionAction(
+    @discardableResult
+    private func performLegacyHostSessionAction(
         connectionID: String,
         action: HostSessionHomeAction
-    ) {
+    ) -> Bool {
         guard hostRuntimeActive,
               let hostClient,
               hostSnapshot?.activeSession?.connectionId == connectionID
-        else { return }
+        else { return false }
 
         let intent: HostSessionCommandIntent
         switch action {
@@ -1553,7 +1733,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard hostSessionCommandGate.begin(
             connectionID: connectionID,
             intent: intent
-        ) else { return }
+        ) else { return false }
 
         hostErrorText = ""
         syncHostSessionStatusItem()
@@ -1594,6 +1774,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             syncHostSessionStatusItem()
             refreshHomeUI()
         }
+        return true
     }
 
     private func syncHostSessionStatusItem() {
@@ -1682,7 +1863,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     @objc private func disconnectHostSessionFromStatusItem(_ sender: NSMenuItem) {
         guard let connectionID = sender.representedObject as? String else { return }
-        performHostSessionAction(connectionID: connectionID, action: .disconnect)
+        _ = performLegacyHostSessionAction(
+            connectionID: connectionID,
+            action: .disconnect
+        )
     }
 
     private func recordHostMediaLiveLog() {
