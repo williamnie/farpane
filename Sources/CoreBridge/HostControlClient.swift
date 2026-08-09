@@ -194,12 +194,16 @@ public enum HostSessionCommandFailure: Equatable, Sendable {
 
 public enum HostSessionRevocableCapability: Equatable, Sendable {
     case keyboardAndMouse
+    case clipboardRead
+    case clipboardWrite
     case clipboard
     case systemAudio
 
     package var commandName: String {
         switch self {
         case .keyboardAndMouse: return "disableInputForActiveSession"
+        case .clipboardRead: return "disableClipboardReadForActiveSession"
+        case .clipboardWrite: return "disableClipboardWriteForActiveSession"
         case .clipboard: return "disableClipboardForActiveSession"
         case .systemAudio: return "disableAudioForActiveSession"
         }
@@ -208,6 +212,8 @@ public enum HostSessionRevocableCapability: Equatable, Sendable {
     package var snapshotCapabilityNames: Set<String> {
         switch self {
         case .keyboardAndMouse: return ["controlKeyboardMouse"]
+        case .clipboardRead: return ["readClipboard"]
+        case .clipboardWrite: return ["writeClipboard"]
         case .clipboard: return ["readClipboard", "writeClipboard"]
         case .systemAudio: return ["hearSystemAudio"]
         }

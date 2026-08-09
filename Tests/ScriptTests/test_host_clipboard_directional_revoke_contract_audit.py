@@ -4,11 +4,14 @@ import subprocess
 import unittest
 
 
-class HostOptionalCapabilityGateAuditTests(unittest.TestCase):
-    def test_optional_data_capabilities_default_off_before_h6(self) -> None:
+class HostClipboardDirectionalRevokeContractAuditTests(unittest.TestCase):
+    def test_core_directions_are_independent_while_xpc_ui_remain_closed(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            ["python3", "Scripts/audit-host-optional-capability-gate.py"],
+            [
+                "python3",
+                "Scripts/audit-host-clipboard-directional-revoke-contract.py",
+            ],
             cwd=repository,
             check=False,
             capture_output=True,
@@ -21,25 +24,24 @@ class HostOptionalCapabilityGateAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-optional-capability-gate-audit",
+            "farpane-host-clipboard-directional-revoke-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "optional-data-capabilities-default-off",
+            "independent-directional-revoke-core-contract",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertFalse(any(document["claims"].values()))
-        self.assertFalse(
-            document["remainingBoundary"]["independentRevocationCommandsRequired"]
-        )
-        self.assertTrue(all(
-            value for name, value in document["remainingBoundary"].items()
-            if name != "independentRevocationCommandsRequired"
-        ))
+        self.assertTrue(document["claims"]["hostCoreDirectionalRevokeImplemented"])
+        self.assertTrue(document["claims"]["swiftDirectDirectionalAPIImplemented"])
+        self.assertTrue(document["claims"]["legacyBidirectionalAliasPreserved"])
+        self.assertFalse(document["claims"]["directionalXPCImplemented"])
+        self.assertFalse(document["claims"]["directionalHomeControlsImplemented"])
+        self.assertFalse(document["claims"]["clipboardEnabledByDefault"])
+        self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
             "directional-revoke-xpc-ui-contract",
