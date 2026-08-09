@@ -5,7 +5,7 @@ import unittest
 
 
 class HostV1ConcurrencyCaptureOrchestrationAuditTests(unittest.TestCase):
-    def test_installed_capture_orchestration_contract_is_frozen(self) -> None:
+    def test_installed_capture_orchestrator_implements_frozen_contract(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -31,19 +31,19 @@ class HostV1ConcurrencyCaptureOrchestrationAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "capture-orchestration-contract-required",
+            "capture-orchestrator-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]
             ["captureOrchestratorStillRequiresImplementation"]
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "installed-v1-concurrency-capture-orchestrator",
+            "installed-v1-concurrency-five-scenario-execution",
         )
 
         contract = document["targetContract"]

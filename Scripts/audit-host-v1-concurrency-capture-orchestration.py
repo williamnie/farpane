@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the missing installed-process V1 evidence capture orchestration."""
+"""Audit the installed-process V1 evidence capture orchestration."""
 
 from __future__ import annotations
 
@@ -55,6 +55,9 @@ def main() -> int:
         "matrix_validator": (
             repository / "Scripts/validate-farpane-host-v1-concurrency.py"
         ),
+        "capture_orchestrator": (
+            repository / "Scripts/run-farpane-host-v1-concurrency-capture.py"
+        ),
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -77,9 +80,7 @@ def main() -> int:
     combined_sampler = sources["combined_sampler"]
     pair_validator = sources["pair_validator"]
     matrix_validator = sources["matrix_validator"]
-    target_orchestrator = (
-        repository / "Scripts/run-farpane-host-v1-concurrency-capture.py"
-    )
+    capture_orchestrator = sources["capture_orchestrator"]
 
     evidence = {
         "designRequiresInstalledFiveScenarioExecution": all(
@@ -151,7 +152,38 @@ def main() -> int:
                 '"v1ConcurrencyRecoveryMatrixComplete": False',
             )
         ),
-        "captureOrchestratorIsStillMissing": not target_orchestrator.exists(),
+        "captureOrchestratorUsesExactServiceScopedActivation": all(
+            marker in capture_orchestrator
+            for marker in (
+                'SERVICE_LABEL = "io.rustdesknative.viewer.host-agent"',
+                '"print", service_target',
+                '"debug", service_target, "--environment"',
+                '"kickstart", "-k", "-p", service_target',
+                'inspect_with_retry(operations, int(pid_text), "host-agent")',
+            )
+        ) and "setenv" not in capture_orchestrator,
+        "captureOrchestratorPinsInstalledProcessLifetimes": all(
+            marker in capture_orchestrator
+            for marker in (
+                "inspect_installed_executable",
+                "operations.spawn(scope.path, environment)",
+                "revalidate_process(operations, recorded)",
+                "refusing to signal changed or reused pid=",
+                "wait_for_terminal_record",
+                "3 if scenario == RESTART_SCENARIO else 2",
+            )
+        ),
+        "captureOrchestratorPublishesHashBoundNoReplaceMatrix": all(
+            marker in capture_orchestrator
+            for marker in (
+                "operator-owned mode-0700 directory",
+                "os.O_EXCL",
+                "publish_resource_no_replace",
+                '"sha256": digest',
+                '"sha256": agent_digest',
+                '"validate-farpane-host-v1-concurrency.py"',
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -197,6 +229,22 @@ def main() -> int:
             pair_validator,
             '"section15_2Item10Complete": status == "pass"',
         ),
+        "orchestratorServiceTarget": line_number(
+            capture_orchestrator,
+            'SERVICE_LABEL = "io.rustdesknative.viewer.host-agent"',
+        ),
+        "orchestratorOneShotDebug": line_number(
+            capture_orchestrator,
+            '"debug", service_target, "--environment"',
+        ),
+        "orchestratorPinnedTermination": line_number(
+            capture_orchestrator,
+            "refusing to signal changed or reused pid=",
+        ),
+        "orchestratorManifestPublication": line_number(
+            capture_orchestrator,
+            "publish_resource_no_replace(resource_raw, resource_path)",
+        ),
     }
     missing_source_lines = [
         name for name, number in source_lines.items() if number <= 0
@@ -207,7 +255,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "installed-v1-concurrency-evidence-capture",
         "status": (
-            "capture-orchestration-contract-required"
+            "capture-orchestrator-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -262,16 +310,16 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "installed-v1-concurrency-capture-orchestrator"
+            "installed-v1-concurrency-five-scenario-execution"
         ),
         "remainingBoundary": {
-            "captureOrchestratorStillRequiresImplementation": True,
+            "captureOrchestratorStillRequiresImplementation": False,
             "installedTwoMachineExecutionStillRequiresExecution": True,
             "noV1ConcurrencyMatrixPassIsClaimed": True,
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "capture-orchestration-contract-required" else 1
+    return 0 if result["status"] == "capture-orchestrator-implemented" else 1
 
 
 if __name__ == "__main__":
