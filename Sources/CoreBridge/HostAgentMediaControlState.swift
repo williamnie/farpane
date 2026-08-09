@@ -27,6 +27,7 @@ package enum HostAgentMediaControlRejectionReason: Equatable, Sendable {
     case missingRouteStart
     case staleRoute
     case routeMismatch
+    case displayProvenanceMismatch
 }
 
 package enum HostAgentMediaControlDisposition: Equatable, Sendable {
@@ -38,6 +39,8 @@ package enum HostAgentMediaControlDisposition: Equatable, Sendable {
 package struct HostAgentMediaControlStateSnapshot: Sendable {
     package let pendingRoute: HostAgentMediaRoute?
     package let activeRoute: HostAgentMediaRoute?
+    package let pendingDisplayReconfigure:
+        HostDisplayReconfigureProvenance?
     package let latestAcceptedEventSequence: UInt64
     package let acceptedControlCount: UInt64
     package let rejectedControlCount: UInt64
@@ -51,6 +54,8 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
     private let condition = NSCondition()
     private var pendingRoute: HostAgentMediaRoute?
     private var activeRoute: HostAgentMediaRoute?
+    private var pendingDisplayReconfigure:
+        HostDisplayReconfigureProvenance?
     private var highestConnectionEpoch: UInt64 = 0
     private var highestCodecEpoch: UInt64 = 0
     private var latestAcceptedEventSequence: UInt64 = 0
@@ -121,6 +126,7 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
         cancelled = true
         pendingRoute = nil
         activeRoute = nil
+        pendingDisplayReconfigure = nil
         while actionInFlight {
             condition.wait()
         }
@@ -133,6 +139,7 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
         return HostAgentMediaControlStateSnapshot(
             pendingRoute: pendingRoute,
             activeRoute: activeRoute,
+            pendingDisplayReconfigure: pendingDisplayReconfigure,
             latestAcceptedEventSequence: latestAcceptedEventSequence,
             acceptedControlCount: acceptedControlCount,
             rejectedControlCount: rejectedControlCount,
@@ -150,6 +157,7 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
                   route.codecEpoch > highestCodecEpoch
             else { return .staleRoute }
             pendingRoute = route
+            pendingDisplayReconfigure = control.displayReconfigure
             highestConnectionEpoch = route.connectionEpoch
             highestCodecEpoch = route.codecEpoch
             return nil
@@ -158,7 +166,10 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
             guard let route = exactRoute(control) else { return .invalidControl }
             guard let pendingRoute else { return .missingRouteStart }
             guard pendingRoute == route else { return .routeMismatch }
+            guard pendingDisplayReconfigure == control.displayReconfigure
+            else { return .displayProvenanceMismatch }
             self.pendingRoute = nil
+            pendingDisplayReconfigure = nil
             activeRoute = route
             return nil
 
@@ -171,6 +182,7 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
             var matched = false
             if let pendingRoute, matchesStop(control, route: pendingRoute) {
                 self.pendingRoute = nil
+                pendingDisplayReconfigure = nil
                 matched = true
             }
             if let activeRoute, matchesStop(control, route: activeRoute) {

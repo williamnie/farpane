@@ -267,6 +267,57 @@ final class HostAgentMediaControlStateTests: XCTestCase {
         XCTAssertEqual(snapshot.rejectedControlCount, 3)
     }
 
+    func testRequiresExactDisplayProvenanceAcrossStartAndReconfigure() throws {
+        let state = HostAgentMediaControlState()
+        let provenance: [String: Any] = [
+            "displayReconfigureGeneration": 4,
+            "previousDisplayRevision": 2,
+            "previousConnectionEpoch": 10,
+            "previousCodecEpoch": 20,
+        ]
+        XCTAssertEqual(
+            state.consume(
+                try controlEvent(
+                    id: 1,
+                    command: "startCapture",
+                    displayReconfigure: provenance
+                ),
+                eventSequence: 1,
+                onAccepted: { _ in }
+            ),
+            .accepted(command: .startCapture, eventSequence: 1)
+        )
+        var mismatched = provenance
+        mismatched["displayReconfigureGeneration"] = 5
+        XCTAssertEqual(
+            state.consume(
+                try controlEvent(
+                    id: 2,
+                    command: "reconfigure",
+                    includeConfiguration: true,
+                    displayReconfigure: mismatched
+                ),
+                eventSequence: 2,
+                onAccepted: { _ in }
+            ),
+            .rejected(.displayProvenanceMismatch)
+        )
+        XCTAssertEqual(
+            state.consume(
+                try controlEvent(
+                    id: 3,
+                    command: "reconfigure",
+                    includeConfiguration: true,
+                    displayReconfigure: provenance
+                ),
+                eventSequence: 3,
+                onAccepted: { _ in }
+            ),
+            .accepted(command: .reconfigure, eventSequence: 3)
+        )
+        XCTAssertNil(state.snapshot().pendingDisplayReconfigure)
+    }
+
     func testCancelWaitsForInFlightActionAndRejectsFutureControls() throws {
         let state = HostAgentMediaControlState()
         let actionEntered = DispatchSemaphore(value: 0)
@@ -335,7 +386,8 @@ final class HostAgentMediaControlStateTests: XCTestCase {
         codecEpoch: UInt64 = 21,
         displayRevision: UInt64 = 3,
         includeDisplayRevision: Bool = true,
-        includeConfiguration: Bool = false
+        includeConfiguration: Bool = false,
+        displayReconfigure: [String: Any]? = nil
     ) throws -> HostCoreEvent {
         var payload: [String: Any] = [
             "command": command,
@@ -352,6 +404,9 @@ final class HostAgentMediaControlStateTests: XCTestCase {
             payload["height"] = 1_080
             payload["fps"] = 30
             payload["bitrate"] = 4_000_000
+        }
+        if let displayReconfigure {
+            payload["displayReconfigure"] = displayReconfigure
         }
         return try event(id: id, type: "mediaControl", payload: payload)
     }

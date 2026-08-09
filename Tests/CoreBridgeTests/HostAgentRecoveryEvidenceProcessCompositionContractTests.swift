@@ -44,11 +44,11 @@ final class HostAgentRecoveryEvidenceProcessCompositionContractTests:
             process.components(
                 separatedBy: "recoveryEvidenceOwner: recoveryEvidenceOwner"
             ).count - 1,
-            2
+            3
         )
     }
 
-    func testRecoveryOwnersDrainBeforeEvidenceAndMediaTeardown() throws {
+    func testRecoveryProducersDrainBeforeEvidenceTeardown() throws {
         let process = try repositorySource(
             "Sources/RustDeskNative/HostAgentProcess.swift"
         )
@@ -61,17 +61,17 @@ final class HostAgentRecoveryEvidenceProcessCompositionContractTests:
         try assertOrder(
             in: process,
             "sleepWakeRecoveryOwner.cancelAndWait()",
-            "recoveryEvidenceOwner.cancelAndWait()"
-        )
-        try assertOrder(
-            in: process,
-            "recoveryEvidenceOwner.cancelAndWait()",
             "mediaState.cancelAndWait()"
         )
         try assertOrder(
             in: process,
-            "recoveryEvidenceOwner.cancelAndWait()",
+            "mediaState.cancelAndWait()",
             "mediaPipelineOwner.cancelAndWait()"
+        )
+        try assertOrder(
+            in: process,
+            "mediaPipelineOwner.cancelAndWait()",
+            "recoveryEvidenceOwner.cancelAndWait()"
         )
     }
 

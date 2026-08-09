@@ -148,6 +148,7 @@ def main() -> int:
                 "let route = crate::rdn_host_bridge::native_media_begin_route(",
                 "while sp.ok()",
                 "display_service::get_display_info(display_idx).as_ref() != Some(&display)",
+                "native_media_mark_display_reconfigure(&route.0)",
                 "make_display_changed_msg(display_idx, None, VideoSource::Monitor)",
                 "bail!(\"SWITCH\")",
             )
@@ -175,7 +176,7 @@ def main() -> int:
                 )
             )
         ),
-        "replacementRouteGetsFreshEpochsAndCurrentDimensions": (
+        "replacementRouteGetsFreshEpochsExactNextRevisionAndDimensions": (
             all(
                 marker in begin_route
                 for marker in (
@@ -185,6 +186,11 @@ def main() -> int:
                     'ok_or("native media codec epoch is exhausted")',
                     '"command": "startCapture"',
                     '"command": "reconfigure"',
+                    "broker.pending_display_reconfigures.remove(&display_id)",
+                    ".previous_display_revision",
+                    ".checked_add(1)",
+                    'start_payload["displayReconfigure"] = provenance.payload()',
+                    'reconfigure_payload["displayReconfigure"] = provenance.payload()',
                     '"width": width',
                     '"height": height',
                 )
@@ -273,7 +279,10 @@ def main() -> int:
         "authoritativeOwner": "pinned RustDesk monitor video service",
         "displayIdentity": "RustDesk display index, not CGDirectDisplayID",
         "rebuildTrigger": "display-info inequality -> SWITCH",
-        "replacementFreshness": "new connectionEpoch and codecEpoch",
+        "replacementFreshness": (
+            "new connectionEpoch and codecEpoch; exact-next displayRevision "
+            "for display changes"
+        ),
         "callbackPolicy": "optional acceleration only; never route authority",
         "evidence": evidence,
         "sourceLines": source_lines,

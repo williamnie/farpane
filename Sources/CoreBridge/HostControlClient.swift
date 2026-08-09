@@ -1026,6 +1026,47 @@ public struct HostCoreEvent: Sendable {
     }
 }
 
+public struct HostDisplayReconfigureProvenance: Equatable, Sendable {
+    public let generation: UInt64
+    public let previousDisplayRevision: UInt64
+    public let previousConnectionEpoch: UInt64
+    public let previousCodecEpoch: UInt64
+
+    public init(
+        generation: UInt64,
+        previousDisplayRevision: UInt64,
+        previousConnectionEpoch: UInt64,
+        previousCodecEpoch: UInt64
+    ) {
+        self.generation = generation
+        self.previousDisplayRevision = previousDisplayRevision
+        self.previousConnectionEpoch = previousConnectionEpoch
+        self.previousCodecEpoch = previousCodecEpoch
+    }
+}
+
+public struct HostDisplayReconfigureStarted: Equatable, Sendable {
+    public let generation: UInt64
+    public let displayID: UInt64
+    public let previousDisplayRevision: UInt64
+    public let previousConnectionEpoch: UInt64
+    public let previousCodecEpoch: UInt64
+
+    public init(
+        generation: UInt64,
+        displayID: UInt64,
+        previousDisplayRevision: UInt64,
+        previousConnectionEpoch: UInt64,
+        previousCodecEpoch: UInt64
+    ) {
+        self.generation = generation
+        self.displayID = displayID
+        self.previousDisplayRevision = previousDisplayRevision
+        self.previousConnectionEpoch = previousConnectionEpoch
+        self.previousCodecEpoch = previousCodecEpoch
+    }
+}
+
 public struct HostMediaControl: Sendable {
     public enum Command: String, Sendable {
         case startCapture
@@ -1045,6 +1086,7 @@ public struct HostMediaControl: Sendable {
     public let framesPerSecond: UInt32?
     public let bitRate: UInt32?
     public let reason: String?
+    public let displayReconfigure: HostDisplayReconfigureProvenance?
 }
 
 /// Low-frequency, sanitized evidence that a compressed access unit crossed
@@ -1159,11 +1201,39 @@ public struct HostMediaTransportDiagnostic: Sendable {
 }
 
 public extension HostCoreEvent {
+    var displayReconfigureStarted: HostDisplayReconfigureStarted? {
+        guard eventType == "mediaDisplayReconfigureStarted",
+              let payload = decodedPayload(),
+              let generation = Self.uint64(
+                payload,
+                "displayReconfigureGeneration"
+              ), generation > 0,
+              let displayID = Self.uint64(payload, "displayId"),
+              let previousDisplayRevision = Self.uint64(
+                payload,
+                "previousDisplayRevision"
+              ), previousDisplayRevision > 0,
+              let previousConnectionEpoch = Self.uint64(
+                payload,
+                "previousConnectionEpoch"
+              ), previousConnectionEpoch > 0,
+              let previousCodecEpoch = Self.uint64(
+                payload,
+                "previousCodecEpoch"
+              ), previousCodecEpoch > 0
+        else { return nil }
+        return HostDisplayReconfigureStarted(
+            generation: generation,
+            displayID: displayID,
+            previousDisplayRevision: previousDisplayRevision,
+            previousConnectionEpoch: previousConnectionEpoch,
+            previousCodecEpoch: previousCodecEpoch
+        )
+    }
+
     var mediaControl: HostMediaControl? {
         guard eventType == "mediaControl",
-              let object = try? JSONSerialization.jsonObject(with: rawJSON),
-              let envelope = object as? [String: Any],
-              let payload = envelope["payload"] as? [String: Any],
+              let payload = decodedPayload(),
               let rawCommand = payload["command"] as? String,
               let command = HostMediaControl.Command(rawValue: rawCommand)
         else { return nil }
@@ -1173,24 +1243,52 @@ public extension HostCoreEvent {
         case "h265": codec = .h265
         default: codec = nil
         }
-        func uint64(_ key: String) -> UInt64? {
-            guard let number = payload[key] as? NSNumber,
-                  CFGetTypeID(number) != CFBooleanGetTypeID(),
-                  number.int64Value >= 0,
-                  number.doubleValue.isFinite,
-                  number.doubleValue.rounded(.towardZero) == number.doubleValue
-            else { return nil }
-            return number.uint64Value
-        }
         func uint32(_ key: String) -> UInt32? {
-            guard let value = uint64(key), value <= UInt32.max else { return nil }
+            guard let value = Self.uint64(payload, key), value <= UInt32.max
+            else { return nil }
             return UInt32(value)
         }
-        guard let connectionEpoch = uint64("connectionEpoch"), connectionEpoch > 0,
-              let codecEpoch = uint64("codecEpoch"), codecEpoch > 0,
-              let displayID = uint64("displayId")
+        guard let connectionEpoch = Self.uint64(payload, "connectionEpoch"),
+              connectionEpoch > 0,
+              let codecEpoch = Self.uint64(payload, "codecEpoch"),
+              codecEpoch > 0,
+              let displayID = Self.uint64(payload, "displayId")
         else { return nil }
-        let displayRevision = uint64("displayRevision") ?? 0
+        let displayRevision = Self.uint64(payload, "displayRevision") ?? 0
+        let displayReconfigure: HostDisplayReconfigureProvenance?
+        if let rawProvenance = payload["displayReconfigure"] {
+            guard command == .startCapture || command == .reconfigure,
+                  let provenance = rawProvenance as? [String: Any],
+                  let generation = Self.uint64(
+                    provenance,
+                    "displayReconfigureGeneration"
+                  ), generation > 0,
+                  let previousDisplayRevision = Self.uint64(
+                    provenance,
+                    "previousDisplayRevision"
+                  ), previousDisplayRevision > 0,
+                  previousDisplayRevision < UInt64.max,
+                  displayRevision == previousDisplayRevision + 1,
+                  let previousConnectionEpoch = Self.uint64(
+                    provenance,
+                    "previousConnectionEpoch"
+                  ), previousConnectionEpoch > 0,
+                  connectionEpoch > previousConnectionEpoch,
+                  let previousCodecEpoch = Self.uint64(
+                    provenance,
+                    "previousCodecEpoch"
+                  ), previousCodecEpoch > 0,
+                  codecEpoch > previousCodecEpoch
+            else { return nil }
+            displayReconfigure = HostDisplayReconfigureProvenance(
+                generation: generation,
+                previousDisplayRevision: previousDisplayRevision,
+                previousConnectionEpoch: previousConnectionEpoch,
+                previousCodecEpoch: previousCodecEpoch
+            )
+        } else {
+            displayReconfigure = nil
+        }
         if command == .reconfigure {
             guard codec != nil,
                   let width = uint32("width"), width > 0,
@@ -1210,8 +1308,29 @@ public extension HostCoreEvent {
             height: uint32("height"),
             framesPerSecond: uint32("fps"),
             bitRate: uint32("bitrate"),
-            reason: payload["reason"] as? String
+            reason: payload["reason"] as? String,
+            displayReconfigure: displayReconfigure
         )
+    }
+
+    private func decodedPayload() -> [String: Any]? {
+        guard let object = try? JSONSerialization.jsonObject(with: rawJSON),
+              let envelope = object as? [String: Any]
+        else { return nil }
+        return envelope["payload"] as? [String: Any]
+    }
+
+    private static func uint64(
+        _ object: [String: Any],
+        _ key: String
+    ) -> UInt64? {
+        guard let number = object[key] as? NSNumber,
+              CFGetTypeID(number) != CFBooleanGetTypeID(),
+              number.int64Value >= 0,
+              number.doubleValue.isFinite,
+              number.doubleValue.rounded(.towardZero) == number.doubleValue
+        else { return nil }
+        return number.uint64Value
     }
 
     var mediaDiagnostic: HostMediaDiagnostic? {

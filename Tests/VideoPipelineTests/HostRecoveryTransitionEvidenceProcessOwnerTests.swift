@@ -371,6 +371,89 @@ final class HostRecoveryTransitionEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertEqual(try Data(contentsOf: fixture.output).count, 0)
   }
 
+  func testDisplayEvidenceRequiresExactMarkerAndFreshReplacement() throws {
+    let fixture = makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let clock = RecoveryEvidenceTestClock(
+      wallTimes: [
+        Date(timeIntervalSince1970: 50),
+        Date(timeIntervalSince1970: 60),
+      ],
+      monotonicTimes: [500, 600]
+    )
+    let owner = HostRecoveryTransitionEvidenceProcessOwner(
+      wallClock: { clock.nextWallTime() },
+      monotonicNanoseconds: { clock.nextMonotonicTime() }
+    )
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: "host",
+      buildIdentity: "build",
+      environment: [
+        HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey:
+          fixture.output.path,
+      ]
+    ))
+
+    XCTAssertTrue(owner.acceptDisplayReconfigure(
+      generation: 5,
+      displayID: 0,
+      previousDisplayRevision: 2,
+      previousConnectionEpoch: 11,
+      previousCodecEpoch: 21
+    ))
+    XCTAssertFalse(owner.acceptDisplayReconfigure(
+      generation: 5,
+      displayID: 0,
+      previousDisplayRevision: 2,
+      previousConnectionEpoch: 11,
+      previousCodecEpoch: 21
+    ))
+    XCTAssertFalse(owner.recordDisplayReconfigureCompleted(
+      generation: 6,
+      displayID: 0,
+      previousDisplayRevision: 2,
+      replacementDisplayRevision: 3,
+      previousConnectionEpoch: 11,
+      replacementConnectionEpoch: 12,
+      previousCodecEpoch: 21,
+      replacementCodecEpoch: 22
+    ))
+    XCTAssertFalse(owner.recordDisplayReconfigureCompleted(
+      generation: 5,
+      displayID: 0,
+      previousDisplayRevision: 2,
+      replacementDisplayRevision: 2,
+      previousConnectionEpoch: 11,
+      replacementConnectionEpoch: 12,
+      previousCodecEpoch: 21,
+      replacementCodecEpoch: 22
+    ))
+    XCTAssertTrue(owner.recordDisplayReconfigureCompleted(
+      generation: 5,
+      displayID: 0,
+      previousDisplayRevision: 2,
+      replacementDisplayRevision: 3,
+      previousConnectionEpoch: 11,
+      replacementConnectionEpoch: 12,
+      previousCodecEpoch: 21,
+      replacementCodecEpoch: 22
+    ))
+
+    let document = try readOnlyRecord(fixture.output)
+    XCTAssertEqual(document["kind"] as? String, "displayReconfigure")
+    let correlation = try XCTUnwrap(
+      document["correlation"] as? [String: Any]
+    )
+    XCTAssertEqual(correlation["previousDisplayRevision"] as? Int, 2)
+    XCTAssertEqual(correlation["replacementDisplayRevision"] as? Int, 3)
+    XCTAssertEqual(correlation["previousConnectionEpoch"] as? Int, 11)
+    XCTAssertEqual(correlation["replacementConnectionEpoch"] as? Int, 12)
+    XCTAssertEqual(correlation["previousCodecEpoch"] as? Int, 21)
+    XCTAssertEqual(correlation["replacementCodecEpoch"] as? Int, 22)
+    XCTAssertEqual(correlation["freshRouteConverged"] as? Bool, true)
+    XCTAssertEqual(owner.snapshot().completedRecords, 1)
+  }
+
   func testConfigurationAndCancellationAreTerminalOneShotOperations() {
     let owner = HostRecoveryTransitionEvidenceProcessOwner()
     XCTAssertTrue(owner.configure(

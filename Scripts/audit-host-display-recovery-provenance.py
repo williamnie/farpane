@@ -26,6 +26,16 @@ def section(source: str, start: str, end: str) -> str:
     return source[start_offset:end_offset]
 
 
+def ordered(source: str, *markers: str) -> bool:
+    offset = 0
+    for marker in markers:
+        offset = source.find(marker, offset)
+        if offset < 0:
+            return False
+        offset += len(marker)
+    return True
+
+
 def line_number(source: str, needle: str) -> int:
     offset = source.find(needle)
     if offset < 0:
@@ -86,9 +96,16 @@ def main() -> int:
             repository
             / "Sources/VideoPipeline/HostRecoveryTransitionEvidenceProcessOwner.swift"
         ),
+        "display_evidence_owner": (
+            repository
+            / "Sources/VideoPipeline/HostDisplayReconfigureEvidenceOwner.swift"
+        ),
         "evidence_writer": (
             repository
             / "Sources/VideoPipeline/HostRecoveryTransitionEvidence.swift"
+        ),
+        "host_process": (
+            repository / "Sources/RustDeskNative/HostAgentProcess.swift"
         ),
     }
     try:
@@ -130,96 +147,109 @@ def main() -> int:
         "pub(crate) fn native_media_begin_route(",
         "pub(crate) fn native_media_record_dequeued",
     )
-    media_decoder = section(
-        sources["client"],
-        "public struct HostMediaControl",
-        "public struct HostMediaDiagnostic",
-    ) + section(
-        sources["client"],
-        "var mediaControl: HostMediaControl?",
-        "var mediaDiagnostic: HostMediaDiagnostic?",
-    )
-
     evidence = {
-        "pinnedMonitorServiceOwnsDisplayChangeDecision": all(
-            marker in native_run
-            for marker in (
+        "pinnedMonitorEmitsMarkerOnlyForDisplayInequality": (
+            ordered(
+                native_run,
                 "let display = display_service::get_display_info(display_idx)",
                 "while sp.ok()",
                 "display_service::get_display_info(display_idx).as_ref() != Some(&display)",
+                "native_media_mark_display_reconfigure(&route.0)",
                 "make_display_changed_msg(display_idx, None, VideoSource::Monitor)",
                 'bail!("SWITCH")',
             )
+            and native_run.count("native_media_mark_display_reconfigure") == 1
         ),
-        "displayCodecAndSubscriberRestartShareGenericSwitch": (
-            native_run.count('bail!("SWITCH")') >= 3
-            and "codec_format != Encoder::negotiated_codec()" in native_run
-            and "snapshot.has_subscribes()" in native_run
+        "rustMarkerRequiresExactActiveRouteAndRejectsDuplicates": all(
+            marker in sources["bridge"]
+            for marker in (
+                "pub(crate) fn native_media_mark_display_reconfigure(",
+                "current.connection_epoch != route.connection_epoch",
+                "current.codec_epoch != route.codec_epoch",
+                "current.display_revision != route.display_revision",
+                "broker.pending_display_reconfigures.contains_key(&route.display_id)",
+                "route.display_revision == u64::MAX",
+                "NEXT_DISPLAY_RECONFIGURE_GENERATION",
+                '"mediaDisplayReconfigureStarted"',
+            )
         ),
-        "displayRevisionIsCurrentlyHardCoded": (
-            "display_idx as u64,\n+        1,\n+        codec," in native_run
-            and "NEXT_DISPLAY_REVISION" not in sources["bridge"]
-        ),
-        "replacementRoutesOnlyProveFreshGenericEpochs": all(
+        "replacementConsumesTypedProvenanceExactlyOnce": all(
             marker in begin_route
             for marker in (
-                "next_native_media_epoch(&NEXT_CONNECTION_EPOCH)",
-                "next_native_media_epoch(&NEXT_CODEC_EPOCH)",
-                '"command": "startCapture"',
-                '"command": "reconfigure"',
-                '"displayRevision": display_revision',
+                "broker.pending_display_reconfigures.remove(&display_id)",
+                ".previous_display_revision",
+                ".checked_add(1)",
+                "broker.display_revisions.get(&display_id).copied().unwrap_or(1)",
+                'start_payload["displayReconfigure"] = provenance.payload()',
+                'reconfigure_payload["displayReconfigure"] = provenance.payload()',
             )
         ),
-        "currentControlEnvelopeCarriesNoTypedDisplayProvenance": (
-            "public let reason: String?" in media_decoder
-            and "displayReconfigureGeneration" not in media_decoder
-            and "previousConnectionEpoch" not in media_decoder
-            and "previousCodecEpoch" not in media_decoder
-            and "previousDisplayRevision" not in media_decoder
-        ),
-        "controlStateOnlyOrdersGenericRouteIdentity": (
-            all(
-                marker in sources["control_state"]
-                for marker in (
-                    "route.connectionEpoch > highestConnectionEpoch",
-                    "route.codecEpoch > highestCodecEpoch",
-                    "pendingRoute == route",
-                    "activeRoute = route",
-                )
-            )
-            and "displayReconfigureGeneration" not in sources["control_state"]
-        ),
-        "mediaOwnerCannotCompleteDisplayEvidence": (
-            "recoveryOwner.reconfigure(route)" in sources["media_owner"]
-            and "recordDisplayReconfigureCompleted" not in sources["media_owner"]
-            and "acceptDisplayReconfigure" not in sources["media_owner"]
-        ),
-        "routeOwnerHasExactAsynchronousConvergenceState": all(
-            marker in sources["route_owner"]
+        "swiftStrictlyDecodesMarkerAndReplacementProvenance": all(
+            marker in sources["client"]
             for marker in (
-                "pendingOperationCount",
-                "desiredRoute",
-                "activeRoute",
-                "current?.generation == callbackGeneration",
+                'guard eventType == "mediaDisplayReconfigureStarted"',
+                '"displayReconfigureGeneration"',
+                'if let rawProvenance = payload["displayReconfigure"]',
+                "previousDisplayRevision < UInt64.max",
+                "displayRevision == previousDisplayRevision + 1",
+                "connectionEpoch > previousConnectionEpoch",
+                "codecEpoch > previousCodecEpoch",
+                "CFGetTypeID(number) != CFBooleanGetTypeID()",
             )
         ),
-        "writerAlreadyRejectsStaleReplacementEpochs": all(
-            marker in sources["evidence_writer"]
+        "controlStateCorrelatesStartAndReconfigureExactly": all(
+            marker in sources["control_state"]
             for marker in (
-                "case displayReconfigure(",
+                "pendingDisplayReconfigure = control.displayReconfigure",
+                "pendingDisplayReconfigure == control.displayReconfigure",
+                "return .displayProvenanceMismatch",
+                "pendingDisplayReconfigure = nil",
+            )
+        ),
+        "productOwnerConnectsMarkerControlsAndExactRouteConvergence": all(
+            marker in sources["media_owner"]
+            for marker in (
+                'case "mediaDisplayReconfigureStarted":',
+                "displayEvidenceOwner.accept(",
+                "displayEvidenceOwner.observeStart(",
+                "displayEvidenceOwner.observeReconfigure(",
+                "snapshot.pendingOperationCount == 0",
+                "snapshot.desiredRoute == route",
+                "snapshot.activeRoute == route",
+                "displayEvidenceOwner.cancelAndWait()",
+            )
+        ),
+        "displayStateMachineFailsClosedAndPollsBoundedly": all(
+            marker in sources["display_evidence_owner"]
+            for marker in (
+                "HostMediaPipelineRecoveryPollingOwner.makeProduct(",
+                "acceptDisplayReconfigure(",
+                "observeStart(",
+                "observeReconfigure(",
+                "recordDisplayReconfigureCompleted(",
+                "discardDisplayReconfigure(",
+                "pollingOwner.cancelAndWait()",
+            )
+        ),
+        "processEvidenceRequiresExactReplacementAndDrains": all(
+            marker in sources["evidence_owner"]
+            for marker in (
+                "pendingDisplayReconfigureAcceptance",
+                "acceptDisplayReconfigure(",
+                "recordDisplayReconfigureCompleted(",
+                "replacementDisplayRevision == previousDisplayRevision + 1",
                 "replacementConnectionEpoch > previousConnectionEpoch",
                 "replacementCodecEpoch > previousCodecEpoch",
-                "let freshRouteConverged = true",
+                "displayReconfigureAcceptanceInFlight || recordInFlight",
             )
         ),
-        "processEvidenceOwnerHasNoDisplayPendingState": (
-            "pendingSleepWakeAcceptance" in sources["evidence_owner"]
-            and "pendingNetworkPathAcceptance" in sources["evidence_owner"]
-            and "pendingDisplayReconfigureAcceptance" not in sources["evidence_owner"]
-            and "acceptDisplayReconfigure" not in sources["evidence_owner"]
+        "processTeardownDrainsProducerBeforeEvidenceWriter": ordered(
+            sources["host_process"],
+            "mediaPipelineOwner.cancelAndWait()",
+            "recoveryEvidenceOwner.cancelAndWait()",
         ),
         "currentABIVersionsAreSynchronized": (
-            rust_host_abi == header_host_abi == 11
+            rust_host_abi == header_host_abi == 12
             and rust_media_abi == header_media_abi == 1
         ),
     }
@@ -237,8 +267,8 @@ def main() -> int:
             "display_service::get_display_info(display_idx).as_ref() != Some(&display)",
         ),
         "subscriberSwitch": line_number(patch, "snapshot.has_subscribes()"),
-        "hardCodedDisplayRevision": line_number(
-            patch, "display_idx as u64,\n+        1,\n+        codec,"
+        "displayMarker": line_number(
+            patch, "native_media_mark_display_reconfigure(&route.0)"
         ),
         "freshConnectionEpoch": line_number(
             sources["bridge"],
@@ -247,13 +277,13 @@ def main() -> int:
         "controlDecoder": line_number(
             sources["client"], "var mediaControl: HostMediaControl?"
         ),
-        "genericRouteAdmission": line_number(
+        "controlProvenanceAdmission": line_number(
             sources["control_state"],
-            "route.connectionEpoch > highestConnectionEpoch",
+            "pendingDisplayReconfigure == control.displayReconfigure",
         ),
-        "displayWriterValidation": line_number(
-            sources["evidence_writer"],
-            "replacementConnectionEpoch > previousConnectionEpoch",
+        "displayEvidenceCompletion": line_number(
+            sources["evidence_owner"],
+            "recordDisplayReconfigureCompleted(",
         ),
     }
 
@@ -322,7 +352,7 @@ def main() -> int:
     document = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "status": "abi-checkpoint-required" if not missing else "contract-drift",
+        "status": "display-callback-implemented" if not missing else "contract-drift",
         "pinnedRustDeskCommit": PINNED_RUSTDESK_COMMIT,
         "implementation": {
             "hostControlABI": rust_host_abi,
@@ -334,8 +364,6 @@ def main() -> int:
         "targetContract": target_contract,
         "missingEvidence": missing,
         "remainingBoundary": {
-            "sharedHostABIImplementationRequiresNextCheckpoint": True,
-            "displayEvidenceCallbackRemainsUnimplemented": True,
             "recoveryManifestValidatorRemainsUnimplemented": True,
             "installedMacDisplayTransitionStillRequired": True,
             "postTransitionTenMinute1080p30RunStillRequired": True,

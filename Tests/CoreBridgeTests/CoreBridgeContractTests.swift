@@ -672,12 +672,16 @@ final class CoreBridgeContractTests: XCTestCase {
         let recoveryPollCancel = try XCTUnwrap(ownerSource.range(
             of: "recoveryPollingOwner.cancelAndWait()"
         ))
+        let displayEvidenceCancel = try XCTUnwrap(ownerSource.range(
+            of: "displayEvidenceOwner.cancelAndWait()"
+        ))
         let recoveryCancel = try XCTUnwrap(ownerSource.range(
             of: "recoveryOwner.cancelAndWait()"
         ))
         let liveLogSeal = try XCTUnwrap(ownerSource.range(
             of: "liveLogCoordinator.cancel()"
         ))
+        XCTAssertLessThan(displayEvidenceCancel.lowerBound, recoveryPollCancel.lowerBound)
         XCTAssertLessThan(recoveryPollCancel.lowerBound, recoveryCancel.lowerBound)
         XCTAssertLessThan(recoveryPollCancel.lowerBound, liveLogPollCancel.lowerBound)
         XCTAssertLessThan(liveLogPollCancel.lowerBound, recoveryCancel.lowerBound)
@@ -699,7 +703,10 @@ final class CoreBridgeContractTests: XCTestCase {
             "Sources/RustDeskNative/HostAgentProcess.swift"
         )
         let processSource = try String(contentsOf: processURL, encoding: .utf8)
-        XCTAssertTrue(processSource.contains("HostAgentMediaPipelineOwner()"))
+        XCTAssertTrue(processSource.contains(
+            "HostAgentMediaPipelineOwner(\n"
+                + "            recoveryEvidenceOwner: recoveryEvidenceOwner"
+        ))
         XCTAssertTrue(processSource.contains("mediaPipelineOwner.handle"))
         XCTAssertTrue(processSource.contains("mediaPipelineOwner.start("))
         let pipelineCancel = try XCTUnwrap(processSource.range(
@@ -708,6 +715,10 @@ final class CoreBridgeContractTests: XCTestCase {
         let pollingCancel = try XCTUnwrap(processSource.range(
             of: "pollingOwner.cancel()"
         ))
+        let evidenceCancel = try XCTUnwrap(processSource.range(
+            of: "recoveryEvidenceOwner.cancelAndWait()"
+        ))
+        XCTAssertLessThan(pipelineCancel.lowerBound, evidenceCancel.lowerBound)
         XCTAssertLessThan(pipelineCancel.lowerBound, pollingCancel.lowerBound)
 
         let appURL = repositoryRoot
@@ -1494,6 +1505,97 @@ final class CoreBridgeContractTests: XCTestCase {
             "displayId": 0,
         ])?.mediaControl)
         XCTAssertNil(try hostEvent(payload: [:], schemaVersion: 2))
+    }
+
+    func testDisplayReconfigureMarkerAndControlProvenanceFailClosed() throws {
+        let markerPayload: [String: Any] = [
+            "displayReconfigureGeneration": 4,
+            "displayId": 0,
+            "previousDisplayRevision": 2,
+            "previousConnectionEpoch": 7,
+            "previousCodecEpoch": 9,
+        ]
+        let started = try XCTUnwrap(try hostEvent(
+            payload: markerPayload,
+            eventType: "mediaDisplayReconfigureStarted"
+        )?.displayReconfigureStarted)
+        XCTAssertEqual(started.generation, 4)
+        XCTAssertEqual(started.displayID, 0)
+        XCTAssertEqual(started.previousDisplayRevision, 2)
+        XCTAssertEqual(started.previousConnectionEpoch, 7)
+        XCTAssertEqual(started.previousCodecEpoch, 9)
+
+        let provenance: [String: Any] = [
+            "displayReconfigureGeneration": 4,
+            "previousDisplayRevision": 2,
+            "previousConnectionEpoch": 7,
+            "previousCodecEpoch": 9,
+        ]
+        let replacement = try XCTUnwrap(try hostEvent(payload: [
+            "command": "reconfigure",
+            "connectionEpoch": 8,
+            "codecEpoch": 10,
+            "displayId": 0,
+            "displayRevision": 3,
+            "codec": "h264",
+            "width": 1_920,
+            "height": 1_080,
+            "fps": 30,
+            "displayReconfigure": provenance,
+        ])?.mediaControl)
+        XCTAssertEqual(replacement.displayReconfigure, .init(
+            generation: 4,
+            previousDisplayRevision: 2,
+            previousConnectionEpoch: 7,
+            previousCodecEpoch: 9
+        ))
+
+        for invalid in [
+            [
+                "displayReconfigureGeneration": 0,
+                "previousDisplayRevision": 2,
+                "previousConnectionEpoch": 7,
+                "previousCodecEpoch": 9,
+            ],
+            [
+                "displayReconfigureGeneration": 4,
+                "previousDisplayRevision": 3,
+                "previousConnectionEpoch": 7,
+                "previousCodecEpoch": 9,
+            ],
+            [
+                "displayReconfigureGeneration": 4,
+                "previousDisplayRevision": 2,
+                "previousConnectionEpoch": 8,
+                "previousCodecEpoch": 9,
+            ],
+        ] {
+            XCTAssertNil(try hostEvent(payload: [
+                "command": "reconfigure",
+                "connectionEpoch": 8,
+                "codecEpoch": 10,
+                "displayId": 0,
+                "displayRevision": 3,
+                "codec": "h264",
+                "width": 1_920,
+                "height": 1_080,
+                "fps": 30,
+                "displayReconfigure": invalid,
+            ])?.mediaControl)
+        }
+        var malformedMarker = markerPayload
+        malformedMarker["previousCodecEpoch"] = true
+        XCTAssertNil(try hostEvent(
+            payload: malformedMarker,
+            eventType: "mediaDisplayReconfigureStarted"
+        )?.displayReconfigureStarted)
+        XCTAssertNil(try hostEvent(payload: [
+            "command": "stopCapture",
+            "connectionEpoch": 8,
+            "codecEpoch": 10,
+            "displayId": 0,
+            "displayReconfigure": provenance,
+        ])?.mediaControl)
     }
 
     func testHostMediaDiagnosticIsSanitizedAndFailsClosed() throws {

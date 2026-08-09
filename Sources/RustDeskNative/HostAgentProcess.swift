@@ -23,13 +23,15 @@ enum HostAgentProcess {
         let pollingOwner = HostAgentSnapshotPollingOwner(
             snapshotCoordinator: snapshotCoordinator
         )
-        let mediaPipelineOwner = HostAgentMediaPipelineOwner()
         let sleepWakeRecoveryOwner =
             HostAgentSleepWakeRecoveryProcessOwner()
         let networkPathRecoveryOwner =
             HostAgentNetworkPathRecoveryProcessOwner()
         let recoveryEvidenceOwner =
             HostRecoveryTransitionEvidenceProcessOwner()
+        let mediaPipelineOwner = HostAgentMediaPipelineOwner(
+            recoveryEvidenceOwner: recoveryEvidenceOwner
+        )
         return HostAgentProcessRunner.run(
             installTerminationIngress: {
                 try HostAgentProcessSignalController()
@@ -42,9 +44,9 @@ enum HostAgentProcess {
                     prepareTermination: {
                         networkPathRecoveryOwner.cancelAndWait()
                         sleepWakeRecoveryOwner.cancelAndWait()
-                        recoveryEvidenceOwner.cancelAndWait()
                         mediaState.cancelAndWait()
                         mediaPipelineOwner.cancelAndWait()
+                        recoveryEvidenceOwner.cancelAndWait()
                         pollingOwner.cancel()
                     },
                     onEvent: { event in
