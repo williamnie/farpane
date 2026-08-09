@@ -25,7 +25,9 @@ final class HostAgentSleepWakeRecoveryProcessOwnerContractTests: XCTestCase {
         let installSignatureEnd = try XCTUnwrap(installTail.range(of: ") -> Bool"))
         let installSignature = installTail[..<installSignatureEnd.upperBound]
         XCTAssertFalse(installSignature.contains("operations:"))
-        XCTAssertFalse(owner.contains("NSWorkspace"))
+        XCTAssertTrue(owner.contains(
+            "HostAgentNSWorkspaceSleepWakeIngress.makeProduct("
+        ))
         XCTAssertFalse(owner.contains("import AppKit"))
 
         XCTAssertGreaterThanOrEqual(
@@ -85,6 +87,13 @@ final class HostAgentSleepWakeRecoveryProcessOwnerContractTests: XCTestCase {
         XCTAssertTrue(owner.contains("while state == .installing"))
         XCTAssertTrue(owner.contains("while state == .cancelling"))
         XCTAssertTrue(owner.contains("composition?.cancel()"))
+        let ingressCancel = try XCTUnwrap(owner.range(
+            of: "notificationIngress?.cancelAndWait()"
+        ))
+        let compositionCancel = try XCTUnwrap(owner.range(
+            of: "composition?.cancel()"
+        ))
+        XCTAssertLessThan(ingressCancel.lowerBound, compositionCancel.lowerBound)
         XCTAssertTrue(owner.contains("state = .cancelled"))
         XCTAssertTrue(owner.contains("condition.broadcast()"))
     }

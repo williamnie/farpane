@@ -9,15 +9,16 @@ enum HostAgentSleepWakeRecoveryProcessState: Equatable, Sendable {
     case cancelled
 }
 
-/// Process-lifetime owner for the complete pre-notification recovery
-/// composition. It hard-binds projection publication to the same serialized
-/// snapshot coordinator used by event and periodic refreshes. System
-/// notification registration remains a separate adapter boundary.
+/// Process-lifetime owner for the complete recovery composition and its system
+/// notification ingress. It hard-binds projection publication to the same
+/// serialized snapshot coordinator used by event and periodic refreshes.
 final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
     private let condition = NSCondition()
     private var state: HostAgentSleepWakeRecoveryProcessState = .idle
     private var cancellationRequested = false
     private var composition: HostAgentSleepWakeRecoveryComposition?
+    private var notificationIngress:
+        HostAgentNSWorkspaceSleepWakeIngress?
 
     deinit {
         cancelAndWait()
@@ -71,10 +72,25 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
                 }
             )
         )
+        let notificationIngress =
+            HostAgentNSWorkspaceSleepWakeIngress.makeProduct(
+                composition: composition,
+                lifetime: lifetime
+            )
+        guard notificationIngress.start() else {
+            notificationIngress.cancelAndWait()
+            composition.cancel()
+            condition.lock()
+            state = .cancelled
+            condition.broadcast()
+            condition.unlock()
+            return false
+        }
 
         condition.lock()
         if cancellationRequested {
             condition.unlock()
+            notificationIngress.cancelAndWait()
             composition.cancel()
             condition.lock()
             state = .cancelled
@@ -83,6 +99,7 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
             return false
         }
         self.composition = composition
+        self.notificationIngress = notificationIngress
         state = .installed
         condition.broadcast()
         condition.unlock()
@@ -129,10 +146,13 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
             return
         case .installed:
             state = .cancelling
+            let notificationIngress = self.notificationIngress
             let composition = self.composition
+            self.notificationIngress = nil
             self.composition = nil
             condition.unlock()
 
+            notificationIngress?.cancelAndWait()
             composition?.cancel()
 
             condition.lock()
