@@ -124,6 +124,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private let options = Options(arguments: CommandLine.arguments)
     private let catalogStore = DeviceCatalogStore(fileURL: AppDelegate.catalogURL())
     private lazy var hostAgentBootstrapIntegration = try? HostAgentBootstrapProductIntegration()
+    private lazy var hostAgentRuntimeConfigurationReader =
+        try? HostAgentRuntimeConfigurationObservationReader()
     private let credentialStore: DeviceCredentialStore = KeychainDeviceCredentialStore(
         service: ProcessInfo.processInfo.environment["RDN_KEYCHAIN_SERVICE"]
             ?? KeychainDeviceCredentialStore.defaultService
@@ -177,6 +179,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         HostAgentBackgroundRegistrationStatus = .serviceUnavailable
     private var hostAgentBackgroundActivationView:
         HostAgentBackgroundActivationView?
+    private var hostAgentRuntimeConfigurationCoherence:
+        HostAgentRuntimeConfigurationCoherence = .waitingForLivePeer
     private var hostAgentBackgroundCommandPresentation =
         HostAgentBackgroundHomeCommandReadOnlyPresentation.unavailable
     private var hostAgentBackgroundFlow: HostAgentBackgroundHomeFlow?
@@ -453,27 +457,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     @MainActor
     private func refreshHostAgentBackgroundCommandPresentation() {
+        refreshHostAgentRuntimeConfigurationCoherence()
         _ = hostAgentBackgroundCommandPresentationOwner.refresh()
-        hostAgentBackgroundCommandPresentation =
-            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
-            .presentation(
-                hostAgentBackgroundCommandPresentationOwner.snapshot(),
-                phase: hostAgentBackgroundActivationView?.phase,
-                projection: hostAgentBackgroundActivationView?.projection
-            )
+        projectHostAgentBackgroundCommandPresentation(
+            hostAgentBackgroundCommandPresentationOwner.snapshot()
+        )
     }
 
     @MainActor
     private func applyHostAgentBackgroundCommandPresentation(
         _ view: HostAgentBackgroundHomeCommandPresentationView
     ) {
-        hostAgentBackgroundCommandPresentation =
-            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
-            .presentation(
-                view,
-                phase: hostAgentBackgroundActivationView?.phase,
-                projection: hostAgentBackgroundActivationView?.projection
-            )
+        projectHostAgentBackgroundCommandPresentation(view)
         refreshHomeUI()
     }
 
@@ -624,6 +619,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func refreshHomeUI() {
         guard let homeView else { return }
+        refreshHostAgentRuntimeConfigurationCoherence()
+        projectHostAgentBackgroundCommandPresentation(
+            hostAgentBackgroundCommandPresentationOwner.snapshot()
+        )
         var credentialError = false
         let items = catalog.sortedDevices.map { device -> HomeDeviceItem in
             let hasPassword: Bool
@@ -652,13 +651,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             )
         let hostReadiness =
             HostAgentBackgroundHomeReadinessPresentationPolicy.presentation(
-                phase: hostAgentBackgroundActivationView?.phase,
+                phase: coherentHostAgentBackgroundActivationView?.phase,
                 registration: hostAgentBackgroundRegistrationStatus
             )
         let backgroundSnapshot =
             HostAgentBackgroundHomeSnapshotProjectionPolicy.presentation(
-                phase: hostAgentBackgroundActivationView?.phase,
-                projection: hostAgentBackgroundActivationView?.projection
+                phase: coherentHostAgentBackgroundActivationView?.phase,
+                projection:
+                    coherentHostAgentBackgroundActivationView?.projection
             )
         let usesLegacyHost =
             hostAgentBackgroundRegistrationStatus == .notRegistered
@@ -763,6 +763,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             backgroundRuntimeError,
             usesLegacyHost ? "" : backgroundCommand.errorText,
             bootstrapError,
+            usesLegacyHost ? "" : hostAgentRuntimeConfigurationErrorText,
         ]
             .filter { !$0.isEmpty }
             .joined(separator: "\n")
@@ -773,7 +774,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
               hostAgentBackgroundFlow == nil
         else { return "" }
         return HostAgentBackgroundHomeReadinessPresentationPolicy.presentation(
-            phase: hostAgentBackgroundActivationView?.phase,
+            phase: coherentHostAgentBackgroundActivationView?.phase,
             registration: hostAgentBackgroundRegistrationStatus
         ).errorText
     }
@@ -805,6 +806,68 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         hostAgentBootstrapState = hostAgentBootstrapIntegration
             .reconcileSavedCatalog(from: catalogStore)
+        refreshHostAgentRuntimeConfigurationCoherence()
+    }
+
+    private var coherentHostAgentBackgroundActivationView:
+        HostAgentBackgroundActivationView?
+    {
+        guard hostAgentRuntimeConfigurationCoherence
+            .permitsRuntimeProjection
+        else { return nil }
+        return hostAgentBackgroundActivationView
+    }
+
+    private func refreshHostAgentRuntimeConfigurationCoherence() {
+        guard let projection = hostAgentBackgroundActivationView?.projection,
+              case .available(let available) = projection.phase
+        else {
+            hostAgentRuntimeConfigurationCoherence = .waitingForLivePeer
+            return
+        }
+        guard case .ready(let publishedConfigRevision) =
+            hostAgentBootstrapState
+        else {
+            hostAgentRuntimeConfigurationCoherence = .evidenceUnavailable
+            return
+        }
+        guard let hostAgentRuntimeConfigurationReader else {
+            hostAgentRuntimeConfigurationCoherence = .evidenceUnavailable
+            return
+        }
+        do {
+            let observation = try hostAgentRuntimeConfigurationReader.load()
+            guard observation.bootstrap.configRevision ==
+                publishedConfigRevision
+            else {
+                hostAgentRuntimeConfigurationCoherence =
+                    .evidenceUnavailable
+                return
+            }
+            hostAgentRuntimeConfigurationCoherence =
+                HostAgentRuntimeConfigurationCoherencePolicy.evaluate(
+                    observation: observation,
+                    liveAgentBuildID:
+                        available.peerIdentity.agentBuildID,
+                    liveAgentBootID:
+                        available.peerIdentity.agentBootID
+                )
+        } catch {
+            hostAgentRuntimeConfigurationCoherence = .evidenceUnavailable
+        }
+    }
+
+    private var hostAgentRuntimeConfigurationErrorText: String {
+        switch hostAgentRuntimeConfigurationCoherence {
+        case .waitingForLivePeer, .coherent:
+            return ""
+        case .evidenceUnavailable:
+            return "无法核对后台 Host 的运行配置；已暂停就绪和控制。"
+        case .staleConfiguration:
+            return "后台 Host 仍在使用旧配置；已暂停就绪和控制，请关闭并重新开启“允许控制本机”。"
+        case .identityMismatch:
+            return "后台 Host 的运行身份与当前配置不一致；已暂停就绪和控制。"
+        }
     }
 
     private func hostMediaDiagnosticText() -> String {
@@ -1664,6 +1727,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func dispatchHostHomeCommandOnMain(
         _ request: HostAgentHomeCommandRequest
     ) -> Bool {
+        refreshHostAgentRuntimeConfigurationCoherence()
+        projectHostAgentBackgroundCommandPresentation(
+            hostAgentBackgroundCommandPresentationOwner.snapshot()
+        )
         let usesLegacyHost =
             hostAgentBackgroundRegistrationStatus == .notRegistered
                 && hostAgentBackgroundFlow == nil
@@ -1680,8 +1747,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
         let backgroundSnapshot =
             HostAgentBackgroundHomeSnapshotProjectionPolicy.presentation(
-                phase: hostAgentBackgroundActivationView?.phase,
-                projection: hostAgentBackgroundActivationView?.projection
+                phase: coherentHostAgentBackgroundActivationView?.phase,
+                projection:
+                    coherentHostAgentBackgroundActivationView?.projection
             )
         let approval = usesLegacyHost
             ? hostApprovalHomeSnapshot()
@@ -1713,8 +1781,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             owner: owner,
             visibleTargets: visibleTargets,
             legacyCommandsAvailable: usesLegacyHost && hostRuntimeActive,
-            phase: hostAgentBackgroundActivationView?.phase,
-            projection: hostAgentBackgroundActivationView?.projection,
+            phase: coherentHostAgentBackgroundActivationView?.phase,
+            projection:
+                coherentHostAgentBackgroundActivationView?.projection,
             commandView: commandView
         )
         return HostAgentHomeCommandDispatchPolicy.dispatch(
@@ -1738,6 +1807,19 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     .retry()
             }
         )
+    }
+
+    private func projectHostAgentBackgroundCommandPresentation(
+        _ view: HostAgentBackgroundHomeCommandPresentationView
+    ) {
+        hostAgentBackgroundCommandPresentation =
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+            .presentation(
+                view,
+                phase: coherentHostAgentBackgroundActivationView?.phase,
+                projection:
+                    coherentHostAgentBackgroundActivationView?.projection
+            )
     }
 
     private func performLegacyHostHomeCommand(
