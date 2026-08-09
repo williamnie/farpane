@@ -4,20 +4,25 @@ package struct HostAgentBackgroundHomeCommandReadOnlyPresentation:
 {
     package static let unavailable = Self(
         activeAction: nil,
+        availableActions: [],
+        retryAction: nil,
         statusText: "",
         errorText: "",
         canRetry: false
     )
 
     package let activeAction: HostAgentBackgroundHomeCommandAction?
+    package let availableActions:
+        [HostAgentBackgroundHomeCommandAction]
+    package let retryAction: HostAgentBackgroundHomeCommandAction?
     package let statusText: String
     package let errorText: String
     package let canRetry: Bool
 }
 
 /// Read-only product projection for an App-owned command presentation owner.
-/// It carries no command callback and never converts retryability into an
-/// action. Home action routing remains a separate, later product boundary.
+/// It carries exact control eligibility but no command callback. Every click
+/// still crosses the separate owner-aware Home routing boundary.
 package enum HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy {
     package static func presentation(
         _ view: HostAgentBackgroundHomeCommandPresentationView?,
@@ -28,6 +33,8 @@ package enum HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy {
         if let failure = view.failure {
             return HostAgentBackgroundHomeCommandReadOnlyPresentation(
                 activeAction: nil,
+                availableActions: [],
+                retryAction: nil,
                 statusText: "",
                 errorText: failureText(failure),
                 canRetry: false
@@ -42,10 +49,37 @@ package enum HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy {
         }
 
         let result = view.result
+        let availableActions:
+            [HostAgentBackgroundHomeCommandAction]
+        if result == nil,
+           !view.command.isBusy,
+           !view.command.canRetry,
+           view.command.activeAction == nil
+        {
+            availableActions = view.command.availableActions
+        } else {
+            availableActions = []
+        }
+        let retryAction: HostAgentBackgroundHomeCommandAction?
+        if view.command.canRetry,
+           !view.command.isBusy,
+           view.command.availableActions.isEmpty,
+           let activeAction = view.command.activeAction,
+           let result,
+           result.action == activeAction,
+           result.isTerminal,
+           result.canRetry
+        {
+            retryAction = activeAction
+        } else {
+            retryAction = nil
+        }
         return HostAgentBackgroundHomeCommandReadOnlyPresentation(
             activeAction: view.command.isBusy
                 ? view.command.activeAction
                 : nil,
+            availableActions: availableActions,
+            retryAction: retryAction,
             statusText: firstNonempty(
                 result?.statusText,
                 view.command.statusText
@@ -54,8 +88,7 @@ package enum HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy {
                 result?.errorText,
                 view.command.errorText
             ),
-            canRetry: view.command.canRetry
-                && result?.canRetry == true
+            canRetry: retryAction != nil
         )
     }
 

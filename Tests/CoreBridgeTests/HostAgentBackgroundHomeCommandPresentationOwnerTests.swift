@@ -119,6 +119,18 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         let dependencies = PresentationOwnerDependencies(fixture: fixture)
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.refresh())
+        var display =
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+            .presentation(
+                owner.snapshot(),
+                phase: dependencies.activationSnapshot.phase,
+                projection: dependencies.activationSnapshot.projection
+            )
+        XCTAssertEqual(
+            display.availableActions,
+            HostAgentBackgroundHomeCommandAction.allCases
+        )
+        XCTAssertNil(display.retryAction)
         XCTAssertTrue(owner.submit(.disconnect))
         let submission = try XCTUnwrap(dependencies.submissions.first)
 
@@ -151,7 +163,7 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             .unavailable
         )
 
-        var display =
+        display =
             HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
             .presentation(
                 owner.snapshot(),
@@ -162,6 +174,8 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertEqual(display.statusText, "正在提交断开连接…")
         XCTAssertEqual(display.errorText, "")
         XCTAssertFalse(display.canRetry)
+        XCTAssertEqual(display.availableActions, [])
+        XCTAssertNil(display.retryAction)
 
         dependencies.publish(.accepted(
             try acceptedResponse(for: submission.intent)
@@ -179,6 +193,8 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             "连接中断，无法确认断开连接结果；可重试同一操作。"
         )
         XCTAssertTrue(display.canRetry)
+        XCTAssertEqual(display.availableActions, [])
+        XCTAssertEqual(display.retryAction, .disconnect)
 
         XCTAssertTrue(owner.retry())
         display = HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
@@ -189,6 +205,8 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             )
         XCTAssertEqual(display.activeAction, .disconnect)
         XCTAssertFalse(display.canRetry)
+        XCTAssertEqual(display.availableActions, [])
+        XCTAssertNil(display.retryAction)
 
         dependencies.publish(.accepted(
             try acceptedResponse(for: submission.intent)
@@ -210,6 +228,8 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertEqual(display.statusText, "断开连接已完成。")
         XCTAssertEqual(display.errorText, "")
         XCTAssertFalse(display.canRetry)
+        XCTAssertEqual(display.availableActions, [])
+        XCTAssertNil(display.retryAction)
     }
 
     func testOwnerAwareRoutingNeverFallsBackAcrossLegacyAndBackground()
@@ -830,10 +850,22 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             1
         )
         XCTAssertTrue(appSource.contains(
-            "approval.allowsCommands"
+            "approval.enabledActions.contains(.approve)"
         ))
         XCTAssertTrue(appSource.contains(
-            "session.allowsCommands"
+            "session.enabledActions.contains(.disconnect)"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "dispatchHostHomeCommand(.retry("
+        ))
+        XCTAssertTrue(readOnlySource.contains(
+            "availableActions: availableActions"
+        ))
+        XCTAssertTrue(readOnlySource.contains(
+            "retryAction: retryAction"
+        ))
+        XCTAssertTrue(homeSource.contains(
+            "onRetryHostCommand?(retry.connectionID)"
         ))
         XCTAssertFalse(homeSource.contains(
             "HostAgentBackgroundHomeCommandPresentationView"

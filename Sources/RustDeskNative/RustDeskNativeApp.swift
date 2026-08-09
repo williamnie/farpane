@@ -602,6 +602,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 connectionID: connectionID
             ))
         }
+        view.onRetryHostCommand = { [weak self] connectionID in
+            _ = self?.dispatchHostHomeCommand(.retry(
+                connectionID: connectionID
+            ))
+        }
         window.contentView = view
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -661,6 +666,25 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let legacyHostIsReady = hostRuntimeActive
             && hostSnapshot?.hostState == "ready"
             && hostSnapshot?.registrationStatus == "ready"
+        let approval = usesLegacyHost
+            ? hostApprovalHomeSnapshot()
+            : backgroundHostApprovalHomeSnapshot(
+                backgroundSnapshot,
+                command: hostAgentBackgroundCommandPresentation
+            )
+        let session = usesLegacyHost
+            ? hostActiveSessionHomeSnapshot()
+            : backgroundHostActiveSessionHomeSnapshot(
+                backgroundSnapshot,
+                command: hostAgentBackgroundCommandPresentation
+            )
+        let commandRetry = usesLegacyHost
+            ? nil
+            : backgroundHostCommandRetryHomeSnapshot(
+                command: hostAgentBackgroundCommandPresentation,
+                approval: approval,
+                session: session
+            )
         homeView.apply(HomeSnapshot(
             server: catalog.server,
             devices: items,
@@ -702,18 +726,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 permanentPasswordChangeAllowed: usesLegacyHost
                     ? hostSnapshot?.passwordPolicy.changeAllowed ?? false
                     : backgroundSnapshot.permanentPasswordChangeAllowed,
-                pendingApproval: usesLegacyHost
-                    ? hostApprovalHomeSnapshot()
-                    : backgroundHostApprovalHomeSnapshot(
-                        backgroundSnapshot,
-                        command: hostAgentBackgroundCommandPresentation
-                    ),
-                activeSession: usesLegacyHost
-                    ? hostActiveSessionHomeSnapshot()
-                    : backgroundHostActiveSessionHomeSnapshot(
-                        backgroundSnapshot,
-                        command: hostAgentBackgroundCommandPresentation
-                    ),
+                pendingApproval: approval,
+                activeSession: session,
+                commandRetry: commandRetry,
                 mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : "",
                 errorText: combinedHostErrorText(
                     usesLegacyHost: usesLegacyHost,
@@ -1275,7 +1290,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             isResolving: hostApprovalDecisionGate.isResolving(
                 connectionID: pending.connectionId
             ),
-            allowsCommands: true
+            enabledActions: [.approve, .reject]
         )
     }
 
@@ -1308,6 +1323,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             "当前权限：\(capabilityNames.joined(separator: "、"))",
             sessionPresentation.detailText,
         ].compactMap { $0 }.joined(separator: "；")
+        var enabledActions: Set<HostSessionHomeAction> = [.disconnect]
+        if activeCapabilities.contains("controlKeyboardMouse") {
+            enabledActions.insert(.disableKeyboardAndMouse)
+        }
+        if activeCapabilities.contains("readClipboard"),
+           activeCapabilities.contains("writeClipboard")
+        {
+            enabledActions.insert(.disableClipboard)
+        }
+        if activeCapabilities.contains("hearSystemAudio") {
+            enabledActions.insert(.disableSystemAudio)
+        }
 
         return HostActiveSessionHomeSnapshot(
             connectionID: session.connectionId,
@@ -1322,7 +1349,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 && activeCapabilities.contains("writeClipboard"),
             canDisableSystemAudio: activeCapabilities.contains("hearSystemAudio"),
             pendingAction: pendingAction,
-            allowsCommands: true
+            enabledActions: enabledActions
         )
     }
 
@@ -1338,6 +1365,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
               ),
               let transportText = hostTransportText(pending.transport)
         else { return nil }
+        let availableActions = Set(command.availableActions)
+        var enabledActions: Set<HostApprovalHomeAction> = []
+        if availableActions.contains(.approveIncoming) {
+            enabledActions.insert(.approve)
+        }
+        if availableActions.contains(.rejectIncoming) {
+            enabledActions.insert(.reject)
+        }
         return HostApprovalHomeSnapshot(
             connectionID: pending.connectionID,
             remoteIdentityText: hostClaimedIdentityText(
@@ -1347,15 +1382,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             contextText: "\(hostPlatformText(pending.remotePlatform)) · \(transportText) · 每次均需本机批准",
             capabilityText:
                 "请求权限：\(capabilityNames.joined(separator: "、"))",
-            expiryText: [
-                backgroundHostApprovalExpiryText(
-                    expiresAt: pending.expiresAt
-                ),
-                "当前版本仅可查看，操作尚未接通",
-            ].joined(separator: " · "),
+            expiryText: backgroundHostApprovalExpiryText(
+                expiresAt: pending.expiresAt
+            ),
             isResolving: command.activeAction == .approveIncoming
                 || command.activeAction == .rejectIncoming,
-            allowsCommands: backgroundSnapshot.allowsApprovalCommands
+            enabledActions: enabledActions
         )
     }
 
@@ -1388,8 +1420,21 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let capabilityText = [
             "当前权限：\(capabilityNames.joined(separator: "、"))",
             sessionPresentation.detailText,
-            "当前版本仅可查看，操作尚未接通",
         ].compactMap { $0 }.joined(separator: "；")
+        let availableActions = Set(command.availableActions)
+        var enabledActions: Set<HostSessionHomeAction> = []
+        if availableActions.contains(.disableKeyboardAndMouse) {
+            enabledActions.insert(.disableKeyboardAndMouse)
+        }
+        if availableActions.contains(.disableClipboard) {
+            enabledActions.insert(.disableClipboard)
+        }
+        if availableActions.contains(.disableSystemAudio) {
+            enabledActions.insert(.disableSystemAudio)
+        }
+        if availableActions.contains(.disconnect) {
+            enabledActions.insert(.disconnect)
+        }
         return HostActiveSessionHomeSnapshot(
             connectionID: session.connectionID,
             remoteIdentityText: hostClaimedIdentityText(
@@ -1409,8 +1454,56 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             pendingAction: backgroundHostSessionAction(
                 command.activeAction
             ),
-            allowsCommands: backgroundSnapshot.allowsSessionCommands
+            enabledActions: enabledActions
         )
+    }
+
+    private func backgroundHostCommandRetryHomeSnapshot(
+        command: HostAgentBackgroundHomeCommandReadOnlyPresentation,
+        approval: HostApprovalHomeSnapshot?,
+        session: HostActiveSessionHomeSnapshot?
+    ) -> HostCommandRetryHomeSnapshot? {
+        guard command.canRetry,
+              let action = command.retryAction
+        else { return nil }
+        switch action {
+        case .approveIncoming:
+            guard let approval else { return nil }
+            return HostCommandRetryHomeSnapshot(
+                connectionID: approval.connectionID,
+                title: "重试允许连接"
+            )
+        case .rejectIncoming:
+            guard let approval else { return nil }
+            return HostCommandRetryHomeSnapshot(
+                connectionID: approval.connectionID,
+                title: "重试拒绝连接"
+            )
+        case .disableKeyboardAndMouse:
+            guard let session else { return nil }
+            return HostCommandRetryHomeSnapshot(
+                connectionID: session.connectionID,
+                title: "重试停止键鼠控制"
+            )
+        case .disableClipboard:
+            guard let session else { return nil }
+            return HostCommandRetryHomeSnapshot(
+                connectionID: session.connectionID,
+                title: "重试停止剪贴板"
+            )
+        case .disableSystemAudio:
+            guard let session else { return nil }
+            return HostCommandRetryHomeSnapshot(
+                connectionID: session.connectionID,
+                title: "重试停止系统音频"
+            )
+        case .disconnect:
+            guard let session else { return nil }
+            return HostCommandRetryHomeSnapshot(
+                connectionID: session.connectionID,
+                title: "重试断开连接"
+            )
+        }
     }
 
     private func backgroundHostSessionAction(
@@ -1438,30 +1531,48 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func enabledHostHomeCommandActions(
         approval: HostApprovalHomeSnapshot?,
-        session: HostActiveSessionHomeSnapshot?
+        session: HostActiveSessionHomeSnapshot?,
+        retryAction: HostAgentBackgroundHomeCommandAction? = nil
     ) -> [HostAgentBackgroundHomeCommandAction] {
         var actions: [HostAgentBackgroundHomeCommandAction] = []
         if let approval,
-           approval.allowsCommands,
            !approval.isResolving
         {
-            actions.append(.approveIncoming)
-            actions.append(.rejectIncoming)
+            if approval.enabledActions.contains(.approve) {
+                actions.append(.approveIncoming)
+            }
+            if approval.enabledActions.contains(.reject) {
+                actions.append(.rejectIncoming)
+            }
         }
         if let session,
-           session.allowsCommands,
            session.pendingAction == nil
         {
-            if session.canDisableKeyboardAndMouse {
+            if session.enabledActions.contains(.disableKeyboardAndMouse) {
                 actions.append(.disableKeyboardAndMouse)
             }
-            if session.canDisableClipboard {
+            if session.enabledActions.contains(.disableClipboard) {
                 actions.append(.disableClipboard)
             }
-            if session.canDisableSystemAudio {
+            if session.enabledActions.contains(.disableSystemAudio) {
                 actions.append(.disableSystemAudio)
             }
-            actions.append(.disconnect)
+            if session.enabledActions.contains(.disconnect) {
+                actions.append(.disconnect)
+            }
+        }
+        if let retryAction {
+            let targetIsVisible: Bool
+            switch retryAction {
+            case .approveIncoming, .rejectIncoming:
+                targetIsVisible = approval != nil
+            case .disableKeyboardAndMouse, .disableClipboard,
+                 .disableSystemAudio, .disconnect:
+                targetIsVisible = session != nil
+            }
+            if targetIsVisible, !actions.contains(retryAction) {
+                actions.append(retryAction)
+            }
         }
         return actions
     }
@@ -1589,7 +1700,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             sessionConnectionID: session?.connectionID,
             enabledActions: enabledHostHomeCommandActions(
                 approval: approval,
-                session: session
+                session: session,
+                retryAction:
+                    hostAgentBackgroundCommandPresentation.retryAction
             )
         )
         let commandView = owner == .background

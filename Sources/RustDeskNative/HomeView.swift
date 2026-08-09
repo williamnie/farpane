@@ -13,10 +13,15 @@ struct HostApprovalHomeSnapshot: Equatable {
     var capabilityText: String
     var expiryText: String
     var isResolving: Bool
-    var allowsCommands: Bool
+    var enabledActions: Set<HostApprovalHomeAction>
 }
 
-enum HostSessionHomeAction: Equatable {
+enum HostApprovalHomeAction: Equatable, Hashable {
+    case approve
+    case reject
+}
+
+enum HostSessionHomeAction: Equatable, Hashable {
     case disableKeyboardAndMouse
     case disableClipboard
     case disableSystemAudio
@@ -32,7 +37,12 @@ struct HostActiveSessionHomeSnapshot: Equatable {
     var canDisableClipboard: Bool
     var canDisableSystemAudio: Bool
     var pendingAction: HostSessionHomeAction?
-    var allowsCommands: Bool
+    var enabledActions: Set<HostSessionHomeAction>
+}
+
+struct HostCommandRetryHomeSnapshot: Equatable {
+    var connectionID: String
+    var title: String
 }
 
 struct HostHomeSnapshot: Equatable {
@@ -51,6 +61,7 @@ struct HostHomeSnapshot: Equatable {
     var permanentPasswordChangeAllowed: Bool
     var pendingApproval: HostApprovalHomeSnapshot?
     var activeSession: HostActiveSessionHomeSnapshot?
+    var commandRetry: HostCommandRetryHomeSnapshot?
     var mediaDiagnosticText: String
     var errorText: String
 }
@@ -85,6 +96,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onApproveHostConnection: ((String) -> Void)?
     var onRejectHostConnection: ((String) -> Void)?
     var onHostSessionAction: ((String, HostSessionHomeAction) -> Void)?
+    var onRetryHostCommand: ((String) -> Void)?
 
     private let serverButton = NSButton()
     private let serverStatusDot = NSView()
@@ -130,6 +142,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostDisableClipboardButton = NSButton()
     private let hostDisableAudioButton = NSButton()
     private let hostDisconnectButton = NSButton()
+    private let hostCommandRetryButton = NSButton()
     private let hostMediaDiagnosticLabel = NSTextField(wrappingLabelWithString: "")
     private let hostErrorLabel = NSTextField(wrappingLabelWithString: "")
     private var snapshot = HomeSnapshot(
@@ -154,6 +167,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             permanentPasswordChangeAllowed: false,
             pendingApproval: nil,
             activeSession: nil,
+            commandRetry: nil,
             mediaDiagnosticText: "",
             errorText: ""
         )
@@ -211,9 +225,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostApprovalCapabilityLabel.stringValue = approval.capabilityText
             hostApprovalExpiryLabel.stringValue = approval.expiryText
             hostApproveButton.title = approval.isResolving ? "处理中…" : "允许一次"
-            hostApproveButton.isEnabled = approval.allowsCommands
+            hostApproveButton.isEnabled = approval.enabledActions
+                .contains(.approve)
                 && !approval.isResolving
-            hostRejectButton.isEnabled = approval.allowsCommands
+            hostRejectButton.isEnabled = approval.enabledActions
+                .contains(.reject)
                 && !approval.isResolving
             hostApprovalContainer.isHidden = false
         } else {
@@ -250,7 +266,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostDisconnectButton.title = session.pendingAction == .disconnect
                 ? "正在断开…"
                 : "断开连接"
-            hostDisconnectButton.isEnabled = session.allowsCommands
+            hostDisconnectButton.isEnabled = session.enabledActions
+                .contains(.disconnect)
                 && !actionInFlight
             hostSessionContainer.isHidden = false
         } else {
@@ -263,6 +280,15 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             ] {
                 button.isEnabled = false
             }
+        }
+        if let retry = snapshot.host.commandRetry {
+            hostCommandRetryButton.title = retry.title
+            hostCommandRetryButton.setAccessibilityLabel(retry.title)
+            hostCommandRetryButton.isEnabled = true
+            hostCommandRetryButton.isHidden = false
+        } else {
+            hostCommandRetryButton.isEnabled = false
+            hostCommandRetryButton.isHidden = true
         }
         hostMediaDiagnosticLabel.stringValue = snapshot.host.mediaDiagnosticText
         hostMediaDiagnosticLabel.isHidden = snapshot.host.mediaDiagnosticText.isEmpty
@@ -304,7 +330,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     ) {
         button.title = session.pendingAction == action ? "处理中…" : title
         button.isHidden = !capabilityAvailable
-        button.isEnabled = session.allowsCommands
+        button.isEnabled = session.enabledActions.contains(action)
             && capabilityAvailable
             && session.pendingAction == nil
     }
@@ -718,6 +744,12 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostErrorLabel.font = .systemFont(ofSize: 11.5, weight: .medium)
         hostErrorLabel.isHidden = true
 
+        hostCommandRetryButton.title = "重试操作"
+        hostCommandRetryButton.bezelStyle = .rounded
+        hostCommandRetryButton.target = self
+        hostCommandRetryButton.action = #selector(retryHostCommand)
+        hostCommandRetryButton.isHidden = true
+
         let hostCard = NSStackView(views: [
             hostHeader,
             hostDetails,
@@ -726,6 +758,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostApprovalContainer,
             hostMediaDiagnosticLabel,
             hostErrorLabel,
+            hostCommandRetryButton,
         ])
         hostCard.orientation = .vertical
         hostCard.alignment = .leading
@@ -738,6 +771,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostApprovalContainer,
             hostMediaDiagnosticLabel,
             hostErrorLabel,
+            hostCommandRetryButton,
         ] {
             view.widthAnchor.constraint(equalTo: hostCard.widthAnchor).isActive = true
         }
@@ -1013,14 +1047,14 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
 
     @objc private func approveHostConnection() {
         guard let approval = snapshot.host.pendingApproval,
-              approval.allowsCommands,
+              approval.enabledActions.contains(.approve),
               !approval.isResolving else { return }
         onApproveHostConnection?(approval.connectionID)
     }
 
     @objc private func rejectHostConnection() {
         guard let approval = snapshot.host.pendingApproval,
-              approval.allowsCommands,
+              approval.enabledActions.contains(.reject),
               !approval.isResolving else { return }
         onRejectHostConnection?(approval.connectionID)
     }
@@ -1043,7 +1077,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
 
     private func performHostSessionAction(_ action: HostSessionHomeAction) {
         guard let session = snapshot.host.activeSession,
-              session.allowsCommands,
+              session.enabledActions.contains(action),
               session.pendingAction == nil else { return }
         switch action {
         case .disableKeyboardAndMouse:
@@ -1056,6 +1090,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             break
         }
         onHostSessionAction?(session.connectionID, action)
+    }
+
+    @objc private func retryHostCommand() {
+        guard let retry = snapshot.host.commandRetry else { return }
+        onRetryHostCommand?(retry.connectionID)
     }
 
     @objc private func filterChanged() { renderDevices() }

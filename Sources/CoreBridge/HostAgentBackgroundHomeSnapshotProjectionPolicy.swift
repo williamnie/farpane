@@ -11,9 +11,7 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         permanentPasswordChangeAllowed: false,
         hasRuntimeError: false,
         pendingApproval: nil,
-        activeSession: nil,
-        allowsApprovalCommands: false,
-        allowsSessionCommands: false
+        activeSession: nil
     )
 
     package let isAvailable: Bool
@@ -25,8 +23,6 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
     package let hasRuntimeError: Bool
     package let pendingApproval: HostAgentXPCWirePendingApproval?
     package let activeSession: HostAgentXPCWireActiveSession?
-    package let allowsApprovalCommands: Bool
-    package let allowsSessionCommands: Bool
 
     package init(
         isAvailable: Bool,
@@ -37,9 +33,7 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         permanentPasswordChangeAllowed: Bool,
         hasRuntimeError: Bool,
         pendingApproval: HostAgentXPCWirePendingApproval? = nil,
-        activeSession: HostAgentXPCWireActiveSession? = nil,
-        allowsApprovalCommands: Bool = false,
-        allowsSessionCommands: Bool = false
+        activeSession: HostAgentXPCWireActiveSession? = nil
     ) {
         self.isAvailable = isAvailable
         self.localID = localID
@@ -51,14 +45,13 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         self.hasRuntimeError = hasRuntimeError
         self.pendingApproval = pendingApproval
         self.activeSession = activeSession
-        self.allowsApprovalCommands = allowsApprovalCommands
-        self.allowsSessionCommands = allowsSessionCommands
     }
 }
 
 /// Read-only Home projection from one coherent activation/runtime snapshot.
 /// Temporary passwords and media are deliberately omitted. Approval/session
-/// payloads are read-only until their matching typed command surface exists.
+/// payloads remain data-only; command eligibility is owned by the separate
+/// typed command presentation policy.
 package enum HostAgentBackgroundHomeSnapshotProjectionPolicy {
     package static func presentation(
         phase: HostAgentBackgroundActivationPhase?,
@@ -90,9 +83,7 @@ package enum HostAgentBackgroundHomeSnapshotProjectionPolicy {
                 payload.passwordPolicy.changeAllowed,
             hasRuntimeError: payload.lastError != nil,
             pendingApproval: payload.pendingApproval,
-            activeSession: payload.activeSession,
-            allowsApprovalCommands: false,
-            allowsSessionCommands: false
+            activeSession: payload.activeSession
         )
     }
 
