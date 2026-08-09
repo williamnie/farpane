@@ -30,12 +30,12 @@ Per-second process evidence must report HostAgent and Viewer CPU, RSS, thread co
 
 ## Verification boundary
 
-H5.3s subsequently implemented the split-role sampler. H5.3t then added Viewer process/presentation-window authority, the strict five-source manifest validator and initial individual/combined CPU gates. The audit now returns `combined-validator-implemented`.
+H5.3s subsequently implemented the split-role sampler. H5.3t then added Viewer process/presentation-window authority, the strict five-source manifest validator and initial individual/combined CPU gates. H5.3u now aggregates exactly one passing acceptance result per scenario and rejects machine/build/macOS scope drift. The audit now returns `pair-validator-implemented`.
 
 This still does not claim §15.2 item 10 pass because:
 
-- the two passing acceptance scenarios have not been paired into one item-10 result;
+- no passing pair from two live installed-build acceptance runs has been generated;
 - installed App/Agent and two-machine runs have not been executed;
 - the five V1 concurrency/recovery cases and stable Host ID still need live evidence.
 
-The next safe automatic step is a pair validator requiring both passing acceptance scenario results in the same machine/build/macOS scope. Readiness and streaming remain separate authoritative evidence and are never inferred from process liveness.
+The pair validator may complete item 10 only from both passing live results in one exact machine/build/macOS scope. It deliberately leaves the broader V1 concurrency/recovery matrix false. Readiness and streaming remain separate authoritative evidence and are never inferred from process liveness.

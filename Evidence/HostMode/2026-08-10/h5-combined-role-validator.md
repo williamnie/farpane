@@ -5,7 +5,7 @@
 - Added `Scripts/validate-farpane-host-combined-role.py` for one bounded `host-ready-viewer` or `host-viewer-dual` run.
 - Added schema-v1 Viewer report identity and presentation-window fields so the validator can bind the exact Viewer PID/build and continuous presentation to the system sampler's monotonic window.
 - Defined initial individual and combined CPU gates from existing product targets; shared system helpers remain outside the FarPane process sum.
-- A passing acceptance result completes one scenario evidence package only. The result always keeps `section15_2Item10Complete=false` until both scenarios and the broader V1 live matrix are assembled and executed.
+- A passing acceptance result completes one scenario evidence package only. The result always keeps `section15_2Item10Complete=false`; H5.3u now owns the only conditional pair-level item-10 completion claim.
 
 ## Five-source manifest
 
@@ -45,6 +45,6 @@ The HostAgent values use §15.3's ready and 1080p30 initial targets. The Viewer 
 - `status=pass` means all five sources agree and the scenario semantics/budgets pass.
 - `scenarioEvidenceComplete=true` additionally requires an acceptance run of at least 600 seconds.
 - Smoke runs may pass validation but never complete scenario evidence.
-- `section15_2Item10Complete` remains false because both scenario acceptance packages, an item-10 pair/matrix result, installed App/Agent execution, five V1 concurrency/recovery cases and stable Host ID evidence are still missing.
+- `section15_2Item10Complete` remains false at the individual-run layer because both scenario acceptance packages must be aggregated separately.
 
-The next safe automatic step is an item-10 pair validator that requires one passing acceptance result for each scenario on the same machine/build/macOS scope. Real execution remains a later two-machine checkpoint.
+H5.3u subsequently implemented the item-10 pair validator. Real execution of both scenarios on the same installed machine/build/macOS scope remains the next item-10 checkpoint; the broader five-case V1 matrix remains separate.
