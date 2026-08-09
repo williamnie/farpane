@@ -30,6 +30,9 @@ def main() -> int:
             repository / "Scripts/audit-host-battery-thermal-evidence.py"
         ),
         "sampler": repository / "Scripts/sample-farpane-host-performance.sh",
+        "capture_runner": (
+            repository / "Scripts/sample-farpane-host-powermetrics.py"
+        ),
         "matrix": repository / "Scripts/validate-farpane-host-performance-matrix.py",
     }
     try:
@@ -46,13 +49,13 @@ def main() -> int:
     design = sources["design"]
     battery_audit = sources["battery_audit"]
     sampler = sources["sampler"]
+    capture_runner = sources["capture_runner"]
     matrix = sources["matrix"]
 
     product_sources = "\n".join(
         path.read_text(encoding="utf-8")
         for path in sorted((repository / "Sources").rglob("*.swift"))
     )
-    capture_runner = repository / "Scripts/sample-farpane-host-powermetrics.py"
     battery_validator = repository / "Scripts/validate-farpane-host-battery.py"
 
     evidence = {
@@ -90,8 +93,29 @@ def main() -> int:
             and "/usr/bin/sudo" not in product_sources
             and "AuthorizationExecuteWithPrivileges" not in product_sources
         ),
-        "captureAndValidatorAreNotYetImplemented": (
-            not capture_runner.exists() and not battery_validator.exists()
+        "boundedRawCaptureImplementedWithoutParserOrPassClaim": all(
+            marker in capture_runner
+            for marker in (
+                'SCENARIOS = ("battery-idle", "battery-active")',
+                "MINIMUM_ACCEPTANCE_SECONDS = 600",
+                "MAXIMUM_RAW_BYTES = 256 * 1024 * 1024",
+                'POWERMETRICS_PATH = Path("/usr/bin/powermetrics")',
+                'SAMPLERS = ("battery", "cpu_power", "thermal")',
+                "require_superuser(os.geteuid())",
+                "this wrapper never invokes sudo",
+                "battery_power_is_active()",
+                "hash_open_executable(executable_path)",
+                "resource.setrlimit(resource.RLIMIT_FSIZE",
+                "publish_pair_no_replace(",
+                '"rawSourceParsed": False',
+                '"batterySourceThroughoutProven": False',
+                '"physicalEnergyThresholdEvaluated": False',
+                '"thermalResponseEvaluated": False',
+                '"section15_2Item9Complete": False',
+            )
+        ) and "/usr/bin/sudo" not in capture_runner,
+        "batteryValidatorIsNotYetImplemented": (
+            not battery_validator.exists()
         ),
         "designDoesNotClaimItemNinePass": (
             "不宣称 item 9 pass" in design
@@ -117,6 +141,30 @@ def main() -> int:
         "samplerRelativeUnit": line_number(
             sampler, '"energyImpactUnit": "top-relative-not-joules"'
         ),
+        "captureRootBoundary": line_number(
+            capture_runner, "require_superuser(os.geteuid())"
+        ),
+        "captureSamplerSet": line_number(
+            capture_runner, 'SAMPLERS = ("battery", "cpu_power", "thermal")'
+        ),
+        "captureRawBound": line_number(
+            capture_runner, "MAXIMUM_RAW_BYTES = 256 * 1024 * 1024"
+        ),
+        "captureHostDigest": line_number(
+            capture_runner, "hash_open_executable(executable_path)"
+        ),
+        "captureBatteryPreflight": line_number(
+            capture_runner, "battery_power_is_active()"
+        ),
+        "captureAtomicPublication": line_number(
+            capture_runner, "publish_pair_no_replace("
+        ),
+        "captureRawOnlyClaim": line_number(
+            capture_runner, '"rawSourceParsed": False'
+        ),
+        "captureItemNineOpenClaim": line_number(
+            capture_runner, '"section15_2Item9Complete": False'
+        ),
         "batteryAuditAuthorityRequirement": line_number(
             battery_audit, '"requiresNamedPhysicalAuthorityAndUnit": True'
         ),
@@ -140,7 +188,7 @@ def main() -> int:
         "schemaVersion": 1,
         "section15_2Item": 9,
         "status": (
-            "privileged-authority-selected"
+            "raw-capture-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -169,6 +217,8 @@ def main() -> int:
             "requiresNoReplaceAtomicPublication": True,
             "productMayRequestOrEscalatePrivileges": False,
             "captureToolMayEmbedOrInvokeSudo": False,
+            "rawCaptureWrapperImplemented": True,
+            "rawCaptureMayClaimBatteryCoverageOrItemNinePass": False,
         },
         "forbiddenInference": [
             "cross-machine-power-comparison",
@@ -178,8 +228,8 @@ def main() -> int:
             "guessed-plist-schema-without-real-portable-mac-fixture",
         ],
         "remainingBoundary": {
-            "captureRunnerStillRequiresImplementation": True,
             "portableMacRawPlistFixtureStillRequiredBeforeParser": True,
+            "rawPlistParserStillRequiresImplementation": True,
             "pairedBaselineAndAcceptanceThresholdStillRequireDefinition": True,
             "batteryManifestValidatorStillRequiresImplementation": True,
             "installedPortableMacRunsStillRequireExecution": True,
@@ -187,7 +237,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "privileged-authority-selected" else 1
+    return 0 if result["status"] == "raw-capture-implemented" else 1
 
 
 if __name__ == "__main__":
