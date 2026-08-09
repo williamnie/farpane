@@ -25,7 +25,7 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
         XCTAssertFalse(source.contains("beginMediaRecovery: operations."))
     }
 
-    func testCompositionRequiresEveryNonMediaOperationAndForwardsLifecycle() throws {
+    func testCompositionRequiresRemainingProductOperationsAndForwardsLifecycle() throws {
         let source = try productSource(
             "HostAgentSleepWakeRecoveryComposition.swift"
         )
@@ -34,8 +34,6 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
             "withdrawAvailability",
             "publishSuspending",
             "releaseSleepAssertion",
-            "reenumerateDisplays",
-            "revalidatePermissions",
             "resumeRegistration",
             "publishAvailable",
         ] {

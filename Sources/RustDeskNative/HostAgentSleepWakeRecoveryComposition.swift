@@ -8,8 +8,6 @@ struct HostAgentSleepWakeRecoveryProductOperations: Sendable {
     let withdrawAvailability: @Sendable () -> Bool
     let publishSuspending: @Sendable () -> Bool
     let releaseSleepAssertion: @Sendable () -> Bool
-    let reenumerateDisplays: @Sendable () -> Bool
-    let revalidatePermissions: @Sendable () -> Bool
     let resumeRegistration: @Sendable () -> Bool
     let publishAvailable: @Sendable () -> Bool
 
@@ -17,16 +15,12 @@ struct HostAgentSleepWakeRecoveryProductOperations: Sendable {
         withdrawAvailability: @escaping @Sendable () -> Bool,
         publishSuspending: @escaping @Sendable () -> Bool,
         releaseSleepAssertion: @escaping @Sendable () -> Bool,
-        reenumerateDisplays: @escaping @Sendable () -> Bool,
-        revalidatePermissions: @escaping @Sendable () -> Bool,
         resumeRegistration: @escaping @Sendable () -> Bool,
         publishAvailable: @escaping @Sendable () -> Bool
     ) {
         self.withdrawAvailability = withdrawAvailability
         self.publishSuspending = publishSuspending
         self.releaseSleepAssertion = releaseSleepAssertion
-        self.reenumerateDisplays = reenumerateDisplays
-        self.revalidatePermissions = revalidatePermissions
         self.resumeRegistration = resumeRegistration
         self.publishAvailable = publishAvailable
     }
@@ -38,11 +32,14 @@ struct HostAgentSleepWakeRecoveryProductOperations: Sendable {
 /// convergence with a placeholder success operation.
 final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
     private let owner: HostAgentSleepWakeRecoveryOwner
+    private let displayTCCAuthority: HostAgentDisplayTCCRecoveryAuthority
 
     init(
         mediaPipelineOwner: HostAgentMediaPipelineOwner,
+        displayTCCAuthority: HostAgentDisplayTCCRecoveryAuthority,
         operations: HostAgentSleepWakeRecoveryProductOperations
     ) {
+        self.displayTCCAuthority = displayTCCAuthority
         self.owner = HostAgentSleepWakeRecoveryOwner(
             operations: HostAgentSleepWakeRecoveryOperations(
                 withdrawAvailability: operations.withdrawAvailability,
@@ -51,8 +48,12 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
                     mediaPipelineOwner.pauseMediaAndFlushForSleep()
                 },
                 releaseSleepAssertion: operations.releaseSleepAssertion,
-                reenumerateDisplays: operations.reenumerateDisplays,
-                revalidatePermissions: operations.revalidatePermissions,
+                reenumerateDisplays: {
+                    displayTCCAuthority.reenumerateDisplays()
+                },
+                revalidatePermissions: {
+                    displayTCCAuthority.revalidatePermissions()
+                },
                 beginMediaRecovery: { epoch, completion in
                     mediaPipelineOwner.beginMediaRecoveryAfterWake(
                         epoch: epoch,
@@ -73,6 +74,10 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
         owner.snapshot()
     }
 
+    func environmentSnapshot() -> HostAgentDisplayTCCRecoveryState {
+        displayTCCAuthority.snapshot()
+    }
+
     @discardableResult
     func systemWillSleep() -> Bool {
         owner.systemWillSleep()
@@ -85,5 +90,6 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
 
     func cancel() {
         owner.cancel()
+        displayTCCAuthority.cancel()
     }
 }
