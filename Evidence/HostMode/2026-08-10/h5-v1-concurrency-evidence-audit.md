@@ -4,7 +4,7 @@
 
 - Added `Scripts/audit-host-v1-concurrency-evidence.py` as a rerunnable, fail-closed checkpoint for the five §18/§20.3 V1 Host/Viewer coexistence cases.
 - Confirmed that process/config isolation and H5.3u item-10 resource overlap are code-ready, but the current evidence cannot prove the required cross-role ordering, dual-role recovery or App-restart Host ID continuity.
-- Froze the minimum timestamped cross-process lifecycle evidence contract before adding a writer or five-result manifest validator.
+- Froze the minimum timestamped cross-process lifecycle evidence contract before adding a writer or five-result manifest validator. H5.3w subsequently implemented the strict writer/schema; authoritative product composition and the validator remain open.
 - No product behavior, Host/Media/XPC ABI, wire schema, Rust, Hermes, configuration, credentials or external state changed.
 
 ## Current authority and gap
@@ -19,7 +19,7 @@
 | XPC identity continuity | Reconnect sessions carry the previous Host/Agent identity and reject replacement inside one App process | The previous identity is held in memory; a fresh App process has no bound before/after App-lifetime evidence |
 | App termination | App termination cancels its background monitoring client; unregister remains a separate explicit typed mutation | Source structure is not installed-process evidence that Agent PID/start identity and Host ID remain stable across two App lifetimes |
 
-The repository contains neither a timestamped Host/Viewer lifecycle writer nor a five-scenario validator, and no passing V1 concurrency result is saved.
+H5.3w now provides a default-off timestamped Host/Viewer lifecycle writer with separate per-process files, domain-separated identity digests, strict role/event shapes and terminal lifecycle ordering. It is not yet constructed by App or HostAgent product composition. The repository still contains no five-scenario validator or passing V1 concurrency result.
 
 ## Frozen scenario contract
 
@@ -47,8 +47,8 @@ Passing H5.3u results may be reused only as resource authority for the matching 
 
 ## Verification boundary
 
-The audit emits `status=checkpoint-required` only while all current authorities and all identified gaps match the repository. It intentionally claims no V1 matrix pass.
+After H5.3w, the audit emits `status=writer-implemented` only while the writer contract, current authorities and remaining gaps match the repository. It intentionally claims no V1 matrix pass.
 
-The next safe automatic step is an observation-only, default-off timestamped Host/Viewer lifecycle evidence writer/schema. The five-result manifest validator comes after that writer is connected to authoritative lifecycle events. Installed App/Agent and two-machine execution remain a later manual checkpoint.
+The next safe automatic step is an App process-lifetime owner that derives writer identity and makes evidence best-effort/default-off. The five-result manifest validator comes only after App and HostAgent writers are connected to authoritative lifecycle events. Installed App/Agent and two-machine execution remain a later manual checkpoint.
 
-Fresh verification completed with the focused audit 1/1, full ScriptTests 96/96, Swift tests 856/856 (4 expected built-core skips), an arm64 Release build, Python compilation and `git diff --check`. The audit reports 15/15 evidence checks and 21/21 source anchors.
+Fresh verification completed with the focused writer tests 7/7 plus focused audit 1/1, full ScriptTests 96/96, Swift tests 863/863 (4 expected built-core skips), an arm64 Release build, Python compilation and `git diff --check`. The audit reports 19/19 evidence checks and 29/29 source anchors.

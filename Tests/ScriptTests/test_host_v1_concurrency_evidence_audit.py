@@ -26,7 +26,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
             "farpane-host-v1-concurrency-evidence-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "checkpoint-required")
+        self.assertEqual(document["status"], "writer-implemented")
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
@@ -34,7 +34,23 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "timestamped-host-viewer-lifecycle-evidence-writer-schema",
+            "application-lifecycle-evidence-process-owner",
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["lifecycleWriterDefinesStrictProcessAndEventSchema"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["lifecycleWriterBindsOnlySanitizedIdentityAuthority"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["lifecycleWriterEnforcesRoleAndTerminalStateMachine"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["lifecycleWriterIsDefaultOffBoundedAndNoOverwrite"]
         )
 
         contract = document["targetContract"]
