@@ -3,7 +3,7 @@ import Foundation
 import XCTest
 
 final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
-    func testSleepAndWakeRunExactOrderOncePerEpoch() {
+    func testWakeWaitsForExactMediaEpochBeforeRestoringAvailability() {
         let recorder = SleepWakeRecoveryRecorder()
         let owner = HostAgentSleepWakeRecoveryOwner(
             operations: operations(recorder: recorder)
@@ -15,8 +15,7 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         XCTAssertEqual(owner.snapshot(), .sleeping(epoch: 1))
         XCTAssertFalse(owner.systemWillSleep())
         XCTAssertTrue(owner.systemDidWake())
-        XCTAssertEqual(owner.snapshot(), .running(epoch: 1))
-        XCTAssertFalse(owner.systemDidWake())
+        XCTAssertEqual(owner.snapshot(), .waitingForMedia(epoch: 1))
         XCTAssertEqual(recorder.steps, [
             .withdrawAvailability,
             .publishSuspending,
@@ -25,9 +24,20 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
             .reenumerateDisplays,
             .revalidatePermissions,
             .rebuildMedia,
+        ])
+
+        recorder.completeMedia(epoch: 0, succeeded: true)
+        XCTAssertEqual(owner.snapshot(), .waitingForMedia(epoch: 1))
+        XCTAssertFalse(recorder.steps.contains(.resumeRegistration))
+        XCTAssertFalse(recorder.steps.contains(.publishAvailable))
+
+        recorder.completeMedia(epoch: 1, succeeded: true)
+        XCTAssertEqual(owner.snapshot(), .running(epoch: 1))
+        XCTAssertEqual(Array(recorder.steps.suffix(2)), [
             .resumeRegistration,
             .publishAvailable,
         ])
+        XCTAssertFalse(owner.systemDidWake())
 
         XCTAssertTrue(owner.systemWillSleep())
         XCTAssertEqual(owner.snapshot(), .sleeping(epoch: 2))
@@ -58,7 +68,7 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         XCTAssertEqual(recorder.steps.count, 4)
     }
 
-    func testWakeFailureKeepsRegistrationAndAvailabilityWithdrawn() {
+    func testWakePreflightFailureNeverBeginsMediaOrRegistration() {
         let recorder = SleepWakeRecoveryRecorder()
         let owner = HostAgentSleepWakeRecoveryOwner(
             operations: operations(
@@ -86,7 +96,154 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         XCTAssertFalse(recorder.steps.contains(.publishAvailable))
     }
 
-    func testReentrantWakeAndCancellationCannotResumeTransition() {
+    func testRejectedMediaBeginFailsClosedWithoutRegistration() {
+        let recorder = SleepWakeRecoveryRecorder()
+        let owner = HostAgentSleepWakeRecoveryOwner(
+            operations: operations(
+                recorder: recorder,
+                rejectMediaBegin: true
+            )
+        )
+        XCTAssertTrue(owner.systemWillSleep())
+
+        XCTAssertFalse(owner.systemDidWake())
+        XCTAssertEqual(
+            owner.snapshot(),
+            .failed(epoch: 1, step: .rebuildMedia)
+        )
+        XCTAssertTrue(recorder.steps.contains(.rebuildMedia))
+        XCTAssertFalse(recorder.steps.contains(.resumeRegistration))
+        XCTAssertFalse(recorder.steps.contains(.publishAvailable))
+    }
+
+    func testFailedMediaCompletionFailsClosedWithoutRegistration() {
+        let recorder = SleepWakeRecoveryRecorder()
+        let owner = HostAgentSleepWakeRecoveryOwner(
+            operations: operations(recorder: recorder)
+        )
+        XCTAssertTrue(owner.systemWillSleep())
+        XCTAssertTrue(owner.systemDidWake())
+
+        recorder.completeMedia(epoch: 1, succeeded: false)
+
+        XCTAssertEqual(
+            owner.snapshot(),
+            .failed(epoch: 1, step: .rebuildMedia)
+        )
+        XCTAssertFalse(recorder.steps.contains(.resumeRegistration))
+        XCTAssertFalse(recorder.steps.contains(.publishAvailable))
+        recorder.completeMedia(epoch: 1, succeeded: true)
+        XCTAssertEqual(
+            owner.snapshot(),
+            .failed(epoch: 1, step: .rebuildMedia)
+        )
+    }
+
+    func testRegistrationFailureAfterMediaSuccessDoesNotPublishAvailable() {
+        let recorder = SleepWakeRecoveryRecorder()
+        let owner = HostAgentSleepWakeRecoveryOwner(
+            operations: operations(
+                recorder: recorder,
+                failingAt: .resumeRegistration
+            )
+        )
+        XCTAssertTrue(owner.systemWillSleep())
+        XCTAssertTrue(owner.systemDidWake())
+
+        recorder.completeMedia(epoch: 1, succeeded: true)
+
+        XCTAssertEqual(
+            owner.snapshot(),
+            .failed(epoch: 1, step: .resumeRegistration)
+        )
+        XCTAssertEqual(
+            recorder.steps.filter { $0 == .resumeRegistration }.count,
+            1
+        )
+        XCTAssertFalse(recorder.steps.contains(.publishAvailable))
+    }
+
+    func testDuplicateAndFutureMediaCompletionCannotAdvanceEpochTwice() {
+        let recorder = SleepWakeRecoveryRecorder()
+        let owner = HostAgentSleepWakeRecoveryOwner(
+            operations: operations(recorder: recorder)
+        )
+        XCTAssertTrue(owner.systemWillSleep())
+        XCTAssertTrue(owner.systemDidWake())
+
+        recorder.completeMedia(epoch: 2, succeeded: true)
+        XCTAssertEqual(owner.snapshot(), .waitingForMedia(epoch: 1))
+        recorder.completeMedia(epoch: 1, succeeded: true)
+        XCTAssertEqual(owner.snapshot(), .running(epoch: 1))
+        recorder.completeMedia(epoch: 1, succeeded: false)
+        XCTAssertEqual(owner.snapshot(), .running(epoch: 1))
+        XCTAssertEqual(
+            recorder.steps.filter { $0 == .resumeRegistration }.count,
+            1
+        )
+        XCTAssertEqual(
+            recorder.steps.filter { $0 == .publishAvailable }.count,
+            1
+        )
+    }
+
+    func testSynchronousMediaCompletionWaitsForAcceptedBeginResult() {
+        let acceptedRecorder = SleepWakeRecoveryRecorder()
+        let acceptedOwner = HostAgentSleepWakeRecoveryOwner(
+            operations: operations(
+                recorder: acceptedRecorder,
+                synchronousMediaResult: true
+            )
+        )
+        XCTAssertTrue(acceptedOwner.systemWillSleep())
+        XCTAssertTrue(acceptedOwner.systemDidWake())
+        XCTAssertEqual(acceptedOwner.snapshot(), .running(epoch: 1))
+        XCTAssertEqual(Array(acceptedRecorder.steps.suffix(3)), [
+            .rebuildMedia,
+            .resumeRegistration,
+            .publishAvailable,
+        ])
+
+        let rejectedRecorder = SleepWakeRecoveryRecorder()
+        let rejectedOwner = HostAgentSleepWakeRecoveryOwner(
+            operations: operations(
+                recorder: rejectedRecorder,
+                rejectMediaBegin: true,
+                synchronousMediaResult: true
+            )
+        )
+        XCTAssertTrue(rejectedOwner.systemWillSleep())
+        XCTAssertFalse(rejectedOwner.systemDidWake())
+        XCTAssertEqual(
+            rejectedOwner.snapshot(),
+            .failed(epoch: 1, step: .rebuildMedia)
+        )
+        XCTAssertFalse(rejectedRecorder.steps.contains(.resumeRegistration))
+        XCTAssertFalse(rejectedRecorder.steps.contains(.publishAvailable))
+    }
+
+    func testCancellationDuringMediaBeginDropsSynchronousAndLateCompletion() {
+        let recorder = SleepWakeRecoveryRecorder()
+        let ownerBox = SleepWakeRecoveryOwnerBox()
+        let owner = HostAgentSleepWakeRecoveryOwner(
+            operations: operations(
+                recorder: recorder,
+                synchronousMediaResult: true,
+                duringMediaBegin: { ownerBox.owner?.cancel() }
+            )
+        )
+        ownerBox.owner = owner
+        XCTAssertTrue(owner.systemWillSleep())
+
+        XCTAssertFalse(owner.systemDidWake())
+        XCTAssertEqual(owner.snapshot(), .cancelled)
+        recorder.completeMedia(epoch: 1, succeeded: true)
+        XCTAssertEqual(owner.snapshot(), .cancelled)
+        XCTAssertFalse(recorder.steps.contains(.resumeRegistration))
+        XCTAssertFalse(recorder.steps.contains(.publishAvailable))
+    }
+
+    func testReentrantWakeAndCancellationCannotResumeSleepTransition() {
         let recorder = SleepWakeRecoveryRecorder()
         let ownerBox = SleepWakeRecoveryOwnerBox()
         let owner = HostAgentSleepWakeRecoveryOwner(
@@ -102,7 +259,7 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
                 releaseSleepAssertion: recorder.operation(.releaseSleepAssertion),
                 reenumerateDisplays: recorder.operation(.reenumerateDisplays),
                 revalidatePermissions: recorder.operation(.revalidatePermissions),
-                rebuildMedia: recorder.operation(.rebuildMedia),
+                beginMediaRecovery: recorder.beginMediaRecovery(),
                 resumeRegistration: recorder.operation(.resumeRegistration),
                 publishAvailable: recorder.operation(.publishAvailable)
             )
@@ -132,7 +289,10 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
 
     private func operations(
         recorder: SleepWakeRecoveryRecorder,
-        failingAt failure: HostAgentSleepWakeRecoveryStep? = nil
+        failingAt failure: HostAgentSleepWakeRecoveryStep? = nil,
+        rejectMediaBegin: Bool = false,
+        synchronousMediaResult: Bool? = nil,
+        duringMediaBegin: (@Sendable () -> Void)? = nil
     ) -> HostAgentSleepWakeRecoveryOperations {
         HostAgentSleepWakeRecoveryOperations(
             withdrawAvailability: recorder.operation(
@@ -159,9 +319,10 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
                 .revalidatePermissions,
                 failingAt: failure
             ),
-            rebuildMedia: recorder.operation(
-                .rebuildMedia,
-                failingAt: failure
+            beginMediaRecovery: recorder.beginMediaRecovery(
+                rejecting: rejectMediaBegin,
+                synchronousResult: synchronousMediaResult,
+                duringBegin: duringMediaBegin
             ),
             resumeRegistration: recorder.operation(
                 .resumeRegistration,
@@ -177,17 +338,18 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
 
 private final class SleepWakeRecoveryRecorder: @unchecked Sendable {
     private let lock = NSLock()
-    private var storage: [HostAgentSleepWakeRecoveryStep] = []
+    private var stepStorage: [HostAgentSleepWakeRecoveryStep] = []
+    private var mediaCompletion: HostAgentSleepWakeMediaRecoveryCompletion?
 
     var steps: [HostAgentSleepWakeRecoveryStep] {
         lock.lock()
         defer { lock.unlock() }
-        return storage
+        return stepStorage
     }
 
     func record(_ step: HostAgentSleepWakeRecoveryStep) {
         lock.lock()
-        storage.append(step)
+        stepStorage.append(step)
         lock.unlock()
     }
 
@@ -199,6 +361,34 @@ private final class SleepWakeRecoveryRecorder: @unchecked Sendable {
             record(step)
             return step != failure
         }
+    }
+
+    func beginMediaRecovery(
+        rejecting: Bool = false,
+        synchronousResult: Bool? = nil,
+        duringBegin: (@Sendable () -> Void)? = nil
+    ) -> @Sendable (
+        UInt64,
+        @escaping HostAgentSleepWakeMediaRecoveryCompletion
+    ) -> Bool {
+        { [self] epoch, completion in
+            lock.lock()
+            stepStorage.append(.rebuildMedia)
+            mediaCompletion = completion
+            lock.unlock()
+            duringBegin?()
+            if let synchronousResult {
+                completion(epoch, synchronousResult)
+            }
+            return !rejecting
+        }
+    }
+
+    func completeMedia(epoch: UInt64, succeeded: Bool) {
+        lock.lock()
+        let completion = mediaCompletion
+        lock.unlock()
+        completion?(epoch, succeeded)
     }
 }
 

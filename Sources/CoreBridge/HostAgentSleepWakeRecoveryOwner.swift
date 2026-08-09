@@ -18,12 +18,20 @@ package enum HostAgentSleepWakeRecoveryState: Equatable, Sendable {
     case preparingForSleep(epoch: UInt64)
     case sleeping(epoch: UInt64)
     case recovering(epoch: UInt64)
+    case waitingForMedia(epoch: UInt64)
+    case restoringRegistration(epoch: UInt64)
     case failed(epoch: UInt64, step: HostAgentSleepWakeRecoveryStep)
     case cancelled
 }
 
-/// Synchronous operations owned by the future product adapter. Every closure
-/// returns false on a fail-closed boundary and must not expose implementation
+package typealias HostAgentSleepWakeMediaRecoveryCompletion = @Sendable (
+    _ epoch: UInt64,
+    _ succeeded: Bool
+) -> Void
+
+/// Operations owned by the future product adapter. Media recovery is the only
+/// asynchronous boundary; its begin closure must return false when no matching
+/// completion can be delivered. Callbacks must not expose implementation
 /// errors, TCC details, display names, connection IDs or frame contents.
 package struct HostAgentSleepWakeRecoveryOperations: Sendable {
     package let withdrawAvailability: @Sendable () -> Bool
@@ -32,7 +40,10 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
     package let releaseSleepAssertion: @Sendable () -> Bool
     package let reenumerateDisplays: @Sendable () -> Bool
     package let revalidatePermissions: @Sendable () -> Bool
-    package let rebuildMedia: @Sendable () -> Bool
+    package let beginMediaRecovery: @Sendable (
+        _ epoch: UInt64,
+        _ completion: @escaping HostAgentSleepWakeMediaRecoveryCompletion
+    ) -> Bool
     package let resumeRegistration: @Sendable () -> Bool
     package let publishAvailable: @Sendable () -> Bool
 
@@ -43,7 +54,10 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
         releaseSleepAssertion: @escaping @Sendable () -> Bool,
         reenumerateDisplays: @escaping @Sendable () -> Bool,
         revalidatePermissions: @escaping @Sendable () -> Bool,
-        rebuildMedia: @escaping @Sendable () -> Bool,
+        beginMediaRecovery: @escaping @Sendable (
+            _ epoch: UInt64,
+            _ completion: @escaping HostAgentSleepWakeMediaRecoveryCompletion
+        ) -> Bool,
         resumeRegistration: @escaping @Sendable () -> Bool,
         publishAvailable: @escaping @Sendable () -> Bool
     ) {
@@ -53,7 +67,7 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
         self.releaseSleepAssertion = releaseSleepAssertion
         self.reenumerateDisplays = reenumerateDisplays
         self.revalidatePermissions = revalidatePermissions
-        self.rebuildMedia = rebuildMedia
+        self.beginMediaRecovery = beginMediaRecovery
         self.resumeRegistration = resumeRegistration
         self.publishAvailable = publishAvailable
     }
@@ -68,6 +82,11 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
     private let lock = NSLock()
     private let operations: HostAgentSleepWakeRecoveryOperations
     private var state: HostAgentSleepWakeRecoveryState
+    private var mediaStartInFlightEpoch: UInt64?
+    private var deferredMediaCompletion: (
+        epoch: UInt64,
+        succeeded: Bool
+    )?
 
     package init(
         initialEpoch: UInt64 = 0,
@@ -114,8 +133,9 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
     }
 
     /// Wake is accepted only after the matching sleep preparation completed.
-    /// Registration and outward availability are restored last, after display,
-    /// permissions and media reconstruction have all succeeded.
+    /// Display and permission checks run synchronously. A successful media
+    /// begin moves to waitingForMedia; registration and outward availability
+    /// remain withdrawn until the exact epoch completes successfully.
     @discardableResult
     package func systemDidWake() -> Bool {
         lock.lock()
@@ -139,33 +159,20 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
             epoch: epoch,
             during: transition,
             operation: operations.revalidatePermissions
-        ), perform(
-            .rebuildMedia,
-            epoch: epoch,
-            during: transition,
-            operation: operations.rebuildMedia
-        ), perform(
-            .resumeRegistration,
-            epoch: epoch,
-            during: transition,
-            operation: operations.resumeRegistration
-        ), perform(
-            .publishAvailable,
-            epoch: epoch,
-            during: transition,
-            operation: operations.publishAvailable
         ) else {
             return false
         }
-        return replace(
-            transition,
-            with: .running(epoch: epoch)
+        return beginMediaRecovery(
+            epoch: epoch,
+            during: transition
         )
     }
 
     package func cancel() {
         lock.lock()
         state = .cancelled
+        mediaStartInFlightEpoch = nil
+        deferredMediaCompletion = nil
         lock.unlock()
     }
 
@@ -233,6 +240,139 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
             return false
         }
         return true
+    }
+
+    private func beginMediaRecovery(
+        epoch: UInt64,
+        during expected: HostAgentSleepWakeRecoveryState
+    ) -> Bool {
+        let waiting = HostAgentSleepWakeRecoveryState.waitingForMedia(
+            epoch: epoch
+        )
+        lock.lock()
+        guard state == expected,
+              mediaStartInFlightEpoch == nil,
+              deferredMediaCompletion == nil
+        else {
+            lock.unlock()
+            return false
+        }
+        state = waiting
+        mediaStartInFlightEpoch = epoch
+        lock.unlock()
+
+        let accepted = operations.beginMediaRecovery(
+            epoch,
+            { [weak self] completedEpoch, succeeded in
+                self?.mediaRecoveryDidComplete(
+                    epoch: completedEpoch,
+                    succeeded: succeeded
+                )
+            }
+        )
+        return finishMediaRecoveryBegin(
+            epoch: epoch,
+            waiting: waiting,
+            accepted: accepted
+        )
+    }
+
+    /// Completion may be delivered synchronously from beginMediaRecovery.
+    /// Buffering it until begin returns prevents a callback from advancing
+    /// registration when the adapter ultimately rejects the start.
+    private func mediaRecoveryDidComplete(
+        epoch: UInt64,
+        succeeded: Bool
+    ) {
+        lock.lock()
+        if mediaStartInFlightEpoch == epoch {
+            guard state == .waitingForMedia(epoch: epoch),
+                  deferredMediaCompletion == nil
+            else {
+                lock.unlock()
+                return
+            }
+            deferredMediaCompletion = (epoch, succeeded)
+            lock.unlock()
+            return
+        }
+        lock.unlock()
+
+        _ = finishMediaRecovery(epoch: epoch, succeeded: succeeded)
+    }
+
+    private func finishMediaRecoveryBegin(
+        epoch: UInt64,
+        waiting: HostAgentSleepWakeRecoveryState,
+        accepted: Bool
+    ) -> Bool {
+        lock.lock()
+        guard state == waiting,
+              mediaStartInFlightEpoch == epoch
+        else {
+            lock.unlock()
+            return false
+        }
+        mediaStartInFlightEpoch = nil
+        let deferred = deferredMediaCompletion
+        deferredMediaCompletion = nil
+        guard accepted else {
+            state = .failed(epoch: epoch, step: .rebuildMedia)
+            lock.unlock()
+            return false
+        }
+        lock.unlock()
+
+        guard let deferred else { return true }
+        return finishMediaRecovery(
+            epoch: deferred.epoch,
+            succeeded: deferred.succeeded
+        )
+    }
+
+    private func finishMediaRecovery(
+        epoch: UInt64,
+        succeeded: Bool
+    ) -> Bool {
+        let waiting = HostAgentSleepWakeRecoveryState.waitingForMedia(
+            epoch: epoch
+        )
+        let restoring = HostAgentSleepWakeRecoveryState.restoringRegistration(
+            epoch: epoch
+        )
+        lock.lock()
+        guard state == waiting,
+              mediaStartInFlightEpoch == nil,
+              deferredMediaCompletion == nil
+        else {
+            lock.unlock()
+            return false
+        }
+        guard succeeded else {
+            state = .failed(epoch: epoch, step: .rebuildMedia)
+            lock.unlock()
+            return false
+        }
+        state = restoring
+        lock.unlock()
+
+        guard perform(
+            .resumeRegistration,
+            epoch: epoch,
+            during: restoring,
+            operation: operations.resumeRegistration
+        ), perform(
+            .publishAvailable,
+            epoch: epoch,
+            during: restoring,
+            operation: operations.publishAvailable
+        ) else {
+            return false
+        }
+        return replace(
+            restoring,
+            with: .running(epoch: epoch)
+        )
     }
 
     private func replace(
