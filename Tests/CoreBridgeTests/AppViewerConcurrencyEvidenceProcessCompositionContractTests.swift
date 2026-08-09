@@ -93,18 +93,15 @@ final class AppViewerConcurrencyEvidenceProcessCompositionContractTests:
             "hostViewerConcurrencyEvidenceOwner.beginViewerSession()"
         ))
         XCTAssertTrue(app.contains(
-            "case .streaming:\n"
-                + "                        _ = appDelegate?"
-                + ".hostViewerConcurrencyEvidenceOwner\n"
-                + "                            .observeViewerStreaming("
+            "if event.state == .streaming {"
         ))
         XCTAssertTrue(app.contains(
-            "case .passwordRequired, .authenticationFailed,\n"
-                + "                         .disconnected, .error:"
+            "hostViewerConcurrencyEvidenceOwner.observeViewerStreaming(\n"
+                + "                    sessionEpoch: evidenceSessionEpoch"
         ))
         XCTAssertTrue(app.contains(
-            ".observeViewerTerminal(\n"
-                + "                                sessionEpoch: evidenceSessionEpoch"
+            "hostViewerConcurrencyEvidenceOwner.observeViewerTerminal(\n"
+                + "                sessionEpoch: evidenceSessionEpoch"
         ))
         XCTAssertTrue(app.contains(
             "private func stopViewerLifecycleEvidence()"
@@ -136,6 +133,46 @@ final class AppViewerConcurrencyEvidenceProcessCompositionContractTests:
             range: finishStop.upperBound..<app.endIndex
         ))
         XCTAssertLessThan(finishStop.lowerBound, finishDisconnect.lowerBound)
+    }
+
+    func testViewerAutomaticRecoveryReplacesCoreWithinSameEvidenceEpoch()
+        throws
+    {
+        let app = try repositorySource(
+            "Sources/RustDeskNative/RustDeskNativeApp.swift"
+        )
+
+        XCTAssertTrue(app.contains("ViewerAutomaticRecoveryOwner.makeProduct("))
+        XCTAssertTrue(app.contains("attemptViewerAutomaticRecovery("))
+        XCTAssertTrue(app.contains(
+            "credentialStore.read(deviceID: deviceID)"
+        ))
+        XCTAssertTrue(app.contains(
+            "evidenceSessionEpoch: evidenceSessionEpoch"
+        ))
+        XCTAssertTrue(app.contains(
+            "guard coreGeneration == viewerCoreGeneration else { return }"
+        ))
+        XCTAssertTrue(app.contains(
+            "previousClient?.disconnect()"
+        ))
+        XCTAssertTrue(app.contains(
+            "connectionStateText(event)"
+        ))
+        XCTAssertFalse(app.contains("viewerRecoveryPassword"))
+
+        let home = try XCTUnwrap(app.range(
+            of: "private func showHomeUI(error: String = \"\")"
+        ))
+        let stopRecovery = try XCTUnwrap(app.range(
+            of: "stopViewerAutomaticRecovery()",
+            range: home.lowerBound..<app.endIndex
+        ))
+        let stopEvidence = try XCTUnwrap(app.range(
+            of: "stopViewerLifecycleEvidence()",
+            range: stopRecovery.upperBound..<app.endIndex
+        ))
+        XCTAssertLessThan(stopRecovery.lowerBound, stopEvidence.lowerBound)
     }
 
     func testApplicationHostObservationUsesCoherentProjectionAndXPCIdentity()

@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "application-host-observation-composed",
+            "viewer-automatic-recovery-composed",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -38,13 +38,13 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
             document["remainingBoundary"]
             ["applicationHostObservationStillRequiresComposition"]
         )
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]
             ["viewerAutomaticRecoveryStillRequiresImplementation"]
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-automatic-recovery-composition",
+            "five-scenario-concurrency-validator",
         )
         self.assertTrue(
             document["evidence"]
@@ -93,6 +93,10 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["applicationViewerRecoveryRequiresSameEpochCoreStreaming"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationViewerRecoveryIsBoundedAndCredentialSafe"]
         )
         self.assertTrue(
             document["evidence"]

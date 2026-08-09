@@ -155,6 +155,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var liveDecoder: LiveHEVCDecoder?
     private var coreClient: RustDeskCoreClient?
     private var viewerEvidenceSessionEpoch: UInt64?
+    private var viewerAutomaticRecoveryOwner: ViewerAutomaticRecoveryOwner?
+    private var viewerRecoveryDeviceID: UUID?
+    private var viewerRecoveryCommittedEpoch: UInt64 = 0
+    private var viewerRecoverySessionEpoch: UInt64?
+    private var viewerCoreGeneration: UInt64 = 0
     private var hostClient: HostControlClient?
     private var hostRuntimeActive = false
     private var hostRuntimeQuiescenceConfirmed = true
@@ -547,6 +552,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     private func showHomeUI(error: String = "") {
+        stopViewerAutomaticRecovery()
         stopViewerLifecycleEvidence()
         activeAttemptID = nil
         if !error.isEmpty { homeErrorText = error }
@@ -559,6 +565,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         stopTimer?.invalidate()
         player = nil
         coreClient = nil
+        viewerRecoveryDeviceID = nil
+        viewerRecoverySessionEpoch = nil
+        viewerCoreGeneration = 0
         keyboardController = nil
         liveDecoder = nil
         renderer = nil
@@ -2951,6 +2960,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         let attemptID = UUID()
         activeAttemptID = attemptID
+        viewerRecoveryDeviceID = deviceID
         pendingProductConnection = PendingProductConnection(
             attemptID: attemptID,
             deviceID: deviceID,
@@ -3383,67 +3393,104 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             output: { [weak renderer] pixelBuffer, _ in renderer?.enqueue(pixelBuffer) }
         )
         let recovery = CoreRecoveryCoordinator()
+        var recoveryStarted = false
+        if let attemptID, let recoverySessionEpoch = nextViewerRecoverySessionEpoch() {
+            let owner = ViewerAutomaticRecoveryOwner.makeProduct(
+                attempt: {
+                    [weak self, weak viewer, weak chrome, weak decoder]
+                    sessionEpoch, _, _ in
+                    guard let self, let viewer, let chrome, let decoder
+                    else { return .unavailable }
+                    return self.attemptViewerAutomaticRecovery(
+                        sessionEpoch: sessionEpoch,
+                        coreURL: coreURL,
+                        metrics: metrics,
+                        viewer: viewer,
+                        chrome: chrome,
+                        decoder: decoder,
+                        recovery: recovery,
+                        attemptID: attemptID,
+                        evidenceSessionEpoch: evidenceSessionEpoch
+                    )
+                },
+                exhausted: { [weak self] sessionEpoch in
+                    self?.handleViewerAutomaticRecoveryExhausted(
+                        sessionEpoch: sessionEpoch,
+                        attemptID: attemptID
+                    )
+                }
+            )
+            guard owner.begin(sessionEpoch: recoverySessionEpoch) else {
+                throw usageError("viewer recovery lifecycle unavailable")
+            }
+            viewerRecoverySessionEpoch = recoverySessionEpoch
+            viewerAutomaticRecoveryOwner = owner
+            recoveryStarted = true
+        }
+        defer {
+            if !viewerStarted, recoveryStarted {
+                stopViewerAutomaticRecovery()
+            }
+        }
+
+        try installViewerCoreClient(
+            coreURL: coreURL,
+            configuration: configuration,
+            metrics: metrics,
+            viewer: viewer,
+            chrome: chrome,
+            decoder: decoder,
+            recovery: recovery,
+            attemptID: attemptID,
+            evidenceSessionEpoch: evidenceSessionEpoch
+        )
+        viewerEvidenceSessionEpoch = evidenceSessionEpoch
+        viewerStarted = true
+        liveDecoder = decoder
+    }
+
+    private func installViewerCoreClient(
+        coreURL: URL,
+        configuration: CoreConnectionConfig,
+        metrics: PipelineMetrics,
+        viewer: ViewerMetalView,
+        chrome: ViewerChromeView,
+        decoder: LiveHEVCDecoder,
+        recovery: CoreRecoveryCoordinator,
+        attemptID: UUID?,
+        evidenceSessionEpoch: UInt64?
+    ) throws {
+        guard viewerCoreGeneration < UInt64.max else {
+            throw usageError("viewer core generation exhausted")
+        }
+        viewerCoreGeneration += 1
+        let coreGeneration = viewerCoreGeneration
         let fallbackFPS = options.fps
         let keyboardController = self.keyboardController
         let client = try RustDeskCoreClient(
             libraryURL: coreURL,
-            onState: { [weak self, weak chrome, weak keyboardController] event in
-                let value = "\(event.state):\(event.code)"
-                metrics.recordCoreState(value)
-                print("CORE_STATE state=\(event.state) code=\(event.code)")
-                let chrome = chrome
-                let keyboardController = keyboardController
-                let appDelegate = self
-                if let evidenceSessionEpoch {
-                    switch event.state {
-                    case .streaming:
-                        _ = appDelegate?.hostViewerConcurrencyEvidenceOwner
-                            .observeViewerStreaming(
-                                sessionEpoch: evidenceSessionEpoch
-                            )
-                    case .passwordRequired, .authenticationFailed,
-                         .disconnected, .error:
-                        _ = appDelegate?.hostViewerConcurrencyEvidenceOwner
-                            .observeViewerTerminal(
-                                sessionEpoch: evidenceSessionEpoch
-                            )
-                    case .idle, .connecting, .transportReady,
-                         .authenticated, .controlReady:
-                        break
-                    }
-                }
+            onState: {
+                [weak self, weak chrome, weak keyboardController] event in
                 DispatchQueue.main.async {
-                    if let attemptID, appDelegate?.activeAttemptID != attemptID { return }
-                    chrome?.updateState(Self.connectionStateText(event), isError: Self.isErrorState(event.state))
-                    if event.state == .authenticated, let attemptID {
-                        appDelegate?.handleAuthenticated(attemptID: attemptID)
-                    }
-                    if event.state == .controlReady {
-                        chrome?.setKeyboardGrabAvailable(true)
-                    } else if event.state == .passwordRequired || event.state == .authenticationFailed ||
-                                event.state == .error || event.state == .disconnected {
-                        chrome?.setKeyboardGrabAvailable(false)
-                        keyboardController?.disable(
-                            message: "连接状态变化，已退出键盘独占",
-                            isError: false
-                        )
-                    }
-                    if Self.isTerminalState(event.state), appDelegate?.automatedRun != true,
-                       appDelegate?.viewerChrome != nil, let attemptID {
-                        appDelegate?.handleTerminalState(event, attemptID: attemptID)
-                    }
-                }
-                if Self.isTerminalState(event.state) {
-                    if self?.automatedRun == true {
-                        DispatchQueue.main.async { NSApplication.shared.terminate(nil) }
-                    }
+                    self?.handleViewerCoreState(
+                        event,
+                        coreGeneration: coreGeneration,
+                        metrics: metrics,
+                        chrome: chrome,
+                        keyboardController: keyboardController,
+                        attemptID: attemptID,
+                        evidenceSessionEpoch: evidenceSessionEpoch
+                    )
                 }
             },
             onVideo: { [weak viewer] packet in
                 if packet.width > 0, packet.height > 0 {
                     let viewer = viewer
                     DispatchQueue.main.async {
-                        viewer?.updateRemoteSize(width: Int(packet.width), height: Int(packet.height))
+                        viewer?.updateRemoteSize(
+                            width: Int(packet.width),
+                            height: Int(packet.height)
+                        )
                     }
                 }
                 Self.consume(
@@ -3462,13 +3509,166 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 )
             }
         )
-        recovery.attach(client)
         try client.connect(configuration)
-        viewerEvidenceSessionEpoch = evidenceSessionEpoch
-        viewerStarted = true
-        liveDecoder = decoder
+        let previousClient = coreClient
         coreClient = client
+        recovery.attach(client)
+        previousClient?.disconnect()
         print("CORE_LOADED abi=\(RustDeskCoreClient.abiVersion) upstream=\(client.upstreamCommit) password_source=environment-or-interactive")
+    }
+
+    private func handleViewerCoreState(
+        _ event: CoreStateEvent,
+        coreGeneration: UInt64,
+        metrics: PipelineMetrics,
+        chrome: ViewerChromeView?,
+        keyboardController: ExclusiveKeyboardController?,
+        attemptID: UUID?,
+        evidenceSessionEpoch: UInt64?
+    ) {
+        guard coreGeneration == viewerCoreGeneration else { return }
+        if let attemptID, activeAttemptID != attemptID { return }
+
+        metrics.recordCoreState("\(event.state):\(event.code)")
+        print("CORE_STATE state=\(event.state) code=\(event.code)")
+        chrome?.updateState(
+            Self.connectionStateText(event),
+            isError: Self.isErrorState(event.state)
+        )
+
+        if event.state == .authenticated, let attemptID {
+            handleAuthenticated(attemptID: attemptID)
+        }
+        if event.state == .controlReady {
+            chrome?.setKeyboardGrabAvailable(true)
+        } else if Self.isTerminalState(event.state) {
+            chrome?.setKeyboardGrabAvailable(false)
+            keyboardController?.disable(
+                message: "连接状态变化，已退出键盘独占",
+                isError: false
+            )
+        }
+
+        if event.state == .streaming {
+            if let recoverySessionEpoch = viewerRecoverySessionEpoch {
+                _ = viewerAutomaticRecoveryOwner?.observeStreaming(
+                    sessionEpoch: recoverySessionEpoch
+                )
+            }
+            if let evidenceSessionEpoch {
+                _ = hostViewerConcurrencyEvidenceOwner.observeViewerStreaming(
+                    sessionEpoch: evidenceSessionEpoch
+                )
+            }
+            return
+        }
+
+        guard Self.isTerminalState(event.state) else { return }
+        if let evidenceSessionEpoch {
+            _ = hostViewerConcurrencyEvidenceOwner.observeViewerTerminal(
+                sessionEpoch: evidenceSessionEpoch
+            )
+        }
+        if automatedRun {
+            NSApplication.shared.terminate(nil)
+            return
+        }
+        guard viewerChrome != nil, let attemptID else { return }
+
+        if event.state == .passwordRequired || event.state == .authenticationFailed {
+            stopViewerAutomaticRecovery()
+            handleTerminalState(event, attemptID: attemptID)
+            return
+        }
+
+        let decision = viewerRecoverySessionEpoch.map {
+            viewerAutomaticRecoveryOwner?.observeTerminal(sessionEpoch: $0)
+                ?? .finish
+        } ?? .finish
+        switch decision {
+        case .recovering, .ignored:
+            chrome?.updateState("连接中断，正在自动重连…", isError: false)
+        case .finish:
+            handleTerminalState(event, attemptID: attemptID)
+        }
+    }
+
+    private func attemptViewerAutomaticRecovery(
+        sessionEpoch: UInt64,
+        coreURL: URL,
+        metrics: PipelineMetrics,
+        viewer: ViewerMetalView,
+        chrome: ViewerChromeView,
+        decoder: LiveHEVCDecoder,
+        recovery: CoreRecoveryCoordinator,
+        attemptID: UUID,
+        evidenceSessionEpoch: UInt64?
+    ) -> ViewerAutomaticRecoveryAttemptResult {
+        guard activeAttemptID == attemptID,
+              viewerRecoverySessionEpoch == sessionEpoch,
+              let deviceID = viewerRecoveryDeviceID,
+              let device = catalog.device(id: deviceID),
+              let server = catalog.server,
+              server.isComplete
+        else { return .unavailable }
+
+        var password: String
+        do {
+            guard let storedPassword = try credentialStore.read(deviceID: deviceID),
+                  !storedPassword.isEmpty
+            else { return .unavailable }
+            password = storedPassword
+        } catch {
+            return .unavailable
+        }
+        let configuration = CoreConnectionConfig(
+            rendezvousServer: server.rendezvousServer,
+            serverPublicKey: server.serverPublicKey,
+            peerID: device.peerID,
+            password: password,
+            forceRelay: server.forceRelay
+        )
+        defer { password = "" }
+
+        coreClient?.disconnect()
+        coreClient = nil
+        decoder.invalidate()
+        do {
+            try installViewerCoreClient(
+                coreURL: coreURL,
+                configuration: configuration,
+                metrics: metrics,
+                viewer: viewer,
+                chrome: chrome,
+                decoder: decoder,
+                recovery: recovery,
+                attemptID: attemptID,
+                evidenceSessionEpoch: evidenceSessionEpoch
+            )
+            chrome.updateState("正在重新建立安全连接…", isError: false)
+            return .started
+        } catch {
+            return .retryableFailure
+        }
+    }
+
+    private func handleViewerAutomaticRecoveryExhausted(
+        sessionEpoch: UInt64,
+        attemptID: UUID
+    ) {
+        guard activeAttemptID == attemptID,
+              viewerRecoverySessionEpoch == sessionEpoch
+        else { return }
+        activeAttemptID = nil
+        showHomeUI(
+            error: "连接已断开，自动重连未成功。未保存密码的连接需要重新输入密码。"
+        )
+    }
+
+    private func nextViewerRecoverySessionEpoch() -> UInt64? {
+        guard viewerRecoveryCommittedEpoch < UInt64.max else { return nil }
+        viewerRecoveryCommittedEpoch += 1
+        return viewerRecoveryCommittedEpoch
     }
 
     private func environmentConnectionConfiguration() throws -> (URL, CoreConnectionConfig) {
@@ -3672,6 +3872,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard !didFinish else { return }
         didFinish = true
         stopHostMode(preservePreference: true, reason: .appExit, releaseClient: true)
+        stopViewerAutomaticRecovery()
         stopViewerLifecycleEvidence()
         guard let metrics else { return }
         player?.stop()
@@ -3692,6 +3893,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         } catch {
             fputs("failed to write benchmark: \(error)\n", stderr)
         }
+    }
+
+    private func stopViewerAutomaticRecovery() {
+        viewerAutomaticRecoveryOwner?.cancelAndWait()
+        viewerAutomaticRecoveryOwner = nil
+        viewerRecoverySessionEpoch = nil
     }
 
     private func stopViewerLifecycleEvidence() {
