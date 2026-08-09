@@ -445,6 +445,7 @@ public struct HostCoreSnapshot: Sendable {
     public let hostInstanceId: String
     public let hostState: String
     public let localId: String
+    public let authenticatedConnectionCount: UInt64
     public let sessionAvailability: HostSessionAvailability
     public let sessionUnavailableReason: HostSessionUnavailableReason?
     public let registrationStatus: String
@@ -465,12 +466,15 @@ public struct HostCoreSnapshot: Sendable {
         else {
             throw HostControlError.snapshotDecode("snapshot is not a JSON object")
         }
-        guard (json["schemaVersion"] as? NSNumber)?.intValue == 7,
+        guard (json["schemaVersion"] as? NSNumber)?.intValue == 8,
               let hostInstanceID = json["hostInstanceId"] as? String,
               !hostInstanceID.isEmpty,
               let hostState = json["hostState"] as? String,
               !hostState.isEmpty,
               let localID = json["localId"] as? String,
+              let authenticatedConnectionCount = strictSnapshotUInt64(
+                  json["authenticatedConnectionCount"]
+              ),
               let sessionAvailabilityValue = json["sessionAvailability"] as? String,
               let sessionAvailability = HostSessionAvailability(
                   rawValue: sessionAvailabilityValue
@@ -562,6 +566,11 @@ public struct HostCoreSnapshot: Sendable {
         } else {
             throw HostControlError.snapshotDecode("active session is invalid")
         }
+        guard activeSession == nil || authenticatedConnectionCount > 0 else {
+            throw HostControlError.snapshotDecode(
+                "active session requires an authenticated connection"
+            )
+        }
         if let lastError = json["lastError"], !(lastError is NSNull), !(lastError is String) {
             throw HostControlError.snapshotDecode("snapshot last error is invalid")
         }
@@ -589,10 +598,11 @@ public struct HostCoreSnapshot: Sendable {
             throw HostControlError.snapshotDecode("snapshot recovery state is invalid")
         }
 
-        schemaVersion = 7
+        schemaVersion = 8
         hostInstanceId = hostInstanceID
         self.hostState = hostState
         localId = localID
+        self.authenticatedConnectionCount = authenticatedConnectionCount
         self.sessionAvailability = sessionAvailability
         self.sessionUnavailableReason = sessionUnavailableReason
         self.registrationStatus = registrationStatus

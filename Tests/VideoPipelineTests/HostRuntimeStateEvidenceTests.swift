@@ -14,6 +14,7 @@ final class HostRuntimeStateEvidenceTests: XCTestCase {
       hostState: "unavailable",
       registrationStatus: "unavailable",
       hostSnapshotObservedAtUnixMilliseconds: nil,
+      authenticatedConnectionCount: nil,
       mediaRouteActive: false,
       mediaPipelineActive: false,
       force: true,
@@ -25,6 +26,7 @@ final class HostRuntimeStateEvidenceTests: XCTestCase {
       hostState: "starting",
       registrationStatus: "pending",
       hostSnapshotObservedAtUnixMilliseconds: 1_700_000_000_500,
+      authenticatedConnectionCount: nil,
       mediaRouteActive: false,
       mediaPipelineActive: false,
       capturedAt: Date(timeIntervalSince1970: 1_700_000_000.5),
@@ -35,6 +37,7 @@ final class HostRuntimeStateEvidenceTests: XCTestCase {
       hostState: "ready",
       registrationStatus: "ready",
       hostSnapshotObservedAtUnixMilliseconds: 1_700_000_001_000,
+      authenticatedConnectionCount: 0,
       mediaRouteActive: false,
       mediaPipelineActive: false,
       capturedAt: Date(timeIntervalSince1970: 1_700_000_001),
@@ -47,17 +50,21 @@ final class HostRuntimeStateEvidenceTests: XCTestCase {
     XCTAssertEqual(records.map { $0["schema"] as? String }, [
       "farpane-host-runtime-state", "farpane-host-runtime-state",
     ])
-    XCTAssertEqual(records.map { $0["schemaVersion"] as? Int }, [1, 1])
+    XCTAssertEqual(records.map { $0["schemaVersion"] as? Int }, [2, 2])
     XCTAssertEqual(records[0]["hostRuntimeActive"] as? Bool, false)
     XCTAssertEqual(records[1]["hostRuntimeActive"] as? Bool, true)
     XCTAssertEqual(records[1]["hostState"] as? String, "ready")
     XCTAssertEqual(records[1]["registrationStatus"] as? String, "ready")
+    XCTAssertEqual(records[1]["authenticatedConnectionCount"] as? Int, 0)
+    XCTAssert(records[0]["authenticatedConnectionCount"] is NSNull)
+    XCTAssert(records[0]["hostSnapshotObservedAtUnixMilliseconds"] is NSNull)
     XCTAssertEqual(records[1]["mediaRouteActive"] as? Bool, false)
     XCTAssertEqual(records[1]["mediaPipelineActive"] as? Bool, false)
     XCTAssertEqual(Set(records[1].keys), [
       "schema", "schemaVersion", "sequence", "capturedAt",
       "monotonicNanoseconds", "hostRuntimeActive", "hostState",
       "registrationStatus", "hostSnapshotObservedAtUnixMilliseconds",
+      "authenticatedConnectionCount",
       "mediaRouteActive", "mediaPipelineActive",
     ])
 
@@ -81,6 +88,7 @@ final class HostRuntimeStateEvidenceTests: XCTestCase {
         hostState: "ready",
         registrationStatus: "ready",
         hostSnapshotObservedAtUnixMilliseconds: UInt64(100 + index),
+        authenticatedConnectionCount: routeActive ? 1 : 0,
         mediaRouteActive: routeActive,
         mediaPipelineActive: routeActive,
         force: true,
@@ -130,6 +138,7 @@ final class HostRuntimeStateEvidenceTests: XCTestCase {
       hostState: "ready-with-secret-detail",
       registrationStatus: "ready",
       hostSnapshotObservedAtUnixMilliseconds: nil,
+      authenticatedConnectionCount: nil,
       mediaRouteActive: false,
       mediaPipelineActive: false,
       force: true
@@ -141,6 +150,7 @@ final class HostRuntimeStateEvidenceTests: XCTestCase {
       hostState: "ready",
       registrationStatus: "ready:server-detail",
       hostSnapshotObservedAtUnixMilliseconds: nil,
+      authenticatedConnectionCount: nil,
       mediaRouteActive: false,
       mediaPipelineActive: false,
       force: true

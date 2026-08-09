@@ -30,6 +30,7 @@ STATE_KEYS = {
     "hostState",
     "registrationStatus",
     "hostSnapshotObservedAtUnixMilliseconds",
+    "authenticatedConnectionCount",
     "mediaRouteActive",
     "mediaPipelineActive",
 }
@@ -342,16 +343,19 @@ def validate_idle_run(
     valid_records: list[dict[str, Any]] = []
     for index, record in enumerate(records, start=1):
         keys_valid = set(record) == STATE_KEYS
-        require(keys_valid, f"runtime-state record {index} keys do not match schema v1")
+        require(keys_valid, f"runtime-state record {index} keys do not match schema v2")
         schema_valid = (
             record.get("schema") == "farpane-host-runtime-state"
-            and record.get("schemaVersion") == 1
+            and record.get("schemaVersion") == 2
         )
         require(schema_valid, f"runtime-state record {index} schema is invalid")
         sequence = record.get("sequence")
         monotonic = record.get("monotonicNanoseconds")
         snapshot_observed = record.get(
             "hostSnapshotObservedAtUnixMilliseconds"
+        )
+        authenticated_connection_count = record.get(
+            "authenticatedConnectionCount"
         )
         types_valid = (
             is_integer(sequence)
@@ -360,6 +364,13 @@ def validate_idle_run(
             and monotonic > 0
             and is_integer(snapshot_observed)
             and snapshot_observed > 0
+            and (
+                authenticated_connection_count is None
+                or (
+                    is_integer(authenticated_connection_count)
+                    and authenticated_connection_count >= 0
+                )
+            )
             and isinstance(record.get("hostRuntimeActive"), bool)
             and isinstance(record.get("hostState"), str)
             and isinstance(record.get("registrationStatus"), str)
@@ -435,6 +446,20 @@ def validate_idle_run(
         )
         require(
             all(
+                is_integer(record["authenticatedConnectionCount"])
+                for record in valid_records
+            ),
+            "authenticated connection count was unavailable during the idle window",
+        )
+        require(
+            all(
+                record["authenticatedConnectionCount"] == 0
+                for record in valid_records
+            ),
+            "an authenticated connection existed during the idle window",
+        )
+        require(
+            all(
                 record["registrationStatus"] == "ready"
                 for record in valid_records
             ),
@@ -496,8 +521,13 @@ def validate_idle_run(
             and record["mediaPipelineActive"] is False
             for record in valid_records
         ),
-        "authenticatedConnectionCoverage": "screen-media-route-only",
-        "allAuthenticatedConnectionsProvenAbsent": False,
+        "authenticatedConnectionCoverage": "all-rustdesk-authenticated-types",
+        "allAuthenticatedConnectionsProvenAbsent": bool(valid_records)
+        and all(
+            is_integer(record["authenticatedConnectionCount"])
+            and record["authenticatedConnectionCount"] == 0
+            for record in valid_records
+        ),
         "status": "pass" if not failures else "fail",
         "failures": failures,
         "collectedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),

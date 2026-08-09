@@ -139,8 +139,8 @@ def main() -> int:
         "fn fail_host_sleep_recovery",
     )
     evidence = {
-        "sleepABIPreservedUnderHostABIV10": rust_abi == 10 and header_abi == 10,
-        "snapshotSchemaV7Implemented": snapshot_schema == 7,
+        "sleepABIPreservedUnderHostABIV11": rust_abi == 11 and header_abi == 11,
+        "snapshotSchemaV8Implemented": snapshot_schema == 8,
         "sleepSymbolsExportedEndToEnd": all(
             symbol in sources["bridge"]
             and symbol in sources["header"]
@@ -222,7 +222,7 @@ def main() -> int:
             for marker in (
                 "public let recoveryEpoch: UInt64",
                 "public let recoveryStatus: HostRecoveryStatus",
-                'intValue == 7',
+                'intValue == 8',
             )
         )
         and all(
@@ -237,7 +237,7 @@ def main() -> int:
             for marker in (
                 '"recoveryEpoch": recoveryEpoch',
                 '"recoveryStatus": recoveryStatus.rawValue',
-                "guard schemaVersion == 7",
+                "guard schemaVersion == 8",
             )
         ),
         "terminalStopRemainsDistinct": (

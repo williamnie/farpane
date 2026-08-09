@@ -39,7 +39,7 @@ class HostIdleValidatorTests(unittest.TestCase):
     def _state_record(self, sequence: int, unix_ms: int) -> dict:
         return {
             "schema": "farpane-host-runtime-state",
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "sequence": sequence,
             "capturedAt": self._captured_at(unix_ms),
             "monotonicNanoseconds": sequence * 1_000_000_000,
@@ -47,6 +47,7 @@ class HostIdleValidatorTests(unittest.TestCase):
             "hostState": "ready",
             "registrationStatus": "ready",
             "hostSnapshotObservedAtUnixMilliseconds": unix_ms,
+            "authenticatedConnectionCount": 0,
             "mediaRouteActive": False,
             "mediaPipelineActive": False,
         }
@@ -144,9 +145,10 @@ class HostIdleValidatorTests(unittest.TestCase):
         self.assertTrue(result["hostReadyThroughout"])
         self.assertTrue(result["registrationReadyThroughout"])
         self.assertTrue(result["screenMediaRouteAbsentThroughout"])
-        self.assertFalse(result["allAuthenticatedConnectionsProvenAbsent"])
+        self.assertTrue(result["allAuthenticatedConnectionsProvenAbsent"])
         self.assertEqual(
-            result["authenticatedConnectionCoverage"], "screen-media-route-only"
+            result["authenticatedConnectionCoverage"],
+            "all-rustdesk-authenticated-types",
         )
 
     def test_rejects_route_pipeline_or_non_ready_transition(self) -> None:
@@ -181,6 +183,33 @@ class HostIdleValidatorTests(unittest.TestCase):
         self.assertIn(
             "Host held a sleep assertion during the no-screen-route window",
             assertion_result["failures"],
+        )
+
+    def test_rejects_any_authenticated_or_unknown_connection_count(self) -> None:
+        records = [
+            self._state_record(index + 10, self.start_ms + index * 1_000)
+            for index in range(self.duration + 1)
+        ]
+        records[1]["authenticatedConnectionCount"] = 1
+        self._write_state(records)
+
+        connected = self._validate()
+
+        self.assertEqual(connected["status"], "fail")
+        self.assertFalse(connected["allAuthenticatedConnectionsProvenAbsent"])
+        self.assertIn(
+            "an authenticated connection existed during the idle window",
+            connected["failures"],
+        )
+
+        records[1]["authenticatedConnectionCount"] = None
+        self._write_state(records)
+        unknown = self._validate()
+        self.assertEqual(unknown["status"], "fail")
+        self.assertFalse(unknown["allAuthenticatedConnectionsProvenAbsent"])
+        self.assertIn(
+            "authenticated connection count was unavailable during the idle window",
+            unknown["failures"],
         )
 
     def test_rejects_state_gap_sequence_gap_and_stale_snapshot(self) -> None:

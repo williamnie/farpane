@@ -634,10 +634,11 @@ final class HostAgentSnapshotStateTests: XCTestCase {
             ["policy": "revealed", "value": $0]
         } ?? ["policy": "redacted"]
         let document: [String: Any] = [
-            "schemaVersion": 7,
+            "schemaVersion": 8,
             "hostInstanceId": host,
             "hostState": recoveryStatus == .running ? "ready" : "starting",
             "localId": "123456789",
+            "authenticatedConnectionCount": 1,
             "sessionAvailability": sessionAvailability.rawValue,
             "sessionUnavailableReason": sessionUnavailableReason.map {
                 $0.rawValue as Any

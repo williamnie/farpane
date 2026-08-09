@@ -32,14 +32,14 @@ class HostNetworkRestartABIContractAuditTests(unittest.TestCase):
         self.assertEqual(document["missingEvidence"], [])
 
         implementation = document["implementation"]
-        self.assertEqual(implementation["hostABIVersion"], 10)
-        self.assertEqual(implementation["snapshotSchemaVersion"], 7)
+        self.assertEqual(implementation["hostABIVersion"], 11)
+        self.assertEqual(implementation["snapshotSchemaVersion"], 8)
         self.assertTrue(all(implementation["evidence"].values()))
         self.assertTrue(all(implementation["sourceLines"].values()))
 
         target = document["targetContract"]
-        self.assertEqual(target["hostABIVersion"], 10)
-        self.assertEqual(target["snapshotSchemaVersion"], 7)
+        self.assertEqual(target["hostABIVersion"], 11)
+        self.assertEqual(target["snapshotSchemaVersion"], 8)
         self.assertEqual(target["symbol"], "rdn_host_recover_network_path")
         self.assertEqual(
             target["generationAuthority"],

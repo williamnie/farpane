@@ -1201,10 +1201,11 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
     private func coreSnapshot(hostID: String) throws -> HostCoreSnapshot {
         try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: [
-                "schemaVersion": 7,
+                "schemaVersion": 8,
                 "hostInstanceId": hostID,
                 "hostState": "ready",
                 "localId": "123456789",
+                "authenticatedConnectionCount": 1,
                 "sessionAvailability": "available",
                 "sessionUnavailableReason": NSNull(),
                 "registrationStatus": "ready",

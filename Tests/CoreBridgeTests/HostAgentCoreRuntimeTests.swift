@@ -445,10 +445,11 @@ private final class RecordingHostAgentCoreClient: HostAgentCoreControlSurface {
     func copySnapshot() throws -> HostCoreSnapshot {
         operations.append(.copySnapshot)
         let document: [String: Any] = [
-            "schemaVersion": 7,
+            "schemaVersion": 8,
             "hostInstanceId": "host-agent-test",
             "hostState": "ready",
             "localId": "123456789",
+            "authenticatedConnectionCount": 1,
             "sessionAvailability": "available",
             "sessionUnavailableReason": NSNull(),
             "registrationStatus": "ready",

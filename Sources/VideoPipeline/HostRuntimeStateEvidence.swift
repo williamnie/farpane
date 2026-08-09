@@ -34,8 +34,47 @@ public final class HostRuntimeStateEvidenceWriter: @unchecked Sendable {
     let hostState: String
     let registrationStatus: String
     let hostSnapshotObservedAtUnixMilliseconds: UInt64?
+    let authenticatedConnectionCount: UInt64?
     let mediaRouteActive: Bool
     let mediaPipelineActive: Bool
+
+    private enum CodingKeys: String, CodingKey {
+      case schema, schemaVersion, sequence, capturedAt, monotonicNanoseconds
+      case hostRuntimeActive, hostState, registrationStatus
+      case hostSnapshotObservedAtUnixMilliseconds
+      case authenticatedConnectionCount
+      case mediaRouteActive, mediaPipelineActive
+    }
+
+    func encode(to encoder: Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKeys.self)
+      try container.encode(schema, forKey: .schema)
+      try container.encode(schemaVersion, forKey: .schemaVersion)
+      try container.encode(sequence, forKey: .sequence)
+      try container.encode(capturedAt, forKey: .capturedAt)
+      try container.encode(monotonicNanoseconds, forKey: .monotonicNanoseconds)
+      try container.encode(hostRuntimeActive, forKey: .hostRuntimeActive)
+      try container.encode(hostState, forKey: .hostState)
+      try container.encode(registrationStatus, forKey: .registrationStatus)
+      if let hostSnapshotObservedAtUnixMilliseconds {
+        try container.encode(
+          hostSnapshotObservedAtUnixMilliseconds,
+          forKey: .hostSnapshotObservedAtUnixMilliseconds
+        )
+      } else {
+        try container.encodeNil(forKey: .hostSnapshotObservedAtUnixMilliseconds)
+      }
+      if let authenticatedConnectionCount {
+        try container.encode(
+          authenticatedConnectionCount,
+          forKey: .authenticatedConnectionCount
+        )
+      } else {
+        try container.encodeNil(forKey: .authenticatedConnectionCount)
+      }
+      try container.encode(mediaRouteActive, forKey: .mediaRouteActive)
+      try container.encode(mediaPipelineActive, forKey: .mediaPipelineActive)
+    }
   }
 
   private let outputURL: URL
@@ -89,6 +128,7 @@ public final class HostRuntimeStateEvidenceWriter: @unchecked Sendable {
     hostState: String,
     registrationStatus: String,
     hostSnapshotObservedAtUnixMilliseconds: UInt64?,
+    authenticatedConnectionCount: UInt64?,
     mediaRouteActive: Bool,
     mediaPipelineActive: Bool,
     force: Bool = false,
@@ -111,7 +151,7 @@ public final class HostRuntimeStateEvidenceWriter: @unchecked Sendable {
       let nextSequence = sequence &+ 1
       let record = Record(
         schema: "farpane-host-runtime-state",
-        schemaVersion: 1,
+        schemaVersion: 2,
         sequence: nextSequence,
         capturedAt: capturedAt,
         monotonicNanoseconds: monotonicNanoseconds,
@@ -119,6 +159,7 @@ public final class HostRuntimeStateEvidenceWriter: @unchecked Sendable {
         hostState: hostState,
         registrationStatus: registrationStatus,
         hostSnapshotObservedAtUnixMilliseconds: hostSnapshotObservedAtUnixMilliseconds,
+        authenticatedConnectionCount: authenticatedConnectionCount,
         mediaRouteActive: mediaRouteActive,
         mediaPipelineActive: mediaPipelineActive
       )

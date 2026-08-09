@@ -36,7 +36,8 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.agentBootID, bootID)
         XCTAssertEqual(decoded.lastEventID, 7)
         XCTAssertGreaterThan(decoded.payloadLength, 0)
-        XCTAssertEqual(decoded.snapshot.schemaVersion, 7)
+        XCTAssertEqual(decoded.snapshot.schemaVersion, 8)
+        XCTAssertEqual(decoded.snapshot.authenticatedConnectionCount, 1)
         XCTAssertEqual(decoded.snapshot.hostState, "ready")
         XCTAssertEqual(decoded.snapshot.localID, "123456789")
         XCTAssertEqual(decoded.snapshot.sessionAvailability, .available)
@@ -202,6 +203,18 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
                 validSnapshot,
                 ["schemaVersion": 6]
             )]),
+            try replacingPayload(valid, ["snapshot": removing(
+                validSnapshot,
+                "authenticatedConnectionCount"
+            )]),
+            try replacingPayload(valid, ["snapshot": merging(
+                validSnapshot,
+                ["authenticatedConnectionCount": true]
+            )]),
+            try replacingPayload(valid, ["snapshot": merging(
+                validSnapshot,
+                ["authenticatedConnectionCount": 1.5]
+            )]),
             try replacingPayload(valid, ["snapshot": merging(
                 validSnapshot,
                 ["sessionAvailability": "limited"]
@@ -297,6 +310,19 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         XCTAssertEqual(active?.inputAvailability, .available)
         XCTAssertNil(active?.inputUnavailableReason)
 
+        var zeroCountDocument = activeDocument
+        var zeroCountPayload = zeroCountDocument["payload"] as! [String: Any]
+        var zeroCountSnapshot = zeroCountPayload["snapshot"] as! [String: Any]
+        zeroCountSnapshot["authenticatedConnectionCount"] = 0
+        zeroCountPayload["snapshot"] = zeroCountSnapshot
+        zeroCountDocument = try replacingPayload(
+            zeroCountDocument,
+            zeroCountPayload
+        )
+        XCTAssertThrowsError(
+            try HostAgentXPCWireSnapshotResponse.decode(data(zeroCountDocument))
+        )
+
         var invalidActive = activeDocument
         var invalidPayload = invalidActive["payload"] as! [String: Any]
         var invalidSnapshot = invalidPayload["snapshot"] as! [String: Any]
@@ -332,7 +358,8 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             response.encoded()
         )
 
-        XCTAssertEqual(decoded.snapshot.schemaVersion, 7)
+        XCTAssertEqual(decoded.snapshot.schemaVersion, 8)
+        XCTAssertEqual(decoded.snapshot.authenticatedConnectionCount, 1)
         XCTAssertEqual(decoded.snapshot.sessionAvailability, .limited)
         XCTAssertEqual(
             decoded.snapshot.sessionUnavailableReason,
@@ -397,9 +424,10 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         let payload: [String: Any] = [
             "lastEventId": 7,
             "snapshot": [
-                "schemaVersion": 7,
+                "schemaVersion": 8,
                 "hostState": "ready",
                 "localId": "123456789",
+                "authenticatedConnectionCount": 1,
                 "sessionAvailability": "available",
                 "sessionUnavailableReason": NSNull(),
                 "registrationStatus": "ready",
@@ -469,10 +497,11 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             ["policy": "revealed", "value": $0]
         } ?? ["policy": "redacted"]
         return try HostCoreSnapshot(rawJSON: data([
-            "schemaVersion": 7,
+            "schemaVersion": 8,
             "hostInstanceId": host,
             "hostState": "ready",
             "localId": "123456789",
+            "authenticatedConnectionCount": 1,
             "sessionAvailability": sessionAvailability.rawValue,
             "sessionUnavailableReason": sessionUnavailableReason.map {
                 $0.rawValue as Any
