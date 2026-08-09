@@ -63,6 +63,8 @@ Scripts/sample-farpane-host-performance.sh static 600 Evidence/HostMode/2026-08-
 
 `top` 的 `POWER` 仅作为同机对比的相对 energy impact，不是焦耳，也不是整机物理功耗；电池场景的真实能耗仍需 Instruments Energy Log 或有权限的 `powermetrics` 证据。系统媒体进程按名称聚合，正式采样前应关闭无关编码任务，避免把其他 App 的 VTEncoderXPCService 计入 FarPane。
 
+H5.3p 将机器可校验的物理能耗 authority 收敛为 `/usr/bin/powermetrics` 的原始 plist stream（NUL 分隔）；它只能由操作者在验收终端中显式提权运行，FarPane 产品进程、HostAgent 与普通 runner 不请求 root，也不内嵌或调用 `sudo`。该证据只接纳 `battery`、`cpu_power`、`thermal` 等整机/SoC 与电池采样；per-process energy impact 仍是粗略 proxy，不能作为物理能耗。`powermetrics` 的估算功率和电池 discharge rate 仅允许同一 portable Mac、同一 macOS 与同一构建的 baseline 对比，不做跨机型数值比较；Instruments Energy Log 只作人工佐证，不替代可哈希的原始 machine-readable artifact。
+
 ## H2.1.5 versioned sanitized evidence export
 
 Host App 在 H2.1.5 首次支持显式设置 `FARPANE_HOST_TELEMETRY_OUTPUT`，在单条 Host media route 停止时写出当时的 schema version 1 JSON diagnostic snapshot。H2.3.4 以 additive version 2 增加脱敏 drop ledger，H2.3.5 以 version 3 增加 raw-frame queue current/maximum depth，H2.1.6b 以 version 4 增加 production Rust encoded queue，H2.1.7 以 version 5 增加 writer-loop wall aggregates，H2.1.8 以 version 6 增加 route-scoped RustDesk QoS network snapshot，H2.1.9b 再以 version 7 增加 route-scoped direct/relay/unknown transport snapshot；旧版本文件均保留为不可变历史证据。未设置时不创建目录或文件；配置值必须是绝对 `.json` 路径。导出使用固定字段 allowlist，不包含 display index、PID、peer/connection/Host instance ID、服务器、凭据、输出路径、画面、压缩 payload、dirty rect 坐标或错误文本。
