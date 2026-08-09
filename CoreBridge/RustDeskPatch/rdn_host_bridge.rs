@@ -2773,6 +2773,18 @@ fn verify_host_start_storage(host: &RdnHost) -> Result<(), HostStoragePreflightE
     )
 }
 
+const NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS: [&str; 3] = [
+    config::keys::OPTION_ENABLE_CLIPBOARD,
+    config::keys::OPTION_ENABLE_FILE_TRANSFER,
+    config::keys::OPTION_ENABLE_AUDIO,
+];
+
+fn apply_native_host_optional_capability_defaults() {
+    for key in NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS {
+        config::Config::set_option(key.to_owned(), "N".to_owned());
+    }
+}
+
 fn verify_host_password_storage() -> Result<(), HostStoragePreflightError> {
     let (storage, salt) = config::Config::get_local_permanent_password_storage_and_salt();
     let storage = WipedHostStorageString(storage);
@@ -2849,6 +2861,9 @@ fn verify_host_start_storage_paths(
             config::keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS,
             "Y",
         ),
+        (config::keys::OPTION_ENABLE_CLIPBOARD, "N"),
+        (config::keys::OPTION_ENABLE_FILE_TRANSFER, "N"),
+        (config::keys::OPTION_ENABLE_AUDIO, "N"),
         ("stop-service", ""),
     ];
     if expected
@@ -3085,6 +3100,11 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     );
     config::Config::set_option("relay-server".to_owned(), host.relay_server.clone());
     config::Config::set_option("key".to_owned(), host.server_public_key.clone());
+    // Optional data-bearing capabilities remain explicitly disabled until
+    // their independent H6 permission, payload and lifecycle gates exist.
+    // Upstream treats a missing `enable-*` option as enabled, so absence is
+    // not a safe default and must not be used as product policy.
+    apply_native_host_optional_capability_defaults();
     // FarPane Host owns an active authenticated screen route as a bounded
     // user-idle sleep assertion. The connection lifecycle releases it when
     // the last remote screen session ends; native mode never forces the
@@ -4025,6 +4045,9 @@ mod tests {
                 config::keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS.to_owned(),
                 "Y".to_owned(),
             );
+            for key in NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS {
+                config.options.insert(key.to_owned(), "N".to_owned());
+            }
             let options = toml::to_string(&config)
                 .expect("serialize startup options fixture")
                 .into_bytes();
@@ -4232,6 +4255,42 @@ mod tests {
         );
         assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
         assert_eq!(fs::read(&fixture.options).unwrap(), options);
+
+        let mut config: config::Config2 =
+            toml::from_str(std::str::from_utf8(&options).unwrap()).unwrap();
+        config.options.remove(config::keys::OPTION_ENABLE_CLIPBOARD);
+        HostStorageFixture::write_private(
+            &fixture.options,
+            toml::to_string(&config).unwrap().as_bytes(),
+        );
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                rendezvous_server,
+                relay_server,
+                server_public_key,
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
+        );
+    }
+
+    #[test]
+    fn native_host_optional_data_capabilities_default_off_as_one_policy() {
+        assert_eq!(
+            NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS,
+            [
+                config::keys::OPTION_ENABLE_CLIPBOARD,
+                config::keys::OPTION_ENABLE_FILE_TRANSFER,
+                config::keys::OPTION_ENABLE_AUDIO,
+            ]
+        );
+        assert!(NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS
+            .iter()
+            .all(|key| key.starts_with("enable-")));
+        assert!(NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS
+            .iter()
+            .all(|key| !config::option2bool(key, "N")));
     }
 
     #[cfg(unix)]

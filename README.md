@@ -62,7 +62,7 @@ FarPane 已完成真实 RustDesk Core、H265、VideoToolbox、Metal 和输入链
 - **被控端（Host Mode）尚未实现**；屏幕采集、硬件编码、TCC 权限、后台服务与入站会话仍处于设计阶段，见 [`docs/host-mode-design.md`](docs/host-mode-design.md)。
 - 仅支持 macOS 13 及以上系统。
 - 当前 Viewer 视频链路以 H265 为正式目标。
-- 音频和剪贴板尚未开放。
+- 音频、剪贴板和文件传输默认关闭，H6 独立门禁尚未开放。
 - Release 预览包尚未经过 Apple notarization；源码和本地构建不受此限制。
 
 ### 架构
@@ -200,7 +200,7 @@ Current boundaries:
 - **Host Mode is not implemented.** Screen capture, hardware encoding, TCC permissions, background services, and incoming sessions remain in design; see [`docs/host-mode-design.md`](docs/host-mode-design.md).
 - macOS 13 or later only.
 - H265 is the qualified video path for the current viewer.
-- Audio and clipboard are disabled.
+- Audio, clipboard, and file transfer default to disabled; their independent H6 gates are not open.
 - Preview release binaries are not yet Apple-notarized; this does not affect source or local builds.
 
 ### Architecture
