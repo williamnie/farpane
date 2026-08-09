@@ -38,6 +38,10 @@ def main() -> int:
             repository
             / "Sources/RustDeskNative/HostAgentSleepWakeRecoveryProcessOwner.swift"
         ),
+        "sleep_core_owner": (
+            repository
+            / "Sources/CoreBridge/HostAgentSleepWakeRecoveryOwner.swift"
+        ),
         "network_composition": (
             repository
             / "Sources/RustDeskNative/HostAgentNetworkPathRecoveryComposition.swift"
@@ -78,6 +82,7 @@ def main() -> int:
     runtime_evidence = sources["runtime_evidence"]
     media_evidence = sources["media_evidence"]
     sleep_owner = sources["sleep_owner"]
+    sleep_core_owner = sources["sleep_core_owner"]
     network_composition = sources["network_composition"]
     network_poller = sources["network_poller"]
     display_audit = sources["display_audit"]
@@ -195,7 +200,8 @@ def main() -> int:
                     "status = configuredWriter == nil ? .disabled : .active",
                     "status = .unavailable",
                     "writer = nil",
-                    "while configurationInFlight || recordInFlight",
+                    "while configurationInFlight || sleepWakeAcceptanceInFlight",
+                    "|| recordInFlight",
                 )
             )
             and all(
@@ -211,6 +217,37 @@ def main() -> int:
             and "guard recoveryEvidenceOwner.configure(" not in host_process
             and "FARPANE_HOST_RECOVERY_SCOPE_SHA256" not in recovery_writer
             and "FARPANE_HOST_RECOVERY_BUILD_SHA256" not in recovery_writer
+        ),
+        "sleepWakeTransitionCallbackConnected": (
+            all(
+                marker in sleep_core_owner
+                for marker in (
+                    "operations.recoveryAccepted(epoch)",
+                    "with: .running(epoch: epoch)",
+                    "operations.recoveryCompleted(epoch)",
+                )
+            )
+            and sleep_core_owner.find("operations.recoveryAccepted(epoch)")
+            < sleep_core_owner.find("operations.recoveryCompleted(epoch)")
+            and all(
+                marker in sleep_owner
+                for marker in (
+                    "recoveryEvidenceOwner.acceptSleepWake(",
+                    "recoveryEvidenceOwner.recordSleepWakeCompleted(",
+                )
+            )
+            and all(
+                marker in recovery_process_owner
+                for marker in (
+                    "pendingSleepWakeAcceptance",
+                    "sleepWakeAcceptanceInFlight",
+                    "acceptSleepWake(recoveryEpoch: UInt64)",
+                    "recordSleepWakeCompleted(recoveryEpoch: UInt64)",
+                    "acceptance.recoveryEpoch == recoveryEpoch",
+                    "correlation: .sleepWake(recoveryEpoch: recoveryEpoch)",
+                )
+            )
+            and "recoveryEvidenceOwner: recoveryEvidenceOwner" in host_process
         ),
     }
     missing = [name for name, present in evidence.items() if not present]
@@ -249,6 +286,12 @@ def main() -> int:
         ),
         "recoveryProcessComposition": line_number(
             host_process, "_ = recoveryEvidenceOwner.configure("
+        ),
+        "sleepWakeEvidenceAcceptance": line_number(
+            sleep_core_owner, "operations.recoveryAccepted(epoch)"
+        ),
+        "sleepWakeEvidenceCompletion": line_number(
+            sleep_core_owner, "operations.recoveryCompleted(epoch)"
         ),
     }
 
@@ -314,7 +357,7 @@ def main() -> int:
     }
 
     remaining_boundary = {
-        "transitionWriterIsNotYetConnectedToRecoveryCallbacks": True,
+        "networkAndDisplayTransitionCallbacksRemainOpen": True,
         "recoveryManifestValidatorStillRequiresImplementation": True,
         "allThreeTransitionsRequireInstalledMacExecution": True,
         "eachRecoveryRequiresFreshTenMinuteScenarioThreeRun": True,
@@ -325,7 +368,9 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "process-owner-implemented" if not missing else "contract-drift"
+            "sleep-wake-callback-implemented"
+            if not missing
+            else "contract-drift"
         ),
         "section15_2Item": 7,
         "evidence": evidence,

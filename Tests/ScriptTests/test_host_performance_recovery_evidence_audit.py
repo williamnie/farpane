@@ -28,7 +28,10 @@ class HostPerformanceRecoveryEvidenceAuditTests(unittest.TestCase):
             "farpane-host-performance-recovery-evidence-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "process-owner-implemented")
+        self.assertEqual(
+            document["status"],
+            "sleep-wake-callback-implemented",
+        )
         self.assertEqual(document["section15_2Item"], 7)
         self.assertEqual(document["missingEvidence"], [])
         self.assertTrue(all(document["evidence"].values()))

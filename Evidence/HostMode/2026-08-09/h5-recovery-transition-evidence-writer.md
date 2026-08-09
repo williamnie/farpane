@@ -49,9 +49,9 @@ runtime artifact or section 15.2 item 7 pass by itself.
 ## Remaining boundary
 
 - H5.3i now derives both digests in memory and constructs at most one
-  process-lifetime writer. Exact successful sleep, network, and display
-  recovery callbacks are still not connected. Writer failure disables only
-  evidence collection and cannot change recovery behavior or readiness.
+  process-lifetime writer. H5.3j connects exact successful sleep/wake
+  recovery; network and display callbacks remain open. Writer failure disables
+  only evidence collection and cannot change recovery behavior or readiness.
 - The bounded manifest validator and its negative fixtures remain unimplemented.
 - Each transition still requires an installed-Mac execution followed by a
   fresh passed 600-second `1080p30` run on the same scope/build.

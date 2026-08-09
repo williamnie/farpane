@@ -113,7 +113,8 @@ enum HostAgentProcess {
                     lifetime: lifetime,
                     expectedHostInstanceID: hostInstanceID,
                     mediaPipelineOwner: mediaPipelineOwner,
-                    snapshotCoordinator: snapshotCoordinator
+                    snapshotCoordinator: snapshotCoordinator,
+                    recoveryEvidenceOwner: recoveryEvidenceOwner
                 ) else {
                     _ = lifetime.requestTermination(reason: .error)
                     _ = lifetime.waitUntilTerminated()

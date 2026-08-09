@@ -1,5 +1,6 @@
 import CoreBridge
 import Foundation
+import VideoPipeline
 
 enum HostAgentSleepWakeRecoveryProcessState: Equatable, Sendable {
     case idle
@@ -35,7 +36,8 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
         lifetime: HostAgentProcessLifetime,
         expectedHostInstanceID: String,
         mediaPipelineOwner: HostAgentMediaPipelineOwner,
-        snapshotCoordinator: HostAgentSnapshotRefreshCoordinator
+        snapshotCoordinator: HostAgentSnapshotRefreshCoordinator,
+        recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner
     ) -> Bool {
         condition.lock()
         guard state == .idle,
@@ -68,6 +70,16 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
                         epoch: epoch,
                         recoveryStatus: .running,
                         registrationStatus: "ready"
+                    )
+                },
+                recoveryAccepted: { epoch in
+                    _ = recoveryEvidenceOwner.acceptSleepWake(
+                        recoveryEpoch: epoch
+                    )
+                },
+                recoveryCompleted: { epoch in
+                    _ = recoveryEvidenceOwner.recordSleepWakeCompleted(
+                        recoveryEpoch: epoch
                     )
                 }
             )

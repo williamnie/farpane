@@ -42,6 +42,8 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         XCTAssertEqual(owner.snapshot(), .running(epoch: 1))
         XCTAssertEqual(recorder.steps.last, .publishAvailable)
         XCTAssertEqual(recorder.epochs, [1, 1, 1, 1])
+        XCTAssertEqual(recorder.acceptedRecoveryEpochs, [1])
+        XCTAssertEqual(recorder.completedRecoveryEpochs, [1])
         XCTAssertFalse(owner.systemDidWake())
 
         XCTAssertTrue(owner.systemWillSleep())
@@ -99,6 +101,8 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         XCTAssertFalse(recorder.steps.contains(.rebuildMedia))
         XCTAssertFalse(recorder.steps.contains(.resumeRegistration))
         XCTAssertFalse(recorder.steps.contains(.publishAvailable))
+        XCTAssertEqual(recorder.acceptedRecoveryEpochs, [1])
+        XCTAssertTrue(recorder.completedRecoveryEpochs.isEmpty)
     }
 
     func testRejectedMediaBeginFailsClosedWithoutRegistration() {
@@ -191,6 +195,32 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         )
     }
 
+    func testPublishAvailableFailureNeverCompletesRecoveryEvidence() {
+        let recorder = SleepWakeRecoveryRecorder()
+        let owner = HostAgentSleepWakeRecoveryOwner(
+            operations: operations(
+                recorder: recorder,
+                failingAt: .publishAvailable
+            )
+        )
+        XCTAssertTrue(owner.systemWillSleep())
+        XCTAssertTrue(owner.systemDidWake())
+        recorder.completeMedia(epoch: 1, succeeded: true)
+
+        recorder.completeRegistration(epoch: 1, succeeded: true)
+
+        XCTAssertEqual(
+            owner.snapshot(),
+            .failed(epoch: 1, step: .publishAvailable)
+        )
+        XCTAssertEqual(recorder.acceptedRecoveryEpochs, [1])
+        XCTAssertTrue(recorder.completedRecoveryEpochs.isEmpty)
+        XCTAssertEqual(
+            recorder.steps.filter { $0 == .publishAvailable }.count,
+            1
+        )
+    }
+
     func testDuplicateAndFutureMediaCompletionCannotAdvanceEpochTwice() {
         let recorder = SleepWakeRecoveryRecorder()
         let owner = HostAgentSleepWakeRecoveryOwner(
@@ -276,6 +306,8 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         XCTAssertEqual(owner.snapshot(), .cancelled)
         XCTAssertFalse(recorder.steps.contains(.resumeRegistration))
         XCTAssertFalse(recorder.steps.contains(.publishAvailable))
+        XCTAssertEqual(recorder.acceptedRecoveryEpochs, [1])
+        XCTAssertTrue(recorder.completedRecoveryEpochs.isEmpty)
     }
 
     func testReentrantWakeAndCancellationCannotResumeSleepTransition() {
@@ -370,7 +402,13 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
             publishAvailable: recorder.epochOperation(
                 .publishAvailable,
                 failingAt: failure
-            )
+            ),
+            recoveryAccepted: { epoch in
+                recorder.recordRecoveryAccepted(epoch)
+            },
+            recoveryCompleted: { epoch in
+                recorder.recordRecoveryCompleted(epoch)
+            }
         )
     }
 }
@@ -379,6 +417,8 @@ private final class SleepWakeRecoveryRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var stepStorage: [HostAgentSleepWakeRecoveryStep] = []
     private var epochStorage: [UInt64] = []
+    private var acceptedRecoveryEpochStorage: [UInt64] = []
+    private var completedRecoveryEpochStorage: [UInt64] = []
     private var mediaCompletion: HostAgentSleepWakeMediaRecoveryCompletion?
     private var registrationCompletion:
         HostAgentSleepWakeRegistrationRecoveryCompletion?
@@ -393,6 +433,30 @@ private final class SleepWakeRecoveryRecorder: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return epochStorage
+    }
+
+    var acceptedRecoveryEpochs: [UInt64] {
+        lock.lock()
+        defer { lock.unlock() }
+        return acceptedRecoveryEpochStorage
+    }
+
+    var completedRecoveryEpochs: [UInt64] {
+        lock.lock()
+        defer { lock.unlock() }
+        return completedRecoveryEpochStorage
+    }
+
+    func recordRecoveryAccepted(_ epoch: UInt64) {
+        lock.lock()
+        acceptedRecoveryEpochStorage.append(epoch)
+        lock.unlock()
+    }
+
+    func recordRecoveryCompleted(_ epoch: UInt64) {
+        lock.lock()
+        completedRecoveryEpochStorage.append(epoch)
+        lock.unlock()
     }
 
     func record(_ step: HostAgentSleepWakeRecoveryStep) {

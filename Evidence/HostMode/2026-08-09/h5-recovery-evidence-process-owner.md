@@ -5,9 +5,9 @@
 HostAgent now owns one best-effort recovery evidence authority for its process
 lifetime. The owner derives the Host-instance scope and build-identity digests
 in memory, constructs the H5.3h writer only when an output path is explicitly
-configured, and drains it during teardown. This step does not yet connect any
-recovery completion callback and therefore creates no runtime transition proof
-or section 15.2 item 7 pass.
+configured, and drains it during teardown. H5.3j subsequently connects the
+exact sleep/wake callback; network and display remain open. Neither checkpoint
+by itself creates a runtime transition proof or section 15.2 item 7 pass.
 
 ## Key evidence
 
@@ -55,8 +55,9 @@ or section 15.2 item 7 pass.
 
 ## Remaining boundary
 
-- Bind exact successful sleep/wake and network-path convergence callbacks in
-  separate bounded checkpoints. Evidence append failure must remain isolated.
+- H5.3j now binds exact successful sleep/wake convergence. Bind network-path
+  convergence in its own bounded checkpoint. Evidence append failure must
+  remain isolated.
 - Add a pinned Rust display-reconfiguration provenance marker before wiring
   display evidence; generic Swift route replacement is not sufficient proof.
 - Implement the bounded recovery manifest validator and negative fixtures.

@@ -37,6 +37,9 @@ final class HostAgentRecoveryEvidenceProcessCompositionContractTests:
             "_ = recoveryEvidenceOwner.configure(",
             "mediaPipelineOwner.start("
         )
+        XCTAssertTrue(process.contains(
+            "recoveryEvidenceOwner: recoveryEvidenceOwner"
+        ))
     }
 
     func testRecoveryOwnersDrainBeforeEvidenceAndMediaTeardown() throws {
