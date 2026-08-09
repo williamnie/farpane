@@ -112,6 +112,106 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertEqual(dependencies.commandIDCount, 1)
     }
 
+    func testReadOnlyProjectionMapsBusyRetryAndTerminalWithoutActions()
+        throws
+    {
+        let fixture = try commandFixture(epoch: 9)
+        let dependencies = PresentationOwnerDependencies(fixture: fixture)
+        let owner = makeOwner(dependencies)
+        XCTAssertTrue(owner.refresh())
+        XCTAssertTrue(owner.submit(.disconnect))
+        let submission = try XCTUnwrap(dependencies.submissions.first)
+
+        XCTAssertEqual(
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+                .presentation(
+                    owner.snapshot(),
+                    phase: nil,
+                    projection: dependencies.activationSnapshot.projection
+                ),
+            .unavailable
+        )
+        let unavailableHealth = HostAgentBackgroundHealthAuthority(
+            initialRegistration: .notRegistered,
+            observeRegistration: { .notRegistered }
+        )
+        if let projection = dependencies.activationSnapshot.projection {
+            unavailableHealth.acceptProjection(projection)
+        }
+        XCTAssertEqual(
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+                .presentation(
+                    owner.snapshot(),
+                    phase: .monitoring(
+                        epoch: 9,
+                        readiness: unavailableHealth.snapshot()
+                    ),
+                    projection: dependencies.activationSnapshot.projection
+                ),
+            .unavailable
+        )
+
+        var display =
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+            .presentation(
+                owner.snapshot(),
+                phase: dependencies.activationSnapshot.phase,
+                projection: dependencies.activationSnapshot.projection
+            )
+        XCTAssertEqual(display.activeAction, .disconnect)
+        XCTAssertEqual(display.statusText, "正在提交断开连接…")
+        XCTAssertEqual(display.errorText, "")
+        XCTAssertFalse(display.canRetry)
+
+        dependencies.publish(.accepted(
+            try acceptedResponse(for: submission.intent)
+        ))
+        dependencies.publish(.resultUnknown)
+        display = HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+            .presentation(
+                owner.snapshot(),
+                phase: dependencies.activationSnapshot.phase,
+                projection: dependencies.activationSnapshot.projection
+            )
+        XCTAssertNil(display.activeAction)
+        XCTAssertEqual(
+            display.errorText,
+            "连接中断，无法确认断开连接结果；可重试同一操作。"
+        )
+        XCTAssertTrue(display.canRetry)
+
+        XCTAssertTrue(owner.retry())
+        display = HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+            .presentation(
+                owner.snapshot(),
+                phase: dependencies.activationSnapshot.phase,
+                projection: dependencies.activationSnapshot.projection
+            )
+        XCTAssertEqual(display.activeAction, .disconnect)
+        XCTAssertFalse(display.canRetry)
+
+        dependencies.publish(.accepted(
+            try acceptedResponse(for: submission.intent)
+        ))
+        dependencies.publish(.completed(
+            try HostAgentXPCWireCommandResult(
+                commandID: submission.intent.commandID,
+                status: .ok,
+                detail: "ok"
+            )
+        ))
+        display = HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+            .presentation(
+                owner.snapshot(),
+                phase: dependencies.activationSnapshot.phase,
+                projection: dependencies.activationSnapshot.projection
+            )
+        XCTAssertNil(display.activeAction)
+        XCTAssertEqual(display.statusText, "断开连接已完成。")
+        XCTAssertEqual(display.errorText, "")
+        XCTAssertFalse(display.canRetry)
+    }
+
     func testRouteReplacementDropsOldAttemptAndLateCallback() throws {
         let first = try commandFixture(epoch: 9)
         let second = try commandFixture(epoch: 10)
@@ -238,6 +338,16 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             submitOwner.snapshot().failure,
             .submissionRejected
         )
+        XCTAssertEqual(
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+                .presentation(
+                    submitOwner.snapshot(),
+                    phase: submitDependencies.activationSnapshot.phase,
+                    projection:
+                        submitDependencies.activationSnapshot.projection
+                ).errorText,
+            "后台未接收操作；请根据最新状态重试。"
+        )
         XCTAssertEqual(submitOwner.snapshot().command, .unavailable)
         submitDependencies.replace(with: second)
         XCTAssertTrue(submitOwner.refresh())
@@ -258,11 +368,21 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
 
         XCTAssertFalse(retryOwner.retry())
         XCTAssertEqual(retryOwner.snapshot().failure, .retryRejected)
+        XCTAssertEqual(
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+                .presentation(
+                    retryOwner.snapshot(),
+                    phase: retryDependencies.activationSnapshot.phase,
+                    projection:
+                        retryDependencies.activationSnapshot.projection
+                ).errorText,
+            "后台未接收重试；请根据最新状态重试。"
+        )
         XCTAssertEqual(retryOwner.snapshot().command, .unavailable)
         XCTAssertEqual(retryDependencies.commandIDCount, 1)
     }
 
-    func testProductFactoryIsInertAndAppHomeStillDoNotOwnIt()
+    func testProductFactoryIsInertAndAppOwnsReadOnlyProjectionOnly()
         throws
     {
         let activationOwner = HostAgentBackgroundActivationOwner.makeProduct()
@@ -284,6 +404,12 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             ),
             encoding: .utf8
         )
+        let readOnlySource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/CoreBridge/HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy.swift"
+            ),
+            encoding: .utf8
+        )
         for forbidden in [
             "import AppKit", "import SwiftUI", "HostControlClient",
             "UserDefaults", "SMAppService",
@@ -295,6 +421,9 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         ))
         XCTAssertTrue(ownerSource.contains("activationOwner.submitCommand("))
         XCTAssertTrue(ownerSource.contains("activationOwner.retryCommand("))
+        XCTAssertFalse(readOnlySource.contains("HostControlClient"))
+        XCTAssertFalse(readOnlySource.contains(".submit("))
+        XCTAssertFalse(readOnlySource.contains(".retry("))
         let appSource = try String(
             contentsOf: repositoryRoot.appendingPathComponent(
                 "Sources/RustDeskNative/RustDeskNativeApp.swift"
@@ -307,8 +436,21 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             ),
             encoding: .utf8
         )
+        XCTAssertEqual(appSource.components(
+            separatedBy:
+                "HostAgentBackgroundHomeCommandPresentationOwner.makeProduct("
+        ).count - 1, 1)
+        XCTAssertTrue(appSource.contains(
+            "activationOwner: hostAgentBackgroundActivationOwner"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy"
+        ))
         XCTAssertFalse(appSource.contains(
-            "HostAgentBackgroundHomeCommandPresentationOwner"
+            "hostAgentBackgroundCommandPresentationOwner.submit("
+        ))
+        XCTAssertFalse(appSource.contains(
+            "hostAgentBackgroundCommandPresentationOwner.retry("
         ))
         XCTAssertFalse(homeSource.contains(
             "HostAgentBackgroundHomeCommandPresentationView"
