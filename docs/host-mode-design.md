@@ -1794,6 +1794,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H5.3a 30 分钟 stability validator 持久回归已完成**。既有 schema-v4 validator 曾用临时 synthetic fixtures 验证，但仓库没有可重复测试，后续可能在无感知下弱化真实验收门禁；现在新增最小完整 `stability-1080p30` smoke fixture，固定 production route telemetry、Rust queue/writer/network/transport finalization、六类 drop ledger、active-route sleep assertion 与六个 stability window。回归分别证明完整 fixture 通过、六窗口 CPU 单调实质增长失败、drop ledger 缺项失败、短 smoke 冒充 1,800 秒 acceptance 失败，以及已有 run evidence 不可覆盖。focused 5/5、全量 ScriptTests 33/33 与 Python compile 通过。本步仅增强验收工具，不产生或伪造任何真机性能数据；H5.3 的 Apple Silicon/Intel 各 30 分钟、完整 §15.2 矩阵、能耗/thermal、Instruments 与恢复后重复场景仍待安装构建人工执行，因此 H5.3 保持未完成。未安装/启动/注册/部署/push，未改 product source、ABI/schema/Hermes、CI、依赖、数据库、真实 TCC/配置或密钥。详见 `Evidence/HostMode/2026-08-09/h5-stability-validator-regression.md`。
 
+> 更新（2026-08-09）：**H5.3b active/static/stability 机器身份证据绑定已完成**。system schema-v3 sampler 原本已采集 `hw.model`、`uname -m` 与 macOS 版本，但 schema-v4 performance run summary 会丢失这些字段，无法从最终证据证明 §15.2 的 Apple Silicon/Intel 分别运行。validator 现在要求有界且无控制字符的 machine model/macOS version，并只接受 exact `arm64 | x86_64`；通过摘要保留三项身份，缺失/未知/污染值 fail closed 且只投影为 `unavailable`。focused 6/6、全量 ScriptTests 34/34、Python compile 与 diff check 通过。本步不产生性能数据，也不声明任一架构真机通过；idle identity、真实 600/1,800 秒双架构矩阵、恢复后重复、battery/thermal、Host+Viewer 合并预算和 Instruments 仍 open。未安装/启动/注册/部署/push，未改 product source、ABI/shared schema/Hermes、CI、依赖、数据库、真实 TCC/配置或密钥。详见 `Evidence/HostMode/2026-08-09/h5-performance-machine-identity.md`。
+
 退出条件：各产品目标场景 pass/fail 证据齐全；无 sleep assertion 泄漏、无输入泄漏、无未解释 backlog。
 
 ### 26.9 阶段 8 — H6 可选能力（§3.3、§12.2、§21 H6）

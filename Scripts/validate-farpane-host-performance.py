@@ -69,6 +69,7 @@ DROP_REASONS = (
     "shutdown",
 )
 STABILITY_WINDOW_COUNT = 6
+SUPPORTED_MACHINE_ARCHITECTURES = ("arm64", "x86_64")
 
 
 def usage() -> None:
@@ -94,6 +95,18 @@ def is_integer(value: Any) -> bool:
 
 def is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def is_bounded_identity_text(value: Any, maximum_length: int) -> bool:
+    return (
+        isinstance(value, str)
+        and value == value.strip()
+        and 0 < len(value) <= maximum_length
+        and all(
+            ord(character) >= 0x20 and ord(character) != 0x7F
+            for character in value
+        )
+    )
 
 
 def load_json(path: Path, label: str, failures: list[str]) -> dict[str, Any]:
@@ -456,6 +469,9 @@ def main() -> int:
             )
 
     sample_mode = system.get("sampleMode") if system else None
+    machine_model = "unavailable"
+    machine_architecture = "unavailable"
+    macos_version = "unavailable"
     if system:
         system_schema_version = system.get("schemaVersion")
         require(
@@ -480,6 +496,30 @@ def main() -> int:
         )
         require(system.get("requestedDurationSeconds") == duration, "system evidence duration does not match")
         require(system.get("sampleCount") == duration, "system sampler did not produce one sample per requested second")
+        candidate_machine_model = system.get("machineModel")
+        candidate_architecture = system.get("architecture")
+        candidate_macos_version = system.get("macOSVersion")
+        machine_model_valid = is_bounded_identity_text(candidate_machine_model, 128)
+        architecture_valid = candidate_architecture in SUPPORTED_MACHINE_ARCHITECTURES
+        macos_version_valid = is_bounded_identity_text(candidate_macos_version, 64)
+        require(
+            machine_model_valid,
+            "system evidence machine model is missing or invalid",
+        )
+        require(
+            architecture_valid,
+            "system evidence architecture must be arm64 or x86_64",
+        )
+        require(
+            macos_version_valid,
+            "system evidence macOS version is missing or invalid",
+        )
+        if machine_model_valid:
+            machine_model = candidate_machine_model
+        if architecture_valid:
+            machine_architecture = candidate_architecture
+        if macos_version_valid:
+            macos_version = candidate_macos_version
 
     rows: list[dict[str, str]] = []
     try:
@@ -646,6 +686,9 @@ def main() -> int:
         "performanceProfile": performance_profile,
         "sampleMode": sample_mode or "unknown",
         "requestedDurationSeconds": duration,
+        "machineModel": machine_model,
+        "architecture": machine_architecture,
+        "macOSVersion": macos_version,
         "expectedWidth": expected_width,
         "expectedHeight": expected_height,
         "hostCPUUpperTargetPercent": cpu_ceiling,

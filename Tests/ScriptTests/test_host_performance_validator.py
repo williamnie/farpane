@@ -139,6 +139,9 @@ class HostPerformanceValidatorTests(unittest.TestCase):
                     "sampleCount": self.duration,
                     "completed": True,
                     "samplerExitStatus": 0,
+                    "machineModel": "Macmini9,1",
+                    "architecture": "arm64",
+                    "macOSVersion": "15.6",
                 }
             ),
             encoding="utf-8",
@@ -208,6 +211,9 @@ class HostPerformanceValidatorTests(unittest.TestCase):
         self.assertEqual(result["schemaVersion"], 4)
         self.assertEqual(result["status"], "pass")
         self.assertEqual(result["failures"], [])
+        self.assertEqual(result["machineModel"], "Macmini9,1")
+        self.assertEqual(result["architecture"], "arm64")
+        self.assertEqual(result["macOSVersion"], "15.6")
         self.assertEqual(result["stabilityWindowCount"], 6)
         self.assertEqual(
             result["stabilityDropCounts"],
@@ -261,6 +267,34 @@ class HostPerformanceValidatorTests(unittest.TestCase):
             "stability acceptance evidence is shorter than 1800 seconds",
             result["failures"],
         )
+
+    def test_rejects_missing_or_unsupported_machine_identity(self) -> None:
+        system = json.loads(self.system_path.read_text(encoding="utf-8"))
+        del system["machineModel"]
+        system["architecture"] = "future-architecture"
+        system["macOSVersion"] = "15.6\nforged"
+        self.system_path.write_text(json.dumps(system), encoding="utf-8")
+
+        completed = self._run()
+
+        self.assertEqual(completed.returncode, 1)
+        result = json.loads(self.output_path.read_text(encoding="utf-8"))
+        self.assertEqual(result["status"], "fail")
+        self.assertIn(
+            "system evidence machine model is missing or invalid",
+            result["failures"],
+        )
+        self.assertIn(
+            "system evidence architecture must be arm64 or x86_64",
+            result["failures"],
+        )
+        self.assertIn(
+            "system evidence macOS version is missing or invalid",
+            result["failures"],
+        )
+        self.assertEqual(result["machineModel"], "unavailable")
+        self.assertEqual(result["architecture"], "unavailable")
+        self.assertEqual(result["macOSVersion"], "unavailable")
 
     def test_refuses_to_replace_existing_run_evidence(self) -> None:
         first = self._run()
