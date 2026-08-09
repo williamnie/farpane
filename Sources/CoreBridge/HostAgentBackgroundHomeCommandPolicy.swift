@@ -351,6 +351,10 @@ package enum HostAgentBackgroundHomeCommandPolicy {
                 intent.commandID
               ),
               let action = action(for: intent.name),
+              HostAgentBackgroundSessionCommandPolicy.allows(
+                intent,
+                payload: projection.payload
+              ),
               connectionID(
                 for: action,
                 payload: projection.payload
@@ -373,6 +377,15 @@ package enum HostAgentBackgroundHomeCommandPolicy {
     private static func actionTargets(
         for payload: HostAgentXPCWireSnapshotPayload
     ) -> [HostAgentBackgroundHomeCommandActionTarget] {
+        if payload.sessionAvailability == .limited {
+            guard payload.sessionUnavailableReason == .sessionUnavailable,
+                  let session = payload.activeSession
+            else { return [] }
+            return [.init(
+                action: .disconnect,
+                connectionID: session.connectionID
+            )]
+        }
         var targets: [HostAgentBackgroundHomeCommandActionTarget] = []
         if let pending = payload.pendingApproval {
             targets.append(.init(

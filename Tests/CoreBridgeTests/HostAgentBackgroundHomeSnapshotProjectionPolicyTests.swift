@@ -167,6 +167,56 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         XCTAssertEqual(view.activeSession?.inputAvailability, .available)
     }
 
+    func testLimitedSessionHidesPendingApprovalButRetainsActiveSession()
+        throws
+    {
+        let pending: [String: Any] = [
+            "connectionId": "host-a:pending-1",
+            "remoteId": "remote-1",
+            "remoteName": "Mini",
+            "remotePlatform": "macOS",
+            "remoteMetadataTrust": "untrusted",
+            "requestedAt": 40,
+            "expiresAt": 80,
+            "requestedCapabilities": ["viewDisplay"],
+            "transport": "relay",
+            "authenticationMethod": "localApproval",
+            "riskAlerts": [],
+        ]
+        let active: [String: Any] = [
+            "connectionId": "host-a:session-1",
+            "remoteId": "remote-2",
+            "remoteName": "MBP",
+            "remotePlatform": "macOS",
+            "remoteMetadataTrust": "untrusted",
+            "startedAt": 30,
+            "initialCapabilities": ["viewDisplay"],
+            "activeCapabilities": ["viewDisplay"],
+            "inputAvailability": "limited",
+            "inputUnavailableReason": "sessionUnavailable",
+        ]
+        let projection = try availableProjection(
+            localID: "123456789",
+            registrationStatus: "ready",
+            lastError: nil,
+            pendingApproval: pending,
+            activeSession: active,
+            limitedSession: true
+        )
+        let readiness = readiness(
+            registration: .enabled,
+            projection: projection
+        )
+        let view = presentation(
+            readiness: readiness,
+            projection: projection
+        )
+
+        XCTAssertEqual(readiness.availability, .sessionUnavailable)
+        XCTAssertNil(view.pendingApproval)
+        XCTAssertEqual(view.activeSession?.connectionID, "host-a:session-1")
+    }
+
     func testProductSourcesCarryProjectionAndDoNotMixLegacyFields()
         throws
     {
@@ -304,7 +354,8 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         registrationStatus: String,
         lastError: String?,
         pendingApproval: Any = NSNull(),
-        activeSession: Any = NSNull()
+        activeSession: Any = NSNull(),
+        limitedSession: Bool = false
     ) throws -> HostAgentBackgroundProjectionView {
         let authority = HostAgentBackgroundProjectionAuthority()
         let binding = authority.beginSession()
@@ -321,7 +372,8 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
                 registrationStatus: registrationStatus,
                 lastError: lastError,
                 pendingApproval: pendingApproval,
-                activeSession: activeSession
+                activeSession: activeSession,
+                limitedSession: limitedSession
             ),
             peerIdentity: peer,
             transition: .firstObservation
@@ -335,7 +387,8 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         registrationStatus: String,
         lastError: String?,
         pendingApproval: Any,
-        activeSession: Any
+        activeSession: Any,
+        limitedSession: Bool
     ) throws -> HostAgentXPCWireSnapshotResponse {
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
@@ -352,8 +405,12 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
                     "hostInstanceId": hostID,
                     "hostState": "ready",
                     "localId": localID,
-                    "sessionAvailability": "available",
-                    "sessionUnavailableReason": NSNull(),
+                    "sessionAvailability": limitedSession
+                        ? "limited"
+                        : "available",
+                    "sessionUnavailableReason": limitedSession
+                        ? "sessionUnavailable"
+                        : NSNull(),
                     "registrationStatus": registrationStatus,
                     "recoveryEpoch": 0,
                     "recoveryStatus": "running",

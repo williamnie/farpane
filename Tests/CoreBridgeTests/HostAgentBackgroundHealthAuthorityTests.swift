@@ -17,6 +17,7 @@ final class HostAgentBackgroundHealthAuthorityTests: XCTestCase {
         XCTAssertEqual(view.runtime.projectionGeneration, 0)
         XCTAssertEqual(view.runtime.handshake, .disconnected)
         XCTAssertEqual(view.runtime.snapshot, .unavailable)
+        XCTAssertEqual(view.runtime.session, .unavailable)
         XCTAssertEqual(view.runtime.rendezvous, .checking)
         XCTAssertEqual(view.availability, .waitingForHandshake)
         XCTAssertFalse(view.isReady)
@@ -78,6 +79,7 @@ final class HostAgentBackgroundHealthAuthorityTests: XCTestCase {
             projectionGeneration: 2,
             handshake: .disconnected,
             snapshot: .unavailable,
+            session: .unavailable,
             rendezvous: .offline
         ))
 
@@ -151,6 +153,7 @@ final class HostAgentBackgroundHealthAuthorityTests: XCTestCase {
             projectionGeneration: 2,
             handshake: .disconnected,
             snapshot: .unavailable,
+            session: .unavailable,
             rendezvous: .offline
         ))
 
@@ -170,6 +173,7 @@ final class HostAgentBackgroundHealthAuthorityTests: XCTestCase {
             projectionGeneration: 3,
             handshake: .compatible,
             snapshot: .unavailable,
+            session: .unavailable,
             rendezvous: .checking
         ))
         XCTAssertEqual(authority.snapshot().failure, .invalidRuntimeEvidence)
@@ -198,6 +202,7 @@ final class HostAgentBackgroundHealthAuthorityTests: XCTestCase {
             projectionGeneration: 1,
             handshake: .disconnected,
             snapshot: .available,
+            session: .available,
             rendezvous: .registered
         ))
 
@@ -222,6 +227,7 @@ final class HostAgentBackgroundHealthAuthorityTests: XCTestCase {
                 projectionGeneration: 1,
                 handshake: .disconnected,
                 snapshot: .unavailable,
+                session: .unavailable,
                 rendezvous: .checking
             )
         )
@@ -239,6 +245,28 @@ final class HostAgentBackgroundHealthAuthorityTests: XCTestCase {
         XCTAssertEqual(composition.reconnectOwner.stateSnapshot(), .idle)
         XCTAssertFalse(composition.healthAuthority.snapshot().isReady)
         XCTAssertTrue(observations.values.isEmpty)
+    }
+
+    func testLimitedSessionWithdrawsAndLaterProjectionRestoresReady() {
+        let authority = HostAgentBackgroundHealthAuthority(
+            initialRegistration: .enabled,
+            observeRegistration: { .enabled }
+        )
+        authority.acceptRuntimeEvidence(HostAgentBackgroundRuntimeEvidence(
+            projectionGeneration: 1,
+            handshake: .compatible,
+            snapshot: .available,
+            session: .limitedSessionUnavailable,
+            rendezvous: .registered
+        ))
+
+        XCTAssertEqual(authority.snapshot().availability, .sessionUnavailable)
+        XCTAssertFalse(authority.snapshot().isReady)
+
+        authority.acceptRuntimeEvidence(healthyEvidence(generation: 2))
+
+        XCTAssertEqual(authority.snapshot().availability, .ready)
+        XCTAssertTrue(authority.snapshot().isReady)
     }
 
     func testSourceHasNoRegistrationMutationUIOrAutomaticStart() throws {
@@ -279,6 +307,7 @@ final class HostAgentBackgroundHealthAuthorityTests: XCTestCase {
             projectionGeneration: generation,
             handshake: .compatible,
             snapshot: .available,
+            session: .available,
             rendezvous: .registered
         )
     }

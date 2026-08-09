@@ -66,6 +66,13 @@ final class HostAgentBackgroundHomeReadinessPresentationPolicyTests:
             )
         )
         assertMonitoring(
+            readiness(session: .limitedSessionUnavailable),
+            equals: expected(
+                "当前 Mac 会话不可用",
+                isRunning: true
+            )
+        )
+        assertMonitoring(
             readiness(),
             equals: expected(
                 "可被连接",
@@ -99,6 +106,7 @@ final class HostAgentBackgroundHomeReadinessPresentationPolicyTests:
             projectionGeneration: 1,
             handshake: .disconnected,
             snapshot: .available,
+            session: .available,
             rendezvous: .registered
         ))
 
@@ -237,6 +245,7 @@ private func readiness(
     registration: HostAgentBackgroundRegistrationStatus = .enabled,
     handshake: HostAgentBackgroundHandshakeStatus = .compatible,
     snapshot: HostAgentBackgroundSnapshotStatus = .available,
+    session: HostAgentBackgroundSessionStatus? = nil,
     rendezvous: HostAgentBackgroundRendezvousStatus = .registered
 ) -> HostAgentBackgroundReadinessView {
     let authority = HostAgentBackgroundHealthAuthority(
@@ -247,6 +256,9 @@ private func readiness(
         projectionGeneration: 1,
         handshake: handshake,
         snapshot: snapshot,
+        session: session ?? (
+            snapshot == .available ? .available : .unavailable
+        ),
         rendezvous: rendezvous
     ))
     return authority.snapshot()

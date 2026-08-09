@@ -68,6 +68,26 @@ def main() -> int:
             repository
             / "Sources/CoreBridge/HostAgentBackgroundHomeSnapshotProjectionPolicy.swift"
         ),
+        "projection": (
+            repository
+            / "Sources/CoreBridge/HostAgentBackgroundProjectionAuthority.swift"
+        ),
+        "health": (
+            repository
+            / "Sources/CoreBridge/HostAgentBackgroundHealthAuthority.swift"
+        ),
+        "command": (
+            repository
+            / "Sources/CoreBridge/HostAgentBackgroundCommandRoute.swift"
+        ),
+        "home_command": (
+            repository
+            / "Sources/CoreBridge/HostAgentBackgroundHomeCommandPolicy.swift"
+        ),
+        "activation": (
+            repository
+            / "Sources/CoreBridge/HostAgentBackgroundActivationOwner.swift"
+        ),
         "presentation": (
             repository / "Sources/CoreBridge/HostApplicationLifecyclePolicy.swift"
         ),
@@ -248,26 +268,63 @@ def main() -> int:
                 )
             )
         ),
-        "homeDoesNotYetPublishTopLevelSessionTuple": (
-            "sessionAvailability" not in sources["home_snapshot"]
-            and "sessionUnavailableReason" not in sources["home_snapshot"]
+        "backgroundProjectionDerivesTypedSessionEvidence": (
+            all(
+                marker in sources["projection"]
+                for marker in (
+                    "package var sessionStatus: HostAgentBackgroundSessionStatus",
+                    "case (.available, nil):",
+                    "case (.limited, .sessionUnavailable):",
+                    "return .limitedSessionUnavailable",
+                )
+            )
+            and "session: projection.sessionStatus" in sources["health"]
         ),
-        "backgroundReadinessCanStillBecomeReadyWithoutSessionEvidence": (
+        "backgroundReadinessWithdrawsReadyForLimitedSession": (
             all(
                 marker in component_health
                 for marker in (
                     "registration: HostAgentBackgroundRegistrationStatus",
                     "handshake: HostAgentBackgroundHandshakeStatus",
                     "snapshot: HostAgentBackgroundSnapshotStatus",
+                    "session: HostAgentBackgroundSessionStatus",
                     "rendezvous: HostAgentBackgroundRendezvousStatus",
+                    "case .limitedSessionUnavailable:",
+                    "return .sessionUnavailable",
                     "return .ready",
                 )
             )
-            and "session" not in component_health.lower()
+            and "session == .unavailable" in component_health
+            and "session != .unavailable" in component_health
+            and 'statusText: "当前 Mac 会话不可用"'
+                in sources["home_readiness"]
             and 'statusText: "可被连接"' in sources["home_readiness"]
             and "isReady: true" in sources["home_readiness"]
         ),
-        "backgroundHomeUsesOnlyNestedInputPresentation": (
+        "limitedHomeHidesApprovalAndRetainsSession": (
+            "payload.sessionAvailability == .available"
+                in sources["home_snapshot"]
+            and "pendingApproval: pendingApproval" in sources["home_snapshot"]
+            and "activeSession: payload.activeSession" in sources["home_snapshot"]
+        ),
+        "limitedCommandPolicyAllowsOnlyExactDisconnect": (
+            all(
+                marker in sources["command"]
+                for marker in (
+                    "package enum HostAgentBackgroundSessionCommandPolicy",
+                    "case (.limited, .sessionUnavailable):",
+                    "return name == .disconnectSession",
+                    "payload.activeSession?.connectionID == connectionID",
+                )
+            )
+            and "HostAgentBackgroundSessionCommandPolicy.allows("
+                in sources["home_command"]
+            and "if payload.sessionAvailability == .limited"
+                in sources["home_command"]
+            and "HostAgentBackgroundSessionCommandPolicy.allows("
+                in sources["activation"]
+        ),
+        "backgroundSessionDetailStillUsesTypedNestedInputPresentation": (
             "HostSessionInputPresentationPolicy.presentation(" in background_home
             and "HostSessionPresentationPolicy.presentation(" not in background_home
             and "HostActiveAquaSessionAuthority" not in background_home
@@ -380,6 +437,14 @@ def main() -> int:
             sources["readiness"],
             "package struct HostAgentBackgroundComponentHealth",
         ),
+        "backgroundSessionProjection": line_number(
+            sources["projection"],
+            "package var sessionStatus: HostAgentBackgroundSessionStatus",
+        ),
+        "backgroundSessionCommandPolicy": line_number(
+            sources["command"],
+            "package enum HostAgentBackgroundSessionCommandPolicy",
+        ),
         "backgroundHome": line_number(
             sources["app"],
             "private func backgroundHostActiveSessionHomeSnapshot(",
@@ -400,8 +465,12 @@ def main() -> int:
 
     document = {
         "schema": SCHEMA,
-        "schemaVersion": 3,
-        "status": "xpc-transition-implemented" if not missing else "audit-drift",
+        "schemaVersion": 4,
+        "status": (
+            "background-readiness-command-withdrawal-implemented"
+            if not missing
+            else "audit-drift"
+        ),
         "implementation": {
             "hostABIVersion": rust_abi,
             "snapshotSchemaVersion": snapshot_schema,
@@ -414,6 +483,8 @@ def main() -> int:
             "sharedABINotImplementedByAudit": False,
             "backgroundMediaSuspensionNotImplementedByAudit": False,
             "xpcTransitionProjectionNotImplementedByAudit": False,
+            "backgroundReadinessAndCommandWithdrawalNotImplementedByAudit": False,
+            "detailedHomeLimitedPresentationStillRequired": True,
             "installedLockLoginWindowFUSAcceptanceStillRequired": True,
             "secureInputRemainsSeparateDecision": True,
         },

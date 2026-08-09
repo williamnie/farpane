@@ -57,6 +57,23 @@ package struct HostAgentBackgroundProjectionView: Equatable, Sendable {
         return .unavailable
     }
 
+    package var sessionStatus: HostAgentBackgroundSessionStatus {
+        guard case .available(let projection) = phase else {
+            return .unavailable
+        }
+        switch (
+            projection.payload.sessionAvailability,
+            projection.payload.sessionUnavailableReason
+        ) {
+        case (.available, nil):
+            return .available
+        case (.limited, .sessionUnavailable):
+            return .limitedSessionUnavailable
+        default:
+            return .unavailable
+        }
+    }
+
     package var rendezvousStatus: HostAgentBackgroundRendezvousStatus {
         switch phase {
         case .available(let projection):

@@ -4,17 +4,20 @@ package struct HostAgentBackgroundRuntimeEvidence: Equatable, Sendable {
     package let projectionGeneration: UInt64
     package let handshake: HostAgentBackgroundHandshakeStatus
     package let snapshot: HostAgentBackgroundSnapshotStatus
+    package let session: HostAgentBackgroundSessionStatus
     package let rendezvous: HostAgentBackgroundRendezvousStatus
 
     package init(
         projectionGeneration: UInt64,
         handshake: HostAgentBackgroundHandshakeStatus,
         snapshot: HostAgentBackgroundSnapshotStatus,
+        session: HostAgentBackgroundSessionStatus,
         rendezvous: HostAgentBackgroundRendezvousStatus
     ) {
         self.projectionGeneration = projectionGeneration
         self.handshake = handshake
         self.snapshot = snapshot
+        self.session = session
         self.rendezvous = rendezvous
     }
 
@@ -23,6 +26,7 @@ package struct HostAgentBackgroundRuntimeEvidence: Equatable, Sendable {
             projectionGeneration: projection.generation,
             handshake: projection.handshakeStatus,
             snapshot: projection.snapshotStatus,
+            session: projection.sessionStatus,
             rendezvous: projection.rendezvousStatus
         )
     }
@@ -31,15 +35,18 @@ package struct HostAgentBackgroundRuntimeEvidence: Equatable, Sendable {
         switch handshake {
         case .disconnected:
             return snapshot == .unavailable
+                && session == .unavailable
                 && rendezvous != .registered
         case .incompatible:
             return snapshot == .unavailable
+                && session == .unavailable
                 && rendezvous == .offline
         case .compatible:
             if snapshot == .unavailable {
-                return rendezvous != .registered
+                return session == .unavailable
+                    && rendezvous != .registered
             }
-            return true
+            return session != .unavailable
         }
     }
 
@@ -50,6 +57,7 @@ package struct HostAgentBackgroundRuntimeEvidence: Equatable, Sendable {
             projectionGeneration: projectionGeneration,
             handshake: .disconnected,
             snapshot: .unavailable,
+            session: .unavailable,
             rendezvous: .offline
         )
     }
@@ -83,6 +91,7 @@ package struct HostAgentBackgroundReadinessView: Equatable, Sendable {
             registration: registration,
             handshake: runtime.handshake,
             snapshot: runtime.snapshot,
+            session: runtime.session,
             rendezvous: runtime.rendezvous
         )
     }
@@ -124,6 +133,7 @@ package final class HostAgentBackgroundHealthAuthority: @unchecked Sendable {
                 projectionGeneration: 0,
                 handshake: .disconnected,
                 snapshot: .unavailable,
+                session: .unavailable,
                 rendezvous: .checking
             ),
             failure: nil

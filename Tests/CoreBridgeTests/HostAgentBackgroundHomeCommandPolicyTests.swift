@@ -216,6 +216,61 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
         )
     }
 
+    func testLimitedSessionWithdrawsNewControlAndKeepsExactDisconnect()
+        throws
+    {
+        let fixture = try commandFixture(
+            activeCapabilities: [
+                "viewDisplay", "controlKeyboardMouse",
+                "readClipboard", "writeClipboard", "hearSystemAudio",
+            ],
+            limitedSession: true
+        )
+        let idle = present(fixture, state: .idle)
+
+        XCTAssertEqual(idle.availableActions, [.disconnect])
+        XCTAssertNil(HostAgentBackgroundHomeCommandPolicy.submission(
+            action: .approveIncoming,
+            presentation: idle,
+            makeCommandID: { "must-not-be-created" }
+        ))
+        XCTAssertNil(HostAgentBackgroundHomeCommandPolicy.submission(
+            action: .disableKeyboardAndMouse,
+            presentation: idle,
+            makeCommandID: { "must-not-be-created" }
+        ))
+        let disconnect = try XCTUnwrap(
+            HostAgentBackgroundHomeCommandPolicy.submission(
+                action: .disconnect,
+                presentation: idle,
+                makeCommandID: { "command-disconnect" }
+            )
+        )
+        XCTAssertEqual(disconnect.intent.name, .disconnectSession)
+        XCTAssertEqual(disconnect.intent.connectionID, "host-a:session-1")
+        let retainedDisconnect = present(
+            fixture,
+            state: .retryable(disconnect.intent)
+        )
+        XCTAssertTrue(retainedDisconnect.canRetry)
+        XCTAssertEqual(
+            HostAgentBackgroundHomeCommandPolicy.retryRoute(
+                presentation: retainedDisconnect
+            ),
+            fixture.route
+        )
+
+        let retainedApproval = HostAgentXPCCommandIntent(
+            commandID: "command-approval",
+            name: .approveIncoming,
+            connectionID: "host-a:pending-1"
+        )
+        XCTAssertEqual(
+            present(fixture, state: .retryable(retainedApproval)),
+            .unavailable
+        )
+    }
+
     func testInflightQueuedAndRetryablePresentWithoutNewActions()
         throws
     {
@@ -458,7 +513,8 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
     }
 
     private func commandFixture(
-        activeCapabilities: [String]
+        activeCapabilities: [String],
+        limitedSession: Bool = false
     ) throws -> CommandFixture {
         let projectionAuthority = HostAgentBackgroundProjectionAuthority()
         let binding = projectionAuthority.beginSession()
@@ -468,7 +524,10 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
             agentBootID: bootID
         )
         binding.sink.publishInitialSnapshot(
-            try commandSnapshot(activeCapabilities: activeCapabilities),
+            try commandSnapshot(
+                activeCapabilities: activeCapabilities,
+                limitedSession: limitedSession
+            ),
             peerIdentity: peer,
             transition: .firstObservation
         )
@@ -497,7 +556,8 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
     }
 
     private func commandSnapshot(
-        activeCapabilities: [String]
+        activeCapabilities: [String],
+        limitedSession: Bool
     ) throws -> HostAgentXPCWireSnapshotResponse {
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
@@ -549,8 +609,12 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
                     "hostInstanceId": "host-a",
                     "hostState": "ready",
                     "localId": "123456789",
-                    "sessionAvailability": "available",
-                    "sessionUnavailableReason": NSNull(),
+                    "sessionAvailability": limitedSession
+                        ? "limited"
+                        : "available",
+                    "sessionUnavailableReason": limitedSession
+                        ? "sessionUnavailable"
+                        : NSNull(),
                     "registrationStatus": "ready",
                     "recoveryEpoch": 0,
                     "recoveryStatus": "running",
