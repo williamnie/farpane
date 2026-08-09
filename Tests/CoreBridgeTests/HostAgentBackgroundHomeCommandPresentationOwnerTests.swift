@@ -212,6 +212,290 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertFalse(display.canRetry)
     }
 
+    func testOwnerAwareRoutingNeverFallsBackAcrossLegacyAndBackground()
+        throws
+    {
+        let fixture = try commandFixture(epoch: 9)
+        let dependencies = PresentationOwnerDependencies(fixture: fixture)
+        let owner = makeOwner(dependencies)
+        XCTAssertTrue(owner.refresh())
+        let visible = HostAgentHomeCommandVisibleTargets(
+            approvalConnectionID: "host-a:pending-1",
+            sessionConnectionID: "host-a:session-1",
+            enabledActions:
+                HostAgentBackgroundHomeCommandAction.allCases
+        )
+
+        for action in HostAgentBackgroundHomeCommandAction.allCases {
+            let connectionID = connectionID(for: action)
+            XCTAssertEqual(
+                commandRoute(
+                    request: .perform(
+                        action: action,
+                        connectionID: connectionID
+                    ),
+                    owner: .background,
+                    visible: visible,
+                    fixture: fixture,
+                    commandView: owner.snapshot(),
+                    legacyCommandsAvailable: true
+                ),
+                .background(action: action)
+            )
+            XCTAssertEqual(
+                commandRoute(
+                    request: .perform(
+                        action: action,
+                        connectionID: connectionID
+                    ),
+                    owner: .legacy,
+                    visible: visible,
+                    fixture: fixture,
+                    commandView: nil,
+                    legacyCommandsAvailable: true
+                ),
+                .legacy(action: action, connectionID: connectionID)
+            )
+        }
+
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .approveIncoming,
+                    connectionID: "host-a:session-1"
+                ),
+                owner: .background,
+                visible: visible,
+                fixture: fixture,
+                commandView: owner.snapshot(),
+                legacyCommandsAvailable: true
+            ),
+            .none
+        )
+        let approvalOnly = HostAgentHomeCommandVisibleTargets(
+            approvalConnectionID: "host-a:pending-1",
+            sessionConnectionID: "host-a:session-1",
+            enabledActions: [.approveIncoming]
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .rejectIncoming,
+                    connectionID: "host-a:pending-1"
+                ),
+                owner: .background,
+                visible: approvalOnly,
+                fixture: fixture,
+                commandView: owner.snapshot(),
+                legacyCommandsAvailable: true
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .rejectIncoming,
+                    connectionID: "host-a:pending-1"
+                ),
+                owner: .legacy,
+                visible: approvalOnly,
+                fixture: fixture,
+                commandView: nil,
+                legacyCommandsAvailable: true
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .disconnect,
+                    connectionID: "host-a:pending-1"
+                ),
+                owner: .legacy,
+                visible: visible,
+                fixture: fixture,
+                commandView: nil,
+                legacyCommandsAvailable: true
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .retry(connectionID: "host-a:session-1"),
+                owner: .legacy,
+                visible: visible,
+                fixture: fixture,
+                commandView: nil,
+                legacyCommandsAvailable: true
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .approveIncoming,
+                    connectionID: "host-a:pending-1"
+                ),
+                owner: .legacy,
+                visible: visible,
+                fixture: fixture,
+                commandView: nil,
+                legacyCommandsAvailable: false
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            HostAgentHomeCommandRoutingPolicy.route(
+                request: .perform(
+                    action: .approveIncoming,
+                    connectionID: "host-a:pending-1"
+                ),
+                owner: .background,
+                visibleTargets: visible,
+                legacyCommandsAvailable: true,
+                phase: nil,
+                projection: fixture.activation.projection,
+                commandView: owner.snapshot()
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .approveIncoming,
+                    connectionID: "host-a:pending-1"
+                ),
+                owner: .unavailable,
+                visible: visible,
+                fixture: fixture,
+                commandView: owner.snapshot(),
+                legacyCommandsAvailable: true
+            ),
+            .none
+        )
+    }
+
+    func testBackgroundRoutingRequiresExactIdleOrRetryableState()
+        throws
+    {
+        let first = try commandFixture(epoch: 9)
+        let second = try commandFixture(epoch: 10)
+        let dependencies = PresentationOwnerDependencies(fixture: first)
+        let owner = makeOwner(dependencies)
+        let visible = HostAgentHomeCommandVisibleTargets(
+            approvalConnectionID: "host-a:pending-1",
+            sessionConnectionID: "host-a:session-1",
+            enabledActions:
+                HostAgentBackgroundHomeCommandAction.allCases
+        )
+        XCTAssertTrue(owner.refresh())
+        XCTAssertTrue(owner.submit(.disconnect))
+        let submission = try XCTUnwrap(dependencies.submissions.first)
+
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .disconnect,
+                    connectionID: "host-a:session-1"
+                ),
+                owner: .background,
+                visible: visible,
+                fixture: first,
+                commandView: owner.snapshot()
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .retry(connectionID: "host-a:session-1"),
+                owner: .background,
+                visible: visible,
+                fixture: first,
+                commandView: owner.snapshot()
+            ),
+            .none
+        )
+
+        dependencies.publish(.accepted(
+            try acceptedResponse(for: submission.intent)
+        ))
+        dependencies.publish(.resultUnknown)
+        XCTAssertEqual(
+            commandRoute(
+                request: .retry(connectionID: "host-a:session-1"),
+                owner: .background,
+                visible: visible,
+                fixture: first,
+                commandView: owner.snapshot()
+            ),
+            .backgroundRetry(action: .disconnect)
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .retry(connectionID: "host-a:pending-1"),
+                owner: .background,
+                visible: visible,
+                fixture: first,
+                commandView: owner.snapshot()
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .disconnect,
+                    connectionID: "host-a:session-1"
+                ),
+                owner: .background,
+                visible: visible,
+                fixture: first,
+                commandView: owner.snapshot()
+            ),
+            .none
+        )
+
+        XCTAssertTrue(owner.retry())
+        dependencies.publish(.accepted(
+            try acceptedResponse(for: submission.intent)
+        ))
+        dependencies.publish(.completed(
+            try HostAgentXPCWireCommandResult(
+                commandID: submission.intent.commandID,
+                status: .ok,
+                detail: "ok"
+            )
+        ))
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .disconnect,
+                    connectionID: "host-a:session-1"
+                ),
+                owner: .background,
+                visible: visible,
+                fixture: first,
+                commandView: owner.snapshot()
+            ),
+            .none
+        )
+
+        dependencies.replace(with: second)
+        XCTAssertTrue(owner.refresh())
+        XCTAssertEqual(
+            commandRoute(
+                request: .perform(
+                    action: .disconnect,
+                    connectionID: "host-a:session-1"
+                ),
+                owner: .background,
+                visible: visible,
+                fixture: second,
+                commandView: owner.snapshot()
+            ),
+            .background(action: .disconnect)
+        )
+    }
+
     func testRouteReplacementDropsOldAttemptAndLateCallback() throws {
         let first = try commandFixture(epoch: 9)
         let second = try commandFixture(epoch: 10)
@@ -410,6 +694,12 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             ),
             encoding: .utf8
         )
+        let routingSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/CoreBridge/HostAgentHomeCommandRoutingPolicy.swift"
+            ),
+            encoding: .utf8
+        )
         for forbidden in [
             "import AppKit", "import SwiftUI", "HostControlClient",
             "UserDefaults", "SMAppService",
@@ -424,6 +714,9 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertFalse(readOnlySource.contains("HostControlClient"))
         XCTAssertFalse(readOnlySource.contains(".submit("))
         XCTAssertFalse(readOnlySource.contains(".retry("))
+        XCTAssertFalse(routingSource.contains("HostControlClient"))
+        XCTAssertFalse(routingSource.contains(".submit("))
+        XCTAssertFalse(routingSource.contains("retryCommand("))
         let appSource = try String(
             contentsOf: repositoryRoot.appendingPathComponent(
                 "Sources/RustDeskNative/RustDeskNativeApp.swift"
@@ -455,6 +748,43 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertFalse(homeSource.contains(
             "HostAgentBackgroundHomeCommandPresentationView"
         ))
+        XCTAssertFalse(appSource.contains(
+            "HostAgentHomeCommandRoutingPolicy"
+        ))
+        XCTAssertFalse(homeSource.contains(
+            "HostAgentHomeCommandRoute"
+        ))
+    }
+
+    private func commandRoute(
+        request: HostAgentHomeCommandRequest,
+        owner: HostAgentHomeCommandOwner,
+        visible: HostAgentHomeCommandVisibleTargets,
+        fixture: CommandFixture,
+        commandView: HostAgentBackgroundHomeCommandPresentationView?,
+        legacyCommandsAvailable: Bool = false
+    ) -> HostAgentHomeCommandRoute {
+        HostAgentHomeCommandRoutingPolicy.route(
+            request: request,
+            owner: owner,
+            visibleTargets: visible,
+            legacyCommandsAvailable: legacyCommandsAvailable,
+            phase: fixture.activation.phase,
+            projection: fixture.activation.projection,
+            commandView: commandView
+        )
+    }
+
+    private func connectionID(
+        for action: HostAgentBackgroundHomeCommandAction
+    ) -> String {
+        switch action {
+        case .approveIncoming, .rejectIncoming:
+            return "host-a:pending-1"
+        case .disableKeyboardAndMouse, .disableClipboard,
+             .disableSystemAudio, .disconnect:
+            return "host-a:session-1"
+        }
     }
 
     private func makeOwner(
