@@ -569,6 +569,9 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(ownerSource.contains(
             "HostMediaPipelineRecoveryOwner("
         ))
+        XCTAssertTrue(ownerSource.contains(
+            "HostMediaPipelineRecoveryPollingOwner.makeProduct("
+        ))
         XCTAssertTrue(ownerSource.contains("controlDeliveryGate.submit(control)"))
         XCTAssertTrue(ownerSource.contains("controlDeliveryGate.activate"))
         XCTAssertTrue(ownerSource.contains("controlDeliveryGate.cancelAndWait()"))
@@ -629,6 +632,12 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(ownerSource.contains(
             "recoveryOwner.pollRecoveryConvergence()"
         ))
+        XCTAssertTrue(ownerSource.contains(
+            "recoveryPollingOwner.start("
+        ))
+        XCTAssertTrue(ownerSource.contains(
+            "recoveryPollingOwner.stateSnapshot()"
+        ))
         XCTAssertTrue(ownerSource.contains("recoveryOwner.cancelAndWait()"))
         XCTAssertTrue(ownerSource.contains("HostMediaPipelineLiveLogCoordinator()"))
         XCTAssertTrue(ownerSource.contains("lifecycleObserver: liveLogCoordinator.lifecycleObserver"))
@@ -637,12 +646,17 @@ final class CoreBridgeContractTests: XCTestCase {
         let liveLogPollCancel = try XCTUnwrap(ownerSource.range(
             of: "liveLogPollingOwner.cancel()"
         ))
+        let recoveryPollCancel = try XCTUnwrap(ownerSource.range(
+            of: "recoveryPollingOwner.cancelAndWait()"
+        ))
         let recoveryCancel = try XCTUnwrap(ownerSource.range(
             of: "recoveryOwner.cancelAndWait()"
         ))
         let liveLogSeal = try XCTUnwrap(ownerSource.range(
             of: "liveLogCoordinator.cancel()"
         ))
+        XCTAssertLessThan(recoveryPollCancel.lowerBound, recoveryCancel.lowerBound)
+        XCTAssertLessThan(recoveryPollCancel.lowerBound, liveLogPollCancel.lowerBound)
         XCTAssertLessThan(liveLogPollCancel.lowerBound, recoveryCancel.lowerBound)
         XCTAssertLessThan(recoveryCancel.lowerBound, liveLogSeal.lowerBound)
 
