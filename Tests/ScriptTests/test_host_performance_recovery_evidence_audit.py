@@ -30,7 +30,7 @@ class HostPerformanceRecoveryEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "display-callback-implemented",
+            "manifest-validator-implemented",
         )
         self.assertEqual(document["section15_2Item"], 7)
         self.assertEqual(document["missingEvidence"], [])

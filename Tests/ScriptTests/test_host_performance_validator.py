@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -127,23 +128,29 @@ class HostPerformanceValidatorTests(unittest.TestCase):
         *,
         host_cpu: list[float] | None = None,
         sample_mode: str = "smoke",
+        schema_version: int = 3,
+        sample_started_at: str | None = None,
+        sample_completed_at: str | None = None,
     ) -> None:
+        document = {
+            "schemaVersion": schema_version,
+            "sampler": "farpane-host-system",
+            "scenario": self.scenario,
+            "sampleMode": sample_mode,
+            "requestedDurationSeconds": self.duration,
+            "sampleCount": self.duration,
+            "completed": True,
+            "samplerExitStatus": 0,
+            "machineModel": "Macmini9,1",
+            "architecture": "arm64",
+            "macOSVersion": "15.6",
+        }
+        if sample_started_at is not None:
+            document["sampleStartedAt"] = sample_started_at
+        if sample_completed_at is not None:
+            document["collectedAt"] = sample_completed_at
         self.system_path.write_text(
-            json.dumps(
-                {
-                    "schemaVersion": 3,
-                    "sampler": "farpane-host-system",
-                    "scenario": self.scenario,
-                    "sampleMode": sample_mode,
-                    "requestedDurationSeconds": self.duration,
-                    "sampleCount": self.duration,
-                    "completed": True,
-                    "samplerExitStatus": 0,
-                    "machineModel": "Macmini9,1",
-                    "architecture": "arm64",
-                    "macOSVersion": "15.6",
-                }
-            ),
+            json.dumps(document),
             encoding="utf-8",
         )
         cpu_values = host_cpu or [10.0] * self.duration
@@ -180,18 +187,25 @@ class HostPerformanceValidatorTests(unittest.TestCase):
                     }
                 )
 
-    def _run(self) -> subprocess.CompletedProcess[str]:
+    def _run(
+        self,
+        recovery_source: Path | None = None,
+        recovery_sequence: int | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        arguments = [
+            sys.executable,
+            str(self.validator),
+            self.scenario,
+            str(self.duration),
+            str(self.route_path),
+            str(self.system_path),
+            str(self.samples_path),
+            str(self.output_path),
+        ]
+        if recovery_source is not None and recovery_sequence is not None:
+            arguments.extend([str(recovery_source), str(recovery_sequence)])
         return subprocess.run(
-            [
-                sys.executable,
-                str(self.validator),
-                self.scenario,
-                str(self.duration),
-                str(self.route_path),
-                str(self.system_path),
-                str(self.samples_path),
-                str(self.output_path),
-            ],
+            arguments,
             cwd=self.repository,
             check=False,
             capture_output=True,
@@ -306,6 +320,61 @@ class HostPerformanceValidatorTests(unittest.TestCase):
         self.assertEqual(second.returncode, 2)
         self.assertIn("refusing to overwrite", second.stderr)
         self.assertEqual(self.output_path.read_bytes(), original)
+
+    def test_binds_recovery_record_before_full_1080p30_acceptance_window(self) -> None:
+        self.scenario = "1080p30"
+        self.duration = 600
+        self.route = self._route_fixture()
+        self._write_route()
+        self._write_system(
+            sample_mode="acceptance",
+            schema_version=4,
+            sample_started_at="2026-08-10T01:00:00Z",
+            sample_completed_at="2026-08-10T01:10:00Z",
+        )
+        transition = {
+            "schema": "farpane-host-recovery-transition",
+            "schemaVersion": 1,
+            "sequence": 1,
+            "kind": "sleepWake",
+            "acceptedAt": "2026-08-10T00:58:00Z",
+            "completedAt": "2026-08-10T00:59:00Z",
+            "acceptedMonotonicNanoseconds": 100,
+            "completedMonotonicNanoseconds": 200,
+            "status": "completed",
+            "hostInstanceScopeSHA256": "a" * 64,
+            "buildIdentitySHA256": "b" * 64,
+            "correlation": {
+                "recoveryEpoch": 1,
+                "runningReadyConverged": True,
+            },
+        }
+        raw_record = json.dumps(
+            transition, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        transition_path = self.root / "recovery.jsonl"
+        transition_path.write_bytes(raw_record + b"\n")
+
+        completed = self._run(transition_path, 1)
+
+        self.assertEqual(
+            completed.returncode,
+            0,
+            completed.stderr or completed.stdout,
+        )
+        result = json.loads(self.output_path.read_text(encoding="utf-8"))
+        self.assertEqual(result["schemaVersion"], 5)
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["sampleStartedAt"], "2026-08-10T01:00:00Z")
+        self.assertEqual(result["sampleCompletedAt"], "2026-08-10T01:10:00Z")
+        self.assertEqual(result["recoveryTransition"], {
+            "kind": "sleepWake",
+            "sequence": 1,
+            "recordSHA256": hashlib.sha256(raw_record).hexdigest(),
+            "completedAt": "2026-08-10T00:59:00Z",
+            "hostInstanceScopeSHA256": "a" * 64,
+            "buildIdentitySHA256": "b" * 64,
+        })
 
 
 if __name__ == "__main__":

@@ -28,6 +28,13 @@ def main() -> int:
         "sampler": repository / "Scripts/sample-farpane-host-performance.sh",
         "validator": repository / "Scripts/validate-farpane-host-performance.py",
         "matrix": repository / "Scripts/validate-farpane-host-performance-matrix.py",
+        "recovery_validator": (
+            repository
+            / "Scripts/validate-farpane-host-performance-recovery.py"
+        ),
+        "scenario_runner": (
+            repository / "Scripts/run-farpane-host-performance-scenario.sh"
+        ),
         "runtime_evidence": (
             repository / "Sources/VideoPipeline/HostRuntimeStateEvidence.swift"
         ),
@@ -90,6 +97,8 @@ def main() -> int:
     sampler = sources["sampler"]
     validator = sources["validator"]
     matrix = sources["matrix"]
+    recovery_validator = sources["recovery_validator"]
+    scenario_runner = sources["scenario_runner"]
     runtime_evidence = sources["runtime_evidence"]
     media_evidence = sources["media_evidence"]
     sleep_owner = sources["sleep_owner"]
@@ -350,6 +359,52 @@ def main() -> int:
             and host_process.find("mediaPipelineOwner.cancelAndWait()")
             < host_process.find("recoveryEvidenceOwner.cancelAndWait()")
         ),
+        "recoveryRunBindingUsesExactRecordAndPreSampleBoundary": (
+            all(
+                marker in validator
+                for marker in (
+                    "[RECOVERY_JSONL RECOVERY_SEQUENCE]",
+                    "load_recovery_binding(",
+                    '"schemaVersion": 5 if recovery_source_path is not None else 4',
+                    '"sampleStartedAt": sample_started_at_text',
+                    '"recoveryTransition"',
+                    "completed_at >= sample_started_at",
+                )
+            )
+            and all(
+                marker in sampler
+                for marker in (
+                    '"schemaVersion": 4',
+                    '"sampleStartedAt": "$sample_started_at"',
+                )
+            )
+            and all(
+                marker in scenario_runner
+                for marker in (
+                    "FARPANE_HOST_RECOVERY_TRANSITION_SOURCE",
+                    "FARPANE_HOST_RECOVERY_TRANSITION_SEQUENCE",
+                    'validator_arguments+=("$recovery_source" "$recovery_sequence")',
+                )
+            )
+        ),
+        "boundedRecoveryManifestValidatorImplemented": all(
+            marker in recovery_validator
+            for marker in (
+                'MANIFEST_SCHEMA = "farpane-host-performance-recovery-manifest"',
+                "EXPECTED_RUN_COUNT = len(RECOVERY_KINDS)",
+                "MAX_TRANSITION_RECORDS = 128",
+                "has_symlink_component(",
+                "transition source digest does not match manifest",
+                "run source digest does not match manifest",
+                "multiple runs reference the same transition record",
+                "recovery runs do not share one Host instance scope",
+                "recovery runs do not share one build identity",
+                "recovery runs do not share one machine and macOS identity",
+                "run did not start after its recovery completed",
+                "write_atomic_no_replace(",
+                '"fullSection15_2Item7Complete": status == "pass"',
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -407,6 +462,19 @@ def main() -> int:
         ),
         "displayEvidenceCompletion": line_number(
             display_evidence_owner, "recordDisplayReconfigureCompleted("
+        ),
+        "recoveryRunBinding": line_number(
+            validator, "load_recovery_binding("
+        ),
+        "recoverySampleStart": line_number(
+            sampler, '"sampleStartedAt": "$sample_started_at"'
+        ),
+        "recoveryManifestAdmission": line_number(
+            recovery_validator, "def validate_manifest("
+        ),
+        "recoveryManifestCompletion": line_number(
+            recovery_validator,
+            '"fullSection15_2Item7Complete": status == "pass"',
         ),
     }
 
@@ -472,7 +540,6 @@ def main() -> int:
     }
 
     remaining_boundary = {
-        "recoveryManifestValidatorStillRequiresImplementation": True,
         "allThreeTransitionsRequireInstalledMacExecution": True,
         "eachRecoveryRequiresFreshTenMinuteScenarioThreeRun": True,
         "noSection15_2ItemSevenPassIsClaimed": True,
@@ -482,7 +549,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "display-callback-implemented"
+            "manifest-validator-implemented"
             if not missing
             else "contract-drift"
         ),

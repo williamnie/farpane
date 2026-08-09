@@ -19,6 +19,13 @@ route convergence, and the display evidence callback are now connected. Real
 installed-Mac transitions and post-recovery runs remain open. None of these
 statuses claims a recovery or performance pass.
 
+H5.3n advances current readback to `manifest-validator-implemented`. Recovery
+scenario summaries now have a recovery-only v5 form that binds one exact raw
+transition record and the authoritative sampling window. The bounded manifest
+validator enforces three unique kinds, SHA-256 source binding, post-transition
+ordering, and one machine/Host/build scope. Real installed-Mac inputs remain
+absent, so item 7 is still not claimed.
+
 The next implementation must create a dedicated sanitized transition record
 for each recovery kind and bind it to one fresh, passed, 600-second `1080p30`
 run on the same machine, build, and Host scope. Scenario labels, generic
@@ -37,8 +44,9 @@ snapshots are explicitly forbidden as substitutes.
   provenance through an exact-next display revision and fresh connection and
   codec epochs.
 - The sampler accepts a `recovery` label, but the performance validator has no
-  recovery scenario contract and the base matrix explicitly leaves section
-  15.2 item 7 uncovered.
+  recovery meaning by label alone. H5.3n instead requires the explicit
+  recovery-only v5 binding; the base matrix still correctly leaves section
+  15.2 item 7 to this separate gate.
 - Runtime-state schema v2 exposes no recovery epoch/status, path generation,
   or display revision. Media telemetry intentionally omits route identity and
   exposes only an aggregate reconfigure-drop counter, so neither artifact can
@@ -74,7 +82,8 @@ snapshots are explicitly forbidden as substitutes.
 
 - The exact successful convergence callbacks for sleep/wake, network path, and
   display reconfiguration are connected by H5.3j/H5.3k/H5.3m.
-- Implement the bounded recovery manifest validator and negative fixtures.
+- The bounded recovery manifest validator and negative fixtures are now
+  implemented by H5.3n.
 - On an installed Mac, execute all three recovery types and one fresh
   600-second scenario 3 run after each transition.
 - Battery/thermal and combined Host/Viewer budgets remain separate section
