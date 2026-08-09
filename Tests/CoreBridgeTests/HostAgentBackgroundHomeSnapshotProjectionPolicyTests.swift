@@ -165,8 +165,6 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         )
         XCTAssertEqual(view.activeSession?.remoteName, "MBP")
         XCTAssertEqual(view.activeSession?.inputAvailability, .available)
-        XCTAssertFalse(view.allowsApprovalCommands)
-        XCTAssertFalse(view.allowsSessionCommands)
     }
 
     func testProductSourcesCarryProjectionAndDoNotMixLegacyFields()
@@ -179,6 +177,12 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         let activationSource = try String(
             contentsOf: repositoryRoot.appendingPathComponent(
                 "Sources/CoreBridge/HostAgentBackgroundActivationOwner.swift"
+            ),
+            encoding: .utf8
+        )
+        let projectionSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/CoreBridge/HostAgentBackgroundHomeSnapshotProjectionPolicy.swift"
             ),
             encoding: .utf8
         )
@@ -234,30 +238,43 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         XCTAssertTrue(appSource.contains(
             "mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : \"\""
         ))
-        XCTAssertEqual(appSource.components(
-            separatedBy: "allowsCommands: true"
-        ).count - 1, 2)
         XCTAssertTrue(appSource.contains(
-            "allowsCommands: backgroundSnapshot.allowsApprovalCommands"
+            "enabledActions: [.approve, .reject]"
         ))
-        XCTAssertTrue(appSource.contains(
-            "allowsCommands: backgroundSnapshot.allowsSessionCommands"
+        XCTAssertEqual(appSource.components(
+            separatedBy: "let availableActions = Set(command.availableActions)"
+        ).count - 1, 2)
+        XCTAssertFalse(appSource.contains(
+            "backgroundSnapshot.allowsApprovalCommands"
+        ))
+        XCTAssertFalse(appSource.contains(
+            "backgroundSnapshot.allowsSessionCommands"
+        ))
+        XCTAssertFalse(projectionSource.contains(
+            "allowsApprovalCommands"
+        ))
+        XCTAssertFalse(projectionSource.contains(
+            "allowsSessionCommands"
         ))
         XCTAssertTrue(appSource.contains(
             "backgroundHostApprovalExpiryText("
         ))
+        XCTAssertFalse(homeSource.contains("var allowsCommands: Bool"))
         XCTAssertEqual(homeSource.components(
-            separatedBy: "var allowsCommands: Bool"
-        ).count - 1, 2)
-        XCTAssertEqual(homeSource.components(
-            separatedBy: "approval.allowsCommands"
+            separatedBy: "approval.enabledActions"
         ).count - 1, 4)
         XCTAssertEqual(homeSource.components(
-            separatedBy: "&& !approval.isResolving"
-        ).count - 1, 2)
-        XCTAssertEqual(homeSource.components(
-            separatedBy: "session.allowsCommands"
+            separatedBy: "session.enabledActions"
         ).count - 1, 3)
+        XCTAssertTrue(homeSource.contains(
+            "onRetryHostCommand?(retry.connectionID)"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "backgroundHostCommandRetryHomeSnapshot("
+        ))
+        XCTAssertFalse(appSource.contains(
+            "当前版本仅可查看，操作尚未接通"
+        ))
     }
 
     private func presentation(
