@@ -240,6 +240,170 @@ index c0eb7fb..4bb52bf 100644
                          }
                      }
                  }
+diff --git a/src/clipboard.rs b/src/clipboard.rs
+index 01dc0c9..ab643b2 100644
+--- a/src/clipboard.rs
++++ b/src/clipboard.rs
+@@ -13,6 +13,54 @@ pub const CLIPBOARD_NAME: &'static str = "clipboard";
+ pub const FILE_CLIPBOARD_NAME: &'static str = "file-clipboard";
+ pub const CLIPBOARD_INTERVAL: u64 = 333;
+
++#[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++pub(crate) const NATIVE_CLIPBOARD_FALLBACK_MIN_INTERVAL_MS: u64 = 125;
++#[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++pub(crate) const NATIVE_CLIPBOARD_FALLBACK_MAX_INTERVAL_MS: u64 = 4_000;
++
++#[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++pub(crate) struct NativeClipboardFallbackBackoff {
++    next_interval_ms: std::sync::atomic::AtomicU64,
++}
++
++#[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++impl Default for NativeClipboardFallbackBackoff {
++    fn default() -> Self {
++        Self {
++            next_interval_ms: std::sync::atomic::AtomicU64::new(
++                NATIVE_CLIPBOARD_FALLBACK_MIN_INTERVAL_MS,
++            ),
++        }
++    }
++}
++
++#[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++impl NativeClipboardFallbackBackoff {
++    pub(crate) fn reset(&self) {
++        self.next_interval_ms.store(
++            NATIVE_CLIPBOARD_FALLBACK_MIN_INTERVAL_MS,
++            std::sync::atomic::Ordering::Relaxed,
++        );
++    }
++
++    pub(crate) fn next_wait(&self) -> Duration {
++        let current = self
++            .next_interval_ms
++            .load(std::sync::atomic::Ordering::Relaxed);
++        let bounded = current.clamp(
++            NATIVE_CLIPBOARD_FALLBACK_MIN_INTERVAL_MS,
++            NATIVE_CLIPBOARD_FALLBACK_MAX_INTERVAL_MS,
++        );
++        self.next_interval_ms.store(
++            bounded
++                .saturating_mul(2)
++                .min(NATIVE_CLIPBOARD_FALLBACK_MAX_INTERVAL_MS),
++            std::sync::atomic::Ordering::Relaxed,
++        );
++        Duration::from_millis(bounded)
++    }
++}
++
+ // This format is used to store the flag in the clipboard.
+ const RUSTDESK_CLIPBOARD_OWNER_FORMAT: &'static str = "dyn.com.rustdesk.owner";
+
+@@ -837,10 +885,14 @@ pub mod clipboard_listener {
+
+     struct Handler {
+         subscribers: Arc<Mutex<HashMap<String, Sender<CallbackResult>>>>,
++        #[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++        fallback_backoff: super::NativeClipboardFallbackBackoff,
+     }
+
+     impl ClipboardHandler for Handler {
+         fn on_clipboard_change(&mut self) -> CallbackResult {
++            #[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++            self.fallback_backoff.reset();
+             let sub_lock = self.subscribers.lock().unwrap();
+             for tx in sub_lock.values() {
+                 tx.send(CallbackResult::Next).ok();
+@@ -848,6 +900,11 @@ pub mod clipboard_listener {
+             CallbackResult::Next
+         }
+
++        #[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++        fn sleep_interval(&self) -> core::time::Duration {
++            self.fallback_backoff.next_wait()
++        }
++
+         fn on_clipboard_error(&mut self, error: io::Error) -> CallbackResult {
+             let msg = format!("Clipboard listener error: {}", error);
+             let sub_lock = self.subscribers.lock().unwrap();
+@@ -882,6 +939,8 @@ pub mod clipboard_listener {
+             log::info!("Start clipboard listener thread");
+             let handler = Handler {
+                 subscribers: listener_lock.subscribers.clone(),
++                #[cfg(all(target_os = "macos", feature = "rdn-native-host"))]
++                fallback_backoff: Default::default(),
+             };
+             let (tx_start_res, rx_start_res) = channel();
+             let h = start_clipboard_master_thread(handler, tx_start_res);
+@@ -915,7 +974,10 @@ pub mod clipboard_listener {
+         if let Some((shutdown, h)) = listener.handle.take() {
+             log::warn!("Cleaning up stale clipboard listener handle");
+             if let Err(e) = h.join() {
+-                log::error!("Clipboard listener thread panicked during stale cleanup: {:?}", e);
++                log::error!(
++                    "Clipboard listener thread panicked during stale cleanup: {:?}",
++                    e
++                );
+             }
+             drop(shutdown);
+         }
+@@ -970,4 +1032,56 @@ pub mod clipboard_listener {
+         });
+         h
+     }
++
++    #[cfg(all(test, target_os = "macos", feature = "rdn-native-host"))]
++    mod tests {
++        use super::*;
++        use std::time::Duration;
++
++        #[test]
++        fn native_clipboard_activity_resets_listener_fallback_backoff() {
++            let mut handler = Handler {
++                subscribers: Default::default(),
++                fallback_backoff: Default::default(),
++            };
++            assert_eq!(handler.sleep_interval(), Duration::from_millis(125));
++            assert_eq!(handler.sleep_interval(), Duration::from_millis(250));
++
++            let _ = handler.on_clipboard_change();
++
++            assert_eq!(handler.sleep_interval(), Duration::from_millis(125));
++        }
++    }
++}
++
++#[cfg(all(test, target_os = "macos", feature = "rdn-native-host"))]
++mod native_clipboard_fallback_tests {
++    use super::{
++        NativeClipboardFallbackBackoff, NATIVE_CLIPBOARD_FALLBACK_MAX_INTERVAL_MS,
++        NATIVE_CLIPBOARD_FALLBACK_MIN_INTERVAL_MS,
++    };
++    use std::time::Duration;
++
++    #[test]
++    fn native_clipboard_fallback_backoff_is_bounded_and_exponential() {
++        let backoff = NativeClipboardFallbackBackoff::default();
++        let waits = (0..7).map(|_| backoff.next_wait()).collect::<Vec<_>>();
++
++        assert_eq!(
++            waits,
++            [125, 250, 500, 1_000, 2_000, 4_000, 4_000].map(Duration::from_millis)
++        );
++        assert_eq!(
++            waits.first().copied(),
++            Some(Duration::from_millis(
++                NATIVE_CLIPBOARD_FALLBACK_MIN_INTERVAL_MS
++            ))
++        );
++        assert_eq!(
++            waits.last().copied(),
++            Some(Duration::from_millis(
++                NATIVE_CLIPBOARD_FALLBACK_MAX_INTERVAL_MS
++            ))
++        );
++    }
+ }
 diff --git a/src/lib.rs b/src/lib.rs
 index 49cb2b7..61e3dec 100644
 --- a/src/lib.rs

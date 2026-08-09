@@ -39,16 +39,20 @@ class HostClipboardPolicyContractAuditTests(unittest.TestCase):
             document["remainingBoundary"]["independentRevocationCommandsRequired"]
         )
         self.assertFalse(document["remainingBoundary"]["directionalXPCUIRequired"])
+        self.assertFalse(
+            document["remainingBoundary"]["eventDrivenDynamicBackoffRequired"]
+        )
         self.assertTrue(all(
             value for name, value in document["remainingBoundary"].items()
             if name not in {
                 "independentRevocationCommandsRequired",
                 "directionalXPCUIRequired",
+                "eventDrivenDynamicBackoffRequired",
             }
         ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "event-first-dynamic-backoff-contract",
+            "temporary-clipboard-object-cleanup-contract",
         )
 
 

@@ -25,9 +25,12 @@ class HostClipboardDataPlaneGateAuditTests(unittest.TestCase):
         self.assertFalse(payload["claims"]["clipboardDataPathEnabled"])
         self.assertFalse(payload["claims"]["richClipboardImplemented"])
         self.assertFalse(payload["remainingBoundary"]["directionalXPCUIRequired"])
+        self.assertFalse(
+            payload["remainingBoundary"]["eventDrivenDynamicBackoffRequired"]
+        )
         self.assertEqual(
             payload["nextImplementationBoundary"],
-            "event-first-dynamic-backoff-contract",
+            "temporary-clipboard-object-cleanup-contract",
         )
 
 

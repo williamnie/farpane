@@ -234,12 +234,12 @@ def main() -> int:
             "clipboardEnabledByDefault": False,
         },
         "remainingBoundary": {
-            "eventDrivenDynamicBackoffRequired": True,
+            "eventDrivenDynamicBackoffRequired": False,
             "temporaryObjectCleanupRequired": True,
             "explicitProductEnablementRequired": True,
             "physicalUIAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "event-first-dynamic-backoff-contract",
+        "nextImplementationBoundary": "temporary-clipboard-object-cleanup-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "directional-revoke-xpc-home-contract" else 1

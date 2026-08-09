@@ -40,10 +40,16 @@ class HostClipboardDirectionalXPCUIContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["directionalHomeControlsImplemented"])
         self.assertTrue(document["claims"]["legacyBidirectionalAliasPreserved"])
         self.assertFalse(document["claims"]["clipboardEnabledByDefault"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]["eventDrivenDynamicBackoffRequired"]
+        )
+        self.assertTrue(all(
+            value for name, value in document["remainingBoundary"].items()
+            if name != "eventDrivenDynamicBackoffRequired"
+        ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "event-first-dynamic-backoff-contract",
+            "temporary-clipboard-object-cleanup-contract",
         )
 
 
