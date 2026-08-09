@@ -210,6 +210,31 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(view.projection?.observedAt, 101)
     }
 
+    func testCoordinatorPublishesOnlyAcceptedSnapshotViews() throws {
+        let state = HostAgentSnapshotState()
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
+        let source = SnapshotCopySource(snapshots: [
+            try coreSnapshot(host: "host-a", observedAt: 100),
+            try coreSnapshot(host: "host-a", observedAt: 99),
+            try coreSnapshot(host: "host-a", observedAt: 101),
+        ])
+        let publishedGenerations = LockedSnapshotGenerations()
+
+        XCTAssertTrue(coordinator.bind(
+            copySnapshot: source.copy,
+            onIdentityInvalidationRequired: { _ in },
+            onSnapshotPublished: { view in
+                publishedGenerations.append(view.refreshGeneration)
+            }
+        ))
+        coordinator.requestPoll()
+        coordinator.requestPoll()
+
+        XCTAssertEqual(publishedGenerations.snapshot(), [1, 3])
+        XCTAssertEqual(state.snapshot().refreshGeneration, 3)
+        XCTAssertEqual(state.snapshot().projection?.observedAt, 101)
+    }
+
     func testCoordinatorPublishesOnlyExactRecoverySnapshots() throws {
         let state = HostAgentSnapshotState()
         let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
@@ -675,6 +700,23 @@ final class HostAgentSnapshotStateTests: XCTestCase {
 
 private enum SnapshotCopyTestError: Error {
     case secretBearing
+}
+
+private final class LockedSnapshotGenerations: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [UInt64] = []
+
+    func append(_ value: UInt64) {
+        lock.lock()
+        values.append(value)
+        lock.unlock()
+    }
+
+    func snapshot() -> [UInt64] {
+        lock.lock()
+        defer { lock.unlock() }
+        return values
+    }
 }
 
 private final class SnapshotCopySource: @unchecked Sendable {

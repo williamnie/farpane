@@ -181,6 +181,8 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
     private var copySnapshot: (() throws -> HostCoreSnapshot)?
     private var onIdentityInvalidationRequired:
         ((HostAgentSnapshotIdentityInvalidationReason) -> Void)?
+    private var onSnapshotPublished:
+        (@Sendable (HostAgentSnapshotStateView) -> Void)?
     private var identityInvalidationDelivered = false
     private var pending: RefreshRequest?
     private var pollPending = false
@@ -203,12 +205,16 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         copySnapshot: @escaping () throws -> HostCoreSnapshot,
         onIdentityInvalidationRequired: @escaping (
             HostAgentSnapshotIdentityInvalidationReason
-        ) -> Void
+        ) -> Void,
+        onSnapshotPublished: @escaping @Sendable (
+            HostAgentSnapshotStateView
+        ) -> Void = { _ in }
     ) -> Bool {
         lock.lock()
         guard !cancelled,
               self.copySnapshot == nil,
-              self.onIdentityInvalidationRequired == nil
+              self.onIdentityInvalidationRequired == nil,
+              self.onSnapshotPublished == nil
         else {
             lock.unlock()
             return false
@@ -216,6 +222,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         self.copySnapshot = copySnapshot
         self.onIdentityInvalidationRequired =
             onIdentityInvalidationRequired
+        self.onSnapshotPublished = onSnapshotPublished
         if pending == nil {
             pending = RefreshRequest(eventSequence: 0, hostInstanceID: nil)
         }
@@ -350,7 +357,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
                       snapshot.registrationStatus == registrationStatus
             {
                 let previousProjection = state.snapshot().projection
-                if case .published = state.publish(
+                if case .published(let generation) = state.publish(
                     snapshot,
                     eventSequence: request.eventSequence,
                     expectedHostInstanceID: expectedHostInstanceID
@@ -360,6 +367,9 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
                         to: snapshot,
                         request: request
                     )
+                    if accepted {
+                        publishAcceptedSnapshot(generation: generation)
+                    }
                 } else {
                     accepted = false
                 }
@@ -393,6 +403,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         }
         copySnapshot = nil
         onIdentityInvalidationRequired = nil
+        onSnapshotPublished = nil
         lock.unlock()
     }
 
@@ -412,12 +423,14 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
                 )
                 if result == .rejected(.hostInstanceMismatch) {
                     requireIdentityInvalidation(.hostInstanceMismatch)
-                } else if case .published = result {
-                    publishSessionTransitionIfNeeded(
+                } else if case .published(let generation) = result,
+                          publishSessionTransitionIfNeeded(
                         from: previousProjection,
                         to: snapshot,
                         request: request
-                    )
+                          )
+                {
+                    publishAcceptedSnapshot(generation: generation)
                 }
             } catch {
                 state.recordCopyFailure(eventSequence: request.eventSequence)
@@ -573,5 +586,15 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         identityInvalidationDelivered = true
         lock.unlock()
         onIdentityInvalidationRequired(reason)
+    }
+
+    private func publishAcceptedSnapshot(generation: UInt64) {
+        guard let onSnapshotPublished else { return }
+        let view = state.snapshot()
+        guard view.status == .available,
+              view.refreshGeneration == generation,
+              view.projection != nil
+        else { return }
+        onSnapshotPublished(view)
     }
 }

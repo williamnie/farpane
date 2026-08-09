@@ -14,7 +14,8 @@ enum HostAgentProcess {
         expectedAgentBuildID: String,
         eventState: HostAgentEventState,
         snapshotState: HostAgentSnapshotState,
-        mediaState: HostAgentMediaControlState
+        mediaState: HostAgentMediaControlState,
+        concurrencyState: HostAgentConcurrencyObservationState
     ) -> HostAgentProcessRunResult {
         let concurrencyEvidenceOwner =
             HostViewerConcurrencyEvidenceProcessOwner()
@@ -27,6 +28,10 @@ enum HostAgentProcess {
         let snapshotCoordinator = HostAgentSnapshotRefreshCoordinator(
             state: snapshotState,
             eventState: eventState
+        )
+        let eventQueue = DispatchQueue(
+            label: "io.farpane.host-agent.startup-events",
+            qos: .userInitiated
         )
         let pollingOwner = HostAgentSnapshotPollingOwner(
             snapshotCoordinator: snapshotCoordinator
@@ -49,6 +54,7 @@ enum HostAgentProcess {
                     expectedAgentBuildID: expectedAgentBuildID,
                     eventState: eventState,
                     snapshotState: snapshotState,
+                    eventQueue: eventQueue,
                     prepareTermination: {
                         networkPathRecoveryOwner.cancelAndWait()
                         sleepWakeRecoveryOwner.cancelAndWait()
@@ -56,9 +62,13 @@ enum HostAgentProcess {
                         mediaPipelineOwner.cancelAndWait()
                         recoveryEvidenceOwner.cancelAndWait()
                         pollingOwner.cancel()
+                        eventQueue.sync {
+                            concurrencyState.cancelAndWait()
+                        }
                     },
                     onEvent: { event in
                         eventState.consume(event) { event, sequence in
+                            _ = concurrencyState.observe(event: event)
                             snapshotCoordinator.requestRefresh(
                                 eventSequence: sequence,
                                 hostInstanceID: event.hostInstanceId
@@ -77,6 +87,15 @@ enum HostAgentProcess {
                 guard case .success(let lifetime) = result else {
                     return result
                 }
+                if let identity = try? lifetime.concurrencyEvidenceIdentity() {
+                    _ = concurrencyState.bind { observation in
+                        recordConcurrencyObservation(
+                            observation,
+                            identity: identity,
+                            owner: concurrencyEvidenceOwner
+                        )
+                    }
+                }
                 guard snapshotCoordinator.bind(
                     copySnapshot: { [weak lifetime] in
                         guard let lifetime else {
@@ -87,6 +106,11 @@ enum HostAgentProcess {
                     onIdentityInvalidationRequired: { [weak lifetime] _ in
                         guard let lifetime else { return }
                         try? lifetime.invalidateXPCIdentity()
+                    },
+                    onSnapshotPublished: { snapshot in
+                        eventQueue.async {
+                            _ = concurrencyState.observe(snapshot: snapshot)
+                        }
                     }
                 ) else {
                     _ = lifetime.requestTermination(reason: .error)
@@ -150,11 +174,11 @@ enum HostAgentProcess {
                     _ = lifetime.waitUntilTerminated()
                     return .failure(HostAgentStartupFailure(kind: .internalFailure))
                 }
-                recordInitialReadyConcurrencyEvidence(
-                    owner: concurrencyEvidenceOwner,
-                    lifetime: lifetime,
-                    snapshotState: snapshotState
-                )
+                eventQueue.sync {
+                    _ = concurrencyState.observe(
+                        snapshot: snapshotState.snapshot()
+                    )
+                }
                 return .success(lifetime)
             },
             bindTermination: { controller, lifetime in
@@ -172,26 +196,27 @@ enum HostAgentProcess {
         )
     }
 
-    private static func recordInitialReadyConcurrencyEvidence(
-        owner: HostViewerConcurrencyEvidenceProcessOwner,
-        lifetime: HostAgentProcessLifetime,
-        snapshotState: HostAgentSnapshotState
+    private static func recordConcurrencyObservation(
+        _ observation: HostAgentConcurrencyObservation,
+        identity: HostAgentProcessEvidenceIdentity,
+        owner: HostViewerConcurrencyEvidenceProcessOwner
     ) {
-        let snapshot = snapshotState.snapshot()
-        guard let identity = try? lifetime.concurrencyEvidenceIdentity(),
-              let projection = snapshot.projection,
-              projection.hostState == "ready",
-              projection.registrationStatus == "ready",
-              projection.authenticatedConnectionCount == 0,
-              projection.activeSession == nil
-        else { return }
+        let state: HostViewerConcurrencyHostState
+        switch observation.state {
+        case .readyZeroInbound:
+            state = .readyZeroInbound
+        case .inboundMediaActive:
+            state = .inboundMediaActive
+        case .disconnected:
+            state = .disconnected
+        }
         _ = owner.observeHostAgentRuntimeState(
-            state: .readyZeroInbound,
-            hostInstanceID: projection.hostInstanceID,
+            state: state,
+            hostInstanceID: observation.hostInstanceID,
             agentBootID: identity.agentBootID,
             configRevision: identity.configRevision,
             agentBuildID: identity.agentBuildID,
-            sourceGeneration: snapshot.refreshGeneration
+            sourceGeneration: observation.sourceGeneration
         )
     }
 }

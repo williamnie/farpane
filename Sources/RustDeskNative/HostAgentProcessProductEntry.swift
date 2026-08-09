@@ -14,7 +14,8 @@ enum HostAgentProcessProductEntry {
                     expectedAgentBuildID: eligibility.buildIdentifier,
                     eventState: stateOwner.eventState,
                     snapshotState: stateOwner.snapshotState,
-                    mediaState: stateOwner.mediaState
+                    mediaState: stateOwner.mediaState,
+                    concurrencyState: stateOwner.concurrencyState
                 )
             }
         )
