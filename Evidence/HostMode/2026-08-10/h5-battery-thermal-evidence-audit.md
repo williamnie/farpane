@@ -71,3 +71,9 @@ checkpoint. No installed portable-Mac battery or heat-soak run was performed,
 and no section 15.2 item 9 pass is claimed. The next automatic step is a
 separate physical-energy authority checkpoint; only after that decision is
 concrete should the bounded item 9 validator be implemented.
+
+Historical update: H5.3p subsequently selected operator-privileged raw
+`powermetrics` plist as the same-machine physical-energy authority while
+forbidding product privilege escalation and per-process proxy inference. The
+raw capture wrapper, portable-Mac fixture/parser, paired threshold, manifest
+validator, and real runs remain open.
