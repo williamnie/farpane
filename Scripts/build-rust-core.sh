@@ -47,6 +47,7 @@ nm -gU "$staged_core" | grep -q _rdn_host_set_config_root
 nm -gU "$staged_core" | grep -q _rdn_host_create
 nm -gU "$staged_core" | grep -q _rdn_host_start
 nm -gU "$staged_core" | grep -q _rdn_host_stop
+nm -gU "$staged_core" | grep -q _rdn_host_recover_network_path
 nm -gU "$staged_core" | grep -q _rdn_host_begin_sleep
 nm -gU "$staged_core" | grep -q _rdn_host_finish_sleep
 nm -gU "$staged_core" | grep -q _rdn_host_resume_after_wake

@@ -55,6 +55,7 @@ def main() -> int:
         "header": repository / "CoreBridge/include/rustdesk_native.h",
         "shim": repository / "CoreBridge/Shim/rdn_shim.c",
         "build": repository / "Scripts/build-rust-core.sh",
+        "preflight": repository / "Scripts/preflight-host-mode-h1-golden.sh",
         "snapshot": repository / "Sources/CoreBridge/HostControlClient.swift",
         "trigger": (
             repository
@@ -63,6 +64,10 @@ def main() -> int:
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
+        product_sources = "\n".join(
+            read(path)
+            for path in sorted((repository / "Sources").rglob("*.swift"))
+        )
         rust_abi = version(
             r"const HOST_ABI_VERSION: u32 = (\d+);",
             sources["bridge"],
@@ -104,10 +109,15 @@ def main() -> int:
         "fn fail_host_after_password_persistence_mismatch",
     )
     target_symbol = "rdn_host_recover_network_path"
+    network_recovery = section(
+        bridge,
+        "fn fail_host_network_recovery",
+        "fn fail_host_sleep_recovery",
+    )
 
     evidence = {
-        "currentHostABIV8AndSnapshotV6ArePinned": (
-            rust_abi == 8 and header_abi == 8 and snapshot_schema == 6
+        "hostABIV9AndSnapshotV6AreImplemented": (
+            rust_abi == 9 and header_abi == 9 and snapshot_schema == 6
         ),
         "runtimeOwnsOnlyBoundedRegistrationRestartPrimitives": (
             ordered(
@@ -171,11 +181,69 @@ def main() -> int:
                 "trigger(pathGeneration, path)",
             )
         ),
-        "targetOperationIsStillAbsentEndToEnd": (
-            target_symbol not in sources["bridge"]
-            and target_symbol not in sources["header"]
-            and target_symbol not in sources["shim"]
-            and f"_{target_symbol}" not in sources["build"]
+        "targetOperationIsExportedEndToEnd": (
+            target_symbol in sources["bridge"]
+            and target_symbol in sources["header"]
+            and f'"{target_symbol}"' in sources["shim"]
+            and "host_recover_network_path =" in sources["shim"]
+            and f"_{target_symbol}" in sources["build"]
+            and f"_{target_symbol}" in sources["preflight"]
+        ),
+        "networkGenerationIsSeparateAndResetPerHostStart": all(
+            marker in bridge
+            for marker in (
+                "network_path_generation: u64",
+                "network_path_generation: 0",
+                "host.network_path_generation = 0;",
+                "fn is_next_network_path_generation",
+            )
+        ),
+        "admissionIsExactNextAndSleepIndependent": all(
+            marker in network_recovery
+            for marker in (
+                "host.recovery_state != HostRecoveryState::Running",
+                "RdnHostState::Starting | RdnHostState::Ready",
+                "host.runtime.is_none()",
+                "is_next_network_path_generation(",
+                "return RDN_HOST_ERR_STALE_GENERATION;",
+            )
+        ),
+        "restartRetiresOldOnlineStateBeforeReplacement": ordered(
+            network_recovery,
+            "host.network_path_generation = path_generation;",
+            'host.registration_status = "pending";',
+            "host.state = RdnHostState::Starting;",
+            "runtime.stop()",
+            "HostRuntime::start(host.rendezvous_server.clone())",
+            "host.emit_snapshot_changed();",
+            "RDN_HOST_OK",
+        ),
+        "restartPreservesIdentityMediaPasswordSleepAndRouteEpochs": all(
+            marker not in network_recovery
+            for marker in (
+                "Config::set_option",
+                "host.local_id =",
+                "unbind_media_host",
+                "bind_media_host",
+                "update_temporary_password",
+                "set_permanent_password",
+                "host.recovery_epoch =",
+                "native_host_suspend_wakelock",
+                "native_host_resume_wakelock",
+                "connection_epoch =",
+                "codec_epoch =",
+                "display_revision =",
+            )
+        ),
+        "runtimeFailuresAreTerminalRegistrationOnly": all(
+            marker in network_recovery
+            for marker in (
+                'host.registration_status = "degraded";',
+                "host.recovery_state = HostRecoveryState::Running;",
+                "host.state = RdnHostState::Error;",
+                "registration.runtimeJoinFailedDuringNetworkRecovery",
+                "registration.runtimeRestartFailedDuringNetworkRecovery",
+            )
         ),
     }
     missing = [name for name, present in evidence.items() if not present]
@@ -227,9 +295,9 @@ def main() -> int:
     }
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 1,
-        "status": "contract-frozen" if not missing else "audit-failed",
-        "baseline": {
+        "schemaVersion": 2,
+        "status": "contract-implemented" if not missing else "audit-failed",
+        "implementation": {
             "hostABIVersion": rust_abi,
             "snapshotSchemaVersion": snapshot_schema,
             "evidence": evidence,
@@ -244,6 +312,10 @@ def main() -> int:
                     bridge,
                     'pub unsafe extern "C" fn rdn_host_stop',
                 ),
+                "networkRestart": line_number(
+                    bridge,
+                    'pub unsafe extern "C" fn rdn_host_recover_network_path',
+                ),
                 "sleep": line_number(
                     bridge,
                     'pub unsafe extern "C" fn rdn_host_begin_sleep',
@@ -256,9 +328,13 @@ def main() -> int:
         },
         "targetContract": target_contract,
         "remainingBoundary": {
-            "hostABIV9NetworkRestartNotImplemented": True,
-            "swiftReadyConvergenceNotImplemented": True,
-            "productNWPathMonitorAdapterAbsent": True,
+            "swiftReadyConvergenceNotImplemented": (
+                "func recoverNetworkPath(" not in sources["snapshot"]
+                and "HostAgentNetworkPathRecoveryPollingOwner" not in product_sources
+            ),
+            "productNWPathMonitorAdapterAbsent": (
+                "NWPathMonitor" not in product_sources
+            ),
             "realNetworkSwitchEvidenceRequired": True,
         },
         "missingEvidence": missing,

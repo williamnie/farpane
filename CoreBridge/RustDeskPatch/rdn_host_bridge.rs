@@ -31,7 +31,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 8;
+const HOST_ABI_VERSION: u32 = 9;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 6;
@@ -88,6 +88,7 @@ const RDN_HOST_ERR_APPROVAL_EXPIRED: i32 = -23;
 const RDN_HOST_ERR_SESSION_NOT_FOUND: i32 = -24;
 const RDN_HOST_ERR_SESSION_STALE: i32 = -25;
 const RDN_HOST_ERR_SESSION_COMMAND_UNAVAILABLE: i32 = -26;
+const RDN_HOST_ERR_STALE_GENERATION: i32 = -27;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -231,6 +232,7 @@ pub struct RdnHost {
     registration_status: &'static str,
     recovery_epoch: u64,
     recovery_state: HostRecoveryState,
+    network_path_generation: u64,
     reveal_temporary_password: bool,
     last_error: Option<String>,
     event_id: Arc<AtomicU64>,
@@ -2516,6 +2518,7 @@ pub unsafe extern "C" fn rdn_host_create(
         registration_status: "notStarted",
         recovery_epoch: 0,
         recovery_state: HostRecoveryState::Running,
+        network_path_generation: 0,
         reveal_temporary_password: false,
         last_error: None,
         event_id: Arc::new(AtomicU64::new(0)),
@@ -2990,6 +2993,9 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
         return RDN_HOST_ERR_INTERNAL;
     }
     host.recovery_state = HostRecoveryState::Running;
+    // A terminal stop/start begins a fresh product network-observation
+    // lifetime. The path trigger owner also restarts from generation zero.
+    host.network_path_generation = 0;
     host.runtime = match HostRuntime::start(host.rendezvous_server.clone()) {
         Ok(runtime) => Some(runtime),
         Err(()) => {
@@ -3037,6 +3043,72 @@ pub unsafe extern "C" fn rdn_host_stop(host: *mut RdnHost, reason: RdnHostStopRe
     } else {
         host.state = RdnHostState::Stopped;
     }
+    host.emit_snapshot_changed();
+    RDN_HOST_OK
+}
+
+fn fail_host_network_recovery(host: &mut RdnHost, detail: &str) -> i32 {
+    host.registration_status = "degraded";
+    // Network registration recovery is independent from the exact-epoch
+    // sleep/wake state machine. Preserve Running so snapshot consumers do not
+    // misclassify a registration failure as a wakelock recovery failure.
+    host.recovery_state = HostRecoveryState::Running;
+    host.state = RdnHostState::Error;
+    host.last_error = Some(detail.to_owned());
+    host.emit_snapshot_changed();
+    RDN_HOST_ERR_INTERNAL
+}
+
+fn is_next_network_path_generation(current: u64, requested: u64) -> bool {
+    requested != 0 && current.checked_add(1) == Some(requested)
+}
+
+/// Restart only the Rust-owned Rendezvous registration runtime after an
+/// authoritative product network-path change. Success means the replacement
+/// runtime was started as pending; a later snapshot must prove ready.
+#[no_mangle]
+pub unsafe extern "C" fn rdn_host_recover_network_path(
+    host: *mut RdnHost,
+    path_generation: u64,
+) -> i32 {
+    let Some(host) = host.as_mut() else {
+        return RDN_HOST_ERR_INVALID_ARG;
+    };
+    if host.recovery_state != HostRecoveryState::Running
+        || !matches!(host.state, RdnHostState::Starting | RdnHostState::Ready)
+        || host.runtime.is_none()
+    {
+        return RDN_HOST_ERR_BAD_STATE;
+    }
+    if !is_next_network_path_generation(host.network_path_generation, path_generation) {
+        return RDN_HOST_ERR_STALE_GENERATION;
+    }
+
+    // Commit the exact generation and withdraw the old ready projection before
+    // stopping registration. Host identity/configuration and media/session
+    // authorities stay bound to this RdnHost lifetime.
+    host.network_path_generation = path_generation;
+    host.registration_status = "pending";
+    host.state = RdnHostState::Starting;
+    host.last_error = None;
+    host.emit_snapshot_changed();
+
+    let mut runtime = host.runtime.take().unwrap();
+    if !runtime.stop() {
+        return fail_host_network_recovery(
+            host,
+            "registration.runtimeJoinFailedDuringNetworkRecovery",
+        );
+    }
+    host.runtime = match HostRuntime::start(host.rendezvous_server.clone()) {
+        Ok(runtime) => Some(runtime),
+        Err(()) => {
+            return fail_host_network_recovery(
+                host,
+                "registration.runtimeRestartFailedDuringNetworkRecovery",
+            );
+        }
+    };
     host.emit_snapshot_changed();
     RDN_HOST_OK
 }
@@ -4251,6 +4323,7 @@ mod tests {
             registration_status: "ready",
             recovery_epoch: 0,
             recovery_state: HostRecoveryState::Running,
+            network_path_generation: 0,
             reveal_temporary_password: false,
             last_error: None,
             event_id: Arc::new(AtomicU64::new(0)),
@@ -4264,6 +4337,68 @@ mod tests {
             server_public_key: String::new(),
             runtime: None,
         }
+    }
+
+    #[test]
+    fn network_path_recovery_admission_is_exact_generation_and_fail_closed() {
+        assert!(!is_next_network_path_generation(0, 0));
+        assert!(is_next_network_path_generation(0, 1));
+        assert!(!is_next_network_path_generation(7, 7));
+        assert!(!is_next_network_path_generation(7, 9));
+        assert!(!is_next_network_path_generation(u64::MAX, 0));
+        assert!(!is_next_network_path_generation(u64::MAX, u64::MAX));
+
+        let mut host = ready_test_host("network-generation-host");
+        host.network_path_generation = 7;
+        host.runtime = Some(HostRuntime {
+            stop_requested: Arc::new(AtomicBool::new(false)),
+            finished: Arc::new(AtomicBool::new(false)),
+            thread: None,
+        });
+        assert_eq!(
+            unsafe { rdn_host_recover_network_path(std::ptr::null_mut(), 8) },
+            RDN_HOST_ERR_INVALID_ARG
+        );
+        for generation in [0, 7, 9, u64::MAX] {
+            assert_eq!(
+                unsafe { rdn_host_recover_network_path(&mut host, generation) },
+                RDN_HOST_ERR_STALE_GENERATION
+            );
+            assert_eq!(host.network_path_generation, 7);
+            assert_eq!(state_name(host.state), "ready");
+            assert_eq!(host.registration_status, "ready");
+            assert!(host.runtime.is_some());
+        }
+
+        host.recovery_state = HostRecoveryState::Suspended;
+        host.state = RdnHostState::Starting;
+        assert_eq!(
+            unsafe { rdn_host_recover_network_path(&mut host, 8) },
+            RDN_HOST_ERR_BAD_STATE
+        );
+        assert_eq!(host.network_path_generation, 7);
+        assert!(host.runtime.is_some());
+    }
+
+    #[test]
+    fn network_path_recovery_failure_is_terminal_but_not_sleep_failure() {
+        let mut host = ready_test_host("network-failure-host");
+        assert_eq!(
+            fail_host_network_recovery(
+                &mut host,
+                "registration.runtimeRestartFailedDuringNetworkRecovery",
+            ),
+            RDN_HOST_ERR_INTERNAL
+        );
+        assert_eq!(state_name(host.state), "error");
+        assert_eq!(host.registration_status, "degraded");
+        assert_eq!(host.recovery_state, HostRecoveryState::Running);
+        assert_eq!(host.recovery_epoch, 0);
+        assert_eq!(host.network_path_generation, 0);
+        assert_eq!(
+            host.last_error.as_deref(),
+            Some("registration.runtimeRestartFailedDuringNetworkRecovery")
+        );
     }
 
     #[test]

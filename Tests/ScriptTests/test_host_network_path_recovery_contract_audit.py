@@ -27,7 +27,7 @@ class HostNetworkPathRecoveryContractAuditTests(unittest.TestCase):
             document["schema"],
             "farpane-host-network-path-recovery-contract-audit",
         )
-        self.assertEqual(document["schemaVersion"], 1)
+        self.assertEqual(document["schemaVersion"], 2)
         self.assertEqual(document["status"], "trigger-contract-implemented")
         self.assertEqual(document["missingEvidence"], [])
         self.assertTrue(all(
@@ -37,13 +37,13 @@ class HostNetworkPathRecoveryContractAuditTests(unittest.TestCase):
             document["implementation"]["sourceLines"].values()
         ))
         self.assertTrue(
-            document["remainingBoundary"][
+            document["integrationBoundary"][
                 "productNWPathMonitorAdapterAbsent"
             ]
         )
         self.assertTrue(
-            document["remainingBoundary"][
-                "hostCoreNetworkRecoveryOperationAbsent"
+            document["integrationBoundary"][
+                "hostCoreNetworkRecoveryOperationImplemented"
             ]
         )
 
