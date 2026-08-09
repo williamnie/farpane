@@ -187,6 +187,178 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(view.projection?.observedAt, 101)
     }
 
+    func testCoordinatorPublishesOnlyExactRecoverySnapshots() throws {
+        let state = HostAgentSnapshotState()
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
+        let source = SnapshotCopySource(snapshots: [
+            try coreSnapshot(host: "host-a", observedAt: 100),
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 101,
+                recoveryEpoch: 1,
+                recoveryStatus: .suspending,
+                registrationStatus: "suspending"
+            ),
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 102,
+                recoveryEpoch: 1
+            ),
+        ])
+
+        XCTAssertTrue(coordinator.bind(
+            copySnapshot: source.copy,
+            onIdentityInvalidationRequired: { _ in }
+        ))
+        XCTAssertTrue(coordinator.publishRecoverySnapshot(
+            expectedHostInstanceID: "host-a",
+            epoch: 1,
+            recoveryStatus: .suspending,
+            registrationStatus: "suspending"
+        ))
+        var projection = try XCTUnwrap(state.snapshot().projection)
+        XCTAssertEqual(projection.recoveryEpoch, 1)
+        XCTAssertEqual(projection.recoveryStatus, .suspending)
+        XCTAssertEqual(projection.registrationStatus, "suspending")
+
+        XCTAssertTrue(coordinator.publishRecoverySnapshot(
+            expectedHostInstanceID: "host-a",
+            epoch: 1,
+            recoveryStatus: .running,
+            registrationStatus: "ready"
+        ))
+        projection = try XCTUnwrap(state.snapshot().projection)
+        XCTAssertEqual(projection.recoveryEpoch, 1)
+        XCTAssertEqual(projection.recoveryStatus, .running)
+        XCTAssertEqual(projection.registrationStatus, "ready")
+        XCTAssertEqual(source.callCount, 3)
+    }
+
+    func testCoordinatorRecoveryContradictionFailsClosed() throws {
+        let state = HostAgentSnapshotState()
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
+        let source = SnapshotCopySource(snapshots: [
+            try coreSnapshot(host: "host-a", observedAt: 100),
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 101,
+                recoveryEpoch: 1,
+                recoveryStatus: .resuming,
+                registrationStatus: "pending"
+            ),
+        ])
+        var invalidations: [HostAgentSnapshotIdentityInvalidationReason] = []
+
+        XCTAssertTrue(coordinator.bind(
+            copySnapshot: source.copy,
+            onIdentityInvalidationRequired: { invalidations.append($0) }
+        ))
+        XCTAssertFalse(coordinator.publishRecoverySnapshot(
+            expectedHostInstanceID: "host-a",
+            epoch: 1,
+            recoveryStatus: .suspending,
+            registrationStatus: "suspending"
+        ))
+
+        let view = state.snapshot()
+        XCTAssertEqual(view.status, .copyFailed)
+        XCTAssertNil(view.projection)
+        XCTAssertEqual(invalidations, [.copyFailed])
+    }
+
+    func testCoordinatorRecoveryPublicationWaitsForInflightRefresh() throws {
+        let state = HostAgentSnapshotState()
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
+        let source = BlockingSnapshotCopySource(snapshots: [
+            try coreSnapshot(host: "host-a", observedAt: 100),
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 101,
+                recoveryEpoch: 1,
+                recoveryStatus: .suspending,
+                registrationStatus: "suspending"
+            ),
+        ])
+        let bound = expectation(description: "initial refresh finished")
+        let recoveryReturned = DispatchSemaphore(value: 0)
+
+        DispatchQueue.global().async {
+            XCTAssertTrue(coordinator.bind(
+                copySnapshot: source.copy,
+                onIdentityInvalidationRequired: { _ in }
+            ))
+            bound.fulfill()
+        }
+        XCTAssertEqual(source.firstCopyEntered.wait(timeout: .now() + 2), .success)
+        DispatchQueue.global().async {
+            XCTAssertTrue(coordinator.publishRecoverySnapshot(
+                expectedHostInstanceID: "host-a",
+                epoch: 1,
+                recoveryStatus: .suspending,
+                registrationStatus: "suspending"
+            ))
+            recoveryReturned.signal()
+        }
+        XCTAssertEqual(
+            recoveryReturned.wait(timeout: .now() + 0.05),
+            .timedOut
+        )
+        source.releaseFirstCopy.signal()
+        wait(for: [bound], timeout: 2)
+        XCTAssertEqual(recoveryReturned.wait(timeout: .now() + 2), .success)
+
+        let projection = try XCTUnwrap(state.snapshot().projection)
+        XCTAssertEqual(projection.recoveryEpoch, 1)
+        XCTAssertEqual(projection.recoveryStatus, .suspending)
+        XCTAssertEqual(source.callCount, 2)
+    }
+
+    func testCoordinatorCancelDrainsInflightRecoveryPublication() throws {
+        let state = HostAgentSnapshotState()
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
+        let source = RecoveryBlockingSnapshotCopySource(
+            initial: try coreSnapshot(host: "host-a", observedAt: 100),
+            recovery: try coreSnapshot(
+                host: "host-a",
+                observedAt: 101,
+                recoveryEpoch: 1,
+                recoveryStatus: .suspending,
+                registrationStatus: "suspending"
+            )
+        )
+        let recoveryReturned = DispatchSemaphore(value: 0)
+        let cancelReturned = DispatchSemaphore(value: 0)
+
+        XCTAssertTrue(coordinator.bind(
+            copySnapshot: source.copy,
+            onIdentityInvalidationRequired: { _ in }
+        ))
+        DispatchQueue.global().async {
+            XCTAssertFalse(coordinator.publishRecoverySnapshot(
+                expectedHostInstanceID: "host-a",
+                epoch: 1,
+                recoveryStatus: .suspending,
+                registrationStatus: "suspending"
+            ))
+            recoveryReturned.signal()
+        }
+        XCTAssertEqual(source.recoveryCopyEntered.wait(timeout: .now() + 2), .success)
+        DispatchQueue.global().async {
+            coordinator.cancelAndWait()
+            cancelReturned.signal()
+        }
+        XCTAssertEqual(cancelReturned.wait(timeout: .now() + 0.05), .timedOut)
+        source.releaseRecoveryCopy.signal()
+        XCTAssertEqual(recoveryReturned.wait(timeout: .now() + 2), .success)
+        XCTAssertEqual(cancelReturned.wait(timeout: .now() + 2), .success)
+        XCTAssertFalse(coordinator.publishRecoverySnapshot(
+            expectedHostInstanceID: "host-a",
+            epoch: 2,
+            recoveryStatus: .suspending,
+            registrationStatus: "suspending"
+        ))
+    }
+
     func testCoordinatorCoalescesPollArrivingDuringRefresh() throws {
         let state = HostAgentSnapshotState()
         let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
@@ -364,7 +536,10 @@ final class HostAgentSnapshotStateTests: XCTestCase {
     private func coreSnapshot(
         host: String,
         observedAt: UInt64,
-        revealedPassword: String? = nil
+        revealedPassword: String? = nil,
+        recoveryEpoch: UInt64 = 0,
+        recoveryStatus: HostRecoveryStatus = .running,
+        registrationStatus: String? = nil
     ) throws -> HostCoreSnapshot {
         let presentation: [String: Any] = revealedPassword.map {
             ["policy": "revealed", "value": $0]
@@ -372,11 +547,12 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let document: [String: Any] = [
             "schemaVersion": 6,
             "hostInstanceId": host,
-            "hostState": "ready",
+            "hostState": recoveryStatus == .running ? "ready" : "starting",
             "localId": "123456789",
-            "registrationStatus": "ready",
-            "recoveryEpoch": 0,
-            "recoveryStatus": "running",
+            "registrationStatus": registrationStatus
+                ?? (recoveryStatus == .running ? "ready" : "pending"),
+            "recoveryEpoch": recoveryEpoch,
+            "recoveryStatus": recoveryStatus.rawValue,
             "pendingApproval": NSNull(),
             "activeSession": NSNull(),
             "temporaryPasswordPresentation": presentation,
@@ -445,5 +621,30 @@ private final class BlockingSnapshotCopySource: @unchecked Sendable {
             releaseFirstCopy.wait()
         }
         return snapshot
+    }
+}
+
+private final class RecoveryBlockingSnapshotCopySource: @unchecked Sendable {
+    let recoveryCopyEntered = DispatchSemaphore(value: 0)
+    let releaseRecoveryCopy = DispatchSemaphore(value: 0)
+    private let lock = NSLock()
+    private let initial: HostCoreSnapshot
+    private let recovery: HostCoreSnapshot
+    private var callCount = 0
+
+    init(initial: HostCoreSnapshot, recovery: HostCoreSnapshot) {
+        self.initial = initial
+        self.recovery = recovery
+    }
+
+    func copy() throws -> HostCoreSnapshot {
+        lock.lock()
+        callCount += 1
+        let currentCall = callCount
+        lock.unlock()
+        if currentCall == 1 { return initial }
+        recoveryCopyEntered.signal()
+        releaseRecoveryCopy.wait()
+        return recovery
     }
 }

@@ -74,6 +74,10 @@ def main() -> int:
             / "Sources/CoreBridge/HostAgentRegistrationRecoveryPollingOwner.swift"
         ),
         "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
+        "process_owner": (
+            repository
+            / "Sources/RustDeskNative/HostAgentSleepWakeRecoveryProcessOwner.swift"
+        ),
         "process_runtime": (
             repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
         ),
@@ -332,11 +336,51 @@ def main() -> int:
                 "self.operations.publishAvailable(epoch)",
             )
         ),
+        "recoveryProjectionIsSerializedAndExactEpoch": all(
+            marker in sources["projection"]
+            for marker in (
+                "package func publishRecoverySnapshot(",
+                "while refreshing && !cancelled",
+                "snapshot.hostInstanceId != expectedHostInstanceID",
+                "snapshot.recoveryEpoch == epoch",
+                "snapshot.recoveryStatus == recoveryStatus",
+                "snapshot.registrationStatus == registrationStatus",
+                "finishExclusiveRefresh(",
+                "requireIdentityInvalidation(.copyFailed)",
+            )
+        ),
+        "processOwnsRecoveryCompositionBeforeListener": all(
+            marker in sources["process_owner"]
+            for marker in (
+                "HostAgentSleepWakeRecoveryComposition(",
+                "HostAgentDisplayTCCRecoveryAuthority.makeProduct()",
+                "snapshotCoordinator.publishRecoverySnapshot(",
+                "recoveryStatus: .suspending",
+                'registrationStatus: "suspending"',
+                "recoveryStatus: .running",
+                'registrationStatus: "ready"',
+                "composition?.cancel()",
+            )
+        )
+        and ordered(
+            sources["process"],
+            "mediaPipelineOwner.start(",
+            "sleepWakeRecoveryOwner.install(",
+            "pollingOwner.start()",
+            "lifetime.activateXPCListener()",
+        )
+        and ordered(
+            sources["process"],
+            "sleepWakeRecoveryOwner.cancelAndWait()",
+            "mediaState.cancelAndWait()",
+            "mediaPipelineOwner.cancelAndWait()",
+            "pollingOwner.cancel()",
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 5,
+        "schemaVersion": 6,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
@@ -361,18 +405,20 @@ def main() -> int:
                 "lifetimeBeginSleep": line_number(
                     sources["lifetime"], "func beginSleep(epoch: UInt64) throws"
                 ),
+                "recoveryProjection": line_number(
+                    sources["projection"], "package func publishRecoverySnapshot("
+                ),
+                "processRecoveryOwner": line_number(
+                    sources["process_owner"],
+                    "final class HostAgentSleepWakeRecoveryProcessOwner",
+                ),
             },
         },
         "remainingBoundary": {
-            "processProjectionOperationsUnbound": all(
-                marker in sources["composition"]
-                for marker in (
-                    "let publishSuspending: @Sendable (_ epoch: UInt64) -> Bool",
-                    "let publishAvailable: @Sendable (_ epoch: UInt64) -> Bool",
-                )
-            ),
-            "processSleepWakeCompositionAbsent": (
-                "HostAgentSleepWakeRecoveryComposition(" not in sources["process"]
+            "systemSleepWakeNotificationAdapterAbsent": (
+                "NSWorkspace" not in sources["process"]
+                and "NSWorkspace" not in sources["process_owner"]
+                and "import AppKit" not in sources["process_owner"]
             ),
         },
         "missingEvidence": missing,

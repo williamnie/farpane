@@ -37,7 +37,8 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
         let registrationRecoveryOwner =
             HostAgentRegistrationRecoveryPollingOwner.makeProduct(
                 expectedHostInstanceID: expectedHostInstanceID,
-                resume: { epoch in
+                resume: { [weak lifetime] epoch in
+                    guard let lifetime else { return false }
                     do {
                         try lifetime.resumeAfterWake(epoch: epoch)
                         return true
@@ -45,7 +46,8 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
                         return false
                     }
                 },
-                observe: {
+                observe: { [weak lifetime] in
+                    guard let lifetime else { return .failed }
                     do {
                         return .snapshot(try lifetime.copySnapshot())
                     } catch HostAgentProcessLifetimeAccessError.notRunning {
@@ -59,7 +61,8 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
         self.registrationRecoveryOwner = registrationRecoveryOwner
         self.owner = HostAgentSleepWakeRecoveryOwner(
             operations: HostAgentSleepWakeRecoveryOperations(
-                withdrawAvailability: { epoch in
+                withdrawAvailability: { [weak lifetime] epoch in
+                    guard let lifetime else { return false }
                     do {
                         try lifetime.beginSleep(epoch: epoch)
                         return true
@@ -73,7 +76,8 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
                 pauseMediaAndFlush: {
                     mediaPipelineOwner.pauseMediaAndFlushForSleep()
                 },
-                releaseSleepAssertion: { epoch in
+                releaseSleepAssertion: { [weak lifetime] epoch in
+                    guard let lifetime else { return false }
                     do {
                         try lifetime.finishSleep(epoch: epoch)
                         return true
