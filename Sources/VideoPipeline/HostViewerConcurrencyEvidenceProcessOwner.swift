@@ -101,6 +101,8 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     let agentBootID: UUID
     let configRevision: UInt64
     let agentBuildIdentitySHA256: String
+    let agentProcessID: Int32
+    let agentProcessStartIdentitySHA256: String
   }
 
   private enum HostSessionState: Equatable {
@@ -374,6 +376,59 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     agentBuildID: String,
     sourceGeneration: UInt64
   ) -> Bool {
+    observeHostRuntimeState(
+      state: state,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: configRevision,
+      agentBuildID: agentBuildID,
+      agentProcessID: nil,
+      agentProcessStartIdentitySHA256: nil,
+      sourceGeneration: sourceGeneration,
+      expectedObserverRole: .hostAgent
+    )
+  }
+
+  /// Records one App-observed HostAgent state using the exact process
+  /// identity accepted by the version-2 XPC handshake. The App's own process
+  /// identity remains the observer identity; the supplied Agent identity is
+  /// retained only inside the Host observation and may not drift mid-run.
+  @discardableResult
+  public func observeApplicationHostAgentRuntimeState(
+    state: HostViewerConcurrencyHostState,
+    hostInstanceID: String,
+    agentBootID: UUID,
+    configRevision: UInt64,
+    agentBuildID: String,
+    agentProcessID: Int32,
+    agentProcessStartIdentitySHA256: String,
+    sourceGeneration: UInt64
+  ) -> Bool {
+    observeHostRuntimeState(
+      state: state,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: configRevision,
+      agentBuildID: agentBuildID,
+      agentProcessID: agentProcessID,
+      agentProcessStartIdentitySHA256:
+        agentProcessStartIdentitySHA256,
+      sourceGeneration: sourceGeneration,
+      expectedObserverRole: .application
+    )
+  }
+
+  private func observeHostRuntimeState(
+    state: HostViewerConcurrencyHostState,
+    hostInstanceID: String,
+    agentBootID: UUID,
+    configRevision: UInt64,
+    agentBuildID: String,
+    agentProcessID: Int32?,
+    agentProcessStartIdentitySHA256: String?,
+    sourceGeneration: UInt64,
+    expectedObserverRole: HostViewerConcurrencyProcessRole
+  ) -> Bool {
     guard let hostScopeDigest =
       HostViewerConcurrencyEvidenceDigest.hostInstanceScope(hostInstanceID),
       let agentBuildDigest =
@@ -386,32 +441,60 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
         || state == .inboundMediaActive
         || state == .disconnected
     else { return false }
-    let scope = HostObservationScope(
-      hostInstanceScopeSHA256: hostScopeDigest,
-      agentBootID: agentBootID,
-      configRevision: configRevision,
-      agentBuildIdentitySHA256: agentBuildDigest
-    )
 
     condition.lock()
     while status == .active && recordInFlight {
       condition.wait()
     }
     guard status == .active,
-          configuredRole == .hostAgent,
+          configuredRole == expectedObserverRole,
           let writer,
-          let configuredIdentity,
-          agentBuildDigest == configuredIdentity.buildIdentitySHA256
+          let configuredIdentity
     else {
       condition.unlock()
       return false
     }
+    let observedAgentProcessID: Int32
+    let observedAgentProcessStartIdentitySHA256: String
+    switch expectedObserverRole {
+    case .hostAgent:
+      guard agentProcessID == nil,
+            agentProcessStartIdentitySHA256 == nil,
+            agentBuildDigest == configuredIdentity.buildIdentitySHA256
+      else {
+        condition.unlock()
+        return false
+      }
+      observedAgentProcessID = configuredIdentity.processID
+      observedAgentProcessStartIdentitySHA256 =
+        configuredIdentity.processStartIdentitySHA256
+    case .application:
+      guard let agentProcessID,
+            agentProcessID > 1,
+            let agentProcessStartIdentitySHA256,
+            Self.isLowercaseSHA256(agentProcessStartIdentitySHA256)
+      else {
+        condition.unlock()
+        return false
+      }
+      observedAgentProcessID = agentProcessID
+      observedAgentProcessStartIdentitySHA256 =
+        agentProcessStartIdentitySHA256
+    }
+    let scope = HostObservationScope(
+      hostInstanceScopeSHA256: hostScopeDigest,
+      agentBootID: agentBootID,
+      configRevision: configRevision,
+      agentBuildIdentitySHA256: agentBuildDigest,
+      agentProcessID: observedAgentProcessID,
+      agentProcessStartIdentitySHA256:
+        observedAgentProcessStartIdentitySHA256
+    )
     guard let mutation = prepareHostMutation(
       runtimeState: state,
       sourceGeneration: sourceGeneration,
       scope: scope,
-      current: hostSession,
-      processIdentity: configuredIdentity
+      current: hostSession
     ) else {
       condition.unlock()
       return false
@@ -462,8 +545,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     runtimeState: HostViewerConcurrencyHostState,
     sourceGeneration: UInt64,
     scope: HostObservationScope,
-    current: HostSession?,
-    processIdentity: HostViewerConcurrencyProcessIdentity
+    current: HostSession?
   ) -> PreparedHostMutation? {
     if let current {
       guard current.scope == scope,
@@ -519,9 +601,9 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       hostInstanceScopeSHA256: scope.hostInstanceScopeSHA256,
       agentBootID: scope.agentBootID,
       configRevision: scope.configRevision,
-      hostAgentProcessID: processIdentity.processID,
+      hostAgentProcessID: scope.agentProcessID,
       hostAgentProcessStartIdentitySHA256:
-        processIdentity.processStartIdentitySHA256,
+        scope.agentProcessStartIdentitySHA256,
       hostAgentBuildIdentitySHA256: scope.agentBuildIdentitySHA256,
       transitionGeneration: nextState.transitionGeneration
     )
@@ -533,6 +615,13 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
         state: nextState
       )
     )
+  }
+
+  private static func isLowercaseSHA256(_ value: String) -> Bool {
+    value.utf8.count == 64
+      && value.utf8.allSatisfy {
+        ($0 >= 0x30 && $0 <= 0x39) || ($0 >= 0x61 && $0 <= 0x66)
+      }
   }
 
   /// Starts one live Viewer evidence session and returns its process-local,

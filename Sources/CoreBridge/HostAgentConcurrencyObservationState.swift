@@ -8,6 +8,31 @@ package enum HostAgentConcurrencyRuntimeState: Equatable, Sendable {
     case disconnected
 }
 
+package enum HostAgentConcurrencyRuntimeStatePolicy {
+    package static func classify(
+        hostState: String,
+        registrationStatus: String,
+        authenticatedConnectionCount: UInt64,
+        hasActiveSession: Bool
+    ) -> HostAgentConcurrencyRuntimeState? {
+        if hostState == "ready", registrationStatus == "ready" {
+            if authenticatedConnectionCount == 0, !hasActiveSession {
+                return .readyZeroInbound
+            }
+            if authenticatedConnectionCount > 0, hasActiveSession {
+                return .inboundMediaActive
+            }
+            return nil
+        }
+        switch hostState {
+        case "created", "starting", "stopping", "stopped", "error":
+            return .disconnected
+        default:
+            return nil
+        }
+    }
+}
+
 package struct HostAgentConcurrencyObservation: Equatable, Sendable {
     package let state: HostAgentConcurrencyRuntimeState
     package let hostInstanceID: String
@@ -189,26 +214,12 @@ package final class HostAgentConcurrencyObservationState:
     private static func runtimeState(
         _ projection: HostAgentSnapshotProjection
     ) -> HostAgentConcurrencyRuntimeState? {
-        if projection.hostState == "ready",
-           projection.registrationStatus == "ready"
-        {
-            if projection.authenticatedConnectionCount == 0,
-               projection.activeSession == nil
-            {
-                return .readyZeroInbound
-            }
-            if projection.authenticatedConnectionCount > 0,
-               projection.activeSession != nil
-            {
-                return .inboundMediaActive
-            }
-            return nil
-        }
-        switch projection.hostState {
-        case "created", "starting", "stopping", "stopped", "error":
-            return .disconnected
-        default:
-            return nil
-        }
+        HostAgentConcurrencyRuntimeStatePolicy.classify(
+            hostState: projection.hostState,
+            registrationStatus: projection.registrationStatus,
+            authenticatedConnectionCount:
+                projection.authenticatedConnectionCount,
+            hasActiveSession: projection.activeSession != nil
+        )
     }
 }

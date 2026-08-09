@@ -28,16 +28,23 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-agent-process-identity-xpc-v2-implemented",
+            "application-host-observation-composed",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]
+            ["applicationHostObservationStillRequiresComposition"]
+        )
+        self.assertTrue(
+            document["remainingBoundary"]
+            ["viewerAutomaticRecoveryStillRequiresImplementation"]
+        )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "application-host-lifecycle-observation-composition",
+            "viewer-automatic-recovery-composition",
         )
         self.assertTrue(
             document["evidence"]
@@ -105,7 +112,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         )
         self.assertTrue(
             document["evidence"]
-            ["applicationHostEvidenceCompositionRemainsFailClosed"]
+            ["applicationHostEvidenceCompositionUsesCoherentXPCIdentity"]
         )
         self.assertTrue(
             document["evidence"]
@@ -143,7 +150,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
             document["evidence"]
             ["versionedAgentProcessIdentityXPCV2IsImplemented"]
         )
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]
             ["applicationHostObservationStillRequiresComposition"]
         )

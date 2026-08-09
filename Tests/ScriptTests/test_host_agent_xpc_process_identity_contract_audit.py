@@ -29,15 +29,24 @@ class HostAgentXPCProcessIdentityContractAuditTests(unittest.TestCase):
             "farpane-host-agent-xpc-process-identity-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "wire-identity-v2-implemented")
+        self.assertEqual(
+            document["status"], "application-host-observation-composed"
+        )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]
+            ["applicationHostObservationStillRequiresComposition"]
+        )
+        self.assertTrue(
+            document["remainingBoundary"]
+            ["viewerAutomaticRecoveryStillRequiresImplementation"]
+        )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "application-host-lifecycle-observation-composition",
+            "viewer-automatic-recovery-composition",
         )
         self.assertTrue(
             document["evidence"]["handshakeImplementsStrictSchemaAndWireV2"]
@@ -49,6 +58,14 @@ class HostAgentXPCProcessIdentityContractAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["sameConnectionPinsFullIdentityAcrossTrafficAndReconnect"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationHostCompositionUsesOnlyCoherentProjection"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationHostObservationUsesExactXPCProcessIdentity"]
         )
 
         contract = document["targetContract"]

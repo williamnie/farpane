@@ -138,6 +138,47 @@ final class AppViewerConcurrencyEvidenceProcessCompositionContractTests:
         XCTAssertLessThan(finishStop.lowerBound, finishDisconnect.lowerBound)
     }
 
+    func testApplicationHostObservationUsesCoherentProjectionAndXPCIdentity()
+        throws
+    {
+        let app = try repositorySource(
+            "Sources/RustDeskNative/RustDeskNativeApp.swift"
+        )
+
+        XCTAssertEqual(
+            app.components(
+                separatedBy:
+                    "HostAgentApplicationConcurrencyObservationState()"
+            ).count - 1,
+            1
+        )
+        XCTAssertTrue(app.contains(
+            "defer { observeHostAgentApplicationConcurrencyEvidence() }"
+        ))
+        XCTAssertTrue(app.contains(
+            "coherentConfigRevision: configRevision"
+        ))
+        XCTAssertTrue(app.contains(
+            ".observeApplicationHostAgentRuntimeState("
+        ))
+        XCTAssertTrue(app.contains(
+            "agentProcessID: observation.peerIdentity.agentProcessID"
+        ))
+        XCTAssertTrue(app.contains(
+            ".agentProcessStartIdentitySHA256"
+        ))
+        XCTAssertTrue(app.contains(
+            "sourceToken: activationView.generation"
+        ))
+        XCTAssertFalse(app.contains("getpid()"))
+        XCTAssertFalse(app.contains("PROC_PIDTBSDINFO"))
+        try assertOrder(
+            in: app,
+            "refreshHostAgentRuntimeConfigurationCoherence()",
+            ".observeApplicationHostAgentRuntimeState("
+        )
+    }
+
     private func repositorySource(_ path: String) throws -> String {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
