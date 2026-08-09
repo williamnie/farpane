@@ -60,6 +60,41 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         XCTAssertTrue(readiness.isReady)
     }
 
+    func testMonitoringViewCarriesOnlyCoherentRuntimeProjection() {
+        let factory = ActivationRuntimeFactory()
+        let owner = HostAgentBackgroundActivationOwner(
+            makeRuntime: { observer in
+                try factory.make(observer: observer)
+            }
+        )
+        XCTAssertTrue(owner.apply(.hostEnabled))
+        let runtime = factory.runtimes[0]
+        let projectionAuthority = HostAgentBackgroundProjectionAuthority()
+        _ = projectionAuthority.beginSession()
+        let projection = projectionAuthority.snapshot()
+
+        runtime.emitProjection(projection)
+
+        XCTAssertEqual(owner.snapshot().projection, projection)
+        guard case .monitoring(_, let readiness) = owner.snapshot().phase
+        else { return XCTFail("expected monitoring") }
+        XCTAssertEqual(
+            readiness.runtime,
+            HostAgentBackgroundRuntimeEvidence(projection: projection)
+        )
+
+        runtime.setProjection(projection)
+        runtime.emitHealthy(
+            projectionGeneration: projection.generation + 1
+        )
+        XCTAssertEqual(
+            owner.snapshot().phase,
+            .failed(.invalidHealthSequence)
+        )
+        XCTAssertNil(owner.snapshot().projection)
+        XCTAssertEqual(runtime.cancelCount, 1)
+    }
+
     func testDisableCancelsBeforePublishingAndIgnoresLateHealth() {
         let factory = ActivationRuntimeFactory()
         let cancellationObserved = LockedValue(false)
@@ -387,6 +422,7 @@ private final class ActivationFakeRuntime:
     private var starts = 0
     private var cancels = 0
     private var refreshes = 0
+    private var projection: HostAgentBackgroundProjectionView?
 
     init(
         observer: @escaping HostAgentBackgroundHealthAuthority.Observer,
@@ -409,6 +445,10 @@ private final class ActivationFakeRuntime:
         let authority = healthAuthority
         lock.unlock()
         return authority.snapshot()
+    }
+
+    func projectionSnapshot() -> HostAgentBackgroundProjectionView? {
+        locked { projection }
     }
 
     func startMonitoring() -> Bool {
@@ -455,6 +495,20 @@ private final class ActivationFakeRuntime:
             snapshot: .available,
             rendezvous: .registered
         ))
+    }
+
+    func emitProjection(_ projection: HostAgentBackgroundProjectionView) {
+        lock.lock()
+        self.projection = projection
+        let authority = healthAuthority
+        lock.unlock()
+        authority.acceptProjection(projection)
+    }
+
+    func setProjection(_ projection: HostAgentBackgroundProjectionView?) {
+        lock.lock()
+        self.projection = projection
+        lock.unlock()
     }
 
     func emitInvalid(projectionGeneration: UInt64) {

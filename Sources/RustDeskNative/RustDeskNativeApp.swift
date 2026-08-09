@@ -601,6 +601,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 phase: hostAgentBackgroundActivationView?.phase,
                 registration: hostAgentBackgroundRegistrationStatus
             )
+        let backgroundSnapshot =
+            HostAgentBackgroundHomeSnapshotProjectionPolicy.presentation(
+                phase: hostAgentBackgroundActivationView?.phase,
+                projection: hostAgentBackgroundActivationView?.projection
+            )
         let usesLegacyHost =
             hostAgentBackgroundRegistrationStatus == .notRegistered
                 && hostAgentBackgroundFlow == nil
@@ -628,30 +633,54 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     hostReadiness: hostReadiness,
                     usesLegacyHost: usesLegacyHost
                 ),
-                localID: hostSnapshot?.localId ?? "",
-                temporaryPassword: hostTemporaryPassword,
-                localPermanentPasswordSet: hostSnapshot?.passwordPolicy.localPasswordSet ?? false,
-                effectivePermanentPasswordSet: hostSnapshot?.passwordPolicy.effectivePasswordSet ?? false,
-                usingPresetPassword: hostSnapshot?.passwordPolicy.usingPresetPassword ?? false,
-                permanentPasswordChangeAllowed: hostSnapshot?.passwordPolicy.changeAllowed ?? false,
-                pendingApproval: hostApprovalHomeSnapshot(),
-                activeSession: hostActiveSessionHomeSnapshot(),
-                mediaDiagnosticText: hostMediaDiagnosticText(),
-                errorText: combinedHostErrorText
+                localID: usesLegacyHost
+                    ? hostSnapshot?.localId ?? ""
+                    : backgroundSnapshot.localID,
+                temporaryPassword: usesLegacyHost
+                    ? hostTemporaryPassword
+                    : "",
+                localPermanentPasswordSet: usesLegacyHost
+                    ? hostSnapshot?.passwordPolicy.localPasswordSet ?? false
+                    : backgroundSnapshot.localPermanentPasswordSet,
+                effectivePermanentPasswordSet: usesLegacyHost
+                    ? hostSnapshot?.passwordPolicy.effectivePasswordSet ?? false
+                    : backgroundSnapshot.effectivePermanentPasswordSet,
+                usingPresetPassword: usesLegacyHost
+                    ? hostSnapshot?.passwordPolicy.usingPresetPassword ?? false
+                    : backgroundSnapshot.usingPresetPassword,
+                permanentPasswordChangeAllowed: usesLegacyHost
+                    ? hostSnapshot?.passwordPolicy.changeAllowed ?? false
+                    : backgroundSnapshot.permanentPasswordChangeAllowed,
+                pendingApproval: usesLegacyHost ? hostApprovalHomeSnapshot() : nil,
+                activeSession: usesLegacyHost ? hostActiveSessionHomeSnapshot() : nil,
+                mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : "",
+                errorText: combinedHostErrorText(
+                    usesLegacyHost: usesLegacyHost,
+                    backgroundSnapshot: backgroundSnapshot
+                )
             )
         ))
     }
 
-    private var combinedHostErrorText: String {
+    private func combinedHostErrorText(
+        usesLegacyHost: Bool,
+        backgroundSnapshot:
+            HostAgentBackgroundHomeSnapshotPresentation
+    ) -> String {
         let bootstrapError = hostAgentBootstrapState == .degraded
             ? "后台 Host 配置暂时不可用。"
             : ""
+        let backgroundRuntimeError = !usesLegacyHost
+            && backgroundSnapshot.hasRuntimeError
+            ? "后台 Host 服务暂时不可用，将继续重试。"
+            : ""
         return [
-            hostErrorText,
+            usesLegacyHost ? hostErrorText : "",
             hostAgentBackgroundUnregistrationPresentation?.errorText ?? "",
             hostAgentBackgroundRegistrationPresentation?.errorText ?? "",
             hostAgentBackgroundOwnershipErrorText,
             hostAgentBackgroundReadinessErrorText,
+            backgroundRuntimeError,
             bootstrapError,
         ]
             .filter { !$0.isEmpty }
