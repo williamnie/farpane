@@ -70,13 +70,13 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertFalse(owner.configureApplication(environment: environment(
       output: fixture.output
     )))
-    XCTAssertFalse(owner.recordHostAgentObservation(
+    XCTAssertFalse(owner.observeHostAgentRuntimeState(
       state: .readyZeroInbound,
       hostInstanceID: "host-private-value",
       agentBootID: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!,
       configRevision: 1,
       agentBuildID: buildRaw,
-      transitionGeneration: 0
+      sourceGeneration: 1
     ))
     XCTAssertEqual(owner.snapshot().status, .active)
     XCTAssertEqual(owner.snapshot().hostRecords, 0)
@@ -116,7 +116,7 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertFalse(contents.contains(scenarioRaw))
   }
 
-  func testHostAgentUsesPreflightedBuildAndRejectsViewerEvents() throws {
+  func testHostAgentNormalizesAuthoritativeRuntimeTransitions() throws {
     let fixture = try makeFixture()
     defer { try? FileManager.default.removeItem(at: fixture.directory) }
     let expectedAgentBuildID = "agent-preflight-build"
@@ -152,28 +152,130 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertNil(owner.beginViewerSession())
     XCTAssertEqual(owner.snapshot().status, .active)
     XCTAssertEqual(owner.snapshot().recordFailures, 0)
-    XCTAssertFalse(owner.recordHostAgentObservation(
+    XCTAssertFalse(owner.observeHostAgentRuntimeState(
       state: .readyZeroInbound,
       hostInstanceID: hostInstanceID,
       agentBootID: agentBootID,
       configRevision: 0,
       agentBuildID: expectedAgentBuildID,
-      transitionGeneration: 0
+      sourceGeneration: 1
     ))
     XCTAssertEqual(owner.snapshot().status, .active)
-    XCTAssertTrue(owner.recordHostAgentObservation(
+    XCTAssertFalse(owner.observeHostAgentRuntimeState(
+      state: .disconnected,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 1
+    ))
+    XCTAssertEqual(owner.snapshot().hostRecords, 0)
+    XCTAssertEqual(owner.snapshot().lastHostSourceGeneration, 1)
+    XCTAssertTrue(owner.observeHostAgentRuntimeState(
       state: .readyZeroInbound,
       hostInstanceID: hostInstanceID,
       agentBootID: agentBootID,
       configRevision: 7,
       agentBuildID: expectedAgentBuildID,
-      transitionGeneration: 0
+      sourceGeneration: 2
     ))
     XCTAssertEqual(owner.snapshot().hostRecords, 1)
+    XCTAssertFalse(owner.observeHostAgentRuntimeState(
+      state: .readyZeroInbound,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 3
+    ))
+    XCTAssertFalse(owner.observeHostAgentRuntimeState(
+      state: .inboundMediaActive,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 2
+    ))
+    XCTAssertFalse(owner.observeHostAgentRuntimeState(
+      state: .inboundMediaActive,
+      hostInstanceID: "foreign-host",
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 4
+    ))
+    XCTAssertEqual(owner.snapshot().lastHostSourceGeneration, 3)
+    XCTAssertTrue(owner.observeHostAgentRuntimeState(
+      state: .inboundMediaActive,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 4
+    ))
+    XCTAssertTrue(owner.observeHostAgentRuntimeState(
+      state: .disconnected,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 5
+    ))
+    XCTAssertFalse(owner.observeHostAgentRuntimeState(
+      state: .disconnected,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 6
+    ))
+    XCTAssertTrue(owner.observeHostAgentRuntimeState(
+      state: .inboundMediaActive,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 7
+    ))
+    XCTAssertTrue(owner.observeHostAgentRuntimeState(
+      state: .readyZeroInbound,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 8
+    ))
+    XCTAssertTrue(owner.observeHostAgentRuntimeState(
+      state: .disconnected,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 9
+    ))
+    XCTAssertTrue(owner.observeHostAgentRuntimeState(
+      state: .readyZeroInbound,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 10
+    ))
+    XCTAssertFalse(owner.observeHostAgentRuntimeState(
+      state: .recoveredInboundMediaActive,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      sourceGeneration: 11
+    ))
+    XCTAssertEqual(owner.snapshot().hostRecords, 7)
+    XCTAssertEqual(owner.snapshot().hostTransitionGeneration, 2)
+    XCTAssertEqual(owner.snapshot().lastHostSourceGeneration, 10)
     XCTAssertTrue(owner.terminateAndWait())
 
     let records = try readRecords(fixture.output)
-    XCTAssertEqual(records.count, 3)
+    XCTAssertEqual(records.count, 9)
     XCTAssertTrue(records.allSatisfy {
       $0["observerProcessRole"] as? String == "hostAgent"
         && $0["observerBuildIdentitySHA256"] as? String
@@ -183,9 +285,29 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     })
     XCTAssertEqual(records.compactMap {
       ($0["event"] as? [String: Any])?["kind"] as? String
-    }, ["processStarted", "hostState", "processTerminating"])
-    let hostEvent = try XCTUnwrap(records[1]["event"] as? [String: Any])
-    XCTAssertEqual(hostEvent["state"] as? String, "readyZeroInbound")
+    }, [
+      "processStarted",
+      "hostState", "hostState", "hostState", "hostState", "hostState",
+      "hostState", "hostState",
+      "processTerminating",
+    ])
+    let hostEvents = try records[1...7].map {
+      try XCTUnwrap($0["event"] as? [String: Any])
+    }
+    XCTAssertEqual(hostEvents.compactMap { $0["state"] as? String }, [
+      "readyZeroInbound",
+      "inboundMediaActive",
+      "disconnected",
+      "recoveredInboundMediaActive",
+      "recoveredReadyZeroInbound",
+      "disconnected",
+      "recoveredReadyZeroInbound",
+    ])
+    XCTAssertEqual(
+      hostEvents.compactMap { $0["transitionGeneration"] as? Int },
+      [0, 0, 1, 1, 1, 2, 2]
+    )
+    let hostEvent = hostEvents[0]
     XCTAssertEqual(
       hostEvent["agentBootID"] as? String,
       agentBootID.uuidString.lowercased()
@@ -195,6 +317,37 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
       hostEvent["hostInstanceScopeSHA256"] as? String,
       HostViewerConcurrencyEvidenceDigest.hostInstanceScope(hostInstanceID)
     )
+  }
+
+  func testConcurrentHostSourceGenerationRecordsOneStateEdge() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let owner = makeOwner()
+    XCTAssertTrue(owner.configureHostAgent(
+      expectedAgentBuildID: buildRaw,
+      environment: environment(output: fixture.output)
+    ))
+    let results = LockedBooleanResults()
+    let agentBootID = UUID(
+      uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+    )!
+
+    DispatchQueue.concurrentPerform(iterations: 64) { _ in
+      results.append(owner.observeHostAgentRuntimeState(
+        state: .readyZeroInbound,
+        hostInstanceID: "host-private-value",
+        agentBootID: agentBootID,
+        configRevision: 1,
+        agentBuildID: buildRaw,
+        sourceGeneration: 1
+      ))
+    }
+
+    XCTAssertEqual(results.snapshot().filter { $0 }.count, 1)
+    XCTAssertEqual(owner.snapshot().hostRecords, 1)
+    XCTAssertEqual(owner.snapshot().lastHostSourceGeneration, 1)
+    XCTAssertTrue(owner.terminateAndWait())
+    XCTAssertEqual(try readRecords(fixture.output).count, 3)
   }
 
   func testHostAgentMissingOutputDoesNotResolveAnyIdentity() {

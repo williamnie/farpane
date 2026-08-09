@@ -162,7 +162,10 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
             "recordInitialReadyConcurrencyEvidence("
         ))
         XCTAssertTrue(processSource.contains(
-            "owner.recordHostAgentObservation("
+            "owner.observeHostAgentRuntimeState("
+        ))
+        XCTAssertTrue(processSource.contains(
+            "sourceGeneration: snapshot.refreshGeneration"
         ))
         let evidenceConfigure = try XCTUnwrap(processSource.range(
             of: ".configureHostAgent("

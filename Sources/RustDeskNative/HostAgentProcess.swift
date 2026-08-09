@@ -177,20 +177,21 @@ enum HostAgentProcess {
         lifetime: HostAgentProcessLifetime,
         snapshotState: HostAgentSnapshotState
     ) {
+        let snapshot = snapshotState.snapshot()
         guard let identity = try? lifetime.concurrencyEvidenceIdentity(),
-              let projection = snapshotState.snapshot().projection,
+              let projection = snapshot.projection,
               projection.hostState == "ready",
               projection.registrationStatus == "ready",
               projection.authenticatedConnectionCount == 0,
               projection.activeSession == nil
         else { return }
-        _ = owner.recordHostAgentObservation(
+        _ = owner.observeHostAgentRuntimeState(
             state: .readyZeroInbound,
             hostInstanceID: projection.hostInstanceID,
             agentBootID: identity.agentBootID,
             configRevision: identity.configRevision,
             agentBuildID: identity.agentBuildID,
-            transitionGeneration: 0
+            sourceGeneration: snapshot.refreshGeneration
         )
     }
 }

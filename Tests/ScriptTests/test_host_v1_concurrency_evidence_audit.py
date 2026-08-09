@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-agent-initial-ready-evidence-implemented",
+            "host-agent-transition-normalizer-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -37,7 +37,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-agent-host-transition-normalization",
+            "host-agent-lossless-observation-publication-seam",
         )
         self.assertTrue(
             document["evidence"]
@@ -121,7 +121,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         )
         self.assertTrue(
             document["evidence"]
-            ["hostAgentOwnerRecordsOnlySelfBoundValidatedHostObservation"]
+            ["hostAgentOwnerNormalizesAuthoritativeTransitions"]
         )
         self.assertTrue(
             document["evidence"]
@@ -129,7 +129,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         )
         self.assertTrue(
             document["evidence"]
-            ["hostAgentProductRecordsOnlyPostListenerReadyZero"]
+            ["hostAgentProductRoutesPostListenerReadyThroughNormalizer"]
         )
         self.assertTrue(
             document["remainingBoundary"]

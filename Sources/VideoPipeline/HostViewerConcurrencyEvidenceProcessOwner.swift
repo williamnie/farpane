@@ -23,6 +23,8 @@ public struct HostViewerConcurrencyEvidenceProcessSnapshot:
   public let processStartedRecords: UInt64
   public let processTerminatingRecords: UInt64
   public let hostRecords: UInt64
+  public let hostTransitionGeneration: UInt64
+  public let lastHostSourceGeneration: UInt64?
   public let viewerRecords: UInt64
   public let activeViewerSessionEpoch: UInt64?
   public let viewerTransitionGeneration: UInt64
@@ -34,6 +36,8 @@ public struct HostViewerConcurrencyEvidenceProcessSnapshot:
     processStartedRecords: UInt64,
     processTerminatingRecords: UInt64,
     hostRecords: UInt64 = 0,
+    hostTransitionGeneration: UInt64 = 0,
+    lastHostSourceGeneration: UInt64? = nil,
     viewerRecords: UInt64 = 0,
     activeViewerSessionEpoch: UInt64? = nil,
     viewerTransitionGeneration: UInt64 = 0,
@@ -44,6 +48,8 @@ public struct HostViewerConcurrencyEvidenceProcessSnapshot:
     self.processStartedRecords = processStartedRecords
     self.processTerminatingRecords = processTerminatingRecords
     self.hostRecords = hostRecords
+    self.hostTransitionGeneration = hostTransitionGeneration
+    self.lastHostSourceGeneration = lastHostSourceGeneration
     self.viewerRecords = viewerRecords
     self.activeViewerSessionEpoch = activeViewerSessionEpoch
     self.viewerTransitionGeneration = viewerTransitionGeneration
@@ -90,6 +96,67 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     let result: Result
   }
 
+  private struct HostObservationScope: Equatable {
+    let hostInstanceScopeSHA256: String
+    let agentBootID: UUID
+    let configRevision: UInt64
+    let agentBuildIdentitySHA256: String
+  }
+
+  private enum HostSessionState: Equatable {
+    case ready
+    case active
+    case disconnected(generation: UInt64)
+    case recoveredReady(generation: UInt64)
+    case recoveredActive(generation: UInt64)
+
+    var runtimeState: HostViewerConcurrencyHostState {
+      switch self {
+      case .ready, .recoveredReady:
+        return .readyZeroInbound
+      case .active, .recoveredActive:
+        return .inboundMediaActive
+      case .disconnected:
+        return .disconnected
+      }
+    }
+
+    var evidenceState: HostViewerConcurrencyHostState {
+      switch self {
+      case .ready: return .readyZeroInbound
+      case .active: return .inboundMediaActive
+      case .disconnected: return .disconnected
+      case .recoveredReady: return .recoveredReadyZeroInbound
+      case .recoveredActive: return .recoveredInboundMediaActive
+      }
+    }
+
+    var transitionGeneration: UInt64 {
+      switch self {
+      case .ready, .active:
+        return 0
+      case .disconnected(let generation),
+           .recoveredReady(let generation),
+           .recoveredActive(let generation):
+        return generation
+      }
+    }
+  }
+
+  private struct HostSession: Equatable {
+    let scope: HostObservationScope
+    let sourceGeneration: UInt64
+    let state: HostSessionState?
+  }
+
+  private enum PreparedHostMutation {
+    case watermark(HostSession)
+    case record(
+      observation: HostViewerConcurrencyHostObservation,
+      nextSession: HostSession
+    )
+  }
+
   public static let scenarioEnvironmentKey =
     "FARPANE_HOST_VIEWER_CONCURRENCY_SCENARIO"
 
@@ -108,6 +175,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
   private var processStartedRecords: UInt64 = 0
   private var processTerminatingRecords: UInt64 = 0
   private var hostRecords: UInt64 = 0
+  private var hostSession: HostSession?
   private var viewerRecords: UInt64 = 0
   private var committedViewerSessionEpoch: UInt64 = 0
   private var viewerSession: ViewerSession?
@@ -156,6 +224,9 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       processStartedRecords: processStartedRecords,
       processTerminatingRecords: processTerminatingRecords,
       hostRecords: hostRecords,
+      hostTransitionGeneration:
+        hostSession?.state?.transitionGeneration ?? 0,
+      lastHostSourceGeneration: hostSession?.sourceGeneration,
       viewerRecords: viewerRecords,
       activeViewerSessionEpoch: viewerSession?.epoch,
       viewerTransitionGeneration:
@@ -289,31 +360,38 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     return accepted
   }
 
-  /// Records one caller-normalized HostAgent self-observation. The exact
-  /// process identity is always taken from this role-bound owner; the Host,
-  /// boot/config and build values must come from the same live Agent authority.
-  /// Invalid or foreign-role input is ignored without disabling evidence.
+  /// Normalizes one authoritative HostAgent runtime observation. Callers may
+  /// submit only ready-zero, inbound-active or disconnected plus a strictly
+  /// increasing source generation. Recovery generations are owner-derived.
+  /// Invalid, duplicate, stale or foreign-scope input is ignored without
+  /// disabling evidence.
   @discardableResult
-  public func recordHostAgentObservation(
+  public func observeHostAgentRuntimeState(
     state: HostViewerConcurrencyHostState,
     hostInstanceID: String,
     agentBootID: UUID,
     configRevision: UInt64,
     agentBuildID: String,
-    transitionGeneration: UInt64
+    sourceGeneration: UInt64
   ) -> Bool {
     guard let hostScopeDigest =
       HostViewerConcurrencyEvidenceDigest.hostInstanceScope(hostInstanceID),
       let agentBuildDigest =
         HostViewerConcurrencyEvidenceDigest.buildIdentity(agentBuildID),
       configRevision > 0,
+      sourceGeneration > 0,
       agentBootID.uuidString
         != "00000000-0000-0000-0000-000000000000",
-      Self.validHostTransitionGeneration(
-        state: state,
-        generation: transitionGeneration
-      )
+      state == .readyZeroInbound
+        || state == .inboundMediaActive
+        || state == .disconnected
     else { return false }
+    let scope = HostObservationScope(
+      hostInstanceScopeSHA256: hostScopeDigest,
+      agentBootID: agentBootID,
+      configRevision: configRevision,
+      agentBuildIdentitySHA256: agentBuildDigest
+    )
 
     condition.lock()
     while status == .active && recordInFlight {
@@ -328,17 +406,28 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       condition.unlock()
       return false
     }
-    let observation = HostViewerConcurrencyHostObservation(
-      state: state,
-      hostInstanceScopeSHA256: hostScopeDigest,
-      agentBootID: agentBootID,
-      configRevision: configRevision,
-      hostAgentProcessID: configuredIdentity.processID,
-      hostAgentProcessStartIdentitySHA256:
-        configuredIdentity.processStartIdentitySHA256,
-      hostAgentBuildIdentitySHA256: agentBuildDigest,
-      transitionGeneration: transitionGeneration
-    )
+    guard let mutation = prepareHostMutation(
+      runtimeState: state,
+      sourceGeneration: sourceGeneration,
+      scope: scope,
+      current: hostSession,
+      processIdentity: configuredIdentity
+    ) else {
+      condition.unlock()
+      return false
+    }
+    switch mutation {
+    case .watermark(let nextSession):
+      hostSession = nextSession
+      condition.unlock()
+      return false
+    case .record:
+      break
+    }
+    guard case .record(let observation, let nextSession) = mutation else {
+      condition.unlock()
+      return false
+    }
     recordInFlight = true
     condition.unlock()
 
@@ -357,6 +446,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     condition.lock()
     recordInFlight = false
     if recorded {
+      hostSession = nextSession
       incrementSaturating(&hostRecords)
     } else if status == .active {
       incrementSaturating(&recordFailures)
@@ -368,17 +458,81 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     return recorded
   }
 
-  private static func validHostTransitionGeneration(
-    state: HostViewerConcurrencyHostState,
-    generation: UInt64
-  ) -> Bool {
-    switch state {
-    case .readyZeroInbound, .inboundMediaActive:
-      return generation == 0
-    case .disconnected, .recoveredReadyZeroInbound,
-         .recoveredInboundMediaActive:
-      return generation > 0
+  private func prepareHostMutation(
+    runtimeState: HostViewerConcurrencyHostState,
+    sourceGeneration: UInt64,
+    scope: HostObservationScope,
+    current: HostSession?,
+    processIdentity: HostViewerConcurrencyProcessIdentity
+  ) -> PreparedHostMutation? {
+    if let current {
+      guard current.scope == scope,
+            sourceGeneration > current.sourceGeneration
+      else { return nil }
+      if current.state?.runtimeState == runtimeState
+          || current.state == nil && runtimeState == .disconnected
+      {
+        return .watermark(HostSession(
+          scope: scope,
+          sourceGeneration: sourceGeneration,
+          state: current.state
+        ))
+      }
     }
+
+    let nextState: HostSessionState?
+    switch (current?.state, runtimeState) {
+    case (nil, .readyZeroInbound):
+      nextState = .ready
+    case (nil, .inboundMediaActive):
+      nextState = .active
+    case (nil, .disconnected):
+      return .watermark(HostSession(
+        scope: scope,
+        sourceGeneration: sourceGeneration,
+        state: nil
+      ))
+    case (.ready, .inboundMediaActive):
+      nextState = .active
+    case (.active, .readyZeroInbound):
+      nextState = .ready
+    case (.ready, .disconnected), (.active, .disconnected):
+      nextState = .disconnected(generation: 1)
+    case (.disconnected(let generation), .readyZeroInbound):
+      nextState = .recoveredReady(generation: generation)
+    case (.disconnected(let generation), .inboundMediaActive):
+      nextState = .recoveredActive(generation: generation)
+    case (.recoveredActive(let generation), .readyZeroInbound):
+      nextState = .recoveredReady(generation: generation)
+    case (.recoveredReady(let generation), .inboundMediaActive):
+      nextState = .recoveredActive(generation: generation)
+    case (.recoveredReady(let generation), .disconnected),
+         (.recoveredActive(let generation), .disconnected):
+      guard generation < UInt64.max else { return nil }
+      nextState = .disconnected(generation: generation + 1)
+    default:
+      return nil
+    }
+    guard let nextState else { return nil }
+    let observation = HostViewerConcurrencyHostObservation(
+      state: nextState.evidenceState,
+      hostInstanceScopeSHA256: scope.hostInstanceScopeSHA256,
+      agentBootID: scope.agentBootID,
+      configRevision: scope.configRevision,
+      hostAgentProcessID: processIdentity.processID,
+      hostAgentProcessStartIdentitySHA256:
+        processIdentity.processStartIdentitySHA256,
+      hostAgentBuildIdentitySHA256: scope.agentBuildIdentitySHA256,
+      transitionGeneration: nextState.transitionGeneration
+    )
+    return .record(
+      observation: observation,
+      nextSession: HostSession(
+        scope: scope,
+        sourceGeneration: sourceGeneration,
+        state: nextState
+      )
+    )
   }
 
   /// Starts one live Viewer evidence session and returns its process-local,
