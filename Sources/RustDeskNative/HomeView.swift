@@ -23,6 +23,8 @@ enum HostApprovalHomeAction: Equatable, Hashable {
 
 enum HostSessionHomeAction: Equatable, Hashable {
     case disableKeyboardAndMouse
+    case disableClipboardRead
+    case disableClipboardWrite
     case disableClipboard
     case disableSystemAudio
     case disconnect
@@ -34,6 +36,8 @@ struct HostActiveSessionHomeSnapshot: Equatable {
     var contextText: String
     var capabilityText: String
     var canDisableKeyboardAndMouse: Bool
+    var canDisableClipboardRead: Bool
+    var canDisableClipboardWrite: Bool
     var canDisableClipboard: Bool
     var canDisableSystemAudio: Bool
     var pendingAction: HostSessionHomeAction?
@@ -139,7 +143,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostSessionContextLabel = NSTextField(wrappingLabelWithString: "")
     private let hostSessionCapabilityLabel = NSTextField(wrappingLabelWithString: "")
     private let hostDisableInputButton = NSButton()
-    private let hostDisableClipboardButton = NSButton()
+    private let hostDisableClipboardReadButton = NSButton()
+    private let hostDisableClipboardWriteButton = NSButton()
     private let hostDisableAudioButton = NSButton()
     private let hostDisconnectButton = NSButton()
     private let hostCommandRetryButton = NSButton()
@@ -250,11 +255,18 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
                 capabilityAvailable: session.canDisableKeyboardAndMouse
             )
             configureSessionButton(
-                hostDisableClipboardButton,
-                title: "停止剪贴板",
-                action: .disableClipboard,
+                hostDisableClipboardReadButton,
+                title: "停止远端读取",
+                action: .disableClipboardRead,
                 session: session,
-                capabilityAvailable: session.canDisableClipboard
+                capabilityAvailable: session.canDisableClipboardRead
+            )
+            configureSessionButton(
+                hostDisableClipboardWriteButton,
+                title: "停止远端写入",
+                action: .disableClipboardWrite,
+                session: session,
+                capabilityAvailable: session.canDisableClipboardWrite
             )
             configureSessionButton(
                 hostDisableAudioButton,
@@ -274,7 +286,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostSessionContainer.isHidden = true
             for button in [
                 hostDisableInputButton,
-                hostDisableClipboardButton,
+                hostDisableClipboardReadButton,
+                hostDisableClipboardWriteButton,
                 hostDisableAudioButton,
                 hostDisconnectButton,
             ] {
@@ -592,11 +605,20 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostDisableInputButton.target = self
         hostDisableInputButton.action = #selector(disableHostSessionInput)
         hostDisableInputButton.setAccessibilityLabel("停止当前会话的键盘与鼠标控制")
-        hostDisableClipboardButton.title = "停止剪贴板"
-        hostDisableClipboardButton.bezelStyle = .rounded
-        hostDisableClipboardButton.target = self
-        hostDisableClipboardButton.action = #selector(disableHostSessionClipboard)
-        hostDisableClipboardButton.setAccessibilityLabel("停止当前会话的剪贴板访问")
+        hostDisableClipboardReadButton.title = "停止远端读取"
+        hostDisableClipboardReadButton.bezelStyle = .rounded
+        hostDisableClipboardReadButton.target = self
+        hostDisableClipboardReadButton.action = #selector(disableHostSessionClipboardRead)
+        hostDisableClipboardReadButton.setAccessibilityLabel(
+            "停止当前会话读取本机剪贴板"
+        )
+        hostDisableClipboardWriteButton.title = "停止远端写入"
+        hostDisableClipboardWriteButton.bezelStyle = .rounded
+        hostDisableClipboardWriteButton.target = self
+        hostDisableClipboardWriteButton.action = #selector(disableHostSessionClipboardWrite)
+        hostDisableClipboardWriteButton.setAccessibilityLabel(
+            "停止当前会话写入本机剪贴板"
+        )
         hostDisableAudioButton.title = "停止系统音频"
         hostDisableAudioButton.bezelStyle = .rounded
         hostDisableAudioButton.target = self
@@ -612,7 +634,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         let hostSessionButtons = NSStackView(views: [
             NSView(),
             hostDisableInputButton,
-            hostDisableClipboardButton,
+            hostDisableClipboardReadButton,
+            hostDisableClipboardWriteButton,
             hostDisableAudioButton,
             hostDisconnectButton,
         ])
@@ -1063,8 +1086,12 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         performHostSessionAction(.disableKeyboardAndMouse)
     }
 
-    @objc private func disableHostSessionClipboard() {
-        performHostSessionAction(.disableClipboard)
+    @objc private func disableHostSessionClipboardRead() {
+        performHostSessionAction(.disableClipboardRead)
+    }
+
+    @objc private func disableHostSessionClipboardWrite() {
+        performHostSessionAction(.disableClipboardWrite)
     }
 
     @objc private func disableHostSessionAudio() {
@@ -1082,6 +1109,10 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         switch action {
         case .disableKeyboardAndMouse:
             guard session.canDisableKeyboardAndMouse else { return }
+        case .disableClipboardRead:
+            guard session.canDisableClipboardRead else { return }
+        case .disableClipboardWrite:
+            guard session.canDisableClipboardWrite else { return }
         case .disableClipboard:
             guard session.canDisableClipboard else { return }
         case .disableSystemAudio:

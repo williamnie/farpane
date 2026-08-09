@@ -288,11 +288,27 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
                 )
             ),
             (
+                .disableClipboardReadForActiveSession,
+                .disableCapability(
+                    "host-agent-test:connection-1",
+                    .clipboardRead,
+                    "command-3"
+                )
+            ),
+            (
+                .disableClipboardWriteForActiveSession,
+                .disableCapability(
+                    "host-agent-test:connection-1",
+                    .clipboardWrite,
+                    "command-4"
+                )
+            ),
+            (
                 .disableClipboardForActiveSession,
                 .disableCapability(
                     "host-agent-test:connection-1",
                     .clipboard,
-                    "command-3"
+                    "command-5"
                 )
             ),
             (
@@ -300,14 +316,14 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
                 .disableCapability(
                     "host-agent-test:connection-1",
                     .systemAudio,
-                    "command-4"
+                    "command-6"
                 )
             ),
             (
                 .disconnectSession,
                 .disconnectSession(
                     "host-agent-test:connection-1",
-                    "command-5"
+                    "command-7"
                 )
             ),
         ]
@@ -321,6 +337,8 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
                     "62113cb8-4d8c-43ec-8e84-a92b77ed2ce7",
                     "9f28662b-bd6c-47df-890f-48b4f8774557",
                     "7f8207d1-1ea3-4d90-9efe-bcac72ba1d54",
+                    "f29de2a1-931b-4c33-a957-f80ab1c3a8bf",
+                    "ca4cd39c-ad0b-4ab8-9d9a-b48cf93a1bf1",
                 ][index],
                 commandID: "command-\(index)",
                 wireVersion: 2,

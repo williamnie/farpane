@@ -6,6 +6,10 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
     XCTestCase
 {
     private let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
+    private let currentlyPresentedActions =
+        HostAgentBackgroundHomeCommandAction.allCases.filter {
+            $0 != .disableClipboard
+        }
 
     func testRefreshSubmitQueuedAndCompletionRemainSerialized()
         throws
@@ -32,7 +36,7 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         XCTAssertTrue(owner.refresh())
         XCTAssertEqual(
             owner.snapshot().command.availableActions,
-            HostAgentBackgroundHomeCommandAction.allCases
+            currentlyPresentedActions
         )
 
         XCTAssertTrue(owner.submit(.approveIncoming))
@@ -128,7 +132,7 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
             )
         XCTAssertEqual(
             display.availableActions,
-            HostAgentBackgroundHomeCommandAction.allCases
+            currentlyPresentedActions
         )
         XCTAssertNil(display.retryAction)
         XCTAssertTrue(owner.submit(.disconnect))
@@ -242,11 +246,10 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         let visible = HostAgentHomeCommandVisibleTargets(
             approvalConnectionID: "host-a:pending-1",
             sessionConnectionID: "host-a:session-1",
-            enabledActions:
-                HostAgentBackgroundHomeCommandAction.allCases
+            enabledActions: currentlyPresentedActions
         )
 
-        for action in HostAgentBackgroundHomeCommandAction.allCases {
+        for action in currentlyPresentedActions {
             let connectionID = connectionID(for: action)
             XCTAssertEqual(
                 commandRoute(
@@ -277,6 +280,40 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
                 .legacy(action: action, connectionID: connectionID)
             )
         }
+        let legacyClipboardVisible = HostAgentHomeCommandVisibleTargets(
+            approvalConnectionID: nil,
+            sessionConnectionID: "host-a:session-1",
+            enabledActions: [.disableClipboard]
+        )
+        let legacyClipboardRequest = HostAgentHomeCommandRequest.perform(
+            action: .disableClipboard,
+            connectionID: "host-a:session-1"
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: legacyClipboardRequest,
+                owner: .background,
+                visible: legacyClipboardVisible,
+                fixture: fixture,
+                commandView: owner.snapshot(),
+                legacyCommandsAvailable: true
+            ),
+            .none
+        )
+        XCTAssertEqual(
+            commandRoute(
+                request: legacyClipboardRequest,
+                owner: .legacy,
+                visible: legacyClipboardVisible,
+                fixture: fixture,
+                commandView: nil,
+                legacyCommandsAvailable: true
+            ),
+            .legacy(
+                action: .disableClipboard,
+                connectionID: "host-a:session-1"
+            )
+        )
 
         XCTAssertEqual(
             commandRoute(
@@ -900,7 +937,8 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         switch action {
         case .approveIncoming, .rejectIncoming:
             return "host-a:pending-1"
-        case .disableKeyboardAndMouse, .disableClipboard,
+        case .disableKeyboardAndMouse, .disableClipboardRead,
+             .disableClipboardWrite, .disableClipboard,
              .disableSystemAudio, .disconnect:
             return "host-a:session-1"
         }

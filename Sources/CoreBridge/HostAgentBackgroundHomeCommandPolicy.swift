@@ -9,6 +9,8 @@ package enum HostAgentBackgroundHomeCommandAction:
     case approveIncoming
     case rejectIncoming
     case disableKeyboardAndMouse
+    case disableClipboardRead
+    case disableClipboardWrite
     case disableClipboard
     case disableSystemAudio
     case disconnect
@@ -407,11 +409,15 @@ package enum HostAgentBackgroundHomeCommandPolicy {
                     connectionID: session.connectionID
                 ))
             }
-            if HostSessionRevocableCapability.clipboard
-                .snapshotCapabilityNames.isSubset(of: capabilities)
-            {
+            if capabilities.contains("readClipboard") {
                 targets.append(.init(
-                    action: .disableClipboard,
+                    action: .disableClipboardRead,
+                    connectionID: session.connectionID
+                ))
+            }
+            if capabilities.contains("writeClipboard") {
+                targets.append(.init(
+                    action: .disableClipboardWrite,
                     connectionID: session.connectionID
                 ))
             }
@@ -438,7 +444,8 @@ package enum HostAgentBackgroundHomeCommandPolicy {
         switch action {
         case .approveIncoming, .rejectIncoming:
             return payload.pendingApproval?.connectionID
-        case .disableKeyboardAndMouse, .disableClipboard,
+        case .disableKeyboardAndMouse, .disableClipboardRead,
+             .disableClipboardWrite, .disableClipboard,
              .disableSystemAudio, .disconnect:
             return payload.activeSession?.connectionID
         }
@@ -452,6 +459,10 @@ package enum HostAgentBackgroundHomeCommandPolicy {
         case .rejectIncoming: return .rejectIncoming
         case .disableInputForActiveSession:
             return .disableKeyboardAndMouse
+        case .disableClipboardReadForActiveSession:
+            return .disableClipboardRead
+        case .disableClipboardWriteForActiveSession:
+            return .disableClipboardWrite
         case .disableClipboardForActiveSession:
             return .disableClipboard
         case .disableAudioForActiveSession:
@@ -468,6 +479,10 @@ package enum HostAgentBackgroundHomeCommandPolicy {
         case .rejectIncoming: return .rejectIncoming
         case .disableKeyboardAndMouse:
             return .disableInputForActiveSession
+        case .disableClipboardRead:
+            return .disableClipboardReadForActiveSession
+        case .disableClipboardWrite:
+            return .disableClipboardWriteForActiveSession
         case .disableClipboard:
             return .disableClipboardForActiveSession
         case .disableSystemAudio:
@@ -483,6 +498,8 @@ package enum HostAgentBackgroundHomeCommandPolicy {
         case .approveIncoming: return "允许连接"
         case .rejectIncoming: return "拒绝连接"
         case .disableKeyboardAndMouse: return "停止键鼠控制"
+        case .disableClipboardRead: return "停止远端读取剪贴板"
+        case .disableClipboardWrite: return "停止远端写入剪贴板"
         case .disableClipboard: return "停止剪贴板"
         case .disableSystemAudio: return "停止系统音频"
         case .disconnect: return "断开连接"

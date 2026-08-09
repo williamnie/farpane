@@ -200,12 +200,12 @@ def main() -> int:
         },
         "remainingBoundary": {
             "independentRevocationCommandsRequired": False,
-            "directionalXPCUIRequired": True,
+            "directionalXPCUIRequired": False,
             "eventDrivenDynamicBackoffRequired": True,
             "temporaryObjectCleanupRequired": True,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "directional-revoke-xpc-ui-contract",
+        "nextImplementationBoundary": "event-first-dynamic-backoff-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "optional-data-capabilities-default-off" else 1

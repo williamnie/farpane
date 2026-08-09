@@ -5,7 +5,7 @@ import unittest
 
 
 class HostClipboardDirectionalRevokeContractAuditTests(unittest.TestCase):
-    def test_core_directions_are_independent_while_xpc_ui_remain_closed(self) -> None:
+    def test_core_and_xpc_ui_directions_are_independent(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -38,13 +38,19 @@ class HostClipboardDirectionalRevokeContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["hostCoreDirectionalRevokeImplemented"])
         self.assertTrue(document["claims"]["swiftDirectDirectionalAPIImplemented"])
         self.assertTrue(document["claims"]["legacyBidirectionalAliasPreserved"])
-        self.assertFalse(document["claims"]["directionalXPCImplemented"])
-        self.assertFalse(document["claims"]["directionalHomeControlsImplemented"])
+        self.assertTrue(document["claims"]["directionalXPCImplemented"])
+        self.assertTrue(document["claims"]["directionalHomeControlsImplemented"])
         self.assertFalse(document["claims"]["clipboardEnabledByDefault"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]["directionalXPCUIRequired"]
+        )
+        self.assertTrue(all(
+            value for name, value in document["remainingBoundary"].items()
+            if name != "directionalXPCUIRequired"
+        ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "directional-revoke-xpc-ui-contract",
+            "event-first-dynamic-backoff-contract",
         )
 
 

@@ -74,6 +74,8 @@ package enum HostAgentBackgroundSessionCommandPolicy {
         case .approveIncoming, .rejectIncoming:
             return payload.pendingApproval?.connectionID
         case .disableInputForActiveSession,
+             .disableClipboardReadForActiveSession,
+             .disableClipboardWriteForActiveSession,
              .disableClipboardForActiveSession,
              .disableAudioForActiveSession,
              .disconnectSession:

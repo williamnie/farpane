@@ -33,6 +33,10 @@ package struct HostAgentCoreCommandSubmission: Equatable, Sendable {
             return .resolveApproval(.reject)
         case .disableInputForActiveSession:
             return .disable(.keyboardAndMouse)
+        case .disableClipboardReadForActiveSession:
+            return .disable(.clipboardRead)
+        case .disableClipboardWriteForActiveSession:
+            return .disable(.clipboardWrite)
         case .disableClipboardForActiveSession:
             return .disable(.clipboard)
         case .disableAudioForActiveSession:
@@ -70,7 +74,7 @@ package enum HostAgentXPCCommandExecutionAdapterState:
     case invalidated
 }
 
-/// Process-lifetime serial execution seam for the six typed XPC commands.
+/// Process-lifetime serial execution seam for the typed XPC commands.
 /// Queue tickets remain inert until the XPC transport has delivered its ack.
 /// HostCore access and result journaling are injected by later composition.
 package final class HostAgentXPCCommandExecutionAdapter:
