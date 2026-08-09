@@ -951,6 +951,28 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertNil(HostControlError.stop(-7).sleepRecoveryFailure)
     }
 
+    func testNetworkPathRecoveryABIErrorsAreClassifiedSemantically() {
+        let cases: [(Int32, HostNetworkPathRecoveryFailure)] = [
+            (-27, .staleGeneration),
+            (-3, .invalidState),
+            (-4, .unsupported),
+            (-6, .internalFailure),
+            (-1, .unknown),
+            (-999, .unknown),
+        ]
+        for (code, expected) in cases {
+            XCTAssertEqual(
+                HostControlError.networkPathRecovery(code)
+                    .networkPathRecoveryFailure,
+                expected
+            )
+        }
+        XCTAssertNil(
+            HostControlError.sleepRecovery(.beginSleep, -27)
+                .networkPathRecoveryFailure
+        )
+    }
+
     func testApprovalDecisionErrorsAreClassifiedSemantically() {
         XCTAssertEqual(HostControlError.command(-21).approvalDecisionFailure, .notFound)
         XCTAssertEqual(

@@ -27,7 +27,7 @@ class HostNetworkRestartABIContractAuditTests(unittest.TestCase):
             document["schema"],
             "farpane-host-network-restart-abi-contract-audit",
         )
-        self.assertEqual(document["schemaVersion"], 2)
+        self.assertEqual(document["schemaVersion"], 3)
         self.assertEqual(document["status"], "contract-implemented")
         self.assertEqual(document["missingEvidence"], [])
 

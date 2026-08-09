@@ -33,6 +33,10 @@ def main() -> int:
         "owner": owner_path,
         "header": repository / "CoreBridge/include/rustdesk_native.h",
         "bridge": repository / "CoreBridge/RustDeskPatch/rdn_host_bridge.rs",
+        "poller": (
+            repository
+            / "Sources/CoreBridge/HostAgentNetworkPathRecoveryPollingOwner.swift"
+        ),
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -106,11 +110,21 @@ def main() -> int:
             "rdn_host_recover_network_path" in sources["header"]
             and "rdn_host_recover_network_path" in sources["bridge"]
         ),
+        "swiftReadyConvergenceImplemented": all(
+            marker in sources["poller"]
+            for marker in (
+                "baselineRecoveryEpoch(",
+                "snapshot.hostInstanceId == expectedHostInstanceID",
+                "snapshot.recoveryEpoch == recoveryEpoch",
+                "snapshot.recoveryStatus == .running",
+                "productTimeoutMilliseconds: UInt64 = 5_000",
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "status": "trigger-contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "evidence": evidence,
@@ -131,6 +145,14 @@ def main() -> int:
             "hostCoreNetworkRecoveryOperationImplemented": (
                 "rdn_host_recover_network_path" in sources["header"]
                 and "rdn_host_recover_network_path" in sources["bridge"]
+            ),
+            "swiftReadyConvergenceImplemented": all(
+                marker in sources["poller"]
+                for marker in (
+                    "baselineRecoveryEpoch(",
+                    "snapshot.recoveryEpoch == recoveryEpoch",
+                    "productTimeoutMilliseconds: UInt64 = 5_000",
+                )
             ),
             "productNWPathMonitorAdapterAbsent": (
                 "NWPathMonitor" not in product_sources
