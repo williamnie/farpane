@@ -32,6 +32,7 @@ struct HostAgentMediaPipelineSnapshot: Sendable {
     let lastMediaDiagnosticRoute: HostMediaPipelineRouteIdentity?
     let controlIngress: HostAgentMediaControlDeliverySnapshot
     let recovery: HostMediaPipelineRecoverySnapshot
+    let recoveryPolling: HostMediaPipelineRecoveryPollingState
     let routeOwner: HostMediaPipelineRouteOwnerSnapshot
     let liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
 }
@@ -54,6 +55,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private let liveLogPollingOwner: HostAgentMediaLiveLogPollingOwner
     private let routeOwner: HostMediaPipelineRouteOwner
     private let recoveryOwner: HostMediaPipelineRecoveryOwner
+    private let recoveryPollingOwner: HostMediaPipelineRecoveryPollingOwner
     private var state: State = .idle
     private var capabilityTask: Task<Void, Never>?
     private var capabilityInFlight = false
@@ -89,6 +91,12 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         self.recoveryOwner = HostMediaPipelineRecoveryOwner(
             routeOwner: routeOwner
         )
+        self.recoveryPollingOwner =
+            HostMediaPipelineRecoveryPollingOwner.makeProduct(
+                poll: { [recoveryOwner] in
+                    recoveryOwner.pollRecoveryConvergence()
+                }
+            )
     }
 
     deinit {
@@ -212,6 +220,19 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         recoveryOwner.pollRecoveryConvergence()
     }
 
+    /// Starts one bounded 50 ms / 5 s convergence window for the exact sleep
+    /// epoch. Duplicate or rollback epochs are rejected by the polling owner.
+    @discardableResult
+    func startMediaRecoveryConvergencePolling(
+        epoch: UInt64,
+        completion: @escaping HostMediaPipelineRecoveryPollingOwner.Completion
+    ) -> Bool {
+        recoveryPollingOwner.start(
+            epoch: epoch,
+            completion: completion
+        )
+    }
+
     /// Consumes only already-sanitized Rust media diagnostics. Non-media
     /// events are ignored; malformed or stale media diagnostics are counted
     /// but never mutate another route's telemetry.
@@ -280,6 +301,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             lifecycleStatus: lifecycleStatus,
             controlIngress: controlDeliveryGate.snapshot(),
             recovery: recoveryOwner.snapshot(),
+            recoveryPolling: recoveryPollingOwner.stateSnapshot(),
             routeOwner: routeOwner.snapshot(),
             liveLog: liveLogCoordinator.snapshot()
         )
@@ -311,6 +333,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         }
 
         controlDeliveryGate.cancelAndWait()
+        recoveryPollingOwner.cancelAndWait()
         liveLogPollingOwner.cancel()
         recoveryOwner.cancelAndWait()
         liveLogCoordinator.cancel()
@@ -797,6 +820,7 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
         lifecycleStatus: HostAgentMediaPipelineLifecycleStatus,
         controlIngress: HostAgentMediaControlDeliverySnapshot,
         recovery: HostMediaPipelineRecoverySnapshot,
+        recoveryPolling: HostMediaPipelineRecoveryPollingState,
         routeOwner: HostMediaPipelineRouteOwnerSnapshot,
         liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
     ) -> HostAgentMediaPipelineSnapshot {
@@ -816,6 +840,7 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
             lastMediaDiagnosticRoute: lastMediaDiagnosticRoute,
             controlIngress: controlIngress,
             recovery: recovery,
+            recoveryPolling: recoveryPolling,
             routeOwner: routeOwner,
             liveLog: liveLog
         )
