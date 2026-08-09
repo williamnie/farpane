@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-agent-transition-normalizer-implemented",
+            "host-agent-continuous-observation-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -37,7 +37,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-agent-lossless-observation-publication-seam",
+            "versioned-host-agent-process-identity-xpc-contract",
         )
         self.assertTrue(
             document["evidence"]
@@ -129,7 +129,15 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         )
         self.assertTrue(
             document["evidence"]
-            ["hostAgentProductRoutesPostListenerReadyThroughNormalizer"]
+            ["hostAgentConcurrencyIngressIsBoundedOrderedAndSanitized"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostAgentSnapshotPublishesOnlyAcceptedProjectionViews"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostAgentProductComposesContinuousHostObservation"]
         )
         self.assertTrue(
             document["remainingBoundary"]

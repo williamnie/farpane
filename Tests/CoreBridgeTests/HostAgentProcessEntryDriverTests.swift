@@ -3,19 +3,29 @@ import Foundation
 import XCTest
 
 final class HostAgentProcessEntryDriverTests: XCTestCase {
-    func testProductStateOwnerStartsWithThreeFreshAuthorities() throws {
+    func testProductStateOwnerStartsWithFreshAuthorities() throws {
         let first = try HostAgentProcessEntryStateOwner()
         let second = try HostAgentProcessEntryStateOwner()
 
         XCTAssertFalse(first.eventState === second.eventState)
         XCTAssertFalse(first.snapshotState === second.snapshotState)
         XCTAssertFalse(first.mediaState === second.mediaState)
+        XCTAssertFalse(first.concurrencyState === second.concurrencyState)
         XCTAssertEqual(first.eventState.snapshot().latestSequence, 0)
         XCTAssertEqual(first.eventState.snapshot().records.count, 0)
         XCTAssertEqual(first.snapshotState.snapshot().status, .waiting)
         XCTAssertNil(first.snapshotState.snapshot().projection)
         XCTAssertEqual(first.mediaState.snapshot().acceptedControlCount, 0)
         XCTAssertFalse(first.mediaState.snapshot().cancelled)
+        XCTAssertEqual(first.concurrencyState.snapshot(), .init(
+            acceptedObservations: 0,
+            deliveredObservations: 0,
+            pendingObservations: 0,
+            lastSourceGeneration: 0,
+            bound: false,
+            failed: false,
+            cancelled: false
+        ))
     }
 
     func testDriverCreatesOneOwnerAndRunsOnceWithSameEligibility() throws {
@@ -40,6 +50,10 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
                 XCTAssertTrue(receivedOwner.eventState === expectedOwner.eventState)
                 XCTAssertTrue(receivedOwner.snapshotState === expectedOwner.snapshotState)
                 XCTAssertTrue(receivedOwner.mediaState === expectedOwner.mediaState)
+                XCTAssertTrue(
+                    receivedOwner.concurrencyState
+                        === expectedOwner.concurrencyState
+                )
                 return .stopped
             }
         )
@@ -140,6 +154,7 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
         XCTAssertTrue(productSource.contains("stateOwner.eventState"))
         XCTAssertTrue(productSource.contains("stateOwner.snapshotState"))
         XCTAssertTrue(productSource.contains("stateOwner.mediaState"))
+        XCTAssertTrue(productSource.contains("stateOwner.concurrencyState"))
         XCTAssertFalse(productSource.contains("Bundle.main"))
         XCTAssertFalse(productSource.contains("ProcessInfo"))
         XCTAssertFalse(productSource.contains("getenv"))
@@ -159,13 +174,16 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
             "_ = concurrencyEvidenceOwner.terminateAndWait()"
         ))
         XCTAssertTrue(processSource.contains(
-            "recordInitialReadyConcurrencyEvidence("
-        ))
-        XCTAssertTrue(processSource.contains(
             "owner.observeHostAgentRuntimeState("
         ))
         XCTAssertTrue(processSource.contains(
-            "sourceGeneration: snapshot.refreshGeneration"
+            "sourceGeneration: observation.sourceGeneration"
+        ))
+        XCTAssertTrue(processSource.contains(
+            "_ = concurrencyState.observe(event: event)"
+        ))
+        XCTAssertTrue(processSource.contains(
+            "onSnapshotPublished: { snapshot in"
         ))
         let evidenceConfigure = try XCTUnwrap(processSource.range(
             of: ".configureHostAgent("
@@ -174,11 +192,21 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
             of: "HostAgentProcessRunner.run("
         ))
         XCTAssertLessThan(evidenceConfigure.lowerBound, processRun.lowerBound)
+        let evidenceBinding = try XCTUnwrap(processSource.range(
+            of: "_ = concurrencyState.bind { observation in"
+        ))
+        let snapshotBinding = try XCTUnwrap(processSource.range(
+            of: "guard snapshotCoordinator.bind("
+        ))
+        XCTAssertLessThan(
+            evidenceBinding.lowerBound,
+            snapshotBinding.lowerBound
+        )
         let listenerActivation = try XCTUnwrap(processSource.range(
             of: "lifetime.activateXPCListener()"
         ))
         let readyEvidence = try XCTUnwrap(processSource.range(
-            of: "recordInitialReadyConcurrencyEvidence("
+            of: "snapshot: snapshotState.snapshot()"
         ))
         XCTAssertLessThan(
             listenerActivation.lowerBound,

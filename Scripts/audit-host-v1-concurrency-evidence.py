@@ -96,6 +96,13 @@ def main() -> int:
             repository
             / "Sources/RustDeskNative/HostAgentProcessLifetime.swift"
         ),
+        "host_agent_concurrency_state": (
+            repository
+            / "Sources/CoreBridge/HostAgentConcurrencyObservationState.swift"
+        ),
+        "host_agent_snapshot_state": (
+            repository / "Sources/CoreBridge/HostAgentSnapshotState.swift"
+        ),
         "h4_audit": (
             repository
             / "Evidence/HostMode/2026-08-09/"
@@ -133,6 +140,8 @@ def main() -> int:
     host_agent_process = sources["host_agent_process"]
     host_agent_runtime = sources["host_agent_runtime"]
     host_agent_lifetime = sources["host_agent_lifetime"]
+    host_agent_concurrency_state = sources["host_agent_concurrency_state"]
+    host_agent_snapshot_state = sources["host_agent_snapshot_state"]
     h4_audit = sources["h4_audit"]
 
     target_validator = (
@@ -575,25 +584,57 @@ def main() -> int:
             and "runtime.concurrencyEvidenceIdentity()"
                 in host_agent_lifetime
         ),
-        "hostAgentProductRoutesPostListenerReadyThroughNormalizer": (
+        "hostAgentConcurrencyIngressIsBoundedOrderedAndSanitized": all(
+            marker in host_agent_concurrency_state
+            for marker in (
+                "package final class HostAgentConcurrencyObservationState:",
+                "package static let productCapacity = 256",
+                'case "sessionStarted":',
+                'case "sessionEnded":',
+                "snapshot.status == .available",
+                "snapshot.refreshGeneration > 0",
+                "projection.authenticatedConnectionCount == 0",
+                "projection.activeSession == nil",
+                "projection.authenticatedConnectionCount > 0",
+                "projection.activeSession != nil",
+                'case "created", "starting", "stopping", "stopped", "error":',
+                "lastSourceGeneration += 1",
+                "pending.append(HostAgentConcurrencyObservation(",
+                "let observation = pending.removeFirst()",
+                "package func cancelAndWait()",
+            )
+        ),
+        "hostAgentSnapshotPublishesOnlyAcceptedProjectionViews": all(
+            marker in host_agent_snapshot_state
+            for marker in (
+                "onSnapshotPublished:",
+                "publishAcceptedSnapshot(generation: generation)",
+                "view.status == .available",
+                "view.refreshGeneration == generation",
+                "view.projection != nil",
+            )
+        ),
+        "hostAgentProductComposesContinuousHostObservation": (
             all(
                 marker in host_agent_process
                 for marker in (
                     "lifetime.activateXPCListener()",
-                    "recordInitialReadyConcurrencyEvidence(",
-                    'projection.hostState == "ready"',
-                    'projection.registrationStatus == "ready"',
-                    "projection.authenticatedConnectionCount == 0",
-                    "projection.activeSession == nil",
+                    "_ = concurrencyState.observe(event: event)",
+                    "_ = concurrencyState.bind { observation in",
+                    "onSnapshotPublished: { snapshot in",
+                    "eventQueue.async {",
+                    "_ = concurrencyState.observe(snapshot: snapshot)",
+                    "concurrencyState.cancelAndWait()",
                     "owner.observeHostAgentRuntimeState(",
-                    "state: .readyZeroInbound",
-                    "sourceGeneration: snapshot.refreshGeneration",
+                    "sourceGeneration: observation.sourceGeneration",
                 )
             )
+            and host_agent_process.find("_ = concurrencyState.observe(event: event)")
+            < host_agent_process.find("snapshotCoordinator.requestRefresh(")
+            and host_agent_process.find("_ = concurrencyState.bind { observation in")
+            < host_agent_process.find("guard snapshotCoordinator.bind(")
             and host_agent_process.find("lifetime.activateXPCListener()")
-            < host_agent_process.find(
-                "recordInitialReadyConcurrencyEvidence("
-            )
+            < host_agent_process.find("snapshot: snapshotState.snapshot()")
         ),
         "fiveScenarioMatrixValidatorIsStillMissing": (
             not target_validator.exists()
@@ -844,16 +885,42 @@ def main() -> int:
             host_agent_lifetime,
             "func concurrencyEvidenceIdentity() throws",
         ),
-        "hostAgentInitialReadyEvidence": line_number(
-            host_agent_process,
-            "recordInitialReadyConcurrencyEvidence(",
+        "hostAgentConcurrencyState": line_number(
+            host_agent_concurrency_state,
+            "package final class HostAgentConcurrencyObservationState:",
         ),
-        "hostAgentInitialReadyStateGate": line_number(
-            host_agent_process, 'projection.hostState == "ready"'
+        "hostAgentConcurrencySessionStart": line_number(
+            host_agent_concurrency_state, 'case "sessionStarted":'
         ),
-        "hostAgentInitialReadyNoInboundGate": line_number(
-            host_agent_process,
+        "hostAgentConcurrencySessionEnd": line_number(
+            host_agent_concurrency_state, 'case "sessionEnded":'
+        ),
+        "hostAgentConcurrencyReadyGate": line_number(
+            host_agent_concurrency_state,
             "projection.authenticatedConnectionCount == 0",
+        ),
+        "hostAgentConcurrencyActiveGate": line_number(
+            host_agent_concurrency_state,
+            "projection.authenticatedConnectionCount > 0",
+        ),
+        "hostAgentConcurrencySourceGeneration": line_number(
+            host_agent_concurrency_state, "lastSourceGeneration += 1"
+        ),
+        "hostAgentAcceptedSnapshotPublication": line_number(
+            host_agent_snapshot_state,
+            "publishAcceptedSnapshot(generation: generation)",
+        ),
+        "hostAgentProductEventObservation": line_number(
+            host_agent_process,
+            "_ = concurrencyState.observe(event: event)",
+        ),
+        "hostAgentProductSnapshotObservation": line_number(
+            host_agent_process,
+            "onSnapshotPublished: { snapshot in",
+        ),
+        "hostAgentProductObservationBinding": line_number(
+            host_agent_process,
+            "_ = concurrencyState.bind { observation in",
         ),
         "hostRecoveryKinds": line_number(
             recovery_evidence, "case sleepWake"
@@ -936,7 +1003,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "host-agent-transition-normalizer-implemented"
+            "host-agent-continuous-observation-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -975,7 +1042,7 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "host-agent-lossless-observation-publication-seam"
+            "versioned-host-agent-process-identity-xpc-contract"
         ),
         "remainingBoundary": {
             "applicationHostObservationRequiresVersionedAgentProcessIdentity": (
@@ -988,7 +1055,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "host-agent-transition-normalizer-implemented"
+    expected_status = "host-agent-continuous-observation-implemented"
     return 0 if result["status"] == expected_status else 1
 
 

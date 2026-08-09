@@ -17,7 +17,7 @@ Semantic duplicates advance only the source watermark and do not append an event
 
 The product currently supplies only the already-proven post-listener initial ready snapshot. This step does not subscribe the owner to continuous snapshot, media or connection publications. Existing snapshot refresh work may overlap or coalesce, so polling it or reading after arbitrary events would not be lossless and was not added.
 
-The next boundary is an authoritative lossless HostAgent-local publication seam that can submit every ready/active/disconnected transition and its source generation. App-side Host evidence remains fail closed until a versioned XPC identity binds the accepted peer to the exact HostAgent PID and kernel process-start identity. Viewer product auto-recovery, the five-scenario validator and installed two-machine results also remain open; no V1 matrix pass is claimed.
+Historical update: H5.3ad subsequently connected accepted session-start/session-end events and accepted snapshot publications through one bounded HostAgent-local generation ingress to this normalizer. App-side Host evidence remains fail closed until a versioned XPC identity binds the accepted peer to the exact HostAgent PID and kernel process-start identity. Viewer product auto-recovery, the five-scenario validator and installed two-machine results also remain open; no V1 matrix pass is claimed.
 
 ## Verification
 

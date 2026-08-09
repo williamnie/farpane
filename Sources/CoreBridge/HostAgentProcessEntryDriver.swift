@@ -1,15 +1,17 @@
-/// Owns the three mutable authorities for exactly one HostAgent boot. Keeping
+/// Owns the mutable authorities for exactly one HostAgent boot. Keeping
 /// them behind one owner prevents a future entry point from accidentally
 /// mixing state across process attempts.
 package final class HostAgentProcessEntryStateOwner: @unchecked Sendable {
     package let eventState: HostAgentEventState
     package let snapshotState: HostAgentSnapshotState
     package let mediaState: HostAgentMediaControlState
+    package let concurrencyState: HostAgentConcurrencyObservationState
 
     package init() throws {
         eventState = try HostAgentEventState()
         snapshotState = HostAgentSnapshotState()
         mediaState = HostAgentMediaControlState()
+        concurrencyState = HostAgentConcurrencyObservationState()
     }
 }
 

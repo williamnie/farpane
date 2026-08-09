@@ -23,7 +23,7 @@ Viewer transitions are accepted only when the configured role is `application`. 
 
 This step proves exact HostAgent process lifetime only. It does not emit Host ready/active/disconnected observations, add Agent PID/start identity to XPC, connect App Host observation, prove Viewer auto-recovery, create the five-scenario validator or claim a V1 matrix pass.
 
-Historical update: H5.3ab subsequently retained the lease-bound boot/build/config identity through the running lifetime and connected the first post-listener ready-zero self-observation. Continuous Host transitions and the App-visible versioned process-identity XPC contract remain open.
+Historical update: H5.3ab subsequently retained the lease-bound boot/build/config identity through the running lifetime, H5.3ac normalized Host transitions, and H5.3ad connected the HostAgent continuous observation ingress. The App-visible versioned process-identity XPC contract remains open.
 
 ## Verification
 
