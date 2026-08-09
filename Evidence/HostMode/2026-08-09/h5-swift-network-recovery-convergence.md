@@ -1,5 +1,10 @@
 # H5.1o-b3 Swift network recovery convergence
 
+> Historical checkpoint note: at commit `a9bae36` the tracked network audits
+> reported schema 3 for the typed client and bounded convergence layer.
+> H5.1o-b4 advances those audits to verify same-lifetime propagation and
+> process composition; the convergence evidence below remains unchanged.
+
 ## Outcome
 
 The Swift Host client now exposes the Host ABI v9 network-path recovery

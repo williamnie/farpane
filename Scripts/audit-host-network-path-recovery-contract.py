@@ -37,6 +37,27 @@ def main() -> int:
             repository
             / "Sources/CoreBridge/HostAgentNetworkPathRecoveryPollingOwner.swift"
         ),
+        "core_runtime": (
+            repository / "Sources/CoreBridge/HostAgentCoreRuntime.swift"
+        ),
+        "owned_runtime": (
+            repository / "Sources/CoreBridge/HostAgentOwnedCoreRuntime.swift"
+        ),
+        "process_runtime": (
+            repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+        ),
+        "lifetime": (
+            repository / "Sources/RustDeskNative/HostAgentProcessLifetime.swift"
+        ),
+        "composition": (
+            repository
+            / "Sources/RustDeskNative/HostAgentNetworkPathRecoveryComposition.swift"
+        ),
+        "process_owner": (
+            repository
+            / "Sources/RustDeskNative/HostAgentNetworkPathRecoveryProcessOwner.swift"
+        ),
+        "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -120,11 +141,42 @@ def main() -> int:
                 "productTimeoutMilliseconds: UInt64 = 5_000",
             )
         ),
+        "sameLifetimeOperationPropagated": (
+            "client.recoverNetworkPath(generation: generation)"
+            in sources["core_runtime"]
+            and "runtime.recoverNetworkPath(generation: generation)"
+            in sources["owned_runtime"]
+            and "ownedRuntime.recoverNetworkPath(generation: generation)"
+            in sources["process_runtime"]
+            and "runtime.recoverNetworkPath(generation: generation)"
+            in sources["lifetime"]
+        ),
+        "productCompositionOwnsTriggerAndConvergence": (
+            all(
+                marker in sources["composition"]
+                for marker in (
+                    "HostAgentNetworkPathRecoveryPollingOwner.makeProduct(",
+                    "HostAgentNetworkPathRecoveryTriggerOwner {",
+                    "lifetime.recoverNetworkPath(",
+                    "return .snapshot(try lifetime.copySnapshot())",
+                    "snapshotCoordinator.requestPoll()",
+                    "lifetime?.requestTermination(reason: .error)",
+                    "triggerOwner.cancelAndWait()",
+                    "pollingOwner.cancelAndWait()",
+                )
+            )
+            and "HostAgentNetworkPathRecoveryComposition("
+            in sources["process_owner"]
+            and "networkPathRecoveryOwner.install("
+            in sources["process"]
+            and "networkPathRecoveryOwner.cancelAndWait()"
+            in sources["process"]
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "status": "trigger-contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "evidence": evidence,
@@ -153,6 +205,14 @@ def main() -> int:
                     "snapshot.recoveryEpoch == recoveryEpoch",
                     "productTimeoutMilliseconds: UInt64 = 5_000",
                 )
+            ),
+            "productNetworkRecoveryCompositionImplemented": (
+                "HostAgentNetworkPathRecoveryPollingOwner.makeProduct("
+                in sources["composition"]
+                and "HostAgentNetworkPathRecoveryTriggerOwner {"
+                in sources["composition"]
+                and "networkPathRecoveryOwner.install("
+                in sources["process"]
             ),
             "productNWPathMonitorAdapterAbsent": (
                 "NWPathMonitor" not in product_sources

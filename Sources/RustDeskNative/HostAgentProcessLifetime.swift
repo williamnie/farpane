@@ -55,6 +55,12 @@ final class HostAgentProcessLifetime: @unchecked Sendable {
         }
     }
 
+    func recoverNetworkPath(generation: UInt64) throws {
+        try gate.withRunningRuntime { runtime in
+            try runtime.recoverNetworkPath(generation: generation)
+        }
+    }
+
     func bindXPCIdentity(
         hostInstanceID: String
     ) throws -> HostAgentXPCProcessIdentityBindResult {

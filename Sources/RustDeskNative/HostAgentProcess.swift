@@ -24,6 +24,8 @@ enum HostAgentProcess {
         let mediaPipelineOwner = HostAgentMediaPipelineOwner()
         let sleepWakeRecoveryOwner =
             HostAgentSleepWakeRecoveryProcessOwner()
+        let networkPathRecoveryOwner =
+            HostAgentNetworkPathRecoveryProcessOwner()
         return HostAgentProcessRunner.run(
             installTerminationIngress: {
                 try HostAgentProcessSignalController()
@@ -34,6 +36,7 @@ enum HostAgentProcess {
                     eventState: eventState,
                     snapshotState: snapshotState,
                     prepareTermination: {
+                        networkPathRecoveryOwner.cancelAndWait()
                         sleepWakeRecoveryOwner.cancelAndWait()
                         mediaState.cancelAndWait()
                         mediaPipelineOwner.cancelAndWait()
@@ -101,6 +104,15 @@ enum HostAgentProcess {
                     lifetime: lifetime,
                     expectedHostInstanceID: hostInstanceID,
                     mediaPipelineOwner: mediaPipelineOwner,
+                    snapshotCoordinator: snapshotCoordinator
+                ) else {
+                    _ = lifetime.requestTermination(reason: .error)
+                    _ = lifetime.waitUntilTerminated()
+                    return .failure(HostAgentStartupFailure(kind: .internalFailure))
+                }
+                guard networkPathRecoveryOwner.install(
+                    lifetime: lifetime,
+                    expectedHostInstanceID: hostInstanceID,
                     snapshotCoordinator: snapshotCoordinator
                 ) else {
                     _ = lifetime.requestTermination(reason: .error)

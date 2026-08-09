@@ -180,6 +180,10 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
         try ownedRuntime.resumeAfterWake(epoch: epoch)
     }
 
+    func recoverNetworkPath(generation: UInt64) throws {
+        try ownedRuntime.recoverNetworkPath(generation: generation)
+    }
+
     func setMediaCapabilities(
         hostInstanceID: String,
         capabilities: HostEncoderCapabilities

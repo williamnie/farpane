@@ -164,6 +164,33 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
         }.count, 3)
     }
 
+    func testNetworkRecoveryUsesExactGenerationAndFailsAfterStop() throws {
+        let client = RecordingHostAgentCoreClient()
+        let runtime = try HostAgentCoreRuntime.start(
+            client: client,
+            configAppName: "FarPaneHost",
+            configOrganization: "io.rustdesknative",
+            serverConfiguration: serverConfiguration()
+        )
+
+        try runtime.recoverNetworkPath(generation: 7)
+        XCTAssertEqual(client.operations.last, .recoverNetworkPath(7))
+
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(
+            try runtime.recoverNetworkPath(generation: 8)
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentCoreRuntimeAccessError,
+                .notRunning
+            )
+        }
+        XCTAssertEqual(client.operations.filter {
+            if case .recoverNetworkPath = $0 { return true }
+            return false
+        }.count, 1)
+    }
+
     func testMediaOperationsUseSameOwnerAndFailAfterStop() throws {
         let client = RecordingHostAgentCoreClient()
         let runtime = try HostAgentCoreRuntime.start(
@@ -358,6 +385,7 @@ private enum RecordedOperation: Equatable {
     case beginSleep(UInt64)
     case finishSleep(UInt64)
     case resumeAfterWake(UInt64)
+    case recoverNetworkPath(UInt64)
     case setMediaCapabilities(String, Bool, Bool, UInt32, UInt32, UInt32)
     case submitMedia(String, UInt64, UInt64, UInt64, UInt64, UInt64, Int)
     case reportEncoderState(String, UInt64, UInt64, String)
@@ -408,6 +436,10 @@ private final class RecordingHostAgentCoreClient: HostAgentCoreControlSurface {
 
     func resumeAfterWake(epoch: UInt64) throws {
         operations.append(.resumeAfterWake(epoch))
+    }
+
+    func recoverNetworkPath(generation: UInt64) throws {
+        operations.append(.recoverNetworkPath(generation))
     }
 
     func copySnapshot() throws -> HostCoreSnapshot {

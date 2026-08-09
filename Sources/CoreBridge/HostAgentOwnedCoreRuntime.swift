@@ -84,6 +84,12 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
         }
     }
 
+    public func recoverNetworkPath(generation: UInt64) throws {
+        try withRunningRuntime { runtime in
+            try runtime.recoverNetworkPath(generation: generation)
+        }
+    }
+
     public func setMediaCapabilities(
         hostInstanceID: String,
         capabilities: HostEncoderCapabilities

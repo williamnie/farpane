@@ -8,6 +8,7 @@ public protocol HostAgentCoreControlSurface: AnyObject {
     func beginSleep(epoch: UInt64) throws
     func finishSleep(epoch: UInt64) throws
     func resumeAfterWake(epoch: UInt64) throws
+    func recoverNetworkPath(generation: UInt64) throws
     func copySnapshot() throws -> HostCoreSnapshot
     func setMediaCapabilities(
         hostInstanceID: String,
@@ -111,6 +112,12 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
     public func resumeAfterWake(epoch: UInt64) throws {
         try withRunningClient { client in
             try client.resumeAfterWake(epoch: epoch)
+        }
+    }
+
+    public func recoverNetworkPath(generation: UInt64) throws {
+        try withRunningClient { client in
+            try client.recoverNetworkPath(generation: generation)
         }
     }
 
