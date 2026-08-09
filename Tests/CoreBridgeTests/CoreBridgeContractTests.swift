@@ -142,6 +142,51 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(failure.contains("configuration.passwordPersistenceFailed"))
     }
 
+    func testHostRuntimeReconnectUsesBoundedBackoffWithoutIdentityReset() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let bridgeURL = repositoryRoot
+            .appendingPathComponent("CoreBridge/RustDeskPatch/rdn_host_bridge.rs")
+        let bridge = try String(contentsOf: bridgeURL, encoding: .utf8)
+
+        XCTAssertTrue(bridge.contains(
+            "const HOST_RUNTIME_RECONNECT_BASE_DELAY_MS: u64 = 250;"
+        ))
+        XCTAssertTrue(bridge.contains(
+            "const HOST_RUNTIME_RECONNECT_MAX_DELAY_MS: u64 = 5_000;"
+        ))
+        XCTAssertTrue(bridge.contains(
+            "jitter_upper_bound = nominal / 4"
+        ))
+        XCTAssertTrue(bridge.contains(
+            "HOST_RUNTIME_RECONNECT_STOP_POLL_MS"
+        ))
+
+        let runtimeStart = try XCTUnwrap(bridge.range(of: "impl HostRuntime {"))
+        let runtimeTail = bridge[runtimeStart.lowerBound...]
+        let runtimeEnd = try XCTUnwrap(runtimeTail.range(of: "impl RdnHost {"))
+        let runtime = runtimeTail[..<runtimeEnd.lowerBound]
+        let connectionStarted = try XCTUnwrap(runtime.range(
+            of: "let connection_started = Instant::now();"
+        ))
+        let rendezvousStart = try XCTUnwrap(runtime.range(
+            of: "crate::RendezvousMediator::start("
+        ))
+        let delay = try XCTUnwrap(runtime.range(
+            of: "reconnect_backoff.delay_after_exit("
+        ))
+        let interruptibleWait = try XCTUnwrap(runtime.range(
+            of: "wait_for_host_runtime_retry(&thread_stop, retry_delay)"
+        ))
+        XCTAssertLessThan(connectionStarted.lowerBound, rendezvousStart.lowerBound)
+        XCTAssertLessThan(rendezvousStart.lowerBound, delay.lowerBound)
+        XCTAssertLessThan(delay.lowerBound, interruptibleWait.lowerBound)
+        XCTAssertFalse(runtime.contains("Duration::from_secs(1)"))
+        XCTAssertFalse(runtime.contains("Config::set_id"))
+    }
+
     func testNativeHostUsesCanonicalCGSessionOnConsoleKey() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

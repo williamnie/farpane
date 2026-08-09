@@ -1734,6 +1734,8 @@ flowchart TD
 - H5.2 锁屏/LoginWindow 边界：权威降级为 limited/sessionUnavailable，拒绝输入注入，UI 如实显示 unsupported，不因 launchd 进程存在伪装 ready（§13.3）；
 - H5.3 `[手动]` 30 分钟稳定性：Apple Silicon 与 Intel 分别运行 §15.2 场景矩阵（含电池能耗与 thermal 降级），证据归档 `Evidence/`。
 
+> 更新（2026-08-09）：**H5.1a Host runtime network reconnect exponential backoff + jitter 已完成**。feature-gated native Host 的 Rendezvous mediator 退出后不再固定每 1 秒重启：短连接/连续失败从 250 ms 开始指数增长，time-based jitter 严格限制为 nominal 的 0–25%，总延迟封顶 5 秒；同一连接稳定存活至少 30 秒后，下一次失败重置为首档。retry 继续复用同一 server/config identity，只清 online 状态，不调用 ID/config setter。等待按最多 50 ms 轮询 process stop flag，因此显式 Host stop 可打断 5 秒退避而不会拖长 teardown。29 项 Host Rust、source-order contract、built-core lifecycle、Swift 722 项、Script 23 项与 Rust/Swift arm64 Release build 全部通过。未改 Host ABI、event/snapshot schema、shared `hbb_common`、Hermes、CI、依赖或数据库，未安装/启动/注册/部署/push。本步不冒充完整 H5.1：显式 network path observation、总 recovery window、sleep 前 media pause/flush、wake 后 display/TCC/capture rebuild、display reconfigure product owner 与真实网络切换验收仍待后续。详见 `Evidence/HostMode/2026-08-09/h5-host-runtime-network-reconnect-backoff.md`。
+
 退出条件：各产品目标场景 pass/fail 证据齐全；无 sleep assertion 泄漏、无输入泄漏、无未解释 backlog。
 
 ### 26.9 阶段 8 — H6 可选能力（§3.3、§12.2、§21 H6）
