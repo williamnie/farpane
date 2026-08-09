@@ -116,6 +116,25 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
         XCTAssertTrue(runtimeSource.contains(
             "eventState: eventState"
         ))
+        XCTAssertTrue(runtimeSource.contains(
+            "let commandOwner = try HostAgentXPCCommandProcessOwner("
+        ))
+        XCTAssertTrue(runtimeSource.contains(
+            "commandOwner.consumeCoreEvent(event)"
+        ))
+        XCTAssertTrue(runtimeSource.contains(
+            "commandOwner?.commandServiceSnapshot()"
+        ))
+        try assertOrder(
+            in: runtimeSource,
+            "commandOwner.cancelAndWait(",
+            "xpcIdentityAuthority.invalidate()"
+        )
+        try assertOrder(
+            in: runtimeSource,
+            "xpcIdentityAuthority.invalidate()",
+            "try ownedRuntime.stop(reason: reason)"
+        )
         XCTAssertTrue(runtimeSource.contains("xpcAdmissionOwner"))
         XCTAssertTrue(lifetimeSource.contains(
             "func activateXPCListener() throws"
