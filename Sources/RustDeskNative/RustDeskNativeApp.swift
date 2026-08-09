@@ -651,8 +651,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 permanentPasswordChangeAllowed: usesLegacyHost
                     ? hostSnapshot?.passwordPolicy.changeAllowed ?? false
                     : backgroundSnapshot.permanentPasswordChangeAllowed,
-                pendingApproval: usesLegacyHost ? hostApprovalHomeSnapshot() : nil,
-                activeSession: usesLegacyHost ? hostActiveSessionHomeSnapshot() : nil,
+                pendingApproval: usesLegacyHost
+                    ? hostApprovalHomeSnapshot()
+                    : backgroundHostApprovalHomeSnapshot(backgroundSnapshot),
+                activeSession: usesLegacyHost
+                    ? hostActiveSessionHomeSnapshot()
+                    : backgroundHostActiveSessionHomeSnapshot(backgroundSnapshot),
                 mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : "",
                 errorText: combinedHostErrorText(
                     usesLegacyHost: usesLegacyHost,
@@ -1187,72 +1191,33 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func hostApprovalHomeSnapshot() -> HostApprovalHomeSnapshot? {
         guard let pending = hostSnapshot?.pendingApproval else { return nil }
-        let capabilityNames = pending.requestedCapabilities.compactMap { capability -> String? in
-            switch capability {
-            case "viewDisplay": return "查看屏幕"
-            case "controlKeyboardMouse": return "控制键盘与鼠标"
-            case "readClipboard": return "读取剪贴板"
-            case "writeClipboard": return "写入剪贴板"
-            case "hearSystemAudio": return "收听系统音频"
-            default: return nil
-            }
-        }
-        guard capabilityNames.count == pending.requestedCapabilities.count else { return nil }
-
-        let claimedName = pending.remoteName.isEmpty ? pending.remoteId : pending.remoteName
-        let identityText = pending.remoteName.isEmpty
-            ? "对方声明（未经验证）：\(claimedName)"
-            : "对方声明（未经验证）：\(claimedName) · ID \(pending.remoteId)"
-        let platformText = pending.remotePlatform.isEmpty ? "未知平台" : pending.remotePlatform
-        let transportText: String
-        switch pending.transport {
-        case "direct": transportText = "直连"
-        case "relay": transportText = "中继"
-        case "unknown": transportText = "连接方式尚未确认"
-        default: return nil
-        }
-        let nowMilliseconds = UInt64(max(0, Date().timeIntervalSince1970 * 1_000))
-        let remainingMilliseconds = pending.expiresAt > nowMilliseconds
-            ? pending.expiresAt - nowMilliseconds
-            : 0
-        let remainingSeconds = remainingMilliseconds / 1_000
-            + (remainingMilliseconds.isMultiple(of: 1_000) ? 0 : 1)
-        let expiryText = remainingSeconds == 0
-            ? "正在自动拒绝已超时请求"
-            : "约 \(remainingSeconds) 秒后自动拒绝"
+        guard let capabilityNames = hostCapabilityNames(
+            pending.requestedCapabilities
+        ), let transportText = hostTransportText(pending.transport)
+        else { return nil }
 
         return HostApprovalHomeSnapshot(
             connectionID: pending.connectionId,
-            remoteIdentityText: identityText,
-            contextText: "\(platformText) · \(transportText) · 每次均需本机批准",
+            remoteIdentityText: hostClaimedIdentityText(
+                remoteID: pending.remoteId,
+                remoteName: pending.remoteName
+            ),
+            contextText: "\(hostPlatformText(pending.remotePlatform)) · \(transportText) · 每次均需本机批准",
             capabilityText: "请求权限：\(capabilityNames.joined(separator: "、"))",
-            expiryText: expiryText,
+            expiryText: hostApprovalExpiryText(expiresAt: pending.expiresAt),
             isResolving: hostApprovalDecisionGate.isResolving(
                 connectionID: pending.connectionId
-            )
+            ),
+            allowsCommands: true
         )
     }
 
     private func hostActiveSessionHomeSnapshot() -> HostActiveSessionHomeSnapshot? {
         guard let session = hostSnapshot?.activeSession else { return nil }
         let activeCapabilities = Set(session.activeCapabilities)
-        let capabilityNames = session.activeCapabilities.compactMap { capability -> String? in
-            switch capability {
-            case "viewDisplay": return "查看屏幕"
-            case "controlKeyboardMouse": return "控制键盘与鼠标"
-            case "readClipboard": return "读取剪贴板"
-            case "writeClipboard": return "写入剪贴板"
-            case "hearSystemAudio": return "收听系统音频"
-            default: return nil
-            }
-        }
-        guard capabilityNames.count == session.activeCapabilities.count else { return nil }
-
-        let claimedName = session.remoteName.isEmpty ? session.remoteId : session.remoteName
-        let identityText = session.remoteName.isEmpty
-            ? "对方声明（未经验证）：\(claimedName)"
-            : "对方声明（未经验证）：\(claimedName) · ID \(session.remoteId)"
-        let platformText = session.remotePlatform.isEmpty ? "未知平台" : session.remotePlatform
+        guard let capabilityNames = hostCapabilityNames(
+            session.activeCapabilities
+        ) else { return nil }
         let startedAt = Date(timeIntervalSince1970: TimeInterval(session.startedAt) / 1_000)
         let startedText = DateFormatter.localizedString(
             from: startedAt,
@@ -1279,15 +1244,166 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
         return HostActiveSessionHomeSnapshot(
             connectionID: session.connectionId,
-            remoteIdentityText: identityText,
-            contextText: "\(platformText) · \(startedText) 开始连接",
+            remoteIdentityText: hostClaimedIdentityText(
+                remoteID: session.remoteId,
+                remoteName: session.remoteName
+            ),
+            contextText: "\(hostPlatformText(session.remotePlatform)) · \(startedText) 开始连接",
             capabilityText: capabilityText,
             canDisableKeyboardAndMouse: activeCapabilities.contains("controlKeyboardMouse"),
             canDisableClipboard: activeCapabilities.contains("readClipboard")
                 && activeCapabilities.contains("writeClipboard"),
             canDisableSystemAudio: activeCapabilities.contains("hearSystemAudio"),
-            pendingAction: pendingAction
+            pendingAction: pendingAction,
+            allowsCommands: true
         )
+    }
+
+    private func backgroundHostApprovalHomeSnapshot(
+        _ backgroundSnapshot:
+            HostAgentBackgroundHomeSnapshotPresentation
+    ) -> HostApprovalHomeSnapshot? {
+        guard let pending = backgroundSnapshot.pendingApproval,
+              let capabilityNames = hostCapabilityNames(
+                pending.requestedCapabilities
+              ),
+              let transportText = hostTransportText(pending.transport)
+        else { return nil }
+        return HostApprovalHomeSnapshot(
+            connectionID: pending.connectionID,
+            remoteIdentityText: hostClaimedIdentityText(
+                remoteID: pending.remoteID,
+                remoteName: pending.remoteName
+            ),
+            contextText: "\(hostPlatformText(pending.remotePlatform)) · \(transportText) · 每次均需本机批准",
+            capabilityText:
+                "请求权限：\(capabilityNames.joined(separator: "、"))",
+            expiryText: [
+                backgroundHostApprovalExpiryText(
+                    expiresAt: pending.expiresAt
+                ),
+                "当前版本仅可查看，操作尚未接通",
+            ].joined(separator: " · "),
+            isResolving: false,
+            allowsCommands: backgroundSnapshot.allowsApprovalCommands
+        )
+    }
+
+    private func backgroundHostActiveSessionHomeSnapshot(
+        _ backgroundSnapshot:
+            HostAgentBackgroundHomeSnapshotPresentation
+    ) -> HostActiveSessionHomeSnapshot? {
+        guard let session = backgroundSnapshot.activeSession,
+              let capabilityNames = hostCapabilityNames(
+                session.activeCapabilities
+              ),
+              let sessionPresentation =
+                HostSessionInputPresentationPolicy.presentation(
+                    availability: session.inputAvailability,
+                    unavailableReason: session.inputUnavailableReason
+                )
+        else { return nil }
+        let activeCapabilities = Set(session.activeCapabilities)
+        let startedAt = Date(
+            timeIntervalSince1970:
+                TimeInterval(session.startedAt) / 1_000
+        )
+        let startedText = DateFormatter.localizedString(
+            from: startedAt,
+            dateStyle: .none,
+            timeStyle: .short
+        )
+        let capabilityText = [
+            "当前权限：\(capabilityNames.joined(separator: "、"))",
+            sessionPresentation.detailText,
+            "当前版本仅可查看，操作尚未接通",
+        ].compactMap { $0 }.joined(separator: "；")
+        return HostActiveSessionHomeSnapshot(
+            connectionID: session.connectionID,
+            remoteIdentityText: hostClaimedIdentityText(
+                remoteID: session.remoteID,
+                remoteName: session.remoteName
+            ),
+            contextText:
+                "\(hostPlatformText(session.remotePlatform)) · \(startedText) 开始连接",
+            capabilityText: capabilityText,
+            canDisableKeyboardAndMouse:
+                activeCapabilities.contains("controlKeyboardMouse"),
+            canDisableClipboard:
+                activeCapabilities.contains("readClipboard")
+                    && activeCapabilities.contains("writeClipboard"),
+            canDisableSystemAudio:
+                activeCapabilities.contains("hearSystemAudio"),
+            pendingAction: nil,
+            allowsCommands: backgroundSnapshot.allowsSessionCommands
+        )
+    }
+
+    private func hostCapabilityNames(
+        _ capabilities: [String]
+    ) -> [String]? {
+        let names = capabilities.compactMap { capability -> String? in
+            switch capability {
+            case "viewDisplay": return "查看屏幕"
+            case "controlKeyboardMouse": return "控制键盘与鼠标"
+            case "readClipboard": return "读取剪贴板"
+            case "writeClipboard": return "写入剪贴板"
+            case "hearSystemAudio": return "收听系统音频"
+            default: return nil
+            }
+        }
+        return names.count == capabilities.count ? names : nil
+    }
+
+    private func hostClaimedIdentityText(
+        remoteID: String,
+        remoteName: String
+    ) -> String {
+        remoteName.isEmpty
+            ? "对方声明（未经验证）：\(remoteID)"
+            : "对方声明（未经验证）：\(remoteName) · ID \(remoteID)"
+    }
+
+    private func hostPlatformText(_ platform: String) -> String {
+        platform.isEmpty ? "未知平台" : platform
+    }
+
+    private func hostTransportText(_ transport: String) -> String? {
+        switch transport {
+        case "direct": return "直连"
+        case "relay": return "中继"
+        case "unknown": return "连接方式尚未确认"
+        default: return nil
+        }
+    }
+
+    private func hostApprovalExpiryText(expiresAt: UInt64) -> String {
+        let nowMilliseconds = UInt64(max(
+            0,
+            Date().timeIntervalSince1970 * 1_000
+        ))
+        let remainingMilliseconds = expiresAt > nowMilliseconds
+            ? expiresAt - nowMilliseconds
+            : 0
+        let remainingSeconds = remainingMilliseconds / 1_000
+            + (remainingMilliseconds.isMultiple(of: 1_000) ? 0 : 1)
+        return remainingSeconds == 0
+            ? "正在自动拒绝已超时请求"
+            : "约 \(remainingSeconds) 秒后自动拒绝"
+    }
+
+    private func backgroundHostApprovalExpiryText(
+        expiresAt: UInt64
+    ) -> String {
+        let expiry = Date(
+            timeIntervalSince1970: TimeInterval(expiresAt) / 1_000
+        )
+        let text = DateFormatter.localizedString(
+            from: expiry,
+            dateStyle: .none,
+            timeStyle: .medium
+        )
+        return "后台自动拒绝时间：\(text)"
     }
 
     private func requestAttentionForPendingHostApproval() {
