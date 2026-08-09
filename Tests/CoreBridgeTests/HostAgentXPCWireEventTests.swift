@@ -97,15 +97,15 @@ final class HostAgentXPCWireEventTests: XCTestCase {
             type: "mediaDiagnostic",
             payload: ["credential": "must-not-cross-xpc"]
         ))
-        _ = state.ingest(try event(
-            id: 12,
-            type: "commandResult",
-            payload: [
-                "commandId": "command-1",
-                "status": "ok",
-                "detail": "session-disconnect-queued",
-            ]
-        ))
+        _ = state.ingestCommandResult(
+            try HostAgentXPCWireCommandResult(
+                commandID: "command-1",
+                status: .ok,
+                detail: "session-disconnect-queued"
+            ),
+            hostInstanceID: hostID,
+            sentAtUnixMilliseconds: 1_700_000_000_000
+        )
         let request = try cursorRequest(maximumEventCount: 8)
         let response = try HostAgentXPCWireEventCursorResponse.make(
             for: request,
@@ -218,16 +218,6 @@ final class HostAgentXPCWireEventTests: XCTestCase {
                 id: 1,
                 type: "futureSensitiveEvent",
                 payload: ["password": "never-cross"]
-            ),
-            try event(
-                id: 1,
-                type: "commandResult",
-                payload: [
-                    "commandId": "command-1",
-                    "status": "ok",
-                    "detail": "accepted",
-                    "password": "never-cross",
-                ]
             ),
             try event(
                 id: 1,

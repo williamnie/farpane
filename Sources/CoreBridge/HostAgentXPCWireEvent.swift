@@ -59,7 +59,7 @@ package struct HostAgentXPCWireCommandResult: Equatable, Sendable {
         ]
     }
 
-    fileprivate init(document: [String: Any]) throws {
+    package init(document: [String: Any]) throws {
         guard Set(document.keys) == Set(["commandId", "status", "detail"]),
               let commandID = document["commandId"] as? String,
               let rawStatus = document["status"] as? String,
@@ -261,7 +261,7 @@ package enum HostAgentXPCWireEventContract {
         }
     }
 
-    fileprivate static func strictUInt64(_ value: Any?) -> UInt64? {
+    package static func strictUInt64(_ value: Any?) -> UInt64? {
         guard let number = value as? NSNumber,
               CFGetTypeID(number) != CFBooleanGetTypeID()
         else { return nil }
@@ -287,7 +287,7 @@ package enum HostAgentXPCWireEventContract {
         return number.boolValue
     }
 
-    fileprivate static func validTimestamp(_ value: UInt64) -> Bool {
+    package static func validTimestamp(_ value: UInt64) -> Bool {
         value > 0 && value <= maximumExactJSONInteger
     }
 
@@ -313,11 +313,20 @@ package enum HostAgentXPCWireEventContract {
         _ record: HostAgentEventRecord,
         expectedHostInstanceID: String
     ) throws -> EventProjection {
-        guard let envelope = try? StrictCoreEventEnvelope(record: record)
-        else { return .requiresSnapshot }
-        guard record.event.hostInstanceId == expectedHostInstanceID else {
-            return .requiresSnapshot
+        let event: HostCoreEvent
+        switch record.payload {
+        case .commandResult(let result, let sentAtUnixMilliseconds):
+            return .event(try HostAgentXPCWireEvent(
+                eventID: record.sequence,
+                sentAtUnixMilliseconds: sentAtUnixMilliseconds,
+                payload: .commandResult(result)
+            ))
+        case .core(let coreEvent):
+            event = coreEvent
         }
+        guard event.hostInstanceId == expectedHostInstanceID,
+              let envelope = try? StrictCoreEventEnvelope(event: event)
+        else { return .requiresSnapshot }
         if stateInvalidatingEventTypes.contains(envelope.eventType) {
             return .event(try HostAgentXPCWireEvent(
                 eventID: record.sequence,
@@ -327,16 +336,6 @@ package enum HostAgentXPCWireEventContract {
         }
         if agentOnlyEventTypes.contains(envelope.eventType) {
             return .suppressed
-        }
-        if envelope.eventType == "commandResult" {
-            guard let result = try? HostAgentXPCWireCommandResult(
-                document: envelope.payload
-            ) else { return .requiresSnapshot }
-            return .event(try HostAgentXPCWireEvent(
-                eventID: record.sequence,
-                sentAtUnixMilliseconds: envelope.sentAtUnixMilliseconds,
-                payload: .commandResult(result)
-            ))
         }
         return .requiresSnapshot
     }
@@ -352,9 +351,9 @@ package enum HostAgentXPCWireEventContract {
         let sentAtUnixMilliseconds: UInt64
         let payload: [String: Any]
 
-        init(record: HostAgentEventRecord) throws {
+        init(event: HostCoreEvent) throws {
             guard let value = try? JSONSerialization.jsonObject(
-                    with: record.event.rawJSON
+                    with: event.rawJSON
                   ),
                   let document = value as? [String: Any],
                   Set(document.keys) == Set([
@@ -362,13 +361,13 @@ package enum HostAgentXPCWireEventContract {
                     "hostInstanceId", "sentAt", "payload",
                   ]),
                   strictUInt64(document["schemaVersion"]) == 1,
-                  strictUInt64(document["eventId"]) == record.event.eventId,
+                  strictUInt64(document["eventId"]) == event.eventId,
                   let eventType = document["eventType"] as? String,
-                  eventType == record.event.eventType,
+                  eventType == event.eventType,
                   let hostInstanceID = document["hostInstanceId"] as? String,
-                  hostInstanceID == record.event.hostInstanceId,
+                  hostInstanceID == event.hostInstanceId,
                   let sentAt = strictUInt64(document["sentAt"]),
-                  sentAt == record.event.sentAt,
+                  sentAt == event.sentAt,
                   validTimestamp(sentAt),
                   let payload = document["payload"] as? [String: Any]
             else {

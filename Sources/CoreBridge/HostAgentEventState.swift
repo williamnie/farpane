@@ -9,6 +9,7 @@ package enum HostAgentEventRejectionReason: Equatable, Sendable {
     case oversizedEnvelope
     case foreignHostInstance
     case duplicateEventID
+    case typedCommandResultRequired
     case sequenceExhausted
 }
 
@@ -17,9 +18,54 @@ package enum HostAgentEventIngestResult: Equatable, Sendable {
     case rejected(HostAgentEventRejectionReason)
 }
 
+package enum HostAgentEventRecordPayload: Sendable {
+    case core(HostCoreEvent)
+    case commandResult(
+        HostAgentXPCWireCommandResult,
+        sentAtUnixMilliseconds: UInt64
+    )
+}
+
 package struct HostAgentEventRecord: Sendable {
     package let sequence: UInt64
-    package let event: HostCoreEvent
+    package let payload: HostAgentEventRecordPayload
+
+    package init(sequence: UInt64, event: HostCoreEvent) {
+        self.sequence = sequence
+        payload = .core(event)
+    }
+
+    package init(
+        sequence: UInt64,
+        commandResult: HostAgentXPCWireCommandResult,
+        sentAtUnixMilliseconds: UInt64
+    ) {
+        self.sequence = sequence
+        payload = .commandResult(
+            commandResult,
+            sentAtUnixMilliseconds: sentAtUnixMilliseconds
+        )
+    }
+}
+
+package enum HostAgentCommandResultJournalRejectionReason:
+    Equatable,
+    Sendable
+{
+    case invalidHostInstance
+    case invalidTimestamp
+    case foreignHostInstance
+    case conflictingCommandResult
+    case sequenceExhausted
+}
+
+package enum HostAgentCommandResultJournalIngestResult:
+    Equatable,
+    Sendable
+{
+    case accepted(sequence: UInt64)
+    case unchanged(sequence: UInt64)
+    case rejected(HostAgentCommandResultJournalRejectionReason)
 }
 
 package enum HostAgentEventReplayError: Error, Equatable {
@@ -67,6 +113,7 @@ package final class HostAgentEventState: @unchecked Sendable {
     private var rejectedEventCount: UInt64 = 0
     private var records: [HostAgentEventRecord] = []
     private var retainedEventIDs: Set<UInt64> = []
+    private var retainedCommandResults: [String: RetainedCommandResult] = [:]
 
     package init(
         capacity: Int = HostAgentEventState.productCapacity,
@@ -93,6 +140,9 @@ package final class HostAgentEventState: @unchecked Sendable {
         guard event.rawJSON.count <= maximumEventBytes else {
             return reject(.oversizedEnvelope)
         }
+        guard event.eventType != "commandResult" else {
+            return reject(.typedCommandResultRequired)
+        }
         if let hostInstanceID, hostInstanceID != event.hostInstanceId {
             return reject(.foreignHostInstance)
         }
@@ -112,13 +162,64 @@ package final class HostAgentEventState: @unchecked Sendable {
             event: event
         ))
         retainedEventIDs.insert(event.eventId)
-
-        if records.count > capacity {
-            let evicted = records.removeFirst()
-            retainedEventIDs.remove(evicted.event.eventId)
-            incrementSaturating(&evictedEventCount)
-        }
+        evictIfNeededLocked()
         return .accepted(sequence: latestSequence)
+    }
+
+    /// Adds an already validated, typed command result to the same bounded
+    /// local sequence as Core events. Equal retained results are idempotent;
+    /// after eviction the admission authority may replay the result as a new
+    /// local record without re-executing the command.
+    @discardableResult
+    package func ingestCommandResult(
+        _ result: HostAgentXPCWireCommandResult,
+        hostInstanceID candidateHostInstanceID: String,
+        sentAtUnixMilliseconds: UInt64
+    ) -> HostAgentCommandResultJournalIngestResult {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard HostAgentXPCWireHandshakeContract.validIdentifier(
+            candidateHostInstanceID
+        ) else {
+            return rejectCommandResult(.invalidHostInstance)
+        }
+        guard HostAgentXPCWireEventContract.validTimestamp(
+            sentAtUnixMilliseconds
+        ) else {
+            return rejectCommandResult(.invalidTimestamp)
+        }
+        if let hostInstanceID,
+           hostInstanceID != candidateHostInstanceID
+        {
+            return rejectCommandResult(.foreignHostInstance)
+        }
+        if let existing = retainedCommandResults[result.commandID] {
+            guard existing.result == result else {
+                return rejectCommandResult(.conflictingCommandResult)
+            }
+            return .unchanged(sequence: existing.sequence)
+        }
+        guard latestSequence < UInt64.max else {
+            return rejectCommandResult(.sequenceExhausted)
+        }
+
+        if hostInstanceID == nil {
+            hostInstanceID = candidateHostInstanceID
+        }
+        latestSequence += 1
+        let sequence = latestSequence
+        records.append(HostAgentEventRecord(
+            sequence: sequence,
+            commandResult: result,
+            sentAtUnixMilliseconds: sentAtUnixMilliseconds
+        ))
+        retainedCommandResults[result.commandID] = RetainedCommandResult(
+            sequence: sequence,
+            result: result
+        )
+        evictIfNeededLocked()
+        return .accepted(sequence: sequence)
     }
 
     /// Forwards only accepted events. Ingest releases the state lock before
@@ -198,9 +299,37 @@ package final class HostAgentEventState: @unchecked Sendable {
         return .rejected(reason)
     }
 
+    private func rejectCommandResult(
+        _ reason: HostAgentCommandResultJournalRejectionReason
+    ) -> HostAgentCommandResultJournalIngestResult {
+        incrementSaturating(&rejectedEventCount)
+        return .rejected(reason)
+    }
+
+    private func evictIfNeededLocked() {
+        guard records.count > capacity else { return }
+        let evicted = records.removeFirst()
+        switch evicted.payload {
+        case .core(let event):
+            retainedEventIDs.remove(event.eventId)
+        case .commandResult(let result, _):
+            if retainedCommandResults[result.commandID]?.sequence
+                == evicted.sequence
+            {
+                retainedCommandResults.removeValue(forKey: result.commandID)
+            }
+        }
+        incrementSaturating(&evictedEventCount)
+    }
+
     private func incrementSaturating(_ value: inout UInt64) {
         if value < UInt64.max {
             value += 1
         }
     }
+}
+
+private struct RetainedCommandResult: Sendable {
+    let sequence: UInt64
+    let result: HostAgentXPCWireCommandResult
 }
