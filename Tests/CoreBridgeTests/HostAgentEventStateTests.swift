@@ -115,6 +115,49 @@ final class HostAgentEventStateTests: XCTestCase {
         XCTAssertEqual(coreEvents(snapshot.records).map(\.eventId), [10, 9])
     }
 
+    func testSnapshotChangeMarkerPinsHostAndRejectsInvalidOrForeignValues()
+        throws
+    {
+        let state = try HostAgentEventState(capacity: 4, maximumEventBytes: 4_096)
+
+        XCTAssertEqual(
+            state.ingestSnapshotChanged(
+                hostInstanceID: "host/invalid",
+                sentAtUnixMilliseconds: 100
+            ),
+            .rejected(.invalidHostInstance)
+        )
+        XCTAssertEqual(
+            state.ingestSnapshotChanged(
+                hostInstanceID: "host-a",
+                sentAtUnixMilliseconds: 0
+            ),
+            .rejected(.invalidTimestamp)
+        )
+        XCTAssertEqual(
+            state.ingestSnapshotChanged(
+                hostInstanceID: "host-a",
+                sentAtUnixMilliseconds: 100
+            ),
+            .accepted(sequence: 1)
+        )
+        XCTAssertEqual(
+            state.ingestSnapshotChanged(
+                hostInstanceID: "host-b",
+                sentAtUnixMilliseconds: 101
+            ),
+            .rejected(.foreignHostInstance)
+        )
+
+        let snapshot = state.snapshot()
+        XCTAssertEqual(snapshot.hostInstanceID, "host-a")
+        XCTAssertEqual(snapshot.latestSequence, 1)
+        XCTAssertEqual(snapshot.rejectedEventCount, 3)
+        guard case .snapshotChanged(let sentAt) = snapshot.records[0].payload
+        else { return XCTFail("expected snapshot change marker") }
+        XCTAssertEqual(sentAt, 100)
+    }
+
     func testRejectsForeignHostWithoutMutatingAcceptedWindow() throws {
         let state = try HostAgentEventState(capacity: 4, maximumEventBytes: 4_096)
         XCTAssertEqual(

@@ -48,8 +48,14 @@ def main() -> int:
         "snapshot_state": (
             repository / "Sources/CoreBridge/HostAgentSnapshotState.swift"
         ),
+        "event_state": (
+            repository / "Sources/CoreBridge/HostAgentEventState.swift"
+        ),
         "xpc_snapshot": (
             repository / "Sources/CoreBridge/HostAgentXPCWireSnapshot.swift"
+        ),
+        "xpc_event": (
+            repository / "Sources/CoreBridge/HostAgentXPCWireEvent.swift"
         ),
         "readiness": (
             repository / "Sources/CoreBridge/HostAgentBackgroundReadinessPolicy.swift"
@@ -73,6 +79,7 @@ def main() -> int:
             repository
             / "Sources/RustDeskNative/HostAgentSnapshotPollingOwner.swift"
         ),
+        "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "design": repository / "docs/host-mode-design.md",
     }
@@ -228,10 +235,21 @@ def main() -> int:
                 )
             )
         ),
-        "xpcAndHomeDoNotYetPublishTopLevelSessionTuple": (
-            "sessionAvailability" not in sources["xpc_snapshot"]
-            and "sessionUnavailableReason" not in sources["xpc_snapshot"]
-            and "sessionAvailability" not in sources["home_snapshot"]
+        "xpcPublishesStrictTopLevelSessionTuple": (
+            all(
+                marker in sources["xpc_snapshot"]
+                for marker in (
+                    "schemaVersion: 7",
+                    "package let sessionAvailability: HostSessionAvailability",
+                    "package let sessionUnavailableReason: HostSessionUnavailableReason?",
+                    "case (.available, nil), (.limited, .sessionUnavailable):",
+                    '"sessionAvailability": sessionAvailability.rawValue',
+                    '"sessionUnavailableReason": sessionUnavailableReason?.rawValue',
+                )
+            )
+        ),
+        "homeDoesNotYetPublishTopLevelSessionTuple": (
+            "sessionAvailability" not in sources["home_snapshot"]
             and "sessionUnavailableReason" not in sources["home_snapshot"]
         ),
         "backgroundReadinessCanStillBecomeReadyWithoutSessionEvidence": (
@@ -255,7 +273,7 @@ def main() -> int:
             and "HostActiveAquaSessionAuthority" not in background_home
             and "画面采集已暂停" in sources["presentation"]
         ),
-        "periodicAgentPollCopiesCoreButDoesNotPublishSessionTransition": (
+        "periodicAgentPollPublishesBoundedSemanticSessionTransition": (
             all(
                 marker in sources["polling"]
                 for marker in (
@@ -263,7 +281,37 @@ def main() -> int:
                     "snapshotCoordinator.requestPoll()",
                 )
             )
-            and "session" not in sources["polling"].lower()
+            and all(
+                marker in sources["snapshot_state"]
+                for marker in (
+                    "publishSessionTransitionIfNeeded(",
+                    "previous.sessionAvailability != snapshot.sessionAvailability",
+                    "eventState.ingestSnapshotChanged(",
+                    "eventSequence: sequence",
+                )
+            )
+            and all(
+                marker in sources["event_state"]
+                for marker in (
+                    "case snapshotChanged(sentAtUnixMilliseconds: UInt64)",
+                    "package func ingestSnapshotChanged(",
+                    "evictIfNeededLocked()",
+                )
+            )
+            and all(
+                marker in sources["xpc_event"]
+                for marker in (
+                    "case .snapshotChanged(let sentAtUnixMilliseconds):",
+                    "payload: .snapshotChanged",
+                )
+            )
+            and all(
+                marker in sources["process"]
+                for marker in (
+                    "HostAgentSnapshotRefreshCoordinator(",
+                    "eventState: eventState",
+                )
+            )
         ),
         "designRequiresTopLevelLimitedAndUnsupportedUI": all(
             marker in sources["design"]
@@ -340,12 +388,20 @@ def main() -> int:
             sources["polling"],
             "repeating: .milliseconds(500)",
         ),
+        "xpcSnapshotTuple": line_number(
+            sources["xpc_snapshot"],
+            "package let sessionAvailability: HostSessionAvailability",
+        ),
+        "agentSemanticTransition": line_number(
+            sources["snapshot_state"],
+            "publishSessionTransitionIfNeeded(",
+        ),
     }
 
     document = {
         "schema": SCHEMA,
-        "schemaVersion": 2,
-        "status": "core-contract-implemented" if not missing else "audit-drift",
+        "schemaVersion": 3,
+        "status": "xpc-transition-implemented" if not missing else "audit-drift",
         "implementation": {
             "hostABIVersion": rust_abi,
             "snapshotSchemaVersion": snapshot_schema,
@@ -357,7 +413,7 @@ def main() -> int:
         "remainingBoundary": {
             "sharedABINotImplementedByAudit": False,
             "backgroundMediaSuspensionNotImplementedByAudit": False,
-            "xpcTransitionProjectionNotImplementedByAudit": True,
+            "xpcTransitionProjectionNotImplementedByAudit": False,
             "installedLockLoginWindowFUSAcceptanceStillRequired": True,
             "secureInputRemainsSeparateDecision": True,
         },

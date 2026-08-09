@@ -36,9 +36,11 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.agentBootID, bootID)
         XCTAssertEqual(decoded.lastEventID, 7)
         XCTAssertGreaterThan(decoded.payloadLength, 0)
-        XCTAssertEqual(decoded.snapshot.schemaVersion, 6)
+        XCTAssertEqual(decoded.snapshot.schemaVersion, 7)
         XCTAssertEqual(decoded.snapshot.hostState, "ready")
         XCTAssertEqual(decoded.snapshot.localID, "123456789")
+        XCTAssertEqual(decoded.snapshot.sessionAvailability, .available)
+        XCTAssertNil(decoded.snapshot.sessionUnavailableReason)
         XCTAssertEqual(decoded.snapshot.registrationStatus, "ready")
         XCTAssertEqual(decoded.snapshot.recoveryEpoch, 0)
         XCTAssertEqual(decoded.snapshot.recoveryStatus, .running)
@@ -198,6 +200,18 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             )]),
             try replacingPayload(valid, ["snapshot": merging(
                 validSnapshot,
+                ["schemaVersion": 6]
+            )]),
+            try replacingPayload(valid, ["snapshot": merging(
+                validSnapshot,
+                ["sessionAvailability": "limited"]
+            )]),
+            try replacingPayload(valid, ["snapshot": merging(
+                validSnapshot,
+                ["sessionUnavailableReason": "sessionUnavailable"]
+            )]),
+            try replacingPayload(valid, ["snapshot": merging(
+                validSnapshot,
                 ["observedAt": false]
             )]),
             try replacingPayload(valid, ["snapshot": merging(
@@ -296,6 +310,36 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         )
     }
 
+    func testLimitedSessionUnavailableTupleRoundTripsExactly() throws {
+        let state = HostAgentSnapshotState()
+        _ = state.publish(
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 42,
+                sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable
+            ),
+            eventSequence: 1,
+            expectedHostInstanceID: "host-a"
+        )
+        let response = try HostAgentXPCWireSnapshotResponse.make(
+            for: makeRequest(),
+            identity: makeIdentity(),
+            state: state.snapshot(),
+            sentAtUnixMilliseconds: 50
+        )
+        let decoded = try HostAgentXPCWireSnapshotResponse.decode(
+            response.encoded()
+        )
+
+        XCTAssertEqual(decoded.snapshot.schemaVersion, 7)
+        XCTAssertEqual(decoded.snapshot.sessionAvailability, .limited)
+        XCTAssertEqual(
+            decoded.snapshot.sessionUnavailableReason,
+            .sessionUnavailable
+        )
+    }
+
     func testContractSourceCannotActivateXPCOrDefineCommandsOrEvents() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -353,9 +397,11 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         let payload: [String: Any] = [
             "lastEventId": 7,
             "snapshot": [
-                "schemaVersion": 6,
+                "schemaVersion": 7,
                 "hostState": "ready",
                 "localId": "123456789",
+                "sessionAvailability": "available",
+                "sessionUnavailableReason": NSNull(),
                 "registrationStatus": "ready",
                 "recoveryEpoch": 0,
                 "recoveryStatus": "running",
@@ -415,7 +461,9 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
     private func coreSnapshot(
         host: String,
         observedAt: UInt64,
-        revealedPassword: String? = nil
+        revealedPassword: String? = nil,
+        sessionAvailability: HostSessionAvailability = .available,
+        sessionUnavailableReason: HostSessionUnavailableReason? = nil
     ) throws -> HostCoreSnapshot {
         let presentation: [String: Any] = revealedPassword.map {
             ["policy": "revealed", "value": $0]
@@ -425,8 +473,10 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             "hostInstanceId": host,
             "hostState": "ready",
             "localId": "123456789",
-            "sessionAvailability": "available",
-            "sessionUnavailableReason": NSNull(),
+            "sessionAvailability": sessionAvailability.rawValue,
+            "sessionUnavailableReason": sessionUnavailableReason.map {
+                $0.rawValue as Any
+            } ?? NSNull(),
             "registrationStatus": "ready",
             "recoveryEpoch": 0,
             "recoveryStatus": "running",

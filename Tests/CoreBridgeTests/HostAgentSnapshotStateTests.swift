@@ -410,6 +410,70 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(state.snapshot().projection?.observedAt, 101)
     }
 
+    func testCoordinatorJournalsOneSemanticSessionTransitionAndRepublishesCursor()
+        throws
+    {
+        let state = HostAgentSnapshotState()
+        let eventState = try HostAgentEventState(
+            capacity: 4,
+            maximumEventBytes: 4_096
+        )
+        let coordinator = HostAgentSnapshotRefreshCoordinator(
+            state: state,
+            eventState: eventState
+        )
+        let source = SnapshotCopySource(snapshots: [
+            try coreSnapshot(host: "host-a", observedAt: 100),
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 101,
+                sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable
+            ),
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 102,
+                sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable
+            ),
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 103,
+                sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable
+            ),
+        ])
+
+        XCTAssertTrue(coordinator.bind(
+            copySnapshot: source.copy,
+            onIdentityInvalidationRequired: { _ in }
+        ))
+        XCTAssertEqual(eventState.snapshot().latestSequence, 0)
+
+        coordinator.requestPoll()
+
+        let transitioned = state.snapshot()
+        XCTAssertEqual(source.callCount, 3)
+        XCTAssertEqual(transitioned.status, .available)
+        XCTAssertEqual(transitioned.eventSequence, 1)
+        XCTAssertEqual(transitioned.projection?.observedAt, 102)
+        XCTAssertEqual(
+            transitioned.projection?.sessionAvailability,
+            .limited
+        )
+        XCTAssertEqual(eventState.snapshot().latestSequence, 1)
+        guard case .snapshotChanged(let sentAt) =
+            eventState.snapshot().records.first?.payload
+        else { return XCTFail("expected local snapshot change marker") }
+        XCTAssertEqual(sentAt, 101)
+
+        coordinator.requestPoll()
+
+        XCTAssertEqual(source.callCount, 4)
+        XCTAssertEqual(state.snapshot().eventSequence, 1)
+        XCTAssertEqual(eventState.snapshot().latestSequence, 1)
+    }
+
     func testCoordinatorDrainsRequestArrivingDuringRefresh() throws {
         let state = HostAgentSnapshotState()
         let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
