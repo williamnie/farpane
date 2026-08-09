@@ -41,6 +41,16 @@ def main() -> int:
             repository
             / "Sources/CoreBridge/HostAgentBackgroundProjectionAuthority.swift"
         ),
+        "snapshot_service": (
+            repository / "Sources/CoreBridge/HostAgentXPCSnapshotService.swift"
+        ),
+        "command_owner": (
+            repository
+            / "Sources/CoreBridge/HostAgentXPCCommandProcessOwner.swift"
+        ),
+        "runtime": (
+            repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+        ),
         "process_owner": (
             repository
             / "Sources/VideoPipeline/"
@@ -51,6 +61,19 @@ def main() -> int:
             / "Sources/VideoPipeline/HostViewerConcurrencyEvidence.swift"
         ),
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
+        "handshake_tests": (
+            repository
+            / "Tests/CoreBridgeTests/HostAgentXPCWireHandshakeTests.swift"
+        ),
+        "identity_tests": (
+            repository
+            / "Tests/CoreBridgeTests/"
+            / "HostAgentXPCProcessIdentityAuthorityTests.swift"
+        ),
+        "client_tests": (
+            repository
+            / "Tests/CoreBridgeTests/HostAgentXPCSnapshotClientTests.swift"
+        ),
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -67,34 +90,46 @@ def main() -> int:
     client = sources["client"]
     snapshot = sources["snapshot"]
     projection = sources["projection"]
+    snapshot_service = sources["snapshot_service"]
+    command_owner = sources["command_owner"]
+    runtime = sources["runtime"]
     process_owner = sources["process_owner"]
     writer = sources["writer"]
     app = sources["app"]
+    handshake_tests = sources["handshake_tests"]
+    identity_tests = sources["identity_tests"]
+    client_tests = sources["client_tests"]
 
     evidence = {
-        "currentHandshakeIsStrictSchemaAndWireV1": all(
+        "handshakeImplementsStrictSchemaAndWireV2": all(
             marker in handshake
             for marker in (
-                "currentSchemaVersion: UInt64 = 1",
-                "currentWireVersion: UInt64 = 1",
+                "currentSchemaVersion: UInt64 = 2",
+                "currentWireVersion: UInt64 = 2",
                 "Set(document.keys) == Set([",
                 "unsupportedSchema(",
                 "supportedWireVersions: [UInt64]",
                 "[currentWireVersion]",
+                '"agentProcessId"',
+                '"agentProcessStartIdentitySHA256"',
+                "validAgentProcessID",
+                "validLowercaseSHA256",
             )
         ),
-        "currentHandshakeIdentityHasOnlyBuildHostAndBoot": (
-            all(
-                marker in handshake
-                for marker in (
-                    "package struct HostAgentXPCWireAgentIdentity",
-                    "package let agentBuildID: String",
-                    "package let hostInstanceID: String",
-                    "package let agentBootID: String",
-                )
+        "wireIdentityCarriesExactFiveValidatedFields": all(
+            marker in handshake
+            for marker in (
+                "package struct HostAgentXPCWireAgentIdentity",
+                "package let agentBuildID: String",
+                "package let hostInstanceID: String",
+                "package let agentBootID: String",
+                "package let agentProcessID: Int32",
+                "package let agentProcessStartIdentitySHA256: String",
+                "knownIdentityPresence.allSatisfy({ $0 })",
+                "knownIdentityPresence.allSatisfy({ !$0 })",
+                "agentProcessID: identity.agentProcessID",
+                "identity.agentProcessStartIdentitySHA256",
             )
-            and "agentProcessID" not in handshake
-            and "agentProcessStartIdentitySHA256" not in handshake
         ),
         "agentIdentityAuthorityIsImmutableAndHostBound": all(
             marker in identity
@@ -108,26 +143,76 @@ def main() -> int:
                 "identity.hostInstanceID == hostInstanceID",
             )
         ),
-        "appPeerIdentityAndProjectionOmitProcessIdentity": (
+        "productAuthorityCapturesAndHashesExactCurrentProcessOnce": all(
+            marker in identity
+            for marker in (
+                "let processID = getpid()",
+                "PROC_PIDTBSDINFO",
+                "info.pbi_pid == UInt32(processID)",
+                "info.pbi_start_tvsec > 0",
+                "info.pbi_start_tvusec < 1_000_000",
+                '"farpane.v1-concurrency.process-start.v1"',
+                "var hasher = SHA256()",
+                "agentProcessIdentitySnapshot()",
+            )
+        ),
+        "authorityDerivedProcessIdentityIsSharedWithCommandOwner": (
             all(
-                marker in client
+                marker in runtime
                 for marker in (
-                    "package struct HostAgentXPCSnapshotClientPeerIdentity",
-                    "package let agentBuildID: String",
-                    "package let hostInstanceID: String",
-                    "package let agentBootID: String",
+                    "xpcIdentityAuthority.agentProcessIdentitySnapshot()",
+                    "agentProcessIdentity: agentProcessIdentity",
                 )
             )
-            and "agentProcessID" not in client
-            and "agentProcessStartIdentitySHA256" not in client
-            and "agentProcessID" not in projection
-            and "agentProcessStartIdentitySHA256" not in projection
+            and all(
+                marker in command_owner
+                for marker in (
+                    "private let agentProcessIdentity:",
+                    "HostAgentXPCWireAgentProcessIdentity",
+                    "try agentProcessIdentity.bind(",
+                )
+            )
+            and "getpid()" not in runtime
+            and "PROC_PIDTBSDINFO" not in runtime
+        ),
+        "appPeerIdentityAcceptsOnlyHandshakeProcessIdentity": all(
+            marker in client
+            for marker in (
+                "package struct HostAgentXPCSnapshotClientPeerIdentity",
+                "package let agentProcessID: Int32",
+                "package let agentProcessStartIdentitySHA256: String",
+                "agentProcessID: response.agentProcessID",
+                "response.agentProcessStartIdentitySHA256",
+                "knownAgentProcessID: previousPeerIdentity?.agentProcessID",
+                ".agentProcessStartIdentitySHA256",
+            )
+        ),
+        "sameConnectionPinsFullIdentityAcrossTrafficAndReconnect": (
+            all(
+                marker in snapshot_service
+                for marker in (
+                    "private let identity: HostAgentXPCWireAgentIdentity",
+                    "state = .negotiating",
+                    "identity: identity",
+                    "HostAgentXPCWireSnapshotResponse.make(",
+                    "HostAgentXPCWireEventCursorResponse.make(",
+                )
+            )
+            and all(
+                marker in client
+                for marker in (
+                    "case fetchingSnapshot(HostAgentXPCSnapshotClientPeerIdentity)",
+                    "case ready(",
+                    "peerIdentity = try HostAgentXPCSnapshotClientPeerIdentity(",
+                    "previousPeerIdentity == peerIdentity",
+                )
+            )
         ),
         "snapshotDoesNotClaimProcessIdentityAuthority": (
             "agentProcessID" not in snapshot
             and "agentProcessStartIdentitySHA256" not in snapshot
         ),
-        "kernelProcessStartAuthorityAlreadyExists": all(
+        "evidenceOwnerUsesTheSameKernelProcessStartShape": all(
             marker in process_owner
             for marker in (
                 "processID: { getpid() }",
@@ -161,15 +246,41 @@ def main() -> int:
             and "recordHostAgentObservation(" not in app
             and "observeHostAgentRuntimeState(" not in app
         ),
+        "v1AndMalformedProcessIdentityFailClosedInTests": (
+            all(
+                marker in handshake_tests
+                for marker in (
+                    '["schemaVersion": 1]',
+                    "supportedWireVersions: [1]",
+                    '["agentProcessId": 1]',
+                    'String(repeating: "A", count: 64)',
+                )
+            )
+            and all(
+                marker in identity_tests
+                for marker in (
+                    "XCTAssertEqual(firstIdentity.agentProcessID, getpid())",
+                    "HostViewerConcurrencyEvidenceDigest.processStartIdentity(",
+                )
+            )
+            and all(
+                marker in client_tests
+                for marker in (
+                    "handshakeRequest.knownAgentProcessID",
+                    "previous.agentProcessStartIdentitySHA256",
+                    "agentProcessID: 3_210",
+                )
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
     source_lines = {
-        "handshakeSchemaV1": line_number(
-            handshake, "currentSchemaVersion: UInt64 = 1"
+        "handshakeSchemaV2": line_number(
+            handshake, "currentSchemaVersion: UInt64 = 2"
         ),
-        "handshakeWireV1": line_number(
-            handshake, "currentWireVersion: UInt64 = 1"
+        "handshakeWireV2": line_number(
+            handshake, "currentWireVersion: UInt64 = 2"
         ),
         "wireIdentity": line_number(
             handshake, "package struct HostAgentXPCWireAgentIdentity"
@@ -177,8 +288,35 @@ def main() -> int:
         "immutableIdentityAuthority": line_number(
             identity, "exactly one authoritative Host instance"
         ),
+        "agentProcessIDWireField": line_number(
+            handshake, "package let agentProcessID: Int32"
+        ),
+        "agentProcessStartWireField": line_number(
+            handshake,
+            "package let agentProcessStartIdentitySHA256: String",
+        ),
+        "productPIDAuthority": line_number(identity, "let processID = getpid()"),
+        "productProcessStartAuthority": line_number(
+            identity, "PROC_PIDTBSDINFO"
+        ),
+        "productProcessStartDigest": line_number(
+            identity, '"farpane.v1-concurrency.process-start.v1"'
+        ),
+        "sharedCommandProcessIdentity": line_number(
+            runtime, "agentProcessIdentity: agentProcessIdentity"
+        ),
         "appPeerIdentity": line_number(
             client, "package struct HostAgentXPCSnapshotClientPeerIdentity"
+        ),
+        "appPeerProcessIdentity": line_number(
+            client, "package let agentProcessID: Int32"
+        ),
+        "appPreviousProcessIdentity": line_number(
+            client,
+            "knownAgentProcessID: previousPeerIdentity?.agentProcessID",
+        ),
+        "reconnectFullIdentityComparison": line_number(
+            client, "previousPeerIdentity == peerIdentity"
         ),
         "projectionPeerIdentity": line_number(
             projection,
@@ -205,9 +343,9 @@ def main() -> int:
     result = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "coverageScope": "h5.3ae-host-agent-process-identity-xpc-contract",
+        "coverageScope": "h5.3af-host-agent-process-identity-xpc-v2",
         "status": (
-            "contract-frozen"
+            "wire-identity-v2-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -259,16 +397,19 @@ def main() -> int:
                 "caller-supplied-process-identity",
             ],
         },
-        "nextImplementationBoundary": "host-agent-xpc-wire-identity-v2",
+        "nextImplementationBoundary": (
+            "application-host-lifecycle-observation-composition"
+        ),
         "remainingBoundary": {
-            "sharedXPCSchemaStillRequiresVersionedImplementation": True,
             "applicationHostObservationStillRequiresComposition": True,
+            "viewerAutomaticRecoveryStillRequiresImplementation": True,
+            "fiveScenarioValidatorStillRequiresImplementation": True,
             "installedAppAgentExecutionStillRequiresExecution": True,
             "noV1ConcurrencyMatrixPassIsClaimed": True,
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "contract-frozen" else 1
+    return 0 if result["status"] == "wire-identity-v2-implemented" else 1
 
 
 if __name__ == "__main__":

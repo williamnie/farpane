@@ -5,7 +5,7 @@ import unittest
 
 
 class HostAgentXPCProcessIdentityContractAuditTests(unittest.TestCase):
-    def test_process_identity_xpc_v2_contract_is_frozen(self) -> None:
+    def test_process_identity_xpc_v2_contract_is_implemented(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -29,7 +29,7 @@ class HostAgentXPCProcessIdentityContractAuditTests(unittest.TestCase):
             "farpane-host-agent-xpc-process-identity-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "contract-frozen")
+        self.assertEqual(document["status"], "wire-identity-v2-implemented")
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
@@ -37,7 +37,18 @@ class HostAgentXPCProcessIdentityContractAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-agent-xpc-wire-identity-v2",
+            "application-host-lifecycle-observation-composition",
+        )
+        self.assertTrue(
+            document["evidence"]["handshakeImplementsStrictSchemaAndWireV2"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["productAuthorityCapturesAndHashesExactCurrentProcessOnce"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["sameConnectionPinsFullIdentityAcrossTrafficAndReconnect"]
         )
 
         contract = document["targetContract"]

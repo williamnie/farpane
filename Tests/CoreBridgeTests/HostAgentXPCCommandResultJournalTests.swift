@@ -288,7 +288,7 @@ final class HostAgentXPCCommandResultJournalTests: XCTestCase {
     }
 
     private func identity() throws -> HostAgentXPCWireAgentIdentity {
-        try HostAgentXPCWireAgentIdentity(
+        try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "202608090001",
             hostInstanceID: hostID,
             agentBootID: bootID
@@ -301,7 +301,7 @@ final class HostAgentXPCCommandResultJournalTests: XCTestCase {
         try HostAgentXPCWireCommandRequest(
             requestID: requestID,
             commandID: "command-1",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             name: .disconnectSession,
@@ -313,7 +313,7 @@ final class HostAgentXPCCommandResultJournalTests: XCTestCase {
     private func eventRequest() throws -> HostAgentXPCWireEventCursorRequest {
         try HostAgentXPCWireEventCursorRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             afterEventID: 0,

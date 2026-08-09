@@ -1,3 +1,5 @@
+import CryptoKit
+import Darwin
 import Foundation
 
 package enum HostAgentXPCProcessIdentityBindRejection: Equatable, Sendable {
@@ -25,8 +27,7 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
     package typealias InvalidationObserver = @Sendable () -> Void
 
     private let lock = NSLock()
-    private let agentBuildID: String
-    private let agentBootID: String
+    private let agentProcessIdentity: HostAgentXPCWireAgentProcessIdentity
     private var state: HostAgentXPCProcessIdentityState = .waitingForHostInstance
     private var invalidationObserver: InvalidationObserver?
     private var invalidationDelivered = false
@@ -35,19 +36,26 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
         agentBuildID: String,
         agentBootID: String
     ) throws -> Self {
-        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
-            agentBuildID
-        ),
-            HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID)
-        else {
+        guard let processIdentity = currentProcessIdentity(
+            agentBuildID: agentBuildID,
+            agentBootID: agentBootID
+        ) else {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
         }
-        return Self(agentBuildID: agentBuildID, agentBootID: agentBootID)
+        return Self(agentProcessIdentity: processIdentity)
     }
 
-    private init(agentBuildID: String, agentBootID: String) {
-        self.agentBuildID = agentBuildID
-        self.agentBootID = agentBootID
+    private init(agentProcessIdentity: HostAgentXPCWireAgentProcessIdentity) {
+        self.agentProcessIdentity = agentProcessIdentity
+    }
+
+    package func agentProcessIdentitySnapshot()
+        -> HostAgentXPCWireAgentProcessIdentity?
+    {
+        lock.lock()
+        defer { lock.unlock() }
+        if case .invalidated = state { return nil }
+        return agentProcessIdentity
     }
 
     package func bind(
@@ -69,11 +77,11 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
         switch state {
         case .waitingForHostInstance:
             do {
-                state = .ready(try HostAgentXPCWireAgentIdentity(
-                    agentBuildID: agentBuildID,
-                    hostInstanceID: hostInstanceID,
-                    agentBootID: agentBootID
-                ))
+                state = .ready(
+                    try agentProcessIdentity.bind(
+                        hostInstanceID: hostInstanceID
+                    )
+                )
                 lock.unlock()
                 return .bound
             } catch {
@@ -153,5 +161,50 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
         }
         invalidationDelivered = true
         return invalidationObserver
+    }
+
+    private static func currentProcessIdentity(
+        agentBuildID: String,
+        agentBootID: String
+    ) -> HostAgentXPCWireAgentProcessIdentity? {
+        let processID = getpid()
+        guard processID > 1 else { return nil }
+
+        var info = proc_bsdinfo()
+        let expectedSize = Int32(MemoryLayout<proc_bsdinfo>.stride)
+        let copiedSize = withUnsafeMutablePointer(to: &info) { pointer in
+            proc_pidinfo(
+                processID,
+                PROC_PIDTBSDINFO,
+                0,
+                pointer,
+                expectedSize
+            )
+        }
+        guard copiedSize == expectedSize,
+              info.pbi_pid == UInt32(processID),
+              info.pbi_start_tvsec > 0,
+              info.pbi_start_tvusec < 1_000_000
+        else { return nil }
+
+        let rawProcessStartIdentity =
+            "pid=\(processID);sec=\(info.pbi_start_tvsec);"
+            + "usec=\(info.pbi_start_tvusec)"
+        var hasher = SHA256()
+        hasher.update(data: Data(
+            "farpane.v1-concurrency.process-start.v1".utf8
+        ))
+        hasher.update(data: Data([0]))
+        hasher.update(data: Data(rawProcessStartIdentity.utf8))
+        let digest = hasher.finalize().map {
+            String(format: "%02x", $0)
+        }.joined()
+
+        return try? HostAgentXPCWireAgentProcessIdentity(
+            agentBuildID: agentBuildID,
+            agentBootID: agentBootID,
+            agentProcessID: processID,
+            agentProcessStartIdentitySHA256: digest
+        )
     }
 }

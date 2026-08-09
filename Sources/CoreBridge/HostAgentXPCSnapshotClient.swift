@@ -10,17 +10,27 @@ package struct HostAgentXPCSnapshotClientPeerIdentity: Equatable, Sendable {
     package let agentBuildID: String
     package let hostInstanceID: String
     package let agentBootID: String
+    package let agentProcessID: Int32
+    package let agentProcessStartIdentitySHA256: String
 
     package init(
         agentBuildID: String,
         hostInstanceID: String,
-        agentBootID: String
+        agentBootID: String,
+        agentProcessID: Int32,
+        agentProcessStartIdentitySHA256: String
     ) throws {
         guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
                 agentBuildID
               ),
               HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID),
-              HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID)
+              HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
+              HostAgentXPCWireHandshakeContract.validAgentProcessID(
+                agentProcessID
+              ),
+              HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
+                agentProcessStartIdentitySHA256
+              )
         else {
             throw HostAgentXPCSnapshotClientConfigurationError
                 .invalidPeerIdentity
@@ -28,6 +38,9 @@ package struct HostAgentXPCSnapshotClientPeerIdentity: Equatable, Sendable {
         self.agentBuildID = agentBuildID
         self.hostInstanceID = hostInstanceID
         self.agentBootID = agentBootID
+        self.agentProcessID = agentProcessID
+        self.agentProcessStartIdentitySHA256 =
+            agentProcessStartIdentitySHA256
     }
 
     fileprivate init(
@@ -36,7 +49,10 @@ package struct HostAgentXPCSnapshotClientPeerIdentity: Equatable, Sendable {
         try self.init(
             agentBuildID: response.agentBuildID,
             hostInstanceID: response.hostInstanceID,
-            agentBootID: response.agentBootID
+            agentBootID: response.agentBootID,
+            agentProcessID: response.agentProcessID,
+            agentProcessStartIdentitySHA256:
+                response.agentProcessStartIdentitySHA256
         )
     }
 }
@@ -426,6 +442,10 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
                 appBuildID: appBuildID,
                 knownHostInstanceID: previousPeerIdentity?.hostInstanceID,
                 knownAgentBootID: previousPeerIdentity?.agentBootID,
+                knownAgentProcessID: previousPeerIdentity?.agentProcessID,
+                knownAgentProcessStartIdentitySHA256:
+                    previousPeerIdentity?
+                        .agentProcessStartIdentitySHA256,
                 sentAtUnixMilliseconds: nowUnixMilliseconds()
             )
         } catch {

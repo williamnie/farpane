@@ -22,6 +22,21 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
         XCTAssertTrue(source.contains(
             "bootstrapContext.leaseRecord.agentBootID.uuidString.lowercased()"
         ))
+        try assertOrder(
+            in: source,
+            "HostAgentXPCProcessIdentityAuthority.makeProduct(",
+            "xpcIdentityAuthority.agentProcessIdentitySnapshot()"
+        )
+        try assertOrder(
+            in: source,
+            "xpcIdentityAuthority.agentProcessIdentitySnapshot()",
+            "let commandOwner = try HostAgentXPCCommandProcessOwner("
+        )
+        XCTAssertTrue(source.contains(
+            "agentProcessIdentity: agentProcessIdentity"
+        ))
+        XCTAssertFalse(source.contains("getpid()"))
+        XCTAssertFalse(source.contains("PROC_PIDTBSDINFO"))
         XCTAssertFalse(source.contains("UUID()"))
         XCTAssertFalse(source.contains("Bundle.main"))
         XCTAssertFalse(source.contains("ProcessInfo"))
@@ -118,6 +133,9 @@ final class HostAgentXPCProcessIdentityIntegrationTests: XCTestCase {
         ))
         XCTAssertTrue(runtimeSource.contains(
             "let commandOwner = try HostAgentXPCCommandProcessOwner("
+        ))
+        XCTAssertTrue(runtimeSource.contains(
+            "agentProcessIdentity: agentProcessIdentity"
         ))
         XCTAssertTrue(runtimeSource.contains(
             "commandOwner.consumeCoreEvent(event)"

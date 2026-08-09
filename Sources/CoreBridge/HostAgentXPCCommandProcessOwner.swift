@@ -30,8 +30,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     package typealias InvalidationCallback = @Sendable () -> Void
 
     private let lock = NSLock()
-    private let agentBuildID: String
-    private let agentBootID: String
+    private let agentProcessIdentity: HostAgentXPCWireAgentProcessIdentity
     private let eventState: HostAgentEventState
     private let nowUnixMilliseconds: Clock
     private let onNonCommandEvent: EventConsumer
@@ -46,22 +45,13 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     private var invalidationDelivered = false
 
     package init(
-        agentBuildID: String,
-        agentBootID: String,
+        agentProcessIdentity: HostAgentXPCWireAgentProcessIdentity,
         eventState: HostAgentEventState,
         nowUnixMilliseconds: @escaping Clock,
         onNonCommandEvent: @escaping EventConsumer,
         onInvalidationRequired: @escaping InvalidationCallback
     ) throws {
-        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
-                agentBuildID
-              ),
-              HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID)
-        else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
-        self.agentBuildID = agentBuildID
-        self.agentBootID = agentBootID
+        self.agentProcessIdentity = agentProcessIdentity
         self.eventState = eventState
         self.nowUnixMilliseconds = nowUnixMilliseconds
         self.onNonCommandEvent = onNonCommandEvent
@@ -130,10 +120,8 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         let newIdentity: HostAgentXPCWireAgentIdentity
         let newAuthority: HostAgentXPCCommandAdmissionAuthority
         do {
-            newIdentity = try HostAgentXPCWireAgentIdentity(
-                agentBuildID: agentBuildID,
-                hostInstanceID: hostInstanceID,
-                agentBootID: agentBootID
+            newIdentity = try agentProcessIdentity.bind(
+                hostInstanceID: hostInstanceID
             )
             newAuthority = try HostAgentXPCCommandAdmissionAuthority(
                 identity: newIdentity

@@ -31,7 +31,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
 
         XCTAssertEqual(decoded, response)
         XCTAssertEqual(decoded.requestID, requestID)
-        XCTAssertEqual(decoded.wireVersion, 1)
+        XCTAssertEqual(decoded.wireVersion, 2)
         XCTAssertEqual(decoded.hostInstanceID, "host-a")
         XCTAssertEqual(decoded.agentBootID, bootID)
         XCTAssertEqual(decoded.lastEventID, 7)
@@ -54,7 +54,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
 
         let staleIdentityRequest = try HostAgentXPCWireSnapshotRequest(
             requestID: requestID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
             sentAtUnixMilliseconds: 51
@@ -125,7 +125,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
 
         let wrongBootRequest = try HostAgentXPCWireSnapshotRequest(
             requestID: requestID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
             sentAtUnixMilliseconds: 1
@@ -144,7 +144,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             merging(valid, ["unknown": true]),
             removing(valid, "requestId"),
             merging(valid, ["schemaVersion": 2]),
-            merging(valid, ["wireVersion": 2]),
+            merging(valid, ["wireVersion": 1]),
             merging(valid, ["wireVersion": true]),
             merging(valid, ["messageType": "command"]),
             merging(valid, ["requestId": "NOT-A-CANONICAL-UUID"]),
@@ -189,7 +189,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             try replacingPayload(valid, ["lastEventId": true]),
             try replacingPayload(valid, ["lastEventId": 1.5]),
             merging(valid, ["hostInstanceId": "host/invalid"]),
-            merging(valid, ["wireVersion": 2]),
+            merging(valid, ["wireVersion": 1]),
             merging(valid, ["payloadLength": 1]),
             try replacingPayload(valid, ["snapshot": merging(
                 validSnapshot,
@@ -391,7 +391,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
     private func makeRequest() throws -> HostAgentXPCWireSnapshotRequest {
         try HostAgentXPCWireSnapshotRequest(
             requestID: requestID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: bootID,
             sentAtUnixMilliseconds: 1
@@ -399,7 +399,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
     }
 
     private func makeIdentity() throws -> HostAgentXPCWireAgentIdentity {
-        try HostAgentXPCWireAgentIdentity(
+        try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: "host-a",
             agentBootID: bootID
@@ -409,7 +409,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
     private func requestDocument() -> [String: Any] {
         [
             "schemaVersion": 1,
-            "wireVersion": 1,
+            "wireVersion": 2,
             "messageType": "snapshotRequest",
             "requestId": requestID,
             "hostInstanceId": "host-a",
@@ -454,7 +454,7 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         ]
         return [
             "schemaVersion": 1,
-            "wireVersion": 1,
+            "wireVersion": 2,
             "messageType": "snapshotResponse",
             "requestId": requestID,
             "hostInstanceId": "host-a",

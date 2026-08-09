@@ -15,6 +15,7 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
     private enum CompositionError: Error {
         case commandOwnerBindingFailed
         case commandQueueDrainTimedOut
+        case processIdentityUnavailable
     }
 
     private let ownedRuntime: HostAgentOwnedCoreRuntime<HostAgentBootstrapContext>
@@ -61,10 +62,13 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                 agentBootID:
                     bootstrapContext.leaseRecord.agentBootID.uuidString.lowercased()
             )
+        guard let agentProcessIdentity =
+                xpcIdentityAuthority.agentProcessIdentitySnapshot()
+        else {
+            throw CompositionError.processIdentityUnavailable
+        }
         let commandOwner = try HostAgentXPCCommandProcessOwner(
-            agentBuildID: bootstrapContext.leaseRecord.agentBuildID,
-            agentBootID:
-                bootstrapContext.leaseRecord.agentBootID.uuidString.lowercased(),
+            agentProcessIdentity: agentProcessIdentity,
             eventState: eventState,
             nowUnixMilliseconds: productClock,
             onNonCommandEvent: onEvent,

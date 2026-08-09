@@ -25,7 +25,7 @@ final class HostAgentBackgroundCommandProductSmokeTests: XCTestCase {
             .published(generation: 1)
         )
         let eventState = try HostAgentEventState()
-        let identity = try HostAgentXPCWireAgentIdentity(
+        let identity = try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID

@@ -621,7 +621,7 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
     ) throws -> HostAgentBackgroundProjectionView {
         let authority = HostAgentBackgroundProjectionAuthority()
         let binding = authority.beginSession()
-        let peer = try HostAgentXPCSnapshotClientPeerIdentity(
+        let peer = try HostAgentXPCSnapshotClientPeerIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: "host-a",
             agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7"
@@ -646,7 +646,7 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: bootID,
             sentAtUnixMilliseconds: 11
@@ -730,7 +730,7 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         )
         return try HostAgentXPCWireSnapshotResponse.make(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: "host-a",
                 agentBootID: bootID

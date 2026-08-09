@@ -295,7 +295,7 @@ final class HostAgentXPCCommandAdmissionAuthorityTests: XCTestCase {
     }
 
     private func makeIdentity() throws -> HostAgentXPCWireAgentIdentity {
-        try HostAgentXPCWireAgentIdentity(
+        try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "202608090001",
             hostInstanceID: "host-a",
             agentBootID: bootID
@@ -313,7 +313,7 @@ final class HostAgentXPCCommandAdmissionAuthorityTests: XCTestCase {
         try HostAgentXPCWireCommandRequest(
             requestID: requestID,
             commandID: commandID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID ?? self.bootID,
             name: name,

@@ -78,7 +78,7 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
         XCTAssertThrowsError(
             try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
                 for: request,
-                identity: try HostAgentXPCWireAgentIdentity(
+                identity: try HostAgentXPCWireAgentIdentity.test(
                     agentBuildID: "202608090001",
                     hostInstanceID: "host-b",
                     agentBootID: bootID
@@ -89,7 +89,7 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
         XCTAssertThrowsError(
             try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
                 for: request,
-                identity: try HostAgentXPCWireAgentIdentity(
+                identity: try HostAgentXPCWireAgentIdentity.test(
                     agentBuildID: "202608090001",
                     hostInstanceID: hostID,
                     agentBootID:
@@ -109,7 +109,7 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
             merging(valid, ["unknown": true]),
             removing(valid, "commandId"),
             merging(valid, ["schemaVersion": 2]),
-            merging(valid, ["wireVersion": 2]),
+            merging(valid, ["wireVersion": 1]),
             merging(valid, ["wireVersion": true]),
             merging(valid, ["messageType": "snapshotRequest"]),
             merging(valid, ["requestId": "NOT-A-CANONICAL-UUID"]),
@@ -164,7 +164,7 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
             merging(valid, ["unknown": true]),
             removing(valid, "requestId"),
             merging(valid, ["schemaVersion": 2]),
-            merging(valid, ["wireVersion": 2]),
+            merging(valid, ["wireVersion": 1]),
             merging(valid, ["messageType": "commandRequest"]),
             merging(valid, ["requestId": "not-a-uuid"]),
             merging(valid, ["commandId": "command/invalid"]),
@@ -216,7 +216,7 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
         try HostAgentXPCWireCommandRequest(
             requestID: requestID ?? self.requestID,
             commandID: commandID ?? self.commandID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             name: name,
@@ -226,7 +226,7 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
     }
 
     private func makeIdentity() throws -> HostAgentXPCWireAgentIdentity {
-        try HostAgentXPCWireAgentIdentity(
+        try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "202608090001",
             hostInstanceID: hostID,
             agentBootID: bootID
