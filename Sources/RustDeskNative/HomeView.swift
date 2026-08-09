@@ -13,6 +13,7 @@ struct HostApprovalHomeSnapshot: Equatable {
     var capabilityText: String
     var expiryText: String
     var isResolving: Bool
+    var allowsCommands: Bool
 }
 
 enum HostSessionHomeAction: Equatable {
@@ -31,6 +32,7 @@ struct HostActiveSessionHomeSnapshot: Equatable {
     var canDisableClipboard: Bool
     var canDisableSystemAudio: Bool
     var pendingAction: HostSessionHomeAction?
+    var allowsCommands: Bool
 }
 
 struct HostHomeSnapshot: Equatable {
@@ -209,8 +211,10 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostApprovalCapabilityLabel.stringValue = approval.capabilityText
             hostApprovalExpiryLabel.stringValue = approval.expiryText
             hostApproveButton.title = approval.isResolving ? "处理中…" : "允许一次"
-            hostApproveButton.isEnabled = !approval.isResolving
-            hostRejectButton.isEnabled = !approval.isResolving
+            hostApproveButton.isEnabled = approval.allowsCommands
+                && !approval.isResolving
+            hostRejectButton.isEnabled = approval.allowsCommands
+                && !approval.isResolving
             hostApprovalContainer.isHidden = false
         } else {
             hostApprovalContainer.isHidden = true
@@ -246,7 +250,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostDisconnectButton.title = session.pendingAction == .disconnect
                 ? "正在断开…"
                 : "断开连接"
-            hostDisconnectButton.isEnabled = !actionInFlight
+            hostDisconnectButton.isEnabled = session.allowsCommands
+                && !actionInFlight
             hostSessionContainer.isHidden = false
         } else {
             hostSessionContainer.isHidden = true
@@ -299,7 +304,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     ) {
         button.title = session.pendingAction == action ? "处理中…" : title
         button.isHidden = !capabilityAvailable
-        button.isEnabled = capabilityAvailable && session.pendingAction == nil
+        button.isEnabled = session.allowsCommands
+            && capabilityAvailable
+            && session.pendingAction == nil
     }
 
     func focusQuickConnect() {
@@ -1006,12 +1013,14 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
 
     @objc private func approveHostConnection() {
         guard let approval = snapshot.host.pendingApproval,
+              approval.allowsCommands,
               !approval.isResolving else { return }
         onApproveHostConnection?(approval.connectionID)
     }
 
     @objc private func rejectHostConnection() {
         guard let approval = snapshot.host.pendingApproval,
+              approval.allowsCommands,
               !approval.isResolving else { return }
         onRejectHostConnection?(approval.connectionID)
     }
@@ -1034,6 +1043,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
 
     private func performHostSessionAction(_ action: HostSessionHomeAction) {
         guard let session = snapshot.host.activeSession,
+              session.allowsCommands,
               session.pendingAction == nil else { return }
         switch action {
         case .disableKeyboardAndMouse:

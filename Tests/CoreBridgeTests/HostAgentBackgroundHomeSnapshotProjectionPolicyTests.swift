@@ -109,6 +109,66 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         )
     }
 
+    func testTypedApprovalAndSessionRemainExplicitlyReadOnly() throws {
+        let hostID = "host-a"
+        let pending: [String: Any] = [
+            "connectionId": "\(hostID):pending-1",
+            "remoteId": "remote-1",
+            "remoteName": "Mini",
+            "remotePlatform": "macOS",
+            "remoteMetadataTrust": "untrusted",
+            "requestedAt": 40,
+            "expiresAt": 80,
+            "requestedCapabilities": [
+                "viewDisplay", "controlKeyboardMouse",
+            ],
+            "transport": "relay",
+            "authenticationMethod": "localApproval",
+            "riskAlerts": [],
+        ]
+        let active: [String: Any] = [
+            "connectionId": "\(hostID):session-1",
+            "remoteId": "remote-2",
+            "remoteName": "MBP",
+            "remotePlatform": "macOS",
+            "remoteMetadataTrust": "untrusted",
+            "startedAt": 30,
+            "initialCapabilities": [
+                "viewDisplay", "controlKeyboardMouse",
+                "readClipboard", "writeClipboard",
+            ],
+            "activeCapabilities": [
+                "viewDisplay", "controlKeyboardMouse",
+            ],
+            "inputAvailability": "available",
+            "inputUnavailableReason": NSNull(),
+        ]
+        let projection = try availableProjection(
+            localID: "123456789",
+            registrationStatus: "ready",
+            lastError: nil,
+            pendingApproval: pending,
+            activeSession: active
+        )
+        let view = presentation(
+            readiness: readiness(
+                registration: .enabled,
+                projection: projection
+            ),
+            projection: projection
+        )
+
+        XCTAssertEqual(view.pendingApproval?.remoteName, "Mini")
+        XCTAssertEqual(
+            view.pendingApproval?.requestedCapabilities,
+            ["viewDisplay", "controlKeyboardMouse"]
+        )
+        XCTAssertEqual(view.activeSession?.remoteName, "MBP")
+        XCTAssertEqual(view.activeSession?.inputAvailability, .available)
+        XCTAssertFalse(view.allowsApprovalCommands)
+        XCTAssertFalse(view.allowsSessionCommands)
+    }
+
     func testProductSourcesCarryProjectionAndDoNotMixLegacyFields()
         throws
     {
@@ -125,6 +185,12 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         let appSource = try String(
             contentsOf: repositoryRoot.appendingPathComponent(
                 "Sources/RustDeskNative/RustDeskNativeApp.swift"
+            ),
+            encoding: .utf8
+        )
+        let homeSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/HomeView.swift"
             ),
             encoding: .utf8
         )
@@ -151,14 +217,38 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
             ": backgroundSnapshot.localID"
         ))
         XCTAssertTrue(appSource.contains(
-            "pendingApproval: usesLegacyHost ? hostApprovalHomeSnapshot() : nil"
+            ": backgroundHostApprovalHomeSnapshot(backgroundSnapshot)"
         ))
         XCTAssertTrue(appSource.contains(
-            "activeSession: usesLegacyHost ? hostActiveSessionHomeSnapshot() : nil"
+            ": backgroundHostActiveSessionHomeSnapshot(backgroundSnapshot)"
         ))
         XCTAssertTrue(appSource.contains(
             "mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : \"\""
         ))
+        XCTAssertEqual(appSource.components(
+            separatedBy: "allowsCommands: true"
+        ).count - 1, 2)
+        XCTAssertTrue(appSource.contains(
+            "allowsCommands: backgroundSnapshot.allowsApprovalCommands"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "allowsCommands: backgroundSnapshot.allowsSessionCommands"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "backgroundHostApprovalExpiryText("
+        ))
+        XCTAssertEqual(homeSource.components(
+            separatedBy: "var allowsCommands: Bool"
+        ).count - 1, 2)
+        XCTAssertEqual(homeSource.components(
+            separatedBy: "approval.allowsCommands"
+        ).count - 1, 4)
+        XCTAssertEqual(homeSource.components(
+            separatedBy: "&& !approval.isResolving"
+        ).count - 1, 2)
+        XCTAssertEqual(homeSource.components(
+            separatedBy: "session.allowsCommands"
+        ).count - 1, 3)
     }
 
     private func presentation(
@@ -186,7 +276,9 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
     private func availableProjection(
         localID: String,
         registrationStatus: String,
-        lastError: String?
+        lastError: String?,
+        pendingApproval: Any = NSNull(),
+        activeSession: Any = NSNull()
     ) throws -> HostAgentBackgroundProjectionView {
         let authority = HostAgentBackgroundProjectionAuthority()
         let binding = authority.beginSession()
@@ -201,7 +293,9 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
                 hostID: hostID,
                 localID: localID,
                 registrationStatus: registrationStatus,
-                lastError: lastError
+                lastError: lastError,
+                pendingApproval: pendingApproval,
+                activeSession: activeSession
             ),
             peerIdentity: peer,
             transition: .firstObservation
@@ -213,7 +307,9 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         hostID: String,
         localID: String,
         registrationStatus: String,
-        lastError: String?
+        lastError: String?,
+        pendingApproval: Any,
+        activeSession: Any
     ) throws -> HostAgentXPCWireSnapshotResponse {
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
@@ -231,8 +327,8 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
                     "hostState": "ready",
                     "localId": localID,
                     "registrationStatus": registrationStatus,
-                    "pendingApproval": NSNull(),
-                    "activeSession": NSNull(),
+                    "pendingApproval": pendingApproval,
+                    "activeSession": activeSession,
                     "temporaryPasswordPresentation": [
                         "policy": "redacted",
                     ],

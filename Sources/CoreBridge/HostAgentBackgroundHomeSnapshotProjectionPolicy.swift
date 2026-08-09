@@ -9,7 +9,11 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         effectivePermanentPasswordSet: false,
         usingPresetPassword: false,
         permanentPasswordChangeAllowed: false,
-        hasRuntimeError: false
+        hasRuntimeError: false,
+        pendingApproval: nil,
+        activeSession: nil,
+        allowsApprovalCommands: false,
+        allowsSessionCommands: false
     )
 
     package let isAvailable: Bool
@@ -19,6 +23,10 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
     package let usingPresetPassword: Bool
     package let permanentPasswordChangeAllowed: Bool
     package let hasRuntimeError: Bool
+    package let pendingApproval: HostAgentXPCWirePendingApproval?
+    package let activeSession: HostAgentXPCWireActiveSession?
+    package let allowsApprovalCommands: Bool
+    package let allowsSessionCommands: Bool
 
     package init(
         isAvailable: Bool,
@@ -27,7 +35,11 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         effectivePermanentPasswordSet: Bool,
         usingPresetPassword: Bool,
         permanentPasswordChangeAllowed: Bool,
-        hasRuntimeError: Bool
+        hasRuntimeError: Bool,
+        pendingApproval: HostAgentXPCWirePendingApproval? = nil,
+        activeSession: HostAgentXPCWireActiveSession? = nil,
+        allowsApprovalCommands: Bool = false,
+        allowsSessionCommands: Bool = false
     ) {
         self.isAvailable = isAvailable
         self.localID = localID
@@ -37,12 +49,16 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         self.permanentPasswordChangeAllowed =
             permanentPasswordChangeAllowed
         self.hasRuntimeError = hasRuntimeError
+        self.pendingApproval = pendingApproval
+        self.activeSession = activeSession
+        self.allowsApprovalCommands = allowsApprovalCommands
+        self.allowsSessionCommands = allowsSessionCommands
     }
 }
 
 /// Read-only Home projection from one coherent activation/runtime snapshot.
-/// It deliberately omits temporary passwords, approvals, sessions and media
-/// until their matching App-side command/presentation boundaries exist.
+/// Temporary passwords and media are deliberately omitted. Approval/session
+/// payloads are read-only until their matching typed command surface exists.
 package enum HostAgentBackgroundHomeSnapshotProjectionPolicy {
     package static func presentation(
         phase: HostAgentBackgroundActivationPhase?,
@@ -72,7 +88,12 @@ package enum HostAgentBackgroundHomeSnapshotProjectionPolicy {
                 payload.passwordPolicy.usingPresetPassword,
             permanentPasswordChangeAllowed:
                 payload.passwordPolicy.changeAllowed,
-            hasRuntimeError: payload.lastError != nil
+            hasRuntimeError: payload.lastError != nil,
+            pendingApproval: payload.pendingApproval,
+            activeSession: payload.activeSession,
+            allowsApprovalCommands: false,
+            allowsSessionCommands: false
         )
     }
+
 }
