@@ -65,6 +65,15 @@ def main() -> int:
             repository
             / "Sources/CoreBridge/HostAgentNetworkPathRecoveryTriggerOwner.swift"
         ),
+        "composition": (
+            repository
+            / "Sources/RustDeskNative/HostAgentNetworkPathRecoveryComposition.swift"
+        ),
+        "process_owner": (
+            repository
+            / "Sources/RustDeskNative/HostAgentNetworkPathRecoveryProcessOwner.swift"
+        ),
+        "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -277,6 +286,37 @@ def main() -> int:
                 "while operationInFlight || completionInFlight",
             )
         ),
+        "swiftNetworkRecoveryIsComposedInProcessLifetime": (
+            all(
+                marker in sources["composition"]
+                for marker in (
+                    "HostAgentNetworkPathRecoveryPollingOwner.makeProduct(",
+                    "HostAgentNetworkPathRecoveryTriggerOwner {",
+                    "lifetime.recoverNetworkPath(",
+                    "return .snapshot(try lifetime.copySnapshot())",
+                    "snapshotCoordinator.requestPoll()",
+                    "lifetime?.requestTermination(reason: .error)",
+                    "triggerOwner.cancelAndWait()",
+                    "pollingOwner.cancelAndWait()",
+                )
+            )
+            and all(
+                marker in sources["process_owner"]
+                for marker in (
+                    "HostAgentNetworkPathRecoveryComposition(",
+                    "guard state == .installed",
+                    "composition?.cancelAndWait()",
+                )
+            )
+            and all(
+                marker in sources["process"]
+                for marker in (
+                    "HostAgentNetworkPathRecoveryProcessOwner()",
+                    "networkPathRecoveryOwner.install(",
+                    "networkPathRecoveryOwner.cancelAndWait()",
+                )
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -327,7 +367,7 @@ def main() -> int:
     }
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
@@ -362,9 +402,6 @@ def main() -> int:
         "remainingBoundary": {
             "productNWPathMonitorAdapterAbsent": (
                 "NWPathMonitor" not in product_sources
-            ),
-            "processNetworkRecoveryCompositionAbsent": (
-                "HostAgentNetworkPathRecoveryPollingOwner.makeProduct(" not in product_sources
             ),
             "realNetworkSwitchEvidenceRequired": True,
         },

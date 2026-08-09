@@ -27,7 +27,7 @@ class HostNetworkPathRecoveryContractAuditTests(unittest.TestCase):
             document["schema"],
             "farpane-host-network-path-recovery-contract-audit",
         )
-        self.assertEqual(document["schemaVersion"], 3)
+        self.assertEqual(document["schemaVersion"], 4)
         self.assertEqual(document["status"], "trigger-contract-implemented")
         self.assertEqual(document["missingEvidence"], [])
         self.assertTrue(all(
@@ -49,6 +49,11 @@ class HostNetworkPathRecoveryContractAuditTests(unittest.TestCase):
         self.assertTrue(
             document["integrationBoundary"][
                 "swiftReadyConvergenceImplemented"
+            ]
+        )
+        self.assertTrue(
+            document["integrationBoundary"][
+                "productNetworkRecoveryCompositionImplemented"
             ]
         )
 

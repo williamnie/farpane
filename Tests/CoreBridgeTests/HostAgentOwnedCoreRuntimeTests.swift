@@ -179,6 +179,34 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         }.count, 3)
     }
 
+    func testNetworkRecoveryStaysWithinOwnedRuntimeLifetime() throws {
+        let recorder = HostAgentLifecycleRecorder()
+        let client = OwnedRuntimeRecordingClient(recorder: recorder)
+        let runtime = try HostAgentOwnedCoreRuntime.start(
+            bootstrapOwner: HostAgentTestBootstrapOwner(recorder: recorder)
+        ) { _ in
+            recorder.append(.runtimeFactory)
+            return try self.startCore(client: client)
+        }
+
+        try runtime.recoverNetworkPath(generation: 11)
+        XCTAssertEqual(recorder.events.last, .coreRecoverNetworkPath(11))
+
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(
+            try runtime.recoverNetworkPath(generation: 12)
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentCoreRuntimeAccessError,
+                .notRunning
+            )
+        }
+        XCTAssertEqual(recorder.events.filter {
+            if case .coreRecoverNetworkPath = $0 { return true }
+            return false
+        }.count, 1)
+    }
+
     func testMediaOperationsStayWithinOwnedRuntimeLifetime() throws {
         let recorder = HostAgentLifecycleRecorder()
         let client = OwnedRuntimeRecordingClient(recorder: recorder)
@@ -298,6 +326,7 @@ private enum HostAgentLifecycleEvent: Equatable {
     case coreBeginSleep(UInt64)
     case coreFinishSleep(UInt64)
     case coreResumeAfterWake(UInt64)
+    case coreRecoverNetworkPath(UInt64)
     case coreSetMediaCapabilities
     case coreSubmitMedia
     case coreReportEncoderState
@@ -364,6 +393,10 @@ private final class OwnedRuntimeRecordingClient: HostAgentCoreControlSurface {
 
     func resumeAfterWake(epoch: UInt64) throws {
         recorder.append(.coreResumeAfterWake(epoch))
+    }
+
+    func recoverNetworkPath(generation: UInt64) throws {
+        recorder.append(.coreRecoverNetworkPath(generation))
     }
 
     func copySnapshot() throws -> HostCoreSnapshot {
