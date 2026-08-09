@@ -25,7 +25,7 @@ final class HostAgentEventStateTests: XCTestCase {
     func testAcceptsEventsInArrivalOrderAndPinsHostInstance() throws {
         let state = try HostAgentEventState(capacity: 4, maximumEventBytes: 4_096)
         let first = try event(id: 41, type: "snapshotChanged", host: "host-a")
-        let second = try event(id: 42, type: "commandResult", host: "host-a")
+        let second = try event(id: 42, type: "sessionStarted", host: "host-a")
 
         XCTAssertEqual(state.ingest(first), .accepted(sequence: 1))
         XCTAssertEqual(state.ingest(second), .accepted(sequence: 2))
@@ -37,12 +37,12 @@ final class HostAgentEventStateTests: XCTestCase {
         XCTAssertEqual(snapshot.evictedEventCount, 0)
         XCTAssertEqual(snapshot.rejectedEventCount, 0)
         XCTAssertEqual(snapshot.records.map(\.sequence), [1, 2])
-        XCTAssertEqual(snapshot.records.map(\.event.eventId), [41, 42])
-        XCTAssertEqual(snapshot.records.map(\.event.eventType), [
+        XCTAssertEqual(coreEvents(snapshot.records).map(\.eventId), [41, 42])
+        XCTAssertEqual(coreEvents(snapshot.records).map(\.eventType), [
             "snapshotChanged",
-            "commandResult",
+            "sessionStarted",
         ])
-        XCTAssertEqual(snapshot.records[0].event.rawJSON, first.rawJSON)
+        XCTAssertEqual(coreEvents(snapshot.records)[0].rawJSON, first.rawJSON)
     }
 
     func testConsumeForwardsAcceptedEventOnceOutsideStateLock() throws {
@@ -93,7 +93,7 @@ final class HostAgentEventStateTests: XCTestCase {
         let snapshot = state.snapshot()
         XCTAssertEqual(snapshot.firstAvailableSequence, 2)
         XCTAssertEqual(snapshot.latestSequence, 3)
-        XCTAssertEqual(snapshot.records.map(\.event.eventId), [2, 3])
+        XCTAssertEqual(coreEvents(snapshot.records).map(\.eventId), [2, 3])
         XCTAssertEqual(snapshot.evictedEventCount, 1)
         XCTAssertEqual(snapshot.rejectedEventCount, 1)
     }
@@ -112,7 +112,7 @@ final class HostAgentEventStateTests: XCTestCase {
 
         let snapshot = state.snapshot()
         XCTAssertEqual(snapshot.records.map(\.sequence), [1, 2])
-        XCTAssertEqual(snapshot.records.map(\.event.eventId), [10, 9])
+        XCTAssertEqual(coreEvents(snapshot.records).map(\.eventId), [10, 9])
     }
 
     func testRejectsForeignHostWithoutMutatingAcceptedWindow() throws {
@@ -130,7 +130,7 @@ final class HostAgentEventStateTests: XCTestCase {
         let snapshot = state.snapshot()
         XCTAssertEqual(snapshot.hostInstanceID, "host-a")
         XCTAssertEqual(snapshot.latestSequence, 1)
-        XCTAssertEqual(snapshot.records.map(\.event.eventId), [1])
+        XCTAssertEqual(coreEvents(snapshot.records).map(\.eventId), [1])
         XCTAssertEqual(snapshot.rejectedEventCount, 1)
     }
 
@@ -180,7 +180,7 @@ final class HostAgentEventStateTests: XCTestCase {
         XCTAssertEqual(snapshot.records.count, 100)
         XCTAssertEqual(snapshot.records.map(\.sequence), Array(1...100).map(UInt64.init))
         XCTAssertEqual(
-            Set(snapshot.records.map(\.event.eventId)),
+            Set(coreEvents(snapshot.records).map(\.eventId)),
             Set((1...100).map(UInt64.init))
         )
         XCTAssertEqual(snapshot.rejectedEventCount, 0)
@@ -289,13 +289,22 @@ final class HostAgentEventStateTests: XCTestCase {
         else { return XCTFail("expected replay batch", file: file, line: line) }
         XCTAssertEqual(records.map(\.sequence), sequences, file: file, line: line)
         XCTAssertEqual(
-            records.map(\.event.eventId),
+            coreEvents(records).map(\.eventId),
             sourceEventIDs,
             file: file,
             line: line
         )
         XCTAssertEqual(latest, latestSequence, file: file, line: line)
         XCTAssertEqual(actualHasMore, hasMore, file: file, line: line)
+    }
+
+    private func coreEvents(
+        _ records: [HostAgentEventRecord]
+    ) -> [HostCoreEvent] {
+        records.compactMap { record in
+            guard case .core(let event) = record.payload else { return nil }
+            return event
+        }
     }
 
     private func event(

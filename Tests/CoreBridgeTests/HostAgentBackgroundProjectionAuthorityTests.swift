@@ -479,14 +479,26 @@ final class HostAgentBackgroundProjectionAuthorityTests: XCTestCase {
             bootID: bootID,
             afterEventID: afterEventID
         )
+        let record: HostAgentEventRecord
+        if eventType == "commandResult" {
+            record = HostAgentEventRecord(
+                sequence: eventID,
+                commandResult: try HostAgentXPCWireCommandResult(
+                    document: payload
+                ),
+                sentAtUnixMilliseconds: event.sentAt
+            )
+        } else {
+            record = HostAgentEventRecord(
+                sequence: eventID,
+                event: event
+            )
+        }
         return try HostAgentXPCWireEventCursorResponse.make(
             for: request,
             identity: try wireIdentity(hostID: hostID, bootID: bootID),
             replay: .batch(
-                records: [HostAgentEventRecord(
-                    sequence: eventID,
-                    event: event
-                )],
+                records: [record],
                 latestSequence: eventID,
                 hasMore: false
             ),

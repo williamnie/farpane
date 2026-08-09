@@ -264,8 +264,18 @@ final class HostAgentXPCEventPollingOwnerTests: XCTestCase {
         -> HostAgentXPCWireEventCursorResponse
     {
         let state = try HostAgentEventState()
-        _ = state.ingest(try event(id: 1))
-        if hasMore { _ = state.ingest(try event(id: 2)) }
+        _ = state.ingestCommandResult(
+            try commandResult(id: 1),
+            hostInstanceID: hostID,
+            sentAtUnixMilliseconds: 1_700_000_000_000
+        )
+        if hasMore {
+            _ = state.ingestCommandResult(
+                try commandResult(id: 2),
+                hostInstanceID: hostID,
+                sentAtUnixMilliseconds: 1_700_000_000_000
+            )
+        }
         let request = try eventRequest(maximumEventCount: hasMore ? 1 : 64)
         return try HostAgentXPCWireEventCursorResponse.make(
             for: request,
@@ -294,9 +304,13 @@ final class HostAgentXPCEventPollingOwnerTests: XCTestCase {
         -> HostAgentXPCWireEventCursorResponse
     {
         let state = try HostAgentEventState(capacity: 2)
-        _ = state.ingest(try event(id: 1))
-        _ = state.ingest(try event(id: 2))
-        _ = state.ingest(try event(id: 3))
+        for id in 1...3 {
+            _ = state.ingestCommandResult(
+                try commandResult(id: UInt64(id)),
+                hostInstanceID: hostID,
+                sentAtUnixMilliseconds: 1_700_000_000_000
+            )
+        }
         let request = try eventRequest()
         return try HostAgentXPCWireEventCursorResponse.make(
             for: request,
@@ -338,21 +352,14 @@ final class HostAgentXPCEventPollingOwnerTests: XCTestCase {
         )
     }
 
-    private func event(id: UInt64) throws -> HostCoreEvent {
-        try XCTUnwrap(HostCoreEvent(rawJSON: JSONSerialization.data(
-            withJSONObject: [
-                "schemaVersion": 1,
-                "eventId": id,
-                "eventType": "commandResult",
-                "hostInstanceId": hostID,
-                "sentAt": 1_700_000_000_000 as UInt64,
-                "payload": [
-                    "commandId": "command-\(id)",
-                    "status": "ok",
-                    "detail": "completed",
-                ],
-            ]
-        )))
+    private func commandResult(
+        id: UInt64
+    ) throws -> HostAgentXPCWireCommandResult {
+        try HostAgentXPCWireCommandResult(
+            commandID: "command-\(id)",
+            status: .ok,
+            detail: "completed"
+        )
     }
 
     private func coreSnapshot() throws -> HostCoreSnapshot {

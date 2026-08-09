@@ -514,15 +514,15 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
             expectedHostInstanceID: hostID
         )
         let eventState = try HostAgentEventState()
-        _ = eventState.ingest(try event(
-            id: 41,
-            type: "commandResult",
-            payload: [
-                "commandId": "command-1",
-                "status": "ok",
-                "detail": "completed",
-            ]
-        ))
+        _ = eventState.ingestCommandResult(
+            try HostAgentXPCWireCommandResult(
+                commandID: "command-1",
+                status: .ok,
+                detail: "completed"
+            ),
+            hostInstanceID: hostID,
+            sentAtUnixMilliseconds: 1_700_000_000_000
+        )
         let handler = try HostAgentXPCSnapshotSessionHandler(
             identity: HostAgentXPCWireAgentIdentity(
                 agentBuildID: "agent-build",
@@ -726,7 +726,23 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         capacity: Int = HostAgentEventState.productCapacity
     ) throws -> HostAgentXPCWireEventCursorResponse {
         let state = try HostAgentEventState(capacity: capacity)
-        for event in events { _ = state.ingest(event) }
+        for event in events {
+            switch HostAgentCoreCommandResultDecoder.decode(
+                event,
+                expectedHostInstanceID: hostID
+            ) {
+            case .decoded(let result):
+                _ = state.ingestCommandResult(
+                    result,
+                    hostInstanceID: hostID,
+                    sentAtUnixMilliseconds: event.sentAt
+                )
+            case .notCommandResult:
+                _ = state.ingest(event)
+            case .malformed, .foreignIdentity:
+                XCTFail("invalid fixture event")
+            }
+        }
         return try HostAgentXPCWireEventCursorResponse.make(
             for: request,
             identity: HostAgentXPCWireAgentIdentity(

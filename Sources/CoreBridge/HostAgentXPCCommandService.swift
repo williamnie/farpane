@@ -102,6 +102,16 @@ package enum HostAgentXPCCommandResultDeliveryOutcome:
     case invalidated
 }
 
+package enum HostAgentXPCCommandCoreResultConsumptionOutcome:
+    Equatable,
+    Sendable
+{
+    case notCommandResult
+    case malformed
+    case foreignIdentity
+    case delivered(HostAgentXPCCommandResultDeliveryOutcome)
+}
+
 /// Data-only command orchestration. It composes strict decoding, boot-bound
 /// admission, two-phase queueing, queued acknowledgement and result replay.
 /// Session gating and the transport selector remain separate later layers.
@@ -202,6 +212,27 @@ package final class HostAgentXPCCommandService: @unchecked Sendable {
             return .unknownCommand
         case .invalidated:
             return .invalidated
+        }
+    }
+
+    /// Consumes only a strict Core command-result envelope. Non-command Core
+    /// events remain caller-owned; malformed or foreign results never enter
+    /// admission state or the injected typed journal publisher.
+    package func consumeCoreResultEvent(
+        _ event: HostCoreEvent
+    ) -> HostAgentXPCCommandCoreResultConsumptionOutcome {
+        switch HostAgentCoreCommandResultDecoder.decode(
+            event,
+            expectedHostInstanceID: identity.hostInstanceID
+        ) {
+        case .notCommandResult:
+            return .notCommandResult
+        case .malformed:
+            return .malformed
+        case .foreignIdentity:
+            return .foreignIdentity
+        case .decoded(let result):
+            return .delivered(acceptResult(result))
         }
     }
 
