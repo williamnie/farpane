@@ -18,6 +18,9 @@ set -euo pipefail
 # the desktop to remain untouched; stability profiles require the target
 # product workflow for the full sampling window. A short preflight must set:
 #   FARPANE_HOST_SCENARIO_MODE=smoke
+# To bind one qualifying recovery before an acceptance run, set both:
+#   FARPANE_HOST_RECOVERY_TRANSITION_SOURCE=/absolute/recovery.jsonl
+#   FARPANE_HOST_RECOVERY_TRANSITION_SEQUENCE=1
 
 if (( $# != 4 )); then
   print -u2 "usage: $0 SCENARIO(static-1080p30|static-4k30|1080p30|4k30-normal|4k30-video|stability-1080p30|stability-4k30) DURATION OUTPUT_PREFIX HOST_PID"
@@ -34,6 +37,8 @@ host_pid=$4
 sample_mode=${FARPANE_HOST_SCENARIO_MODE:-acceptance}
 route_wait_seconds=${FARPANE_HOST_ROUTE_WAIT_SECONDS:-180}
 allow_non_farpane=${FARPANE_HOST_SAMPLE_ALLOW_NON_FARPANE:-0}
+recovery_source=${FARPANE_HOST_RECOVERY_TRANSITION_SOURCE:-}
+recovery_sequence=${FARPANE_HOST_RECOVERY_TRANSITION_SEQUENCE:-}
 
 case "$scenario" in
   static-1080p30|static-4k30|1080p30|4k30-normal|4k30-video|stability-1080p30|stability-4k30) ;;
@@ -59,6 +64,24 @@ esac
 if [[ "$allow_non_farpane" == 1 && "$sample_mode" != smoke ]]; then
   print -u2 "non-FarPane process sampling is permitted only in smoke mode"
   exit 2
+fi
+if [[ -n "$recovery_source" || -n "$recovery_sequence" ]]; then
+  if [[ -z "$recovery_source" || -z "$recovery_sequence" ]]; then
+    print -u2 "recovery transition source and sequence must be configured together"
+    exit 2
+  fi
+  if [[ "$scenario" != 1080p30 || "$sample_mode" != acceptance ]]; then
+    print -u2 "recovery binding requires a 1080p30 acceptance run"
+    exit 2
+  fi
+  if [[ "$recovery_source" != /* || ! -f "$recovery_source" || -L "$recovery_source" ]]; then
+    print -u2 "recovery transition source must be an absolute regular non-symlink file"
+    exit 2
+  fi
+  if [[ ! "$recovery_sequence" =~ '^[1-9][0-9]*$' ]]; then
+    print -u2 "recovery transition sequence must be a positive integer"
+    exit 2
+  fi
 fi
 if [[ ! "$duration" =~ '^[1-9][0-9]*$' ]]; then
   print -u2 "duration must be a positive integer number of seconds"
@@ -155,7 +178,18 @@ if (( sampler_status == 0 )) && [[ ! -e "$route_json" ]]; then
 fi
 
 set +e
-"$validator" "$scenario" "$duration" "$route_json" "$system_json" "$system_csv" "$run_json"
+validator_arguments=(
+  "$scenario"
+  "$duration"
+  "$route_json"
+  "$system_json"
+  "$system_csv"
+  "$run_json"
+)
+if [[ -n "$recovery_source" ]]; then
+  validator_arguments+=("$recovery_source" "$recovery_sequence")
+fi
+"$validator" "${validator_arguments[@]}"
 validator_status=$?
 set -e
 if (( validator_status != 0 )); then

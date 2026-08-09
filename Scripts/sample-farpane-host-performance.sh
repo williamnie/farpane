@@ -136,6 +136,7 @@ collect_energy_impact() {
   '
 }
 
+sample_started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 start_time=$EPOCHREALTIME
 typeset -F 6 next_sample sleep_for elapsed
 next_sample=$start_time
@@ -156,10 +157,11 @@ finalize_metadata() {
   meta_tmp=$(mktemp "${meta:h}/.farpane-system.XXXXXX")
   cat > "$meta_tmp" <<EOF
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "sampler": "farpane-host-system",
   "scenario": "$scenario",
   "sampleMode": "$sample_mode",
+  "sampleStartedAt": "$sample_started_at",
   "requestedDurationSeconds": $duration,
   "actualDurationSeconds": $actual_duration,
   "sampleCount": $sample_count,

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import os
@@ -70,12 +71,16 @@ DROP_REASONS = (
 )
 STABILITY_WINDOW_COUNT = 6
 SUPPORTED_MACHINE_ARCHITECTURES = ("arm64", "x86_64")
+MAX_RECOVERY_SOURCE_BYTES = 1_048_576
+MAX_RECOVERY_RECORDS = 128
+RECOVERY_KINDS = ("sleepWake", "networkPath", "displayReconfigure")
 
 
 def usage() -> None:
     print(
         "usage: validate-farpane-host-performance.py "
-        "SCENARIO DURATION ROUTE_JSON SYSTEM_JSON SYSTEM_CSV RUN_JSON",
+        "SCENARIO DURATION ROUTE_JSON SYSTEM_JSON SYSTEM_CSV RUN_JSON "
+        "[RECOVERY_JSONL RECOVERY_SEQUENCE]",
         file=sys.stderr,
     )
 
@@ -107,6 +112,157 @@ def is_bounded_identity_text(value: Any, maximum_length: int) -> bool:
             for character in value
         )
     )
+
+
+def is_lowercase_sha256(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def parse_utc_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.endswith("Z"):
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
+    except ValueError:
+        return None
+
+
+def valid_recovery_correlation(kind: str, value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if kind == "sleepWake":
+        return (
+            set(value) == {"recoveryEpoch", "runningReadyConverged"}
+            and is_integer(value.get("recoveryEpoch"))
+            and value["recoveryEpoch"] > 0
+            and value.get("runningReadyConverged") is True
+        )
+    if kind == "networkPath":
+        return (
+            set(value)
+            == {"pathGeneration", "recoveryEpoch", "runningReadyConverged"}
+            and is_integer(value.get("pathGeneration"))
+            and value["pathGeneration"] > 0
+            and is_integer(value.get("recoveryEpoch"))
+            and value["recoveryEpoch"] >= 0
+            and value.get("runningReadyConverged") is True
+        )
+    if kind == "displayReconfigure":
+        expected = {
+            "previousDisplayRevision",
+            "replacementDisplayRevision",
+            "previousConnectionEpoch",
+            "replacementConnectionEpoch",
+            "previousCodecEpoch",
+            "replacementCodecEpoch",
+            "freshRouteConverged",
+        }
+        if set(value) != expected or value.get("freshRouteConverged") is not True:
+            return False
+        numeric = [
+            value.get("previousDisplayRevision"),
+            value.get("replacementDisplayRevision"),
+            value.get("previousConnectionEpoch"),
+            value.get("replacementConnectionEpoch"),
+            value.get("previousCodecEpoch"),
+            value.get("replacementCodecEpoch"),
+        ]
+        return (
+            all(is_integer(item) and item > 0 for item in numeric)
+            and numeric[1] == numeric[0] + 1
+            and numeric[3] > numeric[2]
+            and numeric[5] > numeric[4]
+        )
+    return False
+
+
+def load_recovery_binding(
+    path: Path, sequence: int, sample_started_at: datetime | None
+) -> tuple[dict[str, Any] | None, str | None]:
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        return None, "recovery transition source must be an absolute regular non-symlink file"
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        return None, "recovery transition source is missing or unreadable"
+    if not raw or len(raw) > MAX_RECOVERY_SOURCE_BYTES:
+        return None, "recovery transition source size is outside the accepted bound"
+    lines = raw.splitlines()
+    if not lines or len(lines) > MAX_RECOVERY_RECORDS:
+        return None, "recovery transition record count is outside the accepted bound"
+    selected: tuple[dict[str, Any], bytes] | None = None
+    for line in lines:
+        if not line or len(line) > 65_536:
+            return None, "recovery transition source contains an invalid record"
+        try:
+            record = json.loads(line.decode("utf-8"))
+        except (UnicodeError, json.JSONDecodeError):
+            return None, "recovery transition source contains invalid JSON"
+        if not isinstance(record, dict):
+            return None, "recovery transition record root must be an object"
+        if record.get("sequence") == sequence:
+            if selected is not None:
+                return None, "recovery transition sequence is duplicated"
+            selected = (record, line)
+    if selected is None:
+        return None, "recovery transition sequence is missing"
+
+    record, raw_record = selected
+    expected_keys = {
+        "schema",
+        "schemaVersion",
+        "sequence",
+        "kind",
+        "acceptedAt",
+        "completedAt",
+        "acceptedMonotonicNanoseconds",
+        "completedMonotonicNanoseconds",
+        "status",
+        "hostInstanceScopeSHA256",
+        "buildIdentitySHA256",
+        "correlation",
+    }
+    kind = record.get("kind")
+    accepted_at = parse_utc_timestamp(record.get("acceptedAt"))
+    completed_at = parse_utc_timestamp(record.get("completedAt"))
+    accepted_monotonic = record.get("acceptedMonotonicNanoseconds")
+    completed_monotonic = record.get("completedMonotonicNanoseconds")
+    valid = (
+        set(record) == expected_keys
+        and record.get("schema") == "farpane-host-recovery-transition"
+        and record.get("schemaVersion") == 1
+        and record.get("sequence") == sequence
+        and kind in RECOVERY_KINDS
+        and record.get("status") == "completed"
+        and accepted_at is not None
+        and completed_at is not None
+        and completed_at >= accepted_at
+        and is_integer(accepted_monotonic)
+        and accepted_monotonic > 0
+        and is_integer(completed_monotonic)
+        and completed_monotonic > accepted_monotonic
+        and is_lowercase_sha256(record.get("hostInstanceScopeSHA256"))
+        and is_lowercase_sha256(record.get("buildIdentitySHA256"))
+        and valid_recovery_correlation(kind, record.get("correlation"))
+    )
+    if not valid:
+        return None, "recovery transition record does not match schema v1"
+    if sample_started_at is None or completed_at >= sample_started_at:
+        return None, "recovery transition did not complete before performance sampling"
+    return {
+        "kind": kind,
+        "sequence": sequence,
+        "recordSHA256": hashlib.sha256(raw_record).hexdigest(),
+        "completedAt": record["completedAt"],
+        "hostInstanceScopeSHA256": record["hostInstanceScopeSHA256"],
+        "buildIdentitySHA256": record["buildIdentitySHA256"],
+    }, None
 
 
 def load_json(path: Path, label: str, failures: list[str]) -> dict[str, Any]:
@@ -181,7 +337,7 @@ def write_atomic_no_replace(path: Path, document: dict[str, Any]) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 7:
+    if len(sys.argv) not in (7, 9):
         usage()
         return 2
 
@@ -202,6 +358,18 @@ def main() -> int:
     system_path = Path(sys.argv[4])
     samples_path = Path(sys.argv[5])
     output_path = Path(sys.argv[6])
+    recovery_source_path: Path | None = None
+    recovery_sequence: int | None = None
+    if len(sys.argv) == 9:
+        recovery_source_path = Path(sys.argv[7])
+        try:
+            recovery_sequence = int(sys.argv[8])
+        except ValueError:
+            print("recovery sequence must be a positive integer", file=sys.stderr)
+            return 2
+        if recovery_sequence <= 0:
+            print("recovery sequence must be a positive integer", file=sys.stderr)
+            return 2
     if output_path.exists():
         print(f"refusing to overwrite existing artifact: {output_path}", file=sys.stderr)
         return 2
@@ -472,6 +640,9 @@ def main() -> int:
     machine_model = "unavailable"
     machine_architecture = "unavailable"
     macos_version = "unavailable"
+    sample_started_at_text = "unavailable"
+    sample_completed_at_text = "unavailable"
+    sample_started_at: datetime | None = None
     if system:
         system_schema_version = system.get("schemaVersion")
         require(
@@ -487,6 +658,27 @@ def main() -> int:
                 system.get("samplerExitStatus") == 0,
                 "system sampler recorded a nonzero exit status",
             )
+        if is_integer(system_schema_version) and system_schema_version >= 4:
+            sample_started_at = parse_utc_timestamp(system.get("sampleStartedAt"))
+            sample_completed_at = parse_utc_timestamp(system.get("collectedAt"))
+            require(
+                sample_started_at is not None,
+                "system evidence sampling start timestamp is missing or invalid",
+            )
+            require(
+                sample_completed_at is not None,
+                "system evidence sampling completion timestamp is missing or invalid",
+            )
+            require(
+                sample_started_at is not None
+                and sample_completed_at is not None
+                and sample_completed_at > sample_started_at,
+                "system evidence sampling timestamps are out of order",
+            )
+            if sample_started_at is not None:
+                sample_started_at_text = system["sampleStartedAt"]
+            if sample_completed_at is not None:
+                sample_completed_at_text = system["collectedAt"]
         require(system.get("scenario") == scenario, "system evidence scenario does not match")
         require(sample_mode in ("acceptance", "smoke"), "system evidence sample mode is invalid")
         minimum_duration = 1800 if performance_profile == "stability" else 600
@@ -679,9 +871,29 @@ def main() -> int:
     else:
         failures.append("system samples contain no data rows")
 
+    recovery_binding: dict[str, Any] | None = None
+    if recovery_source_path is not None and recovery_sequence is not None:
+        require(scenario == "1080p30", "recovery evidence requires scenario 1080p30")
+        require(
+            sample_mode == "acceptance" and duration >= 600,
+            "recovery evidence requires a 600-second acceptance run",
+        )
+        require(
+            is_integer(system.get("schemaVersion"))
+            and system["schemaVersion"] >= 4,
+            "recovery evidence requires system schemaVersion 4",
+        )
+        recovery_binding, recovery_failure = load_recovery_binding(
+            recovery_source_path,
+            recovery_sequence,
+            sample_started_at,
+        )
+        if recovery_failure is not None:
+            failures.append(recovery_failure)
+
     result = {
         "schema": "farpane-host-performance-run",
-        "schemaVersion": 4,
+        "schemaVersion": 5 if recovery_source_path is not None else 4,
         "scenario": scenario,
         "performanceProfile": performance_profile,
         "sampleMode": sample_mode or "unknown",
@@ -689,6 +901,8 @@ def main() -> int:
         "machineModel": machine_model,
         "architecture": machine_architecture,
         "macOSVersion": macos_version,
+        "sampleStartedAt": sample_started_at_text,
+        "sampleCompletedAt": sample_completed_at_text,
         "expectedWidth": expected_width,
         "expectedHeight": expected_height,
         "hostCPUUpperTargetPercent": cpu_ceiling,
@@ -731,6 +945,8 @@ def main() -> int:
         "failures": failures,
         "collectedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
+    if recovery_source_path is not None:
+        result["recoveryTransition"] = recovery_binding
     try:
         write_atomic_no_replace(output_path, result)
     except (OSError, FileExistsError) as error:
