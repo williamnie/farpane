@@ -59,6 +59,12 @@ def main() -> int:
         "xpc_client": (
             repository / "Sources/CoreBridge/HostAgentXPCSnapshotClient.swift"
         ),
+        "xpc_handshake": (
+            repository / "Sources/CoreBridge/HostAgentXPCWireHandshake.swift"
+        ),
+        "xpc_snapshot": (
+            repository / "Sources/CoreBridge/HostAgentXPCWireSnapshot.swift"
+        ),
         "projection": (
             repository
             / "Sources/CoreBridge/HostAgentBackgroundProjectionAuthority.swift"
@@ -106,6 +112,8 @@ def main() -> int:
     recovery_validator = sources["recovery_validator"]
     xpc_reconnect = sources["xpc_reconnect"]
     xpc_client = sources["xpc_client"]
+    xpc_handshake = sources["xpc_handshake"]
+    xpc_snapshot = sources["xpc_snapshot"]
     projection = sources["projection"]
     combined_validator = sources["combined_validator"]
     pair_validator = sources["pair_validator"]
@@ -410,6 +418,78 @@ def main() -> int:
                 "showHomeUI(error: Self.connectionStateText(event))",
             )
         ),
+        "applicationProjectionCarriesValidatedHostScopeAndRuntime": (
+            all(
+                marker in projection
+                for marker in (
+                    "let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity",
+                    "let payload: HostAgentXPCWireSnapshotPayload",
+                    "let generation: UInt64",
+                )
+            )
+            and all(
+                marker in xpc_client
+                for marker in (
+                    "let agentBuildID: String",
+                    "let hostInstanceID: String",
+                    "let agentBootID: String",
+                )
+            )
+            and all(
+                marker in xpc_snapshot
+                for marker in (
+                    "let hostState: String",
+                    "let authenticatedConnectionCount: UInt64",
+                    "let activeSession: HostAgentXPCWireActiveSession?",
+                    "let observedAt: UInt64",
+                )
+            )
+        ),
+        "applicationConfigCoherenceBindsLiveAgentToRevision": all(
+            marker in app
+            for marker in (
+                "observation.bootstrap.configRevision ==",
+                "publishedConfigRevision",
+                "liveAgentBuildID:",
+                "available.peerIdentity.agentBuildID",
+                "liveAgentBootID:",
+                "available.peerIdentity.agentBootID",
+            )
+        ),
+        "hostObservationSchemaRequiresExactAgentProcessIdentity": all(
+            marker in lifecycle_writer
+            for marker in (
+                "let hostAgentProcessID: Int32",
+                "let hostAgentProcessStartIdentitySHA256: String",
+                "let hostAgentBuildIdentitySHA256: String",
+                "observation.hostAgentProcessID == identity.processID",
+                "observation.hostAgentProcessStartIdentitySHA256",
+            )
+        ),
+        "applicationXPCIdentityOmitsAgentPIDAndProcessStart": (
+            all(
+                marker in xpc_handshake
+                for marker in (
+                    "package struct HostAgentXPCWireAgentIdentity",
+                    "package let agentBuildID: String",
+                    "package let hostInstanceID: String",
+                    "package let agentBootID: String",
+                )
+            )
+            and "agentProcessID" not in xpc_handshake
+            and "agentProcessStartIdentity" not in xpc_handshake
+            and "agentProcessID" not in xpc_snapshot
+            and "agentProcessStartIdentity" not in xpc_snapshot
+            and "agentProcessID" not in xpc_client
+            and "agentProcessStartIdentity" not in xpc_client
+        ),
+        "applicationHostEvidenceCompositionRemainsFailClosed": (
+            "recordHostRuntimeStateEvidence(force: true)" in app
+            and "HostViewerConcurrencyHostObservation"
+                not in lifecycle_process_owner
+            and "HostViewerConcurrencyEvidenceDigest.hostInstanceScope("
+                not in app
+        ),
         "fiveScenarioMatrixValidatorIsStillMissing": (
             not target_validator.exists()
         ),
@@ -555,6 +635,41 @@ def main() -> int:
         "applicationProductViewerStop": line_number(
             app, "private func stopViewerLifecycleEvidence()"
         ),
+        "applicationProjectionHostIdentity": line_number(
+            projection,
+            "let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity",
+        ),
+        "applicationProjectionHostPayload": line_number(
+            projection, "let payload: HostAgentXPCWireSnapshotPayload"
+        ),
+        "applicationAgentBuildIdentity": line_number(
+            xpc_client, "let agentBuildID: String"
+        ),
+        "applicationAgentBootIdentity": line_number(
+            xpc_client, "let agentBootID: String"
+        ),
+        "applicationHostState": line_number(
+            xpc_snapshot, "let hostState: String"
+        ),
+        "applicationHostConnectionCount": line_number(
+            xpc_snapshot, "let authenticatedConnectionCount: UInt64"
+        ),
+        "applicationHostActiveSession": line_number(
+            xpc_snapshot, "let activeSession: HostAgentXPCWireActiveSession?"
+        ),
+        "applicationConfigRevisionCoherence": line_number(
+            app, "observation.bootstrap.configRevision =="
+        ),
+        "wireAgentIdentityContract": line_number(
+            xpc_handshake, "package struct HostAgentXPCWireAgentIdentity"
+        ),
+        "requiredHostAgentProcessIdentity": line_number(
+            lifecycle_writer,
+            "let hostAgentProcessStartIdentitySHA256: String",
+        ),
+        "separateHostRuntimeEvidencePath": line_number(
+            app, "private func recordHostRuntimeStateEvidence("
+        ),
         "hostRecoveryKinds": line_number(
             recovery_evidence, "case sleepWake"
         ),
@@ -636,7 +751,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "application-viewer-lifecycle-implemented"
+            "application-host-observation-contract-required"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -675,9 +790,12 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "application-host-observation-evidence-composition"
+            "versioned-host-agent-process-identity-wire-contract"
         ),
         "remainingBoundary": {
+            "applicationHostObservationRequiresVersionedAgentProcessIdentity": (
+                True
+            ),
             "authoritativeLifecycleCompositionStillRequiresImplementation": True,
             "fiveScenarioManifestValidatorStillRequiresImplementation": True,
             "installedAppAgentTwoMachineExecutionStillRequiresExecution": True,
@@ -685,11 +803,8 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return (
-        0
-        if result["status"] == "application-viewer-lifecycle-implemented"
-        else 1
-    )
+    expected_status = "application-host-observation-contract-required"
+    return 0 if result["status"] == expected_status else 1
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "application-viewer-lifecycle-implemented",
+            "application-host-observation-contract-required",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -37,7 +37,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "application-host-observation-evidence-composition",
+            "versioned-host-agent-process-identity-wire-contract",
         )
         self.assertTrue(
             document["evidence"]
@@ -86,6 +86,30 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["applicationViewerRecoveryRequiresSameEpochCoreStreaming"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationProjectionCarriesValidatedHostScopeAndRuntime"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationConfigCoherenceBindsLiveAgentToRevision"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostObservationSchemaRequiresExactAgentProcessIdentity"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationXPCIdentityOmitsAgentPIDAndProcessStart"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationHostEvidenceCompositionRemainsFailClosed"]
+        )
+        self.assertTrue(
+            document["remainingBoundary"]
+            ["applicationHostObservationRequiresVersionedAgentProcessIdentity"]
         )
 
         contract = document["targetContract"]
