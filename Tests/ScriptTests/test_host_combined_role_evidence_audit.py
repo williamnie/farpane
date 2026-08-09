@@ -26,7 +26,7 @@ class HostCombinedRoleEvidenceAuditTests(unittest.TestCase):
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(document["section15_2Item"], 10)
-        self.assertEqual(document["status"], "checkpoint-required")
+        self.assertEqual(document["status"], "split-sampler-implemented")
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))

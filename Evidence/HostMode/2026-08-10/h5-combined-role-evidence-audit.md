@@ -37,4 +37,4 @@ The audit intentionally returns `checkpoint-required`. It does not claim §15.2 
 - installed App/Agent and two-machine runs have not been executed;
 - the five V1 concurrency/recovery cases and stable Host ID still need live evidence.
 
-The next safe automatic step is a split-role sampler with exact PID/argument/executable identity checks. It must label shared system helpers as shared scope and must not infer readiness or streaming from process liveness.
+H5.3s subsequently implemented the split-role sampler with exact PID/argument/executable/build identity checks and shared-scope labelling. The audit now returns `split-sampler-implemented`. The next safe automatic step is the combined manifest validator; readiness and streaming still must come from their separate authoritative evidence, never process liveness.
