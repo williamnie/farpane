@@ -28,7 +28,7 @@ The process owner writes `processStarted` before Host startup. The initial Host 
 
 This step proves only the first post-startup ready-zero observation. It does not infer or emit inbound-media-active, disconnected or recovered transitions. Existing snapshot refreshes can overlap/coalesce, so reading immediately after an arbitrary event is not yet a lossless publication seam; no timer/polling approximation was added.
 
-The next automatic step is a serialized HostAgent-local transition normalizer that rejects duplicates, stale generations and invalid ready/active/disconnected/recovery ordering. Connecting it to a lossless snapshot/media publication seam remains separate. App observation still requires the versioned Agent PID/process-start XPC contract identified by H5.3z.
+Historical update: H5.3ac subsequently added the serialized HostAgent-local transition normalizer and routed this initial ready record through its source-generation gate. Connecting continuous state changes to a lossless snapshot/media publication seam remains separate. App observation still requires the versioned Agent PID/process-start XPC contract identified by H5.3z.
 
 ## Verification
 

@@ -502,6 +502,7 @@ def main() -> int:
             and "HostViewerConcurrencyEvidenceDigest.hostInstanceScope("
                 not in app
             and "recordHostAgentObservation(" not in app
+            and "observeHostAgentRuntimeState(" not in app
         ),
         "hostAgentProcessOwnerUsesPreflightedBuildAndRole": all(
             marker in lifecycle_process_owner
@@ -536,16 +537,25 @@ def main() -> int:
             and host_agent_process.find(".configureHostAgent(")
             < host_agent_process.find("HostAgentProcessRunner.run(")
         ),
-        "hostAgentOwnerRecordsOnlySelfBoundValidatedHostObservation": all(
+        "hostAgentOwnerNormalizesAuthoritativeTransitions": all(
             marker in lifecycle_process_owner
             for marker in (
-                "public func recordHostAgentObservation(",
+                "public func observeHostAgentRuntimeState(",
                 "configuredRole == .hostAgent",
                 "agentBuildDigest == configuredIdentity.buildIdentitySHA256",
-                "hostAgentProcessID: configuredIdentity.processID",
-                "configuredIdentity.processStartIdentitySHA256",
-                "Self.validHostTransitionGeneration(",
+                "sourceGeneration > 0",
+                "sourceGeneration > current.sourceGeneration",
+                "current.scope == scope",
+                "current.state?.runtimeState == runtimeState",
+                "case .watermark(let nextSession):",
+                "nextState = .disconnected(generation: 1)",
+                "nextState = .recoveredReady(generation: generation)",
+                "nextState = .recoveredActive(generation: generation)",
+                "guard generation < UInt64.max else { return nil }",
+                "hostAgentProcessID: processIdentity.processID",
+                "processIdentity.processStartIdentitySHA256",
                 ".host(observation)",
+                "hostSession = nextSession",
                 "incrementSaturating(&hostRecords)",
             )
         ),
@@ -565,7 +575,7 @@ def main() -> int:
             and "runtime.concurrencyEvidenceIdentity()"
                 in host_agent_lifetime
         ),
-        "hostAgentProductRecordsOnlyPostListenerReadyZero": (
+        "hostAgentProductRoutesPostListenerReadyThroughNormalizer": (
             all(
                 marker in host_agent_process
                 for marker in (
@@ -575,9 +585,9 @@ def main() -> int:
                     'projection.registrationStatus == "ready"',
                     "projection.authenticatedConnectionCount == 0",
                     "projection.activeSession == nil",
-                    "owner.recordHostAgentObservation(",
+                    "owner.observeHostAgentRuntimeState(",
                     "state: .readyZeroInbound",
-                    "transitionGeneration: 0",
+                    "sourceGeneration: snapshot.refreshGeneration",
                 )
             )
             and host_agent_process.find("lifetime.activateXPCListener()")
@@ -791,7 +801,7 @@ def main() -> int:
         ),
         "hostAgentSelfObservationAPI": line_number(
             lifecycle_process_owner,
-            "public func recordHostAgentObservation(",
+            "public func observeHostAgentRuntimeState(",
         ),
         "hostAgentSelfObservationRoleGate": line_number(
             lifecycle_process_owner, "configuredRole == .hostAgent"
@@ -799,6 +809,25 @@ def main() -> int:
         "hostAgentSelfObservationBuildGate": line_number(
             lifecycle_process_owner,
             "agentBuildDigest == configuredIdentity.buildIdentitySHA256",
+        ),
+        "hostAgentSourceGenerationGate": line_number(
+            lifecycle_process_owner,
+            "sourceGeneration > current.sourceGeneration",
+        ),
+        "hostAgentScopeCoherenceGate": line_number(
+            lifecycle_process_owner, "current.scope == scope"
+        ),
+        "hostAgentDisconnectGeneration": line_number(
+            lifecycle_process_owner,
+            "nextState = .disconnected(generation: 1)",
+        ),
+        "hostAgentRecoveredReadyGeneration": line_number(
+            lifecycle_process_owner,
+            "nextState = .recoveredReady(generation: generation)",
+        ),
+        "hostAgentRecoveredActiveGeneration": line_number(
+            lifecycle_process_owner,
+            "nextState = .recoveredActive(generation: generation)",
         ),
         "hostAgentLeaseEvidenceIdentity": line_number(
             host_agent_runtime, "struct HostAgentProcessEvidenceIdentity"
@@ -907,7 +936,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "host-agent-initial-ready-evidence-implemented"
+            "host-agent-transition-normalizer-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -946,7 +975,7 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "host-agent-host-transition-normalization"
+            "host-agent-lossless-observation-publication-seam"
         ),
         "remainingBoundary": {
             "applicationHostObservationRequiresVersionedAgentProcessIdentity": (
@@ -959,7 +988,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "host-agent-initial-ready-evidence-implemented"
+    expected_status = "host-agent-transition-normalizer-implemented"
     return 0 if result["status"] == expected_status else 1
 
 
