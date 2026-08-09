@@ -88,9 +88,6 @@ final class HostAgentNetworkPathRecoveryCompositionContractTests: XCTestCase {
         XCTAssertTrue(source.contains(
             "guard succeeded else {\n                        requestTermination()"
         ))
-        XCTAssertTrue(source.contains(
-            "if disposition == .rejected {\n            requestTermination()"
-        ))
         try assertOrder(
             in: source,
             "triggerOwner.cancelAndWait()",
@@ -137,22 +134,22 @@ final class HostAgentNetworkPathRecoveryCompositionContractTests: XCTestCase {
         XCTAssertTrue(owner.contains("cancellationRequested = true"))
         XCTAssertTrue(owner.contains("while state == .installing"))
         XCTAssertTrue(owner.contains("while state == .cancelling"))
+        XCTAssertTrue(owner.contains(
+            "HostAgentNWPathMonitorIngress.makeProduct("
+        ))
+        XCTAssertTrue(owner.contains("guard pathIngress.start()"))
+        let ingressCancel = try XCTUnwrap(owner.range(
+            of: "pathIngress?.cancelAndWait()"
+        ))
+        let compositionCancel = try XCTUnwrap(owner.range(
+            of: "composition?.cancelAndWait()"
+        ))
+        XCTAssertLessThan(
+            ingressCancel.lowerBound,
+            compositionCancel.lowerBound
+        )
         XCTAssertTrue(owner.contains("composition?.cancelAndWait()"))
         XCTAssertTrue(owner.contains("guard state == .installed"))
-    }
-
-    func testNoSystemNetworkIngressIsClaimedByThisStep() throws {
-        let composition = try productSource(
-            "HostAgentNetworkPathRecoveryComposition.swift"
-        )
-        let owner = try productSource(
-            "HostAgentNetworkPathRecoveryProcessOwner.swift"
-        )
-        let process = try productSource("HostAgentProcess.swift")
-        let combined = composition + owner + process
-
-        XCTAssertFalse(combined.contains("import Network"))
-        XCTAssertFalse(combined.contains("NWPathMonitor"))
     }
 
     private func productSource(_ name: String) throws -> String {

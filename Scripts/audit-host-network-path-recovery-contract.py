@@ -28,7 +28,6 @@ def main() -> int:
         repository
         / "Sources/CoreBridge/HostAgentNetworkPathRecoveryTriggerOwner.swift"
     )
-    rustdesk_native = repository / "Sources/RustDeskNative"
     paths = {
         "owner": owner_path,
         "header": repository / "CoreBridge/include/rustdesk_native.h",
@@ -57,13 +56,18 @@ def main() -> int:
             repository
             / "Sources/RustDeskNative/HostAgentNetworkPathRecoveryProcessOwner.swift"
         ),
+        "delivery": (
+            repository
+            / "Sources/CoreBridge/HostAgentNetworkPathDeliveryOwner.swift"
+        ),
+        "ingress": (
+            repository
+            / "Sources/RustDeskNative/HostAgentNWPathMonitorIngress.swift"
+        ),
         "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
-        product_sources = "\n".join(
-            read(path) for path in sorted(rustdesk_native.glob("*.swift"))
-        )
     except (OSError, UnicodeError) as error:
         print(json.dumps({
             "schema": SCHEMA,
@@ -172,11 +176,53 @@ def main() -> int:
             and "networkPathRecoveryOwner.cancelAndWait()"
             in sources["process"]
         ),
+        "productNWPathIngressNormalizesAndDrains": (
+            all(
+                marker in sources["ingress"]
+                for marker in (
+                    "import Network",
+                    "monitor: NWPathMonitor()",
+                    "monitor.pathUpdateHandler = { [weak self] path in",
+                    "monitor.start(queue: queue)",
+                    "switch path.status",
+                    "path.availableInterfaces.compactMap",
+                    "path.usesInterfaceType(interface.type)",
+                    "supportsIPv4: path.supportsIPv4",
+                    "supportsIPv6: path.supportsIPv6",
+                    "supportsDNS: path.supportsDNS",
+                    "isExpensive: path.isExpensive",
+                    "isConstrained: path.isConstrained",
+                    "monitor.pathUpdateHandler = nil",
+                    "monitor.cancel()",
+                    "deliveryOwner.cancelAndWait()",
+                )
+            )
+            and "currentPath" not in sources["ingress"]
+            and all(
+                marker in sources["delivery"]
+                for marker in (
+                    "case accepted",
+                    "case rejected",
+                    "case closed",
+                    "while deliveryInFlight",
+                    "state = .cancelled",
+                )
+            )
+            and all(
+                marker in sources["process_owner"]
+                for marker in (
+                    "HostAgentNWPathMonitorIngress.makeProduct(",
+                    "guard pathIngress.start()",
+                    "pathIngress?.cancelAndWait()",
+                    "composition?.cancelAndWait()",
+                )
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 4,
+        "schemaVersion": 5,
         "status": "trigger-contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "evidence": evidence,
@@ -214,8 +260,10 @@ def main() -> int:
                 and "networkPathRecoveryOwner.install("
                 in sources["process"]
             ),
-            "productNWPathMonitorAdapterAbsent": (
-                "NWPathMonitor" not in product_sources
+            "productNWPathMonitorAdapterImplemented": (
+                "NWPathMonitor()" in sources["ingress"]
+                and "HostAgentNWPathMonitorIngress.makeProduct("
+                in sources["process_owner"]
             ),
         },
         "missingEvidence": missing,

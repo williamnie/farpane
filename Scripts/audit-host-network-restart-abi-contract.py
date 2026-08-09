@@ -73,14 +73,18 @@ def main() -> int:
             repository
             / "Sources/RustDeskNative/HostAgentNetworkPathRecoveryProcessOwner.swift"
         ),
+        "delivery": (
+            repository
+            / "Sources/CoreBridge/HostAgentNetworkPathDeliveryOwner.swift"
+        ),
+        "ingress": (
+            repository
+            / "Sources/RustDeskNative/HostAgentNWPathMonitorIngress.swift"
+        ),
         "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
-        product_sources = "\n".join(
-            read(path)
-            for path in sorted((repository / "Sources").rglob("*.swift"))
-        )
         rust_abi = version(
             r"const HOST_ABI_VERSION: u32 = (\d+);",
             sources["bridge"],
@@ -317,6 +321,39 @@ def main() -> int:
                 )
             )
         ),
+        "productNWPathMonitorIsStrictAndProcessOwned": (
+            all(
+                marker in sources["ingress"]
+                for marker in (
+                    "monitor: NWPathMonitor()",
+                    "monitor.pathUpdateHandler = { [weak self] path in",
+                    "monitor.start(queue: queue)",
+                    "switch path.status",
+                    "path.usesInterfaceType(interface.type)",
+                    "monitor.pathUpdateHandler = nil",
+                    "monitor.cancel()",
+                    "deliveryOwner.cancelAndWait()",
+                )
+            )
+            and all(
+                marker in sources["delivery"]
+                for marker in (
+                    "case accepted",
+                    "case rejected",
+                    "case closed",
+                    "while deliveryInFlight",
+                )
+            )
+            and all(
+                marker in sources["process_owner"]
+                for marker in (
+                    "HostAgentNWPathMonitorIngress.makeProduct(",
+                    "guard pathIngress.start()",
+                    "pathIngress?.cancelAndWait()",
+                    "composition?.cancelAndWait()",
+                )
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -367,7 +404,7 @@ def main() -> int:
     }
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 4,
+        "schemaVersion": 5,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
@@ -400,9 +437,6 @@ def main() -> int:
         },
         "targetContract": target_contract,
         "remainingBoundary": {
-            "productNWPathMonitorAdapterAbsent": (
-                "NWPathMonitor" not in product_sources
-            ),
             "realNetworkSwitchEvidenceRequired": True,
         },
         "missingEvidence": missing,
