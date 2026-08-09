@@ -66,6 +66,10 @@ def main() -> int:
             / "Sources/CoreBridge/"
             / "HostAgentApplicationConcurrencyObservation.swift"
         ),
+        "viewer_recovery_owner": (
+            repository
+            / "Sources/CoreBridge/ViewerAutomaticRecoveryOwner.swift"
+        ),
         "handshake_tests": (
             repository
             / "Tests/CoreBridgeTests/HostAgentXPCWireHandshakeTests.swift"
@@ -112,6 +116,7 @@ def main() -> int:
     writer = sources["writer"]
     app = sources["app"]
     app_observation = sources["app_observation"]
+    viewer_recovery_owner = sources["viewer_recovery_owner"]
     handshake_tests = sources["handshake_tests"]
     identity_tests = sources["identity_tests"]
     client_tests = sources["client_tests"]
@@ -354,6 +359,27 @@ def main() -> int:
                 )
             )
         ),
+        "viewerRecoveryPreservesApplicationHostIdentityBoundary": (
+            all(
+                marker in viewer_recovery_owner
+                for marker in (
+                    "package final class ViewerAutomaticRecoveryOwner",
+                    "productDelaysMilliseconds: [UInt64] = [500, 1_500, 3_000]",
+                    "cancelAndWait()",
+                )
+            )
+            and all(
+                marker in app
+                for marker in (
+                    "attemptViewerAutomaticRecovery(",
+                    "credentialStore.read(deviceID: deviceID)",
+                    "guard coreGeneration == viewerCoreGeneration else { return }",
+                    "evidenceSessionEpoch: evidenceSessionEpoch",
+                )
+            )
+            and "getpid()" not in app
+            and "PROC_PIDTBSDINFO" not in app
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -431,6 +457,13 @@ def main() -> int:
         "applicationAgentProcessStart": line_number(
             app, ".agentProcessStartIdentitySHA256"
         ),
+        "viewerAutomaticRecovery": line_number(
+            viewer_recovery_owner,
+            "package final class ViewerAutomaticRecoveryOwner",
+        ),
+        "applicationViewerRecoveryComposition": line_number(
+            app, "private func attemptViewerAutomaticRecovery("
+        ),
     }
     missing_source_lines = [
         name for name, number in source_lines.items() if number <= 0
@@ -439,9 +472,9 @@ def main() -> int:
     result = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "coverageScope": "h5.3ag-application-host-lifecycle-observation",
+        "coverageScope": "h5.3ah-viewer-automatic-recovery-composition",
         "status": (
-            "application-host-observation-composed"
+            "viewer-automatic-recovery-composed"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -494,11 +527,11 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "viewer-automatic-recovery-composition"
+            "five-scenario-concurrency-validator"
         ),
         "remainingBoundary": {
             "applicationHostObservationStillRequiresComposition": False,
-            "viewerAutomaticRecoveryStillRequiresImplementation": True,
+            "viewerAutomaticRecoveryStillRequiresImplementation": False,
             "fiveScenarioValidatorStillRequiresImplementation": True,
             "installedAppAgentExecutionStillRequiresExecution": True,
             "noV1ConcurrencyMatrixPassIsClaimed": True,
@@ -507,7 +540,7 @@ def main() -> int:
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return (
         0
-        if result["status"] == "application-host-observation-composed"
+        if result["status"] == "viewer-automatic-recovery-composed"
         else 1
     )
 

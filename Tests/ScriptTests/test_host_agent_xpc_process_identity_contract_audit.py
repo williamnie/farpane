@@ -30,7 +30,7 @@ class HostAgentXPCProcessIdentityContractAuditTests(unittest.TestCase):
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
-            document["status"], "application-host-observation-composed"
+            document["status"], "viewer-automatic-recovery-composed"
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -40,13 +40,13 @@ class HostAgentXPCProcessIdentityContractAuditTests(unittest.TestCase):
             document["remainingBoundary"]
             ["applicationHostObservationStillRequiresComposition"]
         )
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]
             ["viewerAutomaticRecoveryStillRequiresImplementation"]
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-automatic-recovery-composition",
+            "five-scenario-concurrency-validator",
         )
         self.assertTrue(
             document["evidence"]["handshakeImplementsStrictSchemaAndWireV2"]
@@ -66,6 +66,10 @@ class HostAgentXPCProcessIdentityContractAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["applicationHostObservationUsesExactXPCProcessIdentity"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["viewerRecoveryPreservesApplicationHostIdentityBoundary"]
         )
 
         contract = document["targetContract"]

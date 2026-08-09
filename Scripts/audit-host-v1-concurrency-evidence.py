@@ -94,6 +94,10 @@ def main() -> int:
             / "Sources/VideoPipeline/"
             / "HostViewerConcurrencyEvidenceProcessOwner.swift"
         ),
+        "viewer_recovery_owner": (
+            repository
+            / "Sources/CoreBridge/ViewerAutomaticRecoveryOwner.swift"
+        ),
         "host_agent_process": (
             repository / "Sources/RustDeskNative/HostAgentProcess.swift"
         ),
@@ -157,6 +161,7 @@ def main() -> int:
     pair_validator = sources["pair_validator"]
     lifecycle_writer = sources["lifecycle_writer"]
     lifecycle_process_owner = sources["lifecycle_process_owner"]
+    viewer_recovery_owner = sources["viewer_recovery_owner"]
     host_agent_process = sources["host_agent_process"]
     host_agent_runtime = sources["host_agent_runtime"]
     host_agent_lifetime = sources["host_agent_lifetime"]
@@ -439,10 +444,10 @@ def main() -> int:
             marker in app
             for marker in (
                 "hostViewerConcurrencyEvidenceOwner.beginViewerSession()",
-                "case .streaming:",
+                "if event.state == .streaming {",
                 ".observeViewerStreaming(",
-                "case .passwordRequired, .authenticationFailed,",
                 ".observeViewerTerminal(",
+                "stopViewerAutomaticRecovery()",
                 "private func stopViewerLifecycleEvidence()",
                 ".stopViewerSession(",
             )
@@ -459,11 +464,32 @@ def main() -> int:
             marker in app
             for marker in (
                 "let evidenceSessionEpoch =",
-                "case .streaming:",
+                "if event.state == .streaming {",
                 "sessionEpoch: evidenceSessionEpoch",
-                "showHomeUI(error: Self.connectionStateText(event))",
+                "attemptViewerAutomaticRecovery(",
+                "installViewerCoreClient(",
+                "guard coreGeneration == viewerCoreGeneration else { return }",
             )
         ),
+        "applicationViewerRecoveryIsBoundedAndCredentialSafe": all(
+            marker in viewer_recovery_owner
+            for marker in (
+                "productDelaysMilliseconds: [UInt64] = [500, 1_500, 3_000]",
+                "case connecting(epoch: UInt64, generation: UInt64, attempt: UInt64)",
+                "case .connecting(let epoch, _, _) where epoch == sessionEpoch:",
+                "case .unavailable:",
+                "cancelAndWait()",
+            )
+        ) and all(
+            marker in app
+            for marker in (
+                "ViewerAutomaticRecoveryOwner.makeProduct(",
+                "credentialStore.read(deviceID: deviceID)",
+                "previousClient?.disconnect()",
+                "decoder.invalidate()",
+                "stopViewerAutomaticRecovery()",
+            )
+        ) and "viewerRecoveryPassword" not in app,
         "applicationProjectionCarriesValidatedHostScopeAndRuntime": (
             all(
                 marker in projection
@@ -581,7 +607,7 @@ def main() -> int:
             all(
                 marker in xpc_process_identity_contract_audit
                 for marker in (
-                    '"application-host-observation-composed"',
+                    '"viewer-automatic-recovery-composed"',
                     '"handshakeSchemaVersion": 2',
                     '"wireVersion": 2',
                     '"agentProcessID"',
@@ -591,7 +617,7 @@ def main() -> int:
                     '"acceptsIdentityOnlyFromCompatibleHandshakeV2": True',
                     '"comparesAllIdentityFieldsAcrossReconnect": True',
                     '"schema-v1-fallback-for-host-lifecycle-evidence"',
-                    '"viewer-automatic-recovery-composition"',
+                    '"five-scenario-concurrency-validator"',
                 )
             )
             and all(
@@ -873,6 +899,19 @@ def main() -> int:
         "applicationProductViewerStop": line_number(
             app, "private func stopViewerLifecycleEvidence()"
         ),
+        "applicationViewerRecoveryOwner": line_number(
+            viewer_recovery_owner,
+            "package final class ViewerAutomaticRecoveryOwner",
+        ),
+        "applicationViewerRecoveryBackoff": line_number(
+            viewer_recovery_owner, "productDelaysMilliseconds"
+        ),
+        "applicationProductViewerRecovery": line_number(
+            app, "private func attemptViewerAutomaticRecovery("
+        ),
+        "applicationProductViewerCoreGenerationGate": line_number(
+            app, "guard coreGeneration == viewerCoreGeneration else { return }"
+        ),
         "applicationProjectionHostIdentity": line_number(
             projection,
             "let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity",
@@ -1133,7 +1172,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "application-host-observation-composed"
+            "viewer-automatic-recovery-composed"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -1172,18 +1211,18 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "viewer-automatic-recovery-composition"
+            "five-scenario-concurrency-validator"
         ),
         "remainingBoundary": {
             "applicationHostObservationStillRequiresComposition": False,
-            "viewerAutomaticRecoveryStillRequiresImplementation": True,
+            "viewerAutomaticRecoveryStillRequiresImplementation": False,
             "fiveScenarioManifestValidatorStillRequiresImplementation": True,
             "installedAppAgentTwoMachineExecutionStillRequiresExecution": True,
             "noV1ConcurrencyMatrixPassIsClaimed": True,
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "application-host-observation-composed"
+    expected_status = "viewer-automatic-recovery-composed"
     return 0 if result["status"] == expected_status else 1
 
 
