@@ -34,6 +34,9 @@ def main() -> int:
         "combined_sampler": (
             repository / "Scripts/sample-farpane-host-combined-role.py"
         ),
+        "combined_validator": (
+            repository / "Scripts/validate-farpane-host-combined-role.py"
+        ),
         "matrix": (
             repository / "Scripts/validate-farpane-host-performance-matrix.py"
         ),
@@ -59,6 +62,7 @@ def main() -> int:
     metrics = sources["metrics"]
     sampler = sources["sampler"]
     combined_sampler = sources["combined_sampler"]
+    combined_validator = sources["combined_validator"]
     matrix = sources["matrix"]
     h4_audit = sources["h4_audit"]
 
@@ -119,6 +123,18 @@ def main() -> int:
                 'source: fixture == nil ? "rustdesk-live" : "fixture"',
                 "let report = metrics.snapshot(",
                 "try data.write(to: url, options: .atomic)",
+            )
+        ),
+        "viewerReportCarriesExactProcessAndPresentationWindowAuthority": all(
+            marker in metrics
+            for marker in (
+                'schema: "farpane-viewer-pipeline-report"',
+                "processID: processID",
+                "buildIdentifier: buildIdentifier",
+                "measurementStartedMonotonicNanoseconds:",
+                "measurementCompletedMonotonicNanoseconds:",
+                "firstPresentationMonotonicNanoseconds:",
+                "lastPresentationMonotonicNanoseconds:",
             )
         ),
         "currentSamplerAdmitsCombinedLabelsButOnlyOnePID": (
@@ -196,10 +212,53 @@ def main() -> int:
             and "Combined performance must report Viewer, HostAgent, WindowServer"
             in h4_audit
         ),
-        "combinedManifestValidatorDoesNotExist": not (
-            repository
-            / "Scripts/validate-farpane-host-combined-role.py"
-        ).exists(),
+        "combinedValidatorBindsFiveHashScopedSourcesSafely": all(
+            marker in combined_validator
+            for marker in (
+                'MANIFEST_SCHEMA = "farpane-host-combined-role-manifest"',
+                '"systemMetadata"',
+                '"systemSamples"',
+                '"systemLog"',
+                '"hostRuntimeState"',
+                '"viewerReport"',
+                "safe_relative_source_path",
+                "seen_file_identities",
+                "hash_bytes(raw) != expected_digest",
+                "refusing to overwrite existing output",
+            )
+        ),
+        "combinedValidatorRequiresExactOverlapAndScenarioState": all(
+            marker in combined_validator
+            for marker in (
+                "MAXIMUM_STATE_GAP_SECONDS = 2.5",
+                "MAXIMUM_SAMPLE_GAP_SECONDS = 2.5",
+                "Viewer measurement does not contain the system window",
+                "Viewer presentation gap exceeds 2.5 seconds",
+                "Host runtime-state does not bracket the system window",
+                '"authenticatedConnectionMode": "zero"',
+                '"authenticatedConnectionMode": "positive"',
+                '"mediaActive": False',
+                '"mediaActive": True',
+            )
+        ),
+        "combinedValidatorDefinesIndividualAndCombinedCPUBudgets": all(
+            marker in combined_validator
+            for marker in (
+                '"hostAgentAverageCPUCeilingPercent": 2.0',
+                '"hostAgentAverageCPUCeilingPercent": 25.0',
+                '"viewerAverageCPUCeilingPercent": 60.0',
+                '"combinedAverageCPUCeilingPercent": 62.0',
+                '"combinedAverageCPUCeilingPercent": 85.0',
+                "combined FarPane average CPU reached its scenario ceiling",
+            )
+        ),
+        "combinedValidatorLeavesItemTenOpenUntilBothLiveRuns": all(
+            marker in combined_validator
+            for marker in (
+                '"scenarioEvidenceComplete": status == "pass" and acceptance',
+                '"section15_2Item10Complete": False',
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -230,6 +289,15 @@ def main() -> int:
         ),
         "viewerProcessCPU": line_number(metrics, "processCPUPercent:"),
         "viewerStreamingFrames": line_number(metrics, "presentedFrames:"),
+        "viewerReportProcessIdentity": line_number(
+            metrics, "processID: processID"
+        ),
+        "viewerReportMonotonicWindow": line_number(
+            metrics, "measurementStartedMonotonicNanoseconds:"
+        ),
+        "viewerReportPresentationWindow": line_number(
+            metrics, "firstPresentationMonotonicNanoseconds:"
+        ),
         "samplerCombinedLabels": line_number(
             sampler, "host-ready-viewer|host-viewer-dual"
         ),
@@ -269,6 +337,31 @@ def main() -> int:
         "splitSamplerNoPassClaim": line_number(
             combined_sampler, '"section15_2Item10Complete": False'
         ),
+        "combinedValidatorManifest": line_number(
+            combined_validator,
+            'MANIFEST_SCHEMA = "farpane-host-combined-role-manifest"',
+        ),
+        "combinedValidatorSafePaths": line_number(
+            combined_validator, "safe_relative_source_path"
+        ),
+        "combinedValidatorHashBinding": line_number(
+            combined_validator, "hash_bytes(raw) != expected_digest"
+        ),
+        "combinedValidatorHostWindow": line_number(
+            combined_validator, "Host runtime-state does not bracket the system window"
+        ),
+        "combinedValidatorViewerWindow": line_number(
+            combined_validator, "Viewer measurement does not contain the system window"
+        ),
+        "combinedValidatorReadyBudget": line_number(
+            combined_validator, '"combinedAverageCPUCeilingPercent": 62.0'
+        ),
+        "combinedValidatorDualBudget": line_number(
+            combined_validator, '"combinedAverageCPUCeilingPercent": 85.0'
+        ),
+        "combinedValidatorNoItemPassClaim": line_number(
+            combined_validator, '"section15_2Item10Complete": False'
+        ),
         "matrixUncoveredItems": line_number(
             matrix, '"uncoveredSection15_2Items": [7, 9, 10]'
         ),
@@ -285,7 +378,7 @@ def main() -> int:
         "schemaVersion": 1,
         "section15_2Item": 10,
         "status": (
-            "split-sampler-implemented"
+            "combined-validator-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -328,6 +421,12 @@ def main() -> int:
                 "requiresIndividualAndCombinedProcessBudgets": True,
                 "reportsWindowServerAndMediaAsSharedSystemScope": True,
                 "forbidsAssigningSharedSystemScopeToEitherRole": True,
+                "readyViewerHostAgentAverageCPUCeilingPercent": 2.0,
+                "readyViewerViewerAverageCPUCeilingPercent": 60.0,
+                "readyViewerCombinedAverageCPUCeilingPercent": 62.0,
+                "dualActiveHostAgentAverageCPUCeilingPercent": 25.0,
+                "dualActiveViewerAverageCPUCeilingPercent": 60.0,
+                "dualActiveCombinedAverageCPUCeilingPercent": 85.0,
             },
             "inputSafety": {
                 "requiresSafeRelativePaths": True,
@@ -342,15 +441,14 @@ def main() -> int:
             ],
         },
         "remainingBoundary": {
-            "combinedManifestValidatorStillRequiresImplementation": True,
-            "combinedBudgetThresholdStillRequiresDefinition": True,
+            "pairedScenarioAcceptanceMatrixStillRequiresImplementation": True,
             "installedAppAgentTwoMachineRunsStillRequireExecution": True,
             "fiveV1ConcurrencyCasesAndStableHostIDStillRequireExecution": True,
             "noSection15_2ItemTenPassIsClaimed": True,
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "split-sampler-implemented" else 1
+    return 0 if result["status"] == "combined-validator-implemented" else 1
 
 
 if __name__ == "__main__":
