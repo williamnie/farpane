@@ -43,6 +43,32 @@ final class CoreBridgeContractTests: XCTestCase {
         ))
     }
 
+    func testHostStoragePreflightPrecedesConfigMutationAndIdentityAccess() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let bridgeURL = repositoryRoot
+            .appendingPathComponent("CoreBridge/RustDeskPatch/rdn_host_bridge.rs")
+        let bridge = try String(contentsOf: bridgeURL, encoding: .utf8)
+        let start = try XCTUnwrap(bridge.range(
+            of: "pub unsafe extern \"C\" fn rdn_host_start"
+        ))
+        let startBody = bridge[start.lowerBound...]
+        let preflight = try XCTUnwrap(startBody.range(of: "preflight_host_storage()"))
+        let startingMutation = try XCTUnwrap(startBody.range(
+            of: "host.state = RdnHostState::Starting"
+        ))
+        let configMutation = try XCTUnwrap(startBody.range(of: "config::Config::set_option("))
+        let identityAccess = try XCTUnwrap(startBody.range(of: "config::Config::get_id()"))
+
+        XCTAssertLessThan(preflight.lowerBound, startingMutation.lowerBound)
+        XCTAssertLessThan(preflight.lowerBound, configMutation.lowerBound)
+        XCTAssertLessThan(preflight.lowerBound, identityAccess.lowerBound)
+        XCTAssertTrue(startBody.contains("configuration.storagePreflightFailed"))
+        XCTAssertTrue(startBody.contains("return RDN_HOST_ERR_STORAGE;"))
+    }
+
     func testNativeHostUsesCanonicalCGSessionOnConsoleKey() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

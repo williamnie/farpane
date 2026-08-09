@@ -204,7 +204,9 @@ final class HostBridgeContractTests: XCTestCase {
             free(serverPublicKey)
         }
         let root = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/FarPaneHostTestsRoot")
+            .appendingPathComponent(
+                "Library/Preferences/FarPaneHostTestsRoot.FarPaneHostTests"
+            )
         try? FileManager.default.removeItem(at: root)
         defer { try? FileManager.default.removeItem(at: root) }
         let setConfigRoot = unsafeBitCast(
@@ -334,6 +336,32 @@ final class HostBridgeContractTests: XCTestCase {
         // RustDesk state, §18 rule 1).
         var secondHost: OpaquePointer?
         XCTAssertEqual(create(&secondHost), -3)
+
+        // Existing malformed Host TOML must fail before Config/Config2 lazy
+        // loading can replace it with defaults. The failed instance is
+        // disposable; after preserving/removing the exact bytes, a fresh
+        // instance may perform the normal first-start creation path.
+        let configDirectory = root
+        try FileManager.default.createDirectory(
+            at: configDirectory,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        let identityFile = configDirectory.appendingPathComponent("FarPaneHostTests.toml")
+        let optionsFile = configDirectory.appendingPathComponent("FarPaneHostTests2.toml")
+        let malformedIdentity = Data("not-toml = [".utf8)
+        XCTAssertTrue(FileManager.default.createFile(
+            atPath: identityFile.path,
+            contents: malformedIdentity,
+            attributes: [.posixPermissions: 0o600]
+        ))
+        XCTAssertEqual(hostStart(host), -20)
+        XCTAssertEqual(try Data(contentsOf: identityFile), malformedIdentity)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: optionsFile.path))
+        hostDestroy(host)
+        host = nil
+        try FileManager.default.removeItem(at: identityFile)
+        XCTAssertEqual(create(&host), 0)
 
         XCTAssertEqual(hostStart(host), 0)
 

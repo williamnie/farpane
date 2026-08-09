@@ -17,7 +17,7 @@
 // - temporary passwords never appear in logs; snapshot presentation is
 //   redacted unless explicitly revealed for one copy.
 
-use hbb_common::{config, password_security, tokio};
+use hbb_common::{config, password_security, tokio, toml};
 use serde_json::{json, Map, Value};
 use std::{
     collections::HashMap,
@@ -56,6 +56,7 @@ pub(crate) const MEDIA_CODEC_H264: u32 = 1;
 pub(crate) const MEDIA_CODEC_H265: u32 = 2;
 const MEDIA_FRAMING_ANNEX_B: u32 = 1;
 const MEDIA_FRAMING_AVCC: u32 = 2;
+const MAX_HOST_CONFIG_BYTES: usize = 1024 * 1024;
 
 // Stable error codes (design §17): negative values are contract failures.
 const RDN_HOST_OK: i32 = 0;
@@ -2413,6 +2414,176 @@ pub unsafe extern "C" fn rdn_host_create(
     RDN_HOST_OK
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum HostStoragePreflightError {
+    InvalidPath,
+    #[cfg(not(unix))]
+    UnsupportedPlatform,
+    OpenDirectory,
+    UnsafeDirectory,
+    OpenFile,
+    UnsafeFile,
+    ReadFile,
+    InvalidUtf8,
+    InvalidToml,
+}
+
+#[derive(Clone, Copy)]
+enum HostStorageDocument {
+    Identity,
+    Options,
+}
+
+fn preflight_host_storage() -> Result<(), HostStoragePreflightError> {
+    preflight_host_storage_paths(&config::Config::file(), &config::Config2::file())
+}
+
+#[cfg(not(unix))]
+fn preflight_host_storage_paths(
+    _identity_path: &std::path::Path,
+    _options_path: &std::path::Path,
+) -> Result<(), HostStoragePreflightError> {
+    Err(HostStoragePreflightError::UnsupportedPlatform)
+}
+
+#[cfg(unix)]
+fn preflight_host_storage_paths(
+    identity_path: &std::path::Path,
+    options_path: &std::path::Path,
+) -> Result<(), HostStoragePreflightError> {
+    use hbb_common::libc;
+    use std::{
+        ffi::CString,
+        fs::File,
+        os::unix::{
+            ffi::OsStrExt,
+            io::{AsRawFd, FromRawFd},
+        },
+    };
+
+    let directory_path = identity_path
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .ok_or(HostStoragePreflightError::InvalidPath)?;
+    if options_path.parent() != Some(directory_path)
+        || identity_path.file_name().is_none()
+        || options_path.file_name().is_none()
+        || identity_path.file_name() == options_path.file_name()
+    {
+        return Err(HostStoragePreflightError::InvalidPath);
+    }
+    let directory_c = CString::new(directory_path.as_os_str().as_bytes())
+        .map_err(|_| HostStoragePreflightError::InvalidPath)?;
+    let directory_fd = unsafe {
+        libc::open(
+            directory_c.as_ptr(),
+            libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+        )
+    };
+    if directory_fd < 0 {
+        return match std::io::Error::last_os_error().raw_os_error() {
+            Some(libc::ENOENT) => Ok(()),
+            _ => Err(HostStoragePreflightError::OpenDirectory),
+        };
+    }
+    let directory = unsafe { File::from_raw_fd(directory_fd) };
+    let directory_stat = checked_fstat(directory.as_raw_fd())
+        .map_err(|_| HostStoragePreflightError::UnsafeDirectory)?;
+    if directory_stat.st_mode & libc::S_IFMT != libc::S_IFDIR
+        || directory_stat.st_uid != unsafe { libc::geteuid() }
+        || directory_stat.st_mode & 0o022 != 0
+    {
+        return Err(HostStoragePreflightError::UnsafeDirectory);
+    }
+
+    preflight_host_storage_file(&directory, identity_path, HostStorageDocument::Identity)?;
+    preflight_host_storage_file(&directory, options_path, HostStorageDocument::Options)
+}
+
+#[cfg(unix)]
+fn checked_fstat(fd: std::os::fd::RawFd) -> Result<hbb_common::libc::stat, ()> {
+    use hbb_common::libc;
+    let mut metadata = std::mem::MaybeUninit::<libc::stat>::uninit();
+    if unsafe { libc::fstat(fd, metadata.as_mut_ptr()) } != 0 {
+        return Err(());
+    }
+    Ok(unsafe { metadata.assume_init() })
+}
+
+#[cfg(unix)]
+fn preflight_host_storage_file(
+    directory: &std::fs::File,
+    path: &std::path::Path,
+    document: HostStorageDocument,
+) -> Result<(), HostStoragePreflightError> {
+    use hbb_common::libc;
+    use std::{
+        ffi::CString,
+        fs::File,
+        io::Read,
+        os::unix::{
+            ffi::OsStrExt,
+            io::{AsRawFd, FromRawFd},
+        },
+    };
+
+    let file_name = path
+        .file_name()
+        .ok_or(HostStoragePreflightError::InvalidPath)?;
+    let file_name_c =
+        CString::new(file_name.as_bytes()).map_err(|_| HostStoragePreflightError::InvalidPath)?;
+    let file_fd = unsafe {
+        libc::openat(
+            directory.as_raw_fd(),
+            file_name_c.as_ptr(),
+            libc::O_RDONLY | libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+        )
+    };
+    if file_fd < 0 {
+        return match std::io::Error::last_os_error().raw_os_error() {
+            Some(libc::ENOENT) => Ok(()),
+            _ => Err(HostStoragePreflightError::OpenFile),
+        };
+    }
+    let mut file = unsafe { File::from_raw_fd(file_fd) };
+    let initial_stat =
+        checked_fstat(file.as_raw_fd()).map_err(|_| HostStoragePreflightError::UnsafeFile)?;
+    if initial_stat.st_mode & libc::S_IFMT != libc::S_IFREG
+        || initial_stat.st_uid != unsafe { libc::geteuid() }
+        || initial_stat.st_mode & 0o777 != 0o600
+        || initial_stat.st_nlink != 1
+        || initial_stat.st_size <= 0
+        || initial_stat.st_size as u64 > MAX_HOST_CONFIG_BYTES as u64
+    {
+        return Err(HostStoragePreflightError::UnsafeFile);
+    }
+
+    let mut bytes = Vec::with_capacity(initial_stat.st_size as usize);
+    file.by_ref()
+        .take(MAX_HOST_CONFIG_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| HostStoragePreflightError::ReadFile)?;
+    let final_stat =
+        checked_fstat(file.as_raw_fd()).map_err(|_| HostStoragePreflightError::UnsafeFile)?;
+    if bytes.len() > MAX_HOST_CONFIG_BYTES
+        || bytes.len() as i64 != initial_stat.st_size
+        || final_stat.st_dev != initial_stat.st_dev
+        || final_stat.st_ino != initial_stat.st_ino
+        || final_stat.st_size != initial_stat.st_size
+    {
+        return Err(HostStoragePreflightError::UnsafeFile);
+    }
+    let text = std::str::from_utf8(&bytes).map_err(|_| HostStoragePreflightError::InvalidUtf8)?;
+    match document {
+        HostStorageDocument::Identity => toml::from_str::<config::Config>(text)
+            .map(|_| ())
+            .map_err(|_| HostStoragePreflightError::InvalidToml),
+        HostStorageDocument::Options => toml::from_str::<config::Config2>(text)
+            .map(|_| ())
+            .map_err(|_| HostStoragePreflightError::InvalidToml),
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     let Some(host) = host.as_mut() else {
@@ -2420,6 +2591,17 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     };
     if !matches!(host.state, RdnHostState::Created | RdnHostState::Stopped) {
         return RDN_HOST_ERR_BAD_STATE;
+    }
+    // Upstream Config/Config2 loading falls back to defaults on malformed or
+    // unreadable TOML. The writes below could then replace the last durable
+    // identity/config with generated defaults. Inspect both fixed Host files
+    // first, without creating or rewriting anything, and fail closed instead.
+    if preflight_host_storage().is_err() {
+        host.registration_status = "degraded";
+        host.state = RdnHostState::Error;
+        host.last_error = Some("configuration.storagePreflightFailed".to_owned());
+        host.emit_snapshot_changed();
+        return RDN_HOST_ERR_STORAGE;
     }
     host.state = RdnHostState::Starting;
     host.emit_snapshot_changed();
@@ -3066,10 +3248,194 @@ pub unsafe extern "C" fn rdn_host_destroy(host: *mut RdnHost) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::CString;
+    use std::{
+        ffi::CString,
+        fs,
+        path::{Path, PathBuf},
+        sync::atomic::AtomicU64,
+    };
+
+    #[cfg(unix)]
+    use std::os::unix::fs::{symlink, PermissionsExt};
 
     static MEDIA_BROKER_TEST_LOCK: Mutex<()> = Mutex::new(());
     static PASSWORD_COMMAND_TEST_LOCK: Mutex<()> = Mutex::new(());
+    static HOST_STORAGE_FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+    #[cfg(unix)]
+    struct HostStorageFixture {
+        root: PathBuf,
+        identity: PathBuf,
+        options: PathBuf,
+    }
+
+    #[cfg(unix)]
+    impl HostStorageFixture {
+        fn new() -> Self {
+            let sequence = HOST_STORAGE_FIXTURE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "farpane-host-storage-preflight-{}-{sequence}",
+                std::process::id()
+            ));
+            fs::create_dir(&root).expect("create storage fixture");
+            fs::set_permissions(&root, fs::Permissions::from_mode(0o700))
+                .expect("secure storage fixture");
+            Self {
+                identity: root.join("FarPaneHost.toml"),
+                options: root.join("FarPaneHost2.toml"),
+                root,
+            }
+        }
+
+        fn write_private(path: &Path, bytes: &[u8]) {
+            fs::write(path, bytes).expect("write storage fixture document");
+            fs::set_permissions(path, fs::Permissions::from_mode(0o600))
+                .expect("secure storage fixture document");
+        }
+
+        fn write_valid_documents(&self) -> (Vec<u8>, Vec<u8>) {
+            let identity = toml::to_string(&config::Config::default())
+                .expect("serialize identity fixture")
+                .into_bytes();
+            let options = toml::to_string(&config::Config2::default())
+                .expect("serialize options fixture")
+                .into_bytes();
+            Self::write_private(&self.identity, &identity);
+            Self::write_private(&self.options, &options);
+            (identity, options)
+        }
+    }
+
+    #[cfg(unix)]
+    impl Drop for HostStorageFixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_storage_preflight_allows_first_start_without_writing() {
+        let missing_root = std::env::temp_dir().join(format!(
+            "farpane-host-storage-missing-{}-{}",
+            std::process::id(),
+            HOST_STORAGE_FIXTURE_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+        ));
+        let identity = missing_root.join("FarPaneHost.toml");
+        let options = missing_root.join("FarPaneHost2.toml");
+        assert_eq!(preflight_host_storage_paths(&identity, &options), Ok(()));
+        assert!(!missing_root.exists());
+
+        let fixture = HostStorageFixture::new();
+        assert_eq!(
+            preflight_host_storage_paths(&fixture.identity, &fixture.options),
+            Ok(())
+        );
+        assert_eq!(fs::read_dir(&fixture.root).unwrap().count(), 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_storage_preflight_accepts_valid_private_toml_without_mutation() {
+        let fixture = HostStorageFixture::new();
+        let (identity, options) = fixture.write_valid_documents();
+
+        assert_eq!(
+            preflight_host_storage_paths(&fixture.identity, &fixture.options),
+            Ok(())
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), options);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_storage_preflight_preserves_malformed_documents() {
+        let fixture = HostStorageFixture::new();
+        let (valid_identity, _) = fixture.write_valid_documents();
+        let malformed = b"not-toml = [";
+
+        HostStorageFixture::write_private(&fixture.identity, malformed);
+        assert_eq!(
+            preflight_host_storage_paths(&fixture.identity, &fixture.options),
+            Err(HostStoragePreflightError::InvalidToml)
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), malformed);
+
+        HostStorageFixture::write_private(&fixture.identity, &valid_identity);
+        HostStorageFixture::write_private(&fixture.options, malformed);
+        assert_eq!(
+            preflight_host_storage_paths(&fixture.identity, &fixture.options),
+            Err(HostStoragePreflightError::InvalidToml)
+        );
+        assert_eq!(fs::read(&fixture.options).unwrap(), malformed);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_storage_preflight_rejects_unsafe_file_shapes() {
+        let loose = HostStorageFixture::new();
+        loose.write_valid_documents();
+        fs::set_permissions(&loose.identity, fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(
+            preflight_host_storage_paths(&loose.identity, &loose.options),
+            Err(HostStoragePreflightError::UnsafeFile)
+        );
+
+        let linked = HostStorageFixture::new();
+        let (_, options) = linked.write_valid_documents();
+        fs::remove_file(&linked.identity).unwrap();
+        let seed = linked.root.join("identity-seed.toml");
+        HostStorageFixture::write_private(&seed, &options);
+        fs::hard_link(&seed, &linked.identity).unwrap();
+        assert_eq!(
+            preflight_host_storage_paths(&linked.identity, &linked.options),
+            Err(HostStoragePreflightError::UnsafeFile)
+        );
+
+        let symbolic = HostStorageFixture::new();
+        symbolic.write_valid_documents();
+        let target = symbolic.root.join("identity-target.toml");
+        HostStorageFixture::write_private(&target, b"id = \"safe\"\n");
+        fs::remove_file(&symbolic.identity).unwrap();
+        symlink(&target, &symbolic.identity).unwrap();
+        assert_eq!(
+            preflight_host_storage_paths(&symbolic.identity, &symbolic.options),
+            Err(HostStoragePreflightError::OpenFile)
+        );
+
+        let oversized = HostStorageFixture::new();
+        oversized.write_valid_documents();
+        HostStorageFixture::write_private(
+            &oversized.identity,
+            &vec![b'a'; MAX_HOST_CONFIG_BYTES + 1],
+        );
+        assert_eq!(
+            preflight_host_storage_paths(&oversized.identity, &oversized.options),
+            Err(HostStoragePreflightError::UnsafeFile)
+        );
+
+        let nonregular = HostStorageFixture::new();
+        nonregular.write_valid_documents();
+        fs::remove_file(&nonregular.identity).unwrap();
+        fs::create_dir(&nonregular.identity).unwrap();
+        assert_eq!(
+            preflight_host_storage_paths(&nonregular.identity, &nonregular.options),
+            Err(HostStoragePreflightError::UnsafeFile)
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_storage_preflight_rejects_writable_directory() {
+        let fixture = HostStorageFixture::new();
+        fixture.write_valid_documents();
+        fs::set_permissions(&fixture.root, fs::Permissions::from_mode(0o770)).unwrap();
+        assert_eq!(
+            preflight_host_storage_paths(&fixture.identity, &fixture.options),
+            Err(HostStoragePreflightError::UnsafeDirectory)
+        );
+    }
 
     struct BuiltinSettingGuard {
         key: &'static str,
