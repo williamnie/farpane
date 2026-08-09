@@ -123,6 +123,383 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         XCTAssertEqual(transport.invalidateCount, 0)
     }
 
+    func testCommandQueuesThenCompletesFromCorrelatedEventWithoutBlockingPoll()
+        throws
+    {
+        let transport = SnapshotClientTestTransport()
+        let source = SnapshotClientTestSource()
+        let commandResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        let duplicateResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        let deliveryOrder = SnapshotClientTestRecorder<String>()
+        let client = try makeClient(transport: transport, source: source)
+        client.start { _ in }
+        try completeReady(transport: transport, eventSequence: 0)
+
+        client.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { result in
+            commandResults.append(result)
+            if case .completed = result { deliveryOrder.append("command") }
+        }
+        client.submitCommand(
+            commandID: "command-2",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { duplicateResults.append($0) }
+
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .submittingCommand(
+                try peerIdentity(),
+                lastEventID: 0,
+                commandID: "command-1"
+            )
+        )
+        XCTAssertEqual(transport.commandRequestCount, 1)
+        XCTAssertEqual(duplicateResults.values, [.invalidState])
+        let request = try HostAgentXPCWireCommandRequest.decode(
+            XCTUnwrap(transport.lastCommandRequest)
+        )
+        XCTAssertEqual(request.commandID, "command-1")
+        XCTAssertEqual(request.name, .disconnectSession)
+        let accepted = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
+            for: request,
+            identity: HostAgentXPCWireAgentIdentity(
+                agentBuildID: "agent-build",
+                hostInstanceID: hostID,
+                agentBootID: bootID
+            ),
+            sentAtUnixMilliseconds: 30
+        )
+        transport.replyToCommand(try accepted.encoded())
+
+        XCTAssertEqual(commandResults.values, [.accepted(accepted)])
+        XCTAssertEqual(
+            client.commandStateSnapshot(),
+            .awaitingResult(commandID: "command-1")
+        )
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .ready(try peerIdentity(), lastEventID: 0)
+        )
+
+        client.fetchEvents { result in
+            if case .events = result { deliveryOrder.append("events") }
+        }
+        let eventRequest = try HostAgentXPCWireEventCursorRequest.decode(
+            XCTUnwrap(transport.lastEventRequest)
+        )
+        let response = try eventResponse(
+            for: eventRequest,
+            events: [try event(
+                id: 1,
+                type: "commandResult",
+                payload: [
+                    "commandId": "command-1",
+                    "status": "ok",
+                    "detail": "completed",
+                ]
+            )]
+        )
+        transport.replyToEvents(try response.encoded())
+
+        XCTAssertEqual(deliveryOrder.values, ["events", "command"])
+        XCTAssertEqual(commandResults.values, [
+            .accepted(accepted),
+            .completed(try HostAgentXPCWireCommandResult(
+                commandID: "command-1",
+                status: .ok,
+                detail: "completed"
+            )),
+        ])
+        XCTAssertEqual(client.commandStateSnapshot(), .idle)
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .ready(try peerIdentity(), lastEventID: 1)
+        )
+    }
+
+    func testMalformedCommandAckFailsSessionAndLateAckCannotRevive() throws {
+        let transport = SnapshotClientTestTransport()
+        let source = SnapshotClientTestSource()
+        let results = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        let client = try makeClient(transport: transport, source: source)
+        client.start { _ in }
+        try completeReady(transport: transport)
+        client.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { results.append($0) }
+        let request = try HostAgentXPCWireCommandRequest.decode(
+            XCTUnwrap(transport.lastCommandRequest)
+        )
+        let late = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
+            for: request,
+            identity: HostAgentXPCWireAgentIdentity(
+                agentBuildID: "agent-build",
+                hostInstanceID: hostID,
+                agentBootID: bootID
+            ),
+            sentAtUnixMilliseconds: 30
+        )
+
+        transport.replyToCommand(Data())
+        transport.replyToCommand(try late.encoded())
+
+        XCTAssertEqual(results.values, [.invalidResponse])
+        XCTAssertEqual(client.stateSnapshot(), .failed)
+        XCTAssertEqual(client.commandStateSnapshot(), .idle)
+        XCTAssertEqual(transport.invalidateCount, 1)
+    }
+
+    func testCommandResultWaitsForAuthoritativeResnapshotDelivery() throws {
+        let transport = SnapshotClientTestTransport()
+        let source = SnapshotClientTestSource()
+        let commandResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        let eventResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientEventResult
+        >()
+        let deliveryOrder = SnapshotClientTestRecorder<String>()
+        let client = try makeClient(transport: transport, source: source)
+        client.start { _ in }
+        try completeReady(transport: transport, eventSequence: 0)
+        client.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { result in
+            commandResults.append(result)
+            if case .completed = result { deliveryOrder.append("command") }
+        }
+        let commandRequest = try HostAgentXPCWireCommandRequest.decode(
+            XCTUnwrap(transport.lastCommandRequest)
+        )
+        let accepted = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
+            for: commandRequest,
+            identity: HostAgentXPCWireAgentIdentity(
+                agentBuildID: "agent-build",
+                hostInstanceID: hostID,
+                agentBootID: bootID
+            ),
+            sentAtUnixMilliseconds: 30
+        )
+        transport.replyToCommand(try accepted.encoded())
+
+        client.fetchEvents { result in
+            eventResults.append(result)
+            if case .resynchronized = result {
+                deliveryOrder.append("snapshot")
+            }
+        }
+        let eventRequest = try HostAgentXPCWireEventCursorRequest.decode(
+            XCTUnwrap(transport.lastEventRequest)
+        )
+        let triggering = try eventResponse(
+            for: eventRequest,
+            events: [
+                try event(
+                    id: 1,
+                    type: "sessionCapabilitiesChanged",
+                    payload: [:]
+                ),
+                try event(
+                    id: 2,
+                    type: "commandResult",
+                    payload: [
+                        "commandId": "command-1",
+                        "status": "ok",
+                        "detail": "completed",
+                    ]
+                ),
+            ]
+        )
+        transport.replyToEvents(try triggering.encoded())
+        XCTAssertEqual(commandResults.values, [.accepted(accepted)])
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .refreshingSnapshot(try peerIdentity(), lastEventID: 0)
+        )
+
+        let refreshRequest = try HostAgentXPCWireSnapshotRequest.decode(
+            XCTUnwrap(transport.lastSnapshotRequest)
+        )
+        let refreshed = try HostAgentXPCWireSnapshotResponse.decode(
+            snapshotResponse(
+                for: refreshRequest,
+                hostID: hostID,
+                bootID: bootID,
+                eventSequence: 2
+            )
+        )
+        transport.replyToSnapshot(try refreshed.encoded())
+
+        XCTAssertEqual(eventResults.values, [.resynchronized(
+            snapshot: refreshed,
+            triggeringResponse: triggering
+        )])
+        XCTAssertEqual(deliveryOrder.values, ["snapshot", "command"])
+        XCTAssertEqual(commandResults.values.count, 2)
+        XCTAssertEqual(client.commandStateSnapshot(), .idle)
+    }
+
+    func testCommandAcceptanceTimeoutIsTerminalButResultTimeoutIsRetryable()
+        throws
+    {
+        let acceptanceTransport = SnapshotClientTestTransport()
+        let acceptanceSource = SnapshotClientTestSource()
+        let acceptanceResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        let acceptanceClient = try makeClient(
+            transport: acceptanceTransport,
+            source: acceptanceSource
+        )
+        acceptanceClient.start { _ in }
+        try completeReady(transport: acceptanceTransport)
+        acceptanceClient.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { acceptanceResults.append($0) }
+        acceptanceSource.fireLastTimeout()
+
+        XCTAssertEqual(acceptanceResults.values, [.acceptanceTimedOut])
+        XCTAssertEqual(acceptanceClient.stateSnapshot(), .failed)
+        XCTAssertEqual(acceptanceTransport.invalidateCount, 1)
+
+        let resultTransport = SnapshotClientTestTransport()
+        let resultSource = SnapshotClientTestSource()
+        let resultResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        let resultClient = try makeClient(
+            transport: resultTransport,
+            source: resultSource
+        )
+        resultClient.start { _ in }
+        try completeReady(transport: resultTransport)
+        resultClient.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { resultResults.append($0) }
+        let request = try HostAgentXPCWireCommandRequest.decode(
+            XCTUnwrap(resultTransport.lastCommandRequest)
+        )
+        let accepted = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
+            for: request,
+            identity: HostAgentXPCWireAgentIdentity(
+                agentBuildID: "agent-build",
+                hostInstanceID: hostID,
+                agentBootID: bootID
+            ),
+            sentAtUnixMilliseconds: 30
+        )
+        resultTransport.replyToCommand(try accepted.encoded())
+        resultSource.fireLastTimeout()
+
+        XCTAssertEqual(resultResults.values, [
+            .accepted(accepted),
+            .resultTimedOut,
+        ])
+        XCTAssertEqual(resultClient.commandStateSnapshot(), .idle)
+        XCTAssertEqual(
+            resultClient.stateSnapshot(),
+            .ready(try peerIdentity(), lastEventID: 1)
+        )
+        XCTAssertEqual(resultTransport.invalidateCount, 0)
+
+        let retryResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        resultClient.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { retryResults.append($0) }
+        let retry = try HostAgentXPCWireCommandRequest.decode(
+            XCTUnwrap(resultTransport.lastCommandRequest)
+        )
+        XCTAssertEqual(retry.commandID, request.commandID)
+        XCTAssertNotEqual(retry.requestID, request.requestID)
+        XCTAssertEqual(resultTransport.commandRequestCount, 2)
+        resultClient.cancel()
+        XCTAssertEqual(retryResults.values, [.cancelled])
+    }
+
+    func testCommandCancellationAndDisconnectReportUnknownExactlyOnce()
+        throws
+    {
+        let cancelTransport = SnapshotClientTestTransport()
+        let cancelSource = SnapshotClientTestSource()
+        let cancelResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        let cancelClient = try makeClient(
+            transport: cancelTransport,
+            source: cancelSource
+        )
+        cancelClient.start { _ in }
+        try completeReady(transport: cancelTransport)
+        cancelClient.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { cancelResults.append($0) }
+        cancelClient.cancel()
+        cancelTransport.replyToCommand(Data())
+        XCTAssertEqual(cancelResults.values, [.cancelled])
+
+        let disconnectTransport = SnapshotClientTestTransport()
+        let disconnectSource = SnapshotClientTestSource()
+        let disconnectResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        let disconnectClient = try makeClient(
+            transport: disconnectTransport,
+            source: disconnectSource
+        )
+        disconnectClient.start { _ in }
+        try completeReady(transport: disconnectTransport)
+        disconnectClient.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { disconnectResults.append($0) }
+        let request = try HostAgentXPCWireCommandRequest.decode(
+            XCTUnwrap(disconnectTransport.lastCommandRequest)
+        )
+        let accepted = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
+            for: request,
+            identity: HostAgentXPCWireAgentIdentity(
+                agentBuildID: "agent-build",
+                hostInstanceID: hostID,
+                agentBootID: bootID
+            ),
+            sentAtUnixMilliseconds: 30
+        )
+        disconnectTransport.replyToCommand(try accepted.encoded())
+        disconnectTransport.triggerInterruption()
+        disconnectTransport.triggerInvalidation()
+
+        XCTAssertEqual(disconnectResults.values, [
+            .accepted(accepted),
+            .resultUnknown,
+        ])
+        XCTAssertEqual(disconnectClient.stateSnapshot(), .disconnected)
+    }
+
     func testGapAutomaticallyResnapshotsBeforeReturningToReady() throws {
         let transport = SnapshotClientTestTransport()
         let source = SnapshotClientTestSource()
@@ -514,24 +891,39 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
             expectedHostInstanceID: hostID
         )
         let eventState = try HostAgentEventState()
-        _ = eventState.ingestCommandResult(
-            try HostAgentXPCWireCommandResult(
-                commandID: "command-1",
-                status: .ok,
-                detail: "completed"
-            ),
+        let expectedHostID = hostID
+        let identity = try HostAgentXPCWireAgentIdentity(
+            agentBuildID: "agent-build",
             hostInstanceID: hostID,
-            sentAtUnixMilliseconds: 1_700_000_000_000
+            agentBootID: bootID
         )
-        let handler = try HostAgentXPCSnapshotSessionHandler(
-            identity: HostAgentXPCWireAgentIdentity(
-                agentBuildID: "agent-build",
-                hostInstanceID: hostID,
-                agentBootID: bootID
+        let commandService = HostAgentXPCCommandService(
+            identity: identity,
+            authority: try HostAgentXPCCommandAdmissionAuthority(
+                identity: identity
             ),
+            prepareExecution: { _ in
+                HostAgentXPCCommandQueueTicket {}
+            },
+            publishResult: { result in
+                switch eventState.ingestCommandResult(
+                    result,
+                    hostInstanceID: expectedHostID,
+                    sentAtUnixMilliseconds: 1_700_000_000_000
+                ) {
+                case .accepted, .unchanged:
+                    return true
+                case .rejected:
+                    return false
+                }
+            },
+            nowUnixMilliseconds: { 20 }
+        )
+        let handler = HostAgentXPCSnapshotSessionHandler(
+            identity: identity,
             snapshotState: snapshotState,
             eventState: eventState,
-            commandService: nil,
+            commandService: commandService,
             nowUnixMilliseconds: { 20 },
             monotonicMilliseconds: { 1 }
         )
@@ -566,6 +958,36 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         XCTAssertEqual(peer, try peerIdentity())
         XCTAssertEqual(client.stateSnapshot(), .ready(peer, lastEventID: 0))
 
+        let commandAccepted = expectation(description: "command accepted")
+        let commandCompleted = expectation(description: "command completed")
+        let commandResults = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        client.submitCommand(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        ) { result in
+            commandResults.append(result)
+            switch result {
+            case .accepted:
+                commandAccepted.fulfill()
+            case .completed:
+                commandCompleted.fulfill()
+            default:
+                break
+            }
+        }
+        wait(for: [commandAccepted], timeout: 2)
+        XCTAssertEqual(
+            commandService.acceptResult(try HostAgentXPCWireCommandResult(
+                commandID: "command-1",
+                status: .ok,
+                detail: "completed"
+            )),
+            .published
+        )
+
         let eventCompleted = expectation(description: "event client ready")
         let eventResults = SnapshotClientTestRecorder<
             HostAgentXPCSnapshotClientEventResult
@@ -574,15 +996,16 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
             eventResults.append($0)
             eventCompleted.fulfill()
         }
-        wait(for: [eventCompleted], timeout: 2)
+        wait(for: [eventCompleted, commandCompleted], timeout: 2)
         guard case .events(let eventResponse)? = eventResults.values.first
         else { return XCTFail("expected event batch") }
         XCTAssertEqual(eventResponse.outcome, .batch)
         XCTAssertEqual(eventResponse.resumeAfterEventID, 1)
+        XCTAssertEqual(commandResults.values.count, 2)
         XCTAssertEqual(client.stateSnapshot(), .ready(peer, lastEventID: 1))
     }
 
-    func testProductFactorySourceFixesMachServiceAndExposesNoCommand() throws {
+    func testProductFactorySourceFixesMachServiceAndUsesTypedCommand() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -608,7 +1031,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         XCTAssertFalse(source.contains("UserDefaults"))
         XCTAssertFalse(source.contains("getenv"))
         XCTAssertTrue(source.contains("HostAgentXPCWireEvent"))
-        XCTAssertFalse(source.contains("HostAgentXPCWireCommand"))
+        XCTAssertTrue(source.contains("HostAgentXPCWireCommand"))
         XCTAssertFalse(source.contains("NSURL"))
     }
 
@@ -836,8 +1259,10 @@ private final class SnapshotClientTestSource: @unchecked Sendable {
         "151db9a9-7dd3-4fea-93af-1b6c10840676",
         "841733af-919b-4dc2-84bb-7134d0951dc9",
         "f3b55fb3-bc9f-443a-9a73-7769eb35875d",
+        "f71830c9-4d88-4743-9780-fec7858191f1",
+        "e16c8797-ac9a-40ac-87a9-6a4509bde67e",
     ]
-    private var times: [UInt64] = [10, 11, 12, 13]
+    private var times: [UInt64] = [10, 11, 12, 13, 14, 15]
     private var scheduledTimeouts: [@Sendable () -> Void] = []
 
     func nextRequestID() -> String {
@@ -886,20 +1311,24 @@ private final class SnapshotClientTestTransport:
     private var handshakeReply: (@Sendable (Data?) -> Void)?
     private var snapshotReply: (@Sendable (Data?) -> Void)?
     private var eventReply: (@Sendable (Data?) -> Void)?
+    private var commandReply: (@Sendable (Data?) -> Void)?
     private var starts = 0
     private var invalidations = 0
     private var handshakeRequests: [Data] = []
     private var snapshotRequests: [Data] = []
     private var eventRequests: [Data] = []
+    private var commandRequests: [Data] = []
 
     var startCount: Int { locked { starts } }
     var invalidateCount: Int { locked { invalidations } }
     var handshakeRequestCount: Int { locked { handshakeRequests.count } }
     var snapshotRequestCount: Int { locked { snapshotRequests.count } }
     var eventRequestCount: Int { locked { eventRequests.count } }
+    var commandRequestCount: Int { locked { commandRequests.count } }
     var lastHandshakeRequest: Data? { locked { handshakeRequests.last } }
     var lastSnapshotRequest: Data? { locked { snapshotRequests.last } }
     var lastEventRequest: Data? { locked { eventRequests.last } }
+    var lastCommandRequest: Data? { locked { commandRequests.last } }
 
     func start(
         onInterruption: @escaping @Sendable () -> Void,
@@ -942,6 +1371,16 @@ private final class SnapshotClientTestTransport:
         lock.unlock()
     }
 
+    func submitCommand(
+        requestData: Data,
+        reply: @escaping @Sendable (Data?) -> Void
+    ) {
+        lock.lock()
+        commandRequests.append(requestData)
+        commandReply = reply
+        lock.unlock()
+    }
+
     func invalidate() {
         lock.lock()
         invalidations += 1
@@ -958,6 +1397,10 @@ private final class SnapshotClientTestTransport:
 
     func replyToEvents(_ data: Data?) {
         locked { eventReply }?(data)
+    }
+
+    func replyToCommand(_ data: Data?) {
+        locked { commandReply }?(data)
     }
 
     func triggerInterruption() {
