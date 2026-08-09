@@ -78,6 +78,14 @@ def main() -> int:
             repository
             / "Sources/RustDeskNative/HostAgentSleepWakeRecoveryProcessOwner.swift"
         ),
+        "notification_delivery": (
+            repository
+            / "Sources/CoreBridge/HostAgentSleepWakeNotificationDeliveryOwner.swift"
+        ),
+        "notification_ingress": (
+            repository
+            / "Sources/RustDeskNative/HostAgentNSWorkspaceSleepWakeIngress.swift"
+        ),
         "process_runtime": (
             repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
         ),
@@ -376,11 +384,47 @@ def main() -> int:
             "mediaPipelineOwner.cancelAndWait()",
             "pollingOwner.cancel()",
         ),
+        "processOwnsSerializedSystemSleepWakeIngress": all(
+            marker in sources["notification_delivery"]
+            for marker in (
+                "case preparingForSleep",
+                "case recoveringFromSleep",
+                "guard !deliveryInFlight",
+                "transitionForAcceptedEvent(event)",
+                "while deliveryInFlight",
+                "state = .cancelled",
+            )
+        )
+        and all(
+            marker in sources["notification_ingress"]
+            for marker in (
+                "NSWorkspace.shared.notificationCenter",
+                "NSWorkspace.willSleepNotification",
+                "NSWorkspace.didWakeNotification",
+                "Thread { [weak self] in",
+                "RunLoop.current.add(keepAlivePort",
+                "CFRunLoopRun()",
+                "removeObservers(tokens)",
+                "deliveryOwner.cancelAndWait()",
+                "CFRunLoopStop(runLoop)",
+                "CFRunLoopWakeUp(runLoop)",
+                "case .failed = deliveryOwner.stateSnapshot()",
+                "requestProcessTermination()",
+            )
+        )
+        and all(
+            marker in sources["process_owner"]
+            for marker in (
+                "HostAgentNSWorkspaceSleepWakeIngress.makeProduct(",
+                "guard notificationIngress.start()",
+                "notificationIngress?.cancelAndWait()",
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 6,
+        "schemaVersion": 7,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
@@ -412,14 +456,14 @@ def main() -> int:
                     sources["process_owner"],
                     "final class HostAgentSleepWakeRecoveryProcessOwner",
                 ),
+                "systemSleepWakeIngress": line_number(
+                    sources["notification_ingress"],
+                    "final class HostAgentNSWorkspaceSleepWakeIngress",
+                ),
             },
         },
         "remainingBoundary": {
-            "systemSleepWakeNotificationAdapterAbsent": (
-                "NSWorkspace" not in sources["process"]
-                and "NSWorkspace" not in sources["process_owner"]
-                and "import AppKit" not in sources["process_owner"]
-            ),
+            "realMacSleepWakeLifecycleEvidenceRequired": True,
         },
         "missingEvidence": missing,
     }

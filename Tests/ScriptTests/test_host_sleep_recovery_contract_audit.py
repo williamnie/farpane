@@ -17,7 +17,7 @@ class HostSleepRecoveryContractAuditTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
         document = json.loads(completed.stdout)
         self.assertEqual(document["schema"], "farpane-host-sleep-recovery-contract-audit")
-        self.assertEqual(document["schemaVersion"], 6)
+        self.assertEqual(document["schemaVersion"], 7)
         self.assertEqual(document["status"], "contract-implemented")
         self.assertEqual(document["missingEvidence"], [])
         implementation = document["implementation"]
@@ -42,9 +42,13 @@ class HostSleepRecoveryContractAuditTests(unittest.TestCase):
             "processSleepWakeCompositionAbsent",
             document["remainingBoundary"],
         )
+        self.assertNotIn(
+            "systemSleepWakeNotificationAdapterAbsent",
+            document["remainingBoundary"],
+        )
         self.assertTrue(
             document["remainingBoundary"][
-                "systemSleepWakeNotificationAdapterAbsent"
+                "realMacSleepWakeLifecycleEvidenceRequired"
             ]
         )
 
