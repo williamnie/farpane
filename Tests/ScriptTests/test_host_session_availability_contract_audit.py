@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
-    def test_current_gap_and_target_contract_are_frozen(self):
+    def test_core_contract_and_remaining_product_boundary_are_frozen(self):
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -27,13 +27,13 @@ class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
             document["schema"],
             "farpane-host-session-availability-contract-audit",
         )
-        self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "contract-gap-confirmed")
+        self.assertEqual(document["schemaVersion"], 2)
+        self.assertEqual(document["status"], "core-contract-implemented")
         self.assertEqual(document["missingEvidence"], [])
 
         implementation = document["implementation"]
-        self.assertEqual(implementation["hostABIVersion"], 9)
-        self.assertEqual(implementation["snapshotSchemaVersion"], 6)
+        self.assertEqual(implementation["hostABIVersion"], 10)
+        self.assertEqual(implementation["snapshotSchemaVersion"], 7)
         self.assertTrue(all(implementation["evidence"].values()))
         self.assertTrue(all(implementation["sourceLines"].values()))
 
@@ -59,7 +59,16 @@ class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
             "inputInjectionWhileLimited",
             target["forbiddenSideEffects"],
         )
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        remaining = document["remainingBoundary"]
+        self.assertFalse(remaining["sharedABINotImplementedByAudit"])
+        self.assertFalse(
+            remaining["backgroundMediaSuspensionNotImplementedByAudit"]
+        )
+        self.assertTrue(remaining["xpcTransitionProjectionNotImplementedByAudit"])
+        self.assertTrue(
+            remaining["installedLockLoginWindowFUSAcceptanceStillRequired"]
+        )
+        self.assertTrue(remaining["secureInputRemainsSeparateDecision"])
 
 
 if __name__ == "__main__":

@@ -5341,7 +5341,7 @@ diff --git a/src/server/video_service.rs b/src/server/video_service.rs
 index 9d97b1c..d6891a8 100644
 --- a/src/server/video_service.rs
 +++ b/src/server/video_service.rs
-@@ -254,10 +254,307 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
+@@ -254,10 +254,313 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
          idx,
          source,
      };
@@ -5407,6 +5407,9 @@ index 9d97b1c..d6891a8 100644
 +    let mut _raii = Raii::new(vs.idx, vs.sp.name());
 +    let display_idx = vs.idx;
 +    let sp = vs.sp;
++    if !crate::rdn_host_bridge::native_host_session_is_available() {
++        bail!("native host session is unavailable");
++    }
 +    let display = display_service::get_display_info(display_idx)
 +        .ok_or_else(|| anyhow!("native host display is unavailable"))?;
 +    let codec_format = Encoder::negotiated_codec();
@@ -5448,6 +5451,9 @@ index 9d97b1c..d6891a8 100644
 +    let mut refresh_pending = false;
 +
 +    while sp.ok() {
++        if !crate::rdn_host_bridge::native_host_session_is_available() {
++            bail!("native host session is unavailable");
++        }
 +        if sp.is_option_true(OPTION_REFRESH) {
 +            sp.set_option_bool(OPTION_REFRESH, false);
 +            refresh_pending = true;

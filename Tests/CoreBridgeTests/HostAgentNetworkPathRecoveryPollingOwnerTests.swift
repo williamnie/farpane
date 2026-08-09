@@ -348,10 +348,12 @@ final class HostAgentNetworkPathRecoveryPollingOwnerTests: XCTestCase {
         registration: String
     ) throws -> HostCoreSnapshot {
         let document: [String: Any] = [
-            "schemaVersion": 6,
+            "schemaVersion": 7,
             "hostInstanceId": hostInstanceID,
             "hostState": hostState,
             "localId": "123456789",
+            "sessionAvailability": "available",
+            "sessionUnavailableReason": NSNull(),
             "pendingApproval": NSNull(),
             "activeSession": NSNull(),
             "temporaryPasswordPresentation": ["policy": "redacted"],

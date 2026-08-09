@@ -402,10 +402,12 @@ private final class OwnedRuntimeRecordingClient: HostAgentCoreControlSurface {
     func copySnapshot() throws -> HostCoreSnapshot {
         recorder.append(.coreCopySnapshot)
         let document: [String: Any] = [
-            "schemaVersion": 6,
+            "schemaVersion": 7,
             "hostInstanceId": "owned-runtime-host",
             "hostState": "ready",
             "localId": "123456789",
+            "sessionAvailability": "available",
+            "sessionUnavailableReason": NSNull(),
             "registrationStatus": "ready",
             "recoveryEpoch": 0,
             "recoveryStatus": "running",

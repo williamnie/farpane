@@ -27,10 +27,33 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(view.eventSequence, 7)
         XCTAssertEqual(view.projection?.hostInstanceID, "host-a")
         XCTAssertEqual(view.projection?.hostState, "ready")
+        XCTAssertEqual(view.projection?.sessionAvailability, .available)
+        XCTAssertNil(view.projection?.sessionUnavailableReason)
         XCTAssertEqual(view.projection?.temporaryPasswordPolicy, "redacted")
         XCTAssertEqual(view.projection?.observedAt, 100)
         XCTAssertFalse(String(reflecting: view).contains(secret))
         XCTAssertEqual(view.failedRefreshCount, 0)
+    }
+
+    func testProjectionRetainsLimitedSessionUnavailableTuple() throws {
+        let state = HostAgentSnapshotState()
+        _ = state.publish(
+            try coreSnapshot(
+                host: "host-a",
+                observedAt: 100,
+                sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable
+            ),
+            eventSequence: 1,
+            expectedHostInstanceID: "host-a"
+        )
+
+        let projection = try XCTUnwrap(state.snapshot().projection)
+        XCTAssertEqual(projection.sessionAvailability, .limited)
+        XCTAssertEqual(
+            projection.sessionUnavailableReason,
+            .sessionUnavailable
+        )
     }
 
     func testHostInstanceMismatchFailsClosedAndClearsCurrentProjection() throws {
@@ -537,6 +560,8 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         host: String,
         observedAt: UInt64,
         revealedPassword: String? = nil,
+        sessionAvailability: HostSessionAvailability = .available,
+        sessionUnavailableReason: HostSessionUnavailableReason? = nil,
         recoveryEpoch: UInt64 = 0,
         recoveryStatus: HostRecoveryStatus = .running,
         registrationStatus: String? = nil
@@ -545,10 +570,14 @@ final class HostAgentSnapshotStateTests: XCTestCase {
             ["policy": "revealed", "value": $0]
         } ?? ["policy": "redacted"]
         let document: [String: Any] = [
-            "schemaVersion": 6,
+            "schemaVersion": 7,
             "hostInstanceId": host,
             "hostState": recoveryStatus == .running ? "ready" : "starting",
             "localId": "123456789",
+            "sessionAvailability": sessionAvailability.rawValue,
+            "sessionUnavailableReason": sessionUnavailableReason.map {
+                $0.rawValue as Any
+            } ?? NSNull(),
             "registrationStatus": registrationStatus
                 ?? (recoveryStatus == .running ? "ready" : "pending"),
             "recoveryEpoch": recoveryEpoch,

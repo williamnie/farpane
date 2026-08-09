@@ -105,7 +105,7 @@ def main() -> int:
     snapshot_json = section(
         sources["bridge"],
         "fn snapshot_json(&mut self) -> Value",
-        "fn validate_host_config_root",
+        "fn now_unix_millis",
     )
     client_snapshot = section(
         sources["client"],
@@ -124,8 +124,8 @@ def main() -> int:
     )
 
     current_evidence = {
-        "hostABIV9AndSnapshotV6AreCurrent": (
-            rust_abi == 9 and header_abi == 9 and snapshot_schema == 6
+        "hostABIV10AndSnapshotV7AreCurrent": (
+            rust_abi == 10 and header_abi == 10 and snapshot_schema == 7
         ),
         "rustActiveAquaAuthorityFailsClosed": all(
             marker in patch
@@ -189,19 +189,50 @@ def main() -> int:
                 "HostSessionPresentationPolicy.presentation(",
             )
         ),
-        "backgroundMediaHasNoSessionAuthority": (
-            "HostActiveAquaSession" not in sources["media"]
-            and "sessionUnavailable" not in sources["media"]
-            and "CGSession" not in sources["media"]
+        "nativeMediaRejectsAndRetiresUnavailableSession": (
+            patch.count(
+                "!crate::rdn_host_bridge::native_host_session_is_available()"
+            ) >= 2
+            and 'bail!("native host session is unavailable")' in patch
+            and "let route = NativeRouteGuard(route);" in patch
+            and "if !native_host_session_is_available() {"
+                in sources["bridge"]
+            and "post-transition payload copies or queue insertion"
+                in sources["bridge"]
         ),
-        "topLevelHostSnapshotHasNoSessionAvailability": (
-            "sessionAvailability" not in snapshot_json
-            and "sessionUnavailableReason" not in snapshot_json
-            and "sessionAvailability" not in client_snapshot
-            and "sessionUnavailableReason" not in client_snapshot
-            and "sessionAvailability" not in sources["snapshot_state"]
-            and "sessionAvailability" not in sources["xpc_snapshot"]
+        "topLevelHostSnapshotTupleIsStrictAndInternallyProjected": (
+            all(
+                marker in snapshot_json
+                for marker in (
+                    "native_host_session_availability_payload(",
+                    'map.insert("sessionAvailability"',
+                    '"sessionUnavailableReason".into()',
+                )
+            )
+            and all(
+                marker in client_snapshot
+                for marker in (
+                    'intValue == 7',
+                    'json["sessionAvailability"] as? String',
+                    'json["sessionUnavailableReason"]',
+                    'case (.available, nil), (.limited, .sessionUnavailable):',
+                )
+            )
+            and all(
+                marker in sources["snapshot_state"]
+                for marker in (
+                    "package let sessionAvailability: HostSessionAvailability",
+                    "package let sessionUnavailableReason: HostSessionUnavailableReason?",
+                    "sessionAvailability = snapshot.sessionAvailability",
+                    "sessionUnavailableReason = snapshot.sessionUnavailableReason",
+                )
+            )
+        ),
+        "xpcAndHomeDoNotYetPublishTopLevelSessionTuple": (
+            "sessionAvailability" not in sources["xpc_snapshot"]
+            and "sessionUnavailableReason" not in sources["xpc_snapshot"]
             and "sessionAvailability" not in sources["home_snapshot"]
+            and "sessionUnavailableReason" not in sources["home_snapshot"]
         ),
         "backgroundReadinessCanStillBecomeReadyWithoutSessionEvidence": (
             all(
@@ -289,6 +320,10 @@ def main() -> int:
             sources["bridge"],
             "fn snapshot_json(&mut self) -> Value",
         ),
+        "nativeMediaGate": line_number(
+            patch,
+            "!crate::rdn_host_bridge::native_host_session_is_available()",
+        ),
         "swiftSnapshot": line_number(
             sources["client"],
             "public struct HostCoreSnapshot",
@@ -309,8 +344,8 @@ def main() -> int:
 
     document = {
         "schema": SCHEMA,
-        "schemaVersion": 1,
-        "status": "contract-gap-confirmed" if not missing else "audit-drift",
+        "schemaVersion": 2,
+        "status": "core-contract-implemented" if not missing else "audit-drift",
         "implementation": {
             "hostABIVersion": rust_abi,
             "snapshotSchemaVersion": snapshot_schema,
@@ -320,8 +355,8 @@ def main() -> int:
         "targetContract": target_contract,
         "missingEvidence": missing,
         "remainingBoundary": {
-            "sharedABINotImplementedByAudit": True,
-            "backgroundMediaSuspensionNotImplementedByAudit": True,
+            "sharedABINotImplementedByAudit": False,
+            "backgroundMediaSuspensionNotImplementedByAudit": False,
             "xpcTransitionProjectionNotImplementedByAudit": True,
             "installedLockLoginWindowFUSAcceptanceStillRequired": True,
             "secureInputRemainsSeparateDecision": True,

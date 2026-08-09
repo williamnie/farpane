@@ -31,10 +31,10 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 9;
+const HOST_ABI_VERSION: u32 = 10;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
-const SNAPSHOT_SCHEMA_VERSION: u32 = 6;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 7;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_NAME_BYTES: usize = 64;
@@ -130,6 +130,30 @@ fn state_name(state: RdnHostState) -> &'static str {
         RdnHostState::Stopping => "stopping",
         RdnHostState::Stopped => "stopped",
         RdnHostState::Error => "error",
+    }
+}
+
+/// Single product authority for whether the current process owns an active
+/// Aqua console session. macOS fails closed through the pinned CGSession
+/// policy; non-macOS builds retain their existing behavior.
+pub(crate) fn native_host_session_is_available() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        crate::platform::macos::is_active_aqua_session()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        true
+    }
+}
+
+fn native_host_session_availability_payload(
+    available: bool,
+) -> (&'static str, Option<&'static str>) {
+    if available {
+        ("available", None)
+    } else {
+        ("limited", Some("sessionUnavailable"))
     }
 }
 
@@ -2301,6 +2325,8 @@ impl RdnHost {
 
     fn snapshot_json(&mut self) -> Value {
         self.refresh_registration_state();
+        let (session_availability, session_unavailable_reason) =
+            native_host_session_availability_payload(native_host_session_is_available());
         // §8.3 minimal field set; §9.2: password only leaves Rust when the UI
         // explicitly revealed it, and the reveal flag is one-shot.
         let presentation = if self.reveal_temporary_password {
@@ -2314,6 +2340,11 @@ impl RdnHost {
         map.insert("hostInstanceId".into(), json!(self.instance_id));
         map.insert("hostState".into(), json!(state_name(self.state)));
         map.insert("localId".into(), json!(self.local_id));
+        map.insert("sessionAvailability".into(), json!(session_availability));
+        map.insert(
+            "sessionUnavailableReason".into(),
+            json!(session_unavailable_reason),
+        );
         map.insert(
             "pendingApproval".into(),
             native_host_pending_approval_snapshot(&self.instance_id).unwrap_or(Value::Null),
@@ -3677,6 +3708,12 @@ pub unsafe extern "C" fn rdn_host_media_submit_access_unit(
     {
         return code;
     }
+    // Recheck the same Rust Aqua authority at the final encoded admission
+    // boundary. This prevents a route-loop acknowledgement wait from allowing
+    // post-transition payload copies or queue insertion.
+    if !native_host_session_is_available() {
+        return RDN_HOST_ERR_BAD_STATE;
+    }
     if access_unit.data.is_null() || access_unit.length == 0 {
         return RDN_HOST_ERR_INVALID_ARG;
     }
@@ -4336,6 +4373,28 @@ mod tests {
             relay_server: String::new(),
             server_public_key: String::new(),
             runtime: None,
+        }
+    }
+
+    #[test]
+    fn native_host_session_availability_tuple_is_exact_and_fail_closed() {
+        assert_eq!(
+            native_host_session_availability_payload(true),
+            ("available", None)
+        );
+        assert_eq!(
+            native_host_session_availability_payload(false),
+            ("limited", Some("sessionUnavailable"))
+        );
+
+        let mut host = ready_test_host("session-availability-host");
+        let snapshot = host.snapshot_json();
+        match snapshot["sessionAvailability"].as_str() {
+            Some("available") => assert!(snapshot["sessionUnavailableReason"].is_null()),
+            Some("limited") => {
+                assert_eq!(snapshot["sessionUnavailableReason"], "sessionUnavailable")
+            }
+            value => panic!("unexpected session availability: {value:?}"),
         }
     }
 

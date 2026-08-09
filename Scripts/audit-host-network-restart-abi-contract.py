@@ -133,8 +133,8 @@ def main() -> int:
     )
 
     evidence = {
-        "hostABIV9AndSnapshotV6AreImplemented": (
-            rust_abi == 9 and header_abi == 9 and snapshot_schema == 6
+        "hostABIV10AndSnapshotV7PreserveNetworkRecovery": (
+            rust_abi == 10 and header_abi == 10 and snapshot_schema == 7
         ),
         "runtimeOwnsOnlyBoundedRegistrationRestartPrimitives": (
             ordered(
@@ -358,8 +358,8 @@ def main() -> int:
     missing = [name for name, present in evidence.items() if not present]
 
     target_contract = {
-        "hostABIVersion": 9,
-        "snapshotSchemaVersion": 6,
+        "hostABIVersion": 10,
+        "snapshotSchemaVersion": 7,
         "symbol": target_symbol,
         "signature": "int32_t(RdnHost *, uint64_t path_generation)",
         "staleGenerationError": "RDN_HOST_ERR_STALE_GENERATION",

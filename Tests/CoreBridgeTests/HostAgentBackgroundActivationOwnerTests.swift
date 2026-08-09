@@ -599,10 +599,12 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         _ = state.publish(
             try HostCoreSnapshot(rawJSON: JSONSerialization.data(
                 withJSONObject: [
-                    "schemaVersion": 6,
+                    "schemaVersion": 7,
                     "hostInstanceId": "host-a",
                     "hostState": "ready",
                     "localId": "123456789",
+                    "sessionAvailability": "available",
+                    "sessionUnavailableReason": NSNull(),
                     "registrationStatus": "ready",
                     "recoveryEpoch": 0,
                     "recoveryStatus": "running",
