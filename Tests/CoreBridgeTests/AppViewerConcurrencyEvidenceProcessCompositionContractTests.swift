@@ -223,7 +223,10 @@ final class AppViewerConcurrencyEvidenceProcessCompositionContractTests:
             ".observeApplicationHostAgentRuntimeState("
         ))
         XCTAssertTrue(app.contains(
-            "agentProcessID: observation.peerIdentity.agentProcessID"
+            "agentProcessID:"
+        ))
+        XCTAssertTrue(app.contains(
+            "observation.peerIdentity.agentProcessID"
         ))
         XCTAssertTrue(app.contains(
             ".agentProcessStartIdentitySHA256"

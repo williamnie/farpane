@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "viewer-boundary-host-reaffirmation-composed",
+            "five-scenario-concurrency-validator-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -44,7 +44,15 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "five-scenario-concurrency-validator",
+            "installed-two-machine-concurrency-execution",
+        )
+        self.assertFalse(
+            document["remainingBoundary"]
+            ["fiveScenarioManifestValidatorStillRequiresImplementation"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["fiveScenarioMatrixValidatorIsImplemented"]
         )
         self.assertTrue(
             document["evidence"]

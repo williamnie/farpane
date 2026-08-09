@@ -126,6 +126,9 @@ def main() -> int:
             / "Evidence/HostMode/2026-08-10/"
             / "h5-v1-concurrency-agent-process-identity-xpc-v2.md"
         ),
+        "matrix_validator": (
+            repository / "Scripts/validate-farpane-host-v1-concurrency.py"
+        ),
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -171,6 +174,7 @@ def main() -> int:
     h5_xpc_process_identity_contract = sources[
         "h5_xpc_process_identity_contract"
     ]
+    matrix_validator = sources["matrix_validator"]
 
     target_validator = (
         repository / "Scripts/validate-farpane-host-v1-concurrency.py"
@@ -784,8 +788,33 @@ def main() -> int:
             and host_agent_process.find("lifetime.activateXPCListener()")
             < host_agent_process.find("snapshot: snapshotState.snapshot()")
         ),
-        "fiveScenarioMatrixValidatorIsStillMissing": (
-            not target_validator.exists()
+        "fiveScenarioMatrixValidatorIsImplemented": (
+            target_validator.exists()
+            and all(
+                marker in matrix_validator
+                for marker in (
+                    'MANIFEST_SCHEMA = "farpane-host-v1-concurrency-manifest"',
+                    'OUTPUT_SCHEMA = "farpane-host-v1-concurrency-result"',
+                    'RESOURCE_AUTHORITY_SCHEMA = "farpane-host-combined-role-pair"',
+                    "SCENARIO_NAMES = (",
+                    '"hostReadyThenOutboundViewer"',
+                    '"viewerThenInboundHost"',
+                    '"activeHostViewerStartStop"',
+                    '"dualDisconnectRecover"',
+                    '"appRestartStableHostID"',
+                    "manifest scenario order does not match V1",
+                    "manifest contains a duplicate lifecycle source",
+                    "sequence is not contiguous",
+                    "App/HostAgent identity does not match",
+                    "HostAgent does not span the App lifecycle",
+                    "does not prove two ordered App lifetimes",
+                    "five scenarios do not preserve one Host instance scope",
+                    "resource authority did not pass item 10",
+                    "lifecycle build identity does not match resource authority build",
+                    "refusing to overwrite existing output",
+                    '"v1ConcurrencyMatrixComplete": status == "pass"',
+                )
+            )
         ),
         "repositoryContainsNoSavedPassingV1MatrixResult": not saved_results,
     }
@@ -1155,6 +1184,22 @@ def main() -> int:
             h5_xpc_process_identity_contract,
             "## Strict wire and App binding",
         ),
+        "fiveScenarioValidatorManifest": line_number(
+            matrix_validator,
+            'MANIFEST_SCHEMA = "farpane-host-v1-concurrency-manifest"',
+        ),
+        "fiveScenarioValidatorOrder": line_number(
+            matrix_validator, "manifest scenario order does not match V1"
+        ),
+        "fiveScenarioValidatorIdentity": line_number(
+            matrix_validator, "App/HostAgent identity does not match"
+        ),
+        "fiveScenarioValidatorResourceAuthority": line_number(
+            matrix_validator, "resource authority did not pass item 10"
+        ),
+        "fiveScenarioValidatorNoReplace": line_number(
+            matrix_validator, "refusing to overwrite existing output"
+        ),
     }
     missing_source_lines = [
         name for name, number in source_lines.items() if number <= 0
@@ -1213,7 +1258,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "viewer-boundary-host-reaffirmation-composed"
+            "five-scenario-concurrency-validator-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -1252,18 +1297,18 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "five-scenario-concurrency-validator"
+            "installed-two-machine-concurrency-execution"
         ),
         "remainingBoundary": {
             "applicationHostObservationStillRequiresComposition": False,
             "viewerAutomaticRecoveryStillRequiresImplementation": False,
-            "fiveScenarioManifestValidatorStillRequiresImplementation": True,
+            "fiveScenarioManifestValidatorStillRequiresImplementation": False,
             "installedAppAgentTwoMachineExecutionStillRequiresExecution": True,
             "noV1ConcurrencyMatrixPassIsClaimed": True,
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "viewer-boundary-host-reaffirmation-composed"
+    expected_status = "five-scenario-concurrency-validator-implemented"
     return 0 if result["status"] == expected_status else 1
 
 
