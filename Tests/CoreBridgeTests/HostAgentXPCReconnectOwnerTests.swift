@@ -95,6 +95,72 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         )
     }
 
+    func testCommandRouteIsBoundToCurrentActiveSessionGeneration() throws {
+        let authority = ReconnectTestProjectionAuthority()
+        let scheduler = ReconnectTestScheduler()
+        let factory = ReconnectTestSessionFactory()
+        let owner = makeOwner(
+            authority: authority,
+            scheduler: scheduler,
+            factory: factory
+        )
+        XCTAssertTrue(owner.start())
+        XCTAssertEqual(owner.commandAvailabilitySnapshot(), .unavailable)
+        let firstSession = factory.sessions[0]
+        let firstPeer = try peerIdentity()
+        try firstSession.publishInitial(
+            snapshot: snapshotResponse(lastEventID: 1),
+            peerIdentity: firstPeer,
+            transition: .firstObservation
+        )
+        guard case .available(let firstRoute, let commandState) =
+            owner.commandAvailabilitySnapshot()
+        else { return XCTFail("expected command route") }
+        XCTAssertEqual(commandState, .idle)
+        XCTAssertEqual(firstRoute.sessionGeneration, 1)
+        XCTAssertEqual(firstRoute.peerIdentity, firstPeer)
+        let intent = HostAgentXPCCommandIntent(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        )
+        XCTAssertTrue(owner.submitCommand(
+            route: firstRoute,
+            intent: intent,
+            observer: { _ in }
+        ))
+        XCTAssertEqual(firstSession.submittedCommands, [intent])
+
+        firstSession.terminate(.disconnected)
+        XCTAssertEqual(owner.commandAvailabilitySnapshot(), .unavailable)
+        XCTAssertFalse(owner.submitCommand(
+            route: firstRoute,
+            intent: intent,
+            observer: { _ in }
+        ))
+        scheduler.tasks[0].fire()
+        let secondSession = factory.sessions[1]
+        try secondSession.publishInitial(
+            snapshot: snapshotResponse(lastEventID: 2),
+            peerIdentity: firstPeer,
+            transition: .firstObservation
+        )
+        guard case .available(let secondRoute, _) =
+            owner.commandAvailabilitySnapshot()
+        else { return XCTFail("expected replacement command route") }
+        XCTAssertEqual(secondRoute.sessionGeneration, 2)
+        XCTAssertNotEqual(secondRoute, firstRoute)
+        XCTAssertFalse(owner.retryCommand(
+            route: firstRoute,
+            observer: { _ in }
+        ))
+        XCTAssertTrue(owner.retryCommand(
+            route: secondRoute,
+            observer: { _ in }
+        ))
+        XCTAssertEqual(secondSession.retryCount, 1)
+    }
+
     func testBackoffAndJitterNeverExceedProductMaximum() {
         let authority = ReconnectTestProjectionAuthority()
         let scheduler = ReconnectTestScheduler()
@@ -613,6 +679,9 @@ private final class ReconnectTestSession:
     private let startResult: Bool
     private var starts = 0
     private var cancels = 0
+    private var commandState: HostAgentXPCCommandIntentOwnerState = .idle
+    private var commands: [HostAgentXPCCommandIntent] = []
+    private var retries = 0
 
     init(sink: HostAgentXPCSessionProjectionSink, startResult: Bool) {
         self.sink = sink
@@ -621,6 +690,8 @@ private final class ReconnectTestSession:
 
     var startCount: Int { locked { starts } }
     var cancelCount: Int { locked { cancels } }
+    var submittedCommands: [HostAgentXPCCommandIntent] { locked { commands } }
+    var retryCount: Int { locked { retries } }
 
     func start() -> Bool {
         lock.lock()
@@ -629,9 +700,38 @@ private final class ReconnectTestSession:
         return startResult
     }
 
+    func commandStateSnapshot() -> HostAgentXPCCommandIntentOwnerState {
+        locked { commandState }
+    }
+
+    func submitCommand(
+        _ intent: HostAgentXPCCommandIntent,
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool {
+        lock.lock()
+        guard commandState == .idle else {
+            lock.unlock()
+            return false
+        }
+        commands.append(intent)
+        commandState = .pausing(intent)
+        lock.unlock()
+        return true
+    }
+
+    func retryCommand(
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool {
+        lock.lock()
+        retries += 1
+        lock.unlock()
+        return true
+    }
+
     func cancel() {
         lock.lock()
         cancels += 1
+        commandState = .cancelled
         lock.unlock()
         sink.sessionDidTerminate(.cancelled)
     }

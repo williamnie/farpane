@@ -20,6 +20,16 @@ extension HostAgentBackgroundProjectionAuthority:
 package protocol HostAgentXPCReconnectSession: AnyObject, Sendable {
     @discardableResult
     func start() -> Bool
+    func commandStateSnapshot() -> HostAgentXPCCommandIntentOwnerState
+    @discardableResult
+    func submitCommand(
+        _ intent: HostAgentXPCCommandIntent,
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool
+    @discardableResult
+    func retryCommand(
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool
     func cancel()
 }
 
@@ -48,6 +58,30 @@ package enum HostAgentXPCReconnectOwnerState: Equatable, Sendable {
     )
     case failed(HostAgentXPCReconnectOwnerFailure)
     case cancelled
+}
+
+package struct HostAgentXPCReconnectCommandRoute: Equatable, Sendable {
+    package let sessionGeneration: UInt64
+    package let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+
+    package init(
+        sessionGeneration: UInt64,
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+    ) {
+        self.sessionGeneration = sessionGeneration
+        self.peerIdentity = peerIdentity
+    }
+}
+
+package enum HostAgentXPCReconnectCommandAvailability:
+    Equatable,
+    Sendable
+{
+    case unavailable
+    case available(
+        route: HostAgentXPCReconnectCommandRoute,
+        state: HostAgentXPCCommandIntentOwnerState
+    )
 }
 
 /// Owns exactly one App-side XPC session lifecycle and recreates it through a
@@ -79,6 +113,7 @@ package final class HostAgentXPCReconnectOwner: @unchecked Sendable {
     private var sessionGeneration: UInt64 = 0
     private var consecutiveFailureCount: UInt64 = 0
     private var session: HostAgentXPCReconnectSession?
+    private var commandRoute: HostAgentXPCReconnectCommandRoute?
     private var scheduledTask: HostAgentXPCReconnectScheduledTask?
 
     package static func makeProduct(
@@ -140,6 +175,60 @@ package final class HostAgentXPCReconnectOwner: @unchecked Sendable {
         return state
     }
 
+    package func commandAvailabilitySnapshot()
+        -> HostAgentXPCReconnectCommandAvailability
+    {
+        lock.lock()
+        guard state == .active,
+              let session,
+              let route = commandRoute,
+              route.sessionGeneration == sessionGeneration
+        else {
+            lock.unlock()
+            return .unavailable
+        }
+        lock.unlock()
+
+        let commandState = session.commandStateSnapshot()
+        lock.lock()
+        let remainsCurrent = state == .active
+            && self.session === session
+            && commandRoute == route
+            && sessionGeneration == route.sessionGeneration
+        lock.unlock()
+        guard remainsCurrent else { return .unavailable }
+        switch commandState {
+        case .invalidated, .cancelled:
+            return .unavailable
+        case .idle, .pausing, .awaitingAcceptance, .awaitingResult,
+             .retryable:
+            return .available(route: route, state: commandState)
+        }
+    }
+
+    @discardableResult
+    package func submitCommand(
+        route: HostAgentXPCReconnectCommandRoute,
+        intent: HostAgentXPCCommandIntent,
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool {
+        guard let session = currentCommandSession(route: route) else {
+            return false
+        }
+        return session.submitCommand(intent, observer: observer)
+    }
+
+    @discardableResult
+    package func retryCommand(
+        route: HostAgentXPCReconnectCommandRoute,
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool {
+        guard let session = currentCommandSession(route: route) else {
+            return false
+        }
+        return session.retryCommand(observer: observer)
+    }
+
     @discardableResult
     package func start() -> Bool {
         lock.lock()
@@ -177,6 +266,7 @@ package final class HostAgentXPCReconnectOwner: @unchecked Sendable {
         let session = self.session
         self.scheduledTask = nil
         self.session = nil
+        commandRoute = nil
         lock.unlock()
 
         scheduledTask?.cancel()
@@ -281,11 +371,13 @@ package final class HostAgentXPCReconnectOwner: @unchecked Sendable {
         self.ownerGeneration &+= 1
         self.sessionGeneration &+= 1
         self.session = nil
+        commandRoute = nil
         lock.unlock()
         session.cancel()
     }
 
     fileprivate func sessionDidBecomeAvailable(
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
         sessionGeneration: UInt64
     ) {
         guard projectionAuthority.currentSessionIsAvailable() else {
@@ -301,6 +393,10 @@ package final class HostAgentXPCReconnectOwner: @unchecked Sendable {
             return
         }
         consecutiveFailureCount = 0
+        commandRoute = HostAgentXPCReconnectCommandRoute(
+            sessionGeneration: sessionGeneration,
+            peerIdentity: peerIdentity
+        )
         state = .active
         lock.unlock()
     }
@@ -333,6 +429,7 @@ package final class HostAgentXPCReconnectOwner: @unchecked Sendable {
             return
         }
         session = nil
+        commandRoute = nil
 
         switch reason {
         case .invalidState:
@@ -404,6 +501,7 @@ package final class HostAgentXPCReconnectOwner: @unchecked Sendable {
         ownerGeneration &+= 1
         self.sessionGeneration &+= 1
         self.session = nil
+        commandRoute = nil
         lock.unlock()
         session.cancel()
     }
@@ -484,6 +582,18 @@ package final class HostAgentXPCReconnectOwner: @unchecked Sendable {
             nominal + boundedJitter
         )
     }
+
+    private func currentCommandSession(
+        route: HostAgentXPCReconnectCommandRoute
+    ) -> HostAgentXPCReconnectSession? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard state == .active,
+              commandRoute == route,
+              sessionGeneration == route.sessionGeneration
+        else { return nil }
+        return session
+    }
 }
 
 private final class HostAgentXPCReconnectSessionSink:
@@ -519,6 +629,7 @@ private final class HostAgentXPCReconnectSessionSink:
             transition: transition
         )
         owner?.sessionDidBecomeAvailable(
+            peerIdentity: peerIdentity,
             sessionGeneration: sessionGeneration
         )
     }
