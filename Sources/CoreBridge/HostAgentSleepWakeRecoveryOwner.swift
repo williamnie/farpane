@@ -41,10 +41,10 @@ package typealias HostAgentSleepWakeRegistrationRecoveryCompletion = @Sendable (
 /// implementation errors, TCC details, display names, connection IDs or frame
 /// contents.
 package struct HostAgentSleepWakeRecoveryOperations: Sendable {
-    package let withdrawAvailability: @Sendable () -> Bool
-    package let publishSuspending: @Sendable () -> Bool
+    package let withdrawAvailability: @Sendable (_ epoch: UInt64) -> Bool
+    package let publishSuspending: @Sendable (_ epoch: UInt64) -> Bool
     package let pauseMediaAndFlush: @Sendable () -> Bool
-    package let releaseSleepAssertion: @Sendable () -> Bool
+    package let releaseSleepAssertion: @Sendable (_ epoch: UInt64) -> Bool
     package let reenumerateDisplays: @Sendable () -> Bool
     package let revalidatePermissions: @Sendable () -> Bool
     package let beginMediaRecovery: @Sendable (
@@ -55,13 +55,13 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
         _ epoch: UInt64,
         _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
     ) -> Bool
-    package let publishAvailable: @Sendable () -> Bool
+    package let publishAvailable: @Sendable (_ epoch: UInt64) -> Bool
 
     package init(
-        withdrawAvailability: @escaping @Sendable () -> Bool,
-        publishSuspending: @escaping @Sendable () -> Bool,
+        withdrawAvailability: @escaping @Sendable (_ epoch: UInt64) -> Bool,
+        publishSuspending: @escaping @Sendable (_ epoch: UInt64) -> Bool,
         pauseMediaAndFlush: @escaping @Sendable () -> Bool,
-        releaseSleepAssertion: @escaping @Sendable () -> Bool,
+        releaseSleepAssertion: @escaping @Sendable (_ epoch: UInt64) -> Bool,
         reenumerateDisplays: @escaping @Sendable () -> Bool,
         revalidatePermissions: @escaping @Sendable () -> Bool,
         beginMediaRecovery: @escaping @Sendable (
@@ -72,7 +72,7 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
             _ epoch: UInt64,
             _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
         ) -> Bool,
-        publishAvailable: @escaping @Sendable () -> Bool
+        publishAvailable: @escaping @Sendable (_ epoch: UInt64) -> Bool
     ) {
         self.withdrawAvailability = withdrawAvailability
         self.publishSuspending = publishSuspending
@@ -208,10 +208,16 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
             HostAgentSleepWakeRecoveryStep,
             @Sendable () -> Bool
         )] = [
-            (.withdrawAvailability, operations.withdrawAvailability),
-            (.publishSuspending, operations.publishSuspending),
+            (.withdrawAvailability, {
+                self.operations.withdrawAvailability(epoch)
+            }),
+            (.publishSuspending, {
+                self.operations.publishSuspending(epoch)
+            }),
             (.pauseMediaAndFlush, operations.pauseMediaAndFlush),
-            (.releaseSleepAssertion, operations.releaseSleepAssertion),
+            (.releaseSleepAssertion, {
+                self.operations.releaseSleepAssertion(epoch)
+            }),
         ]
         var firstFailure: HostAgentSleepWakeRecoveryStep?
         for (step, operation) in orderedOperations {
@@ -497,7 +503,9 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
             .publishAvailable,
             epoch: epoch,
             during: restoring,
-            operation: operations.publishAvailable
+            operation: {
+                self.operations.publishAvailable(epoch)
+            }
         ) else {
             return false
         }

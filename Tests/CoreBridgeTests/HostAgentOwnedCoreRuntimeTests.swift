@@ -140,6 +140,45 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         )
     }
 
+    func testSleepRecoveryOperationsStayWithinOwnedRuntimeLifetime() throws {
+        let recorder = HostAgentLifecycleRecorder()
+        let client = OwnedRuntimeRecordingClient(recorder: recorder)
+        let runtime = try HostAgentOwnedCoreRuntime.start(
+            bootstrapOwner: HostAgentTestBootstrapOwner(recorder: recorder)
+        ) { _ in
+            recorder.append(.runtimeFactory)
+            return try self.startCore(client: client)
+        }
+
+        try runtime.beginSleep(epoch: 9)
+        try runtime.finishSleep(epoch: 9)
+        try runtime.resumeAfterWake(epoch: 9)
+        XCTAssertEqual(Array(recorder.events.suffix(3)), [
+            .coreBeginSleep(9),
+            .coreFinishSleep(9),
+            .coreResumeAfterWake(9),
+        ])
+
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(try runtime.beginSleep(epoch: 10)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertThrowsError(try runtime.finishSleep(epoch: 9)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertThrowsError(try runtime.resumeAfterWake(epoch: 9)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertEqual(recorder.events.filter {
+            switch $0 {
+            case .coreBeginSleep, .coreFinishSleep, .coreResumeAfterWake:
+                return true
+            default:
+                return false
+            }
+        }.count, 3)
+    }
+
     func testMediaOperationsStayWithinOwnedRuntimeLifetime() throws {
         let recorder = HostAgentLifecycleRecorder()
         let client = OwnedRuntimeRecordingClient(recorder: recorder)
@@ -256,6 +295,9 @@ private enum HostAgentLifecycleEvent: Equatable {
     case configRoot
     case coreStart
     case coreCopySnapshot
+    case coreBeginSleep(UInt64)
+    case coreFinishSleep(UInt64)
+    case coreResumeAfterWake(UInt64)
     case coreSetMediaCapabilities
     case coreSubmitMedia
     case coreReportEncoderState
@@ -310,6 +352,18 @@ private final class OwnedRuntimeRecordingClient: HostAgentCoreControlSurface {
     func stop(reason: HostStopReason) throws {
         recorder.append(.coreStop(reason))
         if failStop { throw OwnedRuntimeTestFailure.stop }
+    }
+
+    func beginSleep(epoch: UInt64) throws {
+        recorder.append(.coreBeginSleep(epoch))
+    }
+
+    func finishSleep(epoch: UInt64) throws {
+        recorder.append(.coreFinishSleep(epoch))
+    }
+
+    func resumeAfterWake(epoch: UInt64) throws {
+        recorder.append(.coreResumeAfterWake(epoch))
     }
 
     func copySnapshot() throws -> HostCoreSnapshot {

@@ -41,6 +41,7 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         recorder.completeRegistration(epoch: 1, succeeded: true)
         XCTAssertEqual(owner.snapshot(), .running(epoch: 1))
         XCTAssertEqual(recorder.steps.last, .publishAvailable)
+        XCTAssertEqual(recorder.epochs, [1, 1, 1, 1])
         XCTAssertFalse(owner.systemDidWake())
 
         XCTAssertTrue(owner.systemWillSleep())
@@ -282,20 +283,22 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         let ownerBox = SleepWakeRecoveryOwnerBox()
         let owner = HostAgentSleepWakeRecoveryOwner(
             operations: HostAgentSleepWakeRecoveryOperations(
-                withdrawAvailability: {
-                    recorder.record(.withdrawAvailability)
+                withdrawAvailability: { epoch in
+                    recorder.record(.withdrawAvailability, epoch: epoch)
                     XCTAssertFalse(ownerBox.owner?.systemDidWake() ?? true)
                     ownerBox.owner?.cancel()
                     return true
                 },
-                publishSuspending: recorder.operation(.publishSuspending),
+                publishSuspending: recorder.epochOperation(.publishSuspending),
                 pauseMediaAndFlush: recorder.operation(.pauseMediaAndFlush),
-                releaseSleepAssertion: recorder.operation(.releaseSleepAssertion),
+                releaseSleepAssertion: recorder.epochOperation(
+                    .releaseSleepAssertion
+                ),
                 reenumerateDisplays: recorder.operation(.reenumerateDisplays),
                 revalidatePermissions: recorder.operation(.revalidatePermissions),
                 beginMediaRecovery: recorder.beginMediaRecovery(),
                 beginRegistrationRecovery: recorder.beginRegistrationRecovery(),
-                publishAvailable: recorder.operation(.publishAvailable)
+                publishAvailable: recorder.epochOperation(.publishAvailable)
             )
         )
         ownerBox.owner = owner
@@ -331,11 +334,11 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
         synchronousRegistrationResult: Bool? = nil
     ) -> HostAgentSleepWakeRecoveryOperations {
         HostAgentSleepWakeRecoveryOperations(
-            withdrawAvailability: recorder.operation(
+            withdrawAvailability: recorder.epochOperation(
                 .withdrawAvailability,
                 failingAt: failure
             ),
-            publishSuspending: recorder.operation(
+            publishSuspending: recorder.epochOperation(
                 .publishSuspending,
                 failingAt: failure
             ),
@@ -343,7 +346,7 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
                 .pauseMediaAndFlush,
                 failingAt: failure
             ),
-            releaseSleepAssertion: recorder.operation(
+            releaseSleepAssertion: recorder.epochOperation(
                 .releaseSleepAssertion,
                 failingAt: failure
             ),
@@ -364,7 +367,7 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
                 rejecting: rejectRegistrationBegin,
                 synchronousResult: synchronousRegistrationResult
             ),
-            publishAvailable: recorder.operation(
+            publishAvailable: recorder.epochOperation(
                 .publishAvailable,
                 failingAt: failure
             )
@@ -375,6 +378,7 @@ final class HostAgentSleepWakeRecoveryOwnerTests: XCTestCase {
 private final class SleepWakeRecoveryRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private var stepStorage: [HostAgentSleepWakeRecoveryStep] = []
+    private var epochStorage: [UInt64] = []
     private var mediaCompletion: HostAgentSleepWakeMediaRecoveryCompletion?
     private var registrationCompletion:
         HostAgentSleepWakeRegistrationRecoveryCompletion?
@@ -385,10 +389,33 @@ private final class SleepWakeRecoveryRecorder: @unchecked Sendable {
         return stepStorage
     }
 
+    var epochs: [UInt64] {
+        lock.lock()
+        defer { lock.unlock() }
+        return epochStorage
+    }
+
     func record(_ step: HostAgentSleepWakeRecoveryStep) {
         lock.lock()
         stepStorage.append(step)
         lock.unlock()
+    }
+
+    func record(_ step: HostAgentSleepWakeRecoveryStep, epoch: UInt64) {
+        lock.lock()
+        stepStorage.append(step)
+        epochStorage.append(epoch)
+        lock.unlock()
+    }
+
+    func epochOperation(
+        _ step: HostAgentSleepWakeRecoveryStep,
+        failingAt failure: HostAgentSleepWakeRecoveryStep? = nil
+    ) -> @Sendable (UInt64) -> Bool {
+        { [self] epoch in
+            record(step, epoch: epoch)
+            return step != failure
+        }
     }
 
     func operation(

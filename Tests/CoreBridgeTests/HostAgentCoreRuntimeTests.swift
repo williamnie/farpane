@@ -126,6 +126,44 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
         )
     }
 
+    func testSleepRecoveryOperationsUseExactEpochAndFailAfterStop() throws {
+        let client = RecordingHostAgentCoreClient()
+        let runtime = try HostAgentCoreRuntime.start(
+            client: client,
+            configAppName: "FarPaneHost",
+            configOrganization: "io.rustdesknative",
+            serverConfiguration: serverConfiguration()
+        )
+
+        try runtime.beginSleep(epoch: 7)
+        try runtime.finishSleep(epoch: 7)
+        try runtime.resumeAfterWake(epoch: 7)
+        XCTAssertEqual(Array(client.operations.suffix(3)), [
+            .beginSleep(7),
+            .finishSleep(7),
+            .resumeAfterWake(7),
+        ])
+
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(try runtime.beginSleep(epoch: 8)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertThrowsError(try runtime.finishSleep(epoch: 7)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertThrowsError(try runtime.resumeAfterWake(epoch: 7)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertEqual(client.operations.filter {
+            switch $0 {
+            case .beginSleep, .finishSleep, .resumeAfterWake:
+                return true
+            default:
+                return false
+            }
+        }.count, 3)
+    }
+
     func testMediaOperationsUseSameOwnerAndFailAfterStop() throws {
         let client = RecordingHostAgentCoreClient()
         let runtime = try HostAgentCoreRuntime.start(
@@ -317,6 +355,9 @@ private enum RecordedOperation: Equatable {
     case setConfigRoot(String, String)
     case start(String, String, String)
     case copySnapshot
+    case beginSleep(UInt64)
+    case finishSleep(UInt64)
+    case resumeAfterWake(UInt64)
     case setMediaCapabilities(String, Bool, Bool, UInt32, UInt32, UInt32)
     case submitMedia(String, UInt64, UInt64, UInt64, UInt64, UInt64, Int)
     case reportEncoderState(String, UInt64, UInt64, String)
@@ -355,6 +396,18 @@ private final class RecordingHostAgentCoreClient: HostAgentCoreControlSurface {
     func stop(reason: HostStopReason) throws {
         operations.append(.stop(reason))
         if failure == .stop { throw TestFailure.stop }
+    }
+
+    func beginSleep(epoch: UInt64) throws {
+        operations.append(.beginSleep(epoch))
+    }
+
+    func finishSleep(epoch: UInt64) throws {
+        operations.append(.finishSleep(epoch))
+    }
+
+    func resumeAfterWake(epoch: UInt64) throws {
+        operations.append(.resumeAfterWake(epoch))
     }
 
     func copySnapshot() throws -> HostCoreSnapshot {

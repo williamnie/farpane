@@ -37,6 +37,24 @@ final class HostAgentProcessLifetime: @unchecked Sendable {
         }
     }
 
+    func beginSleep(epoch: UInt64) throws {
+        try gate.withRunningRuntime { runtime in
+            try runtime.beginSleep(epoch: epoch)
+        }
+    }
+
+    func finishSleep(epoch: UInt64) throws {
+        try gate.withRunningRuntime { runtime in
+            try runtime.finishSleep(epoch: epoch)
+        }
+    }
+
+    func resumeAfterWake(epoch: UInt64) throws {
+        try gate.withRunningRuntime { runtime in
+            try runtime.resumeAfterWake(epoch: epoch)
+        }
+    }
+
     func bindXPCIdentity(
         hostInstanceID: String
     ) throws -> HostAgentXPCProcessIdentityBindResult {

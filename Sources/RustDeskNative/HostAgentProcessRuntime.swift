@@ -168,6 +168,18 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
         try ownedRuntime.copySnapshot()
     }
 
+    func beginSleep(epoch: UInt64) throws {
+        try ownedRuntime.beginSleep(epoch: epoch)
+    }
+
+    func finishSleep(epoch: UInt64) throws {
+        try ownedRuntime.finishSleep(epoch: epoch)
+    }
+
+    func resumeAfterWake(epoch: UInt64) throws {
+        try ownedRuntime.resumeAfterWake(epoch: epoch)
+    }
+
     func setMediaCapabilities(
         hostInstanceID: String,
         capabilities: HostEncoderCapabilities

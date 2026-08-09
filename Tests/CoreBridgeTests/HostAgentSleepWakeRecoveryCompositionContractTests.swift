@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 
 final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
-    func testCompositionHardBindsMediaAndRegistrationRecoveryOwners() throws {
+    func testCompositionHardBindsMediaAndExactEpochCoreRecovery() throws {
         let source = try productSource(
             "HostAgentSleepWakeRecoveryComposition.swift"
         )
@@ -27,6 +27,16 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
             "registrationRecoveryOwner.start("
         ))
         XCTAssertTrue(source.contains(
+            "HostAgentRegistrationRecoveryPollingOwner.makeProduct("
+        ))
+        XCTAssertTrue(source.contains(
+            "expectedHostInstanceID: expectedHostInstanceID"
+        ))
+        XCTAssertTrue(source.contains("lifetime.beginSleep(epoch: epoch)"))
+        XCTAssertTrue(source.contains("lifetime.finishSleep(epoch: epoch)"))
+        XCTAssertTrue(source.contains("lifetime.resumeAfterWake(epoch: epoch)"))
+        XCTAssertTrue(source.contains("lifetime.copySnapshot()"))
+        XCTAssertTrue(source.contains(
             "beginRegistrationRecovery: { epoch, completion in"
         ))
         XCTAssertTrue(source.contains(
@@ -37,22 +47,22 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
         XCTAssertFalse(source.contains(
             "beginRegistrationRecovery: operations."
         ))
+        XCTAssertFalse(source.contains("let withdrawAvailability: @Sendable"))
+        XCTAssertFalse(source.contains("let releaseSleepAssertion: @Sendable"))
     }
 
-    func testCompositionRequiresRemainingProductOperationsAndForwardsLifecycle() throws {
+    func testCompositionRequiresOnlyProjectionOperationsAndForwardsLifecycle() throws {
         let source = try productSource(
             "HostAgentSleepWakeRecoveryComposition.swift"
         )
 
         for operation in [
-            "withdrawAvailability",
             "publishSuspending",
-            "releaseSleepAssertion",
             "publishAvailable",
         ] {
             XCTAssertTrue(source.contains("let \(operation): @Sendable"))
             XCTAssertTrue(source.contains(
-                "\(operation): operations.\(operation)"
+                "operations.\(operation)(epoch)"
             ))
         }
         XCTAssertTrue(source.contains("owner.snapshot()"))
@@ -65,15 +75,51 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
         ))
     }
 
+    func testSleepABIIsForwardedThroughTheSameRuntimeLifetimeChain() throws {
+        let coreRuntime = try repositorySource(
+            "Sources/CoreBridge/HostAgentCoreRuntime.swift"
+        )
+        let ownedRuntime = try repositorySource(
+            "Sources/CoreBridge/HostAgentOwnedCoreRuntime.swift"
+        )
+        let processRuntime = try repositorySource(
+            "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+        )
+        let lifetime = try repositorySource(
+            "Sources/RustDeskNative/HostAgentProcessLifetime.swift"
+        )
+
+        for operation in ["beginSleep", "finishSleep", "resumeAfterWake"] {
+            XCTAssertTrue(coreRuntime.contains(
+                "func \(operation)(epoch: UInt64) throws"
+            ))
+            XCTAssertTrue(coreRuntime.contains(
+                "client.\(operation)(epoch: epoch)"
+            ))
+            XCTAssertTrue(ownedRuntime.contains(
+                "runtime.\(operation)(epoch: epoch)"
+            ))
+            XCTAssertTrue(processRuntime.contains(
+                "ownedRuntime.\(operation)(epoch: epoch)"
+            ))
+            XCTAssertTrue(lifetime.contains(
+                "runtime.\(operation)(epoch: epoch)"
+            ))
+        }
+        XCTAssertTrue(lifetime.contains("gate.withRunningRuntime"))
+    }
+
     private func productSource(_ name: String) throws -> String {
+        try repositorySource("Sources/RustDeskNative/\(name)")
+    }
+
+    private func repositorySource(_ path: String) throws -> String {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         return try String(
-            contentsOf: repositoryRoot
-                .appendingPathComponent("Sources/RustDeskNative")
-                .appendingPathComponent(name),
+            contentsOf: repositoryRoot.appendingPathComponent(path),
             encoding: .utf8
         )
     }

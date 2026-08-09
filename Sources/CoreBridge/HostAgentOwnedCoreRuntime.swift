@@ -66,6 +66,24 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
         return try runtime.copySnapshot()
     }
 
+    public func beginSleep(epoch: UInt64) throws {
+        try withRunningRuntime { runtime in
+            try runtime.beginSleep(epoch: epoch)
+        }
+    }
+
+    public func finishSleep(epoch: UInt64) throws {
+        try withRunningRuntime { runtime in
+            try runtime.finishSleep(epoch: epoch)
+        }
+    }
+
+    public func resumeAfterWake(epoch: UInt64) throws {
+        try withRunningRuntime { runtime in
+            try runtime.resumeAfterWake(epoch: epoch)
+        }
+    }
+
     public func setMediaCapabilities(
         hostInstanceID: String,
         capabilities: HostEncoderCapabilities
@@ -122,5 +140,16 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
             throw HostAgentCoreRuntimeAccessError.notRunning
         }
         try runtime.submit(command: command)
+    }
+
+    private func withRunningRuntime<Value>(
+        _ body: (HostAgentCoreRuntime) throws -> Value
+    ) throws -> Value {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard let runtime else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        return try body(runtime)
     }
 }

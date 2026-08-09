@@ -50,6 +50,11 @@ display/TCC authority is cancelled.
   `processSleepWakeCompositionAbsent` remain true.
 - `git diff --check`: passed.
 
+Historical note: this H5.1l-b result was committed as `3c4407c`. H5.1m-a
+later advanced the machine audit to schema 5 by binding the sleep ABI and
+registration convergence to the same process lifetime; the schema-4 result
+above remains the fresh verification recorded for this earlier boundary.
+
 ## Remaining boundary
 
 This step does not construct the composition in `HostAgentProcess`, register

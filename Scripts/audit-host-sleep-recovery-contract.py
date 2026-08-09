@@ -65,11 +65,19 @@ def main() -> int:
         "recovery_owner": (
             repository / "Sources/CoreBridge/HostAgentSleepWakeRecoveryOwner.swift"
         ),
+        "core_runtime": repository / "Sources/CoreBridge/HostAgentCoreRuntime.swift",
+        "owned_runtime": (
+            repository / "Sources/CoreBridge/HostAgentOwnedCoreRuntime.swift"
+        ),
         "registration_polling": (
             repository
             / "Sources/CoreBridge/HostAgentRegistrationRecoveryPollingOwner.swift"
         ),
         "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
+        "process_runtime": (
+            repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+        ),
+        "lifetime": repository / "Sources/RustDeskNative/HostAgentProcessLifetime.swift",
         "build": repository / "Scripts/build-rust-core.sh",
     }
     try:
@@ -271,11 +279,64 @@ def main() -> int:
             )
         )
         and "resumeRegistration" not in sources["composition"],
+        "sleepABIStaysOnSingleProcessLifetime": all(
+            marker in sources["core_runtime"]
+            for marker in (
+                "func beginSleep(epoch: UInt64) throws",
+                "func finishSleep(epoch: UInt64) throws",
+                "func resumeAfterWake(epoch: UInt64) throws",
+                "client.beginSleep(epoch: epoch)",
+                "client.finishSleep(epoch: epoch)",
+                "client.resumeAfterWake(epoch: epoch)",
+            )
+        )
+        and all(
+            marker in sources["owned_runtime"]
+            for marker in (
+                "runtime.beginSleep(epoch: epoch)",
+                "runtime.finishSleep(epoch: epoch)",
+                "runtime.resumeAfterWake(epoch: epoch)",
+            )
+        )
+        and all(
+            marker in sources["process_runtime"]
+            for marker in (
+                "ownedRuntime.beginSleep(epoch: epoch)",
+                "ownedRuntime.finishSleep(epoch: epoch)",
+                "ownedRuntime.resumeAfterWake(epoch: epoch)",
+            )
+        )
+        and all(
+            marker in sources["lifetime"]
+            for marker in (
+                "gate.withRunningRuntime",
+                "runtime.beginSleep(epoch: epoch)",
+                "runtime.finishSleep(epoch: epoch)",
+                "runtime.resumeAfterWake(epoch: epoch)",
+            )
+        )
+        and all(
+            marker in sources["composition"]
+            for marker in (
+                "lifetime.beginSleep(epoch: epoch)",
+                "lifetime.finishSleep(epoch: epoch)",
+                "lifetime.resumeAfterWake(epoch: epoch)",
+                "lifetime.copySnapshot()",
+            )
+        )
+        and all(
+            marker in sources["recovery_owner"]
+            for marker in (
+                "self.operations.withdrawAvailability(epoch)",
+                "self.operations.releaseSleepAssertion(epoch)",
+                "self.operations.publishAvailable(epoch)",
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 4,
+        "schemaVersion": 5,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
@@ -297,15 +358,17 @@ def main() -> int:
                     sources["registration_polling"],
                     "package final class HostAgentRegistrationRecoveryPollingOwner",
                 ),
+                "lifetimeBeginSleep": line_number(
+                    sources["lifetime"], "func beginSleep(epoch: UInt64) throws"
+                ),
             },
         },
         "remainingBoundary": {
-            "sleepPreparationABIOperationsStillUnbound": all(
+            "processProjectionOperationsUnbound": all(
                 marker in sources["composition"]
                 for marker in (
-                    "let withdrawAvailability: @Sendable () -> Bool",
-                    "let publishSuspending: @Sendable () -> Bool",
-                    "let releaseSleepAssertion: @Sendable () -> Bool",
+                    "let publishSuspending: @Sendable (_ epoch: UInt64) -> Bool",
+                    "let publishAvailable: @Sendable (_ epoch: UInt64) -> Bool",
                 )
             ),
             "processSleepWakeCompositionAbsent": (
