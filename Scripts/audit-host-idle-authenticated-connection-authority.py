@@ -150,8 +150,8 @@ def main() -> int:
     )
 
     current_evidence = {
-        "hostABIV10AndSnapshotV7AreCurrent": (
-            rust_abi == 10 and header_abi == 10 and snapshot_schema == 7
+        "hostABIV11AndSnapshotV8AreImplemented": (
+            rust_abi == 11 and header_abi == 11 and snapshot_schema == 8
         ),
         "authedConnectionsIsTheAllTypeAuthority": (
             "pub static ref AUTHED_CONNS" in connection
@@ -181,25 +181,40 @@ def main() -> int:
             and "conn_count," in patch
             and "remote_count," in patch
         ),
-        "hostSnapshotDoesNotExposeAuthenticatedCount": (
-            "authenticatedConnectionCount" not in snapshot_json
-            and "authenticatedConnectionCount" not in client_snapshot
+        "hostSnapshotExportsStrictAuthenticatedCount": (
+            "native_host_authenticated_connection_count()" in snapshot_json
+            and '"authenticatedConnectionCount".into()' in snapshot_json
+            and "public let authenticatedConnectionCount: UInt64" in client_snapshot
+            and 'json["authenticatedConnectionCount"]' in client_snapshot
+            and "strictSnapshotUInt64" in client_snapshot
         ),
-        "agentProjectionAndXPCDoNotExposeAuthenticatedCount": (
-            "authenticatedConnectionCount" not in snapshot_projection
-            and "authenticatedConnectionCount" not in xpc_payload
+        "agentProjectionAndXPCPreserveAuthenticatedCount": (
+            "authenticatedConnectionCount = snapshot.authenticatedConnectionCount"
+            in snapshot_projection
+            and "package let authenticatedConnectionCount: UInt64" in xpc_payload
+            and '"authenticatedConnectionCount": authenticatedConnectionCount'
+            in xpc_payload
+            and "guard schemaVersion == 8" in xpc_payload
         ),
-        "runtimeStateSchemaV1DoesNotRecordAuthenticatedCount": (
+        "runtimeStateSchemaV2RecordsOneSelectedAuthority": (
             "let schemaVersion: Int" in runtime_record
-            and "schemaVersion: 1" in sources["runtime_state"]
-            and "authenticatedConnectionCount" not in runtime_record
-            and "authenticatedConnectionCount" not in runtime_record_call
+            and "schemaVersion: 2" in sources["runtime_state"]
+            and "let authenticatedConnectionCount: UInt64?" in runtime_record
+            and "let usesLegacyHost" in runtime_record_call
+            and "backgroundPayload?.authenticatedConnectionCount"
+            in runtime_record_call
+            and "hostSnapshot?.authenticatedConnectionCount"
+            in runtime_record_call
         ),
-        "idleValidatorCannotInferAllConnectionsAbsent": (
-            '"allAuthenticatedConnectionsProvenAbsent": False'
+        "idleValidatorDerivesAllConnectionAbsence": (
+            '"authenticatedConnectionCoverage": "all-rustdesk-authenticated-types"'
             in sources["idle_validator"]
-            and '"authenticatedConnectionCoverage": "screen-media-route-only"'
+            and 'record["authenticatedConnectionCount"] == 0'
             in sources["idle_validator"]
+            and '"allAuthenticatedConnectionsProvenAbsent": bool(valid_records)'
+            in sources["idle_validator"]
+            and '"allAuthenticatedConnectionsProvenAbsent": True'
+            not in sources["idle_validator"]
         ),
         "baseMatrixCorrectlyRequiresPositiveAbsenceProof": (
             'source.get("allAuthenticatedConnectionsProvenAbsent") is not True'
@@ -244,9 +259,9 @@ def main() -> int:
         "xpcOuterWireVersionChangeRequired": False,
     }
     remaining_boundary = {
-        "sharedHostSnapshotAndRuntimeEvidenceSchemaChangeRequired": True,
-        "backgroundAndLegacyRuntimeStateCallSitesNeedOneAuthority": True,
-        "builtCoreLifecycleAndStrictDecoderTestsRequired": True,
+        "sharedHostSnapshotAndRuntimeEvidenceSchemaChangeRequired": False,
+        "backgroundAndLegacyRuntimeStateCallSitesNeedOneAuthority": False,
+        "builtCoreLifecycleAndStrictDecoderTestsRequired": False,
         "realHostReadyNoConnection600SecondRunRequired": True,
         "dualArchitectureBaseMatrixStillHasNoRealData": True,
     }
@@ -276,9 +291,9 @@ def main() -> int:
         "runtimeStateRecord": line_number(
             sources["runtime_state"], "private struct Record"
         ),
-        "idleHardcodedBoundary": line_number(
+        "idleDerivedAbsenceProof": line_number(
             sources["idle_validator"],
-            '"allAuthenticatedConnectionsProvenAbsent": False',
+            '"allAuthenticatedConnectionsProvenAbsent": bool(valid_records)',
         ),
         "matrixPositiveProofGate": line_number(
             sources["matrix_validator"],
@@ -288,7 +303,7 @@ def main() -> int:
     document = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "status": "checkpoint-required" if not missing else "audit-failed",
+        "status": "implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
             "headerABIVersion": header_abi,

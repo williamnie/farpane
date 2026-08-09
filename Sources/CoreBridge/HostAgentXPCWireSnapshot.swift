@@ -633,6 +633,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
     package let schemaVersion: Int
     package let hostState: String
     package let localID: String
+    package let authenticatedConnectionCount: UInt64
     package let sessionAvailability: HostSessionAvailability
     package let sessionUnavailableReason: HostSessionUnavailableReason?
     package let registrationStatus: String
@@ -666,9 +667,10 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             activeSession = nil
         }
         try self.init(
-            schemaVersion: 7,
+            schemaVersion: 8,
             hostState: projection.hostState,
             localID: projection.localID,
+            authenticatedConnectionCount: projection.authenticatedConnectionCount,
             sessionAvailability: projection.sessionAvailability,
             sessionUnavailableReason: projection.sessionUnavailableReason,
             registrationStatus: projection.registrationStatus,
@@ -690,7 +692,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         hostInstanceID: String
     ) throws {
         guard Set(document.keys) == Set([
-            "schemaVersion", "hostState", "localId", "sessionAvailability",
+            "schemaVersion", "hostState", "localId",
+            "authenticatedConnectionCount", "sessionAvailability",
             "sessionUnavailableReason", "registrationStatus",
             "recoveryEpoch", "recoveryStatus",
             "pendingApproval", "activeSession", "temporaryPasswordPolicy",
@@ -701,6 +704,10 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             ),
             let hostState = document["hostState"] as? String,
             let localID = document["localId"] as? String,
+            let authenticatedConnectionCount =
+                HostAgentXPCWireSnapshotContract.strictUInt64(
+                    document["authenticatedConnectionCount"]
+                ),
             let sessionAvailabilityValue =
                 document["sessionAvailability"] as? String,
             let sessionAvailability = HostSessionAvailability(
@@ -762,6 +769,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             schemaVersion: schemaVersion,
             hostState: hostState,
             localID: localID,
+            authenticatedConnectionCount: authenticatedConnectionCount,
             sessionAvailability: sessionAvailability,
             sessionUnavailableReason: sessionUnavailableReason,
             registrationStatus: registrationStatus,
@@ -782,6 +790,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         schemaVersion: Int,
         hostState: String,
         localID: String,
+        authenticatedConnectionCount: UInt64,
         sessionAvailability: HostSessionAvailability,
         sessionUnavailableReason: HostSessionUnavailableReason?,
         registrationStatus: String,
@@ -829,7 +838,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         default:
             sessionAvailabilityIsValid = false
         }
-        guard schemaVersion == 7,
+        guard schemaVersion == 8,
               HostAgentXPCWireSnapshotContract.allowedHostStates.contains(
                 hostState
               ),
@@ -846,6 +855,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
               temporaryPasswordPolicy == "redacted",
               sessionAvailabilityIsValid,
               recoveryContractIsValid,
+              activeSession == nil || authenticatedConnectionCount > 0,
               lastErrorIsValid,
               HostAgentXPCWireSnapshotContract.validTimestamp(observedAt)
         else {
@@ -854,6 +864,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         self.schemaVersion = schemaVersion
         self.hostState = hostState
         self.localID = localID
+        self.authenticatedConnectionCount = authenticatedConnectionCount
         self.sessionAvailability = sessionAvailability
         self.sessionUnavailableReason = sessionUnavailableReason
         self.registrationStatus = registrationStatus
@@ -872,6 +883,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             "schemaVersion": schemaVersion,
             "hostState": hostState,
             "localId": localID,
+            "authenticatedConnectionCount": authenticatedConnectionCount,
             "sessionAvailability": sessionAvailability.rawValue,
             "sessionUnavailableReason": sessionUnavailableReason?.rawValue
                 ?? NSNull(),

@@ -36,7 +36,7 @@ final class CoreBridgeContractTests: XCTestCase {
         let bridge = try String(contentsOf: bridgeURL, encoding: .utf8)
 
         XCTAssertTrue(bridge.contains("const EVENT_SCHEMA_VERSION: u32 = 1;"))
-        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 7;"))
+        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 8;"))
         XCTAssertTrue(bridge.contains("\"schemaVersion\": EVENT_SCHEMA_VERSION"))
         XCTAssertTrue(bridge.contains(
             "map.insert(\"schemaVersion\".into(), json!(SNAPSHOT_SCHEMA_VERSION));"
@@ -1123,13 +1123,15 @@ final class CoreBridgeContractTests: XCTestCase {
             hostState: String = "ready",
             registrationStatus: String = "ready",
             recoveryEpoch: Any = 0,
-            recoveryStatus: String = "running"
+            recoveryStatus: String = "running",
+            authenticatedConnectionCount: Any = 1
         ) -> [String: Any] {
             [
-                "schemaVersion": 7,
+                "schemaVersion": 8,
                 "hostInstanceId": "host-instance",
                 "hostState": hostState,
                 "localId": "987654321",
+                "authenticatedConnectionCount": authenticatedConnectionCount,
                 "sessionAvailability": sessionAvailability,
                 "sessionUnavailableReason": sessionUnavailableReason,
                 "registrationStatus": registrationStatus,
@@ -1164,7 +1166,8 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )
         let snapshot = try HostCoreSnapshot(rawJSON: data)
-        XCTAssertEqual(snapshot.schemaVersion, 7)
+        XCTAssertEqual(snapshot.schemaVersion, 8)
+        XCTAssertEqual(snapshot.authenticatedConnectionCount, 1)
         XCTAssertEqual(snapshot.sessionAvailability, .available)
         XCTAssertNil(snapshot.sessionUnavailableReason)
         XCTAssertEqual(snapshot.recoveryEpoch, 0)
@@ -1193,6 +1196,27 @@ final class CoreBridgeContractTests: XCTestCase {
         ))
         XCTAssertNil(noPending.pendingApproval)
         XCTAssertNil(noPending.activeSession)
+
+        var missingCount = document(pendingApproval: NSNull())
+        missingCount.removeValue(forKey: "authenticatedConnectionCount")
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: missingCount
+        )))
+        for invalidCount in [true as Any, 1.5 as Any] {
+            XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+                withJSONObject: document(
+                    pendingApproval: NSNull(),
+                    authenticatedConnectionCount: invalidCount
+                )
+            )))
+        }
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                activeSession: activeSession,
+                authenticatedConnectionCount: 0
+            )
+        )))
 
         var invalidPending = pending
         invalidPending["remoteMetadataTrust"] = "trusted"

@@ -452,6 +452,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             break
         }
         refreshHostAgentBackgroundCommandPresentation()
+        recordHostRuntimeStateEvidence(force: true)
         refreshHomeUI()
     }
 
@@ -2077,17 +2078,46 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func recordHostRuntimeStateEvidence(force: Bool = false) {
         guard let writer = hostRuntimeStateEvidenceWriter else { return }
-        let snapshotObservedAt = hostSnapshot.flatMap { snapshot in
-            snapshot.observedAt > 0 ? snapshot.observedAt : nil
-        }
+        let usesLegacyHost =
+            hostAgentBackgroundRegistrationStatus == .notRegistered
+                && hostAgentBackgroundFlow == nil
+        let backgroundPayload: HostAgentXPCWireSnapshotPayload? = {
+            guard !usesLegacyHost,
+                  let projectionView =
+                    coherentHostAgentBackgroundActivationView?.projection,
+                  case .available(let projection) = projectionView.phase
+            else { return nil }
+            return projection.payload
+        }()
+        let snapshotObservedAt: UInt64? = usesLegacyHost
+            ? hostSnapshot.flatMap { $0.observedAt > 0 ? $0.observedAt : nil }
+            : backgroundPayload?.observedAt
+        let runtimeActive = usesLegacyHost
+            ? hostRuntimeActive
+            : backgroundPayload != nil
+        let hostState = usesLegacyHost
+            ? hostSnapshot?.hostState
+            : backgroundPayload?.hostState
+        let registrationStatus = usesLegacyHost
+            ? hostSnapshot?.registrationStatus
+            : backgroundPayload?.registrationStatus
+        let authenticatedConnectionCount = usesLegacyHost
+            ? hostSnapshot?.authenticatedConnectionCount
+            : backgroundPayload?.authenticatedConnectionCount
+        let backgroundRouteActive = backgroundPayload?.activeSession != nil
         do {
             try writer.record(
-                hostRuntimeActive: hostRuntimeActive,
-                hostState: hostSnapshot?.hostState ?? "unavailable",
-                registrationStatus: hostSnapshot?.registrationStatus ?? "unavailable",
+                hostRuntimeActive: runtimeActive,
+                hostState: hostState ?? "unavailable",
+                registrationStatus: registrationStatus ?? "unavailable",
                 hostSnapshotObservedAtUnixMilliseconds: snapshotObservedAt,
-                mediaRouteActive: hostMediaRoute != nil,
-                mediaPipelineActive: hostMediaPipeline != nil,
+                authenticatedConnectionCount: authenticatedConnectionCount,
+                mediaRouteActive: usesLegacyHost
+                    ? hostMediaRoute != nil
+                    : backgroundRouteActive,
+                mediaPipelineActive: usesLegacyHost
+                    ? hostMediaPipeline != nil
+                    : backgroundRouteActive,
                 force: force
             )
         } catch {

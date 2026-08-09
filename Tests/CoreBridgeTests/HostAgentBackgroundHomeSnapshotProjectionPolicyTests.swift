@@ -441,10 +441,11 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         _ = state.publish(
             try HostCoreSnapshot(rawJSON: JSONSerialization.data(
                 withJSONObject: [
-                    "schemaVersion": 7,
+                    "schemaVersion": 8,
                     "hostInstanceId": hostID,
                     "hostState": "ready",
                     "localId": localID,
+                    "authenticatedConnectionCount": 1,
                     "sessionAvailability": limitedSession
                         ? "limited"
                         : "available",

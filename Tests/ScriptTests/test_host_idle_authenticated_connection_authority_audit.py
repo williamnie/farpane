@@ -5,7 +5,7 @@ import unittest
 
 
 class HostIdleAuthenticatedConnectionAuthorityAuditTests(unittest.TestCase):
-    def test_current_gap_and_shared_target_contract_are_frozen(self) -> None:
+    def test_shared_target_contract_is_implemented(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -28,13 +28,13 @@ class HostIdleAuthenticatedConnectionAuthorityAuditTests(unittest.TestCase):
             "farpane-host-idle-authenticated-connection-authority-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "checkpoint-required")
+        self.assertEqual(document["status"], "implemented")
         self.assertEqual(document["missingEvidence"], [])
 
         implementation = document["implementation"]
-        self.assertEqual(implementation["hostABIVersion"], 10)
-        self.assertEqual(implementation["headerABIVersion"], 10)
-        self.assertEqual(implementation["snapshotSchemaVersion"], 7)
+        self.assertEqual(implementation["hostABIVersion"], 11)
+        self.assertEqual(implementation["headerABIVersion"], 11)
+        self.assertEqual(implementation["snapshotSchemaVersion"], 8)
         self.assertTrue(all(implementation["evidence"].values()))
         self.assertTrue(all(implementation["sourceLines"].values()))
 
@@ -53,7 +53,16 @@ class HostIdleAuthenticatedConnectionAuthorityAuditTests(unittest.TestCase):
             "allAuthenticatedConnectionsProvenAbsentDerivedNeverHardcoded",
             target["runtimeStateContract"],
         )
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertEqual(
+            document["remainingBoundary"],
+            {
+                "sharedHostSnapshotAndRuntimeEvidenceSchemaChangeRequired": False,
+                "backgroundAndLegacyRuntimeStateCallSitesNeedOneAuthority": False,
+                "builtCoreLifecycleAndStrictDecoderTestsRequired": False,
+                "realHostReadyNoConnection600SecondRunRequired": True,
+                "dualArchitectureBaseMatrixStillHasNoRealData": True,
+            },
+        )
 
 
 if __name__ == "__main__":

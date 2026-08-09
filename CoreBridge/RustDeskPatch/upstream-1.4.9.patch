@@ -577,7 +577,7 @@ index 89a17a9..b0b23d5 100644
 +    }
 +}
 diff --git a/src/server/connection.rs b/src/server/connection.rs
-index bdf9cba..4e4d849 100644
+index bdf9cba..b6496e6 100644
 --- a/src/server/connection.rs
 +++ b/src/server/connection.rs
 @@ -55,7 +55,7 @@ use scrap::camera;
@@ -2564,7 +2564,7 @@ index bdf9cba..4e4d849 100644
  // in case screen is sleep and blank, here to activate it
  fn try_activate_screen() {
      #[cfg(windows)]
-@@ -6180,59 +7285,257 @@ impl FileRemoveLogControl {
+@@ -6180,59 +7285,262 @@ impl FileRemoveLogControl {
      }
  }
 
@@ -2826,6 +2826,11 @@ index bdf9cba..4e4d849 100644
 +}
 +
 +#[cfg(feature = "rdn-native-host")]
++pub(crate) fn native_host_authenticated_connection_count() -> u64 {
++    u64::try_from(AUTHED_CONNS.lock().unwrap().len()).unwrap_or(u64::MAX)
++}
++
++#[cfg(feature = "rdn-native-host")]
 +fn send_native_host_wakelock_command(
 +    command: impl FnOnce(std_mpsc::SyncSender<bool>) -> WakeLockCommand,
 +) -> bool {
@@ -2873,7 +2878,7 @@ index bdf9cba..4e4d849 100644
  pub fn on_printer_data(data: Vec<u8>) {
      crate::server::AUTHED_CONNS
          .lock()
-@@ -6268,7 +7571,14 @@ impl Default for PortableState {
+@@ -6268,7 +7576,14 @@ impl Default for PortableState {
  impl Drop for Connection {
      fn drop(&mut self) {
          #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -2889,7 +2894,7 @@ index bdf9cba..4e4d849 100644
 
          if let Some(s) = self.terminal_generic_service.as_ref() {
              s.join();
-@@ -6347,29 +7657,58 @@ struct Retina {
+@@ -6347,29 +7662,58 @@ struct Retina {
  #[cfg(target_os = "macos")]
  impl Retina {
      #[inline]
@@ -2954,16 +2959,16 @@ index bdf9cba..4e4d849 100644
 +            || input.event.y >= max_y
 +        {
 +            return false;
-+        }
+         }
 +        if s > 1.0 {
 +            input.event.x = d.x + ((input.event.x - d.x) as f64 / s) as i32;
 +            input.event.y = d.y + ((input.event.y - d.y) as f64 / s) as i32;
-         }
++        }
 +        true
      }
 
      #[inline]
-@@ -6463,23 +7802,33 @@ mod raii {
+@@ -6463,23 +7807,33 @@ mod raii {
      pub struct AuthedConnID(i32, AuthConnType);
 
      impl AuthedConnID {
@@ -3000,7 +3005,7 @@ index bdf9cba..4e4d849 100644
              Self::check_wake_lock();
              use std::sync::Once;
              static _ONCE: Once = Once::new();
-@@ -6492,21 +7841,18 @@ mod raii {
+@@ -6492,21 +7846,18 @@ mod raii {
                      .unwrap()
                      .on_connection_open(conn_id);
              }
@@ -3028,7 +3033,7 @@ index bdf9cba..4e4d849 100644
          }
 
          pub fn check_wake_lock_on_setting_changed() {
-@@ -6607,6 +7953,11 @@ mod raii {
+@@ -6607,6 +7958,11 @@ mod raii {
 
      impl Drop for AuthedConnID {
          fn drop(&mut self) {
@@ -3040,7 +3045,7 @@ index bdf9cba..4e4d849 100644
              if self.1 == AuthConnType::Remote || self.1 == AuthConnType::ViewCamera {
                  scrap::codec::Encoder::update(scrap::codec::EncodingUpdate::Remove(self.0));
                  video_service::VIDEO_QOS
-@@ -6679,27 +8030,1226 @@ mod test {
+@@ -6679,27 +8035,1226 @@ mod test {
      #[allow(unused)]
      use super::*;
 
@@ -5338,7 +5343,7 @@ index b02f6ad..e5c27d3 100644
 +    }
 +}
 diff --git a/src/server/video_service.rs b/src/server/video_service.rs
-index 9d97b1c..d6891a8 100644
+index 9d97b1c..316fb67 100644
 --- a/src/server/video_service.rs
 +++ b/src/server/video_service.rs
 @@ -254,10 +254,313 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {

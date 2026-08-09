@@ -31,10 +31,10 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 10;
+const HOST_ABI_VERSION: u32 = 11;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
-const SNAPSHOT_SCHEMA_VERSION: u32 = 7;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_NAME_BYTES: usize = 64;
@@ -2350,6 +2350,10 @@ impl RdnHost {
         map.insert("hostInstanceId".into(), json!(self.instance_id));
         map.insert("hostState".into(), json!(state_name(self.state)));
         map.insert("localId".into(), json!(self.local_id));
+        map.insert(
+            "authenticatedConnectionCount".into(),
+            json!(crate::server::native_host_authenticated_connection_count()),
+        );
         map.insert("sessionAvailability".into(), json!(session_availability));
         map.insert(
             "sessionUnavailableReason".into(),
@@ -5073,6 +5077,7 @@ mod tests {
         );
         let snapshot = host.snapshot_json();
         assert_eq!(snapshot["schemaVersion"], SNAPSHOT_SCHEMA_VERSION);
+        assert_eq!(snapshot["authenticatedConnectionCount"], 0);
         assert_eq!(
             snapshot["pendingApproval"]["connectionId"],
             "approval-command-host:7"

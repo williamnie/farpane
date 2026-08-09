@@ -157,8 +157,8 @@ def main() -> int:
     )
 
     current_evidence = {
-        "hostABIV10AndSnapshotV7AreCurrent": (
-            rust_abi == 10 and header_abi == 10 and snapshot_schema == 7
+        "hostABIV11AndSnapshotV8PreserveSessionAvailability": (
+            rust_abi == 11 and header_abi == 11 and snapshot_schema == 8
         ),
         "rustActiveAquaAuthorityFailsClosed": all(
             marker in patch
@@ -245,7 +245,7 @@ def main() -> int:
             and all(
                 marker in client_snapshot
                 for marker in (
-                    'intValue == 7',
+                    'intValue == 8',
                     'json["sessionAvailability"] as? String',
                     'json["sessionUnavailableReason"]',
                     'case (.available, nil), (.limited, .sessionUnavailable):',
@@ -265,7 +265,7 @@ def main() -> int:
             all(
                 marker in sources["xpc_snapshot"]
                 for marker in (
-                    "schemaVersion: 7",
+                    "schemaVersion: 8",
                     "package let sessionAvailability: HostSessionAvailability",
                     "package let sessionUnavailableReason: HostSessionUnavailableReason?",
                     "case (.available, nil), (.limited, .sessionUnavailable):",
@@ -474,8 +474,8 @@ def main() -> int:
     missing = [name for name, present in current_evidence.items() if not present]
 
     target_contract = {
-        "hostABIVersion": 10,
-        "snapshotSchemaVersion": 7,
+        "hostABIVersion": 11,
+        "snapshotSchemaVersion": 8,
         "topLevelTuple": {
             "available": {
                 "sessionAvailability": "available",
@@ -490,7 +490,7 @@ def main() -> int:
         "transitionSequence": [
             "observeStrictAquaTupleWithoutPrompt",
             "retireOrRejectNativeMediaRouteWhileLimited",
-            "publishSchema7SnapshotTransition",
+            "publishSchema8SnapshotTransition",
             "propagateThroughAgentSnapshotAndXPCResnapshot",
             "withdrawBackgroundReadyAndApprovalActions",
             "presentUnsupportedLimitedWithDisconnectOnlyForExistingSession",

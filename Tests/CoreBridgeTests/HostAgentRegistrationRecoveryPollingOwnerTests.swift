@@ -210,10 +210,11 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
             defaults = ("error", "degraded", "registration.runtimeExited")
         }
         let document: [String: Any] = [
-            "schemaVersion": 7,
+            "schemaVersion": 8,
             "hostInstanceId": hostInstanceID,
             "hostState": defaults.hostState,
             "localId": "123456789",
+            "authenticatedConnectionCount": 1,
             "sessionAvailability": "available",
             "sessionUnavailableReason": NSNull(),
             "pendingApproval": NSNull(),
