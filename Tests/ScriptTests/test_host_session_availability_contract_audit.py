@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
-    def test_detailed_home_limited_presentation_is_frozen(self):
+    def test_same_session_recovery_ownership_is_frozen(self):
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -27,10 +27,10 @@ class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
             document["schema"],
             "farpane-host-session-availability-contract-audit",
         )
-        self.assertEqual(document["schemaVersion"], 5)
+        self.assertEqual(document["schemaVersion"], 6)
         self.assertEqual(
             document["status"],
-            "detailed-home-limited-presentation-implemented",
+            "same-session-recovery-ownership-verified",
         )
         self.assertEqual(document["missingEvidence"], [])
 
@@ -77,6 +77,9 @@ class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
         )
         self.assertFalse(
             remaining["detailedHomeLimitedPresentationStillRequired"]
+        )
+        self.assertFalse(
+            remaining["sameSessionRecoveryOwnershipStillRequired"]
         )
         self.assertTrue(
             remaining["installedLockLoginWindowFUSAcceptanceStillRequired"]

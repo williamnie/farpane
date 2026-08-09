@@ -1700,8 +1700,10 @@ pub(crate) fn native_media_begin_route(
     let writer_telemetry = Arc::new(NativeMediaWriterTelemetry::default());
     let network_telemetry = Arc::new(NativeMediaNetworkTelemetry::default());
     let transport_telemetry = Arc::new(NativeMediaTransportTelemetry::default());
-    let connection_epoch = NEXT_CONNECTION_EPOCH.fetch_add(1, Ordering::Relaxed);
-    let codec_epoch = NEXT_CODEC_EPOCH.fetch_add(1, Ordering::Relaxed);
+    let connection_epoch = next_native_media_epoch(&NEXT_CONNECTION_EPOCH)
+        .ok_or("native media connection epoch is exhausted")?;
+    let codec_epoch = next_native_media_epoch(&NEXT_CODEC_EPOCH)
+        .ok_or("native media codec epoch is exhausted")?;
     let binding = {
         let mut broker = MEDIA_BROKER.lock().unwrap();
         let binding = broker
@@ -1787,6 +1789,14 @@ pub(crate) fn native_media_begin_route(
         network_telemetry,
         transport_telemetry,
     })
+}
+
+fn next_native_media_epoch(counter: &AtomicU64) -> Option<u64> {
+    counter
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            current.checked_add(1)
+        })
+        .ok()
 }
 
 pub(crate) fn native_media_record_dequeued(route: &NativeMediaRoute) {
@@ -4020,6 +4030,21 @@ mod tests {
         assert!(!is_next_recovery_epoch(1, 3));
         assert!(!is_next_recovery_epoch(u64::MAX, 0));
         assert!(!is_next_recovery_epoch(u64::MAX, u64::MAX));
+    }
+
+    #[test]
+    fn native_media_epoch_is_monotonic_and_exhaustion_safe() {
+        let counter = AtomicU64::new(1);
+        assert_eq!(next_native_media_epoch(&counter), Some(1));
+        assert_eq!(next_native_media_epoch(&counter), Some(2));
+
+        let last = AtomicU64::new(u64::MAX - 1);
+        assert_eq!(next_native_media_epoch(&last), Some(u64::MAX - 1));
+        assert_eq!(next_native_media_epoch(&last), None);
+        assert_eq!(next_native_media_epoch(&last), None);
+
+        let exhausted = AtomicU64::new(u64::MAX);
+        assert_eq!(next_native_media_epoch(&exhausted), None);
     }
 
     #[cfg(unix)]

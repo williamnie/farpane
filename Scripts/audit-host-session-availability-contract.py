@@ -44,6 +44,7 @@ def main() -> int:
         "bridge": repository / "CoreBridge/RustDeskPatch/rdn_host_bridge.rs",
         "header": repository / "CoreBridge/include/rustdesk_native.h",
         "patch": repository / "CoreBridge/RustDeskPatch/upstream-1.4.9.patch",
+        "service": repository / "Vendor/rustdesk/src/server/service.rs",
         "client": repository / "Sources/CoreBridge/HostControlClient.swift",
         "snapshot_state": (
             repository / "Sources/CoreBridge/HostAgentSnapshotState.swift"
@@ -94,6 +95,10 @@ def main() -> int:
         "media": (
             repository
             / "Sources/RustDeskNative/HostAgentMediaPipelineOwner.swift"
+        ),
+        "route_owner": (
+            repository
+            / "Sources/VideoPipeline/HostMediaPipelineRouteOwner.swift"
         ),
         "polling": (
             repository
@@ -397,6 +402,65 @@ def main() -> int:
                 )
             )
         ),
+        "sameSessionInputRecoveryRevalidatesTCCAndLatchesRevocation": (
+            all(
+                marker in patch
+                for marker in (
+                    "struct NativeHostPlatformInputState",
+                    "accessibility_latched: bool",
+                    "aqua_restore_armed: bool",
+                    "native_host_platform_input_authorities()",
+                    "sync_native_host_platform_input_permission_transition().await",
+                    "self.accessibility_latched = false;",
+                    "if !self.accessibility_latched",
+                    "native_host_platform_input_state_separates_aqua_recovery_from_tcc_latch",
+                )
+            )
+        ),
+        "nativeMediaRecoveryRetryIsBounded": all(
+            marker in sources["service"]
+            for marker in (
+                "let mut error_timeout = HIBERNATE_TIMEOUT;",
+                "error_timeout *= 2;",
+                "if error_timeout > MAX_ERROR_TIMEOUT",
+                "error_timeout = MAX_ERROR_TIMEOUT;",
+                "thread::sleep(time::Duration::from_millis(error_timeout));",
+            )
+        ),
+        "limitedRouteRetiresBeforeFreshFailClosedEpoch": (
+            all(
+                marker in patch
+                for marker in (
+                    "struct NativeRouteGuard",
+                    "native_media_end_route(&self.0);",
+                    "let route = NativeRouteGuard(route);",
+                    'bail!("native host session is unavailable")',
+                )
+            )
+            and all(
+                marker in sources["bridge"]
+                for marker in (
+                    "fn next_native_media_epoch(counter: &AtomicU64) -> Option<u64>",
+                    "current.checked_add(1)",
+                    'ok_or("native media connection epoch is exhausted")',
+                    'ok_or("native media codec epoch is exhausted")',
+                    '"command": "startCapture"',
+                    '"command": "stopCapture"',
+                    "native_media_epoch_is_monotonic_and_exhaustion_safe",
+                )
+            )
+        ),
+        "swiftReplacementDrainsOldRouteAndRejectsLateCallbacks": all(
+            marker in sources["route_owner"]
+            for marker in (
+                "generation == operationGeneration",
+                "stopCurrentOnQueue(matching: nil)",
+                "current?.generation == callbackGeneration",
+                "current?.route == route",
+                "current.pipeline.cancel()",
+                "blockingStop(current.pipeline)",
+            )
+        ),
         "designRequiresTopLevelLimitedAndUnsupportedUI": all(
             marker in sources["design"]
             for marker in (
@@ -496,13 +560,29 @@ def main() -> int:
             sources["snapshot_state"],
             "publishSessionTransitionIfNeeded(",
         ),
+        "inputTCCRecoveryLatch": line_number(
+            patch,
+            "native_host_platform_input_state_separates_aqua_recovery_from_tcc_latch",
+        ),
+        "boundedMediaServiceRetry": line_number(
+            sources["service"],
+            "let mut error_timeout = HIBERNATE_TIMEOUT;",
+        ),
+        "freshMediaEpochAllocator": line_number(
+            sources["bridge"],
+            "fn next_native_media_epoch(counter: &AtomicU64) -> Option<u64>",
+        ),
+        "swiftRouteGenerationIsolation": line_number(
+            sources["route_owner"],
+            "private func handleAccessUnit(",
+        ),
     }
 
     document = {
         "schema": SCHEMA,
-        "schemaVersion": 5,
+        "schemaVersion": 6,
         "status": (
-            "detailed-home-limited-presentation-implemented"
+            "same-session-recovery-ownership-verified"
             if not missing
             else "audit-drift"
         ),
@@ -520,6 +600,7 @@ def main() -> int:
             "xpcTransitionProjectionNotImplementedByAudit": False,
             "backgroundReadinessAndCommandWithdrawalNotImplementedByAudit": False,
             "detailedHomeLimitedPresentationStillRequired": False,
+            "sameSessionRecoveryOwnershipStillRequired": False,
             "installedLockLoginWindowFUSAcceptanceStillRequired": True,
             "secureInputRemainsSeparateDecision": True,
         },

@@ -179,8 +179,10 @@ def main() -> int:
             all(
                 marker in begin_route
                 for marker in (
-                    "NEXT_CONNECTION_EPOCH.fetch_add(1, Ordering::Relaxed)",
-                    "NEXT_CODEC_EPOCH.fetch_add(1, Ordering::Relaxed)",
+                    "next_native_media_epoch(&NEXT_CONNECTION_EPOCH)",
+                    "next_native_media_epoch(&NEXT_CODEC_EPOCH)",
+                    'ok_or("native media connection epoch is exhausted")',
+                    'ok_or("native media codec epoch is exhausted")',
                     '"command": "startCapture"',
                     '"command": "reconfigure"',
                     '"width": width',
@@ -251,7 +253,7 @@ def main() -> int:
         ),
         "freshEpochs": line_number(
             sources["bridge"],
-            "let connection_epoch = NEXT_CONNECTION_EPOCH.fetch_add",
+            "let connection_epoch = next_native_media_epoch",
         ),
         "swiftDisplayIndex": line_number(
             sources["media_owner"],
