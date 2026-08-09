@@ -60,6 +60,8 @@ package final class HostAgentXPCListenerAdmissionShell:
     ) -> Void
     typealias ConnectionAction = (NSXPCConnection) -> Void
     typealias ListenerAction = (NSXPCListener) -> Void
+    package typealias CommandServiceProvider = @Sendable ()
+        -> HostAgentXPCCommandService?
 
     private enum ConnectionEndReason: Equatable, Sendable {
         case interrupted
@@ -78,6 +80,8 @@ package final class HostAgentXPCListenerAdmissionShell:
     private let identityAuthority: HostAgentXPCProcessIdentityAuthority
     private let snapshotState: HostAgentSnapshotState
     private let eventState: HostAgentEventState
+    private let commandServiceProvider: CommandServiceProvider
+    private let requiresCommandService: Bool
     private let assessConnection: ConnectionAssessor
     private let nowUnixMilliseconds: HostAgentXPCHandshakeHandler.Clock
     private let monotonicMilliseconds:
@@ -99,7 +103,8 @@ package final class HostAgentXPCListenerAdmissionShell:
     package static func makeProductShell(
         identityAuthority: HostAgentXPCProcessIdentityAuthority,
         snapshotState: HostAgentSnapshotState,
-        eventState: HostAgentEventState
+        eventState: HostAgentEventState,
+        commandServiceProvider: @escaping CommandServiceProvider
     )
         -> HostAgentXPCListenerAdmissionShell
     {
@@ -109,6 +114,8 @@ package final class HostAgentXPCListenerAdmissionShell:
             identityAuthority: identityAuthority,
             snapshotState: snapshotState,
             eventState: eventState,
+            commandServiceProvider: commandServiceProvider,
+            requiresCommandService: true,
             assessConnection: HostAgentXPCPeerAdmissionGate.assess,
             nowUnixMilliseconds: productClock,
             monotonicMilliseconds: productMonotonicClock,
@@ -125,6 +132,8 @@ package final class HostAgentXPCListenerAdmissionShell:
         identityAuthority: HostAgentXPCProcessIdentityAuthority,
         snapshotState: HostAgentSnapshotState,
         eventState: HostAgentEventState,
+        commandServiceProvider: @escaping CommandServiceProvider = { nil },
+        requiresCommandService: Bool = false,
         assessConnection: @escaping ConnectionAssessor,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
         monotonicMilliseconds: @escaping
@@ -139,6 +148,8 @@ package final class HostAgentXPCListenerAdmissionShell:
         self.identityAuthority = identityAuthority
         self.snapshotState = snapshotState
         self.eventState = eventState
+        self.commandServiceProvider = commandServiceProvider
+        self.requiresCommandService = requiresCommandService
         self.assessConnection = assessConnection
         self.nowUnixMilliseconds = nowUnixMilliseconds
         self.monotonicMilliseconds = monotonicMilliseconds
@@ -281,12 +292,20 @@ package final class HostAgentXPCListenerAdmissionShell:
         activeConnections[identifier] = connection
         lock.unlock()
 
+        let commandService = commandServiceProvider()
+        if requiresCommandService, commandService == nil {
+            lock.lock()
+            activeConnections.removeValue(forKey: identifier)
+            lock.unlock()
+            return false
+        }
+
         let interface = HostAgentXPCSnapshotInterfaceFactory.makeInterface()
         let handler = HostAgentXPCSnapshotSessionHandler(
             identity: identity,
             snapshotState: snapshotState,
             eventState: eventState,
-            commandService: nil,
+            commandService: commandService,
             nowUnixMilliseconds: nowUnixMilliseconds,
             monotonicMilliseconds: monotonicMilliseconds
         )

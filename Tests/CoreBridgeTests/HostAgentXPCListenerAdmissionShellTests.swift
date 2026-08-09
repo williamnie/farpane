@@ -7,7 +7,8 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         let shell = HostAgentXPCListenerAdmissionShell.makeProductShell(
             identityAuthority: try makeAuthority(),
             snapshotState: HostAgentSnapshotState(),
-            eventState: try HostAgentEventState()
+            eventState: try HostAgentEventState(),
+            commandServiceProvider: { nil }
         )
 
         XCTAssertEqual(
@@ -92,6 +93,41 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         )
     }
 
+    func testProductModeRejectsReadyPeerWhenCommandServiceIsUnavailable()
+        throws
+    {
+        let listener = NSXPCListener.anonymous()
+        let authority = try makeAuthority()
+        XCTAssertEqual(authority.bind(hostInstanceID: "host-a"), .bound)
+        var configureCount = 0
+        var resumeCount = 0
+        let shell = try HostAgentXPCListenerAdmissionShell(
+            listener: listener,
+            identityAuthority: authority,
+            snapshotState: HostAgentSnapshotState(),
+            eventState: HostAgentEventState(),
+            commandServiceProvider: { nil },
+            requiresCommandService: true,
+            assessConnection: { _ in .eligible },
+            nowUnixMilliseconds: { 20 },
+            monotonicMilliseconds: { 20 },
+            configureConnection: { _, _, _, _ in configureCount += 1 },
+            resumeConnection: { _ in resumeCount += 1 },
+            invalidateConnection: { _ in },
+            activateListener: { _ in },
+            invalidateListener: { _ in }
+        )
+
+        XCTAssertFalse(shell.listener(
+            listener,
+            shouldAcceptNewConnection: NSXPCConnection()
+        ))
+        XCTAssertEqual(configureCount, 0)
+        XCTAssertEqual(resumeCount, 0)
+        XCTAssertEqual(shell.snapshot().rejectedHandshakeUnavailableCount, 1)
+        XCTAssertEqual(shell.snapshot().activeHandshakeConnectionCount, 0)
+    }
+
     func testForeignListenerIsRejectedBeforeAssessingConnection() throws {
         let ownedListener = NSXPCListener.anonymous()
         var assessmentCount = 0
@@ -146,6 +182,8 @@ final class HostAgentXPCListenerAdmissionShellTests: XCTestCase {
         ))
         XCTAssertTrue(source.contains("connection.exportedInterface"))
         XCTAssertTrue(source.contains("connection.exportedObject"))
+        XCTAssertTrue(source.contains("commandServiceProvider()"))
+        XCTAssertTrue(source.contains("requiresCommandService"))
         XCTAssertTrue(source.contains("connection.interruptionHandler"))
         XCTAssertTrue(source.contains("connection.invalidationHandler"))
         XCTAssertTrue(source.contains("listener.activate()"))

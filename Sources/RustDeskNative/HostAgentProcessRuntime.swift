@@ -6,21 +6,30 @@ import Foundation
 /// deliberately not dispatched yet: snapshot-first/control IPC and the Agent
 /// entry remain required before replacing the fail-closed mode gate.
 final class HostAgentProcessRuntime: @unchecked Sendable {
+    private enum CompositionError: Error {
+        case commandOwnerBindingFailed
+        case commandQueueDrainTimedOut
+    }
+
     private let ownedRuntime: HostAgentOwnedCoreRuntime<HostAgentBootstrapContext>
     private let xpcIdentityAuthority: HostAgentXPCProcessIdentityAuthority
+    private let commandOwner: HostAgentXPCCommandProcessOwner
     private let xpcAdmissionOwner: HostAgentXPCListenerAdmissionShell
 
     private init(
         ownedRuntime: HostAgentOwnedCoreRuntime<HostAgentBootstrapContext>,
         xpcIdentityAuthority: HostAgentXPCProcessIdentityAuthority,
+        commandOwner: HostAgentXPCCommandProcessOwner,
         xpcAdmissionOwner: HostAgentXPCListenerAdmissionShell
     ) {
         self.ownedRuntime = ownedRuntime
         self.xpcIdentityAuthority = xpcIdentityAuthority
+        self.commandOwner = commandOwner
         self.xpcAdmissionOwner = xpcAdmissionOwner
     }
 
     deinit {
+        _ = commandOwner.cancelAndWait(timeout: .now())
         xpcIdentityAuthority.invalidate()
     }
 
@@ -43,12 +52,17 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                 agentBootID:
                     bootstrapContext.leaseRecord.agentBootID.uuidString.lowercased()
             )
-        let xpcAdmissionOwner =
-            HostAgentXPCListenerAdmissionShell.makeProductShell(
-                identityAuthority: xpcIdentityAuthority,
-                snapshotState: snapshotState,
-                eventState: eventState
-            )
+        let commandOwner = try HostAgentXPCCommandProcessOwner(
+            agentBuildID: bootstrapContext.leaseRecord.agentBuildID,
+            agentBootID:
+                bootstrapContext.leaseRecord.agentBootID.uuidString.lowercased(),
+            eventState: eventState,
+            nowUnixMilliseconds: productClock,
+            onNonCommandEvent: onEvent,
+            onInvalidationRequired: {
+                xpcIdentityAuthority.invalidate()
+            }
+        )
         let ownedRuntime = try HostAgentOwnedCoreRuntime.start(
             bootstrapOwner: bootstrapContext
         ) { context in
@@ -56,7 +70,9 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
             let client = try HostControlClient(
                 libraryURL: libraryURL,
                 eventQueue: eventQueue,
-                onEvent: onEvent
+                onEvent: { event in
+                    commandOwner.consumeCoreEvent(event)
+                }
             )
             let configuration = context.configuration
             return try HostAgentCoreRuntime.start(
@@ -69,22 +85,70 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                 )
             )
         }
+        guard commandOwner.bindRuntimeSubmission({ submission in
+            do {
+                try ownedRuntime.submit(command: submission)
+                return .awaitingCoreResult
+            } catch HostAgentCoreRuntimeAccessError.notRunning {
+                return .failed(.coreUnavailable)
+            } catch let error as HostControlError {
+                if case .command = error {
+                    return .rejected(.coreRejected)
+                }
+                return .failed(.coreFailure)
+            } catch {
+                return .failed(.coreFailure)
+            }
+        }) else {
+            try? ownedRuntime.stop(reason: .error)
+            throw CompositionError.commandOwnerBindingFailed
+        }
+        let xpcAdmissionOwner =
+            HostAgentXPCListenerAdmissionShell.makeProductShell(
+                identityAuthority: xpcIdentityAuthority,
+                snapshotState: snapshotState,
+                eventState: eventState,
+                commandServiceProvider: { [weak commandOwner] in
+                    commandOwner?.commandServiceSnapshot()
+                }
+            )
         return HostAgentProcessRuntime(
             ownedRuntime: ownedRuntime,
             xpcIdentityAuthority: xpcIdentityAuthority,
+            commandOwner: commandOwner,
             xpcAdmissionOwner: xpcAdmissionOwner
         )
     }
 
     func stop(reason: HostStopReason) throws {
+        let commandQueueDrained = commandOwner.cancelAndWait(
+            timeout: .now() + 2
+        )
         xpcIdentityAuthority.invalidate()
         try ownedRuntime.stop(reason: reason)
+        guard commandQueueDrained else {
+            throw CompositionError.commandQueueDrainTimedOut
+        }
     }
 
     func bindXPCIdentity(
         hostInstanceID: String
     ) -> HostAgentXPCProcessIdentityBindResult {
-        xpcIdentityAuthority.bind(hostInstanceID: hostInstanceID)
+        let commandResult = commandOwner.bindIdentity(
+            hostInstanceID: hostInstanceID
+        )
+        guard commandResult == .bound || commandResult == .unchanged else {
+            xpcIdentityAuthority.invalidate()
+            return commandResult
+        }
+        let identityResult = xpcIdentityAuthority.bind(
+            hostInstanceID: hostInstanceID
+        )
+        guard identityResult == .bound || identityResult == .unchanged else {
+            commandOwner.invalidate()
+            return identityResult
+        }
+        return identityResult
     }
 
     func xpcIdentitySnapshot() -> HostAgentXPCProcessIdentityState {
@@ -92,6 +156,7 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
     }
 
     func invalidateXPCIdentity() {
+        _ = commandOwner.cancelAndWait(timeout: .now() + 2)
         xpcIdentityAuthority.invalidate()
     }
 
@@ -135,5 +200,15 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
             softwareFallback: softwareFallback,
             encoderID: encoderID
         )
+    }
+
+    private static let productClock:
+        HostAgentXPCCommandProcessOwner.Clock = {
+        let milliseconds = Date().timeIntervalSince1970 * 1_000
+        guard milliseconds.isFinite,
+              milliseconds > 0,
+              milliseconds <= 9_007_199_254_740_991
+        else { return 0 }
+        return UInt64(milliseconds.rounded(.towardZero))
     }
 }
