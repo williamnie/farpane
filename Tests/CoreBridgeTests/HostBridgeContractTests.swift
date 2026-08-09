@@ -198,10 +198,12 @@ final class HostBridgeContractTests: XCTestCase {
         let relayServer = strdup("")!
         let syntheticPublicKey = Data(repeating: 0xA5, count: 32).base64EncodedString()
         let serverPublicKey = strdup(liveKey ?? syntheticPublicKey)!
+        let persistenceFailureServer = strdup("127.0.0.1:21118")!
         defer {
             free(rendezvousServer)
             free(relayServer)
             free(serverPublicKey)
+            free(persistenceFailureServer)
         }
         let root = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(
@@ -560,6 +562,51 @@ final class HostBridgeContractTests: XCTestCase {
         }
         XCTAssertEqual(hostStop(revivedHost, 0), 0)
         hostDestroy(revivedHost)
+
+        // A synchronous upstream setter can update Config2 in memory even
+        // when confy cannot create its replacement file. The Host start must
+        // re-read the fixed files, reject the stale persisted projection and
+        // preserve both documents before creating its runtime.
+        let identityBeforeFailedWrite = try Data(contentsOf: identityFile)
+        let optionsBeforeFailedWrite = try Data(contentsOf: optionsFile)
+        let entriesBeforeFailedWrite = try Set(FileManager.default.contentsOfDirectory(
+            atPath: configDirectory.path
+        ))
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o500],
+            ofItemAtPath: configDirectory.path
+        )
+        defer {
+            try? FileManager.default.setAttributes(
+                [.posixPermissions: 0o700],
+                ofItemAtPath: configDirectory.path
+            )
+        }
+        options.rendezvousServer = UnsafePointer(persistenceFailureServer)
+        var persistenceFailedHost: OpaquePointer?
+        XCTAssertEqual(create(&persistenceFailedHost), 0)
+        XCTAssertEqual(hostStart(persistenceFailedHost), -20)
+        let persistenceFailureSnapshot = try copyDictionary(persistenceFailedHost)
+        XCTAssertEqual(persistenceFailureSnapshot["hostState"] as? String, "error")
+        XCTAssertEqual(
+            persistenceFailureSnapshot["registrationStatus"] as? String,
+            "degraded"
+        )
+        XCTAssertEqual(
+            persistenceFailureSnapshot["lastError"] as? String,
+            "configuration.storagePersistenceFailed"
+        )
+        XCTAssertEqual(try Data(contentsOf: identityFile), identityBeforeFailedWrite)
+        XCTAssertEqual(try Data(contentsOf: optionsFile), optionsBeforeFailedWrite)
+        XCTAssertEqual(
+            try Set(FileManager.default.contentsOfDirectory(atPath: configDirectory.path)),
+            entriesBeforeFailedWrite
+        )
+        hostDestroy(persistenceFailedHost)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o700],
+            ofItemAtPath: configDirectory.path
+        )
 
         XCTAssertFalse(HostEventRecorder.events.isEmpty)
         for encodedEvent in HostEventRecorder.events {

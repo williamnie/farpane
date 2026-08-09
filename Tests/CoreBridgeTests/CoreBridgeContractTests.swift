@@ -61,11 +61,20 @@ final class CoreBridgeContractTests: XCTestCase {
         ))
         let configMutation = try XCTUnwrap(startBody.range(of: "config::Config::set_option("))
         let identityAccess = try XCTUnwrap(startBody.range(of: "config::Config::get_id()"))
+        let persistenceReadback = try XCTUnwrap(startBody.range(
+            of: "verify_host_start_storage(host)"
+        ))
+        let mediaBinding = try XCTUnwrap(startBody.range(of: "bind_media_host(host)"))
+        let runtimeStart = try XCTUnwrap(startBody.range(of: "HostRuntime::start("))
 
         XCTAssertLessThan(preflight.lowerBound, startingMutation.lowerBound)
         XCTAssertLessThan(preflight.lowerBound, configMutation.lowerBound)
         XCTAssertLessThan(preflight.lowerBound, identityAccess.lowerBound)
+        XCTAssertGreaterThan(persistenceReadback.lowerBound, identityAccess.lowerBound)
+        XCTAssertLessThan(persistenceReadback.lowerBound, mediaBinding.lowerBound)
+        XCTAssertLessThan(persistenceReadback.lowerBound, runtimeStart.lowerBound)
         XCTAssertTrue(startBody.contains("configuration.storagePreflightFailed"))
+        XCTAssertTrue(startBody.contains("configuration.storagePersistenceFailed"))
         XCTAssertTrue(startBody.contains("return RDN_HOST_ERR_STORAGE;"))
     }
 

@@ -2426,6 +2426,7 @@ enum HostStoragePreflightError {
     ReadFile,
     InvalidUtf8,
     InvalidToml,
+    PersistenceMismatch,
 }
 
 #[derive(Clone, Copy)]
@@ -2434,8 +2435,41 @@ enum HostStorageDocument {
     Options,
 }
 
+enum HostStorageSnapshot {
+    Identity { encrypted_id_present: bool },
+    Options(HashMap<String, String>),
+}
+
+struct WipedHostStorageBytes(Vec<u8>);
+
+impl WipedHostStorageBytes {
+    fn new(capacity: usize) -> Self {
+        Self(Vec::with_capacity(capacity))
+    }
+
+    fn bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl Drop for WipedHostStorageBytes {
+    fn drop(&mut self) {
+        password_security::memzero_secret(&mut self.0);
+    }
+}
+
 fn preflight_host_storage() -> Result<(), HostStoragePreflightError> {
     preflight_host_storage_paths(&config::Config::file(), &config::Config2::file())
+}
+
+fn verify_host_start_storage(host: &RdnHost) -> Result<(), HostStoragePreflightError> {
+    verify_host_start_storage_paths(
+        &config::Config::file(),
+        &config::Config2::file(),
+        &host.rendezvous_server,
+        &host.relay_server,
+        &host.server_public_key,
+    )
 }
 
 #[cfg(not(unix))]
@@ -2446,11 +2480,81 @@ fn preflight_host_storage_paths(
     Err(HostStoragePreflightError::UnsupportedPlatform)
 }
 
+#[cfg(not(unix))]
+fn verify_host_start_storage_paths(
+    _identity_path: &std::path::Path,
+    _options_path: &std::path::Path,
+    _rendezvous_server: &str,
+    _relay_server: &str,
+    _server_public_key: &str,
+) -> Result<(), HostStoragePreflightError> {
+    Err(HostStoragePreflightError::UnsupportedPlatform)
+}
+
 #[cfg(unix)]
 fn preflight_host_storage_paths(
     identity_path: &std::path::Path,
     options_path: &std::path::Path,
 ) -> Result<(), HostStoragePreflightError> {
+    inspect_host_storage_paths(identity_path, options_path).map(|_| ())
+}
+
+#[cfg(unix)]
+fn verify_host_start_storage_paths(
+    identity_path: &std::path::Path,
+    options_path: &std::path::Path,
+    rendezvous_server: &str,
+    relay_server: &str,
+    server_public_key: &str,
+) -> Result<(), HostStoragePreflightError> {
+    let (identity, options) = inspect_host_storage_paths(identity_path, options_path)?;
+    let Some(HostStorageSnapshot::Identity {
+        encrypted_id_present: true,
+    }) = identity
+    else {
+        return Err(HostStoragePreflightError::PersistenceMismatch);
+    };
+    let Some(HostStorageSnapshot::Options(options)) = options else {
+        return Err(HostStoragePreflightError::PersistenceMismatch);
+    };
+    let expected = [
+        ("custom-rendezvous-server", rendezvous_server),
+        ("relay-server", relay_server),
+        ("key", server_public_key),
+        (
+            config::keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS,
+            "Y",
+        ),
+        ("stop-service", ""),
+    ];
+    if expected
+        .iter()
+        .all(|(key, value)| persisted_host_option_matches(&options, key, value))
+    {
+        Ok(())
+    } else {
+        Err(HostStoragePreflightError::PersistenceMismatch)
+    }
+}
+
+#[cfg(unix)]
+fn persisted_host_option_matches(
+    options: &HashMap<String, String>,
+    key: &str,
+    expected: &str,
+) -> bool {
+    if expected.is_empty() {
+        !options.contains_key(key)
+    } else {
+        options.get(key).map(String::as_str) == Some(expected)
+    }
+}
+
+#[cfg(unix)]
+fn inspect_host_storage_paths(
+    identity_path: &std::path::Path,
+    options_path: &std::path::Path,
+) -> Result<(Option<HostStorageSnapshot>, Option<HostStorageSnapshot>), HostStoragePreflightError> {
     use hbb_common::libc;
     use std::{
         ffi::CString,
@@ -2482,7 +2586,7 @@ fn preflight_host_storage_paths(
     };
     if directory_fd < 0 {
         return match std::io::Error::last_os_error().raw_os_error() {
-            Some(libc::ENOENT) => Ok(()),
+            Some(libc::ENOENT) => Ok((None, None)),
             _ => Err(HostStoragePreflightError::OpenDirectory),
         };
     }
@@ -2496,8 +2600,11 @@ fn preflight_host_storage_paths(
         return Err(HostStoragePreflightError::UnsafeDirectory);
     }
 
-    preflight_host_storage_file(&directory, identity_path, HostStorageDocument::Identity)?;
-    preflight_host_storage_file(&directory, options_path, HostStorageDocument::Options)
+    let identity =
+        inspect_host_storage_file(&directory, identity_path, HostStorageDocument::Identity)?;
+    let options =
+        inspect_host_storage_file(&directory, options_path, HostStorageDocument::Options)?;
+    Ok((identity, options))
 }
 
 #[cfg(unix)]
@@ -2511,11 +2618,11 @@ fn checked_fstat(fd: std::os::fd::RawFd) -> Result<hbb_common::libc::stat, ()> {
 }
 
 #[cfg(unix)]
-fn preflight_host_storage_file(
+fn inspect_host_storage_file(
     directory: &std::fs::File,
     path: &std::path::Path,
     document: HostStorageDocument,
-) -> Result<(), HostStoragePreflightError> {
+) -> Result<Option<HostStorageSnapshot>, HostStoragePreflightError> {
     use hbb_common::libc;
     use std::{
         ffi::CString,
@@ -2541,7 +2648,7 @@ fn preflight_host_storage_file(
     };
     if file_fd < 0 {
         return match std::io::Error::last_os_error().raw_os_error() {
-            Some(libc::ENOENT) => Ok(()),
+            Some(libc::ENOENT) => Ok(None),
             _ => Err(HostStoragePreflightError::OpenFile),
         };
     }
@@ -2558,28 +2665,40 @@ fn preflight_host_storage_file(
         return Err(HostStoragePreflightError::UnsafeFile);
     }
 
-    let mut bytes = Vec::with_capacity(initial_stat.st_size as usize);
+    let mut bytes = WipedHostStorageBytes::new(initial_stat.st_size as usize);
     file.by_ref()
         .take(MAX_HOST_CONFIG_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)
+        .read_to_end(&mut bytes.0)
         .map_err(|_| HostStoragePreflightError::ReadFile)?;
     let final_stat =
         checked_fstat(file.as_raw_fd()).map_err(|_| HostStoragePreflightError::UnsafeFile)?;
-    if bytes.len() > MAX_HOST_CONFIG_BYTES
-        || bytes.len() as i64 != initial_stat.st_size
+    if bytes.0.len() > MAX_HOST_CONFIG_BYTES
+        || bytes.0.len() as i64 != initial_stat.st_size
         || final_stat.st_dev != initial_stat.st_dev
         || final_stat.st_ino != initial_stat.st_ino
         || final_stat.st_size != initial_stat.st_size
     {
         return Err(HostStoragePreflightError::UnsafeFile);
     }
-    let text = std::str::from_utf8(&bytes).map_err(|_| HostStoragePreflightError::InvalidUtf8)?;
+    let text =
+        std::str::from_utf8(bytes.bytes()).map_err(|_| HostStoragePreflightError::InvalidUtf8)?;
     match document {
-        HostStorageDocument::Identity => toml::from_str::<config::Config>(text)
-            .map(|_| ())
-            .map_err(|_| HostStoragePreflightError::InvalidToml),
+        HostStorageDocument::Identity => {
+            toml::from_str::<config::Config>(text)
+                .map_err(|_| HostStoragePreflightError::InvalidToml)?;
+            let document = toml::from_str::<toml::Value>(text)
+                .map_err(|_| HostStoragePreflightError::InvalidToml)?;
+            let encrypted_id_present = document
+                .get("enc_id")
+                .and_then(toml::Value::as_str)
+                .map(|value| !value.is_empty())
+                .unwrap_or(false);
+            Ok(Some(HostStorageSnapshot::Identity {
+                encrypted_id_present,
+            }))
+        }
         HostStorageDocument::Options => toml::from_str::<config::Config2>(text)
-            .map(|_| ())
+            .map(|config| Some(HostStorageSnapshot::Options(config.options)))
             .map_err(|_| HostStoragePreflightError::InvalidToml),
     }
 }
@@ -2627,6 +2746,18 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     host.local_id = config::Config::get_id();
     password_security::update_temporary_password();
     config::Config::set_option("stop-service".to_owned(), String::new());
+    // Upstream setters do not propagate confy write failures. Re-open the
+    // fixed private files and require the persisted identity/config projection
+    // needed by this start before any media or network runtime is created.
+    // This proves readback, not fsync durability; the latter remains a
+    // separate storage-writer boundary.
+    if verify_host_start_storage(host).is_err() {
+        host.registration_status = "degraded";
+        host.state = RdnHostState::Error;
+        host.last_error = Some("configuration.storagePersistenceFailed".to_owned());
+        host.emit_snapshot_changed();
+        return RDN_HOST_ERR_STORAGE;
+    }
     bind_media_host(host);
     host.runtime = match HostRuntime::start(host.rendezvous_server.clone()) {
         Ok(runtime) => Some(runtime),
@@ -3304,6 +3435,38 @@ mod tests {
             Self::write_private(&self.options, &options);
             (identity, options)
         }
+
+        fn write_startup_documents(
+            &self,
+            rendezvous_server: &str,
+            relay_server: &str,
+            server_public_key: &str,
+        ) -> (Vec<u8>, Vec<u8>) {
+            let identity = b"enc_id = \"opaque-encrypted-id\"\n".to_vec();
+            let mut config = config::Config2::default();
+            config.options.insert(
+                "custom-rendezvous-server".to_owned(),
+                rendezvous_server.to_owned(),
+            );
+            if !relay_server.is_empty() {
+                config
+                    .options
+                    .insert("relay-server".to_owned(), relay_server.to_owned());
+            }
+            config
+                .options
+                .insert("key".to_owned(), server_public_key.to_owned());
+            config.options.insert(
+                config::keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS.to_owned(),
+                "Y".to_owned(),
+            );
+            let options = toml::to_string(&config)
+                .expect("serialize startup options fixture")
+                .into_bytes();
+            Self::write_private(&self.identity, &identity);
+            Self::write_private(&self.options, &options);
+            (identity, options)
+        }
     }
 
     #[cfg(unix)]
@@ -3343,6 +3506,68 @@ mod tests {
         assert_eq!(
             preflight_host_storage_paths(&fixture.identity, &fixture.options),
             Ok(())
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), options);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_storage_readback_accepts_exact_start_projection_without_mutation() {
+        let fixture = HostStorageFixture::new();
+        let rendezvous_server = "127.0.0.1:21116";
+        let relay_server = "127.0.0.1:21117";
+        let server_public_key = "synthetic-public-key";
+        let (identity, options) =
+            fixture.write_startup_documents(rendezvous_server, relay_server, server_public_key);
+
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                rendezvous_server,
+                relay_server,
+                server_public_key,
+            ),
+            Ok(())
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), options);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_storage_readback_rejects_missing_or_stale_start_projection() {
+        let fixture = HostStorageFixture::new();
+        let rendezvous_server = "127.0.0.1:21116";
+        let relay_server = "";
+        let server_public_key = "synthetic-public-key";
+        let (identity, options) =
+            fixture.write_startup_documents(rendezvous_server, relay_server, server_public_key);
+
+        fs::remove_file(&fixture.identity).unwrap();
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                rendezvous_server,
+                relay_server,
+                server_public_key,
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
+        );
+        assert!(!fixture.identity.exists());
+        HostStorageFixture::write_private(&fixture.identity, &identity);
+
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                "127.0.0.1:21118",
+                relay_server,
+                server_public_key,
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
         );
         assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
         assert_eq!(fs::read(&fixture.options).unwrap(), options);
