@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "application-process-owner-implemented",
+            "application-viewer-lifecycle-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -37,7 +37,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "application-viewer-lifecycle-evidence-composition",
+            "application-host-observation-evidence-composition",
         )
         self.assertTrue(
             document["evidence"]
@@ -70,6 +70,22 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["applicationProductOwnsEvidenceAcrossEveryRunExit"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationViewerOwnerEnforcesEpochAndRecoveryGeneration"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationViewerOwnerSerializesAndFailsEvidenceOnly"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationViewerUsesCoreAndTeardownAuthorities"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationViewerRecoveryRequiresSameEpochCoreStreaming"]
         )
 
         contract = document["targetContract"]

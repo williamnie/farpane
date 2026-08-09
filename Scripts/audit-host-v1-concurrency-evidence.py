@@ -356,6 +356,60 @@ def main() -> int:
             < app.find("application.delegate = delegate")
             < app.find("application.run()")
         ),
+        "applicationViewerOwnerEnforcesEpochAndRecoveryGeneration": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                "committedEpoch < UInt64.max",
+                "case .starting:",
+                "state: .authenticatedStreaming",
+                "case .disconnected(let generation):",
+                "state: .recoveredStreaming",
+                "case .streaming:",
+                "state: .disconnected",
+                "transitionGeneration: nextGeneration",
+                "currentSession.epoch == sessionEpoch",
+            )
+        ),
+        "applicationViewerOwnerSerializesAndFailsEvidenceOnly": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                "while status == .active && recordInFlight",
+                "try writer.record(\n        .viewer(transition.observation)",
+                "incrementSaturating(&viewerRecords)",
+                "incrementSaturating(&recordFailures)",
+                "self.writer = nil",
+                "status = .unavailable",
+            )
+        ),
+        "applicationViewerUsesCoreAndTeardownAuthorities": all(
+            marker in app
+            for marker in (
+                "hostViewerConcurrencyEvidenceOwner.beginViewerSession()",
+                "case .streaming:",
+                ".observeViewerStreaming(",
+                "case .passwordRequired, .authenticationFailed,",
+                ".observeViewerTerminal(",
+                "private func stopViewerLifecycleEvidence()",
+                ".stopViewerSession(",
+            )
+        ) and app.find("stopViewerLifecycleEvidence()")
+        < app.find("coreClient?.disconnect()"),
+        "applicationViewerRecoveryRequiresSameEpochCoreStreaming": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                "currentSession.epoch == sessionEpoch",
+                "case .disconnected(let generation):",
+                "state: .recoveredStreaming",
+            )
+        ) and all(
+            marker in app
+            for marker in (
+                "let evidenceSessionEpoch =",
+                "case .streaming:",
+                "sessionEpoch: evidenceSessionEpoch",
+                "showHomeUI(error: Self.connectionStateText(event))",
+            )
+        ),
         "fiveScenarioMatrixValidatorIsStillMissing": (
             not target_validator.exists()
         ),
@@ -471,6 +525,36 @@ def main() -> int:
         "applicationWillTerminateEvidence": line_number(
             app, "func applicationWillTerminate(_ notification: Notification)"
         ),
+        "applicationViewerEpochAuthority": line_number(
+            lifecycle_process_owner, "committedViewerSessionEpoch"
+        ),
+        "applicationViewerBegin": line_number(
+            lifecycle_process_owner, "public func beginViewerSession()"
+        ),
+        "applicationViewerStreaming": line_number(
+            lifecycle_process_owner,
+            "public func observeViewerStreaming(sessionEpoch: UInt64)",
+        ),
+        "applicationViewerTerminal": line_number(
+            lifecycle_process_owner,
+            "public func observeViewerTerminal(sessionEpoch: UInt64)",
+        ),
+        "applicationViewerStop": line_number(
+            lifecycle_process_owner,
+            "public func stopViewerSession(sessionEpoch: UInt64)",
+        ),
+        "applicationViewerRecovery": line_number(
+            lifecycle_process_owner, "state: .recoveredStreaming"
+        ),
+        "applicationProductViewerBegin": line_number(
+            app, "hostViewerConcurrencyEvidenceOwner.beginViewerSession()"
+        ),
+        "applicationProductCoreStreaming": line_number(
+            app, ".observeViewerStreaming("
+        ),
+        "applicationProductViewerStop": line_number(
+            app, "private func stopViewerLifecycleEvidence()"
+        ),
         "hostRecoveryKinds": line_number(
             recovery_evidence, "case sleepWake"
         ),
@@ -552,7 +636,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "application-process-owner-implemented"
+            "application-viewer-lifecycle-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -591,7 +675,7 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "application-viewer-lifecycle-evidence-composition"
+            "application-host-observation-evidence-composition"
         ),
         "remainingBoundary": {
             "authoritativeLifecycleCompositionStillRequiresImplementation": True,
@@ -603,7 +687,7 @@ def main() -> int:
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return (
         0
-        if result["status"] == "application-process-owner-implemented"
+        if result["status"] == "application-viewer-lifecycle-implemented"
         else 1
     )
 

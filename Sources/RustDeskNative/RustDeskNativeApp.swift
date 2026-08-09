@@ -152,6 +152,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var player: FixturePlayer?
     private var liveDecoder: LiveHEVCDecoder?
     private var coreClient: RustDeskCoreClient?
+    private var viewerEvidenceSessionEpoch: UInt64?
     private var hostClient: HostControlClient?
     private var hostRuntimeActive = false
     private var hostRuntimeQuiescenceConfirmed = true
@@ -544,6 +545,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     private func showHomeUI(error: String = "") {
+        stopViewerLifecycleEvidence()
         activeAttemptID = nil
         if !error.isEmpty { homeErrorText = error }
         player?.stop()
@@ -3312,6 +3314,17 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     ) throws {
         guard FileManager.default.fileExists(atPath: coreURL.path) else { throw usageError("core library not found: \(coreURL.path)") }
 
+        let evidenceSessionEpoch =
+            hostViewerConcurrencyEvidenceOwner.beginViewerSession()
+        var viewerStarted = false
+        defer {
+            if !viewerStarted, let evidenceSessionEpoch {
+                _ = hostViewerConcurrencyEvidenceOwner.stopViewerSession(
+                    sessionEpoch: evidenceSessionEpoch
+                )
+            }
+        }
+
         let decoder = LiveHEVCDecoder(
             metrics: metrics,
             output: { [weak renderer] pixelBuffer, _ in renderer?.enqueue(pixelBuffer) }
@@ -3328,6 +3341,24 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 let chrome = chrome
                 let keyboardController = keyboardController
                 let appDelegate = self
+                if let evidenceSessionEpoch {
+                    switch event.state {
+                    case .streaming:
+                        _ = appDelegate?.hostViewerConcurrencyEvidenceOwner
+                            .observeViewerStreaming(
+                                sessionEpoch: evidenceSessionEpoch
+                            )
+                    case .passwordRequired, .authenticationFailed,
+                         .disconnected, .error:
+                        _ = appDelegate?.hostViewerConcurrencyEvidenceOwner
+                            .observeViewerTerminal(
+                                sessionEpoch: evidenceSessionEpoch
+                            )
+                    case .idle, .connecting, .transportReady,
+                         .authenticated, .controlReady:
+                        break
+                    }
+                }
                 DispatchQueue.main.async {
                     if let attemptID, appDelegate?.activeAttemptID != attemptID { return }
                     chrome?.updateState(Self.connectionStateText(event), isError: Self.isErrorState(event.state))
@@ -3380,6 +3411,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         )
         recovery.attach(client)
         try client.connect(configuration)
+        viewerEvidenceSessionEpoch = evidenceSessionEpoch
+        viewerStarted = true
         liveDecoder = decoder
         coreClient = client
         print("CORE_LOADED abi=\(RustDeskCoreClient.abiVersion) upstream=\(client.upstreamCommit) password_source=environment-or-interactive")
@@ -3586,6 +3619,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard !didFinish else { return }
         didFinish = true
         stopHostMode(preservePreference: true, reason: .appExit, releaseClient: true)
+        stopViewerLifecycleEvidence()
         guard let metrics else { return }
         player?.stop()
         keyboardController?.disable(message: nil, isError: false, notify: false)
@@ -3605,6 +3639,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         } catch {
             fputs("failed to write benchmark: \(error)\n", stderr)
         }
+    }
+
+    private func stopViewerLifecycleEvidence() {
+        guard let sessionEpoch = viewerEvidenceSessionEpoch else { return }
+        viewerEvidenceSessionEpoch = nil
+        _ = hostViewerConcurrencyEvidenceOwner.stopViewerSession(
+            sessionEpoch: sessionEpoch
+        )
     }
 }
 
