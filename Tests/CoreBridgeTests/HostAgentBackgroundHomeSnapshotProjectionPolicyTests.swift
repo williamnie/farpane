@@ -217,10 +217,19 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
             ": backgroundSnapshot.localID"
         ))
         XCTAssertTrue(appSource.contains(
-            ": backgroundHostApprovalHomeSnapshot(backgroundSnapshot)"
+            ": backgroundHostApprovalHomeSnapshot("
         ))
         XCTAssertTrue(appSource.contains(
-            ": backgroundHostActiveSessionHomeSnapshot(backgroundSnapshot)"
+            ": backgroundHostActiveSessionHomeSnapshot("
+        ))
+        XCTAssertTrue(appSource.contains(
+            "command: hostAgentBackgroundCommandPresentation"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "isResolving: command.activeAction == .approveIncoming"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "pendingAction: backgroundHostSessionAction("
         ))
         XCTAssertTrue(appSource.contains(
             "mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : \"\""

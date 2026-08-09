@@ -177,6 +177,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         HostAgentBackgroundRegistrationStatus = .serviceUnavailable
     private var hostAgentBackgroundActivationView:
         HostAgentBackgroundActivationView?
+    private var hostAgentBackgroundCommandPresentation =
+        HostAgentBackgroundHomeCommandReadOnlyPresentation.unavailable
     private var hostAgentBackgroundFlow: HostAgentBackgroundHomeFlow?
     private var hostAgentBackgroundOwnershipErrorText = ""
     private var hostPollTimer: Timer?
@@ -216,6 +218,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             observer: { [weak self] view in
                 DispatchQueue.main.async { [weak self] in
                     self?.applyHostAgentBackgroundActivationView(view)
+                }
+            }
+        )
+    private lazy var hostAgentBackgroundCommandPresentationOwner =
+        HostAgentBackgroundHomeCommandPresentationOwner.makeProduct(
+            activationOwner: hostAgentBackgroundActivationOwner,
+            observer: { [weak self] view in
+                DispatchQueue.main.async { [weak self] in
+                    self?.applyHostAgentBackgroundCommandPresentation(view)
                 }
             }
         )
@@ -410,6 +421,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func disableHostAgentBackgroundObservation() {
         hostAgentBackgroundActivationView = nil
         _ = hostAgentBackgroundActivationOwner.apply(.hostDisabled)
+        refreshHostAgentBackgroundCommandPresentation()
     }
 
     @MainActor
@@ -435,6 +447,33 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         case .idle, .starting, .disabled, .terminated:
             break
         }
+        refreshHostAgentBackgroundCommandPresentation()
+        refreshHomeUI()
+    }
+
+    @MainActor
+    private func refreshHostAgentBackgroundCommandPresentation() {
+        _ = hostAgentBackgroundCommandPresentationOwner.refresh()
+        hostAgentBackgroundCommandPresentation =
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+            .presentation(
+                hostAgentBackgroundCommandPresentationOwner.snapshot(),
+                phase: hostAgentBackgroundActivationView?.phase,
+                projection: hostAgentBackgroundActivationView?.projection
+            )
+    }
+
+    @MainActor
+    private func applyHostAgentBackgroundCommandPresentation(
+        _ view: HostAgentBackgroundHomeCommandPresentationView
+    ) {
+        hostAgentBackgroundCommandPresentation =
+            HostAgentBackgroundHomeCommandReadOnlyPresentationPolicy
+            .presentation(
+                view,
+                phase: hostAgentBackgroundActivationView?.phase,
+                projection: hostAgentBackgroundActivationView?.projection
+            )
         refreshHomeUI()
     }
 
@@ -631,7 +670,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 isStreaming: usesLegacyHost && hostMediaRoute != nil,
                 statusText: hostProductStatusText(
                     hostReadiness: hostReadiness,
-                    usesLegacyHost: usesLegacyHost
+                    usesLegacyHost: usesLegacyHost,
+                    backgroundCommand:
+                        hostAgentBackgroundCommandPresentation
                 ),
                 localID: usesLegacyHost
                     ? hostSnapshot?.localId ?? ""
@@ -653,14 +694,22 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     : backgroundSnapshot.permanentPasswordChangeAllowed,
                 pendingApproval: usesLegacyHost
                     ? hostApprovalHomeSnapshot()
-                    : backgroundHostApprovalHomeSnapshot(backgroundSnapshot),
+                    : backgroundHostApprovalHomeSnapshot(
+                        backgroundSnapshot,
+                        command: hostAgentBackgroundCommandPresentation
+                    ),
                 activeSession: usesLegacyHost
                     ? hostActiveSessionHomeSnapshot()
-                    : backgroundHostActiveSessionHomeSnapshot(backgroundSnapshot),
+                    : backgroundHostActiveSessionHomeSnapshot(
+                        backgroundSnapshot,
+                        command: hostAgentBackgroundCommandPresentation
+                    ),
                 mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : "",
                 errorText: combinedHostErrorText(
                     usesLegacyHost: usesLegacyHost,
-                    backgroundSnapshot: backgroundSnapshot
+                    backgroundSnapshot: backgroundSnapshot,
+                    backgroundCommand:
+                        hostAgentBackgroundCommandPresentation
                 )
             )
         ))
@@ -669,7 +718,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func combinedHostErrorText(
         usesLegacyHost: Bool,
         backgroundSnapshot:
-            HostAgentBackgroundHomeSnapshotPresentation
+            HostAgentBackgroundHomeSnapshotPresentation,
+        backgroundCommand:
+            HostAgentBackgroundHomeCommandReadOnlyPresentation
     ) -> String {
         let bootstrapError = hostAgentBootstrapState == .degraded
             ? "后台 Host 配置暂时不可用。"
@@ -685,6 +736,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             hostAgentBackgroundOwnershipErrorText,
             hostAgentBackgroundReadinessErrorText,
             backgroundRuntimeError,
+            usesLegacyHost ? "" : backgroundCommand.errorText,
             bootstrapError,
         ]
             .filter { !$0.isEmpty }
@@ -703,7 +755,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func hostProductStatusText(
         hostReadiness: HostAgentBackgroundHomeReadinessPresentation,
-        usesLegacyHost: Bool
+        usesLegacyHost: Bool,
+        backgroundCommand:
+            HostAgentBackgroundHomeCommandReadOnlyPresentation
     ) -> String {
         if let presentation =
             hostAgentBackgroundUnregistrationPresentation
@@ -712,6 +766,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         if let presentation = hostAgentBackgroundRegistrationPresentation {
             return presentation.statusText
+        }
+        if !usesLegacyHost, !backgroundCommand.statusText.isEmpty {
+            return backgroundCommand.statusText
         }
         return usesLegacyHost ? hostStatusText : hostReadiness.statusText
     }
@@ -1261,7 +1318,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func backgroundHostApprovalHomeSnapshot(
         _ backgroundSnapshot:
-            HostAgentBackgroundHomeSnapshotPresentation
+            HostAgentBackgroundHomeSnapshotPresentation,
+        command:
+            HostAgentBackgroundHomeCommandReadOnlyPresentation
     ) -> HostApprovalHomeSnapshot? {
         guard let pending = backgroundSnapshot.pendingApproval,
               let capabilityNames = hostCapabilityNames(
@@ -1284,14 +1343,17 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 ),
                 "当前版本仅可查看，操作尚未接通",
             ].joined(separator: " · "),
-            isResolving: false,
+            isResolving: command.activeAction == .approveIncoming
+                || command.activeAction == .rejectIncoming,
             allowsCommands: backgroundSnapshot.allowsApprovalCommands
         )
     }
 
     private func backgroundHostActiveSessionHomeSnapshot(
         _ backgroundSnapshot:
-            HostAgentBackgroundHomeSnapshotPresentation
+            HostAgentBackgroundHomeSnapshotPresentation,
+        command:
+            HostAgentBackgroundHomeCommandReadOnlyPresentation
     ) -> HostActiveSessionHomeSnapshot? {
         guard let session = backgroundSnapshot.activeSession,
               let capabilityNames = hostCapabilityNames(
@@ -1334,9 +1396,23 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     && activeCapabilities.contains("writeClipboard"),
             canDisableSystemAudio:
                 activeCapabilities.contains("hearSystemAudio"),
-            pendingAction: nil,
+            pendingAction: backgroundHostSessionAction(
+                command.activeAction
+            ),
             allowsCommands: backgroundSnapshot.allowsSessionCommands
         )
+    }
+
+    private func backgroundHostSessionAction(
+        _ action: HostAgentBackgroundHomeCommandAction?
+    ) -> HostSessionHomeAction? {
+        switch action {
+        case .disableKeyboardAndMouse: return .disableKeyboardAndMouse
+        case .disableClipboard: return .disableClipboard
+        case .disableSystemAudio: return .disableSystemAudio
+        case .disconnect: return .disconnect
+        case .approveIncoming, .rejectIncoming, nil: return nil
+        }
     }
 
     private func hostCapabilityNames(
