@@ -20,6 +20,20 @@ public protocol HostAgentCoreControlSurface: AnyObject {
         softwareFallback: Bool,
         encoderID: String
     ) throws
+    func resolvePendingApproval(
+        connectionID: String,
+        decision: HostApprovalDecision,
+        commandId: String
+    ) throws
+    func disableActiveSessionCapability(
+        _ capability: HostSessionRevocableCapability,
+        connectionID: String,
+        commandId: String
+    ) throws
+    func disconnectSession(
+        connectionID: String,
+        commandId: String
+    ) throws
     func stop(reason: HostStopReason) throws
 }
 
@@ -126,5 +140,32 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
             softwareFallback: softwareFallback,
             encoderID: encoderID
         )
+    }
+
+    package func submit(command: HostAgentCoreCommandSubmission) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard !stopped else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        switch command.action {
+        case .resolveApproval(let decision):
+            try client.resolvePendingApproval(
+                connectionID: command.connectionID,
+                decision: decision,
+                commandId: command.commandID
+            )
+        case .disable(let capability):
+            try client.disableActiveSessionCapability(
+                capability,
+                connectionID: command.connectionID,
+                commandId: command.commandID
+            )
+        case .disconnect:
+            try client.disconnectSession(
+                connectionID: command.connectionID,
+                commandId: command.commandID
+            )
+        }
     }
 }

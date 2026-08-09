@@ -114,4 +114,13 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
             encoderID: encoderID
         )
     }
+
+    package func submit(command: HostAgentCoreCommandSubmission) throws {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard let runtime else {
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        try runtime.submit(command: command)
+    }
 }
