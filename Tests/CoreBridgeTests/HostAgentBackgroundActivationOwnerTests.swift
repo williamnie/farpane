@@ -333,11 +333,159 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         XCTAssertEqual(runtime.refreshCount, 1)
     }
 
+    func testCommandRouteRequiresCoherentProjectionAndExactCurrentTarget()
+        throws
+    {
+        let factory = ActivationRuntimeFactory()
+        let owner = HostAgentBackgroundActivationOwner(
+            makeRuntime: { observer in
+                try factory.make(observer: observer)
+            }
+        )
+        XCTAssertTrue(owner.apply(.hostEnabled))
+        let runtime = factory.runtimes[0]
+        XCTAssertEqual(owner.commandAvailabilitySnapshot(), .unavailable)
+        let projection = try commandProjection(
+            pendingConnectionID: "host-a:pending-1",
+            activeConnectionID: "host-a:session-1"
+        )
+        guard case .available(let projected) = projection.phase else {
+            return XCTFail("expected available projection")
+        }
+        let reconnectRoute = HostAgentXPCReconnectCommandRoute(
+            sessionGeneration: 7,
+            peerIdentity: projected.peerIdentity
+        )
+        runtime.setCommandAvailability(.available(
+            route: reconnectRoute,
+            state: .idle
+        ))
+        runtime.emitProjection(projection)
+
+        guard case .available(let route, let state) =
+            owner.commandAvailabilitySnapshot()
+        else { return XCTFail("expected background command route") }
+        XCTAssertEqual(state, .idle)
+        XCTAssertEqual(route.activationEpoch, 1)
+        XCTAssertEqual(route.projectionGeneration, projection.generation)
+        XCTAssertEqual(route.reconnectRoute, reconnectRoute)
+        let wrongTarget = HostAgentXPCCommandIntent(
+            commandID: "command-wrong",
+            name: .disconnectSession,
+            connectionID: "host-a:session-2"
+        )
+        XCTAssertFalse(owner.submitCommand(
+            route: route,
+            intent: wrongTarget,
+            observer: { _ in }
+        ))
+        let intent = HostAgentXPCCommandIntent(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:session-1"
+        )
+        let results = ActivationCommandResultRecorder()
+        XCTAssertTrue(owner.submitCommand(
+            route: route,
+            intent: intent,
+            observer: { results.append($0) }
+        ))
+        XCTAssertEqual(runtime.submittedIntents, [intent])
+        runtime.publishCommand(.invalidRequest)
+        XCTAssertEqual(results.values, [.invalidRequest])
+
+        let approval = HostAgentXPCCommandIntent(
+            commandID: "command-2",
+            name: .approveIncoming,
+            connectionID: "host-a:pending-1"
+        )
+        runtime.setCommandAvailability(.available(
+            route: reconnectRoute,
+            state: .idle
+        ))
+        XCTAssertTrue(owner.submitCommand(
+            route: route,
+            intent: approval,
+            observer: { _ in }
+        ))
+        XCTAssertEqual(runtime.submittedIntents, [intent, approval])
+        runtime.publishCommand(.invalidRequest)
+        runtime.setCommandAvailability(.available(
+            route: reconnectRoute,
+            state: .retryable(intent)
+        ))
+        guard case .available(let retryRoute, .retryable(let retained)) =
+            owner.commandAvailabilitySnapshot()
+        else { return XCTFail("expected retryable command route") }
+        XCTAssertEqual(retained, intent)
+        XCTAssertTrue(owner.retryCommand(
+            route: retryRoute,
+            observer: { _ in }
+        ))
+        XCTAssertEqual(runtime.retryCount, 1)
+    }
+
+    func testDisableInvalidatesRouteAndCompletesPendingObserverOnce()
+        throws
+    {
+        let factory = ActivationRuntimeFactory()
+        let owner = HostAgentBackgroundActivationOwner(
+            makeRuntime: { observer in
+                try factory.make(observer: observer)
+            }
+        )
+        XCTAssertTrue(owner.apply(.hostEnabled))
+        let runtime = factory.runtimes[0]
+        let projection = try commandProjection(
+            pendingConnectionID: nil,
+            activeConnectionID: "host-a:session-1"
+        )
+        guard case .available(let projected) = projection.phase else {
+            return XCTFail("expected available projection")
+        }
+        runtime.setCommandAvailability(.available(
+            route: HostAgentXPCReconnectCommandRoute(
+                sessionGeneration: 1,
+                peerIdentity: projected.peerIdentity
+            ),
+            state: .idle
+        ))
+        runtime.emitProjection(projection)
+        guard case .available(let route, _) =
+            owner.commandAvailabilitySnapshot()
+        else { return XCTFail("expected route") }
+        let results = ActivationCommandResultRecorder()
+        XCTAssertTrue(owner.submitCommand(
+            route: route,
+            intent: HostAgentXPCCommandIntent(
+                commandID: "command-1",
+                name: .disconnectSession,
+                connectionID: "host-a:session-1"
+            ),
+            observer: { results.append($0) }
+        ))
+
+        XCTAssertTrue(owner.apply(.hostDisabled))
+        runtime.publishLateCommand(.invalidRequest)
+
+        XCTAssertEqual(results.values, [.cancelled])
+        XCTAssertEqual(owner.commandAvailabilitySnapshot(), .unavailable)
+        XCTAssertFalse(owner.retryCommand(
+            route: route,
+            observer: { _ in }
+        ))
+    }
+
     func testProductFactoryAndSourceRemainInertAndIndependentFromLegacyHost()
         throws
     {
         let owner = HostAgentBackgroundActivationOwner.makeProduct()
         XCTAssertEqual(owner.snapshot().phase, .idle)
+        let composition = HostAgentBackgroundRuntimeComposition.makeProduct()
+        XCTAssertEqual(
+            composition.commandAvailabilitySnapshot(),
+            .unavailable
+        )
 
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -355,6 +503,11 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         ))
         XCTAssertTrue(source.contains("reconnectOwner.start()"))
         XCTAssertTrue(source.contains("reconnectOwner.cancel()"))
+        XCTAssertTrue(source.contains(
+            "reconnectOwner.commandAvailabilitySnapshot()"
+        ))
+        XCTAssertTrue(source.contains("reconnectOwner.submitCommand("))
+        XCTAssertTrue(source.contains("reconnectOwner.retryCommand("))
         XCTAssertFalse(source.contains("UserDefaults"))
         XCTAssertFalse(source.contains("HostControlClient"))
         XCTAssertFalse(source.contains("AppKit"))
@@ -364,6 +517,127 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         XCTAssertFalse(source.contains(".unregister()"))
         XCTAssertFalse(source.contains("ProcessInfo"))
         XCTAssertFalse(source.contains("getenv"))
+        let appSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/RustDeskNativeApp.swift"
+            ),
+            encoding: .utf8
+        )
+        XCTAssertFalse(appSource.contains("HostAgentBackgroundCommandRoute"))
+    }
+
+    private func commandProjection(
+        pendingConnectionID: String?,
+        activeConnectionID: String?
+    ) throws -> HostAgentBackgroundProjectionView {
+        let authority = HostAgentBackgroundProjectionAuthority()
+        let binding = authority.beginSession()
+        let peer = try HostAgentXPCSnapshotClientPeerIdentity(
+            agentBuildID: "agent-build",
+            hostInstanceID: "host-a",
+            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7"
+        )
+        binding.sink.publishInitialSnapshot(
+            try commandSnapshot(
+                pendingConnectionID: pendingConnectionID,
+                activeConnectionID: activeConnectionID
+            ),
+            peerIdentity: peer,
+            transition: .firstObservation
+        )
+        return authority.snapshot()
+    }
+
+    private func commandSnapshot(
+        pendingConnectionID: String?,
+        activeConnectionID: String?
+    ) throws -> HostAgentXPCWireSnapshotResponse {
+        let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
+        let request = try HostAgentXPCWireSnapshotRequest(
+            requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
+            wireVersion: 1,
+            hostInstanceID: "host-a",
+            agentBootID: bootID,
+            sentAtUnixMilliseconds: 11
+        )
+        let pending: Any = pendingConnectionID.map { connectionID in
+            [
+                "connectionId": connectionID,
+                "remoteId": "remote-1",
+                "remoteName": "Mini",
+                "remotePlatform": "macOS",
+                "remoteMetadataTrust": "untrusted",
+                "requestedAt": 40,
+                "expiresAt": 80,
+                "requestedCapabilities": [
+                    "viewDisplay", "controlKeyboardMouse",
+                ],
+                "transport": "relay",
+                "authenticationMethod": "localApproval",
+                "riskAlerts": [],
+            ] as [String: Any]
+        } ?? NSNull()
+        let active: Any = activeConnectionID.map { connectionID in
+            [
+                "connectionId": connectionID,
+                "remoteId": "remote-2",
+                "remoteName": "MBP",
+                "remotePlatform": "macOS",
+                "remoteMetadataTrust": "untrusted",
+                "startedAt": 30,
+                "initialCapabilities": [
+                    "viewDisplay", "controlKeyboardMouse",
+                ],
+                "activeCapabilities": [
+                    "viewDisplay", "controlKeyboardMouse",
+                ],
+                "inputAvailability": "available",
+                "inputUnavailableReason": NSNull(),
+            ] as [String: Any]
+        } ?? NSNull()
+        let state = HostAgentSnapshotState()
+        _ = state.publish(
+            try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+                withJSONObject: [
+                    "schemaVersion": 5,
+                    "hostInstanceId": "host-a",
+                    "hostState": "ready",
+                    "localId": "123456789",
+                    "registrationStatus": "ready",
+                    "pendingApproval": pending,
+                    "activeSession": active,
+                    "temporaryPasswordPresentation": ["policy": "redacted"],
+                    "passwordPolicy": [
+                        "localPasswordSet": true,
+                        "effectivePasswordSet": true,
+                        "usingPresetPassword": false,
+                        "changeAllowed": true,
+                        "strengthPolicy": [
+                            "version": 1,
+                            "minimumCharacters": 6,
+                            "maximumCharacters": 128,
+                            "maximumUtf8Bytes": 512,
+                            "rejectsControlCharacters": true,
+                            "rejectsOuterWhitespace": true,
+                        ],
+                    ],
+                    "lastError": NSNull(),
+                    "observedAt": 10,
+                ]
+            )),
+            eventSequence: 1,
+            expectedHostInstanceID: "host-a"
+        )
+        return try HostAgentXPCWireSnapshotResponse.make(
+            for: request,
+            identity: HostAgentXPCWireAgentIdentity(
+                agentBuildID: "agent-build",
+                hostInstanceID: "host-a",
+                agentBootID: bootID
+            ),
+            state: state.snapshot(),
+            sentAtUnixMilliseconds: 21
+        )
     }
 }
 
@@ -423,6 +697,13 @@ private final class ActivationFakeRuntime:
     private var cancels = 0
     private var refreshes = 0
     private var projection: HostAgentBackgroundProjectionView?
+    private var commandAvailability:
+        HostAgentXPCReconnectCommandAvailability = .unavailable
+    private var commandIntents: [HostAgentXPCCommandIntent] = []
+    private var commandRetries = 0
+    private var commandObserver: HostAgentXPCSnapshotClient.CommandObserver?
+    private var lastCommandObserver:
+        HostAgentXPCSnapshotClient.CommandObserver?
 
     init(
         observer: @escaping HostAgentBackgroundHealthAuthority.Observer,
@@ -439,6 +720,10 @@ private final class ActivationFakeRuntime:
     var startCount: Int { locked { starts } }
     var cancelCount: Int { locked { cancels } }
     var refreshCount: Int { locked { refreshes } }
+    var submittedIntents: [HostAgentXPCCommandIntent] {
+        locked { commandIntents }
+    }
+    var retryCount: Int { locked { commandRetries } }
 
     func readinessSnapshot() -> HostAgentBackgroundReadinessView {
         lock.lock()
@@ -449,6 +734,52 @@ private final class ActivationFakeRuntime:
 
     func projectionSnapshot() -> HostAgentBackgroundProjectionView? {
         locked { projection }
+    }
+
+    func commandAvailabilitySnapshot()
+        -> HostAgentXPCReconnectCommandAvailability
+    {
+        locked { commandAvailability }
+    }
+
+    func submitCommand(
+        route: HostAgentXPCReconnectCommandRoute,
+        intent: HostAgentXPCCommandIntent,
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool {
+        lock.lock()
+        guard commandAvailability == .available(route: route, state: .idle)
+        else {
+            lock.unlock()
+            return false
+        }
+        commandIntents.append(intent)
+        commandObserver = observer
+        lastCommandObserver = observer
+        commandAvailability = .available(
+            route: route,
+            state: .pausing(intent)
+        )
+        lock.unlock()
+        return true
+    }
+
+    func retryCommand(
+        route: HostAgentXPCReconnectCommandRoute,
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool {
+        lock.lock()
+        guard case .available(route: route, state: .retryable) =
+            commandAvailability
+        else {
+            lock.unlock()
+            return false
+        }
+        commandObserver = observer
+        lastCommandObserver = observer
+        commandRetries += 1
+        lock.unlock()
+        return true
     }
 
     func startMonitoring() -> Bool {
@@ -470,7 +801,11 @@ private final class ActivationFakeRuntime:
     func cancelMonitoring() {
         lock.lock()
         cancels += 1
+        commandAvailability = .unavailable
+        let commandObserver = self.commandObserver
+        self.commandObserver = nil
         lock.unlock()
+        commandObserver?(.cancelled)
     }
 
     func replaceObserver(
@@ -511,6 +846,26 @@ private final class ActivationFakeRuntime:
         lock.unlock()
     }
 
+    func setCommandAvailability(
+        _ availability: HostAgentXPCReconnectCommandAvailability
+    ) {
+        lock.lock()
+        commandAvailability = availability
+        lock.unlock()
+    }
+
+    func publishCommand(_ result: HostAgentXPCSnapshotClientCommandResult) {
+        let observer = locked { commandObserver }
+        observer?(result)
+    }
+
+    func publishLateCommand(
+        _ result: HostAgentXPCSnapshotClientCommandResult
+    ) {
+        let observer = locked { lastCommandObserver }
+        observer?(result)
+    }
+
     func emitInvalid(projectionGeneration: UInt64) {
         lock.lock()
         let authority = healthAuthority
@@ -541,6 +896,23 @@ private final class ActivationViewRecorder: @unchecked Sendable {
     }
 
     func append(_ value: HostAgentBackgroundActivationView) {
+        lock.lock()
+        storage.append(value)
+        lock.unlock()
+    }
+}
+
+private final class ActivationCommandResultRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [HostAgentXPCSnapshotClientCommandResult] = []
+
+    var values: [HostAgentXPCSnapshotClientCommandResult] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+
+    func append(_ value: HostAgentXPCSnapshotClientCommandResult) {
         lock.lock()
         storage.append(value)
         lock.unlock()
