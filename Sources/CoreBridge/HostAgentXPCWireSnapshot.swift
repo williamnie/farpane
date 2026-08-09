@@ -633,6 +633,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
     package let schemaVersion: Int
     package let hostState: String
     package let localID: String
+    package let sessionAvailability: HostSessionAvailability
+    package let sessionUnavailableReason: HostSessionUnavailableReason?
     package let registrationStatus: String
     package let recoveryEpoch: UInt64
     package let recoveryStatus: HostRecoveryStatus
@@ -664,11 +666,11 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             activeSession = nil
         }
         try self.init(
-            // H5.2d retains the schema-7 Aqua tuple in the Agent projection.
-            // The versioned XPC propagation is the next bounded checkpoint.
-            schemaVersion: 6,
+            schemaVersion: 7,
             hostState: projection.hostState,
             localID: projection.localID,
+            sessionAvailability: projection.sessionAvailability,
+            sessionUnavailableReason: projection.sessionUnavailableReason,
             registrationStatus: projection.registrationStatus,
             recoveryEpoch: projection.recoveryEpoch,
             recoveryStatus: projection.recoveryStatus,
@@ -688,7 +690,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         hostInstanceID: String
     ) throws {
         guard Set(document.keys) == Set([
-            "schemaVersion", "hostState", "localId", "registrationStatus",
+            "schemaVersion", "hostState", "localId", "sessionAvailability",
+            "sessionUnavailableReason", "registrationStatus",
             "recoveryEpoch", "recoveryStatus",
             "pendingApproval", "activeSession", "temporaryPasswordPolicy",
             "passwordPolicy", "lastError", "observedAt",
@@ -698,6 +701,11 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             ),
             let hostState = document["hostState"] as? String,
             let localID = document["localId"] as? String,
+            let sessionAvailabilityValue =
+                document["sessionAvailability"] as? String,
+            let sessionAvailability = HostSessionAvailability(
+                rawValue: sessionAvailabilityValue
+            ),
             let registrationStatus = document["registrationStatus"] as? String,
             let recoveryEpoch = HostAgentXPCWireSnapshotContract.strictUInt64(
                 document["recoveryEpoch"]
@@ -712,6 +720,16 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
                 document["observedAt"]
             )
         else {
+            throw HostAgentXPCWireSnapshotDocumentError.invalidDocument
+        }
+        let sessionUnavailableReason: HostSessionUnavailableReason?
+        if document["sessionUnavailableReason"] is NSNull {
+            sessionUnavailableReason = nil
+        } else if let value = document["sessionUnavailableReason"] as? String,
+                  let reason = HostSessionUnavailableReason(rawValue: value)
+        {
+            sessionUnavailableReason = reason
+        } else {
             throw HostAgentXPCWireSnapshotDocumentError.invalidDocument
         }
         let pendingApproval: HostAgentXPCWirePendingApproval?
@@ -744,6 +762,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             schemaVersion: schemaVersion,
             hostState: hostState,
             localID: localID,
+            sessionAvailability: sessionAvailability,
+            sessionUnavailableReason: sessionUnavailableReason,
             registrationStatus: registrationStatus,
             recoveryEpoch: recoveryEpoch,
             recoveryStatus: recoveryStatus,
@@ -762,6 +782,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         schemaVersion: Int,
         hostState: String,
         localID: String,
+        sessionAvailability: HostSessionAvailability,
+        sessionUnavailableReason: HostSessionUnavailableReason?,
         registrationStatus: String,
         recoveryEpoch: UInt64,
         recoveryStatus: HostRecoveryStatus,
@@ -800,7 +822,14 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             recoveryContractIsValid = hostState == "error"
                 && registrationStatus == "degraded"
         }
-        guard schemaVersion == 6,
+        let sessionAvailabilityIsValid: Bool
+        switch (sessionAvailability, sessionUnavailableReason) {
+        case (.available, nil), (.limited, .sessionUnavailable):
+            sessionAvailabilityIsValid = true
+        default:
+            sessionAvailabilityIsValid = false
+        }
+        guard schemaVersion == 7,
               HostAgentXPCWireSnapshotContract.allowedHostStates.contains(
                 hostState
               ),
@@ -815,6 +844,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
               HostAgentXPCWireSnapshotContract.allowedRegistrationStatuses
                 .contains(registrationStatus),
               temporaryPasswordPolicy == "redacted",
+              sessionAvailabilityIsValid,
               recoveryContractIsValid,
               lastErrorIsValid,
               HostAgentXPCWireSnapshotContract.validTimestamp(observedAt)
@@ -824,6 +854,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         self.schemaVersion = schemaVersion
         self.hostState = hostState
         self.localID = localID
+        self.sessionAvailability = sessionAvailability
+        self.sessionUnavailableReason = sessionUnavailableReason
         self.registrationStatus = registrationStatus
         self.recoveryEpoch = recoveryEpoch
         self.recoveryStatus = recoveryStatus
@@ -840,6 +872,9 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             "schemaVersion": schemaVersion,
             "hostState": hostState,
             "localId": localID,
+            "sessionAvailability": sessionAvailability.rawValue,
+            "sessionUnavailableReason": sessionUnavailableReason?.rawValue
+                ?? NSNull(),
             "registrationStatus": registrationStatus,
             "recoveryEpoch": recoveryEpoch,
             "recoveryStatus": recoveryStatus.rawValue,

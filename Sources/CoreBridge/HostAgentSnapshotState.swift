@@ -175,6 +175,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
 
     private let lock = NSCondition()
     private let state: HostAgentSnapshotState
+    private let eventState: HostAgentEventState?
     private var copySnapshot: (() throws -> HostCoreSnapshot)?
     private var onIdentityInvalidationRequired:
         ((HostAgentSnapshotIdentityInvalidationReason) -> Void)?
@@ -187,8 +188,12 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
     private var latestEventSequence: UInt64 = 0
     private var latestHostInstanceID: String?
 
-    package init(state: HostAgentSnapshotState) {
+    package init(
+        state: HostAgentSnapshotState,
+        eventState: HostAgentEventState? = nil
+    ) {
         self.state = state
+        self.eventState = eventState
     }
 
     @discardableResult
@@ -342,12 +347,17 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
                       snapshot.recoveryStatus == recoveryStatus,
                       snapshot.registrationStatus == registrationStatus
             {
+                let previousProjection = state.snapshot().projection
                 if case .published = state.publish(
                     snapshot,
                     eventSequence: request.eventSequence,
                     expectedHostInstanceID: expectedHostInstanceID
                 ) {
-                    accepted = true
+                    accepted = publishSessionTransitionIfNeeded(
+                        from: previousProjection,
+                        to: snapshot,
+                        request: request
+                    )
                 } else {
                     accepted = false
                 }
@@ -392,6 +402,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         while true {
             do {
                 let snapshot = try copySnapshot()
+                let previousProjection = state.snapshot().projection
                 let result = state.publish(
                     snapshot,
                     eventSequence: request.eventSequence,
@@ -399,6 +410,12 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
                 )
                 if result == .rejected(.hostInstanceMismatch) {
                     requireIdentityInvalidation(.hostInstanceMismatch)
+                } else if case .published = result {
+                    publishSessionTransitionIfNeeded(
+                        from: previousProjection,
+                        to: snapshot,
+                        request: request
+                    )
                 }
             } catch {
                 state.recordCopyFailure(eventSequence: request.eventSequence)
@@ -494,6 +511,51 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         let request = pending
         pending = nil
         return request
+    }
+
+    @discardableResult
+    private func publishSessionTransitionIfNeeded(
+        from previous: HostAgentSnapshotProjection?,
+        to snapshot: HostCoreSnapshot,
+        request: RefreshRequest
+    ) -> Bool {
+        guard let previous,
+              previous.sessionAvailability != snapshot.sessionAvailability
+                || previous.sessionUnavailableReason
+                    != snapshot.sessionUnavailableReason,
+              let eventState
+        else { return true }
+
+        let result = eventState.ingestSnapshotChanged(
+            hostInstanceID: snapshot.hostInstanceId,
+            sentAtUnixMilliseconds: snapshot.observedAt
+        )
+        guard case .accepted(let sequence) = result else {
+            state.recordCopyFailure(eventSequence: request.eventSequence)
+            requireIdentityInvalidation(.copyFailed)
+            return false
+        }
+
+        lock.lock()
+        if sequence >= latestEventSequence {
+            latestEventSequence = sequence
+            latestHostInstanceID = snapshot.hostInstanceId
+        }
+        if let pending {
+            if sequence >= pending.eventSequence {
+                self.pending = RefreshRequest(
+                    eventSequence: sequence,
+                    hostInstanceID: snapshot.hostInstanceId
+                )
+            }
+        } else {
+            pending = RefreshRequest(
+                eventSequence: sequence,
+                hostInstanceID: snapshot.hostInstanceId
+            )
+        }
+        lock.unlock()
+        return true
     }
 
     private func requireIdentityInvalidation(

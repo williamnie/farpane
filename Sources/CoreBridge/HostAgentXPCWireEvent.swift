@@ -315,6 +315,12 @@ package enum HostAgentXPCWireEventContract {
     ) throws -> EventProjection {
         let event: HostCoreEvent
         switch record.payload {
+        case .snapshotChanged(let sentAtUnixMilliseconds):
+            return .event(try HostAgentXPCWireEvent(
+                eventID: record.sequence,
+                sentAtUnixMilliseconds: sentAtUnixMilliseconds,
+                payload: .snapshotChanged
+            ))
         case .commandResult(let result, let sentAtUnixMilliseconds):
             return .event(try HostAgentXPCWireEvent(
                 eventID: record.sequence,

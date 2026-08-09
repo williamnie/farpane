@@ -16,7 +16,8 @@ enum HostAgentProcess {
         mediaState: HostAgentMediaControlState
     ) -> HostAgentProcessRunResult {
         let snapshotCoordinator = HostAgentSnapshotRefreshCoordinator(
-            state: snapshotState
+            state: snapshotState,
+            eventState: eventState
         )
         let pollingOwner = HostAgentSnapshotPollingOwner(
             snapshotCoordinator: snapshotCoordinator

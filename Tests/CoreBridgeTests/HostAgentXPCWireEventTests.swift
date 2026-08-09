@@ -141,6 +141,40 @@ final class HostAgentXPCWireEventTests: XCTestCase {
         XCTAssertEqual(response.evaluate(for: request), .correlated)
     }
 
+    func testAgentLocalSnapshotChangeProjectsWithoutPayloadOrCoreEnvelope()
+        throws
+    {
+        let state = try HostAgentEventState(capacity: 2, maximumEventBytes: 4_096)
+        XCTAssertEqual(
+            state.ingestSnapshotChanged(
+                hostInstanceID: hostID,
+                sentAtUnixMilliseconds: 1_700_000_000_000
+            ),
+            .accepted(sequence: 1)
+        )
+        let request = try cursorRequest(maximumEventCount: 2)
+        let response = try HostAgentXPCWireEventCursorResponse.make(
+            for: request,
+            identity: try identity(),
+            replay: state.replay(afterSequence: 0, limit: 2),
+            sentAtUnixMilliseconds: 20
+        )
+
+        XCTAssertEqual(response.outcome, .batch)
+        XCTAssertEqual(response.events.map(\.eventID), [1])
+        XCTAssertEqual(response.events.first?.payload, .snapshotChanged)
+        XCTAssertEqual(
+            response.events.first?.sentAtUnixMilliseconds,
+            1_700_000_000_000
+        )
+        let text = try XCTUnwrap(String(
+            data: response.encoded(),
+            encoding: .utf8
+        ))
+        XCTAssertTrue(text.contains("\"payload\":{}"))
+        XCTAssertFalse(text.contains("rawJSON"))
+    }
+
     func testBatchPreservesReplayPaginationCursorAndHasMore() throws {
         let state = try HostAgentEventState(capacity: 4, maximumEventBytes: 4_096)
         for eventID in 1...3 {

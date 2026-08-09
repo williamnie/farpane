@@ -237,7 +237,7 @@ def main() -> int:
             for marker in (
                 '"recoveryEpoch": recoveryEpoch',
                 '"recoveryStatus": recoveryStatus.rawValue',
-                "guard schemaVersion == 6",
+                "guard schemaVersion == 7",
             )
         ),
         "terminalStopRemainsDistinct": (

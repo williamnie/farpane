@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
-    def test_core_contract_and_remaining_product_boundary_are_frozen(self):
+    def test_xpc_transition_and_remaining_product_boundary_are_frozen(self):
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -27,8 +27,8 @@ class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
             document["schema"],
             "farpane-host-session-availability-contract-audit",
         )
-        self.assertEqual(document["schemaVersion"], 2)
-        self.assertEqual(document["status"], "core-contract-implemented")
+        self.assertEqual(document["schemaVersion"], 3)
+        self.assertEqual(document["status"], "xpc-transition-implemented")
         self.assertEqual(document["missingEvidence"], [])
 
         implementation = document["implementation"]
@@ -64,7 +64,9 @@ class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
         self.assertFalse(
             remaining["backgroundMediaSuspensionNotImplementedByAudit"]
         )
-        self.assertTrue(remaining["xpcTransitionProjectionNotImplementedByAudit"])
+        self.assertFalse(
+            remaining["xpcTransitionProjectionNotImplementedByAudit"]
+        )
         self.assertTrue(
             remaining["installedLockLoginWindowFUSAcceptanceStillRequired"]
         )

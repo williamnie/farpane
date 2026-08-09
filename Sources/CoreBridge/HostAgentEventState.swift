@@ -20,6 +20,7 @@ package enum HostAgentEventIngestResult: Equatable, Sendable {
 
 package enum HostAgentEventRecordPayload: Sendable {
     case core(HostCoreEvent)
+    case snapshotChanged(sentAtUnixMilliseconds: UInt64)
     case commandResult(
         HostAgentXPCWireCommandResult,
         sentAtUnixMilliseconds: UInt64
@@ -33,6 +34,16 @@ package struct HostAgentEventRecord: Sendable {
     package init(sequence: UInt64, event: HostCoreEvent) {
         self.sequence = sequence
         payload = .core(event)
+    }
+
+    package init(
+        sequence: UInt64,
+        snapshotChangedAtUnixMilliseconds: UInt64
+    ) {
+        self.sequence = sequence
+        payload = .snapshotChanged(
+            sentAtUnixMilliseconds: snapshotChangedAtUnixMilliseconds
+        )
     }
 
     package init(
@@ -66,6 +77,24 @@ package enum HostAgentCommandResultJournalIngestResult:
     case accepted(sequence: UInt64)
     case unchanged(sequence: UInt64)
     case rejected(HostAgentCommandResultJournalRejectionReason)
+}
+
+package enum HostAgentSnapshotChangeJournalRejectionReason:
+    Equatable,
+    Sendable
+{
+    case invalidHostInstance
+    case invalidTimestamp
+    case foreignHostInstance
+    case sequenceExhausted
+}
+
+package enum HostAgentSnapshotChangeJournalIngestResult:
+    Equatable,
+    Sendable
+{
+    case accepted(sequence: UInt64)
+    case rejected(HostAgentSnapshotChangeJournalRejectionReason)
 }
 
 package enum HostAgentEventReplayError: Error, Equatable {
@@ -222,6 +251,48 @@ package final class HostAgentEventState: @unchecked Sendable {
         return .accepted(sequence: sequence)
     }
 
+    /// Appends an Agent-local, payload-free resnapshot marker when a periodic
+    /// authoritative Core snapshot changes semantic session availability
+    /// without emitting a Core event of its own.
+    @discardableResult
+    package func ingestSnapshotChanged(
+        hostInstanceID candidateHostInstanceID: String,
+        sentAtUnixMilliseconds: UInt64
+    ) -> HostAgentSnapshotChangeJournalIngestResult {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard HostAgentXPCWireHandshakeContract.validIdentifier(
+            candidateHostInstanceID
+        ) else {
+            return rejectSnapshotChange(.invalidHostInstance)
+        }
+        guard HostAgentXPCWireEventContract.validTimestamp(
+            sentAtUnixMilliseconds
+        ) else {
+            return rejectSnapshotChange(.invalidTimestamp)
+        }
+        if let hostInstanceID,
+           hostInstanceID != candidateHostInstanceID
+        {
+            return rejectSnapshotChange(.foreignHostInstance)
+        }
+        guard latestSequence < UInt64.max else {
+            return rejectSnapshotChange(.sequenceExhausted)
+        }
+
+        if hostInstanceID == nil {
+            hostInstanceID = candidateHostInstanceID
+        }
+        latestSequence += 1
+        records.append(HostAgentEventRecord(
+            sequence: latestSequence,
+            snapshotChangedAtUnixMilliseconds: sentAtUnixMilliseconds
+        ))
+        evictIfNeededLocked()
+        return .accepted(sequence: latestSequence)
+    }
+
     /// Forwards only accepted events. Ingest releases the state lock before
     /// this callback runs, so downstream consumers may safely snapshot state.
     @discardableResult
@@ -306,12 +377,21 @@ package final class HostAgentEventState: @unchecked Sendable {
         return .rejected(reason)
     }
 
+    private func rejectSnapshotChange(
+        _ reason: HostAgentSnapshotChangeJournalRejectionReason
+    ) -> HostAgentSnapshotChangeJournalIngestResult {
+        incrementSaturating(&rejectedEventCount)
+        return .rejected(reason)
+    }
+
     private func evictIfNeededLocked() {
         guard records.count > capacity else { return }
         let evicted = records.removeFirst()
         switch evicted.payload {
         case .core(let event):
             retainedEventIDs.remove(event.eventId)
+        case .snapshotChanged:
+            break
         case .commandResult(let result, _):
             if retainedCommandResults[result.commandID]?.sequence
                 == evicted.sequence
