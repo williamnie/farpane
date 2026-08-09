@@ -5,6 +5,8 @@ package enum HostMediaPipelineRecoveryStatus: Equatable, Sendable {
   case suspending
   case suspended
   case awaitingFreshRoute
+  case rebuildingFreshRoute
+  case stoppingFreshRoute
   case failed
   case cancelling
   case cancelled
@@ -14,6 +16,14 @@ package struct HostMediaPipelineRecoverySnapshot: Equatable, Sendable {
   package let status: HostMediaPipelineRecoveryStatus
   package let epoch: UInt64
   package let previousRoute: HostMediaPipelineRouteIdentity?
+  package let candidateRoute: HostMediaPipelineRouteIdentity?
+}
+
+package enum HostMediaPipelineRecoveryConvergence: Equatable, Sendable {
+  case unavailable
+  case pending
+  case converged
+  case failed
 }
 
 /// Adds a nonterminal sleep boundary around the process-owned media route.
@@ -30,9 +40,19 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
       epoch: UInt64,
       previousRoute: HostMediaPipelineRouteIdentity
     )
-    case resuming(
+    case schedulingFreshRoute(
       epoch: UInt64,
-      previousRoute: HostMediaPipelineRouteIdentity
+      previousRoute: HostMediaPipelineRouteIdentity,
+      candidateRoute: HostMediaPipelineRouteIdentity
+    )
+    case rebuildingFreshRoute(
+      epoch: UInt64,
+      previousRoute: HostMediaPipelineRouteIdentity,
+      candidateRoute: HostMediaPipelineRouteIdentity
+    )
+    case stoppingFreshRoute(
+      epoch: UInt64,
+      candidateRoute: HostMediaPipelineRouteIdentity
     )
     case failed(epoch: UInt64)
     case cancelling(epoch: UInt64)
@@ -61,7 +81,9 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
     switch state {
     case .active, .awaitingFreshRoute:
       return true
-    case .suspending, .suspended, .resuming, .failed, .cancelling, .cancelled:
+    case .suspending, .suspended, .schedulingFreshRoute,
+         .rebuildingFreshRoute, .stoppingFreshRoute, .failed,
+         .cancelling, .cancelled:
       return false
     }
   }
@@ -78,9 +100,15 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
         condition.unlock()
         return false
       }
-      state = .resuming(epoch: epoch, previousRoute: previousRoute)
+      state = .schedulingFreshRoute(
+        epoch: epoch,
+        previousRoute: previousRoute,
+        candidateRoute: route.identity
+      )
       admission = .recovery(epoch: epoch, previousRoute: previousRoute)
-    case .suspending, .suspended, .resuming, .failed, .cancelling, .cancelled:
+    case .suspending, .suspended, .schedulingFreshRoute,
+         .rebuildingFreshRoute, .stoppingFreshRoute, .failed,
+         .cancelling, .cancelled:
       condition.unlock()
       return false
     }
@@ -95,9 +123,17 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
     case .active:
       break
     case .recovery(let epoch, let previousRoute):
-      if case .resuming(epoch, previousRoute) = state {
+      if case .schedulingFreshRoute(
+        epoch,
+        previousRoute,
+        route.identity
+      ) = state {
         state = accepted
-          ? .active(epoch: epoch)
+          ? .rebuildingFreshRoute(
+            epoch: epoch,
+            previousRoute: previousRoute,
+            candidateRoute: route.identity
+          )
           : .awaitingFreshRoute(epoch: epoch, previousRoute: previousRoute)
       }
     }
@@ -138,7 +174,34 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
       condition.unlock()
       return true
 
-    case .suspending, .suspended, .awaitingFreshRoute, .resuming,
+    case .rebuildingFreshRoute(
+      let epoch,
+      let previousRoute,
+      let candidateRoute
+    ) where candidateRoute == route:
+      state = .stoppingFreshRoute(
+        epoch: epoch,
+        candidateRoute: candidateRoute
+      )
+      controlInFlight += 1
+      condition.unlock()
+      let accepted = routeOwner.stop(route: route)
+      condition.lock()
+      controlInFlight -= 1
+      if !accepted,
+         case .stoppingFreshRoute(epoch, candidateRoute) = state {
+        state = .rebuildingFreshRoute(
+          epoch: epoch,
+          previousRoute: previousRoute,
+          candidateRoute: candidateRoute
+        )
+      }
+      condition.broadcast()
+      condition.unlock()
+      return accepted
+
+    case .suspending, .suspended, .awaitingFreshRoute,
+         .schedulingFreshRoute, .rebuildingFreshRoute, .stoppingFreshRoute,
          .failed, .cancelling, .cancelled:
       condition.unlock()
       return false
@@ -215,6 +278,66 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
     return true
   }
 
+  /// Samples the real route owner after an asynchronous fresh reconfigure.
+  /// Queued work is pending, an exact active route is converged, and an idle
+  /// owner without that route is a fail-closed start failure.
+  package func pollRecoveryConvergence()
+    -> HostMediaPipelineRecoveryConvergence
+  {
+    condition.lock()
+    let expected = state
+    switch expected {
+    case .active:
+      condition.unlock()
+      return .converged
+    case .awaitingFreshRoute, .schedulingFreshRoute:
+      condition.unlock()
+      return .pending
+    case .rebuildingFreshRoute, .stoppingFreshRoute:
+      break
+    case .failed, .cancelling, .cancelled:
+      condition.unlock()
+      return .failed
+    case .suspending, .suspended:
+      condition.unlock()
+      return .unavailable
+    }
+    condition.unlock()
+
+    let routeSnapshot = routeOwner.snapshot()
+
+    condition.lock()
+    defer { condition.unlock() }
+    guard Self.sameTransition(state, expected) else {
+      return Self.convergence(for: state)
+    }
+    guard routeSnapshot.pendingOperationCount == 0 else {
+      return .pending
+    }
+    switch expected {
+    case .rebuildingFreshRoute(let epoch, _, let candidateRoute):
+      guard routeSnapshot.desiredRoute == candidateRoute,
+            routeSnapshot.activeRoute == candidateRoute
+      else {
+        state = .failed(epoch: epoch)
+        return .failed
+      }
+      state = .active(epoch: epoch)
+      return .converged
+    case .stoppingFreshRoute(let epoch, _):
+      guard routeSnapshot.desiredRoute == nil,
+            routeSnapshot.activeRoute == nil
+      else {
+        state = .failed(epoch: epoch)
+        return .failed
+      }
+      state = .active(epoch: epoch)
+      return .converged
+    default:
+      return Self.convergence(for: state)
+    }
+  }
+
   package func routeIdentities() -> [HostMediaPipelineRouteIdentity] {
     var routes = routeOwner.routeIdentities()
     condition.lock()
@@ -222,9 +345,13 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
     switch state {
     case .suspended(_, let route):
       previousRoute = route
-    case .awaitingFreshRoute(_, let route), .resuming(_, let route):
+    case .awaitingFreshRoute(_, let route):
       previousRoute = route
-    case .active, .suspending, .failed, .cancelling, .cancelled:
+    case .schedulingFreshRoute(_, let route, _),
+         .rebuildingFreshRoute(_, let route, _):
+      previousRoute = route
+    case .active, .suspending, .stoppingFreshRoute,
+         .failed, .cancelling, .cancelled:
       previousRoute = nil
     }
     condition.unlock()
@@ -239,20 +366,69 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
     defer { condition.unlock() }
     switch state {
     case .active(let epoch):
-      return .init(status: .active, epoch: epoch, previousRoute: nil)
+      return .init(
+        status: .active,
+        epoch: epoch,
+        previousRoute: nil,
+        candidateRoute: nil
+      )
     case .suspending(let epoch):
-      return .init(status: .suspending, epoch: epoch, previousRoute: nil)
+      return .init(
+        status: .suspending,
+        epoch: epoch,
+        previousRoute: nil,
+        candidateRoute: nil
+      )
     case .suspended(let epoch, let route):
-      return .init(status: .suspended, epoch: epoch, previousRoute: route)
-    case .awaitingFreshRoute(let epoch, let route),
-         .resuming(let epoch, let route):
-      return .init(status: .awaitingFreshRoute, epoch: epoch, previousRoute: route)
+      return .init(
+        status: .suspended,
+        epoch: epoch,
+        previousRoute: route,
+        candidateRoute: nil
+      )
+    case .awaitingFreshRoute(let epoch, let route):
+      return .init(
+        status: .awaitingFreshRoute,
+        epoch: epoch,
+        previousRoute: route,
+        candidateRoute: nil
+      )
+    case .schedulingFreshRoute(let epoch, let previous, let candidate),
+         .rebuildingFreshRoute(let epoch, let previous, let candidate):
+      return .init(
+        status: .rebuildingFreshRoute,
+        epoch: epoch,
+        previousRoute: previous,
+        candidateRoute: candidate
+      )
+    case .stoppingFreshRoute(let epoch, let candidate):
+      return .init(
+        status: .stoppingFreshRoute,
+        epoch: epoch,
+        previousRoute: nil,
+        candidateRoute: candidate
+      )
     case .failed(let epoch):
-      return .init(status: .failed, epoch: epoch, previousRoute: nil)
+      return .init(
+        status: .failed,
+        epoch: epoch,
+        previousRoute: nil,
+        candidateRoute: nil
+      )
     case .cancelling(let epoch):
-      return .init(status: .cancelling, epoch: epoch, previousRoute: nil)
+      return .init(
+        status: .cancelling,
+        epoch: epoch,
+        previousRoute: nil,
+        candidateRoute: nil
+      )
     case .cancelled(let epoch):
-      return .init(status: .cancelled, epoch: epoch, previousRoute: nil)
+      return .init(
+        status: .cancelled,
+        epoch: epoch,
+        previousRoute: nil,
+        candidateRoute: nil
+      )
     }
   }
 
@@ -272,7 +448,10 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
       condition.unlock()
       return
     case .active(let value), .suspending(let value), .suspended(let value, _),
-         .awaitingFreshRoute(let value, _), .resuming(let value, _),
+         .awaitingFreshRoute(let value, _),
+         .schedulingFreshRoute(let value, _, _),
+         .rebuildingFreshRoute(let value, _, _),
+         .stoppingFreshRoute(let value, _),
          .failed(let value):
       epoch = value
       state = .cancelling(epoch: value)
@@ -315,5 +494,40 @@ package final class HostMediaPipelineRecoveryOwner: @unchecked Sendable {
     candidate.connectionEpoch > previous.connectionEpoch
       || (candidate.connectionEpoch == previous.connectionEpoch
         && candidate.codecEpoch > previous.codecEpoch)
+  }
+
+  private static func sameTransition(_ lhs: State, _ rhs: State) -> Bool {
+    switch (lhs, rhs) {
+    case let (
+      .rebuildingFreshRoute(lhsEpoch, lhsPrevious, lhsCandidate),
+      .rebuildingFreshRoute(rhsEpoch, rhsPrevious, rhsCandidate)
+    ):
+      return lhsEpoch == rhsEpoch
+        && lhsPrevious == rhsPrevious
+        && lhsCandidate == rhsCandidate
+    case let (
+      .stoppingFreshRoute(lhsEpoch, lhsCandidate),
+      .stoppingFreshRoute(rhsEpoch, rhsCandidate)
+    ):
+      return lhsEpoch == rhsEpoch && lhsCandidate == rhsCandidate
+    default:
+      return false
+    }
+  }
+
+  private static func convergence(
+    for state: State
+  ) -> HostMediaPipelineRecoveryConvergence {
+    switch state {
+    case .active:
+      return .converged
+    case .awaitingFreshRoute, .schedulingFreshRoute,
+         .rebuildingFreshRoute, .stoppingFreshRoute:
+      return .pending
+    case .failed, .cancelling, .cancelled:
+      return .failed
+    case .suspending, .suspended:
+      return .unavailable
+    }
   }
 }

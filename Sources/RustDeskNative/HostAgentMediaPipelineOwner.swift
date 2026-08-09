@@ -204,6 +204,14 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         recoveryOwner.resumeAfterWake()
     }
 
+    /// Authoritative post-wake gate. Queued fresh routes remain pending until
+    /// the real route owner reports the exact candidate active.
+    func pollMediaRecoveryConvergence()
+        -> HostMediaPipelineRecoveryConvergence
+    {
+        recoveryOwner.pollRecoveryConvergence()
+    }
+
     /// Consumes only already-sanitized Rust media diagnostics. Non-media
     /// events are ignored; malformed or stale media diagnostics are counted
     /// but never mutate another route's telemetry.
