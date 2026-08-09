@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "viewer-automatic-recovery-composed",
+            "viewer-boundary-host-reaffirmation-composed",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -97,6 +97,10 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["applicationViewerRecoveryIsBoundedAndCredentialSafe"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationViewerBoundaryReaffirmsExactCoherentHostState"]
         )
         self.assertTrue(
             document["evidence"]

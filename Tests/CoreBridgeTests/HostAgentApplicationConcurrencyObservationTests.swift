@@ -102,6 +102,39 @@ final class HostAgentApplicationConcurrencyObservationTests: XCTestCase {
         XCTAssertTrue(configDrift.snapshot().failed)
     }
 
+    func testViewerBoundaryReaffirmationRequiresLatestCoherentProjection()
+        throws
+    {
+        let state = HostAgentApplicationConcurrencyObservationState()
+        let ready = try XCTUnwrap(state.observe(
+            projection: try readyProjection(),
+            coherentConfigRevision: 7,
+            sourceToken: 1
+        ))
+        let reaffirmed = try XCTUnwrap(
+            state.reaffirmCurrentCoherentObservation()
+        )
+
+        XCTAssertEqual(reaffirmed.state, ready.state)
+        XCTAssertEqual(reaffirmed.peerIdentity, ready.peerIdentity)
+        XCTAssertEqual(reaffirmed.configRevision, ready.configRevision)
+        XCTAssertEqual(reaffirmed.sourceGeneration, 2)
+        XCTAssertEqual(state.snapshot(), .init(
+            acceptedSamples: 1,
+            emittedObservations: 2,
+            lastSourceGeneration: 2,
+            scopeBound: true,
+            failed: false
+        ))
+
+        XCTAssertNotNil(state.observe(
+            projection: nil,
+            coherentConfigRevision: nil,
+            sourceToken: 2
+        ))
+        XCTAssertNil(state.reaffirmCurrentCoherentObservation())
+    }
+
     func testSharedRuntimeStatePolicyRejectsContradictoryReadyState() {
         XCTAssertEqual(
             HostAgentConcurrencyRuntimeStatePolicy.classify(

@@ -553,7 +553,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func showHomeUI(error: String = "") {
         stopViewerAutomaticRecovery()
-        stopViewerLifecycleEvidence()
+        let viewerLifecycleStopped = stopViewerLifecycleEvidence()
+        if viewerLifecycleStopped {
+            reaffirmHostAgentApplicationConcurrencyEvidence()
+        }
         activeAttemptID = nil
         if !error.isEmpty { homeErrorText = error }
         player?.stop()
@@ -895,8 +898,29 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 projection: activationView.projection,
                 coherentConfigRevision: configRevision,
                 sourceToken: activationView.generation
-            ),
-              let agentBootID = UUID(
+            )
+        else { return }
+        recordHostAgentApplicationConcurrencyEvidence(
+            observation,
+            reaffirmation: false
+        )
+    }
+
+    private func reaffirmHostAgentApplicationConcurrencyEvidence() {
+        guard let observation = hostAgentApplicationConcurrencyObservationState
+            .reaffirmCurrentCoherentObservation()
+        else { return }
+        recordHostAgentApplicationConcurrencyEvidence(
+            observation,
+            reaffirmation: true
+        )
+    }
+
+    private func recordHostAgentApplicationConcurrencyEvidence(
+        _ observation: HostAgentApplicationConcurrencyObservation,
+        reaffirmation: Bool
+    ) {
+        guard let agentBootID = UUID(
                 uuidString: observation.peerIdentity.agentBootID
               ),
               agentBootID.uuidString.lowercased()
@@ -912,20 +936,39 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         case .disconnected:
             state = .disconnected
         }
-        _ = hostViewerConcurrencyEvidenceOwner
-            .observeApplicationHostAgentRuntimeState(
-                state: state,
-                hostInstanceID:
-                    observation.peerIdentity.hostInstanceID,
-                agentBootID: agentBootID,
-                configRevision: observation.configRevision,
-                agentBuildID: observation.peerIdentity.agentBuildID,
-                agentProcessID: observation.peerIdentity.agentProcessID,
-                agentProcessStartIdentitySHA256:
-                    observation.peerIdentity
-                        .agentProcessStartIdentitySHA256,
-                sourceGeneration: observation.sourceGeneration
-            )
+        if reaffirmation {
+            _ = hostViewerConcurrencyEvidenceOwner
+                .reaffirmApplicationHostAgentRuntimeState(
+                    state: state,
+                    hostInstanceID:
+                        observation.peerIdentity.hostInstanceID,
+                    agentBootID: agentBootID,
+                    configRevision: observation.configRevision,
+                    agentBuildID: observation.peerIdentity.agentBuildID,
+                    agentProcessID:
+                        observation.peerIdentity.agentProcessID,
+                    agentProcessStartIdentitySHA256:
+                        observation.peerIdentity
+                            .agentProcessStartIdentitySHA256,
+                    sourceGeneration: observation.sourceGeneration
+                )
+        } else {
+            _ = hostViewerConcurrencyEvidenceOwner
+                .observeApplicationHostAgentRuntimeState(
+                    state: state,
+                    hostInstanceID:
+                        observation.peerIdentity.hostInstanceID,
+                    agentBootID: agentBootID,
+                    configRevision: observation.configRevision,
+                    agentBuildID: observation.peerIdentity.agentBuildID,
+                    agentProcessID:
+                        observation.peerIdentity.agentProcessID,
+                    agentProcessStartIdentitySHA256:
+                        observation.peerIdentity
+                            .agentProcessStartIdentitySHA256,
+                    sourceGeneration: observation.sourceGeneration
+                )
+        }
     }
 
     private var hostAgentRuntimeConfigurationErrorText: String {
@@ -3556,9 +3599,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 )
             }
             if let evidenceSessionEpoch {
-                _ = hostViewerConcurrencyEvidenceOwner.observeViewerStreaming(
+                let viewerStreamingRecorded =
+                    hostViewerConcurrencyEvidenceOwner.observeViewerStreaming(
                     sessionEpoch: evidenceSessionEpoch
                 )
+                if viewerStreamingRecorded {
+                    reaffirmHostAgentApplicationConcurrencyEvidence()
+                }
             }
             return
         }
@@ -3873,7 +3920,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         didFinish = true
         stopHostMode(preservePreference: true, reason: .appExit, releaseClient: true)
         stopViewerAutomaticRecovery()
-        stopViewerLifecycleEvidence()
+        _ = stopViewerLifecycleEvidence()
         guard let metrics else { return }
         player?.stop()
         keyboardController?.disable(message: nil, isError: false, notify: false)
@@ -3901,10 +3948,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         viewerRecoverySessionEpoch = nil
     }
 
-    private func stopViewerLifecycleEvidence() {
-        guard let sessionEpoch = viewerEvidenceSessionEpoch else { return }
+    @discardableResult
+    private func stopViewerLifecycleEvidence() -> Bool {
+        guard let sessionEpoch = viewerEvidenceSessionEpoch else {
+            return false
+        }
         viewerEvidenceSessionEpoch = nil
-        _ = hostViewerConcurrencyEvidenceOwner.stopViewerSession(
+        return hostViewerConcurrencyEvidenceOwner.stopViewerSession(
             sessionEpoch: sessionEpoch
         )
     }

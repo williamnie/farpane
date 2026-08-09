@@ -438,6 +438,87 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     })
   }
 
+  func testApplicationReaffirmationRecordsOnlyExactCurrentHostState() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let owner = makeOwner()
+    let agentBootID = UUID(
+      uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+    )!
+    let agentProcessStart = String(repeating: "a", count: 64)
+    XCTAssertTrue(owner.configureApplication(environment: environment(
+      output: fixture.output
+    )))
+
+    XCTAssertFalse(owner.reaffirmApplicationHostAgentRuntimeState(
+      state: .readyZeroInbound,
+      hostInstanceID: "host-private-value",
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: "agent-build",
+      agentProcessID: 4_321,
+      agentProcessStartIdentitySHA256: agentProcessStart,
+      sourceGeneration: 1
+    ))
+    XCTAssertTrue(owner.observeApplicationHostAgentRuntimeState(
+      state: .readyZeroInbound,
+      hostInstanceID: "host-private-value",
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: "agent-build",
+      agentProcessID: 4_321,
+      agentProcessStartIdentitySHA256: agentProcessStart,
+      sourceGeneration: 1
+    ))
+    XCTAssertFalse(owner.observeApplicationHostAgentRuntimeState(
+      state: .readyZeroInbound,
+      hostInstanceID: "host-private-value",
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: "agent-build",
+      agentProcessID: 4_321,
+      agentProcessStartIdentitySHA256: agentProcessStart,
+      sourceGeneration: 2
+    ))
+    XCTAssertFalse(owner.reaffirmApplicationHostAgentRuntimeState(
+      state: .inboundMediaActive,
+      hostInstanceID: "host-private-value",
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: "agent-build",
+      agentProcessID: 4_321,
+      agentProcessStartIdentitySHA256: agentProcessStart,
+      sourceGeneration: 3
+    ))
+    XCTAssertFalse(owner.reaffirmApplicationHostAgentRuntimeState(
+      state: .disconnected,
+      hostInstanceID: "host-private-value",
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: "agent-build",
+      agentProcessID: 4_321,
+      agentProcessStartIdentitySHA256: agentProcessStart,
+      sourceGeneration: 3
+    ))
+    XCTAssertTrue(owner.reaffirmApplicationHostAgentRuntimeState(
+      state: .readyZeroInbound,
+      hostInstanceID: "host-private-value",
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: "agent-build",
+      agentProcessID: 4_321,
+      agentProcessStartIdentitySHA256: agentProcessStart,
+      sourceGeneration: 3
+    ))
+
+    XCTAssertEqual(owner.snapshot().hostRecords, 2)
+    XCTAssertEqual(owner.snapshot().lastHostSourceGeneration, 3)
+    let states = try readRecords(fixture.output).compactMap {
+      ($0["event"] as? [String: Any])?["state"] as? String
+    }
+    XCTAssertEqual(states, ["readyZeroInbound", "readyZeroInbound"])
+  }
+
   func testHostAgentMissingOutputDoesNotResolveAnyIdentity() {
     let calls = LockedCallCounts()
     let owner = HostViewerConcurrencyEvidenceProcessOwner(
