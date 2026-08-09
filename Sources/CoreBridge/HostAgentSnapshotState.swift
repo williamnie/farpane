@@ -286,6 +286,85 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         drain(startingWith: request, copySnapshot: copySnapshot)
     }
 
+    /// Serializes an exact recovery projection with ordinary event/poll
+    /// refreshes. The call waits for any in-flight copy, publishes only the
+    /// pinned Host/epoch/status tuple, then drains work that arrived while the
+    /// recovery copy was active. A contradiction clears availability and uses
+    /// the existing sanitized identity-invalidation path.
+    @discardableResult
+    package func publishRecoverySnapshot(
+        expectedHostInstanceID: String,
+        epoch: UInt64,
+        recoveryStatus: HostRecoveryStatus,
+        registrationStatus: String
+    ) -> Bool {
+        guard !expectedHostInstanceID.isEmpty,
+              epoch > 0,
+              !registrationStatus.isEmpty
+        else { return false }
+
+        lock.lock()
+        while refreshing && !cancelled {
+            lock.wait()
+        }
+        guard !cancelled, let copySnapshot else {
+            lock.unlock()
+            return false
+        }
+        let request = RefreshRequest(
+            eventSequence: max(
+                latestEventSequence,
+                state.snapshot().eventSequence
+            ),
+            hostInstanceID: expectedHostInstanceID
+        )
+        refreshing = true
+        lock.unlock()
+
+        let accepted: Bool
+        do {
+            let snapshot = try copySnapshot()
+            if snapshot.hostInstanceId != expectedHostInstanceID {
+                let result = state.publish(
+                    snapshot,
+                    eventSequence: request.eventSequence,
+                    expectedHostInstanceID: expectedHostInstanceID
+                )
+                if result == .rejected(.hostInstanceMismatch) {
+                    requireIdentityInvalidation(.hostInstanceMismatch)
+                }
+                accepted = false
+            } else if snapshot.recoveryEpoch == epoch,
+                      snapshot.recoveryStatus == recoveryStatus,
+                      snapshot.registrationStatus == registrationStatus
+            {
+                if case .published = state.publish(
+                    snapshot,
+                    eventSequence: request.eventSequence,
+                    expectedHostInstanceID: expectedHostInstanceID
+                ) {
+                    accepted = true
+                } else {
+                    accepted = false
+                }
+            } else {
+                state.recordCopyFailure(eventSequence: request.eventSequence)
+                requireIdentityInvalidation(.copyFailed)
+                accepted = false
+            }
+        } catch {
+            state.recordCopyFailure(eventSequence: request.eventSequence)
+            requireIdentityInvalidation(.copyFailed)
+            accepted = false
+        }
+
+        return finishExclusiveRefresh(
+            request: request,
+            copySnapshot: copySnapshot,
+            accepted: accepted
+        )
+    }
+
     /// Stops accepting refreshes and waits for the current copy/drain loop.
     /// Must not be invoked by the active copy closure itself.
     package func cancelAndWait() {
@@ -360,6 +439,51 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
             lock.unlock()
             return
         }
+    }
+
+    private func finishExclusiveRefresh(
+        request: RefreshRequest,
+        copySnapshot: @escaping () throws -> HostCoreSnapshot,
+        accepted: Bool
+    ) -> Bool {
+        lock.lock()
+        if cancelled {
+            pending = nil
+            pollPending = false
+            refreshing = false
+            lock.broadcast()
+            lock.unlock()
+            return false
+        }
+        if let lastCompletedSequence {
+            if request.eventSequence > lastCompletedSequence {
+                self.lastCompletedSequence = request.eventSequence
+            }
+        } else {
+            lastCompletedSequence = request.eventSequence
+        }
+        if let next = takePendingLocked(),
+           next.eventSequence > (lastCompletedSequence ?? 0)
+        {
+            lock.unlock()
+            drain(startingWith: next, copySnapshot: copySnapshot)
+            return accepted
+        }
+        if pollPending {
+            pollPending = false
+            let next = RefreshRequest(
+                eventSequence: latestEventSequence,
+                hostInstanceID: latestHostInstanceID
+            )
+            lock.unlock()
+            drain(startingWith: next, copySnapshot: copySnapshot)
+            return accepted
+        }
+        pending = nil
+        refreshing = false
+        lock.broadcast()
+        lock.unlock()
+        return accepted
     }
 
     private func takePendingLocked() -> RefreshRequest? {

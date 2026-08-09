@@ -44,6 +44,11 @@ resume, or snapshot operations.
   `processSleepWakeCompositionAbsent` remain true.
 - `git diff --check`: passed.
 
+Historical note: this H5.1m-a result was committed as `09de6a7`. H5.1m-b
+later advanced the machine audit to schema 6 by binding exact-epoch projection
+and constructing the recovery composition in `HostAgentProcess`; the schema-5
+result above remains the fresh verification recorded for this earlier boundary.
+
 ## Remaining boundary
 
 This step does not construct the recovery composition in `HostAgentProcess`,
