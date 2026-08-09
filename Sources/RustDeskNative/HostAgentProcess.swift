@@ -16,6 +16,14 @@ enum HostAgentProcess {
         snapshotState: HostAgentSnapshotState,
         mediaState: HostAgentMediaControlState
     ) -> HostAgentProcessRunResult {
+        let concurrencyEvidenceOwner =
+            HostViewerConcurrencyEvidenceProcessOwner()
+        _ = concurrencyEvidenceOwner.configureHostAgent(
+            expectedAgentBuildID: expectedAgentBuildID
+        )
+        defer {
+            _ = concurrencyEvidenceOwner.terminateAndWait()
+        }
         let snapshotCoordinator = HostAgentSnapshotRefreshCoordinator(
             state: snapshotState,
             eventState: eventState

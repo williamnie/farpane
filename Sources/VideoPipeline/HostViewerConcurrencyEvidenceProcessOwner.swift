@@ -49,12 +49,12 @@ public struct HostViewerConcurrencyEvidenceProcessSnapshot:
   }
 }
 
-/// Best-effort application-process owner for V1 coexistence evidence.
+/// Best-effort process owner for V1 coexistence evidence.
 ///
 /// Output is default-off. When explicitly enabled, the owner derives the
-/// current process start/build/scenario digests, creates one App-role writer,
+/// current process start/build/scenario digests, creates one role-bound writer,
 /// and records the two process-lifetime edges. Configuration or write failure
-/// only disables evidence and can never become an App startup/termination
+/// only disables evidence and can never become an App or HostAgent lifecycle
 /// dependency.
 public final class HostViewerConcurrencyEvidenceProcessOwner:
   @unchecked Sendable
@@ -98,6 +98,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
   private let monotonicNanoseconds: @Sendable () -> UInt64
   private var status: HostViewerConcurrencyEvidenceProcessStatus = .idle
   private var writer: HostViewerConcurrencyEvidenceWriter?
+  private var configuredRole: HostViewerConcurrencyProcessRole?
   private var configurationInFlight = false
   private var recordInFlight = false
   private var processStartedRecords: UInt64 = 0
@@ -165,6 +166,38 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     environment: [String: String] = ProcessInfo.processInfo.environment,
     fileManager: FileManager = .default
   ) -> Bool {
+    configure(
+      role: .application,
+      explicitBuildIdentity: nil,
+      environment: environment,
+      fileManager: fileManager
+    )
+  }
+
+  /// Configures exactly once for the HostAgent role. The already-preflighted
+  /// Agent build identity is consumed directly instead of rediscovering it
+  /// from process-global bundle state. Evidence remains default-off and
+  /// best-effort.
+  @discardableResult
+  public func configureHostAgent(
+    expectedAgentBuildID: String,
+    environment: [String: String] = ProcessInfo.processInfo.environment,
+    fileManager: FileManager = .default
+  ) -> Bool {
+    configure(
+      role: .hostAgent,
+      explicitBuildIdentity: expectedAgentBuildID,
+      environment: environment,
+      fileManager: fileManager
+    )
+  }
+
+  private func configure(
+    role: HostViewerConcurrencyProcessRole,
+    explicitBuildIdentity: String?,
+    environment: [String: String],
+    fileManager: FileManager
+  ) -> Bool {
     condition.lock()
     guard status == .idle else {
       condition.unlock()
@@ -184,9 +217,10 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
 
     let configuredWriter: HostViewerConcurrencyEvidenceWriter?
     let configured: Bool
+    let resolvedBuildIdentity = explicitBuildIdentity ?? buildIdentity()
     if let scenario = environment[Self.scenarioEnvironmentKey],
        let processStart = resolvedProcessStartIdentity(),
-       let build = buildIdentity(),
+       let build = resolvedBuildIdentity,
        let processStartDigest =
          HostViewerConcurrencyEvidenceDigest.processStartIdentity(
            processStart.raw
@@ -198,7 +232,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
          HostViewerConcurrencyEvidenceDigest.scenarioCorrelation(scenario)
     {
       let identity = HostViewerConcurrencyProcessIdentity(
-        role: .application,
+        role: role,
         processID: processStart.processID,
         processStartIdentitySHA256: processStartDigest,
         buildIdentitySHA256: buildDigest,
@@ -235,6 +269,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     configurationInFlight = false
     if configured, let configuredWriter {
       writer = configuredWriter
+      configuredRole = role
       processStartedRecords = 1
       status = .active
     } else {
@@ -504,6 +539,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       condition.wait()
     }
     guard status == .active,
+          configuredRole == .application,
           let writer,
           let transition = prepare(
             viewerSession,

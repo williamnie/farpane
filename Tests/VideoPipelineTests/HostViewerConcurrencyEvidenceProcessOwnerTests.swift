@@ -106,6 +106,84 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertFalse(contents.contains(scenarioRaw))
   }
 
+  func testHostAgentUsesPreflightedBuildAndRejectsViewerEvents() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let expectedAgentBuildID = "agent-preflight-build"
+    let calls = LockedCallCounts()
+    let owner = HostViewerConcurrencyEvidenceProcessOwner(
+      processID: {
+        calls.incrementProcessID()
+        return 4_242
+      },
+      processStartIdentity: { _ in
+        calls.incrementProcessStart()
+        return self.processStartRaw
+      },
+      buildIdentity: {
+        calls.incrementBuild()
+        return "must-not-be-read"
+      }
+    )
+
+    XCTAssertTrue(owner.configureHostAgent(
+      expectedAgentBuildID: expectedAgentBuildID,
+      environment: environment(output: fixture.output)
+    ))
+    XCTAssertEqual(calls.snapshot(), .init(
+      processID: 1,
+      processStart: 1,
+      build: 0
+    ))
+    XCTAssertNil(owner.beginViewerSession())
+    XCTAssertEqual(owner.snapshot().status, .active)
+    XCTAssertEqual(owner.snapshot().recordFailures, 0)
+    XCTAssertTrue(owner.terminateAndWait())
+
+    let records = try readRecords(fixture.output)
+    XCTAssertEqual(records.count, 2)
+    XCTAssertTrue(records.allSatisfy {
+      $0["observerProcessRole"] as? String == "hostAgent"
+        && $0["observerBuildIdentitySHA256"] as? String
+          == HostViewerConcurrencyEvidenceDigest.buildIdentity(
+            expectedAgentBuildID
+          )
+    })
+    XCTAssertEqual(records.compactMap {
+      ($0["event"] as? [String: Any])?["kind"] as? String
+    }, ["processStarted", "processTerminating"])
+  }
+
+  func testHostAgentMissingOutputDoesNotResolveAnyIdentity() {
+    let calls = LockedCallCounts()
+    let owner = HostViewerConcurrencyEvidenceProcessOwner(
+      processID: {
+        calls.incrementProcessID()
+        return 4_242
+      },
+      processStartIdentity: { _ in
+        calls.incrementProcessStart()
+        return "must-not-be-read"
+      },
+      buildIdentity: {
+        calls.incrementBuild()
+        return "must-not-be-read"
+      }
+    )
+
+    XCTAssertTrue(owner.configureHostAgent(
+      expectedAgentBuildID: "agent-preflight-build",
+      environment: [:]
+    ))
+    XCTAssertEqual(calls.snapshot(), .init(
+      processID: 0,
+      processStart: 0,
+      build: 0
+    ))
+    XCTAssertEqual(owner.snapshot().status, .disabled)
+    XCTAssertTrue(owner.terminateAndWait())
+  }
+
   func testMalformedExplicitConfigurationOnlyMakesEvidenceUnavailable() throws {
     let fixture = try makeFixture()
     defer { try? FileManager.default.removeItem(at: fixture.directory) }
