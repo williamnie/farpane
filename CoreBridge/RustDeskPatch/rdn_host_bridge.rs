@@ -226,6 +226,41 @@ struct HostRuntime {
 
 struct RuntimeFinished(Arc<AtomicBool>);
 
+const HOST_RUNTIME_RECONNECT_BASE_DELAY_MS: u64 = 250;
+const HOST_RUNTIME_RECONNECT_MAX_DELAY_MS: u64 = 5_000;
+const HOST_RUNTIME_RECONNECT_STABLE_CONNECTION_MS: u64 = 30_000;
+const HOST_RUNTIME_RECONNECT_STOP_POLL_MS: u64 = 50;
+
+#[derive(Default)]
+struct HostRuntimeReconnectBackoff {
+    consecutive_failures: u32,
+}
+
+impl HostRuntimeReconnectBackoff {
+    fn delay_after_exit(&mut self, connection_lifetime: Duration, jitter_sample: u64) -> Duration {
+        if connection_lifetime >= Duration::from_millis(HOST_RUNTIME_RECONNECT_STABLE_CONNECTION_MS)
+        {
+            self.consecutive_failures = 0;
+        }
+        self.consecutive_failures = self.consecutive_failures.saturating_add(1);
+        let doublings = self.consecutive_failures.saturating_sub(1).min(5);
+        let nominal = HOST_RUNTIME_RECONNECT_BASE_DELAY_MS
+            .saturating_mul(1_u64 << doublings)
+            .min(HOST_RUNTIME_RECONNECT_MAX_DELAY_MS);
+        let jitter_upper_bound = nominal / 4;
+        let jitter = if jitter_upper_bound == 0 {
+            0
+        } else {
+            jitter_sample % (jitter_upper_bound + 1)
+        };
+        Duration::from_millis(
+            nominal
+                .saturating_add(jitter)
+                .min(HOST_RUNTIME_RECONNECT_MAX_DELAY_MS),
+        )
+    }
+}
+
 /// Caller-owned secret bytes borrowed across the C ABI. Every return path
 /// after a valid pointer/length pair reaches this guard and wipes the complete
 /// caller buffer with libsodium before Rust releases the borrow.
@@ -2076,6 +2111,25 @@ impl Drop for RuntimeFinished {
     }
 }
 
+async fn wait_for_host_runtime_retry(stop_requested: &AtomicBool, delay: Duration) -> bool {
+    let deadline = Instant::now() + delay;
+    loop {
+        if stop_requested.load(Ordering::Acquire) {
+            return false;
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            return true;
+        }
+        hbb_common::tokio::time::sleep(
+            deadline
+                .saturating_duration_since(now)
+                .min(Duration::from_millis(HOST_RUNTIME_RECONNECT_STOP_POLL_MS)),
+        )
+        .await;
+    }
+}
+
 impl HostRuntime {
     fn start(rendezvous_server: String) -> Result<Self, ()> {
         let stop_requested = Arc::new(AtomicBool::new(false));
@@ -2095,7 +2149,9 @@ impl HostRuntime {
                 };
                 runtime.block_on(async move {
                     let server = crate::server::new();
+                    let mut reconnect_backoff = HostRuntimeReconnectBackoff::default();
                     while !thread_stop.load(Ordering::Acquire) {
+                        let connection_started = Instant::now();
                         let _ = crate::RendezvousMediator::start(
                             server.clone(),
                             rendezvous_server.clone(),
@@ -2105,7 +2161,13 @@ impl HostRuntime {
                             break;
                         }
                         config::Config::reset_online();
-                        hbb_common::tokio::time::sleep(Duration::from_secs(1)).await;
+                        let retry_delay = reconnect_backoff.delay_after_exit(
+                            connection_started.elapsed(),
+                            u64::from(hbb_common::time_based_rand()),
+                        );
+                        if !wait_for_host_runtime_retry(&thread_stop, retry_delay).await {
+                            break;
+                        }
                     }
                 });
             })
@@ -3625,6 +3687,61 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.root);
         }
+    }
+
+    #[test]
+    fn host_runtime_reconnect_backoff_grows_caps_and_resets_after_stability() {
+        let mut backoff = HostRuntimeReconnectBackoff::default();
+        let short_connection = Duration::from_millis(1);
+        let maximum_jitter_samples = [62, 125, 250, 500, 1_000, 1_250, 1_250, 1_250];
+        let delays: Vec<u64> = maximum_jitter_samples
+            .into_iter()
+            .map(|jitter| {
+                backoff
+                    .delay_after_exit(short_connection, jitter)
+                    .as_millis() as u64
+            })
+            .collect();
+        assert_eq!(delays, [312, 625, 1_250, 2_500, 5_000, 5_000, 5_000, 5_000]);
+        assert!(delays
+            .iter()
+            .all(|delay| *delay <= HOST_RUNTIME_RECONNECT_MAX_DELAY_MS));
+
+        assert_eq!(
+            backoff.delay_after_exit(
+                Duration::from_millis(HOST_RUNTIME_RECONNECT_STABLE_CONNECTION_MS),
+                0,
+            ),
+            Duration::from_millis(HOST_RUNTIME_RECONNECT_BASE_DELAY_MS)
+        );
+        assert_eq!(
+            backoff.delay_after_exit(short_connection, 0),
+            Duration::from_millis(HOST_RUNTIME_RECONNECT_BASE_DELAY_MS * 2)
+        );
+    }
+
+    #[test]
+    fn host_runtime_reconnect_wait_is_bounded_and_stop_interruptible() {
+        let runtime = hbb_common::tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .expect("build reconnect wait runtime");
+        runtime.block_on(async {
+            let stop_requested = Arc::new(AtomicBool::new(false));
+            let setter = stop_requested.clone();
+            hbb_common::tokio::spawn(async move {
+                hbb_common::tokio::time::sleep(Duration::from_millis(5)).await;
+                setter.store(true, Ordering::Release);
+            });
+            let started = Instant::now();
+            assert!(
+                !wait_for_host_runtime_retry(&stop_requested, Duration::from_secs(5)).await
+            );
+            assert!(started.elapsed() < Duration::from_secs(1));
+
+            stop_requested.store(false, Ordering::Release);
+            assert!(wait_for_host_runtime_retry(&stop_requested, Duration::ZERO).await);
+        });
     }
 
     #[cfg(unix)]
