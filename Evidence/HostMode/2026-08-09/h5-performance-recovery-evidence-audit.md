@@ -11,9 +11,10 @@ the subsequent H5.3h writer implementation advanced readback to
 `writer-implemented`. H5.3i now advances it to `process-owner-implemented` by
 adding the process-lifetime digest/writer authority. H5.3j advances current
 readback to `sleep-wake-callback-implemented`: the exact sleep/wake acceptance
-and successful convergence callback is connected, while network/display
-callbacks and real runs remain open. None of these statuses claims a recovery
-or performance pass.
+and successful convergence callback is connected. H5.3k advances current
+readback to `network-callback-implemented`: exact network generation/epoch
+acceptance and convergence are also connected, while display and real runs
+remain open. None of these statuses claims a recovery or performance pass.
 
 The next implementation must create a dedicated sanitized transition record
 for each recovery kind and bind it to one fresh, passed, 600-second `1080p30`
@@ -67,8 +68,8 @@ snapshots are explicitly forbidden as substitutes.
 ## Remaining boundary
 
 - Connect the process-lifetime writer only to exact successful convergence
-  callbacks for network path and display reconfiguration; sleep/wake is now
-  connected by H5.3j.
+  callbacks for display reconfiguration; sleep/wake and network path are now
+  connected by H5.3j/H5.3k.
 - Implement the bounded recovery manifest validator and negative fixtures.
 - On an installed Mac, execute all three recovery types and one fresh
   600-second scenario 3 run after each transition.

@@ -23,8 +23,9 @@ runtime artifact or section 15.2 item 7 pass by itself.
   monotonic accepted/completed times, literal `completed` status, and the two
   opaque scope digests. Monotonic completion must be strictly after acceptance.
 - Sleep/wake requires a nonzero recovery epoch and explicit running/ready
-  convergence. Network recovery additionally requires a nonzero exact path
-  generation.
+  convergence. Network recovery requires an exact nonzero path generation and
+  preserves its exact baseline recovery epoch; H5.3k corrects that epoch to
+  allow the authoritative initial value `0` before any sleep cycle.
 - Display recovery records both previous and replacement route identity:
   display revisions may remain equal, matching the current pinned service,
   while connection and codec epochs must each increase strictly. This proves a
@@ -50,8 +51,9 @@ runtime artifact or section 15.2 item 7 pass by itself.
 
 - H5.3i now derives both digests in memory and constructs at most one
   process-lifetime writer. H5.3j connects exact successful sleep/wake
-  recovery; network and display callbacks remain open. Writer failure disables
-  only evidence collection and cannot change recovery behavior or readiness.
+  recovery, and H5.3k connects exact successful network recovery. Display
+  remains open. Writer failure disables only evidence collection and cannot
+  change recovery behavior or readiness.
 - The bounded manifest validator and its negative fixtures remain unimplemented.
 - Each transition still requires an installed-Mac execution followed by a
   fresh passed 600-second `1080p30` run on the same scope/build.

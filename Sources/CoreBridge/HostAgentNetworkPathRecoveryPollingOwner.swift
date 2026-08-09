@@ -53,6 +53,10 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
         _ pathGeneration: UInt64,
         _ succeeded: Bool
     ) -> Void
+    package typealias EvidenceObservation = @Sendable (
+        _ pathGeneration: UInt64,
+        _ recoveryEpoch: UInt64
+    ) -> Void
 
     package static let productIntervalMilliseconds: UInt64 = 50
     package static let productMaximumAttempts: UInt64 = 100
@@ -67,6 +71,8 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
     private let nowMilliseconds: Clock
     private let recover: Recover
     private let observe: Observe
+    private let recoveryAccepted: EvidenceObservation
+    private let recoveryCompleted: EvidenceObservation
     private var state: HostAgentNetworkPathRecoveryPollingState = .idle
     private var lastPathGeneration: UInt64 = 0
     private var ownerGeneration: UInt64 = 0
@@ -83,7 +89,9 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
             qos: .userInitiated
         ),
         recover: @escaping Recover,
-        observe: @escaping Observe
+        observe: @escaping Observe,
+        recoveryAccepted: @escaping EvidenceObservation = { _, _ in },
+        recoveryCompleted: @escaping EvidenceObservation = { _, _ in }
     ) -> HostAgentNetworkPathRecoveryPollingOwner {
         HostAgentNetworkPathRecoveryPollingOwner(
             expectedHostInstanceID: expectedHostInstanceID,
@@ -95,7 +103,9 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
                 DispatchTime.now().uptimeNanoseconds / 1_000_000
             },
             recover: recover,
-            observe: observe
+            observe: observe,
+            recoveryAccepted: recoveryAccepted,
+            recoveryCompleted: recoveryCompleted
         )
     }
 
@@ -119,7 +129,9 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
         schedule: @escaping Scheduler,
         nowMilliseconds: @escaping Clock,
         recover: @escaping Recover,
-        observe: @escaping Observe
+        observe: @escaping Observe,
+        recoveryAccepted: @escaping EvidenceObservation = { _, _ in },
+        recoveryCompleted: @escaping EvidenceObservation = { _, _ in }
     ) {
         self.expectedHostInstanceID = expectedHostInstanceID
         self.intervalMilliseconds = intervalMilliseconds
@@ -129,6 +141,8 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
         self.nowMilliseconds = nowMilliseconds
         self.recover = recover
         self.observe = observe
+        self.recoveryAccepted = recoveryAccepted
+        self.recoveryCompleted = recoveryCompleted
     }
 
     deinit {
@@ -226,6 +240,22 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
             recoveryEpoch: recoveryEpoch,
             attempt: 0
         )
+        operationInFlight = true
+        condition.unlock()
+
+        recoveryAccepted(pathGeneration, recoveryEpoch)
+
+        condition.lock()
+        operationInFlight = false
+        condition.broadcast()
+        guard state.isPolling(
+            pathGeneration: pathGeneration,
+            recoveryEpoch: recoveryEpoch
+        ), self.ownerGeneration == ownerGeneration
+        else {
+            condition.unlock()
+            return false
+        }
         condition.unlock()
 
         scheduleNext(
@@ -400,6 +430,7 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
             condition.unlock()
             finishCompletion(
                 pathGeneration: pathGeneration,
+                recoveryEpoch: recoveryEpoch,
                 outcome: .timedOut,
                 completion: completion
             )
@@ -457,6 +488,7 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
         condition.unlock()
         finishCompletion(
             pathGeneration: pathGeneration,
+            recoveryEpoch: recoveryEpoch,
             outcome: outcome,
             completion: completion
         )
@@ -473,15 +505,16 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
 
     private func finishCompletion(
         pathGeneration: UInt64,
+        recoveryEpoch: UInt64,
         outcome: HostAgentNetworkPathRecoveryOutcome,
         completion: Completion?
     ) {
         completion?(pathGeneration, outcome == .converged)
 
         condition.lock()
-        completionInFlight = false
         self.completion = nil
         deadlineMilliseconds = nil
+        let shouldRecordCompleted: Bool
         if state == .completing(
             pathGeneration: pathGeneration,
             outcome: outcome
@@ -490,7 +523,19 @@ package final class HostAgentNetworkPathRecoveryPollingOwner:
                 pathGeneration: pathGeneration,
                 outcome: outcome
             )
+            shouldRecordCompleted = outcome == .converged
+        } else {
+            shouldRecordCompleted = false
         }
+        condition.broadcast()
+        condition.unlock()
+
+        if shouldRecordCompleted {
+            recoveryCompleted(pathGeneration, recoveryEpoch)
+        }
+
+        condition.lock()
+        completionInFlight = false
         condition.broadcast()
         condition.unlock()
     }

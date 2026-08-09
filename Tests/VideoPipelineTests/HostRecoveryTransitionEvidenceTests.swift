@@ -21,7 +21,7 @@ final class HostRecoveryTransitionEvidenceTests: XCTestCase {
       completedMonotonicNanoseconds: 200
     ), 1)
     XCTAssertEqual(try writer.recordCompleted(
-      correlation: .networkPath(pathGeneration: 3, recoveryEpoch: 8),
+      correlation: .networkPath(pathGeneration: 3, recoveryEpoch: 0),
       acceptedAt: acceptedAt.addingTimeInterval(2),
       completedAt: acceptedAt.addingTimeInterval(3),
       acceptedMonotonicNanoseconds: 300,
@@ -74,7 +74,7 @@ final class HostRecoveryTransitionEvidenceTests: XCTestCase {
       "pathGeneration", "recoveryEpoch", "runningReadyConverged",
     ])
     XCTAssertEqual(network["pathGeneration"] as? Int, 3)
-    XCTAssertEqual(network["recoveryEpoch"] as? Int, 8)
+    XCTAssertEqual(network["recoveryEpoch"] as? Int, 0)
 
     let display = try XCTUnwrap(records[2]["correlation"] as? [String: Any])
     XCTAssertEqual(Set(display.keys), [

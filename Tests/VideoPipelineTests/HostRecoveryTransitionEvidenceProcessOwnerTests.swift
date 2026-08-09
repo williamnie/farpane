@@ -247,6 +247,130 @@ final class HostRecoveryTransitionEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertEqual(try Data(contentsOf: fixture.output).count, 0)
   }
 
+  func testNetworkEvidenceRequiresExactGenerationEpochAndPreservesTiming() throws {
+    let fixture = makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let clock = RecoveryEvidenceTestClock(
+      wallTimes: [
+        Date(timeIntervalSince1970: 30),
+        Date(timeIntervalSince1970: 40),
+      ],
+      monotonicTimes: [300, 400]
+    )
+    let owner = HostRecoveryTransitionEvidenceProcessOwner(
+      wallClock: { clock.nextWallTime() },
+      monotonicNanoseconds: { clock.nextMonotonicTime() }
+    )
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: "host",
+      buildIdentity: "build",
+      environment: [
+        HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey:
+          fixture.output.path,
+      ]
+    ))
+
+    XCTAssertTrue(owner.acceptNetworkPath(
+      pathGeneration: 3,
+      recoveryEpoch: 0
+    ))
+    XCTAssertFalse(owner.acceptNetworkPath(
+      pathGeneration: 3,
+      recoveryEpoch: 0
+    ))
+    XCTAssertEqual(try Data(contentsOf: fixture.output).count, 0)
+    XCTAssertFalse(owner.recordNetworkPathCompleted(
+      pathGeneration: 4,
+      recoveryEpoch: 0
+    ))
+    XCTAssertFalse(owner.recordNetworkPathCompleted(
+      pathGeneration: 3,
+      recoveryEpoch: 1
+    ))
+    XCTAssertTrue(owner.recordNetworkPathCompleted(
+      pathGeneration: 3,
+      recoveryEpoch: 0
+    ))
+    XCTAssertFalse(owner.recordNetworkPathCompleted(
+      pathGeneration: 3,
+      recoveryEpoch: 0
+    ))
+
+    let document = try readOnlyRecord(fixture.output)
+    XCTAssertEqual(document["kind"] as? String, "networkPath")
+    let correlation = try XCTUnwrap(
+      document["correlation"] as? [String: Any]
+    )
+    XCTAssertEqual(correlation["pathGeneration"] as? Int, 3)
+    XCTAssertEqual(correlation["recoveryEpoch"] as? Int, 0)
+    XCTAssertEqual(correlation["runningReadyConverged"] as? Bool, true)
+    XCTAssertEqual(
+      document["acceptedMonotonicNanoseconds"] as? Int,
+      300
+    )
+    XCTAssertEqual(
+      document["completedMonotonicNanoseconds"] as? Int,
+      400
+    )
+    XCTAssertEqual(owner.snapshot(), .init(
+      status: .active,
+      completedRecords: 1,
+      configurationFailures: 0,
+      recordFailures: 0
+    ))
+  }
+
+  func testCancellationDrainsAcceptedNetworkPathClockSampling() throws {
+    let fixture = makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let samplingEntered = DispatchSemaphore(value: 0)
+    let releaseSampling = DispatchSemaphore(value: 0)
+    let cancellationFinished = DispatchSemaphore(value: 0)
+    let acceptanceFinished = expectation(description: "acceptance finished")
+    let owner = HostRecoveryTransitionEvidenceProcessOwner(
+      wallClock: {
+        samplingEntered.signal()
+        releaseSampling.wait()
+        return Date(timeIntervalSince1970: 30)
+      },
+      monotonicNanoseconds: { 300 }
+    )
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: "host",
+      buildIdentity: "build",
+      environment: [
+        HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey:
+          fixture.output.path,
+      ]
+    ))
+
+    DispatchQueue.global().async {
+      XCTAssertFalse(owner.acceptNetworkPath(
+        pathGeneration: 1,
+        recoveryEpoch: 2
+      ))
+      acceptanceFinished.fulfill()
+    }
+    XCTAssertEqual(samplingEntered.wait(timeout: .now() + 1), .success)
+    DispatchQueue.global().async {
+      owner.cancelAndWait()
+      cancellationFinished.signal()
+    }
+    XCTAssertEqual(
+      cancellationFinished.wait(timeout: .now() + 0.05),
+      .timedOut
+    )
+
+    releaseSampling.signal()
+    wait(for: [acceptanceFinished], timeout: 1)
+    XCTAssertEqual(
+      cancellationFinished.wait(timeout: .now() + 1),
+      .success
+    )
+    XCTAssertEqual(owner.snapshot().status, .cancelled)
+    XCTAssertEqual(try Data(contentsOf: fixture.output).count, 0)
+  }
+
   func testConfigurationAndCancellationAreTerminalOneShotOperations() {
     let owner = HostRecoveryTransitionEvidenceProcessOwner()
     XCTAssertTrue(owner.configure(

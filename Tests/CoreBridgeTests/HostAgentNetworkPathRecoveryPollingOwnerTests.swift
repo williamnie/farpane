@@ -61,6 +61,76 @@ final class HostAgentNetworkPathRecoveryPollingOwnerTests: XCTestCase {
         XCTAssertEqual(recover.generations, [1])
     }
 
+    func testEvidenceCallbacksRequireCommittedExactConvergence() throws {
+        let scheduler = NetworkRecoveryManualScheduler()
+        let recover = NetworkRecoveryCallRecorder(accepted: true)
+        let observations = NetworkRecoveryObservationRecorder([
+            .snapshot(try snapshot(
+                epoch: 0,
+                hostState: "ready",
+                registration: "ready"
+            )),
+            .snapshot(try snapshot(
+                epoch: 0,
+                hostState: "ready",
+                registration: "ready"
+            )),
+            .snapshot(try snapshot(
+                epoch: 5,
+                hostState: "ready",
+                registration: "ready"
+            )),
+            .snapshot(try snapshot(
+                epoch: 6,
+                hostState: "ready",
+                registration: "ready"
+            )),
+        ])
+        let evidence = NetworkRecoveryEvidenceRecorder()
+        let completions = NetworkRecoveryCompletionRecorder()
+        let owner = makeOwner(
+            scheduler: scheduler,
+            recover: recover.handler,
+            observe: observations.handler,
+            recoveryAccepted: evidence.acceptedHandler,
+            recoveryCompleted: evidence.completedHandler
+        )
+
+        XCTAssertTrue(owner.start(
+            pathGeneration: 1,
+            completion: completions.handler
+        ))
+        XCTAssertEqual(evidence.accepted, [
+            .init(pathGeneration: 1, recoveryEpoch: 0),
+        ])
+        XCTAssertTrue(evidence.completed.isEmpty)
+        scheduler.runNext()
+        XCTAssertEqual(
+            owner.stateSnapshot(),
+            .completed(pathGeneration: 1, outcome: .converged)
+        )
+        XCTAssertEqual(evidence.completed, [
+            .init(pathGeneration: 1, recoveryEpoch: 0),
+        ])
+
+        XCTAssertTrue(owner.start(
+            pathGeneration: 2,
+            completion: completions.handler
+        ))
+        XCTAssertEqual(evidence.accepted, [
+            .init(pathGeneration: 1, recoveryEpoch: 0),
+            .init(pathGeneration: 2, recoveryEpoch: 5),
+        ])
+        scheduler.runNext()
+        XCTAssertEqual(
+            owner.stateSnapshot(),
+            .completed(pathGeneration: 2, outcome: .failed)
+        )
+        XCTAssertEqual(evidence.completed, [
+            .init(pathGeneration: 1, recoveryEpoch: 0),
+        ])
+    }
+
     func testBaselineMustBeCoherentBeforeRestartIsCalled() throws {
         let invalidBaselines: [HostAgentNetworkPathRecoveryObservation] = [
             .unavailable,
@@ -326,7 +396,15 @@ final class HostAgentNetworkPathRecoveryPollingOwnerTests: XCTestCase {
         scheduler: NetworkRecoveryManualScheduler,
         maximumAttempts: UInt64 = 100,
         recover: @escaping HostAgentNetworkPathRecoveryPollingOwner.Recover,
-        observe: @escaping HostAgentNetworkPathRecoveryPollingOwner.Observe
+        observe: @escaping HostAgentNetworkPathRecoveryPollingOwner.Observe,
+        recoveryAccepted: @escaping
+            HostAgentNetworkPathRecoveryPollingOwner.EvidenceObservation = {
+                _, _ in
+            },
+        recoveryCompleted: @escaping
+            HostAgentNetworkPathRecoveryPollingOwner.EvidenceObservation = {
+                _, _ in
+            }
     ) -> HostAgentNetworkPathRecoveryPollingOwner {
         HostAgentNetworkPathRecoveryPollingOwner(
             expectedHostInstanceID: "host-a",
@@ -336,7 +414,9 @@ final class HostAgentNetworkPathRecoveryPollingOwnerTests: XCTestCase {
             schedule: scheduler.handler,
             nowMilliseconds: scheduler.clock,
             recover: recover,
-            observe: observe
+            observe: observe,
+            recoveryAccepted: recoveryAccepted,
+            recoveryCompleted: recoveryCompleted
         )
     }
 
@@ -548,6 +628,55 @@ private final class NetworkRecoveryObservationRecorder: @unchecked Sendable {
 private struct NetworkRecoveryCompletion: Equatable {
     let pathGeneration: UInt64
     let succeeded: Bool
+}
+
+private struct NetworkRecoveryEvidenceValue: Equatable {
+    let pathGeneration: UInt64
+    let recoveryEpoch: UInt64
+}
+
+private final class NetworkRecoveryEvidenceRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var acceptedStorage: [NetworkRecoveryEvidenceValue] = []
+    private var completedStorage: [NetworkRecoveryEvidenceValue] = []
+
+    var accepted: [NetworkRecoveryEvidenceValue] {
+        lock.lock()
+        defer { lock.unlock() }
+        return acceptedStorage
+    }
+
+    var completed: [NetworkRecoveryEvidenceValue] {
+        lock.lock()
+        defer { lock.unlock() }
+        return completedStorage
+    }
+
+    var acceptedHandler:
+        HostAgentNetworkPathRecoveryPollingOwner.EvidenceObservation
+    {
+        { [self] pathGeneration, recoveryEpoch in
+            lock.lock()
+            acceptedStorage.append(.init(
+                pathGeneration: pathGeneration,
+                recoveryEpoch: recoveryEpoch
+            ))
+            lock.unlock()
+        }
+    }
+
+    var completedHandler:
+        HostAgentNetworkPathRecoveryPollingOwner.EvidenceObservation
+    {
+        { [self] pathGeneration, recoveryEpoch in
+            lock.lock()
+            completedStorage.append(.init(
+                pathGeneration: pathGeneration,
+                recoveryEpoch: recoveryEpoch
+            ))
+            lock.unlock()
+        }
+    }
 }
 
 private final class NetworkRecoveryCompletionRecorder: @unchecked Sendable {

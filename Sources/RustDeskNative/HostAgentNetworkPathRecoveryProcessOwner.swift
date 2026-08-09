@@ -1,5 +1,6 @@
 import CoreBridge
 import Foundation
+import VideoPipeline
 
 enum HostAgentNetworkPathRecoveryProcessState: Equatable, Sendable {
     case idle
@@ -33,7 +34,8 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
     func install(
         lifetime: HostAgentProcessLifetime,
         expectedHostInstanceID: String,
-        snapshotCoordinator: HostAgentSnapshotRefreshCoordinator
+        snapshotCoordinator: HostAgentSnapshotRefreshCoordinator,
+        recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner
     ) -> Bool {
         condition.lock()
         guard state == .idle,
@@ -48,7 +50,8 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
         let composition = HostAgentNetworkPathRecoveryComposition(
             lifetime: lifetime,
             expectedHostInstanceID: expectedHostInstanceID,
-            snapshotCoordinator: snapshotCoordinator
+            snapshotCoordinator: snapshotCoordinator,
+            recoveryEvidenceOwner: recoveryEvidenceOwner
         )
         let pathIngress = HostAgentNWPathMonitorIngress.makeProduct(
             deliverPath: { path in

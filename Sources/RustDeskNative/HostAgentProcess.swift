@@ -123,7 +123,8 @@ enum HostAgentProcess {
                 guard networkPathRecoveryOwner.install(
                     lifetime: lifetime,
                     expectedHostInstanceID: hostInstanceID,
-                    snapshotCoordinator: snapshotCoordinator
+                    snapshotCoordinator: snapshotCoordinator,
+                    recoveryEvidenceOwner: recoveryEvidenceOwner
                 ) else {
                     _ = lifetime.requestTermination(reason: .error)
                     _ = lifetime.waitUntilTerminated()

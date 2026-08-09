@@ -71,6 +71,12 @@ final class HostAgentNetworkPathRecoveryCompositionContractTests: XCTestCase {
         XCTAssertTrue(source.contains(
             "snapshotCoordinator.requestPoll()"
         ))
+        XCTAssertTrue(source.contains(
+            "recoveryEvidenceOwner.acceptNetworkPath("
+        ))
+        XCTAssertTrue(source.contains(
+            "recoveryEvidenceOwner.recordNetworkPathCompleted("
+        ))
         XCTAssertFalse(source.contains("let recover: @Sendable"))
         XCTAssertFalse(source.contains("let observe: @Sendable"))
     }
@@ -78,6 +84,9 @@ final class HostAgentNetworkPathRecoveryCompositionContractTests: XCTestCase {
     func testCompositionFailureIsAsynchronousAndTeardownDrainsInOrder() throws {
         let source = try productSource(
             "HostAgentNetworkPathRecoveryComposition.swift"
+        )
+        let polling = try repositorySource(
+            "Sources/CoreBridge/HostAgentNetworkPathRecoveryPollingOwner.swift"
         )
 
         try assertOrder(
@@ -94,6 +103,24 @@ final class HostAgentNetworkPathRecoveryCompositionContractTests: XCTestCase {
             "pollingOwner.cancelAndWait()"
         )
         XCTAssertTrue(source.contains("deinit {\n        cancelAndWait()"))
+        XCTAssertTrue(polling.contains(
+            "recoveryAccepted(pathGeneration, recoveryEpoch)"
+        ))
+        XCTAssertTrue(polling.contains(
+            "let shouldRecordCompleted: Bool"
+        ))
+        XCTAssertTrue(polling.contains(
+            "shouldRecordCompleted = outcome == .converged"
+        ))
+        XCTAssertTrue(polling.contains(
+            "if shouldRecordCompleted {\n"
+                + "            recoveryCompleted(pathGeneration, recoveryEpoch)"
+        ))
+        try assertOrder(
+            in: polling,
+            "recoveryCompleted(pathGeneration, recoveryEpoch)",
+            "condition.lock()\n        completionInFlight = false"
+        )
     }
 
     func testProcessOwnsCompositionInsideTheExistingStartupLifetime() throws {
@@ -104,6 +131,9 @@ final class HostAgentNetworkPathRecoveryCompositionContractTests: XCTestCase {
 
         XCTAssertTrue(process.contains(
             "HostAgentNetworkPathRecoveryProcessOwner()"
+        ))
+        XCTAssertTrue(process.contains(
+            "recoveryEvidenceOwner: recoveryEvidenceOwner"
         ))
         let sleepInstall = try XCTUnwrap(process.range(
             of: "sleepWakeRecoveryOwner.install("
@@ -136,6 +166,9 @@ final class HostAgentNetworkPathRecoveryCompositionContractTests: XCTestCase {
         XCTAssertTrue(owner.contains("while state == .cancelling"))
         XCTAssertTrue(owner.contains(
             "HostAgentNWPathMonitorIngress.makeProduct("
+        ))
+        XCTAssertTrue(owner.contains(
+            "recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner"
         ))
         XCTAssertTrue(owner.contains("guard pathIngress.start()"))
         let ingressCancel = try XCTUnwrap(owner.range(

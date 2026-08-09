@@ -53,8 +53,7 @@ section 15.2 item 7 pass.
 
 ## Remaining boundary
 
-- Connect the exact network-path generation acceptance/completion callback in
-  a separate checkpoint.
+- H5.3k now connects exact network-path generation acceptance/completion.
 - Add a pinned Rust display-reconfiguration provenance marker before wiring
   display evidence; a generic Swift route replacement remains insufficient.
 - Implement the bounded recovery manifest validator and negative fixtures.
