@@ -756,8 +756,6 @@ public struct HostActiveSession: Equatable, Sendable {
             && capabilitySet.count == capabilities.count
             && capabilitySet.contains("viewDisplay")
             && capabilitySet.isSubset(of: allowed)
-            && capabilitySet.contains("readClipboard")
-                == capabilitySet.contains("writeClipboard")
     }
 
     private static func valid(

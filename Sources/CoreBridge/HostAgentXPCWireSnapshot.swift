@@ -143,18 +143,12 @@ package enum HostAgentXPCWireSnapshotContract {
             })
     }
 
-    fileprivate static func validCapabilities(
-        _ values: [String],
-        requiresClipboardPair: Bool
-    ) -> Bool {
+    fileprivate static func validCapabilities(_ values: [String]) -> Bool {
         let set = Set(values)
         return (1...16).contains(values.count)
             && set.count == values.count
             && set.contains("viewDisplay")
             && set.isSubset(of: allowedCapabilities)
-            && (!requiresClipboardPair
-                || set.contains("readClipboard")
-                    == set.contains("writeClipboard"))
     }
 
     fileprivate static func decodeOptionalText(
@@ -322,10 +316,7 @@ package struct HostAgentXPCWirePendingApproval: Equatable, Sendable {
             ),
             expiresAt > requestedAt,
             let capabilities = document["requestedCapabilities"] as? [String],
-            HostAgentXPCWireSnapshotContract.validCapabilities(
-                capabilities,
-                requiresClipboardPair: false
-            ),
+            HostAgentXPCWireSnapshotContract.validCapabilities(capabilities),
             let transport = document["transport"] as? String,
             ["direct", "relay", "unknown"].contains(transport),
             document["authenticationMethod"] as? String == "localApproval",
@@ -416,15 +407,9 @@ package struct HostAgentXPCWireActiveSession: Equatable, Sendable {
             ),
             HostAgentXPCWireSnapshotContract.validTimestamp(startedAt),
             let initial = document["initialCapabilities"] as? [String],
-            HostAgentXPCWireSnapshotContract.validCapabilities(
-                initial,
-                requiresClipboardPair: true
-            ),
+            HostAgentXPCWireSnapshotContract.validCapabilities(initial),
             let active = document["activeCapabilities"] as? [String],
-            HostAgentXPCWireSnapshotContract.validCapabilities(
-                active,
-                requiresClipboardPair: true
-            ),
+            HostAgentXPCWireSnapshotContract.validCapabilities(active),
             Set(active).isSubset(of: Set(initial)),
             let availabilityValue = document["inputAvailability"] as? String,
             let availability = HostSessionInputAvailability(

@@ -686,14 +686,54 @@ impl NativeApprovalBroker {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeClipboardPolicy {
+    remote_read: bool,
+    remote_write: bool,
+}
+
+impl NativeClipboardPolicy {
+    pub(crate) fn new(remote_read: bool, remote_write: bool) -> Self {
+        Self {
+            remote_read,
+            remote_write,
+        }
+    }
+
+    fn bidirectional(enabled: bool) -> Self {
+        Self::new(enabled, enabled)
+    }
+
+    fn any_enabled(self) -> bool {
+        self.remote_read || self.remote_write
+    }
+
+    fn is_subset_of(self, other: Self) -> bool {
+        (!self.remote_read || other.remote_read)
+            && (!self.remote_write || other.remote_write)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct NativeSessionCapabilities {
     control_keyboard_mouse: bool,
-    clipboard: bool,
+    clipboard: NativeClipboardPolicy,
     system_audio: bool,
 }
 
 impl NativeSessionCapabilities {
     pub(crate) fn new(control_keyboard_mouse: bool, clipboard: bool, system_audio: bool) -> Self {
+        Self::with_clipboard_policy(
+            control_keyboard_mouse,
+            NativeClipboardPolicy::bidirectional(clipboard),
+            system_audio,
+        )
+    }
+
+    pub(crate) fn with_clipboard_policy(
+        control_keyboard_mouse: bool,
+        clipboard: NativeClipboardPolicy,
+        system_audio: bool,
+    ) -> Self {
         Self {
             control_keyboard_mouse,
             clipboard,
@@ -706,8 +746,10 @@ impl NativeSessionCapabilities {
         if self.control_keyboard_mouse {
             names.push("controlKeyboardMouse");
         }
-        if self.clipboard {
+        if self.clipboard.remote_read {
             names.push("readClipboard");
+        }
+        if self.clipboard.remote_write {
             names.push("writeClipboard");
         }
         if self.system_audio {
@@ -718,7 +760,7 @@ impl NativeSessionCapabilities {
 
     fn is_subset_of(self, other: Self) -> bool {
         (!self.control_keyboard_mouse || other.control_keyboard_mouse)
-            && (!self.clipboard || other.clipboard)
+            && self.clipboard.is_subset_of(other.clipboard)
             && (!self.system_audio || other.system_audio)
     }
 }
@@ -943,7 +985,12 @@ impl NativeSessionBroker {
                 }
             }
             NativeSessionCommand::DisableClipboard => {
-                if !active.snapshot.active_capabilities.clipboard {
+                if !active
+                    .snapshot
+                    .active_capabilities
+                    .clipboard
+                    .any_enabled()
+                {
                     return NativeSessionCommandResult::NoChange;
                 }
                 crate::ipc::Data::SwitchPermission {
@@ -4804,6 +4851,43 @@ mod tests {
             command_sender,
             disconnect_requested: false,
         }
+    }
+
+    #[test]
+    fn native_clipboard_policy_represents_read_and_write_independently() {
+        let disabled = NativeClipboardPolicy::new(false, false);
+        let read_only = NativeClipboardPolicy::new(true, false);
+        let write_only = NativeClipboardPolicy::new(false, true);
+        let bidirectional = NativeClipboardPolicy::new(true, true);
+
+        for (policy, expected_names) in [
+            (disabled, vec!["viewDisplay"]),
+            (read_only, vec!["viewDisplay", "readClipboard"]),
+            (write_only, vec!["viewDisplay", "writeClipboard"]),
+            (
+                bidirectional,
+                vec!["viewDisplay", "readClipboard", "writeClipboard"],
+            ),
+        ] {
+            assert_eq!(
+                NativeSessionCapabilities::with_clipboard_policy(false, policy, false).names(),
+                expected_names
+            );
+        }
+
+        assert!(disabled.is_subset_of(read_only));
+        assert!(read_only.is_subset_of(bidirectional));
+        assert!(write_only.is_subset_of(bidirectional));
+        assert!(!read_only.is_subset_of(write_only));
+        assert!(!write_only.is_subset_of(read_only));
+        assert_eq!(
+            NativeSessionCapabilities::new(false, true, false),
+            NativeSessionCapabilities::with_clipboard_policy(
+                false,
+                bidirectional,
+                false,
+            )
+        );
     }
 
     #[test]
