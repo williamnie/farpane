@@ -113,6 +113,15 @@ Scripts/build-universal.sh
 
 产物位于 `Build/FarPane.app`。稳定的本地 Accessibility/Input Monitoring 权限需要 Apple Development 签名身份；仅做不涉及 TCC 的开发时，可显式设置 `RDN_ALLOW_ADHOC_SIGNING=1`。
 
+如果当前机器只能构建自身架构，可显式生成单架构 App；默认不设置时仍严格构建 Universal App：
+
+```sh
+RDN_BUILD_ARCHITECTURES=arm64 Scripts/build-universal.sh
+# Intel Mac 上使用：RDN_BUILD_ARCHITECTURES=x86_64 Scripts/build-universal.sh
+```
+
+脚本只会装入所选架构对应的 `Build/CoreBridge/<arch>/liblibrustdesk.dylib`，缺失时直接失败，不会用另一架构或陈旧 Universal Core 回退。
+
 安装到固定的用户路径：
 
 ```sh
@@ -241,6 +250,18 @@ Scripts/build-universal.sh
 ```
 
 The result is `Build/FarPane.app`. Stable local Accessibility/Input Monitoring permissions require an Apple Development signing identity. For development that does not exercise TCC, ad-hoc signing can be explicitly enabled with `RDN_ALLOW_ADHOC_SIGNING=1`.
+
+When a machine can only build its native architecture, explicitly request a
+single-architecture App. The default remains a strict Universal build:
+
+```sh
+RDN_BUILD_ARCHITECTURES=arm64 Scripts/build-universal.sh
+# On an Intel Mac: RDN_BUILD_ARCHITECTURES=x86_64 Scripts/build-universal.sh
+```
+
+The script packages only the matching
+`Build/CoreBridge/<arch>/liblibrustdesk.dylib` and fails if it is missing; it
+does not fall back to another architecture or a stale Universal Core.
 
 Install to the stable per-user location:
 

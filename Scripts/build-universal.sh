@@ -10,6 +10,15 @@ launch_agent_target="$app_dir/Contents/Library/LaunchAgents/io.rustdesknative.vi
 build_number=${RDN_BUILD_NUMBER:-$(date +%Y%m%d%H%M)}
 signing_identity=${RDN_CODESIGN_IDENTITY:-}
 signing_mode=stable-identity
+architecture_spec=${RDN_BUILD_ARCHITECTURES:-"arm64 x86_64"}
+case "$architecture_spec" in
+  arm64|x86_64|"arm64 x86_64") ;;
+  *)
+    print -u2 "RDN_BUILD_ARCHITECTURES must be arm64, x86_64, or 'arm64 x86_64'"
+    exit 2
+    ;;
+esac
+build_architectures=(${=architecture_spec})
 
 if [[ -z "$signing_identity" ]]; then
   identities=("${(@f)$(security find-identity -v -p codesigning 2>/dev/null | awk -F\" '/Apple Development:/ {print $2}')}" )
@@ -28,17 +37,29 @@ fi
 [[ "$build_number" == <-> ]] || { print -u2 "RDN_BUILD_NUMBER must contain digits only"; exit 2; }
 
 cd "$repo_dir"
-swift build -c release --arch arm64
-swift build -c release --arch x86_64
+for build_architecture in "${build_architectures[@]}"; do
+  swift build -c release --arch "$build_architecture"
+done
 
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources" \
   "$app_dir/Contents/Frameworks" "$launch_agent_dir"
 rm -f "$app_dir/Contents/Resources/SlopDesk-MIT.txt"
 rm -f "$app_dir/Contents/Resources/RustDesk-AGPL-3.0.txt"
-lipo -create \
-  "$repo_dir/.build/arm64-apple-macosx/release/RustDeskNative" \
-  "$repo_dir/.build/x86_64-apple-macosx/release/RustDeskNative" \
-  -output "$app_dir/Contents/MacOS/RustDeskNative"
+app_executables=()
+for build_architecture in "${build_architectures[@]}"; do
+  app_executable="$repo_dir/.build/$build_architecture-apple-macosx/release/RustDeskNative"
+  if [[ "$(lipo -archs "$app_executable")" != "$build_architecture" ]]; then
+    print -u2 "Swift executable architecture does not match: $build_architecture"
+    exit 1
+  fi
+  app_executables+=("$app_executable")
+done
+if (( ${#app_executables} == 1 )); then
+  cp "${app_executables[1]}" "$app_dir/Contents/MacOS/RustDeskNative"
+else
+  lipo -create "${app_executables[@]}" \
+    -output "$app_dir/Contents/MacOS/RustDeskNative"
+fi
 cp "$repo_dir/App/Info.plist" "$app_dir/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$app_dir/Contents/Info.plist"
 /usr/bin/plutil -lint "$launch_agent_source" >/dev/null
@@ -72,18 +93,31 @@ cp "$vcpkg_license_root/aom/copyright" "$dependency_license_dir/AOM.txt"
 cp "$vcpkg_license_root/libvpx/copyright" "$dependency_license_dir/libvpx.txt"
 cp "$vcpkg_license_root/libyuv/copyright" "$dependency_license_dir/libyuv.txt"
 cp "$vcpkg_license_root/opus/copyright" "$dependency_license_dir/Opus.txt"
-arm_core="$build_dir/CoreBridge/arm64/liblibrustdesk.dylib"
-intel_core="$build_dir/CoreBridge/x86_64/liblibrustdesk.dylib"
-if [[ ! -f "$arm_core" || ! -f "$intel_core" ]]; then
-  print -u2 "both arm64 and x86_64 RustDesk Core libraries are required for the product app"
-  exit 1
-fi
-for core in "$arm_core" "$intel_core"; do
+core_libraries=()
+for build_architecture in "${build_architectures[@]}"; do
+  core="$build_dir/CoreBridge/$build_architecture/liblibrustdesk.dylib"
+  if [[ ! -f "$core" ]]; then
+    print -u2 "RustDesk Core is missing for architecture: $build_architecture"
+    exit 1
+  fi
+  if [[ "$(lipo -archs "$core")" != "$build_architecture" ]]; then
+    print -u2 "RustDesk Core architecture does not match: $build_architecture"
+    exit 1
+  fi
+  core_libraries+=("$core")
+done
+for core in "${core_libraries[@]}"; do
   nm -gU "$core" | grep -q _rdn_client_send_pointer
   nm -gU "$core" | grep -q _rdn_client_send_key
   nm -gU "$core" | grep -q _rdn_client_send_text
 done
-lipo -create "$arm_core" "$intel_core" -output "$app_dir/Contents/Frameworks/liblibrustdesk.dylib"
+if (( ${#core_libraries} == 1 )); then
+  cp "${core_libraries[1]}" \
+    "$app_dir/Contents/Frameworks/liblibrustdesk.dylib"
+else
+  lipo -create "${core_libraries[@]}" \
+    -output "$app_dir/Contents/Frameworks/liblibrustdesk.dylib"
+fi
 codesign --force --sign "$signing_identity" --timestamp=none \
   "$app_dir/Contents/Frameworks/liblibrustdesk.dylib"
 codesign --force --sign "$signing_identity" --timestamp=none "$app_dir"
@@ -98,4 +132,5 @@ fi
 lipo -archs "$app_dir/Contents/MacOS/RustDeskNative"
 print "BUILD_NUMBER=$build_number"
 print "SIGNING_MODE=$signing_mode"
+print "BUILD_ARCHITECTURES=$architecture_spec"
 print "$app_dir"
