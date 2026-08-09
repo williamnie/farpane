@@ -226,7 +226,7 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
         )
         XCTAssertEqual(
             lockedViewOnly?.detailText,
-            "画面采集已暂停；远程键盘与鼠标不可用：当前 Mac 处于锁屏、登录窗口或其他用户会话"
+            "当前版本不支持在锁屏、登录窗口或其他用户会话中远程操作；画面采集已暂停，远程键盘与鼠标不可用"
         )
         XCTAssertEqual(lockedViewOnly?.statusItemTitle, "FarPane 远程会话受限")
 
@@ -254,6 +254,56 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
             activeAquaSessionAvailable: false,
             inputAvailability: .available,
             inputUnavailableReason: .sessionUnavailable
+        ))
+    }
+
+    func testBackgroundPresentationConsumesStrictTopLevelSessionTuple() {
+        let available = HostSessionPresentationPolicy.presentation(
+            sessionAvailability: .available,
+            sessionUnavailableReason: nil,
+            inputAvailability: .available,
+            inputUnavailableReason: nil
+        )
+        XCTAssertEqual(available?.overallStatusText, "远程会话进行中")
+
+        let limited = HostSessionPresentationPolicy.presentation(
+            sessionAvailability: .limited,
+            sessionUnavailableReason: .sessionUnavailable,
+            inputAvailability: .limited,
+            inputUnavailableReason: .sessionUnavailable
+        )
+        XCTAssertEqual(
+            limited?.overallStatusText,
+            "远程会话受限：当前 Mac 会话不可用"
+        )
+        XCTAssertEqual(
+            limited?.detailText,
+            "当前版本不支持在锁屏、登录窗口或其他用户会话中远程操作；画面采集已暂停，远程键盘与鼠标不可用"
+        )
+
+        XCTAssertNil(HostSessionPresentationPolicy.presentation(
+            sessionAvailability: .available,
+            sessionUnavailableReason: .sessionUnavailable,
+            inputAvailability: .available,
+            inputUnavailableReason: nil
+        ))
+        XCTAssertNil(HostSessionPresentationPolicy.presentation(
+            sessionAvailability: .limited,
+            sessionUnavailableReason: nil,
+            inputAvailability: .limited,
+            inputUnavailableReason: .sessionUnavailable
+        ))
+        XCTAssertNil(HostSessionPresentationPolicy.presentation(
+            sessionAvailability: .available,
+            sessionUnavailableReason: nil,
+            inputAvailability: .limited,
+            inputUnavailableReason: .sessionUnavailable
+        ))
+        XCTAssertNil(HostSessionPresentationPolicy.presentation(
+            sessionAvailability: .limited,
+            sessionUnavailableReason: .sessionUnavailable,
+            inputAvailability: .limited,
+            inputUnavailableReason: .accessibilityDenied
         ))
     }
 }

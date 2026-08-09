@@ -101,6 +101,7 @@ def main() -> int:
         ),
         "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
+        "home_view": repository / "Sources/RustDeskNative/HomeView.swift",
         "design": repository / "docs/host-mode-design.md",
     }
     try:
@@ -296,7 +297,7 @@ def main() -> int:
             )
             and "session == .unavailable" in component_health
             and "session != .unavailable" in component_health
-            and 'statusText: "当前 Mac 会话不可用"'
+            and "锁屏、登录窗口或其他用户会话暂不支持"
                 in sources["home_readiness"]
             and 'statusText: "可被连接"' in sources["home_readiness"]
             and "isReady: true" in sources["home_readiness"]
@@ -324,11 +325,37 @@ def main() -> int:
             and "HostAgentBackgroundSessionCommandPolicy.allows("
                 in sources["activation"]
         ),
-        "backgroundSessionDetailStillUsesTypedNestedInputPresentation": (
-            "HostSessionInputPresentationPolicy.presentation(" in background_home
-            and "HostSessionPresentationPolicy.presentation(" not in background_home
+        "detailedHomeLimitedPresentationConsumesTopLevelTuple": (
+            all(
+                marker in sources["presentation"]
+                for marker in (
+                    "sessionAvailability: HostSessionAvailability",
+                    "sessionUnavailableReason: HostSessionUnavailableReason?",
+                    "case (.limited, .sessionUnavailable):",
+                    "inputUnavailableReason != .sessionUnavailable",
+                    "inputAvailability == .limited",
+                    "inputUnavailableReason == .sessionUnavailable",
+                    "当前版本不支持在锁屏、登录窗口或其他用户会话中远程操作",
+                    "画面采集已暂停，远程键盘与鼠标不可用",
+                )
+            )
+            and all(
+                marker in sources["home_snapshot"]
+                for marker in (
+                    "activeSessionPresentation: HostSessionInputPresentation?",
+                    "allowsSessionMutationCommands: Bool",
+                    "sessionAvailability: payload.sessionAvailability",
+                    "sessionUnavailableReason: payload.sessionUnavailableReason",
+                )
+            )
+            and "backgroundSnapshot.activeSessionPresentation"
+                in background_home
+            and background_home.count(
+                "backgroundSnapshot.allowsSessionMutationCommands"
+            ) == 3
             and "HostActiveAquaSessionAuthority" not in background_home
-            and "画面采集已暂停" in sources["presentation"]
+            and "button.isHidden = !capabilityAvailable"
+                in sources["home_view"]
         ),
         "periodicAgentPollPublishesBoundedSemanticSessionTransition": (
             all(
@@ -449,6 +476,14 @@ def main() -> int:
             sources["app"],
             "private func backgroundHostActiveSessionHomeSnapshot(",
         ),
+        "backgroundHomeSessionPresentation": line_number(
+            sources["home_snapshot"],
+            "activeSessionPresentation: HostSessionInputPresentation?",
+        ),
+        "homeCapabilityButtonVisibility": line_number(
+            sources["home_view"],
+            "button.isHidden = !capabilityAvailable",
+        ),
         "agentPoll": line_number(
             sources["polling"],
             "repeating: .milliseconds(500)",
@@ -465,9 +500,9 @@ def main() -> int:
 
     document = {
         "schema": SCHEMA,
-        "schemaVersion": 4,
+        "schemaVersion": 5,
         "status": (
-            "background-readiness-command-withdrawal-implemented"
+            "detailed-home-limited-presentation-implemented"
             if not missing
             else "audit-drift"
         ),
@@ -484,7 +519,7 @@ def main() -> int:
             "backgroundMediaSuspensionNotImplementedByAudit": False,
             "xpcTransitionProjectionNotImplementedByAudit": False,
             "backgroundReadinessAndCommandWithdrawalNotImplementedByAudit": False,
-            "detailedHomeLimitedPresentationStillRequired": True,
+            "detailedHomeLimitedPresentationStillRequired": False,
             "installedLockLoginWindowFUSAcceptanceStillRequired": True,
             "secureInputRemainsSeparateDecision": True,
         },
