@@ -76,7 +76,7 @@ enum HostEventRecorder {
 /// coexist with the viewer ABI v5, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
-    private static let hostABIVersion: UInt32 = 8
+    private static let hostABIVersion: UInt32 = 9
     private static let hostMediaABIVersion: UInt32 = 1
     private static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
 
@@ -137,6 +137,7 @@ final class HostBridgeContractTests: XCTestCase {
             "rdn_host_create",
             "rdn_host_start",
             "rdn_host_stop",
+            "rdn_host_recover_network_path",
             "rdn_host_begin_sleep",
             "rdn_host_finish_sleep",
             "rdn_host_resume_after_wake",
@@ -179,6 +180,7 @@ final class HostBridgeContractTests: XCTestCase {
             Self.hostMediaABIVersion)
         let hostCommit = rdn_shim_host_upstream_commit(shimLibrary).map { String(cString: $0) }
         XCTAssertEqual(hostCommit, Self.expectedUpstreamCommit)
+        XCTAssertEqual(rdn_shim_host_recover_network_path(shimLibrary, nil, 1), -1)
         XCTAssertEqual(rdn_shim_host_begin_sleep(shimLibrary, nil, 1), -1)
         XCTAssertEqual(rdn_shim_host_finish_sleep(shimLibrary, nil, 1), -1)
         XCTAssertEqual(rdn_shim_host_resume_after_wake(shimLibrary, nil, 1), -1)
@@ -240,6 +242,9 @@ final class HostBridgeContractTests: XCTestCase {
         let hostStop = unsafeBitCast(
             try rawSymbol("rdn_host_stop"),
             to: (@convention(c) (OpaquePointer?, UInt32) -> Int32).self)
+        let hostRecoverNetworkPath = unsafeBitCast(
+            try rawSymbol("rdn_host_recover_network_path"),
+            to: (@convention(c) (OpaquePointer?, UInt64) -> Int32).self)
         let hostBeginSleep = unsafeBitCast(
             try rawSymbol("rdn_host_begin_sleep"),
             to: (@convention(c) (OpaquePointer?, UInt64) -> Int32).self)
@@ -401,6 +406,30 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertFalse(localId.isEmpty)
         let hostInstanceID = snapshotDict["hostInstanceId"] as? String ?? ""
         XCTAssertFalse(hostInstanceID.isEmpty)
+
+        // ABI v9 retires the old registration runtime synchronously for an
+        // exact product path generation. Success is pending admission only;
+        // the same Host identity and sleep state must survive the restart.
+        XCTAssertEqual(hostRecoverNetworkPath(nil, 1), -1)
+        XCTAssertEqual(hostRecoverNetworkPath(host, 0), -27)
+        XCTAssertEqual(hostRecoverNetworkPath(host, 2), -27)
+        XCTAssertEqual(hostRecoverNetworkPath(host, 1), 0)
+        XCTAssertEqual(hostRecoverNetworkPath(host, 1), -27)
+        XCTAssertEqual(hostRecoverNetworkPath(host, 3), -27)
+        XCTAssertEqual(hostRecoverNetworkPath(host, 2), 0)
+        let networkRestartSnapshot = try copyDictionary(host)
+        XCTAssertEqual(networkRestartSnapshot["hostInstanceId"] as? String, hostInstanceID)
+        XCTAssertEqual(networkRestartSnapshot["localId"] as? String, localId)
+        XCTAssertEqual(networkRestartSnapshot["recoveryEpoch"] as? UInt64, 0)
+        XCTAssertEqual(networkRestartSnapshot["recoveryStatus"] as? String, "running")
+        XCTAssertTrue(
+            ["pending", "ready"].contains(
+                networkRestartSnapshot["registrationStatus"] as? String ?? "")
+        )
+        XCTAssertTrue(
+            ["starting", "ready"].contains(
+                networkRestartSnapshot["hostState"] as? String ?? "")
+        )
         let noActiveSession = """
             {"commandId":"session-none","name":"disconnectSession","connectionId":"\(hostInstanceID):1"}
             """
@@ -448,7 +477,8 @@ final class HostBridgeContractTests: XCTestCase {
             return try XCTUnwrap(presentation["value"] as? String)
         }
 
-        // ABI v8 sleep recovery is exact-epoch and keeps registration,
+        // ABI v9 preserves the v8 exact-epoch sleep recovery contract and
+        // keeps registration,
         // assertion and password ownership in Rust. Accepted resume means
         // pending only; a later snapshot must prove ready for this epoch.
         let temporaryPasswordBeforeSleep = try revealTemporaryPassword("sleep-password-before")

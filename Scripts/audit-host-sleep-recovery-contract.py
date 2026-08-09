@@ -139,7 +139,7 @@ def main() -> int:
         "fn fail_host_sleep_recovery",
     )
     evidence = {
-        "hostABIV8Implemented": rust_abi == 8 and header_abi == 8,
+        "sleepABIPreservedUnderHostABIV9": rust_abi == 9 and header_abi == 9,
         "snapshotSchemaV6Implemented": snapshot_schema == 6,
         "sleepSymbolsExportedEndToEnd": all(
             symbol in sources["bridge"]
@@ -424,7 +424,7 @@ def main() -> int:
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 7,
+        "schemaVersion": 8,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,

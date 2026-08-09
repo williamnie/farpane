@@ -1,5 +1,10 @@
 # H5.1o-b1 HostCore network restart ABI ownership audit
 
+> Historical checkpoint note: at commit `5c70d3e` the tracked audit reported
+> `contract-frozen` for Host ABI v8 / snapshot schema v6. H5.1o-b2 advances
+> that executable audit to verify the implemented ABI v9 contract; the design
+> conclusions below remain the authorization boundary for that change.
+
 ## Outcome
 
 The existing HostCore ownership is sufficient for an identity-preserving

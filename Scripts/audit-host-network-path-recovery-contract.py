@@ -102,11 +102,15 @@ def main() -> int:
                 "condition.broadcast()",
             )
         ),
+        "hostCoreNetworkRecoveryOperationImplemented": (
+            "rdn_host_recover_network_path" in sources["header"]
+            and "rdn_host_recover_network_path" in sources["bridge"]
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "status": "trigger-contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "evidence": evidence,
@@ -123,13 +127,13 @@ def main() -> int:
                 "cancellation": line_number(owner, "package func cancelAndWait()"),
             },
         },
-        "remainingBoundary": {
+        "integrationBoundary": {
+            "hostCoreNetworkRecoveryOperationImplemented": (
+                "rdn_host_recover_network_path" in sources["header"]
+                and "rdn_host_recover_network_path" in sources["bridge"]
+            ),
             "productNWPathMonitorAdapterAbsent": (
                 "NWPathMonitor" not in product_sources
-            ),
-            "hostCoreNetworkRecoveryOperationAbsent": (
-                "rdn_host_recover_network_path" not in sources["header"]
-                and "rdn_host_recover_network_path" not in sources["bridge"]
             ),
         },
         "missingEvidence": missing,

@@ -177,7 +177,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 8u
+#define RDN_HOST_ABI_VERSION 9u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -207,6 +207,7 @@ const char *rdn_core_upstream_commit(void);
 #define RDN_HOST_ERR_SESSION_NOT_FOUND (-24)
 #define RDN_HOST_ERR_SESSION_STALE (-25)
 #define RDN_HOST_ERR_SESSION_COMMAND_UNAVAILABLE (-26)
+#define RDN_HOST_ERR_STALE_GENERATION (-27)
 
 typedef struct RdnHost RdnHost;
 
@@ -266,6 +267,12 @@ int32_t rdn_host_create(const RdnHostCreateOptions *options,
                         const RdnHostCallbacks *callbacks, RdnHost **out_host);
 int32_t rdn_host_start(RdnHost *host);
 int32_t rdn_host_stop(RdnHost *host, RdnHostStopReason reason);
+/* Exact-generation network-path recovery. Synchronously retires the old
+ * registration runtime and starts its replacement as pending without
+ * changing Host identity/configuration, media/session, password, or sleep
+ * state. Success never means registration is ready. */
+int32_t rdn_host_recover_network_path(RdnHost *host,
+                                      uint64_t path_generation);
 /* Exact-epoch sleep lifecycle. begin withdraws registration and signals the
  * runtime; finish joins it and acknowledges Rust-owned assertion release;
  * resume only accepts/restarts registration and never means ready. */
@@ -392,6 +399,9 @@ int32_t rdn_shim_host_create(const RDNCoreLibrary *library,
 int32_t rdn_shim_host_start(const RDNCoreLibrary *library, RdnHost *host);
 int32_t rdn_shim_host_stop(const RDNCoreLibrary *library, RdnHost *host,
                            RdnHostStopReason reason);
+int32_t rdn_shim_host_recover_network_path(const RDNCoreLibrary *library,
+                                           RdnHost *host,
+                                           uint64_t path_generation);
 int32_t rdn_shim_host_begin_sleep(const RDNCoreLibrary *library, RdnHost *host,
                                   uint64_t epoch);
 int32_t rdn_shim_host_finish_sleep(const RDNCoreLibrary *library, RdnHost *host,
