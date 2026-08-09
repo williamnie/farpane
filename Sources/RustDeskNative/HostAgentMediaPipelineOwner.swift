@@ -31,6 +31,7 @@ struct HostAgentMediaPipelineSnapshot: Sendable {
     let lastMediaDiagnosticKind: HostMediaDiagnostic.Kind?
     let lastMediaDiagnosticRoute: HostMediaPipelineRouteIdentity?
     let controlIngress: HostAgentMediaControlDeliverySnapshot
+    let recovery: HostMediaPipelineRecoverySnapshot
     let routeOwner: HostMediaPipelineRouteOwnerSnapshot
     let liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
 }
@@ -52,6 +53,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private let liveLogCoordinator: HostMediaPipelineLiveLogCoordinator
     private let liveLogPollingOwner: HostAgentMediaLiveLogPollingOwner
     private let routeOwner: HostMediaPipelineRouteOwner
+    private let recoveryOwner: HostMediaPipelineRecoveryOwner
     private var state: State = .idle
     private var capabilityTask: Task<Void, Never>?
     private var capabilityInFlight = false
@@ -68,7 +70,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         self.liveLogPollingOwner = HostAgentMediaLiveLogPollingOwner(
             coordinator: liveLogCoordinator
         )
-        self.routeOwner = HostMediaPipelineRouteOwner(
+        let routeOwner = HostMediaPipelineRouteOwner(
             lifecycleObserver: liveLogCoordinator.lifecycleObserver,
             onSubmit: { route, unit in
                 runtimeBinding.submit(route: route, unit: unit)
@@ -82,6 +84,10 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             onFailure: { _, failure in
                 status.record(failure: failure)
             }
+        )
+        self.routeOwner = routeOwner
+        self.recoveryOwner = HostMediaPipelineRecoveryOwner(
+            routeOwner: routeOwner
         )
     }
 
@@ -156,29 +162,46 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         case .startCapture:
             // H4.1u has already recorded the pending route. Rust follows this
             // with the exact reconfigure that contains the encoder contract.
-            return
+            guard recoveryOwner.acceptStartCapture() else {
+                status.recordControlRejection()
+                return
+            }
         case .reconfigure:
             guard let route = Self.route(from: control),
-                  routeOwner.reconfigure(route)
+                  recoveryOwner.reconfigure(route)
             else {
                 status.recordControlRejection()
                 return
             }
         case .requestIdr:
             guard let identity = matchingRoute(for: control),
-                  routeOwner.requestKeyframe(route: identity)
+                  recoveryOwner.requestKeyframe(route: identity)
             else {
                 status.recordControlRejection()
                 return
             }
         case .stopCapture:
             guard let identity = matchingRoute(for: control),
-                  routeOwner.stop(route: identity)
+                  recoveryOwner.stop(route: identity)
             else {
                 status.recordControlRejection()
                 return
             }
         }
+    }
+
+    /// Nonterminal sleep seam. It rejects new route work, drains any admitted
+    /// control, then stops and flushes the current SCK/VT route.
+    @discardableResult
+    func pauseMediaAndFlushForSleep() -> Bool {
+        recoveryOwner.pauseAndFlushForSleep()
+    }
+
+    /// Reopens media control ingress after wake. An old route is never replayed;
+    /// Rust must provide a newer connection or codec epoch before capture starts.
+    @discardableResult
+    func resumeMediaControlIngressAfterWake() -> Bool {
+        recoveryOwner.resumeAfterWake()
     }
 
     /// Consumes only already-sanitized Rust media diagnostics. Non-media
@@ -248,6 +271,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         return status.snapshot(
             lifecycleStatus: lifecycleStatus,
             controlIngress: controlDeliveryGate.snapshot(),
+            recovery: recoveryOwner.snapshot(),
             routeOwner: routeOwner.snapshot(),
             liveLog: liveLogCoordinator.snapshot()
         )
@@ -280,7 +304,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
 
         controlDeliveryGate.cancelAndWait()
         liveLogPollingOwner.cancel()
-        routeOwner.cancelAndWait()
+        recoveryOwner.cancelAndWait()
         liveLogCoordinator.cancel()
         runtimeBinding.cancel()
 
@@ -341,7 +365,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private func matchingRoute(
         for control: HostMediaControl
     ) -> HostMediaPipelineRouteIdentity? {
-        for route in routeOwner.routeIdentities() {
+        for route in recoveryOwner.routeIdentities() {
             if route.connectionEpoch == control.connectionEpoch
                 && route.codecEpoch == control.codecEpoch
                 && route.displayID == control.displayID
@@ -764,6 +788,7 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
     func snapshot(
         lifecycleStatus: HostAgentMediaPipelineLifecycleStatus,
         controlIngress: HostAgentMediaControlDeliverySnapshot,
+        recovery: HostMediaPipelineRecoverySnapshot,
         routeOwner: HostMediaPipelineRouteOwnerSnapshot,
         liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
     ) -> HostAgentMediaPipelineSnapshot {
@@ -782,6 +807,7 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
             lastMediaDiagnosticKind: lastMediaDiagnosticKind,
             lastMediaDiagnosticRoute: lastMediaDiagnosticRoute,
             controlIngress: controlIngress,
+            recovery: recovery,
             routeOwner: routeOwner,
             liveLog: liveLog
         )

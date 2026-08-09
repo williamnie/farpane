@@ -460,9 +460,137 @@ final class HostMediaPipelineRouteOwnerTests: XCTestCase {
     )
   }
 
+  func testSleepPauseDrainsWithoutCancellingAndRequiresFreshMediaEpoch() {
+    let factory = RecordingRoutePipelineFactory()
+    let routeOwner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let recovery = HostMediaPipelineRecoveryOwner(routeOwner: routeOwner)
+    let first = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+
+    XCTAssertTrue(recovery.reconfigure(first))
+    routeOwner.waitUntilIdle()
+    XCTAssertTrue(recovery.pauseAndFlushForSleep())
+    XCTAssertEqual(
+      recovery.snapshot(),
+      .init(status: .suspended, epoch: 1, previousRoute: first.identity)
+    )
+    XCTAssertFalse(routeOwner.snapshot().cancelled)
+    XCTAssertNil(routeOwner.snapshot().desiredRoute)
+    XCTAssertNil(routeOwner.snapshot().activeRoute)
+    XCTAssertEqual(factory.pipelines.first?.operations, [.start, .cancel, .stop])
+    XCTAssertFalse(recovery.reconfigure(first))
+
+    XCTAssertTrue(recovery.resumeAfterWake())
+    XCTAssertEqual(
+      recovery.snapshot(),
+      .init(status: .awaitingFreshRoute, epoch: 1, previousRoute: first.identity)
+    )
+    let displayOnlyChange = makeRoute(
+      connectionEpoch: 11,
+      codecEpoch: 21,
+      displayRevision: 4
+    )
+    XCTAssertFalse(recovery.reconfigure(displayOnlyChange))
+    let fresh = makeRoute(connectionEpoch: 11, codecEpoch: 22)
+    XCTAssertTrue(recovery.reconfigure(fresh))
+    routeOwner.waitUntilIdle()
+    XCTAssertEqual(
+      recovery.snapshot(),
+      .init(status: .active, epoch: 1, previousRoute: nil)
+    )
+    XCTAssertEqual(routeOwner.snapshot().activeRoute, fresh.identity)
+    XCTAssertEqual(factory.pipelines.count, 2)
+  }
+
+  func testSleepWithoutRouteResumesWithoutFabricatingPipeline() {
+    let factory = RecordingRoutePipelineFactory()
+    let routeOwner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let recovery = HostMediaPipelineRecoveryOwner(routeOwner: routeOwner)
+
+    XCTAssertTrue(recovery.pauseAndFlushForSleep())
+    XCTAssertEqual(
+      recovery.snapshot(),
+      .init(status: .suspended, epoch: 1, previousRoute: nil)
+    )
+    XCTAssertTrue(recovery.resumeAfterWake())
+    XCTAssertEqual(
+      recovery.snapshot(),
+      .init(status: .active, epoch: 1, previousRoute: nil)
+    )
+    XCTAssertTrue(factory.pipelines.isEmpty)
+  }
+
+  func testRemoteStopWhileSuspendedClearsFreshRouteRequirement() {
+    let factory = RecordingRoutePipelineFactory()
+    let routeOwner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let recovery = HostMediaPipelineRecoveryOwner(routeOwner: routeOwner)
+    let route = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+
+    XCTAssertTrue(recovery.reconfigure(route))
+    routeOwner.waitUntilIdle()
+    XCTAssertTrue(recovery.pauseAndFlushForSleep())
+    XCTAssertEqual(recovery.routeIdentities(), [route.identity])
+    XCTAssertTrue(recovery.stop(route: route.identity))
+    XCTAssertTrue(recovery.routeIdentities().isEmpty)
+    XCTAssertTrue(recovery.resumeAfterWake())
+    XCTAssertEqual(recovery.snapshot().status, .active)
+  }
+
+  func testTerminalCancelWaitsForConcurrentSleepFlush() {
+    let stopGate = RoutePipelineAsyncStartGate()
+    let factory = RecordingRoutePipelineFactory(stopGate: stopGate)
+    let routeOwner = HostMediaPipelineRouteOwner(
+      pipelineFactory: factory.make,
+      onSubmit: { _, _ in .accepted },
+      onEncoderState: { _, _ in },
+      onFailure: { _, _ in }
+    )
+    let recovery = HostMediaPipelineRecoveryOwner(routeOwner: routeOwner)
+    let route = makeRoute(connectionEpoch: 11, codecEpoch: 21)
+    let pauseResult = RecoveryBooleanRecorder()
+    let pauseReturned = DispatchSemaphore(value: 0)
+    let cancelReturned = DispatchSemaphore(value: 0)
+
+    XCTAssertTrue(recovery.reconfigure(route))
+    routeOwner.waitUntilIdle()
+    DispatchQueue.global().async {
+      pauseResult.record(recovery.pauseAndFlushForSleep())
+      pauseReturned.signal()
+    }
+    XCTAssertEqual(stopGate.entered.wait(timeout: .now() + 2), .success)
+    DispatchQueue.global().async {
+      recovery.cancelAndWait()
+      cancelReturned.signal()
+    }
+    XCTAssertEqual(cancelReturned.wait(timeout: .now() + 0.05), .timedOut)
+    stopGate.release()
+    XCTAssertEqual(pauseReturned.wait(timeout: .now() + 2), .success)
+    XCTAssertEqual(cancelReturned.wait(timeout: .now() + 2), .success)
+
+    XCTAssertEqual(pauseResult.value, false)
+    XCTAssertEqual(recovery.snapshot().status, .cancelled)
+    XCTAssertTrue(routeOwner.snapshot().cancelled)
+    XCTAssertFalse(recovery.resumeAfterWake())
+  }
+
   private func makeRoute(
     connectionEpoch: UInt64,
     codecEpoch: UInt64,
+    displayRevision: UInt64 = 3,
     codec: HostPipelineCodec = .h264
   ) -> HostMediaPipelineRoute {
     HostMediaPipelineRoute(
@@ -470,7 +598,7 @@ final class HostMediaPipelineRouteOwnerTests: XCTestCase {
         connectionEpoch: connectionEpoch,
         codecEpoch: codecEpoch,
         displayID: 0,
-        displayRevision: 3,
+        displayRevision: displayRevision,
         codec: codec
       ),
       configuration: HostMediaPipelineConfiguration(
@@ -482,6 +610,23 @@ final class HostMediaPipelineRouteOwnerTests: XCTestCase {
         bitRate: 4_000_000
       )
     )
+  }
+}
+
+private final class RecoveryBooleanRecorder: @unchecked Sendable {
+  private let lock = NSLock()
+  private var storage: Bool?
+
+  var value: Bool? {
+    lock.lock()
+    defer { lock.unlock() }
+    return storage
+  }
+
+  func record(_ value: Bool) {
+    lock.lock()
+    storage = value
+    lock.unlock()
   }
 }
 
