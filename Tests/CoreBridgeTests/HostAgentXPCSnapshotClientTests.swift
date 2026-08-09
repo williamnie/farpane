@@ -531,6 +531,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
             ),
             snapshotState: snapshotState,
             eventState: eventState,
+            commandService: nil,
             nowUnixMilliseconds: { 20 },
             monotonicMilliseconds: { 1 }
         )

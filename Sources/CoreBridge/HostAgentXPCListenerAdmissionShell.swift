@@ -286,6 +286,7 @@ package final class HostAgentXPCListenerAdmissionShell:
             identity: identity,
             snapshotState: snapshotState,
             eventState: eventState,
+            commandService: nil,
             nowUnixMilliseconds: nowUnixMilliseconds,
             monotonicMilliseconds: monotonicMilliseconds
         )

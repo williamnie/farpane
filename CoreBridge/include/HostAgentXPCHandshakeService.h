@@ -27,6 +27,14 @@ NS_ASSUME_NONNULL_BEGIN
     NS_SWIFT_NAME(fetchEvents(requestData:reply:));
 @end
 
+/// Data-only semantic command extension. The same connection must complete a
+/// compatible handshake and successfully fetch a snapshot before use.
+@protocol RDNHostAgentXPCCommandService <RDNHostAgentXPCEventService>
+- (void)submitCommandWithRequestData:(NSData *)requestData
+                               reply:(void (^)(NSData * _Nullable responseData))reply
+    NS_SWIFT_NAME(submitCommand(requestData:reply:));
+@end
+
 NS_ASSUME_NONNULL_END
 
 #endif
