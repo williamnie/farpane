@@ -1,4 +1,5 @@
 import CryptoKit
+import Dispatch
 import Foundation
 
 public enum HostRecoveryTransitionEvidenceProcessStatus:
@@ -33,6 +34,12 @@ public struct HostRecoveryTransitionEvidenceProcessSnapshot:
 public final class HostRecoveryTransitionEvidenceProcessOwner:
   @unchecked Sendable
 {
+  private struct SleepWakeAcceptance {
+    let recoveryEpoch: UInt64
+    let acceptedAt: Date
+    let acceptedMonotonicNanoseconds: UInt64
+  }
+
   private static let maximumIdentityUTF8Bytes = 512
   private static let scopeDigestDomain =
     "farpane.host-recovery.scope.v1"
@@ -40,15 +47,27 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
     "farpane.host-recovery.build.v1"
 
   private let condition = NSCondition()
+  private let wallClock: @Sendable () -> Date
+  private let monotonicNanoseconds: @Sendable () -> UInt64
   private var status: HostRecoveryTransitionEvidenceProcessStatus = .idle
   private var writer: HostRecoveryTransitionEvidenceWriter?
+  private var pendingSleepWakeAcceptance: SleepWakeAcceptance?
+  private var sleepWakeAcceptanceInFlight = false
   private var configurationInFlight = false
   private var recordInFlight = false
   private var completedRecords: UInt64 = 0
   private var configurationFailures: UInt64 = 0
   private var recordFailures: UInt64 = 0
 
-  public init() {}
+  public init(
+    wallClock: @escaping @Sendable () -> Date = { Date() },
+    monotonicNanoseconds: @escaping @Sendable () -> UInt64 = {
+      DispatchTime.now().uptimeNanoseconds
+    }
+  ) {
+    self.wallClock = wallClock
+    self.monotonicNanoseconds = monotonicNanoseconds
+  }
 
   deinit {
     cancelAndWait()
@@ -177,6 +196,76 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
     return succeeded
   }
 
+  /// Captures the exact matching wake-recovery acceptance edge. This is an
+  /// evidence-only observation: rejection, disabled evidence, or clock
+  /// failure cannot affect the recovery state machine.
+  @discardableResult
+  public func acceptSleepWake(recoveryEpoch: UInt64) -> Bool {
+    guard recoveryEpoch > 0 else { return false }
+
+    condition.lock()
+    guard status == .active,
+          pendingSleepWakeAcceptance == nil,
+          !sleepWakeAcceptanceInFlight
+    else {
+      condition.unlock()
+      return false
+    }
+    sleepWakeAcceptanceInFlight = true
+    condition.unlock()
+
+    let acceptedAt = wallClock()
+    let acceptedMonotonicNanoseconds = monotonicNanoseconds()
+    let clockIsValid = acceptedAt.timeIntervalSinceReferenceDate.isFinite
+      && acceptedMonotonicNanoseconds > 0
+
+    condition.lock()
+    sleepWakeAcceptanceInFlight = false
+    guard clockIsValid,
+          status == .active,
+          pendingSleepWakeAcceptance == nil
+    else {
+      condition.broadcast()
+      condition.unlock()
+      return false
+    }
+    pendingSleepWakeAcceptance = SleepWakeAcceptance(
+      recoveryEpoch: recoveryEpoch,
+      acceptedAt: acceptedAt,
+      acceptedMonotonicNanoseconds: acceptedMonotonicNanoseconds
+    )
+    condition.broadcast()
+    condition.unlock()
+    return true
+  }
+
+  /// Persists only the exact accepted epoch after the core recovery owner has
+  /// committed `running` and the product has published registration `ready`.
+  @discardableResult
+  public func recordSleepWakeCompleted(recoveryEpoch: UInt64) -> Bool {
+    condition.lock()
+    guard status == .active,
+          let acceptance = pendingSleepWakeAcceptance,
+          acceptance.recoveryEpoch == recoveryEpoch
+    else {
+      condition.unlock()
+      return false
+    }
+    pendingSleepWakeAcceptance = nil
+    condition.unlock()
+
+    let completedAt = wallClock()
+    let completedMonotonicNanoseconds = monotonicNanoseconds()
+    return recordCompleted(
+      correlation: .sleepWake(recoveryEpoch: recoveryEpoch),
+      acceptedAt: acceptance.acceptedAt,
+      completedAt: completedAt,
+      acceptedMonotonicNanoseconds:
+        acceptance.acceptedMonotonicNanoseconds,
+      completedMonotonicNanoseconds: completedMonotonicNanoseconds
+    )
+  }
+
   /// Terminally closes admission, waits for any accepted configuration/write,
   /// then releases the retained evidence file handle.
   public func cancelAndWait() {
@@ -194,9 +283,12 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
     case .idle, .configuring, .disabled, .active, .unavailable:
       status = .cancelling
       condition.broadcast()
-      while configurationInFlight || recordInFlight {
+      while configurationInFlight || sleepWakeAcceptanceInFlight
+        || recordInFlight
+      {
         condition.wait()
       }
+      pendingSleepWakeAcceptance = nil
       writer = nil
       status = .cancelled
       condition.broadcast()

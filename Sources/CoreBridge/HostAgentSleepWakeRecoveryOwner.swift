@@ -56,6 +56,10 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
         _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
     ) -> Bool
     package let publishAvailable: @Sendable (_ epoch: UInt64) -> Bool
+    /// Best-effort observation only. These callbacks cannot veto, advance, or
+    /// otherwise change recovery state.
+    package let recoveryAccepted: @Sendable (_ epoch: UInt64) -> Void
+    package let recoveryCompleted: @Sendable (_ epoch: UInt64) -> Void
 
     package init(
         withdrawAvailability: @escaping @Sendable (_ epoch: UInt64) -> Bool,
@@ -72,7 +76,9 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
             _ epoch: UInt64,
             _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
         ) -> Bool,
-        publishAvailable: @escaping @Sendable (_ epoch: UInt64) -> Bool
+        publishAvailable: @escaping @Sendable (_ epoch: UInt64) -> Bool,
+        recoveryAccepted: @escaping @Sendable (_ epoch: UInt64) -> Void = { _ in },
+        recoveryCompleted: @escaping @Sendable (_ epoch: UInt64) -> Void = { _ in }
     ) {
         self.withdrawAvailability = withdrawAvailability
         self.publishSuspending = publishSuspending
@@ -83,6 +89,8 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
         self.beginMediaRecovery = beginMediaRecovery
         self.beginRegistrationRecovery = beginRegistrationRecovery
         self.publishAvailable = publishAvailable
+        self.recoveryAccepted = recoveryAccepted
+        self.recoveryCompleted = recoveryCompleted
     }
 }
 
@@ -166,6 +174,8 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         )
         state = transition
         lock.unlock()
+
+        operations.recoveryAccepted(epoch)
 
         guard perform(
             .reenumerateDisplays,
@@ -509,10 +519,14 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         ) else {
             return false
         }
-        return replace(
+        guard replace(
             restoring,
             with: .running(epoch: epoch)
-        )
+        ) else {
+            return false
+        }
+        operations.recoveryCompleted(epoch)
+        return true
     }
 
     private func replace(

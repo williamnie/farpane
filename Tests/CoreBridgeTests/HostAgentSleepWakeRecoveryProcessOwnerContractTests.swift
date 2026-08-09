@@ -20,11 +20,20 @@ final class HostAgentSleepWakeRecoveryProcessOwnerContractTests: XCTestCase {
         XCTAssertTrue(owner.contains("registrationStatus: \"suspending\""))
         XCTAssertTrue(owner.contains("recoveryStatus: .running"))
         XCTAssertTrue(owner.contains("registrationStatus: \"ready\""))
+        XCTAssertTrue(owner.contains(
+            "recoveryEvidenceOwner.acceptSleepWake("
+        ))
+        XCTAssertTrue(owner.contains(
+            "recoveryEvidenceOwner.recordSleepWakeCompleted("
+        ))
         let installStart = try XCTUnwrap(owner.range(of: "func install("))
         let installTail = owner[installStart.lowerBound...]
         let installSignatureEnd = try XCTUnwrap(installTail.range(of: ") -> Bool"))
         let installSignature = installTail[..<installSignatureEnd.upperBound]
         XCTAssertFalse(installSignature.contains("operations:"))
+        XCTAssertTrue(installSignature.contains(
+            "recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner"
+        ))
         XCTAssertTrue(owner.contains(
             "HostAgentNSWorkspaceSleepWakeIngress.makeProduct("
         ))

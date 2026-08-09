@@ -51,7 +51,7 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
         XCTAssertFalse(source.contains("let releaseSleepAssertion: @Sendable"))
     }
 
-    func testCompositionRequiresOnlyProjectionOperationsAndForwardsLifecycle() throws {
+    func testCompositionForwardsProjectionAndBestEffortEvidenceLifecycle() throws {
         let source = try productSource(
             "HostAgentSleepWakeRecoveryComposition.swift"
         )
@@ -63,6 +63,15 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
             XCTAssertTrue(source.contains("let \(operation): @Sendable"))
             XCTAssertTrue(source.contains(
                 "operations.\(operation)(epoch)"
+            ))
+        }
+        for observation in [
+            "recoveryAccepted",
+            "recoveryCompleted",
+        ] {
+            XCTAssertTrue(source.contains("let \(observation): @Sendable"))
+            XCTAssertTrue(source.contains(
+                "operations.\(observation)(epoch)"
             ))
         }
         XCTAssertTrue(source.contains("owner.snapshot()"))

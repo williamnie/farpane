@@ -146,6 +146,107 @@ final class HostRecoveryTransitionEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertEqual((try? Data(contentsOf: fixture.output).count), 0)
   }
 
+  func testSleepWakeEvidenceRequiresExactAcceptedEpochAndPreservesTiming() throws {
+    let fixture = makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let clock = RecoveryEvidenceTestClock(
+      wallTimes: [
+        Date(timeIntervalSince1970: 10),
+        Date(timeIntervalSince1970: 20),
+      ],
+      monotonicTimes: [100, 200]
+    )
+    let owner = HostRecoveryTransitionEvidenceProcessOwner(
+      wallClock: { clock.nextWallTime() },
+      monotonicNanoseconds: { clock.nextMonotonicTime() }
+    )
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: "host",
+      buildIdentity: "build",
+      environment: [
+        HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey:
+          fixture.output.path,
+      ]
+    ))
+
+    XCTAssertTrue(owner.acceptSleepWake(recoveryEpoch: 7))
+    XCTAssertFalse(owner.acceptSleepWake(recoveryEpoch: 7))
+    XCTAssertEqual(try Data(contentsOf: fixture.output).count, 0)
+    XCTAssertFalse(owner.recordSleepWakeCompleted(recoveryEpoch: 8))
+    XCTAssertTrue(owner.recordSleepWakeCompleted(recoveryEpoch: 7))
+    XCTAssertFalse(owner.recordSleepWakeCompleted(recoveryEpoch: 7))
+
+    let document = try readOnlyRecord(fixture.output)
+    XCTAssertEqual(document["kind"] as? String, "sleepWake")
+    let correlation = try XCTUnwrap(
+      document["correlation"] as? [String: Any]
+    )
+    XCTAssertEqual(correlation["recoveryEpoch"] as? Int, 7)
+    XCTAssertEqual(correlation["runningReadyConverged"] as? Bool, true)
+    XCTAssertEqual(
+      document["acceptedMonotonicNanoseconds"] as? Int,
+      100
+    )
+    XCTAssertEqual(
+      document["completedMonotonicNanoseconds"] as? Int,
+      200
+    )
+    XCTAssertEqual(owner.snapshot(), .init(
+      status: .active,
+      completedRecords: 1,
+      configurationFailures: 0,
+      recordFailures: 0
+    ))
+  }
+
+  func testCancellationDrainsAcceptedSleepWakeClockSampling() throws {
+    let fixture = makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let samplingEntered = DispatchSemaphore(value: 0)
+    let releaseSampling = DispatchSemaphore(value: 0)
+    let cancellationFinished = DispatchSemaphore(value: 0)
+    let acceptanceFinished = expectation(description: "acceptance finished")
+    let owner = HostRecoveryTransitionEvidenceProcessOwner(
+      wallClock: {
+        samplingEntered.signal()
+        releaseSampling.wait()
+        return Date(timeIntervalSince1970: 10)
+      },
+      monotonicNanoseconds: { 100 }
+    )
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: "host",
+      buildIdentity: "build",
+      environment: [
+        HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey:
+          fixture.output.path,
+      ]
+    ))
+
+    DispatchQueue.global().async {
+      XCTAssertFalse(owner.acceptSleepWake(recoveryEpoch: 1))
+      acceptanceFinished.fulfill()
+    }
+    XCTAssertEqual(samplingEntered.wait(timeout: .now() + 1), .success)
+    DispatchQueue.global().async {
+      owner.cancelAndWait()
+      cancellationFinished.signal()
+    }
+    XCTAssertEqual(
+      cancellationFinished.wait(timeout: .now() + 0.05),
+      .timedOut
+    )
+
+    releaseSampling.signal()
+    wait(for: [acceptanceFinished], timeout: 1)
+    XCTAssertEqual(
+      cancellationFinished.wait(timeout: .now() + 1),
+      .success
+    )
+    XCTAssertEqual(owner.snapshot().status, .cancelled)
+    XCTAssertEqual(try Data(contentsOf: fixture.output).count, 0)
+  }
+
   func testConfigurationAndCancellationAreTerminalOneShotOperations() {
     let owner = HostRecoveryTransitionEvidenceProcessOwner()
     XCTAssertTrue(owner.configure(
@@ -191,5 +292,28 @@ final class HostRecoveryTransitionEvidenceProcessOwnerTests: XCTestCase {
       )
       .appendingPathComponent(UUID().uuidString, isDirectory: true)
     return (directory, directory.appendingPathComponent("recovery.jsonl"))
+  }
+}
+
+private final class RecoveryEvidenceTestClock: @unchecked Sendable {
+  private let lock = NSLock()
+  private var wallTimes: [Date]
+  private var monotonicTimes: [UInt64]
+
+  init(wallTimes: [Date], monotonicTimes: [UInt64]) {
+    self.wallTimes = wallTimes
+    self.monotonicTimes = monotonicTimes
+  }
+
+  func nextWallTime() -> Date {
+    lock.lock()
+    defer { lock.unlock() }
+    return wallTimes.removeFirst()
+  }
+
+  func nextMonotonicTime() -> UInt64 {
+    lock.lock()
+    defer { lock.unlock() }
+    return monotonicTimes.removeFirst()
   }
 }

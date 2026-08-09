@@ -7,13 +7,19 @@ import Foundation
 struct HostAgentSleepWakeRecoveryProductOperations: Sendable {
     let publishSuspending: @Sendable (_ epoch: UInt64) -> Bool
     let publishAvailable: @Sendable (_ epoch: UInt64) -> Bool
+    let recoveryAccepted: @Sendable (_ epoch: UInt64) -> Void
+    let recoveryCompleted: @Sendable (_ epoch: UInt64) -> Void
 
     init(
         publishSuspending: @escaping @Sendable (_ epoch: UInt64) -> Bool,
-        publishAvailable: @escaping @Sendable (_ epoch: UInt64) -> Bool
+        publishAvailable: @escaping @Sendable (_ epoch: UInt64) -> Bool,
+        recoveryAccepted: @escaping @Sendable (_ epoch: UInt64) -> Void,
+        recoveryCompleted: @escaping @Sendable (_ epoch: UInt64) -> Void
     ) {
         self.publishSuspending = publishSuspending
         self.publishAvailable = publishAvailable
+        self.recoveryAccepted = recoveryAccepted
+        self.recoveryCompleted = recoveryCompleted
     }
 }
 
@@ -105,6 +111,12 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
                 },
                 publishAvailable: { epoch in
                     operations.publishAvailable(epoch)
+                },
+                recoveryAccepted: { epoch in
+                    operations.recoveryAccepted(epoch)
+                },
+                recoveryCompleted: { epoch in
+                    operations.recoveryCompleted(epoch)
                 }
             )
         )
