@@ -680,17 +680,10 @@ package final class HostAgentBackgroundActivationOwner:
         _ intent: HostAgentXPCCommandIntent,
         projection: HostAgentBackgroundProjection
     ) -> Bool {
-        switch intent.name {
-        case .approveIncoming, .rejectIncoming:
-            return projection.payload.pendingApproval?.connectionID
-                == intent.connectionID
-        case .disableInputForActiveSession,
-             .disableClipboardForActiveSession,
-             .disableAudioForActiveSession,
-             .disconnectSession:
-            return projection.payload.activeSession?.connectionID
-                == intent.connectionID
-        }
+        HostAgentBackgroundSessionCommandPolicy.allows(
+            intent,
+            payload: projection.payload
+        )
     }
 
     private func commandStateMatchesProjection(

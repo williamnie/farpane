@@ -95,6 +95,11 @@ package enum HostAgentBackgroundHomeReadinessPresentationPolicy {
                 statusText: "正在同步后台状态…",
                 isBusy: true
             )
+        case .sessionUnavailable:
+            return value(
+                statusText: "当前 Mac 会话不可用",
+                isRunning: true
+            )
         case .rendezvousUnavailable:
             return value(
                 statusText: "后台组件尚未连接服务器",

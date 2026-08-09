@@ -46,6 +46,33 @@ final class HostAgentBackgroundReadinessPolicyTests: XCTestCase {
         )
     }
 
+    func testLimitedSessionWithdrawsReadyBeforeRendezvousHealth() {
+        let snapshot = health(
+            session: .limitedSessionUnavailable,
+            rendezvous: .registered
+        )
+
+        XCTAssertEqual(snapshot.availability, .sessionUnavailable)
+        XCTAssertFalse(snapshot.isReady)
+    }
+
+    func testSnapshotAndSessionEvidenceMustBeConsistent() {
+        XCTAssertEqual(
+            health(
+                snapshot: .unavailable,
+                session: .available
+            ).availability,
+            .runtimeEvidenceInvalid
+        )
+        XCTAssertEqual(
+            health(
+                snapshot: .available,
+                session: .unavailable
+            ).availability,
+            .runtimeEvidenceInvalid
+        )
+    }
+
     func testReadyRequiresEveryIndependentComponentToBeHealthy() {
         let snapshot = health()
 
@@ -57,12 +84,16 @@ final class HostAgentBackgroundReadinessPolicyTests: XCTestCase {
         registration: HostAgentBackgroundRegistrationStatus = .enabled,
         handshake: HostAgentBackgroundHandshakeStatus = .compatible,
         snapshot: HostAgentBackgroundSnapshotStatus = .available,
+        session: HostAgentBackgroundSessionStatus? = nil,
         rendezvous: HostAgentBackgroundRendezvousStatus = .registered
     ) -> HostAgentBackgroundComponentHealth {
         HostAgentBackgroundComponentHealth(
             registration: registration,
             handshake: handshake,
             snapshot: snapshot,
+            session: session ?? (
+                snapshot == .available ? .available : .unavailable
+            ),
             rendezvous: rendezvous
         )
     }

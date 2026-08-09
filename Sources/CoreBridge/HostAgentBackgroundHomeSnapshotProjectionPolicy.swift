@@ -70,6 +70,9 @@ package enum HostAgentBackgroundHomeSnapshotProjectionPolicy {
             return .unavailable
         }
         let payload = available.payload
+        let pendingApproval = payload.sessionAvailability == .available
+            ? payload.pendingApproval
+            : nil
         return HostAgentBackgroundHomeSnapshotPresentation(
             isAvailable: true,
             localID: payload.localID,
@@ -82,7 +85,7 @@ package enum HostAgentBackgroundHomeSnapshotProjectionPolicy {
             permanentPasswordChangeAllowed:
                 payload.passwordPolicy.changeAllowed,
             hasRuntimeError: payload.lastError != nil,
-            pendingApproval: payload.pendingApproval,
+            pendingApproval: pendingApproval,
             activeSession: payload.activeSession
         )
     }

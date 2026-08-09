@@ -476,6 +476,94 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         ))
     }
 
+    func testLimitedSessionRejectsNewControlAtFinalSubmissionBoundary()
+        throws
+    {
+        let factory = ActivationRuntimeFactory()
+        let owner = HostAgentBackgroundActivationOwner(
+            makeRuntime: { observer in
+                try factory.make(observer: observer)
+            }
+        )
+        XCTAssertTrue(owner.apply(.hostEnabled))
+        let runtime = factory.runtimes[0]
+        let projection = try commandProjection(
+            pendingConnectionID: "host-a:pending-1",
+            activeConnectionID: "host-a:session-1",
+            limitedSession: true
+        )
+        guard case .available(let projected) = projection.phase else {
+            return XCTFail("expected available projection")
+        }
+        runtime.setCommandAvailability(.available(
+            route: HostAgentXPCReconnectCommandRoute(
+                sessionGeneration: 7,
+                peerIdentity: projected.peerIdentity
+            ),
+            state: .idle
+        ))
+        runtime.emitProjection(projection)
+        guard case .available(let route, .idle) =
+            owner.commandAvailabilitySnapshot()
+        else { return XCTFail("expected command route") }
+
+        for intent in [
+            HostAgentXPCCommandIntent(
+                commandID: "command-approve",
+                name: .approveIncoming,
+                connectionID: "host-a:pending-1"
+            ),
+            HostAgentXPCCommandIntent(
+                commandID: "command-input",
+                name: .disableInputForActiveSession,
+                connectionID: "host-a:session-1"
+            ),
+        ] {
+            XCTAssertFalse(owner.submitCommand(
+                route: route,
+                intent: intent,
+                observer: { _ in }
+            ))
+        }
+        let disconnect = HostAgentXPCCommandIntent(
+            commandID: "command-disconnect",
+            name: .disconnectSession,
+            connectionID: "host-a:session-1"
+        )
+        XCTAssertTrue(owner.submitCommand(
+            route: route,
+            intent: disconnect,
+            observer: { _ in }
+        ))
+        XCTAssertEqual(runtime.submittedIntents, [disconnect])
+        runtime.publishCommand(.invalidRequest)
+
+        let retainedApproval = HostAgentXPCCommandIntent(
+            commandID: "command-retained-approval",
+            name: .approveIncoming,
+            connectionID: "host-a:pending-1"
+        )
+        runtime.setCommandAvailability(.available(
+            route: route.reconnectRoute,
+            state: .retryable(retainedApproval)
+        ))
+        XCTAssertEqual(owner.commandAvailabilitySnapshot(), .unavailable)
+
+        runtime.setCommandAvailability(.available(
+            route: route.reconnectRoute,
+            state: .retryable(disconnect)
+        ))
+        guard case .available(let retryRoute, .retryable(let retained)) =
+            owner.commandAvailabilitySnapshot()
+        else { return XCTFail("expected exact disconnect retry") }
+        XCTAssertEqual(retained, disconnect)
+        XCTAssertTrue(owner.retryCommand(
+            route: retryRoute,
+            observer: { _ in }
+        ))
+        XCTAssertEqual(runtime.retryCount, 1)
+    }
+
     func testProductFactoryAndSourceRemainInertAndIndependentFromLegacyHost()
         throws
     {
@@ -528,7 +616,8 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
 
     private func commandProjection(
         pendingConnectionID: String?,
-        activeConnectionID: String?
+        activeConnectionID: String?,
+        limitedSession: Bool = false
     ) throws -> HostAgentBackgroundProjectionView {
         let authority = HostAgentBackgroundProjectionAuthority()
         let binding = authority.beginSession()
@@ -540,7 +629,8 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
         binding.sink.publishInitialSnapshot(
             try commandSnapshot(
                 pendingConnectionID: pendingConnectionID,
-                activeConnectionID: activeConnectionID
+                activeConnectionID: activeConnectionID,
+                limitedSession: limitedSession
             ),
             peerIdentity: peer,
             transition: .firstObservation
@@ -550,7 +640,8 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
 
     private func commandSnapshot(
         pendingConnectionID: String?,
-        activeConnectionID: String?
+        activeConnectionID: String?,
+        limitedSession: Bool
     ) throws -> HostAgentXPCWireSnapshotResponse {
         let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
         let request = try HostAgentXPCWireSnapshotRequest(
@@ -603,8 +694,12 @@ final class HostAgentBackgroundActivationOwnerTests: XCTestCase {
                     "hostInstanceId": "host-a",
                     "hostState": "ready",
                     "localId": "123456789",
-                    "sessionAvailability": "available",
-                    "sessionUnavailableReason": NSNull(),
+                    "sessionAvailability": limitedSession
+                        ? "limited"
+                        : "available",
+                    "sessionUnavailableReason": limitedSession
+                        ? "sessionUnavailable"
+                        : NSNull(),
                     "registrationStatus": "ready",
                     "recoveryEpoch": 0,
                     "recoveryStatus": "running",
@@ -832,6 +927,7 @@ private final class ActivationFakeRuntime:
             projectionGeneration: projectionGeneration,
             handshake: .compatible,
             snapshot: .available,
+            session: .available,
             rendezvous: .registered
         ))
     }
@@ -878,6 +974,7 @@ private final class ActivationFakeRuntime:
             projectionGeneration: projectionGeneration,
             handshake: .disconnected,
             snapshot: .available,
+            session: .available,
             rendezvous: .registered
         ))
     }
