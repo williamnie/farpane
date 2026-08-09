@@ -5,10 +5,19 @@ package protocol HostAgentBackgroundActivationRuntime:
     Sendable
 {
     func readinessSnapshot() -> HostAgentBackgroundReadinessView
+    func projectionSnapshot() -> HostAgentBackgroundProjectionView?
     @discardableResult
     func startMonitoring() -> Bool
     func refreshRegistrationObservation()
     func cancelMonitoring()
+}
+
+extension HostAgentBackgroundActivationRuntime {
+    package func projectionSnapshot()
+        -> HostAgentBackgroundProjectionView?
+    {
+        nil
+    }
 }
 
 extension HostAgentBackgroundRuntimeComposition:
@@ -16,6 +25,12 @@ extension HostAgentBackgroundRuntimeComposition:
 {
     package func readinessSnapshot() -> HostAgentBackgroundReadinessView {
         healthAuthority.snapshot()
+    }
+
+    package func projectionSnapshot()
+        -> HostAgentBackgroundProjectionView?
+    {
+        projectionAuthority.snapshot()
     }
 
     @discardableResult
@@ -61,13 +76,16 @@ package enum HostAgentBackgroundActivationPhase: Equatable, Sendable {
 package struct HostAgentBackgroundActivationView: Equatable, Sendable {
     package let generation: UInt64
     package let phase: HostAgentBackgroundActivationPhase
+    package let projection: HostAgentBackgroundProjectionView?
 
     fileprivate init(
         generation: UInt64,
-        phase: HostAgentBackgroundActivationPhase
+        phase: HostAgentBackgroundActivationPhase,
+        projection: HostAgentBackgroundProjectionView? = nil
     ) {
         self.generation = generation
         self.phase = phase
+        self.projection = projection
     }
 }
 
@@ -233,6 +251,7 @@ package final class HostAgentBackgroundActivationOwner:
         activationEpoch: UInt64
     ) -> Bool {
         let initialReadiness = runtime.readinessSnapshot()
+        let initialProjection = runtime.projectionSnapshot()
         deliveryLock.lock()
         stateLock.lock()
         guard activeEpoch == activationEpoch,
@@ -245,10 +264,16 @@ package final class HostAgentBackgroundActivationOwner:
             return false
         }
         activeRuntime = runtime
-        let publication = replaceViewLocked(.monitoring(
-            epoch: activationEpoch,
-            readiness: initialReadiness
-        ))
+        let publication = replaceViewLocked(
+            .monitoring(
+                epoch: activationEpoch,
+                readiness: initialReadiness
+            ),
+            projection: coherentProjection(
+                initialProjection,
+                readiness: initialReadiness
+            )
+        )
         let generationFailed = publication.phase
             == .failed(.generationExhausted)
         if generationFailed {
@@ -336,8 +361,16 @@ package final class HostAgentBackgroundActivationOwner:
         }
 
         let failure: HostAgentBackgroundActivationFailure?
+        let runtimeProjection = runtime.projectionSnapshot()
         if readiness.failure != nil {
             failure = .runtimeHealthRejected
+        } else if runtimeProjection != nil,
+                  coherentProjection(
+                    runtimeProjection,
+                    readiness: readiness
+                  ) == nil
+        {
+            failure = .invalidHealthSequence
         } else if readiness.generation < current.generation {
             stateLock.unlock()
             deliveryLock.unlock()
@@ -362,10 +395,16 @@ package final class HostAgentBackgroundActivationOwner:
             runtime.cancelMonitoring()
             publish(publication)
         } else {
-            let publication = replaceViewLocked(.monitoring(
-                epoch: activationEpoch,
-                readiness: readiness
-            ))
+            let publication = replaceViewLocked(
+                .monitoring(
+                    epoch: activationEpoch,
+                    readiness: readiness
+                ),
+                projection: coherentProjection(
+                    runtimeProjection,
+                    readiness: readiness
+                )
+            )
             let generationFailed = publication.phase
                 == .failed(.generationExhausted)
             if generationFailed {
@@ -417,7 +456,8 @@ package final class HostAgentBackgroundActivationOwner:
     }
 
     private func replaceViewLocked(
-        _ phase: HostAgentBackgroundActivationPhase
+        _ phase: HostAgentBackgroundActivationPhase,
+        projection: HostAgentBackgroundProjectionView? = nil
     ) -> HostAgentBackgroundActivationView {
         guard view.generation < UInt64.max - 1 else {
             view = HostAgentBackgroundActivationView(
@@ -428,9 +468,23 @@ package final class HostAgentBackgroundActivationOwner:
         }
         view = HostAgentBackgroundActivationView(
             generation: view.generation + 1,
-            phase: phase
+            phase: phase,
+            projection: projection
         )
         return view
+    }
+
+    private func coherentProjection(
+        _ projection: HostAgentBackgroundProjectionView?,
+        readiness: HostAgentBackgroundReadinessView
+    ) -> HostAgentBackgroundProjectionView? {
+        guard let projection,
+              projection.generation
+                == readiness.runtime.projectionGeneration,
+              HostAgentBackgroundRuntimeEvidence(projection: projection)
+                == readiness.runtime
+        else { return nil }
+        return projection
     }
 
     private func publish(_ publication: HostAgentBackgroundActivationView) {
