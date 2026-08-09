@@ -84,6 +84,89 @@ final class HostAgentXPCEventPollingOwnerTests: XCTestCase {
         )
     }
 
+    func testPauseCancelsScheduledFetchAndResumeUsesCallerDelay() throws {
+        let client = EventPollingTestClient(state: .ready(
+            try peerIdentity(),
+            lastEventID: 0
+        ))
+        let scheduler = EventPollingTestScheduler()
+        let pauses = EventPollingTestRecorder<Bool>()
+        let owner = HostAgentXPCEventPollingOwner(
+            client: client,
+            schedule: scheduler.schedule,
+            onResult: { _ in XCTFail("unexpected result") },
+            onTerminal: { _ in XCTFail("unexpected terminal result") }
+        )
+        XCTAssertTrue(owner.start())
+
+        XCTAssertTrue(owner.pause { pauses.append($0) })
+        XCTAssertEqual(pauses.values, [true])
+        XCTAssertEqual(owner.stateSnapshot(), .paused)
+        XCTAssertEqual(scheduler.pendingDelays, [])
+        scheduler.fireNext()
+        XCTAssertEqual(client.fetchCount, 0)
+
+        XCTAssertTrue(owner.resume(delayMilliseconds: 100))
+        XCTAssertEqual(scheduler.pendingDelays, [100])
+        scheduler.fireNext()
+        XCTAssertEqual(client.fetchCount, 1)
+        XCTAssertEqual(owner.stateSnapshot(), .fetching)
+    }
+
+    func testPauseWaitsForInflightResultBeforeBecomingPaused() throws {
+        let client = EventPollingTestClient(state: .ready(
+            try peerIdentity(),
+            lastEventID: 0
+        ))
+        let scheduler = EventPollingTestScheduler()
+        let order = EventPollingTestRecorder<String>()
+        let owner = HostAgentXPCEventPollingOwner(
+            client: client,
+            schedule: scheduler.schedule,
+            onResult: { _ in order.append("result") },
+            onTerminal: { _ in XCTFail("unexpected terminal result") }
+        )
+        XCTAssertTrue(owner.start())
+        scheduler.fireNext()
+
+        XCTAssertTrue(owner.pause { paused in
+            order.append("paused:\(paused)")
+        })
+        XCTAssertEqual(owner.stateSnapshot(), .pausing)
+        XCTAssertEqual(order.values, [])
+        client.reply(.events(try upToDateResponse()))
+
+        XCTAssertEqual(order.values, ["result", "paused:true"])
+        XCTAssertEqual(owner.stateSnapshot(), .paused)
+        XCTAssertEqual(scheduler.pendingDelays, [])
+    }
+
+    func testTerminalWhilePausingRejectsPauseBeforeTerminalDelivery() throws {
+        let client = EventPollingTestClient(state: .ready(
+            try peerIdentity(),
+            lastEventID: 0
+        ))
+        let scheduler = EventPollingTestScheduler()
+        let order = EventPollingTestRecorder<String>()
+        let owner = HostAgentXPCEventPollingOwner(
+            client: client,
+            schedule: scheduler.schedule,
+            onResult: { _ in XCTFail("unexpected result") },
+            onTerminal: { _ in order.append("terminal") }
+        )
+        XCTAssertTrue(owner.start())
+        scheduler.fireNext()
+        XCTAssertTrue(owner.pause { paused in
+            order.append("paused:\(paused)")
+        })
+
+        client.reply(.timedOut)
+
+        XCTAssertEqual(order.values, ["paused:false", "terminal"])
+        XCTAssertEqual(owner.stateSnapshot(), .failed)
+        XCTAssertFalse(owner.resume(delayMilliseconds: 0))
+    }
+
     func testCancelRemovesScheduledWorkAndIgnoresInflightReply() throws {
         let scheduledClient = EventPollingTestClient(state: .ready(
             try peerIdentity(),

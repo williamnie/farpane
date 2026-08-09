@@ -215,7 +215,147 @@ final class HostAgentXPCSessionLifecycleTests: XCTestCase {
         XCTAssertEqual(sink.order.values, ["events", "terminal"])
     }
 
-    func testCancelBeforeStartIsTerminalAndSourceOwnsNoUIReadinessOrCommand()
+    func testCommandIntentPausesPollingUntilAcceptedThenRestoresPolling()
+        throws
+    {
+        let order = SessionLifecycleTestRecorder<String>()
+        let client = SessionLifecycleTestClient(order: order)
+        let sink = SessionLifecycleTestSink(order: order)
+        let polling = SessionLifecycleTestPollingOwner(order: order)
+        let lifecycle = makeLifecycle(
+            client: client,
+            sink: sink,
+            polling: polling
+        )
+        XCTAssertTrue(lifecycle.start())
+        client.reply(try readyResult(lastEventID: 1))
+        let intent = commandIntent()
+        let results = SessionLifecycleTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+
+        XCTAssertTrue(lifecycle.submitCommand(intent) { results.append($0) })
+        XCTAssertEqual(client.submittedCommands, [])
+        XCTAssertEqual(lifecycle.commandStateSnapshot(), .pausing(intent))
+        polling.completePause()
+        XCTAssertEqual(client.submittedCommands, [intent])
+        XCTAssertEqual(
+            lifecycle.commandStateSnapshot(),
+            .awaitingAcceptance(intent)
+        )
+
+        let accepted = try queuedAcceptance(for: intent)
+        client.replyToCommand(.accepted(accepted))
+        XCTAssertEqual(results.values, [.accepted(accepted)])
+        XCTAssertEqual(polling.resumeDelays, [100])
+        XCTAssertEqual(
+            lifecycle.commandStateSnapshot(),
+            .awaitingResult(intent)
+        )
+
+        let completed = try HostAgentXPCWireCommandResult(
+            commandID: intent.commandID,
+            status: .ok,
+            detail: "completed"
+        )
+        client.replyToCommand(.completed(completed))
+        XCTAssertEqual(results.values, [
+            .accepted(accepted), .completed(completed),
+        ])
+        XCTAssertEqual(lifecycle.commandStateSnapshot(), .idle)
+        XCTAssertEqual(order.values, [
+            "clientStart", "initialSnapshot", "pollingStart",
+            "pollingPause", "clientCommand", "pollingResume:100",
+        ])
+    }
+
+    func testRetryUsesRetainedIntentAndSessionCancellationDiscardsIt()
+        throws
+    {
+        let order = SessionLifecycleTestRecorder<String>()
+        let client = SessionLifecycleTestClient(order: order)
+        let sink = SessionLifecycleTestSink(order: order)
+        let polling = SessionLifecycleTestPollingOwner(order: order)
+        let lifecycle = makeLifecycle(
+            client: client,
+            sink: sink,
+            polling: polling
+        )
+        XCTAssertTrue(lifecycle.start())
+        client.reply(try readyResult(lastEventID: 1))
+        let intent = commandIntent()
+
+        XCTAssertTrue(lifecycle.submitCommand(intent) { _ in })
+        polling.completePause()
+        client.replyToCommand(.accepted(try queuedAcceptance(for: intent)))
+        client.replyToCommand(.resultTimedOut)
+        XCTAssertEqual(lifecycle.commandStateSnapshot(), .retryable(intent))
+
+        XCTAssertTrue(lifecycle.retryCommand { _ in })
+        polling.completePause()
+        XCTAssertEqual(client.submittedCommands, [intent, intent])
+        lifecycle.cancel()
+        client.replyToCommand(.invalidState)
+
+        XCTAssertEqual(lifecycle.commandStateSnapshot(), .idle)
+        XCTAssertFalse(lifecycle.retryCommand { _ in })
+        XCTAssertEqual(sink.terminations, [.cancelled])
+    }
+
+    func testPreAcceptanceDisconnectKeepsRecoverableSessionReason() throws {
+        let order = SessionLifecycleTestRecorder<String>()
+        let client = SessionLifecycleTestClient(order: order)
+        let sink = SessionLifecycleTestSink(order: order)
+        let polling = SessionLifecycleTestPollingOwner(order: order)
+        let lifecycle = makeLifecycle(
+            client: client,
+            sink: sink,
+            polling: polling
+        )
+        XCTAssertTrue(lifecycle.start())
+        client.reply(try readyResult(lastEventID: 1))
+        let intent = commandIntent()
+        let results = SessionLifecycleTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        XCTAssertTrue(lifecycle.submitCommand(intent) { results.append($0) })
+        polling.completePause()
+
+        client.replyToCommand(.disconnected)
+
+        XCTAssertEqual(results.values, [.disconnected])
+        XCTAssertEqual(sink.terminations, [.disconnected])
+        XCTAssertEqual(lifecycle.stateSnapshot(), .failed(.disconnected))
+    }
+
+    func testInflightPauseFailureDefersToPollingTerminalReason() throws {
+        let order = SessionLifecycleTestRecorder<String>()
+        let client = SessionLifecycleTestClient(order: order)
+        let sink = SessionLifecycleTestSink(order: order)
+        let polling = SessionLifecycleTestPollingOwner(order: order)
+        let lifecycle = makeLifecycle(
+            client: client,
+            sink: sink,
+            polling: polling
+        )
+        XCTAssertTrue(lifecycle.start())
+        client.reply(try readyResult(lastEventID: 1))
+        let results = SessionLifecycleTestRecorder<
+            HostAgentXPCSnapshotClientCommandResult
+        >()
+        XCTAssertTrue(lifecycle.submitCommand(commandIntent()) {
+            results.append($0)
+        })
+
+        polling.completePause(false)
+        polling.fail(.timedOut)
+
+        XCTAssertEqual(results.values, [.invalidState])
+        XCTAssertEqual(sink.terminations, [.timedOut])
+        XCTAssertEqual(lifecycle.stateSnapshot(), .failed(.timedOut))
+    }
+
+    func testCancelBeforeStartIsTerminalAndSourceOwnsNoUIPolicyOrAmbientState()
         throws
     {
         let order = SessionLifecycleTestRecorder<String>()
@@ -249,6 +389,7 @@ final class HostAgentXPCSessionLifecycleTests: XCTestCase {
         XCTAssertTrue(source.contains(
             "HostAgentXPCEventPollingOwner.makeProduct("
         ))
+        XCTAssertTrue(source.contains("HostAgentXPCCommandIntentOwner("))
         XCTAssertFalse(source.contains("AppKit"))
         XCTAssertFalse(source.contains("SwiftUI"))
         XCTAssertFalse(source.contains("HostAgentBackgroundComponentHealth"))
@@ -283,6 +424,34 @@ final class HostAgentXPCSessionLifecycleTests: XCTestCase {
             snapshot: try snapshotResponse(lastEventID: lastEventID),
             peerIdentity: try peerIdentity(),
             identityTransition: transition
+        )
+    }
+
+    private func commandIntent() -> HostAgentXPCCommandIntent {
+        HostAgentXPCCommandIntent(
+            commandID: "command-1",
+            name: .disconnectSession,
+            connectionID: "host-a:connection-1"
+        )
+    }
+
+    private func queuedAcceptance(
+        for intent: HostAgentXPCCommandIntent
+    ) throws -> HostAgentXPCWireCommandAcceptedResponse {
+        let request = try HostAgentXPCWireCommandRequest(
+            requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
+            commandID: intent.commandID,
+            wireVersion: 1,
+            hostInstanceID: hostID,
+            agentBootID: bootID,
+            name: intent.name,
+            connectionID: intent.connectionID,
+            sentAtUnixMilliseconds: 10
+        )
+        return try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
+            for: request,
+            identity: identity(),
+            sentAtUnixMilliseconds: 20
         )
     }
 
@@ -409,6 +578,8 @@ private final class SessionLifecycleTestClient:
     private let order: SessionLifecycleTestRecorder<String>
     private var completion: (@Sendable
         (HostAgentXPCSnapshotClientResult) -> Void)?
+    private var commandObserver: HostAgentXPCSnapshotClient.CommandObserver?
+    private var commandIntents: [HostAgentXPCCommandIntent] = []
     private var cancels = 0
 
     init(order: SessionLifecycleTestRecorder<String>) {
@@ -416,6 +587,9 @@ private final class SessionLifecycleTestClient:
     }
 
     var cancelCount: Int { locked { cancels } }
+    var submittedCommands: [HostAgentXPCCommandIntent] {
+        locked { commandIntents }
+    }
 
     func start(
         completion: @escaping @Sendable
@@ -434,8 +608,29 @@ private final class SessionLifecycleTestClient:
         order.append("clientCancel")
     }
 
+    func submitCommand(
+        commandID: String,
+        name: HostAgentXPCWireCommandName,
+        connectionID: String,
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) {
+        lock.lock()
+        commandIntents.append(HostAgentXPCCommandIntent(
+            commandID: commandID,
+            name: name,
+            connectionID: connectionID
+        ))
+        commandObserver = observer
+        lock.unlock()
+        order.append("clientCommand")
+    }
+
     func reply(_ result: HostAgentXPCSnapshotClientResult) {
         locked { completion }?(result)
+    }
+
+    func replyToCommand(_ result: HostAgentXPCSnapshotClientCommandResult) {
+        locked { commandObserver }?(result)
     }
 
     private func locked<T>(_ body: () -> T) -> T {
@@ -456,6 +651,9 @@ private final class SessionLifecycleTestPollingOwner:
         (HostAgentXPCSnapshotClientEventResult) -> Void)?
     private var onTerminal: (@Sendable
         (HostAgentXPCSnapshotClientEventResult) -> Void)?
+    private var pauseCompletion:
+        HostAgentXPCEventPollingOwner.PauseCompletion?
+    private var resumeDelaysStorage: [UInt64] = []
 
     init(
         order: SessionLifecycleTestRecorder<String>,
@@ -488,6 +686,35 @@ private final class SessionLifecycleTestPollingOwner:
 
     func connectionDidEnd() {
         order.append("pollingConnectionEnd")
+    }
+
+    func pause(
+        completion: @escaping HostAgentXPCEventPollingOwner.PauseCompletion
+    ) -> Bool {
+        lock.lock()
+        pauseCompletion = completion
+        lock.unlock()
+        order.append("pollingPause")
+        return true
+    }
+
+    func resume(delayMilliseconds: UInt64) -> Bool {
+        lock.lock()
+        resumeDelaysStorage.append(delayMilliseconds)
+        lock.unlock()
+        order.append("pollingResume:\(delayMilliseconds)")
+        return true
+    }
+
+    var resumeDelays: [UInt64] { locked { resumeDelaysStorage } }
+
+    func completePause(_ paused: Bool = true) {
+        let completion: HostAgentXPCEventPollingOwner.PauseCompletion? = locked {
+            let completion = pauseCompletion
+            pauseCompletion = nil
+            return completion
+        }
+        completion?(paused)
     }
 
     func emit(_ result: HostAgentXPCSnapshotClientEventResult) {

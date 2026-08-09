@@ -25,7 +25,11 @@ package enum HostAgentXPCSessionLifecycleState: Equatable, Sendable {
     case cancelled
 }
 
-package protocol HostAgentXPCSessionClient: AnyObject, Sendable {
+package protocol HostAgentXPCSessionClient:
+    HostAgentXPCCommandIntentClient,
+    AnyObject,
+    Sendable
+{
     func start(
         completion: @escaping @Sendable
             (HostAgentXPCSnapshotClientResult) -> Void
@@ -35,7 +39,11 @@ package protocol HostAgentXPCSessionClient: AnyObject, Sendable {
 
 extension HostAgentXPCSnapshotClient: HostAgentXPCSessionClient {}
 
-package protocol HostAgentXPCSessionPollingOwner: AnyObject, Sendable {
+package protocol HostAgentXPCSessionPollingOwner:
+    HostAgentXPCCommandPollingArbiter,
+    AnyObject,
+    Sendable
+{
     @discardableResult
     func start() -> Bool
     func cancel()
@@ -60,8 +68,9 @@ package protocol HostAgentXPCSessionProjectionSink: AnyObject, Sendable {
 }
 
 /// Owns one App-side snapshot-first client and, only after the initial
-/// snapshot is published, its one event polling owner. It deliberately has no
-/// UI/readiness policy; a typed sink is the only outward projection boundary.
+/// snapshot is published, its event polling and command-intent owners. It
+/// deliberately has no UI/readiness policy; a typed sink is the only outward
+/// projection boundary.
 package final class HostAgentXPCSessionLifecycle: @unchecked Sendable {
     package typealias PollingOwnerFactory = @Sendable (
         _ onResult: @escaping HostAgentXPCEventPollingOwner.ResultObserver,
@@ -80,6 +89,7 @@ package final class HostAgentXPCSessionLifecycle: @unchecked Sendable {
     private let makePollingOwner: PollingOwnerFactory
     private var state: HostAgentXPCSessionLifecycleState = .idle
     private var pollingOwner: HostAgentXPCSessionPollingOwner?
+    private var commandOwner: HostAgentXPCCommandIntentOwner?
     private var identityResetDelivered = false
 
     package static func makeProduct(
@@ -129,6 +139,41 @@ package final class HostAgentXPCSessionLifecycle: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return state
+    }
+
+    package func commandStateSnapshot()
+        -> HostAgentXPCCommandIntentOwnerState
+    {
+        lock.lock()
+        defer { lock.unlock() }
+        return commandOwner?.stateSnapshot() ?? .idle
+    }
+
+    @discardableResult
+    package func submitCommand(
+        _ intent: HostAgentXPCCommandIntent,
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool {
+        lock.lock()
+        guard case .polling = state, let commandOwner else {
+            lock.unlock()
+            return false
+        }
+        lock.unlock()
+        return commandOwner.submit(intent, observer: observer)
+    }
+
+    @discardableResult
+    package func retryCommand(
+        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+    ) -> Bool {
+        lock.lock()
+        guard case .polling = state, let commandOwner else {
+            lock.unlock()
+            return false
+        }
+        lock.unlock()
+        return commandOwner.retry(observer: observer)
     }
 
     @discardableResult
@@ -246,6 +291,13 @@ package final class HostAgentXPCSessionLifecycle: @unchecked Sendable {
             return
         }
         pollingOwner = owner
+        commandOwner = HostAgentXPCCommandIntentOwner(
+            client: client,
+            polling: owner,
+            onInvalidationRequired: { [weak self] result in
+                self?.commandArbitrationDidInvalidate(result)
+            }
+        )
         state = .polling(
             peerIdentity,
             lastEventID: snapshot.lastEventID
@@ -336,6 +388,26 @@ package final class HostAgentXPCSessionLifecycle: @unchecked Sendable {
         terminate(reason: reason, pollingTermination: .cancel)
     }
 
+    private func commandArbitrationDidInvalidate(
+        _ result: HostAgentXPCSnapshotClientCommandResult
+    ) {
+        let reason: HostAgentXPCSessionTerminationReason
+        switch result {
+        case .invalidResponse:
+            reason = .invalidResponse
+        case .disconnected:
+            reason = .disconnected
+        case .acceptanceTimedOut:
+            reason = .timedOut
+        case .cancelled:
+            reason = .cancelled
+        case .invalidState, .accepted, .completed, .resultUnknown,
+             .invalidRequest, .resultTimedOut:
+            reason = .invalidState
+        }
+        terminate(reason: reason, pollingTermination: .cancel)
+    }
+
     private func terminate(
         reason: HostAgentXPCSessionTerminationReason,
         pollingTermination: PollingTermination
@@ -349,9 +421,12 @@ package final class HostAgentXPCSessionLifecycle: @unchecked Sendable {
             return
         }
         let pollingOwner = self.pollingOwner
+        let commandOwner = self.commandOwner
         self.pollingOwner = nil
+        self.commandOwner = nil
         lock.unlock()
 
+        commandOwner?.cancel()
         switch pollingTermination {
         case .cancel:
             pollingOwner?.cancel()
