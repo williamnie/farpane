@@ -293,9 +293,10 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             "startedAt": 40,
             "initialCapabilities": [
                 "viewDisplay", "controlKeyboardMouse",
+                "readClipboard", "writeClipboard",
             ],
             "activeCapabilities": [
-                "viewDisplay", "controlKeyboardMouse",
+                "viewDisplay", "controlKeyboardMouse", "readClipboard",
             ],
             "inputAvailability": "available",
             "inputUnavailableReason": NSNull(),
@@ -309,6 +310,30 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         XCTAssertEqual(active?.connectionID, "host-a:session-1")
         XCTAssertEqual(active?.inputAvailability, .available)
         XCTAssertNil(active?.inputUnavailableReason)
+        XCTAssertEqual(
+            active?.activeCapabilities,
+            ["viewDisplay", "controlKeyboardMouse", "readClipboard"]
+        )
+
+        var writeOnlyDocument = activeDocument
+        var writeOnlyPayload = writeOnlyDocument["payload"] as! [String: Any]
+        var writeOnlySnapshot = writeOnlyPayload["snapshot"] as! [String: Any]
+        var writeOnlySession = writeOnlySnapshot["activeSession"] as! [String: Any]
+        writeOnlySession["activeCapabilities"] = [
+            "viewDisplay", "controlKeyboardMouse", "writeClipboard",
+        ]
+        writeOnlySnapshot["activeSession"] = writeOnlySession
+        writeOnlyPayload["snapshot"] = writeOnlySnapshot
+        writeOnlyDocument = try replacingPayload(
+            writeOnlyDocument,
+            writeOnlyPayload
+        )
+        XCTAssertEqual(
+            try HostAgentXPCWireSnapshotResponse.decode(
+                data(writeOnlyDocument)
+            ).snapshot.activeSession?.activeCapabilities,
+            ["viewDisplay", "controlKeyboardMouse", "writeClipboard"]
+        )
 
         var zeroCountDocument = activeDocument
         var zeroCountPayload = zeroCountDocument["payload"] as! [String: Any]

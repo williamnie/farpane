@@ -1283,13 +1283,33 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )))
         invalidSession = activeSession
-        invalidSession["activeCapabilities"] = ["viewDisplay", "readClipboard"]
-        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+        invalidSession["activeCapabilities"] = [
+            "viewDisplay", "controlKeyboardMouse", "readClipboard",
+        ]
+        let readOnlyClipboard = try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: document(
                 pendingApproval: NSNull(),
                 activeSession: invalidSession
             )
-        )))
+        ))
+        XCTAssertEqual(
+            readOnlyClipboard.activeSession?.activeCapabilities,
+            ["viewDisplay", "controlKeyboardMouse", "readClipboard"]
+        )
+        invalidSession = activeSession
+        invalidSession["activeCapabilities"] = [
+            "viewDisplay", "controlKeyboardMouse", "writeClipboard",
+        ]
+        let writeOnlyClipboard = try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                activeSession: invalidSession
+            )
+        ))
+        XCTAssertEqual(
+            writeOnlyClipboard.activeSession?.activeCapabilities,
+            ["viewDisplay", "controlKeyboardMouse", "writeClipboard"]
+        )
         invalidSession = activeSession
         invalidSession["activeCapabilities"] = ["viewDisplay"]
         invalidSession["inputAvailability"] = "available"
