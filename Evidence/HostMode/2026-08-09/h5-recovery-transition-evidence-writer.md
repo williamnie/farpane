@@ -10,10 +10,12 @@ runtime artifact or section 15.2 item 7 pass by itself.
 
 ## Key evidence
 
-- Configuration is all-or-nothing: output path, Host-instance scope SHA-256,
-  and build-identity SHA-256 must all be present. Both digests must be exactly
-  64 lowercase hexadecimal characters; raw Host/build identity is never part
-  of the writer API or JSON.
+- Writer construction is all-or-nothing: an output path and two already
+  derived SHA-256 digests must all be present. H5.3i narrows external
+  configuration to the output path only; its process owner derives both
+  digests in memory before constructing this writer. Both digests must be
+  exactly 64 lowercase hexadecimal characters; raw Host/build identity is
+  never part of the writer API or JSON.
 - The output must be a new absolute file URL ending in `.jsonl`. Creation uses
   no-replace semantics, and the writer retains the original file handle so a
   later path replacement cannot redirect an append into another file.
@@ -46,10 +48,10 @@ runtime artifact or section 15.2 item 7 pass by itself.
 
 ## Remaining boundary
 
-- A later product checkpoint must derive both digests in memory, construct one
-  process-lifetime writer, and inject it into the exact sleep, network, and
-  display recovery owners. Writer failure must disable evidence collection
-  without changing recovery behavior or readiness.
+- H5.3i now derives both digests in memory and constructs at most one
+  process-lifetime writer. Exact successful sleep, network, and display
+  recovery callbacks are still not connected. Writer failure disables only
+  evidence collection and cannot change recovery behavior or readiness.
 - The bounded manifest validator and its negative fixtures remain unimplemented.
 - Each transition still requires an installed-Mac execution followed by a
   fresh passed 600-second `1080p30` run on the same scope/build.

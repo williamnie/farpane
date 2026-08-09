@@ -4,7 +4,6 @@ public enum HostRecoveryTransitionEvidenceError: Error, Equatable {
   case outputPathMustBeAbsolute
   case outputMustBeJSONLines
   case outputAlreadyExists
-  case incompleteConfiguration
   case invalidHostInstanceScopeDigest
   case invalidBuildIdentityDigest
   case invalidTiming
@@ -32,10 +31,6 @@ public enum HostRecoveryTransitionCorrelation: Equatable, Sendable {
 /// every correlation is validated before one JSONL record is appended.
 public final class HostRecoveryTransitionEvidenceWriter: @unchecked Sendable {
   public static let outputEnvironmentKey = "FARPANE_HOST_RECOVERY_OUTPUT"
-  public static let hostInstanceScopeDigestEnvironmentKey =
-    "FARPANE_HOST_RECOVERY_SCOPE_SHA256"
-  public static let buildIdentityDigestEnvironmentKey =
-    "FARPANE_HOST_RECOVERY_BUILD_SHA256"
   public static let maximumRecordCount: UInt64 = 128
 
   private enum Kind: String, Codable {
@@ -152,25 +147,18 @@ public final class HostRecoveryTransitionEvidenceWriter: @unchecked Sendable {
 
   public static func configured(
     environment: [String: String] = ProcessInfo.processInfo.environment,
+    hostInstanceScopeSHA256: String,
+    buildIdentitySHA256: String,
     fileManager: FileManager = .default
   ) throws -> HostRecoveryTransitionEvidenceWriter? {
-    let output = environment[outputEnvironmentKey]
-    let scope = environment[hostInstanceScopeDigestEnvironmentKey]
-    let build = environment[buildIdentityDigestEnvironmentKey]
-    guard output != nil || scope != nil || build != nil else { return nil }
-    guard let output, !output.isEmpty,
-          let scope, !scope.isEmpty,
-          let build, !build.isEmpty
-    else {
-      throw HostRecoveryTransitionEvidenceError.incompleteConfiguration
-    }
+    guard let output = environment[outputEnvironmentKey] else { return nil }
     guard NSString(string: output).isAbsolutePath else {
       throw HostRecoveryTransitionEvidenceError.outputPathMustBeAbsolute
     }
     return try HostRecoveryTransitionEvidenceWriter(
       outputURL: URL(fileURLWithPath: output, isDirectory: false),
-      hostInstanceScopeSHA256: scope,
-      buildIdentitySHA256: build,
+      hostInstanceScopeSHA256: hostInstanceScopeSHA256,
+      buildIdentitySHA256: buildIdentitySHA256,
       fileManager: fileManager
     )
   }

@@ -1,0 +1,195 @@
+import Foundation
+import XCTest
+
+@testable import VideoPipeline
+
+final class HostRecoveryTransitionEvidenceProcessOwnerTests: XCTestCase {
+  func testMissingOutputKeepsOwnerExplicitlyDisabled() {
+    let owner = HostRecoveryTransitionEvidenceProcessOwner()
+
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: "host-instance-1",
+      buildIdentity: "build-1",
+      environment: [:]
+    ))
+    XCTAssertEqual(owner.snapshot(), .init(
+      status: .disabled,
+      completedRecords: 0,
+      configurationFailures: 0,
+      recordFailures: 0
+    ))
+    XCTAssertFalse(owner.recordCompleted(
+      correlation: .sleepWake(recoveryEpoch: 1),
+      acceptedAt: Date(timeIntervalSince1970: 1),
+      completedAt: Date(timeIntervalSince1970: 2),
+      acceptedMonotonicNanoseconds: 1,
+      completedMonotonicNanoseconds: 2
+    ))
+  }
+
+  func testConfiguredOwnerDerivesDomainSeparatedDigestsAndWritesNoRawIdentity() throws {
+    let fixture = makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let owner = HostRecoveryTransitionEvidenceProcessOwner()
+    let hostInstanceID = "host-instance-private"
+    let buildIdentity = "build-identity-private"
+
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: hostInstanceID,
+      buildIdentity: buildIdentity,
+      environment: [
+        HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey:
+          fixture.output.path,
+      ]
+    ))
+    XCTAssertTrue(owner.recordCompleted(
+      correlation: .networkPath(pathGeneration: 2, recoveryEpoch: 3),
+      acceptedAt: Date(timeIntervalSince1970: 1),
+      completedAt: Date(timeIntervalSince1970: 2),
+      acceptedMonotonicNanoseconds: 10,
+      completedMonotonicNanoseconds: 20
+    ))
+
+    let document = try readOnlyRecord(fixture.output)
+    let scopeDigest = try XCTUnwrap(
+      HostRecoveryTransitionEvidenceProcessOwner.scopeDigest(
+        for: hostInstanceID
+      )
+    )
+    let buildDigest = try XCTUnwrap(
+      HostRecoveryTransitionEvidenceProcessOwner.buildDigest(
+        for: buildIdentity
+      )
+    )
+    XCTAssertEqual(document["hostInstanceScopeSHA256"] as? String, scopeDigest)
+    XCTAssertEqual(document["buildIdentitySHA256"] as? String, buildDigest)
+    XCTAssertEqual(scopeDigest.count, 64)
+    XCTAssertEqual(buildDigest.count, 64)
+    XCTAssertNotEqual(scopeDigest, buildDigest)
+    let contents = try String(contentsOf: fixture.output, encoding: .utf8)
+    XCTAssertFalse(contents.contains(hostInstanceID))
+    XCTAssertFalse(contents.contains(buildIdentity))
+    XCTAssertEqual(owner.snapshot(), .init(
+      status: .active,
+      completedRecords: 1,
+      configurationFailures: 0,
+      recordFailures: 0
+    ))
+  }
+
+  func testMalformedIdentityOrOutputDisablesOnlyEvidence() {
+    for (host, build, environment) in [
+      ("", "build", [:]),
+      ("host", "bad\nbuild", [:]),
+      (
+        "host",
+        "build",
+        [HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey:
+          "relative.jsonl"]
+      ),
+    ] {
+      let owner = HostRecoveryTransitionEvidenceProcessOwner()
+      XCTAssertFalse(owner.configure(
+        hostInstanceID: host,
+        buildIdentity: build,
+        environment: environment
+      ))
+      XCTAssertEqual(owner.snapshot(), .init(
+        status: .unavailable,
+        completedRecords: 0,
+        configurationFailures: 1,
+        recordFailures: 0
+      ))
+      XCTAssertFalse(owner.recordCompleted(
+        correlation: .sleepWake(recoveryEpoch: 1),
+        acceptedAt: Date(timeIntervalSince1970: 1),
+        completedAt: Date(timeIntervalSince1970: 2),
+        acceptedMonotonicNanoseconds: 1,
+        completedMonotonicNanoseconds: 2
+      ))
+    }
+  }
+
+  func testRecordFailurePermanentlyDisablesEvidenceWithoutThrowing() {
+    let fixture = makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let owner = HostRecoveryTransitionEvidenceProcessOwner()
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: "host",
+      buildIdentity: "build",
+      environment: [
+        HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey:
+          fixture.output.path,
+      ]
+    ))
+
+    XCTAssertFalse(owner.recordCompleted(
+      correlation: .sleepWake(recoveryEpoch: 0),
+      acceptedAt: Date(timeIntervalSince1970: 1),
+      completedAt: Date(timeIntervalSince1970: 2),
+      acceptedMonotonicNanoseconds: 1,
+      completedMonotonicNanoseconds: 2
+    ))
+    XCTAssertEqual(owner.snapshot(), .init(
+      status: .unavailable,
+      completedRecords: 0,
+      configurationFailures: 0,
+      recordFailures: 1
+    ))
+    XCTAssertFalse(owner.recordCompleted(
+      correlation: .sleepWake(recoveryEpoch: 1),
+      acceptedAt: Date(timeIntervalSince1970: 1),
+      completedAt: Date(timeIntervalSince1970: 2),
+      acceptedMonotonicNanoseconds: 1,
+      completedMonotonicNanoseconds: 2
+    ))
+    XCTAssertEqual((try? Data(contentsOf: fixture.output).count), 0)
+  }
+
+  func testConfigurationAndCancellationAreTerminalOneShotOperations() {
+    let owner = HostRecoveryTransitionEvidenceProcessOwner()
+    XCTAssertTrue(owner.configure(
+      hostInstanceID: "host",
+      buildIdentity: "build",
+      environment: [:]
+    ))
+    XCTAssertFalse(owner.configure(
+      hostInstanceID: "host-2",
+      buildIdentity: "build-2",
+      environment: [:]
+    ))
+    owner.cancelAndWait()
+    owner.cancelAndWait()
+    XCTAssertEqual(owner.snapshot(), .init(
+      status: .cancelled,
+      completedRecords: 0,
+      configurationFailures: 0,
+      recordFailures: 0
+    ))
+    XCTAssertFalse(owner.configure(
+      hostInstanceID: "host-3",
+      buildIdentity: "build-3",
+      environment: [:]
+    ))
+  }
+
+  private func readOnlyRecord(_ url: URL) throws -> [String: Any] {
+    let lines = try String(contentsOf: url, encoding: .utf8)
+      .split(separator: "\n")
+    XCTAssertEqual(lines.count, 1)
+    return try XCTUnwrap(
+      JSONSerialization.jsonObject(with: Data(try XCTUnwrap(lines.first).utf8))
+        as? [String: Any]
+    )
+  }
+
+  private func makeFixture() -> (directory: URL, output: URL) {
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent(
+        "farpane-host-recovery-evidence-process-owner-tests",
+        isDirectory: true
+      )
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    return (directory, directory.appendingPathComponent("recovery.jsonl"))
+  }
+}

@@ -97,23 +97,21 @@ final class HostRecoveryTransitionEvidenceTests: XCTestCase {
 
   func testConfigurationDefaultsOffAndRejectsPartialOrUnsafeValues() throws {
     XCTAssertNil(try HostRecoveryTransitionEvidenceWriter.configured(
-      environment: [:]
+      environment: [:],
+      hostInstanceScopeSHA256: scopeDigest,
+      buildIdentitySHA256: buildDigest
     ))
-    for environment in [
-      [HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey: "/tmp/a.jsonl"],
-      [HostRecoveryTransitionEvidenceWriter.hostInstanceScopeDigestEnvironmentKey:
-        scopeDigest],
-      [HostRecoveryTransitionEvidenceWriter.buildIdentityDigestEnvironmentKey:
-        buildDigest],
-    ] {
-      XCTAssertThrowsError(try HostRecoveryTransitionEvidenceWriter.configured(
-        environment: environment
-      )) { error in
-        XCTAssertEqual(
-          error as? HostRecoveryTransitionEvidenceError,
-          .incompleteConfiguration
-        )
-      }
+    XCTAssertThrowsError(try HostRecoveryTransitionEvidenceWriter.configured(
+      environment: [
+        HostRecoveryTransitionEvidenceWriter.outputEnvironmentKey: "relative.jsonl",
+      ],
+      hostInstanceScopeSHA256: scopeDigest,
+      buildIdentitySHA256: buildDigest
+    )) { error in
+      XCTAssertEqual(
+        error as? HostRecoveryTransitionEvidenceError,
+        .outputPathMustBeAbsolute
+      )
     }
 
     let fixture = try makeFixture()
