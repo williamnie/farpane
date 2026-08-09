@@ -626,6 +626,9 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(ownerSource.contains("recoveryOwner.stop(route:"))
         XCTAssertTrue(ownerSource.contains("recoveryOwner.pauseAndFlushForSleep()"))
         XCTAssertTrue(ownerSource.contains("recoveryOwner.resumeAfterWake()"))
+        XCTAssertTrue(ownerSource.contains(
+            "recoveryOwner.pollRecoveryConvergence()"
+        ))
         XCTAssertTrue(ownerSource.contains("recoveryOwner.cancelAndWait()"))
         XCTAssertTrue(ownerSource.contains("HostMediaPipelineLiveLogCoordinator()"))
         XCTAssertTrue(ownerSource.contains("lifecycleObserver: liveLogCoordinator.lifecycleObserver"))
