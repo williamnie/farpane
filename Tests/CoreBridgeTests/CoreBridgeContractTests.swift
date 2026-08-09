@@ -628,16 +628,39 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(ownerSource.contains("recoveryOwner.requestKeyframe("))
         XCTAssertTrue(ownerSource.contains("recoveryOwner.stop(route:"))
         XCTAssertTrue(ownerSource.contains("recoveryOwner.pauseAndFlushForSleep()"))
+        XCTAssertTrue(ownerSource.contains("func beginMediaRecoveryAfterWake("))
+        XCTAssertTrue(ownerSource.contains("suspended.status == .suspended"))
+        XCTAssertTrue(ownerSource.contains("suspended.epoch == epoch"))
         XCTAssertTrue(ownerSource.contains("recoveryOwner.resumeAfterWake()"))
-        XCTAssertTrue(ownerSource.contains(
-            "recoveryOwner.pollRecoveryConvergence()"
-        ))
         XCTAssertTrue(ownerSource.contains(
             "recoveryPollingOwner.start("
         ))
         XCTAssertTrue(ownerSource.contains(
+            "outcome == .converged"
+        ))
+        XCTAssertTrue(ownerSource.contains(
             "recoveryPollingOwner.stateSnapshot()"
         ))
+        XCTAssertFalse(ownerSource.contains(
+            "func resumeMediaControlIngressAfterWake()"
+        ))
+        XCTAssertFalse(ownerSource.contains(
+            "func pollMediaRecoveryConvergence()"
+        ))
+        XCTAssertFalse(ownerSource.contains(
+            "func startMediaRecoveryConvergencePolling("
+        ))
+        let recoveryEpochCheck = try XCTUnwrap(ownerSource.range(
+            of: "suspended.epoch == epoch"
+        ))
+        let recoveryResume = try XCTUnwrap(ownerSource.range(
+            of: "recoveryOwner.resumeAfterWake()"
+        ))
+        let recoveryPollStart = try XCTUnwrap(ownerSource.range(
+            of: "recoveryPollingOwner.start("
+        ))
+        XCTAssertLessThan(recoveryEpochCheck.lowerBound, recoveryResume.lowerBound)
+        XCTAssertLessThan(recoveryResume.lowerBound, recoveryPollStart.lowerBound)
         XCTAssertTrue(ownerSource.contains("recoveryOwner.cancelAndWait()"))
         XCTAssertTrue(ownerSource.contains("HostMediaPipelineLiveLogCoordinator()"))
         XCTAssertTrue(ownerSource.contains("lifecycleObserver: liveLogCoordinator.lifecycleObserver"))

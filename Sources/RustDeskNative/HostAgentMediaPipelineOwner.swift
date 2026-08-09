@@ -40,6 +40,11 @@ struct HostAgentMediaPipelineSnapshot: Sendable {
 /// Process-owned adapter from typed Rust media controls to the real
 /// ScreenCaptureKit/VideoToolbox pipeline. It never touches AppDelegate/UI.
 final class HostAgentMediaPipelineOwner: @unchecked Sendable {
+    typealias MediaRecoveryCompletion = @Sendable (
+        _ epoch: UInt64,
+        _ succeeded: Bool
+    ) -> Void
+
     private enum State {
         case idle
         case active
@@ -205,31 +210,24 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         recoveryOwner.pauseAndFlushForSleep()
     }
 
-    /// Reopens media control ingress after wake. An old route is never replayed;
-    /// Rust must provide a newer connection or codec epoch before capture starts.
+    /// Atomically binds the matching suspended epoch to media ingress resume
+    /// and its bounded convergence window. Callers receive only exact epoch +
+    /// success; timeout, unavailable and route failure all fail closed.
     @discardableResult
-    func resumeMediaControlIngressAfterWake() -> Bool {
-        recoveryOwner.resumeAfterWake()
-    }
-
-    /// Authoritative post-wake gate. Queued fresh routes remain pending until
-    /// the real route owner reports the exact candidate active.
-    func pollMediaRecoveryConvergence()
-        -> HostMediaPipelineRecoveryConvergence
-    {
-        recoveryOwner.pollRecoveryConvergence()
-    }
-
-    /// Starts one bounded 50 ms / 5 s convergence window for the exact sleep
-    /// epoch. Duplicate or rollback epochs are rejected by the polling owner.
-    @discardableResult
-    func startMediaRecoveryConvergencePolling(
+    func beginMediaRecoveryAfterWake(
         epoch: UInt64,
-        completion: @escaping HostMediaPipelineRecoveryPollingOwner.Completion
+        completion: @escaping MediaRecoveryCompletion
     ) -> Bool {
-        recoveryPollingOwner.start(
+        let suspended = recoveryOwner.snapshot()
+        guard suspended.status == .suspended,
+              suspended.epoch == epoch,
+              recoveryOwner.resumeAfterWake()
+        else { return false }
+        return recoveryPollingOwner.start(
             epoch: epoch,
-            completion: completion
+            completion: { completedEpoch, outcome in
+                completion(completedEpoch, outcome == .converged)
+            }
         )
     }
 
