@@ -263,6 +263,7 @@ public final class HostViewerConcurrencyEvidenceWriter:
 
   private let outputHandle: FileHandle
   private let identity: HostViewerConcurrencyProcessIdentity
+  var identitySnapshot: HostViewerConcurrencyProcessIdentity { identity }
   private let lock = NSLock()
   private var lifecycleState: LifecycleState = .initial
   private var sequence: UInt64 = 0

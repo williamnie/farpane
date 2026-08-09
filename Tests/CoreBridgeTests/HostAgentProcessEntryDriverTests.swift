@@ -158,6 +158,12 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
         XCTAssertTrue(processSource.contains(
             "_ = concurrencyEvidenceOwner.terminateAndWait()"
         ))
+        XCTAssertTrue(processSource.contains(
+            "recordInitialReadyConcurrencyEvidence("
+        ))
+        XCTAssertTrue(processSource.contains(
+            "owner.recordHostAgentObservation("
+        ))
         let evidenceConfigure = try XCTUnwrap(processSource.range(
             of: ".configureHostAgent("
         ))
@@ -165,6 +171,28 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
             of: "HostAgentProcessRunner.run("
         ))
         XCTAssertLessThan(evidenceConfigure.lowerBound, processRun.lowerBound)
+        let listenerActivation = try XCTUnwrap(processSource.range(
+            of: "lifetime.activateXPCListener()"
+        ))
+        let readyEvidence = try XCTUnwrap(processSource.range(
+            of: "recordInitialReadyConcurrencyEvidence("
+        ))
+        XCTAssertLessThan(
+            listenerActivation.lowerBound,
+            readyEvidence.lowerBound
+        )
+        XCTAssertTrue(runtimeSource.contains(
+            "HostAgentProcessEvidenceIdentity("
+        ))
+        XCTAssertTrue(runtimeSource.contains(
+            "agentBootID: bootstrapContext.leaseRecord.agentBootID"
+        ))
+        XCTAssertTrue(runtimeSource.contains(
+            "agentBuildID: bootstrapContext.leaseRecord.agentBuildID"
+        ))
+        XCTAssertTrue(runtimeSource.contains(
+            "configRevision: bootstrapContext.leaseRecord.configRevision"
+        ))
         XCTAssertTrue(runtimeSource.contains(
             "HostAgentBootstrapContext.prepare(\n"
                 + "            expectedAgentBuildID: expectedAgentBuildID"

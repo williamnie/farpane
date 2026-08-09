@@ -75,6 +75,14 @@ final class HostAgentProcessLifetime: @unchecked Sendable {
         }
     }
 
+    func concurrencyEvidenceIdentity() throws
+        -> HostAgentProcessEvidenceIdentity
+    {
+        try gate.withRunningRuntime { runtime in
+            runtime.concurrencyEvidenceIdentity()
+        }
+    }
+
     func invalidateXPCIdentity() throws {
         try gate.withRunningRuntime { runtime in
             runtime.invalidateXPCIdentity()

@@ -88,6 +88,14 @@ def main() -> int:
         "host_agent_process": (
             repository / "Sources/RustDeskNative/HostAgentProcess.swift"
         ),
+        "host_agent_runtime": (
+            repository
+            / "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+        ),
+        "host_agent_lifetime": (
+            repository
+            / "Sources/RustDeskNative/HostAgentProcessLifetime.swift"
+        ),
         "h4_audit": (
             repository
             / "Evidence/HostMode/2026-08-09/"
@@ -123,6 +131,8 @@ def main() -> int:
     lifecycle_writer = sources["lifecycle_writer"]
     lifecycle_process_owner = sources["lifecycle_process_owner"]
     host_agent_process = sources["host_agent_process"]
+    host_agent_runtime = sources["host_agent_runtime"]
+    host_agent_lifetime = sources["host_agent_lifetime"]
     h4_audit = sources["h4_audit"]
 
     target_validator = (
@@ -489,10 +499,9 @@ def main() -> int:
         ),
         "applicationHostEvidenceCompositionRemainsFailClosed": (
             "recordHostRuntimeStateEvidence(force: true)" in app
-            and "HostViewerConcurrencyHostObservation"
-                not in lifecycle_process_owner
             and "HostViewerConcurrencyEvidenceDigest.hostInstanceScope("
                 not in app
+            and "recordHostAgentObservation(" not in app
         ),
         "hostAgentProcessOwnerUsesPreflightedBuildAndRole": all(
             marker in lifecycle_process_owner
@@ -526,6 +535,55 @@ def main() -> int:
             )
             and host_agent_process.find(".configureHostAgent(")
             < host_agent_process.find("HostAgentProcessRunner.run(")
+        ),
+        "hostAgentOwnerRecordsOnlySelfBoundValidatedHostObservation": all(
+            marker in lifecycle_process_owner
+            for marker in (
+                "public func recordHostAgentObservation(",
+                "configuredRole == .hostAgent",
+                "agentBuildDigest == configuredIdentity.buildIdentitySHA256",
+                "hostAgentProcessID: configuredIdentity.processID",
+                "configuredIdentity.processStartIdentitySHA256",
+                "Self.validHostTransitionGeneration(",
+                ".host(observation)",
+                "incrementSaturating(&hostRecords)",
+            )
+        ),
+        "hostAgentRuntimeEvidenceIdentityComesFromLease": (
+            all(
+                marker in host_agent_runtime
+                for marker in (
+                    "struct HostAgentProcessEvidenceIdentity",
+                    "agentBootID: bootstrapContext.leaseRecord.agentBootID",
+                    "agentBuildID: bootstrapContext.leaseRecord.agentBuildID",
+                    "configRevision: bootstrapContext.leaseRecord.configRevision",
+                    "func concurrencyEvidenceIdentity()",
+                )
+            )
+            and "func concurrencyEvidenceIdentity() throws"
+                in host_agent_lifetime
+            and "runtime.concurrencyEvidenceIdentity()"
+                in host_agent_lifetime
+        ),
+        "hostAgentProductRecordsOnlyPostListenerReadyZero": (
+            all(
+                marker in host_agent_process
+                for marker in (
+                    "lifetime.activateXPCListener()",
+                    "recordInitialReadyConcurrencyEvidence(",
+                    'projection.hostState == "ready"',
+                    'projection.registrationStatus == "ready"',
+                    "projection.authenticatedConnectionCount == 0",
+                    "projection.activeSession == nil",
+                    "owner.recordHostAgentObservation(",
+                    "state: .readyZeroInbound",
+                    "transitionGeneration: 0",
+                )
+            )
+            and host_agent_process.find("lifetime.activateXPCListener()")
+            < host_agent_process.find(
+                "recordInitialReadyConcurrencyEvidence("
+            )
         ),
         "fiveScenarioMatrixValidatorIsStillMissing": (
             not target_validator.exists()
@@ -731,6 +789,43 @@ def main() -> int:
             host_agent_process,
             "_ = concurrencyEvidenceOwner.terminateAndWait()",
         ),
+        "hostAgentSelfObservationAPI": line_number(
+            lifecycle_process_owner,
+            "public func recordHostAgentObservation(",
+        ),
+        "hostAgentSelfObservationRoleGate": line_number(
+            lifecycle_process_owner, "configuredRole == .hostAgent"
+        ),
+        "hostAgentSelfObservationBuildGate": line_number(
+            lifecycle_process_owner,
+            "agentBuildDigest == configuredIdentity.buildIdentitySHA256",
+        ),
+        "hostAgentLeaseEvidenceIdentity": line_number(
+            host_agent_runtime, "struct HostAgentProcessEvidenceIdentity"
+        ),
+        "hostAgentLeaseEvidenceBoot": line_number(
+            host_agent_runtime,
+            "agentBootID: bootstrapContext.leaseRecord.agentBootID",
+        ),
+        "hostAgentLeaseEvidenceConfigRevision": line_number(
+            host_agent_runtime,
+            "configRevision: bootstrapContext.leaseRecord.configRevision",
+        ),
+        "hostAgentLifetimeEvidenceIdentity": line_number(
+            host_agent_lifetime,
+            "func concurrencyEvidenceIdentity() throws",
+        ),
+        "hostAgentInitialReadyEvidence": line_number(
+            host_agent_process,
+            "recordInitialReadyConcurrencyEvidence(",
+        ),
+        "hostAgentInitialReadyStateGate": line_number(
+            host_agent_process, 'projection.hostState == "ready"'
+        ),
+        "hostAgentInitialReadyNoInboundGate": line_number(
+            host_agent_process,
+            "projection.authenticatedConnectionCount == 0",
+        ),
         "hostRecoveryKinds": line_number(
             recovery_evidence, "case sleepWake"
         ),
@@ -812,7 +907,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "host-agent-process-owner-implemented"
+            "host-agent-initial-ready-evidence-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -851,7 +946,7 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "versioned-host-agent-process-identity-wire-contract"
+            "host-agent-host-transition-normalization"
         ),
         "remainingBoundary": {
             "applicationHostObservationRequiresVersionedAgentProcessIdentity": (
@@ -864,7 +959,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "host-agent-process-owner-implemented"
+    expected_status = "host-agent-initial-ready-evidence-implemented"
     return 0 if result["status"] == expected_status else 1
 
 
