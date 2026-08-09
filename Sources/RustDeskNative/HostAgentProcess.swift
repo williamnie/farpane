@@ -1,5 +1,6 @@
 import CoreBridge
 import Foundation
+import VideoPipeline
 
 private enum HostAgentSnapshotCopyAccessError: Error {
     case lifetimeUnavailable
@@ -27,6 +28,8 @@ enum HostAgentProcess {
             HostAgentSleepWakeRecoveryProcessOwner()
         let networkPathRecoveryOwner =
             HostAgentNetworkPathRecoveryProcessOwner()
+        let recoveryEvidenceOwner =
+            HostRecoveryTransitionEvidenceProcessOwner()
         return HostAgentProcessRunner.run(
             installTerminationIngress: {
                 try HostAgentProcessSignalController()
@@ -39,6 +42,7 @@ enum HostAgentProcess {
                     prepareTermination: {
                         networkPathRecoveryOwner.cancelAndWait()
                         sleepWakeRecoveryOwner.cancelAndWait()
+                        recoveryEvidenceOwner.cancelAndWait()
                         mediaState.cancelAndWait()
                         mediaPipelineOwner.cancelAndWait()
                         pollingOwner.cancel()
@@ -85,6 +89,10 @@ enum HostAgentProcess {
                     _ = lifetime.waitUntilTerminated()
                     return .failure(HostAgentStartupFailure(kind: .internalFailure))
                 }
+                _ = recoveryEvidenceOwner.configure(
+                    hostInstanceID: hostInstanceID,
+                    buildIdentity: expectedAgentBuildID
+                )
                 guard (try? lifetime.bindXPCIdentity(
                     hostInstanceID: hostInstanceID
                 )) == .bound else {

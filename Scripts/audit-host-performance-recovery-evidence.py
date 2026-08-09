@@ -54,6 +54,13 @@ def main() -> int:
             repository
             / "Sources/VideoPipeline/HostRecoveryTransitionEvidence.swift"
         ),
+        "recovery_process_owner": (
+            repository
+            / "Sources/VideoPipeline/HostRecoveryTransitionEvidenceProcessOwner.swift"
+        ),
+        "host_process": (
+            repository / "Sources/RustDeskNative/HostAgentProcess.swift"
+        ),
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -76,6 +83,8 @@ def main() -> int:
     display_audit = sources["display_audit"]
     host_snapshot = sources["host_snapshot"]
     recovery_writer = sources["recovery_writer"]
+    recovery_process_owner = sources["recovery_process_owner"]
+    host_process = sources["host_process"]
 
     evidence = {
         "samplerAdmitsRecoveryButDoesNotDefineTransitionProof": (
@@ -154,8 +163,6 @@ def main() -> int:
             marker in recovery_writer
             for marker in (
                 '"FARPANE_HOST_RECOVERY_OUTPUT"',
-                '"FARPANE_HOST_RECOVERY_SCOPE_SHA256"',
-                '"FARPANE_HOST_RECOVERY_BUILD_SHA256"',
                 "public static let maximumRecordCount: UInt64 = 128",
                 'schema: "farpane-host-recovery-transition"',
                 "schemaVersion: 1",
@@ -174,6 +181,36 @@ def main() -> int:
                 "outputHandle = try FileHandle(forWritingTo: standardizedURL)",
                 "try outputHandle.seekToEnd()",
             )
+        ),
+        "processLifetimeDigestAuthorityImplemented": (
+            all(
+                marker in recovery_process_owner
+                for marker in (
+                    "import CryptoKit",
+                    '"farpane.host-recovery.scope.v1"',
+                    '"farpane.host-recovery.build.v1"',
+                    "maximumIdentityUTF8Bytes = 512",
+                    "hasher.update(data: Data([0]))",
+                    "HostRecoveryTransitionEvidenceWriter.configured(",
+                    "status = configuredWriter == nil ? .disabled : .active",
+                    "status = .unavailable",
+                    "writer = nil",
+                    "while configurationInFlight || recordInFlight",
+                )
+            )
+            and all(
+                marker in host_process
+                for marker in (
+                    "HostRecoveryTransitionEvidenceProcessOwner()",
+                    "_ = recoveryEvidenceOwner.configure(",
+                    "hostInstanceID: hostInstanceID",
+                    "buildIdentity: expectedAgentBuildID",
+                    "recoveryEvidenceOwner.cancelAndWait()",
+                )
+            )
+            and "guard recoveryEvidenceOwner.configure(" not in host_process
+            and "FARPANE_HOST_RECOVERY_SCOPE_SHA256" not in recovery_writer
+            and "FARPANE_HOST_RECOVERY_BUILD_SHA256" not in recovery_writer
         ),
     }
     missing = [name for name, present in evidence.items() if not present]
@@ -206,6 +243,12 @@ def main() -> int:
         ),
         "recoveryWriterSchema": line_number(
             recovery_writer, 'schema: "farpane-host-recovery-transition"'
+        ),
+        "recoveryDigestAuthority": line_number(
+            recovery_process_owner, '"farpane.host-recovery.scope.v1"'
+        ),
+        "recoveryProcessComposition": line_number(
+            host_process, "_ = recoveryEvidenceOwner.configure("
         ),
     }
 
@@ -271,7 +314,7 @@ def main() -> int:
     }
 
     remaining_boundary = {
-        "transitionWriterIsNotYetConnectedToProductOwners": True,
+        "transitionWriterIsNotYetConnectedToRecoveryCallbacks": True,
         "recoveryManifestValidatorStillRequiresImplementation": True,
         "allThreeTransitionsRequireInstalledMacExecution": True,
         "eachRecoveryRequiresFreshTenMinuteScenarioThreeRun": True,
@@ -281,7 +324,9 @@ def main() -> int:
     document = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "status": "writer-implemented" if not missing else "contract-drift",
+        "status": (
+            "process-owner-implemented" if not missing else "contract-drift"
+        ),
         "section15_2Item": 7,
         "evidence": evidence,
         "sourceLines": source_lines,

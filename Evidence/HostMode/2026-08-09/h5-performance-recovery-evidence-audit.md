@@ -7,9 +7,11 @@ evidence boundary. The product already owns real sleep/wake, network-path, and
 display-reconfigure recovery chains, but the current performance artifacts do
 not correlate those transitions with the required post-recovery scenario 3
 runs. At this original checkpoint the audit reported `checkpoint-required`;
-the subsequent H5.3h writer implementation advances current readback to
-`writer-implemented`, while product-owner wiring and real runs remain open.
-Neither status claims a recovery or performance pass.
+the subsequent H5.3h writer implementation advanced readback to
+`writer-implemented`. H5.3i now advances it to `process-owner-implemented` by
+adding the process-lifetime digest/writer authority; exact recovery callback
+wiring and real runs remain open. None of these statuses claims a recovery or
+performance pass.
 
 The next implementation must create a dedicated sanitized transition record
 for each recovery kind and bind it to one fresh, passed, 600-second `1080p30`
@@ -62,8 +64,8 @@ snapshots are explicitly forbidden as substitutes.
 
 ## Remaining boundary
 
-- Implement the sanitized transition evidence writer/schema as a separate
-  shared-contract checkpoint.
+- Connect the process-lifetime writer only to exact successful convergence
+  callbacks for sleep/wake, network path, and display reconfiguration.
 - Implement the bounded recovery manifest validator and negative fixtures.
 - On an installed Mac, execute all three recovery types and one fresh
   600-second scenario 3 run after each transition.
