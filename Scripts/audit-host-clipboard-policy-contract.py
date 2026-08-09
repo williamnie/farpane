@@ -132,7 +132,7 @@ def main() -> int:
                 "OPTION_ENABLE_CLIPBOARD",
                 '(config::keys::OPTION_ENABLE_CLIPBOARD, "N")',
                 "self.clipboard && !self.disable_clipboard",
-                "native_host_clipboard_remote_read_enabled()",
+                "active_policy().allows_remote_read()",
                 "native_host_allows_remote_clipboard_write(",
             )
         ),
@@ -183,11 +183,12 @@ def main() -> int:
             "richClipboardImplemented": False,
         },
         "remainingBoundary": {
-            "independentRevocationCommandsRequired": True,
+            "independentRevocationCommandsRequired": False,
+            "directionalXPCUIRequired": True,
             "eventDrivenDynamicBackoffRequired": True,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "independent-directional-revoke-contract",
+        "nextImplementationBoundary": "directional-revoke-xpc-ui-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "clipboard-read-write-policy-contract" else 1

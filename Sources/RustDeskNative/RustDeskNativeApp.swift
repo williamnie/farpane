@@ -1486,7 +1486,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let pendingAction: HostSessionHomeAction?
         switch hostSessionCommandGate.resolvingIntent(connectionID: session.connectionId) {
         case .disable(.keyboardAndMouse): pendingAction = .disableKeyboardAndMouse
-        case .disable(.clipboard): pendingAction = .disableClipboard
+        case .disable(.clipboardRead), .disable(.clipboardWrite), .disable(.clipboard):
+            pendingAction = .disableClipboard
         case .disable(.systemAudio): pendingAction = .disableSystemAudio
         case .disconnect: pendingAction = .disconnect
         case nil: pendingAction = nil

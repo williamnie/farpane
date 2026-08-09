@@ -1001,12 +1001,32 @@ final class CoreBridgeContractTests: XCTestCase {
             "disableInputForActiveSession"
         )
         XCTAssertEqual(
+            HostSessionRevocableCapability.clipboardRead.commandName,
+            "disableClipboardReadForActiveSession"
+        )
+        XCTAssertEqual(
+            HostSessionRevocableCapability.clipboardWrite.commandName,
+            "disableClipboardWriteForActiveSession"
+        )
+        XCTAssertEqual(
             HostSessionRevocableCapability.clipboard.commandName,
             "disableClipboardForActiveSession"
         )
         XCTAssertEqual(
             HostSessionRevocableCapability.systemAudio.commandName,
             "disableAudioForActiveSession"
+        )
+        XCTAssertEqual(
+            HostSessionRevocableCapability.clipboardRead.snapshotCapabilityNames,
+            ["readClipboard"]
+        )
+        XCTAssertEqual(
+            HostSessionRevocableCapability.clipboardWrite.snapshotCapabilityNames,
+            ["writeClipboard"]
+        )
+        XCTAssertEqual(
+            HostSessionRevocableCapability.clipboard.snapshotCapabilityNames,
+            ["readClipboard", "writeClipboard"]
         )
         XCTAssertEqual(HostControlError.command(-24).sessionCommandFailure, .notFound)
         XCTAssertEqual(HostControlError.command(-25).sessionCommandFailure, .staleConnection)
@@ -1055,9 +1075,32 @@ final class CoreBridgeContractTests: XCTestCase {
 
         XCTAssertTrue(gate.begin(
             connectionID: "host:1",
-            intent: .disable(.clipboard)
+            intent: .disable(.clipboardRead)
         ))
         let withoutKeyboard = allCapabilities.filter { $0 != "controlKeyboardMouse" }
+        gate.observe(
+            connectionID: "host:1",
+            activeCapabilities: withoutKeyboard.filter { $0 != "readClipboard" }
+        )
+        XCTAssertFalse(gate.isResolving(connectionID: "host:1"))
+
+        XCTAssertTrue(gate.begin(
+            connectionID: "host:1",
+            intent: .disable(.clipboardWrite)
+        ))
+        gate.observe(
+            connectionID: "host:1",
+            activeCapabilities: withoutKeyboard.filter { $0 != "writeClipboard" }
+        )
+        XCTAssertFalse(gate.isResolving(connectionID: "host:1"))
+
+        // Exercise the legacy two-direction alias from a fresh bidirectional
+        // snapshot; the preceding directional cases are independent fixtures.
+        gate.observe(connectionID: "host:1", activeCapabilities: withoutKeyboard)
+        XCTAssertTrue(gate.begin(
+            connectionID: "host:1",
+            intent: .disable(.clipboard)
+        ))
         gate.observe(
             connectionID: "host:1",
             activeCapabilities: withoutKeyboard.filter { $0 != "readClipboard" }

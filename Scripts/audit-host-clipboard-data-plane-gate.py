@@ -74,8 +74,8 @@ def main() -> int:
         "readDirectionGatesSubscriptionAndSend": all(
             marker in connection + bridge
             for marker in (
-                "native_host_clipboard_remote_read_enabled()",
-                "native_host_allows_outgoing_clipboard_message(&msg)",
+                "active_policy().allows_remote_read()",
+                "native_host_outgoing_clipboard_message_is_allowed(",
                 "NativeClipboardDirection::RemoteRead",
             )
         ),
@@ -125,7 +125,7 @@ def main() -> int:
         "trackedPatchCarriesBothDataGates": all(
             marker in patches
             for marker in (
-                "native_host_allows_outgoing_clipboard_message",
+                "native_host_outgoing_clipboard_message_is_allowed",
                 "native_host_allows_remote_clipboard_write",
                 "decompress_with_limit",
             )
@@ -143,7 +143,7 @@ def main() -> int:
             bridge, "fn native_host_clipboard_direction_allows("
         ),
         "outgoingGate": line_number(
-            connection, "native_host_allows_outgoing_clipboard_message(&msg)"
+            connection, "native_host_outgoing_clipboard_message_is_allowed("
         ),
         "incomingGate": line_number(
             connection, "native_host_allows_remote_clipboard_write("
@@ -179,12 +179,13 @@ def main() -> int:
             "richClipboardImplemented": False,
         },
         "remainingBoundary": {
-            "independentRevocationCommandsRequired": True,
+            "independentRevocationCommandsRequired": False,
+            "directionalXPCUIRequired": True,
             "eventDrivenDynamicBackoffRequired": True,
             "temporaryObjectCleanupRequired": True,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "independent-directional-revoke-contract",
+        "nextImplementationBoundary": "directional-revoke-xpc-ui-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-small-text-directional-gates" else 1

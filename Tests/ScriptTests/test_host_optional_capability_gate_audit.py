@@ -33,12 +33,16 @@ class HostOptionalCapabilityGateAuditTests(unittest.TestCase):
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         self.assertFalse(any(document["claims"].values()))
-        self.assertTrue(
-            all(document["remainingBoundary"].values())
+        self.assertFalse(
+            document["remainingBoundary"]["independentRevocationCommandsRequired"]
         )
+        self.assertTrue(all(
+            value for name, value in document["remainingBoundary"].items()
+            if name != "independentRevocationCommandsRequired"
+        ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "independent-directional-revoke-contract",
+            "directional-revoke-xpc-ui-contract",
         )
 
 

@@ -118,7 +118,7 @@ def main() -> int:
             marker in host_bridge + connection
             for marker in (
                 "self.clipboard && !self.disable_clipboard",
-                "native_host_clipboard_remote_read_enabled()",
+                "active_policy().allows_remote_read()",
                 "native_host_allows_remote_clipboard_write(",
             )
         ),
@@ -199,12 +199,13 @@ def main() -> int:
             "systemAudioEnabled": False,
         },
         "remainingBoundary": {
-            "independentRevocationCommandsRequired": True,
+            "independentRevocationCommandsRequired": False,
+            "directionalXPCUIRequired": True,
             "eventDrivenDynamicBackoffRequired": True,
             "temporaryObjectCleanupRequired": True,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "independent-directional-revoke-contract",
+        "nextImplementationBoundary": "directional-revoke-xpc-ui-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "optional-data-capabilities-default-off" else 1

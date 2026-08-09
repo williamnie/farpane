@@ -705,16 +705,24 @@ impl NativeClipboardPolicy {
         }
     }
 
-    fn bidirectional(enabled: bool) -> Self {
+    pub(crate) fn bidirectional(enabled: bool) -> Self {
         Self::new(enabled, enabled)
     }
 
-    fn allows_remote_read(self) -> bool {
+    pub(crate) fn allows_remote_read(self) -> bool {
         self.remote_read
     }
 
-    fn allows_remote_write(self) -> bool {
+    pub(crate) fn allows_remote_write(self) -> bool {
         self.remote_write
+    }
+
+    pub(crate) fn restricted_to(self, enabled: bool) -> Self {
+        if enabled {
+            self
+        } else {
+            Self::default()
+        }
     }
 
     fn any_enabled(self) -> bool {
@@ -733,7 +741,7 @@ enum NativeClipboardDirection {
     RemoteWrite,
 }
 
-fn native_host_clipboard_policy() -> NativeClipboardPolicy {
+pub(crate) fn native_host_configured_clipboard_policy() -> NativeClipboardPolicy {
     let broker = MEDIA_BROKER.lock().unwrap();
     if broker.binding.is_some() {
         broker.clipboard_policy
@@ -781,35 +789,27 @@ fn native_host_clipboard_direction_allows(
         && clipboards.first().is_some_and(native_host_small_text_clipboard)
 }
 
-pub(crate) fn native_host_clipboard_remote_read_enabled() -> bool {
-    native_host_clipboard_policy().allows_remote_read()
-}
-
-pub(crate) fn native_host_allows_outgoing_clipboard_message(message: &Message) -> bool {
-    let policy = native_host_clipboard_policy();
+pub(crate) fn native_host_outgoing_clipboard_message_is_allowed(
+    message: &Message,
+    remote_read_allowed: bool,
+) -> bool {
     match message.union.as_ref() {
-        Some(message::Union::Clipboard(clipboard)) => native_host_clipboard_direction_allows(
-            policy,
-            NativeClipboardDirection::RemoteRead,
-            std::slice::from_ref(clipboard),
-        ),
+        Some(message::Union::Clipboard(clipboard)) => {
+            remote_read_allowed && native_host_small_text_clipboard(clipboard)
+        }
         Some(message::Union::MultiClipboards(clipboards)) => {
-            native_host_clipboard_direction_allows(
-                policy,
-                NativeClipboardDirection::RemoteRead,
-                &clipboards.clipboards,
-            )
+            remote_read_allowed
+                && native_host_clipboard_entries_are_small_text(&clipboards.clipboards)
         }
         _ => true,
     }
 }
 
-pub(crate) fn native_host_allows_remote_clipboard_write(clipboards: &[Clipboard]) -> bool {
-    native_host_clipboard_direction_allows(
-        native_host_clipboard_policy(),
-        NativeClipboardDirection::RemoteWrite,
-        clipboards,
-    )
+pub(crate) fn native_host_clipboard_entries_are_small_text(clipboards: &[Clipboard]) -> bool {
+    clipboards.len() == 1
+        && clipboards
+            .first()
+            .is_some_and(native_host_small_text_clipboard)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -991,6 +991,8 @@ enum NativeSessionStartResult {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum NativeSessionCommand {
     DisableInput,
+    DisableClipboardRead,
+    DisableClipboardWrite,
     DisableClipboard,
     DisableAudio,
     Disconnect,
@@ -1094,6 +1096,34 @@ impl NativeSessionBroker {
                 }
                 crate::ipc::Data::SwitchPermission {
                     name: "clipboard".to_owned(),
+                    enabled: false,
+                }
+            }
+            NativeSessionCommand::DisableClipboardRead => {
+                if !active
+                    .snapshot
+                    .active_capabilities
+                    .clipboard
+                    .allows_remote_read()
+                {
+                    return NativeSessionCommandResult::NoChange;
+                }
+                crate::ipc::Data::SwitchPermission {
+                    name: "clipboard-read".to_owned(),
+                    enabled: false,
+                }
+            }
+            NativeSessionCommand::DisableClipboardWrite => {
+                if !active
+                    .snapshot
+                    .active_capabilities
+                    .clipboard
+                    .allows_remote_write()
+                {
+                    return NativeSessionCommandResult::NoChange;
+                }
+                crate::ipc::Data::SwitchPermission {
+                    name: "clipboard-write".to_owned(),
                     enabled: false,
                 }
             }
@@ -3643,6 +3673,12 @@ fn handle_session_command(
         NativeSessionCommandResult::Queued => {
             let detail = match command {
                 NativeSessionCommand::DisableInput => "session-input-disable-queued",
+                NativeSessionCommand::DisableClipboardRead => {
+                    "session-clipboard-read-disable-queued"
+                }
+                NativeSessionCommand::DisableClipboardWrite => {
+                    "session-clipboard-write-disable-queued"
+                }
                 NativeSessionCommand::DisableClipboard => "session-clipboard-disable-queued",
                 NativeSessionCommand::DisableAudio => "session-audio-disable-queued",
                 NativeSessionCommand::Disconnect => "session-disconnect-queued",
@@ -3653,6 +3689,12 @@ fn handle_session_command(
         NativeSessionCommandResult::NoChange => {
             let detail = match command {
                 NativeSessionCommand::DisableInput => "session-input-already-disabled",
+                NativeSessionCommand::DisableClipboardRead => {
+                    "session-clipboard-read-already-disabled"
+                }
+                NativeSessionCommand::DisableClipboardWrite => {
+                    "session-clipboard-write-already-disabled"
+                }
                 NativeSessionCommand::DisableClipboard => "session-clipboard-already-disabled",
                 NativeSessionCommand::DisableAudio => "session-audio-already-disabled",
                 NativeSessionCommand::Disconnect => "session-disconnect-already-requested",
@@ -3744,6 +3786,18 @@ fn handle_command(host: &mut RdnHost, command_id: &str, name: &str, envelope: &V
             host,
             command_id,
             NativeSessionCommand::DisableClipboard,
+            envelope,
+        ),
+        "disableClipboardReadForActiveSession" => handle_session_command(
+            host,
+            command_id,
+            NativeSessionCommand::DisableClipboardRead,
+            envelope,
+        ),
+        "disableClipboardWriteForActiveSession" => handle_session_command(
+            host,
+            command_id,
+            NativeSessionCommand::DisableClipboardWrite,
             envelope,
         ),
         "disableAudioForActiveSession" => handle_session_command(
@@ -5010,6 +5064,22 @@ mod tests {
         let read_only = NativeClipboardPolicy::new(true, false);
         let write_only = NativeClipboardPolicy::new(false, true);
 
+        let non_clipboard_message = Message::new();
+        assert!(native_host_outgoing_clipboard_message_is_allowed(
+            &non_clipboard_message,
+            false,
+        ));
+        let mut clipboard_message = Message::new();
+        clipboard_message.set_clipboard(text.clone());
+        assert!(native_host_outgoing_clipboard_message_is_allowed(
+            &clipboard_message,
+            true,
+        ));
+        assert!(!native_host_outgoing_clipboard_message_is_allowed(
+            &clipboard_message,
+            false,
+        ));
+
         assert!(native_host_clipboard_direction_allows(
             read_only,
             NativeClipboardDirection::RemoteRead,
@@ -5324,6 +5394,22 @@ mod tests {
                 },
             ),
             (
+                "session-clipboard-read",
+                "disableClipboardReadForActiveSession",
+                crate::ipc::Data::SwitchPermission {
+                    name: "clipboard-read".to_owned(),
+                    enabled: false,
+                },
+            ),
+            (
+                "session-clipboard-write",
+                "disableClipboardWriteForActiveSession",
+                crate::ipc::Data::SwitchPermission {
+                    name: "clipboard-write".to_owned(),
+                    enabled: false,
+                },
+            ),
+            (
                 "session-clipboard",
                 "disableClipboardForActiveSession",
                 crate::ipc::Data::SwitchPermission {
@@ -5363,6 +5449,51 @@ mod tests {
                 _ => panic!("unexpected session permission command"),
             }
         }
+
+        native_host_update_session_capabilities(
+            17,
+            NativeSessionCapabilities::with_clipboard_policy(
+                true,
+                NativeClipboardPolicy::new(false, true),
+                true,
+            ),
+            NativeSessionInputAvailability::available(),
+        );
+        let read_already_disabled = json!({
+            "commandId": "session-clipboard-read-already-disabled",
+            "name": "disableClipboardReadForActiveSession",
+            "connectionId": "session-command-host:17",
+        });
+        assert_eq!(
+            handle_command(
+                &mut host,
+                "session-clipboard-read-already-disabled",
+                "disableClipboardReadForActiveSession",
+                &read_already_disabled,
+            ),
+            RDN_HOST_OK
+        );
+        assert!(command_receiver.try_recv().is_err());
+
+        let write_still_enabled = json!({
+            "commandId": "session-clipboard-write-enabled",
+            "name": "disableClipboardWriteForActiveSession",
+            "connectionId": "session-command-host:17",
+        });
+        assert_eq!(
+            handle_command(
+                &mut host,
+                "session-clipboard-write-enabled",
+                "disableClipboardWriteForActiveSession",
+                &write_still_enabled,
+            ),
+            RDN_HOST_OK
+        );
+        assert!(matches!(
+            command_receiver.try_recv(),
+            Ok(crate::ipc::Data::SwitchPermission { name, enabled })
+                if name == "clipboard-write" && !enabled
+        ));
 
         native_host_update_session_capabilities(
             17,

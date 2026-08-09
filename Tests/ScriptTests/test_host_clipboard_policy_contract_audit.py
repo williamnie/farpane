@@ -35,10 +35,16 @@ class HostClipboardPolicyContractAuditTests(unittest.TestCase):
         self.assertFalse(document["claims"]["clipboardDataPathEnabled"])
         self.assertTrue(document["claims"]["boundedSmallTextImplemented"])
         self.assertFalse(document["claims"]["richClipboardImplemented"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]["independentRevocationCommandsRequired"]
+        )
+        self.assertTrue(all(
+            value for name, value in document["remainingBoundary"].items()
+            if name != "independentRevocationCommandsRequired"
+        ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "independent-directional-revoke-contract",
+            "directional-revoke-xpc-ui-contract",
         )
 
 

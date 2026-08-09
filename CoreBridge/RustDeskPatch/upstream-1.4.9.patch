@@ -5781,3 +5781,438 @@ index bf2e04c..b78cdad 100644
                          #[cfg(not(any(target_os = "android", target_os = "ios")))]
                          update_clipboard(_mcb.clipboards, ClipboardSide::Host);
                          #[cfg(target_os = "android")]
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -56,6 +56,11 @@
+ use serde_json::{json, value::Value};
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+ use std::sync::atomic::{AtomicU64, Ordering};
++#[cfg(all(
++    feature = "rdn-native-host",
++    not(any(target_os = "android", target_os = "ios"))
++))]
++use std::sync::atomic::AtomicU8;
+ use std::{
+     collections::HashSet,
+     net::Ipv6Addr,
+@@ -185,6 +190,81 @@
+     id: i32,
+     tx: Option<Sender>,
+     tx_video: Option<Sender>,
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    native_clipboard_permissions: Option<Arc<NativeClipboardPermissionState>>,
++}
++
++#[cfg(all(
++    feature = "rdn-native-host",
++    not(any(target_os = "android", target_os = "ios"))
++))]
++#[derive(Debug, Default)]
++struct NativeClipboardPermissionState {
++    maximum: u8,
++    active: AtomicU8,
++}
++
++#[cfg(all(
++    feature = "rdn-native-host",
++    not(any(target_os = "android", target_os = "ios"))
++))]
++impl NativeClipboardPermissionState {
++    const REMOTE_READ: u8 = 1 << 0;
++    const REMOTE_WRITE: u8 = 1 << 1;
++
++    fn bits(policy: crate::rdn_host_bridge::NativeClipboardPolicy) -> u8 {
++        u8::from(policy.allows_remote_read()) * Self::REMOTE_READ
++            | u8::from(policy.allows_remote_write()) * Self::REMOTE_WRITE
++    }
++
++    fn policy(bits: u8) -> crate::rdn_host_bridge::NativeClipboardPolicy {
++        crate::rdn_host_bridge::NativeClipboardPolicy::new(
++            bits & Self::REMOTE_READ != 0,
++            bits & Self::REMOTE_WRITE != 0,
++        )
++    }
++
++    fn new(maximum: crate::rdn_host_bridge::NativeClipboardPolicy) -> Self {
++        let maximum = Self::bits(maximum);
++        Self {
++            maximum,
++            active: AtomicU8::new(maximum),
++        }
++    }
++
++    fn maximum_policy(&self) -> crate::rdn_host_bridge::NativeClipboardPolicy {
++        Self::policy(self.maximum)
++    }
++
++    fn active_policy(&self) -> crate::rdn_host_bridge::NativeClipboardPolicy {
++        Self::policy(self.active.load(Ordering::Acquire) & self.maximum)
++    }
++
++    fn set_legacy_enabled(&self, enabled: bool) {
++        self.active.store(
++            if enabled { self.maximum } else { 0 },
++            Ordering::Release,
++        );
++    }
++
++    fn set_remote_read(&self, enabled: bool) {
++        self.set_direction(Self::REMOTE_READ, enabled);
++    }
++
++    fn set_remote_write(&self, enabled: bool) {
++        self.set_direction(Self::REMOTE_WRITE, enabled);
++    }
++
++    fn set_direction(&self, bit: u8, enabled: bool) {
++        if enabled && self.maximum & bit != 0 {
++            self.active.fetch_or(bit, Ordering::AcqRel);
++        } else {
++            self.active.fetch_and(!bit, Ordering::AcqRel);
++        }
++    }
+ }
+
+ struct InputMouse {
+@@ -786,6 +866,11 @@
+     ))]
+     native_platform_input_state: NativeHostPlatformInputState,
+     clipboard: bool,
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    native_clipboard_permissions: Option<Arc<NativeClipboardPermissionState>>,
+     audio: bool,
+     file: bool,
+     restart: bool,
+@@ -879,7 +964,12 @@
+
+ impl ConnInner {
+     pub fn new(id: i32, tx: Option<Sender>, tx_video: Option<Sender>) -> Self {
+-        Self { id, tx, tx_video }
++        Self {
++            id,
++            tx,
++            tx_video,
++            ..Default::default()
++        }
+     }
+ }
+
+@@ -895,10 +985,15 @@
+             feature = "rdn-native-host",
+             not(any(target_os = "android", target_os = "ios"))
+         ))]
+-        if crate::rdn_host_bridge::native_host_is_bound()
+-            && !crate::rdn_host_bridge::native_host_allows_outgoing_clipboard_message(&msg)
+-        {
+-            return;
++        if let Some(permissions) = self.native_clipboard_permissions.as_ref() {
++            let remote_read_allowed = crate::rdn_host_bridge::native_host_is_bound()
++                && permissions.active_policy().allows_remote_read();
++            if !crate::rdn_host_bridge::native_host_outgoing_clipboard_message_is_allowed(
++                &msg,
++                remote_read_allowed,
++            ) {
++                return;
++            }
+         }
+         // Send SwitchDisplay on the same channel as VideoFrame to avoid send order problems.
+         let tx_by_video = match &msg.union {
+@@ -1013,11 +1108,27 @@
+
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+         let tx_cloned = tx.clone();
++        let clipboard = Self::permission(keys::OPTION_ENABLE_CLIPBOARD, &control_permissions);
++        #[cfg(all(
++            feature = "rdn-native-host",
++            not(any(target_os = "android", target_os = "ios"))
++        ))]
++        let native_clipboard_permissions = crate::rdn_host_bridge::native_host_is_bound().then(|| {
++            Arc::new(NativeClipboardPermissionState::new(
++                crate::rdn_host_bridge::native_host_configured_clipboard_policy()
++                    .restricted_to(clipboard),
++            ))
++        });
+         let mut conn = Self {
+             inner: ConnInner {
+                 id,
+                 tx: Some(tx),
+                 tx_video: Some(tx_video),
++                #[cfg(all(
++                    feature = "rdn-native-host",
++                    not(any(target_os = "android", target_os = "ios"))
++                ))]
++                native_clipboard_permissions: native_clipboard_permissions.clone(),
+             },
+             require_2fa: crate::auth_2fa::get_2fa(None),
+             display_idx: *display_service::PRIMARY_DISPLAY_IDX,
+@@ -1048,7 +1159,12 @@
+                 not(any(target_os = "android", target_os = "ios"))
+             ))]
+             native_platform_input_state,
+-            clipboard: Self::permission(keys::OPTION_ENABLE_CLIPBOARD, &control_permissions),
++            clipboard,
++            #[cfg(all(
++                feature = "rdn-native-host",
++                not(any(target_os = "android", target_os = "ios"))
++            ))]
++            native_clipboard_permissions,
+             audio: Self::permission(keys::OPTION_ENABLE_AUDIO, &control_permissions),
+             // to-do: make sure is the option correct here
+             file: Self::permission(keys::OPTION_ENABLE_FILE_TRANSFER, &control_permissions),
+@@ -1281,11 +1397,53 @@
+                                 }
+                             } else if &name == "clipboard" {
+                                 conn.clipboard = enabled;
++                                #[cfg(all(
++                                    feature = "rdn-native-host",
++                                    not(any(target_os = "android", target_os = "ios"))
++                                ))]
++                                if let Some(permissions) =
++                                    conn.native_clipboard_permissions.as_ref()
++                                {
++                                    permissions.set_legacy_enabled(enabled);
++                                }
+                                 conn.send_permission(Permission::Clipboard, enabled).await;
++                                if let Some(s) = conn.server.upgrade() {
++                                    s.write().unwrap().subscribe(
++                                        super::clipboard_service::NAME,
++                                        conn.inner.clone(), conn.can_sub_clipboard_service());
++                                }
++                            } else if cfg!(all(
++                                feature = "rdn-native-host",
++                                not(any(target_os = "android", target_os = "ios"))
++                            )) && &name == "clipboard-read"
++                            {
++                                #[cfg(all(
++                                    feature = "rdn-native-host",
++                                    not(any(target_os = "android", target_os = "ios"))
++                                ))]
++                                if let Some(permissions) =
++                                    conn.native_clipboard_permissions.as_ref()
++                                {
++                                    permissions.set_remote_read(enabled);
++                                }
+                                 if let Some(s) = conn.server.upgrade() {
+                                     s.write().unwrap().subscribe(
+                                         super::clipboard_service::NAME,
+                                         conn.inner.clone(), conn.can_sub_clipboard_service());
++                                }
++                            } else if cfg!(all(
++                                feature = "rdn-native-host",
++                                not(any(target_os = "android", target_os = "ios"))
++                            )) && &name == "clipboard-write"
++                            {
++                                #[cfg(all(
++                                    feature = "rdn-native-host",
++                                    not(any(target_os = "android", target_os = "ios"))
++                                ))]
++                                if let Some(permissions) =
++                                    conn.native_clipboard_permissions.as_ref()
++                                {
++                                    permissions.set_remote_write(enabled);
+                                 }
+                             } else if &name == "audio" {
+                                 conn.audio = enabled;
+@@ -2761,9 +2919,16 @@
+     fn native_session_initial_capabilities(
+         &self,
+     ) -> crate::rdn_host_bridge::NativeSessionCapabilities {
+-        crate::rdn_host_bridge::NativeSessionCapabilities::new(
++        let clipboard = self
++            .native_clipboard_permissions
++            .as_ref()
++            .map(|permissions| permissions.maximum_policy())
++            .unwrap_or_else(|| {
++                crate::rdn_host_bridge::NativeClipboardPolicy::bidirectional(self.clipboard)
++            });
++        crate::rdn_host_bridge::NativeSessionCapabilities::with_clipboard_policy(
+             self.keyboard,
+-            self.clipboard,
++            clipboard,
+             self.audio,
+         )
+     }
+@@ -2775,9 +2940,17 @@
+     fn native_session_active_capabilities(
+         &self,
+     ) -> crate::rdn_host_bridge::NativeSessionCapabilities {
+-        crate::rdn_host_bridge::NativeSessionCapabilities::new(
++        let clipboard = self
++            .native_clipboard_permissions
++            .as_ref()
++            .map(|permissions| permissions.active_policy())
++            .unwrap_or_else(|| {
++                crate::rdn_host_bridge::NativeClipboardPolicy::bidirectional(self.clipboard)
++            })
++            .restricted_to(!self.disable_clipboard);
++        crate::rdn_host_bridge::NativeSessionCapabilities::with_clipboard_policy(
+             self.peer_keyboard_enabled(),
+-            self.clipboard_enabled(),
++            clipboard,
+             self.audio_enabled(),
+         )
+     }
+@@ -2912,6 +3085,24 @@
+
+     fn clipboard_enabled(&self) -> bool {
+         self.clipboard && !self.disable_clipboard
++    }
++
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    fn native_host_allows_remote_clipboard_write(&self, clipboards: &[Clipboard]) -> bool {
++        self.native_clipboard_permissions
++            .as_ref()
++            .map(|permissions| {
++                crate::rdn_host_bridge::native_host_is_bound()
++                    && permissions.active_policy().allows_remote_write()
++                    && !self.disable_clipboard
++                    && crate::rdn_host_bridge::native_host_clipboard_entries_are_small_text(
++                        clipboards,
++                    )
++            })
++            .unwrap_or(true)
+     }
+
+     #[inline]
+@@ -2924,8 +3115,14 @@
+             not(any(target_os = "android", target_os = "ios"))
+         ))]
+         let enabled = enabled
+-            && (!crate::rdn_host_bridge::native_host_is_bound()
+-                || crate::rdn_host_bridge::native_host_clipboard_remote_read_enabled());
++            && self
++                .native_clipboard_permissions
++                .as_ref()
++                .map(|permissions| {
++                    crate::rdn_host_bridge::native_host_is_bound()
++                        && permissions.active_policy().allows_remote_read()
++                })
++                .unwrap_or(true);
+         enabled
+     }
+
+@@ -2976,8 +3173,17 @@
+                     requested_capabilities.push("controlKeyboardMouse".to_owned());
+                 }
+                 if !peer_disables(|option| option.disable_clipboard.enum_value_or_default()) {
+-                    requested_capabilities.push("readClipboard".to_owned());
+-                    requested_capabilities.push("writeClipboard".to_owned());
++                    let clipboard = self
++                        .native_clipboard_permissions
++                        .as_ref()
++                        .map(|permissions| permissions.maximum_policy())
++                        .unwrap_or_default();
++                    if clipboard.allows_remote_read() {
++                        requested_capabilities.push("readClipboard".to_owned());
++                    }
++                    if clipboard.allows_remote_write() {
++                        requested_capabilities.push("writeClipboard".to_owned());
++                    }
+                 }
+                 if !peer_disables(|option| option.disable_audio.enum_value_or_default()) {
+                     requested_capabilities.push("hearSystemAudio".to_owned());
+@@ -4068,10 +4274,9 @@
+                         feature = "rdn-native-host",
+                         not(any(target_os = "android", target_os = "ios"))
+                     ))]
+-                    let native_host_allows = !crate::rdn_host_bridge::native_host_is_bound()
+-                        || crate::rdn_host_bridge::native_host_allows_remote_clipboard_write(
+-                            std::slice::from_ref(&cb),
+-                        );
++                    let native_host_allows = self.native_host_allows_remote_clipboard_write(
++                        std::slice::from_ref(&cb),
++                    );
+                     #[cfg(not(all(
+                         feature = "rdn-native-host",
+                         not(any(target_os = "android", target_os = "ios"))
+@@ -4112,10 +4317,8 @@
+                         feature = "rdn-native-host",
+                         not(any(target_os = "android", target_os = "ios"))
+                     ))]
+-                    let native_host_allows = !crate::rdn_host_bridge::native_host_is_bound()
+-                        || crate::rdn_host_bridge::native_host_allows_remote_clipboard_write(
+-                            &_mcb.clipboards,
+-                        );
++                    let native_host_allows =
++                        self.native_host_allows_remote_clipboard_write(&_mcb.clipboards);
+                     #[cfg(not(all(
+                         feature = "rdn-native-host",
+                         not(any(target_os = "android", target_os = "ios"))
+@@ -9105,7 +9308,68 @@
+         );
+     }
+
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
+     #[test]
++    fn native_clipboard_permissions_revoke_directions_without_exceeding_maximum() {
++        use crate::rdn_host_bridge::NativeClipboardPolicy;
++
++        let bidirectional = NativeClipboardPermissionState::new(
++            NativeClipboardPolicy::bidirectional(true),
++        );
++        bidirectional.set_remote_read(false);
++        assert_eq!(
++            bidirectional.active_policy(),
++            NativeClipboardPolicy::new(false, true)
++        );
++        bidirectional.set_remote_write(false);
++        assert_eq!(
++            bidirectional.active_policy(),
++            NativeClipboardPolicy::default()
++        );
++
++        let permissions = NativeClipboardPermissionState::new(NativeClipboardPolicy::new(
++            true, false,
++        ));
++        assert_eq!(
++            permissions.maximum_policy(),
++            NativeClipboardPolicy::new(true, false)
++        );
++        assert_eq!(
++            permissions.active_policy(),
++            NativeClipboardPolicy::new(true, false)
++        );
++
++        permissions.set_remote_read(false);
++        assert_eq!(
++            permissions.active_policy(),
++            NativeClipboardPolicy::default()
++        );
++        permissions.set_remote_write(true);
++        assert_eq!(
++            permissions.active_policy(),
++            NativeClipboardPolicy::default()
++        );
++        permissions.set_legacy_enabled(true);
++        assert_eq!(
++            permissions.active_policy(),
++            NativeClipboardPolicy::new(true, false)
++        );
++        permissions.set_remote_write(false);
++        assert_eq!(
++            permissions.active_policy(),
++            NativeClipboardPolicy::new(true, false)
++        );
++        permissions.set_legacy_enabled(false);
++        assert_eq!(
++            permissions.active_policy(),
++            NativeClipboardPolicy::default()
++        );
++    }
++
++    #[test]
+     fn native_host_pending_approval_is_remote_and_mode_scoped() {
+         assert!(native_host_local_approval_supported(
+             true,
