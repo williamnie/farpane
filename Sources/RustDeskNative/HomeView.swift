@@ -37,6 +37,8 @@ struct HostHomeSnapshot: Equatable {
     var isEnabled: Bool
     var isControlEnabled: Bool
     var isRunning: Bool
+    var isReady: Bool
+    var allowsHostCommands: Bool
     var isStreaming: Bool
     var statusText: String
     var localID: String
@@ -138,6 +140,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             isEnabled: false,
             isControlEnabled: false,
             isRunning: false,
+            isReady: false,
+            allowsHostCommands: false,
             isStreaming: false,
             statusText: "已关闭",
             localID: "",
@@ -184,8 +188,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostIDLabel.stringValue = "本机 ID：\(snapshot.host.localID.nonEmpty ?? "—")"
         hostPasswordLabel.stringValue = "临时密码：\(snapshot.host.temporaryPassword.nonEmpty ?? "未显示")"
         hostRevealButton.title = snapshot.host.temporaryPassword.isEmpty ? "显示" : "隐藏"
-        hostRevealButton.isEnabled = snapshot.host.isRunning
-        hostRegenerateButton.isEnabled = snapshot.host.isRunning
+        hostRevealButton.isEnabled = snapshot.host.allowsHostCommands
+        hostRegenerateButton.isEnabled = snapshot.host.allowsHostCommands
         hostPermanentPasswordLabel.stringValue = permanentPasswordStatus(snapshot.host)
         if snapshot.host.localPermanentPasswordSet {
             hostSetPermanentPasswordButton.title = "更改"
@@ -194,9 +198,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         } else {
             hostSetPermanentPasswordButton.title = "设置"
         }
-        hostSetPermanentPasswordButton.isEnabled = snapshot.host.isRunning
+        hostSetPermanentPasswordButton.isEnabled = snapshot.host.allowsHostCommands
             && snapshot.host.permanentPasswordChangeAllowed
-        hostClearPermanentPasswordButton.isEnabled = snapshot.host.isRunning
+        hostClearPermanentPasswordButton.isEnabled = snapshot.host.allowsHostCommands
             && snapshot.host.permanentPasswordChangeAllowed
             && snapshot.host.localPermanentPasswordSet
         if let approval = snapshot.host.pendingApproval {
@@ -266,7 +270,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private func hostStatusColor(_ host: HostHomeSnapshot) -> NSColor {
         guard host.isEnabled else { return .tertiaryLabelColor }
         if !host.errorText.isEmpty { return .systemOrange }
-        return host.statusText == "可被连接" || host.isStreaming
+        return host.isReady || host.isStreaming
             ? .systemGreen
             : .systemYellow
     }
