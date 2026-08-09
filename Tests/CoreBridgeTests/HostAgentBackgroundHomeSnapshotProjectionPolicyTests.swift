@@ -29,7 +29,8 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
                 effectivePermanentPasswordSet: true,
                 usingPresetPassword: false,
                 permanentPasswordChangeAllowed: true,
-                hasRuntimeError: false
+                hasRuntimeError: false,
+                allowsSessionMutationCommands: true
             )
         )
     }
@@ -57,7 +58,8 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
                 effectivePermanentPasswordSet: true,
                 usingPresetPassword: false,
                 permanentPasswordChangeAllowed: true,
-                hasRuntimeError: true
+                hasRuntimeError: true,
+                allowsSessionMutationCommands: true
             )
         )
     }
@@ -165,6 +167,11 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         )
         XCTAssertEqual(view.activeSession?.remoteName, "MBP")
         XCTAssertEqual(view.activeSession?.inputAvailability, .available)
+        XCTAssertEqual(
+            view.activeSessionPresentation?.overallStatusText,
+            "远程会话进行中"
+        )
+        XCTAssertTrue(view.allowsSessionMutationCommands)
     }
 
     func testLimitedSessionHidesPendingApprovalButRetainsActiveSession()
@@ -203,18 +210,44 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
             activeSession: active,
             limitedSession: true
         )
-        let readiness = readiness(
+        let limitedReadiness = readiness(
             registration: .enabled,
             projection: projection
         )
         let view = presentation(
-            readiness: readiness,
+            readiness: limitedReadiness,
             projection: projection
         )
 
-        XCTAssertEqual(readiness.availability, .sessionUnavailable)
+        XCTAssertEqual(limitedReadiness.availability, .sessionUnavailable)
         XCTAssertNil(view.pendingApproval)
         XCTAssertEqual(view.activeSession?.connectionID, "host-a:session-1")
+        XCTAssertEqual(
+            view.activeSessionPresentation?.overallStatusText,
+            "远程会话受限：当前 Mac 会话不可用"
+        )
+        XCTAssertEqual(
+            view.activeSessionPresentation?.detailText,
+            "当前版本不支持在锁屏、登录窗口或其他用户会话中远程操作；画面采集已暂停，远程键盘与鼠标不可用"
+        )
+        XCTAssertFalse(view.allowsSessionMutationCommands)
+
+        let inconsistentProjection = try availableProjection(
+            localID: "123456789",
+            registrationStatus: "ready",
+            lastError: nil,
+            activeSession: active
+        )
+        XCTAssertEqual(
+            presentation(
+                readiness: readiness(
+                    registration: .enabled,
+                    projection: inconsistentProjection
+                ),
+                projection: inconsistentProjection
+            ),
+            .unavailable
+        )
     }
 
     func testProductSourcesCarryProjectionAndDoNotMixLegacyFields()
@@ -285,6 +318,13 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         XCTAssertTrue(appSource.contains(
             "pendingAction: backgroundHostSessionAction("
         ))
+        XCTAssertTrue(appSource.contains(
+            "backgroundSnapshot.activeSessionPresentation"
+        ))
+        XCTAssertEqual(appSource.components(
+            separatedBy:
+                "backgroundSnapshot.allowsSessionMutationCommands"
+        ).count - 1, 3)
         XCTAssertTrue(appSource.contains(
             "mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : \"\""
         ))

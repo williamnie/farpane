@@ -11,7 +11,9 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         permanentPasswordChangeAllowed: false,
         hasRuntimeError: false,
         pendingApproval: nil,
-        activeSession: nil
+        activeSession: nil,
+        activeSessionPresentation: nil,
+        allowsSessionMutationCommands: false
     )
 
     package let isAvailable: Bool
@@ -23,6 +25,8 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
     package let hasRuntimeError: Bool
     package let pendingApproval: HostAgentXPCWirePendingApproval?
     package let activeSession: HostAgentXPCWireActiveSession?
+    package let activeSessionPresentation: HostSessionInputPresentation?
+    package let allowsSessionMutationCommands: Bool
 
     package init(
         isAvailable: Bool,
@@ -33,7 +37,9 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         permanentPasswordChangeAllowed: Bool,
         hasRuntimeError: Bool,
         pendingApproval: HostAgentXPCWirePendingApproval? = nil,
-        activeSession: HostAgentXPCWireActiveSession? = nil
+        activeSession: HostAgentXPCWireActiveSession? = nil,
+        activeSessionPresentation: HostSessionInputPresentation? = nil,
+        allowsSessionMutationCommands: Bool = false
     ) {
         self.isAvailable = isAvailable
         self.localID = localID
@@ -45,6 +51,8 @@ package struct HostAgentBackgroundHomeSnapshotPresentation:
         self.hasRuntimeError = hasRuntimeError
         self.pendingApproval = pendingApproval
         self.activeSession = activeSession
+        self.activeSessionPresentation = activeSessionPresentation
+        self.allowsSessionMutationCommands = allowsSessionMutationCommands
     }
 }
 
@@ -73,6 +81,17 @@ package enum HostAgentBackgroundHomeSnapshotProjectionPolicy {
         let pendingApproval = payload.sessionAvailability == .available
             ? payload.pendingApproval
             : nil
+        let activeSessionPresentation = payload.activeSession.flatMap {
+            HostSessionPresentationPolicy.presentation(
+                sessionAvailability: payload.sessionAvailability,
+                sessionUnavailableReason: payload.sessionUnavailableReason,
+                inputAvailability: $0.inputAvailability,
+                inputUnavailableReason: $0.inputUnavailableReason
+            )
+        }
+        guard payload.activeSession == nil
+                || activeSessionPresentation != nil
+        else { return .unavailable }
         return HostAgentBackgroundHomeSnapshotPresentation(
             isAvailable: true,
             localID: payload.localID,
@@ -86,7 +105,10 @@ package enum HostAgentBackgroundHomeSnapshotProjectionPolicy {
                 payload.passwordPolicy.changeAllowed,
             hasRuntimeError: payload.lastError != nil,
             pendingApproval: pendingApproval,
-            activeSession: payload.activeSession
+            activeSession: payload.activeSession,
+            activeSessionPresentation: activeSessionPresentation,
+            allowsSessionMutationCommands:
+                payload.sessionAvailability == .available
         )
     }
 

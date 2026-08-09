@@ -1465,10 +1465,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 session.activeCapabilities
               ),
               let sessionPresentation =
-                HostSessionInputPresentationPolicy.presentation(
-                    availability: session.inputAvailability,
-                    unavailableReason: session.inputUnavailableReason
-                )
+                backgroundSnapshot.activeSessionPresentation
         else { return nil }
         let activeCapabilities = Set(session.activeCapabilities)
         let startedAt = Date(
@@ -1508,12 +1505,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 "\(hostPlatformText(session.remotePlatform)) · \(startedText) 开始连接",
             capabilityText: capabilityText,
             canDisableKeyboardAndMouse:
-                activeCapabilities.contains("controlKeyboardMouse"),
+                backgroundSnapshot.allowsSessionMutationCommands
+                    && activeCapabilities.contains("controlKeyboardMouse"),
             canDisableClipboard:
-                activeCapabilities.contains("readClipboard")
+                backgroundSnapshot.allowsSessionMutationCommands
+                    && activeCapabilities.contains("readClipboard")
                     && activeCapabilities.contains("writeClipboard"),
             canDisableSystemAudio:
-                activeCapabilities.contains("hearSystemAudio"),
+                backgroundSnapshot.allowsSessionMutationCommands
+                    && activeCapabilities.contains("hearSystemAudio"),
             pendingAction: backgroundHostSessionAction(
                 command.activeAction
             ),

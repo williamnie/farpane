@@ -82,13 +82,48 @@ public enum HostSessionPresentationPolicy {
             unavailableReason: inputUnavailableReason
         ) else { return nil }
         guard activeAquaSessionAvailable else {
-            return HostSessionInputPresentation(
-                overallStatusText: "远程会话受限：当前 Mac 会话不可用",
-                detailText: "画面采集已暂停；远程键盘与鼠标不可用：当前 Mac 处于锁屏、登录窗口或其他用户会话",
-                statusItemTitle: "FarPane 远程会话受限"
-            )
+            return unavailableAquaPresentation()
         }
         return inputPresentation
+    }
+
+    /// Background Host presentation consumes the strict top-level tuple
+    /// projected by Rust instead of consulting a second local Aqua authority.
+    package static func presentation(
+        sessionAvailability: HostSessionAvailability,
+        sessionUnavailableReason: HostSessionUnavailableReason?,
+        inputAvailability: HostSessionInputAvailability,
+        inputUnavailableReason: HostSessionInputUnavailableReason?
+    ) -> HostSessionInputPresentation? {
+        guard let inputPresentation =
+                HostSessionInputPresentationPolicy.presentation(
+                    availability: inputAvailability,
+                    unavailableReason: inputUnavailableReason
+                )
+        else { return nil }
+        switch (sessionAvailability, sessionUnavailableReason) {
+        case (.available, nil):
+            guard inputUnavailableReason != .sessionUnavailable
+            else { return nil }
+            return inputPresentation
+        case (.limited, .sessionUnavailable):
+            guard inputAvailability == .limited,
+                  inputUnavailableReason == .sessionUnavailable
+            else { return nil }
+            return unavailableAquaPresentation()
+        default:
+            return nil
+        }
+    }
+
+    private static func unavailableAquaPresentation()
+        -> HostSessionInputPresentation
+    {
+        HostSessionInputPresentation(
+            overallStatusText: "远程会话受限：当前 Mac 会话不可用",
+            detailText: "当前版本不支持在锁屏、登录窗口或其他用户会话中远程操作；画面采集已暂停，远程键盘与鼠标不可用",
+            statusItemTitle: "FarPane 远程会话受限"
+        )
     }
 }
 

@@ -68,7 +68,7 @@ final class HostAgentBackgroundHomeReadinessPresentationPolicyTests:
         assertMonitoring(
             readiness(session: .limitedSessionUnavailable),
             equals: expected(
-                "当前 Mac 会话不可用",
+                "远程会话受限：锁屏、登录窗口或其他用户会话暂不支持",
                 isRunning: true
             )
         )

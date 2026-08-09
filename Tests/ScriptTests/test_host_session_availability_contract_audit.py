@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
-    def test_background_readiness_and_command_withdrawal_are_frozen(self):
+    def test_detailed_home_limited_presentation_is_frozen(self):
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -27,10 +27,10 @@ class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
             document["schema"],
             "farpane-host-session-availability-contract-audit",
         )
-        self.assertEqual(document["schemaVersion"], 4)
+        self.assertEqual(document["schemaVersion"], 5)
         self.assertEqual(
             document["status"],
-            "background-readiness-command-withdrawal-implemented",
+            "detailed-home-limited-presentation-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
 
@@ -75,7 +75,7 @@ class HostSessionAvailabilityContractAuditTests(unittest.TestCase):
                 "backgroundReadinessAndCommandWithdrawalNotImplementedByAudit"
             ]
         )
-        self.assertTrue(
+        self.assertFalse(
             remaining["detailedHomeLimitedPresentationStillRequired"]
         )
         self.assertTrue(
