@@ -217,11 +217,25 @@ def main() -> int:
             and "password_security::update_temporary_password();" in stop
             and all(symbol not in stop for symbol in sleep_symbols)
         ),
+        "swiftClientExposesTypedSleepABI": all(
+            marker in sources["snapshot"]
+            for marker in (
+                "case sleepRecovery(HostSleepRecoveryOperation, Int32)",
+                "public func beginSleep(epoch: UInt64)",
+                "public func finishSleep(epoch: UInt64)",
+                "public func resumeAfterWake(epoch: UInt64)",
+                "guard epoch > 0",
+                "rdn_shim_host_begin_sleep(library, handle, epoch)",
+                "rdn_shim_host_finish_sleep(library, handle, epoch)",
+                "rdn_shim_host_resume_after_wake(library, handle, epoch)",
+                "readiness must converge through a later authoritative",
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
@@ -236,13 +250,12 @@ def main() -> int:
                 "snapshotRecoveryEpoch": line_number(
                     sources["bridge"], 'map.insert("recoveryEpoch".into()'
                 ),
+                "swiftBeginSleep": line_number(
+                    sources["snapshot"], "public func beginSleep(epoch: UInt64)"
+                ),
             },
         },
         "remainingBoundary": {
-            "hostControlClientSleepMethodsAbsent": all(
-                f"public func {name}" not in sources["snapshot"]
-                for name in ("beginSleep", "finishSleep", "resumeAfterWake")
-            ),
             "compositionRegistrationStillSynchronous": all(
                 marker in sources["composition"]
                 for marker in (

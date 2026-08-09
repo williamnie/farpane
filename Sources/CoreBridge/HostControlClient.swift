@@ -25,6 +25,7 @@ public enum HostControlError: Error, CustomStringConvertible {
     case sensitiveCommandRequiresDedicatedABI
     case snapshot(Int32)
     case snapshotDecode(String)
+    case sleepRecovery(HostSleepRecoveryOperation, Int32)
     case stop(Int32)
     case media(Int32)
 
@@ -45,6 +46,8 @@ public enum HostControlError: Error, CustomStringConvertible {
             return "sensitive host command requires the dedicated secret-buffer ABI"
         case .snapshot(let code): return "host snapshot copy failed: \(code)"
         case .snapshotDecode(let message): return "host snapshot decode failed: \(message)"
+        case .sleepRecovery(let operation, let code):
+            return "host \(operation.rawValue) rejected: \(code)"
         case .stop(let code): return "host stop failed: \(code)"
         case .media(let code): return "host media operation rejected: \(code)"
         }
@@ -97,6 +100,18 @@ public enum HostControlError: Error, CustomStringConvertible {
         case Int32(RDN_HOST_ERR_SESSION_STALE): return .staleConnection
         case Int32(RDN_HOST_ERR_SESSION_COMMAND_UNAVAILABLE): return .unavailable
         default: return nil
+        }
+    }
+
+    public var sleepRecoveryFailure: HostSleepRecoveryFailure? {
+        guard case .sleepRecovery(_, let code) = self else { return nil }
+        switch code {
+        case Int32(RDN_HOST_ERR_INVALID_ARG): return .invalidEpoch
+        case Int32(RDN_HOST_ERR_STALE_EPOCH): return .staleEpoch
+        case Int32(RDN_HOST_ERR_BAD_STATE): return .invalidState
+        case Int32(RDN_HOST_ERR_NOT_SUPPORTED): return .unsupported
+        case Int32(RDN_HOST_ERR_INTERNAL): return .internalFailure
+        default: return .unknown
         }
     }
 
@@ -280,6 +295,21 @@ public enum HostStopReason: UInt32, Sendable {
     case userRequest = 0
     case appExit = 1
     case error = 2
+}
+
+public enum HostSleepRecoveryOperation: String, Equatable, Sendable {
+    case beginSleep
+    case finishSleep
+    case resumeAfterWake
+}
+
+public enum HostSleepRecoveryFailure: Equatable, Sendable {
+    case invalidEpoch
+    case staleEpoch
+    case invalidState
+    case unsupported
+    case internalFailure
+    case unknown
 }
 
 /// Canonical self-hosted RustDesk server configuration. The public key is
@@ -1572,6 +1602,58 @@ public final class HostControlClient: @unchecked Sendable {
         }
         host = handle
         stopped = false
+    }
+
+    /// Withdraws registration for one strictly increasing sleep epoch. A
+    /// successful return only means Rust accepted the signal; callers must
+    /// still call `finishSleep(epoch:)` before treating the Host as suspended.
+    public func beginSleep(epoch: UInt64) throws {
+        try performSleepRecovery(.beginSleep, epoch: epoch)
+    }
+
+    /// Joins the withdrawn registration runtime and waits for the Rust-owned
+    /// sleep assertion drop acknowledgement for the exact accepted epoch.
+    public func finishSleep(epoch: UInt64) throws {
+        try performSleepRecovery(.finishSleep, epoch: epoch)
+    }
+
+    /// Restarts registration for the exact suspended epoch. Acceptance is
+    /// pending only; readiness must converge through a later authoritative
+    /// snapshot with the same epoch, `running`, and registration `ready`.
+    public func resumeAfterWake(epoch: UInt64) throws {
+        try performSleepRecovery(.resumeAfterWake, epoch: epoch)
+    }
+
+    private func performSleepRecovery(
+        _ operation: HostSleepRecoveryOperation,
+        epoch: UInt64
+    ) throws {
+        guard epoch > 0 else {
+            throw HostControlError.sleepRecovery(
+                operation,
+                Int32(RDN_HOST_ERR_INVALID_ARG)
+            )
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        guard let handle = host else {
+            throw HostControlError.sleepRecovery(
+                operation,
+                Int32(RDN_HOST_ERR_BAD_STATE)
+            )
+        }
+        let result: Int32
+        switch operation {
+        case .beginSleep:
+            result = rdn_shim_host_begin_sleep(library, handle, epoch)
+        case .finishSleep:
+            result = rdn_shim_host_finish_sleep(library, handle, epoch)
+        case .resumeAfterWake:
+            result = rdn_shim_host_resume_after_wake(library, handle, epoch)
+        }
+        guard result == Int32(RDN_HOST_OK) else {
+            throw HostControlError.sleepRecovery(operation, result)
+        }
     }
 
     /// Sends a versioned command envelope (§8.4). `payload` entries are merged
