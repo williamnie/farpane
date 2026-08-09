@@ -566,6 +566,9 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(ownerSource.contains(
             "HostAgentMediaControlDeliveryGate()"
         ))
+        XCTAssertTrue(ownerSource.contains(
+            "HostMediaPipelineRecoveryOwner("
+        ))
         XCTAssertTrue(ownerSource.contains("controlDeliveryGate.submit(control)"))
         XCTAssertTrue(ownerSource.contains("controlDeliveryGate.activate"))
         XCTAssertTrue(ownerSource.contains("controlDeliveryGate.cancelAndWait()"))
@@ -583,10 +586,13 @@ final class CoreBridgeContractTests: XCTestCase {
         let mediaControlCancel = try XCTUnwrap(
             ownerSource.range(of: "controlDeliveryGate.cancelAndWait()")
         )
-        let mediaRouteCancel = try XCTUnwrap(
-            ownerSource.range(of: "routeOwner.cancelAndWait()")
+        let mediaRecoveryCancel = try XCTUnwrap(
+            ownerSource.range(of: "recoveryOwner.cancelAndWait()")
         )
-        XCTAssertLessThan(mediaControlCancel.lowerBound, mediaRouteCancel.lowerBound)
+        XCTAssertLessThan(
+            mediaControlCancel.lowerBound,
+            mediaRecoveryCancel.lowerBound
+        )
         XCTAssertFalse(ownerSource.contains(
             "guard case .active = state else {\n            condition.unlock()\n            return\n        }\n        condition.unlock()\n\n        switch control.command"
         ))
@@ -615,10 +621,12 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(ownerSource.contains("lifetime.submit(accessUnit:"))
         XCTAssertTrue(ownerSource.contains("lifetime.reportEncoderState("))
         XCTAssertTrue(ownerSource.contains("framing: .avcc"))
-        XCTAssertTrue(ownerSource.contains("routeOwner.reconfigure("))
-        XCTAssertTrue(ownerSource.contains("routeOwner.requestKeyframe("))
-        XCTAssertTrue(ownerSource.contains("routeOwner.stop(route:"))
-        XCTAssertTrue(ownerSource.contains("routeOwner.cancelAndWait()"))
+        XCTAssertTrue(ownerSource.contains("recoveryOwner.reconfigure("))
+        XCTAssertTrue(ownerSource.contains("recoveryOwner.requestKeyframe("))
+        XCTAssertTrue(ownerSource.contains("recoveryOwner.stop(route:"))
+        XCTAssertTrue(ownerSource.contains("recoveryOwner.pauseAndFlushForSleep()"))
+        XCTAssertTrue(ownerSource.contains("recoveryOwner.resumeAfterWake()"))
+        XCTAssertTrue(ownerSource.contains("recoveryOwner.cancelAndWait()"))
         XCTAssertTrue(ownerSource.contains("HostMediaPipelineLiveLogCoordinator()"))
         XCTAssertTrue(ownerSource.contains("lifecycleObserver: liveLogCoordinator.lifecycleObserver"))
         XCTAssertTrue(ownerSource.contains("HostAgentMediaLiveLogPollingOwner("))
@@ -626,14 +634,14 @@ final class CoreBridgeContractTests: XCTestCase {
         let liveLogPollCancel = try XCTUnwrap(ownerSource.range(
             of: "liveLogPollingOwner.cancel()"
         ))
-        let routeCancel = try XCTUnwrap(ownerSource.range(
-            of: "routeOwner.cancelAndWait()"
+        let recoveryCancel = try XCTUnwrap(ownerSource.range(
+            of: "recoveryOwner.cancelAndWait()"
         ))
         let liveLogSeal = try XCTUnwrap(ownerSource.range(
             of: "liveLogCoordinator.cancel()"
         ))
-        XCTAssertLessThan(liveLogPollCancel.lowerBound, routeCancel.lowerBound)
-        XCTAssertLessThan(routeCancel.lowerBound, liveLogSeal.lowerBound)
+        XCTAssertLessThan(liveLogPollCancel.lowerBound, recoveryCancel.lowerBound)
+        XCTAssertLessThan(recoveryCancel.lowerBound, liveLogSeal.lowerBound)
 
         let liveLogPollingURL = repositoryRoot.appendingPathComponent(
             "Sources/RustDeskNative/HostAgentMediaLiveLogPollingOwner.swift"
