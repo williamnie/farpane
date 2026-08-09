@@ -1,5 +1,10 @@
 # H5.1o-b4 network recovery process composition
 
+> Historical checkpoint note: at commit `daaca77` the tracked network audits
+> reported schema 4 for same-lifetime operation and process composition.
+> H5.1o-b5 advances those audits to verify the real NWPathMonitor ingress; the
+> composition evidence below remains unchanged.
+
 ## Outcome
 
 The exact-generation Host ABI v9 network recovery operation now travels through

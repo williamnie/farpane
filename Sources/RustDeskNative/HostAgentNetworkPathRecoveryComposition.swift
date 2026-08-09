@@ -79,11 +79,7 @@ final class HostAgentNetworkPathRecoveryComposition: @unchecked Sendable {
     func consume(
         _ path: HostAgentNetworkPathSnapshot
     ) -> HostAgentNetworkPathRecoveryDisposition {
-        let disposition = triggerOwner.consume(path)
-        if disposition == .rejected {
-            requestTermination()
-        }
-        return disposition
+        triggerOwner.consume(path)
     }
 
     /// Stops new path admissions before draining any accepted restart and

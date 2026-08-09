@@ -9,14 +9,15 @@ enum HostAgentNetworkPathRecoveryProcessState: Equatable, Sendable {
     case cancelled
 }
 
-/// Process-lifetime owner for the network recovery composition. It deliberately
-/// has no system path ingress; the subsequent path adapter will feed normalized
-/// snapshots only through `consume`.
+/// Process-lifetime owner for the recovery composition and its single system
+/// path ingress. Installation and teardown keep both under the same Host
+/// lifetime boundary.
 final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
     private let condition = NSCondition()
     private var state: HostAgentNetworkPathRecoveryProcessState = .idle
     private var cancellationRequested = false
     private var composition: HostAgentNetworkPathRecoveryComposition?
+    private var pathIngress: HostAgentNWPathMonitorIngress?
 
     deinit {
         cancelAndWait()
@@ -49,10 +50,28 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
             expectedHostInstanceID: expectedHostInstanceID,
             snapshotCoordinator: snapshotCoordinator
         )
+        let pathIngress = HostAgentNWPathMonitorIngress.makeProduct(
+            deliverPath: { path in
+                composition.consume(path) != .rejected
+            },
+            onFailure: { [weak lifetime] in
+                _ = lifetime?.requestTermination(reason: .error)
+            }
+        )
+        guard pathIngress.start() else {
+            pathIngress.cancelAndWait()
+            composition.cancelAndWait()
+            condition.lock()
+            state = .cancelled
+            condition.broadcast()
+            condition.unlock()
+            return false
+        }
 
         condition.lock()
         if cancellationRequested {
             condition.unlock()
+            pathIngress.cancelAndWait()
             composition.cancelAndWait()
             condition.lock()
             state = .cancelled
@@ -61,20 +80,11 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
             return false
         }
         self.composition = composition
+        self.pathIngress = pathIngress
         state = .installed
         condition.broadcast()
         condition.unlock()
         return true
-    }
-
-    @discardableResult
-    func consume(
-        _ path: HostAgentNetworkPathSnapshot
-    ) -> HostAgentNetworkPathRecoveryDisposition {
-        guard let composition = installedComposition() else {
-            return .rejected
-        }
-        return composition.consume(path)
     }
 
     func triggerSnapshot() -> HostAgentNetworkPathRecoveryTriggerState? {
@@ -83,6 +93,13 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
 
     func pollingSnapshot() -> HostAgentNetworkPathRecoveryPollingState? {
         installedComposition()?.pollingSnapshot()
+    }
+
+    func pathIngressSnapshot() -> HostAgentNWPathMonitorIngressState? {
+        condition.lock()
+        defer { condition.unlock() }
+        guard state == .installed else { return nil }
+        return pathIngress?.stateSnapshot()
     }
 
     func cancelAndWait() {
@@ -111,10 +128,13 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
             return
         case .installed:
             state = .cancelling
+            let pathIngress = self.pathIngress
             let composition = self.composition
+            self.pathIngress = nil
             self.composition = nil
             condition.unlock()
 
+            pathIngress?.cancelAndWait()
             composition?.cancelAndWait()
 
             condition.lock()
