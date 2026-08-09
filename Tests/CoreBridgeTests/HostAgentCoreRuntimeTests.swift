@@ -188,6 +188,117 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
         )
     }
 
+    func testTypedCommandsUseSameOwnerAndFailAfterStop() throws {
+        let client = RecordingHostAgentCoreClient()
+        let runtime = try HostAgentCoreRuntime.start(
+            client: client,
+            configAppName: "FarPaneHost",
+            configOrganization: "io.rustdesknative",
+            serverConfiguration: serverConfiguration()
+        )
+        let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
+        let cases: [(HostAgentXPCWireCommandName, RecordedOperation)] = [
+            (
+                .approveIncoming,
+                .resolveApproval(
+                    "host-agent-test:connection-1",
+                    .approve,
+                    "command-0"
+                )
+            ),
+            (
+                .rejectIncoming,
+                .resolveApproval(
+                    "host-agent-test:connection-1",
+                    .reject,
+                    "command-1"
+                )
+            ),
+            (
+                .disableInputForActiveSession,
+                .disableCapability(
+                    "host-agent-test:connection-1",
+                    .keyboardAndMouse,
+                    "command-2"
+                )
+            ),
+            (
+                .disableClipboardForActiveSession,
+                .disableCapability(
+                    "host-agent-test:connection-1",
+                    .clipboard,
+                    "command-3"
+                )
+            ),
+            (
+                .disableAudioForActiveSession,
+                .disableCapability(
+                    "host-agent-test:connection-1",
+                    .systemAudio,
+                    "command-4"
+                )
+            ),
+            (
+                .disconnectSession,
+                .disconnectSession(
+                    "host-agent-test:connection-1",
+                    "command-5"
+                )
+            ),
+        ]
+
+        for (index, item) in cases.enumerated() {
+            let request = try HostAgentXPCWireCommandRequest(
+                requestID: [
+                    "287fd5f2-98b7-4183-ac81-6973cef9a610",
+                    "151db9a9-7dd3-4fea-93af-1b6c10840676",
+                    "841733af-919b-4dc2-84bb-7134d0951dc9",
+                    "62113cb8-4d8c-43ec-8e84-a92b77ed2ce7",
+                    "9f28662b-bd6c-47df-890f-48b4f8774557",
+                    "7f8207d1-1ea3-4d90-9efe-bcac72ba1d54",
+                ][index],
+                commandID: "command-\(index)",
+                wireVersion: 1,
+                hostInstanceID: "host-agent-test",
+                agentBootID: bootID,
+                name: item.0,
+                connectionID: "host-agent-test:connection-1",
+                sentAtUnixMilliseconds: 10
+            )
+            try runtime.submit(command: HostAgentCoreCommandSubmission(
+                validatedRequest: request
+            ))
+        }
+        XCTAssertEqual(
+            Array(client.operations.suffix(cases.count)),
+            cases.map(\.1)
+        )
+
+        try runtime.stop(reason: .appExit)
+        let request = try HostAgentXPCWireCommandRequest(
+            requestID: "eaa7431f-5139-42d2-88a2-d6ce72dc9f47",
+            commandID: "command-after-stop",
+            wireVersion: 1,
+            hostInstanceID: "host-agent-test",
+            agentBootID: bootID,
+            name: .disconnectSession,
+            connectionID: "host-agent-test:connection-1",
+            sentAtUnixMilliseconds: 11
+        )
+        XCTAssertThrowsError(try runtime.submit(
+            command: HostAgentCoreCommandSubmission(validatedRequest: request)
+        )) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertEqual(
+            client.operations.filter {
+                if case .disconnectSession = $0 { return true }
+                return false
+            }.count,
+            1
+        )
+    }
+
     private func serverConfiguration() -> HostServerConfiguration {
         HostServerConfiguration(
             rendezvousServer: "one.example.invalid:21116",
@@ -209,6 +320,13 @@ private enum RecordedOperation: Equatable {
     case setMediaCapabilities(String, Bool, Bool, UInt32, UInt32, UInt32)
     case submitMedia(String, UInt64, UInt64, UInt64, UInt64, UInt64, Int)
     case reportEncoderState(String, UInt64, UInt64, String)
+    case resolveApproval(String, HostApprovalDecision, String)
+    case disableCapability(
+        String,
+        HostSessionRevocableCapability,
+        String
+    )
+    case disconnectSession(String, String)
     case stop(HostStopReason)
 }
 
@@ -313,5 +431,36 @@ private final class RecordingHostAgentCoreClient: HostAgentCoreControlSurface {
             codecEpoch,
             encoderID
         ))
+    }
+
+    func resolvePendingApproval(
+        connectionID: String,
+        decision: HostApprovalDecision,
+        commandId: String
+    ) throws {
+        operations.append(.resolveApproval(
+            connectionID,
+            decision,
+            commandId
+        ))
+    }
+
+    func disableActiveSessionCapability(
+        _ capability: HostSessionRevocableCapability,
+        connectionID: String,
+        commandId: String
+    ) throws {
+        operations.append(.disableCapability(
+            connectionID,
+            capability,
+            commandId
+        ))
+    }
+
+    func disconnectSession(
+        connectionID: String,
+        commandId: String
+    ) throws {
+        operations.append(.disconnectSession(connectionID, commandId))
     }
 }

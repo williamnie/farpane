@@ -200,6 +200,41 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         )
     }
 
+    func testTypedCommandStaysWithinOwnedRuntimeLifetime() throws {
+        let recorder = HostAgentLifecycleRecorder()
+        let client = OwnedRuntimeRecordingClient(recorder: recorder)
+        let runtime = try HostAgentOwnedCoreRuntime.start(
+            bootstrapOwner: HostAgentTestBootstrapOwner(recorder: recorder)
+        ) { _ in
+            recorder.append(.runtimeFactory)
+            return try self.startCore(client: client)
+        }
+        let request = try HostAgentXPCWireCommandRequest(
+            requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
+            commandID: "command-1",
+            wireVersion: 1,
+            hostInstanceID: "owned-runtime-host",
+            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
+            name: .disconnectSession,
+            connectionID: "owned-runtime-host:connection-1",
+            sentAtUnixMilliseconds: 10
+        )
+        let command = HostAgentCoreCommandSubmission(
+            validatedRequest: request
+        )
+
+        try runtime.submit(command: command)
+        XCTAssertEqual(recorder.events.last, .coreCommand)
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(try runtime.submit(command: command)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+        XCTAssertEqual(
+            recorder.events.filter { $0 == .coreCommand }.count,
+            1
+        )
+    }
+
     private func startCore(
         client: OwnedRuntimeRecordingClient
     ) throws -> HostAgentCoreRuntime {
@@ -224,6 +259,7 @@ private enum HostAgentLifecycleEvent: Equatable {
     case coreSetMediaCapabilities
     case coreSubmitMedia
     case coreReportEncoderState
+    case coreCommand
     case coreStop(HostStopReason)
     case bootstrapReleased
 }
@@ -330,5 +366,28 @@ private final class OwnedRuntimeRecordingClient: HostAgentCoreControlSurface {
         encoderID: String
     ) throws {
         recorder.append(.coreReportEncoderState)
+    }
+
+    func resolvePendingApproval(
+        connectionID: String,
+        decision: HostApprovalDecision,
+        commandId: String
+    ) throws {
+        recorder.append(.coreCommand)
+    }
+
+    func disableActiveSessionCapability(
+        _ capability: HostSessionRevocableCapability,
+        connectionID: String,
+        commandId: String
+    ) throws {
+        recorder.append(.coreCommand)
+    }
+
+    func disconnectSession(
+        connectionID: String,
+        commandId: String
+    ) throws {
+        recorder.append(.coreCommand)
     }
 }

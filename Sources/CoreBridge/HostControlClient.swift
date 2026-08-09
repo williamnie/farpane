@@ -145,7 +145,7 @@ public enum HostApprovalDecisionFailure: Equatable, Sendable {
     case expired
 }
 
-public enum HostApprovalDecision: Sendable {
+public enum HostApprovalDecision: Equatable, Sendable {
     case approve
     case reject
 
