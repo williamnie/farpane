@@ -53,6 +53,17 @@ def main() -> int:
         "display_audit": (
             repository / "Scripts/audit-host-display-reconfigure-contract.py"
         ),
+        "display_provenance_audit": (
+            repository / "Scripts/audit-host-display-recovery-provenance.py"
+        ),
+        "display_evidence_owner": (
+            repository
+            / "Sources/VideoPipeline/HostDisplayReconfigureEvidenceOwner.swift"
+        ),
+        "media_owner": (
+            repository
+            / "Sources/RustDeskNative/HostAgentMediaPipelineOwner.swift"
+        ),
         "host_snapshot": repository / "Sources/CoreBridge/HostControlClient.swift",
         "recovery_writer": (
             repository
@@ -86,6 +97,9 @@ def main() -> int:
     network_composition = sources["network_composition"]
     network_poller = sources["network_poller"]
     display_audit = sources["display_audit"]
+    display_provenance_audit = sources["display_provenance_audit"]
+    display_evidence_owner = sources["display_evidence_owner"]
+    media_owner = sources["media_owner"]
     host_snapshot = sources["host_snapshot"]
     recovery_writer = sources["recovery_writer"]
     recovery_process_owner = sources["recovery_process_owner"]
@@ -137,13 +151,20 @@ def main() -> int:
                 "return .converged",
             )
         ),
-        "displayRecoveryHasPinnedAuthorityAndFreshRouteIdentity": all(
+        "displayRecoveryHasPinnedAuthorityAndTypedFreshRouteIdentity": all(
             marker in display_audit
             for marker in (
                 '"authoritativeOwner": "pinned RustDesk monitor video service"',
                 '"rebuildTrigger": "display-info inequality -> SWITCH"',
-                '"replacementFreshness": "new connectionEpoch and codecEpoch"',
+                '"new connectionEpoch and codecEpoch; exact-next displayRevision "',
                 '"realDisplayReconfigureStillRequiresInstalledMacAcceptance": True',
+            )
+        ) and all(
+            marker in display_provenance_audit
+            for marker in (
+                '"status": "display-callback-implemented"',
+                '"acceptedEventType": "mediaDisplayReconfigureStarted"',
+                '"mustMatchAcceptedMarkerExactly": True',
             )
         ),
         "runtimeStateDoesNotExposeRecoveryCorrelation": (
@@ -201,7 +222,7 @@ def main() -> int:
                     "status = .unavailable",
                     "writer = nil",
                     "while configurationInFlight || sleepWakeAcceptanceInFlight",
-                    "|| recordInFlight",
+                    "|| displayReconfigureAcceptanceInFlight || recordInFlight",
                 )
             )
             and all(
@@ -289,7 +310,45 @@ def main() -> int:
             and "guard pathGeneration > 0 else" in recovery_process_owner
             and host_process.count(
                 "recoveryEvidenceOwner: recoveryEvidenceOwner"
-            ) == 2
+            ) == 3
+        ),
+        "displayReconfigureTransitionCallbackConnected": (
+            all(
+                marker in display_evidence_owner
+                for marker in (
+                    "acceptDisplayReconfigure(",
+                    "observeStart(",
+                    "observeReconfigure(",
+                    "recordDisplayReconfigureCompleted(",
+                    "discardDisplayReconfigure(",
+                    "pollingOwner.cancelAndWait()",
+                )
+            )
+            and all(
+                marker in media_owner
+                for marker in (
+                    'case "mediaDisplayReconfigureStarted":',
+                    "displayEvidenceOwner.accept(",
+                    "displayEvidenceOwner.observeStart(",
+                    "displayEvidenceOwner.observeReconfigure(",
+                    "snapshot.pendingOperationCount == 0",
+                    "snapshot.desiredRoute == route",
+                    "snapshot.activeRoute == route",
+                )
+            )
+            and all(
+                marker in recovery_process_owner
+                for marker in (
+                    "pendingDisplayReconfigureAcceptance",
+                    "acceptDisplayReconfigure(",
+                    "recordDisplayReconfigureCompleted(",
+                    "replacementDisplayRevision == previousDisplayRevision + 1",
+                    "replacementConnectionEpoch > previousConnectionEpoch",
+                    "replacementCodecEpoch > previousCodecEpoch",
+                )
+            )
+            and host_process.find("mediaPipelineOwner.cancelAndWait()")
+            < host_process.find("recoveryEvidenceOwner.cancelAndWait()")
         ),
     }
     missing = [name for name, present in evidence.items() if not present]
@@ -342,6 +401,12 @@ def main() -> int:
         "networkEvidenceCompletion": line_number(
             network_poller,
             "recoveryCompleted(pathGeneration, recoveryEpoch)",
+        ),
+        "displayEvidenceAcceptance": line_number(
+            display_evidence_owner, "acceptDisplayReconfigure("
+        ),
+        "displayEvidenceCompletion": line_number(
+            display_evidence_owner, "recordDisplayReconfigureCompleted("
         ),
     }
 
@@ -407,7 +472,6 @@ def main() -> int:
     }
 
     remaining_boundary = {
-        "displayTransitionCallbackRemainsOpen": True,
         "recoveryManifestValidatorStillRequiresImplementation": True,
         "allThreeTransitionsRequireInstalledMacExecution": True,
         "eachRecoveryRequiresFreshTenMinuteScenarioThreeRun": True,
@@ -418,7 +482,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "network-callback-implemented"
+            "display-callback-implemented"
             if not missing
             else "contract-drift"
         ),

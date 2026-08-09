@@ -33,6 +33,7 @@ struct HostAgentMediaPipelineSnapshot: Sendable {
     let controlIngress: HostAgentMediaControlDeliverySnapshot
     let recovery: HostMediaPipelineRecoverySnapshot
     let recoveryPolling: HostMediaPipelineRecoveryPollingState
+    let displayRecoveryEvidence: HostDisplayReconfigureEvidenceState
     let routeOwner: HostMediaPipelineRouteOwnerSnapshot
     let liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
 }
@@ -61,12 +62,15 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private let routeOwner: HostMediaPipelineRouteOwner
     private let recoveryOwner: HostMediaPipelineRecoveryOwner
     private let recoveryPollingOwner: HostMediaPipelineRecoveryPollingOwner
+    private let displayEvidenceOwner: HostDisplayReconfigureEvidenceOwner
     private var state: State = .idle
     private var capabilityTask: Task<Void, Never>?
     private var capabilityInFlight = false
     private var diagnosticsInFlight = 0
 
-    init() {
+    init(
+        recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner
+    ) {
         let runtimeBinding = HostAgentMediaRuntimeBinding()
         let status = HostAgentMediaPipelineStatus()
         let liveLogCoordinator = HostMediaPipelineLiveLogCoordinator()
@@ -102,6 +106,19 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
                     recoveryOwner.pollRecoveryConvergence()
                 }
             )
+        self.displayEvidenceOwner = HostDisplayReconfigureEvidenceOwner(
+            evidenceOwner: recoveryEvidenceOwner,
+            routePoll: { [routeOwner] route in
+                let snapshot = routeOwner.snapshot()
+                guard snapshot.pendingOperationCount == 0 else {
+                    return .pending
+                }
+                guard snapshot.desiredRoute == route,
+                      snapshot.activeRoute == route
+                else { return .failed }
+                return .converged
+            }
+        )
     }
 
     deinit {
@@ -176,13 +193,33 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             // H4.1u has already recorded the pending route. Rust follows this
             // with the exact reconfigure that contains the encoder contract.
             guard recoveryOwner.acceptStartCapture() else {
+                _ = displayEvidenceOwner.observeStart(
+                    Self.displayEvidenceStart(from: control)
+                )
                 status.recordControlRejection()
                 return
             }
+            _ = displayEvidenceOwner.observeStart(
+                Self.displayEvidenceStart(from: control)
+            )
         case .reconfigure:
-            guard let route = Self.route(from: control),
-                  recoveryOwner.reconfigure(route)
-            else {
+            guard let route = Self.route(from: control) else {
+                _ = displayEvidenceOwner.observeReconfigure(
+                    nil,
+                    routeAccepted: false
+                )
+                status.recordControlRejection()
+                return
+            }
+            let accepted = recoveryOwner.reconfigure(route)
+            _ = displayEvidenceOwner.observeReconfigure(
+                Self.displayEvidenceCandidate(
+                    from: control,
+                    replacementRoute: route.identity
+                ),
+                routeAccepted: accepted
+            )
+            guard accepted else {
                 status.recordControlRejection()
                 return
             }
@@ -250,6 +287,22 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         }
 
         switch event.eventType {
+        case "mediaDisplayReconfigureStarted":
+            guard let started = event.displayReconfigureStarted else {
+                status.recordDiagnosticRejection()
+                return
+            }
+            _ = displayEvidenceOwner.accept(
+                HostDisplayReconfigureEvidenceMarker(
+                    generation: started.generation,
+                    displayID: started.displayID,
+                    previousDisplayRevision:
+                        started.previousDisplayRevision,
+                    previousConnectionEpoch:
+                        started.previousConnectionEpoch,
+                    previousCodecEpoch: started.previousCodecEpoch
+                )
+            )
         case "mediaDiagnostic":
             guard let diagnostic = event.mediaDiagnostic else {
                 status.recordDiagnosticRejection()
@@ -300,6 +353,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             controlIngress: controlDeliveryGate.snapshot(),
             recovery: recoveryOwner.snapshot(),
             recoveryPolling: recoveryPollingOwner.stateSnapshot(),
+            displayRecoveryEvidence: displayEvidenceOwner.snapshot(),
             routeOwner: routeOwner.snapshot(),
             liveLog: liveLogCoordinator.snapshot()
         )
@@ -331,6 +385,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         }
 
         controlDeliveryGate.cancelAndWait()
+        displayEvidenceOwner.cancelAndWait()
         recoveryPollingOwner.cancelAndWait()
         liveLogPollingOwner.cancel()
         recoveryOwner.cancelAndWait()
@@ -564,6 +619,47 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
                 framesPerSecond: Int(framesPerSecond),
                 bitRate: bitRate
             )
+        )
+    }
+
+    private static func displayEvidenceMarker(
+        from control: HostMediaControl
+    ) -> HostDisplayReconfigureEvidenceMarker? {
+        guard let provenance = control.displayReconfigure else { return nil }
+        return HostDisplayReconfigureEvidenceMarker(
+            generation: provenance.generation,
+            displayID: control.displayID,
+            previousDisplayRevision: provenance.previousDisplayRevision,
+            previousConnectionEpoch: provenance.previousConnectionEpoch,
+            previousCodecEpoch: provenance.previousCodecEpoch
+        )
+    }
+
+    private static func displayEvidenceStart(
+        from control: HostMediaControl
+    ) -> HostDisplayReconfigureEvidenceStart? {
+        guard let marker = displayEvidenceMarker(from: control) else {
+            return nil
+        }
+        return HostDisplayReconfigureEvidenceStart(
+            marker: marker,
+            connectionEpoch: control.connectionEpoch,
+            codecEpoch: control.codecEpoch,
+            displayID: control.displayID,
+            displayRevision: control.displayRevision
+        )
+    }
+
+    private static func displayEvidenceCandidate(
+        from control: HostMediaControl,
+        replacementRoute: HostMediaPipelineRouteIdentity
+    ) -> HostDisplayReconfigureEvidenceCandidate? {
+        guard let marker = displayEvidenceMarker(from: control) else {
+            return nil
+        }
+        return HostDisplayReconfigureEvidenceCandidate(
+            marker: marker,
+            replacementRoute: replacementRoute
         )
     }
 
@@ -819,6 +915,7 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
         controlIngress: HostAgentMediaControlDeliverySnapshot,
         recovery: HostMediaPipelineRecoverySnapshot,
         recoveryPolling: HostMediaPipelineRecoveryPollingState,
+        displayRecoveryEvidence: HostDisplayReconfigureEvidenceState,
         routeOwner: HostMediaPipelineRouteOwnerSnapshot,
         liveLog: HostMediaPipelineLiveLogCoordinatorSnapshot
     ) -> HostAgentMediaPipelineSnapshot {
@@ -839,6 +936,7 @@ private final class HostAgentMediaPipelineStatus: @unchecked Sendable {
             controlIngress: controlIngress,
             recovery: recovery,
             recoveryPolling: recoveryPolling,
+            displayRecoveryEvidence: displayRecoveryEvidence,
             routeOwner: routeOwner,
             liveLog: liveLog
         )

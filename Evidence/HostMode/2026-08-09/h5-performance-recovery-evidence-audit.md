@@ -13,8 +13,11 @@ adding the process-lifetime digest/writer authority. H5.3j advances current
 readback to `sleep-wake-callback-implemented`: the exact sleep/wake acceptance
 and successful convergence callback is connected. H5.3k advances current
 readback to `network-callback-implemented`: exact network generation/epoch
-acceptance and convergence are also connected, while display and real runs
-remain open. None of these statuses claims a recovery or performance pass.
+acceptance and convergence are also connected. H5.3m advances current readback
+to `display-callback-implemented`: exact Rust display provenance, replacement
+route convergence, and the display evidence callback are now connected. Real
+installed-Mac transitions and post-recovery runs remain open. None of these
+statuses claims a recovery or performance pass.
 
 The next implementation must create a dedicated sanitized transition record
 for each recovery kind and bind it to one fresh, passed, 600-second `1080p30`
@@ -30,7 +33,9 @@ snapshots are explicitly forbidden as substitutes.
   restart operation and converges against the same recovery epoch and
   `running + ready` snapshot.
 - Display reconfiguration remains owned by the pinned RustDesk monitor video
-  service; a replacement route receives fresh connection and codec epochs.
+  service. Host ABI v12 now preserves an exact marker and previous-route
+  provenance through an exact-next display revision and fresh connection and
+  codec epochs.
 - The sampler accepts a `recovery` label, but the performance validator has no
   recovery scenario contract and the base matrix explicitly leaves section
   15.2 item 7 uncovered.
@@ -67,9 +72,8 @@ snapshots are explicitly forbidden as substitutes.
 
 ## Remaining boundary
 
-- Connect the process-lifetime writer only to exact successful convergence
-  callbacks for display reconfiguration; sleep/wake and network path are now
-  connected by H5.3j/H5.3k.
+- The exact successful convergence callbacks for sleep/wake, network path, and
+  display reconfiguration are connected by H5.3j/H5.3k/H5.3m.
 - Implement the bounded recovery manifest validator and negative fixtures.
 - On an installed Mac, execute all three recovery types and one fresh
   600-second scenario 3 run after each transition.

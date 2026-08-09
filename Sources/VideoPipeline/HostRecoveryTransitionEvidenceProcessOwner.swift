@@ -47,6 +47,16 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
     let acceptedMonotonicNanoseconds: UInt64
   }
 
+  private struct DisplayReconfigureAcceptance {
+    let generation: UInt64
+    let displayID: UInt64
+    let previousDisplayRevision: UInt64
+    let previousConnectionEpoch: UInt64
+    let previousCodecEpoch: UInt64
+    let acceptedAt: Date
+    let acceptedMonotonicNanoseconds: UInt64
+  }
+
   private static let maximumIdentityUTF8Bytes = 512
   private static let scopeDigestDomain =
     "farpane.host-recovery.scope.v1"
@@ -60,8 +70,11 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
   private var writer: HostRecoveryTransitionEvidenceWriter?
   private var pendingSleepWakeAcceptance: SleepWakeAcceptance?
   private var pendingNetworkPathAcceptance: NetworkPathAcceptance?
+  private var pendingDisplayReconfigureAcceptance:
+    DisplayReconfigureAcceptance?
   private var sleepWakeAcceptanceInFlight = false
   private var networkPathAcceptanceInFlight = false
+  private var displayReconfigureAcceptanceInFlight = false
   private var configurationInFlight = false
   private var recordInFlight = false
   private var completedRecords: UInt64 = 0
@@ -355,6 +368,125 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
     )
   }
 
+  /// Captures the exact Rust-authoritative display inventory transition. The
+  /// marker carries only bounded route identity and never display contents.
+  @discardableResult
+  public func acceptDisplayReconfigure(
+    generation: UInt64,
+    displayID: UInt64,
+    previousDisplayRevision: UInt64,
+    previousConnectionEpoch: UInt64,
+    previousCodecEpoch: UInt64
+  ) -> Bool {
+    guard generation > 0,
+          previousDisplayRevision > 0,
+          previousDisplayRevision < UInt64.max,
+          previousConnectionEpoch > 0,
+          previousCodecEpoch > 0
+    else { return false }
+
+    condition.lock()
+    guard status == .active,
+          pendingDisplayReconfigureAcceptance == nil,
+          !displayReconfigureAcceptanceInFlight
+    else {
+      condition.unlock()
+      return false
+    }
+    displayReconfigureAcceptanceInFlight = true
+    condition.unlock()
+
+    let acceptedAt = wallClock()
+    let acceptedMonotonicNanoseconds = monotonicNanoseconds()
+    let clockIsValid = acceptedAt.timeIntervalSinceReferenceDate.isFinite
+      && acceptedMonotonicNanoseconds > 0
+
+    condition.lock()
+    displayReconfigureAcceptanceInFlight = false
+    guard clockIsValid,
+          status == .active,
+          pendingDisplayReconfigureAcceptance == nil
+    else {
+      condition.broadcast()
+      condition.unlock()
+      return false
+    }
+    pendingDisplayReconfigureAcceptance = .init(
+      generation: generation,
+      displayID: displayID,
+      previousDisplayRevision: previousDisplayRevision,
+      previousConnectionEpoch: previousConnectionEpoch,
+      previousCodecEpoch: previousCodecEpoch,
+      acceptedAt: acceptedAt,
+      acceptedMonotonicNanoseconds: acceptedMonotonicNanoseconds
+    )
+    condition.broadcast()
+    condition.unlock()
+    return true
+  }
+
+  /// Persists only the exact accepted marker after the matching replacement
+  /// route has converged in the process-owned route authority.
+  @discardableResult
+  public func recordDisplayReconfigureCompleted(
+    generation: UInt64,
+    displayID: UInt64,
+    previousDisplayRevision: UInt64,
+    replacementDisplayRevision: UInt64,
+    previousConnectionEpoch: UInt64,
+    replacementConnectionEpoch: UInt64,
+    previousCodecEpoch: UInt64,
+    replacementCodecEpoch: UInt64
+  ) -> Bool {
+    condition.lock()
+    guard status == .active,
+          let acceptance = pendingDisplayReconfigureAcceptance,
+          acceptance.generation == generation,
+          acceptance.displayID == displayID,
+          acceptance.previousDisplayRevision == previousDisplayRevision,
+          acceptance.previousConnectionEpoch == previousConnectionEpoch,
+          acceptance.previousCodecEpoch == previousCodecEpoch,
+          replacementDisplayRevision == previousDisplayRevision + 1,
+          replacementConnectionEpoch > previousConnectionEpoch,
+          replacementCodecEpoch > previousCodecEpoch
+    else {
+      condition.unlock()
+      return false
+    }
+    pendingDisplayReconfigureAcceptance = nil
+    condition.unlock()
+
+    let completedAt = wallClock()
+    let completedMonotonicNanoseconds = monotonicNanoseconds()
+    return recordCompleted(
+      correlation: .displayReconfigure(
+        previousDisplayRevision: previousDisplayRevision,
+        replacementDisplayRevision: replacementDisplayRevision,
+        previousConnectionEpoch: previousConnectionEpoch,
+        replacementConnectionEpoch: replacementConnectionEpoch,
+        previousCodecEpoch: previousCodecEpoch,
+        replacementCodecEpoch: replacementCodecEpoch
+      ),
+      acceptedAt: acceptance.acceptedAt,
+      completedAt: completedAt,
+      acceptedMonotonicNanoseconds:
+        acceptance.acceptedMonotonicNanoseconds,
+      completedMonotonicNanoseconds: completedMonotonicNanoseconds
+    )
+  }
+
+  /// Drops one exact failed or timed-out marker without creating evidence.
+  @discardableResult
+  public func discardDisplayReconfigure(generation: UInt64) -> Bool {
+    condition.lock()
+    defer { condition.unlock() }
+    guard status == .active,
+          pendingDisplayReconfigureAcceptance?.generation == generation
+    else { return false }
+    pendingDisplayReconfigureAcceptance = nil
+    return true
+  }
+
   /// Terminally closes admission, waits for any accepted configuration/write,
   /// then releases the retained evidence file handle.
   public func cancelAndWait() {
@@ -373,12 +505,14 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
       status = .cancelling
       condition.broadcast()
       while configurationInFlight || sleepWakeAcceptanceInFlight
-        || networkPathAcceptanceInFlight || recordInFlight
+        || networkPathAcceptanceInFlight
+        || displayReconfigureAcceptanceInFlight || recordInFlight
       {
         condition.wait()
       }
       pendingSleepWakeAcceptance = nil
       pendingNetworkPathAcceptance = nil
+      pendingDisplayReconfigureAcceptance = nil
       writer = nil
       status = .cancelled
       condition.broadcast()

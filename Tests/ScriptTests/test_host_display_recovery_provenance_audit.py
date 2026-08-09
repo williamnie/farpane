@@ -28,11 +28,11 @@ class HostDisplayRecoveryProvenanceAuditTests(unittest.TestCase):
             "farpane-host-display-recovery-provenance-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "abi-checkpoint-required")
+        self.assertEqual(document["status"], "display-callback-implemented")
         self.assertEqual(document["missingEvidence"], [])
 
         implementation = document["implementation"]
-        self.assertEqual(implementation["hostControlABI"], 11)
+        self.assertEqual(implementation["hostControlABI"], 12)
         self.assertEqual(implementation["hostEventEnvelopeSchema"], 1)
         self.assertEqual(implementation["hostMediaABI"], 1)
         self.assertTrue(all(implementation["evidence"].values()))

@@ -31,7 +31,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 11;
+const HOST_ABI_VERSION: u32 = 12;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
@@ -427,11 +427,32 @@ struct MediaRoute {
     needs_parameter_sets: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct NativeDisplayReconfigureProvenance {
+    generation: u64,
+    previous_display_revision: u64,
+    previous_connection_epoch: u64,
+    previous_codec_epoch: u64,
+}
+
+impl NativeDisplayReconfigureProvenance {
+    fn payload(self) -> Value {
+        json!({
+            "displayReconfigureGeneration": self.generation,
+            "previousDisplayRevision": self.previous_display_revision,
+            "previousConnectionEpoch": self.previous_connection_epoch,
+            "previousCodecEpoch": self.previous_codec_epoch,
+        })
+    }
+}
+
 #[derive(Default)]
 struct MediaBroker {
     binding: Option<MediaHostBinding>,
     capabilities: MediaCapabilities,
     routes: HashMap<u64, MediaRoute>,
+    display_revisions: HashMap<u64, u64>,
+    pending_display_reconfigures: HashMap<u64, NativeDisplayReconfigureProvenance>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1270,6 +1291,7 @@ pub(crate) struct NativeMediaRoute {
 
 static NEXT_CONNECTION_EPOCH: AtomicU64 = AtomicU64::new(1);
 static NEXT_CODEC_EPOCH: AtomicU64 = AtomicU64::new(1);
+static NEXT_DISPLAY_RECONFIGURE_GENERATION: AtomicU64 = AtomicU64::new(1);
 
 lazy_static::lazy_static! {
     static ref MEDIA_BROKER: Mutex<MediaBroker> = Mutex::new(MediaBroker::default());
@@ -1563,6 +1585,8 @@ fn bind_media_host(host: &RdnHost) {
     reset_native_session_broker("hostRebound");
     let mut broker = MEDIA_BROKER.lock().unwrap();
     broker.routes.clear();
+    broker.display_revisions.clear();
+    broker.pending_display_reconfigures.clear();
     broker.capabilities = MediaCapabilities::default();
     broker.binding = Some(MediaHostBinding {
         instance_id: host.instance_id.clone(),
@@ -1608,6 +1632,8 @@ fn unbind_media_host() {
                 )
             })
             .collect::<Vec<_>>();
+        broker.display_revisions.clear();
+        broker.pending_display_reconfigures.clear();
         broker.capabilities = MediaCapabilities::default();
         (binding, routes)
     };
@@ -1688,7 +1714,6 @@ fn unbind_media_host() {
 
 pub(crate) fn native_media_begin_route(
     display_id: u64,
-    display_revision: u64,
     codec: u32,
     width: u32,
     height: u32,
@@ -1704,7 +1729,7 @@ pub(crate) fn native_media_begin_route(
         .ok_or("native media connection epoch is exhausted")?;
     let codec_epoch = next_native_media_epoch(&NEXT_CODEC_EPOCH)
         .ok_or("native media codec epoch is exhausted")?;
-    let binding = {
+    let (binding, display_revision, display_reconfigure) = {
         let mut broker = MEDIA_BROKER.lock().unwrap();
         let binding = broker
             .binding
@@ -1727,6 +1752,15 @@ pub(crate) fn native_media_begin_route(
         {
             return Err("display requirements exceed native adapter capabilities");
         }
+        let display_reconfigure = broker.pending_display_reconfigures.remove(&display_id);
+        let display_revision = match display_reconfigure {
+            Some(provenance) => provenance
+                .previous_display_revision
+                .checked_add(1)
+                .ok_or("native media display revision is exhausted")?,
+            None => broker.display_revisions.get(&display_id).copied().unwrap_or(1),
+        };
+        broker.display_revisions.insert(display_id, display_revision);
         broker.routes.insert(
             display_id,
             MediaRoute {
@@ -1743,40 +1777,38 @@ pub(crate) fn native_media_begin_route(
                 needs_parameter_sets: true,
             },
         );
-        binding
+        (binding, display_revision, display_reconfigure)
     };
     let codec_name = if codec == MEDIA_CODEC_H264 {
         "h264"
     } else {
         "h265"
     };
-    emit_bound_event(
-        &binding,
-        "mediaControl",
-        json!({
-            "command": "startCapture",
-            "connectionEpoch": connection_epoch,
-            "codecEpoch": codec_epoch,
-            "displayId": display_id,
-            "displayRevision": display_revision,
-        }),
-    );
-    emit_bound_event(
-        &binding,
-        "mediaControl",
-        json!({
-            "command": "reconfigure",
-            "connectionEpoch": connection_epoch,
-            "codecEpoch": codec_epoch,
-            "displayId": display_id,
-            "displayRevision": display_revision,
-            "codec": codec_name,
-            "width": width,
-            "height": height,
-            "fps": fps,
-            "bitrate": bitrate,
-        }),
-    );
+    let mut start_payload = json!({
+        "command": "startCapture",
+        "connectionEpoch": connection_epoch,
+        "codecEpoch": codec_epoch,
+        "displayId": display_id,
+        "displayRevision": display_revision,
+    });
+    let mut reconfigure_payload = json!({
+        "command": "reconfigure",
+        "connectionEpoch": connection_epoch,
+        "codecEpoch": codec_epoch,
+        "displayId": display_id,
+        "displayRevision": display_revision,
+        "codec": codec_name,
+        "width": width,
+        "height": height,
+        "fps": fps,
+        "bitrate": bitrate,
+    });
+    if let Some(provenance) = display_reconfigure {
+        start_payload["displayReconfigure"] = provenance.payload();
+        reconfigure_payload["displayReconfigure"] = provenance.payload();
+    }
+    emit_bound_event(&binding, "mediaControl", start_payload);
+    emit_bound_event(&binding, "mediaControl", reconfigure_payload);
     Ok(NativeMediaRoute {
         connection_epoch,
         codec_epoch,
@@ -1789,6 +1821,60 @@ pub(crate) fn native_media_begin_route(
         network_telemetry,
         transport_telemetry,
     })
+}
+
+/// Marks only the exact active monitor route whose pinned display inventory
+/// comparison observed a change. The next replacement route consumes this
+/// marker; codec/subscriber/service retries never synthesize one.
+pub(crate) fn native_media_mark_display_reconfigure(
+    route: &NativeMediaRoute,
+) -> Result<(), &'static str> {
+    let (binding, provenance) = {
+        let mut broker = MEDIA_BROKER.lock().unwrap();
+        let current = broker
+            .routes
+            .get(&route.display_id)
+            .ok_or("native media display route is unavailable")?;
+        if current.connection_epoch != route.connection_epoch
+            || current.codec_epoch != route.codec_epoch
+            || current.display_revision != route.display_revision
+        {
+            return Err("native media display route is stale");
+        }
+        if route.display_revision == u64::MAX
+            || broker.pending_display_reconfigures.contains_key(&route.display_id)
+        {
+            return Err("native media display reconfigure is unavailable");
+        }
+        let generation = next_native_media_epoch(&NEXT_DISPLAY_RECONFIGURE_GENERATION)
+            .ok_or("native display reconfigure generation is exhausted")?;
+        let binding = broker
+            .binding
+            .clone()
+            .ok_or("native host media is not bound")?;
+        let provenance = NativeDisplayReconfigureProvenance {
+            generation,
+            previous_display_revision: route.display_revision,
+            previous_connection_epoch: route.connection_epoch,
+            previous_codec_epoch: route.codec_epoch,
+        };
+        broker
+            .pending_display_reconfigures
+            .insert(route.display_id, provenance);
+        (binding, provenance)
+    };
+    emit_bound_event(
+        &binding,
+        "mediaDisplayReconfigureStarted",
+        json!({
+            "displayReconfigureGeneration": provenance.generation,
+            "displayId": route.display_id,
+            "previousDisplayRevision": provenance.previous_display_revision,
+            "previousConnectionEpoch": provenance.previous_connection_epoch,
+            "previousCodecEpoch": provenance.previous_codec_epoch,
+        }),
+    );
+    Ok(())
 }
 
 fn next_native_media_epoch(counter: &AtomicU64) -> Option<u64> {
@@ -5387,7 +5473,7 @@ mod tests {
                 max_fps: 60,
             };
         }
-        let route = native_media_begin_route(0, 1, MEDIA_CODEC_H264, 1_920, 1_080, 30, 4_000_000)
+        let route = native_media_begin_route(0, MEDIA_CODEC_H264, 1_920, 1_080, 30, 4_000_000)
             .expect("test route should use the production bounded queue");
         let instance_id = CString::new(host.instance_id.clone()).unwrap();
 
@@ -5609,7 +5695,7 @@ mod tests {
                 max_fps: 60,
             };
         }
-        let route = native_media_begin_route(0, 3, MEDIA_CODEC_H264, 1_920, 1_080, 30, 4_000_000)
+        let route = native_media_begin_route(0, MEDIA_CODEC_H264, 1_920, 1_080, 30, 4_000_000)
             .expect("test route");
         let instance_id = CString::new(host.instance_id.clone()).unwrap();
         assert_eq!(
@@ -5654,5 +5740,125 @@ mod tests {
         assert_eq!(tail[7]["payload"]["relaySubscribers"], 1);
         assert_eq!(tail[8]["eventType"], "mediaControl");
         assert_eq!(tail[8]["payload"]["command"], "stopCapture");
+    }
+
+    #[test]
+    fn display_reconfigure_provenance_is_exact_and_consumed_once() {
+        let _serial = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        let events = Mutex::new(Vec::<Value>::new());
+        let mut host = ready_test_host("display-provenance-host");
+        host.callbacks.on_event = Some(collect_test_event);
+        host.callbacks.context = &events as *const _ as *mut c_void;
+        bind_media_host(&host);
+        let _bound = BoundMediaTestGuard;
+        {
+            let mut broker = MEDIA_BROKER.lock().unwrap();
+            broker.capabilities = MediaCapabilities {
+                h264_hardware: true,
+                h265_hardware: false,
+                max_width: 1_920,
+                max_height: 1_080,
+                max_fps: 60,
+            };
+        }
+
+        let previous = native_media_begin_route(
+            0,
+            MEDIA_CODEC_H264,
+            1_920,
+            1_080,
+            30,
+            4_000_000,
+        )
+        .expect("initial route");
+        assert_eq!(previous.display_revision, 1);
+        native_media_mark_display_reconfigure(&previous).expect("display marker");
+        assert!(native_media_mark_display_reconfigure(&previous).is_err());
+        native_media_end_route(&previous);
+
+        let replacement = native_media_begin_route(
+            0,
+            MEDIA_CODEC_H264,
+            1_280,
+            720,
+            30,
+            3_000_000,
+        )
+        .expect("display replacement route");
+        assert_eq!(replacement.display_revision, 2);
+        assert!(replacement.connection_epoch > previous.connection_epoch);
+        assert!(replacement.codec_epoch > previous.codec_epoch);
+
+        native_media_end_route(&replacement);
+        let generic_retry = native_media_begin_route(
+            0,
+            MEDIA_CODEC_H264,
+            1_280,
+            720,
+            30,
+            3_000_000,
+        )
+        .expect("generic retry route");
+        assert_eq!(generic_retry.display_revision, 2);
+
+        let events = events.lock().unwrap();
+        let started = events
+            .iter()
+            .filter(|event| event["eventType"] == "mediaDisplayReconfigureStarted")
+            .collect::<Vec<_>>();
+        assert_eq!(started.len(), 1);
+        let marker = &started[0]["payload"];
+        assert_eq!(marker["displayId"], 0);
+        assert_eq!(marker["previousDisplayRevision"], 1);
+        assert_eq!(marker["previousConnectionEpoch"], previous.connection_epoch);
+        assert_eq!(marker["previousCodecEpoch"], previous.codec_epoch);
+        assert!(marker["displayReconfigureGeneration"].as_u64().unwrap() > 0);
+
+        let replacement_controls = events
+            .iter()
+            .filter(|event| {
+                event["eventType"] == "mediaControl"
+                    && event["payload"]["connectionEpoch"]
+                        == replacement.connection_epoch
+                    && matches!(
+                        event["payload"]["command"].as_str(),
+                        Some("startCapture" | "reconfigure")
+                    )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(replacement_controls.len(), 2);
+        for control in replacement_controls {
+            assert_eq!(control["payload"]["displayRevision"], 2);
+            assert_eq!(
+                control["payload"]["displayReconfigure"]
+                    ["displayReconfigureGeneration"],
+                marker["displayReconfigureGeneration"]
+            );
+            assert_eq!(
+                control["payload"]["displayReconfigure"]["previousDisplayRevision"],
+                1
+            );
+            assert_eq!(
+                control["payload"]["displayReconfigure"]["previousConnectionEpoch"],
+                previous.connection_epoch
+            );
+            assert_eq!(
+                control["payload"]["displayReconfigure"]["previousCodecEpoch"],
+                previous.codec_epoch
+            );
+        }
+
+        let generic_controls = events
+            .iter()
+            .filter(|event| {
+                event["eventType"] == "mediaControl"
+                    && event["payload"]["connectionEpoch"]
+                        == generic_retry.connection_epoch
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(generic_controls.len(), 2);
+        assert!(generic_controls.iter().all(|event| {
+            event["payload"].get("displayReconfigure").is_none()
+        }));
     }
 }
