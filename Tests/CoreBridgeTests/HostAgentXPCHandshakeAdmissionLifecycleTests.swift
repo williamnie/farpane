@@ -61,7 +61,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         XCTAssertEqual(recorder.resumeCount, 1)
         XCTAssertEqual(
             recorder.interfaceProtocolName,
-            "RDNHostAgentXPCEventService"
+            "RDNHostAgentXPCCommandService"
         )
         XCTAssertNil(try recorder.performValidSnapshot())
         let response = try recorder.performValidHandshake()
@@ -75,6 +75,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
             try recorder.performValidEvents(afterEventID: 7)?.outcome,
             .upToDate
         )
+        XCTAssertNil(try recorder.performValidCommand())
         XCTAssertEqual(
             shell.snapshot().activeHandshakeConnectionCount,
             1
@@ -458,6 +459,25 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
             for: try request.encoded()
         ) else { return nil }
         return try HostAgentXPCWireEventCursorResponse.decode(response)
+    }
+
+    func performValidCommand() throws -> Data? {
+        let handler = try XCTUnwrap(locked { configuredHandler })
+        let request = try HostAgentXPCWireCommandRequest(
+            requestID: "62113cb8-4d8c-43ec-8e84-a92b77ed2ce7",
+            commandID: "command-1",
+            wireVersion: 1,
+            hostInstanceID: "host-a",
+            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
+            name: .approveIncoming,
+            connectionID: "host-a:connection-1",
+            sentAtUnixMilliseconds: 13
+        )
+        var response: Data?
+        handler.submitCommand(requestData: try request.encoded()) {
+            response = $0
+        }
+        return response
     }
 
     private func locked<T>(_ body: () -> T) -> T {

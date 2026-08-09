@@ -11,6 +11,7 @@ package enum HostAgentXPCSnapshotSessionState: Equatable, Sendable {
     )
     case snapshotReady(wireVersion: UInt64, afterEventID: UInt64)
     case fetchingEvents(wireVersion: UInt64, afterEventID: UInt64)
+    case submittingCommand(wireVersion: UInt64, afterEventID: UInt64)
     case incompatible
 }
 
@@ -45,43 +46,59 @@ package enum HostAgentXPCSnapshotInterfaceFactory {
         )
     }
 
+    package static var commandSelectorName: String {
+        NSStringFromSelector(
+            #selector(
+                RDNHostAgentXPCCommandService.submitCommand(
+                    requestData:reply:
+                )
+            )
+        )
+    }
+
     package static func makeInterface() -> NSXPCInterface {
-        NSXPCInterface(with: RDNHostAgentXPCEventService.self)
+        NSXPCInterface(with: RDNHostAgentXPCCommandService.self)
     }
 }
 
 /// Per-connection snapshot-first state machine. Event cursor requests stay
 /// bound to the exact successful snapshot cursor on this same connection.
-/// The command surface is not present.
+/// Commands additionally require an injected process-owned service; without
+/// it the selector remains fail closed.
 package final class HostAgentXPCSnapshotSessionHandler:
     NSObject,
-    RDNHostAgentXPCEventService,
+    RDNHostAgentXPCCommandService,
     @unchecked Sendable
 {
     package typealias MonotonicClock = @Sendable () -> UInt64
     package static let minimumSnapshotIntervalMilliseconds: UInt64 = 100
     package static let minimumEventIntervalMilliseconds: UInt64 = 100
+    package static let minimumCommandIntervalMilliseconds: UInt64 = 100
 
     private let lock = NSLock()
     private let identity: HostAgentXPCWireAgentIdentity
     private let snapshotState: HostAgentSnapshotState
     private let eventState: HostAgentEventState
+    private let commandService: HostAgentXPCCommandService?
     private let nowUnixMilliseconds: HostAgentXPCHandshakeHandler.Clock
     private let monotonicMilliseconds: MonotonicClock
     private var state: HostAgentXPCSnapshotSessionState = .awaitingHandshake
     private var lastSnapshotAttemptAt: UInt64?
     private var lastEventAttemptAt: UInt64?
+    private var lastCommandAttemptAt: UInt64?
 
     package init(
         identity: HostAgentXPCWireAgentIdentity,
         snapshotState: HostAgentSnapshotState,
         eventState: HostAgentEventState,
+        commandService: HostAgentXPCCommandService?,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
         monotonicMilliseconds: @escaping MonotonicClock
     ) {
         self.identity = identity
         self.snapshotState = snapshotState
         self.eventState = eventState
+        self.commandService = commandService
         self.nowUnixMilliseconds = nowUnixMilliseconds
         self.monotonicMilliseconds = monotonicMilliseconds
     }
@@ -219,6 +236,46 @@ package final class HostAgentXPCSnapshotSessionHandler:
         reply: @escaping (Data?) -> Void
     ) {
         reply(eventResponse(for: requestData))
+    }
+
+    package func submitCommand(
+        requestData: Data,
+        reply: @escaping (Data?) -> Void
+    ) {
+        guard let commandService else {
+            reply(nil)
+            return
+        }
+        let request: HostAgentXPCWireCommandRequest
+        do {
+            request = try HostAgentXPCWireCommandRequest.decode(requestData)
+        } catch {
+            reply(nil)
+            return
+        }
+        guard canAttemptCommand(request: request) else {
+            reply(nil)
+            return
+        }
+        let monotonic = monotonicMilliseconds()
+        guard let reservation = reserveCommandAttempt(
+                request: request,
+                monotonicMilliseconds: monotonic
+              )
+        else {
+            reply(nil)
+            return
+        }
+        guard let prepared = commandService.prepareResponse(for: requestData)
+        else {
+            restoreCommand(reservation)
+            reply(nil)
+            return
+        }
+
+        reply(prepared.data)
+        _ = prepared.performAfterReply()
+        restoreCommand(reservation)
     }
 
     private func finishNegotiation(
@@ -414,6 +471,67 @@ package final class HostAgentXPCSnapshotSessionHandler:
             state = .snapshotReady(
                 wireVersion: request.wireVersion,
                 afterEventID: request.afterEventID
+            )
+        }
+        lock.unlock()
+    }
+
+    private struct CommandReservation: Equatable, Sendable {
+        let wireVersion: UInt64
+        let afterEventID: UInt64
+    }
+
+    private func canAttemptCommand(
+        request: HostAgentXPCWireCommandRequest
+    ) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard case .snapshotReady(let wireVersion, _) = state else {
+            return false
+        }
+        return request.wireVersion == wireVersion
+            && request.hostInstanceID == identity.hostInstanceID
+            && request.agentBootID == identity.agentBootID
+    }
+
+    private func reserveCommandAttempt(
+        request: HostAgentXPCWireCommandRequest,
+        monotonicMilliseconds: UInt64
+    ) -> CommandReservation? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard case .snapshotReady(let wireVersion, let afterEventID) = state,
+              request.wireVersion == wireVersion,
+              request.hostInstanceID == identity.hostInstanceID,
+              request.agentBootID == identity.agentBootID,
+              monotonicMilliseconds > 0
+        else { return nil }
+        if let lastCommandAttemptAt {
+            guard monotonicMilliseconds >= lastCommandAttemptAt,
+                  monotonicMilliseconds - lastCommandAttemptAt
+                    >= Self.minimumCommandIntervalMilliseconds
+            else { return nil }
+        }
+        lastCommandAttemptAt = monotonicMilliseconds
+        state = .submittingCommand(
+            wireVersion: wireVersion,
+            afterEventID: afterEventID
+        )
+        return CommandReservation(
+            wireVersion: wireVersion,
+            afterEventID: afterEventID
+        )
+    }
+
+    private func restoreCommand(_ reservation: CommandReservation) {
+        lock.lock()
+        if state == .submittingCommand(
+            wireVersion: reservation.wireVersion,
+            afterEventID: reservation.afterEventID
+        ) {
+            state = .snapshotReady(
+                wireVersion: reservation.wireVersion,
+                afterEventID: reservation.afterEventID
             )
         }
         lock.unlock()
