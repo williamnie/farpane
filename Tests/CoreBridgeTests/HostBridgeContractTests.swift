@@ -1,5 +1,6 @@
 import CoreBridgeShim
 import Darwin
+@testable import CoreBridge
 import XCTest
 
 // All host ABI functions are resolved through raw-pointer C signatures; the
@@ -617,6 +618,60 @@ final class HostBridgeContractTests: XCTestCase {
 
         XCTAssertEqual(hostStop(host, 0), 0)
         hostDestroy(host)
+
+        // Exercise the exact same lifecycle through the public Swift client.
+        // The raw half above already owns the one process-global config-root
+        // switch, so this client deliberately reuses that isolated namespace.
+        let corePath = try XCTUnwrap(environment["RDN_CORE_LIBRARY"])
+        let swiftClient = try HostControlClient(
+            libraryURL: URL(fileURLWithPath: corePath),
+            onEvent: { _ in }
+        )
+        try swiftClient.start(configuration: HostServerConfiguration(
+            rendezvousServer: liveServer ?? "127.0.0.1:21116",
+            serverPublicKey: liveKey ?? syntheticPublicKey
+        ))
+        XCTAssertThrowsError(try swiftClient.beginSleep(epoch: 0)) { error in
+            guard case HostControlError.sleepRecovery(.beginSleep, _) = error else {
+                return XCTFail("unexpected recovery error: \(error)")
+            }
+            XCTAssertEqual(
+                (error as? HostControlError)?.sleepRecoveryFailure,
+                .invalidEpoch
+            )
+        }
+        try swiftClient.beginSleep(epoch: 1)
+        var swiftSnapshot = try swiftClient.copySnapshot()
+        XCTAssertEqual(swiftSnapshot.recoveryEpoch, 1)
+        XCTAssertEqual(swiftSnapshot.recoveryStatus, .suspending)
+        XCTAssertEqual(swiftSnapshot.registrationStatus, "suspending")
+        XCTAssertThrowsError(try swiftClient.finishSleep(epoch: 2)) { error in
+            XCTAssertEqual(
+                (error as? HostControlError)?.sleepRecoveryFailure,
+                .staleEpoch
+            )
+        }
+        try swiftClient.finishSleep(epoch: 1)
+        swiftSnapshot = try swiftClient.copySnapshot()
+        XCTAssertEqual(swiftSnapshot.recoveryEpoch, 1)
+        XCTAssertEqual(swiftSnapshot.recoveryStatus, .suspended)
+        XCTAssertEqual(swiftSnapshot.registrationStatus, "suspended")
+        XCTAssertThrowsError(try swiftClient.resumeAfterWake(epoch: 2)) { error in
+            XCTAssertEqual(
+                (error as? HostControlError)?.sleepRecoveryFailure,
+                .staleEpoch
+            )
+        }
+        try swiftClient.resumeAfterWake(epoch: 1)
+        swiftSnapshot = try swiftClient.copySnapshot()
+        XCTAssertEqual(swiftSnapshot.recoveryEpoch, 1)
+        XCTAssertTrue([.resuming, .running].contains(swiftSnapshot.recoveryStatus))
+        if swiftSnapshot.recoveryStatus == .resuming {
+            XCTAssertEqual(swiftSnapshot.registrationStatus, "pending")
+        } else {
+            XCTAssertEqual(swiftSnapshot.registrationStatus, "ready")
+        }
+        try swiftClient.stop()
 
         // After destroy the instance slot is free again, and the isolated
         // identity remains stable across a full HostCore restart (§9.1).

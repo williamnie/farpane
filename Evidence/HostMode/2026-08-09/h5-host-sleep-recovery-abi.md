@@ -1,5 +1,10 @@
 # H5.1k Host sleep/recovery ABI v8
 
+> Historical checkpoint: this file records commit `5a61143`. H5.1l-a later
+> exposes the three calls through `HostControlClient` and advances the
+> rerunnable audit to schema 3; the implementation and verification below are
+> the H5.1k state at that commit.
+
 ## Outcome
 
 Host Control ABI version 8 and HostSnapshot schema version 6 now implement the Rust-owned registration and sleep-assertion half of H5.1 recovery. The three new exact-epoch calls are exported through the core, C header, dynamic shim, build symbol gate, and built-core lifecycle test:

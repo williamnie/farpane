@@ -932,6 +932,25 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertNil(HostControlError.command(-20).permanentPasswordFailure)
     }
 
+    func testSleepRecoveryABIErrorsAreClassifiedSemantically() {
+        let cases: [(Int32, HostSleepRecoveryFailure)] = [
+            (-1, .invalidEpoch),
+            (-7, .staleEpoch),
+            (-3, .invalidState),
+            (-4, .unsupported),
+            (-6, .internalFailure),
+            (-999, .unknown),
+        ]
+        for (code, expected) in cases {
+            XCTAssertEqual(
+                HostControlError.sleepRecovery(.beginSleep, code)
+                    .sleepRecoveryFailure,
+                expected
+            )
+        }
+        XCTAssertNil(HostControlError.stop(-7).sleepRecoveryFailure)
+    }
+
     func testApprovalDecisionErrorsAreClassifiedSemantically() {
         XCTAssertEqual(HostControlError.command(-21).approvalDecisionFailure, .notFound)
         XCTAssertEqual(
