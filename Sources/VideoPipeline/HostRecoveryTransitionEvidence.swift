@@ -225,7 +225,7 @@ public final class HostRecoveryTransitionEvidenceWriter: @unchecked Sendable {
         .sleepWake(.init(recoveryEpoch: recoveryEpoch))
       )
     case .networkPath(let pathGeneration, let recoveryEpoch):
-      guard pathGeneration > 0, recoveryEpoch > 0 else {
+      guard pathGeneration > 0 else {
         throw HostRecoveryTransitionEvidenceError.invalidCorrelation
       }
       return (

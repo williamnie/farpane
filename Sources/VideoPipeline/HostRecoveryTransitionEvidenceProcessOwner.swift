@@ -40,6 +40,13 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
     let acceptedMonotonicNanoseconds: UInt64
   }
 
+  private struct NetworkPathAcceptance {
+    let pathGeneration: UInt64
+    let recoveryEpoch: UInt64
+    let acceptedAt: Date
+    let acceptedMonotonicNanoseconds: UInt64
+  }
+
   private static let maximumIdentityUTF8Bytes = 512
   private static let scopeDigestDomain =
     "farpane.host-recovery.scope.v1"
@@ -52,7 +59,9 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
   private var status: HostRecoveryTransitionEvidenceProcessStatus = .idle
   private var writer: HostRecoveryTransitionEvidenceWriter?
   private var pendingSleepWakeAcceptance: SleepWakeAcceptance?
+  private var pendingNetworkPathAcceptance: NetworkPathAcceptance?
   private var sleepWakeAcceptanceInFlight = false
+  private var networkPathAcceptanceInFlight = false
   private var configurationInFlight = false
   private var recordInFlight = false
   private var completedRecords: UInt64 = 0
@@ -266,6 +275,86 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
     )
   }
 
+  /// Captures one exact HostCore-accepted network restart after its baseline
+  /// recovery epoch and path generation have been pinned by the poll owner.
+  @discardableResult
+  public func acceptNetworkPath(
+    pathGeneration: UInt64,
+    recoveryEpoch: UInt64
+  ) -> Bool {
+    guard pathGeneration > 0 else { return false }
+
+    condition.lock()
+    guard status == .active,
+          pendingNetworkPathAcceptance == nil,
+          !networkPathAcceptanceInFlight
+    else {
+      condition.unlock()
+      return false
+    }
+    networkPathAcceptanceInFlight = true
+    condition.unlock()
+
+    let acceptedAt = wallClock()
+    let acceptedMonotonicNanoseconds = monotonicNanoseconds()
+    let clockIsValid = acceptedAt.timeIntervalSinceReferenceDate.isFinite
+      && acceptedMonotonicNanoseconds > 0
+
+    condition.lock()
+    networkPathAcceptanceInFlight = false
+    guard clockIsValid,
+          status == .active,
+          pendingNetworkPathAcceptance == nil
+    else {
+      condition.broadcast()
+      condition.unlock()
+      return false
+    }
+    pendingNetworkPathAcceptance = NetworkPathAcceptance(
+      pathGeneration: pathGeneration,
+      recoveryEpoch: recoveryEpoch,
+      acceptedAt: acceptedAt,
+      acceptedMonotonicNanoseconds: acceptedMonotonicNanoseconds
+    )
+    condition.broadcast()
+    condition.unlock()
+    return true
+  }
+
+  /// Persists only the exact generation/epoch pair after direct HostCore
+  /// snapshot convergence committed `running + ready`.
+  @discardableResult
+  public func recordNetworkPathCompleted(
+    pathGeneration: UInt64,
+    recoveryEpoch: UInt64
+  ) -> Bool {
+    condition.lock()
+    guard status == .active,
+          let acceptance = pendingNetworkPathAcceptance,
+          acceptance.pathGeneration == pathGeneration,
+          acceptance.recoveryEpoch == recoveryEpoch
+    else {
+      condition.unlock()
+      return false
+    }
+    pendingNetworkPathAcceptance = nil
+    condition.unlock()
+
+    let completedAt = wallClock()
+    let completedMonotonicNanoseconds = monotonicNanoseconds()
+    return recordCompleted(
+      correlation: .networkPath(
+        pathGeneration: pathGeneration,
+        recoveryEpoch: recoveryEpoch
+      ),
+      acceptedAt: acceptance.acceptedAt,
+      completedAt: completedAt,
+      acceptedMonotonicNanoseconds:
+        acceptance.acceptedMonotonicNanoseconds,
+      completedMonotonicNanoseconds: completedMonotonicNanoseconds
+    )
+  }
+
   /// Terminally closes admission, waits for any accepted configuration/write,
   /// then releases the retained evidence file handle.
   public func cancelAndWait() {
@@ -284,11 +373,12 @@ public final class HostRecoveryTransitionEvidenceProcessOwner:
       status = .cancelling
       condition.broadcast()
       while configurationInFlight || sleepWakeAcceptanceInFlight
-        || recordInFlight
+        || networkPathAcceptanceInFlight || recordInFlight
       {
         condition.wait()
       }
       pendingSleepWakeAcceptance = nil
+      pendingNetworkPathAcceptance = nil
       writer = nil
       status = .cancelled
       condition.broadcast()

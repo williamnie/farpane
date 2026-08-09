@@ -1,5 +1,6 @@
 import CoreBridge
 import Foundation
+import VideoPipeline
 
 /// Same-lifetime product composition for normalized network-path recovery.
 /// The system path adapter remains a separate ingress: this type owns only the
@@ -13,7 +14,8 @@ final class HostAgentNetworkPathRecoveryComposition: @unchecked Sendable {
     init(
         lifetime: HostAgentProcessLifetime,
         expectedHostInstanceID: String,
-        snapshotCoordinator: HostAgentSnapshotRefreshCoordinator
+        snapshotCoordinator: HostAgentSnapshotRefreshCoordinator,
+        recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner
     ) {
         let requestTermination: @Sendable () -> Void = {
             [weak lifetime] in
@@ -44,6 +46,18 @@ final class HostAgentNetworkPathRecoveryComposition: @unchecked Sendable {
                     } catch {
                         return .unavailable
                     }
+                },
+                recoveryAccepted: { pathGeneration, recoveryEpoch in
+                    _ = recoveryEvidenceOwner.acceptNetworkPath(
+                        pathGeneration: pathGeneration,
+                        recoveryEpoch: recoveryEpoch
+                    )
+                },
+                recoveryCompleted: { pathGeneration, recoveryEpoch in
+                    _ = recoveryEvidenceOwner.recordNetworkPathCompleted(
+                        pathGeneration: pathGeneration,
+                        recoveryEpoch: recoveryEpoch
+                    )
                 }
             )
         self.requestTermination = requestTermination

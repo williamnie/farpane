@@ -40,6 +40,12 @@ final class HostAgentRecoveryEvidenceProcessCompositionContractTests:
         XCTAssertTrue(process.contains(
             "recoveryEvidenceOwner: recoveryEvidenceOwner"
         ))
+        XCTAssertEqual(
+            process.components(
+                separatedBy: "recoveryEvidenceOwner: recoveryEvidenceOwner"
+            ).count - 1,
+            2
+        )
     }
 
     func testRecoveryOwnersDrainBeforeEvidenceAndMediaTeardown() throws {

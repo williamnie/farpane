@@ -249,6 +249,48 @@ def main() -> int:
             )
             and "recoveryEvidenceOwner: recoveryEvidenceOwner" in host_process
         ),
+        "networkPathTransitionCallbackConnected": (
+            all(
+                marker in network_poller
+                for marker in (
+                    "recoveryAccepted(pathGeneration, recoveryEpoch)",
+                    "let shouldRecordCompleted: Bool",
+                    "shouldRecordCompleted = outcome == .converged",
+                    "recoveryCompleted(pathGeneration, recoveryEpoch)",
+                    "completionInFlight = false",
+                )
+            )
+            and network_poller.find(
+                "recoveryAccepted(pathGeneration, recoveryEpoch)"
+            )
+            < network_poller.find(
+                "recoveryCompleted(pathGeneration, recoveryEpoch)"
+            )
+            and all(
+                marker in network_composition
+                for marker in (
+                    "recoveryEvidenceOwner.acceptNetworkPath(",
+                    "recoveryEvidenceOwner.recordNetworkPathCompleted(",
+                )
+            )
+            and all(
+                marker in recovery_process_owner
+                for marker in (
+                    "pendingNetworkPathAcceptance",
+                    "networkPathAcceptanceInFlight",
+                    "acceptNetworkPath(",
+                    "recordNetworkPathCompleted(",
+                    "acceptance.pathGeneration == pathGeneration",
+                    "acceptance.recoveryEpoch == recoveryEpoch",
+                    "correlation: .networkPath(",
+                )
+            )
+            and "guard pathGeneration > 0 else" in recovery_writer
+            and "guard pathGeneration > 0 else" in recovery_process_owner
+            and host_process.count(
+                "recoveryEvidenceOwner: recoveryEvidenceOwner"
+            ) == 2
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -292,6 +334,14 @@ def main() -> int:
         ),
         "sleepWakeEvidenceCompletion": line_number(
             sleep_core_owner, "operations.recoveryCompleted(epoch)"
+        ),
+        "networkEvidenceAcceptance": line_number(
+            network_poller,
+            "recoveryAccepted(pathGeneration, recoveryEpoch)",
+        ),
+        "networkEvidenceCompletion": line_number(
+            network_poller,
+            "recoveryCompleted(pathGeneration, recoveryEpoch)",
         ),
     }
 
@@ -357,7 +407,7 @@ def main() -> int:
     }
 
     remaining_boundary = {
-        "networkAndDisplayTransitionCallbacksRemainOpen": True,
+        "displayTransitionCallbackRemainsOpen": True,
         "recoveryManifestValidatorStillRequiresImplementation": True,
         "allThreeTransitionsRequireInstalledMacExecution": True,
         "eachRecoveryRequiresFreshTenMinuteScenarioThreeRun": True,
@@ -368,7 +418,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "sleep-wake-callback-implemented"
+            "network-callback-implemented"
             if not missing
             else "contract-drift"
         ),
