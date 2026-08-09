@@ -1796,6 +1796,8 @@ flowchart TD
 
 > 更新（2026-08-09）：**H5.3b active/static/stability 机器身份证据绑定已完成**。system schema-v3 sampler 原本已采集 `hw.model`、`uname -m` 与 macOS 版本，但 schema-v4 performance run summary 会丢失这些字段，无法从最终证据证明 §15.2 的 Apple Silicon/Intel 分别运行。validator 现在要求有界且无控制字符的 machine model/macOS version，并只接受 exact `arm64 | x86_64`；通过摘要保留三项身份，缺失/未知/污染值 fail closed 且只投影为 `unavailable`。focused 6/6、全量 ScriptTests 34/34、Python compile 与 diff check 通过。本步不产生性能数据，也不声明任一架构真机通过；idle identity、真实 600/1,800 秒双架构矩阵、恢复后重复、battery/thermal、Host+Viewer 合并预算和 Instruments 仍 open。未安装/启动/注册/部署/push，未改 product source、ABI/shared schema/Hermes、CI、依赖、数据库、真实 TCC/配置或密钥。详见 `Evidence/HostMode/2026-08-09/h5-performance-machine-identity.md`。
 
+> 更新（2026-08-09）：**H5.3c idle 机器身份证据绑定已完成**。`host-ready-no-screen-route` 与 active runner 共用的 system schema-v3 sampler 已有机器身份，但 schema-v1 idle run summary 原先同样丢失它；validator 现在要求有界、无控制字符的 machine model/macOS version 与 exact `arm64 | x86_64`，通过摘要保留三项，缺失、padding、未知或污染值 fail closed 并只投影为 `unavailable`。focused 7/7、全量 ScriptTests 35/35、Python compile 与 diff check 通过。idle 与 active/static/stability 摘要现都具备架构身份，但尚无 aggregate matrix validator，真实 600/1,800 秒双架构数据、恢复后重复、battery/thermal、Host+Viewer 合并预算和 Instruments 仍 open；idle 仍明确只证明无 screen route，不能冒充所有 authenticated connection 均不存在。未安装/启动/注册/部署/push，未改 product source、ABI/shared schema/Hermes、CI、依赖、数据库、真实 TCC/配置或密钥。详见 `Evidence/HostMode/2026-08-09/h5-idle-machine-identity.md`。
+
 退出条件：各产品目标场景 pass/fail 证据齐全；无 sleep assertion 泄漏、无输入泄漏、无未解释 backlog。
 
 ### 26.9 阶段 8 — H6 可选能力（§3.3、§12.2、§21 H6）

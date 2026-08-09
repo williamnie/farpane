@@ -83,6 +83,9 @@ class HostIdleValidatorTests(unittest.TestCase):
                     "sampleCount": self.duration,
                     "completed": completed,
                     "samplerExitStatus": sampler_exit_status,
+                    "machineModel": "MacBookPro11,3",
+                    "architecture": "x86_64",
+                    "macOSVersion": "12.7.6",
                 }
             ),
             encoding="utf-8",
@@ -135,6 +138,9 @@ class HostIdleValidatorTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "pass")
         self.assertEqual(result["failures"], [])
+        self.assertEqual(result["machineModel"], "MacBookPro11,3")
+        self.assertEqual(result["architecture"], "x86_64")
+        self.assertEqual(result["macOSVersion"], "12.7.6")
         self.assertTrue(result["hostReadyThroughout"])
         self.assertTrue(result["registrationReadyThroughout"])
         self.assertTrue(result["screenMediaRouteAbsentThroughout"])
@@ -217,6 +223,32 @@ class HostIdleValidatorTests(unittest.TestCase):
         self.assertIn(
             "system sampler recorded a nonzero exit status", result["failures"]
         )
+
+    def test_rejects_missing_or_unsupported_machine_identity(self) -> None:
+        system = json.loads(self.system_path.read_text(encoding="utf-8"))
+        system["machineModel"] = " MacBookPro11,3"
+        system["architecture"] = "i386"
+        del system["macOSVersion"]
+        self.system_path.write_text(json.dumps(system), encoding="utf-8")
+
+        result = self._validate()
+
+        self.assertEqual(result["status"], "fail")
+        self.assertIn(
+            "system evidence machine model is missing or invalid",
+            result["failures"],
+        )
+        self.assertIn(
+            "system evidence architecture must be arm64 or x86_64",
+            result["failures"],
+        )
+        self.assertIn(
+            "system evidence macOS version is missing or invalid",
+            result["failures"],
+        )
+        self.assertEqual(result["machineModel"], "unavailable")
+        self.assertEqual(result["architecture"], "unavailable")
+        self.assertEqual(result["macOSVersion"], "unavailable")
 
     def test_atomic_writer_refuses_to_replace_existing_summary(self) -> None:
         output = self.root / "run.json"
