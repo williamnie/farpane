@@ -35,6 +35,8 @@ package struct HostAgentSnapshotProjection: Sendable {
     package let hostState: String
     package let localID: String
     package let registrationStatus: String
+    package let recoveryEpoch: UInt64
+    package let recoveryStatus: HostRecoveryStatus
     package let pendingApproval: HostPendingApproval?
     package let activeSession: HostActiveSession?
     package let temporaryPasswordPolicy: String
@@ -48,6 +50,8 @@ package struct HostAgentSnapshotProjection: Sendable {
         hostState = snapshot.hostState
         localID = snapshot.localId
         registrationStatus = snapshot.registrationStatus
+        recoveryEpoch = snapshot.recoveryEpoch
+        recoveryStatus = snapshot.recoveryStatus
         pendingApproval = snapshot.pendingApproval
         activeSession = snapshot.activeSession
         temporaryPasswordPolicy = "redacted"

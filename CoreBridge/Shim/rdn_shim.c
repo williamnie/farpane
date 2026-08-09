@@ -21,6 +21,7 @@ typedef int32_t (*host_create_fn)(const RdnHostCreateOptions *,
                                   const RdnHostCallbacks *, RdnHost **);
 typedef int32_t (*host_start_fn)(RdnHost *);
 typedef int32_t (*host_stop_fn)(RdnHost *, RdnHostStopReason);
+typedef int32_t (*host_epoch_fn)(RdnHost *, uint64_t);
 typedef int32_t (*host_command_fn)(RdnHost *, const uint8_t *, size_t);
 typedef int32_t (*host_set_permanent_password_fn)(RdnHost *, const char *,
                                                   uint8_t *, size_t);
@@ -53,6 +54,9 @@ struct RDNCoreLibrary {
     host_create_fn host_create;
     host_start_fn host_start;
     host_stop_fn host_stop;
+    host_epoch_fn host_begin_sleep;
+    host_epoch_fn host_finish_sleep;
+    host_epoch_fn host_resume_after_wake;
     host_command_fn host_command;
     host_set_permanent_password_fn host_set_permanent_password;
     host_copy_snapshot_fn host_copy_snapshot;
@@ -126,6 +130,12 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     library->host_create = (host_create_fn)dlsym(handle, "rdn_host_create");
     library->host_start = (host_start_fn)dlsym(handle, "rdn_host_start");
     library->host_stop = (host_stop_fn)dlsym(handle, "rdn_host_stop");
+    library->host_begin_sleep =
+        (host_epoch_fn)dlsym(handle, "rdn_host_begin_sleep");
+    library->host_finish_sleep =
+        (host_epoch_fn)dlsym(handle, "rdn_host_finish_sleep");
+    library->host_resume_after_wake =
+        (host_epoch_fn)dlsym(handle, "rdn_host_resume_after_wake");
     library->host_command = (host_command_fn)dlsym(handle, "rdn_host_command");
     library->host_set_permanent_password =
         (host_set_permanent_password_fn)dlsym(
@@ -146,6 +156,8 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     if (library->host_abi_version != NULL && library->host_upstream_commit != NULL &&
         library->host_set_config_root != NULL && library->host_create != NULL &&
         library->host_start != NULL && library->host_stop != NULL &&
+        library->host_begin_sleep != NULL && library->host_finish_sleep != NULL &&
+        library->host_resume_after_wake != NULL &&
         library->host_command != NULL &&
         library->host_set_permanent_password != NULL &&
         library->host_copy_snapshot != NULL &&
@@ -261,6 +273,27 @@ int32_t rdn_shim_host_stop(const RDNCoreLibrary *library, RdnHost *host,
     return library == NULL || library->host_stop == NULL
                ? RDN_HOST_ERR_NOT_SUPPORTED
                : library->host_stop(host, reason);
+}
+
+int32_t rdn_shim_host_begin_sleep(const RDNCoreLibrary *library, RdnHost *host,
+                                  uint64_t epoch) {
+    return library == NULL || library->host_begin_sleep == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_begin_sleep(host, epoch);
+}
+
+int32_t rdn_shim_host_finish_sleep(const RDNCoreLibrary *library, RdnHost *host,
+                                   uint64_t epoch) {
+    return library == NULL || library->host_finish_sleep == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_finish_sleep(host, epoch);
+}
+
+int32_t rdn_shim_host_resume_after_wake(const RDNCoreLibrary *library,
+                                        RdnHost *host, uint64_t epoch) {
+    return library == NULL || library->host_resume_after_wake == NULL
+               ? RDN_HOST_ERR_NOT_SUPPORTED
+               : library->host_resume_after_wake(host, epoch);
 }
 
 int32_t rdn_shim_host_command(const RDNCoreLibrary *library, RdnHost *host,

@@ -1015,11 +1015,13 @@ final class HostAgentBackgroundHomeCommandPresentationOwnerTests:
         _ = state.publish(
             try HostCoreSnapshot(rawJSON: JSONSerialization.data(
                 withJSONObject: [
-                    "schemaVersion": 5,
+                    "schemaVersion": 6,
                     "hostInstanceId": "host-a",
                     "hostState": "ready",
                     "localId": "123456789",
                     "registrationStatus": "ready",
+                    "recoveryEpoch": 0,
+                    "recoveryStatus": "running",
                     "pendingApproval": pending,
                     "activeSession": active,
                     "temporaryPasswordPresentation": [

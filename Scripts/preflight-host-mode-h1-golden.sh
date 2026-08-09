@@ -27,6 +27,9 @@ core_archs=$(lipo -archs "$core")
 required_symbols=(
   _rdn_host_abi_version
   _rdn_host_start
+  _rdn_host_begin_sleep
+  _rdn_host_finish_sleep
+  _rdn_host_resume_after_wake
   _rdn_host_copy_snapshot
   _rdn_host_set_permanent_password
   _rdn_host_media_abi_version

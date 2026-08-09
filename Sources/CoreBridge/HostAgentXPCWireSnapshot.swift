@@ -28,7 +28,7 @@ package enum HostAgentXPCWireSnapshotContract {
         "created", "starting", "ready", "stopping", "stopped", "error",
     ]
     fileprivate static let allowedRegistrationStatuses: Set<String> = [
-        "notStarted", "pending", "ready", "degraded",
+        "notStarted", "pending", "ready", "degraded", "suspending", "suspended",
     ]
     fileprivate static let allowedCapabilities: Set<String> = [
         "viewDisplay", "controlKeyboardMouse", "readClipboard",
@@ -634,6 +634,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
     package let hostState: String
     package let localID: String
     package let registrationStatus: String
+    package let recoveryEpoch: UInt64
+    package let recoveryStatus: HostRecoveryStatus
     package let pendingApproval: HostAgentXPCWirePendingApproval?
     package let activeSession: HostAgentXPCWireActiveSession?
     package let temporaryPasswordPolicy: String
@@ -666,6 +668,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             hostState: projection.hostState,
             localID: projection.localID,
             registrationStatus: projection.registrationStatus,
+            recoveryEpoch: projection.recoveryEpoch,
+            recoveryStatus: projection.recoveryStatus,
             pendingApproval: pendingApproval,
             activeSession: activeSession,
             temporaryPasswordPolicy: projection.temporaryPasswordPolicy,
@@ -683,6 +687,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
     ) throws {
         guard Set(document.keys) == Set([
             "schemaVersion", "hostState", "localId", "registrationStatus",
+            "recoveryEpoch", "recoveryStatus",
             "pendingApproval", "activeSession", "temporaryPasswordPolicy",
             "passwordPolicy", "lastError", "observedAt",
         ]),
@@ -692,6 +697,11 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             let hostState = document["hostState"] as? String,
             let localID = document["localId"] as? String,
             let registrationStatus = document["registrationStatus"] as? String,
+            let recoveryEpoch = HostAgentXPCWireSnapshotContract.strictUInt64(
+                document["recoveryEpoch"]
+            ),
+            let recoveryStatusValue = document["recoveryStatus"] as? String,
+            let recoveryStatus = HostRecoveryStatus(rawValue: recoveryStatusValue),
             let temporaryPasswordPolicy =
                 document["temporaryPasswordPolicy"] as? String,
             let passwordPolicyDocument =
@@ -733,6 +743,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             hostState: hostState,
             localID: localID,
             registrationStatus: registrationStatus,
+            recoveryEpoch: recoveryEpoch,
+            recoveryStatus: recoveryStatus,
             pendingApproval: pendingApproval,
             activeSession: activeSession,
             temporaryPasswordPolicy: temporaryPasswordPolicy,
@@ -749,6 +761,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         hostState: String,
         localID: String,
         registrationStatus: String,
+        recoveryEpoch: UInt64,
+        recoveryStatus: HostRecoveryStatus,
         pendingApproval: HostAgentXPCWirePendingApproval?,
         activeSession: HostAgentXPCWireActiveSession?,
         temporaryPasswordPolicy: String,
@@ -764,7 +778,27 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
                 allowEmpty: false
             )
         } ?? true
-        guard schemaVersion == 5,
+        let recoveryContractIsValid: Bool
+        switch recoveryStatus {
+        case .running:
+            recoveryContractIsValid = true
+        case .suspending:
+            recoveryContractIsValid = recoveryEpoch > 0
+                && hostState == "starting"
+                && registrationStatus == "suspending"
+        case .suspended:
+            recoveryContractIsValid = recoveryEpoch > 0
+                && hostState == "starting"
+                && registrationStatus == "suspended"
+        case .resuming:
+            recoveryContractIsValid = recoveryEpoch > 0
+                && hostState == "starting"
+                && registrationStatus == "pending"
+        case .failed:
+            recoveryContractIsValid = hostState == "error"
+                && registrationStatus == "degraded"
+        }
+        guard schemaVersion == 6,
               HostAgentXPCWireSnapshotContract.allowedHostStates.contains(
                 hostState
               ),
@@ -779,6 +813,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
               HostAgentXPCWireSnapshotContract.allowedRegistrationStatuses
                 .contains(registrationStatus),
               temporaryPasswordPolicy == "redacted",
+              recoveryContractIsValid,
               lastErrorIsValid,
               HostAgentXPCWireSnapshotContract.validTimestamp(observedAt)
         else {
@@ -788,6 +823,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         self.hostState = hostState
         self.localID = localID
         self.registrationStatus = registrationStatus
+        self.recoveryEpoch = recoveryEpoch
+        self.recoveryStatus = recoveryStatus
         self.pendingApproval = pendingApproval
         self.activeSession = activeSession
         self.temporaryPasswordPolicy = temporaryPasswordPolicy
@@ -802,6 +839,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             "hostState": hostState,
             "localId": localID,
             "registrationStatus": registrationStatus,
+            "recoveryEpoch": recoveryEpoch,
+            "recoveryStatus": recoveryStatus.rawValue,
             "pendingApproval": pendingApproval?.document ?? NSNull(),
             "activeSession": activeSession?.document ?? NSNull(),
             "temporaryPasswordPolicy": temporaryPasswordPolicy,

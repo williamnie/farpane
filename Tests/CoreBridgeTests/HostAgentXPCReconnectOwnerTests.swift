@@ -489,11 +489,13 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
     private func coreSnapshot() throws -> HostCoreSnapshot {
         try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: [
-                "schemaVersion": 5,
+                "schemaVersion": 6,
                 "hostInstanceId": "host-a",
                 "hostState": "ready",
                 "localId": "123456789",
                 "registrationStatus": "ready",
+                "recoveryEpoch": 0,
+                "recoveryStatus": "running",
                 "pendingApproval": NSNull(),
                 "activeSession": NSNull(),
                 "temporaryPasswordPresentation": ["policy": "redacted"],

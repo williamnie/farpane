@@ -348,11 +348,13 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         _ = state.publish(
             try HostCoreSnapshot(rawJSON: JSONSerialization.data(
                 withJSONObject: [
-                    "schemaVersion": 5,
+                    "schemaVersion": 6,
                     "hostInstanceId": hostID,
                     "hostState": "ready",
                     "localId": localID,
                     "registrationStatus": registrationStatus,
+                    "recoveryEpoch": 0,
+                    "recoveryStatus": "running",
                     "pendingApproval": pendingApproval,
                     "activeSession": activeSession,
                     "temporaryPasswordPresentation": [

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the pinned Host sleep/recovery ABI baseline without mutating it."""
+"""Audit the implemented Host sleep/recovery ABI without mutating it."""
 
 from __future__ import annotations
 
@@ -23,6 +23,24 @@ def version(pattern: str, source: str, label: str) -> int:
     return int(match.group(1))
 
 
+def section(source: str, start: str, end: str) -> str:
+    start_offset = source.find(start)
+    end_offset = source.find(end, start_offset + len(start))
+    if start_offset < 0 or end_offset <= start_offset:
+        return ""
+    return source[start_offset:end_offset]
+
+
+def ordered(source: str, *markers: str) -> bool:
+    offset = 0
+    for marker in markers:
+        found = source.find(marker, offset)
+        if found < 0:
+            return False
+        offset = found + len(marker)
+    return True
+
+
 def line_number(source: str, needle: str) -> int:
     offset = source.find(needle)
     if offset < 0:
@@ -32,31 +50,35 @@ def line_number(source: str, needle: str) -> int:
 
 def main() -> int:
     repository = Path(__file__).resolve().parent.parent
-    bridge_path = repository / "CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
-    header_path = repository / "CoreBridge/include/rustdesk_native.h"
-    upstream_path = repository / "CoreBridge/RustDeskPatch/upstream-1.4.9.patch"
-    composition_path = (
-        repository
-        / "Sources/RustDeskNative/HostAgentSleepWakeRecoveryComposition.swift"
-    )
+    paths = {
+        "bridge": repository / "CoreBridge/RustDeskPatch/rdn_host_bridge.rs",
+        "header": repository / "CoreBridge/include/rustdesk_native.h",
+        "shim": repository / "CoreBridge/Shim/rdn_shim.c",
+        "upstream": repository / "CoreBridge/RustDeskPatch/upstream-1.4.9.patch",
+        "snapshot": repository / "Sources/CoreBridge/HostControlClient.swift",
+        "projection": repository / "Sources/CoreBridge/HostAgentSnapshotState.swift",
+        "xpc": repository / "Sources/CoreBridge/HostAgentXPCWireSnapshot.swift",
+        "composition": (
+            repository
+            / "Sources/RustDeskNative/HostAgentSleepWakeRecoveryComposition.swift"
+        ),
+        "build": repository / "Scripts/build-rust-core.sh",
+    }
     try:
-        bridge = read(bridge_path)
-        header = read(header_path)
-        upstream = read(upstream_path)
-        composition = read(composition_path)
+        sources = {name: read(path) for name, path in paths.items()}
         rust_abi = version(
             r"const HOST_ABI_VERSION: u32 = (\d+);",
-            bridge,
+            sources["bridge"],
             "Rust Host ABI version",
         )
         header_abi = version(
             r"#define RDN_HOST_ABI_VERSION (\d+)u",
-            header,
+            sources["header"],
             "C Host ABI version",
         )
         snapshot_schema = version(
             r"const SNAPSHOT_SCHEMA_VERSION: u32 = (\d+);",
-            bridge,
+            sources["bridge"],
             "snapshot schema version",
         )
     except (OSError, UnicodeError, ValueError) as error:
@@ -68,101 +90,166 @@ def main() -> int:
         "rdn_host_finish_sleep",
         "rdn_host_resume_after_wake",
     )
-    stop_start = bridge.find("pub unsafe extern \"C\" fn rdn_host_stop")
-    stop_end = bridge.find("\nfn fail_host_after_password_persistence_mismatch", stop_start)
-    stop_body = bridge[stop_start:stop_end] if stop_start >= 0 and stop_end > stop_start else ""
+    begin = section(
+        sources["bridge"],
+        'pub unsafe extern "C" fn rdn_host_begin_sleep',
+        'pub unsafe extern "C" fn rdn_host_finish_sleep',
+    )
+    finish = section(
+        sources["bridge"],
+        'pub unsafe extern "C" fn rdn_host_finish_sleep',
+        'pub unsafe extern "C" fn rdn_host_resume_after_wake',
+    )
+    resume = section(
+        sources["bridge"],
+        'pub unsafe extern "C" fn rdn_host_resume_after_wake',
+        "fn fail_host_after_password_persistence_mismatch",
+    )
+    stop = section(
+        sources["bridge"],
+        'pub unsafe extern "C" fn rdn_host_stop',
+        "fn fail_host_sleep_recovery",
+    )
     evidence = {
-        "hostABIV7Baseline": rust_abi == 7 and header_abi == 7,
-        "snapshotSchemaV5Baseline": snapshot_schema == 5,
-        "sleepABISurfaceAbsent": all(
-            symbol not in bridge and symbol not in header for symbol in sleep_symbols
+        "hostABIV8Implemented": rust_abi == 8 and header_abi == 8,
+        "snapshotSchemaV6Implemented": snapshot_schema == 6,
+        "sleepSymbolsExportedEndToEnd": all(
+            symbol in sources["bridge"]
+            and symbol in sources["header"]
+            and f'dlsym(handle, "{symbol}")' in sources["shim"]
+            and f"_{symbol}" in sources["build"]
+            for symbol in sleep_symbols
         ),
-        "runtimeHasOnlyTerminalStop": (
-            "fn stop(&mut self) -> bool" in bridge
-            and "fn suspend(&mut self)" not in bridge
-            and "fn resume(&mut self)" not in bridge
-        ),
-        "terminalStopUnbindsMediaAndSession": (
-            "unbind_media_host();" in stop_body
-            and 'reset_native_session_broker("hostStopped")' in bridge
-        ),
-        "terminalStopRotatesTemporaryPassword": (
-            "password_security::update_temporary_password();" in stop_body
-        ),
-        "registrationRefreshHasNoSuspendedState": (
-            "if !matches!(self.state, RdnHostState::Starting | RdnHostState::Ready)"
-            in bridge
-        ),
-        "wakelockOwnedByAuthenticatedConnectionRAII": all(
-            marker in upstream
+        "runtimeSeparatesSignalFromJoin": all(
+            marker in sources["bridge"]
             for marker in (
-                "fn incoming_wakelock_display(",
-                "fn start_wakelock_thread()",
-                "fn check_wake_lock()",
-                "impl Drop for AuthedConnID",
-                "Self::check_wake_lock();",
+                "fn request_stop(&self)",
+                "fn join(&mut self) -> bool",
+                "self.request_stop();\n        self.join()",
             )
         ),
-        "wakelockHasNoHostSuspendAck": (
-            "NativeHostWakeLockCommand" not in upstream
-            and "rdn_host_finish_sleep" not in upstream
-        ),
-        "compositionRegistrationIsSynchronous": all(
-            marker in composition
-            for marker in (
-                "let resumeRegistration: @Sendable () -> Bool",
-                "let publishAvailable: @Sendable () -> Bool",
+        "beginWithdrawsWithoutTerminalSideEffects": (
+            ordered(
+                begin,
+                "is_next_recovery_epoch",
+                "HostRecoveryState::Suspending",
+                'registration_status = "suspending"',
+                "request_stop();",
+                "emit_snapshot_changed();",
             )
+            and "unbind_media_host" not in begin
+            and "update_temporary_password" not in begin
+            and "Config::set_option" not in begin
+        ),
+        "finishJoinsBeforeAssertionDropAck": ordered(
+            finish,
+            "runtime.join()",
+            "native_host_suspend_wakelock(epoch)",
+            'registration_status = "suspended"',
+            "HostRecoveryState::Suspended",
+        ),
+        "resumeIsPendingNeverReady": (
+            ordered(
+                resume,
+                "HostRecoveryState::Resuming",
+                'registration_status = "pending"',
+                "native_host_resume_wakelock(epoch)",
+                "HostRuntime::start",
+                "emit_snapshot_changed();",
+            )
+            and 'registration_status = "ready"' not in resume
+        ),
+        "wrongDuplicateFutureAndExhaustedEpochsFailClosed": all(
+            marker in sources["bridge"]
+            for marker in (
+                "current.checked_add(1) == Some(requested)",
+                "return RDN_HOST_ERR_STALE_EPOCH;",
+                "host.recovery_epoch != epoch",
+                "host.recovery_state != HostRecoveryState::Suspending",
+                "host.recovery_state != HostRecoveryState::Suspended",
+            )
+        ),
+        "wakelockThreadOwnsExactEpochSuspendAck": all(
+            marker in sources["upstream"]
+            for marker in (
+                "enum WakeLockCommand",
+                "SuspendNativeHost",
+                "ResumeNativeHost",
+                "ResetNativeHost",
+                "NativeHostWakelockRecovery",
+                "native_host_recovery.accepts_updates()",
+                "acknowledgement.send(accepted)",
+                "recv_timeout(std::time::Duration::from_secs(2))",
+            )
+        ),
+        "snapshotAndXPCCarryRecoveryAuthority": all(
+            marker in sources["bridge"]
+            for marker in (
+                'map.insert("recoveryEpoch".into()',
+                'map.insert("recoveryStatus".into()',
+            )
+        )
+        and all(
+            marker in sources["snapshot"]
+            for marker in (
+                "public let recoveryEpoch: UInt64",
+                "public let recoveryStatus: HostRecoveryStatus",
+                'intValue == 6',
+            )
+        )
+        and all(
+            marker in sources["projection"]
+            for marker in (
+                "package let recoveryEpoch: UInt64",
+                "package let recoveryStatus: HostRecoveryStatus",
+            )
+        )
+        and all(
+            marker in sources["xpc"]
+            for marker in (
+                '"recoveryEpoch": recoveryEpoch',
+                '"recoveryStatus": recoveryStatus.rawValue',
+                "guard schemaVersion == 6",
+            )
+        ),
+        "terminalStopRemainsDistinct": (
+            "unbind_media_host();" in stop
+            and "password_security::update_temporary_password();" in stop
+            and all(symbol not in stop for symbol in sleep_symbols)
         ),
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 1,
-        "status": "contract-gap-confirmed" if not missing else "audit-failed",
-        "baseline": {
+        "schemaVersion": 2,
+        "status": "contract-implemented" if not missing else "audit-failed",
+        "implementation": {
             "hostABIVersion": rust_abi,
             "snapshotSchemaVersion": snapshot_schema,
+            "symbols": list(sleep_symbols),
             "evidence": evidence,
             "sourceLines": {
-                "hostRuntimeStart": line_number(bridge, "fn start(rendezvous_server: String)"),
-                "hostRuntimeStop": line_number(bridge, "fn stop(&mut self) -> bool"),
-                "hostStopABI": line_number(
-                    bridge, 'pub unsafe extern "C" fn rdn_host_stop'
-                ),
-                "wakelockPolicyPatch": line_number(
-                    upstream, "fn incoming_wakelock_display("
-                ),
-                "authenticatedConnectionDropPatch": line_number(
-                    upstream, "impl Drop for AuthedConnID"
+                "beginSleep": line_number(sources["bridge"], sleep_symbols[0]),
+                "finishSleep": line_number(sources["bridge"], sleep_symbols[1]),
+                "resumeAfterWake": line_number(sources["bridge"], sleep_symbols[2]),
+                "wakelockCommand": line_number(sources["upstream"], "enum WakeLockCommand"),
+                "snapshotRecoveryEpoch": line_number(
+                    sources["bridge"], 'map.insert("recoveryEpoch".into()'
                 ),
             },
         },
-        "requiredContract": {
-            "targetHostABIVersion": 8,
-            "targetSnapshotSchemaVersion": 6,
-            "symbols": list(sleep_symbols),
-            "epoch": "strictly increasing UInt64; wrong, stale, duplicate, or exhausted fails closed",
-            "beginSleep": (
-                "withdraw registration and publish suspending for the accepted epoch; "
-                "signal mediator exit without unbinding media/session, rotating passwords, "
-                "or changing identity/config"
+        "remainingBoundary": {
+            "hostControlClientSleepMethodsAbsent": all(
+                f"public func {name}" not in sources["snapshot"]
+                for name in ("beginSleep", "finishSleep", "resumeAfterWake")
             ),
-            "finishSleep": (
-                "same epoch only; join the registration runtime, force the Rust-owned "
-                "wakelock to drop, and wait for its acknowledgement before suspended"
+            "compositionRegistrationStillSynchronous": all(
+                marker in sources["composition"]
+                for marker in (
+                    "let resumeRegistration: @Sendable () -> Bool",
+                    "let publishAvailable: @Sendable () -> Bool",
+                )
             ),
-            "resumeAfterWake": (
-                "same epoch only; restart registration and return accepted/pending, never ready"
-            ),
-            "registrationConvergence": (
-                "publish available only after an authoritative ready snapshot for the exact epoch"
-            ),
-            "assertionOwnership": (
-                "remain in the authenticated-connection Rust wakelock thread; no Swift assertion"
-            ),
-            "snapshotFields": ["recoveryEpoch", "recoveryStatus", "registrationStatus"],
-            "terminalStop": "unchanged and distinct from sleep recovery",
         },
         "missingEvidence": missing,
     }

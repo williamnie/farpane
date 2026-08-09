@@ -36,10 +36,12 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.agentBootID, bootID)
         XCTAssertEqual(decoded.lastEventID, 7)
         XCTAssertGreaterThan(decoded.payloadLength, 0)
-        XCTAssertEqual(decoded.snapshot.schemaVersion, 5)
+        XCTAssertEqual(decoded.snapshot.schemaVersion, 6)
         XCTAssertEqual(decoded.snapshot.hostState, "ready")
         XCTAssertEqual(decoded.snapshot.localID, "123456789")
         XCTAssertEqual(decoded.snapshot.registrationStatus, "ready")
+        XCTAssertEqual(decoded.snapshot.recoveryEpoch, 0)
+        XCTAssertEqual(decoded.snapshot.recoveryStatus, .running)
         XCTAssertEqual(decoded.snapshot.temporaryPasswordPolicy, "redacted")
         XCTAssertNil(decoded.snapshot.pendingApproval)
         XCTAssertNil(decoded.snapshot.activeSession)
@@ -200,6 +202,10 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             )]),
             try replacingPayload(valid, ["snapshot": merging(
                 validSnapshot,
+                ["recoveryStatus": "suspended"]
+            )]),
+            try replacingPayload(valid, ["snapshot": merging(
+                validSnapshot,
                 ["passwordPolicy": merging(
                     validPasswordPolicy,
                     ["localPasswordSet": 1]
@@ -347,10 +353,12 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         let payload: [String: Any] = [
             "lastEventId": 7,
             "snapshot": [
-                "schemaVersion": 5,
+                "schemaVersion": 6,
                 "hostState": "ready",
                 "localId": "123456789",
                 "registrationStatus": "ready",
+                "recoveryEpoch": 0,
+                "recoveryStatus": "running",
                 "pendingApproval": NSNull(),
                 "activeSession": NSNull(),
                 "temporaryPasswordPolicy": "redacted",
@@ -413,11 +421,13 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             ["policy": "revealed", "value": $0]
         } ?? ["policy": "redacted"]
         return try HostCoreSnapshot(rawJSON: data([
-            "schemaVersion": 5,
+            "schemaVersion": 6,
             "hostInstanceId": host,
             "hostState": "ready",
             "localId": "123456789",
             "registrationStatus": "ready",
+            "recoveryEpoch": 0,
+            "recoveryStatus": "running",
             "pendingApproval": NSNull(),
             "activeSession": NSNull(),
             "temporaryPasswordPresentation": presentation,
