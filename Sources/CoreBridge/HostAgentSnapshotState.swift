@@ -34,6 +34,8 @@ package struct HostAgentSnapshotProjection: Sendable {
     package let hostInstanceID: String
     package let hostState: String
     package let localID: String
+    package let sessionAvailability: HostSessionAvailability
+    package let sessionUnavailableReason: HostSessionUnavailableReason?
     package let registrationStatus: String
     package let recoveryEpoch: UInt64
     package let recoveryStatus: HostRecoveryStatus
@@ -49,6 +51,8 @@ package struct HostAgentSnapshotProjection: Sendable {
         hostInstanceID = snapshot.hostInstanceId
         hostState = snapshot.hostState
         localID = snapshot.localId
+        sessionAvailability = snapshot.sessionAvailability
+        sessionUnavailableReason = snapshot.sessionUnavailableReason
         registrationStatus = snapshot.registrationStatus
         recoveryEpoch = snapshot.recoveryEpoch
         recoveryStatus = snapshot.recoveryStatus

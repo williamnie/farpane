@@ -664,7 +664,9 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             activeSession = nil
         }
         try self.init(
-            schemaVersion: projection.schemaVersion,
+            // H5.2d retains the schema-7 Aqua tuple in the Agent projection.
+            // The versioned XPC propagation is the next bounded checkpoint.
+            schemaVersion: 6,
             hostState: projection.hostState,
             localID: projection.localID,
             registrationStatus: projection.registrationStatus,

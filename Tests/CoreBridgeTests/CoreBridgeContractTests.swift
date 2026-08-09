@@ -36,7 +36,7 @@ final class CoreBridgeContractTests: XCTestCase {
         let bridge = try String(contentsOf: bridgeURL, encoding: .utf8)
 
         XCTAssertTrue(bridge.contains("const EVENT_SCHEMA_VERSION: u32 = 1;"))
-        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 6;"))
+        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 7;"))
         XCTAssertTrue(bridge.contains("\"schemaVersion\": EVENT_SCHEMA_VERSION"))
         XCTAssertTrue(bridge.contains(
             "map.insert(\"schemaVersion\".into(), json!(SNAPSHOT_SCHEMA_VERSION));"
@@ -1118,16 +1118,20 @@ final class CoreBridgeContractTests: XCTestCase {
         func document(
             pendingApproval: Any,
             activeSession: Any = NSNull(),
+            sessionAvailability: String = "available",
+            sessionUnavailableReason: Any = NSNull(),
             hostState: String = "ready",
             registrationStatus: String = "ready",
             recoveryEpoch: Any = 0,
             recoveryStatus: String = "running"
         ) -> [String: Any] {
             [
-                "schemaVersion": 6,
+                "schemaVersion": 7,
                 "hostInstanceId": "host-instance",
                 "hostState": hostState,
                 "localId": "987654321",
+                "sessionAvailability": sessionAvailability,
+                "sessionUnavailableReason": sessionUnavailableReason,
                 "registrationStatus": registrationStatus,
                 "recoveryEpoch": recoveryEpoch,
                 "recoveryStatus": recoveryStatus,
@@ -1160,7 +1164,9 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )
         let snapshot = try HostCoreSnapshot(rawJSON: data)
-        XCTAssertEqual(snapshot.schemaVersion, 6)
+        XCTAssertEqual(snapshot.schemaVersion, 7)
+        XCTAssertEqual(snapshot.sessionAvailability, .available)
+        XCTAssertNil(snapshot.sessionUnavailableReason)
         XCTAssertEqual(snapshot.recoveryEpoch, 0)
         XCTAssertEqual(snapshot.recoveryStatus, .running)
         XCTAssertEqual(snapshot.pendingApproval?.connectionId, "host-instance:7")
@@ -1274,6 +1280,31 @@ final class CoreBridgeContractTests: XCTestCase {
             limitedSnapshot.activeSession?.inputUnavailableReason,
             .sessionUnavailable
         )
+        let limitedHostSnapshot = try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                sessionAvailability: "limited",
+                sessionUnavailableReason: "sessionUnavailable"
+            )
+        ))
+        XCTAssertEqual(limitedHostSnapshot.sessionAvailability, .limited)
+        XCTAssertEqual(
+            limitedHostSnapshot.sessionUnavailableReason,
+            .sessionUnavailable
+        )
+        for invalidTuple in [
+            ("available", "sessionUnavailable" as Any),
+            ("limited", NSNull() as Any),
+            ("future", NSNull() as Any),
+        ] {
+            XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+                withJSONObject: document(
+                    pendingApproval: NSNull(),
+                    sessionAvailability: invalidTuple.0,
+                    sessionUnavailableReason: invalidTuple.1
+                )
+            )))
+        }
         invalidSession = activeSession
         invalidSession["activeCapabilities"] = ["viewDisplay"]
         invalidSession["inputAvailability"] = "disabled"
@@ -1303,7 +1334,7 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )))
         var oldSchema = document(pendingApproval: NSNull())
-        oldSchema["schemaVersion"] = 5
+        oldSchema["schemaVersion"] = 6
         XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: oldSchema
         )))

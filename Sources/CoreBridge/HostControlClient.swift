@@ -445,6 +445,8 @@ public struct HostCoreSnapshot: Sendable {
     public let hostInstanceId: String
     public let hostState: String
     public let localId: String
+    public let sessionAvailability: HostSessionAvailability
+    public let sessionUnavailableReason: HostSessionUnavailableReason?
     public let registrationStatus: String
     public let recoveryEpoch: UInt64
     public let recoveryStatus: HostRecoveryStatus
@@ -463,12 +465,17 @@ public struct HostCoreSnapshot: Sendable {
         else {
             throw HostControlError.snapshotDecode("snapshot is not a JSON object")
         }
-        guard (json["schemaVersion"] as? NSNumber)?.intValue == 6,
+        guard (json["schemaVersion"] as? NSNumber)?.intValue == 7,
               let hostInstanceID = json["hostInstanceId"] as? String,
               !hostInstanceID.isEmpty,
               let hostState = json["hostState"] as? String,
               !hostState.isEmpty,
               let localID = json["localId"] as? String,
+              let sessionAvailabilityValue = json["sessionAvailability"] as? String,
+              let sessionAvailability = HostSessionAvailability(
+                  rawValue: sessionAvailabilityValue
+              ),
+              let sessionUnavailableReasonValue = json["sessionUnavailableReason"],
               let registrationStatus = json["registrationStatus"] as? String,
               !registrationStatus.isEmpty,
               let recoveryEpoch = strictSnapshotUInt64(json["recoveryEpoch"]),
@@ -495,6 +502,26 @@ public struct HostCoreSnapshot: Sendable {
               let activeSessionValue = json["activeSession"]
         else {
             throw HostControlError.snapshotDecode("snapshot contract is missing or invalid")
+        }
+        let sessionUnavailableReason: HostSessionUnavailableReason?
+        if sessionUnavailableReasonValue is NSNull {
+            sessionUnavailableReason = nil
+        } else if let rawValue = sessionUnavailableReasonValue as? String,
+                  let reason = HostSessionUnavailableReason(rawValue: rawValue)
+        {
+            sessionUnavailableReason = reason
+        } else {
+            throw HostControlError.snapshotDecode(
+                "snapshot session unavailable reason is invalid"
+            )
+        }
+        switch (sessionAvailability, sessionUnavailableReason) {
+        case (.available, nil), (.limited, .sessionUnavailable):
+            break
+        default:
+            throw HostControlError.snapshotDecode(
+                "snapshot session availability tuple is invalid"
+            )
         }
         let revealedTemporaryPassword: String?
         if temporaryPasswordPolicy == "revealed" {
@@ -562,10 +589,12 @@ public struct HostCoreSnapshot: Sendable {
             throw HostControlError.snapshotDecode("snapshot recovery state is invalid")
         }
 
-        schemaVersion = 6
+        schemaVersion = 7
         hostInstanceId = hostInstanceID
         self.hostState = hostState
         localId = localID
+        self.sessionAvailability = sessionAvailability
+        self.sessionUnavailableReason = sessionUnavailableReason
         self.registrationStatus = registrationStatus
         self.recoveryEpoch = recoveryEpoch
         self.recoveryStatus = recoveryStatus
@@ -589,6 +618,15 @@ public struct HostCoreSnapshot: Sendable {
         self.observedAt = observedAt
         self.rawJSON = rawJSON
     }
+}
+
+public enum HostSessionAvailability: String, Equatable, Sendable {
+    case available
+    case limited
+}
+
+public enum HostSessionUnavailableReason: String, Equatable, Sendable {
+    case sessionUnavailable
 }
 
 public enum HostSessionInputAvailability: String, Equatable, Sendable {

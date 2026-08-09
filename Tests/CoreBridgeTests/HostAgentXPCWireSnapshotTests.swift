@@ -421,10 +421,12 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
             ["policy": "revealed", "value": $0]
         } ?? ["policy": "redacted"]
         return try HostCoreSnapshot(rawJSON: data([
-            "schemaVersion": 6,
+            "schemaVersion": 7,
             "hostInstanceId": host,
             "hostState": "ready",
             "localId": "123456789",
+            "sessionAvailability": "available",
+            "sessionUnavailableReason": NSNull(),
             "registrationStatus": "ready",
             "recoveryEpoch": 0,
             "recoveryStatus": "running",
