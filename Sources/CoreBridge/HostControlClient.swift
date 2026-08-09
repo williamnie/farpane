@@ -25,6 +25,7 @@ public enum HostControlError: Error, CustomStringConvertible {
     case sensitiveCommandRequiresDedicatedABI
     case snapshot(Int32)
     case snapshotDecode(String)
+    case networkPathRecovery(Int32)
     case sleepRecovery(HostSleepRecoveryOperation, Int32)
     case stop(Int32)
     case media(Int32)
@@ -46,6 +47,8 @@ public enum HostControlError: Error, CustomStringConvertible {
             return "sensitive host command requires the dedicated secret-buffer ABI"
         case .snapshot(let code): return "host snapshot copy failed: \(code)"
         case .snapshotDecode(let message): return "host snapshot decode failed: \(message)"
+        case .networkPathRecovery(let code):
+            return "host network-path recovery rejected: \(code)"
         case .sleepRecovery(let operation, let code):
             return "host \(operation.rawValue) rejected: \(code)"
         case .stop(let code): return "host stop failed: \(code)"
@@ -108,6 +111,17 @@ public enum HostControlError: Error, CustomStringConvertible {
         switch code {
         case Int32(RDN_HOST_ERR_INVALID_ARG): return .invalidEpoch
         case Int32(RDN_HOST_ERR_STALE_EPOCH): return .staleEpoch
+        case Int32(RDN_HOST_ERR_BAD_STATE): return .invalidState
+        case Int32(RDN_HOST_ERR_NOT_SUPPORTED): return .unsupported
+        case Int32(RDN_HOST_ERR_INTERNAL): return .internalFailure
+        default: return .unknown
+        }
+    }
+
+    public var networkPathRecoveryFailure: HostNetworkPathRecoveryFailure? {
+        guard case .networkPathRecovery(let code) = self else { return nil }
+        switch code {
+        case Int32(RDN_HOST_ERR_STALE_GENERATION): return .staleGeneration
         case Int32(RDN_HOST_ERR_BAD_STATE): return .invalidState
         case Int32(RDN_HOST_ERR_NOT_SUPPORTED): return .unsupported
         case Int32(RDN_HOST_ERR_INTERNAL): return .internalFailure
@@ -306,6 +320,14 @@ public enum HostSleepRecoveryOperation: String, Equatable, Sendable {
 public enum HostSleepRecoveryFailure: Equatable, Sendable {
     case invalidEpoch
     case staleEpoch
+    case invalidState
+    case unsupported
+    case internalFailure
+    case unknown
+}
+
+public enum HostNetworkPathRecoveryFailure: Equatable, Sendable {
+    case staleGeneration
     case invalidState
     case unsupported
     case internalFailure
@@ -1622,6 +1644,32 @@ public final class HostControlClient: @unchecked Sendable {
     /// snapshot with the same epoch, `running`, and registration `ready`.
     public func resumeAfterWake(epoch: UInt64) throws {
         try performSleepRecovery(.resumeAfterWake, epoch: epoch)
+    }
+
+    /// Synchronously retires the old registration runtime and starts its
+    /// replacement for the exact next product path generation. Acceptance is
+    /// pending only; callers must wait for a later authoritative snapshot.
+    public func recoverNetworkPath(generation: UInt64) throws {
+        guard generation > 0 else {
+            throw HostControlError.networkPathRecovery(
+                Int32(RDN_HOST_ERR_STALE_GENERATION)
+            )
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        guard let handle = host else {
+            throw HostControlError.networkPathRecovery(
+                Int32(RDN_HOST_ERR_BAD_STATE)
+            )
+        }
+        let result = rdn_shim_host_recover_network_path(
+            library,
+            handle,
+            generation
+        )
+        guard result == Int32(RDN_HOST_OK) else {
+            throw HostControlError.networkPathRecovery(result)
+        }
     }
 
     private func performSleepRecovery(

@@ -1,5 +1,10 @@
 # H5.1o-b2 Host network restart ABI v9
 
+> Historical checkpoint note: at commit `43c11d6` the tracked network restart
+> audit reported schema 2 for Host ABI v9. H5.1o-b3 advances the same audit to
+> verify the typed Swift client and ready-convergence layer; the ABI evidence
+> below remains unchanged.
+
 ## Outcome
 
 HostCore now exposes an identity-preserving, exact-generation registration

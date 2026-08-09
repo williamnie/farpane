@@ -57,6 +57,10 @@ def main() -> int:
         "build": repository / "Scripts/build-rust-core.sh",
         "preflight": repository / "Scripts/preflight-host-mode-h1-golden.sh",
         "snapshot": repository / "Sources/CoreBridge/HostControlClient.swift",
+        "poller": (
+            repository
+            / "Sources/CoreBridge/HostAgentNetworkPathRecoveryPollingOwner.swift"
+        ),
         "trigger": (
             repository
             / "Sources/CoreBridge/HostAgentNetworkPathRecoveryTriggerOwner.swift"
@@ -245,6 +249,34 @@ def main() -> int:
                 "registration.runtimeRestartFailedDuringNetworkRecovery",
             )
         ),
+        "swiftClientExposesTypedNetworkRecovery": all(
+            marker in sources["snapshot"]
+            for marker in (
+                "case networkPathRecovery(Int32)",
+                "public var networkPathRecoveryFailure:",
+                "public func recoverNetworkPath(generation: UInt64) throws",
+                "rdn_shim_host_recover_network_path(",
+                "RDN_HOST_ERR_STALE_GENERATION",
+                "Acceptance is",
+                "pending only",
+            )
+        ),
+        "swiftPollingPinsHostAndSleepEpochBeforeOneRestart": all(
+            marker in sources["poller"]
+            for marker in (
+                "productIntervalMilliseconds: UInt64 = 50",
+                "productMaximumAttempts: UInt64 = 100",
+                "productTimeoutMilliseconds: UInt64 = 5_000",
+                "baselineRecoveryEpoch(",
+                "snapshot.hostInstanceId == expectedHostInstanceID",
+                "snapshot.recoveryEpoch == recoveryEpoch",
+                "snapshot.recoveryStatus == .running",
+                '("starting", "pending")',
+                '("ready", "ready")',
+                "let accepted = recover(pathGeneration)",
+                "while operationInFlight || completionInFlight",
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -295,7 +327,7 @@ def main() -> int:
     }
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
@@ -328,12 +360,11 @@ def main() -> int:
         },
         "targetContract": target_contract,
         "remainingBoundary": {
-            "swiftReadyConvergenceNotImplemented": (
-                "func recoverNetworkPath(" not in sources["snapshot"]
-                and "HostAgentNetworkPathRecoveryPollingOwner" not in product_sources
-            ),
             "productNWPathMonitorAdapterAbsent": (
                 "NWPathMonitor" not in product_sources
+            ),
+            "processNetworkRecoveryCompositionAbsent": (
+                "HostAgentNetworkPathRecoveryPollingOwner.makeProduct(" not in product_sources
             ),
             "realNetworkSwitchEvidenceRequired": True,
         },

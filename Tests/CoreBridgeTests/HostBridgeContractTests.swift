@@ -661,6 +661,32 @@ final class HostBridgeContractTests: XCTestCase {
             rendezvousServer: liveServer ?? "127.0.0.1:21116",
             serverPublicKey: liveKey ?? syntheticPublicKey
         ))
+        let swiftNetworkBaseline = try swiftClient.copySnapshot()
+        XCTAssertThrowsError(try swiftClient.recoverNetworkPath(generation: 0)) { error in
+            XCTAssertEqual(
+                (error as? HostControlError)?.networkPathRecoveryFailure,
+                .staleGeneration
+            )
+        }
+        try swiftClient.recoverNetworkPath(generation: 1)
+        XCTAssertThrowsError(try swiftClient.recoverNetworkPath(generation: 1)) { error in
+            XCTAssertEqual(
+                (error as? HostControlError)?.networkPathRecoveryFailure,
+                .staleGeneration
+            )
+        }
+        XCTAssertThrowsError(try swiftClient.recoverNetworkPath(generation: 3)) { error in
+            XCTAssertEqual(
+                (error as? HostControlError)?.networkPathRecoveryFailure,
+                .staleGeneration
+            )
+        }
+        try swiftClient.recoverNetworkPath(generation: 2)
+        var swiftSnapshot = try swiftClient.copySnapshot()
+        XCTAssertEqual(swiftSnapshot.hostInstanceId, swiftNetworkBaseline.hostInstanceId)
+        XCTAssertEqual(swiftSnapshot.localId, swiftNetworkBaseline.localId)
+        XCTAssertEqual(swiftSnapshot.recoveryEpoch, swiftNetworkBaseline.recoveryEpoch)
+        XCTAssertEqual(swiftSnapshot.recoveryStatus, .running)
         XCTAssertThrowsError(try swiftClient.beginSleep(epoch: 0)) { error in
             guard case HostControlError.sleepRecovery(.beginSleep, _) = error else {
                 return XCTFail("unexpected recovery error: \(error)")
@@ -671,7 +697,7 @@ final class HostBridgeContractTests: XCTestCase {
             )
         }
         try swiftClient.beginSleep(epoch: 1)
-        var swiftSnapshot = try swiftClient.copySnapshot()
+        swiftSnapshot = try swiftClient.copySnapshot()
         XCTAssertEqual(swiftSnapshot.recoveryEpoch, 1)
         XCTAssertEqual(swiftSnapshot.recoveryStatus, .suspending)
         XCTAssertEqual(swiftSnapshot.registrationStatus, "suspending")
