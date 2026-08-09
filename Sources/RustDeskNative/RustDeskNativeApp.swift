@@ -124,6 +124,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private let options = Options(arguments: CommandLine.arguments)
     private let hostViewerConcurrencyEvidenceOwner =
         HostViewerConcurrencyEvidenceProcessOwner()
+    private let hostAgentApplicationConcurrencyObservationState =
+        HostAgentApplicationConcurrencyObservationState()
     private let catalogStore = DeviceCatalogStore(fileURL: AppDelegate.catalogURL())
     private lazy var hostAgentBootstrapIntegration = try? HostAgentBootstrapProductIntegration()
     private lazy var hostAgentRuntimeConfigurationReader =
@@ -828,6 +830,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     private func refreshHostAgentRuntimeConfigurationCoherence() {
+        defer { observeHostAgentApplicationConcurrencyEvidence() }
         guard let projection = hostAgentBackgroundActivationView?.projection,
               case .available(let available) = projection.phase
         else {
@@ -864,6 +867,56 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         } catch {
             hostAgentRuntimeConfigurationCoherence = .evidenceUnavailable
         }
+    }
+
+    private func observeHostAgentApplicationConcurrencyEvidence() {
+        guard let activationView = hostAgentBackgroundActivationView else {
+            return
+        }
+        let configRevision: UInt64?
+        if case .coherent(let revision) =
+            hostAgentRuntimeConfigurationCoherence
+        {
+            configRevision = revision
+        } else {
+            configRevision = nil
+        }
+        guard let observation =
+            hostAgentApplicationConcurrencyObservationState.observe(
+                projection: activationView.projection,
+                coherentConfigRevision: configRevision,
+                sourceToken: activationView.generation
+            ),
+              let agentBootID = UUID(
+                uuidString: observation.peerIdentity.agentBootID
+              ),
+              agentBootID.uuidString.lowercased()
+                == observation.peerIdentity.agentBootID
+        else { return }
+
+        let state: HostViewerConcurrencyHostState
+        switch observation.state {
+        case .readyZeroInbound:
+            state = .readyZeroInbound
+        case .inboundMediaActive:
+            state = .inboundMediaActive
+        case .disconnected:
+            state = .disconnected
+        }
+        _ = hostViewerConcurrencyEvidenceOwner
+            .observeApplicationHostAgentRuntimeState(
+                state: state,
+                hostInstanceID:
+                    observation.peerIdentity.hostInstanceID,
+                agentBootID: agentBootID,
+                configRevision: observation.configRevision,
+                agentBuildID: observation.peerIdentity.agentBuildID,
+                agentProcessID: observation.peerIdentity.agentProcessID,
+                agentProcessStartIdentitySHA256:
+                    observation.peerIdentity
+                        .agentProcessStartIdentitySHA256,
+                sourceGeneration: observation.sourceGeneration
+            )
     }
 
     private var hostAgentRuntimeConfigurationErrorText: String {

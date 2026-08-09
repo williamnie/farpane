@@ -73,6 +73,11 @@ def main() -> int:
             repository
             / "Sources/CoreBridge/HostAgentBackgroundProjectionAuthority.swift"
         ),
+        "application_concurrency_state": (
+            repository
+            / "Sources/CoreBridge/"
+            / "HostAgentApplicationConcurrencyObservation.swift"
+        ),
         "combined_validator": (
             repository / "Scripts/validate-farpane-host-combined-role.py"
         ),
@@ -145,6 +150,9 @@ def main() -> int:
     ]
     xpc_snapshot = sources["xpc_snapshot"]
     projection = sources["projection"]
+    application_concurrency_state = sources[
+        "application_concurrency_state"
+    ]
     combined_validator = sources["combined_validator"]
     pair_validator = sources["pair_validator"]
     lifecycle_writer = sources["lifecycle_writer"]
@@ -528,18 +536,52 @@ def main() -> int:
                 )
             )
         ),
-        "applicationHostEvidenceCompositionRemainsFailClosed": (
-            "recordHostRuntimeStateEvidence(force: true)" in app
-            and "HostViewerConcurrencyEvidenceDigest.hostInstanceScope("
-                not in app
-            and "recordHostAgentObservation(" not in app
-            and "observeHostAgentRuntimeState(" not in app
+        "applicationHostEvidenceCompositionUsesCoherentXPCIdentity": (
+            all(
+                marker in app
+                for marker in (
+                    "HostAgentApplicationConcurrencyObservationState()",
+                    "defer { observeHostAgentApplicationConcurrencyEvidence() }",
+                    "coherentConfigRevision: configRevision",
+                    "sourceToken: activationView.generation",
+                    ".observeApplicationHostAgentRuntimeState(",
+                    "observation.peerIdentity.agentProcessID",
+                    ".agentProcessStartIdentitySHA256",
+                )
+            )
+            and all(
+                marker in application_concurrency_state
+                for marker in (
+                    "HostAgentApplicationConcurrencyObservation",
+                    "let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity",
+                    "let configRevision: UInt64",
+                    "case transportUnavailable",
+                    "case evidenceUnavailable",
+                    "coherentConfigRevision > 0",
+                    "HostAgentConcurrencyRuntimeStatePolicy.classify(",
+                    "if let scope, scope != candidateScope",
+                    "sourceGeneration: nextSourceGeneration",
+                )
+            )
+            and all(
+                marker in lifecycle_process_owner
+                for marker in (
+                    "public func observeApplicationHostAgentRuntimeState(",
+                    "expectedObserverRole: .application",
+                    "agentProcessID > 1",
+                    "Self.isLowercaseSHA256(agentProcessStartIdentitySHA256)",
+                    "configuredRole == expectedObserverRole",
+                    "current.scope == scope",
+                )
+            )
+            and "getpid()" not in app
+            and "PROC_PIDTBSDINFO" not in app
         ),
         "versionedAgentProcessIdentityXPCV2IsImplemented": (
             all(
                 marker in xpc_process_identity_contract_audit
                 for marker in (
-                    '"wire-identity-v2-implemented"',
+                    '"application-host-observation-composed"',
                     '"handshakeSchemaVersion": 2',
                     '"wireVersion": 2',
                     '"agentProcessID"',
@@ -549,7 +591,7 @@ def main() -> int:
                     '"acceptsIdentityOnlyFromCompatibleHandshakeV2": True',
                     '"comparesAllIdentityFieldsAcrossReconnect": True',
                     '"schema-v1-fallback-for-host-lifecycle-evidence"',
-                    '"application-host-lifecycle-observation-composition"',
+                    '"viewer-automatic-recovery-composition"',
                 )
             )
             and all(
@@ -599,7 +641,8 @@ def main() -> int:
             marker in lifecycle_process_owner
             for marker in (
                 "public func observeHostAgentRuntimeState(",
-                "configuredRole == .hostAgent",
+                "expectedObserverRole: .hostAgent",
+                "configuredRole == expectedObserverRole",
                 "agentBuildDigest == configuredIdentity.buildIdentitySHA256",
                 "sourceGeneration > 0",
                 "sourceGeneration > current.sourceGeneration",
@@ -610,8 +653,8 @@ def main() -> int:
                 "nextState = .recoveredReady(generation: generation)",
                 "nextState = .recoveredActive(generation: generation)",
                 "guard generation < UInt64.max else { return nil }",
-                "hostAgentProcessID: processIdentity.processID",
-                "processIdentity.processStartIdentitySHA256",
+                "hostAgentProcessID: scope.agentProcessID",
+                "scope.agentProcessStartIdentitySHA256",
                 ".host(observation)",
                 "hostSession = nextSession",
                 "incrementSaturating(&hostRecords)",
@@ -642,10 +685,10 @@ def main() -> int:
                 'case "sessionEnded":',
                 "snapshot.status == .available",
                 "snapshot.refreshGeneration > 0",
-                "projection.authenticatedConnectionCount == 0",
-                "projection.activeSession == nil",
-                "projection.authenticatedConnectionCount > 0",
-                "projection.activeSession != nil",
+                "authenticatedConnectionCount == 0",
+                "!hasActiveSession",
+                "authenticatedConnectionCount > 0",
+                "hasActiveSession",
                 'case "created", "starting", "stopping", "stopped", "error":',
                 "lastSourceGeneration += 1",
                 "pending.append(HostAgentConcurrencyObservation(",
@@ -855,6 +898,24 @@ def main() -> int:
         "applicationConfigRevisionCoherence": line_number(
             app, "observation.bootstrap.configRevision =="
         ),
+        "applicationHostObservationComposition": line_number(
+            app,
+            "private func observeHostAgentApplicationConcurrencyEvidence()",
+        ),
+        "applicationHostObservationState": line_number(
+            application_concurrency_state,
+            "package final class HostAgentApplicationConcurrencyObservationState",
+        ),
+        "applicationHostObservationAPI": line_number(
+            lifecycle_process_owner,
+            "public func observeApplicationHostAgentRuntimeState(",
+        ),
+        "applicationHostAgentProcessID": line_number(
+            app, "observation.peerIdentity.agentProcessID"
+        ),
+        "applicationHostAgentProcessStart": line_number(
+            app, ".agentProcessStartIdentitySHA256"
+        ),
         "wireAgentIdentityContract": line_number(
             xpc_handshake, "package struct HostAgentXPCWireAgentIdentity"
         ),
@@ -894,7 +955,7 @@ def main() -> int:
             "public func observeHostAgentRuntimeState(",
         ),
         "hostAgentSelfObservationRoleGate": line_number(
-            lifecycle_process_owner, "configuredRole == .hostAgent"
+            lifecycle_process_owner, "expectedObserverRole: .hostAgent"
         ),
         "hostAgentSelfObservationBuildGate": line_number(
             lifecycle_process_owner,
@@ -946,11 +1007,11 @@ def main() -> int:
         ),
         "hostAgentConcurrencyReadyGate": line_number(
             host_agent_concurrency_state,
-            "projection.authenticatedConnectionCount == 0",
+            "authenticatedConnectionCount == 0",
         ),
         "hostAgentConcurrencyActiveGate": line_number(
             host_agent_concurrency_state,
-            "projection.authenticatedConnectionCount > 0",
+            "authenticatedConnectionCount > 0",
         ),
         "hostAgentConcurrencySourceGeneration": line_number(
             host_agent_concurrency_state, "lastSourceGeneration += 1"
@@ -1072,7 +1133,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "host-agent-process-identity-xpc-v2-implemented"
+            "application-host-observation-composed"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -1111,10 +1172,10 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "application-host-lifecycle-observation-composition"
+            "viewer-automatic-recovery-composition"
         ),
         "remainingBoundary": {
-            "applicationHostObservationStillRequiresComposition": True,
+            "applicationHostObservationStillRequiresComposition": False,
             "viewerAutomaticRecoveryStillRequiresImplementation": True,
             "fiveScenarioManifestValidatorStillRequiresImplementation": True,
             "installedAppAgentTwoMachineExecutionStillRequiresExecution": True,
@@ -1122,7 +1183,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "host-agent-process-identity-xpc-v2-implemented"
+    expected_status = "application-host-observation-composed"
     return 0 if result["status"] == expected_status else 1
 
 

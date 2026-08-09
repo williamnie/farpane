@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Freeze the fail-closed HostAgent process-identity XPC v2 contract."""
+"""Audit XPC v2 identity through App Host lifecycle observation."""
 
 from __future__ import annotations
 
@@ -61,6 +61,11 @@ def main() -> int:
             / "Sources/VideoPipeline/HostViewerConcurrencyEvidence.swift"
         ),
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
+        "app_observation": (
+            repository
+            / "Sources/CoreBridge/"
+            / "HostAgentApplicationConcurrencyObservation.swift"
+        ),
         "handshake_tests": (
             repository
             / "Tests/CoreBridgeTests/HostAgentXPCWireHandshakeTests.swift"
@@ -73,6 +78,16 @@ def main() -> int:
         "client_tests": (
             repository
             / "Tests/CoreBridgeTests/HostAgentXPCSnapshotClientTests.swift"
+        ),
+        "app_observation_tests": (
+            repository
+            / "Tests/CoreBridgeTests/"
+            / "HostAgentApplicationConcurrencyObservationTests.swift"
+        ),
+        "process_owner_tests": (
+            repository
+            / "Tests/VideoPipelineTests/"
+            / "HostViewerConcurrencyEvidenceProcessOwnerTests.swift"
         ),
     }
     try:
@@ -96,9 +111,12 @@ def main() -> int:
     process_owner = sources["process_owner"]
     writer = sources["writer"]
     app = sources["app"]
+    app_observation = sources["app_observation"]
     handshake_tests = sources["handshake_tests"]
     identity_tests = sources["identity_tests"]
     client_tests = sources["client_tests"]
+    app_observation_tests = sources["app_observation_tests"]
+    process_owner_tests = sources["process_owner_tests"]
 
     evidence = {
         "handshakeImplementsStrictSchemaAndWireV2": all(
@@ -241,10 +259,74 @@ def main() -> int:
                 "observation.hostAgentProcessStartIdentitySHA256",
             )
         ),
-        "applicationHostCompositionRemainsFailClosed": (
-            "recordHostRuntimeStateEvidence(force: true)" in app
-            and "recordHostAgentObservation(" not in app
-            and "observeHostAgentRuntimeState(" not in app
+        "applicationHostCompositionUsesOnlyCoherentProjection": (
+            all(
+                marker in app
+                for marker in (
+                    "HostAgentApplicationConcurrencyObservationState()",
+                    "defer { observeHostAgentApplicationConcurrencyEvidence() }",
+                    "coherentConfigRevision: configRevision",
+                    "sourceToken: activationView.generation",
+                )
+            )
+            and all(
+                marker in app_observation
+                for marker in (
+                    "case coherent(",
+                    "case transportUnavailable",
+                    "case evidenceUnavailable",
+                    "coherentConfigRevision > 0",
+                    "HostAgentConcurrencyRuntimeStatePolicy.classify(",
+                    "if let scope, scope != candidateScope",
+                    "failed = true",
+                )
+            )
+        ),
+        "applicationHostObservationUsesExactXPCProcessIdentity": (
+            all(
+                marker in app
+                for marker in (
+                    ".observeApplicationHostAgentRuntimeState(",
+                    "observation.peerIdentity.hostInstanceID",
+                    "observation.peerIdentity.agentBuildID",
+                    "observation.peerIdentity.agentProcessID",
+                    ".agentProcessStartIdentitySHA256",
+                )
+            )
+            and all(
+                marker in process_owner
+                for marker in (
+                    "public func observeApplicationHostAgentRuntimeState(",
+                    "expectedObserverRole: .application",
+                    "agentProcessID > 1",
+                    "Self.isLowercaseSHA256(agentProcessStartIdentitySHA256)",
+                    "configuredRole == expectedObserverRole",
+                    "current.scope == scope",
+                )
+            )
+            and "getpid()" not in app
+            and "PROC_PIDTBSDINFO" not in app
+            and "getpid()" not in app_observation
+            and "PROC_PIDTBSDINFO" not in app_observation
+        ),
+        "applicationHostObservationFailClosedTestsExist": (
+            all(
+                marker in app_observation_tests
+                for marker in (
+                    "testCoherentProjectionDisconnectAndRecoveryUseOnePinnedScope",
+                    "testIdentityOrConfigurationDriftFailsClosed",
+                    "coherentConfigRevision: nil",
+                    "XCTAssertTrue(state.snapshot().failed)",
+                )
+            )
+            and all(
+                marker in process_owner_tests
+                for marker in (
+                    "testApplicationRecordsOnlyExactHandshakeAgentProcessIdentity",
+                    'String(repeating: "A", count: 64)',
+                    'agentProcessID: 4_322',
+                )
+            )
         ),
         "v1AndMalformedProcessIdentityFailClosedInTests": (
             all(
@@ -332,8 +414,22 @@ def main() -> int:
         "requiredHostAgentProcessStart": line_number(
             writer, "let hostAgentProcessStartIdentitySHA256: String"
         ),
-        "failClosedApplicationComposition": line_number(
-            app, "recordHostRuntimeStateEvidence(force: true)"
+        "applicationObservationComposition": line_number(
+            app, "private func observeHostAgentApplicationConcurrencyEvidence()"
+        ),
+        "applicationObservationState": line_number(
+            app_observation,
+            "package final class HostAgentApplicationConcurrencyObservationState",
+        ),
+        "applicationEvidenceAPI": line_number(
+            process_owner,
+            "public func observeApplicationHostAgentRuntimeState(",
+        ),
+        "applicationAgentProcessID": line_number(
+            app, "observation.peerIdentity.agentProcessID"
+        ),
+        "applicationAgentProcessStart": line_number(
+            app, ".agentProcessStartIdentitySHA256"
         ),
     }
     missing_source_lines = [
@@ -343,9 +439,9 @@ def main() -> int:
     result = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "coverageScope": "h5.3af-host-agent-process-identity-xpc-v2",
+        "coverageScope": "h5.3ag-application-host-lifecycle-observation",
         "status": (
-            "wire-identity-v2-implemented"
+            "application-host-observation-composed"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -398,10 +494,10 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "application-host-lifecycle-observation-composition"
+            "viewer-automatic-recovery-composition"
         ),
         "remainingBoundary": {
-            "applicationHostObservationStillRequiresComposition": True,
+            "applicationHostObservationStillRequiresComposition": False,
             "viewerAutomaticRecoveryStillRequiresImplementation": True,
             "fiveScenarioValidatorStillRequiresImplementation": True,
             "installedAppAgentExecutionStillRequiresExecution": True,
@@ -409,7 +505,11 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "wire-identity-v2-implemented" else 1
+    return (
+        0
+        if result["status"] == "application-host-observation-composed"
+        else 1
+    )
 
 
 if __name__ == "__main__":
