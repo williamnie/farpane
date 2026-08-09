@@ -62,6 +62,10 @@ def main() -> int:
         "xpc_handshake": (
             repository / "Sources/CoreBridge/HostAgentXPCWireHandshake.swift"
         ),
+        "xpc_process_identity_contract_audit": (
+            repository
+            / "Scripts/audit-host-agent-xpc-process-identity-contract.py"
+        ),
         "xpc_snapshot": (
             repository / "Sources/CoreBridge/HostAgentXPCWireSnapshot.swift"
         ),
@@ -108,6 +112,11 @@ def main() -> int:
             / "Evidence/HostMode/2026-08-09/"
             / "h4-config-isolation-concurrency-audit.md"
         ),
+        "h5_xpc_process_identity_contract": (
+            repository
+            / "Evidence/HostMode/2026-08-10/"
+            / "h5-v1-concurrency-agent-process-identity-xpc-contract.md"
+        ),
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -131,6 +140,9 @@ def main() -> int:
     xpc_reconnect = sources["xpc_reconnect"]
     xpc_client = sources["xpc_client"]
     xpc_handshake = sources["xpc_handshake"]
+    xpc_process_identity_contract_audit = sources[
+        "xpc_process_identity_contract_audit"
+    ]
     xpc_snapshot = sources["xpc_snapshot"]
     projection = sources["projection"]
     combined_validator = sources["combined_validator"]
@@ -143,6 +155,9 @@ def main() -> int:
     host_agent_concurrency_state = sources["host_agent_concurrency_state"]
     host_agent_snapshot_state = sources["host_agent_snapshot_state"]
     h4_audit = sources["h4_audit"]
+    h5_xpc_process_identity_contract = sources[
+        "h5_xpc_process_identity_contract"
+    ]
 
     target_validator = (
         repository / "Scripts/validate-farpane-host-v1-concurrency.py"
@@ -512,6 +527,32 @@ def main() -> int:
                 not in app
             and "recordHostAgentObservation(" not in app
             and "observeHostAgentRuntimeState(" not in app
+        ),
+        "versionedAgentProcessIdentityXPCContractIsFrozen": (
+            all(
+                marker in xpc_process_identity_contract_audit
+                for marker in (
+                    '"handshakeSchemaVersion": 2',
+                    '"wireVersion": 2',
+                    '"agentProcessID"',
+                    '"agentProcessStartIdentitySHA256"',
+                    '"processIDSource": "getpid"',
+                    '"processStartSource": "PROC_PIDTBSDINFO-same-pid"',
+                    '"acceptsIdentityOnlyFromCompatibleHandshakeV2": True',
+                    '"comparesAllIdentityFieldsAcrossReconnect": True',
+                    '"schema-v1-fallback-for-host-lifecycle-evidence"',
+                    '"nextImplementationBoundary": "host-agent-xpc-wire-identity-v2"',
+                )
+            )
+            and all(
+                marker in h5_xpc_process_identity_contract
+                for marker in (
+                    "deliberately does not modify the shared XPC schema",
+                    "raw kernel start tuple must not enter XPC or evidence",
+                    "Snapshot payloads must not duplicate or redefine process identity",
+                    "Schema/wire version 1 must not be accepted as a fallback",
+                )
+            )
         ),
         "hostAgentProcessOwnerUsesPreflightedBuildAndRole": all(
             marker in lifecycle_process_owner
@@ -945,6 +986,26 @@ def main() -> int:
         "h4LiveEvidenceBoundary": line_number(
             h4_audit, "Manual/live evidence missing"
         ),
+        "agentProcessIdentityContractSchemaV2": line_number(
+            xpc_process_identity_contract_audit,
+            '"handshakeSchemaVersion": 2',
+        ),
+        "agentProcessIdentityContractPIDAuthority": line_number(
+            xpc_process_identity_contract_audit,
+            '"processIDSource": "getpid"',
+        ),
+        "agentProcessIdentityContractStartAuthority": line_number(
+            xpc_process_identity_contract_audit,
+            '"processStartSource": "PROC_PIDTBSDINFO-same-pid"',
+        ),
+        "agentProcessIdentityContractReconnectBinding": line_number(
+            xpc_process_identity_contract_audit,
+            '"comparesAllIdentityFieldsAcrossReconnect": True',
+        ),
+        "agentProcessIdentityContractEvidence": line_number(
+            h5_xpc_process_identity_contract,
+            "## Frozen version-2 boundary",
+        ),
     }
     missing_source_lines = [
         name for name, number in source_lines.items() if number <= 0
@@ -1003,7 +1064,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "host-agent-continuous-observation-implemented"
+            "host-agent-process-identity-xpc-contract-frozen"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -1042,7 +1103,7 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "versioned-host-agent-process-identity-xpc-contract"
+            "host-agent-xpc-wire-identity-v2"
         ),
         "remainingBoundary": {
             "applicationHostObservationRequiresVersionedAgentProcessIdentity": (
@@ -1055,7 +1116,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "host-agent-continuous-observation-implemented"
+    expected_status = "host-agent-process-identity-xpc-contract-frozen"
     return 0 if result["status"] == expected_status else 1
 
 
