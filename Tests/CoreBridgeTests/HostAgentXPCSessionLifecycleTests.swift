@@ -441,7 +441,7 @@ final class HostAgentXPCSessionLifecycleTests: XCTestCase {
         let request = try HostAgentXPCWireCommandRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
             commandID: intent.commandID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             name: intent.name,
@@ -458,7 +458,7 @@ final class HostAgentXPCSessionLifecycleTests: XCTestCase {
     private func peerIdentity() throws
         -> HostAgentXPCSnapshotClientPeerIdentity
     {
-        try HostAgentXPCSnapshotClientPeerIdentity(
+        try HostAgentXPCSnapshotClientPeerIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID
@@ -470,7 +470,7 @@ final class HostAgentXPCSessionLifecycleTests: XCTestCase {
     {
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             sentAtUnixMilliseconds: 11
@@ -521,7 +521,7 @@ final class HostAgentXPCSessionLifecycleTests: XCTestCase {
     {
         try HostAgentXPCWireEventCursorRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             afterEventID: afterEventID,
@@ -531,7 +531,7 @@ final class HostAgentXPCSessionLifecycleTests: XCTestCase {
     }
 
     private func identity() throws -> HostAgentXPCWireAgentIdentity {
-        try HostAgentXPCWireAgentIdentity(
+        try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID

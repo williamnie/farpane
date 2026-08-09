@@ -70,7 +70,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
 
     func testCompatibleHandshakeUnlocksOnlyCorrelatedAvailableSnapshot() throws {
         let handler = try makeHandler(availableSnapshot: true, eventSequence: 7)
-        let handshake = try handshakeRequest(versions: [1])
+        let handshake = try handshakeRequest(versions: [2])
 
         let handshakeData = try XCTUnwrap(handler.handshakeResponse(
             for: handshake.encoded()
@@ -79,7 +79,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             handshakeData
         )
         XCTAssertEqual(handshakeResponse.compatibility, .compatible)
-        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 1))
+        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 2))
 
         let request = try snapshotRequest()
         let snapshotData = try XCTUnwrap(handler.snapshotResponse(
@@ -92,7 +92,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
 
         let wrongBoot = try HostAgentXPCWireSnapshotRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
             sentAtUnixMilliseconds: 12
@@ -103,7 +103,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
 
     func testIncompatibleHandshakeTerminallyRejectsSnapshotAndRenegotiation() throws {
         let handler = try makeHandler(availableSnapshot: true)
-        let incompatible = try handshakeRequest(versions: [2])
+        let incompatible = try handshakeRequest(versions: [1])
         let incompatibleData = try XCTUnwrap(handler.handshakeResponse(
             for: incompatible.encoded()
         ))
@@ -118,7 +118,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             for: try snapshotRequest().encoded()
         ))
         XCTAssertNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
     }
 
@@ -128,9 +128,9 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         XCTAssertNil(handler.handshakeResponse(for: Data()))
         XCTAssertEqual(handler.stateSnapshot(), .awaitingHandshake)
         XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
-        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 1))
+        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 2))
 
         XCTAssertNil(handler.snapshotResponse(for: Data()))
         XCTAssertNil(handler.snapshotResponse(
@@ -140,7 +140,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
 
     func testConcurrentHandshakeAllowsExactlyOneTerminalNegotiation() throws {
         let handler = try makeHandler(availableSnapshot: true)
-        let requestData = try handshakeRequest(versions: [1]).encoded()
+        let requestData = try handshakeRequest(versions: [2]).encoded()
         let queue = DispatchQueue(
             label: "HostAgentXPCSnapshotServiceTests.handshake",
             attributes: .concurrent
@@ -162,7 +162,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         }
         XCTAssertEqual(group.wait(timeout: .now() + 3), .success)
         XCTAssertEqual(successfulReplies, 1)
-        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 1))
+        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 2))
     }
 
     func testSnapshotRequestsAreRateLimitedPerConnection() throws {
@@ -172,7 +172,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             monotonicMilliseconds: { clock.now() }
         )
         XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
         let requestData = try snapshotRequest().encoded()
 
@@ -196,7 +196,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             for: try initialEventRequest.encoded()
         ))
         XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
         XCTAssertNil(handler.eventResponse(
             for: try initialEventRequest.encoded()
@@ -214,7 +214,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         XCTAssertEqual(response.latestEventID, 2)
         XCTAssertEqual(
             handler.stateSnapshot(),
-            .snapshotReady(wireVersion: 1, afterEventID: 2)
+            .snapshotReady(wireVersion: 2, afterEventID: 2)
         )
 
         XCTAssertNil(handler.eventResponse(
@@ -243,7 +243,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             monotonicMilliseconds: { clock.now() }
         )
         XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
         XCTAssertNotNil(handler.snapshotResponse(
             for: try snapshotRequest().encoded()
@@ -260,7 +260,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             try HostAgentXPCWireEventCursorResponse.decode(data).outcome,
             .gap
         )
-        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 1))
+        XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 2))
         XCTAssertNil(handler.eventResponse(for: try request.encoded()))
     }
 
@@ -274,7 +274,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             monotonicMilliseconds: { clock.now() }
         )
         XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
         XCTAssertNotNil(handler.snapshotResponse(
             for: try snapshotRequest().encoded()
@@ -302,7 +302,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             requestData: try request.encoded()
         ))
         XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
         XCTAssertNil(commandReply(
             handler,
@@ -332,7 +332,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         XCTAssertEqual(recorder.startedExecutions.count, 1)
         XCTAssertEqual(
             handler.stateSnapshot(),
-            .snapshotReady(wireVersion: 1, afterEventID: 1)
+            .snapshotReady(wireVersion: 2, afterEventID: 1)
         )
     }
 
@@ -346,7 +346,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             monotonicMilliseconds: { clock.now() }
         )
         XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
         XCTAssertNotNil(handler.snapshotResponse(
             for: try snapshotRequest().encoded()
@@ -357,7 +357,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
                 XCTAssertEqual(
                     handler.stateSnapshot(),
                     .submittingCommand(
-                        wireVersion: 1,
+                        wireVersion: 2,
                         afterEventID: 1
                     )
                 )
@@ -406,7 +406,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             monotonicMilliseconds: { clock.now() }
         )
         XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [1]).encoded()
+            for: try handshakeRequest(versions: [2]).encoded()
         ))
         XCTAssertNotNil(handler.snapshotResponse(
             for: try snapshotRequest().encoded()
@@ -463,7 +463,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         let handshakeReply = expectation(description: "handshake reply")
         var handshakeData: Data?
         proxy.performHandshake(
-            requestData: try handshakeRequest(versions: [1]).encoded()
+            requestData: try handshakeRequest(versions: [2]).encoded()
         ) { data in
             handshakeData = data
             handshakeReply.fulfill()
@@ -575,7 +575,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             )
         }
         return try HostAgentXPCSnapshotSessionHandler(
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: hostID,
                 agentBootID: bootID
@@ -604,7 +604,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     private func snapshotRequest() throws -> HostAgentXPCWireSnapshotRequest {
         try HostAgentXPCWireSnapshotRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             sentAtUnixMilliseconds: 11
@@ -616,7 +616,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     ) throws -> HostAgentXPCWireEventCursorRequest {
         try HostAgentXPCWireEventCursorRequest(
             requestID: "841733af-919b-4dc2-84bb-7134d0951dc9",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             afterEventID: afterEventID,
@@ -633,7 +633,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         try HostAgentXPCWireCommandRequest(
             requestID: requestID,
             commandID: commandID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID ?? self.bootID,
             name: .approveIncoming,
@@ -645,7 +645,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     private func makeCommandService(
         recorder: SnapshotCommandServiceRecorder
     ) throws -> HostAgentXPCCommandService {
-        let identity = try HostAgentXPCWireAgentIdentity(
+        let identity = try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID

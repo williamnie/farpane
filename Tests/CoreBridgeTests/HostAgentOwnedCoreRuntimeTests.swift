@@ -279,7 +279,7 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         let request = try HostAgentXPCWireCommandRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
             commandID: "command-1",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "owned-runtime-host",
             agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
             name: .disconnectSession,

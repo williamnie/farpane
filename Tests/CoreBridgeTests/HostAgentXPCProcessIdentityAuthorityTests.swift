@@ -1,5 +1,7 @@
 @testable import CoreBridge
+import Darwin
 import Foundation
+import VideoPipeline
 import XCTest
 
 final class HostAgentXPCProcessIdentityAuthorityTests: XCTestCase {
@@ -20,6 +22,43 @@ final class HostAgentXPCProcessIdentityAuthorityTests: XCTestCase {
         XCTAssertEqual(
             UUID(uuidString: firstIdentity.agentBootID)?.uuidString.lowercased(),
             firstIdentity.agentBootID
+        )
+        XCTAssertEqual(firstIdentity.agentProcessID, getpid())
+        XCTAssertTrue(
+            HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
+                firstIdentity.agentProcessStartIdentitySHA256
+            )
+        )
+        XCTAssertEqual(
+            authority.agentProcessIdentitySnapshot()?.agentProcessID,
+            firstIdentity.agentProcessID
+        )
+        XCTAssertEqual(
+            authority.agentProcessIdentitySnapshot()?
+                .agentProcessStartIdentitySHA256,
+            firstIdentity.agentProcessStartIdentitySHA256
+        )
+
+        var info = proc_bsdinfo()
+        let expectedSize = Int32(MemoryLayout<proc_bsdinfo>.stride)
+        let copiedSize = withUnsafeMutablePointer(to: &info) { pointer in
+            proc_pidinfo(
+                firstIdentity.agentProcessID,
+                PROC_PIDTBSDINFO,
+                0,
+                pointer,
+                expectedSize
+            )
+        }
+        XCTAssertEqual(copiedSize, expectedSize)
+        let rawProcessStartIdentity =
+            "pid=\(firstIdentity.agentProcessID);sec=\(info.pbi_start_tvsec);"
+            + "usec=\(info.pbi_start_tvusec)"
+        XCTAssertEqual(
+            firstIdentity.agentProcessStartIdentitySHA256,
+            HostViewerConcurrencyEvidenceDigest.processStartIdentity(
+                rawProcessStartIdentity
+            )
         )
 
         XCTAssertEqual(
@@ -87,6 +126,7 @@ final class HostAgentXPCProcessIdentityAuthorityTests: XCTestCase {
         authority.invalidate()
 
         XCTAssertEqual(authority.snapshot(), .invalidated)
+        XCTAssertNil(authority.agentProcessIdentitySnapshot())
         authority.invalidate()
         XCTAssertEqual(authority.snapshot(), .invalidated)
     }
@@ -215,6 +255,13 @@ final class HostAgentXPCProcessIdentityAuthorityTests: XCTestCase {
         XCTAssertFalse(source.contains("FileManager"))
         XCTAssertFalse(source.contains("NSXPCListener"))
         XCTAssertFalse(source.contains("NSXPCConnection"))
+        XCTAssertTrue(source.contains("let processID = getpid()"))
+        XCTAssertTrue(source.contains("PROC_PIDTBSDINFO"))
+        XCTAssertTrue(source.contains("info.pbi_pid == UInt32(processID)"))
+        XCTAssertTrue(source.contains(
+            "farpane.v1-concurrency.process-start.v1"
+        ))
+        XCTAssertTrue(source.contains("var hasher = SHA256()"))
     }
 
     private let validBootID = "6973cef9-a610-4183-ac81-287fd5f298b7"

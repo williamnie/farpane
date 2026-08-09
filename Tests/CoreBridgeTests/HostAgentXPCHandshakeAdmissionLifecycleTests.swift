@@ -436,7 +436,7 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
         let handler = try XCTUnwrap(locked { configuredHandler })
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
             sentAtUnixMilliseconds: 11
@@ -453,7 +453,7 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
         let handler = try XCTUnwrap(locked { configuredHandler })
         let request = try HostAgentXPCWireEventCursorRequest(
             requestID: "841733af-919b-4dc2-84bb-7134d0951dc9",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
             afterEventID: afterEventID,
@@ -471,7 +471,7 @@ private final class HandshakeConnectionRecorder: @unchecked Sendable {
         let request = try HostAgentXPCWireCommandRequest(
             requestID: "62113cb8-4d8c-43ec-8e84-a92b77ed2ce7",
             commandID: "command-1",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
             name: .approveIncoming,

@@ -353,7 +353,7 @@ final class HostAgentXPCWireEventTests: XCTestCase {
 
         let otherRequest = try HostAgentXPCWireEventCursorRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             afterEventID: 0,
@@ -393,7 +393,7 @@ final class HostAgentXPCWireEventTests: XCTestCase {
     ) throws -> HostAgentXPCWireEventCursorRequest {
         try HostAgentXPCWireEventCursorRequest(
             requestID: requestID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             afterEventID: afterEventID,
@@ -403,7 +403,7 @@ final class HostAgentXPCWireEventTests: XCTestCase {
     }
 
     private func identity() throws -> HostAgentXPCWireAgentIdentity {
-        try HostAgentXPCWireAgentIdentity(
+        try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID

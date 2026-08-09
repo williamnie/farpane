@@ -345,7 +345,7 @@ final class HostAgentBackgroundProjectionAuthorityTests: XCTestCase {
     private func peer(hostID: String, bootID: String) throws
         -> HostAgentXPCSnapshotClientPeerIdentity
     {
-        try HostAgentXPCSnapshotClientPeerIdentity(
+        try HostAgentXPCSnapshotClientPeerIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID
@@ -362,7 +362,7 @@ final class HostAgentBackgroundProjectionAuthorityTests: XCTestCase {
     ) throws -> HostAgentXPCWireSnapshotResponse {
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             sentAtUnixMilliseconds: 11
@@ -536,7 +536,7 @@ final class HostAgentBackgroundProjectionAuthorityTests: XCTestCase {
     ) throws -> HostAgentXPCWireEventCursorRequest {
         try HostAgentXPCWireEventCursorRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostID,
             agentBootID: bootID,
             afterEventID: afterEventID,
@@ -548,7 +548,7 @@ final class HostAgentBackgroundProjectionAuthorityTests: XCTestCase {
     private func wireIdentity(hostID: String, bootID: String) throws
         -> HostAgentXPCWireAgentIdentity
     {
-        try HostAgentXPCWireAgentIdentity(
+        try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID

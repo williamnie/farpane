@@ -29,6 +29,10 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         )
         XCTAssertNil(handshakeRequest.knownHostInstanceID)
         XCTAssertNil(handshakeRequest.knownAgentBootID)
+        XCTAssertNil(handshakeRequest.knownAgentProcessID)
+        XCTAssertNil(
+            handshakeRequest.knownAgentProcessStartIdentitySHA256
+        )
         transport.replyToHandshake(try handshakeResponse(
             for: handshakeRequest,
             hostID: hostID,
@@ -170,7 +174,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         XCTAssertEqual(request.name, .disconnectSession)
         let accepted = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: hostID,
                 agentBootID: bootID
@@ -244,7 +248,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         )
         let late = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: hostID,
                 agentBootID: bootID
@@ -287,7 +291,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         )
         let accepted = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
             for: commandRequest,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: hostID,
                 agentBootID: bootID
@@ -399,7 +403,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         )
         let accepted = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: hostID,
                 agentBootID: bootID
@@ -482,7 +486,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         )
         let accepted = try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: hostID,
                 agentBootID: bootID
@@ -677,10 +681,13 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
     func testPreviousIdentityIsOfferedAndReplacementResetsBeforeDelivery() throws {
         let transport = SnapshotClientTestTransport()
         let source = SnapshotClientTestSource()
-        let previous = try HostAgentXPCSnapshotClientPeerIdentity(
-            agentBuildID: "old-build",
-            hostInstanceID: "host-old",
-            agentBootID: "151db9a9-7dd3-4fea-93af-1b6c10840676"
+        let previous = try HostAgentXPCSnapshotClientPeerIdentity.test(
+            agentBuildID: "agent-build",
+            hostInstanceID: hostID,
+            agentBootID: bootID,
+            agentProcessID: 3_210,
+            agentProcessStartIdentitySHA256:
+                String(repeating: "b", count: 64)
         )
         let order = SnapshotClientTestRecorder<String>()
         let results = SnapshotClientTestRecorder<HostAgentXPCSnapshotClientResult>()
@@ -697,10 +704,18 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         let handshakeRequest = try HostAgentXPCWireHandshakeRequest.decode(
             XCTUnwrap(transport.lastHandshakeRequest)
         )
-        XCTAssertEqual(handshakeRequest.knownHostInstanceID, "host-old")
+        XCTAssertEqual(handshakeRequest.knownHostInstanceID, hostID)
         XCTAssertEqual(
             handshakeRequest.knownAgentBootID,
             previous.agentBootID
+        )
+        XCTAssertEqual(
+            handshakeRequest.knownAgentProcessID,
+            previous.agentProcessID
+        )
+        XCTAssertEqual(
+            handshakeRequest.knownAgentProcessStartIdentitySHA256,
+            previous.agentProcessStartIdentitySHA256
         )
         transport.replyToHandshake(try handshakeResponse(
             for: handshakeRequest,
@@ -737,7 +752,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
             for: request,
             hostID: hostID,
             bootID: bootID,
-            agentVersions: [2]
+            agentVersions: [1]
         ))
 
         XCTAssertEqual(results.values, [.incompatible])
@@ -892,7 +907,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         )
         let eventState = try HostAgentEventState()
         let expectedHostID = hostID
-        let identity = try HostAgentXPCWireAgentIdentity(
+        let identity = try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID
@@ -1085,7 +1100,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
     private func peerIdentity() throws
         -> HostAgentXPCSnapshotClientPeerIdentity
     {
-        try HostAgentXPCSnapshotClientPeerIdentity(
+        try HostAgentXPCSnapshotClientPeerIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID
@@ -1096,22 +1111,25 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         for request: HostAgentXPCWireHandshakeRequest,
         hostID: String,
         bootID: String,
-        agentVersions: [UInt64] = [1]
+        agentVersions: [UInt64] = [2]
     ) throws -> Data {
         let response = try HostAgentXPCWireHandshakeResponse.decode(
             JSONSerialization.data(withJSONObject: [
-                "schemaVersion": 1,
+                "schemaVersion": 2,
                 "messageType": "handshakeResponse",
                 "requestId": request.requestID,
                 "supportedWireVersions": agentVersions,
-                "selectedWireVersion": agentVersions.contains(1)
-                    && request.supportedWireVersions.contains(1) ? 1 : NSNull(),
-                "compatibility": agentVersions.contains(1)
-                    && request.supportedWireVersions.contains(1)
+                "selectedWireVersion": agentVersions.contains(2)
+                    && request.supportedWireVersions.contains(2) ? 2 : NSNull(),
+                "compatibility": agentVersions.contains(2)
+                    && request.supportedWireVersions.contains(2)
                     ? "compatible" : "incompatible",
                 "agentBuildId": "agent-build",
                 "hostInstanceId": hostID,
                 "agentBootId": bootID,
+                "agentProcessId": 4_321,
+                "agentProcessStartIdentitySHA256":
+                    String(repeating: "a", count: 64),
                 "sentAtUnixMilliseconds": 20,
             ])
         )
@@ -1124,7 +1142,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         bootID: String,
         eventSequence: UInt64
     ) throws -> Data {
-        let identity = try HostAgentXPCWireAgentIdentity(
+        let identity = try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: hostID,
             agentBootID: bootID
@@ -1168,7 +1186,7 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         }
         return try HostAgentXPCWireEventCursorResponse.make(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: hostID,
                 agentBootID: bootID

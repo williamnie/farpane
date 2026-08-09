@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-agent-process-identity-xpc-contract-frozen",
+            "host-agent-process-identity-xpc-v2-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -37,7 +37,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-agent-xpc-wire-identity-v2",
+            "application-host-lifecycle-observation-composition",
         )
         self.assertTrue(
             document["evidence"]
@@ -101,7 +101,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         )
         self.assertTrue(
             document["evidence"]
-            ["applicationXPCIdentityOmitsAgentPIDAndProcessStart"]
+            ["applicationXPCIdentityCarriesAgentPIDAndProcessStart"]
         )
         self.assertTrue(
             document["evidence"]
@@ -141,11 +141,11 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         )
         self.assertTrue(
             document["evidence"]
-            ["versionedAgentProcessIdentityXPCContractIsFrozen"]
+            ["versionedAgentProcessIdentityXPCV2IsImplemented"]
         )
         self.assertTrue(
             document["remainingBoundary"]
-            ["applicationHostObservationRequiresVersionedAgentProcessIdentity"]
+            ["applicationHostObservationStillRequiresComposition"]
         )
 
         contract = document["targetContract"]

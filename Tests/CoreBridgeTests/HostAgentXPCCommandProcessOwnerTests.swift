@@ -214,8 +214,13 @@ final class HostAgentXPCCommandProcessOwnerTests: XCTestCase {
         onInvalidation: @escaping @Sendable () -> Void = {}
     ) throws -> HostAgentXPCCommandProcessOwner {
         try HostAgentXPCCommandProcessOwner(
-            agentBuildID: "202608090001",
-            agentBootID: bootID,
+            agentProcessIdentity: try HostAgentXPCWireAgentProcessIdentity(
+                agentBuildID: "202608090001",
+                agentBootID: bootID,
+                agentProcessID: 4_321,
+                agentProcessStartIdentitySHA256:
+                    String(repeating: "a", count: 64)
+            ),
             eventState: eventState ?? HostAgentEventState(),
             nowUnixMilliseconds: { self.sentAt },
             onNonCommandEvent: onEvent,
@@ -230,7 +235,7 @@ final class HostAgentXPCCommandProcessOwnerTests: XCTestCase {
         try HostAgentXPCWireCommandRequest(
             requestID: requestID,
             commandID: commandID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: bootID,
             name: .disconnectSession,

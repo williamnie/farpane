@@ -62,12 +62,17 @@ final class HostAgentXPCHandshakeServiceTests: XCTestCase {
         let response = try HostAgentXPCWireHandshakeResponse.decode(responseData)
         XCTAssertEqual(response.requestID, request.requestID)
         XCTAssertEqual(response.compatibility, .compatible)
-        XCTAssertEqual(response.selectedWireVersion, 1)
+        XCTAssertEqual(response.selectedWireVersion, 2)
         XCTAssertEqual(response.agentBuildID, "agent-build")
         XCTAssertEqual(response.hostInstanceID, "host-instance")
         XCTAssertEqual(
             response.agentBootID,
             "6973cef9-a610-4183-ac81-287fd5f298b7"
+        )
+        XCTAssertEqual(response.agentProcessID, 4_321)
+        XCTAssertEqual(
+            response.agentProcessStartIdentitySHA256,
+            String(repeating: "a", count: 64)
         )
         XCTAssertEqual(response.sentAtUnixMilliseconds, 20)
     }
@@ -76,7 +81,7 @@ final class HostAgentXPCHandshakeServiceTests: XCTestCase {
         let handler = try makeHandler(now: 20)
         let request = try HostAgentXPCWireHandshakeRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            supportedWireVersions: [2],
+            supportedWireVersions: [1],
             appBuildID: "app-build",
             knownHostInstanceID: nil,
             knownAgentBootID: nil,
@@ -133,12 +138,25 @@ final class HostAgentXPCHandshakeServiceTests: XCTestCase {
         ]
 
         for value in invalidValues {
-            XCTAssertThrowsError(try HostAgentXPCWireAgentIdentity(
+            XCTAssertThrowsError(try HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: value.0,
                 hostInstanceID: value.1,
                 agentBootID: value.2
             ))
         }
+        XCTAssertThrowsError(try HostAgentXPCWireAgentIdentity.test(
+            agentBuildID: "agent-build",
+            hostInstanceID: "host-instance",
+            agentBootID: validBootID,
+            agentProcessID: 1
+        ))
+        XCTAssertThrowsError(try HostAgentXPCWireAgentIdentity.test(
+            agentBuildID: "agent-build",
+            hostInstanceID: "host-instance",
+            agentBootID: validBootID,
+            agentProcessStartIdentitySHA256:
+                String(repeating: "A", count: 64)
+        ))
     }
 
     func testServiceSourceCannotAcceptOrActivateAConnection() throws {
@@ -170,7 +188,7 @@ final class HostAgentXPCHandshakeServiceTests: XCTestCase {
         -> HostAgentXPCHandshakeHandler
     {
         try HostAgentXPCHandshakeHandler(
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: "host-instance",
                 agentBootID: validBootID

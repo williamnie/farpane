@@ -237,7 +237,7 @@ final class HostAgentXPCCommandExecutionAdapterTests: XCTestCase {
     private func makeService(
         adapter: HostAgentXPCCommandExecutionAdapter
     ) throws -> HostAgentXPCCommandService {
-        let identity = try HostAgentXPCWireAgentIdentity(
+        let identity = try HostAgentXPCWireAgentIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: "host-a",
             agentBootID: bootID
@@ -270,7 +270,7 @@ final class HostAgentXPCCommandExecutionAdapterTests: XCTestCase {
         return try HostAgentXPCWireCommandRequest(
             requestID: requestIDs[index],
             commandID: "command-\(index)",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: bootID,
             name: name,

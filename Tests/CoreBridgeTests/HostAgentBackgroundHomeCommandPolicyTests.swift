@@ -158,7 +158,7 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
             ),
             .unavailable
         )
-        let foreignPeer = try HostAgentXPCSnapshotClientPeerIdentity(
+        let foreignPeer = try HostAgentXPCSnapshotClientPeerIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: "host-b",
             agentBootID: "287fd5f2-98b7-4183-ac81-6973cef9a610"
@@ -518,7 +518,7 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
     ) throws -> CommandFixture {
         let projectionAuthority = HostAgentBackgroundProjectionAuthority()
         let binding = projectionAuthority.beginSession()
-        let peer = try HostAgentXPCSnapshotClientPeerIdentity(
+        let peer = try HostAgentXPCSnapshotClientPeerIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: "host-a",
             agentBootID: bootID
@@ -561,7 +561,7 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
     ) throws -> HostAgentXPCWireSnapshotResponse {
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: bootID,
             sentAtUnixMilliseconds: 11
@@ -647,7 +647,7 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
         )
         return try HostAgentXPCWireSnapshotResponse.make(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: "host-a",
                 agentBootID: bootID
@@ -666,7 +666,7 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
         let request = try HostAgentXPCWireCommandRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
             commandID: intent.commandID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: hostInstanceID,
             agentBootID: agentBootID,
             name: intent.name,
@@ -675,7 +675,7 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
         )
         return try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: hostInstanceID,
                 agentBootID: agentBootID

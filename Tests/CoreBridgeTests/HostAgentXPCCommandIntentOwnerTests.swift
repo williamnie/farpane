@@ -192,7 +192,7 @@ final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
         let request = try HostAgentXPCWireCommandRequest(
             requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
             commandID: intent.commandID,
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
             name: intent.name,
@@ -201,7 +201,7 @@ final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
         )
         return try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
             for: request,
-            identity: HostAgentXPCWireAgentIdentity(
+            identity: HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: "host-a",
                 agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7"

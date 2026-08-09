@@ -22,29 +22,88 @@ package struct HostAgentXPCWireAgentIdentity: Equatable, Sendable {
     package let agentBuildID: String
     package let hostInstanceID: String
     package let agentBootID: String
+    package let agentProcessID: Int32
+    package let agentProcessStartIdentitySHA256: String
 
     package init(
         agentBuildID: String,
         hostInstanceID: String,
-        agentBootID: String
+        agentBootID: String,
+        agentProcessID: Int32,
+        agentProcessStartIdentitySHA256: String
     ) throws {
         guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
             agentBuildID
         ),
             HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID),
-            HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID)
+            HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
+            HostAgentXPCWireHandshakeContract.validAgentProcessID(
+                agentProcessID
+            ),
+            HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
+                agentProcessStartIdentitySHA256
+            )
         else {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
         }
         self.agentBuildID = agentBuildID
         self.hostInstanceID = hostInstanceID
         self.agentBootID = agentBootID
+        self.agentProcessID = agentProcessID
+        self.agentProcessStartIdentitySHA256 =
+            agentProcessStartIdentitySHA256
+    }
+}
+
+package struct HostAgentXPCWireAgentProcessIdentity: Equatable, Sendable {
+    package let agentBuildID: String
+    package let agentBootID: String
+    package let agentProcessID: Int32
+    package let agentProcessStartIdentitySHA256: String
+
+    package init(
+        agentBuildID: String,
+        agentBootID: String,
+        agentProcessID: Int32,
+        agentProcessStartIdentitySHA256: String
+    ) throws {
+        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
+                agentBuildID
+              ),
+              HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
+              HostAgentXPCWireHandshakeContract.validAgentProcessID(
+                agentProcessID
+              ),
+              HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
+                agentProcessStartIdentitySHA256
+              )
+        else {
+            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
+        }
+        self.agentBuildID = agentBuildID
+        self.agentBootID = agentBootID
+        self.agentProcessID = agentProcessID
+        self.agentProcessStartIdentitySHA256 =
+            agentProcessStartIdentitySHA256
+    }
+
+    package func bind(hostInstanceID: String) throws
+        -> HostAgentXPCWireAgentIdentity
+    {
+        try HostAgentXPCWireAgentIdentity(
+            agentBuildID: agentBuildID,
+            hostInstanceID: hostInstanceID,
+            agentBootID: agentBootID,
+            agentProcessID: agentProcessID,
+            agentProcessStartIdentitySHA256:
+                agentProcessStartIdentitySHA256
+        )
     }
 }
 
 package enum HostAgentXPCWireHandshakeContract {
-    package static let currentSchemaVersion: UInt64 = 1
-    package static let currentWireVersion: UInt64 = 1
+    package static let currentSchemaVersion: UInt64 = 2
+    package static let currentWireVersion: UInt64 = 2
     package static let supportedWireVersions: [UInt64] = [currentWireVersion]
     package static let maximumDocumentBytes = 8 * 1_024
     package static let maximumSupportedVersionCount = 8
@@ -161,6 +220,23 @@ package enum HostAgentXPCWireHandshakeContract {
         return uuid.uuidString.lowercased() == value
     }
 
+    package static func validAgentProcessID(_ value: Int32) -> Bool {
+        value > 1
+    }
+
+    package static func validLowercaseSHA256(_ value: String) -> Bool {
+        value.utf8.count == 64 && value.utf8.allSatisfy { byte in
+            (48...57).contains(byte) || (97...102).contains(byte)
+        }
+    }
+
+    fileprivate static func strictInt32(_ value: Any?) -> Int32? {
+        guard let unsigned = strictUInt64(value),
+              unsigned <= UInt64(Int32.max)
+        else { return nil }
+        return Int32(unsigned)
+    }
+
     fileprivate static func decodeOptionalIdentifier(_ value: Any?) throws
         -> String?
     {
@@ -178,6 +254,26 @@ package enum HostAgentXPCWireHandshakeContract {
         }
         return value
     }
+
+    fileprivate static func decodeOptionalProcessID(_ value: Any?) throws
+        -> Int32?
+    {
+        if value is NSNull { return nil }
+        guard let value = strictInt32(value), validAgentProcessID(value) else {
+            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
+        }
+        return value
+    }
+
+    fileprivate static func decodeOptionalSHA256(_ value: Any?) throws
+        -> String?
+    {
+        if value is NSNull { return nil }
+        guard let value = value as? String, validLowercaseSHA256(value) else {
+            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
+        }
+        return value
+    }
 }
 
 package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
@@ -187,6 +283,8 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
     package let appBuildID: String
     package let knownHostInstanceID: String?
     package let knownAgentBootID: String?
+    package let knownAgentProcessID: Int32?
+    package let knownAgentProcessStartIdentitySHA256: String?
     package let sentAtUnixMilliseconds: UInt64
 
     package init(
@@ -195,6 +293,8 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
         appBuildID: String,
         knownHostInstanceID: String?,
         knownAgentBootID: String?,
+        knownAgentProcessID: Int32? = nil,
+        knownAgentProcessStartIdentitySHA256: String? = nil,
         sentAtUnixMilliseconds: UInt64
     ) throws {
         if let knownHostInstanceID,
@@ -207,6 +307,31 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
         if let knownAgentBootID,
            !HostAgentXPCWireHandshakeContract.validCanonicalUUID(
                knownAgentBootID
+           )
+        {
+            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
+        }
+        let knownIdentityPresence = [
+            knownHostInstanceID != nil,
+            knownAgentBootID != nil,
+            knownAgentProcessID != nil,
+            knownAgentProcessStartIdentitySHA256 != nil,
+        ]
+        guard knownIdentityPresence.allSatisfy({ $0 })
+                || knownIdentityPresence.allSatisfy({ !$0 })
+        else {
+            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
+        }
+        if let knownAgentProcessID,
+           !HostAgentXPCWireHandshakeContract.validAgentProcessID(
+               knownAgentProcessID
+           )
+        {
+            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
+        }
+        if let knownAgentProcessStartIdentitySHA256,
+           !HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
+               knownAgentProcessStartIdentitySHA256
            )
         {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
@@ -230,6 +355,9 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
         self.appBuildID = appBuildID
         self.knownHostInstanceID = knownHostInstanceID
         self.knownAgentBootID = knownAgentBootID
+        self.knownAgentProcessID = knownAgentProcessID
+        self.knownAgentProcessStartIdentitySHA256 =
+            knownAgentProcessStartIdentitySHA256
         self.sentAtUnixMilliseconds = sentAtUnixMilliseconds
     }
 
@@ -238,6 +366,8 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
         appBuildID: String,
         knownHostInstanceID: String?,
         knownAgentBootID: String?,
+        knownAgentProcessID: Int32? = nil,
+        knownAgentProcessStartIdentitySHA256: String? = nil,
         sentAtUnixMilliseconds: UInt64
     ) throws -> Self {
         try Self(
@@ -247,6 +377,9 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
             appBuildID: appBuildID,
             knownHostInstanceID: knownHostInstanceID,
             knownAgentBootID: knownAgentBootID,
+            knownAgentProcessID: knownAgentProcessID,
+            knownAgentProcessStartIdentitySHA256:
+                knownAgentProcessStartIdentitySHA256,
             sentAtUnixMilliseconds: sentAtUnixMilliseconds
         )
     }
@@ -256,7 +389,8 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
         guard Set(document.keys) == Set([
             "schemaVersion", "messageType", "requestId",
             "supportedWireVersions", "appBuildId", "hostInstanceId",
-            "agentBootId", "sentAtUnixMilliseconds",
+            "agentBootId", "agentProcessId",
+            "agentProcessStartIdentitySHA256", "sentAtUnixMilliseconds",
         ]),
             document["messageType"] as? String == "handshakeRequest",
             let requestID = document["requestId"] as? String,
@@ -281,6 +415,12 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
                 .decodeOptionalIdentifier(document["hostInstanceId"]),
             knownAgentBootID: try HostAgentXPCWireHandshakeContract
                 .decodeOptionalUUID(document["agentBootId"]),
+            knownAgentProcessID: try HostAgentXPCWireHandshakeContract
+                .decodeOptionalProcessID(document["agentProcessId"]),
+            knownAgentProcessStartIdentitySHA256:
+                try HostAgentXPCWireHandshakeContract.decodeOptionalSHA256(
+                    document["agentProcessStartIdentitySHA256"]
+                ),
             sentAtUnixMilliseconds: sentAtUnixMilliseconds
         )
     }
@@ -294,6 +434,9 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
             "appBuildId": appBuildID,
             "hostInstanceId": knownHostInstanceID ?? NSNull(),
             "agentBootId": knownAgentBootID ?? NSNull(),
+            "agentProcessId": knownAgentProcessID ?? NSNull(),
+            "agentProcessStartIdentitySHA256":
+                knownAgentProcessStartIdentitySHA256 ?? NSNull(),
             "sentAtUnixMilliseconds": sentAtUnixMilliseconds,
         ])
     }
@@ -308,6 +451,8 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
     package let agentBuildID: String
     package let hostInstanceID: String
     package let agentBootID: String
+    package let agentProcessID: Int32
+    package let agentProcessStartIdentitySHA256: String
     package let sentAtUnixMilliseconds: UInt64
 
     fileprivate init(
@@ -318,6 +463,8 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
         agentBuildID: String,
         hostInstanceID: String,
         agentBootID: String,
+        agentProcessID: Int32,
+        agentProcessStartIdentitySHA256: String,
         sentAtUnixMilliseconds: UInt64
     ) throws {
         guard HostAgentXPCWireHandshakeContract.validCanonicalUUID(requestID),
@@ -329,6 +476,12 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
               ),
               HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID),
               HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
+              HostAgentXPCWireHandshakeContract.validAgentProcessID(
+                agentProcessID
+              ),
+              HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
+                agentProcessStartIdentitySHA256
+              ),
               sentAtUnixMilliseconds > 0,
               sentAtUnixMilliseconds
                 <= HostAgentXPCWireHandshakeContract.maximumExactJSONInteger
@@ -356,6 +509,9 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
         self.agentBuildID = agentBuildID
         self.hostInstanceID = hostInstanceID
         self.agentBootID = agentBootID
+        self.agentProcessID = agentProcessID
+        self.agentProcessStartIdentitySHA256 =
+            agentProcessStartIdentitySHA256
         self.sentAtUnixMilliseconds = sentAtUnixMilliseconds
     }
 
@@ -365,6 +521,7 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
             "schemaVersion", "messageType", "requestId",
             "supportedWireVersions", "selectedWireVersion", "compatibility",
             "agentBuildId", "hostInstanceId", "agentBootId",
+            "agentProcessId", "agentProcessStartIdentitySHA256",
             "sentAtUnixMilliseconds",
         ]),
             document["messageType"] as? String == "handshakeResponse",
@@ -380,6 +537,11 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
             let agentBuildID = document["agentBuildId"] as? String,
             let hostInstanceID = document["hostInstanceId"] as? String,
             let agentBootID = document["agentBootId"] as? String,
+            let agentProcessID = HostAgentXPCWireHandshakeContract.strictInt32(
+                document["agentProcessId"]
+            ),
+            let agentProcessStartIdentitySHA256 =
+                document["agentProcessStartIdentitySHA256"] as? String,
             let sentAtUnixMilliseconds =
                 HostAgentXPCWireHandshakeContract.strictUInt64(
                     document["sentAtUnixMilliseconds"]
@@ -408,6 +570,9 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
             agentBuildID: agentBuildID,
             hostInstanceID: hostInstanceID,
             agentBootID: agentBootID,
+            agentProcessID: agentProcessID,
+            agentProcessStartIdentitySHA256:
+                agentProcessStartIdentitySHA256,
             sentAtUnixMilliseconds: sentAtUnixMilliseconds
         )
     }
@@ -423,6 +588,9 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
             "agentBuildId": agentBuildID,
             "hostInstanceId": hostInstanceID,
             "agentBootId": agentBootID,
+            "agentProcessId": agentProcessID,
+            "agentProcessStartIdentitySHA256":
+                agentProcessStartIdentitySHA256,
             "sentAtUnixMilliseconds": sentAtUnixMilliseconds,
         ])
     }
@@ -431,9 +599,7 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
 package enum HostAgentXPCWireHandshakeNegotiator {
     package static func makeResponse(
         for request: HostAgentXPCWireHandshakeRequest,
-        agentBuildID: String,
-        hostInstanceID: String,
-        agentBootID: String,
+        identity: HostAgentXPCWireAgentIdentity,
         sentAtUnixMilliseconds: UInt64
     ) throws -> HostAgentXPCWireHandshakeResponse {
         let agentSupportedWireVersions =
@@ -448,9 +614,12 @@ package enum HostAgentXPCWireHandshakeNegotiator {
             selectedWireVersion: selectedWireVersion,
             compatibility: selectedWireVersion == nil
                 ? .incompatible : .compatible,
-            agentBuildID: agentBuildID,
-            hostInstanceID: hostInstanceID,
-            agentBootID: agentBootID,
+            agentBuildID: identity.agentBuildID,
+            hostInstanceID: identity.hostInstanceID,
+            agentBootID: identity.agentBootID,
+            agentProcessID: identity.agentProcessID,
+            agentProcessStartIdentitySHA256:
+                identity.agentProcessStartIdentitySHA256,
             sentAtUnixMilliseconds: sentAtUnixMilliseconds
         )
     }

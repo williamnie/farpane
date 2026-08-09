@@ -451,7 +451,7 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
     private func peerIdentity() throws
         -> HostAgentXPCSnapshotClientPeerIdentity
     {
-        try HostAgentXPCSnapshotClientPeerIdentity(
+        try HostAgentXPCSnapshotClientPeerIdentity.test(
             agentBuildID: "agent-build",
             hostInstanceID: "host-a",
             agentBootID: bootID
@@ -463,7 +463,7 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
     {
         let request = try HostAgentXPCWireSnapshotRequest(
             requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-a",
             agentBootID: bootID,
             sentAtUnixMilliseconds: 11
@@ -476,7 +476,7 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         )
         return try HostAgentXPCWireSnapshotResponse.make(
             for: request,
-            identity: try HostAgentXPCWireAgentIdentity(
+            identity: try HostAgentXPCWireAgentIdentity.test(
                 agentBuildID: "agent-build",
                 hostInstanceID: "host-a",
                 agentBootID: bootID

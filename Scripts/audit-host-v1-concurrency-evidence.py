@@ -115,7 +115,7 @@ def main() -> int:
         "h5_xpc_process_identity_contract": (
             repository
             / "Evidence/HostMode/2026-08-10/"
-            / "h5-v1-concurrency-agent-process-identity-xpc-contract.md"
+            / "h5-v1-concurrency-agent-process-identity-xpc-v2.md"
         ),
     }
     try:
@@ -504,7 +504,7 @@ def main() -> int:
                 "observation.hostAgentProcessStartIdentitySHA256",
             )
         ),
-        "applicationXPCIdentityOmitsAgentPIDAndProcessStart": (
+        "applicationXPCIdentityCarriesAgentPIDAndProcessStart": (
             all(
                 marker in xpc_handshake
                 for marker in (
@@ -512,14 +512,21 @@ def main() -> int:
                     "package let agentBuildID: String",
                     "package let hostInstanceID: String",
                     "package let agentBootID: String",
+                    "package let agentProcessID: Int32",
+                    "package let agentProcessStartIdentitySHA256: String",
                 )
             )
-            and "agentProcessID" not in xpc_handshake
-            and "agentProcessStartIdentity" not in xpc_handshake
             and "agentProcessID" not in xpc_snapshot
             and "agentProcessStartIdentity" not in xpc_snapshot
-            and "agentProcessID" not in xpc_client
-            and "agentProcessStartIdentity" not in xpc_client
+            and all(
+                marker in xpc_client
+                for marker in (
+                    "package let agentProcessID: Int32",
+                    "package let agentProcessStartIdentitySHA256: String",
+                    "agentProcessID: response.agentProcessID",
+                    "previousPeerIdentity == peerIdentity",
+                )
+            )
         ),
         "applicationHostEvidenceCompositionRemainsFailClosed": (
             "recordHostRuntimeStateEvidence(force: true)" in app
@@ -528,10 +535,11 @@ def main() -> int:
             and "recordHostAgentObservation(" not in app
             and "observeHostAgentRuntimeState(" not in app
         ),
-        "versionedAgentProcessIdentityXPCContractIsFrozen": (
+        "versionedAgentProcessIdentityXPCV2IsImplemented": (
             all(
                 marker in xpc_process_identity_contract_audit
                 for marker in (
+                    '"wire-identity-v2-implemented"',
                     '"handshakeSchemaVersion": 2',
                     '"wireVersion": 2',
                     '"agentProcessID"',
@@ -541,16 +549,16 @@ def main() -> int:
                     '"acceptsIdentityOnlyFromCompatibleHandshakeV2": True',
                     '"comparesAllIdentityFieldsAcrossReconnect": True',
                     '"schema-v1-fallback-for-host-lifecycle-evidence"',
-                    '"nextImplementationBoundary": "host-agent-xpc-wire-identity-v2"',
+                    '"application-host-lifecycle-observation-composition"',
                 )
             )
             and all(
                 marker in h5_xpc_process_identity_contract
                 for marker in (
-                    "deliberately does not modify the shared XPC schema",
-                    "raw kernel start tuple must not enter XPC or evidence",
-                    "Snapshot payloads must not duplicate or redefine process identity",
-                    "Schema/wire version 1 must not be accepted as a fallback",
+                    "Handshake schema and wire version are both 2",
+                    "The process identity is captured once by the XPC authority",
+                    "The raw process-start tuple never crosses XPC",
+                    "a PID/start-only replacement triggers",
                 )
             )
         ),
@@ -1004,7 +1012,7 @@ def main() -> int:
         ),
         "agentProcessIdentityContractEvidence": line_number(
             h5_xpc_process_identity_contract,
-            "## Frozen version-2 boundary",
+            "## Strict wire and App binding",
         ),
     }
     missing_source_lines = [
@@ -1064,7 +1072,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "host-agent-process-identity-xpc-contract-frozen"
+            "host-agent-process-identity-xpc-v2-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -1103,20 +1111,18 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "host-agent-xpc-wire-identity-v2"
+            "application-host-lifecycle-observation-composition"
         ),
         "remainingBoundary": {
-            "applicationHostObservationRequiresVersionedAgentProcessIdentity": (
-                True
-            ),
-            "authoritativeLifecycleCompositionStillRequiresImplementation": True,
+            "applicationHostObservationStillRequiresComposition": True,
+            "viewerAutomaticRecoveryStillRequiresImplementation": True,
             "fiveScenarioManifestValidatorStillRequiresImplementation": True,
             "installedAppAgentTwoMachineExecutionStillRequiresExecution": True,
             "noV1ConcurrencyMatrixPassIsClaimed": True,
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "host-agent-process-identity-xpc-contract-frozen"
+    expected_status = "host-agent-process-identity-xpc-v2-implemented"
     return 0 if result["status"] == expected_status else 1
 
 

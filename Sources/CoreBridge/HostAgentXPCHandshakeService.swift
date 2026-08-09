@@ -42,9 +42,7 @@ package final class HostAgentXPCHandshakeHandler:
             let request = try HostAgentXPCWireHandshakeRequest.decode(requestData)
             let response = try HostAgentXPCWireHandshakeNegotiator.makeResponse(
                 for: request,
-                agentBuildID: identity.agentBuildID,
-                hostInstanceID: identity.hostInstanceID,
-                agentBootID: identity.agentBootID,
+                identity: identity,
                 sentAtUnixMilliseconds: nowUnixMilliseconds()
             )
             return try response.encoded()

@@ -122,9 +122,7 @@ package final class HostAgentXPCSnapshotSessionHandler:
             let request = try HostAgentXPCWireHandshakeRequest.decode(requestData)
             let response = try HostAgentXPCWireHandshakeNegotiator.makeResponse(
                 for: request,
-                agentBuildID: identity.agentBuildID,
-                hostInstanceID: identity.hostInstanceID,
-                agentBootID: identity.agentBootID,
+                identity: identity,
                 sentAtUnixMilliseconds: nowUnixMilliseconds()
             )
             let data = try response.encoded()

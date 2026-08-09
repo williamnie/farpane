@@ -323,7 +323,7 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
                     "7f8207d1-1ea3-4d90-9efe-bcac72ba1d54",
                 ][index],
                 commandID: "command-\(index)",
-                wireVersion: 1,
+                wireVersion: 2,
                 hostInstanceID: "host-agent-test",
                 agentBootID: bootID,
                 name: item.0,
@@ -343,7 +343,7 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
         let request = try HostAgentXPCWireCommandRequest(
             requestID: "eaa7431f-5139-42d2-88a2-d6ce72dc9f47",
             commandID: "command-after-stop",
-            wireVersion: 1,
+            wireVersion: 2,
             hostInstanceID: "host-agent-test",
             agentBootID: bootID,
             name: .disconnectSession,
