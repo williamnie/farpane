@@ -185,10 +185,10 @@ def main() -> int:
         "remainingBoundary": {
             "independentRevocationCommandsRequired": False,
             "directionalXPCUIRequired": False,
-            "eventDrivenDynamicBackoffRequired": True,
+            "eventDrivenDynamicBackoffRequired": False,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "event-first-dynamic-backoff-contract",
+        "nextImplementationBoundary": "temporary-clipboard-object-cleanup-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "clipboard-read-write-policy-contract" else 1
