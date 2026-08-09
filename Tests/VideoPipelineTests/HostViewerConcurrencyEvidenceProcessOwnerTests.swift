@@ -193,6 +193,118 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     )
   }
 
+  func testViewerSessionStateMachinePreservesEpochAndRecoveryGeneration() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let owner = makeOwner()
+    XCTAssertTrue(owner.configureApplication(environment: environment(
+      output: fixture.output
+    )))
+
+    let firstEpoch = try XCTUnwrap(owner.beginViewerSession())
+    XCTAssertEqual(firstEpoch, 1)
+    XCTAssertNil(owner.beginViewerSession())
+    XCTAssertTrue(owner.observeViewerStreaming(sessionEpoch: firstEpoch))
+    XCTAssertFalse(owner.observeViewerStreaming(sessionEpoch: firstEpoch))
+    XCTAssertTrue(owner.observeViewerTerminal(sessionEpoch: firstEpoch))
+    XCTAssertFalse(owner.observeViewerTerminal(sessionEpoch: firstEpoch))
+    XCTAssertTrue(owner.observeViewerStreaming(sessionEpoch: firstEpoch))
+    XCTAssertTrue(owner.observeViewerTerminal(sessionEpoch: firstEpoch))
+    XCTAssertTrue(owner.stopViewerSession(sessionEpoch: firstEpoch))
+    XCTAssertFalse(owner.stopViewerSession(sessionEpoch: firstEpoch))
+
+    let secondEpoch = try XCTUnwrap(owner.beginViewerSession())
+    XCTAssertEqual(secondEpoch, 2)
+    XCTAssertFalse(owner.observeViewerStreaming(sessionEpoch: firstEpoch))
+    XCTAssertFalse(owner.observeViewerTerminal(sessionEpoch: firstEpoch))
+    XCTAssertTrue(owner.observeViewerTerminal(sessionEpoch: secondEpoch))
+    XCTAssertEqual(owner.snapshot(), .init(
+      status: .active,
+      processStartedRecords: 1,
+      processTerminatingRecords: 0,
+      viewerRecords: 8,
+      activeViewerSessionEpoch: nil,
+      viewerTransitionGeneration: 0,
+      configurationFailures: 0,
+      recordFailures: 0
+    ))
+
+    let viewerEvents = try readRecords(fixture.output).compactMap { record ->
+      (state: String, epoch: Int, generation: Int)? in
+      guard let event = record["event"] as? [String: Any],
+            event["kind"] as? String == "viewerState",
+            let state = event["state"] as? String,
+            let epoch = event["sessionEpoch"] as? Int,
+            let generation = event["transitionGeneration"] as? Int
+      else { return nil }
+      return (state, epoch, generation)
+    }
+    XCTAssertEqual(viewerEvents.map(\.state), [
+      "starting",
+      "authenticatedStreaming",
+      "disconnected",
+      "recoveredStreaming",
+      "disconnected",
+      "stopped",
+      "starting",
+      "stopped",
+    ])
+    XCTAssertEqual(viewerEvents.map(\.epoch), [1, 1, 1, 1, 1, 1, 2, 2])
+    XCTAssertEqual(viewerEvents.map(\.generation), [0, 0, 1, 1, 2, 0, 0, 0])
+  }
+
+  func testConcurrentCoreStreamingCallbackRecordsOneStateEdge() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let owner = makeOwner()
+    XCTAssertTrue(owner.configureApplication(environment: environment(
+      output: fixture.output
+    )))
+    let sessionEpoch = try XCTUnwrap(owner.beginViewerSession())
+    let results = LockedBooleanResults()
+
+    DispatchQueue.concurrentPerform(iterations: 64) { _ in
+      results.append(owner.observeViewerStreaming(
+        sessionEpoch: sessionEpoch
+      ))
+    }
+
+    XCTAssertEqual(results.snapshot().filter { $0 }.count, 1)
+    XCTAssertEqual(owner.snapshot().viewerRecords, 2)
+    XCTAssertEqual(try readRecords(fixture.output).count, 3)
+  }
+
+  func testViewerRecordFailureDisablesOnlyEvidence() throws {
+    let fixture = try makeFixture()
+    defer { try? FileManager.default.removeItem(at: fixture.directory) }
+    let clock = ProcessEvidenceTestClock(
+      dates: [
+        Date(timeIntervalSince1970: 1_700_000_000),
+        Date(timeIntervalSince1970: 1_700_000_000),
+      ],
+      monotonic: [100, 100]
+    )
+    let owner = makeOwner(clock: clock)
+    XCTAssertTrue(owner.configureApplication(environment: environment(
+      output: fixture.output
+    )))
+
+    XCTAssertNil(owner.beginViewerSession())
+    XCTAssertEqual(owner.snapshot(), .init(
+      status: .unavailable,
+      processStartedRecords: 1,
+      processTerminatingRecords: 0,
+      viewerRecords: 0,
+      activeViewerSessionEpoch: nil,
+      viewerTransitionGeneration: 0,
+      configurationFailures: 0,
+      recordFailures: 1
+    ))
+    XCTAssertFalse(owner.observeViewerStreaming(sessionEpoch: 1))
+    XCTAssertFalse(owner.stopViewerSession(sessionEpoch: 1))
+    XCTAssertEqual(try readRecords(fixture.output).count, 1)
+  }
+
   private func makeOwner(
     clock: ProcessEvidenceTestClock? = nil
   ) -> HostViewerConcurrencyEvidenceProcessOwner {

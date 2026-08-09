@@ -84,6 +84,60 @@ final class AppViewerConcurrencyEvidenceProcessCompositionContractTests:
         XCTAssertLessThan(finish.lowerBound, evidence.lowerBound)
     }
 
+    func testViewerLifecycleUsesExactCoreAndAppTeardownEdges() throws {
+        let app = try repositorySource(
+            "Sources/RustDeskNative/RustDeskNativeApp.swift"
+        )
+
+        XCTAssertTrue(app.contains(
+            "hostViewerConcurrencyEvidenceOwner.beginViewerSession()"
+        ))
+        XCTAssertTrue(app.contains(
+            "case .streaming:\n"
+                + "                        _ = appDelegate?"
+                + ".hostViewerConcurrencyEvidenceOwner\n"
+                + "                            .observeViewerStreaming("
+        ))
+        XCTAssertTrue(app.contains(
+            "case .passwordRequired, .authenticationFailed,\n"
+                + "                         .disconnected, .error:"
+        ))
+        XCTAssertTrue(app.contains(
+            ".observeViewerTerminal(\n"
+                + "                                sessionEpoch: evidenceSessionEpoch"
+        ))
+        XCTAssertTrue(app.contains(
+            "private func stopViewerLifecycleEvidence()"
+        ))
+        XCTAssertFalse(app.contains(
+            "peerID: configuration.peerID"
+        ))
+
+        let home = try XCTUnwrap(app.range(
+            of: "private func showHomeUI(error: String = \"\")"
+        ))
+        let homeStop = try XCTUnwrap(app.range(
+            of: "stopViewerLifecycleEvidence()",
+            range: home.lowerBound..<app.endIndex
+        ))
+        let homeDisconnect = try XCTUnwrap(app.range(
+            of: "coreClient?.disconnect()",
+            range: homeStop.upperBound..<app.endIndex
+        ))
+        XCTAssertLessThan(homeStop.lowerBound, homeDisconnect.lowerBound)
+
+        let finish = try XCTUnwrap(app.range(of: "private func finish()"))
+        let finishStop = try XCTUnwrap(app.range(
+            of: "stopViewerLifecycleEvidence()",
+            range: finish.lowerBound..<app.endIndex
+        ))
+        let finishDisconnect = try XCTUnwrap(app.range(
+            of: "coreClient?.disconnect()",
+            range: finishStop.upperBound..<app.endIndex
+        ))
+        XCTAssertLessThan(finishStop.lowerBound, finishDisconnect.lowerBound)
+    }
+
     private func repositorySource(_ path: String) throws -> String {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
