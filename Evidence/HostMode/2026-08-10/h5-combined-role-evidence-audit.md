@@ -30,11 +30,12 @@ Per-second process evidence must report HostAgent and Viewer CPU, RSS, thread co
 
 ## Verification boundary
 
-The audit intentionally returns `checkpoint-required`. It does not claim §15.2 item 10 pass because:
+H5.3s subsequently implemented the split-role sampler. H5.3t then added Viewer process/presentation-window authority, the strict five-source manifest validator and initial individual/combined CPU gates. The audit now returns `combined-validator-implemented`.
 
-- a two-PID sampler and combined manifest validator do not yet exist;
-- the numeric combined-process threshold has not been defined;
+This still does not claim §15.2 item 10 pass because:
+
+- the two passing acceptance scenarios have not been paired into one item-10 result;
 - installed App/Agent and two-machine runs have not been executed;
 - the five V1 concurrency/recovery cases and stable Host ID still need live evidence.
 
-H5.3s subsequently implemented the split-role sampler with exact PID/argument/executable/build identity checks and shared-scope labelling. The audit now returns `split-sampler-implemented`. The next safe automatic step is the combined manifest validator; readiness and streaming still must come from their separate authoritative evidence, never process liveness.
+The next safe automatic step is a pair validator requiring both passing acceptance scenario results in the same machine/build/macOS scope. Readiness and streaming remain separate authoritative evidence and are never inferred from process liveness.

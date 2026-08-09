@@ -5,6 +5,11 @@ public final class PipelineMetrics: @unchecked Sendable {
     private let lock = NSLock()
     private let startedAt = Date()
     private let startedUptimeNanoseconds = DispatchTime.now().uptimeNanoseconds
+    private let processID = ProcessInfo.processInfo.processIdentifier
+    private let bundleIdentifier = Bundle.main.bundleIdentifier ?? "unavailable"
+    private let buildIdentifier =
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        ?? "unavailable"
     private let initialCPUSeconds: Double
     private let initialResidentBytes: UInt64
     private var decodedFrames = 0
@@ -305,7 +310,8 @@ public final class PipelineMetrics: @unchecked Sendable {
 
     public func snapshot(durationOverride: Double? = nil) -> BenchmarkReport {
         sampleMemory()
-        let elapsed = durationOverride ?? Date().timeIntervalSince(startedAt)
+        let snapshotDate = Date()
+        let elapsed = durationOverride ?? snapshotDate.timeIntervalSince(startedAt)
         let cpuSeconds = Self.currentCPUSeconds() - initialCPUSeconds
         let finalResidentBytes = Self.currentResidentBytes()
         let snapshotUptimeNanoseconds = DispatchTime.now().uptimeNanoseconds
@@ -325,7 +331,17 @@ public final class PipelineMetrics: @unchecked Sendable {
                 fallback: endToEndEncodedFPS
             )
             return BenchmarkReport(
-                timestamp: ISO8601DateFormatter().string(from: Date()),
+                schema: "farpane-viewer-pipeline-report",
+                schemaVersion: 1,
+                processID: processID,
+                bundleIdentifier: bundleIdentifier,
+                buildIdentifier: buildIdentifier,
+                measurementStartedAt: ISO8601DateFormatter().string(from: startedAt),
+                measurementStartedMonotonicNanoseconds: startedUptimeNanoseconds,
+                measurementCompletedMonotonicNanoseconds: snapshotUptimeNanoseconds,
+                firstPresentationMonotonicNanoseconds: firstPresentationUptimeNanoseconds,
+                lastPresentationMonotonicNanoseconds: lastPresentationUptimeNanoseconds,
+                timestamp: ISO8601DateFormatter().string(from: snapshotDate),
                 source: source,
                 durationSeconds: elapsed,
                 codec: codec,
@@ -486,6 +502,16 @@ public struct PipelineHUDSnapshot: Sendable {
 }
 
 public struct BenchmarkReport: Codable, Sendable {
+    public let schema: String
+    public let schemaVersion: Int
+    public let processID: Int32
+    public let bundleIdentifier: String
+    public let buildIdentifier: String
+    public let measurementStartedAt: String
+    public let measurementStartedMonotonicNanoseconds: UInt64
+    public let measurementCompletedMonotonicNanoseconds: UInt64
+    public let firstPresentationMonotonicNanoseconds: UInt64?
+    public let lastPresentationMonotonicNanoseconds: UInt64?
     public let timestamp: String
     public let source: String
     public let durationSeconds: Double

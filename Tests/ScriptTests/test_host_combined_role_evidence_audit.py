@@ -26,7 +26,7 @@ class HostCombinedRoleEvidenceAuditTests(unittest.TestCase):
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(document["section15_2Item"], 10)
-        self.assertEqual(document["status"], "split-sampler-implemented")
+        self.assertEqual(document["status"], "combined-validator-implemented")
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
@@ -51,6 +51,16 @@ class HostCombinedRoleEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(
             contract["resourceReporting"]
             ["reportsWindowServerAndMediaAsSharedSystemScope"]
+        )
+        self.assertEqual(
+            contract["resourceReporting"]
+            ["readyViewerCombinedAverageCPUCeilingPercent"],
+            62.0,
+        )
+        self.assertEqual(
+            contract["resourceReporting"]
+            ["dualActiveCombinedAverageCPUCeilingPercent"],
+            85.0,
         )
         self.assertIn(
             "scenario-label-without-role-and-overlap-proof",

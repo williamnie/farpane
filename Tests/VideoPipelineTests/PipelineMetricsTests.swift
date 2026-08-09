@@ -29,6 +29,18 @@ final class PipelineMetricsTests: XCTestCase {
         }
 
         let report = metrics.snapshot(durationOverride: 2)
+        XCTAssertEqual(report.schema, "farpane-viewer-pipeline-report")
+        XCTAssertEqual(report.schemaVersion, 1)
+        XCTAssertEqual(report.processID, ProcessInfo.processInfo.processIdentifier)
+        XCTAssertFalse(report.bundleIdentifier.isEmpty)
+        XCTAssertFalse(report.buildIdentifier.isEmpty)
+        XCTAssertFalse(report.measurementStartedAt.isEmpty)
+        XCTAssertGreaterThan(
+            report.measurementCompletedMonotonicNanoseconds,
+            report.measurementStartedMonotonicNanoseconds
+        )
+        XCTAssertNil(report.firstPresentationMonotonicNanoseconds)
+        XCTAssertNil(report.lastPresentationMonotonicNanoseconds)
         XCTAssertEqual(report.encodedPackets, 3)
         XCTAssertEqual(report.encodedFrames, 2)
         XCTAssertEqual(report.endToEndEncodedFPS, 1)
@@ -39,10 +51,10 @@ final class PipelineMetricsTests: XCTestCase {
         XCTAssertGreaterThan(report.finalEncodedToPresentationStalenessMS, 0)
 
         metrics.recordPresented(milliseconds: 1)
-        XCTAssertEqual(
-            metrics.snapshot(durationOverride: 2).finalEncodedToPresentationStalenessMS,
-            0
-        )
+        let presentedReport = metrics.snapshot(durationOverride: 2)
+        XCTAssertEqual(presentedReport.finalEncodedToPresentationStalenessMS, 0)
+        XCTAssertNotNil(presentedReport.firstPresentationMonotonicNanoseconds)
+        XCTAssertNotNil(presentedReport.lastPresentationMonotonicNanoseconds)
     }
 
     func testSeparatesActivePresentationRateFromEndToEndRate() {

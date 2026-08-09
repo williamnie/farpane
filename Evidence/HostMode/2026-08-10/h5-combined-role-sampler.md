@@ -34,12 +34,12 @@ Shared helper processes may start or exit during a run; they remain shared/globa
 
 ## Remaining boundary
 
-The split sampler alone cannot prove either scenario. The next checkpoint must implement a strict combined manifest validator that binds:
+The split sampler alone cannot prove either scenario. H5.3t subsequently implemented a strict combined manifest validator that binds:
 
 1. this system sample;
 2. coherent App-side Host runtime-state evidence covering the same monotonic/UTC window;
 3. a `rustdesk-live` Viewer report proving authenticated streaming and decoded/presented frames;
 4. scenario-specific ready/no-route or dual-active Host state;
-5. a separately defined individual and combined process budget.
+5. the defined individual and combined process CPU budget.
 
-Installed App/Agent two-machine execution, the five V1 concurrency/recovery cases and stable Host ID remain live acceptance work.
+The next automatic boundary is pairing one passing acceptance result for each scenario in the same machine/build/macOS scope. Installed App/Agent two-machine execution, the five V1 concurrency/recovery cases and stable Host ID remain live acceptance work.
