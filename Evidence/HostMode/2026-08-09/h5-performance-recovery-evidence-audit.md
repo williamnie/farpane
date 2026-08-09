@@ -6,8 +6,10 @@ Section 15.2 item 7 now has an executable source audit and a frozen fail-closed
 evidence boundary. The product already owns real sleep/wake, network-path, and
 display-reconfigure recovery chains, but the current performance artifacts do
 not correlate those transitions with the required post-recovery scenario 3
-runs. The audit therefore reports `checkpoint-required`; it does not claim a
-recovery or performance pass.
+runs. At this original checkpoint the audit reported `checkpoint-required`;
+the subsequent H5.3h writer implementation advances current readback to
+`writer-implemented`, while product-owner wiring and real runs remain open.
+Neither status claims a recovery or performance pass.
 
 The next implementation must create a dedicated sanitized transition record
 for each recovery kind and bind it to one fresh, passed, 600-second `1080p30`
@@ -40,9 +42,9 @@ snapshots are explicitly forbidden as substitutes.
 - Sleep/wake binds the exact recovery epoch and running/ready convergence.
 - Network path binds path generation, recovery epoch, and running/ready
   convergence.
-- Display reconfigure binds pre/post display revision and fresh connection and
-  codec epochs without persisting raw display, peer, server, or credential
-  identity.
+- Display reconfigure binds pre/post display revision plus previous/replacement
+  connection and codec epochs, so route freshness is directly comparable,
+  without persisting raw display, peer, server, or credential identity.
 - A manifest requires exactly three transition proofs and three passed
   `1080p30` summaries, each at least 600 seconds and ordered after its completed
   transition. Sources must be SHA-256 bound and path escape, symlink, duplicate,

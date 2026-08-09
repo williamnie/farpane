@@ -50,6 +50,10 @@ def main() -> int:
             repository / "Scripts/audit-host-display-reconfigure-contract.py"
         ),
         "host_snapshot": repository / "Sources/CoreBridge/HostControlClient.swift",
+        "recovery_writer": (
+            repository
+            / "Sources/VideoPipeline/HostRecoveryTransitionEvidence.swift"
+        ),
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -71,6 +75,7 @@ def main() -> int:
     network_poller = sources["network_poller"]
     display_audit = sources["display_audit"]
     host_snapshot = sources["host_snapshot"]
+    recovery_writer = sources["recovery_writer"]
 
     evidence = {
         "samplerAdmitsRecoveryButDoesNotDefineTransitionProof": (
@@ -145,6 +150,31 @@ def main() -> int:
             and "connectionEpoch" not in media_evidence
             and "codecEpoch" not in media_evidence
         ),
+        "sanitizedBoundedTransitionWriterImplemented": all(
+            marker in recovery_writer
+            for marker in (
+                '"FARPANE_HOST_RECOVERY_OUTPUT"',
+                '"FARPANE_HOST_RECOVERY_SCOPE_SHA256"',
+                '"FARPANE_HOST_RECOVERY_BUILD_SHA256"',
+                "public static let maximumRecordCount: UInt64 = 128",
+                'schema: "farpane-host-recovery-transition"',
+                "schemaVersion: 1",
+                "status: .completed",
+                "hostInstanceScopeSHA256:",
+                "buildIdentitySHA256:",
+                "case .sleepWake(let recoveryEpoch):",
+                "case .networkPath(let pathGeneration, let recoveryEpoch):",
+                "case .displayReconfigure(",
+                "let runningReadyConverged = true",
+                "let freshRouteConverged = true",
+                "replacementConnectionEpoch > previousConnectionEpoch",
+                "replacementCodecEpoch > previousCodecEpoch",
+                "completedMonotonicNanoseconds > acceptedMonotonicNanoseconds",
+                "Data().write(to: standardizedURL, options: .withoutOverwriting)",
+                "outputHandle = try FileHandle(forWritingTo: standardizedURL)",
+                "try outputHandle.seekToEnd()",
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -174,6 +204,9 @@ def main() -> int:
         "mediaEvidenceSchema": line_number(
             media_evidence, 'static let schemaName = "farpane-media-telemetry"'
         ),
+        "recoveryWriterSchema": line_number(
+            recovery_writer, 'schema: "farpane-host-recovery-transition"'
+        ),
     }
 
     target_contract = {
@@ -190,25 +223,30 @@ def main() -> int:
                 "kind",
                 "acceptedAt",
                 "completedAt",
+                "acceptedMonotonicNanoseconds",
+                "completedMonotonicNanoseconds",
                 "status",
-                "hostInstanceScope",
-                "buildIdentity",
+                "hostInstanceScopeSHA256",
+                "buildIdentitySHA256",
             ],
             "authorityCorrelation": {
                 "sleepWake": [
                     "recoveryEpoch",
-                    "runningReadyConvergence",
+                    "runningReadyConverged",
                 ],
                 "networkPath": [
                     "pathGeneration",
                     "recoveryEpoch",
-                    "runningReadyConvergence",
+                    "runningReadyConverged",
                 ],
                 "displayReconfigure": [
                     "previousDisplayRevision",
                     "replacementDisplayRevision",
-                    "freshConnectionEpoch",
-                    "freshCodecEpoch",
+                    "previousConnectionEpoch",
+                    "replacementConnectionEpoch",
+                    "previousCodecEpoch",
+                    "replacementCodecEpoch",
+                    "freshRouteConverged",
                 ],
             },
         },
@@ -233,7 +271,7 @@ def main() -> int:
     }
 
     remaining_boundary = {
-        "sharedRecoveryEvidenceSchemaStillRequiresImplementation": True,
+        "transitionWriterIsNotYetConnectedToProductOwners": True,
         "recoveryManifestValidatorStillRequiresImplementation": True,
         "allThreeTransitionsRequireInstalledMacExecution": True,
         "eachRecoveryRequiresFreshTenMinuteScenarioThreeRun": True,
@@ -243,7 +281,7 @@ def main() -> int:
     document = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "status": "checkpoint-required" if not missing else "contract-drift",
+        "status": "writer-implemented" if not missing else "contract-drift",
         "section15_2Item": 7,
         "evidence": evidence,
         "sourceLines": source_lines,
