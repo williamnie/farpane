@@ -78,6 +78,70 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(startBody.contains("return RDN_HOST_ERR_STORAGE;"))
     }
 
+    func testPermanentPasswordSuccessRequiresDiskReadbackAndMismatchStopsHost() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let bridgeURL = repositoryRoot
+            .appendingPathComponent("CoreBridge/RustDeskPatch/rdn_host_bridge.rs")
+        let bridge = try String(contentsOf: bridgeURL, encoding: .utf8)
+
+        let setterStart = try XCTUnwrap(bridge.range(
+            of: "pub unsafe extern \"C\" fn rdn_host_set_permanent_password"
+        ))
+        let setterTail = bridge[setterStart.lowerBound...]
+        let setterEnd = try XCTUnwrap(setterTail.range(
+            of: "pub unsafe extern \"C\" fn rdn_host_copy_snapshot"
+        ))
+        let setter = setterTail[..<setterEnd.lowerBound]
+        let setterMutation = try XCTUnwrap(setter.range(
+            of: "config::Config::set_permanent_password(password)"
+        ))
+        let setterReadback = try XCTUnwrap(setter.range(
+            of: "verify_host_password_storage()"
+        ))
+        let setterSuccess = try XCTUnwrap(setter.range(
+            of: "\"permanent-password-set\""
+        ))
+        XCTAssertLessThan(setterMutation.lowerBound, setterReadback.lowerBound)
+        XCTAssertLessThan(setterReadback.lowerBound, setterSuccess.lowerBound)
+
+        let clearStart = try XCTUnwrap(bridge.range(
+            of: "\"clearPermanentPassword\" => {"
+        ))
+        let clearTail = bridge[clearStart.lowerBound...]
+        let clearEnd = try XCTUnwrap(clearTail.range(of: "\"approveConnection\" => {"))
+        let clear = clearTail[..<clearEnd.lowerBound]
+        let clearMutation = try XCTUnwrap(clear.range(
+            of: "config::Config::set_permanent_password(\"\")"
+        ))
+        let clearReadback = try XCTUnwrap(clear.range(
+            of: "verify_host_password_storage()"
+        ))
+        let clearSuccess = try XCTUnwrap(clear.range(
+            of: "host.emit_command_result(command_id, \"ok\", detail)"
+        ))
+        XCTAssertLessThan(clearMutation.lowerBound, clearReadback.lowerBound)
+        XCTAssertLessThan(clearReadback.lowerBound, clearSuccess.lowerBound)
+
+        XCTAssertTrue(bridge.contains(
+            "config::Config::get_local_permanent_password_storage_and_salt()"
+        ))
+        XCTAssertTrue(bridge.contains("struct WipedHostStorageString(String);"))
+        XCTAssertTrue(bridge.contains("password_matches: Some(true)"))
+        let failureStart = try XCTUnwrap(bridge.range(
+            of: "fn fail_host_after_password_persistence_mismatch"
+        ))
+        let failureTail = bridge[failureStart.lowerBound...]
+        let failureEnd = try XCTUnwrap(failureTail.range(of: "fn parse_envelope"))
+        let failure = failureTail[..<failureEnd.lowerBound]
+        XCTAssertTrue(failure.contains("unbind_media_host()"))
+        XCTAssertTrue(failure.contains("host.runtime.take()"))
+        XCTAssertTrue(failure.contains("password_security::update_temporary_password()"))
+        XCTAssertTrue(failure.contains("configuration.passwordPersistenceFailed"))
+    }
+
     func testNativeHostUsesCanonicalCGSessionOnConsoleKey() throws {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

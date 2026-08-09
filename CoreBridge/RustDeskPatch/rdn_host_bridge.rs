@@ -2436,8 +2436,45 @@ enum HostStorageDocument {
 }
 
 enum HostStorageSnapshot {
-    Identity { encrypted_id_present: bool },
+    Identity {
+        encrypted_id_present: bool,
+        password_matches: Option<bool>,
+    },
     Options(HashMap<String, String>),
+}
+
+#[derive(Default, serde_derive::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HostIdentityPersistenceProjection {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    enc_id: String,
+    #[serde(default)]
+    password: String,
+    #[serde(default)]
+    salt: String,
+    #[serde(default)]
+    key_pair: (Vec<u8>, Vec<u8>),
+    #[serde(default)]
+    key_confirmed: bool,
+    #[serde(default)]
+    keys_confirmed: HashMap<String, bool>,
+}
+
+impl Drop for HostIdentityPersistenceProjection {
+    fn drop(&mut self) {
+        wipe_host_storage_string(&mut self.id);
+        wipe_host_storage_string(&mut self.enc_id);
+        wipe_host_storage_string(&mut self.password);
+        wipe_host_storage_string(&mut self.salt);
+        password_security::memzero_secret(&mut self.key_pair.0);
+        password_security::memzero_secret(&mut self.key_pair.1);
+        for (mut key, _) in self.keys_confirmed.drain() {
+            wipe_host_storage_string(&mut key);
+        }
+        self.key_confirmed = false;
+    }
 }
 
 struct WipedHostStorageBytes(Vec<u8>);
@@ -2458,6 +2495,21 @@ impl Drop for WipedHostStorageBytes {
     }
 }
 
+struct WipedHostStorageString(String);
+
+impl Drop for WipedHostStorageString {
+    fn drop(&mut self) {
+        wipe_host_storage_string(&mut self.0);
+    }
+}
+
+fn wipe_host_storage_string(value: &mut String) {
+    // String guarantees that its initialized bytes are contiguous. The value
+    // is never read again after this wipe; Drop subsequently releases the
+    // allocation without exposing verifier, salt or encrypted identity bytes.
+    password_security::memzero_secret(unsafe { value.as_mut_vec() });
+}
+
 fn preflight_host_storage() -> Result<(), HostStoragePreflightError> {
     preflight_host_storage_paths(&config::Config::file(), &config::Config2::file())
 }
@@ -2469,6 +2521,18 @@ fn verify_host_start_storage(host: &RdnHost) -> Result<(), HostStoragePreflightE
         &host.rendezvous_server,
         &host.relay_server,
         &host.server_public_key,
+    )
+}
+
+fn verify_host_password_storage() -> Result<(), HostStoragePreflightError> {
+    let (storage, salt) = config::Config::get_local_permanent_password_storage_and_salt();
+    let storage = WipedHostStorageString(storage);
+    let salt = WipedHostStorageString(salt);
+    verify_host_password_storage_paths(
+        &config::Config::file(),
+        &config::Config2::file(),
+        &storage.0,
+        &salt.0,
     )
 }
 
@@ -2491,12 +2555,22 @@ fn verify_host_start_storage_paths(
     Err(HostStoragePreflightError::UnsupportedPlatform)
 }
 
+#[cfg(not(unix))]
+fn verify_host_password_storage_paths(
+    _identity_path: &std::path::Path,
+    _options_path: &std::path::Path,
+    _password_storage: &str,
+    _password_salt: &str,
+) -> Result<(), HostStoragePreflightError> {
+    Err(HostStoragePreflightError::UnsupportedPlatform)
+}
+
 #[cfg(unix)]
 fn preflight_host_storage_paths(
     identity_path: &std::path::Path,
     options_path: &std::path::Path,
 ) -> Result<(), HostStoragePreflightError> {
-    inspect_host_storage_paths(identity_path, options_path).map(|_| ())
+    inspect_host_storage_paths(identity_path, options_path, None).map(|_| ())
 }
 
 #[cfg(unix)]
@@ -2507,9 +2581,10 @@ fn verify_host_start_storage_paths(
     relay_server: &str,
     server_public_key: &str,
 ) -> Result<(), HostStoragePreflightError> {
-    let (identity, options) = inspect_host_storage_paths(identity_path, options_path)?;
+    let (identity, options) = inspect_host_storage_paths(identity_path, options_path, None)?;
     let Some(HostStorageSnapshot::Identity {
         encrypted_id_present: true,
+        ..
     }) = identity
     else {
         return Err(HostStoragePreflightError::PersistenceMismatch);
@@ -2538,6 +2613,31 @@ fn verify_host_start_storage_paths(
 }
 
 #[cfg(unix)]
+fn verify_host_password_storage_paths(
+    identity_path: &std::path::Path,
+    options_path: &std::path::Path,
+    password_storage: &str,
+    password_salt: &str,
+) -> Result<(), HostStoragePreflightError> {
+    let (identity, options) = inspect_host_storage_paths(
+        identity_path,
+        options_path,
+        Some((password_storage, password_salt)),
+    )?;
+    let Some(HostStorageSnapshot::Identity {
+        encrypted_id_present: true,
+        password_matches: Some(true),
+    }) = identity
+    else {
+        return Err(HostStoragePreflightError::PersistenceMismatch);
+    };
+    if !matches!(options, Some(HostStorageSnapshot::Options(_))) {
+        return Err(HostStoragePreflightError::PersistenceMismatch);
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
 fn persisted_host_option_matches(
     options: &HashMap<String, String>,
     key: &str,
@@ -2554,6 +2654,7 @@ fn persisted_host_option_matches(
 fn inspect_host_storage_paths(
     identity_path: &std::path::Path,
     options_path: &std::path::Path,
+    password_expectation: Option<(&str, &str)>,
 ) -> Result<(Option<HostStorageSnapshot>, Option<HostStorageSnapshot>), HostStoragePreflightError> {
     use hbb_common::libc;
     use std::{
@@ -2600,10 +2701,14 @@ fn inspect_host_storage_paths(
         return Err(HostStoragePreflightError::UnsafeDirectory);
     }
 
-    let identity =
-        inspect_host_storage_file(&directory, identity_path, HostStorageDocument::Identity)?;
+    let identity = inspect_host_storage_file(
+        &directory,
+        identity_path,
+        HostStorageDocument::Identity,
+        password_expectation,
+    )?;
     let options =
-        inspect_host_storage_file(&directory, options_path, HostStorageDocument::Options)?;
+        inspect_host_storage_file(&directory, options_path, HostStorageDocument::Options, None)?;
     Ok((identity, options))
 }
 
@@ -2622,6 +2727,7 @@ fn inspect_host_storage_file(
     directory: &std::fs::File,
     path: &std::path::Path,
     document: HostStorageDocument,
+    password_expectation: Option<(&str, &str)>,
 ) -> Result<Option<HostStorageSnapshot>, HostStoragePreflightError> {
     use hbb_common::libc;
     use std::{
@@ -2684,17 +2790,14 @@ fn inspect_host_storage_file(
         std::str::from_utf8(bytes.bytes()).map_err(|_| HostStoragePreflightError::InvalidUtf8)?;
     match document {
         HostStorageDocument::Identity => {
-            toml::from_str::<config::Config>(text)
+            let document = toml::from_str::<HostIdentityPersistenceProjection>(text)
                 .map_err(|_| HostStoragePreflightError::InvalidToml)?;
-            let document = toml::from_str::<toml::Value>(text)
-                .map_err(|_| HostStoragePreflightError::InvalidToml)?;
-            let encrypted_id_present = document
-                .get("enc_id")
-                .and_then(toml::Value::as_str)
-                .map(|value| !value.is_empty())
-                .unwrap_or(false);
+            let encrypted_id_present = !document.enc_id.is_empty();
+            let password_matches = password_expectation
+                .map(|(storage, salt)| document.password == storage && document.salt == salt);
             Ok(Some(HostStorageSnapshot::Identity {
                 encrypted_id_present,
+                password_matches,
             }))
         }
         HostStorageDocument::Options => toml::from_str::<config::Config2>(text)
@@ -2807,6 +2910,23 @@ pub unsafe extern "C" fn rdn_host_stop(host: *mut RdnHost, reason: RdnHostStopRe
     }
     host.emit_snapshot_changed();
     RDN_HOST_OK
+}
+
+fn fail_host_after_password_persistence_mismatch(host: &mut RdnHost) {
+    // Config::set_permanent_password cannot report confy's write error. Once
+    // readback proves that the in-memory verifier/salt is not durable, stop
+    // every active route before reporting the terminal storage state. This
+    // prevents a running Host from authenticating against ephemeral state.
+    unbind_media_host();
+    if let Some(mut runtime) = host.runtime.take() {
+        let _ = runtime.stop();
+    }
+    password_security::update_temporary_password();
+    host.reveal_temporary_password = false;
+    host.registration_status = "degraded";
+    host.state = RdnHostState::Error;
+    host.last_error = Some("configuration.passwordPersistenceFailed".to_owned());
+    host.emit_snapshot_changed();
 }
 
 fn parse_envelope(bytes: &[u8]) -> Result<Value, i32> {
@@ -2990,6 +3110,15 @@ fn handle_command(host: &mut RdnHost, command_id: &str, name: &str, envelope: &V
                 );
                 RDN_HOST_ERR_CHANGE_DISABLED
             } else if config::Config::set_permanent_password("") {
+                if verify_host_password_storage().is_err() {
+                    host.emit_command_result(
+                        command_id,
+                        "error",
+                        "permanent-password-storage-failed",
+                    );
+                    fail_host_after_password_persistence_mismatch(host);
+                    return RDN_HOST_ERR_STORAGE;
+                }
                 let detail = if config::Config::has_permanent_password() {
                     "permanent-password-local-cleared-preset-still-effective"
                 } else {
@@ -3118,6 +3247,11 @@ pub unsafe extern "C" fn rdn_host_set_permanent_password(
     }
     if !config::Config::set_permanent_password(password) {
         host.emit_command_result(&command_id, "error", "permanent-password-storage-failed");
+        return RDN_HOST_ERR_STORAGE;
+    }
+    if verify_host_password_storage().is_err() {
+        host.emit_command_result(&command_id, "error", "permanent-password-storage-failed");
+        fail_host_after_password_persistence_mismatch(host);
         return RDN_HOST_ERR_STORAGE;
     }
     host.emit_command_result(&command_id, "ok", "permanent-password-set");
@@ -3467,6 +3601,23 @@ mod tests {
             Self::write_private(&self.options, &options);
             (identity, options)
         }
+
+        fn write_password_documents(
+            &self,
+            password_storage: &str,
+            password_salt: &str,
+        ) -> (Vec<u8>, Vec<u8>) {
+            let identity = format!(
+                "enc_id = \"opaque-encrypted-id\"\npassword = {password_storage:?}\nsalt = {password_salt:?}\n"
+            )
+            .into_bytes();
+            let options = toml::to_string(&config::Config2::default())
+                .expect("serialize password options fixture")
+                .into_bytes();
+            Self::write_private(&self.identity, &identity);
+            Self::write_private(&self.options, &options);
+            (identity, options)
+        }
     }
 
     #[cfg(unix)]
@@ -3570,6 +3721,101 @@ mod tests {
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
         assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), options);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_password_storage_readback_accepts_exact_set_and_clear_without_mutation() {
+        let fixture = HostStorageFixture::new();
+        let storage = "synthetic-verifier";
+        let salt = "synthetic-salt";
+        let (identity, options) = fixture.write_password_documents(storage, salt);
+
+        assert_eq!(
+            verify_host_password_storage_paths(&fixture.identity, &fixture.options, storage, salt,),
+            Ok(())
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), options);
+
+        let (cleared_identity, cleared_options) = fixture.write_password_documents("", salt);
+        assert_eq!(
+            verify_host_password_storage_paths(&fixture.identity, &fixture.options, "", salt,),
+            Ok(())
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), cleared_identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), cleared_options);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_password_storage_readback_rejects_stale_verifier_or_salt_without_mutation() {
+        let fixture = HostStorageFixture::new();
+        let (identity, options) =
+            fixture.write_password_documents("persisted-verifier", "persisted-salt");
+
+        assert_eq!(
+            verify_host_password_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                "new-verifier",
+                "persisted-salt",
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
+        );
+        assert_eq!(
+            verify_host_password_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                "persisted-verifier",
+                "new-salt",
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
+        );
+        assert_eq!(
+            verify_host_password_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                "",
+                "persisted-salt",
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), options);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_password_storage_readback_rejects_wrong_typed_or_unknown_identity_fields() {
+        let fixture = HostStorageFixture::new();
+        let (_, options) = fixture.write_password_documents("persisted-verifier", "salt");
+        let wrong_type = b"enc_id = \"opaque\"\npassword = 1\nsalt = \"salt\"\n";
+        HostStorageFixture::write_private(&fixture.identity, wrong_type);
+        assert_eq!(
+            verify_host_password_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                "persisted-verifier",
+                "salt",
+            ),
+            Err(HostStoragePreflightError::InvalidToml)
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), wrong_type);
+
+        let unknown = b"enc_id = \"opaque\"\npassword = \"persisted-verifier\"\nsalt = \"salt\"\nforeign = true\n";
+        HostStorageFixture::write_private(&fixture.identity, unknown);
+        assert_eq!(
+            verify_host_password_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                "persisted-verifier",
+                "salt",
+            ),
+            Err(HostStoragePreflightError::InvalidToml)
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), unknown);
         assert_eq!(fs::read(&fixture.options).unwrap(), options);
     }
 

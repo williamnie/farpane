@@ -560,8 +560,70 @@ final class HostBridgeContractTests: XCTestCase {
         if liveRegistration {
             XCTAssertEqual(revivedSnapshot["registrationStatus"] as? String, "ready")
         }
-        XCTAssertEqual(hostStop(revivedHost, 0), 0)
+
+        // Upstream acknowledges Config::store even when confy cannot replace
+        // the private identity file. The dedicated password setter must
+        // compare the persisted verifier/salt, wipe the caller buffer, and
+        // stop an already-running Host before returning the storage error.
+        let identityBeforePasswordFailedWrite = try Data(contentsOf: identityFile)
+        let optionsBeforePasswordFailedWrite = try Data(contentsOf: optionsFile)
+        let entriesBeforePasswordFailedWrite = try Set(
+            FileManager.default.contentsOfDirectory(atPath: configDirectory.path)
+        )
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o500],
+            ofItemAtPath: configDirectory.path
+        )
+        defer {
+            try? FileManager.default.setAttributes(
+                [.posixPermissions: 0o700],
+                ofItemAtPath: configDirectory.path
+            )
+        }
+        let persistenceCanary = "H4-persistence-canary-71"
+        var persistenceSecret = Array(persistenceCanary.utf8)
+        XCTAssertEqual(persistenceSecret.withUnsafeMutableBufferPointer { buffer in
+            "pw-persistence-failure".withCString { commandID in
+                setPermanentPassword(
+                    revivedHost,
+                    commandID,
+                    buffer.baseAddress,
+                    buffer.count
+                )
+            }
+        }, -20)
+        XCTAssertEqual(
+            persistenceSecret,
+            [UInt8](repeating: 0, count: persistenceCanary.utf8.count)
+        )
+        let passwordPersistenceFailureSnapshot = try copyDictionary(revivedHost)
+        XCTAssertEqual(passwordPersistenceFailureSnapshot["hostState"] as? String, "error")
+        XCTAssertEqual(
+            passwordPersistenceFailureSnapshot["registrationStatus"] as? String,
+            "degraded"
+        )
+        XCTAssertEqual(
+            passwordPersistenceFailureSnapshot["lastError"] as? String,
+            "configuration.passwordPersistenceFailed"
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: identityFile),
+            identityBeforePasswordFailedWrite
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: optionsFile),
+            optionsBeforePasswordFailedWrite
+        )
+        XCTAssertEqual(
+            try Set(FileManager.default.contentsOfDirectory(atPath: configDirectory.path)),
+            entriesBeforePasswordFailedWrite
+        )
+        XCTAssertFalse(HostEventRecorder.events.joined().contains(persistenceCanary))
         hostDestroy(revivedHost)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o700],
+            ofItemAtPath: configDirectory.path
+        )
 
         // A synchronous upstream setter can update Config2 in memory even
         // when confy cannot create its replacement file. The Host start must
