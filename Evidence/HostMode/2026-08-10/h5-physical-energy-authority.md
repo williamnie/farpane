@@ -89,3 +89,9 @@ undefined. The next automatic step can implement the bounded raw capture
 wrapper without parsing values; parser and item 9 validator work must wait for
 a real portable-Mac raw artifact so the schema is not invented. No item 9 pass
 is claimed.
+
+Historical update: H5.3q subsequently implemented the bounded root-preflight,
+no-sudo raw capture wrapper and advanced this audit to
+`raw-capture-implemented`. The portable-Mac fixture/parser, full-window battery
+proof, paired threshold, thermal correlation, validator, and real runs remain
+open.

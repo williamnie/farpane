@@ -26,7 +26,7 @@ class HostPhysicalEnergyAuthorityAuditTests(unittest.TestCase):
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(document["section15_2Item"], 9)
-        self.assertEqual(document["status"], "privileged-authority-selected")
+        self.assertEqual(document["status"], "raw-capture-implemented")
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
@@ -49,6 +49,8 @@ class HostPhysicalEnergyAuthorityAuditTests(unittest.TestCase):
         self.assertEqual(capture["sampleIntervalMilliseconds"], 1000)
         self.assertFalse(capture["productMayRequestOrEscalatePrivileges"])
         self.assertFalse(capture["captureToolMayEmbedOrInvokeSudo"])
+        self.assertTrue(capture["rawCaptureWrapperImplemented"])
+        self.assertFalse(capture["rawCaptureMayClaimBatteryCoverageOrItemNinePass"])
         self.assertIn(
             "guessed-plist-schema-without-real-portable-mac-fixture",
             document["forbiddenInference"],
