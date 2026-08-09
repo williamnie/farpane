@@ -74,6 +74,28 @@ package enum HostAgentXPCSnapshotClientEventResult: Equatable, Sendable {
     case invalidState
 }
 
+/// A command observer receives one queued acceptance followed by exactly one
+/// terminal outcome. `resultUnknown` and `resultTimedOut` are retryable with
+/// the same command ID.
+package enum HostAgentXPCSnapshotClientCommandResult: Equatable, Sendable {
+    case accepted(HostAgentXPCWireCommandAcceptedResponse)
+    case completed(HostAgentXPCWireCommandResult)
+    case resultUnknown
+    case invalidRequest
+    case invalidResponse
+    case disconnected
+    case acceptanceTimedOut
+    case resultTimedOut
+    case cancelled
+    case invalidState
+}
+
+package enum HostAgentXPCSnapshotClientCommandState: Equatable, Sendable {
+    case idle
+    case submitting(commandID: String)
+    case awaitingResult(commandID: String)
+}
+
 package enum HostAgentXPCSnapshotClientState: Equatable, Sendable {
     case idle
     case handshaking
@@ -93,6 +115,11 @@ package enum HostAgentXPCSnapshotClientState: Equatable, Sendable {
     case refreshingSnapshot(
         HostAgentXPCSnapshotClientPeerIdentity,
         lastEventID: UInt64
+    )
+    case submittingCommand(
+        HostAgentXPCSnapshotClientPeerIdentity,
+        lastEventID: UInt64,
+        commandID: String
     )
     case incompatible
     case failed
@@ -114,6 +141,10 @@ package protocol HostAgentXPCSnapshotClientTransport: AnyObject, Sendable {
         reply: @escaping @Sendable (Data?) -> Void
     )
     func fetchEvents(
+        requestData: Data,
+        reply: @escaping @Sendable (Data?) -> Void
+    )
+    func submitCommand(
         requestData: Data,
         reply: @escaping @Sendable (Data?) -> Void
     )
@@ -190,6 +221,18 @@ package final class HostAgentXPCSnapshotClientConnectionTransport:
         }
     }
 
+    package func submitCommand(
+        requestData: Data,
+        reply: @escaping @Sendable (Data?) -> Void
+    ) {
+        invoke(reply: reply) { service, finish in
+            service.submitCommand(
+                requestData: requestData,
+                reply: finish
+            )
+        }
+    }
+
     package func invalidate() {
         connection.invalidate()
     }
@@ -197,14 +240,14 @@ package final class HostAgentXPCSnapshotClientConnectionTransport:
     private func invoke(
         reply: @escaping @Sendable (Data?) -> Void,
         body: (
-            RDNHostAgentXPCEventService,
+            RDNHostAgentXPCCommandService,
             @escaping (Data?) -> Void
         ) -> Void
     ) {
         let relay = HostAgentXPCSnapshotClientReplyRelay(reply: reply)
         guard let service = connection.remoteObjectProxyWithErrorHandler(
             { _ in relay.finish(nil) }
-        ) as? RDNHostAgentXPCEventService else {
+        ) as? RDNHostAgentXPCCommandService else {
             relay.finish(nil)
             return
         }
@@ -237,6 +280,8 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
     package typealias RequestIDSource = @Sendable () -> String
     package typealias EventCompletion = @Sendable
         (HostAgentXPCSnapshotClientEventResult) -> Void
+    package typealias CommandObserver = @Sendable
+        (HostAgentXPCSnapshotClientCommandResult) -> Void
     package typealias Clock = @Sendable () -> UInt64
     package typealias TimeoutScheduler = @Sendable (
         _ milliseconds: UInt64,
@@ -244,6 +289,34 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
     ) -> Void
 
     package static let requestTimeoutMilliseconds: UInt64 = 5_000
+    package static let commandResultTimeoutMilliseconds: UInt64 = 30_000
+
+    private enum PendingCommand: Equatable {
+        case submitting(
+            request: HostAgentXPCWireCommandRequest,
+            peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
+            lastEventID: UInt64
+        )
+        case awaitingResult(
+            request: HostAgentXPCWireCommandRequest
+        )
+    }
+
+    private enum CommandResultInspection {
+        case none
+        case matching(HostAgentXPCWireCommandResult)
+        case conflicting
+
+        var matchingResult: HostAgentXPCWireCommandResult? {
+            guard case .matching(let result) = self else { return nil }
+            return result
+        }
+    }
+
+    private struct CommandDelivery {
+        let observer: CommandObserver
+        let result: HostAgentXPCWireCommandResult
+    }
 
     private let lock = NSLock()
     private let appBuildID: String
@@ -258,11 +331,14 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
     private var state: HostAgentXPCSnapshotClientState = .idle
     private var completion: Completion?
     private var eventCompletion: EventCompletion?
+    private var commandObserver: CommandObserver?
     private var negotiatedWireVersion: UInt64?
     private var handshakeRequest: HostAgentXPCWireHandshakeRequest?
     private var snapshotRequest: HostAgentXPCWireSnapshotRequest?
     private var eventRequest: HostAgentXPCWireEventCursorRequest?
     private var refreshTrigger: HostAgentXPCWireEventCursorResponse?
+    private var pendingCommand: PendingCommand?
+    private var refreshCommandResult: HostAgentXPCWireCommandResult?
 
     package static func makeProduct(
         previousPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity?,
@@ -315,6 +391,21 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return state
+    }
+
+    package func commandStateSnapshot()
+        -> HostAgentXPCSnapshotClientCommandState
+    {
+        lock.lock()
+        defer { lock.unlock() }
+        switch pendingCommand {
+        case .none:
+            return .idle
+        case .submitting(let request, _, _):
+            return .submitting(commandID: request.commandID)
+        case .awaitingResult(let request):
+            return .awaitingResult(commandID: request.commandID)
+        }
     }
 
     package func start(completion: @escaping Completion) {
@@ -459,37 +550,175 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         }
     }
 
+    /// Sends one semantic command on the already snapshot-gated connection.
+    /// The observer first receives the correlated queued acknowledgement, then
+    /// completes only when the same command ID appears in a typed event batch.
+    package func submitCommand(
+        commandID: String,
+        name: HostAgentXPCWireCommandName,
+        connectionID: String,
+        observer: @escaping CommandObserver
+    ) {
+        let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+        let lastEventID: UInt64
+        let wireVersion: UInt64
+        lock.lock()
+        guard case .ready(let peer, let cursor) = state,
+              pendingCommand == nil,
+              let negotiatedWireVersion
+        else {
+            lock.unlock()
+            observer(.invalidState)
+            return
+        }
+        peerIdentity = peer
+        lastEventID = cursor
+        wireVersion = negotiatedWireVersion
+        lock.unlock()
+
+        let request: HostAgentXPCWireCommandRequest
+        do {
+            request = try HostAgentXPCWireCommandRequest(
+                requestID: makeRequestID(),
+                commandID: commandID,
+                wireVersion: wireVersion,
+                hostInstanceID: peerIdentity.hostInstanceID,
+                agentBootID: peerIdentity.agentBootID,
+                name: name,
+                connectionID: connectionID,
+                sentAtUnixMilliseconds: nowUnixMilliseconds()
+            )
+        } catch {
+            observer(.invalidRequest)
+            return
+        }
+
+        lock.lock()
+        guard state == .ready(peerIdentity, lastEventID: lastEventID),
+              pendingCommand == nil,
+              negotiatedWireVersion == wireVersion
+        else {
+            lock.unlock()
+            observer(.invalidState)
+            return
+        }
+        state = .submittingCommand(
+            peerIdentity,
+            lastEventID: lastEventID,
+            commandID: request.commandID
+        )
+        pendingCommand = .submitting(
+            request: request,
+            peerIdentity: peerIdentity,
+            lastEventID: lastEventID
+        )
+        commandObserver = observer
+        lock.unlock()
+
+        do {
+            transport.submitCommand(requestData: try request.encoded()) {
+                [weak self] data in
+                self?.receiveCommandAcceptance(data, request: request)
+            }
+            scheduleTimeout(Self.requestTimeoutMilliseconds) { [weak self] in
+                self?.commandAcceptanceDidTimeOut(
+                    requestID: request.requestID
+                )
+            }
+        } catch {
+            finishCommandAcceptance(
+                result: .invalidResponse,
+                invalidateTransport: true
+            )
+        }
+    }
+
     package func cancel() {
+        var initialCompletion: Completion?
+        var eventCompletion: EventCompletion?
+        var commandObserver: CommandObserver?
+        var shouldInvalidate = false
         lock.lock()
         switch state {
         case .idle:
             state = .cancelled
-            lock.unlock()
         case .handshaking, .fetchingSnapshot, .deliveringSnapshot:
             state = .cancelled
-            handshakeRequest = nil
-            snapshotRequest = nil
-            let completion = self.completion
+            initialCompletion = completion
             self.completion = nil
-            lock.unlock()
-            transport.invalidate()
-            completion?(.cancelled)
+            shouldInvalidate = true
         case .fetchingEvents, .refreshingSnapshot:
             state = .cancelled
-            eventRequest = nil
-            snapshotRequest = nil
-            refreshTrigger = nil
-            let eventCompletion = self.eventCompletion
+            eventCompletion = self.eventCompletion
             self.eventCompletion = nil
-            lock.unlock()
-            transport.invalidate()
-            eventCompletion?(.cancelled)
-        case .ready:
+            shouldInvalidate = true
+        case .submittingCommand, .ready:
             state = .cancelled
-            lock.unlock()
-            transport.invalidate()
+            shouldInvalidate = true
         default:
             lock.unlock()
+            return
+        }
+        commandObserver = self.commandObserver
+        self.commandObserver = nil
+        handshakeRequest = nil
+        snapshotRequest = nil
+        eventRequest = nil
+        refreshTrigger = nil
+        refreshCommandResult = nil
+        pendingCommand = nil
+        negotiatedWireVersion = nil
+        lock.unlock()
+
+        if shouldInvalidate { transport.invalidate() }
+        initialCompletion?(.cancelled)
+        eventCompletion?(.cancelled)
+        commandObserver?(.cancelled)
+    }
+
+    private func receiveCommandAcceptance(
+        _ data: Data?,
+        request: HostAgentXPCWireCommandRequest
+    ) {
+        guard isAwaitingCommandAcceptance(requestID: request.requestID),
+              let data,
+              let accepted = try?
+                HostAgentXPCWireCommandAcceptedResponse.decode(data),
+              accepted.evaluate(for: request) == .correlated
+        else {
+            if isAwaitingCommandAcceptance(requestID: request.requestID) {
+                finishCommandAcceptance(
+                    result: .invalidResponse,
+                    invalidateTransport: true
+                )
+            }
+            return
+        }
+
+        lock.lock()
+        guard case .submitting(
+                let expectedRequest,
+                let peerIdentity,
+                let lastEventID
+              ) = pendingCommand,
+              expectedRequest.requestID == request.requestID,
+              state == .submittingCommand(
+                peerIdentity,
+                lastEventID: lastEventID,
+                commandID: request.commandID
+              ),
+              let commandObserver
+        else {
+            lock.unlock()
+            return
+        }
+        state = .ready(peerIdentity, lastEventID: lastEventID)
+        pendingCommand = .awaitingResult(request: expectedRequest)
+        lock.unlock()
+
+        commandObserver(.accepted(accepted))
+        scheduleTimeout(Self.commandResultTimeoutMilliseconds) { [weak self] in
+            self?.commandResultDidTimeOut(requestID: request.requestID)
         }
     }
 
@@ -708,11 +937,23 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
             return
         }
 
+        let commandInspection = inspectCommandResult(in: response)
+        if case .conflicting = commandInspection {
+            finishEventPending(
+                state: .failed,
+                result: .invalidResponse,
+                invalidateTransport: true,
+                commandTerminalResult: .invalidResponse
+            )
+            return
+        }
+
         if responseRequiresSnapshot(response) {
             beginEventResnapshot(
                 response: response,
                 request: request,
-                peerIdentity: peerIdentity
+                peerIdentity: peerIdentity,
+                commandResult: commandInspection.matchingResult
             )
             return
         }
@@ -754,8 +995,14 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         eventRequest = nil
         let eventCompletion = self.eventCompletion
         self.eventCompletion = nil
+        let commandDelivery = claimCommandResultLocked(
+            commandInspection.matchingResult
+        )
         lock.unlock()
         eventCompletion?(.events(response))
+        if let commandDelivery {
+            commandDelivery.observer(.completed(commandDelivery.result))
+        }
     }
 
     private func responseRequiresSnapshot(
@@ -774,10 +1021,49 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         }
     }
 
+    private func inspectCommandResult(
+        in response: HostAgentXPCWireEventCursorResponse
+    ) -> CommandResultInspection {
+        lock.lock()
+        guard case .awaitingResult(let request) = pendingCommand else {
+            lock.unlock()
+            return .none
+        }
+        let commandID = request.commandID
+        lock.unlock()
+
+        var matched: HostAgentXPCWireCommandResult?
+        for event in response.events {
+            guard case .commandResult(let result) = event.payload,
+                  result.commandID == commandID
+            else { continue }
+            if let matched, matched != result { return .conflicting }
+            matched = result
+        }
+        guard let matched else { return .none }
+        return .matching(matched)
+    }
+
+    /// Caller holds `lock`.
+    private func claimCommandResultLocked(
+        _ result: HostAgentXPCWireCommandResult?
+    ) -> CommandDelivery? {
+        guard let result,
+              case .awaitingResult(let request) = pendingCommand,
+              request.commandID == result.commandID,
+              let commandObserver
+        else { return nil }
+        pendingCommand = nil
+        self.commandObserver = nil
+        refreshCommandResult = nil
+        return CommandDelivery(observer: commandObserver, result: result)
+    }
+
     private func beginEventResnapshot(
         response: HostAgentXPCWireEventCursorResponse,
         request: HostAgentXPCWireEventCursorRequest,
-        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
+        commandResult: HostAgentXPCWireCommandResult?
     ) {
         let snapshotRequest: HostAgentXPCWireSnapshotRequest
         do {
@@ -814,6 +1100,7 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         eventRequest = nil
         self.snapshotRequest = snapshotRequest
         refreshTrigger = response
+        refreshCommandResult = commandResult
         lock.unlock()
 
         do {
@@ -857,11 +1144,28 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         snapshotRequest = nil
         self.refreshTrigger = nil
         self.eventCompletion = nil
+        let commandDelivery = claimCommandResultLocked(refreshCommandResult)
+        let unknownCommandObserver: CommandObserver?
+        if commandDelivery == nil,
+           case .awaitingResult = pendingCommand
+        {
+            unknownCommandObserver = commandObserver
+            pendingCommand = nil
+            commandObserver = nil
+        } else {
+            unknownCommandObserver = nil
+        }
+        refreshCommandResult = nil
         lock.unlock()
         eventCompletion(.resynchronized(
             snapshot: response,
             triggeringResponse: refreshTrigger
         ))
+        if let commandDelivery {
+            commandDelivery.observer(.completed(commandDelivery.result))
+        } else {
+            unknownCommandObserver?(.resultUnknown)
+        }
         return true
     }
 
@@ -898,34 +1202,84 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         }
     }
 
+    private func commandAcceptanceDidTimeOut(requestID: String) {
+        guard isAwaitingCommandAcceptance(requestID: requestID) else {
+            return
+        }
+        finishCommandAcceptance(
+            result: .acceptanceTimedOut,
+            invalidateTransport: true
+        )
+    }
+
+    private func commandResultDidTimeOut(requestID: String) {
+        lock.lock()
+        guard case .awaitingResult(let request) = pendingCommand,
+              request.requestID == requestID,
+              let commandObserver
+        else {
+            lock.unlock()
+            return
+        }
+        pendingCommand = nil
+        self.commandObserver = nil
+        refreshCommandResult = nil
+        lock.unlock()
+        commandObserver(.resultTimedOut)
+    }
+
     private func transportDidEnd() {
+        var initialCompletion: Completion?
+        var eventCompletion: EventCompletion?
+        var commandObserver: CommandObserver?
+        var commandResult: HostAgentXPCSnapshotClientCommandResult?
+        var notifyConnectionEnded = false
         lock.lock()
         switch state {
         case .handshaking, .fetchingSnapshot, .deliveringSnapshot:
             state = .disconnected
-            handshakeRequest = nil
-            snapshotRequest = nil
-            let completion = self.completion
+            initialCompletion = completion
             self.completion = nil
-            lock.unlock()
-            completion?(.disconnected)
         case .fetchingEvents, .refreshingSnapshot:
             state = .disconnected
-            eventRequest = nil
-            snapshotRequest = nil
-            refreshTrigger = nil
-            let eventCompletion = self.eventCompletion
+            eventCompletion = self.eventCompletion
             self.eventCompletion = nil
-            lock.unlock()
-            eventCompletion?(.disconnected)
-            onConnectionEnded()
+            notifyConnectionEnded = true
+        case .submittingCommand:
+            state = .disconnected
+            notifyConnectionEnded = true
         case .ready:
             state = .disconnected
-            lock.unlock()
-            onConnectionEnded()
+            notifyConnectionEnded = true
         default:
             lock.unlock()
+            return
         }
+        if let observer = self.commandObserver {
+            commandObserver = observer
+            switch pendingCommand {
+            case .submitting:
+                commandResult = .disconnected
+            case .awaitingResult:
+                commandResult = .resultUnknown
+            case .none:
+                commandResult = nil
+            }
+        }
+        handshakeRequest = nil
+        snapshotRequest = nil
+        eventRequest = nil
+        refreshTrigger = nil
+        refreshCommandResult = nil
+        pendingCommand = nil
+        self.commandObserver = nil
+        negotiatedWireVersion = nil
+        lock.unlock()
+
+        initialCompletion?(.disconnected)
+        eventCompletion?(.disconnected)
+        if let commandResult { commandObserver?(commandResult) }
+        if notifyConnectionEnded { onConnectionEnded() }
     }
 
     private func isAwaitingHandshake(requestID: String) -> Bool {
@@ -979,6 +1333,20 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         ) && eventRequest?.requestID == requestID
     }
 
+    private func isAwaitingCommandAcceptance(requestID: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard case .submitting(let request, let peerIdentity, let cursor) =
+                pendingCommand
+        else { return false }
+        return request.requestID == requestID
+            && state == .submittingCommand(
+                peerIdentity,
+                lastEventID: cursor,
+                commandID: request.commandID
+            )
+    }
+
     private func failReadyEventStart(
         peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
         afterEventID: UInt64,
@@ -992,9 +1360,35 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         }
         state = .failed
         negotiatedWireVersion = nil
+        let commandObserver = self.commandObserver
+        self.commandObserver = nil
+        pendingCommand = nil
+        refreshCommandResult = nil
         lock.unlock()
         transport.invalidate()
         completion(.invalidResponse)
+        commandObserver?(.resultUnknown)
+    }
+
+    private func finishCommandAcceptance(
+        result: HostAgentXPCSnapshotClientCommandResult,
+        invalidateTransport: Bool
+    ) {
+        lock.lock()
+        guard case .submitting = pendingCommand,
+              let commandObserver
+        else {
+            lock.unlock()
+            return
+        }
+        state = .failed
+        pendingCommand = nil
+        self.commandObserver = nil
+        negotiatedWireVersion = nil
+        lock.unlock()
+
+        if invalidateTransport { transport.invalidate() }
+        commandObserver(result)
     }
 
     private func finishPending(
@@ -1022,7 +1416,9 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
     private func finishEventPending(
         state terminalState: HostAgentXPCSnapshotClientState,
         result: HostAgentXPCSnapshotClientEventResult,
-        invalidateTransport: Bool
+        invalidateTransport: Bool,
+        commandTerminalResult:
+            HostAgentXPCSnapshotClientCommandResult = .resultUnknown
     ) {
         lock.lock()
         guard eventCompletion != nil else {
@@ -1033,13 +1429,18 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         eventRequest = nil
         snapshotRequest = nil
         refreshTrigger = nil
+        refreshCommandResult = nil
         negotiatedWireVersion = nil
         let eventCompletion = self.eventCompletion
         self.eventCompletion = nil
+        let commandObserver = self.commandObserver
+        self.commandObserver = nil
+        pendingCommand = nil
         lock.unlock()
 
         if invalidateTransport { transport.invalidate() }
         eventCompletion?(result)
+        commandObserver?(commandTerminalResult)
     }
 
     private static let productRequestID: RequestIDSource = {
