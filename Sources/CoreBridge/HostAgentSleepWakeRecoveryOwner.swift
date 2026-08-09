@@ -20,6 +20,7 @@ package enum HostAgentSleepWakeRecoveryState: Equatable, Sendable {
     case recovering(epoch: UInt64)
     case waitingForMedia(epoch: UInt64)
     case restoringRegistration(epoch: UInt64)
+    case waitingForRegistration(epoch: UInt64)
     case failed(epoch: UInt64, step: HostAgentSleepWakeRecoveryStep)
     case cancelled
 }
@@ -29,10 +30,16 @@ package typealias HostAgentSleepWakeMediaRecoveryCompletion = @Sendable (
     _ succeeded: Bool
 ) -> Void
 
-/// Operations owned by the future product adapter. Media recovery is the only
-/// asynchronous boundary; its begin closure must return false when no matching
-/// completion can be delivered. Callbacks must not expose implementation
-/// errors, TCC details, display names, connection IDs or frame contents.
+package typealias HostAgentSleepWakeRegistrationRecoveryCompletion = @Sendable (
+    _ epoch: UInt64,
+    _ succeeded: Bool
+) -> Void
+
+/// Operations owned by the future product adapter. Media and registration
+/// recovery are asynchronous boundaries; each begin closure must return false
+/// when no matching completion can be delivered. Callbacks must not expose
+/// implementation errors, TCC details, display names, connection IDs or frame
+/// contents.
 package struct HostAgentSleepWakeRecoveryOperations: Sendable {
     package let withdrawAvailability: @Sendable () -> Bool
     package let publishSuspending: @Sendable () -> Bool
@@ -44,7 +51,10 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
         _ epoch: UInt64,
         _ completion: @escaping HostAgentSleepWakeMediaRecoveryCompletion
     ) -> Bool
-    package let resumeRegistration: @Sendable () -> Bool
+    package let beginRegistrationRecovery: @Sendable (
+        _ epoch: UInt64,
+        _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
+    ) -> Bool
     package let publishAvailable: @Sendable () -> Bool
 
     package init(
@@ -58,7 +68,10 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
             _ epoch: UInt64,
             _ completion: @escaping HostAgentSleepWakeMediaRecoveryCompletion
         ) -> Bool,
-        resumeRegistration: @escaping @Sendable () -> Bool,
+        beginRegistrationRecovery: @escaping @Sendable (
+            _ epoch: UInt64,
+            _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
+        ) -> Bool,
         publishAvailable: @escaping @Sendable () -> Bool
     ) {
         self.withdrawAvailability = withdrawAvailability
@@ -68,7 +81,7 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
         self.reenumerateDisplays = reenumerateDisplays
         self.revalidatePermissions = revalidatePermissions
         self.beginMediaRecovery = beginMediaRecovery
-        self.resumeRegistration = resumeRegistration
+        self.beginRegistrationRecovery = beginRegistrationRecovery
         self.publishAvailable = publishAvailable
     }
 }
@@ -84,6 +97,11 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
     private var state: HostAgentSleepWakeRecoveryState
     private var mediaStartInFlightEpoch: UInt64?
     private var deferredMediaCompletion: (
+        epoch: UInt64,
+        succeeded: Bool
+    )?
+    private var registrationStartInFlightEpoch: UInt64?
+    private var deferredRegistrationCompletion: (
         epoch: UInt64,
         succeeded: Bool
     )?
@@ -173,6 +191,8 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         state = .cancelled
         mediaStartInFlightEpoch = nil
         deferredMediaCompletion = nil
+        registrationStartInFlightEpoch = nil
+        deferredRegistrationCompletion = nil
         lock.unlock()
     }
 
@@ -356,12 +376,124 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         state = restoring
         lock.unlock()
 
-        guard perform(
-            .resumeRegistration,
+        return beginRegistrationRecovery(
             epoch: epoch,
-            during: restoring,
-            operation: operations.resumeRegistration
-        ), perform(
+            during: restoring
+        )
+    }
+
+    private func beginRegistrationRecovery(
+        epoch: UInt64,
+        during expected: HostAgentSleepWakeRecoveryState
+    ) -> Bool {
+        let waiting = HostAgentSleepWakeRecoveryState.waitingForRegistration(
+            epoch: epoch
+        )
+        lock.lock()
+        guard state == expected,
+              registrationStartInFlightEpoch == nil,
+              deferredRegistrationCompletion == nil
+        else {
+            lock.unlock()
+            return false
+        }
+        state = waiting
+        registrationStartInFlightEpoch = epoch
+        lock.unlock()
+
+        let accepted = operations.beginRegistrationRecovery(
+            epoch,
+            { [weak self] completedEpoch, succeeded in
+                self?.registrationRecoveryDidComplete(
+                    epoch: completedEpoch,
+                    succeeded: succeeded
+                )
+            }
+        )
+        return finishRegistrationRecoveryBegin(
+            epoch: epoch,
+            waiting: waiting,
+            accepted: accepted
+        )
+    }
+
+    private func registrationRecoveryDidComplete(
+        epoch: UInt64,
+        succeeded: Bool
+    ) {
+        lock.lock()
+        if registrationStartInFlightEpoch == epoch {
+            guard state == .waitingForRegistration(epoch: epoch),
+                  deferredRegistrationCompletion == nil
+            else {
+                lock.unlock()
+                return
+            }
+            deferredRegistrationCompletion = (epoch, succeeded)
+            lock.unlock()
+            return
+        }
+        lock.unlock()
+
+        _ = finishRegistrationRecovery(epoch: epoch, succeeded: succeeded)
+    }
+
+    private func finishRegistrationRecoveryBegin(
+        epoch: UInt64,
+        waiting: HostAgentSleepWakeRecoveryState,
+        accepted: Bool
+    ) -> Bool {
+        lock.lock()
+        guard state == waiting,
+              registrationStartInFlightEpoch == epoch
+        else {
+            lock.unlock()
+            return false
+        }
+        registrationStartInFlightEpoch = nil
+        let deferred = deferredRegistrationCompletion
+        deferredRegistrationCompletion = nil
+        guard accepted else {
+            state = .failed(epoch: epoch, step: .resumeRegistration)
+            lock.unlock()
+            return false
+        }
+        lock.unlock()
+
+        guard let deferred else { return true }
+        return finishRegistrationRecovery(
+            epoch: deferred.epoch,
+            succeeded: deferred.succeeded
+        )
+    }
+
+    private func finishRegistrationRecovery(
+        epoch: UInt64,
+        succeeded: Bool
+    ) -> Bool {
+        let waiting = HostAgentSleepWakeRecoveryState.waitingForRegistration(
+            epoch: epoch
+        )
+        let restoring = HostAgentSleepWakeRecoveryState.restoringRegistration(
+            epoch: epoch
+        )
+        lock.lock()
+        guard state == waiting,
+              registrationStartInFlightEpoch == nil,
+              deferredRegistrationCompletion == nil
+        else {
+            lock.unlock()
+            return false
+        }
+        guard succeeded else {
+            state = .failed(epoch: epoch, step: .resumeRegistration)
+            lock.unlock()
+            return false
+        }
+        state = restoring
+        lock.unlock()
+
+        guard perform(
             .publishAvailable,
             epoch: epoch,
             during: restoring,

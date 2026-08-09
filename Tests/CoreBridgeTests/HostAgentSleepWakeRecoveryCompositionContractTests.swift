@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 
 final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
-    func testCompositionHardBindsRealMediaPauseAndExactEpochRecovery() throws {
+    func testCompositionHardBindsMediaAndRegistrationRecoveryOwners() throws {
         let source = try productSource(
             "HostAgentSleepWakeRecoveryComposition.swift"
         )
@@ -23,6 +23,20 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
         XCTAssertFalse(source.contains("let beginMediaRecovery:"))
         XCTAssertFalse(source.contains("pauseMediaAndFlush: operations."))
         XCTAssertFalse(source.contains("beginMediaRecovery: operations."))
+        XCTAssertTrue(source.contains(
+            "registrationRecoveryOwner.start("
+        ))
+        XCTAssertTrue(source.contains(
+            "beginRegistrationRecovery: { epoch, completion in"
+        ))
+        XCTAssertTrue(source.contains(
+            "epoch: epoch,\n                        completion: completion"
+        ))
+        XCTAssertFalse(source.contains("resumeRegistration"))
+        XCTAssertFalse(source.contains("let beginRegistrationRecovery:"))
+        XCTAssertFalse(source.contains(
+            "beginRegistrationRecovery: operations."
+        ))
     }
 
     func testCompositionRequiresRemainingProductOperationsAndForwardsLifecycle() throws {
@@ -34,7 +48,6 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
             "withdrawAvailability",
             "publishSuspending",
             "releaseSleepAssertion",
-            "resumeRegistration",
             "publishAvailable",
         ] {
             XCTAssertTrue(source.contains("let \(operation): @Sendable"))
@@ -47,6 +60,9 @@ final class HostAgentSleepWakeRecoveryCompositionContractTests: XCTestCase {
         XCTAssertTrue(source.contains("owner.systemDidWake()"))
         XCTAssertTrue(source.contains("deinit {\n        cancel()"))
         XCTAssertTrue(source.contains("owner.cancel()"))
+        XCTAssertTrue(source.contains(
+            "registrationRecoveryOwner.cancelAndWait()"
+        ))
     }
 
     private func productSource(_ name: String) throws -> String {

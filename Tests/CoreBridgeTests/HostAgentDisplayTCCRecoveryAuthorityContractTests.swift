@@ -43,8 +43,15 @@ final class HostAgentDisplayTCCRecoveryAuthorityContractTests: XCTestCase {
         let environmentCancel = try XCTUnwrap(source.range(
             of: "displayTCCAuthority.cancel()"
         ))
+        let registrationCancel = try XCTUnwrap(source.range(
+            of: "registrationRecoveryOwner.cancelAndWait()"
+        ))
         XCTAssertLessThan(
             recoveryCancel.lowerBound,
+            registrationCancel.lowerBound
+        )
+        XCTAssertLessThan(
+            registrationCancel.lowerBound,
             environmentCancel.lowerBound
         )
     }

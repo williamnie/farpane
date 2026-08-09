@@ -62,6 +62,14 @@ def main() -> int:
             repository
             / "Sources/RustDeskNative/HostAgentSleepWakeRecoveryComposition.swift"
         ),
+        "recovery_owner": (
+            repository / "Sources/CoreBridge/HostAgentSleepWakeRecoveryOwner.swift"
+        ),
+        "registration_polling": (
+            repository
+            / "Sources/CoreBridge/HostAgentRegistrationRecoveryPollingOwner.swift"
+        ),
+        "process": repository / "Sources/RustDeskNative/HostAgentProcess.swift",
         "build": repository / "Scripts/build-rust-core.sh",
     }
     try:
@@ -231,11 +239,43 @@ def main() -> int:
                 "readiness must converge through a later authoritative",
             )
         ),
+        "registrationPollingRequiresMatchingAuthoritativeSnapshot": all(
+            marker in sources["registration_polling"]
+            for marker in (
+                "productTimeoutMilliseconds: UInt64 = 5_000",
+                "snapshot.hostInstanceId == expectedHostInstanceID",
+                "snapshot.recoveryEpoch == epoch",
+                "snapshot.recoveryStatus",
+                'snapshot.registrationStatus == "ready"',
+                "case .unavailable:",
+                "return .pending",
+                "case .failed, .suspending, .suspended:",
+                "return .failed",
+            )
+        ),
+        "compositionWaitsForAsynchronousRegistrationRecovery": all(
+            marker in sources["recovery_owner"]
+            for marker in (
+                "case waitingForRegistration(epoch: UInt64)",
+                "beginRegistrationRecovery: @Sendable",
+                "registrationRecoveryDidComplete",
+                "finishRegistrationRecovery",
+            )
+        )
+        and all(
+            marker in sources["composition"]
+            for marker in (
+                "registrationRecoveryOwner.start(",
+                "beginRegistrationRecovery: { epoch, completion in",
+                "registrationRecoveryOwner.cancelAndWait()",
+            )
+        )
+        and "resumeRegistration" not in sources["composition"],
     }
     missing = [name for name, present in evidence.items() if not present]
     result = {
         "schema": SCHEMA,
-        "schemaVersion": 3,
+        "schemaVersion": 4,
         "status": "contract-implemented" if not missing else "audit-failed",
         "implementation": {
             "hostABIVersion": rust_abi,
@@ -253,15 +293,23 @@ def main() -> int:
                 "swiftBeginSleep": line_number(
                     sources["snapshot"], "public func beginSleep(epoch: UInt64)"
                 ),
+                "registrationPolling": line_number(
+                    sources["registration_polling"],
+                    "package final class HostAgentRegistrationRecoveryPollingOwner",
+                ),
             },
         },
         "remainingBoundary": {
-            "compositionRegistrationStillSynchronous": all(
+            "sleepPreparationABIOperationsStillUnbound": all(
                 marker in sources["composition"]
                 for marker in (
-                    "let resumeRegistration: @Sendable () -> Bool",
-                    "let publishAvailable: @Sendable () -> Bool",
+                    "let withdrawAvailability: @Sendable () -> Bool",
+                    "let publishSuspending: @Sendable () -> Bool",
+                    "let releaseSleepAssertion: @Sendable () -> Bool",
                 )
+            ),
+            "processSleepWakeCompositionAbsent": (
+                "HostAgentSleepWakeRecoveryComposition(" not in sources["process"]
             ),
         },
         "missingEvidence": missing,
