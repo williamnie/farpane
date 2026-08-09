@@ -126,14 +126,14 @@ def main() -> int:
                 '"viewDisplay", "controlKeyboardMouse", "writeClipboard"',
             )
         ),
-        "runtimeDataPathRemainsDefaultOffAndCoupled": all(
+        "runtimeDataPathRemainsDefaultOff": all(
             marker in host_bridge + connection
             for marker in (
                 "OPTION_ENABLE_CLIPBOARD",
                 '(config::keys::OPTION_ENABLE_CLIPBOARD, "N")',
                 "self.clipboard && !self.disable_clipboard",
-                "self.can_sub_clipboard_service()",
-                "self.should_handle_text_clipboard_message() && self.clipboard_enabled()",
+                "native_host_clipboard_remote_read_enabled()",
+                "native_host_allows_remote_clipboard_write(",
             )
         ),
     }
@@ -179,16 +179,15 @@ def main() -> int:
         "claims": {
             "readWritePolicyRepresentable": True,
             "clipboardDataPathEnabled": False,
-            "boundedSmallTextImplemented": False,
+            "boundedSmallTextImplemented": True,
             "richClipboardImplemented": False,
         },
         "remainingBoundary": {
-            "directionalConnectionGatesRequired": True,
-            "boundedSmallTextPayloadRequired": True,
             "independentRevocationCommandsRequired": True,
             "eventDrivenDynamicBackoffRequired": True,
+            "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "bounded-small-text-directional-gates",
+        "nextImplementationBoundary": "independent-directional-revoke-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "clipboard-read-write-policy-contract" else 1

@@ -115,17 +115,19 @@ def main() -> int:
             sources["host_bridge"] == sources["vendor_host_bridge"]
         ),
         "connectionGatesBothClipboardDirections": all(
-            marker in connection
+            marker in host_bridge + connection
             for marker in (
                 "self.clipboard && !self.disable_clipboard",
-                "self.can_sub_clipboard_service()",
-                "self.should_handle_text_clipboard_message() && self.clipboard_enabled()",
+                "native_host_clipboard_remote_read_enabled()",
+                "native_host_allows_remote_clipboard_write(",
             )
         ),
-        "readWriteSplitStillMissing": all(
+        "readWritePolicyIsIndependent": all(
             marker in host_bridge
             for marker in (
-                "clipboard: bool",
+                "struct NativeClipboardPolicy",
+                "remote_read: bool",
+                "remote_write: bool",
                 'names.push("readClipboard")',
                 'names.push("writeClipboard")',
             )
@@ -197,12 +199,12 @@ def main() -> int:
             "systemAudioEnabled": False,
         },
         "remainingBoundary": {
-            "readWritePolicyContractRequired": True,
-            "boundedPayloadContractRequired": True,
+            "independentRevocationCommandsRequired": True,
             "eventDrivenDynamicBackoffRequired": True,
             "temporaryObjectCleanupRequired": True,
+            "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "clipboard-read-write-policy-contract",
+        "nextImplementationBoundary": "independent-directional-revoke-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "optional-data-capabilities-default-off" else 1

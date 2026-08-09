@@ -52,3 +52,43 @@ index 3f5f324..2fa79dd 100644
  lazy_static::lazy_static! {
      pub static ref TEMPORARY_PASSWORD:Arc<RwLock<String>> = Arc::new(RwLock::new(get_auto_password()));
  }
+--- a/src/compress.rs
++++ b/src/compress.rs
+@@ -32,3 +32,37 @@
+ pub fn decompress(data: &[u8]) -> Vec<u8> {
+     zstd::decode_all(data).unwrap_or_default()
+ }
++
++/// Decompresses one independent zstd block without allowing the decoded
++/// output to grow beyond `max_output_bytes`.
++///
++/// Data-plane callers must use this bounded variant before accepting
++/// untrusted compressed payloads. The legacy helper above remains unchanged
++/// for existing upstream call sites.
++pub fn decompress_with_limit(data: &[u8], max_output_bytes: usize) -> io::Result<Vec<u8>> {
++    zstd::bulk::decompress(data, max_output_bytes)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn bounded_decompression_accepts_payload_at_limit() {
++        let plain = vec![b'a'; 64];
++        let compressed = compress(&plain);
++
++        assert_eq!(
++            decompress_with_limit(&compressed, plain.len()).unwrap(),
++            plain
++        );
++    }
++
++    #[test]
++    fn bounded_decompression_rejects_payload_over_limit() {
++        let plain = vec![b'a'; 65];
++        let compressed = compress(&plain);
++
++        assert!(decompress_with_limit(&compressed, plain.len() - 1).is_err());
++    }
++}

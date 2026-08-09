@@ -5693,3 +5693,91 @@ index bf2e04c..b78cdad 100644
  }
 
  impl<T: InvokeUiSession> Deref for Session<T> {
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -891,6 +891,15 @@
+
+     #[inline]
+     fn send(&mut self, msg: Arc<Message>) {
++        #[cfg(all(
++            feature = "rdn-native-host",
++            not(any(target_os = "android", target_os = "ios"))
++        ))]
++        if crate::rdn_host_bridge::native_host_is_bound()
++            && !crate::rdn_host_bridge::native_host_allows_outgoing_clipboard_message(&msg)
++        {
++            return;
++        }
+         // Send SwitchDisplay on the same channel as VideoFrame to avoid send order problems.
+         let tx_by_video = match &msg.union {
+             Some(message::Union::VideoFrame(_)) => true,
+@@ -2907,9 +2916,17 @@
+
+     #[inline]
+     fn can_sub_clipboard_service(&self) -> bool {
+-        self.clipboard_enabled()
++        let enabled = self.clipboard_enabled()
+             && self.peer_keyboard_enabled()
+-            && crate::get_builtin_option(keys::OPTION_ONE_WAY_CLIPBOARD_REDIRECTION) != "Y"
++            && crate::get_builtin_option(keys::OPTION_ONE_WAY_CLIPBOARD_REDIRECTION) != "Y";
++        #[cfg(all(
++            feature = "rdn-native-host",
++            not(any(target_os = "android", target_os = "ios"))
++        ))]
++        let enabled = enabled
++            && (!crate::rdn_host_bridge::native_host_is_bound()
++                || crate::rdn_host_bridge::native_host_clipboard_remote_read_enabled());
++        enabled
+     }
+
+     fn audio_enabled(&self) -> bool {
+@@ -4047,7 +4064,23 @@
+                     }
+                 }
+                 Some(message::Union::Clipboard(cb)) => {
+-                    if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {
++                    #[cfg(all(
++                        feature = "rdn-native-host",
++                        not(any(target_os = "android", target_os = "ios"))
++                    ))]
++                    let native_host_allows = !crate::rdn_host_bridge::native_host_is_bound()
++                        || crate::rdn_host_bridge::native_host_allows_remote_clipboard_write(
++                            std::slice::from_ref(&cb),
++                        );
++                    #[cfg(not(all(
++                        feature = "rdn-native-host",
++                        not(any(target_os = "android", target_os = "ios"))
++                    )))]
++                    let native_host_allows = true;
++                    if self.should_handle_text_clipboard_message()
++                        && self.clipboard_enabled()
++                        && native_host_allows
++                    {
+                         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                         update_clipboard(vec![cb], ClipboardSide::Host);
+                         // ios as the controlled side is actually not supported for now.
+@@ -4075,7 +4108,23 @@
+                     }
+                 }
+                 Some(message::Union::MultiClipboards(_mcb)) => {
+-                    if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {
++                    #[cfg(all(
++                        feature = "rdn-native-host",
++                        not(any(target_os = "android", target_os = "ios"))
++                    ))]
++                    let native_host_allows = !crate::rdn_host_bridge::native_host_is_bound()
++                        || crate::rdn_host_bridge::native_host_allows_remote_clipboard_write(
++                            &_mcb.clipboards,
++                        );
++                    #[cfg(not(all(
++                        feature = "rdn-native-host",
++                        not(any(target_os = "android", target_os = "ios"))
++                    )))]
++                    let native_host_allows = true;
++                    if self.should_handle_text_clipboard_message()
++                        && self.clipboard_enabled()
++                        && native_host_allows
++                    {
+                         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                         update_clipboard(_mcb.clipboards, ClipboardSide::Host);
+                         #[cfg(target_os = "android")]
