@@ -28,7 +28,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-agent-process-owner-implemented",
+            "host-agent-initial-ready-evidence-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -37,7 +37,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "versioned-host-agent-process-identity-wire-contract",
+            "host-agent-host-transition-normalization",
         )
         self.assertTrue(
             document["evidence"]
@@ -118,6 +118,18 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["hostAgentProductOwnsEvidenceAcrossRunResult"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostAgentOwnerRecordsOnlySelfBoundValidatedHostObservation"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostAgentRuntimeEvidenceIdentityComesFromLease"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["hostAgentProductRecordsOnlyPostListenerReadyZero"]
         )
         self.assertTrue(
             document["remainingBoundary"]

@@ -22,6 +22,7 @@ public struct HostViewerConcurrencyEvidenceProcessSnapshot:
   public let status: HostViewerConcurrencyEvidenceProcessStatus
   public let processStartedRecords: UInt64
   public let processTerminatingRecords: UInt64
+  public let hostRecords: UInt64
   public let viewerRecords: UInt64
   public let activeViewerSessionEpoch: UInt64?
   public let viewerTransitionGeneration: UInt64
@@ -32,6 +33,7 @@ public struct HostViewerConcurrencyEvidenceProcessSnapshot:
     status: HostViewerConcurrencyEvidenceProcessStatus,
     processStartedRecords: UInt64,
     processTerminatingRecords: UInt64,
+    hostRecords: UInt64 = 0,
     viewerRecords: UInt64 = 0,
     activeViewerSessionEpoch: UInt64? = nil,
     viewerTransitionGeneration: UInt64 = 0,
@@ -41,6 +43,7 @@ public struct HostViewerConcurrencyEvidenceProcessSnapshot:
     self.status = status
     self.processStartedRecords = processStartedRecords
     self.processTerminatingRecords = processTerminatingRecords
+    self.hostRecords = hostRecords
     self.viewerRecords = viewerRecords
     self.activeViewerSessionEpoch = activeViewerSessionEpoch
     self.viewerTransitionGeneration = viewerTransitionGeneration
@@ -99,10 +102,12 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
   private var status: HostViewerConcurrencyEvidenceProcessStatus = .idle
   private var writer: HostViewerConcurrencyEvidenceWriter?
   private var configuredRole: HostViewerConcurrencyProcessRole?
+  private var configuredIdentity: HostViewerConcurrencyProcessIdentity?
   private var configurationInFlight = false
   private var recordInFlight = false
   private var processStartedRecords: UInt64 = 0
   private var processTerminatingRecords: UInt64 = 0
+  private var hostRecords: UInt64 = 0
   private var viewerRecords: UInt64 = 0
   private var committedViewerSessionEpoch: UInt64 = 0
   private var viewerSession: ViewerSession?
@@ -150,6 +155,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       status: status,
       processStartedRecords: processStartedRecords,
       processTerminatingRecords: processTerminatingRecords,
+      hostRecords: hostRecords,
       viewerRecords: viewerRecords,
       activeViewerSessionEpoch: viewerSession?.epoch,
       viewerTransitionGeneration:
@@ -270,6 +276,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     if configured, let configuredWriter {
       writer = configuredWriter
       configuredRole = role
+      configuredIdentity = configuredWriter.identitySnapshot
       processStartedRecords = 1
       status = .active
     } else {
@@ -280,6 +287,98 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     let accepted = status == .active
     condition.unlock()
     return accepted
+  }
+
+  /// Records one caller-normalized HostAgent self-observation. The exact
+  /// process identity is always taken from this role-bound owner; the Host,
+  /// boot/config and build values must come from the same live Agent authority.
+  /// Invalid or foreign-role input is ignored without disabling evidence.
+  @discardableResult
+  public func recordHostAgentObservation(
+    state: HostViewerConcurrencyHostState,
+    hostInstanceID: String,
+    agentBootID: UUID,
+    configRevision: UInt64,
+    agentBuildID: String,
+    transitionGeneration: UInt64
+  ) -> Bool {
+    guard let hostScopeDigest =
+      HostViewerConcurrencyEvidenceDigest.hostInstanceScope(hostInstanceID),
+      let agentBuildDigest =
+        HostViewerConcurrencyEvidenceDigest.buildIdentity(agentBuildID),
+      configRevision > 0,
+      agentBootID.uuidString
+        != "00000000-0000-0000-0000-000000000000",
+      Self.validHostTransitionGeneration(
+        state: state,
+        generation: transitionGeneration
+      )
+    else { return false }
+
+    condition.lock()
+    while status == .active && recordInFlight {
+      condition.wait()
+    }
+    guard status == .active,
+          configuredRole == .hostAgent,
+          let writer,
+          let configuredIdentity,
+          agentBuildDigest == configuredIdentity.buildIdentitySHA256
+    else {
+      condition.unlock()
+      return false
+    }
+    let observation = HostViewerConcurrencyHostObservation(
+      state: state,
+      hostInstanceScopeSHA256: hostScopeDigest,
+      agentBootID: agentBootID,
+      configRevision: configRevision,
+      hostAgentProcessID: configuredIdentity.processID,
+      hostAgentProcessStartIdentitySHA256:
+        configuredIdentity.processStartIdentitySHA256,
+      hostAgentBuildIdentitySHA256: agentBuildDigest,
+      transitionGeneration: transitionGeneration
+    )
+    recordInFlight = true
+    condition.unlock()
+
+    let recorded: Bool
+    do {
+      try writer.record(
+        .host(observation),
+        capturedAt: wallClock(),
+        monotonicNanoseconds: monotonicNanoseconds()
+      )
+      recorded = true
+    } catch {
+      recorded = false
+    }
+
+    condition.lock()
+    recordInFlight = false
+    if recorded {
+      incrementSaturating(&hostRecords)
+    } else if status == .active {
+      incrementSaturating(&recordFailures)
+      self.writer = nil
+      status = .unavailable
+    }
+    condition.broadcast()
+    condition.unlock()
+    return recorded
+  }
+
+  private static func validHostTransitionGeneration(
+    state: HostViewerConcurrencyHostState,
+    generation: UInt64
+  ) -> Bool {
+    switch state {
+    case .readyZeroInbound, .inboundMediaActive:
+      return generation == 0
+    case .disconnected, .recoveredReadyZeroInbound,
+         .recoveredInboundMediaActive:
+      return generation > 0
+    }
   }
 
   /// Starts one live Viewer evidence session and returns its process-local,

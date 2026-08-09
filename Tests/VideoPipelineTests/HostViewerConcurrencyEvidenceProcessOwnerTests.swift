@@ -70,6 +70,16 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertFalse(owner.configureApplication(environment: environment(
       output: fixture.output
     )))
+    XCTAssertFalse(owner.recordHostAgentObservation(
+      state: .readyZeroInbound,
+      hostInstanceID: "host-private-value",
+      agentBootID: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!,
+      configRevision: 1,
+      agentBuildID: buildRaw,
+      transitionGeneration: 0
+    ))
+    XCTAssertEqual(owner.snapshot().status, .active)
+    XCTAssertEqual(owner.snapshot().hostRecords, 0)
     XCTAssertTrue(owner.terminateAndWait())
     XCTAssertFalse(owner.terminateAndWait())
     XCTAssertEqual(owner.snapshot(), .init(
@@ -110,6 +120,10 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     let fixture = try makeFixture()
     defer { try? FileManager.default.removeItem(at: fixture.directory) }
     let expectedAgentBuildID = "agent-preflight-build"
+    let hostInstanceID = "host-private-value"
+    let agentBootID = UUID(
+      uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+    )!
     let calls = LockedCallCounts()
     let owner = HostViewerConcurrencyEvidenceProcessOwner(
       processID: {
@@ -138,10 +152,28 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     XCTAssertNil(owner.beginViewerSession())
     XCTAssertEqual(owner.snapshot().status, .active)
     XCTAssertEqual(owner.snapshot().recordFailures, 0)
+    XCTAssertFalse(owner.recordHostAgentObservation(
+      state: .readyZeroInbound,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 0,
+      agentBuildID: expectedAgentBuildID,
+      transitionGeneration: 0
+    ))
+    XCTAssertEqual(owner.snapshot().status, .active)
+    XCTAssertTrue(owner.recordHostAgentObservation(
+      state: .readyZeroInbound,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: 7,
+      agentBuildID: expectedAgentBuildID,
+      transitionGeneration: 0
+    ))
+    XCTAssertEqual(owner.snapshot().hostRecords, 1)
     XCTAssertTrue(owner.terminateAndWait())
 
     let records = try readRecords(fixture.output)
-    XCTAssertEqual(records.count, 2)
+    XCTAssertEqual(records.count, 3)
     XCTAssertTrue(records.allSatisfy {
       $0["observerProcessRole"] as? String == "hostAgent"
         && $0["observerBuildIdentitySHA256"] as? String
@@ -151,7 +183,18 @@ final class HostViewerConcurrencyEvidenceProcessOwnerTests: XCTestCase {
     })
     XCTAssertEqual(records.compactMap {
       ($0["event"] as? [String: Any])?["kind"] as? String
-    }, ["processStarted", "processTerminating"])
+    }, ["processStarted", "hostState", "processTerminating"])
+    let hostEvent = try XCTUnwrap(records[1]["event"] as? [String: Any])
+    XCTAssertEqual(hostEvent["state"] as? String, "readyZeroInbound")
+    XCTAssertEqual(
+      hostEvent["agentBootID"] as? String,
+      agentBootID.uuidString.lowercased()
+    )
+    XCTAssertEqual(hostEvent["configRevision"] as? Int, 7)
+    XCTAssertEqual(
+      hostEvent["hostInstanceScopeSHA256"] as? String,
+      HostViewerConcurrencyEvidenceDigest.hostInstanceScope(hostInstanceID)
+    )
   }
 
   func testHostAgentMissingOutputDoesNotResolveAnyIdentity() {

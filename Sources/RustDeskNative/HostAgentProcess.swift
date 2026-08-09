@@ -150,6 +150,11 @@ enum HostAgentProcess {
                     _ = lifetime.waitUntilTerminated()
                     return .failure(HostAgentStartupFailure(kind: .internalFailure))
                 }
+                recordInitialReadyConcurrencyEvidence(
+                    owner: concurrencyEvidenceOwner,
+                    lifetime: lifetime,
+                    snapshotState: snapshotState
+                )
                 return .success(lifetime)
             },
             bindTermination: { controller, lifetime in
@@ -164,6 +169,28 @@ enum HostAgentProcess {
             cancelTerminationIngress: { controller in
                 controller.cancel()
             }
+        )
+    }
+
+    private static func recordInitialReadyConcurrencyEvidence(
+        owner: HostViewerConcurrencyEvidenceProcessOwner,
+        lifetime: HostAgentProcessLifetime,
+        snapshotState: HostAgentSnapshotState
+    ) {
+        guard let identity = try? lifetime.concurrencyEvidenceIdentity(),
+              let projection = snapshotState.snapshot().projection,
+              projection.hostState == "ready",
+              projection.registrationStatus == "ready",
+              projection.authenticatedConnectionCount == 0,
+              projection.activeSession == nil
+        else { return }
+        _ = owner.recordHostAgentObservation(
+            state: .readyZeroInbound,
+            hostInstanceID: projection.hostInstanceID,
+            agentBootID: identity.agentBootID,
+            configRevision: identity.configRevision,
+            agentBuildID: identity.agentBuildID,
+            transitionGeneration: 0
         )
     }
 }
