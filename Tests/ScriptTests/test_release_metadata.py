@@ -38,6 +38,31 @@ class ReleaseMetadataTests(unittest.TestCase):
             script.index('codesign --force --sign "$signing_identity" --timestamp=none "$app_dir"'),
         )
 
+    def test_build_architecture_override_is_explicit_and_bounded(self) -> None:
+        script = (REPO_ROOT / "Scripts" / "build-universal.sh").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            'RDN_BUILD_ARCHITECTURES:-"arm64 x86_64"', script
+        )
+        self.assertIn('arm64|x86_64|"arm64 x86_64"', script)
+        self.assertIn(
+            'RustDesk Core is missing for architecture: $build_architecture',
+            script,
+        )
+        self.assertIn(
+            'Swift executable architecture does not match: $build_architecture',
+            script,
+        )
+        self.assertIn(
+            'RustDesk Core architecture does not match: $build_architecture',
+            script,
+        )
+        self.assertIn(
+            'print "BUILD_ARCHITECTURES=$architecture_spec"', script
+        )
+
     def test_release_workflow_verifies_before_publishing(self) -> None:
         workflow = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(
             encoding="utf-8"
