@@ -36,7 +36,7 @@ final class CoreBridgeContractTests: XCTestCase {
         let bridge = try String(contentsOf: bridgeURL, encoding: .utf8)
 
         XCTAssertTrue(bridge.contains("const EVENT_SCHEMA_VERSION: u32 = 1;"))
-        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 5;"))
+        XCTAssertTrue(bridge.contains("const SNAPSHOT_SCHEMA_VERSION: u32 = 6;"))
         XCTAssertTrue(bridge.contains("\"schemaVersion\": EVENT_SCHEMA_VERSION"))
         XCTAssertTrue(bridge.contains(
             "map.insert(\"schemaVersion\".into(), json!(SNAPSHOT_SCHEMA_VERSION));"
@@ -1076,14 +1076,20 @@ final class CoreBridgeContractTests: XCTestCase {
         ]
         func document(
             pendingApproval: Any,
-            activeSession: Any = NSNull()
+            activeSession: Any = NSNull(),
+            hostState: String = "ready",
+            registrationStatus: String = "ready",
+            recoveryEpoch: Any = 0,
+            recoveryStatus: String = "running"
         ) -> [String: Any] {
             [
-                "schemaVersion": 5,
+                "schemaVersion": 6,
                 "hostInstanceId": "host-instance",
-                "hostState": "ready",
+                "hostState": hostState,
                 "localId": "987654321",
-                "registrationStatus": "ready",
+                "registrationStatus": registrationStatus,
+                "recoveryEpoch": recoveryEpoch,
+                "recoveryStatus": recoveryStatus,
                 "pendingApproval": pendingApproval,
                 "activeSession": activeSession,
                 "temporaryPasswordPresentation": ["policy": "redacted"],
@@ -1113,7 +1119,9 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )
         let snapshot = try HostCoreSnapshot(rawJSON: data)
-        XCTAssertEqual(snapshot.schemaVersion, 5)
+        XCTAssertEqual(snapshot.schemaVersion, 6)
+        XCTAssertEqual(snapshot.recoveryEpoch, 0)
+        XCTAssertEqual(snapshot.recoveryStatus, .running)
         XCTAssertEqual(snapshot.pendingApproval?.connectionId, "host-instance:7")
         XCTAssertEqual(snapshot.pendingApproval?.remoteName, "Remote Mac")
         XCTAssertEqual(
@@ -1254,10 +1262,44 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         )))
         var oldSchema = document(pendingApproval: NSNull())
-        oldSchema["schemaVersion"] = 4
+        oldSchema["schemaVersion"] = 5
         XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
             withJSONObject: oldSchema
         )))
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                recoveryStatus: "futureStatus"
+            )
+        )))
+        XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                hostState: "starting",
+                registrationStatus: "suspending",
+                recoveryEpoch: 0,
+                recoveryStatus: "suspending"
+            )
+        )))
+        for invalidEpoch: Any in [-1, 1.5] {
+            XCTAssertThrowsError(try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+                withJSONObject: document(
+                    pendingApproval: NSNull(),
+                    recoveryEpoch: invalidEpoch
+                )
+            )))
+        }
+        let suspended = try HostCoreSnapshot(rawJSON: JSONSerialization.data(
+            withJSONObject: document(
+                pendingApproval: NSNull(),
+                hostState: "starting",
+                registrationStatus: "suspended",
+                recoveryEpoch: 7,
+                recoveryStatus: "suspended"
+            )
+        ))
+        XCTAssertEqual(suspended.recoveryEpoch, 7)
+        XCTAssertEqual(suspended.recoveryStatus, .suspended)
     }
 
     func testHostApprovalDecisionGateRejectsStaleAndDuplicateActions() {

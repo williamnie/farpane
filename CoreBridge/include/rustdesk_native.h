@@ -177,7 +177,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 7u
+#define RDN_HOST_ABI_VERSION 8u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -266,6 +266,12 @@ int32_t rdn_host_create(const RdnHostCreateOptions *options,
                         const RdnHostCallbacks *callbacks, RdnHost **out_host);
 int32_t rdn_host_start(RdnHost *host);
 int32_t rdn_host_stop(RdnHost *host, RdnHostStopReason reason);
+/* Exact-epoch sleep lifecycle. begin withdraws registration and signals the
+ * runtime; finish joins it and acknowledges Rust-owned assertion release;
+ * resume only accepts/restarts registration and never means ready. */
+int32_t rdn_host_begin_sleep(RdnHost *host, uint64_t epoch);
+int32_t rdn_host_finish_sleep(RdnHost *host, uint64_t epoch);
+int32_t rdn_host_resume_after_wake(RdnHost *host, uint64_t epoch);
 int32_t rdn_host_command(RdnHost *host, const uint8_t *command_json,
                          size_t length);
 /* Dedicated secret ingress. The caller owns a mutable UTF-8 buffer; Rust
@@ -386,6 +392,12 @@ int32_t rdn_shim_host_create(const RDNCoreLibrary *library,
 int32_t rdn_shim_host_start(const RDNCoreLibrary *library, RdnHost *host);
 int32_t rdn_shim_host_stop(const RDNCoreLibrary *library, RdnHost *host,
                            RdnHostStopReason reason);
+int32_t rdn_shim_host_begin_sleep(const RDNCoreLibrary *library, RdnHost *host,
+                                  uint64_t epoch);
+int32_t rdn_shim_host_finish_sleep(const RDNCoreLibrary *library, RdnHost *host,
+                                   uint64_t epoch);
+int32_t rdn_shim_host_resume_after_wake(const RDNCoreLibrary *library,
+                                        RdnHost *host, uint64_t epoch);
 int32_t rdn_shim_host_command(const RDNCoreLibrary *library, RdnHost *host,
                               const uint8_t *command_json, size_t length);
 int32_t rdn_shim_host_set_permanent_password(

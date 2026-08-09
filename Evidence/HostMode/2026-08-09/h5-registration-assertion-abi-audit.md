@@ -1,5 +1,10 @@
 # H5.1j registration/assertion Host ABI ownership audit
 
+> Historical checkpoint note: at commit `8ac5c96` the tracked audit reported
+> `contract-gap-confirmed` for ABI v7/schema v5. H5.1k advances the same
+> executable audit to verify the implemented ABI v8/schema v6 contract; the
+> conclusions below remain the design evidence that authorized that change.
+
 ## Outcome
 
 The pinned Host runtime cannot reuse its public stop operation for sleep recovery. The current Host ABI is version 7 and its snapshot schema is version 5; neither exposes a sleep/recovery epoch. `rdn_host_stop` is terminal: it unbinds media and the active native session, joins the Rendezvous runtime, and rotates the temporary password.

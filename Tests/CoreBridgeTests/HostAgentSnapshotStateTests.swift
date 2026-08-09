@@ -370,11 +370,13 @@ final class HostAgentSnapshotStateTests: XCTestCase {
             ["policy": "revealed", "value": $0]
         } ?? ["policy": "redacted"]
         let document: [String: Any] = [
-            "schemaVersion": 5,
+            "schemaVersion": 6,
             "hostInstanceId": host,
             "hostState": "ready",
             "localId": "123456789",
             "registrationStatus": "ready",
+            "recoveryEpoch": 0,
+            "recoveryStatus": "running",
             "pendingApproval": NSNull(),
             "activeSession": NSNull(),
             "temporaryPasswordPresentation": presentation,

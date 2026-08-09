@@ -371,12 +371,31 @@ public struct HostEncodedAccessUnit: Sendable {
 /// Decoded minimal snapshot field set (§8.3). Raw JSON is kept for audit
 /// logging; the temporary password value is only present for the one-shot
 /// revealed copy (§9.2).
+public enum HostRecoveryStatus: String, Equatable, Sendable {
+    case running
+    case suspending
+    case suspended
+    case resuming
+    case failed
+}
+
+private func strictSnapshotUInt64(_ value: Any?) -> UInt64? {
+    guard let number = value as? NSNumber,
+          CFGetTypeID(number) != CFBooleanGetTypeID()
+    else { return nil }
+    let unsigned = number.uint64Value
+    guard number.decimalValue == Decimal(unsigned) else { return nil }
+    return unsigned
+}
+
 public struct HostCoreSnapshot: Sendable {
     public let schemaVersion: Int
     public let hostInstanceId: String
     public let hostState: String
     public let localId: String
     public let registrationStatus: String
+    public let recoveryEpoch: UInt64
+    public let recoveryStatus: HostRecoveryStatus
     public let pendingApproval: HostPendingApproval?
     public let activeSession: HostActiveSession?
     public let temporaryPasswordPolicy: String
@@ -392,7 +411,7 @@ public struct HostCoreSnapshot: Sendable {
         else {
             throw HostControlError.snapshotDecode("snapshot is not a JSON object")
         }
-        guard (json["schemaVersion"] as? NSNumber)?.intValue == 5,
+        guard (json["schemaVersion"] as? NSNumber)?.intValue == 6,
               let hostInstanceID = json["hostInstanceId"] as? String,
               !hostInstanceID.isEmpty,
               let hostState = json["hostState"] as? String,
@@ -400,6 +419,9 @@ public struct HostCoreSnapshot: Sendable {
               let localID = json["localId"] as? String,
               let registrationStatus = json["registrationStatus"] as? String,
               !registrationStatus.isEmpty,
+              let recoveryEpoch = strictSnapshotUInt64(json["recoveryEpoch"]),
+              let recoveryStatusValue = json["recoveryStatus"] as? String,
+              let recoveryStatus = HostRecoveryStatus(rawValue: recoveryStatusValue),
               let observedAt = (json["observedAt"] as? NSNumber)?.uint64Value,
               observedAt > 0,
               let presentation = json["temporaryPasswordPresentation"] as? [String: Any],
@@ -464,12 +486,37 @@ public struct HostCoreSnapshot: Sendable {
         if let lastError = json["lastError"], !(lastError is NSNull), !(lastError is String) {
             throw HostControlError.snapshotDecode("snapshot last error is invalid")
         }
+        let recoveryContractIsValid: Bool
+        switch recoveryStatus {
+        case .running:
+            recoveryContractIsValid = true
+        case .suspending:
+            recoveryContractIsValid = recoveryEpoch > 0
+                && hostState == "starting"
+                && registrationStatus == "suspending"
+        case .suspended:
+            recoveryContractIsValid = recoveryEpoch > 0
+                && hostState == "starting"
+                && registrationStatus == "suspended"
+        case .resuming:
+            recoveryContractIsValid = recoveryEpoch > 0
+                && hostState == "starting"
+                && registrationStatus == "pending"
+        case .failed:
+            recoveryContractIsValid = hostState == "error"
+                && registrationStatus == "degraded"
+        }
+        guard recoveryContractIsValid else {
+            throw HostControlError.snapshotDecode("snapshot recovery state is invalid")
+        }
 
-        schemaVersion = 5
+        schemaVersion = 6
         hostInstanceId = hostInstanceID
         self.hostState = hostState
         localId = localID
         self.registrationStatus = registrationStatus
+        self.recoveryEpoch = recoveryEpoch
+        self.recoveryStatus = recoveryStatus
         self.pendingApproval = pendingApproval
         self.activeSession = activeSession
         self.temporaryPasswordPolicy = temporaryPasswordPolicy

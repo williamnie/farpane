@@ -31,10 +31,10 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 7;
+const HOST_ABI_VERSION: u32 = 8;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
-const SNAPSHOT_SCHEMA_VERSION: u32 = 5;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 6;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_NAME_BYTES: usize = 64;
@@ -98,6 +98,27 @@ pub enum RdnHostState {
     Stopping = 3,
     Stopped = 4,
     Error = 5,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum HostRecoveryState {
+    Running,
+    Suspending,
+    Suspended,
+    Resuming,
+    Failed,
+}
+
+impl HostRecoveryState {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Running => "running",
+            Self::Suspending => "suspending",
+            Self::Suspended => "suspended",
+            Self::Resuming => "resuming",
+            Self::Failed => "failed",
+        }
+    }
 }
 
 fn state_name(state: RdnHostState) -> &'static str {
@@ -208,6 +229,8 @@ pub struct RdnHost {
     state: RdnHostState,
     local_id: String,
     registration_status: &'static str,
+    recovery_epoch: u64,
+    recovery_state: HostRecoveryState,
     reveal_temporary_password: bool,
     last_error: Option<String>,
     event_id: Arc<AtomicU64>,
@@ -805,9 +828,10 @@ impl NativeSessionBroker {
             .snapshot
             .active_capabilities
             .is_subset_of(session.snapshot.initial_capabilities)
-            || !session.snapshot.input_availability.is_valid(
-                session.snapshot.active_capabilities.control_keyboard_mouse,
-            )
+            || !session
+                .snapshot
+                .input_availability
+                .is_valid(session.snapshot.active_capabilities.control_keyboard_mouse)
         {
             return NativeSessionStartResult::Invalid;
         }
@@ -1422,10 +1446,11 @@ pub(crate) fn native_host_update_session_capabilities(
     active_capabilities: NativeSessionCapabilities,
     input_availability: NativeSessionInputAvailability,
 ) {
-    let snapshot = SESSION_BROKER
-        .lock()
-        .unwrap()
-        .update_capabilities(core_connection_id, active_capabilities, input_availability);
+    let snapshot = SESSION_BROKER.lock().unwrap().update_capabilities(
+        core_connection_id,
+        active_capabilities,
+        input_availability,
+    );
     let Some(snapshot) = snapshot else { return };
     let binding = MEDIA_BROKER.lock().unwrap().binding.clone();
     if let Some(binding) = binding {
@@ -2183,9 +2208,12 @@ impl HostRuntime {
         self.finished.load(Ordering::Acquire)
     }
 
-    fn stop(&mut self) -> bool {
+    fn request_stop(&self) {
         self.stop_requested.store(true, Ordering::Release);
         crate::RendezvousMediator::stop_native_host_runtime();
+    }
+
+    fn join(&mut self) -> bool {
         let joined = self
             .thread
             .take()
@@ -2194,16 +2222,34 @@ impl HostRuntime {
         config::Config::reset_online();
         joined
     }
+
+    fn stop(&mut self) -> bool {
+        self.request_stop();
+        self.join()
+    }
 }
 
 impl RdnHost {
     fn refresh_registration_state(&mut self) {
+        match self.recovery_state {
+            HostRecoveryState::Suspending => {
+                self.registration_status = "suspending";
+                return;
+            }
+            HostRecoveryState::Suspended => {
+                self.registration_status = "suspended";
+                return;
+            }
+            HostRecoveryState::Failed => return,
+            HostRecoveryState::Running | HostRecoveryState::Resuming => {}
+        }
         if !matches!(self.state, RdnHostState::Starting | RdnHostState::Ready) {
             return;
         }
         if config::Config::get_key_confirmed() && config::get_online_state() > 0 {
             self.registration_status = "ready";
             self.state = RdnHostState::Ready;
+            self.recovery_state = HostRecoveryState::Running;
             self.last_error = None;
         } else if self
             .runtime
@@ -2213,6 +2259,9 @@ impl RdnHost {
         {
             self.registration_status = "degraded";
             self.state = RdnHostState::Error;
+            if self.recovery_state == HostRecoveryState::Resuming {
+                self.recovery_state = HostRecoveryState::Failed;
+            }
             self.last_error = Some("registration.runtimeExited".to_owned());
         } else {
             self.registration_status = "pending";
@@ -2290,6 +2339,8 @@ impl RdnHost {
             }),
         );
         map.insert("registrationStatus".into(), json!(self.registration_status));
+        map.insert("recoveryEpoch".into(), json!(self.recovery_epoch));
+        map.insert("recoveryStatus".into(), json!(self.recovery_state.name()));
         map.insert(
             "lastError".into(),
             match &self.last_error {
@@ -2463,6 +2514,8 @@ pub unsafe extern "C" fn rdn_host_create(
         state: RdnHostState::Created,
         local_id: String::new(),
         registration_status: "notStarted",
+        recovery_epoch: 0,
+        recovery_state: HostRecoveryState::Running,
         reveal_temporary_password: false,
         last_error: None,
         event_id: Arc::new(AtomicU64::new(0)),
@@ -2924,6 +2977,19 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
         return RDN_HOST_ERR_STORAGE;
     }
     bind_media_host(host);
+    // The process-global wakelock worker outlives an individual Host handle.
+    // Reset it only after binding this native Host so its thread pins the
+    // user-idle (display-off) policy and cannot inherit a prior sleep epoch.
+    if !crate::server::native_host_reset_wakelock() {
+        unbind_media_host();
+        host.registration_status = "degraded";
+        host.state = RdnHostState::Error;
+        host.recovery_state = HostRecoveryState::Failed;
+        host.last_error = Some("power.wakelockResetFailed".to_owned());
+        host.emit_snapshot_changed();
+        return RDN_HOST_ERR_INTERNAL;
+    }
+    host.recovery_state = HostRecoveryState::Running;
     host.runtime = match HostRuntime::start(host.rendezvous_server.clone()) {
         Ok(runtime) => Some(runtime),
         Err(()) => {
@@ -2965,11 +3031,105 @@ pub unsafe extern "C" fn rdn_host_stop(host: *mut RdnHost, reason: RdnHostStopRe
     password_security::update_temporary_password();
     host.reveal_temporary_password = false;
     host.registration_status = "notStarted";
+    host.recovery_state = HostRecoveryState::Running;
     if matches!(reason, RdnHostStopReason::Error) {
         host.state = RdnHostState::Error;
     } else {
         host.state = RdnHostState::Stopped;
     }
+    host.emit_snapshot_changed();
+    RDN_HOST_OK
+}
+
+fn fail_host_sleep_recovery(host: &mut RdnHost, detail: &str) -> i32 {
+    host.registration_status = "degraded";
+    host.recovery_state = HostRecoveryState::Failed;
+    host.state = RdnHostState::Error;
+    host.last_error = Some(detail.to_owned());
+    host.emit_snapshot_changed();
+    RDN_HOST_ERR_INTERNAL
+}
+
+fn is_next_recovery_epoch(current: u64, requested: u64) -> bool {
+    requested != 0 && current.checked_add(1) == Some(requested)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rdn_host_begin_sleep(host: *mut RdnHost, epoch: u64) -> i32 {
+    let Some(host) = host.as_mut() else {
+        return RDN_HOST_ERR_INVALID_ARG;
+    };
+    if host.recovery_state != HostRecoveryState::Running
+        || !matches!(host.state, RdnHostState::Starting | RdnHostState::Ready)
+        || host.runtime.is_none()
+    {
+        return RDN_HOST_ERR_BAD_STATE;
+    }
+    if !is_next_recovery_epoch(host.recovery_epoch, epoch) {
+        return RDN_HOST_ERR_STALE_EPOCH;
+    }
+
+    host.recovery_epoch = epoch;
+    host.recovery_state = HostRecoveryState::Suspending;
+    host.registration_status = "suspending";
+    host.state = RdnHostState::Starting;
+    host.runtime.as_ref().unwrap().request_stop();
+    host.emit_snapshot_changed();
+    RDN_HOST_OK
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rdn_host_finish_sleep(host: *mut RdnHost, epoch: u64) -> i32 {
+    let Some(host) = host.as_mut() else {
+        return RDN_HOST_ERR_INVALID_ARG;
+    };
+    if host.recovery_epoch != epoch {
+        return RDN_HOST_ERR_STALE_EPOCH;
+    }
+    if host.recovery_state != HostRecoveryState::Suspending {
+        return RDN_HOST_ERR_BAD_STATE;
+    }
+    let Some(mut runtime) = host.runtime.take() else {
+        return fail_host_sleep_recovery(host, "registration.runtimeMissingDuringSleep");
+    };
+    if !runtime.join() {
+        return fail_host_sleep_recovery(host, "registration.runtimeJoinFailedDuringSleep");
+    }
+    if !crate::server::native_host_suspend_wakelock(epoch) {
+        return fail_host_sleep_recovery(host, "power.wakelockSuspendFailed");
+    }
+
+    host.registration_status = "suspended";
+    host.recovery_state = HostRecoveryState::Suspended;
+    host.state = RdnHostState::Starting;
+    host.emit_snapshot_changed();
+    RDN_HOST_OK
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rdn_host_resume_after_wake(host: *mut RdnHost, epoch: u64) -> i32 {
+    let Some(host) = host.as_mut() else {
+        return RDN_HOST_ERR_INVALID_ARG;
+    };
+    if host.recovery_epoch != epoch {
+        return RDN_HOST_ERR_STALE_EPOCH;
+    }
+    if host.recovery_state != HostRecoveryState::Suspended || host.runtime.is_some() {
+        return RDN_HOST_ERR_BAD_STATE;
+    }
+
+    host.recovery_state = HostRecoveryState::Resuming;
+    host.registration_status = "pending";
+    host.state = RdnHostState::Starting;
+    if !crate::server::native_host_resume_wakelock(epoch) {
+        return fail_host_sleep_recovery(host, "power.wakelockResumeFailed");
+    }
+    host.runtime = match HostRuntime::start(host.rendezvous_server.clone()) {
+        Ok(runtime) => Some(runtime),
+        Err(()) => {
+            return fail_host_sleep_recovery(host, "registration.runtimeResumeFailed");
+        }
+    };
     host.emit_snapshot_changed();
     RDN_HOST_OK
 }
@@ -3734,14 +3894,23 @@ mod tests {
                 setter.store(true, Ordering::Release);
             });
             let started = Instant::now();
-            assert!(
-                !wait_for_host_runtime_retry(&stop_requested, Duration::from_secs(5)).await
-            );
+            assert!(!wait_for_host_runtime_retry(&stop_requested, Duration::from_secs(5)).await);
             assert!(started.elapsed() < Duration::from_secs(1));
 
             stop_requested.store(false, Ordering::Release);
             assert!(wait_for_host_runtime_retry(&stop_requested, Duration::ZERO).await);
         });
+    }
+
+    #[test]
+    fn host_recovery_epoch_is_strictly_sequential_and_exhaustion_safe() {
+        assert!(is_next_recovery_epoch(0, 1));
+        assert!(is_next_recovery_epoch(41, 42));
+        assert!(!is_next_recovery_epoch(0, 0));
+        assert!(!is_next_recovery_epoch(1, 1));
+        assert!(!is_next_recovery_epoch(1, 3));
+        assert!(!is_next_recovery_epoch(u64::MAX, 0));
+        assert!(!is_next_recovery_epoch(u64::MAX, u64::MAX));
     }
 
     #[cfg(unix)]
@@ -4080,6 +4249,8 @@ mod tests {
             state: RdnHostState::Ready,
             local_id: "test-local-id".to_owned(),
             registration_status: "ready",
+            recovery_epoch: 0,
+            recovery_state: HostRecoveryState::Running,
             reveal_temporary_password: false,
             last_error: None,
             event_id: Arc::new(AtomicU64::new(0)),
@@ -4317,10 +4488,7 @@ mod tests {
                 .input_availability,
             unavailable
         );
-        assert_eq!(
-            broker.snapshot().unwrap().active_capabilities,
-            revoked
-        );
+        assert_eq!(broker.snapshot().unwrap().active_capabilities, revoked);
         let accessibility_denied = NativeSessionInputAvailability::limited(
             NativeSessionInputUnavailableReason::AccessibilityDenied,
         );
@@ -4378,7 +4546,9 @@ mod tests {
             first_sender,
         ));
         let active_snapshot = host.snapshot_json();
-        assert_eq!(active_snapshot["schemaVersion"], 5);
+        assert_eq!(active_snapshot["schemaVersion"], SNAPSHOT_SCHEMA_VERSION);
+        assert_eq!(active_snapshot["recoveryEpoch"], 0);
+        assert_eq!(active_snapshot["recoveryStatus"], "running");
         assert_eq!(
             active_snapshot["activeSession"]["connectionId"],
             "session-host:7"

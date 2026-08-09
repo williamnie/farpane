@@ -75,7 +75,7 @@ enum HostEventRecorder {
 /// coexist with the viewer ABI v5, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
-    private static let hostABIVersion: UInt32 = 7
+    private static let hostABIVersion: UInt32 = 8
     private static let hostMediaABIVersion: UInt32 = 1
     private static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
 
@@ -136,6 +136,9 @@ final class HostBridgeContractTests: XCTestCase {
             "rdn_host_create",
             "rdn_host_start",
             "rdn_host_stop",
+            "rdn_host_begin_sleep",
+            "rdn_host_finish_sleep",
+            "rdn_host_resume_after_wake",
             "rdn_host_command",
             "rdn_host_set_permanent_password",
             "rdn_host_copy_snapshot",
@@ -175,6 +178,9 @@ final class HostBridgeContractTests: XCTestCase {
             Self.hostMediaABIVersion)
         let hostCommit = rdn_shim_host_upstream_commit(shimLibrary).map { String(cString: $0) }
         XCTAssertEqual(hostCommit, Self.expectedUpstreamCommit)
+        XCTAssertEqual(rdn_shim_host_begin_sleep(shimLibrary, nil, 1), -1)
+        XCTAssertEqual(rdn_shim_host_finish_sleep(shimLibrary, nil, 1), -1)
+        XCTAssertEqual(rdn_shim_host_resume_after_wake(shimLibrary, nil, 1), -1)
     }
 
     /// Full in-process HostCore lifecycle (§6.2 spike form, §8.2–8.5):
@@ -233,6 +239,15 @@ final class HostBridgeContractTests: XCTestCase {
         let hostStop = unsafeBitCast(
             try rawSymbol("rdn_host_stop"),
             to: (@convention(c) (OpaquePointer?, UInt32) -> Int32).self)
+        let hostBeginSleep = unsafeBitCast(
+            try rawSymbol("rdn_host_begin_sleep"),
+            to: (@convention(c) (OpaquePointer?, UInt64) -> Int32).self)
+        let hostFinishSleep = unsafeBitCast(
+            try rawSymbol("rdn_host_finish_sleep"),
+            to: (@convention(c) (OpaquePointer?, UInt64) -> Int32).self)
+        let hostResumeAfterWake = unsafeBitCast(
+            try rawSymbol("rdn_host_resume_after_wake"),
+            to: (@convention(c) (OpaquePointer?, UInt64) -> Int32).self)
         let hostCommand = unsafeBitCast(
             try rawSymbol("rdn_host_command"),
             to: (@convention(c) (OpaquePointer?, UnsafePointer<UInt8>?, Int) -> Int32).self)
@@ -370,7 +385,9 @@ final class HostBridgeContractTests: XCTestCase {
         let snapshotDict = liveRegistration
             ? try waitUntilRegistered(host)
             : try copyDictionary(host)
-        XCTAssertEqual(snapshotDict["schemaVersion"] as? Int, 5)
+        XCTAssertEqual(snapshotDict["schemaVersion"] as? Int, 6)
+        XCTAssertEqual(snapshotDict["recoveryEpoch"] as? UInt64, 0)
+        XCTAssertEqual(snapshotDict["recoveryStatus"] as? String, "running")
         XCTAssertTrue(snapshotDict["pendingApproval"] is NSNull)
         XCTAssertTrue(snapshotDict["activeSession"] is NSNull)
         XCTAssertEqual(
@@ -414,6 +431,59 @@ final class HostBridgeContractTests: XCTestCase {
         } else {
             XCTFail("snapshot must carry the permanent-password policy")
         }
+
+        func revealTemporaryPassword(_ commandID: String) throws -> String {
+            let command = """
+                {"commandId":"\(commandID)","name":"revealTemporaryPassword"}
+                """
+            XCTAssertEqual(command.utf8CString.withUnsafeBytes {
+                hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
+            }, 0)
+            let revealedSnapshot = try copyDictionary(host)
+            let presentation = try XCTUnwrap(
+                revealedSnapshot["temporaryPasswordPresentation"] as? [String: Any]
+            )
+            XCTAssertEqual(presentation["policy"] as? String, "revealed")
+            return try XCTUnwrap(presentation["value"] as? String)
+        }
+
+        // ABI v8 sleep recovery is exact-epoch and keeps registration,
+        // assertion and password ownership in Rust. Accepted resume means
+        // pending only; a later snapshot must prove ready for this epoch.
+        let temporaryPasswordBeforeSleep = try revealTemporaryPassword("sleep-password-before")
+        XCTAssertEqual(hostBeginSleep(nil, 1), -1)
+        XCTAssertEqual(hostBeginSleep(host, 0), -7)
+        XCTAssertEqual(hostFinishSleep(host, 1), -7)
+        XCTAssertEqual(hostResumeAfterWake(host, 1), -7)
+        XCTAssertEqual(hostBeginSleep(host, 1), 0)
+        XCTAssertEqual(hostBeginSleep(host, 1), -3)
+        XCTAssertEqual(hostFinishSleep(host, 2), -7)
+        let suspendingSnapshot = try copyDictionary(host)
+        XCTAssertEqual(suspendingSnapshot["recoveryEpoch"] as? UInt64, 1)
+        XCTAssertEqual(suspendingSnapshot["recoveryStatus"] as? String, "suspending")
+        XCTAssertEqual(suspendingSnapshot["registrationStatus"] as? String, "suspending")
+        XCTAssertEqual(hostFinishSleep(host, 1), 0)
+        XCTAssertEqual(hostFinishSleep(host, 1), -3)
+        let suspendedSnapshot = try copyDictionary(host)
+        XCTAssertEqual(suspendedSnapshot["recoveryEpoch"] as? UInt64, 1)
+        XCTAssertEqual(suspendedSnapshot["recoveryStatus"] as? String, "suspended")
+        XCTAssertEqual(suspendedSnapshot["registrationStatus"] as? String, "suspended")
+        XCTAssertEqual(hostResumeAfterWake(host, 2), -7)
+        XCTAssertEqual(hostResumeAfterWake(host, 1), 0)
+        XCTAssertEqual(hostResumeAfterWake(host, 1), -3)
+        let resumedSnapshot = try copyDictionary(host)
+        XCTAssertEqual(resumedSnapshot["recoveryEpoch"] as? UInt64, 1)
+        let resumedStatus = resumedSnapshot["recoveryStatus"] as? String
+        XCTAssertTrue(["resuming", "running"].contains(resumedStatus ?? ""))
+        if resumedStatus == "resuming" {
+            XCTAssertEqual(resumedSnapshot["registrationStatus"] as? String, "pending")
+        } else {
+            XCTAssertEqual(resumedSnapshot["registrationStatus"] as? String, "ready")
+        }
+        XCTAssertEqual(
+            try revealTemporaryPassword("sleep-password-after"),
+            temporaryPasswordBeforeSleep
+        )
 
         func assertSetPassword(
             _ bytes: [UInt8], expectedCode: Int32, commandID: String
