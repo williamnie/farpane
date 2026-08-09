@@ -19,6 +19,7 @@ HOST_CPU_CEILING_PERCENT = 2.0
 MAX_STATE_GAP_SECONDS = 2.5
 MAX_SNAPSHOT_AGE_MILLISECONDS = 3_000
 CAPTURED_AT_FUTURE_TOLERANCE_MILLISECONDS = 1_500
+SUPPORTED_MACHINE_ARCHITECTURES = ("arm64", "x86_64")
 STATE_KEYS = {
     "schema",
     "schemaVersion",
@@ -48,6 +49,18 @@ def is_integer(value: Any) -> bool:
 
 def is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def is_bounded_identity_text(value: Any, maximum_length: int) -> bool:
+    return (
+        isinstance(value, str)
+        and value == value.strip()
+        and 0 < len(value) <= maximum_length
+        and all(
+            ord(character) >= 0x20 and ord(character) != 0x7F
+            for character in value
+        )
+    )
 
 
 def parse_iso8601_milliseconds(value: Any) -> int:
@@ -152,6 +165,9 @@ def validate_idle_run(
     system = load_json(system_path, "system evidence", failures)
     sample_mode = system.get("sampleMode") if system else None
     system_actual_duration = 0.0
+    machine_model = "unavailable"
+    machine_architecture = "unavailable"
+    macos_version = "unavailable"
     if system:
         require(
             is_integer(system.get("schemaVersion"))
@@ -190,6 +206,30 @@ def validate_idle_run(
             is_number(actual_duration) and float(actual_duration) >= duration - 0.25,
             "system sampler wall-clock duration did not cover the requested window",
         )
+        candidate_machine_model = system.get("machineModel")
+        candidate_architecture = system.get("architecture")
+        candidate_macos_version = system.get("macOSVersion")
+        machine_model_valid = is_bounded_identity_text(candidate_machine_model, 128)
+        architecture_valid = candidate_architecture in SUPPORTED_MACHINE_ARCHITECTURES
+        macos_version_valid = is_bounded_identity_text(candidate_macos_version, 64)
+        require(
+            machine_model_valid,
+            "system evidence machine model is missing or invalid",
+        )
+        require(
+            architecture_valid,
+            "system evidence architecture must be arm64 or x86_64",
+        )
+        require(
+            macos_version_valid,
+            "system evidence macOS version is missing or invalid",
+        )
+        if machine_model_valid:
+            machine_model = candidate_machine_model
+        if architecture_valid:
+            machine_architecture = candidate_architecture
+        if macos_version_valid:
+            macos_version = candidate_macos_version
 
     rows: list[dict[str, str]] = []
     try:
@@ -428,6 +468,9 @@ def validate_idle_run(
         "scenario": SCENARIO,
         "sampleMode": sample_mode or "unknown",
         "requestedDurationSeconds": duration,
+        "machineModel": machine_model,
+        "architecture": machine_architecture,
+        "macOSVersion": macos_version,
         "runnerWindowDurationSeconds": round(window_duration_ms / 1_000, 3),
         "systemActualDurationSeconds": round(system_actual_duration, 3),
         "hostCPUUpperTargetPercent": HOST_CPU_CEILING_PERCENT,
