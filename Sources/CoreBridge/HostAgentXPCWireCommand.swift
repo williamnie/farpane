@@ -29,6 +29,8 @@ package enum HostAgentXPCWireCommandName:
     case approveIncoming
     case rejectIncoming
     case disableInputForActiveSession
+    case disableClipboardReadForActiveSession
+    case disableClipboardWriteForActiveSession
     case disableClipboardForActiveSession
     case disableAudioForActiveSession
     case disconnectSession
@@ -37,7 +39,7 @@ package enum HostAgentXPCWireCommandName:
 /// Strict Data-only command envelope for approval and active-session actions.
 /// No selector, runtime service, queue, or execution authority is defined here.
 package enum HostAgentXPCWireCommandContract {
-    package static let currentSchemaVersion: UInt64 = 1
+    package static let currentSchemaVersion: UInt64 = 2
     package static let maximumDocumentBytes = 16 * 1_024
 
     fileprivate static let maximumExactJSONInteger: UInt64 =

@@ -9,11 +9,13 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
     private let hostID = "host-a"
     private let commandID = "command-1"
 
-    func testSixApprovalAndSessionCommandsRoundTripExactly() throws {
+    func testEightApprovalAndSessionCommandsRoundTripExactly() throws {
         let names: [HostAgentXPCWireCommandName] = [
             .approveIncoming,
             .rejectIncoming,
             .disableInputForActiveSession,
+            .disableClipboardReadForActiveSession,
+            .disableClipboardWriteForActiveSession,
             .disableClipboardForActiveSession,
             .disableAudioForActiveSession,
             .disconnectSession,
@@ -24,6 +26,7 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
             XCTAssertEqual(request.name, name)
             XCTAssertEqual(request.commandID, commandID)
             XCTAssertEqual(request.connectionID, "host-a:connection-1")
+            XCTAssertEqual(request.schemaVersion, 2)
             XCTAssertEqual(
                 try HostAgentXPCWireCommandRequest.decode(request.encoded()),
                 request
@@ -108,7 +111,8 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
         let malformed: [[String: Any]] = [
             merging(valid, ["unknown": true]),
             removing(valid, "commandId"),
-            merging(valid, ["schemaVersion": 2]),
+            merging(valid, ["schemaVersion": 1]),
+            merging(valid, ["schemaVersion": 3]),
             merging(valid, ["wireVersion": 1]),
             merging(valid, ["wireVersion": true]),
             merging(valid, ["messageType": "snapshotRequest"]),
@@ -163,7 +167,8 @@ final class HostAgentXPCWireCommandTests: XCTestCase {
         let malformed: [[String: Any]] = [
             merging(valid, ["unknown": true]),
             removing(valid, "requestId"),
-            merging(valid, ["schemaVersion": 2]),
+            merging(valid, ["schemaVersion": 1]),
+            merging(valid, ["schemaVersion": 3]),
             merging(valid, ["wireVersion": 1]),
             merging(valid, ["messageType": "commandRequest"]),
             merging(valid, ["requestId": "not-a-uuid"]),

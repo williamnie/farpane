@@ -1486,8 +1486,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let pendingAction: HostSessionHomeAction?
         switch hostSessionCommandGate.resolvingIntent(connectionID: session.connectionId) {
         case .disable(.keyboardAndMouse): pendingAction = .disableKeyboardAndMouse
-        case .disable(.clipboardRead), .disable(.clipboardWrite), .disable(.clipboard):
-            pendingAction = .disableClipboard
+        case .disable(.clipboardRead): pendingAction = .disableClipboardRead
+        case .disable(.clipboardWrite): pendingAction = .disableClipboardWrite
+        case .disable(.clipboard): pendingAction = .disableClipboard
         case .disable(.systemAudio): pendingAction = .disableSystemAudio
         case .disconnect: pendingAction = .disconnect
         case nil: pendingAction = nil
@@ -1505,10 +1506,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         if activeCapabilities.contains("controlKeyboardMouse") {
             enabledActions.insert(.disableKeyboardAndMouse)
         }
-        if activeCapabilities.contains("readClipboard"),
-           activeCapabilities.contains("writeClipboard")
-        {
-            enabledActions.insert(.disableClipboard)
+        if activeCapabilities.contains("readClipboard") {
+            enabledActions.insert(.disableClipboardRead)
+        }
+        if activeCapabilities.contains("writeClipboard") {
+            enabledActions.insert(.disableClipboardWrite)
         }
         if activeCapabilities.contains("hearSystemAudio") {
             enabledActions.insert(.disableSystemAudio)
@@ -1523,6 +1525,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             contextText: "\(hostPlatformText(session.remotePlatform)) · \(startedText) 开始连接",
             capabilityText: capabilityText,
             canDisableKeyboardAndMouse: activeCapabilities.contains("controlKeyboardMouse"),
+            canDisableClipboardRead: activeCapabilities.contains("readClipboard"),
+            canDisableClipboardWrite: activeCapabilities.contains("writeClipboard"),
             canDisableClipboard: activeCapabilities.contains("readClipboard")
                 && activeCapabilities.contains("writeClipboard"),
             canDisableSystemAudio: activeCapabilities.contains("hearSystemAudio"),
@@ -1601,6 +1605,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         if availableActions.contains(.disableKeyboardAndMouse) {
             enabledActions.insert(.disableKeyboardAndMouse)
         }
+        if availableActions.contains(.disableClipboardRead) {
+            enabledActions.insert(.disableClipboardRead)
+        }
+        if availableActions.contains(.disableClipboardWrite) {
+            enabledActions.insert(.disableClipboardWrite)
+        }
         if availableActions.contains(.disableClipboard) {
             enabledActions.insert(.disableClipboard)
         }
@@ -1622,6 +1632,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             canDisableKeyboardAndMouse:
                 backgroundSnapshot.allowsSessionMutationCommands
                     && activeCapabilities.contains("controlKeyboardMouse"),
+            canDisableClipboardRead:
+                backgroundSnapshot.allowsSessionMutationCommands
+                    && activeCapabilities.contains("readClipboard"),
+            canDisableClipboardWrite:
+                backgroundSnapshot.allowsSessionMutationCommands
+                    && activeCapabilities.contains("writeClipboard"),
             canDisableClipboard:
                 backgroundSnapshot.allowsSessionMutationCommands
                     && activeCapabilities.contains("readClipboard")
@@ -1663,6 +1679,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 connectionID: session.connectionID,
                 title: "重试停止键鼠控制"
             )
+        case .disableClipboardRead:
+            guard let session else { return nil }
+            return HostCommandRetryHomeSnapshot(
+                connectionID: session.connectionID,
+                title: "重试停止远端读取剪贴板"
+            )
+        case .disableClipboardWrite:
+            guard let session else { return nil }
+            return HostCommandRetryHomeSnapshot(
+                connectionID: session.connectionID,
+                title: "重试停止远端写入剪贴板"
+            )
         case .disableClipboard:
             guard let session else { return nil }
             return HostCommandRetryHomeSnapshot(
@@ -1689,6 +1717,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     ) -> HostSessionHomeAction? {
         switch action {
         case .disableKeyboardAndMouse: return .disableKeyboardAndMouse
+        case .disableClipboardRead: return .disableClipboardRead
+        case .disableClipboardWrite: return .disableClipboardWrite
         case .disableClipboard: return .disableClipboard
         case .disableSystemAudio: return .disableSystemAudio
         case .disconnect: return .disconnect
@@ -1701,6 +1731,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     ) -> HostAgentBackgroundHomeCommandAction {
         switch action {
         case .disableKeyboardAndMouse: return .disableKeyboardAndMouse
+        case .disableClipboardRead: return .disableClipboardRead
+        case .disableClipboardWrite: return .disableClipboardWrite
         case .disableClipboard: return .disableClipboard
         case .disableSystemAudio: return .disableSystemAudio
         case .disconnect: return .disconnect
@@ -1729,6 +1761,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             if session.enabledActions.contains(.disableKeyboardAndMouse) {
                 actions.append(.disableKeyboardAndMouse)
             }
+            if session.enabledActions.contains(.disableClipboardRead) {
+                actions.append(.disableClipboardRead)
+            }
+            if session.enabledActions.contains(.disableClipboardWrite) {
+                actions.append(.disableClipboardWrite)
+            }
             if session.enabledActions.contains(.disableClipboard) {
                 actions.append(.disableClipboard)
             }
@@ -1744,7 +1782,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             switch retryAction {
             case .approveIncoming, .rejectIncoming:
                 targetIsVisible = approval != nil
-            case .disableKeyboardAndMouse, .disableClipboard,
+            case .disableKeyboardAndMouse, .disableClipboardRead,
+                 .disableClipboardWrite, .disableClipboard,
                  .disableSystemAudio, .disconnect:
                 targetIsVisible = session != nil
             }
@@ -1957,6 +1996,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 connectionID: connectionID,
                 action: .disableKeyboardAndMouse
             )
+        case .disableClipboardRead:
+            return performLegacyHostSessionAction(
+                connectionID: connectionID,
+                action: .disableClipboardRead
+            )
+        case .disableClipboardWrite:
+            return performLegacyHostSessionAction(
+                connectionID: connectionID,
+                action: .disableClipboardWrite
+            )
         case .disableClipboard:
             return performLegacyHostSessionAction(
                 connectionID: connectionID,
@@ -2036,6 +2085,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let intent: HostSessionCommandIntent
         switch action {
         case .disableKeyboardAndMouse: intent = .disable(.keyboardAndMouse)
+        case .disableClipboardRead: intent = .disable(.clipboardRead)
+        case .disableClipboardWrite: intent = .disable(.clipboardWrite)
         case .disableClipboard: intent = .disable(.clipboard)
         case .disableSystemAudio: intent = .disable(.systemAudio)
         case .disconnect: intent = .disconnect

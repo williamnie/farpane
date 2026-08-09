@@ -5,7 +5,7 @@ import XCTest
 final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
     private let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
 
-    func testIdleCoherentRouteExposesSixExactActionsAndFreshIDs()
+    func testIdleCoherentRouteExposesSevenExactActionsAndFreshIDs()
         throws
     {
         let fixture = try commandFixture(
@@ -26,7 +26,8 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
                 .approveIncoming,
                 .rejectIncoming,
                 .disableKeyboardAndMouse,
-                .disableClipboard,
+                .disableClipboardRead,
+                .disableClipboardWrite,
                 .disableSystemAudio,
                 .disconnect,
             ]
@@ -57,21 +58,41 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
         XCTAssertEqual(first.intent.name, .approveIncoming)
         XCTAssertEqual(first.intent.connectionID, "host-a:pending-1")
 
-        let clipboard = try XCTUnwrap(
+        let clipboardRead = try XCTUnwrap(
             HostAgentBackgroundHomeCommandPolicy.submission(
-                action: .disableClipboard,
+                action: .disableClipboardRead,
                 presentation: presentation,
-                makeCommandID: { "command-clipboard" }
+                makeCommandID: { "command-clipboard-read" }
             )
         )
         XCTAssertEqual(
-            clipboard.intent,
+            clipboardRead.intent,
             HostAgentXPCCommandIntent(
-                commandID: "command-clipboard",
-                name: .disableClipboardForActiveSession,
+                commandID: "command-clipboard-read",
+                name: .disableClipboardReadForActiveSession,
                 connectionID: "host-a:session-1"
             )
         )
+        let clipboardWrite = try XCTUnwrap(
+            HostAgentBackgroundHomeCommandPolicy.submission(
+                action: .disableClipboardWrite,
+                presentation: presentation,
+                makeCommandID: { "command-clipboard-write" }
+            )
+        )
+        XCTAssertEqual(
+            clipboardWrite.intent,
+            HostAgentXPCCommandIntent(
+                commandID: "command-clipboard-write",
+                name: .disableClipboardWriteForActiveSession,
+                connectionID: "host-a:session-1"
+            )
+        )
+        XCTAssertNil(HostAgentBackgroundHomeCommandPolicy.submission(
+            action: .disableClipboard,
+            presentation: presentation,
+            makeCommandID: { "legacy-command-must-not-be-created" }
+        ))
     }
 
     func testCapabilitiesAndEveryRouteEpochFailClosed() throws {
@@ -85,7 +106,15 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
         )
         var generatorCalls = 0
         XCTAssertNil(HostAgentBackgroundHomeCommandPolicy.submission(
-            action: .disableClipboard,
+            action: .disableClipboardRead,
+            presentation: idle,
+            makeCommandID: {
+                generatorCalls += 1
+                return "must-not-be-created"
+            }
+        ))
+        XCTAssertNil(HostAgentBackgroundHomeCommandPolicy.submission(
+            action: .disableClipboardWrite,
             presentation: idle,
             makeCommandID: {
                 generatorCalls += 1
@@ -213,6 +242,44 @@ final class HostAgentBackgroundHomeCommandPolicyTests: XCTestCase {
         XCTAssertEqual(
             present(fixture, state: .retryable(invalidID)),
             .unavailable
+        )
+    }
+
+    func testClipboardDirectionsExposeAndSubmitIndependently() throws {
+        let readOnly = present(
+            try commandFixture(
+                activeCapabilities: ["viewDisplay", "readClipboard"]
+            ),
+            state: .idle
+        )
+        XCTAssertTrue(readOnly.availableActions.contains(.disableClipboardRead))
+        XCTAssertFalse(readOnly.availableActions.contains(.disableClipboardWrite))
+        XCTAssertFalse(readOnly.availableActions.contains(.disableClipboard))
+        XCTAssertEqual(
+            HostAgentBackgroundHomeCommandPolicy.submission(
+                action: .disableClipboardRead,
+                presentation: readOnly,
+                makeCommandID: { "command-read" }
+            )?.intent.name,
+            .disableClipboardReadForActiveSession
+        )
+
+        let writeOnly = present(
+            try commandFixture(
+                activeCapabilities: ["viewDisplay", "writeClipboard"]
+            ),
+            state: .idle
+        )
+        XCTAssertFalse(writeOnly.availableActions.contains(.disableClipboardRead))
+        XCTAssertTrue(writeOnly.availableActions.contains(.disableClipboardWrite))
+        XCTAssertFalse(writeOnly.availableActions.contains(.disableClipboard))
+        XCTAssertEqual(
+            HostAgentBackgroundHomeCommandPolicy.submission(
+                action: .disableClipboardWrite,
+                presentation: writeOnly,
+                makeCommandID: { "command-write" }
+            )?.intent.name,
+            .disableClipboardWriteForActiveSession
         )
     }
 

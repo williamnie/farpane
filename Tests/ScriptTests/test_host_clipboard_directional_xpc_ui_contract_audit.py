@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostClipboardDirectionalRevokeContractAuditTests(unittest.TestCase):
-    def test_core_and_xpc_ui_directions_are_independent(self) -> None:
+class HostClipboardDirectionalXPCUIContractAuditTests(unittest.TestCase):
+    def test_xpc_and_home_keep_clipboard_directions_independent(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-clipboard-directional-revoke-contract.py",
+                "Scripts/audit-host-clipboard-directional-xpc-ui-contract.py",
             ],
             cwd=repository,
             check=False,
@@ -24,30 +24,23 @@ class HostClipboardDirectionalRevokeContractAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-clipboard-directional-revoke-contract-audit",
+            "farpane-host-clipboard-directional-xpc-ui-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "independent-directional-revoke-core-contract",
+            "directional-revoke-xpc-home-contract",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(document["claims"]["hostCoreDirectionalRevokeImplemented"])
-        self.assertTrue(document["claims"]["swiftDirectDirectionalAPIImplemented"])
-        self.assertTrue(document["claims"]["legacyBidirectionalAliasPreserved"])
+        self.assertTrue(document["claims"]["commandSchemaTwoImplemented"])
         self.assertTrue(document["claims"]["directionalXPCImplemented"])
         self.assertTrue(document["claims"]["directionalHomeControlsImplemented"])
+        self.assertTrue(document["claims"]["legacyBidirectionalAliasPreserved"])
         self.assertFalse(document["claims"]["clipboardEnabledByDefault"])
-        self.assertFalse(
-            document["remainingBoundary"]["directionalXPCUIRequired"]
-        )
-        self.assertTrue(all(
-            value for name, value in document["remainingBoundary"].items()
-            if name != "directionalXPCUIRequired"
-        ))
+        self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
             "event-first-dynamic-backoff-contract",

@@ -3,7 +3,7 @@ import Foundation
 import XCTest
 
 final class HostAgentXPCCommandExecutionAdapterTests: XCTestCase {
-    func testSixWireCommandsMapToExactTypedCoreSubmissions() throws {
+    func testEightWireCommandsMapToExactTypedCoreSubmissions() throws {
         let recorder = CommandExecutionAdapterRecorder()
         let adapter = makeAdapter(recorder: recorder)
         let service = try makeService(adapter: adapter)
@@ -11,6 +11,8 @@ final class HostAgentXPCCommandExecutionAdapterTests: XCTestCase {
             (.approveIncoming, .resolveApproval(.approve)),
             (.rejectIncoming, .resolveApproval(.reject)),
             (.disableInputForActiveSession, .disable(.keyboardAndMouse)),
+            (.disableClipboardReadForActiveSession, .disable(.clipboardRead)),
+            (.disableClipboardWriteForActiveSession, .disable(.clipboardWrite)),
             (.disableClipboardForActiveSession, .disable(.clipboard)),
             (.disableAudioForActiveSession, .disable(.systemAudio)),
             (.disconnectSession, .disconnect),
@@ -24,6 +26,7 @@ final class HostAgentXPCCommandExecutionAdapterTests: XCTestCase {
             let prepared = try XCTUnwrap(service.prepareResponse(
                 for: try request.encoded()
             ))
+            XCTAssertTrue(recorder.waitForSubmissions(index))
             XCTAssertEqual(recorder.submissions.count, index)
             XCTAssertTrue(prepared.performAfterReply())
         }
@@ -266,6 +269,8 @@ final class HostAgentXPCCommandExecutionAdapterTests: XCTestCase {
             "62113cb8-4d8c-43ec-8e84-a92b77ed2ce7",
             "9f28662b-bd6c-47df-890f-48b4f8774557",
             "7f8207d1-1ea3-4d90-9efe-bcac72ba1d54",
+            "f29de2a1-931b-4c33-a957-f80ab1c3a8bf",
+            "ca4cd39c-ad0b-4ab8-9d9a-b48cf93a1bf1",
         ]
         return try HostAgentXPCWireCommandRequest(
             requestID: requestIDs[index],

@@ -357,7 +357,9 @@ def main() -> int:
                 in background_home
             and background_home.count(
                 "backgroundSnapshot.allowsSessionMutationCommands"
-            ) == 3
+            ) == 5
+            and "canDisableClipboardRead:" in background_home
+            and "canDisableClipboardWrite:" in background_home
             and "HostActiveAquaSessionAuthority" not in background_home
             and "button.isHidden = !capabilityAvailable"
                 in sources["home_view"]

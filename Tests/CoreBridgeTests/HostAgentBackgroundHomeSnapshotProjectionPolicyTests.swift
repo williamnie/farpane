@@ -324,7 +324,7 @@ final class HostAgentBackgroundHomeSnapshotProjectionPolicyTests:
         XCTAssertEqual(appSource.components(
             separatedBy:
                 "backgroundSnapshot.allowsSessionMutationCommands"
-        ).count - 1, 3)
+        ).count - 1, 5)
         XCTAssertTrue(appSource.contains(
             "mediaDiagnosticText: usesLegacyHost ? hostMediaDiagnosticText() : \"\""
         ))

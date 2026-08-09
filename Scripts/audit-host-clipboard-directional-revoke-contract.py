@@ -226,7 +226,7 @@ def main() -> int:
             "temporaryObjectCleanupRequired": True,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "directional-revoke-xpc-ui-contract",
+        "nextImplementationBoundary": "event-first-dynamic-backoff-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "independent-directional-revoke-core-contract" else 1

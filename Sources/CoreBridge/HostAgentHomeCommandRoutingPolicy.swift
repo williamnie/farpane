@@ -188,7 +188,8 @@ package enum HostAgentHomeCommandRoutingPolicy {
         switch action {
         case .approveIncoming, .rejectIncoming:
             return targets.approvalConnectionID
-        case .disableKeyboardAndMouse, .disableClipboard,
+        case .disableKeyboardAndMouse, .disableClipboardRead,
+             .disableClipboardWrite, .disableClipboard,
              .disableSystemAudio, .disconnect:
             return targets.sessionConnectionID
         }
@@ -201,7 +202,8 @@ package enum HostAgentHomeCommandRoutingPolicy {
         switch action {
         case .approveIncoming, .rejectIncoming:
             return payload.pendingApproval?.connectionID
-        case .disableKeyboardAndMouse, .disableClipboard,
+        case .disableKeyboardAndMouse, .disableClipboardRead,
+             .disableClipboardWrite, .disableClipboard,
              .disableSystemAudio, .disconnect:
             return payload.activeSession?.connectionID
         }

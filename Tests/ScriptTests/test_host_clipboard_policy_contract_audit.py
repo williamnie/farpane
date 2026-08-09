@@ -38,13 +38,17 @@ class HostClipboardPolicyContractAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["independentRevocationCommandsRequired"]
         )
+        self.assertFalse(document["remainingBoundary"]["directionalXPCUIRequired"])
         self.assertTrue(all(
             value for name, value in document["remainingBoundary"].items()
-            if name != "independentRevocationCommandsRequired"
+            if name not in {
+                "independentRevocationCommandsRequired",
+                "directionalXPCUIRequired",
+            }
         ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "directional-revoke-xpc-ui-contract",
+            "event-first-dynamic-backoff-contract",
         )
 
 
