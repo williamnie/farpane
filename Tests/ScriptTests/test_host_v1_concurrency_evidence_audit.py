@@ -26,7 +26,10 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
             "farpane-host-v1-concurrency-evidence-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "writer-implemented")
+        self.assertEqual(
+            document["status"],
+            "application-process-owner-implemented",
+        )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
@@ -34,7 +37,7 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "application-lifecycle-evidence-process-owner",
+            "application-viewer-lifecycle-evidence-composition",
         )
         self.assertTrue(
             document["evidence"]
@@ -51,6 +54,22 @@ class HostV1ConcurrencyEvidenceAuditTests(unittest.TestCase):
         self.assertTrue(
             document["evidence"]
             ["lifecycleWriterIsDefaultOffBoundedAndNoOverwrite"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationProcessOwnerDerivesSanitizedSystemIdentity"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationProcessOwnerIsDefaultOffAndBestEffort"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationProcessOwnerRecordsOneTerminalLifecycle"]
+        )
+        self.assertTrue(
+            document["evidence"]
+            ["applicationProductOwnsEvidenceAcrossEveryRunExit"]
         )
 
         contract = document["targetContract"]

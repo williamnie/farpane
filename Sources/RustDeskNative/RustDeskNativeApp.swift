@@ -122,6 +122,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private static let hostEnabledDefaultsKey = "farpane.host.enabled"
 
     private let options = Options(arguments: CommandLine.arguments)
+    private let hostViewerConcurrencyEvidenceOwner =
+        HostViewerConcurrencyEvidenceProcessOwner()
     private let catalogStore = DeviceCatalogStore(fileURL: AppDelegate.catalogURL())
     private lazy var hostAgentBootstrapIntegration = try? HostAgentBootstrapProductIntegration()
     private lazy var hostAgentRuntimeConfigurationReader =
@@ -289,6 +291,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         let application = NSApplication.shared
         let delegate = AppDelegate()
+        _ = delegate.hostViewerConcurrencyEvidenceOwner
+            .configureApplication()
         application.delegate = delegate
         application.setActivationPolicy(.regular)
         application.run()
@@ -312,6 +316,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             try launch()
         } catch {
             fputs("RustDeskNative startup failed: \(error)\n", stderr)
+            _ = hostViewerConcurrencyEvidenceOwner.terminateAndWait()
             exit(2)
         }
     }
@@ -321,6 +326,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             .applicationWillTerminate
         )
         finish()
+        _ = hostViewerConcurrencyEvidenceOwner.terminateAndWait()
     }
 
     @MainActor
