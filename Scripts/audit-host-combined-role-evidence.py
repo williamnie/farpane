@@ -31,6 +31,9 @@ def main() -> int:
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "metrics": repository / "Sources/VideoPipeline/PipelineMetrics.swift",
         "sampler": repository / "Scripts/sample-farpane-host-performance.sh",
+        "combined_sampler": (
+            repository / "Scripts/sample-farpane-host-combined-role.py"
+        ),
         "matrix": (
             repository / "Scripts/validate-farpane-host-performance-matrix.py"
         ),
@@ -55,6 +58,7 @@ def main() -> int:
     app = sources["app"]
     metrics = sources["metrics"]
     sampler = sources["sampler"]
+    combined_sampler = sources["combined_sampler"]
     matrix = sources["matrix"]
     h4_audit = sources["h4_audit"]
 
@@ -135,6 +139,53 @@ def main() -> int:
                 "pgrep -x VTEncoderXPCService",
             )
         ),
+        "splitSamplerRequiresExactDistinctRolePIDs": all(
+            marker in combined_sampler
+            for marker in (
+                "HOST_AGENT_PID VIEWER_PID",
+                'raise SampleError("HOST_AGENT_PID and VIEWER_PID must be distinct")',
+                'HOST_AGENT_FLAG = "--host-agent"',
+                'expected_flag_count = 1 if role == "host-agent" else 0',
+                '"roleProcessScope": "exact-pid-per-second"',
+            )
+        ),
+        "splitSamplerPinsProcessAndBuildIdentityForFullWindow": all(
+            marker in combined_sampler
+            for marker in (
+                "proc_pidpath = libproc.proc_pidpath",
+                "KERN_PROCARGS2 = 49",
+                '"argumentsSHA256": identity.arguments_sha256',
+                'document.get("CFBundleVersion")',
+                "require_runtime_matches(host_agent, host_runtime)",
+                "require_process_identity_unchanged(host_agent, host_after)",
+                '"sameExecutableSHA256":',
+                '"sameBuildIdentifier":',
+            )
+        ),
+        "splitSamplerSeparatesRoleCombinedAndSharedResourceScopes": all(
+            marker in combined_sampler
+            for marker in (
+                '"host_agent_cpu_percent"',
+                '"viewer_cpu_percent"',
+                '"farpane_combined_cpu_percent"',
+                '"sharedSystemScope": [',
+                '"sharedSystemScopeAssignedToRole": False',
+                '"energyImpactUnit": "top-relative-not-joules"',
+            )
+        ),
+        "splitSamplerPublishesSafelyWithoutClaimingItemTenPass": all(
+            marker in combined_sampler
+            for marker in (
+                "validate_output_prefix",
+                "has_symlink_component(parent)",
+                "require_outputs_absent(final_paths)",
+                "publish_triplet_no_replace(",
+                '"hostRuntimeStateBound": False',
+                '"viewerStreamingReportBound": False',
+                '"combinedBudgetThresholdEvaluated": False',
+                '"section15_2Item10Complete": False',
+            )
+        ),
         "baseMatrixExplicitlyLeavesItemTenOpen": (
             '"coveredSection15_2Items": [1, 2, 3, 4, 5, 6, 8]' in matrix
             and '"uncoveredSection15_2Items": [7, 9, 10]' in matrix
@@ -191,6 +242,33 @@ def main() -> int:
         "samplerSharedWindowServer": line_number(
             sampler, "pgrep -x WindowServer"
         ),
+        "splitSamplerUsage": line_number(
+            combined_sampler, "HOST_AGENT_PID VIEWER_PID"
+        ),
+        "splitSamplerDarwinExecutableAuthority": line_number(
+            combined_sampler, "proc_pidpath = libproc.proc_pidpath"
+        ),
+        "splitSamplerArgumentAuthority": line_number(
+            combined_sampler, "KERN_PROCARGS2 = 49"
+        ),
+        "splitSamplerBuildAuthority": line_number(
+            combined_sampler, 'document.get("CFBundleVersion")'
+        ),
+        "splitSamplerHostColumns": line_number(
+            combined_sampler, '"host_agent_cpu_percent"'
+        ),
+        "splitSamplerViewerColumns": line_number(
+            combined_sampler, '"viewer_cpu_percent"'
+        ),
+        "splitSamplerCombinedColumns": line_number(
+            combined_sampler, '"farpane_combined_cpu_percent"'
+        ),
+        "splitSamplerSharedScope": line_number(
+            combined_sampler, '"sharedSystemScopeAssignedToRole": False'
+        ),
+        "splitSamplerNoPassClaim": line_number(
+            combined_sampler, '"section15_2Item10Complete": False'
+        ),
         "matrixUncoveredItems": line_number(
             matrix, '"uncoveredSection15_2Items": [7, 9, 10]'
         ),
@@ -207,7 +285,7 @@ def main() -> int:
         "schemaVersion": 1,
         "section15_2Item": 10,
         "status": (
-            "checkpoint-required"
+            "split-sampler-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -264,7 +342,6 @@ def main() -> int:
             ],
         },
         "remainingBoundary": {
-            "splitTwoPIDSamplerStillRequiresImplementation": True,
             "combinedManifestValidatorStillRequiresImplementation": True,
             "combinedBudgetThresholdStillRequiresDefinition": True,
             "installedAppAgentTwoMachineRunsStillRequireExecution": True,
@@ -273,7 +350,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "checkpoint-required" else 1
+    return 0 if result["status"] == "split-sampler-implemented" else 1
 
 
 if __name__ == "__main__":
