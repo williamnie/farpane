@@ -70,6 +70,10 @@ def main() -> int:
             repository
             / "Scripts/validate-farpane-host-combined-role-pair.py"
         ),
+        "lifecycle_writer": (
+            repository
+            / "Sources/VideoPipeline/HostViewerConcurrencyEvidence.swift"
+        ),
         "h4_audit": (
             repository
             / "Evidence/HostMode/2026-08-09/"
@@ -100,12 +104,9 @@ def main() -> int:
     projection = sources["projection"]
     combined_validator = sources["combined_validator"]
     pair_validator = sources["pair_validator"]
+    lifecycle_writer = sources["lifecycle_writer"]
     h4_audit = sources["h4_audit"]
 
-    target_writer = (
-        repository
-        / "Sources/VideoPipeline/HostViewerConcurrencyEvidence.swift"
-    )
     target_validator = (
         repository / "Scripts/validate-farpane-host-v1-concurrency.py"
     )
@@ -240,8 +241,62 @@ def main() -> int:
                 "The five dual-session/recovery scenarios and stable Host ID require",
             )
         ),
-        "timestampedLifecycleWriterAndMatrixValidatorAreMissing": (
-            not target_writer.exists() and not target_validator.exists()
+        "lifecycleWriterDefinesStrictProcessAndEventSchema": all(
+            marker in lifecycle_writer
+            for marker in (
+                '"farpane-host-viewer-concurrency-lifecycle"',
+                "let sequence: UInt64",
+                "let capturedAt: Date",
+                "let monotonicNanoseconds: UInt64",
+                "case processStarted",
+                "case processTerminating",
+                "case host(HostViewerConcurrencyHostObservation)",
+                "case viewer(HostViewerConcurrencyViewerObservation)",
+            )
+        ),
+        "lifecycleWriterBindsOnlySanitizedIdentityAuthority": all(
+            marker in lifecycle_writer
+            for marker in (
+                '"farpane.v1-concurrency.process-start.v1"',
+                '"farpane.v1-concurrency.build.v1"',
+                '"farpane.v1-concurrency.host-scope.v1"',
+                '"farpane.v1-concurrency.scenario.v1"',
+                "observerProcessStartIdentitySHA256",
+                "observerBuildIdentitySHA256",
+                "scenarioCorrelationSHA256",
+                "hostAgentProcessStartIdentitySHA256",
+                "agentBootID.uuidString.lowercased()",
+                "observation.configRevision > 0",
+            )
+        ),
+        "lifecycleWriterEnforcesRoleAndTerminalStateMachine": all(
+            marker in lifecycle_writer
+            for marker in (
+                "App and HostAgent deliberately write separate files",
+                "case (.initial, .processStarted)",
+                "case (.running, .processTerminating)",
+                "(.terminated, _):",
+                "identity.role == .application",
+                "identity.role == .hostAgent",
+                "observation.transitionGeneration > 0",
+            )
+        ),
+        "lifecycleWriterIsDefaultOffBoundedAndNoOverwrite": all(
+            marker in lifecycle_writer
+            for marker in (
+                '"FARPANE_HOST_VIEWER_CONCURRENCY_OUTPUT"',
+                "guard let path = environment[outputEnvironmentKey] else { return nil }",
+                "maximumRecordCount: UInt64 = 512",
+                "safeAbsolutePathComponents",
+                "hasSymlinkComponent",
+                "isTrustedParent",
+                "isTrustedOutput",
+                "options: .withoutOverwriting",
+                "try outputHandle.synchronize()",
+            )
+        ),
+        "fiveScenarioMatrixValidatorIsStillMissing": (
+            not target_validator.exists()
         ),
         "repositoryContainsNoSavedPassingV1MatrixResult": not saved_results,
     }
@@ -292,6 +347,33 @@ def main() -> int:
         ),
         "pairBroaderMatrixBoundary": line_number(
             pair_validator, '"v1ConcurrencyRecoveryMatrixComplete": False'
+        ),
+        "lifecycleWriterSchema": line_number(
+            lifecycle_writer,
+            '"farpane-host-viewer-concurrency-lifecycle"',
+        ),
+        "lifecycleWriterDefaultOff": line_number(
+            lifecycle_writer,
+            '"FARPANE_HOST_VIEWER_CONCURRENCY_OUTPUT"',
+        ),
+        "lifecycleWriterProcessStart": line_number(
+            lifecycle_writer, "case (.initial, .processStarted)"
+        ),
+        "lifecycleWriterProcessTermination": line_number(
+            lifecycle_writer, "case (.running, .processTerminating)"
+        ),
+        "lifecycleWriterHostState": line_number(
+            lifecycle_writer, 'try container.encode("hostState"'
+        ),
+        "lifecycleWriterViewerState": line_number(
+            lifecycle_writer, 'try container.encode("viewerState"'
+        ),
+        "lifecycleWriterDomainSeparatedDigest": line_number(
+            lifecycle_writer,
+            '"farpane.v1-concurrency.process-start.v1"',
+        ),
+        "lifecycleWriterNoOverwrite": line_number(
+            lifecycle_writer, "options: .withoutOverwriting"
         ),
         "hostRecoveryKinds": line_number(
             recovery_evidence, "case sleepWake"
@@ -374,7 +456,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "checkpoint-required"
+            "writer-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -413,17 +495,17 @@ def main() -> int:
             ],
         },
         "nextImplementationBoundary": (
-            "timestamped-host-viewer-lifecycle-evidence-writer-schema"
+            "application-lifecycle-evidence-process-owner"
         ),
         "remainingBoundary": {
-            "timestampedCrossProcessLifecycleEvidenceStillRequiresImplementation": True,
+            "authoritativeLifecycleCompositionStillRequiresImplementation": True,
             "fiveScenarioManifestValidatorStillRequiresImplementation": True,
             "installedAppAgentTwoMachineExecutionStillRequiresExecution": True,
             "noV1ConcurrencyMatrixPassIsClaimed": True,
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "checkpoint-required" else 1
+    return 0 if result["status"] == "writer-implemented" else 1
 
 
 if __name__ == "__main__":
