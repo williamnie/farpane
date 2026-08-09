@@ -105,6 +105,31 @@ package final class HostAgentApplicationConcurrencyObservationState:
         )
     }
 
+    /// Re-emits only the exact latest coherent projection state. Viewer
+    /// lifecycle boundaries use this to prove that an unchanged Host state
+    /// still holds after the Viewer edge; unavailable or stale evidence is
+    /// never resurrected from an older coherent sample.
+    package func reaffirmCurrentCoherentObservation()
+        -> HostAgentApplicationConcurrencyObservation?
+    {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !failed,
+              case .coherent(let candidateScope, let state) = lastCandidate,
+              state == .readyZeroInbound || state == .inboundMediaActive,
+              scope == candidateScope,
+              nextSourceGeneration < UInt64.max
+        else { return nil }
+        nextSourceGeneration += 1
+        incrementSaturating(&emittedObservations)
+        return HostAgentApplicationConcurrencyObservation(
+            state: state,
+            peerIdentity: candidateScope.peerIdentity,
+            configRevision: candidateScope.configRevision,
+            sourceGeneration: nextSourceGeneration
+        )
+    }
+
     package func snapshot()
         -> HostAgentApplicationConcurrencyObservationStateView
     {

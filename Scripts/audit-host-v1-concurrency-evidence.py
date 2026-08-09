@@ -490,6 +490,36 @@ def main() -> int:
                 "stopViewerAutomaticRecovery()",
             )
         ) and "viewerRecoveryPassword" not in app,
+        "applicationViewerBoundaryReaffirmsExactCoherentHostState": (
+            all(
+                marker in application_concurrency_state
+                for marker in (
+                    "reaffirmCurrentCoherentObservation()",
+                    "case .coherent(let candidateScope, let state) = lastCandidate",
+                    "scope == candidateScope",
+                    "nextSourceGeneration < UInt64.max",
+                )
+            )
+            and all(
+                marker in lifecycle_process_owner
+                for marker in (
+                    "reaffirmApplicationHostAgentRuntimeState(",
+                    "allowSemanticReaffirmation: true",
+                    "currentState.runtimeState == runtimeState",
+                    "state: currentState",
+                )
+            )
+            and all(
+                marker in app
+                for marker in (
+                    "let viewerLifecycleStopped = stopViewerLifecycleEvidence()",
+                    "if viewerLifecycleStopped {",
+                    "if viewerStreamingRecorded {",
+                    "reaffirmHostAgentApplicationConcurrencyEvidence()",
+                    "reaffirmation: true",
+                )
+            )
+        ),
         "applicationProjectionCarriesValidatedHostScopeAndRuntime": (
             all(
                 marker in projection
@@ -912,6 +942,17 @@ def main() -> int:
         "applicationProductViewerCoreGenerationGate": line_number(
             app, "guard coreGeneration == viewerCoreGeneration else { return }"
         ),
+        "applicationHostCoherentReaffirmationState": line_number(
+            application_concurrency_state,
+            "reaffirmCurrentCoherentObservation()",
+        ),
+        "applicationHostEvidenceReaffirmationAPI": line_number(
+            lifecycle_process_owner,
+            "public func reaffirmApplicationHostAgentRuntimeState(",
+        ),
+        "applicationProductViewerBoundaryReaffirmation": line_number(
+            app, "private func reaffirmHostAgentApplicationConcurrencyEvidence()"
+        ),
         "applicationProjectionHostIdentity": line_number(
             projection,
             "let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity",
@@ -1172,7 +1213,7 @@ def main() -> int:
         "schemaVersion": 1,
         "coverageScope": "sections-18-and-20.3-v1-coexistence",
         "status": (
-            "viewer-automatic-recovery-composed"
+            "viewer-boundary-host-reaffirmation-composed"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -1222,7 +1263,7 @@ def main() -> int:
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    expected_status = "viewer-automatic-recovery-composed"
+    expected_status = "viewer-boundary-host-reaffirmation-composed"
     return 0 if result["status"] == expected_status else 1
 
 

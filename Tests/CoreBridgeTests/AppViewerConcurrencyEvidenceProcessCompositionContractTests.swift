@@ -106,6 +106,9 @@ final class AppViewerConcurrencyEvidenceProcessCompositionContractTests:
         XCTAssertTrue(app.contains(
             "private func stopViewerLifecycleEvidence()"
         ))
+        XCTAssertTrue(app.contains(
+            "reaffirmHostAgentApplicationConcurrencyEvidence()"
+        ))
         XCTAssertFalse(app.contains(
             "peerID: configuration.peerID"
         ))
@@ -122,6 +125,27 @@ final class AppViewerConcurrencyEvidenceProcessCompositionContractTests:
             range: homeStop.upperBound..<app.endIndex
         ))
         XCTAssertLessThan(homeStop.lowerBound, homeDisconnect.lowerBound)
+        let homeReaffirm = try XCTUnwrap(app.range(
+            of: "reaffirmHostAgentApplicationConcurrencyEvidence()",
+            range: homeStop.upperBound..<homeDisconnect.lowerBound
+        ))
+        XCTAssertLessThan(homeStop.lowerBound, homeReaffirm.lowerBound)
+
+        let coreState = try XCTUnwrap(app.range(
+            of: "private func handleViewerCoreState("
+        ))
+        let viewerStreaming = try XCTUnwrap(app.range(
+            of: "hostViewerConcurrencyEvidenceOwner.observeViewerStreaming(",
+            range: coreState.lowerBound..<app.endIndex
+        ))
+        let streamingReaffirm = try XCTUnwrap(app.range(
+            of: "reaffirmHostAgentApplicationConcurrencyEvidence()",
+            range: viewerStreaming.upperBound..<app.endIndex
+        ))
+        XCTAssertLessThan(
+            viewerStreaming.lowerBound,
+            streamingReaffirm.lowerBound
+        )
 
         let finish = try XCTUnwrap(app.range(of: "private func finish()"))
         let finishStop = try XCTUnwrap(app.range(

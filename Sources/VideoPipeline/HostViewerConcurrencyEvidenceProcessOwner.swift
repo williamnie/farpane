@@ -376,7 +376,7 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     agentBuildID: String,
     sourceGeneration: UInt64
   ) -> Bool {
-    observeHostRuntimeState(
+    return observeHostRuntimeState(
       state: state,
       hostInstanceID: hostInstanceID,
       agentBootID: agentBootID,
@@ -385,7 +385,8 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       agentProcessID: nil,
       agentProcessStartIdentitySHA256: nil,
       sourceGeneration: sourceGeneration,
-      expectedObserverRole: .hostAgent
+      expectedObserverRole: .hostAgent,
+      allowSemanticReaffirmation: false
     )
   }
 
@@ -414,7 +415,42 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       agentProcessStartIdentitySHA256:
         agentProcessStartIdentitySHA256,
       sourceGeneration: sourceGeneration,
-      expectedObserverRole: .application
+      expectedObserverRole: .application,
+      allowSemanticReaffirmation: false
+    )
+  }
+
+  /// Records a same-state App Host checkpoint only when it matches the exact
+  /// current normalized scope/state. This is reserved for Viewer lifecycle
+  /// boundaries that must prove the Host remained ready/active after that
+  /// edge; ordinary duplicate observations continue to advance only the
+  /// watermark.
+  @discardableResult
+  public func reaffirmApplicationHostAgentRuntimeState(
+    state: HostViewerConcurrencyHostState,
+    hostInstanceID: String,
+    agentBootID: UUID,
+    configRevision: UInt64,
+    agentBuildID: String,
+    agentProcessID: Int32,
+    agentProcessStartIdentitySHA256: String,
+    sourceGeneration: UInt64
+  ) -> Bool {
+    guard state == .readyZeroInbound || state == .inboundMediaActive else {
+      return false
+    }
+    return observeHostRuntimeState(
+      state: state,
+      hostInstanceID: hostInstanceID,
+      agentBootID: agentBootID,
+      configRevision: configRevision,
+      agentBuildID: agentBuildID,
+      agentProcessID: agentProcessID,
+      agentProcessStartIdentitySHA256:
+        agentProcessStartIdentitySHA256,
+      sourceGeneration: sourceGeneration,
+      expectedObserverRole: .application,
+      allowSemanticReaffirmation: true
     )
   }
 
@@ -427,7 +463,8 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     agentProcessID: Int32?,
     agentProcessStartIdentitySHA256: String?,
     sourceGeneration: UInt64,
-    expectedObserverRole: HostViewerConcurrencyProcessRole
+    expectedObserverRole: HostViewerConcurrencyProcessRole,
+    allowSemanticReaffirmation: Bool
   ) -> Bool {
     guard let hostScopeDigest =
       HostViewerConcurrencyEvidenceDigest.hostInstanceScope(hostInstanceID),
@@ -494,7 +531,8 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       runtimeState: state,
       sourceGeneration: sourceGeneration,
       scope: scope,
-      current: hostSession
+      current: hostSession,
+      allowSemanticReaffirmation: allowSemanticReaffirmation
     ) else {
       condition.unlock()
       return false
@@ -545,15 +583,38 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
     runtimeState: HostViewerConcurrencyHostState,
     sourceGeneration: UInt64,
     scope: HostObservationScope,
-    current: HostSession?
+    current: HostSession?,
+    allowSemanticReaffirmation: Bool
   ) -> PreparedHostMutation? {
+    if allowSemanticReaffirmation && current == nil { return nil }
     if let current {
       guard current.scope == scope,
             sourceGeneration > current.sourceGeneration
       else { return nil }
-      if current.state?.runtimeState == runtimeState
-          || current.state == nil && runtimeState == .disconnected
-      {
+      if allowSemanticReaffirmation {
+        guard let currentState = current.state,
+              currentState.runtimeState == runtimeState
+        else { return nil }
+        return .record(
+          observation: hostObservation(
+            state: currentState,
+            scope: scope
+          ),
+          nextSession: HostSession(
+            scope: scope,
+            sourceGeneration: sourceGeneration,
+            state: currentState
+          )
+        )
+      }
+      if current.state?.runtimeState == runtimeState {
+        return .watermark(HostSession(
+          scope: scope,
+          sourceGeneration: sourceGeneration,
+          state: current.state
+        ))
+      }
+      if current.state == nil && runtimeState == .disconnected {
         return .watermark(HostSession(
           scope: scope,
           sourceGeneration: sourceGeneration,
@@ -596,16 +657,9 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
       return nil
     }
     guard let nextState else { return nil }
-    let observation = HostViewerConcurrencyHostObservation(
-      state: nextState.evidenceState,
-      hostInstanceScopeSHA256: scope.hostInstanceScopeSHA256,
-      agentBootID: scope.agentBootID,
-      configRevision: scope.configRevision,
-      hostAgentProcessID: scope.agentProcessID,
-      hostAgentProcessStartIdentitySHA256:
-        scope.agentProcessStartIdentitySHA256,
-      hostAgentBuildIdentitySHA256: scope.agentBuildIdentitySHA256,
-      transitionGeneration: nextState.transitionGeneration
+    let observation = hostObservation(
+      state: nextState,
+      scope: scope
     )
     return .record(
       observation: observation,
@@ -614,6 +668,23 @@ public final class HostViewerConcurrencyEvidenceProcessOwner:
         sourceGeneration: sourceGeneration,
         state: nextState
       )
+    )
+  }
+
+  private func hostObservation(
+    state: HostSessionState,
+    scope: HostObservationScope
+  ) -> HostViewerConcurrencyHostObservation {
+    HostViewerConcurrencyHostObservation(
+      state: state.evidenceState,
+      hostInstanceScopeSHA256: scope.hostInstanceScopeSHA256,
+      agentBootID: scope.agentBootID,
+      configRevision: scope.configRevision,
+      hostAgentProcessID: scope.agentProcessID,
+      hostAgentProcessStartIdentitySHA256:
+        scope.agentProcessStartIdentitySHA256,
+      hostAgentBuildIdentitySHA256: scope.agentBuildIdentitySHA256,
+      transitionGeneration: state.transitionGeneration
     )
   }
 
