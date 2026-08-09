@@ -296,6 +296,10 @@ class HostCombinedRoleValidatorTests(unittest.TestCase):
         self.assertEqual(result["failures"], [])
         self.assertTrue(result["claims"]["scenarioEvidenceComplete"])
         self.assertFalse(result["claims"]["section15_2Item10Complete"])
+        self.assertEqual(result["scope"]["machineModel"], "Macmini10,1")
+        self.assertEqual(result["scope"]["architecture"], "arm64")
+        self.assertEqual(result["scope"]["buildIdentifier"], "202608100001")
+        self.assertEqual(result["scope"]["executableSHA256"], "a" * 64)
         self.assertEqual(result["metrics"]["system"]["sampleCount"], 600)
         self.assertLess(
             result["metrics"]["system"]["combinedAverageCPUPercent"], 62

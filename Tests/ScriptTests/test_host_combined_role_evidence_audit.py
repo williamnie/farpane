@@ -26,7 +26,7 @@ class HostCombinedRoleEvidenceAuditTests(unittest.TestCase):
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(document["section15_2Item"], 10)
-        self.assertEqual(document["status"], "combined-validator-implemented")
+        self.assertEqual(document["status"], "pair-validator-implemented")
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
@@ -65,6 +65,18 @@ class HostCombinedRoleEvidenceAuditTests(unittest.TestCase):
         self.assertIn(
             "scenario-label-without-role-and-overlap-proof",
             contract["forbiddenInference"],
+        )
+        self.assertTrue(
+            contract["pairAggregation"]
+            ["requiresExactlyOnePassingAcceptanceRunPerScenario"]
+        )
+        self.assertTrue(
+            contract["pairAggregation"]
+            ["requiresSameMachineArchitectureMacOSAndBuild"]
+        )
+        self.assertTrue(
+            contract["pairAggregation"]
+            ["doesNotCompleteBroaderV1ConcurrencyRecoveryMatrix"]
         )
 
 

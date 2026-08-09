@@ -1271,6 +1271,8 @@ def validate(manifest_path: Path) -> dict[str, Any]:
         failures.append("system evidence could not establish a validation scope")
     status = "pass" if not failures else "fail"
     acceptance = system.get("sampleMode") == "acceptance" if system else False
+    machine = system.get("machine", {}) if system else {}
+    viewer_scope = system.get("viewer", {}) if system else {}
     return {
         "schema": OUTPUT_SCHEMA,
         "schemaVersion": 1,
@@ -1279,6 +1281,21 @@ def validate(manifest_path: Path) -> dict[str, Any]:
         "requestedDurationSeconds": system.get("duration", 0) if system else 0,
         "status": status,
         "failures": failures,
+        "scope": {
+            "machineModel": machine.get("machineModel", "unavailable"),
+            "architecture": machine.get("architecture", "unavailable"),
+            "macOSVersion": machine.get("macOSVersion", "unavailable"),
+            "bundleIdentifier": viewer_scope.get(
+                "bundleIdentifier", "unavailable"
+            ),
+            "buildIdentifier": viewer_scope.get(
+                "buildIdentifier", "unavailable"
+            ),
+            "shortVersion": viewer_scope.get("shortVersion", "unavailable"),
+            "executableSHA256": viewer_scope.get(
+                "executableSHA256", "unavailable"
+            ),
+        },
         "sources": source_summary(manifest, raw_sources),
         "thresholds": SCENARIO_CONTRACTS[scenario],
         "metrics": {

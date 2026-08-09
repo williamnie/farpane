@@ -37,6 +37,10 @@ def main() -> int:
         "combined_validator": (
             repository / "Scripts/validate-farpane-host-combined-role.py"
         ),
+        "pair_validator": (
+            repository
+            / "Scripts/validate-farpane-host-combined-role-pair.py"
+        ),
         "matrix": (
             repository / "Scripts/validate-farpane-host-performance-matrix.py"
         ),
@@ -63,6 +67,7 @@ def main() -> int:
     sampler = sources["sampler"]
     combined_sampler = sources["combined_sampler"]
     combined_validator = sources["combined_validator"]
+    pair_validator = sources["pair_validator"]
     matrix = sources["matrix"]
     h4_audit = sources["h4_audit"]
 
@@ -259,6 +264,52 @@ def main() -> int:
                 '"section15_2Item10Complete": False',
             )
         ),
+        "pairValidatorRequiresExactlyBothPassingAcceptanceScenarios": all(
+            marker in pair_validator
+            for marker in (
+                'RUN_NAMES = ("hostReadyViewer", "hostViewerDual")',
+                '"hostReadyViewer": "host-ready-viewer"',
+                '"hostViewerDual": "host-viewer-dual"',
+                'run.get("sampleMode") != "acceptance"',
+                "not 600 <= duration <= 1_800",
+                'run.get("status") != "pass" or run.get("failures") != []',
+                '"scenarioEvidenceComplete"',
+                'CLAIM_KEYS - {"section15_2Item10Complete"}',
+            )
+        ),
+        "pairValidatorRequiresOneMachineBuildMacOSScope": all(
+            marker in pair_validator
+            for marker in (
+                '"machineModel"',
+                '"architecture"',
+                '"macOSVersion"',
+                '"bundleIdentifier"',
+                '"buildIdentifier"',
+                '"shortVersion"',
+                '"executableSHA256"',
+                "scopes[0] == scopes[1]",
+                "pair runs do not share one machine/build/macOS scope",
+            )
+        ),
+        "pairValidatorPinsInputsAndPublishesWithoutOverwrite": all(
+            marker in pair_validator
+            for marker in (
+                'MANIFEST_SCHEMA = "farpane-host-combined-role-pair-manifest"',
+                "safe_relative_json_path",
+                "seen_file_identities",
+                "hash_bytes(raw) != expected_digest",
+                "refusing to overwrite existing output",
+                "write_atomic_no_replace",
+            )
+        ),
+        "pairValidatorSeparatesItemTenFromBroaderV1Matrix": all(
+            marker in pair_validator
+            for marker in (
+                '"coverageScope": "section-15.2-item-10"',
+                '"section15_2Item10Complete": status == "pass"',
+                '"v1ConcurrencyRecoveryMatrixComplete": False',
+            )
+        ),
     }
     missing = [name for name, present in evidence.items() if not present]
 
@@ -362,6 +413,22 @@ def main() -> int:
         "combinedValidatorNoItemPassClaim": line_number(
             combined_validator, '"section15_2Item10Complete": False'
         ),
+        "pairValidatorManifest": line_number(
+            pair_validator,
+            'MANIFEST_SCHEMA = "farpane-host-combined-role-pair-manifest"',
+        ),
+        "pairValidatorAcceptanceRequirement": line_number(
+            pair_validator, 'run.get("sampleMode") != "acceptance"'
+        ),
+        "pairValidatorSameScope": line_number(
+            pair_validator, "scopes[0] == scopes[1]"
+        ),
+        "pairValidatorConditionalItemTenPass": line_number(
+            pair_validator, '"section15_2Item10Complete": status == "pass"'
+        ),
+        "pairValidatorBroaderMatrixBoundary": line_number(
+            pair_validator, '"v1ConcurrencyRecoveryMatrixComplete": False'
+        ),
         "matrixUncoveredItems": line_number(
             matrix, '"uncoveredSection15_2Items": [7, 9, 10]'
         ),
@@ -378,7 +445,7 @@ def main() -> int:
         "schemaVersion": 1,
         "section15_2Item": 10,
         "status": (
-            "combined-validator-implemented"
+            "pair-validator-implemented"
             if not missing and not missing_source_lines
             else "audit-failed"
         ),
@@ -432,6 +499,12 @@ def main() -> int:
                 "requiresSafeRelativePaths": True,
                 "rejectsPathEscapeSymlinkDuplicateAndOverwrite": True,
             },
+            "pairAggregation": {
+                "requiresExactlyOnePassingAcceptanceRunPerScenario": True,
+                "requiresSameMachineArchitectureMacOSAndBuild": True,
+                "completesOnlySection15_2Item10": True,
+                "doesNotCompleteBroaderV1ConcurrencyRecoveryMatrix": True,
+            },
             "forbiddenInference": [
                 "scenario-label-without-role-and-overlap-proof",
                 "pid-alive-or-window-visible-as-ready-or-streaming",
@@ -441,14 +514,14 @@ def main() -> int:
             ],
         },
         "remainingBoundary": {
-            "pairedScenarioAcceptanceMatrixStillRequiresImplementation": True,
+            "passingLivePairStillRequiresExecution": True,
             "installedAppAgentTwoMachineRunsStillRequireExecution": True,
             "fiveV1ConcurrencyCasesAndStableHostIDStillRequireExecution": True,
             "noSection15_2ItemTenPassIsClaimed": True,
         },
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if result["status"] == "combined-validator-implemented" else 1
+    return 0 if result["status"] == "pair-validator-implemented" else 1
 
 
 if __name__ == "__main__":
