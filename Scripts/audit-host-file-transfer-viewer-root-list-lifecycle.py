@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-root-list-lifecycle-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-recursive-manifest-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-viewer-recursive-manifest-abi-lifecycle"
 
 
 def read(path: Path) -> str:
@@ -32,6 +32,7 @@ def main() -> int:
         "swift": repository / "Sources/CoreBridge/CoreBridge.swift",
         "manifest": repository / "Sources/CoreBridge/ViewerFileTransferContract.swift",
         "destination_owner": repository / "Sources/CoreBridge/ViewerFileTransferDestinationOwner.swift",
+        "recursive_authority": repository / "Sources/CoreBridge/ViewerFileTransferRecursiveManifestAuthority.swift",
         "swift_tests": repository / "Tests/CoreBridgeTests/ViewerFileTransferContractTests.swift",
         "host_tests": repository / "Tests/CoreBridgeTests/HostBridgeContractTests.swift",
         "build_core": repository / "Scripts/build-rust-core.sh",
@@ -150,8 +151,13 @@ def main() -> int:
         ),
         "productRemainsOffAndIOGapIsExplicit": (
             "fileTransferEnabled:" not in product
-            and "recursive manifest/download I/O" in sources["architecture"]
-            and "No recursive manifest, download command" in sources["readme"]
+            and "远端 recursive-manifest command/callback" in sources["architecture"]
+            and "No remote recursive-manifest command/callback" in sources["readme"]
+        ),
+        "recursiveAuthorityNowPrecedesRemoteManifestABI": (
+            "package struct ViewerFileTransferRecursiveManifestAuthority"
+            in sources["recursive_authority"]
+            and "rdn_client_file_transfer_manifest" not in header
         ),
     }
     source_lines = {
@@ -187,7 +193,8 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "viewerRootListCommandCallbackImplemented": status == expected_status,
-            "viewerRecursiveManifestImplemented": False,
+            "viewerRecursiveManifestAuthorityImplemented": status == expected_status,
+            "viewerRecursiveManifestABILifecycleImplemented": False,
             "viewerDestinationDescriptorOwnerImplemented": status == expected_status,
             "viewerDownloadIOImplemented": False,
             "productFileTransferEnabled": False,

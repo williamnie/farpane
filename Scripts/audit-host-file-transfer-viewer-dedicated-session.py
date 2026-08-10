@@ -123,7 +123,7 @@ def main() -> int:
         ),
         "remainingManifestAndDestinationGapIsExplicit": (
             "destination\n  owner" in sources["architecture"]
-            and "No recursive manifest, download command" in sources["readme"]
+            and "No remote recursive-manifest command/callback" in sources["readme"]
         ),
     }
     source_lines = {
