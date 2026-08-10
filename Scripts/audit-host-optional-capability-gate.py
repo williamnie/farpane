@@ -40,6 +40,7 @@ def main() -> int:
         "viewer_bridge": (
             repository / "CoreBridge/RustDeskPatch/rdn_bridge.rs"
         ),
+        "viewer_swift": repository / "Sources/CoreBridge/CoreBridge.swift",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -59,6 +60,7 @@ def main() -> int:
     config = sources["config"]
     clipboard = sources["clipboard"]
     viewer_bridge = sources["viewer_bridge"]
+    viewer_swift = sources["viewer_swift"]
     apply_offset = host_bridge.find(
         "apply_native_host_optional_capability_defaults();"
     )
@@ -141,10 +143,11 @@ def main() -> int:
                 "decompress(&clipboard.content)",
             )
         ),
-        "nativeViewerClipboardRemainsDisabled": (
+        "nativeViewerClipboardRemainsDefaultOff": (
             "server_clipboard_enabled: Arc::new(RwLock::new(false))"
             in viewer_bridge
-            and "rdn_client_send_clipboard" not in viewer_bridge
+            and "receiveClipboardText: Bool = false" in viewer_swift
+            and "sendClipboardText: Bool = false" in viewer_swift
         ),
     }
     missing = [name for name, present in evidence.items() if not present]
@@ -172,9 +175,9 @@ def main() -> int:
         "unboundedDecompression": line_number(
             clipboard, "decompress(&clipboard.content)"
         ),
-        "viewerClipboardDisabled": line_number(
-            viewer_bridge,
-            "server_clipboard_enabled: Arc::new(RwLock::new(false))",
+        "viewerClipboardDefaultOff": line_number(
+            viewer_swift,
+            "receiveClipboardText: Bool = false",
         ),
     }
     missing_lines = [name for name, number in source_lines.items() if number <= 0]
@@ -203,9 +206,10 @@ def main() -> int:
             "directionalXPCUIRequired": False,
             "eventDrivenDynamicBackoffRequired": False,
             "temporaryObjectCleanupRequired": False,
+            "viewerSmallTextClipboardAPIRequired": False,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "viewer-small-text-clipboard-api-contract",
+        "nextImplementationBoundary": "viewer-pasteboard-owner-and-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "optional-data-capabilities-default-off" else 1

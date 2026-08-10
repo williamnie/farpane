@@ -46,16 +46,20 @@ class HostClipboardDirectionalXPCUIContractAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["temporaryObjectCleanupRequired"]
         )
+        self.assertFalse(
+            document["remainingBoundary"]["viewerSmallTextClipboardAPIRequired"]
+        )
         self.assertTrue(all(
             value for name, value in document["remainingBoundary"].items()
             if name not in {
                 "eventDrivenDynamicBackoffRequired",
                 "temporaryObjectCleanupRequired",
+                "viewerSmallTextClipboardAPIRequired",
             }
         ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-small-text-clipboard-api-contract",
+            "viewer-pasteboard-owner-and-explicit-enablement-contract",
         )
 
 

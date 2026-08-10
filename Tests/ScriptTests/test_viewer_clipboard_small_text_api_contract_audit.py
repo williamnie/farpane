@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostClipboardEventBackoffContractAuditTests(unittest.TestCase):
-    def test_listener_is_event_first_with_bounded_macos_fallback(self) -> None:
+class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
+    def test_viewer_small_text_api_is_bounded_directional_and_default_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-clipboard-event-backoff-contract.py",
+                "Scripts/audit-viewer-clipboard-small-text-api-contract.py",
             ],
             cwd=repository,
             check=False,
@@ -24,30 +24,24 @@ class HostClipboardEventBackoffContractAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-clipboard-event-backoff-contract-audit",
+            "farpane-viewer-small-text-clipboard-api-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "event-first-bounded-macos-fallback",
+            "viewer-small-text-clipboard-api-default-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(document["claims"]["listenerEventPathIsPrimary"])
-        self.assertTrue(document["claims"]["macFallbackBackoffIsBounded"])
-        self.assertTrue(document["claims"]["activityResetsFallbackBackoff"])
-        self.assertFalse(document["claims"]["nonHostUpstreamBehaviorChanged"])
-        self.assertFalse(document["claims"]["clipboardEnabledByDefault"])
-        self.assertFalse(
-            document["remainingBoundary"]["temporaryObjectCleanupRequired"]
-        )
-        self.assertFalse(document["remainingBoundary"]["viewerClipboardAPIRequired"])
-        self.assertTrue(all(
-            value for name, value in document["remainingBoundary"].items()
-            if name not in {"temporaryObjectCleanupRequired", "viewerClipboardAPIRequired"}
-        ))
+        self.assertTrue(document["claims"]["viewerABIv6Implemented"])
+        self.assertTrue(document["claims"]["directionsIndependentlyEnforced"])
+        self.assertTrue(document["claims"]["smallTextBoundedTo64KiB"])
+        self.assertFalse(document["claims"]["viewerRustOwnsSystemPasteboard"])
+        self.assertFalse(document["claims"]["productClipboardEnabled"])
+        self.assertFalse(document["claims"]["richClipboardEnabled"])
+        self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
             "viewer-pasteboard-owner-and-explicit-enablement-contract",

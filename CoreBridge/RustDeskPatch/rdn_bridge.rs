@@ -22,8 +22,9 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 5;
+const ABI_VERSION: u32 = 6;
 const MAX_TEXT_BYTES: usize = 4_096;
+const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 
 #[repr(C)]
@@ -89,6 +90,7 @@ pub struct RDNCoreMetrics {
 type StateCallback = unsafe extern "C" fn(*mut c_void, RDNState, i32, *const c_char);
 type VideoCallback = unsafe extern "C" fn(*mut c_void, *const RDNEncodedVideoFrame);
 type MetricsCallback = unsafe extern "C" fn(*mut c_void, *const RDNCoreMetrics);
+type ClipboardTextCallback = unsafe extern "C" fn(*mut c_void, *const u8, usize);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -97,6 +99,7 @@ pub struct RDNCallbacks {
     on_state: Option<StateCallback>,
     on_video: Option<VideoCallback>,
     on_metrics: Option<MetricsCallback>,
+    on_clipboard_text: Option<ClipboardTextCallback>,
 }
 
 #[repr(C)]
@@ -107,6 +110,8 @@ pub struct RDNConnectionConfig {
     peer_id: *const c_char,
     password: *const c_char,
     force_relay: bool,
+    receive_clipboard_text: bool,
+    send_clipboard_text: bool,
 }
 
 const MODIFIER_SHIFT: u32 = 1 << 0;
@@ -187,6 +192,9 @@ struct BridgeShared {
     authenticated: AtomicBool,
     remote_keyboard_enabled: AtomicBool,
     input_allowed: AtomicBool,
+    receive_clipboard_text: AtomicBool,
+    send_clipboard_text: AtomicBool,
+    remote_clipboard_enabled: AtomicBool,
 }
 
 impl BridgeShared {
@@ -219,6 +227,27 @@ impl BridgeShared {
             target_bitrate: status.target_bitrate.unwrap_or_default().max(0) as u64,
         };
         unsafe { callback(self.context as *mut c_void, &metrics) };
+    }
+
+    fn emit_clipboard_text(&self, text: &str) {
+        if !clipboard_receive_allowed(
+            self.active.load(Ordering::Acquire),
+            self.authenticated.load(Ordering::Acquire),
+            self.receive_clipboard_text.load(Ordering::Acquire),
+            self.remote_clipboard_enabled.load(Ordering::Acquire),
+        ) {
+            return;
+        }
+        let Some(callback) = self.callbacks.on_clipboard_text else {
+            return;
+        };
+        unsafe {
+            callback(
+                self.context as *mut c_void,
+                text.as_bytes().as_ptr(),
+                text.len(),
+            )
+        };
     }
 
     fn emit_video(&self, frame: &VideoFrame) -> bool {
@@ -275,6 +304,7 @@ impl Default for BridgeUi {
                     on_state: None,
                     on_video: None,
                     on_metrics: None,
+                    on_clipboard_text: None,
                 },
                 context: 0,
                 active: AtomicBool::new(false),
@@ -283,6 +313,9 @@ impl Default for BridgeUi {
                 authenticated: AtomicBool::new(false),
                 remote_keyboard_enabled: AtomicBool::new(true),
                 input_allowed: AtomicBool::new(false),
+                receive_clipboard_text: AtomicBool::new(false),
+                send_clipboard_text: AtomicBool::new(false),
+                remote_clipboard_enabled: AtomicBool::new(false),
             }),
         }
     }
@@ -342,6 +375,10 @@ impl InvokeUiSession for BridgeUi {
                 self.shared
                     .emit_state(RDNState::ControlReady, 0, "control-ready");
             }
+        } else if name == "clipboard" {
+            self.shared
+                .remote_clipboard_enabled
+                .store(value, Ordering::Release);
         }
     }
 
@@ -453,6 +490,10 @@ impl InvokeUiSession for BridgeUi {
     fn on_encoded_video(&self, frame: &VideoFrame) -> bool {
         self.shared.emit_video(frame)
     }
+
+    fn native_clipboard_text(&self, text: String) {
+        self.shared.emit_clipboard_text(&text);
+    }
 }
 
 pub struct RDNClient {
@@ -466,6 +507,15 @@ impl RDNClient {
     fn disconnect(&self, emit_state: bool) {
         self.shared.authenticated.store(false, Ordering::Release);
         self.shared.input_allowed.store(false, Ordering::Release);
+        self.shared
+            .receive_clipboard_text
+            .store(false, Ordering::Release);
+        self.shared
+            .send_clipboard_text
+            .store(false, Ordering::Release);
+        self.shared
+            .remote_clipboard_enabled
+            .store(false, Ordering::Release);
         self.shared.active.store(false, Ordering::Release);
         if let Some(session) = self.session.lock().unwrap().as_ref() {
             if let Some(sender) = session.sender.read().unwrap().as_ref() {
@@ -506,6 +556,62 @@ fn native_stream_fps(force_relay: bool) -> i32 {
 
 fn input_is_allowed(authenticated: bool, remote_keyboard_enabled: bool) -> bool {
     authenticated && remote_keyboard_enabled
+}
+
+fn clipboard_receive_allowed(
+    active: bool,
+    authenticated: bool,
+    local_receive_enabled: bool,
+    remote_clipboard_enabled: bool,
+) -> bool {
+    active && authenticated && local_receive_enabled && remote_clipboard_enabled
+}
+
+pub(crate) fn native_viewer_clipboard_text(clipboards: &[Clipboard]) -> Option<String> {
+    let clipboard = match clipboards {
+        [clipboard] => clipboard,
+        _ => return None,
+    };
+    if clipboard.format.enum_value() != Ok(ClipboardFormat::Text)
+        || !clipboard.special_name.is_empty()
+        || clipboard.width != 0
+        || clipboard.height != 0
+        || clipboard.content.is_empty()
+        || clipboard.content.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES
+    {
+        return None;
+    }
+    let bytes = if clipboard.compress {
+        hbb_common::compress::decompress_with_limit(
+            &clipboard.content,
+            MAX_CLIPBOARD_TEXT_UTF8_BYTES,
+        )
+        .ok()?
+    } else {
+        clipboard.content.to_vec()
+    };
+    let text = String::from_utf8(bytes).ok()?;
+    (!text.is_empty() && !text.contains('\0')).then_some(text)
+}
+
+fn native_viewer_clipboard_message(bytes: &[u8]) -> Option<Message> {
+    let text = validated_clipboard_text(bytes)?;
+    let mut message = Message::new();
+    message.set_clipboard(Clipboard {
+        content: text.as_bytes().to_vec().into(),
+        format: ClipboardFormat::Text.into(),
+        ..Default::default()
+    });
+    Some(message)
+}
+
+fn validated_clipboard_text(bytes: &[u8]) -> Option<&str> {
+    if bytes.is_empty() || bytes.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES {
+        return None;
+    }
+    std::str::from_utf8(bytes)
+        .ok()
+        .filter(|text| !text.contains('\0'))
 }
 
 fn native_stream_configuration_message(custom_fps: i32) -> Message {
@@ -570,6 +676,9 @@ pub unsafe extern "C" fn rdn_client_create(
         authenticated: AtomicBool::new(false),
         remote_keyboard_enabled: AtomicBool::new(true),
         input_allowed: AtomicBool::new(false),
+        receive_clipboard_text: AtomicBool::new(false),
+        send_clipboard_text: AtomicBool::new(false),
+        remote_clipboard_enabled: AtomicBool::new(false),
     });
     Box::into_raw(Box::new(RDNClient {
         shared,
@@ -630,6 +739,18 @@ pub unsafe extern "C" fn rdn_client_connect(
         .remote_keyboard_enabled
         .store(true, Ordering::Release);
     client.shared.input_allowed.store(false, Ordering::Release);
+    client
+        .shared
+        .receive_clipboard_text
+        .store((*config).receive_clipboard_text, Ordering::Release);
+    client
+        .shared
+        .send_clipboard_text
+        .store((*config).send_clipboard_text, Ordering::Release);
+    client
+        .shared
+        .remote_clipboard_enabled
+        .store(false, Ordering::Release);
     client.shared.sequence.store(0, Ordering::Relaxed);
     *client.shared.dimensions.write().unwrap() = (0, 0);
     client
@@ -659,11 +780,10 @@ pub unsafe extern "C" fn rdn_client_connect(
         None,
         None,
     );
-    session
-        .lc
-        .write()
-        .unwrap()
-        .configure_native_viewer(&peer_id);
+    session.lc.write().unwrap().configure_native_viewer(
+        &peer_id,
+        (*config).receive_clipboard_text || (*config).send_clipboard_text,
+    );
     let round = session.connection_round_state.lock().unwrap().new_round();
     let worker_session = session.clone();
     let worker_shared = client.shared.clone();
@@ -1012,6 +1132,48 @@ pub unsafe extern "C" fn rdn_client_send_text(
     0
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_send_clipboard_text(
+    client: *mut RDNClient,
+    utf8: *const u8,
+    length: usize,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    if !client.shared.send_clipboard_text.load(Ordering::Acquire) {
+        return -7;
+    }
+    if !client
+        .shared
+        .remote_clipboard_enabled
+        .load(Ordering::Acquire)
+    {
+        return -8;
+    }
+    if utf8.is_null() || length == 0 || length > MAX_CLIPBOARD_TEXT_UTF8_BYTES {
+        return -4;
+    }
+    let bytes = std::slice::from_raw_parts(utf8, length);
+    let Some(message) = native_viewer_clipboard_message(bytes) else {
+        return -4;
+    };
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
+        return -3;
+    };
+    sender.send(Data::Message(message)).map_or(-3, |_| 0)
+}
+
 struct PacketInspection {
     format: RDNPacketFormat,
     flags: u32,
@@ -1269,11 +1431,103 @@ mod tests {
     }
 
     #[test]
+    fn gates_viewer_clipboard_receive_on_lifecycle_and_both_policies() {
+        for missing in 0..4 {
+            let mut gates = [true; 4];
+            gates[missing] = false;
+            assert!(!clipboard_receive_allowed(
+                gates[0], gates[1], gates[2], gates[3]
+            ));
+        }
+        assert!(clipboard_receive_allowed(true, true, true, true));
+    }
+
+    #[test]
     fn validates_bounded_utf8_text_without_logging_content() {
         assert_eq!(validated_text("中文输入".as_bytes()), Some("中文输入"));
         assert!(validated_text(b"").is_none());
         assert!(validated_text(b"a\0b").is_none());
         assert!(validated_text(&[0xff]).is_none());
         assert!(validated_text(&vec![b'a'; MAX_TEXT_BYTES + 1]).is_none());
+    }
+
+    fn clipboard_fixture(content: Vec<u8>, compress: bool, format: ClipboardFormat) -> Clipboard {
+        Clipboard {
+            content: content.into(),
+            compress,
+            format: format.into(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn native_viewer_clipboard_accepts_only_one_bounded_utf8_text_entry() {
+        let text = clipboard_fixture(
+            "Viewer 小文本".as_bytes().to_vec(),
+            false,
+            ClipboardFormat::Text,
+        );
+        assert_eq!(
+            native_viewer_clipboard_text(std::slice::from_ref(&text)).as_deref(),
+            Some("Viewer 小文本")
+        );
+        assert!(native_viewer_clipboard_text(&[]).is_none());
+        assert!(native_viewer_clipboard_text(&[text.clone(), text]).is_none());
+        assert!(native_viewer_clipboard_text(&[clipboard_fixture(
+            b"<b>rich</b>".to_vec(),
+            false,
+            ClipboardFormat::Html,
+        )])
+        .is_none());
+        assert!(native_viewer_clipboard_text(&[clipboard_fixture(
+            b"a\0b".to_vec(),
+            false,
+            ClipboardFormat::Text,
+        )])
+        .is_none());
+        assert!(native_viewer_clipboard_text(&[clipboard_fixture(
+            vec![b'a'; MAX_CLIPBOARD_TEXT_UTF8_BYTES + 1],
+            false,
+            ClipboardFormat::Text,
+        )])
+        .is_none());
+    }
+
+    #[test]
+    fn native_viewer_clipboard_bounds_decompression_and_builds_canonical_message() {
+        let plain = vec![b'a'; MAX_CLIPBOARD_TEXT_UTF8_BYTES];
+        let compressed = hbb_common::compress::compress(&plain);
+        assert_eq!(
+            native_viewer_clipboard_text(&[clipboard_fixture(
+                compressed,
+                true,
+                ClipboardFormat::Text,
+            )])
+            .map(|text| text.len()),
+            Some(MAX_CLIPBOARD_TEXT_UTF8_BYTES)
+        );
+
+        let oversized =
+            hbb_common::compress::compress(&vec![b'a'; MAX_CLIPBOARD_TEXT_UTF8_BYTES + 1]);
+        assert!(native_viewer_clipboard_text(&[clipboard_fixture(
+            oversized,
+            true,
+            ClipboardFormat::Text,
+        )])
+        .is_none());
+
+        let message = native_viewer_clipboard_message("发送文本".as_bytes())
+            .expect("bounded clipboard text message");
+        let Some(message::Union::Clipboard(clipboard)) = message.union else {
+            panic!("viewer clipboard output must be one Clipboard message");
+        };
+        assert_eq!(clipboard.format.enum_value(), Ok(ClipboardFormat::Text));
+        assert_eq!(clipboard.content.as_ref(), "发送文本".as_bytes());
+        assert!(!clipboard.compress);
+        assert!(clipboard.special_name.is_empty());
+        assert_eq!((clipboard.width, clipboard.height), (0, 0));
+        assert!(native_viewer_clipboard_message(b"").is_none());
+        assert!(native_viewer_clipboard_message(b"a\0b").is_none());
+        assert!(native_viewer_clipboard_message(&[0xff]).is_none());
     }
 }

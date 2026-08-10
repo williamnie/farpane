@@ -37,3 +37,13 @@ session event tap; the bridge feeds those positions into pinned RustDesk Core's
 keyboard-map mode so remote shortcuts and IME composition receive real key
 strokes. RustDesk Core remains solely responsible for constructing and
 transmitting wire-protocol input messages.
+
+ABI v6 adds a default-off, directionally configured small-text clipboard API.
+Rust accepts exactly one non-empty UTF-8 `ClipboardFormat::Text` payload up to
+64 KiB, bounds decompression before decoding, rejects rich metadata and NUL,
+and delivers callback-scoped bytes to Swift without touching the Viewer
+pasteboard. Swift may send the same bounded semantic text through a dedicated
+call only after local send policy, authentication, and the remote clipboard
+permission all agree. The pinned wire exposes one clipboard negotiation bit;
+the native bridge still enforces receive and send independently. Product UI
+and pasteboard synchronization remain disabled until their later H6 gate.

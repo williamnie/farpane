@@ -215,12 +215,12 @@ def main() -> int:
             "filePromiseCompiledInCurrentProduct": False,
         },
         "remainingBoundary": {
-            "viewerSmallTextClipboardAPIRequired": True,
+            "viewerSmallTextClipboardAPIRequired": False,
             "explicitProductEnablementRequired": True,
             "richPayloadTransferRequired": True,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-small-text-clipboard-api-contract",
+        "nextImplementationBoundary": "viewer-pasteboard-owner-and-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "temporary-clipboard-objects-cleaned-on-teardown" else 1

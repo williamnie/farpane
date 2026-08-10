@@ -45,6 +45,9 @@ class HostClipboardPolicyContractAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["temporaryObjectCleanupRequired"]
         )
+        self.assertFalse(
+            document["remainingBoundary"]["viewerSmallTextClipboardAPIRequired"]
+        )
         self.assertTrue(all(
             value for name, value in document["remainingBoundary"].items()
             if name not in {
@@ -52,11 +55,12 @@ class HostClipboardPolicyContractAuditTests(unittest.TestCase):
                 "directionalXPCUIRequired",
                 "eventDrivenDynamicBackoffRequired",
                 "temporaryObjectCleanupRequired",
+                "viewerSmallTextClipboardAPIRequired",
             }
         ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-small-text-clipboard-api-contract",
+            "viewer-pasteboard-owner-and-explicit-enablement-contract",
         )
 
 

@@ -31,9 +31,12 @@ class HostClipboardDataPlaneGateAuditTests(unittest.TestCase):
         self.assertFalse(
             payload["remainingBoundary"]["temporaryObjectCleanupRequired"]
         )
+        self.assertFalse(
+            payload["remainingBoundary"]["viewerSmallTextClipboardAPIRequired"]
+        )
         self.assertEqual(
             payload["nextImplementationBoundary"],
-            "viewer-small-text-clipboard-api-contract",
+            "viewer-pasteboard-owner-and-explicit-enablement-contract",
         )
 
 
