@@ -124,11 +124,12 @@ def main() -> int:
             )
         ),
         "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
-        "laterOwnerMutationDispatchExistsWriteJobsRemainOpen": (
+        "laterOwnerMutationAndNewWritesExistResumeRemainsOpen": (
             "pub(crate) struct NativeHostFileServiceOwner" in source
             and "native_host_dispatch_file_mutation" in host_bridge
             and "send_native_host_file_mutation_response" in sources["connection"]
-            and "self.send_fs(ipc::FS::NewWrite" in sources["connection"]
+            and "begin_native_host_write_job" in sources["connection"]
+            and "NativeHostWriteJobError::ResumeUnsupported" in host_bridge
         ),
         "recursiveRemovalIsDeliberatelyAbsent": (
             "pub(crate) fn remove_recursive" not in source
@@ -174,10 +175,12 @@ def main() -> int:
             "recursiveRemovalImplemented": False,
             "nativeHostFileServiceOwnerCoreImplemented": True,
             "nativeHostFileServiceOwnerImplemented": True,
+            "nativeNewFileWriteLifecycleImplemented": True,
+            "nativeResumeDigestLifecycleImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

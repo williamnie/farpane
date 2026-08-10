@@ -56,13 +56,13 @@ retained root owner. No mutation reaches `outside`.
 ## Non-claims
 
 - Existing upstream/CM path-based file transfer is unchanged.
-- H6.3e1/e2 have since configured the Native Host file-service owner and H6.3e3
-  has connected these safe mutations; native write jobs and Viewer
-  destination/overwrite/progress UI remain absent.
+- H6.3e1/e2 have since configured the Native Host file-service owner, H6.3e3
+  connected these safe mutations, and H6.3e4a added bounded new-file writes.
+  Resume/overwrite, read/list and Viewer destination/progress UI remain absent.
 - No installed App, real user file, or two-Mac acceptance was exercised.
 
 ## Next step
 
-H6.3e1 composed the owner core, H6.3e2 configured its immutable root, and
-H6.3e3 connected safe mutations. Continue with
-`host-file-transfer-native-write-job-lifecycle`.
+H6.3e1 composed the owner core, H6.3e2 configured its immutable root, H6.3e3
+connected safe mutations, and H6.3e4a added bounded new-file writes. Continue
+with `host-file-transfer-native-resume-digest-lifecycle`.

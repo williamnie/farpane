@@ -37,12 +37,13 @@ class HostFileTransferConnectionMutationDispatchAuditTests(unittest.TestCase):
         claims = document["claims"]
         self.assertTrue(claims["safeMutationConnectionDispatchImplemented"])
         self.assertFalse(claims["recursiveRemovalImplemented"])
-        self.assertFalse(claims["nativeWriteJobLifecycleImplemented"])
+        self.assertTrue(claims["nativeNewFileWriteLifecycleImplemented"])
+        self.assertFalse(claims["nativeResumeDigestLifecycleImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-write-job-lifecycle",
+            "host-file-transfer-native-resume-digest-lifecycle",
         )
 
 

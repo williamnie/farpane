@@ -52,8 +52,10 @@ rename. The product remains disabled and write jobs remain outside this step.
 
 ## Non-claims
 
-- `Receive`, `NewWrite`, block/done/error/digest, cancellation, resume and
-  write-job teardown are not owned by the Native Host yet.
+- H6.3e4a has since added Native Host new-file receive, block/done/error/cancel
+  and teardown. This historical H6.3e3 evidence does not claim those were part
+  of the mutation-dispatch boundary.
+- Resume offset/digest and overwrite remain fail closed/not implemented.
 - Directory listing, download/read jobs, Viewer destination/progress UI,
   product opt-in and end-to-end transfer are not implemented here.
 - No App/Agent launch, installed App, real user file, Hermes change, push or
@@ -61,6 +63,6 @@ rename. The product remains disabled and write jobs remain outside this step.
 
 ## Next step
 
-`host-file-transfer-native-write-job-lifecycle`: introduce a connection-scoped
-native write job that creates/resumes through the bound owner, accepts bounded
-blocks, finalizes or cancels deterministically, and never falls through to CM.
+H6.3e4a completed the bounded new-file write lifecycle. Continue with
+`host-file-transfer-native-resume-digest-lifecycle`; read/list/download,
+Viewer destination/progress UI and product opt-in remain open.

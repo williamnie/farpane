@@ -45,14 +45,15 @@ The product remains disabled: current App and HostAgent callers use the default
 
 ## Non-claims
 
-- H6.3e3 has since routed safe mutation responses to the owner; native write
-  jobs, cancellation, teardown, Viewer destination selection, progress UI, and
-  end-to-end transfer are not implemented.
+- H6.3e3 has since routed safe mutation responses to the owner, and H6.3e4a
+  later added bounded new-file write jobs, cancellation and teardown. Resume,
+  overwrite, read/list, Viewer destination/progress UI and end-to-end transfer
+  remain open.
 - No App/Agent opt-in, installed App, real user file, Hermes change, push, or
   two-Mac acceptance was exercised.
 
 ## Next step
 
-H6.3e3 connected safe mutations. Continue with
-`host-file-transfer-native-write-job-lifecycle`, while leaving product callers
-disabled.
+H6.3e3 connected safe mutations and H6.3e4a added bounded new-file writes.
+Continue with `host-file-transfer-native-resume-digest-lifecycle`, while
+leaving product callers disabled.

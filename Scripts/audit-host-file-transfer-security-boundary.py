@@ -145,6 +145,20 @@ def main() -> int:
                 "libc::RENAME_EXCL",
             )
         ),
+        "nativeHostOwnsBoundedNewFileWriteLifecycle": all(
+            marker in (host_bridge + connection + safe_root)
+            for marker in (
+                "pub(crate) struct NativeHostWriteJob",
+                "MAX_NATIVE_HOST_WRITE_FILES: usize = 1024",
+                "MAX_NATIVE_HOST_WRITE_METADATA_BYTES: usize = 1024 * 1024",
+                'NATIVE_HOST_WRITE_STAGING_SUFFIX: &str = ".farpane-part"',
+                "begin_native_host_write_job",
+                "write_native_host_file_block",
+                "finish_native_host_write_job",
+                "cancel_native_host_write_job",
+                "libc::RENAME_EXCL",
+            )
+        ),
         "productCallersStillDoNotOptIn": (
             "fileTransferEnabled:" not in product
             and "fileTransferEnabled: true" not in product
@@ -181,7 +195,7 @@ def main() -> int:
                 "self.send_to_cm(ipc::Data::FS(data));",
             )
         ),
-        "writeJobsStillDependOnCMChannel": all(
+        "legacyNonNativeWriteJobsStillDependOnCMChannel": all(
             marker in connection
             for marker in (
                 "self.send_fs(ipc::FS::NewWrite",
@@ -190,11 +204,20 @@ def main() -> int:
                 "self.send_fs(ipc::FS::CancelWrite",
             )
         ),
-        "nativeMutationsConnectedButWriteJobsNotOwned": (
-            "NativeHostFileServiceOwner" in safe_root
-            and "native_host_dispatch_file_mutation" in host_bridge
-            and "send_native_host_file_mutation_response" in connection
-            and "self.send_fs(ipc::FS::NewWrite" in connection
+        "nativeResumeDigestLifecycleNotImplemented": all(
+            marker in (host_bridge + connection)
+            for marker in (
+                "NativeHostWriteJobError::ResumeUnsupported",
+                "confirm_new_file_digest",
+                "FileTransferSendConfirmRequest",
+                "file_transfer_send_confirm_request::Union::OffsetBlk(0)",
+            )
+        ),
+        "nativeReadListAndDownloadJobsNotOwned": (
+            "self.send_fs(ipc::FS::ReadDir" in connection
+            and "self.send_fs(ipc::FS::ReadAllFiles" in connection
+            and "self.send_fs(ipc::FS::ReadFile" in connection
+            and "native_host_read_jobs" not in connection
         ),
         "noProductDestinationOrOverwriteUXExists": (
             "fileTransferEnabled:" not in product
@@ -226,11 +249,20 @@ def main() -> int:
         "safeRootMutations": line_number(
             safe_root, "pub(crate) fn create_directory"
         ),
+        "nativeNewFileWriteJob": line_number(
+            host_bridge, "pub(crate) struct NativeHostWriteJob"
+        ),
+        "nativeNewFileDispatch": line_number(
+            connection, "async fn begin_native_host_write_job"
+        ),
+        "nativeResumeFailClosed": line_number(
+            host_bridge, "NativeHostWriteJobError::ResumeUnsupported"
+        ),
         "toctouAcknowledgement": line_number(
             fs, "known TOCTOU window for symlink races"
         ),
         "nativeCMDrop": line_number(connection, "self.start_cm_ipc_para.take();"),
-        "receiveCMDispatch": line_number(
+        "legacyReceiveCMFallback": line_number(
             connection, "self.send_fs(ipc::FS::NewWrite"
         ),
     }
@@ -265,10 +297,12 @@ def main() -> int:
             "safeRootMutationsImplemented": True,
             "nativeHostFileServiceOwnerCoreImplemented": True,
             "safeMutationConnectionDispatchImplemented": True,
+            "nativeNewFileWriteLifecycleImplemented": True,
+            "nativeResumeDigestLifecycleImplemented": False,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1

@@ -44,13 +44,15 @@ ten H6.3d1/d2 tests, the focused suite is 12/12.
 
 - H6.3e2 has since added the receive-root field; this H6.3e1 evidence does not
   claim it was present in the original owner-core boundary.
-- H6.3e3 has since routed safe directory/file mutations to this owner; native
-  write jobs, cancellation, and write-job teardown are still not implemented.
+- H6.3e3 has since routed safe directory/file mutations to this owner, and
+  H6.3e4a later added bounded new-file write jobs plus cancellation/teardown.
+  Resume offset/digest, overwrite, read/list and Viewer UI remain open.
 - No App/Agent opt-in, Viewer UI, installed App, real user file, Hermes change,
   push, or two-Mac acceptance was exercised.
 
 ## Next step
 
-H6.3e2 completed the immutable receive-root contract and H6.3e3 connected safe
-mutations. Continue with `host-file-transfer-native-write-job-lifecycle`,
-keeping current product callers disabled.
+H6.3e2 completed the immutable receive-root contract, H6.3e3 connected safe
+mutations, and H6.3e4a added bounded new-file writes. Continue with
+`host-file-transfer-native-resume-digest-lifecycle`, keeping current product
+callers disabled.

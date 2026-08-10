@@ -123,11 +123,12 @@ def main() -> int:
                 'cmp -s "$vendor_dir/src/rdn_host_file_transfer.rs" "$host_file_transfer_source"',
             )
         ),
-        "laterReceiveRootConfigAndMutationDispatchExist": (
+        "laterReceiveRootMutationAndNewWriteDispatchExist": (
             "file_transfer_receive_root" in sources["header"]
             and "native_host_dispatch_file_mutation" in host_bridge
             and "send_native_host_file_mutation_response" in connection
-            and "self.send_fs(ipc::FS::NewWrite" in connection
+            and "begin_native_host_write_job" in connection
+            and "NativeHostWriteJobError::ResumeUnsupported" in host_bridge
         ),
         "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
     }
@@ -174,10 +175,12 @@ def main() -> int:
             "recursiveRemovalImplemented": False,
             "receiveRootConfigImplemented": True,
             "connectionDispatchImplemented": True,
+            "nativeNewFileWriteLifecycleImplemented": True,
+            "nativeResumeDigestLifecycleImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

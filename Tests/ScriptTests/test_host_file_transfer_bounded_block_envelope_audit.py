@@ -46,7 +46,7 @@ class HostFileTransferBoundedBlockEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(claims["safeRootMutationsImplemented"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-write-job-lifecycle",
+            "host-file-transfer-native-resume-digest-lifecycle",
         )
 
 

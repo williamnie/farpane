@@ -56,8 +56,9 @@ gaps that must be closed before any UI or bootstrap opt-in.
 ## Non-claims
 
 - Product enablement is not safe yet.
-- Safe Native Host file mutations are now connected, but native write jobs and
-  end-to-end file transfer are not functional.
+- Safe Native Host file mutations and bounded new-file writes are now
+  connected, but resume/overwrite/read/list/UI and end-to-end product file
+  transfer are not functional.
 - Existing symlink checks do not close races.
 - File-promise clipboard support remains disabled.
 
@@ -65,6 +66,7 @@ gaps that must be closed before any UI or bootstrap opt-in.
 
 H6.3c completed the bounded-block envelope, H6.3d1 provided the safe root,
 H6.3d2 added mutations, H6.3e1 composed their owner core, H6.3e2 configured
-the immutable root, and H6.3e3 connected safe mutations. Continue with
-`host-file-transfer-native-write-job-lifecycle`, still without enabling product
-callers.
+the immutable root, H6.3e3 connected safe mutations, and H6.3e4a added bounded
+new-file writes. Continue with
+`host-file-transfer-native-resume-digest-lifecycle`, still without enabling
+product callers.

@@ -41,11 +41,13 @@ class HostFileTransferSecurityBoundaryAuditTests(unittest.TestCase):
         self.assertTrue(claims["safeRootMutationsImplemented"])
         self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
         self.assertTrue(claims["safeMutationConnectionDispatchImplemented"])
+        self.assertTrue(claims["nativeNewFileWriteLifecycleImplemented"])
+        self.assertFalse(claims["nativeResumeDigestLifecycleImplemented"])
         self.assertFalse(claims["clipboardFilePromiseEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-write-job-lifecycle",
+            "host-file-transfer-native-resume-digest-lifecycle",
         )
 
 

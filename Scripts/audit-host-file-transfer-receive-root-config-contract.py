@@ -151,10 +151,11 @@ def main() -> int:
             "fileTransferEnabled:" not in product
             and "fileTransferReceiveRoot:" not in product
         ),
-        "laterMutationDispatchExistsWriteJobsRemainOpen": (
+        "laterMutationAndNewWriteDispatchExistResumeRemainsOpen": (
             "send_native_host_file_mutation_response" in connection
             and "NativeHostFileMutation::CreateDirectory" in connection
-            and "self.send_fs(ipc::FS::NewWrite" in connection
+            and "begin_native_host_write_job" in connection
+            and "NativeHostWriteJobError::ResumeUnsupported" in bridge
         ),
         "canonicalSourcesMatchVendorCheckout": (
             bridge == sources["vendor_bridge"]
@@ -226,10 +227,12 @@ def main() -> int:
             "unsafeRootAccepted": False,
             "ownerRetainedForHostLifetime": True,
             "connectionDispatchImplemented": True,
+            "nativeNewFileWriteLifecycleImplemented": True,
+            "nativeResumeDigestLifecycleImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (
