@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit H6.3d1 descriptor-relative Native Host receive-root primitives."""
+"""Audit H6.3d2 descriptor-relative Native Host receive-root mutations."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 
-SCHEMA = "farpane-host-file-transfer-safe-receive-root-audit"
+SCHEMA = "farpane-host-file-transfer-safe-root-mutations-audit"
 
 
 def read(path: Path) -> str:
@@ -50,11 +50,11 @@ def main() -> int:
     product = sources["app"] + sources["agent"]
 
     evidence = {
-        "designRecordsH63d1Boundary": all(
+        "designRecordsH63d2Boundary": all(
             marker in design
             for marker in (
-                "H6.3d1 Host descriptor-relative receive-root primitive",
-                "host-file-transfer-safe-root-mutations",
+                "H6.3d2 Host descriptor-relative safe-root mutations",
+                "host-file-transfer-native-service-owner",
             )
         ),
         "implementationIsMacOSHostFeatureIsolated": all(
@@ -66,79 +66,52 @@ def main() -> int:
             )
         ),
         "canonicalSourceMatchesVendorCheckout": source == sources["vendor"],
-        "absoluteRootTraversalIsDescriptorRelativeNoFollow": all(
-            marker in source
-            for marker in (
-                "fn absolute_root_components",
-                "libc::openat(",
-                "libc::O_DIRECTORY",
-                "libc::O_NOFOLLOW",
-                "validate_trusted_ancestor",
-            )
-        ),
-        "admittedRootIsCurrentUserPrivateDirectory": all(
-            marker in source
-            for marker in (
-                "stat.st_uid != unsafe { libc::geteuid() }",
-                "stat.st_mode & 0o777 != 0o700",
-                "NativeFileTransferRootError::UnsafeRoot",
-            )
-        ),
-        "relativePathsRejectEscapeAbsoluteEmptyAndNUL": all(
-            marker in source
-            for marker in (
-                "fn relative_path_components",
-                'bytes.starts_with(b"/")',
-                "bytes.contains(&0)",
-                'component == b".."',
-                "NativeFileTransferRootError::InvalidRelativePath",
-            )
-        ),
-        "nestedCreateUsesPrivateDescriptorRelativeNoReplaceOpen": all(
-            marker in source
-            for marker in (
-                "libc::mkdirat(",
-                "0o700 as libc::mode_t",
-                "libc::O_CREAT",
-                "libc::O_EXCL",
-                "0o600 as libc::c_uint",
-                "libc::fchmod(file.as_raw_fd(), 0o600",
-            )
-        ),
-        "resumeRequiresNoFollowOwnedPrivateSingleLinkRegularFile": all(
-            marker in source
-            for marker in (
-                "open_existing_file_for_resume",
-                "libc::O_NONBLOCK",
-                "stat.st_mode & libc::S_IFMT != libc::S_IFREG",
-                "stat.st_mode & 0o777 != 0o600",
-                "stat.st_nlink != 1",
-            )
-        ),
-        "errorsAreFixedAndDoNotEmbedPaths": (
-            "impl fmt::Display for NativeFileTransferRootError" in source
-            and "formatter.write_str(match self" in source
-            and "path.display()" not in source
-            and "last_os_error().to_string()" not in source
-        ),
-        "focusedTestsCoverRootCreateEscapeResumeAndReplacement": all(
-            marker in source
-            for marker in (
-                "receive_root_rejects_symlink_and_unsafe_mode",
-                "create_is_descriptor_relative_private_and_nested",
-                "create_rejects_escape_absolute_and_symlink_parent",
-                "resume_requires_owned_private_single_link_regular_file",
-                "open_root_descriptor_survives_path_replacement",
-            )
-        ),
-        "laterSafeRootMutationsExist": all(
+        "directoryCreateIsDescriptorRelativeAndPrivate": all(
             marker in source
             for marker in (
                 "pub(crate) fn create_directory",
+                "libc::mkdirat(",
+                "set_created_directory_mode",
+                "0o700 as libc::mode_t",
+                "validate_private_directory",
+            )
+        ),
+        "fileRemovalRejectsLinksAndTypeConfusion": all(
+            marker in source
+            for marker in (
                 "pub(crate) fn remove_file",
+                "checked_stat_at",
+                "libc::AT_SYMLINK_NOFOLLOW",
+                "validate_private_regular_stat",
+                "stat.st_nlink != 1",
+                "libc::unlinkat(parent.as_raw_fd(), file_name.as_ptr(), 0)",
+            )
+        ),
+        "directoryRemovalRequiresPrivateEmptyDirectory": all(
+            marker in source
+            for marker in (
                 "pub(crate) fn remove_empty_directory",
+                "open_private_child_directory",
+                "validate_private_directory",
+                "libc::AT_REMOVEDIR",
+            )
+        ),
+        "renameValidatesSourceAndCannotReplaceDestination": all(
+            marker in source
+            for marker in (
                 "pub(crate) fn rename_entry",
+                "validate_private_entry_stat",
+                "libc::renameatx_np(",
                 "libc::RENAME_EXCL",
+            )
+        ),
+        "focusedTestsCoverPrivateMutationAndFailClosedCases": all(
+            marker in source
+            for marker in (
+                "mutations_create_and_remove_only_private_entries",
+                "remove_rejects_symlink_hardlink_type_confusion_and_nonempty_directory",
+                "rename_is_no_replace_and_preserves_source_inode_on_success",
+                "rename_rejects_symlink_broad_mode_and_hardlinked_source",
                 "mutations_remain_pinned_after_root_path_replacement",
             )
         ),
@@ -157,45 +130,48 @@ def main() -> int:
             and "native_host_handle_fs" not in sources["connection"]
             and "native_host_handle_fs" not in host_bridge
         ),
+        "recursiveRemovalIsDeliberatelyAbsent": (
+            "pub(crate) fn remove_recursive" not in source
+            and "pub(crate) fn remove_directory_recursive" not in source
+            and "pub(crate) fn remove_tree" not in source
+        ),
     }
     source_lines = {
         "designMilestone": line_number(
-            design, "H6.3d1 Host descriptor-relative receive-root primitive"
+            design, "H6.3d2 Host descriptor-relative safe-root mutations"
         ),
-        "moduleIsolation": line_number(host_bridge, 'mod rdn_host_file_transfer;'),
-        "rootAdmission": line_number(source, "pub(crate) fn open_existing(path: &Path)"),
-        "rootTraversal": line_number(source, "fn absolute_root_components"),
-        "relativeValidation": line_number(source, "fn relative_path_components"),
-        "safeCreate": line_number(source, "pub(crate) fn create_new_file"),
-        "safeResume": line_number(source, "pub(crate) fn open_existing_file_for_resume"),
-        "fileValidation": line_number(source, "fn validate_private_regular_file"),
-        "rootReplacementTest": line_number(
-            source, "fn open_root_descriptor_survives_path_replacement"
+        "moduleIsolation": line_number(host_bridge, "mod rdn_host_file_transfer;"),
+        "createDirectory": line_number(source, "pub(crate) fn create_directory"),
+        "removeFile": line_number(source, "pub(crate) fn remove_file"),
+        "removeEmptyDirectory": line_number(
+            source, "pub(crate) fn remove_empty_directory"
         ),
-        "safeRootMutations": line_number(source, "pub(crate) fn create_directory"),
+        "renameEntry": line_number(source, "pub(crate) fn rename_entry"),
+        "noReplaceRename": line_number(source, "libc::RENAME_EXCL"),
+        "replacementTest": line_number(
+            source, "fn mutations_remain_pinned_after_root_path_replacement"
+        ),
         "bootstrapSource": line_number(bootstrap, "host_file_transfer_source="),
     }
     missing = [name for name, present in evidence.items() if not present]
     missing_lines = [name for name, number in source_lines.items() if number <= 0]
     status = (
-        "descriptor-relative-receive-root-primitive-implemented-product-off"
+        "descriptor-relative-safe-root-mutations-implemented-product-off"
         if not missing and not missing_lines
         else "audit-failed"
     )
     result = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "coverageScope": "h6-host-file-transfer-safe-receive-root",
+        "coverageScope": "h6-host-file-transfer-safe-root-mutations",
         "status": status,
         "evidence": evidence,
         "sourceLines": source_lines,
         "missingEvidence": missing,
         "missingSourceLines": missing_lines,
         "claims": {
-            "descriptorRelativeRootPrimitiveImplemented": True,
-            "safeCreateAndResumePrimitiveImplemented": True,
-            "rootPathReplacementCannotRedirectOpenDescriptor": True,
-            "safeRemoveAndRenameImplemented": True,
+            "descriptorRelativeSafeRootMutationsImplemented": True,
+            "recursiveRemovalImplemented": False,
             "nativeHostFileServiceOwnerImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
@@ -204,7 +180,7 @@ def main() -> int:
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (
-        "descriptor-relative-receive-root-primitive-implemented-product-off"
+        "descriptor-relative-safe-root-mutations-implemented-product-off"
     ) else 1
 
 

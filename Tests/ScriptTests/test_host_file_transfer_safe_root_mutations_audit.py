@@ -4,11 +4,11 @@ import subprocess
 import unittest
 
 
-class HostFileTransferSafeReceiveRootAuditTests(unittest.TestCase):
-    def test_descriptor_relative_receive_root_is_implemented_but_not_wired(self) -> None:
+class HostFileTransferSafeRootMutationsAuditTests(unittest.TestCase):
+    def test_descriptor_relative_mutations_are_implemented_but_not_wired(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            ["python3", "Scripts/audit-host-file-transfer-safe-receive-root.py"],
+            ["python3", "Scripts/audit-host-file-transfer-safe-root-mutations.py"],
             cwd=repository,
             check=False,
             capture_output=True,
@@ -21,21 +21,21 @@ class HostFileTransferSafeReceiveRootAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-safe-receive-root-audit",
+            "farpane-host-file-transfer-safe-root-mutations-audit",
         )
         self.assertEqual(
             document["status"],
-            "descriptor-relative-receive-root-primitive-implemented-product-off",
+            "descriptor-relative-safe-root-mutations-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["descriptorRelativeRootPrimitiveImplemented"])
-        self.assertTrue(claims["safeCreateAndResumePrimitiveImplemented"])
-        self.assertTrue(claims["rootPathReplacementCannotRedirectOpenDescriptor"])
-        self.assertTrue(claims["safeRemoveAndRenameImplemented"])
+        self.assertTrue(
+            claims["descriptorRelativeSafeRootMutationsImplemented"]
+        )
+        self.assertFalse(claims["recursiveRemovalImplemented"])
         self.assertFalse(claims["nativeHostFileServiceOwnerImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])

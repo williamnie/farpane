@@ -56,7 +56,7 @@ product callers.
 
 ## Next step
 
-H6.3d1 has since established the descriptor-relative no-follow receive root and
-safe create/resume primitives. The next boundary is
-`host-file-transfer-safe-root-mutations`: add safe directory/remove/rename
-operations before implementing the Native Host file-service owner.
+H6.3d1 established the descriptor-relative no-follow receive root and H6.3d2
+added safe directory/remove/rename mutations. The next boundary is
+`host-file-transfer-native-service-owner`: compose those primitives before any
+product caller can opt in.

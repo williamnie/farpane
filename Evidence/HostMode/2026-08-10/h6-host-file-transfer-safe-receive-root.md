@@ -8,8 +8,8 @@ admitted directory descriptor. Replacing the original path after admission
 cannot redirect later file creation.
 
 This is a security building block, not product enablement. No Native Host
-file-service owner calls it yet, remove/rename are not implemented, and App and
-HostAgent still do not opt into file transfer.
+file-service owner calls it yet, and App and HostAgent still do not opt into
+file transfer. H6.3d2 has since added descriptor-relative safe mutations.
 
 ## Contract
 
@@ -58,13 +58,14 @@ operation no longer resolves the replaced path.
 ## Non-claims
 
 - Existing upstream/CM path-based file transfer is unchanged.
-- Descriptor-relative remove, directory removal, and rename are not present.
+- This H6.3d1 evidence does not claim the later H6.3d2 mutations were part of
+  the original five-test boundary.
 - No Native Host file-service owner, Viewer destination/overwrite/progress UI,
   or end-to-end file transfer exists.
 - No installed App, real user file, or two-Mac acceptance was exercised.
 
 ## Next step
 
-`host-file-transfer-safe-root-mutations`: implement descriptor-relative create
-directory, remove file/empty directory, and no-replace rename under the same
-admitted root before composing the Native Host file-service owner.
+H6.3d2 completed `host-file-transfer-safe-root-mutations`. The next boundary is
+`host-file-transfer-native-service-owner`, composing the primitives without
+enabling product callers by default.
