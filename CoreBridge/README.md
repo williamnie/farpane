@@ -193,6 +193,13 @@ strictly increasing sequence numbers, monotonic bounded file/byte totals and sta
 typed failures. Completion reports exact manifest totals; Swift validates the same
 semantic envelope once before projecting it to the Viewer progress authority. The
 callback is emitted after the Rust job lock is released. No download command
-dispatches a wire request or performs `openat`/write/staging, and no picker UI or
-product configuration exists, so this remains an internal lifecycle rather than
+dispatches a wire request. The Swift destination owner can now reserve at most
+eight descriptor-relative new-file staging entries: it duplicates the pinned
+root, creates or revalidates private `0700` parents with `mkdirat/openat`, rejects
+an existing final entry, and creates a `0600`, single-link, empty
+`*.farpane-part` with `O_EXCL|O_NOFOLLOW`. Reservation handles contain no path or
+descriptor; cancel, exact teardown and deinit unlink only the originally created
+inode, so a replaced staging name is left untouched. This primitive does not
+write payload bytes, fsync, rename/commit a final file or borrow across the ABI.
+No picker UI or product configuration exists, so it remains internal rather than
 file-transfer product capability.

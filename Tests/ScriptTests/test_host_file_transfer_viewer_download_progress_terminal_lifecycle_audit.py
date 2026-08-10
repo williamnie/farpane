@@ -41,7 +41,7 @@ class HostFileTransferViewerDownloadProgressTerminalLifecycleAuditTests(unittest
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-safe-receive-io-dispatch-lifecycle",
+            "host-file-transfer-viewer-safe-staging-reservation-lifecycle",
         )
 
 

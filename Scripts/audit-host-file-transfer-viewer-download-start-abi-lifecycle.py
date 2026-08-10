@@ -182,7 +182,7 @@ def main() -> int:
             "fileTransferEnabled:" not in product
             and "No download command" in sources["readme"]
             and "dispatches a wire request" in sources["readme"]
-            and "safe receive I/O/dispatch" in sources["architecture"]
+            and "仍不发 wire download request" in sources["architecture"]
         ),
     }
     source_lines = {

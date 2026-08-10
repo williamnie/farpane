@@ -147,7 +147,9 @@ def main() -> int:
             "package final class ViewerFileTransferDestinationOwner" in sources["destination_owner"]
             and "O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC"
             in sources["destination_owner"]
-            and "openat(" not in sources["destination_owner"]
+            and "package func reserveNewFile(" in sources["destination_owner"]
+            and "Darwin.write(" not in sources["destination_owner"]
+            and "renameatx_np" not in sources["destination_owner"]
         ),
         "productRemainsOffAndIOGapIsExplicit": (
             "fileTransferEnabled:" not in product

@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-download-progress-terminal-lifecycle-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-safe-receive-io-dispatch-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-viewer-safe-staging-reservation-lifecycle"
 
 
 def read(path: Path) -> str:
