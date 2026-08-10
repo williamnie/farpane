@@ -839,6 +839,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(disabled.clipboardImageReadEnabled)
         XCTAssertFalse(disabled.clipboardImageWriteEnabled)
         XCTAssertFalse(disabled.fileTransferEnabled)
+        XCTAssertNil(disabled.fileTransferReceiveRoot)
 
         let readOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
@@ -915,7 +916,8 @@ final class CoreBridgeContractTests: XCTestCase {
         let fileTransferOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
             serverPublicKey: "public-key",
-            fileTransferEnabled: true
+            fileTransferEnabled: true,
+            fileTransferReceiveRoot: "/private/var/folders/farpane-receive"
         )
         XCTAssertFalse(fileTransferOnly.clipboardReadEnabled)
         XCTAssertFalse(fileTransferOnly.clipboardWriteEnabled)
@@ -924,6 +926,10 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(fileTransferOnly.clipboardImageReadEnabled)
         XCTAssertFalse(fileTransferOnly.clipboardImageWriteEnabled)
         XCTAssertTrue(fileTransferOnly.fileTransferEnabled)
+        XCTAssertEqual(
+            fileTransferOnly.fileTransferReceiveRoot,
+            "/private/var/folders/farpane-receive"
+        )
     }
 
     func testViewerClipboardDirectionsAreExplicitAndIndependent() {

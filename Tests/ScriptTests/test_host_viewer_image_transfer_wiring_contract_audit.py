@@ -32,7 +32,7 @@ class HostViewerImageTransferWiringContractAuditTests(unittest.TestCase):
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(document["claims"]["hostABIv16Implemented"])
+        self.assertTrue(document["claims"]["hostABIv17Implemented"])
         self.assertTrue(document["claims"]["imageDirectionsDefaultOff"])
         self.assertTrue(document["claims"]["imageTransportCanonicalAndBounded"])
         self.assertTrue(

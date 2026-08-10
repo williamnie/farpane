@@ -251,7 +251,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 16u
+#define RDN_HOST_ABI_VERSION 17u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -343,6 +343,10 @@ typedef struct RdnHostCreateOptions {
     /* Dedicated file-service permission. This capability is independent from
      * clipboard payloads and defaults off in Swift. */
     bool enable_file_transfer;
+    /* Immutable existing receive root copied and admitted during create.
+     * Must be null/empty while file transfer is disabled and a private,
+     * absolute, descriptor-admissible directory while it is enabled. */
+    const char *file_transfer_receive_root;
 } RdnHostCreateOptions;
 
 uint32_t rdn_host_abi_version(void);

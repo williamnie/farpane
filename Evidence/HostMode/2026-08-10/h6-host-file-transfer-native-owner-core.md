@@ -42,7 +42,8 @@ ten H6.3d1/d2 tests, the focused suite is 12/12.
 
 ## Non-claims
 
-- Host ABI has no receive-root field yet.
+- H6.3e2 has since added the receive-root field; this H6.3e1 evidence does not
+  claim it was present in the original owner-core boundary.
 - `Connection::send_fs` is not routed to this owner; write jobs, responses,
   cancellation, and teardown are not implemented here.
 - No App/Agent opt-in, Viewer UI, installed App, real user file, Hermes change,
@@ -50,6 +51,6 @@ ten H6.3d1/d2 tests, the focused suite is 12/12.
 
 ## Next step
 
-`host-file-transfer-receive-root-config-contract`: require an immutable safe
-receive root whenever file transfer is explicitly enabled, while keeping all
-current product callers disabled.
+H6.3e2 completed the immutable receive-root contract. Continue with
+`host-file-transfer-connection-mutation-dispatch`, keeping current product
+callers disabled.

@@ -73,7 +73,7 @@ def main() -> int:
                 "host-file-transfer-security-boundary-audit",
             )
         ),
-        "hostABIv16MatchesHeaderAndRust": header_abi == rust_abi == 16,
+        "hostABIv17RetainsFilePolicy": header_abi == rust_abi == 17,
         "cCreateOptionsCarryDedicatedFilePolicy": (
             "bool enable_file_transfer;" in header
         ),
@@ -136,7 +136,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.3a Host file-transfer explicit-policy ABI seam"
         ),
-        "hostABIv16": line_number(header, "RDN_HOST_ABI_VERSION 16u"),
+        "hostABIv17": line_number(header, "RDN_HOST_ABI_VERSION 17u"),
         "cFilePolicy": line_number(header, "bool enable_file_transfer;"),
         "swiftDefault": line_number(host_control, "fileTransferEnabled: Bool = false"),
         "rustPolicyCopy": line_number(

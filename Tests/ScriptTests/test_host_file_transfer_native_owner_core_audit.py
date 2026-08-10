@@ -35,13 +35,13 @@ class HostFileTransferNativeOwnerCoreAuditTests(unittest.TestCase):
         self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
         self.assertFalse(claims["safeRootImplementationModuleVisible"])
         self.assertFalse(claims["recursiveRemovalImplemented"])
-        self.assertFalse(claims["receiveRootConfigImplemented"])
+        self.assertTrue(claims["receiveRootConfigImplemented"])
         self.assertFalse(claims["connectionDispatchImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-receive-root-config-contract",
+            "host-file-transfer-connection-mutation-dispatch",
         )
 
 

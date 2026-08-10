@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostFileTransferExplicitPolicyABIContractAuditTests(unittest.TestCase):
-    def test_file_transfer_is_abi_capable_but_product_default_off(self) -> None:
+class HostFileTransferReceiveRootConfigContractAuditTests(unittest.TestCase):
+    def test_receive_root_is_exactly_paired_with_explicit_permission(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-file-transfer-explicit-policy-abi-contract.py",
+                "Scripts/audit-host-file-transfer-receive-root-config-contract.py",
             ],
             cwd=repository,
             check=False,
@@ -24,12 +24,11 @@ class HostFileTransferExplicitPolicyABIContractAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-explicit-policy-abi-contract-audit",
+            "farpane-host-file-transfer-receive-root-config-contract-audit",
         )
-        self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-file-transfer-abi-capable-product-default-off",
+            "host-file-transfer-receive-root-configured-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -37,15 +36,18 @@ class HostFileTransferExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertEqual(implementation["hostABIVersion"], 17)
         self.assertTrue(all(implementation["evidence"].values()))
         self.assertTrue(all(implementation["sourceLines"].values()))
-        self.assertFalse(document["claims"]["hostFileTransferEnabledByDefault"])
-        self.assertTrue(document["claims"]["hostFileTransferABICapable"])
-        self.assertFalse(document["claims"]["hostFileTransferProductEnabled"])
-        self.assertFalse(document["claims"]["viewerFileTransferImplemented"])
-        self.assertFalse(document["claims"]["filePromiseClipboardEnabled"])
-        self.assertFalse(document["claims"]["installedTwoMacAcceptanceComplete"])
+        claims = document["claims"]
+        self.assertTrue(claims["receiveRootConfigImplemented"])
+        self.assertFalse(claims["enabledWithoutRootAccepted"])
+        self.assertFalse(claims["disabledWithRootAccepted"])
+        self.assertFalse(claims["unsafeRootAccepted"])
+        self.assertTrue(claims["ownerRetainedForHostLifetime"])
+        self.assertFalse(claims["connectionDispatchImplemented"])
+        self.assertFalse(claims["productFileTransferEnabled"])
+        self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-security-boundary-audit",
+            "host-file-transfer-connection-mutation-dispatch",
         )
 
 

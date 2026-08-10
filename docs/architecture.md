@@ -196,7 +196,7 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   direction 准入。远端 `Special` 名称、未知 enum 与多图片消息继续 fail closed。
 - RTF/HTML 先进入 Rust-owned semantic envelope：只接受 exact format、空 special metadata
   与零图像尺寸，wire 与 bounded decompression 后的 UTF-8 payload 都限制为 1 MiB，解码后
-  由 Rust `String` 独立持有并拒绝 NUL。Host ABI v16 保留独立 rich read/write；进入 pinned
+  由 Rust `String` 独立持有并拒绝 NUL。Host ABI v17 保留独立 rich read/write；进入 pinned
   pasteboard helper 或 network writer 前先重建 canonical uncompressed Text/RTF/HTML，且
   active-session directional revoke 先于 format admission。Viewer AppKit owner 只在 changeCount
   变化后读取一个 pasteboard item，rich 优先且不会重复发送 plain，远端 bundle 也用一个
@@ -209,23 +209,26 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   wire 上限检查 signature、IHDR/IDAT/IEND chunk framing、合法 header 与同一尺寸/像素门禁；
   SVG 的 wire/解码 UTF-8 分别限制为 4 MiB，拒绝 NUL、DOCTYPE 与非 canonical `<svg>`
   root。三类 payload 均复制为 Rust-owned bytes；SVG 只完成语义形状校验，不是渲染安全
-  sanitizer。Viewer ABI v8 已提供独立、默认关闭的 image API；Host ABI v16 也提供独立、
+  sanitizer。Viewer ABI v8 已提供独立、默认关闭的 image API；Host ABI v17 也提供独立、
   默认关闭的 image read/write，真实 incoming/outgoing data-plane 只在 active direction 与
   matching image policy 同时允许时，把 exactly one validated envelope 重建为 canonical
   uncompressed image 后交给 pinned pasteboard helper 或 network writer。Viewer AppKit owner
   已接入三种图片语义并复用 session epoch、owned-write suppression 与动态退避；Host
   bootstrap/Home opt-in 已接入且默认关闭，双机验收尚未完成。
 - 断开后不得投递排队中的旧剪贴板回调；富文本可跨 Viewer ABI v8 并已接单一产品 owner；
-  图片可跨 Viewer ABI v8 与 Host ABI v16 Core 边界，并在 Host 用户显式 opt-in 后进入产品路径；
+  图片可跨 Viewer ABI v8 与 Host ABI v17 Core 边界，并在 Host 用户显式 opt-in 后进入产品路径；
   文件 promise 不跨 ABI。
-- Host ABI v16 单独携带默认关闭的 file-transfer permission；Rust 在启动网络 runtime 前
+- Host ABI v17 单独携带默认关闭的 file-transfer permission 与 immutable
+  `file_transfer_receive_root`；关闭时 root 必须为空，开启时必须是 owner 可通过
+  descriptor/no-follow contract 接纳的 existing private absolute directory，否则 create 在网络
+  runtime 前 fail closed。Rust 同时在启动网络 runtime 前
   精确持久化并 readback `enable-file-transfer=Y/N`，pinned upstream 的 dedicated file login
   使用同一 option 拒绝未授权 scope。当前 App/Agent 不传 opt-in，且没有 Viewer file UI，
   因而这里只建立能力门，不表示产品文件传输已经开放。
-- pinned file service 已有相对文件名 traversal/NUL/absolute-path 与当前 symlink component
-  检查，但压缩 block 仍无界解压，path check 到 `File::create` 存在已知 TOCTOU，绝对管理
-  路径没有 FarPane-owned root。Native Host 又不启动 external CM，而 receive/mutation 仍投递
-  给 CM，因此当前 file ABI opt-in 既不安全完备也不具备完整运行 owner，必须继续保持关闭。
+- pinned file service 的 wire/decoded block 已统一限制为 128 KiB；FarPane-owned receive root、
+  descriptor-relative create/resume/mutation 与唯一 owner core 已建立。Native Host 仍不启动
+  external CM，而 receive/mutation 仍投递给 CM，connection 尚未持有/调用该 owner，因此当前
+  file ABI opt-in 仍不具备完整运行链，App/Agent 仍不传 file opt-in，必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

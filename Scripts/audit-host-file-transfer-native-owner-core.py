@@ -123,8 +123,8 @@ def main() -> int:
                 'cmp -s "$vendor_dir/src/rdn_host_file_transfer.rs" "$host_file_transfer_source"',
             )
         ),
-        "receiveRootConfigAndConnectionWiringRemainAbsent": (
-            "file_transfer_root" not in sources["header"]
+        "laterReceiveRootConfigExistsAndConnectionWiringRemainsAbsent": (
+            "file_transfer_receive_root" in sources["header"]
             and "NativeHostFileServiceOwner" not in connection
             and "native_host_handle_fs" not in connection
         ),
@@ -171,12 +171,12 @@ def main() -> int:
             "nativeHostFileServiceOwnerCoreImplemented": True,
             "safeRootImplementationModuleVisible": False,
             "recursiveRemovalImplemented": False,
-            "receiveRootConfigImplemented": False,
+            "receiveRootConfigImplemented": True,
             "connectionDispatchImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-receive-root-config-contract",
+        "nextImplementationBoundary": "host-file-transfer-connection-mutation-dispatch",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (
