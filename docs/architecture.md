@@ -240,9 +240,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   offset。existing-target decision 现在只通过 descriptor-relative、read-only/no-follow 打开当前用户
   `0600` single-link regular target，并把实际 size/mtime/identical 摘要返回发送端；决定到达前 block
   fail closed。明确 skip 会保留原目标、清除安全的旧 staging，并计入多文件逻辑总大小；replace/offset
-  决定继续以稳定错误拒绝，最终提交仍是 `RENAME_EXCL` no-replace。多文件 resume、
-  read/list/download 与 Viewer destination/progress UI 尚未实现。App/Agent 仍不传 file opt-in，产品能力
-  必须继续保持关闭。
+  决定继续以稳定错误拒绝，最终提交仍是 `RENAME_EXCL` no-replace。只读侧已建立同一 pinned root
+  descriptor 下的安全快照 primitive：目录用独立 `openat(".") + fdopendir/readdir` 枚举，只接受当前
+  用户精确 `0700` 目录与 `0600` single-link regular file，隐藏 private staging，单目录/整批均限制
+  1,024 entries、1 MiB metadata 与 64 层深度；下载打开会复核 snapshot 的 device/inode/size/mtime。
+  该 primitive 尚未接入 connection sender，因此多文件 resume、read/list/download wire lifecycle 与
+  Viewer destination/progress UI 仍未实现。App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

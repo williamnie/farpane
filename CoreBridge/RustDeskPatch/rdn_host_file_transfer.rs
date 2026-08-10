@@ -7,7 +7,7 @@
 use hbb_common::libc;
 use std::{
     collections::HashSet,
-    ffi::{CString, OsStr},
+    ffi::{CStr, CString, OsStr},
     fmt,
     fs::File,
     os::unix::{
@@ -17,6 +17,11 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
+
+const NATIVE_HOST_READ_MAX_ENTRIES: usize = 1_024;
+const NATIVE_HOST_READ_MAX_METADATA_BYTES: usize = 1024 * 1024;
+const NATIVE_HOST_READ_MAX_DEPTH: usize = 64;
+const NATIVE_HOST_PRIVATE_STAGING_SUFFIX: &[u8] = b".farpane-part";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeFileTransferRootError {
@@ -36,6 +41,10 @@ pub(crate) enum NativeFileTransferRootError {
     RecursiveRemovalUnsupported,
     RenameEntry,
     WritePathBusy,
+    ReadDirectory,
+    ReadFile,
+    ReadLimitExceeded,
+    ReadSnapshotChanged,
 }
 
 impl fmt::Display for NativeFileTransferRootError {
@@ -59,6 +68,10 @@ impl fmt::Display for NativeFileTransferRootError {
             }
             Self::RenameEntry => "unable to rename native file-transfer entry",
             Self::WritePathBusy => "native file-transfer write path is already reserved",
+            Self::ReadDirectory => "unable to read native file-transfer directory",
+            Self::ReadFile => "unable to read native file-transfer file",
+            Self::ReadLimitExceeded => "native file-transfer read limit exceeded",
+            Self::ReadSnapshotChanged => "native file-transfer read snapshot changed",
         })
     }
 }
@@ -66,6 +79,48 @@ impl fmt::Display for NativeFileTransferRootError {
 impl std::error::Error for NativeFileTransferRootError {}
 
 type RootResult<T> = Result<T, NativeFileTransferRootError>;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostReadEntryKind {
+    Directory,
+    File,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct NativeHostReadEntry {
+    relative_path: PathBuf,
+    wire_name: String,
+    kind: NativeHostReadEntryKind,
+    size: u64,
+    modified_time: u64,
+    modified_time_nanoseconds: i64,
+    change_time: u64,
+    change_time_nanoseconds: i64,
+    device: u64,
+    inode: u64,
+}
+
+impl NativeHostReadEntry {
+    pub(crate) fn relative_path(&self) -> &Path {
+        &self.relative_path
+    }
+
+    pub(crate) fn wire_name(&self) -> &str {
+        &self.wire_name
+    }
+
+    pub(crate) fn kind(&self) -> NativeHostReadEntryKind {
+        self.kind
+    }
+
+    pub(crate) fn size(&self) -> u64 {
+        self.size
+    }
+
+    pub(crate) fn modified_time(&self) -> u64 {
+        self.modified_time
+    }
+}
 
 #[derive(Debug)]
 struct NativeFileTransferRoot {
@@ -286,6 +341,163 @@ impl NativeFileTransferRoot {
         Ok(())
     }
 
+    fn list_directory(
+        &self,
+        relative_path: &Path,
+        include_hidden: bool,
+    ) -> RootResult<Vec<NativeHostReadEntry>> {
+        let directory = self.open_relative_directory_for_read(relative_path)?;
+        read_private_directory_entries(&directory, relative_path, include_hidden)
+    }
+
+    fn snapshot_files_recursive(
+        &self,
+        relative_path: &Path,
+        include_hidden: bool,
+    ) -> RootResult<Vec<NativeHostReadEntry>> {
+        reject_reserved_read_path(relative_path)?;
+        if !relative_path.as_os_str().is_empty() {
+            let (parent, name) = self.open_relative_parent(relative_path, false)?;
+            let stat = checked_stat_at(&parent, &name, NativeFileTransferRootError::ReadFile)?;
+            match stat.st_mode & libc::S_IFMT {
+                libc::S_IFREG => {
+                    validate_private_regular_stat(&stat)?;
+                    return Ok(vec![native_host_read_entry_from_stat(
+                        relative_path.to_path_buf(),
+                        String::new(),
+                        NativeHostReadEntryKind::File,
+                        &stat,
+                    )?]);
+                }
+                libc::S_IFDIR => validate_private_directory_stat(&stat)?,
+                _ => return Err(NativeFileTransferRootError::UnsafeFile),
+            }
+        }
+
+        let mut files = Vec::new();
+        let mut metadata_bytes = 0_usize;
+        let mut visited_entries = 0_usize;
+        self.snapshot_directory_recursive(
+            relative_path,
+            Path::new(""),
+            include_hidden,
+            0,
+            &mut metadata_bytes,
+            &mut visited_entries,
+            &mut files,
+        )?;
+        Ok(files)
+    }
+
+    fn snapshot_directory_recursive(
+        &self,
+        directory_path: &Path,
+        wire_prefix: &Path,
+        include_hidden: bool,
+        depth: usize,
+        metadata_bytes: &mut usize,
+        visited_entries: &mut usize,
+        files: &mut Vec<NativeHostReadEntry>,
+    ) -> RootResult<()> {
+        if depth > NATIVE_HOST_READ_MAX_DEPTH {
+            return Err(NativeFileTransferRootError::ReadLimitExceeded);
+        }
+        let entries = self.list_directory(directory_path, include_hidden)?;
+        for mut entry in entries {
+            *visited_entries = visited_entries
+                .checked_add(1)
+                .ok_or(NativeFileTransferRootError::ReadLimitExceeded)?;
+            if *visited_entries > NATIVE_HOST_READ_MAX_ENTRIES {
+                return Err(NativeFileTransferRootError::ReadLimitExceeded);
+            }
+            let wire_path = if wire_prefix.as_os_str().is_empty() {
+                PathBuf::from(entry.wire_name())
+            } else {
+                wire_prefix.join(entry.wire_name())
+            };
+            let wire_name = wire_path
+                .to_str()
+                .ok_or(NativeFileTransferRootError::InvalidRelativePath)?
+                .to_owned();
+            *metadata_bytes = metadata_bytes
+                .checked_add(wire_name.len())
+                .ok_or(NativeFileTransferRootError::ReadLimitExceeded)?;
+            if *metadata_bytes > NATIVE_HOST_READ_MAX_METADATA_BYTES {
+                return Err(NativeFileTransferRootError::ReadLimitExceeded);
+            }
+            match entry.kind {
+                NativeHostReadEntryKind::File => {
+                    entry.wire_name = wire_name;
+                    files.push(entry);
+                }
+                NativeHostReadEntryKind::Directory => self.snapshot_directory_recursive(
+                    &entry.relative_path,
+                    &wire_path,
+                    include_hidden,
+                    depth + 1,
+                    metadata_bytes,
+                    visited_entries,
+                    files,
+                )?,
+            }
+        }
+        Ok(())
+    }
+
+    fn open_read_file(&self, entry: &NativeHostReadEntry) -> RootResult<File> {
+        if entry.kind != NativeHostReadEntryKind::File {
+            return Err(NativeFileTransferRootError::ReadFile);
+        }
+        reject_reserved_read_path(&entry.relative_path)?;
+        let (parent, name) = self.open_relative_parent(&entry.relative_path, false)?;
+        let fd = unsafe {
+            libc::openat(
+                parent.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_RDONLY | libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(NativeFileTransferRootError::ReadFile);
+        }
+        let file = unsafe { File::from_raw_fd(fd) };
+        let stat = checked_stat(&file).map_err(|_| NativeFileTransferRootError::ReadFile)?;
+        validate_private_regular_stat(&stat)?;
+        let (modified_time, modified_time_nanoseconds) = native_host_modified_time(&stat)?;
+        let (change_time, change_time_nanoseconds) = native_host_change_time(&stat)?;
+        if stat.st_dev as u64 != entry.device
+            || stat.st_ino as u64 != entry.inode
+            || stat.st_size < 0
+            || stat.st_size as u64 != entry.size
+            || modified_time != entry.modified_time
+            || modified_time_nanoseconds != entry.modified_time_nanoseconds
+            || change_time != entry.change_time
+            || change_time_nanoseconds != entry.change_time_nanoseconds
+        {
+            return Err(NativeFileTransferRootError::ReadSnapshotChanged);
+        }
+        Ok(file)
+    }
+
+    fn open_relative_directory_for_read(&self, relative_path: &Path) -> RootResult<File> {
+        if relative_path.as_os_str().is_empty() {
+            return self
+                .directory
+                .try_clone()
+                .map_err(|_| NativeFileTransferRootError::ReadDirectory);
+        }
+        reject_reserved_read_path(relative_path)?;
+        let mut directory = self
+            .directory
+            .try_clone()
+            .map_err(|_| NativeFileTransferRootError::ReadDirectory)?;
+        for component in relative_path_components(relative_path)? {
+            directory = open_private_child_directory(&directory, component, false)
+                .map_err(|_| NativeFileTransferRootError::ReadDirectory)?;
+        }
+        Ok(directory)
+    }
+
     fn open_relative_parent(
         &self,
         relative_path: &Path,
@@ -428,6 +640,192 @@ impl NativeHostFileServiceOwner {
     pub(crate) fn rename_entry(&self, source: &Path, destination: &Path) -> RootResult<()> {
         self.root.rename_entry(source, destination)
     }
+
+    pub(crate) fn list_directory(
+        &self,
+        relative_path: &Path,
+        include_hidden: bool,
+    ) -> RootResult<Vec<NativeHostReadEntry>> {
+        self.root.list_directory(relative_path, include_hidden)
+    }
+
+    pub(crate) fn snapshot_files_recursive(
+        &self,
+        relative_path: &Path,
+        include_hidden: bool,
+    ) -> RootResult<Vec<NativeHostReadEntry>> {
+        self.root
+            .snapshot_files_recursive(relative_path, include_hidden)
+    }
+
+    pub(crate) fn open_read_file(&self, entry: &NativeHostReadEntry) -> RootResult<File> {
+        self.root.open_read_file(entry)
+    }
+}
+
+struct NativeDirectoryStream(*mut libc::DIR);
+
+impl Drop for NativeDirectoryStream {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            unsafe {
+                libc::closedir(self.0);
+            }
+        }
+    }
+}
+
+fn read_private_directory_entries(
+    directory: &File,
+    relative_path: &Path,
+    include_hidden: bool,
+) -> RootResult<Vec<NativeHostReadEntry>> {
+    let current_directory = CString::new(".").expect("current directory has no NUL");
+    let duplicated_fd = unsafe {
+        libc::openat(
+            directory.as_raw_fd(),
+            current_directory.as_ptr(),
+            libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+        )
+    };
+    if duplicated_fd < 0 {
+        return Err(NativeFileTransferRootError::ReadDirectory);
+    }
+    let stream = unsafe { libc::fdopendir(duplicated_fd) };
+    if stream.is_null() {
+        unsafe {
+            libc::close(duplicated_fd);
+        }
+        return Err(NativeFileTransferRootError::ReadDirectory);
+    }
+    let stream = NativeDirectoryStream(stream);
+    let mut entries = Vec::new();
+    let mut metadata_bytes = 0_usize;
+    loop {
+        unsafe {
+            *libc::__error() = 0;
+        }
+        let raw_entry = unsafe { libc::readdir(stream.0) };
+        if raw_entry.is_null() {
+            if std::io::Error::last_os_error().raw_os_error() == Some(0) {
+                break;
+            }
+            return Err(NativeFileTransferRootError::ReadDirectory);
+        }
+        let name_bytes = unsafe { CStr::from_ptr((*raw_entry).d_name.as_ptr()) }.to_bytes();
+        if name_bytes == b"." || name_bytes == b".." {
+            continue;
+        }
+        if name_bytes.ends_with(NATIVE_HOST_PRIVATE_STAGING_SUFFIX) {
+            continue;
+        }
+        let is_hidden = name_bytes.first() == Some(&b'.');
+        if is_hidden && !include_hidden {
+            continue;
+        }
+        let name = std::str::from_utf8(name_bytes)
+            .map_err(|_| NativeFileTransferRootError::InvalidRelativePath)?
+            .to_owned();
+        metadata_bytes = metadata_bytes
+            .checked_add(name.len())
+            .ok_or(NativeFileTransferRootError::ReadLimitExceeded)?;
+        if entries.len() >= NATIVE_HOST_READ_MAX_ENTRIES
+            || metadata_bytes > NATIVE_HOST_READ_MAX_METADATA_BYTES
+        {
+            return Err(NativeFileTransferRootError::ReadLimitExceeded);
+        }
+        let c_name = CString::new(name_bytes)
+            .map_err(|_| NativeFileTransferRootError::InvalidRelativePath)?;
+        let stat = checked_stat_at(
+            directory,
+            &c_name,
+            NativeFileTransferRootError::ReadDirectory,
+        )?;
+        let kind = match stat.st_mode & libc::S_IFMT {
+            libc::S_IFREG => {
+                validate_private_regular_stat(&stat)?;
+                NativeHostReadEntryKind::File
+            }
+            libc::S_IFDIR => {
+                validate_private_directory_stat(&stat)?;
+                NativeHostReadEntryKind::Directory
+            }
+            _ => return Err(NativeFileTransferRootError::UnsafeFile),
+        };
+        let path = if relative_path.as_os_str().is_empty() {
+            PathBuf::from(&name)
+        } else {
+            relative_path.join(&name)
+        };
+        entries.push(native_host_read_entry_from_stat(path, name, kind, &stat)?);
+    }
+    entries.sort_by(|left, right| left.wire_name.as_bytes().cmp(right.wire_name.as_bytes()));
+    Ok(entries)
+}
+
+fn native_host_read_entry_from_stat(
+    relative_path: PathBuf,
+    wire_name: String,
+    kind: NativeHostReadEntryKind,
+    stat: &libc::stat,
+) -> RootResult<NativeHostReadEntry> {
+    if stat.st_size < 0 {
+        return Err(NativeFileTransferRootError::ReadFile);
+    }
+    let (modified_time, modified_time_nanoseconds) = native_host_modified_time(stat)?;
+    let (change_time, change_time_nanoseconds) = native_host_change_time(stat)?;
+    Ok(NativeHostReadEntry {
+        relative_path,
+        wire_name,
+        kind,
+        size: if kind == NativeHostReadEntryKind::File {
+            stat.st_size as u64
+        } else {
+            0
+        },
+        modified_time,
+        modified_time_nanoseconds,
+        change_time,
+        change_time_nanoseconds,
+        device: stat.st_dev as u64,
+        inode: stat.st_ino as u64,
+    })
+}
+
+fn native_host_modified_time(stat: &libc::stat) -> RootResult<(u64, i64)> {
+    if stat.st_mtime < 0 || !(0..1_000_000_000).contains(&stat.st_mtime_nsec) {
+        return Err(NativeFileTransferRootError::ReadFile);
+    }
+    Ok((stat.st_mtime as u64, stat.st_mtime_nsec))
+}
+
+fn native_host_change_time(stat: &libc::stat) -> RootResult<(u64, i64)> {
+    if stat.st_ctime < 0 || !(0..1_000_000_000).contains(&stat.st_ctime_nsec) {
+        return Err(NativeFileTransferRootError::ReadFile);
+    }
+    Ok((stat.st_ctime as u64, stat.st_ctime_nsec))
+}
+
+fn validate_private_directory_stat(stat: &libc::stat) -> RootResult<()> {
+    if stat.st_mode & libc::S_IFMT != libc::S_IFDIR
+        || stat.st_uid != unsafe { libc::geteuid() }
+        || stat.st_mode & 0o777 != 0o700
+    {
+        return Err(NativeFileTransferRootError::UnsafeDirectory);
+    }
+    Ok(())
+}
+
+fn reject_reserved_read_path(path: &Path) -> RootResult<()> {
+    if path
+        .as_os_str()
+        .as_bytes()
+        .split(|byte| *byte == b'/')
+        .any(|component| component.ends_with(NATIVE_HOST_PRIVATE_STAGING_SUFFIX))
+    {
+        return Err(NativeFileTransferRootError::InvalidRelativePath);
+    }
+    Ok(())
 }
 
 fn absolute_root_components(path: &Path) -> RootResult<Vec<&OsStr>> {
@@ -1150,5 +1548,166 @@ mod tests {
         )
         .expect("enabled with safe root")
         .is_some());
+    }
+
+    #[test]
+    fn native_owner_lists_only_safe_visible_entries_and_hides_staging() {
+        let sandbox = TestDirectory::new("read_list");
+        let trusted = sandbox.child("trusted");
+        create_private_directory(&trusted);
+        let owner = NativeHostFileServiceOwner::open_existing(&trusted).expect("open owner");
+        owner
+            .create_directory(Path::new("nested"))
+            .expect("create nested directory");
+        let mut visible = owner
+            .create_new_file(Path::new("visible.txt"))
+            .expect("create visible file");
+        visible.write_all(b"visible").expect("write visible file");
+        drop(visible);
+        drop(
+            owner
+                .create_new_file(Path::new(".hidden.txt"))
+                .expect("create hidden file"),
+        );
+        drop(
+            owner
+                .create_new_file(Path::new("pending.txt.farpane-part"))
+                .expect("create private staging file"),
+        );
+
+        let visible_entries = owner
+            .list_directory(Path::new(""), false)
+            .expect("list visible entries");
+        assert_eq!(
+            visible_entries
+                .iter()
+                .map(|entry| (entry.wire_name(), entry.kind()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("nested", NativeHostReadEntryKind::Directory),
+                ("visible.txt", NativeHostReadEntryKind::File),
+            ]
+        );
+        let all_entries = owner
+            .list_directory(Path::new(""), true)
+            .expect("list hidden entries");
+        assert_eq!(
+            all_entries
+                .iter()
+                .map(|entry| entry.wire_name())
+                .collect::<Vec<_>>(),
+            vec![".hidden.txt", "nested", "visible.txt"]
+        );
+    }
+
+    #[test]
+    fn native_owner_recursively_snapshots_and_reads_pinned_private_files() {
+        let sandbox = TestDirectory::new("read_recursive");
+        let trusted = sandbox.child("trusted");
+        let moved = sandbox.child("moved");
+        let outside = sandbox.child("outside");
+        create_private_directory(&trusted);
+        create_private_directory(&outside);
+        let owner = NativeHostFileServiceOwner::open_existing(&trusted).expect("open owner");
+        owner
+            .create_directory(Path::new("folder"))
+            .expect("create folder");
+        let mut first = owner
+            .create_new_file(Path::new("folder/first.txt"))
+            .expect("create first file");
+        first.write_all(b"first").expect("write first file");
+        drop(first);
+        let mut second = owner
+            .create_new_file(Path::new("folder/second.txt"))
+            .expect("create second file");
+        second.write_all(b"second").expect("write second file");
+        drop(second);
+
+        let entries = owner
+            .snapshot_files_recursive(Path::new("folder"), false)
+            .expect("snapshot folder");
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| (entry.wire_name(), entry.size()))
+                .collect::<Vec<_>>(),
+            vec![("first.txt", 5), ("second.txt", 6)]
+        );
+
+        fs::rename(&trusted, &moved).expect("move admitted root");
+        symlink(&outside, &trusted).expect("replace root path");
+        let mut contents = String::new();
+        owner
+            .open_read_file(&entries[0])
+            .expect("open pinned snapshot")
+            .read_to_string(&mut contents)
+            .expect("read pinned snapshot");
+        assert_eq!(contents, "first");
+        assert_eq!(fs::read_dir(&outside).expect("read outside").count(), 0);
+    }
+
+    #[test]
+    fn native_owner_read_snapshot_rejects_replacement_symlink_and_unsafe_mode() {
+        let sandbox = TestDirectory::new("read_guards");
+        let trusted = sandbox.child("trusted");
+        let outside = sandbox.child("outside");
+        create_private_directory(&trusted);
+        create_private_directory(&outside);
+        let owner = NativeHostFileServiceOwner::open_existing(&trusted).expect("open owner");
+        let mut original = owner
+            .create_new_file(Path::new("item.txt"))
+            .expect("create original");
+        original.write_all(b"original").expect("write original");
+        drop(original);
+        let snapshot = owner
+            .snapshot_files_recursive(Path::new("item.txt"), false)
+            .expect("snapshot file")
+            .pop()
+            .expect("single file snapshot");
+
+        fs::rename(trusted.join("item.txt"), trusted.join("old.txt")).expect("move original");
+        let mut replacement = owner
+            .create_new_file(Path::new("item.txt"))
+            .expect("create replacement");
+        replacement
+            .write_all(b"original")
+            .expect("write replacement");
+        drop(replacement);
+        assert_eq!(
+            owner.open_read_file(&snapshot).unwrap_err(),
+            NativeFileTransferRootError::ReadSnapshotChanged
+        );
+
+        symlink(outside.join("outside.txt"), trusted.join("link.txt")).expect("create symlink");
+        assert!(owner.list_directory(Path::new(""), true).is_err());
+        let broad = trusted.join("broad.txt");
+        fs::write(&broad, b"broad").expect("create broad file");
+        fs::set_permissions(&broad, fs::Permissions::from_mode(0o644)).expect("set broad mode");
+        assert!(owner
+            .snapshot_files_recursive(Path::new("broad.txt"), false)
+            .is_err());
+        assert!(owner
+            .snapshot_files_recursive(Path::new("pending.farpane-part"), false)
+            .is_err());
+    }
+
+    #[test]
+    fn native_owner_read_listing_enforces_entry_limit_before_partial_success() {
+        let sandbox = TestDirectory::new("read_limit");
+        let trusted = sandbox.child("trusted");
+        create_private_directory(&trusted);
+        let owner = NativeHostFileServiceOwner::open_existing(&trusted).expect("open owner");
+        for index in 0..=NATIVE_HOST_READ_MAX_ENTRIES {
+            drop(
+                owner
+                    .create_new_file(Path::new(&format!("entry-{index:04}.txt")))
+                    .expect("create bounded listing fixture"),
+            );
+        }
+
+        assert_eq!(
+            owner.list_directory(Path::new(""), true).unwrap_err(),
+            NativeFileTransferRootError::ReadLimitExceeded
+        );
     }
 }
