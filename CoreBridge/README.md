@@ -213,5 +213,11 @@ fsyncs the file, revalidates ownership and exact size, then uses descriptor-rela
 discard only the matching staging inode; a post-rename directory-fsync failure is
 the distinct `durabilityUnconfirmed` terminal because the final name cannot be
 safely rolled back or retried. This still does not dispatch a download wire request.
+Before a future receive callback is added, Rust now has an internal path-free
+inbound-block envelope: the block must match the registered transfer and manifest
+file-number range, raw and decoded payloads share the upstream 128 KiB bound, and
+compressed bytes are limit-decoded into an owned `Vec<u8>`. Empty, oversized,
+malformed-compressed or mismatched blocks fail closed. No receive-block ABI or
+wire interception calls this helper yet.
 No picker UI or product configuration exists, so it remains internal rather than
 file-transfer product capability.
