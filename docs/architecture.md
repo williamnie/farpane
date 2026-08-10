@@ -233,8 +233,11 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   connection 本地持有：整批只接受最多 1,024 个 file entry、1 MiB 文件名元数据和 8 个并发 job，
   文件大小总和必须与声明一致；每个文件先写入同 parent 的 reserved `*.farpane-part`，128 KiB
   wire/decoded block、文件顺序、单文件/总大小均在写入时复核，完成时设置 mtime、`sync_all` 后用
-  no-replace rename 提交，cancel/error/disconnect 只删除尚未提交的 staging。新文件 digest 只接受
-  exact metadata 并回复 offset 0；resume/digest offset、overwrite、read/list/download 与 Viewer
+  no-replace rename 提交。single-file resume 只接受 expected size 不超过 `UInt32` offset 上限的
+  exact size/mtime，并以 descriptor xattr 持久化 committed offset 与 SHA-256 prefix digest；恢复前
+  重算 prefix、截断未 checkpoint 尾部，篡改或矛盾状态 fail closed。job admission 原子独占 staging
+  path；disconnect 保留已验证 partial，cancel/error 删除当前 staging，connection 回复验证后的真实
+  offset。多文件 resume、existing-target/overwrite 决策、read/list/download 与 Viewer
   destination/progress UI 尚未实现。App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。

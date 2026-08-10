@@ -38,11 +38,12 @@ class HostFileTransferSafeRootMutationsAuditTests(unittest.TestCase):
         self.assertFalse(claims["recursiveRemovalImplemented"])
         self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
         self.assertTrue(claims["nativeHostFileServiceOwnerImplemented"])
+        self.assertTrue(claims["nativeResumeDigestLifecycleImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-resume-digest-lifecycle",
+            "host-file-transfer-native-existing-target-decision-lifecycle",
         )
 
 

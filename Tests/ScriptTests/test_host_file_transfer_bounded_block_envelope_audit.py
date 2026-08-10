@@ -44,9 +44,10 @@ class HostFileTransferBoundedBlockEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
         self.assertTrue(claims["safeReceiveRootPrimitiveImplemented"])
         self.assertTrue(claims["safeRootMutationsImplemented"])
+        self.assertTrue(claims["nativeResumeDigestLifecycleImplemented"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-resume-digest-lifecycle",
+            "host-file-transfer-native-existing-target-decision-lifecycle",
         )
 
 

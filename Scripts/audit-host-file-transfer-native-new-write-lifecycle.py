@@ -140,17 +140,18 @@ def main() -> int:
                     "write_native_host_file_block",
                     "finish_native_host_write_job",
                     "cancel_native_host_write_job",
-                    "confirm_native_host_new_file_digest",
+                    "confirm_native_host_file_digest",
                 )
             )
         ),
-        "newFileDigestIsExactAndResumeFailsClosed": all(
+        "newFileDigestIsExactAndResumeIsVerified": all(
             marker in bridge + connection
             for marker in (
                 "NativeHostWriteJobError::ResumeUnsupported",
                 "digest.file_size",
                 "digest.last_modified",
-                "OffsetBlk(0)",
+                "OffsetBlk(offset)",
+                "prefix_digest",
             )
         ),
         "focusedTestsCoverCommitCancelBoundsAndDisconnect": all(
@@ -158,7 +159,7 @@ def main() -> int:
             for marker in (
                 "native_host_new_file_write_job_commits_exact_files",
                 "native_host_new_file_write_job_rejects_bounds_order_and_resume",
-                "native_host_new_file_write_job_drop_cleans_only_staging",
+                "native_host_new_file_write_job_abort_cleans_only_staging",
                 "native_host_new_file_write_job_rejects_after_unbind",
             )
         ),
@@ -182,7 +183,7 @@ def main() -> int:
             marker in architecture
             for marker in (
                 "Native Host new-file write jobs",
-                "resume/digest",
+                "single-file resume",
                 "App/Agent",
             )
         ),
@@ -219,12 +220,12 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "nativeNewFileWriteLifecycleImplemented": True,
-            "nativeResumeDigestLifecycleImplemented": False,
+            "nativeResumeDigestLifecycleImplemented": True,
             "nativeOverwriteImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-existing-target-decision-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "native-new-file-write-lifecycle-implemented-product-off" else 1

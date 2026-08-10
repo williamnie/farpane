@@ -159,6 +159,17 @@ def main() -> int:
                 "libc::RENAME_EXCL",
             )
         ),
+        "nativeHostOwnsVerifiedSingleFileResumeLifecycle": all(
+            marker in (host_bridge + connection + safe_root)
+            for marker in (
+                "NATIVE_HOST_RESUME_XATTR_NAME",
+                "prefix_digest",
+                "reserve_write_paths",
+                "confirm_file_digest",
+                "file_transfer_send_confirm_request::Union::OffsetBlk(offset)",
+                "try_open_existing_file_for_resume",
+            )
+        ),
         "productCallersStillDoNotOptIn": (
             "fileTransferEnabled:" not in product
             and "fileTransferEnabled: true" not in product
@@ -204,15 +215,6 @@ def main() -> int:
                 "self.send_fs(ipc::FS::CancelWrite",
             )
         ),
-        "nativeResumeDigestLifecycleNotImplemented": all(
-            marker in (host_bridge + connection)
-            for marker in (
-                "NativeHostWriteJobError::ResumeUnsupported",
-                "confirm_new_file_digest",
-                "FileTransferSendConfirmRequest",
-                "file_transfer_send_confirm_request::Union::OffsetBlk(0)",
-            )
-        ),
         "nativeReadListAndDownloadJobsNotOwned": (
             "self.send_fs(ipc::FS::ReadDir" in connection
             and "self.send_fs(ipc::FS::ReadAllFiles" in connection
@@ -255,8 +257,8 @@ def main() -> int:
         "nativeNewFileDispatch": line_number(
             connection, "async fn begin_native_host_write_job"
         ),
-        "nativeResumeFailClosed": line_number(
-            host_bridge, "NativeHostWriteJobError::ResumeUnsupported"
+        "nativeResumeDigest": line_number(
+            host_bridge, "pub(crate) fn confirm_file_digest"
         ),
         "toctouAcknowledgement": line_number(
             fs, "known TOCTOU window for symlink races"
@@ -298,11 +300,11 @@ def main() -> int:
             "nativeHostFileServiceOwnerCoreImplemented": True,
             "safeMutationConnectionDispatchImplemented": True,
             "nativeNewFileWriteLifecycleImplemented": True,
-            "nativeResumeDigestLifecycleImplemented": False,
+            "nativeResumeDigestLifecycleImplemented": True,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-existing-target-decision-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1
