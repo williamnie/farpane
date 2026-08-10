@@ -283,8 +283,11 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   job mutex 后同步发出，避免重入死锁。Swift destination owner 现可从 pinned root descriptor 为最多 8 个
   transfer 创建/复核嵌套 `0700` parent，并用 `O_EXCL|O_NOFOLLOW` 预留 `0600`、single-link、empty 的 private
   `*.farpane-part`；handle 不含路径/descriptor，cancel、exact teardown/deinit 仅在 name 仍指向原 inode 时 unlink，
-  replacement 留存并 fail closed。该注册仍不发 wire download request，不跨 ABI 借 descriptor，也不 write/fsync/
-  rename/commit；receive write/commit、dispatch 与 UI 仍未实现，多文件 upload resume、existing-target replace 也仍未实现。
+  replacement 留存并 fail closed。exact reservation 现以 tracked offset 接受 nonempty、最大 128 KiB 的 `pwrite`；
+  写前/写后同时复核 name 与 fd 的 device/inode、当前 euid `0600` single-link regular shape 和 exact tracked size，
+  checked aggregate 不得超过 manifest 声明，越界、metadata drift 与 partial/system failure 均终止并只清理仍匹配的
+  partial。该注册仍不发 wire download request，不跨 ABI 借 descriptor，也不 fsync/mtime/rename/commit；receive
+  commit、dispatch 与 UI 仍未实现，多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。

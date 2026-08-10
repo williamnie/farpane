@@ -111,13 +111,13 @@ def main() -> int:
                 "XCTAssertEqual(borrowedInode, originalInode)",
             )
         ),
-        "stagingEvolutionPreservesPinnedOwnerAndNoPayloadCommit": (
+        "stagingAndWriteEvolutionPreservesPinnedOwnerAndNoCommit": (
             "package func reserveNewFile(" in owner
+            and "package func writePayload(" in owner
             and "Darwin.openat(" in owner
+            and "Darwin.pwrite(" in owner
             and "O_EXCL | O_NOFOLLOW" in owner
             and all(marker not in owner for marker in (
-                "Darwin.write(",
-                "Darwin.pwrite(",
                 "Darwin.fsync(",
                 "renameatx_np",
             ))

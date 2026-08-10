@@ -13,6 +13,7 @@ package struct ViewerFileTransferReceiveReservation: Equatable, Sendable {
 /// borrow the pinned descriptor through the matching opaque lease.
 package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
     package static let maximumActiveReservations = 8
+    package static let maximumWriteChunkBytes = 128 * 1_024
 
     private struct DirectoryIdentity: Equatable {
         let device: dev_t
@@ -31,6 +32,7 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
         let stagingName: String
         let identity: FileIdentity
         let file: ViewerFileTransferFile
+        var bytesWritten: UInt64
     }
 
     private let stateLock = NSLock()
@@ -144,6 +146,7 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
         else { return nil }
         let file = request.manifest.files[fileNumber]
         guard
+            file.size <= UInt64(Int64.max),
             ViewerFileTransferManifest.accepts(relativePath: file.relativePath),
             let parent = Self.openOrCreatePrivateParent(
                 rootDescriptor: directoryDescriptor,
@@ -224,9 +227,67 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
             fileDescriptor: fileDescriptor,
             stagingName: stagingName,
             identity: createdIdentity,
-            file: file
+            file: file,
+            bytesWritten: 0
         )
         return handle
+    }
+
+    /// Writes one bounded block at the reservation's exact current offset.
+    /// Invalid bounds or filesystem drift terminate the reservation. Reaching
+    /// the declared size does not commit or publish the final destination.
+    @discardableResult
+    package func writePayload(
+        _ payload: Data,
+        to handle: ViewerFileTransferReceiveReservation
+    ) -> UInt64? {
+        stateLock.lock()
+        guard var reservation = activeReservations[handle.transferID],
+              reservation.handle == handle else {
+            stateLock.unlock()
+            return nil
+        }
+        let payloadCount = UInt64(payload.count)
+        let nextSizeResult = reservation.bytesWritten.addingReportingOverflow(payloadCount)
+        guard
+            !payload.isEmpty,
+            payload.count <= Self.maximumWriteChunkBytes,
+            Self.reservationMetadataMatches(reservation),
+            !nextSizeResult.overflow,
+            nextSizeResult.partialValue <= reservation.file.size
+        else {
+            activeReservations.removeValue(forKey: handle.transferID)
+            stateLock.unlock()
+            _ = Self.discardReservation(reservation)
+            return nil
+        }
+        let nextSize = nextSizeResult.partialValue
+
+        let writeResult = Self.pwriteAll(
+            payload,
+            descriptor: reservation.fileDescriptor,
+            offset: reservation.bytesWritten
+        )
+        guard let persistedBytes = UInt64(exactly: writeResult.bytesWritten) else {
+            activeReservations.removeValue(forKey: handle.transferID)
+            stateLock.unlock()
+            _ = Self.discardReservation(reservation)
+            return nil
+        }
+        reservation.bytesWritten += persistedBytes
+        guard
+            writeResult.succeeded,
+            reservation.bytesWritten == nextSize,
+            Self.reservationMetadataMatches(reservation)
+        else {
+            activeReservations.removeValue(forKey: handle.transferID)
+            stateLock.unlock()
+            _ = Self.discardReservation(reservation)
+            return nil
+        }
+        activeReservations[handle.transferID] = reservation
+        stateLock.unlock()
+        return reservation.bytesWritten
     }
 
     /// Removes only the exact staging inode created for this reservation.
@@ -348,22 +409,75 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
 
     @discardableResult
     private static func discardReservation(_ reservation: ActiveReservation) -> Bool {
-        var status = stat()
-        let matches = reservation.stagingName.withCString {
-            Darwin.fstatat(
-                reservation.parentDescriptor,
-                $0,
-                &status,
-                AT_SYMLINK_NOFOLLOW
-            ) == 0
-        } && FileIdentity(device: status.st_dev, inode: status.st_ino) == reservation.identity
-            && isPrivateOwnedEmptyFile(status)
+        let matches = reservationMetadataMatches(reservation)
         let removed = matches && reservation.stagingName.withCString {
             Darwin.unlinkat(reservation.parentDescriptor, $0, 0) == 0
         }
         Darwin.close(reservation.fileDescriptor)
         Darwin.close(reservation.parentDescriptor)
         return removed
+    }
+
+    private static func reservationMetadataMatches(
+        _ reservation: ActiveReservation
+    ) -> Bool {
+        var namedStatus = stat()
+        var descriptorStatus = stat()
+        let nameMatches = reservation.stagingName.withCString {
+            Darwin.fstatat(
+                reservation.parentDescriptor,
+                $0,
+                &namedStatus,
+                AT_SYMLINK_NOFOLLOW
+            ) == 0
+        }
+        guard
+            nameMatches,
+            Darwin.fstat(reservation.fileDescriptor, &descriptorStatus) == 0,
+            namedStatus.st_size >= 0,
+            descriptorStatus.st_size >= 0,
+            FileIdentity(device: namedStatus.st_dev, inode: namedStatus.st_ino)
+                == reservation.identity,
+            FileIdentity(device: descriptorStatus.st_dev, inode: descriptorStatus.st_ino)
+                == reservation.identity,
+            isPrivateOwnedFile(namedStatus),
+            isPrivateOwnedFile(descriptorStatus),
+            UInt64(namedStatus.st_size) == reservation.bytesWritten,
+            UInt64(descriptorStatus.st_size) == reservation.bytesWritten
+        else { return false }
+        return true
+    }
+
+    private static func pwriteAll(
+        _ payload: Data,
+        descriptor: Int32,
+        offset: UInt64
+    ) -> (bytesWritten: Int, succeeded: Bool) {
+        var totalWritten = 0
+        var succeeded = true
+        payload.withUnsafeBytes { rawBuffer in
+            guard let baseAddress = rawBuffer.baseAddress else {
+                succeeded = false
+                return
+            }
+            while totalWritten < payload.count {
+                let written = Darwin.pwrite(
+                    descriptor,
+                    baseAddress.advanced(by: totalWritten),
+                    payload.count - totalWritten,
+                    off_t(offset) + off_t(totalWritten)
+                )
+                if written > 0 {
+                    totalWritten += written
+                } else if written < 0, errno == EINTR {
+                    continue
+                } else {
+                    succeeded = false
+                    return
+                }
+            }
+        }
+        return (totalWritten, succeeded && totalWritten == payload.count)
     }
 
     private static func matchesPinnedDirectory(
@@ -384,8 +498,7 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
     }
 
     private static func isPrivateOwnedEmptyFile(_ status: stat) -> Bool {
-        isOwnedEmptyRegularFile(status)
-            && status.st_mode & mode_t(0o777) == mode_t(0o600)
+        isPrivateOwnedFile(status) && status.st_size == 0
     }
 
     private static func isOwnedEmptyRegularFile(_ status: stat) -> Bool {
@@ -393,5 +506,12 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
             && status.st_uid == geteuid()
             && status.st_nlink == 1
             && status.st_size == 0
+    }
+
+    private static func isPrivateOwnedFile(_ status: stat) -> Bool {
+        status.st_mode & S_IFMT == S_IFREG
+            && status.st_uid == geteuid()
+            && status.st_mode & mode_t(0o777) == mode_t(0o600)
+            && status.st_nlink == 1
     }
 }

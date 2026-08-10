@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostFileTransferViewerSafeStagingReservationLifecycleAuditTests(unittest.TestCase):
-    def test_reservation_is_descriptor_relative_identity_safe_and_product_off(self) -> None:
+class HostFileTransferViewerSafeReceiveWriteLifecycleAuditTests(unittest.TestCase):
+    def test_write_is_bounded_exact_descriptor_owned_and_product_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-file-transfer-viewer-safe-staging-reservation-lifecycle.py",
+                "Scripts/audit-host-file-transfer-viewer-safe-receive-write-lifecycle.py",
             ],
             cwd=repository,
             check=False,
@@ -22,11 +22,11 @@ class HostFileTransferViewerSafeStagingReservationLifecycleAuditTests(unittest.T
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-viewer-safe-staging-reservation-lifecycle-audit",
+            "farpane-host-file-transfer-viewer-safe-receive-write-lifecycle-audit",
         )
         self.assertEqual(
             document["status"],
-            "viewer-safe-staging-reservation-lifecycle-implemented-product-off",
+            "viewer-safe-receive-write-lifecycle-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -41,7 +41,7 @@ class HostFileTransferViewerSafeStagingReservationLifecycleAuditTests(unittest.T
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-safe-receive-write-lifecycle",
+            "host-file-transfer-viewer-safe-receive-commit-lifecycle",
         )
 
 

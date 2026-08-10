@@ -42,6 +42,6 @@ wire request or product enablement is included.
 
 ## Next step
 
-`host-file-transfer-viewer-safe-receive-write-commit-lifecycle`: bind bounded
-payload writes and an exact-size, descriptor-relative no-replace commit to the
-reservation, still without enabling network dispatch or product UI.
+`host-file-transfer-viewer-safe-receive-write-lifecycle`: first bind bounded
+payload writes and exact declared-size accounting to the reservation; fsync,
+mtime and descriptor-relative no-replace commit remain a separate later gate.
