@@ -241,7 +241,7 @@ index c0eb7fb..4bb52bf 100644
                      }
                  }
 diff --git a/src/clipboard.rs b/src/clipboard.rs
-index 01dc0c9..ab643b2 100644
+index 01dc0c9..4abec3a 100644
 --- a/src/clipboard.rs
 +++ b/src/clipboard.rs
 @@ -13,6 +13,54 @@ pub const CLIPBOARD_NAME: &'static str = "clipboard";
@@ -299,7 +299,25 @@ index 01dc0c9..ab643b2 100644
  // This format is used to store the flag in the clipboard.
  const RUSTDESK_CLIPBOARD_OWNER_FORMAT: &'static str = "dyn.com.rustdesk.owner";
 
-@@ -837,10 +885,14 @@ pub mod clipboard_listener {
+@@ -31,6 +79,17 @@ lazy_static::lazy_static! {
+     static ref CLIPBOARD_CTX: Arc<Mutex<Option<ClipboardContext>>> = Arc::new(Mutex::new(None));
+ }
+
++#[cfg(all(
++    feature = "rdn-native-host",
++    not(any(target_os = "android", target_os = "ios"))
++))]
++pub(crate) fn clear_native_host_clipboard_transient_state() {
++    *LAST_MULTI_CLIPBOARDS.lock().unwrap() = MultiClipboards::new();
++    CLIPBOARD_CTX.lock().unwrap().take();
++    #[cfg(feature = "unix-file-copy-paste")]
++    clipboard::ContextSend::enable(false);
++}
++
+ #[cfg(not(target_os = "android"))]
+ const CLIPBOARD_GET_MAX_RETRY: usize = 3;
+ #[cfg(not(target_os = "android"))]
+@@ -837,10 +896,14 @@ pub mod clipboard_listener {
 
      struct Handler {
          subscribers: Arc<Mutex<HashMap<String, Sender<CallbackResult>>>>,
@@ -314,7 +332,7 @@ index 01dc0c9..ab643b2 100644
              let sub_lock = self.subscribers.lock().unwrap();
              for tx in sub_lock.values() {
                  tx.send(CallbackResult::Next).ok();
-@@ -848,6 +900,11 @@ pub mod clipboard_listener {
+@@ -848,6 +911,11 @@ pub mod clipboard_listener {
              CallbackResult::Next
          }
 
@@ -326,7 +344,7 @@ index 01dc0c9..ab643b2 100644
          fn on_clipboard_error(&mut self, error: io::Error) -> CallbackResult {
              let msg = format!("Clipboard listener error: {}", error);
              let sub_lock = self.subscribers.lock().unwrap();
-@@ -882,6 +939,8 @@ pub mod clipboard_listener {
+@@ -882,6 +950,8 @@ pub mod clipboard_listener {
              log::info!("Start clipboard listener thread");
              let handler = Handler {
                  subscribers: listener_lock.subscribers.clone(),
@@ -335,7 +353,7 @@ index 01dc0c9..ab643b2 100644
              };
              let (tx_start_res, rx_start_res) = channel();
              let h = start_clipboard_master_thread(handler, tx_start_res);
-@@ -915,7 +974,10 @@ pub mod clipboard_listener {
+@@ -915,7 +985,10 @@ pub mod clipboard_listener {
          if let Some((shutdown, h)) = listener.handle.take() {
              log::warn!("Cleaning up stale clipboard listener handle");
              if let Err(e) = h.join() {
@@ -347,7 +365,7 @@ index 01dc0c9..ab643b2 100644
              }
              drop(shutdown);
          }
-@@ -970,4 +1032,56 @@ pub mod clipboard_listener {
+@@ -970,4 +1043,75 @@ pub mod clipboard_listener {
          });
          h
      }
@@ -376,9 +394,11 @@ index 01dc0c9..ab643b2 100644
 +#[cfg(all(test, target_os = "macos", feature = "rdn-native-host"))]
 +mod native_clipboard_fallback_tests {
 +    use super::{
-+        NativeClipboardFallbackBackoff, NATIVE_CLIPBOARD_FALLBACK_MAX_INTERVAL_MS,
++        clear_native_host_clipboard_transient_state, NativeClipboardFallbackBackoff, CLIPBOARD_CTX,
++        LAST_MULTI_CLIPBOARDS, NATIVE_CLIPBOARD_FALLBACK_MAX_INTERVAL_MS,
 +        NATIVE_CLIPBOARD_FALLBACK_MIN_INTERVAL_MS,
 +    };
++    use hbb_common::message_proto::{Clipboard, ClipboardFormat, MultiClipboards};
 +    use std::time::Duration;
 +
 +    #[test]
@@ -402,6 +422,23 @@ index 01dc0c9..ab643b2 100644
 +                NATIVE_CLIPBOARD_FALLBACK_MAX_INTERVAL_MS
 +            ))
 +        );
++    }
++
++    #[test]
++    fn native_clipboard_transient_cleanup_drops_cached_payload_and_context() {
++        *LAST_MULTI_CLIPBOARDS.lock().unwrap() = MultiClipboards {
++            clipboards: vec![Clipboard {
++                content: b"session-only".to_vec().into(),
++                format: ClipboardFormat::Text.into(),
++                ..Default::default()
++            }],
++            ..Default::default()
++        };
++
++        clear_native_host_clipboard_transient_state();
++
++        assert!(LAST_MULTI_CLIPBOARDS.lock().unwrap().clipboards.is_empty());
++        assert!(CLIPBOARD_CTX.lock().unwrap().is_none());
 +    }
  }
 diff --git a/src/lib.rs b/src/lib.rs
@@ -6380,3 +6417,515 @@ index bf2e04c..b78cdad 100644
      fn native_host_pending_approval_is_remote_and_mode_scoped() {
          assert!(native_host_local_approval_supported(
              true,
+diff --git a/libs/clipboard/src/platform/unix/macos/item_data_provider.rs b/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
+index 9503631..fc6e720 100644
+--- a/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
++++ b/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
+@@ -10,11 +10,34 @@ use objc2_app_kit::{
+     NSPasteboardTypeFileURL,
+ };
+ use objc2_foundation::NSString;
+-use std::{io::Result, sync::mpsc::Sender};
++use std::{
++    io::{self, Result},
++    sync::{
++        atomic::{AtomicBool, Ordering},
++        mpsc::Sender,
++        Arc,
++    },
++};
++
++#[derive(Default)]
++pub(super) struct PasteboardProviderLifecycle {
++    finished: AtomicBool,
++}
++
++impl PasteboardProviderLifecycle {
++    pub(super) fn finish(&self) {
++        self.finished.store(true, Ordering::Release);
++    }
++
++    fn is_finished(&self) -> bool {
++        self.finished.load(Ordering::Acquire)
++    }
++}
+
+ pub(super) struct Ivars {
+     task_info: PasteObserverInfo,
+     tx: Sender<Result<PasteObserverInfo>>,
++    lifecycle: Arc<PasteboardProviderLifecycle>,
+ }
+
+ declare_class!(
+@@ -41,15 +64,39 @@ declare_class!(
+             item: &NSPasteboardItem,
+             r#type: &NSPasteboardType,
+         ) {
+-            if r#type == NSPasteboardTypeFileURL {
++            if r#type == NSPasteboardTypeFileURL && !self.ivars().lifecycle.is_finished() {
+                 let path = format!("/tmp/{}{}", TEMP_FILE_PREFIX, uuid::Uuid::new_v4().to_string());
+-                match std::fs::File::create(&path) {
++                match std::fs::OpenOptions::new()
++                    .write(true)
++                    .create_new(true)
++                    .open(&path)
++                {
+                     Ok(_) => {
++                        if self.ivars().lifecycle.is_finished() {
++                            std::fs::remove_file(&path).ok();
++                            return;
++                        }
+                         let url = format!("file:///{}", &path);
+-                            item.setString_forType(&NSString::from_str(&url), &NSPasteboardTypeFileURL);
++                        if !item.setString_forType(
++                            &NSString::from_str(&url),
++                            &NSPasteboardTypeFileURL,
++                        ) {
++                            std::fs::remove_file(&path).ok();
++                            self.ivars()
++                                .tx
++                                .send(Err(io::Error::new(
++                                    io::ErrorKind::Other,
++                                    "failed to fulfill pasteboard file URL promise",
++                                )))
++                                .ok();
++                            return;
++                        }
+                         let mut task_info = self.ivars().task_info.clone();
+                         task_info.source_path = path;
+-                        self.ivars().tx.send(Ok(task_info)).ok();
++                        let source_path = task_info.source_path.clone();
++                        if self.ivars().tx.send(Ok(task_info)).is_err() {
++                            std::fs::remove_file(source_path).ok();
++                        }
+                     }
+                     Err(e) => {
+                         self.ivars().tx.send(Err(e)).ok();
+@@ -58,9 +105,11 @@ declare_class!(
+             }
+         }
+
+-        // #[method(pasteboardFinishedWithDataProvider:)]
+-        // unsafe fn pasteboardFinishedWithDataProvider(&self, pasteboard: &NSPasteboard) {
+-        // }
++        #[method(pasteboardFinishedWithDataProvider:)]
++        #[allow(non_snake_case)]
++        unsafe fn pasteboardFinishedWithDataProvider(&self, _pasteboard: &NSPasteboard) {
++            self.ivars().lifecycle.finish();
++        }
+     }
+
+     unsafe impl PasteboardFileUrlProvider {}
+@@ -69,9 +118,30 @@ declare_class!(
+ pub(super) fn create_pasteboard_file_url_provider(
+     task_info: PasteObserverInfo,
+     tx: Sender<Result<PasteObserverInfo>>,
++    lifecycle: Arc<PasteboardProviderLifecycle>,
+ ) -> Id<PasteboardFileUrlProvider> {
+     let provider = PasteboardFileUrlProvider::alloc();
+-    let provider = provider.set_ivars(Ivars { task_info, tx });
++    let provider = provider.set_ivars(Ivars {
++        task_info,
++        tx,
++        lifecycle,
++    });
+     let provider: Id<PasteboardFileUrlProvider> = unsafe { msg_send_id![super(provider), init] };
+     provider
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::PasteboardProviderLifecycle;
++
++    #[test]
++    fn provider_lifecycle_finishes_once_and_stays_finished() {
++        let lifecycle = PasteboardProviderLifecycle::default();
++        assert!(!lifecycle.is_finished());
++
++        lifecycle.finish();
++        lifecycle.finish();
++
++        assert!(lifecycle.is_finished());
++    }
++}
+diff --git a/libs/clipboard/src/platform/unix/macos/paste_observer.rs b/libs/clipboard/src/platform/unix/macos/paste_observer.rs
+index 01e8b6c..8b1c1ae 100644
+--- a/libs/clipboard/src/platform/unix/macos/paste_observer.rs
++++ b/libs/clipboard/src/platform/unix/macos/paste_observer.rs
+@@ -171,8 +171,8 @@ impl PasteObserver {
+     }
+
+     pub fn stop(&mut self) {
++        self.observer_info.lock().unwrap().take();
+         if let Some(tx_handle_fsevent_thread) = &self.tx_handle_fsevent_thread {
+-            self.observer_info = Default::default();
+             tx_handle_fsevent_thread.tx.send(FseventControl::Stop).ok();
+         }
+     }
+diff --git a/libs/clipboard/src/platform/unix/macos/pasteboard_context.rs b/libs/clipboard/src/platform/unix/macos/pasteboard_context.rs
+index 4c74740..8453fd2 100644
+--- a/libs/clipboard/src/platform/unix/macos/pasteboard_context.rs
++++ b/libs/clipboard/src/platform/unix/macos/pasteboard_context.rs
+@@ -1,5 +1,5 @@
+ use super::{
+-    item_data_provider::create_pasteboard_file_url_provider,
++    item_data_provider::{create_pasteboard_file_url_provider, PasteboardProviderLifecycle},
+     paste_observer::PasteObserver,
+     paste_task::{FileContentsResponse, PasteTask},
+ };
+@@ -12,7 +12,7 @@ use crate::{
+ use hbb_common::{allow_err, bail, log, ResultType};
+ use objc2::{msg_send_id, rc::autoreleasepool, rc::Id, runtime::ProtocolObject, ClassType};
+ use objc2_app_kit::{NSPasteboard, NSPasteboardTypeFileURL};
+-use objc2_foundation::{NSArray, NSString};
++use objc2_foundation::{NSArray, NSInteger, NSString};
+ use std::{
+     io,
+     path::Path,
+@@ -57,6 +57,8 @@ pub struct PasteboardContext {
+     remove_file_handle: Option<thread::JoinHandle<()>>,
+     tx_paste_task: Sender<FileContentsResponse>,
+     paste_task: Arc<Mutex<PasteTask>>,
++    provider_lifecycle: Option<Arc<PasteboardProviderLifecycle>>,
++    promised_change_count: Option<NSInteger>,
+ }
+
+ unsafe impl Send for PasteboardContext {}
+@@ -64,17 +66,27 @@ unsafe impl Sync for PasteboardContext {}
+
+ impl Drop for PasteboardContext {
+     fn drop(&mut self) {
++        self.empty_clipboard_(0);
++        self.paste_task.lock().unwrap().cancel();
++        PASTE_OBSERVER_INFO.lock().unwrap().take();
+         self.observer.lock().unwrap().stop();
+         if let Some(tx_handle) = self.tx_handle.take() {
+-            if tx_handle.tx.send(Ok(PasteObserverInfo::exit_msg())).is_ok() {
+-                tx_handle.handle.join().ok();
+-            }
++            tx_handle.tx.send(Ok(PasteObserverInfo::exit_msg())).ok();
++            tx_handle.handle.join().ok();
++        }
++        self.tx_remove_file.take();
++        if let Some(remove_file_handle) = self.remove_file_handle.take() {
++            remove_file_handle.join().ok();
+         }
+     }
+ }
+
+ impl CliprdrServiceContext for PasteboardContext {
+     fn set_is_stopped(&mut self) -> Result<(), CliprdrError> {
++        self.empty_clipboard_(0);
++        self.paste_task.lock().unwrap().cancel();
++        PASTE_OBSERVER_INFO.lock().unwrap().take();
++        self.observer.lock().unwrap().stop();
+         Ok(())
+     }
+
+@@ -167,6 +179,16 @@ impl PasteboardContext {
+
+     // Just removing the file can also make paste option in the context menu disappear.
+     fn empty_clipboard_(&mut self, _conn_id: i32) -> bool {
++        if let Some(lifecycle) = self.provider_lifecycle.take() {
++            lifecycle.finish();
++        }
++        if should_clear_promised_pasteboard(self.promised_change_count.take(), unsafe {
++            self.pasteboard.changeCount()
++        }) {
++            unsafe {
++                self.pasteboard.clearContents();
++            }
++        }
+         self.tx_remove_file
+             .as_ref()
+             .map(|tx| tx.send("".to_string()).ok());
+@@ -209,11 +231,13 @@ impl PasteboardContext {
+                     });
+                 }
+
+-                let task_lock = self.paste_task.lock().unwrap();
+-                if !task_lock.is_finished() {
+-                    return Err(CliprdrError::CommonError {
+-                        description: "previous file paste task is not finished".to_string(),
+-                    });
++                {
++                    let task_lock = self.paste_task.lock().unwrap();
++                    if !task_lock.is_finished() {
++                        return Err(CliprdrError::CommonError {
++                            description: "previous file paste task is not finished".to_string(),
++                        });
++                    }
+                 }
+                 self.handle_format_list(conn_id, format_list)?;
+             }
+@@ -237,11 +261,11 @@ impl PasteboardContext {
+     }
+
+     fn handle_format_list(
+-        &self,
++        &mut self,
+         conn_id: i32,
+         format_list: Vec<(i32, String)>,
+     ) -> Result<(), CliprdrError> {
+-        if let Some(tx_handle) = self.tx_handle.as_ref() {
++        if let Some(tx) = self.tx_handle.as_ref().map(|info| info.tx.clone()) {
+             if !format_list
+                 .iter()
+                 .find(|(_, name)| name == FILECONTENTS_FORMAT_NAME)
+@@ -262,7 +286,7 @@ impl PasteboardContext {
+                 });
+             };
+
+-            autoreleasepool(|_| self.set_clipboard_item(tx_handle, conn_id, file_descriptor_id))?;
++            autoreleasepool(|_| self.set_clipboard_item(tx, conn_id, file_descriptor_id))?;
+         } else {
+             return Err(CliprdrError::CommonError {
+                 description: "pasteboard context is not inited".to_string(),
+@@ -272,12 +296,13 @@ impl PasteboardContext {
+     }
+
+     fn set_clipboard_item(
+-        &self,
+-        tx_handle: &ContextInfo,
++        &mut self,
++        tx: Sender<io::Result<PasteObserverInfo>>,
+         conn_id: i32,
+         file_descriptor_id: i32,
+     ) -> Result<(), CliprdrError> {
+-        let tx = tx_handle.tx.clone();
++        self.empty_clipboard_(conn_id);
++        let lifecycle = Arc::new(PasteboardProviderLifecycle::default());
+         let provider = create_pasteboard_file_url_provider(
+             PasteObserverInfo {
+                 file_descriptor_id,
+@@ -286,23 +311,32 @@ impl PasteboardContext {
+                 target_path: "".to_string(),
+             },
+             tx,
++            lifecycle.clone(),
+         );
+         unsafe {
+             let types = NSArray::from_vec(vec![NSString::from_str(
+                 &NSPasteboardTypeFileURL.to_string(),
+             )]);
+             let item = objc2_app_kit::NSPasteboardItem::new();
+-            item.setDataProvider_forTypes(&ProtocolObject::from_id(provider), &types);
++            if !item.setDataProvider_forTypes(&ProtocolObject::from_id(provider), &types) {
++                lifecycle.finish();
++                return Err(CliprdrError::CommonError {
++                    description: "failed to register pasteboard data provider".to_string(),
++                });
++            }
+             self.pasteboard.clearContents();
+             if !self
+                 .pasteboard
+                 .writeObjects(&Id::cast(NSArray::from_vec(vec![item])))
+             {
++                lifecycle.finish();
+                 return Err(CliprdrError::CommonError {
+                     description: "failed to write objects".to_string(),
+                 });
+             }
++            self.promised_change_count = Some(self.pasteboard.changeCount());
+         }
++        self.provider_lifecycle = Some(lifecycle);
+         Ok(())
+     }
+
+@@ -381,6 +415,13 @@ impl PasteboardContext {
+     }
+ }
+
++fn should_clear_promised_pasteboard(
++    promised_change_count: Option<NSInteger>,
++    current_change_count: NSInteger,
++) -> bool {
++    promised_change_count == Some(current_change_count)
++}
++
+ fn handle_paste_result(task_info: &PasteObserverInfo) {
+     log::info!(
+         "file {} is pasted to {}",
+@@ -426,6 +467,8 @@ pub fn create_pasteboard_context() -> ResultType<Box<PasteboardContext>> {
+         remove_file_handle: None,
+         tx_paste_task: tx,
+         paste_task: Arc::new(Mutex::new(PasteTask::new(rx))),
++        provider_lifecycle: None,
++        promised_change_count: None,
+     });
+     context.init();
+     Ok(context)
+@@ -433,6 +476,15 @@ pub fn create_pasteboard_context() -> ResultType<Box<PasteboardContext>> {
+
+ #[cfg(test)]
+ mod tests {
++    use super::should_clear_promised_pasteboard;
++
++    #[test]
++    fn promised_pasteboard_cleanup_preserves_newer_owner() {
++        assert!(should_clear_promised_pasteboard(Some(41), 41));
++        assert!(!should_clear_promised_pasteboard(Some(41), 42));
++        assert!(!should_clear_promised_pasteboard(None, 41));
++    }
++
+     #[test]
+     fn test_temp_files_count() {
+         let mut c = super::PasteboardContext::temp_files_count();
+diff --git a/src/server/clipboard_service.rs b/src/server/clipboard_service.rs
+index 67086fb..1629a99 100644
+--- a/src/server/clipboard_service.rs
++++ b/src/server/clipboard_service.rs
+@@ -105,6 +105,10 @@ fn run(sp: EmptyExtraFieldService) -> ResultType<()> {
+     }
+
+     clipboard_listener::unsubscribe(&sp.name());
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    if sp.name() == NAME {
++        crate::clipboard::clear_native_host_clipboard_transient_state();
++    }
+
+     Ok(())
+ }
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+index 2bdac28..3d9fe13 100644
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -1406,6 +1406,13 @@ impl Connection {
+                                 {
+                                     permissions.set_legacy_enabled(enabled);
+                                 }
++                                #[cfg(all(
++                                    feature = "rdn-native-host",
++                                    target_os = "macos"
++                                ))]
++                                if !enabled {
++                                    crate::clipboard::clear_native_host_clipboard_transient_state();
++                                }
+                                 conn.send_permission(Permission::Clipboard, enabled).await;
+                                 if let Some(s) = conn.server.upgrade() {
+                                     s.write().unwrap().subscribe(
+@@ -1445,6 +1452,13 @@ impl Connection {
+                                 {
+                                     permissions.set_remote_write(enabled);
+                                 }
++                                #[cfg(all(
++                                    feature = "rdn-native-host",
++                                    target_os = "macos"
++                                ))]
++                                if !enabled {
++                                    crate::clipboard::clear_native_host_clipboard_transient_state();
++                                }
+                             } else if &name == "audio" {
+                                 conn.audio = enabled;
+                                 conn.send_permission(Permission::Audio, enabled).await;
+@@ -1899,12 +1913,17 @@ impl Connection {
+         {
+             let _ = conn.input_permission.set_enabled(false);
+             conn.input_mapping.advance();
+-            let cleanup_lease = native_host_holds_remote_lease_through_cleanup(
++            let holds_native_remote_lease = native_host_holds_remote_lease_through_cleanup(
+                 native_host_single_remote_active(),
+                 conn.authed_conn_type(),
+-            )
+-            .then(|| conn.authed_conn_id.take())
+-            .flatten();
++            );
++            #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++            if holds_native_remote_lease {
++                crate::clipboard::clear_native_host_clipboard_transient_state();
++            }
++            let cleanup_lease = holds_native_remote_lease
++                .then(|| conn.authed_conn_id.take())
++                .flatten();
+             conn.tx_input
+                 .send(MessageInput::Release {
+                     conn_id: conn.inner.id(),
+diff --git a/libs/clipboard/src/platform/unix/macos/item_data_provider.rs b/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
+index fc6e720..75ddb9c 100644
+--- a/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
++++ b/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
+@@ -34,6 +34,18 @@ impl PasteboardProviderLifecycle {
+     }
+ }
+
++fn send_provider_task(
++    tx: &Sender<Result<PasteObserverInfo>>,
++    task_info: PasteObserverInfo,
++) -> bool {
++    let source_path = task_info.source_path.clone();
++    if tx.send(Ok(task_info)).is_err() {
++        std::fs::remove_file(source_path).ok();
++        return false;
++    }
++    true
++}
++
+ pub(super) struct Ivars {
+     task_info: PasteObserverInfo,
+     tx: Sender<Result<PasteObserverInfo>>,
+@@ -93,10 +105,7 @@ declare_class!(
+                         }
+                         let mut task_info = self.ivars().task_info.clone();
+                         task_info.source_path = path;
+-                        let source_path = task_info.source_path.clone();
+-                        if self.ivars().tx.send(Ok(task_info)).is_err() {
+-                            std::fs::remove_file(source_path).ok();
+-                        }
++                        send_provider_task(&self.ivars().tx, task_info);
+                     }
+                     Err(e) => {
+                         self.ivars().tx.send(Err(e)).ok();
+@@ -132,7 +141,8 @@ pub(super) fn create_pasteboard_file_url_provider(
+
+ #[cfg(test)]
+ mod tests {
+-    use super::PasteboardProviderLifecycle;
++    use super::{send_provider_task, PasteObserverInfo, PasteboardProviderLifecycle};
++    use std::sync::mpsc::channel;
+
+     #[test]
+     fn provider_lifecycle_finishes_once_and_stays_finished() {
+@@ -144,4 +154,26 @@ mod tests {
+
+         assert!(lifecycle.is_finished());
+     }
++
++    #[test]
++    fn closed_provider_channel_removes_unclaimed_temporary_file() {
++        let path = std::env::temp_dir().join(format!(
++            ".rustdesk_provider_test_{}",
++            uuid::Uuid::new_v4()
++        ));
++        std::fs::File::create(&path).expect("create provider fixture");
++        let (tx, rx) = channel();
++        drop(rx);
++
++        let sent = send_provider_task(
++            &tx,
++            PasteObserverInfo {
++                source_path: path.to_string_lossy().into_owned(),
++                ..Default::default()
++            },
++        );
++
++        assert!(!sent);
++        assert!(!path.exists());
++    }
+ }
+diff --git a/libs/clipboard/src/platform/unix/macos/item_data_provider.rs b/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
+index 75ddb9c..b3dc5bd 100644
+--- a/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
++++ b/libs/clipboard/src/platform/unix/macos/item_data_provider.rs
+@@ -157,10 +157,8 @@ mod tests {
+
+     #[test]
+     fn closed_provider_channel_removes_unclaimed_temporary_file() {
+-        let path = std::env::temp_dir().join(format!(
+-            ".rustdesk_provider_test_{}",
+-            uuid::Uuid::new_v4()
+-        ));
++        let path =
++            std::env::temp_dir().join(format!(".rustdesk_provider_test_{}", uuid::Uuid::new_v4()));
+         std::fs::File::create(&path).expect("create provider fixture");
+         let (tx, rx) = channel();
+         drop(rx);

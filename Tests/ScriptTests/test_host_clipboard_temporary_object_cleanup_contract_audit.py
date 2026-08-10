@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostClipboardEventBackoffContractAuditTests(unittest.TestCase):
-    def test_listener_is_event_first_with_bounded_macos_fallback(self) -> None:
+class HostClipboardTemporaryObjectCleanupContractAuditTests(unittest.TestCase):
+    def test_transient_objects_and_provider_are_drained_on_teardown(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-clipboard-event-backoff-contract.py",
+                "Scripts/audit-host-clipboard-temporary-object-cleanup-contract.py",
             ],
             cwd=repository,
             check=False,
@@ -24,29 +24,23 @@ class HostClipboardEventBackoffContractAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-clipboard-event-backoff-contract-audit",
+            "farpane-host-clipboard-temporary-object-cleanup-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "event-first-bounded-macos-fallback",
+            "temporary-clipboard-objects-cleaned-on-teardown",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(document["claims"]["listenerEventPathIsPrimary"])
-        self.assertTrue(document["claims"]["macFallbackBackoffIsBounded"])
-        self.assertTrue(document["claims"]["activityResetsFallbackBackoff"])
-        self.assertFalse(document["claims"]["nonHostUpstreamBehaviorChanged"])
-        self.assertFalse(document["claims"]["clipboardEnabledByDefault"])
-        self.assertFalse(
-            document["remainingBoundary"]["temporaryObjectCleanupRequired"]
-        )
-        self.assertTrue(all(
-            value for name, value in document["remainingBoundary"].items()
-            if name != "temporaryObjectCleanupRequired"
-        ))
+        self.assertTrue(document["claims"]["smallTextTransientCacheCleared"])
+        self.assertTrue(document["claims"]["promiseProviderTeardownImplemented"])
+        self.assertTrue(document["claims"]["newerLocalClipboardPreserved"])
+        self.assertFalse(document["claims"]["richClipboardEnabledByDefault"])
+        self.assertFalse(document["claims"]["filePromiseCompiledInCurrentProduct"])
+        self.assertTrue(all(document["remainingBoundary"].values()))
         self.assertEqual(
             document["nextImplementationBoundary"],
             "viewer-small-text-clipboard-api-contract",

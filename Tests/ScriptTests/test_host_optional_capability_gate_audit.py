@@ -40,17 +40,21 @@ class HostOptionalCapabilityGateAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["eventDrivenDynamicBackoffRequired"]
         )
+        self.assertFalse(
+            document["remainingBoundary"]["temporaryObjectCleanupRequired"]
+        )
         self.assertTrue(all(
             value for name, value in document["remainingBoundary"].items()
             if name not in {
                 "independentRevocationCommandsRequired",
                 "directionalXPCUIRequired",
                 "eventDrivenDynamicBackoffRequired",
+                "temporaryObjectCleanupRequired",
             }
         ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "temporary-clipboard-object-cleanup-contract",
+            "viewer-small-text-clipboard-api-contract",
         )
 
 

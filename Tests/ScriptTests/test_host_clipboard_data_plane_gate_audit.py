@@ -28,9 +28,12 @@ class HostClipboardDataPlaneGateAuditTests(unittest.TestCase):
         self.assertFalse(
             payload["remainingBoundary"]["eventDrivenDynamicBackoffRequired"]
         )
+        self.assertFalse(
+            payload["remainingBoundary"]["temporaryObjectCleanupRequired"]
+        )
         self.assertEqual(
             payload["nextImplementationBoundary"],
-            "temporary-clipboard-object-cleanup-contract",
+            "viewer-small-text-clipboard-api-contract",
         )
 
 
