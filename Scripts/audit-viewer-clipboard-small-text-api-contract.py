@@ -180,7 +180,7 @@ def main() -> int:
                 "ABI v6 adds a default-off",
                 "AppKit-owned pasteboard adapter",
                 "Host Control ABI v13",
-                "当前 App/Agent 调用仍使用",
+                "bootstrap schema v2",
             )
         ),
     }
@@ -226,19 +226,20 @@ def main() -> int:
             "smallTextBoundedTo64KiB": True,
             "viewerRustOwnsSystemPasteboard": False,
             "viewerProductClipboardEnabled": True,
-            "hostProductClipboardEnabled": False,
-            "endToEndClipboardEnabled": False,
+            "hostProductClipboardEnabledByDefault": False,
+            "hostProductExplicitOptInCapable": True,
+            "endToEndSmallTextExplicitOptInCapable": True,
             "richClipboardEnabled": False,
         },
         "remainingBoundary": {
             "viewerPasteboardOwnerRequired": False,
             "viewerExplicitEnablementRequired": False,
-            "hostSmallTextExplicitOptInRequired": True,
+            "hostSmallTextExplicitOptInRequired": False,
             "richPayloadTransferRequired": True,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-small-text-clipboard-explicit-opt-in-contract",
+        "nextImplementationBoundary": "host-small-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-small-text-clipboard-api-default-off" else 1

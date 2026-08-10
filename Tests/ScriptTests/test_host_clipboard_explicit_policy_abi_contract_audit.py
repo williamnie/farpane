@@ -5,7 +5,7 @@ import unittest
 
 
 class HostClipboardExplicitPolicyABIContractAuditTests(unittest.TestCase):
-    def test_host_policy_is_representable_but_product_stays_default_off(self) -> None:
+    def test_host_policy_is_representable_default_off_and_explicitly_projected(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -39,15 +39,20 @@ class HostClipboardExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertTrue(all(implementation["sourceLines"].values()))
         self.assertTrue(document["claims"]["hostDirectionsRepresentable"])
         self.assertTrue(document["claims"]["hostDirectionsDefaultOff"])
-        self.assertFalse(
-            document["claims"]["currentProductHostClipboardEnabled"]
+        self.assertTrue(document["claims"]["hostProductExplicitOptInCapable"])
+        self.assertTrue(
+            document["claims"]["endToEndSmallTextExplicitOptInCapable"]
         )
-        self.assertFalse(document["claims"]["endToEndClipboardEnabled"])
         self.assertFalse(document["claims"]["richClipboardEnabled"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]["backgroundBootstrapPropagationRequired"]
+        )
+        self.assertFalse(document["remainingBoundary"]["homeOptInControlsRequired"])
+        self.assertTrue(document["remainingBoundary"]["installedTwoMacAcceptanceRequired"])
+        self.assertTrue(document["remainingBoundary"]["richPayloadTransferRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-clipboard-bootstrap-home-opt-in-contract",
+            "host-small-text-clipboard-installed-two-mac-acceptance",
         )
 
 

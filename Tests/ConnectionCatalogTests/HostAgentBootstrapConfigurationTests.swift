@@ -6,7 +6,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
     func testDecodesExactVersionedImmutableHostBootstrapInput() throws {
         let configuration = try HostAgentBootstrapConfiguration.decode(validDocument())
 
-        XCTAssertEqual(configuration.schemaVersion, 1)
+        XCTAssertEqual(configuration.schemaVersion, 2)
         XCTAssertEqual(configuration.configRevision, 7)
         XCTAssertEqual(configuration.agentBuildID, "20260808155349")
         XCTAssertEqual(
@@ -14,8 +14,24 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
             "hermes.example.invalid:21116"
         )
         XCTAssertEqual(configuration.serverPublicKey, "public-key")
+        XCTAssertEqual(
+            configuration.clipboardPolicy,
+            HostAgentClipboardPolicy(
+                allowRemoteRead: true,
+                allowRemoteWrite: false
+            )
+        )
         XCTAssertEqual(configuration.hostConfigAppName, "FarPaneHost")
         XCTAssertEqual(configuration.hostConfigOrganization, "io.rustdesknative")
+    }
+
+    func testLegacySchemaOneMigratesToClipboardDisabled() throws {
+        let configuration = try HostAgentBootstrapConfiguration.decode(
+            legacyDocument()
+        )
+
+        XCTAssertEqual(configuration.schemaVersion, 1)
+        XCTAssertEqual(configuration.clipboardPolicy, .disabled)
     }
 
     func testRejectsUnknownCredentialAndAmbiguousRevisionFields() throws {
@@ -40,9 +56,23 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     func testRejectsUnsupportedSchemaUnsafeStringsAndOversizedInput() throws {
         var future = try object(from: validDocument())
-        future["schemaVersion"] = 2
+        future["schemaVersion"] = 3
         XCTAssertThrowsError(try HostAgentBootstrapConfiguration.decode(data(future))) { error in
-            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(2))
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(3))
+        }
+
+        var numericClipboard = try object(from: validDocument())
+        numericClipboard["clipboard"] = [
+            "allowRemoteRead": 1,
+            "allowRemoteWrite": false,
+        ]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(numericClipboard))
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentBootstrapConfigurationError,
+                .invalidDocument
+            )
         }
 
         var paddedServer = try object(from: validDocument())
@@ -70,8 +100,24 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     private func validDocument() throws -> Data {
         data([
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "configRevision": 7,
+            "agentBuildID": "20260808155349",
+            "server": [
+                "rendezvousServer": "hermes.example.invalid:21116",
+                "serverPublicKey": "public-key",
+            ],
+            "clipboard": [
+                "allowRemoteRead": true,
+                "allowRemoteWrite": false,
+            ],
+        ])
+    }
+
+    private func legacyDocument() -> Data {
+        data([
+            "schemaVersion": 1,
+            "configRevision": 6,
             "agentBuildID": "20260808155349",
             "server": [
                 "rendezvousServer": "hermes.example.invalid:21116",

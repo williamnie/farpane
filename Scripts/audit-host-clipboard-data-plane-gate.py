@@ -176,7 +176,8 @@ def main() -> int:
         "claims": {
             "readWriteDataGatesIndependent": True,
             "smallUtf8TextBounded": True,
-            "clipboardDataPathEnabled": False,
+            "clipboardDataPathEnabledByDefault": False,
+            "clipboardDataPathExplicitOptInCapable": True,
             "richClipboardImplemented": False,
         },
         "remainingBoundary": {
@@ -185,9 +186,9 @@ def main() -> int:
             "eventDrivenDynamicBackoffRequired": False,
             "temporaryObjectCleanupRequired": False,
             "viewerSmallTextClipboardAPIRequired": False,
-            "explicitProductEnablementRequired": True,
+            "explicitProductEnablementRequired": False,
         },
-        "nextImplementationBoundary": "host-small-text-clipboard-explicit-opt-in-contract",
+        "nextImplementationBoundary": "host-small-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-small-text-directional-gates" else 1

@@ -120,6 +120,10 @@ private extension HostMediaSubmissionDropReason {
 @main
 private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
     private static let hostEnabledDefaultsKey = "farpane.host.enabled"
+    private static let hostClipboardReadEnabledDefaultsKey =
+        "farpane.host.clipboard.allowRemoteRead"
+    private static let hostClipboardWriteEnabledDefaultsKey =
+        "farpane.host.clipboard.allowRemoteWrite"
 
     private let options = Options(arguments: CommandLine.arguments)
     private let hostViewerConcurrencyEvidenceOwner =
@@ -601,6 +605,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onHostToggle = { [weak self] enabled in
             self?.handleHostProductToggle(enabled)
         }
+        view.onHostClipboardReadToggle = { [weak self] enabled in
+            self?.handleHostClipboardPolicyToggle(
+                allowRemoteRead: enabled,
+                allowRemoteWrite: nil
+            )
+        }
+        view.onHostClipboardWriteToggle = { [weak self] enabled in
+            self?.handleHostClipboardPolicyToggle(
+                allowRemoteRead: nil,
+                allowRemoteWrite: enabled
+            )
+        }
         view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
         view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
         view.onSetHostPermanentPassword = { [weak self] in self?.presentHostPermanentPassword() }
@@ -712,6 +728,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 approval: approval,
                 session: session
             )
+        let clipboardPolicy = currentHostClipboardPolicy()
+        let bootstrapReady: Bool
+        if case .ready = hostAgentBootstrapState {
+            bootstrapReady = true
+        } else {
+            bootstrapReady = false
+        }
         homeView.apply(HomeSnapshot(
             server: catalog.server,
             devices: items,
@@ -720,7 +743,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             connectingPeerID: pendingProductConnection?.peerID,
             host: HostHomeSnapshot(
                 isEnabled: hostControl.isOn,
-                isControlEnabled: hostControl.isInteractive,
+                isControlEnabled:
+                    HostAgentBackgroundHomeRoutingPolicy.allowsHostToggle(
+                        control: hostControl,
+                        bootstrapReady: bootstrapReady
+                    ),
                 isRunning: usesLegacyHost
                     ? hostRuntimeActive
                     : hostReadiness.isRunning,
@@ -729,6 +756,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     : hostReadiness.isReady,
                 allowsHostCommands: usesLegacyHost && hostRuntimeActive,
                 isStreaming: usesLegacyHost && hostMediaRoute != nil,
+                clipboardReadEnabled: clipboardPolicy.allowRemoteRead,
+                clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite,
+                allowsClipboardPolicyChange:
+                    HostAgentBackgroundHomeRoutingPolicy
+                        .allowsClipboardPolicyChange(
+                            control: hostControl,
+                            viewerConnectionInProgress:
+                                activeAttemptID != nil
+                        ),
                 statusText: hostProductStatusText(
                     hostReadiness: hostReadiness,
                     usesLegacyHost: usesLegacyHost,
@@ -832,8 +868,22 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             return
         }
         hostAgentBootstrapState = hostAgentBootstrapIntegration
-            .reconcileSavedCatalog(from: catalogStore)
+            .reconcileSavedCatalog(
+                from: catalogStore,
+                clipboardPolicy: currentHostClipboardPolicy()
+            )
         refreshHostAgentRuntimeConfigurationCoherence()
+    }
+
+    private func currentHostClipboardPolicy() -> HostAgentClipboardPolicy {
+        HostAgentClipboardPolicy(
+            allowRemoteRead: UserDefaults.standard.bool(
+                forKey: Self.hostClipboardReadEnabledDefaultsKey
+            ),
+            allowRemoteWrite: UserDefaults.standard.bool(
+                forKey: Self.hostClipboardWriteEnabledDefaultsKey
+            )
+        )
     }
 
     private var coherentHostAgentBackgroundActivationView:
@@ -1081,11 +1131,73 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    private func handleHostClipboardPolicyToggle(
+        allowRemoteRead: Bool?,
+        allowRemoteWrite: Bool?
+    ) {
+        guard Thread.isMainThread else { return }
+        MainActor.assumeIsolated {
+            let legacy = HostAgentLegacyHostMigrationGate.assess(
+                captureLegacyHostMigrationEvidence()
+            )
+            let control = HostAgentBackgroundHomeRoutingPolicy.controlState(
+                registration: hostAgentBackgroundRegistrationStatus,
+                legacy: legacy,
+                flow: hostAgentBackgroundFlow
+            )
+            guard HostAgentBackgroundHomeRoutingPolicy
+                .allowsClipboardPolicyChange(
+                    control: control,
+                    viewerConnectionInProgress: activeAttemptID != nil
+                )
+            else {
+                refreshHomeUI()
+                return
+            }
+
+            let current = currentHostClipboardPolicy()
+            let updated = HostAgentClipboardPolicy(
+                allowRemoteRead:
+                    allowRemoteRead ?? current.allowRemoteRead,
+                allowRemoteWrite:
+                    allowRemoteWrite ?? current.allowRemoteWrite
+            )
+            UserDefaults.standard.set(
+                updated.allowRemoteRead,
+                forKey: Self.hostClipboardReadEnabledDefaultsKey
+            )
+            UserDefaults.standard.set(
+                updated.allowRemoteWrite,
+                forKey: Self.hostClipboardWriteEnabledDefaultsKey
+            )
+            reconcileHostAgentBootstrap()
+            refreshHomeUI()
+        }
+    }
+
     @MainActor
     private func handleHostProductToggleOnMain(_ enabled: Bool) {
         let legacy = HostAgentLegacyHostMigrationGate.assess(
             captureLegacyHostMigrationEvidence()
         )
+        let control = HostAgentBackgroundHomeRoutingPolicy.controlState(
+            registration: hostAgentBackgroundRegistrationStatus,
+            legacy: legacy,
+            flow: hostAgentBackgroundFlow
+        )
+        let bootstrapReady: Bool
+        if case .ready = hostAgentBootstrapState {
+            bootstrapReady = true
+        } else {
+            bootstrapReady = false
+        }
+        guard HostAgentBackgroundHomeRoutingPolicy.allowsHostToggle(
+            control: control,
+            bootstrapReady: bootstrapReady
+        ) else {
+            refreshHomeUI()
+            return
+        }
         let route = HostAgentBackgroundHomeRoutingPolicy.toggleRoute(
             requestedEnabled: enabled,
             registration: hostAgentBackgroundRegistrationStatus,
@@ -1315,9 +1427,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 hostClient = created
                 client = created
             }
+            let clipboardPolicy = currentHostClipboardPolicy()
             try client.start(configuration: HostServerConfiguration(
                 rendezvousServer: server.rendezvousServer,
-                serverPublicKey: server.serverPublicKey
+                serverPublicKey: server.serverPublicKey,
+                clipboardReadEnabled: clipboardPolicy.allowRemoteRead,
+                clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite
             ))
             hostRuntimeActive = true
             hostRuntimeQuiescenceConfirmed = true

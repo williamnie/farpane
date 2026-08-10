@@ -41,7 +41,8 @@ public final class HostAgentBootstrapProductIntegration: @unchecked Sendable {
     }
 
     public func reconcileSavedCatalog(
-        from catalogStore: DeviceCatalogStore
+        from catalogStore: DeviceCatalogStore,
+        clipboardPolicy: HostAgentClipboardPolicy
     ) -> HostAgentBootstrapProductIntegrationState {
         do {
             let catalog = try catalogStore.load()
@@ -50,7 +51,8 @@ public final class HostAgentBootstrapProductIntegration: @unchecked Sendable {
             }
             let outcome = try coordinator.publish(
                 catalog: catalog,
-                agentBuildID: agentBuildID
+                agentBuildID: agentBuildID,
+                clipboardPolicy: clipboardPolicy
             )
             return .ready(configRevision: outcome.configRevision)
         } catch {

@@ -94,7 +94,11 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                 configOrganization: configuration.hostConfigOrganization,
                 serverConfiguration: HostServerConfiguration(
                     rendezvousServer: configuration.rendezvousServer,
-                    serverPublicKey: configuration.serverPublicKey
+                    serverPublicKey: configuration.serverPublicKey,
+                    clipboardReadEnabled:
+                        configuration.clipboardPolicy.allowRemoteRead,
+                    clipboardWriteEnabled:
+                        configuration.clipboardPolicy.allowRemoteWrite
                 )
             )
         }

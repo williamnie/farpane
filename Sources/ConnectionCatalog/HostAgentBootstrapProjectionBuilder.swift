@@ -10,7 +10,8 @@ public enum HostAgentBootstrapProjectionBuilder {
     public static func build(
         catalog: DeviceCatalogDocument,
         configRevision: UInt64,
-        agentBuildID: String
+        agentBuildID: String,
+        clipboardPolicy: HostAgentClipboardPolicy = .disabled
     ) throws -> Data {
         guard catalog.schemaVersion == DeviceCatalogDocument.currentSchemaVersion else {
             throw HostAgentBootstrapProjectionBuilderError.unsupportedCatalogSchema(
@@ -28,6 +29,10 @@ public enum HostAgentBootstrapProjectionBuilder {
             "server": [
                 "rendezvousServer": server.rendezvousServer,
                 "serverPublicKey": server.serverPublicKey,
+            ],
+            "clipboard": [
+                "allowRemoteRead": clipboardPolicy.allowRemoteRead,
+                "allowRemoteWrite": clipboardPolicy.allowRemoteWrite,
             ],
         ]
         do {

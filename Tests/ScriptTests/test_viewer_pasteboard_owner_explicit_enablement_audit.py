@@ -40,13 +40,25 @@ class ViewerPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCase):
         self.assertFalse(document["claims"]["preSessionClipboardUploaded"])
         self.assertTrue(document["claims"]["pollingBackoffBounded"])
         self.assertFalse(document["claims"]["clipboardContentLogged"])
-        self.assertFalse(document["claims"]["hostClipboardEnabled"])
-        self.assertFalse(document["claims"]["endToEndClipboardEnabled"])
+        self.assertFalse(document["claims"]["hostClipboardEnabledByDefault"])
+        self.assertTrue(document["claims"]["hostClipboardExplicitOptInCapable"])
+        self.assertTrue(
+            document["claims"]["endToEndSmallTextExplicitOptInCapable"]
+        )
         self.assertFalse(document["claims"]["richClipboardEnabled"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]["hostSmallTextExplicitOptInRequired"]
+        )
+        self.assertTrue(document["remainingBoundary"]["richPayloadTransferRequired"])
+        self.assertTrue(
+            document["remainingBoundary"]["physicalOwnershipAndTeardownAcceptanceRequired"]
+        )
+        self.assertTrue(
+            document["remainingBoundary"]["physicalLatencyAndIdleCPUAcceptanceRequired"]
+        )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-small-text-clipboard-explicit-opt-in-contract",
+            "host-small-text-clipboard-installed-two-mac-acceptance",
         )
 
 

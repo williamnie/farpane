@@ -167,6 +167,89 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         XCTAssertEqual(configuration.rendezvousServer, "one.example.invalid:21116")
     }
 
+    func testClipboardPolicyChangesAdvanceRevisionAndRemainDirectional() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let coordinator = HostAgentBootstrapPublicationCoordinator(
+            applicationSupportURL: fixture.applicationSupport
+        )
+        let source = catalog(server: "one.example.invalid:21116")
+
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                clipboardPolicy: .disabled
+            ).configRevision,
+            1
+        )
+        let readOnly = HostAgentClipboardPolicy(
+            allowRemoteRead: true,
+            allowRemoteWrite: false
+        )
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                clipboardPolicy: readOnly
+            ).configRevision,
+            2
+        )
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                clipboardPolicy: readOnly
+            ).publicationResult,
+            .unchanged
+        )
+        let configuration = try HostAgentBootstrapConfigurationReader(
+            directoryURL: HostAgentBootstrapProductLayout.directoryURL(
+                applicationSupportURL: fixture.applicationSupport
+            )
+        ).load()
+        XCTAssertEqual(configuration.schemaVersion, 2)
+        XCTAssertEqual(configuration.clipboardPolicy, readOnly)
+    }
+
+    func testLegacySchemaOnePublicationUpgradesWithClipboardDisabled() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let directory = try HostAgentBootstrapProductDirectoryPreparer.prepare(
+            applicationSupportURL: fixture.applicationSupport
+        )
+        let legacy = try JSONSerialization.data(
+            withJSONObject: [
+                "schemaVersion": 1,
+                "configRevision": 7,
+                "agentBuildID": "build-1",
+                "server": [
+                    "rendezvousServer": "one.example.invalid:21116",
+                    "serverPublicKey": "public-key",
+                ],
+            ],
+            options: [.sortedKeys]
+        )
+        _ = try HostAgentBootstrapConfigurationPublisher(
+            directoryURL: directory
+        ).publish(legacy)
+
+        let outcome = try HostAgentBootstrapPublicationCoordinator(
+            applicationSupportURL: fixture.applicationSupport
+        ).publish(
+            catalog: catalog(server: "one.example.invalid:21116"),
+            agentBuildID: "build-1",
+            clipboardPolicy: .disabled
+        )
+
+        XCTAssertEqual(outcome.configRevision, 8)
+        let upgraded = try HostAgentBootstrapConfigurationReader(
+            directoryURL: directory
+        ).load()
+        XCTAssertEqual(upgraded.schemaVersion, 2)
+        XCTAssertEqual(upgraded.clipboardPolicy, .disabled)
+    }
+
     private func catalog(server: String) -> DeviceCatalogDocument {
         DeviceCatalogDocument(
             server: ServerConfiguration(

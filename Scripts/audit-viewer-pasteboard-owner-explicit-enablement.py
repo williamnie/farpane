@@ -140,7 +140,7 @@ def main() -> int:
             for marker in (
                 "AppKit-owned pasteboard adapter",
                 "Host Control ABI v13",
-                "当前 App/Agent 调用仍使用",
+                "bootstrap schema v2",
                 "富文本、图片和文件 promise 不跨 Viewer ABI",
             )
         ),
@@ -197,17 +197,18 @@ def main() -> int:
             "preSessionClipboardUploaded": False,
             "pollingBackoffBounded": True,
             "clipboardContentLogged": False,
-            "hostClipboardEnabled": False,
-            "endToEndClipboardEnabled": False,
+            "hostClipboardEnabledByDefault": False,
+            "hostClipboardExplicitOptInCapable": True,
+            "endToEndSmallTextExplicitOptInCapable": True,
             "richClipboardEnabled": False,
         },
         "remainingBoundary": {
-            "hostSmallTextExplicitOptInRequired": True,
+            "hostSmallTextExplicitOptInRequired": False,
             "richPayloadTransferRequired": True,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-small-text-clipboard-explicit-opt-in-contract",
+        "nextImplementationBoundary": "host-small-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-pasteboard-owner-explicitly-enabled" else 1

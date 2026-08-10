@@ -798,7 +798,9 @@ final class CoreBridgeContractTests: XCTestCase {
             )
         }
         XCTAssertTrue(source.contains(
-            ".reconcileSavedCatalog(from: catalogStore)"
+            ".reconcileSavedCatalog(\n"
+                + "                from: catalogStore,\n"
+                + "                clipboardPolicy: currentHostClipboardPolicy()"
         ))
         XCTAssertTrue(source.contains(
             "hostAgentBootstrapState == .degraded"

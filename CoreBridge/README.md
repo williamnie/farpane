@@ -53,6 +53,10 @@ clipboard, suppresses its own writes, dynamically backs polling off to four
 seconds, and stops before Core disconnect. Host Control ABI v13 now carries
 independent, default-off read/write policy into the Rust Host lifetime and
 persists the upstream Boolean only when either bounded direction is explicitly
-requested. Current App and Agent callers still use both defaults, so this is
-not yet an end-to-end clipboard enablement claim; background bootstrap and Home
-opt-in remain a separate product boundary.
+requested. Host bootstrap schema v2 projects the same independent policy to the
+Agent while schema v1 decodes as disabled. Home exposes two explicit switches
+only while Host is off; changing either preference republishes the immutable
+bootstrap, and Host cannot be enabled unless that publication is coherent. The
+legacy foreground Host and background Agent consume the same projection. Small
+text is therefore end-to-end capable after explicit opt-in while remaining off
+by default; rich text, images, and file promises are still unsupported.

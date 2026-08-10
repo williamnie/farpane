@@ -37,6 +37,7 @@ def main() -> int:
         "host_control": repository / "Sources/CoreBridge/HostControlClient.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
+        "bootstrap": repository / "Sources/ConnectionCatalog/HostAgentBootstrapConfiguration.swift",
         "core_tests": repository / "Tests/CoreBridgeTests/CoreBridgeContractTests.swift",
         "host_tests": repository / "Tests/CoreBridgeTests/HostBridgeContractTests.swift",
     }
@@ -126,9 +127,19 @@ def main() -> int:
                 'Config::set_option(key.to_owned(), "N".to_owned())',
             )
         ),
-        "currentProductCallersDoNotOptIn": (
-            "clipboardReadEnabled:" not in product_sources
-            and "clipboardWriteEnabled:" not in product_sources
+        "productCallersPassOneExplicitPolicy": (
+            "clipboardPolicy: currentHostClipboardPolicy()" in sources["app"]
+            and "clipboardReadEnabled: clipboardPolicy.allowRemoteRead"
+            in sources["app"]
+            and "configuration.clipboardPolicy.allowRemoteRead"
+            in sources["agent"]
+            and "configuration.clipboardPolicy.allowRemoteWrite"
+            in sources["agent"]
+        ),
+        "legacyBootstrapAndCoreDefaultsRemainOff": (
+            "public static let disabled = Self(" in sources["bootstrap"]
+            and "clipboardReadEnabled: Bool = false" in host_control
+            and "clipboardWriteEnabled: Bool = false" in host_control
         ),
         "directionalDefaultsAndPersistedPolicyHaveTests": all(
             marker in tests
@@ -197,19 +208,19 @@ def main() -> int:
         "claims": {
             "hostDirectionsRepresentable": True,
             "hostDirectionsDefaultOff": True,
-            "currentProductHostClipboardEnabled": False,
-            "endToEndClipboardEnabled": False,
+            "hostProductExplicitOptInCapable": True,
+            "endToEndSmallTextExplicitOptInCapable": True,
             "richClipboardEnabled": False,
             "fileTransferEnabled": False,
             "systemAudioEnabled": False,
         },
         "remainingBoundary": {
-            "backgroundBootstrapPropagationRequired": True,
-            "homeOptInControlsRequired": True,
+            "backgroundBootstrapPropagationRequired": False,
+            "homeOptInControlsRequired": False,
             "installedTwoMacAcceptanceRequired": True,
             "richPayloadTransferRequired": True,
         },
-        "nextImplementationBoundary": "host-clipboard-bootstrap-home-opt-in-contract",
+        "nextImplementationBoundary": "host-small-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-clipboard-explicit-policy-abi-ready-default-off" else 1
