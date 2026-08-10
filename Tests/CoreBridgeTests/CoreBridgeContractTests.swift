@@ -821,6 +821,31 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(config.sendClipboardText)
     }
 
+    func testHostClipboardDirectionsDefaultOffAndRemainIndependent() {
+        let disabled = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key"
+        )
+        XCTAssertFalse(disabled.clipboardReadEnabled)
+        XCTAssertFalse(disabled.clipboardWriteEnabled)
+
+        let readOnly = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            clipboardReadEnabled: true
+        )
+        XCTAssertTrue(readOnly.clipboardReadEnabled)
+        XCTAssertFalse(readOnly.clipboardWriteEnabled)
+
+        let writeOnly = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            clipboardWriteEnabled: true
+        )
+        XCTAssertFalse(writeOnly.clipboardReadEnabled)
+        XCTAssertTrue(writeOnly.clipboardWriteEnabled)
+    }
+
     func testViewerClipboardDirectionsAreExplicitAndIndependent() {
         let receiveOnly = CoreConnectionConfig(
             rendezvousServer: "192.0.2.1",

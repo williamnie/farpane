@@ -11,6 +11,8 @@ struct HostCreateOptionsRaw {
     var rendezvousServer: UnsafePointer<CChar>?
     var relayServer: UnsafePointer<CChar>?
     var serverPublicKey: UnsafePointer<CChar>?
+    var enableClipboardRead: Bool
+    var enableClipboardWrite: Bool
 }
 
 struct HostCallbacksRaw {
@@ -76,7 +78,7 @@ enum HostEventRecorder {
 /// coexist with the viewer ABI v6, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
-    private static let hostABIVersion: UInt32 = 12
+    private static let hostABIVersion: UInt32 = 13
     private static let hostMediaABIVersion: UInt32 = 1
     private static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
 
@@ -327,7 +329,9 @@ final class HostBridgeContractTests: XCTestCase {
             abiVersion: Self.hostABIVersion,
             rendezvousServer: UnsafePointer(rendezvousServer),
             relayServer: UnsafePointer(relayServer),
-            serverPublicKey: UnsafePointer(serverPublicKey))
+            serverPublicKey: UnsafePointer(serverPublicKey),
+            enableClipboardRead: false,
+            enableClipboardWrite: false)
         var callbacks = HostCallbacksRaw(
             abiVersion: Self.hostABIVersion,
             onEvent: nil,

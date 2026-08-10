@@ -67,7 +67,8 @@ def main() -> int:
             marker in bridge
             for marker in (
                 "OPTION_ENABLE_CLIPBOARD",
-                '(config::keys::OPTION_ENABLE_CLIPBOARD, "N")',
+                "native_host_clipboard_option(NativeClipboardPolicy::default())",
+                '"N"',
                 "broker.clipboard_policy = NativeClipboardPolicy::default()",
             )
         ),
@@ -186,7 +187,7 @@ def main() -> int:
             "viewerSmallTextClipboardAPIRequired": False,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "viewer-pasteboard-owner-and-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-small-text-clipboard-explicit-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-small-text-directional-gates" else 1

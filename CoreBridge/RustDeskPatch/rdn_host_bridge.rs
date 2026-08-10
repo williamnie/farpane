@@ -35,7 +35,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 12;
+const HOST_ABI_VERSION: u32 = 13;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
@@ -204,6 +204,8 @@ pub struct RdnHostCreateOptions {
     rendezvous_server: *const c_char,
     relay_server: *const c_char,
     server_public_key: *const c_char,
+    enable_clipboard_read: bool,
+    enable_clipboard_write: bool,
 }
 
 #[repr(C)]
@@ -269,6 +271,7 @@ pub struct RdnHost {
     rendezvous_server: String,
     relay_server: String,
     server_public_key: String,
+    clipboard_policy: NativeClipboardPolicy,
     runtime: Option<HostRuntime>,
 }
 
@@ -730,8 +733,7 @@ impl NativeClipboardPolicy {
     }
 
     fn is_subset_of(self, other: Self) -> bool {
-        (!self.remote_read || other.remote_read)
-            && (!self.remote_write || other.remote_write)
+        (!self.remote_read || other.remote_read) && (!self.remote_write || other.remote_write)
     }
 }
 
@@ -786,7 +788,9 @@ fn native_host_clipboard_direction_allows(
     };
     direction_allowed
         && clipboards.len() == 1
-        && clipboards.first().is_some_and(native_host_small_text_clipboard)
+        && clipboards
+            .first()
+            .is_some_and(native_host_small_text_clipboard)
 }
 
 pub(crate) fn native_host_outgoing_clipboard_message_is_allowed(
@@ -1086,12 +1090,7 @@ impl NativeSessionBroker {
                 }
             }
             NativeSessionCommand::DisableClipboard => {
-                if !active
-                    .snapshot
-                    .active_capabilities
-                    .clipboard
-                    .any_enabled()
-                {
+                if !active.snapshot.active_capabilities.clipboard.any_enabled() {
                     return NativeSessionCommandResult::NoChange;
                 }
                 crate::ipc::Data::SwitchPermission {
@@ -1764,10 +1763,7 @@ fn bind_media_host(host: &RdnHost) {
     broker.display_revisions.clear();
     broker.pending_display_reconfigures.clear();
     broker.capabilities = MediaCapabilities::default();
-    broker.clipboard_policy = NativeClipboardPolicy::bidirectional(config::option2bool(
-        config::keys::OPTION_ENABLE_CLIPBOARD,
-        &config::Config::get_option(config::keys::OPTION_ENABLE_CLIPBOARD),
-    ));
+    broker.clipboard_policy = host.clipboard_policy;
     broker.binding = Some(MediaHostBinding {
         instance_id: host.instance_id.clone(),
         callback: host.callbacks.on_event,
@@ -1939,9 +1935,15 @@ pub(crate) fn native_media_begin_route(
                 .previous_display_revision
                 .checked_add(1)
                 .ok_or("native media display revision is exhausted")?,
-            None => broker.display_revisions.get(&display_id).copied().unwrap_or(1),
+            None => broker
+                .display_revisions
+                .get(&display_id)
+                .copied()
+                .unwrap_or(1),
         };
-        broker.display_revisions.insert(display_id, display_revision);
+        broker
+            .display_revisions
+            .insert(display_id, display_revision);
         broker.routes.insert(
             display_id,
             MediaRoute {
@@ -2023,7 +2025,9 @@ pub(crate) fn native_media_mark_display_reconfigure(
             return Err("native media display route is stale");
         }
         if route.display_revision == u64::MAX
-            || broker.pending_display_reconfigures.contains_key(&route.display_id)
+            || broker
+                .pending_display_reconfigures
+                .contains_key(&route.display_id)
         {
             return Err("native media display reconfigure is unavailable");
         }
@@ -2838,6 +2842,10 @@ pub unsafe extern "C" fn rdn_host_create(
         rendezvous_server,
         relay_server,
         server_public_key,
+        clipboard_policy: NativeClipboardPolicy::new(
+            (*options).enable_clipboard_read,
+            (*options).enable_clipboard_write,
+        ),
         runtime: None,
     });
     *out_host = Box::into_raw(host);
@@ -2951,17 +2959,29 @@ fn verify_host_start_storage(host: &RdnHost) -> Result<(), HostStoragePreflightE
         &host.rendezvous_server,
         &host.relay_server,
         &host.server_public_key,
+        host.clipboard_policy,
     )
 }
 
-const NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS: [&str; 3] = [
-    config::keys::OPTION_ENABLE_CLIPBOARD,
+const NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS: [&str; 2] = [
     config::keys::OPTION_ENABLE_FILE_TRANSFER,
     config::keys::OPTION_ENABLE_AUDIO,
 ];
 
-fn apply_native_host_optional_capability_defaults() {
-    for key in NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS {
+fn native_host_clipboard_option(policy: NativeClipboardPolicy) -> &'static str {
+    if policy.any_enabled() {
+        "Y"
+    } else {
+        "N"
+    }
+}
+
+fn apply_native_host_optional_capability_policy(policy: NativeClipboardPolicy) {
+    config::Config::set_option(
+        config::keys::OPTION_ENABLE_CLIPBOARD.to_owned(),
+        native_host_clipboard_option(policy).to_owned(),
+    );
+    for key in NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS {
         config::Config::set_option(key.to_owned(), "N".to_owned());
     }
 }
@@ -2993,6 +3013,7 @@ fn verify_host_start_storage_paths(
     _rendezvous_server: &str,
     _relay_server: &str,
     _server_public_key: &str,
+    _clipboard_policy: NativeClipboardPolicy,
 ) -> Result<(), HostStoragePreflightError> {
     Err(HostStoragePreflightError::UnsupportedPlatform)
 }
@@ -3022,6 +3043,7 @@ fn verify_host_start_storage_paths(
     rendezvous_server: &str,
     relay_server: &str,
     server_public_key: &str,
+    clipboard_policy: NativeClipboardPolicy,
 ) -> Result<(), HostStoragePreflightError> {
     let (identity, options) = inspect_host_storage_paths(identity_path, options_path, None)?;
     let Some(HostStorageSnapshot::Identity {
@@ -3042,7 +3064,10 @@ fn verify_host_start_storage_paths(
             config::keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS,
             "Y",
         ),
-        (config::keys::OPTION_ENABLE_CLIPBOARD, "N"),
+        (
+            config::keys::OPTION_ENABLE_CLIPBOARD,
+            native_host_clipboard_option(clipboard_policy),
+        ),
         (config::keys::OPTION_ENABLE_FILE_TRANSFER, "N"),
         (config::keys::OPTION_ENABLE_AUDIO, "N"),
         ("stop-service", ""),
@@ -3281,11 +3306,11 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     );
     config::Config::set_option("relay-server".to_owned(), host.relay_server.clone());
     config::Config::set_option("key".to_owned(), host.server_public_key.clone());
-    // Optional data-bearing capabilities remain explicitly disabled until
-    // their independent H6 permission, payload and lifecycle gates exist.
-    // Upstream treats a missing `enable-*` option as enabled, so absence is
-    // not a safe default and must not be used as product policy.
-    apply_native_host_optional_capability_defaults();
+    // Clipboard is enabled only when at least one explicit, independently
+    // enforced small-text direction was supplied at create. File transfer and
+    // audio remain disabled. Upstream treats a missing `enable-*` option as
+    // enabled, so absence is never accepted as product policy.
+    apply_native_host_optional_capability_policy(host.clipboard_policy);
     // FarPane Host owns an active authenticated screen route as a bounded
     // user-idle sleep assertion. The connection lifecycle releases it when
     // the last remote screen session ends; native mode never forces the
@@ -4250,7 +4275,11 @@ mod tests {
                 config::keys::OPTION_KEEP_AWAKE_DURING_INCOMING_SESSIONS.to_owned(),
                 "Y".to_owned(),
             );
-            for key in NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS {
+            config.options.insert(
+                config::keys::OPTION_ENABLE_CLIPBOARD.to_owned(),
+                "N".to_owned(),
+            );
+            for key in NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS {
                 config.options.insert(key.to_owned(), "N".to_owned());
             }
             let options = toml::to_string(&config)
@@ -4417,11 +4446,62 @@ mod tests {
                 rendezvous_server,
                 relay_server,
                 server_public_key,
+                NativeClipboardPolicy::default(),
             ),
             Ok(())
         );
         assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
         assert_eq!(fs::read(&fixture.options).unwrap(), options);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn host_storage_readback_accepts_explicit_clipboard_opt_in_only() {
+        let fixture = HostStorageFixture::new();
+        let rendezvous_server = "127.0.0.1:21116";
+        let relay_server = "";
+        let server_public_key = "synthetic-public-key";
+        let (identity, options) =
+            fixture.write_startup_documents(rendezvous_server, relay_server, server_public_key);
+        let mut config: config::Config2 =
+            toml::from_str(std::str::from_utf8(&options).unwrap()).unwrap();
+        config.options.insert(
+            config::keys::OPTION_ENABLE_CLIPBOARD.to_owned(),
+            "Y".to_owned(),
+        );
+        let enabled_options = toml::to_string(&config).unwrap().into_bytes();
+        HostStorageFixture::write_private(&fixture.options, &enabled_options);
+
+        for policy in [
+            NativeClipboardPolicy::new(true, false),
+            NativeClipboardPolicy::new(false, true),
+            NativeClipboardPolicy::new(true, true),
+        ] {
+            assert_eq!(
+                verify_host_start_storage_paths(
+                    &fixture.identity,
+                    &fixture.options,
+                    rendezvous_server,
+                    relay_server,
+                    server_public_key,
+                    policy,
+                ),
+                Ok(())
+            );
+        }
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                rendezvous_server,
+                relay_server,
+                server_public_key,
+                NativeClipboardPolicy::default(),
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), enabled_options);
     }
 
     #[cfg(unix)]
@@ -4442,6 +4522,7 @@ mod tests {
                 rendezvous_server,
                 relay_server,
                 server_public_key,
+                NativeClipboardPolicy::default(),
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
@@ -4455,6 +4536,7 @@ mod tests {
                 "127.0.0.1:21118",
                 relay_server,
                 server_public_key,
+                NativeClipboardPolicy::default(),
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
@@ -4475,27 +4557,43 @@ mod tests {
                 rendezvous_server,
                 relay_server,
                 server_public_key,
+                NativeClipboardPolicy::default(),
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
     }
 
     #[test]
-    fn native_host_optional_data_capabilities_default_off_as_one_policy() {
+    fn native_host_optional_data_capabilities_require_explicit_clipboard_policy() {
         assert_eq!(
-            NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS,
+            NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS,
             [
-                config::keys::OPTION_ENABLE_CLIPBOARD,
                 config::keys::OPTION_ENABLE_FILE_TRANSFER,
                 config::keys::OPTION_ENABLE_AUDIO,
             ]
         );
-        assert!(NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS
+        assert!(NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS
             .iter()
             .all(|key| key.starts_with("enable-")));
-        assert!(NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS
+        assert!(NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS
             .iter()
             .all(|key| !config::option2bool(key, "N")));
+        assert_eq!(
+            native_host_clipboard_option(NativeClipboardPolicy::default()),
+            "N"
+        );
+        assert_eq!(
+            native_host_clipboard_option(NativeClipboardPolicy::new(true, false)),
+            "Y"
+        );
+        assert_eq!(
+            native_host_clipboard_option(NativeClipboardPolicy::new(false, true)),
+            "Y"
+        );
+        assert_eq!(
+            native_host_clipboard_option(NativeClipboardPolicy::new(true, true)),
+            "Y"
+        );
     }
 
     #[cfg(unix)]
@@ -4751,6 +4849,7 @@ mod tests {
             rendezvous_server: String::new(),
             relay_server: String::new(),
             server_public_key: String::new(),
+            clipboard_policy: NativeClipboardPolicy::default(),
             runtime: None,
         }
     }
@@ -5040,11 +5139,7 @@ mod tests {
         assert!(!write_only.is_subset_of(read_only));
         assert_eq!(
             NativeSessionCapabilities::new(false, true, false),
-            NativeSessionCapabilities::with_clipboard_policy(
-                false,
-                bidirectional,
-                false,
-            )
+            NativeSessionCapabilities::with_clipboard_policy(false, bidirectional, false,)
         );
     }
 
@@ -6223,43 +6318,23 @@ mod tests {
             };
         }
 
-        let previous = native_media_begin_route(
-            0,
-            MEDIA_CODEC_H264,
-            1_920,
-            1_080,
-            30,
-            4_000_000,
-        )
-        .expect("initial route");
+        let previous = native_media_begin_route(0, MEDIA_CODEC_H264, 1_920, 1_080, 30, 4_000_000)
+            .expect("initial route");
         assert_eq!(previous.display_revision, 1);
         native_media_mark_display_reconfigure(&previous).expect("display marker");
         assert!(native_media_mark_display_reconfigure(&previous).is_err());
         native_media_end_route(&previous);
 
-        let replacement = native_media_begin_route(
-            0,
-            MEDIA_CODEC_H264,
-            1_280,
-            720,
-            30,
-            3_000_000,
-        )
-        .expect("display replacement route");
+        let replacement = native_media_begin_route(0, MEDIA_CODEC_H264, 1_280, 720, 30, 3_000_000)
+            .expect("display replacement route");
         assert_eq!(replacement.display_revision, 2);
         assert!(replacement.connection_epoch > previous.connection_epoch);
         assert!(replacement.codec_epoch > previous.codec_epoch);
 
         native_media_end_route(&replacement);
-        let generic_retry = native_media_begin_route(
-            0,
-            MEDIA_CODEC_H264,
-            1_280,
-            720,
-            30,
-            3_000_000,
-        )
-        .expect("generic retry route");
+        let generic_retry =
+            native_media_begin_route(0, MEDIA_CODEC_H264, 1_280, 720, 30, 3_000_000)
+                .expect("generic retry route");
         assert_eq!(generic_retry.display_revision, 2);
 
         let events = events.lock().unwrap();
@@ -6279,8 +6354,7 @@ mod tests {
             .iter()
             .filter(|event| {
                 event["eventType"] == "mediaControl"
-                    && event["payload"]["connectionEpoch"]
-                        == replacement.connection_epoch
+                    && event["payload"]["connectionEpoch"] == replacement.connection_epoch
                     && matches!(
                         event["payload"]["command"].as_str(),
                         Some("startCapture" | "reconfigure")
@@ -6291,8 +6365,7 @@ mod tests {
         for control in replacement_controls {
             assert_eq!(control["payload"]["displayRevision"], 2);
             assert_eq!(
-                control["payload"]["displayReconfigure"]
-                    ["displayReconfigureGeneration"],
+                control["payload"]["displayReconfigure"]["displayReconfigureGeneration"],
                 marker["displayReconfigureGeneration"]
             );
             assert_eq!(
@@ -6313,13 +6386,12 @@ mod tests {
             .iter()
             .filter(|event| {
                 event["eventType"] == "mediaControl"
-                    && event["payload"]["connectionEpoch"]
-                        == generic_retry.connection_epoch
+                    && event["payload"]["connectionEpoch"] == generic_retry.connection_epoch
             })
             .collect::<Vec<_>>();
         assert_eq!(generic_controls.len(), 2);
-        assert!(generic_controls.iter().all(|event| {
-            event["payload"].get("displayReconfigure").is_none()
-        }));
+        assert!(generic_controls
+            .iter()
+            .all(|event| { event["payload"].get("displayReconfigure").is_none() }));
     }
 }

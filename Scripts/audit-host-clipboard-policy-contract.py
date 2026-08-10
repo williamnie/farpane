@@ -130,7 +130,7 @@ def main() -> int:
             marker in host_bridge + connection
             for marker in (
                 "OPTION_ENABLE_CLIPBOARD",
-                '(config::keys::OPTION_ENABLE_CLIPBOARD, "N")',
+                "native_host_clipboard_option(NativeClipboardPolicy::default())",
                 "self.clipboard && !self.disable_clipboard",
                 "active_policy().allows_remote_read()",
                 "native_host_allows_remote_clipboard_write(",

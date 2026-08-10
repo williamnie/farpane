@@ -41,6 +41,7 @@ def main() -> int:
             repository / "CoreBridge/RustDeskPatch/rdn_bridge.rs"
         ),
         "viewer_swift": repository / "Sources/CoreBridge/CoreBridge.swift",
+        "host_swift": repository / "Sources/CoreBridge/HostControlClient.swift",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -61,8 +62,9 @@ def main() -> int:
     clipboard = sources["clipboard"]
     viewer_bridge = sources["viewer_bridge"]
     viewer_swift = sources["viewer_swift"]
+    host_swift = sources["host_swift"]
     apply_offset = host_bridge.find(
-        "apply_native_host_optional_capability_defaults();"
+        "apply_native_host_optional_capability_policy(host.clipboard_policy);"
     )
     identity_offset = host_bridge.find("host.local_id = config::Config::get_id();")
 
@@ -89,11 +91,12 @@ def main() -> int:
                 'pub const OPTION_ENABLE_CLIPBOARD: &str = "enable-clipboard"',
             )
         ),
-        "hostPinsOptionalDataCapabilitiesOffBeforeIdentity": (
+        "hostPinsExplicitClipboardPolicyAndOtherCapabilitiesOffBeforeIdentity": (
             all(
                 marker in host_bridge
                 for marker in (
-                    "NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS",
+                    "NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS",
+                    "native_host_clipboard_option(policy)",
                     "OPTION_ENABLE_CLIPBOARD",
                     "OPTION_ENABLE_FILE_TRANSFER",
                     "OPTION_ENABLE_AUDIO",
@@ -104,13 +107,22 @@ def main() -> int:
             and identity_offset >= 0
             and apply_offset < identity_offset
         ),
-        "hostRequiresPersistedDefaultOffReadback": all(
+        "hostRequiresPersistedPolicyReadback": all(
             marker in host_bridge
             for marker in (
-                '(config::keys::OPTION_ENABLE_CLIPBOARD, "N")',
+                "native_host_clipboard_option(clipboard_policy)",
                 '(config::keys::OPTION_ENABLE_FILE_TRANSFER, "N")',
                 '(config::keys::OPTION_ENABLE_AUDIO, "N")',
                 "PersistenceMismatch",
+            )
+        ),
+        "productHostClipboardDirectionsRemainDefaultOff": all(
+            marker in host_swift
+            for marker in (
+                "clipboardReadEnabled: Bool = false",
+                "clipboardWriteEnabled: Bool = false",
+                "enable_clipboard_read: configuration.clipboardReadEnabled",
+                "enable_clipboard_write: configuration.clipboardWriteEnabled",
             )
         ),
         "canonicalAndVendoredHostBridgeMatch": (
@@ -134,13 +146,14 @@ def main() -> int:
                 'names.push("writeClipboard")',
             )
         ),
-        "RichPayloadAndBackoffGatesStillMissing": all(
-            marker in clipboard
+        "boundedSmallTextAndBackoffGatesExistWithoutRichEnablement": all(
+            marker in host_bridge + clipboard
             for marker in (
-                "pub const CLIPBOARD_INTERVAL: u64 = 333",
+                "MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024",
+                "NativeClipboardDirection::RemoteRead",
+                "NativeClipboardDirection::RemoteWrite",
                 "ClipboardFormat::ImageRgba",
                 "ClipboardFormat::ImagePng",
-                "decompress(&clipboard.content)",
             )
         ),
         "nativeViewerClipboardRemainsDefaultOff": (
@@ -156,15 +169,15 @@ def main() -> int:
         "upstreamEnableDefault": line_number(
             config, 'if option.starts_with("enable-")'
         ),
-        "hostDefaultOffKeys": line_number(
-            host_bridge, "NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS"
+        "hostDefaultOffDirections": line_number(
+            host_swift, "clipboardReadEnabled: Bool = false"
         ),
-        "hostDefaultOffApplication": line_number(
+        "hostPolicyApplication": line_number(
             host_bridge,
-            "apply_native_host_optional_capability_defaults();",
+            "apply_native_host_optional_capability_policy(host.clipboard_policy);",
         ),
-        "hostReadback": line_number(
-            host_bridge, '(config::keys::OPTION_ENABLE_CLIPBOARD, "N")'
+        "hostPolicyReadback": line_number(
+            host_bridge, "native_host_clipboard_option(clipboard_policy)"
         ),
         "connectionClipboardGate": line_number(
             connection, "self.clipboard && !self.disable_clipboard"
@@ -209,7 +222,7 @@ def main() -> int:
             "viewerSmallTextClipboardAPIRequired": False,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "viewer-pasteboard-owner-and-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-small-text-clipboard-explicit-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "optional-data-capabilities-default-off" else 1

@@ -346,11 +346,21 @@ public struct HostServerConfiguration: Sendable {
     public let rendezvousServer: String
     public let relayServer: String
     public let serverPublicKey: String
+    public let clipboardReadEnabled: Bool
+    public let clipboardWriteEnabled: Bool
 
-    public init(rendezvousServer: String, relayServer: String = "", serverPublicKey: String) {
+    public init(
+        rendezvousServer: String,
+        relayServer: String = "",
+        serverPublicKey: String,
+        clipboardReadEnabled: Bool = false,
+        clipboardWriteEnabled: Bool = false
+    ) {
         self.rendezvousServer = rendezvousServer
         self.relayServer = relayServer
         self.serverPublicKey = serverPublicKey
+        self.clipboardReadEnabled = clipboardReadEnabled
+        self.clipboardWriteEnabled = clipboardWriteEnabled
     }
 }
 
@@ -1779,7 +1789,9 @@ public final class HostControlClient: @unchecked Sendable {
                         abi_version: Self.hostABIVersion,
                         rendezvous_server: rendezvousServer,
                         relay_server: relayServer,
-                        server_public_key: serverPublicKey
+                        server_public_key: serverPublicKey,
+                        enable_clipboard_read: configuration.clipboardReadEnabled,
+                        enable_clipboard_write: configuration.clipboardWriteEnabled
                     )
                     return rdn_shim_host_create(library, &options, &callbacks, &handle)
                 }

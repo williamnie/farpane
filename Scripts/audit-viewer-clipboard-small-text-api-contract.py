@@ -179,8 +179,8 @@ def main() -> int:
             for marker in (
                 "ABI v6 adds a default-off",
                 "AppKit-owned pasteboard adapter",
-                "Host clipboard policy remains",
-                "Host 侧仍默认关闭",
+                "Host Control ABI v13",
+                "当前 App/Agent 调用仍使用",
             )
         ),
     }

@@ -167,7 +167,7 @@ def main() -> int:
                 "current.connection_epoch != route.connection_epoch",
                 "current.codec_epoch != route.codec_epoch",
                 "current.display_revision != route.display_revision",
-                "broker.pending_display_reconfigures.contains_key(&route.display_id)",
+                "pending_display_reconfigures",
                 "route.display_revision == u64::MAX",
                 "NEXT_DISPLAY_RECONFIGURE_GENERATION",
                 '"mediaDisplayReconfigureStarted"',
@@ -179,7 +179,8 @@ def main() -> int:
                 "broker.pending_display_reconfigures.remove(&display_id)",
                 ".previous_display_revision",
                 ".checked_add(1)",
-                "broker.display_revisions.get(&display_id).copied().unwrap_or(1)",
+                "display_revisions",
+                ".unwrap_or(1)",
                 'start_payload["displayReconfigure"] = provenance.payload()',
                 'reconfigure_payload["displayReconfigure"] = provenance.payload()',
             )
@@ -249,7 +250,7 @@ def main() -> int:
             "recoveryEvidenceOwner.cancelAndWait()",
         ),
         "currentABIVersionsAreSynchronized": (
-            rust_host_abi == header_host_abi == 12
+            rust_host_abi == header_host_abi == 13
             and rust_media_abi == header_media_abi == 1
         ),
     }
@@ -289,7 +290,7 @@ def main() -> int:
 
     target_contract = {
         "versioning": {
-            "hostControlABI": 12,
+            "hostControlABI": 13,
             "hostEventEnvelopeSchema": 1,
             "hostMediaABI": 1,
             "rule": (
