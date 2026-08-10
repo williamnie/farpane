@@ -222,6 +222,10 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   精确持久化并 readback `enable-file-transfer=Y/N`，pinned upstream 的 dedicated file login
   使用同一 option 拒绝未授权 scope。当前 App/Agent 不传 opt-in，且没有 Viewer file UI，
   因而这里只建立能力门，不表示产品文件传输已经开放。
+- pinned file service 已有相对文件名 traversal/NUL/absolute-path 与当前 symlink component
+  检查，但压缩 block 仍无界解压，path check 到 `File::create` 存在已知 TOCTOU，绝对管理
+  路径没有 FarPane-owned root。Native Host 又不启动 external CM，而 receive/mutation 仍投递
+  给 CM，因此当前 file ABI opt-in 既不安全完备也不具备完整运行 owner，必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 
