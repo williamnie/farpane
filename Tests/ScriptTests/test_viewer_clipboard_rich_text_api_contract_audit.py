@@ -45,14 +45,15 @@ class ViewerClipboardRichTextAPIContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["swiftCopiesCallbackScopedBytes"])
         self.assertTrue(document["claims"]["viewerProductRichClipboardEnabled"])
         self.assertTrue(document["claims"]["hostRichClipboardTransportCapable"])
-        self.assertFalse(document["claims"]["imageOrFileClipboardEnabled"])
+        self.assertTrue(document["claims"]["imageClipboardEnabled"])
+        self.assertFalse(document["claims"]["filePromiseClipboardEnabled"])
         self.assertFalse(document["remainingBoundary"]["hostViewerRichTransportWiringRequired"])
         self.assertFalse(document["remainingBoundary"]["singlePasteboardOwnerRichIntegrationRequired"])
         self.assertTrue(document["remainingBoundary"]["installedTwoMacRichClipboardAcceptanceRequired"])
         self.assertTrue(document["remainingBoundary"]["physicalLatencyAndIdleCPUAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-rich-text-clipboard-installed-two-mac-acceptance",
+            "host-image-clipboard-installed-two-mac-acceptance",
         )
 
 

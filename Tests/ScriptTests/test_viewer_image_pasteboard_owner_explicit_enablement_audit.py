@@ -44,19 +44,19 @@ class ViewerImagePasteboardOwnerExplicitEnablementAuditTests(unittest.TestCase):
         self.assertFalse(claims["invalidImageFallsBackToTextOrRich"])
         self.assertTrue(claims["localTIFFCanonicalizedToPNG"])
         self.assertFalse(claims["clipboardContentLogged"])
-        self.assertFalse(claims["hostProductImageClipboardEnabled"])
+        self.assertTrue(claims["hostProductImageClipboardEnabled"])
         self.assertFalse(claims["svgRenderingSanitized"])
         self.assertFalse(claims["filePromiseClipboardEnabled"])
 
         remaining = document["remainingBoundary"]
         self.assertFalse(remaining["viewerImagePasteboardOwnerRequired"])
-        self.assertTrue(remaining["hostImageExplicitOptInRequired"])
+        self.assertFalse(remaining["hostImageExplicitOptInRequired"])
         self.assertTrue(
             remaining["installedTwoMacImageClipboardAcceptanceRequired"]
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-image-bootstrap-home-opt-in-contract",
+            "host-image-clipboard-installed-two-mac-acceptance",
         )
 
 

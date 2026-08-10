@@ -47,7 +47,7 @@ class ViewerClipboardImageAPIContractAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["singlePasteboardOwnerImageIntegrationRequired"]
         )
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]["hostImageExplicitOptInRequired"]
         )
         self.assertTrue(
@@ -55,7 +55,7 @@ class ViewerClipboardImageAPIContractAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-image-bootstrap-home-opt-in-contract",
+            "host-image-clipboard-installed-two-mac-acceptance",
         )
 
 

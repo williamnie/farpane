@@ -348,6 +348,8 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
             "farpane.host.clipboard.allowRemoteWrite",
             "farpane.host.clipboard.richText.allowRemoteRead",
             "farpane.host.clipboard.richText.allowRemoteWrite",
+            "farpane.host.clipboard.image.allowRemoteRead",
+            "farpane.host.clipboard.image.allowRemoteWrite",
             "clipboardPolicy: currentHostClipboardPolicy()",
             "clipboardReadEnabled: clipboardPolicy.allowRemoteRead",
             "clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite",
@@ -355,6 +357,10 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
             "clipboardPolicy.allowRemoteRichTextRead",
             "clipboardRichTextWriteEnabled:",
             "clipboardPolicy.allowRemoteRichTextWrite",
+            "clipboardImageReadEnabled:",
+            "clipboardPolicy.allowRemoteImageRead",
+            "clipboardImageWriteEnabled:",
+            "clipboardPolicy.allowRemoteImageWrite",
             "allowsClipboardPolicyChange(",
         ] {
             XCTAssertTrue(appSource.contains(marker), marker)
@@ -364,10 +370,14 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
             "允许远端写入本机剪贴板",
             "允许远端读取本机富文本",
             "允许远端写入本机富文本",
+            "允许远端读取本机图片",
+            "允许远端写入图片到本机",
             "onHostClipboardReadToggle",
             "onHostClipboardWriteToggle",
             "onHostClipboardRichTextReadToggle",
             "onHostClipboardRichTextWriteToggle",
+            "onHostClipboardImageReadToggle",
+            "onHostClipboardImageWriteToggle",
             "snapshot.host.allowsClipboardPolicyChange",
         ] {
             XCTAssertTrue(homeSource.contains(marker), marker)
@@ -383,6 +393,12 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         ))
         XCTAssertTrue(agentSource.contains(
             ".allowRemoteRichTextWrite"
+        ))
+        XCTAssertTrue(agentSource.contains(
+            ".allowRemoteImageRead"
+        ))
+        XCTAssertTrue(agentSource.contains(
+            ".allowRemoteImageWrite"
         ))
     }
 }

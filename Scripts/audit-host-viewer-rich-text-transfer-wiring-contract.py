@@ -236,7 +236,8 @@ def main() -> int:
             "sessionRevocationAppliesToRich": True,
             "hostProductRichClipboardEnabled": True,
             "viewerProductRichClipboardEnabled": True,
-            "imageOrFileClipboardEnabled": False,
+            "imageClipboardEnabled": True,
+            "filePromiseClipboardEnabled": False,
         },
         "remainingBoundary": {
             "hostViewerRichTransportWiringRequired": False,
@@ -244,7 +245,7 @@ def main() -> int:
             "installedTwoMacRichClipboardAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": "host-image-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-viewer-rich-text-transfer-wired-default-off" else 1

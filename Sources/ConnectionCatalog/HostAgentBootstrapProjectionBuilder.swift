@@ -37,6 +37,10 @@ public enum HostAgentBootstrapProjectionBuilder {
                     clipboardPolicy.allowRemoteRichTextRead,
                 "allowRemoteRichTextWrite":
                     clipboardPolicy.allowRemoteRichTextWrite,
+                "allowRemoteImageRead":
+                    clipboardPolicy.allowRemoteImageRead,
+                "allowRemoteImageWrite":
+                    clipboardPolicy.allowRemoteImageWrite,
             ],
         ]
         do {

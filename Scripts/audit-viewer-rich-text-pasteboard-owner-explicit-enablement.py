@@ -227,7 +227,8 @@ def main() -> int:
             "pollingBackoffBounded": True,
             "clipboardContentLogged": False,
             "hostProductRichClipboardEnabled": True,
-            "imageOrFileClipboardEnabled": False,
+            "imageClipboardEnabled": True,
+            "filePromiseClipboardEnabled": False,
         },
         "remainingBoundary": {
             "viewerRichPasteboardOwnerRequired": False,
@@ -235,7 +236,7 @@ def main() -> int:
             "installedTwoMacRichClipboardAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": "host-image-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-rich-text-pasteboard-owner-explicitly-enabled" else 1

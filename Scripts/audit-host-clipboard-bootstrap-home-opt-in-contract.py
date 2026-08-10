@@ -73,10 +73,10 @@ def main() -> int:
                 "host-small-text-clipboard-installed-two-mac-acceptance",
             )
         ),
-        "bootstrapV3RetainsIndependentSmallTextDirections": all(
+        "bootstrapV4RetainsIndependentSmallTextDirections": all(
             marker in bootstrap
             for marker in (
-                "public static let currentSchemaVersion = 3",
+                "public static let currentSchemaVersion = 4",
                 "public let clipboardPolicy: HostAgentClipboardPolicy",
                 '"allowRemoteRead", "allowRemoteWrite",',
             )
@@ -179,7 +179,7 @@ def main() -> int:
             "H6.2i2 Host clipboard bootstrap and Home opt-in contract",
         ),
         "bootstrapSchema": line_number(
-            bootstrap, "public static let currentSchemaVersion = 3"
+            bootstrap, "public static let currentSchemaVersion = 4"
         ),
         "legacyMigration": line_number(bootstrap, "clipboardPolicy = .disabled"),
         "strictBoolean": line_number(bootstrap, "private static func strictBool"),
@@ -234,14 +234,16 @@ def main() -> int:
             "independentHomeOptInAvailable": True,
             "endToEndSmallTextExplicitOptInCapable": True,
             "richClipboardEnabled": True,
+            "imageClipboardEnabled": True,
         },
         "remainingBoundary": {
             "installedTwoMacAcceptanceRequired": True,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
             "richPayloadTransferRequired": False,
+            "imagePayloadTransferRequired": False,
         },
-        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": "host-image-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-clipboard-bootstrap-home-opt-in-ready" else 1

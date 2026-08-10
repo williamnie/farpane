@@ -12,24 +12,32 @@ public struct HostAgentClipboardPolicy: Equatable, Sendable {
         allowRemoteRead: false,
         allowRemoteWrite: false,
         allowRemoteRichTextRead: false,
-        allowRemoteRichTextWrite: false
+        allowRemoteRichTextWrite: false,
+        allowRemoteImageRead: false,
+        allowRemoteImageWrite: false
     )
 
     public let allowRemoteRead: Bool
     public let allowRemoteWrite: Bool
     public let allowRemoteRichTextRead: Bool
     public let allowRemoteRichTextWrite: Bool
+    public let allowRemoteImageRead: Bool
+    public let allowRemoteImageWrite: Bool
 
     public init(
         allowRemoteRead: Bool,
         allowRemoteWrite: Bool,
         allowRemoteRichTextRead: Bool = false,
-        allowRemoteRichTextWrite: Bool = false
+        allowRemoteRichTextWrite: Bool = false,
+        allowRemoteImageRead: Bool = false,
+        allowRemoteImageWrite: Bool = false
     ) {
         self.allowRemoteRead = allowRemoteRead
         self.allowRemoteWrite = allowRemoteWrite
         self.allowRemoteRichTextRead = allowRemoteRichTextRead
         self.allowRemoteRichTextWrite = allowRemoteRichTextWrite
+        self.allowRemoteImageRead = allowRemoteImageRead
+        self.allowRemoteImageWrite = allowRemoteImageWrite
     }
 }
 
@@ -37,7 +45,7 @@ public struct HostAgentClipboardPolicy: Equatable, Sendable {
 /// switch the Rust config namespace or create HostCore. Disk ownership,
 /// atomic publication and the single-writer lease are separate later gates.
 public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
-    public static let currentSchemaVersion = 3
+    public static let currentSchemaVersion = 4
     public static let maximumDocumentBytes = 64 * 1_024
     public static let maximumConfigRevision: UInt64 = 9_007_199_254_740_991
 
@@ -128,10 +136,16 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
                 expectedClipboardKeys = [
                     "allowRemoteRead", "allowRemoteWrite",
                 ]
+            } else if schemaVersion == 3 {
+                expectedClipboardKeys = [
+                    "allowRemoteRead", "allowRemoteWrite",
+                    "allowRemoteRichTextRead", "allowRemoteRichTextWrite",
+                ]
             } else {
                 expectedClipboardKeys = [
                     "allowRemoteRead", "allowRemoteWrite",
                     "allowRemoteRichTextRead", "allowRemoteRichTextWrite",
+                    "allowRemoteImageRead", "allowRemoteImageWrite",
                 ]
             }
             guard Set(clipboard.keys) == expectedClipboardKeys,
@@ -159,11 +173,30 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
                 allowRemoteRichTextRead = decodedRead
                 allowRemoteRichTextWrite = decodedWrite
             }
+            let allowRemoteImageRead: Bool
+            let allowRemoteImageWrite: Bool
+            if schemaVersion <= 3 {
+                allowRemoteImageRead = false
+                allowRemoteImageWrite = false
+            } else {
+                guard let decodedRead = strictBool(
+                    clipboard["allowRemoteImageRead"]
+                ),
+                let decodedWrite = strictBool(
+                    clipboard["allowRemoteImageWrite"]
+                ) else {
+                    throw HostAgentBootstrapConfigurationError.invalidDocument
+                }
+                allowRemoteImageRead = decodedRead
+                allowRemoteImageWrite = decodedWrite
+            }
             clipboardPolicy = HostAgentClipboardPolicy(
                 allowRemoteRead: allowRemoteRead,
                 allowRemoteWrite: allowRemoteWrite,
                 allowRemoteRichTextRead: allowRemoteRichTextRead,
-                allowRemoteRichTextWrite: allowRemoteRichTextWrite
+                allowRemoteRichTextWrite: allowRemoteRichTextWrite,
+                allowRemoteImageRead: allowRemoteImageRead,
+                allowRemoteImageWrite: allowRemoteImageWrite
             )
         }
 

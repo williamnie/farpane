@@ -240,10 +240,10 @@ def main() -> int:
         "remainingBoundary": {
             "hostViewerImageTransportWiringRequired": False,
             "singlePasteboardOwnerImageIntegrationRequired": False,
-            "hostImageExplicitOptInRequired": True,
+            "hostImageExplicitOptInRequired": False,
             "installedTwoMacImageClipboardAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-image-bootstrap-home-opt-in-contract",
+        "nextImplementationBoundary": "host-image-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-image-clipboard-api-default-off" else 1

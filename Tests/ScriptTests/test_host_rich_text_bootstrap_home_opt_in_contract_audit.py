@@ -36,10 +36,17 @@ class HostRichTextBootstrapHomeOptInContractAuditTests(unittest.TestCase):
         self.assertTrue(
             document["claims"]["endToEndRichTextExplicitOptInCapable"]
         )
-        self.assertFalse(document["claims"]["imageOrFileClipboardEnabled"])
+        self.assertTrue(document["claims"]["imageClipboardEnabled"])
+        self.assertFalse(document["claims"]["filePromiseClipboardEnabled"])
+        self.assertFalse(
+            document["remainingBoundary"]["imageImplementationRequired"]
+        )
+        self.assertTrue(
+            document["remainingBoundary"]["filePromiseImplementationRequired"]
+        )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-rich-text-clipboard-installed-two-mac-acceptance",
+            "host-image-clipboard-installed-two-mac-acceptance",
         )
 
 

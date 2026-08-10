@@ -37,14 +37,14 @@ class HostClipboardBoundedImageEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["imageNetworkTransportEnabled"])
         self.assertTrue(document["claims"]["imagePasteboardEnabled"])
         self.assertTrue(document["claims"]["viewerImageProductEnabled"])
-        self.assertFalse(document["claims"]["hostImageProductEnabled"])
+        self.assertTrue(document["claims"]["hostImageProductEnabled"])
         self.assertFalse(document["claims"]["svgSanitizedForRendering"])
         self.assertFalse(document["remainingBoundary"]["viewerImageABIRequired"])
         self.assertFalse(
             document["remainingBoundary"]["hostViewerImageTransportRequired"]
         )
         self.assertFalse(document["remainingBoundary"]["pasteboardOwnerRequired"])
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]["explicitHostProductOptInRequired"]
         )
         self.assertTrue(
@@ -52,7 +52,7 @@ class HostClipboardBoundedImageEnvelopeAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-image-bootstrap-home-opt-in-contract",
+            "host-image-clipboard-installed-two-mac-acceptance",
         )
 
 
