@@ -38,7 +38,7 @@ class HostClipboardBoundedImageEnvelopeAuditTests(unittest.TestCase):
         self.assertFalse(document["claims"]["imagePasteboardEnabled"])
         self.assertFalse(document["claims"]["imageProductEnabled"])
         self.assertFalse(document["claims"]["svgSanitizedForRendering"])
-        self.assertTrue(document["remainingBoundary"]["viewerImageABIRequired"])
+        self.assertFalse(document["remainingBoundary"]["viewerImageABIRequired"])
         self.assertTrue(
             document["remainingBoundary"]["hostViewerImageTransportRequired"]
         )
@@ -51,7 +51,7 @@ class HostClipboardBoundedImageEnvelopeAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-image-clipboard-api-contract",
+            "host-viewer-image-transfer-wiring-contract",
         )
 
 

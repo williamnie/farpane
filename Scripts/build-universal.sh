@@ -112,6 +112,7 @@ for core in "${core_libraries[@]}"; do
   nm -gU "$core" | grep -q _rdn_client_send_text
   nm -gU "$core" | grep -q _rdn_client_send_clipboard_text
   nm -gU "$core" | grep -q _rdn_client_send_clipboard_rich_text
+  nm -gU "$core" | grep -q _rdn_client_send_clipboard_image
 done
 if (( ${#core_libraries} == 1 )); then
   cp "${core_libraries[1]}" \

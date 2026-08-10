@@ -6,6 +6,7 @@ vendor_dir="$repo_dir/Vendor/rustdesk"
 pinned_commit=6c578292e8ebbbec708b76986ba8c4bc7c509747
 patch_file="$repo_dir/CoreBridge/RustDeskPatch/upstream-1.4.9.patch"
 rich_text_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-rich-text-transfer.patch"
+viewer_image_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-image-api.patch"
 hbb_common_patch_file="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
@@ -32,6 +33,14 @@ elif git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$rich_text_pat
   :
 else
   print -u2 "RustDesk checkout has changes that do not match the Phase 2 patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
+if git -C "$vendor_dir" apply --unidiff-zero --check "$viewer_image_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply --unidiff-zero "$viewer_image_patch_file"
+elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_image_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the H6 Viewer image API patch"
   git -C "$vendor_dir" status --short >&2
   exit 1
 fi
@@ -68,6 +77,7 @@ cp "$host_bridge_source" "$vendor_dir/src/rdn_host_bridge.rs"
 
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$rich_text_patch_file"
+git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_image_patch_file"
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
 print "RUSTDESK_CORE_SOURCE_READY commit=$actual_commit"

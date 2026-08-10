@@ -141,7 +141,8 @@ def main() -> int:
         "documentationKeepsTransportAndRenderingClosed": (
             "128 MiB" in architecture
             and "SVG is not sanitized" in readme
-            and "image transport remains disabled" in readme
+            and "Viewer ABI v8 now exposes" in readme
+            and "Host/Viewer image admission" in readme
         ),
         "canonicalAndVendoredBridgeMatch": bridge == sources["vendor_bridge"],
     }
@@ -195,13 +196,13 @@ def main() -> int:
             "svgSanitizedForRendering": False,
         },
         "remainingBoundary": {
-            "viewerImageABIRequired": True,
+            "viewerImageABIRequired": False,
             "hostViewerImageTransportRequired": True,
             "pasteboardOwnerRequired": True,
             "explicitProductOptInRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-image-clipboard-api-contract",
+        "nextImplementationBoundary": "host-viewer-image-transfer-wiring-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-image-envelope-contract" else 1
