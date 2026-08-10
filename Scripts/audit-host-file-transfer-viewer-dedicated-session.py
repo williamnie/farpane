@@ -104,7 +104,7 @@ def main() -> int:
                 "return -10;",
                 "if !client.shared.authenticated.load(Ordering::Acquire)",
                 "if !*session.server_file_transfer_enabled.read().unwrap()",
-                "sender.send(Data::CancelJob(transfer_id)).map_or(-3, |_| 0)",
+                "if sender.send(Data::CancelJob(transfer_id)).is_err()",
             )
         ),
         "rustRegressionReadsRealCancelChannel": all(
@@ -117,8 +117,8 @@ def main() -> int:
                 "receiver.try_recv(), Ok(Data::CancelJob(23))",
             )
         ),
-        "abiV11RetainsDedicatedSessionAndProductOff": (
-            "#define RDN_ABI_VERSION 11u" in sources["header"]
+        "abiV12RetainsDedicatedSessionAndProductOff": (
+            "#define RDN_ABI_VERSION 12u" in sources["header"]
             and "fileTransferEnabled:" not in product
         ),
         "remainingManifestAndDestinationGapIsExplicit": (

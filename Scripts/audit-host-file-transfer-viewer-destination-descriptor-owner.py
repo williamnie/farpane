@@ -122,7 +122,7 @@ def main() -> int:
             )
         ),
         "abiAndProductRemainOff": (
-            "#define RDN_ABI_VERSION 11u" in sources["header"]
+            "#define RDN_ABI_VERSION 12u" in sources["header"]
             and "fileTransferEnabled:" not in product
             and "No download command" in sources["readme"]
             and "不保存路径也不创建文件" in sources["architecture"]
