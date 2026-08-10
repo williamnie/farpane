@@ -61,8 +61,8 @@ gaps that must be closed before any UI or bootstrap opt-in.
 
 ## Next step
 
-H6.3c completed the bounded-block envelope. The next boundary is
-partially complete: H6.3d1 now provides a descriptor-relative macOS receive-root
-primitive for safe create/resume, but it is not yet wired. The next boundary is
-`host-file-transfer-safe-root-mutations`: add descriptor-relative directory,
-remove, and rename operations before the Native Host file-service owner.
+H6.3c completed the bounded-block envelope. H6.3d1 then provided a
+descriptor-relative macOS receive-root primitive, and H6.3d2 added safe
+directory/remove/rename mutations. The next boundary is
+`host-file-transfer-native-service-owner`: compose those primitives without
+enabling product callers by default.

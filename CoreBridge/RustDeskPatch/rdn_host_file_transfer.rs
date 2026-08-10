@@ -28,6 +28,9 @@ pub(crate) enum NativeFileTransferRootError {
     CreateFile,
     OpenFile,
     UnsafeFile,
+    RemoveFile,
+    RemoveDirectory,
+    RenameEntry,
 }
 
 impl fmt::Display for NativeFileTransferRootError {
@@ -43,6 +46,9 @@ impl fmt::Display for NativeFileTransferRootError {
             Self::CreateFile => "unable to create native file-transfer file",
             Self::OpenFile => "unable to open native file-transfer file",
             Self::UnsafeFile => "unsafe native file-transfer file",
+            Self::RemoveFile => "unable to remove native file-transfer file",
+            Self::RemoveDirectory => "unable to remove native file-transfer directory",
+            Self::RenameEntry => "unable to rename native file-transfer entry",
         })
     }
 }
@@ -133,6 +139,86 @@ impl NativeFileTransferRoot {
         Ok(file)
     }
 
+    pub(crate) fn create_directory(&self, relative_path: &Path) -> RootResult<()> {
+        let (parent, directory_name) = self.open_relative_parent(relative_path, false)?;
+        if unsafe {
+            libc::mkdirat(
+                parent.as_raw_fd(),
+                directory_name.as_ptr(),
+                0o700 as libc::mode_t,
+            )
+        } != 0
+        {
+            return Err(NativeFileTransferRootError::CreateDirectory);
+        }
+        set_created_directory_mode(&parent, &directory_name)?;
+        let directory = open_private_child_directory(
+            &parent,
+            OsStr::from_bytes(directory_name.as_bytes()),
+            false,
+        )
+        .map_err(|_| NativeFileTransferRootError::CreateDirectory)?;
+        validate_private_directory(&directory, NativeFileTransferRootError::UnsafeDirectory)?;
+        Ok(())
+    }
+
+    pub(crate) fn remove_file(&self, relative_path: &Path) -> RootResult<()> {
+        let (parent, file_name) = self.open_relative_parent(relative_path, false)?;
+        let stat = checked_stat_at(&parent, &file_name, NativeFileTransferRootError::RemoveFile)?;
+        validate_private_regular_stat(&stat)?;
+        if unsafe { libc::unlinkat(parent.as_raw_fd(), file_name.as_ptr(), 0) } != 0 {
+            return Err(NativeFileTransferRootError::RemoveFile);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn remove_empty_directory(&self, relative_path: &Path) -> RootResult<()> {
+        let (parent, directory_name) = self.open_relative_parent(relative_path, false)?;
+        let directory = open_private_child_directory(
+            &parent,
+            OsStr::from_bytes(directory_name.as_bytes()),
+            false,
+        )
+        .map_err(|_| NativeFileTransferRootError::RemoveDirectory)?;
+        validate_private_directory(&directory, NativeFileTransferRootError::UnsafeDirectory)?;
+        if unsafe {
+            libc::unlinkat(
+                parent.as_raw_fd(),
+                directory_name.as_ptr(),
+                libc::AT_REMOVEDIR,
+            )
+        } != 0
+        {
+            return Err(NativeFileTransferRootError::RemoveDirectory);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn rename_entry(&self, source: &Path, destination: &Path) -> RootResult<()> {
+        let (source_parent, source_name) = self.open_relative_parent(source, false)?;
+        let source_stat = checked_stat_at(
+            &source_parent,
+            &source_name,
+            NativeFileTransferRootError::RenameEntry,
+        )?;
+        validate_private_entry_stat(&source_stat)?;
+        let (destination_parent, destination_name) =
+            self.open_relative_parent(destination, false)?;
+        if unsafe {
+            libc::renameatx_np(
+                source_parent.as_raw_fd(),
+                source_name.as_ptr(),
+                destination_parent.as_raw_fd(),
+                destination_name.as_ptr(),
+                libc::RENAME_EXCL,
+            )
+        } != 0
+        {
+            return Err(NativeFileTransferRootError::RenameEntry);
+        }
+        Ok(())
+    }
+
     fn open_relative_parent(
         &self,
         relative_path: &Path,
@@ -209,6 +295,26 @@ fn checked_stat(file: &File) -> RootResult<libc::stat> {
     Ok(unsafe { stat.assume_init() })
 }
 
+fn checked_stat_at(
+    parent: &File,
+    name: &CString,
+    error: NativeFileTransferRootError,
+) -> RootResult<libc::stat> {
+    let mut stat = std::mem::MaybeUninit::<libc::stat>::uninit();
+    if unsafe {
+        libc::fstatat(
+            parent.as_raw_fd(),
+            name.as_ptr(),
+            stat.as_mut_ptr(),
+            libc::AT_SYMLINK_NOFOLLOW,
+        )
+    } != 0
+    {
+        return Err(error);
+    }
+    Ok(unsafe { stat.assume_init() })
+}
+
 fn validate_trusted_ancestor(directory: &File) -> RootResult<()> {
     let stat = checked_stat(directory).map_err(|_| NativeFileTransferRootError::UnsafeRoot)?;
     let effective_uid = unsafe { libc::geteuid() };
@@ -241,7 +347,6 @@ fn open_private_child_directory(
     create_missing: bool,
 ) -> RootResult<File> {
     let component = component_c_string(component)?;
-    let mut created = false;
     let mut fd = unsafe {
         libc::openat(
             parent.as_raw_fd(),
@@ -263,7 +368,7 @@ fn open_private_child_directory(
         if mkdir_result != 0 {
             return Err(NativeFileTransferRootError::CreateDirectory);
         }
-        created = true;
+        set_created_directory_mode(parent, &component)?;
         fd = unsafe {
             libc::openat(
                 parent.as_raw_fd(),
@@ -276,15 +381,31 @@ fn open_private_child_directory(
         return Err(NativeFileTransferRootError::OpenDirectory);
     }
     let directory = unsafe { File::from_raw_fd(fd) };
-    if created && unsafe { libc::fchmod(directory.as_raw_fd(), 0o700 as libc::mode_t) } != 0 {
-        return Err(NativeFileTransferRootError::CreateDirectory);
-    }
     validate_private_directory(&directory, NativeFileTransferRootError::UnsafeDirectory)?;
     Ok(directory)
 }
 
+fn set_created_directory_mode(parent: &File, name: &CString) -> RootResult<()> {
+    if unsafe {
+        libc::fchmodat(
+            parent.as_raw_fd(),
+            name.as_ptr(),
+            0o700 as libc::mode_t,
+            libc::AT_SYMLINK_NOFOLLOW,
+        )
+    } != 0
+    {
+        return Err(NativeFileTransferRootError::CreateDirectory);
+    }
+    Ok(())
+}
+
 fn validate_private_regular_file(file: &File) -> RootResult<()> {
     let stat = checked_stat(file)?;
+    validate_private_regular_stat(&stat)
+}
+
+fn validate_private_regular_stat(stat: &libc::stat) -> RootResult<()> {
     if stat.st_mode & libc::S_IFMT != libc::S_IFREG
         || stat.st_uid != unsafe { libc::geteuid() }
         || stat.st_mode & 0o777 != 0o600
@@ -295,13 +416,26 @@ fn validate_private_regular_file(file: &File) -> RootResult<()> {
     Ok(())
 }
 
+fn validate_private_entry_stat(stat: &libc::stat) -> RootResult<()> {
+    match stat.st_mode & libc::S_IFMT {
+        libc::S_IFREG => validate_private_regular_stat(stat),
+        libc::S_IFDIR
+            if stat.st_uid == unsafe { libc::geteuid() } && stat.st_mode & 0o777 == 0o700 =>
+        {
+            Ok(())
+        }
+        libc::S_IFDIR => Err(NativeFileTransferRootError::UnsafeDirectory),
+        _ => Err(NativeFileTransferRootError::UnsafeFile),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::{
         fs,
         io::{Read, Seek, SeekFrom, Write},
-        os::unix::fs::{symlink, PermissionsExt},
+        os::unix::fs::{symlink, MetadataExt, PermissionsExt},
         path::PathBuf,
         time::{SystemTime, UNIX_EPOCH},
     };
@@ -497,5 +631,204 @@ mod tests {
             b"pinned"
         );
         assert!(!outside.join("pinned.download").exists());
+    }
+
+    #[test]
+    fn mutations_create_and_remove_only_private_entries() {
+        let sandbox = TestDirectory::new("mutations");
+        let trusted = sandbox.child("trusted");
+        create_private_directory(&trusted);
+        let root = NativeFileTransferRoot::open_existing(&trusted).expect("open root");
+
+        root.create_directory(Path::new("folder"))
+            .expect("create directory");
+        assert_eq!(
+            fs::metadata(trusted.join("folder"))
+                .expect("directory metadata")
+                .permissions()
+                .mode()
+                & 0o777,
+            0o700
+        );
+        drop(
+            root.create_new_file(Path::new("folder/item.download"))
+                .expect("create file"),
+        );
+        root.remove_file(Path::new("folder/item.download"))
+            .expect("remove file");
+        root.remove_empty_directory(Path::new("folder"))
+            .expect("remove empty directory");
+        assert!(!trusted.join("folder").exists());
+    }
+
+    #[test]
+    fn remove_rejects_symlink_hardlink_type_confusion_and_nonempty_directory() {
+        let sandbox = TestDirectory::new("remove_guards");
+        let trusted = sandbox.child("trusted");
+        let outside = sandbox.child("outside");
+        create_private_directory(&trusted);
+        create_private_directory(&outside);
+        let outside_file = outside.join("outside.txt");
+        fs::write(&outside_file, b"outside").expect("create outside file");
+        symlink(&outside_file, trusted.join("link.download")).expect("create file symlink");
+        let root = NativeFileTransferRoot::open_existing(&trusted).expect("open root");
+
+        assert!(root.remove_file(Path::new("link.download")).is_err());
+        assert!(outside_file.exists());
+        assert!(fs::symlink_metadata(trusted.join("link.download")).is_ok());
+
+        drop(
+            root.create_new_file(Path::new("original.download"))
+                .expect("create original"),
+        );
+        fs::hard_link(
+            trusted.join("original.download"),
+            trusted.join("alias.download"),
+        )
+        .expect("create hard link");
+        assert_eq!(
+            root.remove_file(Path::new("original.download"))
+                .unwrap_err(),
+            NativeFileTransferRootError::UnsafeFile
+        );
+        assert!(trusted.join("original.download").exists());
+
+        root.create_directory(Path::new("nonempty"))
+            .expect("create nonempty directory");
+        drop(
+            root.create_new_file(Path::new("nonempty/child.download"))
+                .expect("create child"),
+        );
+        assert_eq!(
+            root.remove_empty_directory(Path::new("nonempty"))
+                .unwrap_err(),
+            NativeFileTransferRootError::RemoveDirectory
+        );
+        assert!(trusted.join("nonempty/child.download").exists());
+        assert!(root.remove_file(Path::new("nonempty")).is_err());
+    }
+
+    #[test]
+    fn rename_is_no_replace_and_preserves_source_inode_on_success() {
+        let sandbox = TestDirectory::new("rename");
+        let trusted = sandbox.child("trusted");
+        create_private_directory(&trusted);
+        let root = NativeFileTransferRoot::open_existing(&trusted).expect("open root");
+        let mut source = root
+            .create_new_file(Path::new("source.download"))
+            .expect("create source");
+        source.write_all(b"source").expect("write source");
+        drop(source);
+        let source_inode = fs::metadata(trusted.join("source.download"))
+            .expect("source metadata")
+            .ino();
+        drop(
+            root.create_new_file(Path::new("existing.download"))
+                .expect("create destination collision"),
+        );
+
+        assert_eq!(
+            root.rename_entry(Path::new("source.download"), Path::new("existing.download"),)
+                .unwrap_err(),
+            NativeFileTransferRootError::RenameEntry
+        );
+        assert_eq!(
+            fs::read(trusted.join("source.download")).expect("source retained"),
+            b"source"
+        );
+
+        root.create_directory(Path::new("archive"))
+            .expect("create archive");
+        root.rename_entry(
+            Path::new("source.download"),
+            Path::new("archive/moved.download"),
+        )
+        .expect("rename without replacement");
+        assert!(!trusted.join("source.download").exists());
+        assert_eq!(
+            fs::metadata(trusted.join("archive/moved.download"))
+                .expect("moved metadata")
+                .ino(),
+            source_inode
+        );
+    }
+
+    #[test]
+    fn rename_rejects_symlink_broad_mode_and_hardlinked_source() {
+        let sandbox = TestDirectory::new("rename_guards");
+        let trusted = sandbox.child("trusted");
+        let outside = sandbox.child("outside");
+        create_private_directory(&trusted);
+        create_private_directory(&outside);
+        let outside_file = outside.join("outside.txt");
+        fs::write(&outside_file, b"outside").expect("create outside file");
+        symlink(&outside_file, trusted.join("link.download")).expect("create symlink");
+        let broad = trusted.join("broad.download");
+        fs::write(&broad, b"broad").expect("create broad file");
+        fs::set_permissions(&broad, fs::Permissions::from_mode(0o644)).expect("set broad mode");
+        let root = NativeFileTransferRoot::open_existing(&trusted).expect("open root");
+        drop(
+            root.create_new_file(Path::new("linked.download"))
+                .expect("create linked source"),
+        );
+        fs::hard_link(
+            trusted.join("linked.download"),
+            trusted.join("linked-alias.download"),
+        )
+        .expect("create source hard link");
+
+        assert!(root
+            .rename_entry(Path::new("link.download"), Path::new("link-moved.download"))
+            .is_err());
+        assert!(root
+            .rename_entry(
+                Path::new("broad.download"),
+                Path::new("broad-moved.download"),
+            )
+            .is_err());
+        assert_eq!(
+            root.rename_entry(
+                Path::new("linked.download"),
+                Path::new("linked-moved.download"),
+            )
+            .unwrap_err(),
+            NativeFileTransferRootError::UnsafeFile
+        );
+        assert!(outside_file.exists());
+        assert!(broad.exists());
+        assert!(trusted.join("linked.download").exists());
+    }
+
+    #[test]
+    fn mutations_remain_pinned_after_root_path_replacement() {
+        let sandbox = TestDirectory::new("mutation_replacement");
+        let trusted = sandbox.child("trusted");
+        let moved = sandbox.child("moved");
+        let outside = sandbox.child("outside");
+        create_private_directory(&trusted);
+        create_private_directory(&outside);
+        let root = NativeFileTransferRoot::open_existing(&trusted).expect("open root");
+        drop(
+            root.create_new_file(Path::new("source.download"))
+                .expect("create source"),
+        );
+
+        fs::rename(&trusted, &moved).expect("move admitted root");
+        symlink(&outside, &trusted).expect("replace original path");
+        root.create_directory(Path::new("folder"))
+            .expect("create in pinned root");
+        root.rename_entry(
+            Path::new("source.download"),
+            Path::new("folder/renamed.download"),
+        )
+        .expect("rename in pinned root");
+        root.remove_file(Path::new("folder/renamed.download"))
+            .expect("remove in pinned root");
+        root.remove_empty_directory(Path::new("folder"))
+            .expect("remove directory in pinned root");
+
+        assert!(!moved.join("source.download").exists());
+        assert!(!moved.join("folder").exists());
+        assert_eq!(fs::read_dir(&outside).expect("read outside").count(), 0);
     }
 }

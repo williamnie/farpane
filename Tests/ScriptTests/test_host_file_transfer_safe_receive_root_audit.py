@@ -35,13 +35,13 @@ class HostFileTransferSafeReceiveRootAuditTests(unittest.TestCase):
         self.assertTrue(claims["descriptorRelativeRootPrimitiveImplemented"])
         self.assertTrue(claims["safeCreateAndResumePrimitiveImplemented"])
         self.assertTrue(claims["rootPathReplacementCannotRedirectOpenDescriptor"])
-        self.assertFalse(claims["safeRemoveAndRenameImplemented"])
+        self.assertTrue(claims["safeRemoveAndRenameImplemented"])
         self.assertFalse(claims["nativeHostFileServiceOwnerImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-safe-root-mutations",
+            "host-file-transfer-native-service-owner",
         )
 
 

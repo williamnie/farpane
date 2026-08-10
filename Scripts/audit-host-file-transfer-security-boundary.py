@@ -134,6 +134,17 @@ def main() -> int:
                 "open_root_descriptor_survives_path_replacement",
             )
         ),
+        "nativeHostHasDescriptorRelativeSafeRootMutations": all(
+            marker in safe_root
+            for marker in (
+                "pub(crate) fn create_directory",
+                "pub(crate) fn remove_file",
+                "pub(crate) fn remove_empty_directory",
+                "pub(crate) fn rename_entry",
+                "libc::AT_SYMLINK_NOFOLLOW",
+                "libc::RENAME_EXCL",
+            )
+        ),
         "productCallersStillDoNotOptIn": (
             "fileTransferEnabled:" not in product
             and "fileTransferEnabled: true" not in product
@@ -212,6 +223,9 @@ def main() -> int:
             "decompress_with_limit(&block.data, MAX_FILE_TRANSFER_BLOCK_BYTES)",
         ),
         "safeReceiveRoot": line_number(safe_root, "struct NativeFileTransferRoot"),
+        "safeRootMutations": line_number(
+            safe_root, "pub(crate) fn create_directory"
+        ),
         "toctouAcknowledgement": line_number(
             fs, "known TOCTOU window for symlink races"
         ),
@@ -248,11 +262,11 @@ def main() -> int:
             "symlinkRaceClosed": False,
             "compressedPayloadBounded": True,
             "safeReceiveRootPrimitiveImplemented": True,
-            "safeRootMutationsImplemented": False,
+            "safeRootMutationsImplemented": True,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-safe-root-mutations",
+        "nextImplementationBoundary": "host-file-transfer-native-service-owner",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1

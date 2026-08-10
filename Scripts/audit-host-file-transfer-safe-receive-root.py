@@ -131,6 +131,17 @@ def main() -> int:
                 "open_root_descriptor_survives_path_replacement",
             )
         ),
+        "laterSafeRootMutationsExist": all(
+            marker in source
+            for marker in (
+                "pub(crate) fn create_directory",
+                "pub(crate) fn remove_file",
+                "pub(crate) fn remove_empty_directory",
+                "pub(crate) fn rename_entry",
+                "libc::RENAME_EXCL",
+                "mutations_remain_pinned_after_root_path_replacement",
+            )
+        ),
         "bootstrapCopiesAndVerifiesCanonicalSource": all(
             marker in bootstrap
             for marker in (
@@ -161,6 +172,7 @@ def main() -> int:
         "rootReplacementTest": line_number(
             source, "fn open_root_descriptor_survives_path_replacement"
         ),
+        "safeRootMutations": line_number(source, "pub(crate) fn create_directory"),
         "bootstrapSource": line_number(bootstrap, "host_file_transfer_source="),
     }
     missing = [name for name, present in evidence.items() if not present]
@@ -183,12 +195,12 @@ def main() -> int:
             "descriptorRelativeRootPrimitiveImplemented": True,
             "safeCreateAndResumePrimitiveImplemented": True,
             "rootPathReplacementCannotRedirectOpenDescriptor": True,
-            "safeRemoveAndRenameImplemented": False,
+            "safeRemoveAndRenameImplemented": True,
             "nativeHostFileServiceOwnerImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-safe-root-mutations",
+        "nextImplementationBoundary": "host-file-transfer-native-service-owner",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

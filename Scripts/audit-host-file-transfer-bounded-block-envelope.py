@@ -127,6 +127,16 @@ def main() -> int:
                 "open_root_descriptor_survives_path_replacement",
             )
         ),
+        "laterSafeRootMutationsExist": all(
+            marker in safe_root
+            for marker in (
+                "pub(crate) fn create_directory",
+                "pub(crate) fn remove_file",
+                "pub(crate) fn remove_empty_directory",
+                "pub(crate) fn rename_entry",
+                "libc::RENAME_EXCL",
+            )
+        ),
     }
     source_lines = {
         "designMilestone": line_number(
@@ -175,9 +185,9 @@ def main() -> int:
             "symlinkRaceClosed": False,
             "nativeHostFileServiceOwnerImplemented": False,
             "safeReceiveRootPrimitiveImplemented": True,
-            "safeRootMutationsImplemented": False,
+            "safeRootMutationsImplemented": True,
         },
-        "nextImplementationBoundary": "host-file-transfer-safe-root-mutations",
+        "nextImplementationBoundary": "host-file-transfer-native-service-owner",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-file-block-envelope-implemented-product-off" else 1
