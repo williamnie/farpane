@@ -350,6 +350,8 @@ public struct HostServerConfiguration: Sendable {
     public let clipboardWriteEnabled: Bool
     public let clipboardRichTextReadEnabled: Bool
     public let clipboardRichTextWriteEnabled: Bool
+    public let clipboardImageReadEnabled: Bool
+    public let clipboardImageWriteEnabled: Bool
 
     public init(
         rendezvousServer: String,
@@ -358,7 +360,9 @@ public struct HostServerConfiguration: Sendable {
         clipboardReadEnabled: Bool = false,
         clipboardWriteEnabled: Bool = false,
         clipboardRichTextReadEnabled: Bool = false,
-        clipboardRichTextWriteEnabled: Bool = false
+        clipboardRichTextWriteEnabled: Bool = false,
+        clipboardImageReadEnabled: Bool = false,
+        clipboardImageWriteEnabled: Bool = false
     ) {
         self.rendezvousServer = rendezvousServer
         self.relayServer = relayServer
@@ -367,6 +371,8 @@ public struct HostServerConfiguration: Sendable {
         self.clipboardWriteEnabled = clipboardWriteEnabled
         self.clipboardRichTextReadEnabled = clipboardRichTextReadEnabled
         self.clipboardRichTextWriteEnabled = clipboardRichTextWriteEnabled
+        self.clipboardImageReadEnabled = clipboardImageReadEnabled
+        self.clipboardImageWriteEnabled = clipboardImageWriteEnabled
     }
 }
 
@@ -1799,7 +1805,9 @@ public final class HostControlClient: @unchecked Sendable {
                         enable_clipboard_read: configuration.clipboardReadEnabled,
                         enable_clipboard_write: configuration.clipboardWriteEnabled,
                         enable_clipboard_rich_text_read: configuration.clipboardRichTextReadEnabled,
-                        enable_clipboard_rich_text_write: configuration.clipboardRichTextWriteEnabled
+                        enable_clipboard_rich_text_write: configuration.clipboardRichTextWriteEnabled,
+                        enable_clipboard_image_read: configuration.clipboardImageReadEnabled,
+                        enable_clipboard_image_write: configuration.clipboardImageWriteEnabled
                     )
                     return rdn_shim_host_create(library, &options, &callbacks, &handle)
                 }

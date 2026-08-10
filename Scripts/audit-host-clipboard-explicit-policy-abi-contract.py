@@ -76,7 +76,7 @@ def main() -> int:
                 "host-clipboard-bootstrap-home-opt-in-contract",
             )
         ),
-        "hostABIV14RetainsSmallTextPolicy": header_abi == rust_abi == 14,
+        "currentHostABIRetainsSmallTextPolicy": header_abi == rust_abi and header_abi >= 15,
         "cCreateOptionsCarryIndependentDirections": all(
             marker in header
             for marker in (
@@ -158,7 +158,9 @@ def main() -> int:
             sources["design"],
             "H6.2i1 Host small-text clipboard explicit-policy ABI seam",
         ),
-        "hostABIV14": line_number(header, "RDN_HOST_ABI_VERSION 14u"),
+        "currentHostABI": line_number(
+            header, f"RDN_HOST_ABI_VERSION {header_abi}u"
+        ),
         "cReadDirection": line_number(header, "bool enable_clipboard_read;"),
         "cWriteDirection": line_number(header, "bool enable_clipboard_write;"),
         "swiftReadDefault": line_number(

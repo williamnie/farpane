@@ -141,8 +141,9 @@ def main() -> int:
         "documentationKeepsTransportAndRenderingClosed": (
             "128 MiB" in architecture
             and "SVG is not sanitized" in readme
-            and "Viewer ABI v8 now exposes" in readme
-            and "Host/Viewer image admission" in readme
+            and "Viewer ABI v8 exposes" in readme
+            and "Host Control ABI v15 now carries independent image read/write policy"
+            in readme
         ),
         "canonicalAndVendoredBridgeMatch": bridge == sources["vendor_bridge"],
     }
@@ -190,19 +191,19 @@ def main() -> int:
         "claims": {
             "imageEnvelopeBounded": True,
             "imageEnvelopeOwned": True,
-            "imageNetworkTransportEnabled": False,
+            "imageNetworkTransportEnabled": True,
             "imagePasteboardEnabled": False,
             "imageProductEnabled": False,
             "svgSanitizedForRendering": False,
         },
         "remainingBoundary": {
             "viewerImageABIRequired": False,
-            "hostViewerImageTransportRequired": True,
+            "hostViewerImageTransportRequired": False,
             "pasteboardOwnerRequired": True,
             "explicitProductOptInRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-viewer-image-transfer-wiring-contract",
+        "nextImplementationBoundary": "viewer-image-pasteboard-owner-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-image-envelope-contract" else 1

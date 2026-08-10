@@ -50,10 +50,10 @@ Viewer product composition explicitly enables the small- and rich-text
 directions and routes all four through one AppKit-owned pasteboard adapter.
 That adapter starts only after authentication, snapshots rather than uploads
 the pre-session local clipboard, suppresses its own writes, dynamically backs
-polling off to four seconds, and stops before Core disconnect. Host Control ABI v14 retains the
+polling off to four seconds, and stops before Core disconnect. Host Control ABI v15 retains the
 independent, default-off bounded-text read/write policy and adds separate,
-default-off rich-text read/write policy. The Rust Host lifetime persists the
-pinned upstream Boolean only when at least one small- or rich-text direction is
+default-off rich-text and image read/write policies. The Rust Host lifetime persists the
+pinned upstream Boolean only when at least one small-text, rich-text, or image direction is
 explicitly requested; enabling small text never implies RTF or HTML. Host
 bootstrap schema v3 projects four independent small- and rich-text directions
 to the Agent. Schema v1 decodes with all clipboard directions disabled; schema
@@ -63,8 +63,9 @@ switches only while Host is off; changing any preference republishes the
 immutable bootstrap, and Host cannot be enabled unless that publication is
 coherent. The legacy foreground Host and background Agent consume the same
 projection. Small text and RTF/HTML are therefore end-to-end capable after
-explicit per-direction opt-in while remaining off by default; image payloads
-and file promises are still unsupported.
+explicit per-direction opt-in while remaining off by default. Image transport
+is bounded and directionally representable in Core, but product pasteboard
+ownership and Host/Viewer opt-in are still disabled; file promises remain unsupported.
 
 ABI v8 retains the ABI v7 bounded small- and rich-text contracts and adds an
 independently default-off semantic image API. RGBA uses positive dimensions,
@@ -92,18 +93,18 @@ enables rich receive/send and the single AppKit owner reads or writes one
 multi-representation item; Host product configuration exposes independent,
 default-off rich read/write opt-ins through bootstrap schema v3 and Home.
 
-The Host rich-payload boundary classifies wire clipboard formats before either
+The Host clipboard boundary classifies wire formats before either
 directional admission point. Only bounded, non-NUL UTF-8 `Text` may use the
 small-text path. RTF and HTML must form one owned semantic bundle and are
-admitted only by the matching rich direction; RGBA, PNG, SVG, remote `Special`
-format names, and unknown enum values still reject outright. Classification
-alone does not enable rich clipboard transport.
+admitted only by the matching rich direction. A single RGBA, PNG, or SVG entry
+must pass the independent image envelope and matching image direction; remote
+`Special` format names, unknown enum values, and multi-image messages reject.
 
 RTF/HTML now have a Rust-owned semantic envelope before any future transfer
 path. It accepts only exact rich-text formats with empty special metadata and
 zero image dimensions, owns the decoded UTF-8 `String`, rejects NUL, and caps
 both the wire payload and bounded decompression output at 1 MiB. Host Control
-ABI v14 binds this path to separate rich read/write directions. Incoming and
+ABI v15 retains separate rich read/write directions. Incoming and
 outgoing messages are rebuilt as canonical, uncompressed Text/RTF/HTML entries
 before reaching the pinned pasteboard helper or network writer, and the active
 session's directional revoke applies before format admission. The Viewer
@@ -111,7 +112,7 @@ AppKit owner validates the same limits, reads only after `changeCount` changes,
 prefers one rich bundle over a duplicate plain send, atomically writes one
 `NSPasteboardItem`, and records the final owned-write count to suppress loops.
 Product Host rich configuration remains off until the user explicitly enables
-the matching Home direction. Image payloads and file promises remain disabled.
+the matching Home direction. Image product ownership and file promises remain disabled.
 
 RGBA, PNG, and SVG now require a Rust-owned image envelope before they can even
 be classified for an independent transfer. RGBA accepts bounded zstd input only
@@ -123,6 +124,9 @@ IEND termination are checked without treating that structural check as a future
 renderer. SVG has independent 4 MiB wire and decoded UTF-8 caps and rejects NUL,
 DOCTYPE, and a non-canonical root. SVG is not sanitized for rendering, so a
 future pasteboard owner must keep treating the bytes as untrusted. The envelope
-owns its bytes. Viewer ABI v8 now exposes a separate default-off bounded image
-API, but Host/Viewer image admission, AppKit pasteboard ownership, UI switches,
-and product enablement remain disabled.
+owns its bytes. Viewer ABI v8 exposes the same default-off bounded image API;
+Host Control ABI v15 now carries independent image read/write policy and both
+Host directions rebuild one validated image as canonical uncompressed bytes
+before the pinned pasteboard helper or network writer. Active-session revoke
+precedes image parsing. Viewer/Host product image enablement, AppKit ownership,
+UI switches, and installed two-Mac acceptance remain disabled or unverified.

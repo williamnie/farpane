@@ -836,6 +836,8 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(disabled.clipboardWriteEnabled)
         XCTAssertFalse(disabled.clipboardRichTextReadEnabled)
         XCTAssertFalse(disabled.clipboardRichTextWriteEnabled)
+        XCTAssertFalse(disabled.clipboardImageReadEnabled)
+        XCTAssertFalse(disabled.clipboardImageWriteEnabled)
 
         let readOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
@@ -846,6 +848,8 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(readOnly.clipboardWriteEnabled)
         XCTAssertFalse(readOnly.clipboardRichTextReadEnabled)
         XCTAssertFalse(readOnly.clipboardRichTextWriteEnabled)
+        XCTAssertFalse(readOnly.clipboardImageReadEnabled)
+        XCTAssertFalse(readOnly.clipboardImageWriteEnabled)
 
         let writeOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
@@ -856,6 +860,8 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(writeOnly.clipboardWriteEnabled)
         XCTAssertFalse(writeOnly.clipboardRichTextReadEnabled)
         XCTAssertFalse(writeOnly.clipboardRichTextWriteEnabled)
+        XCTAssertFalse(writeOnly.clipboardImageReadEnabled)
+        XCTAssertFalse(writeOnly.clipboardImageWriteEnabled)
 
         let richReadOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
@@ -866,6 +872,8 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(richReadOnly.clipboardWriteEnabled)
         XCTAssertTrue(richReadOnly.clipboardRichTextReadEnabled)
         XCTAssertFalse(richReadOnly.clipboardRichTextWriteEnabled)
+        XCTAssertFalse(richReadOnly.clipboardImageReadEnabled)
+        XCTAssertFalse(richReadOnly.clipboardImageWriteEnabled)
 
         let richWriteOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
@@ -876,6 +884,32 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(richWriteOnly.clipboardWriteEnabled)
         XCTAssertFalse(richWriteOnly.clipboardRichTextReadEnabled)
         XCTAssertTrue(richWriteOnly.clipboardRichTextWriteEnabled)
+        XCTAssertFalse(richWriteOnly.clipboardImageReadEnabled)
+        XCTAssertFalse(richWriteOnly.clipboardImageWriteEnabled)
+
+        let imageReadOnly = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            clipboardImageReadEnabled: true
+        )
+        XCTAssertFalse(imageReadOnly.clipboardReadEnabled)
+        XCTAssertFalse(imageReadOnly.clipboardWriteEnabled)
+        XCTAssertFalse(imageReadOnly.clipboardRichTextReadEnabled)
+        XCTAssertFalse(imageReadOnly.clipboardRichTextWriteEnabled)
+        XCTAssertTrue(imageReadOnly.clipboardImageReadEnabled)
+        XCTAssertFalse(imageReadOnly.clipboardImageWriteEnabled)
+
+        let imageWriteOnly = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            clipboardImageWriteEnabled: true
+        )
+        XCTAssertFalse(imageWriteOnly.clipboardReadEnabled)
+        XCTAssertFalse(imageWriteOnly.clipboardWriteEnabled)
+        XCTAssertFalse(imageWriteOnly.clipboardRichTextReadEnabled)
+        XCTAssertFalse(imageWriteOnly.clipboardRichTextWriteEnabled)
+        XCTAssertFalse(imageWriteOnly.clipboardImageReadEnabled)
+        XCTAssertTrue(imageWriteOnly.clipboardImageWriteEnabled)
     }
 
     func testViewerClipboardDirectionsAreExplicitAndIndependent() {

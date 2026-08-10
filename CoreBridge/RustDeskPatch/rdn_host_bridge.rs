@@ -35,7 +35,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 14;
+const HOST_ABI_VERSION: u32 = 15;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
@@ -216,6 +216,8 @@ pub struct RdnHostCreateOptions {
     enable_clipboard_write: bool,
     enable_clipboard_rich_text_read: bool,
     enable_clipboard_rich_text_write: bool,
+    enable_clipboard_image_read: bool,
+    enable_clipboard_image_write: bool,
 }
 
 #[repr(C)]
@@ -751,13 +753,23 @@ impl NativeClipboardPolicy {
 pub(crate) struct NativeClipboardTransferPolicy {
     small_text: NativeClipboardPolicy,
     rich_text: NativeClipboardPolicy,
+    image: NativeClipboardPolicy,
 }
 
 impl NativeClipboardTransferPolicy {
     pub(crate) fn new(small_text: NativeClipboardPolicy, rich_text: NativeClipboardPolicy) -> Self {
+        Self::with_image_policy(small_text, rich_text, NativeClipboardPolicy::default())
+    }
+
+    pub(crate) fn with_image_policy(
+        small_text: NativeClipboardPolicy,
+        rich_text: NativeClipboardPolicy,
+        image: NativeClipboardPolicy,
+    ) -> Self {
         Self {
             small_text,
             rich_text,
+            image,
         }
     }
 
@@ -769,15 +781,23 @@ impl NativeClipboardTransferPolicy {
         self.rich_text
     }
 
+    pub(crate) fn image(self) -> NativeClipboardPolicy {
+        self.image
+    }
+
     pub(crate) fn directions(self) -> NativeClipboardPolicy {
         NativeClipboardPolicy::new(
-            self.small_text.allows_remote_read() || self.rich_text.allows_remote_read(),
-            self.small_text.allows_remote_write() || self.rich_text.allows_remote_write(),
+            self.small_text.allows_remote_read()
+                || self.rich_text.allows_remote_read()
+                || self.image.allows_remote_read(),
+            self.small_text.allows_remote_write()
+                || self.rich_text.allows_remote_write()
+                || self.image.allows_remote_write(),
         )
     }
 
     fn any_enabled(self) -> bool {
-        self.small_text.any_enabled() || self.rich_text.any_enabled()
+        self.small_text.any_enabled() || self.rich_text.any_enabled() || self.image.any_enabled()
     }
 }
 
@@ -791,7 +811,7 @@ enum NativeClipboardDirection {
 enum NativeClipboardPayloadDisposition {
     InlineSmallText,
     // This remains a routing requirement rather than admission: a separate
-    // rich-text direction policy must authorize the bounded canonical bundle.
+    // format-specific direction policy must authorize the bounded canonical payload.
     IndependentTransferRequired,
     Reject,
 }
@@ -920,6 +940,23 @@ impl NativeImageTransferEnvelope {
                 })
             }
             _ => None,
+        }
+    }
+
+    fn into_canonical_clipboard(self) -> Clipboard {
+        let (format, width, height) = match self.format {
+            NativeImageFormat::Rgba { width, height } => {
+                (ClipboardFormat::ImageRgba, width, height)
+            }
+            NativeImageFormat::Png { .. } => (ClipboardFormat::ImagePng, 0, 0),
+            NativeImageFormat::Svg => (ClipboardFormat::ImageSvg, 0, 0),
+        };
+        Clipboard {
+            content: self.payload.into(),
+            format: format.into(),
+            width,
+            height,
+            ..Default::default()
         }
     }
 }
@@ -1198,7 +1235,13 @@ fn native_host_clipboard_entries_disposition(
             .is_some_and(native_host_small_text_clipboard)
     {
         NativeClipboardPayloadDisposition::InlineSmallText
-    } else if NativeRichTextTransferBundle::from_clipboards(clipboards).is_some() {
+    } else if NativeRichTextTransferBundle::from_clipboards(clipboards).is_some()
+        || (clipboards.len() == 1
+            && clipboards
+                .first()
+                .and_then(NativeImageTransferEnvelope::from_clipboard)
+                .is_some())
+    {
         NativeClipboardPayloadDisposition::IndependentTransferRequired
     } else {
         NativeClipboardPayloadDisposition::Reject
@@ -1213,6 +1256,12 @@ fn native_host_prepare_clipboard_entries(
 ) -> Option<Vec<Clipboard>> {
     if !native_host_clipboard_policy_allows(active_directions, direction) {
         return None;
+    }
+    if let [clipboard] = clipboards {
+        if let Some(image) = NativeImageTransferEnvelope::from_clipboard(clipboard) {
+            return native_host_clipboard_policy_allows(transfer_policy.image(), direction)
+                .then(|| vec![image.into_canonical_clipboard()]);
+        }
     }
     match native_host_clipboard_entries_disposition(clipboards) {
         NativeClipboardPayloadDisposition::InlineSmallText
@@ -3312,7 +3361,7 @@ pub unsafe extern "C" fn rdn_host_create(
         rendezvous_server,
         relay_server,
         server_public_key,
-        clipboard_transfer_policy: NativeClipboardTransferPolicy::new(
+        clipboard_transfer_policy: NativeClipboardTransferPolicy::with_image_policy(
             NativeClipboardPolicy::new(
                 (*options).enable_clipboard_read,
                 (*options).enable_clipboard_write,
@@ -3320,6 +3369,10 @@ pub unsafe extern "C" fn rdn_host_create(
             NativeClipboardPolicy::new(
                 (*options).enable_clipboard_rich_text_read,
                 (*options).enable_clipboard_rich_text_write,
+            ),
+            NativeClipboardPolicy::new(
+                (*options).enable_clipboard_image_read,
+                (*options).enable_clipboard_image_write,
             ),
         ),
         runtime: None,
@@ -6209,6 +6262,123 @@ mod tests {
             native_host_prepare_incoming_clipboard_entries(&entries, rich_read, active_write,)
                 .is_none()
         );
+    }
+
+    #[test]
+    fn native_host_image_transport_requires_explicit_format_and_direction_policy() {
+        let mut rgba = clipboard_fixture(
+            hbb_common::compress::compress(&[1, 2, 3, 255]),
+            true,
+            ClipboardFormat::ImageRgba,
+        );
+        rgba.width = 1;
+        rgba.height = 1;
+        let mut png = Vec::new();
+        repng::encode(&mut png, 1, 1, &[4, 5, 6, 255]).unwrap();
+        let svg = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>".to_vec();
+        let images = [
+            (rgba, vec![1, 2, 3, 255], 1, 1),
+            (
+                clipboard_fixture(png.clone(), false, ClipboardFormat::ImagePng),
+                png,
+                0,
+                0,
+            ),
+            (
+                clipboard_fixture(
+                    hbb_common::compress::compress(&svg),
+                    true,
+                    ClipboardFormat::ImageSvg,
+                ),
+                svg,
+                0,
+                0,
+            ),
+        ];
+        let image_read = NativeClipboardTransferPolicy::with_image_policy(
+            NativeClipboardPolicy::default(),
+            NativeClipboardPolicy::default(),
+            NativeClipboardPolicy::new(true, false),
+        );
+        let image_write = NativeClipboardTransferPolicy::with_image_policy(
+            NativeClipboardPolicy::default(),
+            NativeClipboardPolicy::default(),
+            NativeClipboardPolicy::new(false, true),
+        );
+        let active_read = NativeClipboardPolicy::new(true, false);
+        let active_write = NativeClipboardPolicy::new(false, true);
+
+        assert_eq!(image_read.image(), NativeClipboardPolicy::new(true, false));
+        assert_eq!(image_read.directions(), active_read);
+        assert_eq!(image_write.directions(), active_write);
+
+        for (image, expected_payload, expected_width, expected_height) in &images {
+            let mut message = Message::new();
+            message.set_clipboard(image.clone());
+            let NativeHostOutgoingClipboardDecision::Send(canonical) =
+                native_host_prepare_outgoing_clipboard_message(&message, image_read, active_read)
+            else {
+                panic!("explicit image read must admit the canonical payload");
+            };
+            let Some(message::Union::Clipboard(canonical)) = canonical.union else {
+                panic!("one image must remain one Clipboard message");
+            };
+            assert_eq!(canonical.format, image.format);
+            assert_eq!(canonical.content.as_ref(), expected_payload);
+            assert_eq!(
+                (canonical.width, canonical.height),
+                (*expected_width, *expected_height)
+            );
+            assert!(!canonical.compress);
+            assert!(canonical.special_name.is_empty());
+
+            assert!(matches!(
+                native_host_prepare_outgoing_clipboard_message(
+                    &message,
+                    NativeClipboardTransferPolicy::new(
+                        NativeClipboardPolicy::default(),
+                        NativeClipboardPolicy::new(true, false),
+                    ),
+                    active_read,
+                ),
+                NativeHostOutgoingClipboardDecision::Reject
+            ));
+            assert!(matches!(
+                native_host_prepare_outgoing_clipboard_message(&message, image_read, active_write,),
+                NativeHostOutgoingClipboardDecision::Reject
+            ));
+
+            let incoming = native_host_prepare_incoming_clipboard_entries(
+                std::slice::from_ref(&image),
+                image_write,
+                active_write,
+            )
+            .expect("explicit image write must admit the canonical payload");
+            assert_eq!(incoming.len(), 1);
+            assert_eq!(incoming[0].format, image.format);
+            assert_eq!(incoming[0].content.as_ref(), expected_payload);
+            assert!(!incoming[0].compress);
+            assert!(native_host_prepare_incoming_clipboard_entries(
+                std::slice::from_ref(&image),
+                image_write,
+                active_read,
+            )
+            .is_none());
+            assert!(native_host_prepare_incoming_clipboard_entries(
+                std::slice::from_ref(&image),
+                image_read,
+                active_write,
+            )
+            .is_none());
+        }
+
+        let image = images[0].0.clone();
+        assert!(native_host_prepare_incoming_clipboard_entries(
+            &[image.clone(), image],
+            image_write,
+            active_write,
+        )
+        .is_none());
     }
 
     #[test]

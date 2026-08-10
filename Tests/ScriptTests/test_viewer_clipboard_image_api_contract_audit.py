@@ -39,9 +39,9 @@ class ViewerClipboardImageAPIContractAuditTests(unittest.TestCase):
         self.assertFalse(document["claims"]["disabledReceiveParsesImagePayload"])
         self.assertTrue(document["claims"]["swiftCopiesCallbackScopedBytes"])
         self.assertFalse(document["claims"]["viewerProductImageClipboardEnabled"])
-        self.assertFalse(document["claims"]["hostImageClipboardTransportCapable"])
+        self.assertTrue(document["claims"]["hostImageClipboardTransportCapable"])
         self.assertFalse(document["claims"]["svgRenderingSanitized"])
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]["hostViewerImageTransportWiringRequired"]
         )
         self.assertTrue(
@@ -55,7 +55,7 @@ class ViewerClipboardImageAPIContractAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-viewer-image-transfer-wiring-contract",
+            "viewer-image-pasteboard-owner-explicit-enablement-contract",
         )
 
 

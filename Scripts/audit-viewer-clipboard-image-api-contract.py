@@ -144,14 +144,15 @@ def main() -> int:
             and "sendClipboardImage: true" not in product_sources
             and "CoreClipboardImagePayload" not in product_sources
         ),
-        "hostImageAdmissionRemainsClosed": all(
+        "hostImageTransportIsBoundedAndIndependent": all(
             marker in sources["host_bridge"]
             for marker in (
                 "ClipboardFormat::ImageRgba | ClipboardFormat::ImagePng | ClipboardFormat::ImageSvg",
-                "NativeClipboardPayloadDisposition::IndependentTransferRequired",
+                "NativeClipboardTransferPolicy::with_image_policy(",
+                "transfer_policy.image()",
+                "image.into_canonical_clipboard()",
                 "native_host_prepare_outgoing_clipboard_message(",
                 "native_host_prepare_incoming_clipboard_entries(",
-                "transfer_policy.rich_text()",
             )
         ),
         "regressionsCoverFormatsBoundsDefaultsAndGates": all(
@@ -186,7 +187,7 @@ def main() -> int:
                 "ABI v8 retains the ABI v7 bounded small- and rich-text contracts",
                 "do not enable or consume the image directions in this step",
                 "新增的 image read/write 仍默认关闭",
-                "Host/Viewer image admission",
+                "Host Control ABI v15 now carries independent image read/write policy",
             )
         ),
     }
@@ -231,16 +232,16 @@ def main() -> int:
             "disabledReceiveParsesImagePayload": False,
             "swiftCopiesCallbackScopedBytes": True,
             "viewerProductImageClipboardEnabled": False,
-            "hostImageClipboardTransportCapable": False,
+            "hostImageClipboardTransportCapable": True,
             "svgRenderingSanitized": False,
         },
         "remainingBoundary": {
-            "hostViewerImageTransportWiringRequired": True,
+            "hostViewerImageTransportWiringRequired": False,
             "singlePasteboardOwnerImageIntegrationRequired": True,
             "hostImageExplicitOptInRequired": True,
             "installedTwoMacImageClipboardAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-viewer-image-transfer-wiring-contract",
+        "nextImplementationBoundary": "viewer-image-pasteboard-owner-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-image-clipboard-api-default-off" else 1
