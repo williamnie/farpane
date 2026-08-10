@@ -42,7 +42,7 @@ class HostFileTransferSafeRootMutationsAuditTests(unittest.TestCase):
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-write-job-lifecycle",
+            "host-file-transfer-native-resume-digest-lifecycle",
         )
 
 

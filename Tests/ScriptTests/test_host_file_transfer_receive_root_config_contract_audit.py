@@ -43,11 +43,13 @@ class HostFileTransferReceiveRootConfigContractAuditTests(unittest.TestCase):
         self.assertFalse(claims["unsafeRootAccepted"])
         self.assertTrue(claims["ownerRetainedForHostLifetime"])
         self.assertTrue(claims["connectionDispatchImplemented"])
+        self.assertTrue(claims["nativeNewFileWriteLifecycleImplemented"])
+        self.assertFalse(claims["nativeResumeDigestLifecycleImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-write-job-lifecycle",
+            "host-file-transfer-native-resume-digest-lifecycle",
         )
 
 

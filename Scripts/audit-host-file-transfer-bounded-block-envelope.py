@@ -33,6 +33,7 @@ def main() -> int:
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
         "connection": repository / "Vendor/rustdesk/src/server/connection.rs",
+        "host_bridge": repository / "CoreBridge/RustDeskPatch/rdn_host_bridge.rs",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -138,10 +139,11 @@ def main() -> int:
                 "libc::RENAME_EXCL",
             )
         ),
-        "laterOwnerMutationDispatchExistsWriteJobsRemainOpen": (
+        "laterNativeNewWritesExistResumeRemainsOpen": (
             "pub(crate) struct NativeHostFileServiceOwner" in safe_root
             and "send_native_host_file_mutation_response" in sources["connection"]
-            and "self.send_fs(ipc::FS::NewWrite" in sources["connection"]
+            and "begin_native_host_write_job" in sources["connection"]
+            and "NativeHostWriteJobError::ResumeUnsupported" in sources["host_bridge"]
         ),
     }
     source_lines = {
@@ -193,8 +195,10 @@ def main() -> int:
             "nativeHostFileServiceOwnerCoreImplemented": True,
             "safeReceiveRootPrimitiveImplemented": True,
             "safeRootMutationsImplemented": True,
+            "nativeNewFileWriteLifecycleImplemented": True,
+            "nativeResumeDigestLifecycleImplemented": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-file-block-envelope-implemented-product-off" else 1

@@ -145,8 +145,8 @@ def main() -> int:
             )
         ),
         "nonNativeBuildRetainsLegacyCMFallback": (
-            connection.count("let handled_by_native_host = false;") == 4
-            and connection.count("if !handled_by_native_host {") == 4
+            connection.count("let handled_by_native_host = false;") >= 4
+            and connection.count("if !handled_by_native_host {") >= 4
             and all(
                 marker in connection
                 for marker in (
@@ -157,13 +157,15 @@ def main() -> int:
                 )
             )
         ),
-        "writeJobLifecycleRemainsExplicitlyOpen": all(
-            marker in connection
+        "nativeNewFileLifecycleExistsResumeRemainsOpen": all(
+            marker in connection + bridge
             for marker in (
+                "native_host_write_jobs: Vec<crate::rdn_host_bridge::NativeHostWriteJob>",
+                "begin_native_host_write_job",
+                "write_native_host_file_block",
+                "finish_native_host_write_job",
+                "NativeHostWriteJobError::ResumeUnsupported",
                 "self.send_fs(ipc::FS::NewWrite",
-                "self.send_fs(ipc::FS::WriteBlock",
-                "self.send_fs(ipc::FS::WriteDone",
-                "self.send_fs(ipc::FS::CancelWrite",
             )
         ),
         "focusedRustTestCoversMutationAndLifecycleOutcomes": all(
@@ -197,8 +199,8 @@ def main() -> int:
             marker in architecture
             for marker in (
                 "Native Host mutation dispatch",
-                "write-job",
-                "lifecycle",
+                "Native Host new-file write jobs",
+                "resume/digest offset",
                 "App/Agent",
             )
         ),
@@ -248,11 +250,12 @@ def main() -> int:
         "claims": {
             "safeMutationConnectionDispatchImplemented": True,
             "recursiveRemovalImplemented": False,
-            "nativeWriteJobLifecycleImplemented": False,
+            "nativeNewFileWriteLifecycleImplemented": True,
+            "nativeResumeDigestLifecycleImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "native-file-mutations-dispatched-write-jobs-off" else 1

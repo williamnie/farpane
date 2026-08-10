@@ -21,16 +21,16 @@
 #[path = "rdn_host_file_transfer.rs"]
 mod rdn_host_file_transfer;
 
+#[cfg(target_os = "macos")]
+use hbb_common::libc;
 use hbb_common::{
     config,
     message_proto::{message, Clipboard, ClipboardFormat, Message, MultiClipboards},
     password_security, tokio, toml,
 };
 use serde_json::{json, Map, Value};
-#[cfg(target_os = "macos")]
-use std::path::{Component, Path, PathBuf};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     ffi::{c_char, c_void, CStr},
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
@@ -39,6 +39,12 @@ use std::{
     },
     thread::JoinHandle,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+};
+#[cfg(target_os = "macos")]
+use std::{
+    fs::File,
+    os::unix::{ffi::OsStrExt, io::AsRawFd},
+    path::{Component, Path, PathBuf},
 };
 
 const HOST_ABI_VERSION: u32 = 17;
@@ -185,6 +191,511 @@ pub(crate) enum NativeHostFileMutationOutcome {
 }
 
 #[cfg(target_os = "macos")]
+const MAX_NATIVE_HOST_WRITE_FILES: usize = 1024;
+#[cfg(target_os = "macos")]
+const MAX_NATIVE_HOST_WRITE_METADATA_BYTES: usize = 1024 * 1024;
+#[cfg(target_os = "macos")]
+const MAX_NATIVE_HOST_WRITE_PATH_BYTES: usize = 4096;
+#[cfg(target_os = "macos")]
+const NATIVE_HOST_WRITE_STAGING_SUFFIX: &str = ".farpane-part";
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostWriteServiceState {
+    NotNativeHost,
+    Available,
+    Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostWriteJobError {
+    InvalidBatch,
+    TooManyFiles,
+    MetadataTooLarge,
+    InvalidPath,
+    DuplicateDestination,
+    DuplicateJob,
+    TooManyJobs,
+    UnexpectedFileNumber,
+    DigestMismatch,
+    ResumeUnsupported,
+    WirePayloadTooLarge,
+    DecodedPayloadInvalidOrTooLarge,
+    FileSizeExceeded,
+    FileSizeMismatch,
+    TotalSizeMismatch,
+    Storage,
+    Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct NativeHostWriteEntry {
+    name: String,
+    expected_size: u64,
+    modified_time: u64,
+}
+
+#[cfg(target_os = "macos")]
+impl NativeHostWriteEntry {
+    pub(crate) fn new(name: String, expected_size: u64, modified_time: u64) -> Self {
+        Self {
+            name,
+            expected_size,
+            modified_time,
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Debug)]
+struct NativeHostPreparedWriteEntry {
+    destination_path: PathBuf,
+    staging_path: PathBuf,
+    expected_size: u64,
+    modified_time: u64,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Debug)]
+struct NativeHostWriteFile {
+    owner: Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>,
+    staging_path: PathBuf,
+    destination_path: PathBuf,
+    file: Option<File>,
+    expected_size: u64,
+    written_size: u64,
+    modified_time: u64,
+    committed: bool,
+}
+
+#[cfg(target_os = "macos")]
+impl NativeHostWriteFile {
+    fn create(
+        owner: Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>,
+        entry: &NativeHostPreparedWriteEntry,
+    ) -> Result<Self, NativeHostWriteJobError> {
+        let file = owner
+            .create_new_file(&entry.staging_path)
+            .map_err(|_| NativeHostWriteJobError::Storage)?;
+        Ok(Self {
+            owner,
+            staging_path: entry.staging_path.clone(),
+            destination_path: entry.destination_path.clone(),
+            file: Some(file),
+            expected_size: entry.expected_size,
+            written_size: 0,
+            modified_time: entry.modified_time,
+            committed: false,
+        })
+    }
+
+    fn write_payload(&mut self, payload: &[u8]) -> Result<(), NativeHostWriteJobError> {
+        let next_size = self
+            .written_size
+            .checked_add(payload.len() as u64)
+            .ok_or(NativeHostWriteJobError::FileSizeExceeded)?;
+        if next_size > self.expected_size {
+            return Err(NativeHostWriteJobError::FileSizeExceeded);
+        }
+        let file = self.file.as_mut().ok_or(NativeHostWriteJobError::Storage)?;
+        std::io::Write::write_all(file, payload).map_err(|_| NativeHostWriteJobError::Storage)?;
+        self.written_size = next_size;
+        Ok(())
+    }
+
+    fn commit(mut self) -> Result<(), NativeHostWriteJobError> {
+        if self.written_size != self.expected_size {
+            return Err(NativeHostWriteJobError::FileSizeMismatch);
+        }
+        let file = self.file.take().ok_or(NativeHostWriteJobError::Storage)?;
+        native_host_set_file_modified_time(&file, self.modified_time)?;
+        file.sync_all()
+            .map_err(|_| NativeHostWriteJobError::Storage)?;
+        let stored_size = file
+            .metadata()
+            .map_err(|_| NativeHostWriteJobError::Storage)?
+            .len();
+        if stored_size != self.expected_size {
+            return Err(NativeHostWriteJobError::FileSizeMismatch);
+        }
+        drop(file);
+        self.owner
+            .rename_entry(&self.staging_path, &self.destination_path)
+            .map_err(|_| NativeHostWriteJobError::Storage)?;
+        self.committed = true;
+        Ok(())
+    }
+}
+
+#[cfg(target_os = "macos")]
+impl Drop for NativeHostWriteFile {
+    fn drop(&mut self) {
+        self.file.take();
+        if !self.committed {
+            let _ = self.owner.remove_file(&self.staging_path);
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Debug)]
+pub(crate) struct NativeHostWriteJob {
+    id: i32,
+    owner: Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>,
+    entries: Vec<NativeHostPreparedWriteEntry>,
+    current: Option<(usize, NativeHostWriteFile)>,
+    next_file_num: usize,
+    expected_total_size: u64,
+    written_total_size: u64,
+    overwrite_detection: bool,
+}
+
+#[cfg(target_os = "macos")]
+impl NativeHostWriteJob {
+    pub(crate) fn id(&self) -> i32 {
+        self.id
+    }
+
+    pub(crate) fn is_current(&self) -> bool {
+        let broker = MEDIA_BROKER.lock().unwrap();
+        broker.binding.is_some()
+            && broker
+                .file_service_owner
+                .as_ref()
+                .is_some_and(|owner| Arc::ptr_eq(owner, &self.owner))
+    }
+
+    pub(crate) fn confirm_new_file_digest(
+        &self,
+        file_num: i32,
+        file_size: u64,
+        last_modified: u64,
+        is_resume: bool,
+    ) -> Result<(), NativeHostWriteJobError> {
+        if !self.is_current() {
+            return Err(NativeHostWriteJobError::Unavailable);
+        }
+        if !self.overwrite_detection {
+            return Err(NativeHostWriteJobError::DigestMismatch);
+        }
+        if is_resume {
+            return Err(NativeHostWriteJobError::ResumeUnsupported);
+        }
+        let file_num =
+            usize::try_from(file_num).map_err(|_| NativeHostWriteJobError::UnexpectedFileNumber)?;
+        if file_num != self.next_file_num || file_num >= self.entries.len() {
+            return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+        }
+        if let Some((current_num, current)) = self.current.as_ref() {
+            if *current_num + 1 != file_num || current.written_size != current.expected_size {
+                return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+            }
+        }
+        let entry = &self.entries[file_num];
+        if entry.expected_size != file_size || entry.modified_time != last_modified {
+            return Err(NativeHostWriteJobError::DigestMismatch);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn write_block(
+        &mut self,
+        file_num: i32,
+        data: &[u8],
+        compressed: bool,
+    ) -> Result<(), NativeHostWriteJobError> {
+        if !self.is_current() {
+            return Err(NativeHostWriteJobError::Unavailable);
+        }
+        if data.len() > hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES {
+            return Err(NativeHostWriteJobError::WirePayloadTooLarge);
+        }
+        let payload = if compressed {
+            hbb_common::compress::decompress_with_limit(
+                data,
+                hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES,
+            )
+            .map_err(|_| NativeHostWriteJobError::DecodedPayloadInvalidOrTooLarge)?
+        } else {
+            data.to_vec()
+        };
+        let file_num =
+            usize::try_from(file_num).map_err(|_| NativeHostWriteJobError::UnexpectedFileNumber)?;
+        if file_num >= self.entries.len() {
+            return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+        }
+
+        let needs_new_file = self
+            .current
+            .as_ref()
+            .map_or(true, |(current_num, _)| *current_num != file_num);
+        if needs_new_file {
+            if file_num != self.next_file_num {
+                return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+            }
+            if let Some((current_num, current)) = self.current.take() {
+                current.commit()?;
+                self.next_file_num = current_num
+                    .checked_add(1)
+                    .ok_or(NativeHostWriteJobError::UnexpectedFileNumber)?;
+            }
+            if file_num != self.next_file_num {
+                return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+            }
+            let current = NativeHostWriteFile::create(self.owner.clone(), &self.entries[file_num])?;
+            self.current = Some((file_num, current));
+            self.next_file_num = file_num
+                .checked_add(1)
+                .ok_or(NativeHostWriteJobError::UnexpectedFileNumber)?;
+        }
+
+        let next_total = self
+            .written_total_size
+            .checked_add(payload.len() as u64)
+            .ok_or(NativeHostWriteJobError::TotalSizeMismatch)?;
+        self.current
+            .as_mut()
+            .ok_or(NativeHostWriteJobError::Storage)?
+            .1
+            .write_payload(&payload)?;
+        if next_total > self.expected_total_size {
+            return Err(NativeHostWriteJobError::TotalSizeMismatch);
+        }
+        self.written_total_size = next_total;
+        Ok(())
+    }
+
+    pub(crate) fn finish(mut self, file_num: i32) -> Result<(), NativeHostWriteJobError> {
+        if !self.is_current() {
+            return Err(NativeHostWriteJobError::Unavailable);
+        }
+        let done_file_num =
+            usize::try_from(file_num).map_err(|_| NativeHostWriteJobError::UnexpectedFileNumber)?;
+        if done_file_num != self.entries.len()
+            || self.written_total_size != self.expected_total_size
+        {
+            return Err(NativeHostWriteJobError::TotalSizeMismatch);
+        }
+        let (current_num, current) = self
+            .current
+            .take()
+            .ok_or(NativeHostWriteJobError::FileSizeMismatch)?;
+        if current_num + 1 != self.entries.len() {
+            return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+        }
+        current.commit()?;
+        self.next_file_num = self.entries.len();
+        Ok(())
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) enum NativeHostWriteJobAdmission {
+    NotNativeHost,
+    Admitted(NativeHostWriteJob),
+    Rejected(NativeHostWriteJobError),
+    Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn native_host_write_service_state() -> NativeHostWriteServiceState {
+    let broker = MEDIA_BROKER.lock().unwrap();
+    if broker.binding.is_none() {
+        return if HOST_INSTANCE_LIVE.load(Ordering::Acquire) {
+            NativeHostWriteServiceState::Unavailable
+        } else {
+            NativeHostWriteServiceState::NotNativeHost
+        };
+    }
+    if broker.file_service_owner.is_some() {
+        NativeHostWriteServiceState::Available
+    } else {
+        NativeHostWriteServiceState::Unavailable
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn native_host_begin_new_file_write_job(
+    id: i32,
+    base_path: &str,
+    start_file_num: i32,
+    entries: Vec<NativeHostWriteEntry>,
+    total_size: u64,
+    overwrite_detection: bool,
+) -> NativeHostWriteJobAdmission {
+    let owner = {
+        let broker = MEDIA_BROKER.lock().unwrap();
+        if broker.binding.is_none() {
+            return if HOST_INSTANCE_LIVE.load(Ordering::Acquire) {
+                NativeHostWriteJobAdmission::Unavailable
+            } else {
+                NativeHostWriteJobAdmission::NotNativeHost
+            };
+        }
+        let Some(owner) = broker.file_service_owner.as_ref() else {
+            return NativeHostWriteJobAdmission::Unavailable;
+        };
+        owner.clone()
+    };
+    match prepare_native_host_write_job(
+        id,
+        owner,
+        base_path,
+        start_file_num,
+        entries,
+        total_size,
+        overwrite_detection,
+    ) {
+        Ok(job) => NativeHostWriteJobAdmission::Admitted(job),
+        Err(error) => NativeHostWriteJobAdmission::Rejected(error),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn prepare_native_host_write_job(
+    id: i32,
+    owner: Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>,
+    base_path: &str,
+    start_file_num: i32,
+    entries: Vec<NativeHostWriteEntry>,
+    total_size: u64,
+    overwrite_detection: bool,
+) -> Result<NativeHostWriteJob, NativeHostWriteJobError> {
+    if start_file_num != 0 || entries.is_empty() {
+        return Err(NativeHostWriteJobError::InvalidBatch);
+    }
+    if entries.len() > MAX_NATIVE_HOST_WRITE_FILES {
+        return Err(NativeHostWriteJobError::TooManyFiles);
+    }
+    let base_path = Path::new(base_path);
+    if !native_host_write_relative_path_is_valid(base_path) {
+        return Err(NativeHostWriteJobError::InvalidPath);
+    }
+    let mut metadata_bytes = base_path.as_os_str().as_bytes().len();
+    let mut expected_total_size = 0_u64;
+    let mut destinations = HashSet::with_capacity(entries.len());
+    let mut prepared = Vec::with_capacity(entries.len());
+    let single_entry = entries.len() == 1;
+    for entry in entries {
+        metadata_bytes = metadata_bytes
+            .checked_add(entry.name.len())
+            .ok_or(NativeHostWriteJobError::MetadataTooLarge)?;
+        if metadata_bytes > MAX_NATIVE_HOST_WRITE_METADATA_BYTES {
+            return Err(NativeHostWriteJobError::MetadataTooLarge);
+        }
+        if entry.modified_time > i64::MAX as u64 {
+            return Err(NativeHostWriteJobError::InvalidBatch);
+        }
+        expected_total_size = expected_total_size
+            .checked_add(entry.expected_size)
+            .ok_or(NativeHostWriteJobError::TotalSizeMismatch)?;
+        let destination_path = if single_entry && entry.name.is_empty() {
+            base_path.to_path_buf()
+        } else {
+            if entry.name.is_empty() {
+                return Err(NativeHostWriteJobError::InvalidPath);
+            }
+            base_path.join(&entry.name)
+        };
+        if !native_host_write_relative_path_is_valid(&destination_path)
+            || native_host_file_path_is_reserved(&destination_path)
+            || destination_path.as_os_str().as_bytes().len() > MAX_NATIVE_HOST_WRITE_PATH_BYTES
+        {
+            return Err(NativeHostWriteJobError::InvalidPath);
+        }
+        if !destinations.insert(destination_path.clone()) {
+            return Err(NativeHostWriteJobError::DuplicateDestination);
+        }
+        let staging_path = native_host_write_staging_path(&destination_path)?;
+        prepared.push(NativeHostPreparedWriteEntry {
+            destination_path,
+            staging_path,
+            expected_size: entry.expected_size,
+            modified_time: entry.modified_time,
+        });
+    }
+    if total_size != expected_total_size {
+        return Err(NativeHostWriteJobError::TotalSizeMismatch);
+    }
+    Ok(NativeHostWriteJob {
+        id,
+        owner,
+        entries: prepared,
+        current: None,
+        next_file_num: 0,
+        expected_total_size,
+        written_total_size: 0,
+        overwrite_detection,
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_write_relative_path_is_valid(path: &Path) -> bool {
+    let bytes = path.as_os_str().as_bytes();
+    !bytes.is_empty()
+        && !bytes.starts_with(b"/")
+        && !bytes.ends_with(b"/")
+        && !bytes.contains(&0)
+        && !bytes
+            .split(|byte| *byte == b'/')
+            .any(|component| component.is_empty() || component == b"." || component == b"..")
+        && path
+            .components()
+            .all(|component| matches!(component, Component::Normal(_)))
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_file_path_is_reserved(path: &Path) -> bool {
+    path.components().any(|component| {
+        let Component::Normal(component) = component else {
+            return false;
+        };
+        component
+            .as_bytes()
+            .ends_with(NATIVE_HOST_WRITE_STAGING_SUFFIX.as_bytes())
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_write_staging_path(
+    destination_path: &Path,
+) -> Result<PathBuf, NativeHostWriteJobError> {
+    let file_name = destination_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or(NativeHostWriteJobError::InvalidPath)?;
+    let staging_name = format!("{file_name}{NATIVE_HOST_WRITE_STAGING_SUFFIX}");
+    let staging_path = destination_path.with_file_name(staging_name);
+    if staging_path.as_os_str().as_bytes().len() > MAX_NATIVE_HOST_WRITE_PATH_BYTES {
+        return Err(NativeHostWriteJobError::InvalidPath);
+    }
+    Ok(staging_path)
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_set_file_modified_time(
+    file: &File,
+    modified_time: u64,
+) -> Result<(), NativeHostWriteJobError> {
+    let times = [
+        libc::timespec {
+            tv_sec: 0,
+            tv_nsec: libc::UTIME_OMIT,
+        },
+        libc::timespec {
+            tv_sec: modified_time as libc::time_t,
+            tv_nsec: 0,
+        },
+    ];
+    if unsafe { libc::futimens(file.as_raw_fd(), times.as_ptr()) } != 0 {
+        return Err(NativeHostWriteJobError::Storage);
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
 fn native_host_rename_destination(path: &str, new_name: &str) -> Option<PathBuf> {
     let mut components = Path::new(new_name).components();
     let Component::Normal(new_name) = components.next()? else {
@@ -201,6 +712,15 @@ fn apply_native_host_file_mutation(
     owner: &rdn_host_file_transfer::NativeHostFileServiceOwner,
     mutation: NativeHostFileMutation<'_>,
 ) -> Result<(), rdn_host_file_transfer::NativeFileTransferRootError> {
+    let path = match mutation {
+        NativeHostFileMutation::CreateDirectory { path }
+        | NativeHostFileMutation::RemoveFile { path }
+        | NativeHostFileMutation::RemoveDirectory { path, .. }
+        | NativeHostFileMutation::Rename { path, .. } => Path::new(path),
+    };
+    if native_host_file_path_is_reserved(path) {
+        return Err(rdn_host_file_transfer::NativeFileTransferRootError::InvalidRelativePath);
+    }
     match mutation {
         NativeHostFileMutation::CreateDirectory { path } => owner.create_directory(Path::new(path)),
         NativeHostFileMutation::RemoveFile { path } => owner.remove_file(Path::new(path)),
@@ -210,6 +730,11 @@ fn apply_native_host_file_mutation(
         NativeHostFileMutation::Rename { path, new_name } => {
             let destination = native_host_rename_destination(path, new_name)
                 .ok_or(rdn_host_file_transfer::NativeFileTransferRootError::InvalidRelativePath)?;
+            if native_host_file_path_is_reserved(&destination) {
+                return Err(
+                    rdn_host_file_transfer::NativeFileTransferRootError::InvalidRelativePath,
+                );
+            }
             owner.rename_entry(Path::new(path), &destination)
         }
     }
@@ -5307,6 +5832,234 @@ mod tests {
         );
         assert_eq!(native_host_file_transfer_option(false), "N");
         assert_eq!(native_host_file_transfer_option(true), "Y");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_new_file_write_job_commits_exact_files() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+                receive_root.as_path(),
+            )
+            .expect("open private receive root"),
+        );
+        let mut host = ready_test_host("native-write-commit-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostWriteJobAdmission::Admitted(mut job) = native_host_begin_new_file_write_job(
+            41,
+            "incoming",
+            0,
+            vec![
+                NativeHostWriteEntry::new("a.txt".to_string(), 3, 1),
+                NativeHostWriteEntry::new("nested/b.txt".to_string(), 4, 2),
+            ],
+            7,
+            true,
+        ) else {
+            panic!("native write job must be admitted");
+        };
+        assert_eq!(job.id(), 41);
+        assert_eq!(job.confirm_new_file_digest(0, 3, 1, false), Ok(()));
+        assert_eq!(job.write_block(0, b"abc", false), Ok(()));
+        assert_eq!(job.confirm_new_file_digest(1, 4, 2, false), Ok(()));
+        let compressed = hbb_common::compress::compress(b"defg");
+        assert_eq!(job.write_block(1, &compressed, true), Ok(()));
+        assert_eq!(job.finish(2), Ok(()));
+
+        assert_eq!(
+            fs::read(fixture.root.join("incoming/a.txt")).unwrap(),
+            b"abc"
+        );
+        assert_eq!(
+            fs::read(fixture.root.join("incoming/nested/b.txt")).unwrap(),
+            b"defg"
+        );
+        assert!(!fixture.root.join("incoming/a.txt.farpane-part").exists());
+        assert!(!fixture
+            .root
+            .join("incoming/nested/b.txt.farpane-part")
+            .exists());
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_new_file_write_job_rejects_bounds_order_and_resume() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+                receive_root.as_path(),
+            )
+            .expect("open private receive root"),
+        );
+        let mut host = ready_test_host("native-write-bounds-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostWriteJobAdmission::Admitted(mut job) = native_host_begin_new_file_write_job(
+            42,
+            "bounded",
+            0,
+            vec![NativeHostWriteEntry::new("file.txt".to_string(), 3, 3)],
+            3,
+            true,
+        ) else {
+            panic!("native write job must be admitted");
+        };
+        assert_eq!(
+            job.confirm_new_file_digest(0, 3, 3, true),
+            Err(NativeHostWriteJobError::ResumeUnsupported)
+        );
+        assert_eq!(
+            job.write_block(1, b"x", false),
+            Err(NativeHostWriteJobError::UnexpectedFileNumber)
+        );
+        let oversized_wire = vec![0; hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES + 1];
+        assert_eq!(
+            job.write_block(0, &oversized_wire, false),
+            Err(NativeHostWriteJobError::WirePayloadTooLarge)
+        );
+        let oversized_decoded = hbb_common::compress::compress(&vec![
+            b'x';
+            hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES
+                + 1
+        ]);
+        assert_eq!(
+            job.write_block(0, &oversized_decoded, true),
+            Err(NativeHostWriteJobError::DecodedPayloadInvalidOrTooLarge)
+        );
+        assert_eq!(
+            job.write_block(0, b"four", false),
+            Err(NativeHostWriteJobError::FileSizeExceeded)
+        );
+        drop(job);
+        assert!(!fixture.root.join("bounded/file.txt").exists());
+        assert!(!fixture.root.join("bounded/file.txt.farpane-part").exists());
+
+        assert!(matches!(
+            native_host_begin_new_file_write_job(
+                43,
+                "../escape",
+                0,
+                vec![NativeHostWriteEntry::new("file.txt".to_string(), 0, 0)],
+                0,
+                false,
+            ),
+            NativeHostWriteJobAdmission::Rejected(NativeHostWriteJobError::InvalidPath)
+        ));
+        assert!(matches!(
+            native_host_begin_new_file_write_job(
+                44,
+                "incoming",
+                0,
+                vec![
+                    NativeHostWriteEntry::new("same.txt".to_string(), 0, 0),
+                    NativeHostWriteEntry::new("same.txt".to_string(), 0, 0),
+                ],
+                0,
+                false,
+            ),
+            NativeHostWriteJobAdmission::Rejected(NativeHostWriteJobError::DuplicateDestination)
+        ));
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_new_file_write_job_drop_cleans_only_staging() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+                receive_root.as_path(),
+            )
+            .expect("open private receive root"),
+        );
+        let mut host = ready_test_host("native-write-drop-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostWriteJobAdmission::Admitted(mut job) = native_host_begin_new_file_write_job(
+            45,
+            "cancel",
+            0,
+            vec![
+                NativeHostWriteEntry::new("committed.txt".to_string(), 1, 4),
+                NativeHostWriteEntry::new("partial.txt".to_string(), 2, 5),
+            ],
+            3,
+            false,
+        ) else {
+            panic!("native write job must be admitted");
+        };
+        assert_eq!(job.write_block(0, b"a", false), Ok(()));
+        assert_eq!(job.write_block(1, b"b", false), Ok(()));
+        assert!(fixture.root.join("cancel/committed.txt").is_file());
+        assert!(fixture
+            .root
+            .join("cancel/partial.txt.farpane-part")
+            .is_file());
+        drop(job);
+
+        assert_eq!(
+            fs::read(fixture.root.join("cancel/committed.txt")).unwrap(),
+            b"a"
+        );
+        assert!(!fixture.root.join("cancel/partial.txt").exists());
+        assert!(!fixture
+            .root
+            .join("cancel/partial.txt.farpane-part")
+            .exists());
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_new_file_write_job_rejects_after_unbind() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+                receive_root.as_path(),
+            )
+            .expect("open private receive root"),
+        );
+        let mut host = ready_test_host("native-write-unbind-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostWriteJobAdmission::Admitted(mut job) = native_host_begin_new_file_write_job(
+            46,
+            "unbind/file.txt",
+            0,
+            vec![NativeHostWriteEntry::new(String::new(), 2, 6)],
+            2,
+            false,
+        ) else {
+            panic!("native write job must be admitted");
+        };
+        assert_eq!(job.write_block(0, b"a", false), Ok(()));
+        unbind_media_host();
+        assert_eq!(
+            job.write_block(0, b"b", false),
+            Err(NativeHostWriteJobError::Unavailable)
+        );
+        drop(job);
+        assert!(!fixture.root.join("unbind/file.txt").exists());
+        assert!(!fixture.root.join("unbind/file.txt.farpane-part").exists());
     }
 
     #[cfg(target_os = "macos")]

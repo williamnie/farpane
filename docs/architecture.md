@@ -229,9 +229,13 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   descriptor-relative create/resume/mutation 与唯一 owner core 已建立。Native Host mutation dispatch
   已在 dedicated file scope 内把 create-directory、remove-file、non-recursive remove-directory 与
   same-parent no-replace rename 交给 bound owner；成功返回 upstream done，拒绝/不可用只返回固定、
-  不含路径的错误码，非 native build 继续走原 CM fallback。receive、block/done/cancel 等 write-job
-  lifecycle 仍投递给 external CM，尚未由 native owner 接管，因此当前 file ABI opt-in 仍不具备
-  完整运行链，App/Agent 仍不传 file opt-in，必须继续保持关闭。
+  不含路径的错误码，非 native build 继续走原 CM fallback。Native Host new-file write jobs 已由
+  connection 本地持有：整批只接受最多 1,024 个 file entry、1 MiB 文件名元数据和 8 个并发 job，
+  文件大小总和必须与声明一致；每个文件先写入同 parent 的 reserved `*.farpane-part`，128 KiB
+  wire/decoded block、文件顺序、单文件/总大小均在写入时复核，完成时设置 mtime、`sync_all` 后用
+  no-replace rename 提交，cancel/error/disconnect 只删除尚未提交的 staging。新文件 digest 只接受
+  exact metadata 并回复 offset 0；resume/digest offset、overwrite、read/list/download 与 Viewer
+  destination/progress UI 尚未实现。App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

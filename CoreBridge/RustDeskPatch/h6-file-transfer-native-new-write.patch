@@ -1,0 +1,411 @@
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -690,0 +691,6 @@ const NATIVE_HOST_FILE_OPERATION_UNAVAILABLE: &str = "native-file-operation-unav
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++const NATIVE_HOST_FILE_WRITE_REJECTED: &str = "native-file-write-rejected";
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++const NATIVE_HOST_FILE_WRITE_UNAVAILABLE: &str = "native-file-write-unavailable";
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++const MAX_NATIVE_HOST_WRITE_JOBS_PER_CONNECTION: usize = 8;
+@@ -883,0 +890,2 @@ pub struct Connection {
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    native_host_write_jobs: Vec<crate::rdn_host_bridge::NativeHostWriteJob>,
+@@ -1190,0 +1199,2 @@ impl Connection {
++            #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++            native_host_write_jobs: Vec::new(),
+@@ -3321,0 +3332,256 @@ impl Connection {
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn send_native_host_write_failure(
++        &mut self,
++        id: i32,
++        file_num: i32,
++        error: crate::rdn_host_bridge::NativeHostWriteJobError,
++    ) {
++        let error = if matches!(
++            error,
++            crate::rdn_host_bridge::NativeHostWriteJobError::Unavailable
++        ) {
++            NATIVE_HOST_FILE_WRITE_UNAVAILABLE
++        } else {
++            NATIVE_HOST_FILE_WRITE_REJECTED
++        };
++        self.send(fs::new_error(id, error, file_num)).await;
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn send_native_host_write_state_failure(&mut self, id: i32, file_num: i32) {
++        let error = match crate::rdn_host_bridge::native_host_write_service_state() {
++            crate::rdn_host_bridge::NativeHostWriteServiceState::Unavailable => {
++                crate::rdn_host_bridge::NativeHostWriteJobError::Unavailable
++            }
++            _ => crate::rdn_host_bridge::NativeHostWriteJobError::InvalidBatch,
++        };
++        self.send_native_host_write_failure(id, file_num, error)
++            .await;
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn begin_native_host_write_job(
++        &mut self,
++        request: &FileTransferReceiveRequest,
++        overwrite_detection: bool,
++    ) -> bool {
++        use crate::rdn_host_bridge::{
++            NativeHostWriteEntry, NativeHostWriteJobAdmission, NativeHostWriteServiceState,
++        };
++
++        match crate::rdn_host_bridge::native_host_write_service_state() {
++            NativeHostWriteServiceState::NotNativeHost => return false,
++            NativeHostWriteServiceState::Unavailable => {
++                self.send_native_host_write_failure(
++                    request.id,
++                    request.file_num,
++                    crate::rdn_host_bridge::NativeHostWriteJobError::Unavailable,
++                )
++                .await;
++                return true;
++            }
++            NativeHostWriteServiceState::Available => {}
++        }
++        if self
++            .native_host_write_jobs
++            .iter()
++            .any(|job| job.id() == request.id)
++        {
++            self.send_native_host_write_failure(
++                request.id,
++                request.file_num,
++                crate::rdn_host_bridge::NativeHostWriteJobError::DuplicateJob,
++            )
++            .await;
++            return true;
++        }
++        if self.native_host_write_jobs.len() >= MAX_NATIVE_HOST_WRITE_JOBS_PER_CONNECTION {
++            self.send_native_host_write_failure(
++                request.id,
++                request.file_num,
++                crate::rdn_host_bridge::NativeHostWriteJobError::TooManyJobs,
++            )
++            .await;
++            return true;
++        }
++        if !request.files.iter().all(|entry| {
++            matches!(entry.entry_type.enum_value(), Ok(FileType::File))
++        }) {
++            self.send_native_host_write_failure(
++                request.id,
++                request.file_num,
++                crate::rdn_host_bridge::NativeHostWriteJobError::InvalidBatch,
++            )
++            .await;
++            return true;
++        }
++        let entries = request
++            .files
++            .iter()
++            .map(|entry| {
++                NativeHostWriteEntry::new(
++                    entry.name.clone(),
++                    entry.size,
++                    entry.modified_time,
++                )
++            })
++            .collect();
++        match crate::rdn_host_bridge::native_host_begin_new_file_write_job(
++            request.id,
++            &request.path,
++            request.file_num,
++            entries,
++            request.total_size,
++            overwrite_detection,
++        ) {
++            NativeHostWriteJobAdmission::Admitted(job) => {
++                self.native_host_write_jobs.push(job);
++            }
++            NativeHostWriteJobAdmission::NotNativeHost
++            | NativeHostWriteJobAdmission::Unavailable => {
++                self.send_native_host_write_failure(
++                    request.id,
++                    request.file_num,
++                    crate::rdn_host_bridge::NativeHostWriteJobError::Unavailable,
++                )
++                .await;
++            }
++            NativeHostWriteJobAdmission::Rejected(error) => {
++                self.send_native_host_write_failure(
++                    request.id,
++                    request.file_num,
++                    error,
++                )
++                .await;
++            }
++        }
++        true
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn write_native_host_file_block(&mut self, block: &FileTransferBlock) -> bool {
++        let Some(index) = self
++            .native_host_write_jobs
++            .iter()
++            .position(|job| job.id() == block.id)
++        else {
++            if matches!(
++                crate::rdn_host_bridge::native_host_write_service_state(),
++                crate::rdn_host_bridge::NativeHostWriteServiceState::NotNativeHost
++            ) {
++                return false;
++            }
++            self.send_native_host_write_state_failure(block.id, block.file_num)
++                .await;
++            return true;
++        };
++        let result = self.native_host_write_jobs[index].write_block(
++            block.file_num,
++            block.data.as_ref(),
++            block.compressed,
++        );
++        if let Err(error) = result {
++            self.native_host_write_jobs.remove(index);
++            self.send_native_host_write_failure(block.id, block.file_num, error)
++                .await;
++        }
++        true
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn confirm_native_host_new_file_digest(&mut self, digest: &FileTransferDigest) -> bool {
++        let Some(index) = self
++            .native_host_write_jobs
++            .iter()
++            .position(|job| job.id() == digest.id)
++        else {
++            if matches!(
++                crate::rdn_host_bridge::native_host_write_service_state(),
++                crate::rdn_host_bridge::NativeHostWriteServiceState::NotNativeHost
++            ) {
++                return false;
++            }
++            self.send_native_host_write_state_failure(digest.id, digest.file_num)
++                .await;
++            return true;
++        };
++        let result = self.native_host_write_jobs[index].confirm_new_file_digest(
++            digest.file_num,
++            digest.file_size,
++            digest.last_modified,
++            digest.is_resume,
++        );
++        if let Err(error) = result {
++            self.native_host_write_jobs.remove(index);
++            self.send_native_host_write_failure(digest.id, digest.file_num, error)
++                .await;
++            return true;
++        }
++        let request = FileTransferSendConfirmRequest {
++            id: digest.id,
++            file_num: digest.file_num,
++            union: Some(file_transfer_send_confirm_request::Union::OffsetBlk(0)),
++            ..Default::default()
++        };
++        self.send(fs::new_send_confirm(request)).await;
++        true
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn finish_native_host_write_job(&mut self, done: &FileTransferDone) -> bool {
++        let Some(index) = self
++            .native_host_write_jobs
++            .iter()
++            .position(|job| job.id() == done.id)
++        else {
++            if matches!(
++                crate::rdn_host_bridge::native_host_write_service_state(),
++                crate::rdn_host_bridge::NativeHostWriteServiceState::NotNativeHost
++            ) {
++                return false;
++            }
++            self.send_native_host_write_state_failure(done.id, done.file_num)
++                .await;
++            return true;
++        };
++        let job = self.native_host_write_jobs.remove(index);
++        match job.finish(done.file_num) {
++            Ok(()) => self.send(fs::new_done(done.id, done.file_num)).await,
++            Err(error) => {
++                self.send_native_host_write_failure(done.id, done.file_num, error)
++                    .await
++            }
++        }
++        true
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    fn cancel_native_host_write_job(&mut self, id: i32) -> bool {
++        if let Some(index) = self
++            .native_host_write_jobs
++            .iter()
++            .position(|job| job.id() == id)
++        {
++            self.native_host_write_jobs.remove(index);
++            return true;
++        }
++        !matches!(
++            crate::rdn_host_bridge::native_host_write_service_state(),
++            crate::rdn_host_bridge::NativeHostWriteServiceState::NotNativeHost
++        )
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn reject_native_host_write_error(&mut self, error: &FileTransferError) -> bool {
++        let handled = self.cancel_native_host_write_job(error.id);
++        if handled {
++            self.send_native_host_write_failure(
++                error.id,
++                error.file_num,
++                crate::rdn_host_bridge::NativeHostWriteJobError::InvalidBatch,
++            )
++            .await;
++        }
++        handled
++    }
++
+@@ -4686,20 +4952,27 @@ impl Connection {
+-                                self.send_fs(ipc::FS::NewWrite {
+-                                    path: r.path.clone(),
+-                                    id: r.id,
+-                                    file_num: r.file_num,
+-                                    files: r
+-                                        .files
+-                                        .to_vec()
+-                                        .drain(..)
+-                                        .map(|f| (f.name, f.modified_time))
+-                                        .collect(),
+-                                    overwrite_detection: od,
+-                                    total_size: r.total_size,
+-                                    conn_id: self.inner.id(),
+-                                });
+-                                self.post_file_audit(
+-                                    FileAuditType::RemoteReceive,
+-                                    &r.path,
+-                                    Self::get_files_for_audit(fs::JobType::Generic, r.files),
+-                                    json!({}),
+-                                );
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let handled_by_native_host =
++                                    self.begin_native_host_write_job(&r, od).await;
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let handled_by_native_host = false;
++                                if !handled_by_native_host {
++                                    self.send_fs(ipc::FS::NewWrite {
++                                        path: r.path.clone(),
++                                        id: r.id,
++                                        file_num: r.file_num,
++                                        files: r
++                                            .files
++                                            .to_vec()
++                                            .drain(..)
++                                            .map(|f| (f.name, f.modified_time))
++                                            .collect(),
++                                        overwrite_detection: od,
++                                        total_size: r.total_size,
++                                        conn_id: self.inner.id(),
++                                    });
++                                    self.post_file_audit(
++                                        FileAuditType::RemoteReceive,
++                                        &r.path,
++                                        Self::get_files_for_audit(fs::JobType::Generic, r.files),
++                                        json!({}),
++                                    );
++                                }
+@@ -4784 +5057,8 @@ impl Connection {
+-                                self.send_fs(ipc::FS::CancelWrite { id: c.id });
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let native_write_cancelled =
++                                    self.cancel_native_host_write_job(c.id);
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let native_write_cancelled = false;
++                                if !native_write_cancelled {
++                                    self.send_fs(ipc::FS::CancelWrite { id: c.id });
++                                }
+@@ -4852,6 +5132,13 @@ impl Connection {
+-                        self.send_fs(ipc::FS::WriteBlock {
+-                            id: block.id,
+-                            file_num: block.file_num,
+-                            data: block.data,
+-                            compressed: block.compressed,
+-                        });
++                        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                        let handled_by_native_host =
++                            self.write_native_host_file_block(&block).await;
++                        #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                        let handled_by_native_host = false;
++                        if !handled_by_native_host {
++                            self.send_fs(ipc::FS::WriteBlock {
++                                id: block.id,
++                                file_num: block.file_num,
++                                data: block.data,
++                                compressed: block.compressed,
++                            });
++                        }
+@@ -4860,4 +5147,28 @@ impl Connection {
+-                        self.send_fs(ipc::FS::WriteDone {
+-                            id: d.id,
+-                            file_num: d.file_num,
+-                        });
++                        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                        let handled_by_native_host =
++                            self.finish_native_host_write_job(&d).await;
++                        #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                        let handled_by_native_host = false;
++                        if !handled_by_native_host {
++                            self.send_fs(ipc::FS::WriteDone {
++                                id: d.id,
++                                file_num: d.file_num,
++                            });
++                        }
++                    }
++                    Some(file_response::Union::Digest(d)) => {
++                        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                        let handled_by_native_host =
++                            self.confirm_native_host_new_file_digest(&d).await;
++                        #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                        let handled_by_native_host = false;
++                        if !handled_by_native_host {
++                            self.send_fs(ipc::FS::CheckDigest {
++                                id: d.id,
++                                file_num: d.file_num,
++                                file_size: d.file_size,
++                                last_modified: d.last_modified,
++                                is_upload: true,
++                                is_resume: d.is_resume,
++                            });
++                        }
+@@ -4865,8 +5175,0 @@ impl Connection {
+-                    Some(file_response::Union::Digest(d)) => self.send_fs(ipc::FS::CheckDigest {
+-                        id: d.id,
+-                        file_num: d.file_num,
+-                        file_size: d.file_size,
+-                        last_modified: d.last_modified,
+-                        is_upload: true,
+-                        is_resume: d.is_resume,
+-                    }),
+@@ -4874,5 +5177,12 @@ impl Connection {
+-                        self.send_fs(ipc::FS::WriteError {
+-                            id: e.id,
+-                            file_num: e.file_num,
+-                            err: e.error,
+-                        });
++                        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                        let handled_by_native_host =
++                            self.reject_native_host_write_error(&e).await;
++                        #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                        let handled_by_native_host = false;
++                        if !handled_by_native_host {
++                            self.send_fs(ipc::FS::WriteError {
++                                id: e.id,
++                                file_num: e.file_num,
++                                err: e.error,
++                            });
++                        }

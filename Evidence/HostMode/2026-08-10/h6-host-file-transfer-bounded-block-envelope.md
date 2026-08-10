@@ -58,6 +58,7 @@ product callers.
 
 H6.3d1 established the descriptor-relative no-follow receive root, H6.3d2 added
 safe mutations, H6.3e1 composed their owner core, H6.3e2 configured the
-immutable root, and H6.3e3 connected safe mutations. Continue with
-`host-file-transfer-native-write-job-lifecycle`, still before any product
-caller can opt in.
+immutable root, H6.3e3 connected safe mutations, and H6.3e4a later added the
+bounded new-file write lifecycle. Continue with
+`host-file-transfer-native-resume-digest-lifecycle`; overwrite, read/list,
+Viewer UI and product opt-in remain open.
