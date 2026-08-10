@@ -96,8 +96,8 @@ def main() -> int:
             and "byte-exact NFC、完整 case-fold" in sources["architecture"]
             and "byte-exact NFC、完整 case-fold collision" in sources["design"]
         ),
-        "abiV11RetainsEnvelopeAndListLifecycle": (
-            "#define RDN_ABI_VERSION 11u" in header
+        "abiV12RetainsEnvelopeAndListLifecycle": (
+            "#define RDN_ABI_VERSION 12u" in header
             and "rdn_client_file_transfer_list_root" in header
             and "RDNFileTransferListEvent" in header
         ),

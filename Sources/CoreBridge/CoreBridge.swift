@@ -280,6 +280,32 @@ public struct CoreFileTransferManifestEvent: Equatable, Sendable {
     }
 }
 
+/// Path-free scalar projection used to register one Viewer download against
+/// the exact recursive manifest that authorized it. Destination ownership
+/// stays in Swift and never crosses the Viewer ABI at this lifecycle stage.
+package struct CoreFileTransferDownloadStart: Equatable, Sendable {
+    package let sessionEpoch: UInt64
+    package let manifestRequestID: Int32
+    package let transferID: Int32
+    package let totalFiles: UInt32
+    package let totalBytes: UInt64
+
+    package init?(
+        request: ViewerFileTransferDownloadRequest,
+        manifestRequestID: Int32
+    ) {
+        guard
+            manifestRequestID > 0,
+            let totalFiles = UInt32(exactly: request.manifest.files.count)
+        else { return nil }
+        sessionEpoch = request.sessionEpoch
+        self.manifestRequestID = manifestRequestID
+        transferID = request.transferID
+        self.totalFiles = totalFiles
+        totalBytes = request.manifest.totalBytes
+    }
+}
+
 public struct CoreConnectionConfig: Sendable {
     public let rendezvousServer: String
     public let serverPublicKey: String
@@ -1296,6 +1322,30 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             sessionEpoch,
             requestID
         )
+    }
+
+    /// Registers a bounded queued download lifecycle only. The Rust ABI does
+    /// not receive or borrow the destination lease and does not start file I/O.
+    @discardableResult
+    package func startFileTransferDownload(
+        _ request: ViewerFileTransferDownloadRequest,
+        manifestRequestID: Int32
+    ) -> Int32 {
+        guard let start = CoreFileTransferDownloadStart(
+            request: request,
+            manifestRequestID: manifestRequestID
+        ) else {
+            return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+        }
+        var raw = RDNFileTransferDownloadStart(
+            abi_version: RDN_ABI_VERSION,
+            session_epoch: start.sessionEpoch,
+            manifest_request_id: start.manifestRequestID,
+            transfer_id: start.transferID,
+            total_files: start.totalFiles,
+            total_bytes: start.totalBytes
+        )
+        return rdn_shim_client_file_transfer_download_start(library, client, &raw)
     }
 }
 

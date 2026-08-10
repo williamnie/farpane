@@ -12,7 +12,7 @@ use crate::common::input::{
 use crate::ui_session_interface::{io_loop, InvokeUiSession, Session};
 use hbb_common::{message_proto::*, rendezvous_proto::ConnType};
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     ffi::{c_char, c_void, CStr, CString},
     ptr,
     sync::{
@@ -23,7 +23,7 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 11;
+const ABI_VERSION: u32 = 12;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -41,6 +41,7 @@ const FILE_TRANSFER_LIST_ENTRY_DIRECTORY: u32 = 1;
 const FILE_TRANSFER_LIST_ENTRY_FILE: u32 = 2;
 const FILE_TRANSFER_MANIFEST_PART_FILES: u32 = 1;
 const FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES: u32 = 2;
+const MAX_VIEWER_DOWNLOAD_JOBS: usize = 8;
 const CLIPBOARD_IMAGE_FORMAT_RGBA: u32 = 1;
 const CLIPBOARD_IMAGE_FORMAT_PNG: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_SVG: u32 = 3;
@@ -156,6 +157,16 @@ pub struct RDNFileTransferEvent {
 }
 
 #[repr(C)]
+pub struct RDNFileTransferDownloadStart {
+    abi_version: u32,
+    session_epoch: u64,
+    manifest_request_id: i32,
+    transfer_id: i32,
+    total_files: u32,
+    total_bytes: u64,
+}
+
+#[repr(C)]
 struct RDNFileTransferListEntry {
     kind: u32,
     relative_path_utf8: *const u8,
@@ -211,6 +222,25 @@ struct NativeViewerManifestRequest {
     request_id: i32,
     files_delivered: bool,
     empty_directories_delivered: bool,
+    total_files: Option<u32>,
+    total_bytes: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct NativeViewerCompletedManifest {
+    session_epoch: u64,
+    request_id: i32,
+    total_files: u32,
+    total_bytes: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct NativeViewerDownloadJob {
+    session_epoch: u64,
+    manifest_request_id: i32,
+    transfer_id: i32,
+    total_files: u32,
+    total_bytes: u64,
 }
 
 #[repr(C)]
@@ -336,6 +366,8 @@ struct BridgeShared {
     pending_file_list_request: Mutex<Option<NativeViewerListRequest>>,
     file_manifest_request_epoch: AtomicU64,
     pending_file_manifest_request: Mutex<Option<NativeViewerManifestRequest>>,
+    completed_file_manifest_request: Mutex<Option<NativeViewerCompletedManifest>>,
+    active_file_download_jobs: Mutex<HashMap<i32, NativeViewerDownloadJob>>,
 }
 
 impl BridgeShared {
@@ -622,6 +654,8 @@ impl Default for BridgeUi {
                 pending_file_list_request: Mutex::new(None),
                 file_manifest_request_epoch: AtomicU64::new(0),
                 pending_file_manifest_request: Mutex::new(None),
+                completed_file_manifest_request: Mutex::new(None),
+                active_file_download_jobs: Mutex::new(HashMap::new()),
             }),
         }
     }
@@ -738,6 +772,7 @@ impl InvokeUiSession for BridgeUi {
             }
         };
         if let Some(request) = manifest_request {
+            client_clear_completed_manifest(&self.shared, request.session_epoch);
             self.shared.emit_file_transfer_manifest(
                 request,
                 FILE_TRANSFER_LIST_UNAVAILABLE,
@@ -745,8 +780,19 @@ impl InvokeUiSession for BridgeUi {
                 &[],
             );
         }
+        self.shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .remove(&id);
     }
-    fn job_done(&self, _id: i32, _file_num: i32) {}
+    fn job_done(&self, id: i32, _file_num: i32) {
+        self.shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .remove(&id);
+    }
     fn clear_all_jobs(&self) {
         self.shared.pending_file_list_request.lock().unwrap().take();
         self.shared
@@ -754,6 +800,16 @@ impl InvokeUiSession for BridgeUi {
             .lock()
             .unwrap()
             .take();
+        self.shared
+            .completed_file_manifest_request
+            .lock()
+            .unwrap()
+            .take();
+        self.shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .clear();
     }
     fn new_message(&self, _message: String) {}
     fn update_transfer_list(&self) {}
@@ -782,6 +838,7 @@ impl InvokeUiSession for BridgeUi {
                     .lock()
                     .unwrap()
                     .take();
+                client_clear_completed_manifest(&self.shared, request.session_epoch);
                 self.shared.emit_file_transfer_manifest(
                     request,
                     FILE_TRANSFER_LIST_REJECTED,
@@ -796,6 +853,7 @@ impl InvokeUiSession for BridgeUi {
                     .lock()
                     .unwrap()
                     .take();
+                client_clear_completed_manifest(&self.shared, request.session_epoch);
                 self.shared.emit_file_transfer_manifest(
                     request,
                     FILE_TRANSFER_LIST_REJECTED,
@@ -804,31 +862,66 @@ impl InvokeUiSession for BridgeUi {
                 );
                 return;
             };
-            let duplicate_or_complete = {
+            let Some(total_bytes) = listing
+                .iter()
+                .try_fold(0u64, |total, entry| total.checked_add(entry.size))
+            else {
+                self.shared
+                    .pending_file_manifest_request
+                    .lock()
+                    .unwrap()
+                    .take();
+                client_clear_completed_manifest(&self.shared, request.session_epoch);
+                self.shared.emit_file_transfer_manifest(
+                    request,
+                    FILE_TRANSFER_LIST_REJECTED,
+                    FILE_TRANSFER_MANIFEST_PART_FILES,
+                    &[],
+                );
+                return;
+            };
+            let total_files = listing.len() as u32;
+            let (duplicate, completed) = {
                 let mut pending = self.shared.pending_file_manifest_request.lock().unwrap();
                 let Some(active) = pending.as_mut() else {
                     return;
                 };
                 if active.request_id != id || active.files_delivered {
                     pending.take();
-                    true
+                    (true, None)
                 } else {
                     active.files_delivered = true;
+                    active.total_files = Some(total_files);
+                    active.total_bytes = Some(total_bytes);
                     if active.empty_directories_delivered {
-                        pending.take();
+                        let completed = pending.take().and_then(|request| {
+                            Some(NativeViewerCompletedManifest {
+                                session_epoch: request.session_epoch,
+                                request_id: request.request_id,
+                                total_files: request.total_files?,
+                                total_bytes: request.total_bytes?,
+                            })
+                        });
+                        (false, completed)
+                    } else {
+                        (false, None)
                     }
-                    false
                 }
             };
+            if let Some(completed) = completed {
+                *self.shared.completed_file_manifest_request.lock().unwrap() = Some(completed);
+            } else if duplicate {
+                client_clear_completed_manifest(&self.shared, request.session_epoch);
+            }
             self.shared.emit_file_transfer_manifest(
                 request,
-                if duplicate_or_complete {
+                if duplicate {
                     FILE_TRANSFER_LIST_REJECTED
                 } else {
                     FILE_TRANSFER_LIST_SUCCESS
                 },
                 FILE_TRANSFER_MANIFEST_PART_FILES,
-                if duplicate_or_complete { &[] } else { &listing },
+                if duplicate { &[] } else { &listing },
             );
             return;
         }
@@ -862,6 +955,7 @@ impl InvokeUiSession for BridgeUi {
                 .lock()
                 .unwrap()
                 .take();
+            client_clear_completed_manifest(&self.shared, request.session_epoch);
             self.shared.emit_file_transfer_manifest(
                 request,
                 FILE_TRANSFER_LIST_REJECTED,
@@ -870,31 +964,45 @@ impl InvokeUiSession for BridgeUi {
             );
             return;
         };
-        let duplicate_or_complete = {
+        let (duplicate, completed) = {
             let mut pending = self.shared.pending_file_manifest_request.lock().unwrap();
             let Some(active) = pending.as_mut() else {
                 return;
             };
             if active.empty_directories_delivered {
                 pending.take();
-                true
+                (true, None)
             } else {
                 active.empty_directories_delivered = true;
                 if active.files_delivered {
-                    pending.take();
+                    let completed = pending.take().and_then(|request| {
+                        Some(NativeViewerCompletedManifest {
+                            session_epoch: request.session_epoch,
+                            request_id: request.request_id,
+                            total_files: request.total_files?,
+                            total_bytes: request.total_bytes?,
+                        })
+                    });
+                    (false, completed)
+                } else {
+                    (false, None)
                 }
-                false
             }
         };
+        if let Some(completed) = completed {
+            *self.shared.completed_file_manifest_request.lock().unwrap() = Some(completed);
+        } else if duplicate {
+            client_clear_completed_manifest(&self.shared, request.session_epoch);
+        }
         self.shared.emit_file_transfer_manifest(
             request,
-            if duplicate_or_complete {
+            if duplicate {
                 FILE_TRANSFER_LIST_REJECTED
             } else {
                 FILE_TRANSFER_LIST_SUCCESS
             },
             FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES,
-            if duplicate_or_complete { &[] } else { &listing },
+            if duplicate { &[] } else { &listing },
         );
     }
 
@@ -1059,6 +1167,16 @@ impl RDNClient {
             .lock()
             .unwrap()
             .take();
+        self.shared
+            .completed_file_manifest_request
+            .lock()
+            .unwrap()
+            .take();
+        self.shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .clear();
         self.shared.active.store(false, Ordering::Release);
         if let Some(session) = self.session.lock().unwrap().as_ref() {
             if let Some(sender) = session.sender.read().unwrap().as_ref() {
@@ -1722,6 +1840,16 @@ fn native_viewer_file_manifest_root_messages(request_id: i32) -> (Message, Messa
     (files_message, directories_message)
 }
 
+fn client_clear_completed_manifest(shared: &BridgeShared, session_epoch: u64) {
+    let mut completed = shared.completed_file_manifest_request.lock().unwrap();
+    if completed
+        .as_ref()
+        .is_some_and(|request| request.session_epoch == session_epoch)
+    {
+        completed.take();
+    }
+}
+
 fn viewer_file_transfer_mode_admission(
     enabled: bool,
     session_epoch: u64,
@@ -1775,6 +1903,8 @@ pub unsafe extern "C" fn rdn_client_create(
         pending_file_list_request: Mutex::new(None),
         file_manifest_request_epoch: AtomicU64::new(0),
         pending_file_manifest_request: Mutex::new(None),
+        completed_file_manifest_request: Mutex::new(None),
+        active_file_download_jobs: Mutex::new(HashMap::new()),
     });
     Box::into_raw(Box::new(RDNClient {
         shared,
@@ -1902,6 +2032,18 @@ pub unsafe extern "C" fn rdn_client_connect(
         .lock()
         .unwrap()
         .take();
+    client
+        .shared
+        .completed_file_manifest_request
+        .lock()
+        .unwrap()
+        .take();
+    client
+        .shared
+        .active_file_download_jobs
+        .lock()
+        .unwrap()
+        .clear();
     client.shared.sequence.store(0, Ordering::Relaxed);
     *client.shared.dimensions.write().unwrap() = (0, 0);
     client
@@ -1966,6 +2108,16 @@ pub unsafe extern "C" fn rdn_client_connect(
             .lock()
             .unwrap()
             .take();
+        worker_shared
+            .completed_file_manifest_request
+            .lock()
+            .unwrap()
+            .take();
+        worker_shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .clear();
         worker_shared.emit_state(RDNState::Disconnected, 0, "disconnected");
     });
     let housekeeping = if file_transfer_mode {
@@ -2476,7 +2628,17 @@ pub unsafe extern "C" fn rdn_client_file_transfer_cancel(
     let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
         return -3;
     };
-    sender.send(Data::CancelJob(transfer_id)).map_or(-3, |_| 0)
+    if sender.send(Data::CancelJob(transfer_id)).is_err() {
+        return -3;
+    }
+    let mut jobs = client.shared.active_file_download_jobs.lock().unwrap();
+    if jobs
+        .get(&transfer_id)
+        .is_some_and(|job| job.session_epoch == session_epoch)
+    {
+        jobs.remove(&transfer_id);
+    }
+    0
 }
 
 #[no_mangle]
@@ -2586,6 +2748,8 @@ pub unsafe extern "C" fn rdn_client_file_transfer_manifest_root(
         request_id,
         files_delivered: false,
         empty_directories_delivered: false,
+        total_files: None,
+        total_bytes: None,
     };
     if client
         .shared
@@ -2611,6 +2775,94 @@ pub unsafe extern "C" fn rdn_client_file_transfer_manifest_root(
         }
         return -3;
     }
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_file_transfer_download_start(
+    client: *mut RDNClient,
+    request: *const RDNFileTransferDownloadStart,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    let Some(request) = request.as_ref() else {
+        return -4;
+    };
+    if request.abi_version != ABI_VERSION
+        || request.session_epoch == 0
+        || request.manifest_request_id <= 0
+        || request.transfer_id <= 0
+        || request.total_files as usize > MAX_FILE_TRANSFER_LIST_ENTRIES
+        || (request.total_files == 0 && request.total_bytes != 0)
+    {
+        return -4;
+    }
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if !client.shared.file_transfer_enabled.load(Ordering::Acquire) {
+        return -7;
+    }
+    if client
+        .shared
+        .file_transfer_session_epoch
+        .load(Ordering::Acquire)
+        != request.session_epoch
+    {
+        return -10;
+    }
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    let completed_manifest = client
+        .shared
+        .completed_file_manifest_request
+        .lock()
+        .unwrap();
+    if *completed_manifest
+        != Some(NativeViewerCompletedManifest {
+            session_epoch: request.session_epoch,
+            request_id: request.manifest_request_id,
+            total_files: request.total_files,
+            total_bytes: request.total_bytes,
+        })
+    {
+        return -3;
+    }
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    if !*session.server_file_transfer_enabled.read().unwrap() {
+        return -8;
+    }
+    if session.sender.read().unwrap().is_none() {
+        return -3;
+    }
+    let job = NativeViewerDownloadJob {
+        session_epoch: request.session_epoch,
+        manifest_request_id: request.manifest_request_id,
+        transfer_id: request.transfer_id,
+        total_files: request.total_files,
+        total_bytes: request.total_bytes,
+    };
+    let mut jobs = client.shared.active_file_download_jobs.lock().unwrap();
+    if !client.shared.active.load(Ordering::Acquire)
+        || !client.shared.file_transfer_enabled.load(Ordering::Acquire)
+        || client
+            .shared
+            .file_transfer_session_epoch
+            .load(Ordering::Acquire)
+            != request.session_epoch
+        || !client.shared.authenticated.load(Ordering::Acquire)
+    {
+        return -3;
+    }
+    if jobs.len() >= MAX_VIEWER_DOWNLOAD_JOBS || jobs.contains_key(&request.transfer_id) {
+        return -3;
+    }
+    jobs.insert(request.transfer_id, job);
     0
 }
 
@@ -3887,6 +4139,120 @@ mod tests {
             "an untagged empty-directory response makes manifest single-use per epoch"
         );
         assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn viewer_download_start_registers_exact_manifest_without_io() {
+        let ui = BridgeUi::default();
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+        *ui.shared.completed_file_manifest_request.lock().unwrap() =
+            Some(NativeViewerCompletedManifest {
+                session_epoch: 7,
+                request_id: 51,
+                total_files: 2,
+                total_bytes: 42,
+            });
+
+        let (sender, mut receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
+        let session = Session {
+            sender: Arc::new(RwLock::new(Some(sender))),
+            ui_handler: ui.clone(),
+            server_file_transfer_enabled: Arc::new(RwLock::new(true)),
+            ..Default::default()
+        };
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(Some(session)),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let client_pointer = &mut client as *mut RDNClient;
+        let mut request = RDNFileTransferDownloadStart {
+            abi_version: ABI_VERSION,
+            session_epoch: 7,
+            manifest_request_id: 51,
+            transfer_id: 61,
+            total_files: 2,
+            total_bytes: 42,
+        };
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
+            0
+        );
+        assert_eq!(
+            ui.shared
+                .active_file_download_jobs
+                .lock()
+                .unwrap()
+                .get(&61)
+                .copied(),
+            Some(NativeViewerDownloadJob {
+                session_epoch: 7,
+                manifest_request_id: 51,
+                transfer_id: 61,
+                total_files: 2,
+                total_bytes: 42,
+            })
+        );
+        assert!(
+            receiver.try_recv().is_err(),
+            "registration must not start file I/O"
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
+            -3
+        );
+
+        request.transfer_id = 62;
+        request.manifest_request_id = 52;
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
+            -3
+        );
+        request.manifest_request_id = 51;
+        request.total_files = 3;
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
+            -3
+        );
+        request.total_files = 2;
+        request.session_epoch = 6;
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
+            -10
+        );
+        request.session_epoch = 7;
+        request.total_files = (MAX_FILE_TRANSFER_LIST_ENTRIES + 1) as u32;
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
+            -4
+        );
+        request.total_files = 0;
+        request.total_bytes = 1;
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
+            -4
+        );
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 7, 61) },
+            0
+        );
+        assert!(ui
+            .shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .is_empty());
+        assert!(matches!(receiver.try_recv(), Ok(Data::CancelJob(61))));
     }
 
     fn optional_payload_bytes(bytes: Option<&[u8]>) -> (*const u8, usize) {

@@ -143,7 +143,7 @@ implemented through the single existing owner; Host bootstrap schema v4 and
 Home now provide independent, default-off image read/write opt-ins. Installed
 two-Mac acceptance remains unverified.
 
-Viewer ABI v11 retains all ABI v8 clipboard behavior and the v9 separate,
+Viewer ABI v12 retains all ABI v8 clipboard behavior and the v9 separate,
 default-off file-transfer seam. The connection configuration accepts exact
 `false/0` desktop mode or exact `true/nonzero` dedicated file mode; file mode
 rejects every desktop clipboard direction, initializes upstream
@@ -154,7 +154,7 @@ enqueue upstream `CancelJob`. The scalar event callback contains only epoch,
 transfer ID, sequence, bounded progress and typed failure fields—never paths,
 descriptors or raw protocol errors.
 
-ABI v11 retains one exact-session, single-flight remote-root list
+ABI v12 retains one exact-session, single-flight remote-root list
 request. It sends only upstream `ReadDir("/", include_hidden=false)` after all
 file-session and remote-permission gates pass. The callback carries a positive
 request ID and callback-scoped entries: at most 1,024 regular file/directory
@@ -171,7 +171,7 @@ opaque lease, and revalidate identity/owner/mode for each scoped borrow before
 exact-epoch teardown closes it. A transport-independent recursive-manifest
 authority joins one bounded files part and one bounded empty-directory part for
 an exact epoch/request, then applies the canonical combined manifest validation.
-ABI v11 now requests those parts with root-bound
+ABI v12 retains the v11 root-bound recursive-manifest requests:
 `AllFiles(id, "/", include_hidden=false)` and
 `ReadEmptyDirs("/", include_hidden=false)`. Rust owns and bounds each response,
 rejects hidden/private-staging/unsafe/type-invalid/case-alias metadata, keeps one
@@ -181,6 +181,12 @@ remote error, disconnect, worker exit or job teardown. Because
 per session epoch; retry requires reconnecting with a fresh epoch, preventing a
 late response from being attributed to a new request. Swift synchronously copies the
 callback-scoped entries and revalidates ABI, epoch, request, status, part, type,
-size, mtime, path and case-fold collisions before queued delivery. No download command,
-`openat`/write, picker UI or product configuration exists, so this
-remains an internal lifecycle rather than file-transfer product capability.
+size, mtime, path and case-fold collisions before queued delivery. ABI v12 adds a
+path-free queued download registration bound to that exact completed manifest.
+Only epoch, manifest request ID, transfer ID and aggregate totals cross the ABI;
+the destination lease remains Swift-owned. Admission requires the active dedicated
+session, authentication, remote permission, ready sender and one of at most eight
+unique transfer IDs. Cancel, terminal job callbacks, job teardown, disconnect and
+worker exit clear registrations. No download command dispatches a wire request or
+performs `openat`/write/staging, and no picker UI or product configuration exists,
+so this remains an internal lifecycle rather than file-transfer product capability.

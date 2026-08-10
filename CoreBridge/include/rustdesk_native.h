@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 11u
+#define RDN_ABI_VERSION 12u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -168,6 +168,18 @@ typedef struct RDNFileTransferEvent {
 } RDNFileTransferEvent;
 typedef void (*RDNFileTransferEventCallback)(
     void *context, const RDNFileTransferEvent *event);
+
+/* Path-free queued download registration. This binds one exact completed
+ * manifest request to scalar totals and a transfer ID. It does not dispatch a
+ * wire request, open the destination descriptor, create files or write bytes. */
+typedef struct RDNFileTransferDownloadStart {
+    uint32_t abi_version;
+    uint64_t session_epoch;
+    int32_t manifest_request_id;
+    int32_t transfer_id;
+    uint32_t total_files;
+    uint64_t total_bytes;
+} RDNFileTransferDownloadStart;
 
 typedef enum RDNFileTransferListStatus {
     RDN_FILE_TRANSFER_LIST_SUCCESS = 1,
@@ -369,6 +381,10 @@ int32_t rdn_client_file_transfer_list_root(RDNClient *client,
 int32_t rdn_client_file_transfer_manifest_root(RDNClient *client,
                                                uint64_t session_epoch,
                                                int32_t request_id);
+/* Registers one bounded download job against an exact completed manifest.
+ * Success means queued lifecycle ownership only; no file I/O is started. */
+int32_t rdn_client_file_transfer_download_start(
+    RDNClient *client, const RDNFileTransferDownloadStart *request);
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
@@ -623,6 +639,9 @@ int32_t rdn_shim_client_file_transfer_list_root(
 int32_t rdn_shim_client_file_transfer_manifest_root(
     const RDNCoreLibrary *library, RDNClient *client,
     uint64_t session_epoch, int32_t request_id);
+int32_t rdn_shim_client_file_transfer_download_start(
+    const RDNCoreLibrary *library, RDNClient *client,
+    const RDNFileTransferDownloadStart *request);
 
 /* Host Control ABI loader surface (rdn-native-host). rdn_shim_open tolerates
  * cores built without the host feature: rdn_shim_host_available reports whether

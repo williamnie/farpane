@@ -159,6 +159,24 @@ final class ViewerFileTransferContractTests: XCTestCase {
         ))
     }
 
+    func testDownloadStartProjectsOnlyExactManifestAndScalarTotals() throws {
+        let request = try makeRequest(epoch: 7, identifier: 3)
+        let start = try XCTUnwrap(CoreFileTransferDownloadStart(
+            request: request,
+            manifestRequestID: 51
+        ))
+
+        XCTAssertEqual(start.sessionEpoch, 7)
+        XCTAssertEqual(start.manifestRequestID, 51)
+        XCTAssertEqual(start.transferID, 3)
+        XCTAssertEqual(start.totalFiles, 1)
+        XCTAssertEqual(start.totalBytes, 4)
+        XCTAssertNil(CoreFileTransferDownloadStart(
+            request: request,
+            manifestRequestID: 0
+        ))
+    }
+
     func testProgressIsMonotonicBoundedAndTerminal() throws {
         var authority = ViewerFileTransferProgressAuthority()
         let request = try makeRequest(epoch: 7, identifier: 3)

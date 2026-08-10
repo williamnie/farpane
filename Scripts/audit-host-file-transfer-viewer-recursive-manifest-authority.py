@@ -118,8 +118,8 @@ def main() -> int:
                 "FileHandle",
             )
         ),
-        "abiV11AddsRemoteLifecycleWithoutChangingAuthority": (
-            "#define RDN_ABI_VERSION 11u" in sources["header"]
+        "abiV12RetainsRemoteLifecycleWithoutChangingAuthority": (
+            "#define RDN_ABI_VERSION 12u" in sources["header"]
             and "rdn_client_file_transfer_manifest_root" in sources["header"]
             and "rdn_client_file_transfer_manifest_root" in sources["bridge"]
             and "requestFileTransferRecursiveManifest" in sources["core"]

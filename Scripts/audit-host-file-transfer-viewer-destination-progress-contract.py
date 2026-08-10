@@ -132,13 +132,13 @@ def main() -> int:
             for marker in (
                 "session-bound opaque lease",
                 "严格递增 sequence",
-                "Viewer ABI v11",
+                "Viewer ABI v12",
                 "destination\n  owner",
                 "产品能力必须继续保持关闭",
             )
         ),
         "viewerCoreABISeamExistsAndProductRemainsOff": (
-            "#define RDN_ABI_VERSION 11u" in header
+            "#define RDN_ABI_VERSION 12u" in header
             and "RDNFileTransferEventCallback on_file_transfer_event;" in header
             and "rdn_client_file_transfer_cancel" in header
             and "fileTransferEnabled:" not in product
