@@ -286,8 +286,11 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   replacement 留存并 fail closed。exact reservation 现以 tracked offset 接受 nonempty、最大 128 KiB 的 `pwrite`；
   写前/写后同时复核 name 与 fd 的 device/inode、当前 euid `0600` single-link regular shape 和 exact tracked size，
   checked aggregate 不得超过 manifest 声明，越界、metadata drift 与 partial/system failure 均终止并只清理仍匹配的
-  partial。该注册仍不发 wire download request，不跨 ABI 借 descriptor，也不 fsync/mtime/rename/commit；receive
-  commit、dispatch 与 UI 仍未实现，多文件 upload resume、existing-target replace 也仍未实现。
+  partial。完整 reservation 现先应用协议 Unix 秒 mtime、`fsync(file)` 并再次验证 exact inode/size，再以同一
+  parent descriptor 上的 `renameatx_np(RENAME_EXCL)` 原子发布且不覆盖既有 final，随后 `fsync(parent)`；rename
+  前失败只清理仍匹配的 staging，rename 后 parent fsync 失败单独记为 durability-unconfirmed，禁止把已发布文件当作
+  普通失败安全重试。该注册仍不发 wire download request、不跨 ABI 借 descriptor；receive dispatch 与 UI 仍未实现，
+  多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。

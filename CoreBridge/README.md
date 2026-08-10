@@ -206,7 +206,12 @@ checks require the staging name and open descriptor to retain the original
 device/inode, current-euid `0600` single-link regular-file shape and exact tracked
 size; checked totals may never exceed the manifest declaration. Invalid bounds,
 metadata drift or a partial/system write failure terminates the reservation and
-removes only a still-matching partial. It still does not fsync, apply mtime,
-rename/commit a final file or dispatch a download wire request. No picker UI or
-product configuration exists, so it remains internal rather than file-transfer
-product capability.
+removes only a still-matching partial. A complete reservation can now publish
+through a durable no-replace commit: it applies the declared Unix-seconds mtime,
+fsyncs the file, revalidates ownership and exact size, then uses descriptor-relative
+`renameatx_np(RENAME_EXCL)` and fsyncs the parent directory. Failures before rename
+discard only the matching staging inode; a post-rename directory-fsync failure is
+the distinct `durabilityUnconfirmed` terminal because the final name cannot be
+safely rolled back or retried. This still does not dispatch a download wire request.
+No picker UI or product configuration exists, so it remains internal rather than
+file-transfer product capability.

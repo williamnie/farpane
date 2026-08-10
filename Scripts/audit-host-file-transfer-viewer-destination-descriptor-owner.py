@@ -111,16 +111,14 @@ def main() -> int:
                 "XCTAssertEqual(borrowedInode, originalInode)",
             )
         ),
-        "stagingAndWriteEvolutionPreservesPinnedOwnerAndNoCommit": (
+        "stagingWriteAndCommitEvolutionPreservePinnedOwner": (
             "package func reserveNewFile(" in owner
             and "package func writePayload(" in owner
             and "Darwin.openat(" in owner
             and "Darwin.pwrite(" in owner
             and "O_EXCL | O_NOFOLLOW" in owner
-            and all(marker not in owner for marker in (
-                "Darwin.fsync(",
-                "renameatx_np",
-            ))
+            and "Darwin.fsync(" in owner
+            and "renameatx_np" in owner
         ),
         "abiAndProductRemainOff": (
             "#define RDN_ABI_VERSION 12u" in sources["header"]
@@ -165,7 +163,7 @@ def main() -> int:
             "viewerDestinationDescriptorOwnerImplemented": status == expected_status,
             "viewerRecursiveManifestAuthorityImplemented": status == expected_status,
             "viewerRecursiveManifestABILifecycleImplemented": False,
-            "viewerDownloadIOImplemented": False,
+            "viewerDownloadIOImplemented": status == expected_status,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },

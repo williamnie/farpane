@@ -156,17 +156,15 @@ def main() -> int:
                 "ViewerFileTransferDestinationOwner.maximumActiveReservations",
             )
         ),
-        "boundedWriteEvolutionStillLeavesCommitWireABIAndProductOff": (
+        "boundedWriteAndCommitEvolutionStillLeaveWireABIAndProductOff": (
             "maximumWriteChunkBytes = 128 * 1_024" in owner
             and "Darwin.pwrite(" in owner
-            and all(marker not in owner for marker in (
-                "Darwin.fsync(",
-                "renameatx_np",
-            ))
+            and "Darwin.fsync(" in owner
+            and "renameatx_np" in owner
             and "RDNFileTransferReceiveReservation" not in sources["header"]
             and "Data::SendFiles" not in reserve + parent + cleanup
             and "fileTransferEnabled:" not in product
-            and "does not fsync, apply mtime" in sources["readme"]
+            and "does not dispatch a download wire request" in sources["readme"]
         ),
     }
     source_lines = {
@@ -205,7 +203,7 @@ def main() -> int:
         "claims": {
             "viewerStagingReservationImplemented": status == expected_status,
             "viewerPayloadWriteImplemented": status == expected_status,
-            "viewerFinalCommitImplemented": False,
+            "viewerFinalCommitImplemented": status == expected_status,
             "viewerDownloadWireDispatchImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,

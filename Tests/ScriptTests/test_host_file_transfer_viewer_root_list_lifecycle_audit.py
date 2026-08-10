@@ -34,7 +34,7 @@ class HostFileTransferViewerRootListLifecycleAuditTests(unittest.TestCase):
         self.assertTrue(claims["viewerRecursiveManifestAuthorityImplemented"])
         self.assertTrue(claims["viewerRecursiveManifestABILifecycleImplemented"])
         self.assertTrue(claims["viewerDestinationDescriptorOwnerImplemented"])
-        self.assertFalse(claims["viewerDownloadIOImplemented"])
+        self.assertTrue(claims["viewerDownloadIOImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(

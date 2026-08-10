@@ -143,13 +143,13 @@ def main() -> int:
                 "testRemoteRootListRevalidatesOwnedMetadataAndStableFailures",
             )
         ),
-        "destinationOwnerNowPrecedesRemainingIOGap": (
+        "destinationOwnerNowIncludesSafeReceiveIOWithoutWireDispatch": (
             "package final class ViewerFileTransferDestinationOwner" in sources["destination_owner"]
             and "O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC"
             in sources["destination_owner"]
             and "package func reserveNewFile(" in sources["destination_owner"]
-            and "Darwin.write(" not in sources["destination_owner"]
-            and "renameatx_np" not in sources["destination_owner"]
+            and "Darwin.pwrite(" in sources["destination_owner"]
+            and "renameatx_np" in sources["destination_owner"]
         ),
         "productRemainsOffAndIOGapIsExplicit": (
             "fileTransferEnabled:" not in product
@@ -198,7 +198,7 @@ def main() -> int:
             "viewerRecursiveManifestAuthorityImplemented": status == expected_status,
             "viewerRecursiveManifestABILifecycleImplemented": status == expected_status,
             "viewerDestinationDescriptorOwnerImplemented": status == expected_status,
-            "viewerDownloadIOImplemented": False,
+            "viewerDownloadIOImplemented": status == expected_status,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },

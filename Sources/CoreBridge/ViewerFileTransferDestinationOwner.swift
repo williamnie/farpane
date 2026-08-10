@@ -8,6 +8,12 @@ package struct ViewerFileTransferReceiveReservation: Equatable, Sendable {
     package let token: UInt64
 }
 
+package enum ViewerFileTransferReceiveCommitResult: Equatable, Sendable {
+    case committed
+    case rejected
+    case durabilityUnconfirmed
+}
+
 /// Owns a Viewer download destination directory for exactly one connection
 /// epoch. The selected path is used only to open the directory; later I/O must
 /// borrow the pinned descriptor through the matching opaque lease.
@@ -30,6 +36,7 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
         let parentDescriptor: Int32
         let fileDescriptor: Int32
         let stagingName: String
+        let finalName: String
         let identity: FileIdentity
         let file: ViewerFileTransferFile
         var bytesWritten: UInt64
@@ -147,6 +154,7 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
         let file = request.manifest.files[fileNumber]
         guard
             file.size <= UInt64(Int64.max),
+            file.modifiedTime >= 0,
             ViewerFileTransferManifest.accepts(relativePath: file.relativePath),
             let parent = Self.openOrCreatePrivateParent(
                 rootDescriptor: directoryDescriptor,
@@ -226,6 +234,7 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
             parentDescriptor: parentDescriptor,
             fileDescriptor: fileDescriptor,
             stagingName: stagingName,
+            finalName: finalName,
             identity: createdIdentity,
             file: file,
             bytesWritten: 0
@@ -288,6 +297,64 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
         activeReservations[handle.transferID] = reservation
         stateLock.unlock()
         return reservation.bytesWritten
+    }
+
+    /// Publishes only a complete, still-owned staging file. Any failure before
+    /// rename terminates and safely discards the reservation. A parent fsync
+    /// failure after rename is reported separately because publication cannot
+    /// be rolled back or safely retried under the same handle.
+    package func commitReservation(
+        _ handle: ViewerFileTransferReceiveReservation
+    ) -> ViewerFileTransferReceiveCommitResult {
+        stateLock.lock()
+        guard let reservation = activeReservations[handle.transferID],
+              reservation.handle == handle else {
+            stateLock.unlock()
+            return .rejected
+        }
+        guard
+            reservation.bytesWritten == reservation.file.size,
+            reservation.file.modifiedTime >= 0,
+            Self.reservationMetadataMatches(reservation),
+            Self.applyModifiedTime(reservation.file.modifiedTime, to: reservation.fileDescriptor),
+            Darwin.fsync(reservation.fileDescriptor) == 0,
+            Self.reservationMetadataMatches(reservation),
+            Self.reservationModifiedTimeMatches(reservation),
+            Self.destinationNameIsAbsent(
+                reservation.finalName,
+                parentDescriptor: reservation.parentDescriptor
+            )
+        else {
+            activeReservations.removeValue(forKey: handle.transferID)
+            stateLock.unlock()
+            _ = Self.discardReservation(reservation)
+            return .rejected
+        }
+
+        let renamed = reservation.stagingName.withCString { stagingName in
+            reservation.finalName.withCString { finalName in
+                Darwin.renameatx_np(
+                    reservation.parentDescriptor,
+                    stagingName,
+                    reservation.parentDescriptor,
+                    finalName,
+                    UInt32(RENAME_EXCL)
+                ) == 0
+            }
+        }
+        guard renamed else {
+            activeReservations.removeValue(forKey: handle.transferID)
+            stateLock.unlock()
+            _ = Self.discardReservation(reservation)
+            return .rejected
+        }
+
+        activeReservations.removeValue(forKey: handle.transferID)
+        let directorySynced = Darwin.fsync(reservation.parentDescriptor) == 0
+        Darwin.close(reservation.fileDescriptor)
+        Darwin.close(reservation.parentDescriptor)
+        stateLock.unlock()
+        return directorySynced ? .committed : .durabilityUnconfirmed
     }
 
     /// Removes only the exact staging inode created for this reservation.
@@ -446,6 +513,35 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
             UInt64(descriptorStatus.st_size) == reservation.bytesWritten
         else { return false }
         return true
+    }
+
+    private static func destinationNameIsAbsent(
+        _ finalName: String,
+        parentDescriptor: Int32
+    ) -> Bool {
+        var status = stat()
+        let result = finalName.withCString {
+            Darwin.fstatat(parentDescriptor, $0, &status, AT_SYMLINK_NOFOLLOW)
+        }
+        return result != 0 && errno == ENOENT
+    }
+
+    private static func reservationModifiedTimeMatches(
+        _ reservation: ActiveReservation
+    ) -> Bool {
+        var status = stat()
+        return Darwin.fstat(reservation.fileDescriptor, &status) == 0
+            && status.st_mtimespec.tv_sec == time_t(reservation.file.modifiedTime)
+            && status.st_mtimespec.tv_nsec == 0
+    }
+
+    private static func applyModifiedTime(_ modifiedTime: Int64, to descriptor: Int32) -> Bool {
+        guard modifiedTime >= 0 else { return false }
+        var times = [
+            timespec(tv_sec: 0, tv_nsec: Int(UTIME_OMIT)),
+            timespec(tv_sec: time_t(modifiedTime), tv_nsec: 0),
+        ]
+        return Darwin.futimens(descriptor, &times) == 0
     }
 
     private static func pwriteAll(

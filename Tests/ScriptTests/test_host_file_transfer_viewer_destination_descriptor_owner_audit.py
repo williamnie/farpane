@@ -33,7 +33,7 @@ class HostFileTransferViewerDestinationDescriptorOwnerAuditTests(unittest.TestCa
         self.assertTrue(claims["viewerDestinationDescriptorOwnerImplemented"])
         self.assertTrue(claims["viewerRecursiveManifestAuthorityImplemented"])
         self.assertFalse(claims["viewerRecursiveManifestABILifecycleImplemented"])
-        self.assertFalse(claims["viewerDownloadIOImplemented"])
+        self.assertTrue(claims["viewerDownloadIOImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
