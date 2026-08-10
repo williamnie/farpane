@@ -15,6 +15,8 @@ typedef int32_t (*client_send_key_fn)(RDNClient *, const RDNKeyEvent *);
 typedef int32_t (*client_send_text_fn)(RDNClient *, const uint8_t *, size_t);
 typedef int32_t (*client_send_clipboard_text_fn)(RDNClient *, const uint8_t *,
                                                  size_t);
+typedef int32_t (*client_send_clipboard_rich_text_fn)(
+    RDNClient *, const RDNClipboardRichTextPayload *);
 typedef uint32_t (*abi_version_fn)(void);
 typedef const char *(*upstream_commit_fn)(void);
 
@@ -49,6 +51,7 @@ struct RDNCoreLibrary {
     client_send_key_fn client_send_key;
     client_send_text_fn client_send_text;
     client_send_clipboard_text_fn client_send_clipboard_text;
+    client_send_clipboard_rich_text_fn client_send_clipboard_rich_text;
     abi_version_fn abi_version;
     upstream_commit_fn upstream_commit;
     int host_available;
@@ -109,6 +112,9 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
         (client_send_text_fn)dlsym(handle, "rdn_client_send_text");
     library->client_send_clipboard_text = (client_send_clipboard_text_fn)dlsym(
         handle, "rdn_client_send_clipboard_text");
+    library->client_send_clipboard_rich_text =
+        (client_send_clipboard_rich_text_fn)dlsym(
+            handle, "rdn_client_send_clipboard_rich_text");
     library->abi_version = (abi_version_fn)dlsym(handle, "rdn_core_abi_version");
     library->upstream_commit = (upstream_commit_fn)dlsym(handle, "rdn_core_upstream_commit");
     if (library->client_create == NULL || library->client_destroy == NULL ||
@@ -117,6 +123,7 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
         library->client_send_pointer == NULL || library->client_send_key == NULL ||
         library->client_send_text == NULL ||
         library->client_send_clipboard_text == NULL ||
+        library->client_send_clipboard_rich_text == NULL ||
         library->abi_version == NULL || library->upstream_commit == NULL) {
         rdn_shim_close(library);
         write_error(error, error_size, "core library is missing required ABI symbols");
@@ -248,6 +255,14 @@ int32_t rdn_shim_client_send_clipboard_text(const RDNCoreLibrary *library,
     return library == NULL ? -1
                            : library->client_send_clipboard_text(client, utf8,
                                                                  length);
+}
+
+int32_t rdn_shim_client_send_clipboard_rich_text(
+    const RDNCoreLibrary *library, RDNClient *client,
+    const RDNClipboardRichTextPayload *payload) {
+    return library == NULL
+               ? -1
+               : library->client_send_clipboard_rich_text(client, payload);
 }
 
 int rdn_shim_host_available(const RDNCoreLibrary *library) {

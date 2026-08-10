@@ -7089,3 +7089,88 @@ index e9dde42..68713ae 100644
  #[cfg(not(any(target_os = "ios")))]
  use crate::{audio_service, clipboard::CLIPBOARD_INTERVAL, ConnInner, CLIENT_SERVER};
  use crate::{
+diff --git a/src/client.rs b/src/client.rs
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -1782,5 +1782,5 @@ impl LoginConfigHandler {
+     #[cfg(feature = "rdn-native-core")]
+-    pub fn configure_native_viewer(&mut self, peer_id: &str, clipboard_text_enabled: bool) {
++    pub fn configure_native_viewer(&mut self, peer_id: &str, clipboard_enabled: bool) {
+         // The custom-server target is `peer@server?key=...`; keep that target
+         // only in `other_server` and use the existing plain peer profile as an
+         // in-memory baseline so session updates cannot create a target-named
+@@ -1791,5 +1791,5 @@ impl LoginConfigHandler {
+         self.config.password.clear();
+         self.config.view_only.v = false;
+         self.config.disable_audio.v = true;
+-        self.config.disable_clipboard.v = !clipboard_text_enabled;
++        self.config.disable_clipboard.v = !clipboard_enabled;
+     }
+diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -1488,9 +1488,23 @@
+                             feature = "rdn-native-core",
+                             not(any(target_os = "android", target_os = "ios"))
+                         ))]
+-                        if let Some(text) = crate::rdn_bridge::native_viewer_clipboard_text(&[cb]) {
++                        let clipboards = [cb];
++                        if let Some(text) =
++                            crate::rdn_bridge::native_viewer_clipboard_text(&clipboards)
++                        {
+                             self.handler.native_clipboard_text(text);
+                         }
++                        if self.handler.native_clipboard_rich_text_enabled() {
++                            if let Some(rich) =
++                                crate::rdn_bridge::native_viewer_clipboard_rich_text(&clipboards)
++                            {
++                                self.handler.native_clipboard_rich_text(
++                                    rich.plain_text,
++                                    rich.rtf,
++                                    rich.html,
++                                );
++                            }
++                        }
+                         #[cfg(target_os = "ios")]
+                         {
+                             let content = if cb.compress {
+@@ -1526,6 +1540,17 @@
+                         {
+                             self.handler.native_clipboard_text(text);
+                         }
++                        if self.handler.native_clipboard_rich_text_enabled() {
++                            if let Some(rich) = crate::rdn_bridge::native_viewer_clipboard_rich_text(
++                                &_mcb.clipboards,
++                            ) {
++                                self.handler.native_clipboard_rich_text(
++                                    rich.plain_text,
++                                    rich.rtf,
++                                    rich.html,
++                                );
++                            }
++                        }
+                         #[cfg(target_os = "ios")]
+                         {
+                             if let Some(cb) = _mcb
+diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs
+--- a/src/ui_session_interface.rs
++++ b/src/ui_session_interface.rs
+@@ -1728,6 +1728,18 @@
+     fn clipboard(&self, content: String);
+     #[cfg(feature = "rdn-native-core")]
+     fn native_clipboard_text(&self, _content: String) {}
++    #[cfg(feature = "rdn-native-core")]
++    fn native_clipboard_rich_text_enabled(&self) -> bool {
++        false
++    }
++    #[cfg(feature = "rdn-native-core")]
++    fn native_clipboard_rich_text(
++        &self,
++        _plain_text: Option<String>,
++        _rtf: Option<String>,
++        _html: Option<String>,
++    ) {
++    }
+     fn cancel_msgbox(&self, tag: &str);
+     fn switch_back(&self, id: &str);
+     fn portable_service_running(&self, running: bool);

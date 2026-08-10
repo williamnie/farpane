@@ -161,7 +161,8 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
 - 第一版允许复制压缩后的 H265 packet；禁止复制解码后的 4K RGBA frame。
 - Rust 回调不得直接修改 AppKit/SwiftUI 状态，Swift 必须切换到合适队列。
 - 网络线程、解码线程、渲染线程相互隔离。
-- Viewer ABI v6 的剪贴板边界默认关闭，接收与发送由本地独立策略约束；
+- Viewer ABI v7 保留 v6 的小文本边界并新增独立的富文本方向；四个方向均默认关闭，
+  由本地策略分别约束；
   Rust 只收发至多 64 KiB 的单条 UTF-8 文本，不轮询或写入 macOS pasteboard。
 - Viewer 产品层显式开启两个文本方向，系统 pasteboard 只由单一 Swift/AppKit owner
   访问；owner 在认证后启动，先快照而不上传会话前内容，以 changeCount 抑制回环并把
@@ -171,7 +172,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   将同一方向策略投影给后台 Agent，schema v1 安全迁移为双向关闭；Home 仅在 Host 关闭时
   显示两个显式开关，变更后重新发布 immutable bootstrap，发布不 coherent 时禁止开启
   Host。前台 legacy Host 与后台 Agent 消费同一策略，因此小型文本在用户显式开启后具备
-  端到端路径、默认仍关闭；富文本、图片和文件 promise 仍不受支持。
+  端到端路径、默认仍关闭；富文本产品启用、图片和文件 promise 仍不受支持。
+- ABI v7 的富文本 payload 原子携带可选的 64 KiB plain fallback，以及各自最多 1 MiB
+  的 RTF/HTML；重复、未知、图片/special、畸形 metadata、非法 UTF-8、NUL 和超限输入
+  均拒绝。receive 门禁在解析/解压前检查并在 callback 前复核，Swift 同步复制 callback
+  bytes 并复用 disconnect gate。产品层尚未开启 rich 方向，也没有把它接入 AppKit
+  pasteboard 或 Host rich admission/transport。
 - Host 在两个方向准入前先分类 clipboard wire format：只有无 NUL 的有界 UTF-8 `Text`
   可进入现有 inline 路径；RTF/HTML/RGBA/PNG/SVG 明确要求未来独立 transfer owner，当前
   仍拒绝，远端 `Special` 名称和未知 enum 直接 fail closed。分类本身不开放富剪贴板。

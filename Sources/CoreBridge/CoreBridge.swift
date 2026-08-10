@@ -72,6 +72,18 @@ public struct CoreRuntimeMetrics: Sendable {
     public let targetBitrate: UInt64
 }
 
+public struct CoreClipboardRichTextPayload: Sendable, Equatable {
+    public let plainText: String?
+    public let rtf: String?
+    public let html: String?
+
+    public init(plainText: String? = nil, rtf: String? = nil, html: String? = nil) {
+        self.plainText = plainText
+        self.rtf = rtf
+        self.html = html
+    }
+}
+
 public struct CoreConnectionConfig: Sendable {
     public let rendezvousServer: String
     public let serverPublicKey: String
@@ -80,6 +92,8 @@ public struct CoreConnectionConfig: Sendable {
     public let forceRelay: Bool
     public let receiveClipboardText: Bool
     public let sendClipboardText: Bool
+    public let receiveClipboardRichText: Bool
+    public let sendClipboardRichText: Bool
 
     public init(
         rendezvousServer: String,
@@ -88,7 +102,9 @@ public struct CoreConnectionConfig: Sendable {
         password: String = "",
         forceRelay: Bool = false,
         receiveClipboardText: Bool = false,
-        sendClipboardText: Bool = false
+        sendClipboardText: Bool = false,
+        receiveClipboardRichText: Bool = false,
+        sendClipboardRichText: Bool = false
     ) {
         self.rendezvousServer = rendezvousServer
         self.serverPublicKey = serverPublicKey
@@ -97,6 +113,8 @@ public struct CoreConnectionConfig: Sendable {
         self.forceRelay = forceRelay
         self.receiveClipboardText = receiveClipboardText
         self.sendClipboardText = sendClipboardText
+        self.receiveClipboardRichText = receiveClipboardRichText
+        self.sendClipboardRichText = sendClipboardRichText
     }
 }
 
@@ -203,6 +221,7 @@ private final class CallbackBox: @unchecked Sendable {
     let onVideo: @Sendable (CoreVideoPacket) -> Void
     let onMetrics: @Sendable (CoreRuntimeMetrics) -> Void
     let onClipboardText: @Sendable (String) -> Void
+    let onClipboardRichText: @Sendable (CoreClipboardRichTextPayload) -> Void
     private let clipboardLifecycleLock = NSLock()
     private var clipboardDeliveryEnabled = true
 
@@ -211,19 +230,28 @@ private final class CallbackBox: @unchecked Sendable {
         onState: @escaping @Sendable (CoreStateEvent) -> Void,
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
-        onClipboardText: @escaping @Sendable (String) -> Void
+        onClipboardText: @escaping @Sendable (String) -> Void,
+        onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void
     ) {
         self.queue = queue
         self.onState = onState
         self.onVideo = onVideo
         self.onMetrics = onMetrics
         self.onClipboardText = onClipboardText
+        self.onClipboardRichText = onClipboardRichText
     }
 
     func deliverClipboardText(_ text: String) {
         queue.async { [self] in
             guard clipboardLifecycleLock.withLock({ clipboardDeliveryEnabled }) else { return }
             onClipboardText(text)
+        }
+    }
+
+    func deliverClipboardRichText(_ payload: CoreClipboardRichTextPayload) {
+        queue.async { [self] in
+            guard clipboardLifecycleLock.withLock({ clipboardDeliveryEnabled }) else { return }
+            onClipboardRichText(payload)
         }
     }
 
@@ -295,6 +323,64 @@ private let clipboardTextCallback: RDNClipboardTextCallback = { context, utf8, l
     box.deliverClipboardText(text)
 }
 
+private func copiedOptionalClipboardUTF8(
+    _ utf8: UnsafePointer<UInt8>?,
+    length: Int,
+    maximum: Int
+) -> (valid: Bool, text: String?) {
+    guard let utf8 else { return (length == 0, nil) }
+    guard length > 0, length <= maximum else { return (false, nil) }
+    let data = Data(bytes: utf8, count: length)
+    guard
+        let text = String(data: data, encoding: .utf8),
+        !text.contains("\0")
+    else { return (false, nil) }
+    return (true, text)
+}
+
+private func optionalClipboardUTF8Data(
+    _ text: String?,
+    maximum: Int
+) -> (valid: Bool, data: Data?) {
+    guard let text else { return (true, nil) }
+    let data = Data(text.utf8)
+    guard !data.isEmpty, data.count <= maximum, !text.contains("\0") else {
+        return (false, nil)
+    }
+    return (true, data)
+}
+
+private let clipboardRichTextCallback: RDNClipboardRichTextCallback = {
+    context, payloadPointer in
+    guard let context, let payloadPointer else { return }
+    let raw = payloadPointer.pointee
+    guard raw.abi_version == RDN_ABI_VERSION else { return }
+    let plain = copiedOptionalClipboardUTF8(
+        raw.plain_utf8,
+        length: raw.plain_length,
+        maximum: Int(RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES)
+    )
+    let rtf = copiedOptionalClipboardUTF8(
+        raw.rtf_utf8,
+        length: raw.rtf_length,
+        maximum: Int(RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES)
+    )
+    let html = copiedOptionalClipboardUTF8(
+        raw.html_utf8,
+        length: raw.html_length,
+        maximum: Int(RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES)
+    )
+    guard plain.valid, rtf.valid, html.valid, rtf.text != nil || html.text != nil else {
+        return
+    }
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    box.deliverClipboardRichText(CoreClipboardRichTextPayload(
+        plainText: plain.text,
+        rtf: rtf.text,
+        html: html.text
+    ))
+}
+
 public final class RustDeskCoreClient: @unchecked Sendable {
     public static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
     public static let abiVersion = UInt32(RDN_ABI_VERSION)
@@ -313,7 +399,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         onState: @escaping @Sendable (CoreStateEvent) -> Void,
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
-        onClipboardText: @escaping @Sendable (String) -> Void = { _ in }
+        onClipboardText: @escaping @Sendable (String) -> Void = { _ in },
+        onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void = { _ in }
     ) throws {
         var error = [CChar](repeating: 0, count: 1024)
         guard let library = libraryURL.path.withCString({
@@ -336,14 +423,16 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             onState: onState,
             onVideo: onVideo,
             onMetrics: onMetrics,
-            onClipboardText: onClipboardText
+            onClipboardText: onClipboardText,
+            onClipboardRichText: onClipboardRichText
         )
         var callbacks = RDNCallbacks(
             abi_version: RDN_ABI_VERSION,
             on_state: stateCallback,
             on_video: videoCallback,
             on_metrics: metricsCallback,
-            on_clipboard_text: clipboardTextCallback
+            on_clipboard_text: clipboardTextCallback,
+            on_clipboard_rich_text: clipboardRichTextCallback
         )
         let context = Unmanaged.passUnretained(callbackBox).toOpaque()
         guard let client = rdn_shim_client_create(library, &callbacks, context) else {
@@ -376,7 +465,9 @@ public final class RustDeskCoreClient: @unchecked Sendable {
                             password: password,
                             force_relay: config.forceRelay,
                             receive_clipboard_text: config.receiveClipboardText,
-                            send_clipboard_text: config.sendClipboardText
+                            send_clipboard_text: config.sendClipboardText,
+                            receive_clipboard_rich_text: config.receiveClipboardRichText,
+                            send_clipboard_rich_text: config.sendClipboardRichText
                         )
                         return rdn_shim_client_connect(library, client, &raw)
                     }
@@ -476,6 +567,55 @@ public final class RustDeskCoreClient: @unchecked Sendable {
                 baseAddress,
                 utf8.count
             )
+        }
+    }
+
+    @discardableResult
+    public func sendClipboardRichText(_ payload: CoreClipboardRichTextPayload) -> Int32 {
+        guard payload.rtf != nil || payload.html != nil else { return -4 }
+        let plain = optionalClipboardUTF8Data(
+            payload.plainText,
+            maximum: Int(RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES)
+        )
+        let rtf = optionalClipboardUTF8Data(
+            payload.rtf,
+            maximum: Int(RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES)
+        )
+        let html = optionalClipboardUTF8Data(
+            payload.html,
+            maximum: Int(RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES)
+        )
+        guard plain.valid, rtf.valid, html.valid else { return -4 }
+        return plain.data.withOptionalUnsafeBytes { plainBytes, plainLength in
+            rtf.data.withOptionalUnsafeBytes { rtfBytes, rtfLength in
+                html.data.withOptionalUnsafeBytes { htmlBytes, htmlLength in
+                    var raw = RDNClipboardRichTextPayload(
+                        abi_version: RDN_ABI_VERSION,
+                        plain_utf8: plainBytes,
+                        plain_length: plainLength,
+                        rtf_utf8: rtfBytes,
+                        rtf_length: rtfLength,
+                        html_utf8: htmlBytes,
+                        html_length: htmlLength
+                    )
+                    return rdn_shim_client_send_clipboard_rich_text(
+                        library,
+                        client,
+                        &raw
+                    )
+                }
+            }
+        }
+    }
+}
+
+private extension Optional where Wrapped == Data {
+    func withOptionalUnsafeBytes<T>(
+        _ body: (UnsafePointer<UInt8>?, Int) -> T
+    ) -> T {
+        guard let data = self else { return body(nil, 0) }
+        return data.withUnsafeBytes { bytes in
+            body(bytes.bindMemory(to: UInt8.self).baseAddress, data.count)
         }
     }
 }

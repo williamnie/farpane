@@ -22,9 +22,10 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 6;
+const ABI_VERSION: u32 = 7;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
+const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 
 #[repr(C)]
@@ -91,6 +92,19 @@ type StateCallback = unsafe extern "C" fn(*mut c_void, RDNState, i32, *const c_c
 type VideoCallback = unsafe extern "C" fn(*mut c_void, *const RDNEncodedVideoFrame);
 type MetricsCallback = unsafe extern "C" fn(*mut c_void, *const RDNCoreMetrics);
 type ClipboardTextCallback = unsafe extern "C" fn(*mut c_void, *const u8, usize);
+type ClipboardRichTextCallback =
+    unsafe extern "C" fn(*mut c_void, *const RDNClipboardRichTextPayload);
+
+#[repr(C)]
+pub struct RDNClipboardRichTextPayload {
+    abi_version: u32,
+    plain_utf8: *const u8,
+    plain_length: usize,
+    rtf_utf8: *const u8,
+    rtf_length: usize,
+    html_utf8: *const u8,
+    html_length: usize,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -100,6 +114,7 @@ pub struct RDNCallbacks {
     on_video: Option<VideoCallback>,
     on_metrics: Option<MetricsCallback>,
     on_clipboard_text: Option<ClipboardTextCallback>,
+    on_clipboard_rich_text: Option<ClipboardRichTextCallback>,
 }
 
 #[repr(C)]
@@ -112,6 +127,8 @@ pub struct RDNConnectionConfig {
     force_relay: bool,
     receive_clipboard_text: bool,
     send_clipboard_text: bool,
+    receive_clipboard_rich_text: bool,
+    send_clipboard_rich_text: bool,
 }
 
 const MODIFIER_SHIFT: u32 = 1 << 0;
@@ -194,6 +211,8 @@ struct BridgeShared {
     input_allowed: AtomicBool,
     receive_clipboard_text: AtomicBool,
     send_clipboard_text: AtomicBool,
+    receive_clipboard_rich_text: AtomicBool,
+    send_clipboard_rich_text: AtomicBool,
     remote_clipboard_enabled: AtomicBool,
 }
 
@@ -248,6 +267,33 @@ impl BridgeShared {
                 text.len(),
             )
         };
+    }
+
+    fn emit_clipboard_rich_text(&self, rich: NativeViewerRichTextBundle) {
+        if !clipboard_receive_allowed(
+            self.active.load(Ordering::Acquire),
+            self.authenticated.load(Ordering::Acquire),
+            self.receive_clipboard_rich_text.load(Ordering::Acquire),
+            self.remote_clipboard_enabled.load(Ordering::Acquire),
+        ) {
+            return;
+        }
+        let Some(callback) = self.callbacks.on_clipboard_rich_text else {
+            return;
+        };
+        let (plain_utf8, plain_length) = optional_string_bytes(&rich.plain_text);
+        let (rtf_utf8, rtf_length) = optional_string_bytes(&rich.rtf);
+        let (html_utf8, html_length) = optional_string_bytes(&rich.html);
+        let payload = RDNClipboardRichTextPayload {
+            abi_version: ABI_VERSION,
+            plain_utf8,
+            plain_length,
+            rtf_utf8,
+            rtf_length,
+            html_utf8,
+            html_length,
+        };
+        unsafe { callback(self.context as *mut c_void, &payload) };
     }
 
     fn emit_video(&self, frame: &VideoFrame) -> bool {
@@ -305,6 +351,7 @@ impl Default for BridgeUi {
                     on_video: None,
                     on_metrics: None,
                     on_clipboard_text: None,
+                    on_clipboard_rich_text: None,
                 },
                 context: 0,
                 active: AtomicBool::new(false),
@@ -315,6 +362,8 @@ impl Default for BridgeUi {
                 input_allowed: AtomicBool::new(false),
                 receive_clipboard_text: AtomicBool::new(false),
                 send_clipboard_text: AtomicBool::new(false),
+                receive_clipboard_rich_text: AtomicBool::new(false),
+                send_clipboard_rich_text: AtomicBool::new(false),
                 remote_clipboard_enabled: AtomicBool::new(false),
             }),
         }
@@ -494,6 +543,31 @@ impl InvokeUiSession for BridgeUi {
     fn native_clipboard_text(&self, text: String) {
         self.shared.emit_clipboard_text(&text);
     }
+
+    fn native_clipboard_rich_text_enabled(&self) -> bool {
+        clipboard_receive_allowed(
+            self.shared.active.load(Ordering::Acquire),
+            self.shared.authenticated.load(Ordering::Acquire),
+            self.shared
+                .receive_clipboard_rich_text
+                .load(Ordering::Acquire),
+            self.shared.remote_clipboard_enabled.load(Ordering::Acquire),
+        )
+    }
+
+    fn native_clipboard_rich_text(
+        &self,
+        plain_text: Option<String>,
+        rtf: Option<String>,
+        html: Option<String>,
+    ) {
+        self.shared
+            .emit_clipboard_rich_text(NativeViewerRichTextBundle {
+                plain_text,
+                rtf,
+                html,
+            });
+    }
 }
 
 pub struct RDNClient {
@@ -512,6 +586,12 @@ impl RDNClient {
             .store(false, Ordering::Release);
         self.shared
             .send_clipboard_text
+            .store(false, Ordering::Release);
+        self.shared
+            .receive_clipboard_rich_text
+            .store(false, Ordering::Release);
+        self.shared
+            .send_clipboard_rich_text
             .store(false, Ordering::Release);
         self.shared
             .remote_clipboard_enabled
@@ -567,31 +647,88 @@ fn clipboard_receive_allowed(
     active && authenticated && local_receive_enabled && remote_clipboard_enabled
 }
 
+fn optional_string_bytes(value: &Option<String>) -> (*const u8, usize) {
+    value.as_ref().map_or((ptr::null(), 0), |text| {
+        (text.as_bytes().as_ptr(), text.len())
+    })
+}
+
+fn decoded_clipboard_utf8(clipboard: &Clipboard, max_bytes: usize) -> Option<String> {
+    if !clipboard.special_name.is_empty()
+        || clipboard.width != 0
+        || clipboard.height != 0
+        || clipboard.content.is_empty()
+        || clipboard.content.len() > max_bytes
+    {
+        return None;
+    }
+    let bytes = if clipboard.compress {
+        hbb_common::compress::decompress_with_limit(&clipboard.content, max_bytes).ok()?
+    } else {
+        clipboard.content.to_vec()
+    };
+    let text = String::from_utf8(bytes).ok()?;
+    (!text.is_empty() && text.len() <= max_bytes && !text.contains('\0')).then_some(text)
+}
+
 pub(crate) fn native_viewer_clipboard_text(clipboards: &[Clipboard]) -> Option<String> {
     let clipboard = match clipboards {
         [clipboard] => clipboard,
         _ => return None,
     };
-    if clipboard.format.enum_value() != Ok(ClipboardFormat::Text)
-        || !clipboard.special_name.is_empty()
-        || clipboard.width != 0
-        || clipboard.height != 0
-        || clipboard.content.is_empty()
-        || clipboard.content.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES
-    {
+    if clipboard.format.enum_value() != Ok(ClipboardFormat::Text) {
         return None;
     }
-    let bytes = if clipboard.compress {
-        hbb_common::compress::decompress_with_limit(
-            &clipboard.content,
-            MAX_CLIPBOARD_TEXT_UTF8_BYTES,
-        )
-        .ok()?
-    } else {
-        clipboard.content.to_vec()
-    };
-    let text = String::from_utf8(bytes).ok()?;
-    (!text.is_empty() && !text.contains('\0')).then_some(text)
+    decoded_clipboard_utf8(clipboard, MAX_CLIPBOARD_TEXT_UTF8_BYTES)
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(crate) struct NativeViewerRichTextBundle {
+    pub(crate) plain_text: Option<String>,
+    pub(crate) rtf: Option<String>,
+    pub(crate) html: Option<String>,
+}
+
+pub(crate) fn native_viewer_clipboard_rich_text(
+    clipboards: &[Clipboard],
+) -> Option<NativeViewerRichTextBundle> {
+    if clipboards.is_empty() || clipboards.len() > 3 {
+        return None;
+    }
+    let mut bundle = NativeViewerRichTextBundle::default();
+    for clipboard in clipboards {
+        match clipboard.format.enum_value().ok()? {
+            ClipboardFormat::Text => {
+                if bundle.plain_text.is_some() {
+                    return None;
+                }
+                bundle.plain_text = Some(decoded_clipboard_utf8(
+                    clipboard,
+                    MAX_CLIPBOARD_TEXT_UTF8_BYTES,
+                )?);
+            }
+            ClipboardFormat::Rtf => {
+                if bundle.rtf.is_some() {
+                    return None;
+                }
+                bundle.rtf = Some(decoded_clipboard_utf8(
+                    clipboard,
+                    MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES,
+                )?);
+            }
+            ClipboardFormat::Html => {
+                if bundle.html.is_some() {
+                    return None;
+                }
+                bundle.html = Some(decoded_clipboard_utf8(
+                    clipboard,
+                    MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES,
+                )?);
+            }
+            _ => return None,
+        }
+    }
+    (bundle.rtf.is_some() || bundle.html.is_some()).then_some(bundle)
 }
 
 fn native_viewer_clipboard_message(bytes: &[u8]) -> Option<Message> {
@@ -612,6 +749,79 @@ fn validated_clipboard_text(bytes: &[u8]) -> Option<&str> {
     std::str::from_utf8(bytes)
         .ok()
         .filter(|text| !text.contains('\0'))
+}
+
+unsafe fn optional_clipboard_utf8(
+    utf8: *const u8,
+    length: usize,
+    max_bytes: usize,
+) -> Option<Option<String>> {
+    if utf8.is_null() {
+        return (length == 0).then_some(None);
+    }
+    if length == 0 || length > max_bytes {
+        return None;
+    }
+    let bytes = unsafe { std::slice::from_raw_parts(utf8, length) };
+    let text = String::from_utf8(bytes.to_vec()).ok()?;
+    (!text.contains('\0')).then_some(Some(text))
+}
+
+unsafe fn native_viewer_clipboard_rich_text_message(
+    payload: &RDNClipboardRichTextPayload,
+) -> Option<Message> {
+    if payload.abi_version != ABI_VERSION {
+        return None;
+    }
+    let plain_text = unsafe {
+        optional_clipboard_utf8(
+            payload.plain_utf8,
+            payload.plain_length,
+            MAX_CLIPBOARD_TEXT_UTF8_BYTES,
+        )?
+    };
+    let rtf = unsafe {
+        optional_clipboard_utf8(
+            payload.rtf_utf8,
+            payload.rtf_length,
+            MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES,
+        )?
+    };
+    let html = unsafe {
+        optional_clipboard_utf8(
+            payload.html_utf8,
+            payload.html_length,
+            MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES,
+        )?
+    };
+    if rtf.is_none() && html.is_none() {
+        return None;
+    }
+
+    let mut clipboards = Vec::with_capacity(3);
+    for (format, text) in [
+        (ClipboardFormat::Text, plain_text),
+        (ClipboardFormat::Rtf, rtf),
+        (ClipboardFormat::Html, html),
+    ] {
+        if let Some(text) = text {
+            clipboards.push(Clipboard {
+                content: text.into_bytes().into(),
+                format: format.into(),
+                ..Default::default()
+            });
+        }
+    }
+    let mut message = Message::new();
+    if clipboards.len() == 1 {
+        message.set_clipboard(clipboards.remove(0));
+    } else {
+        message.set_multi_clipboards(MultiClipboards {
+            clipboards,
+            ..Default::default()
+        });
+    }
+    Some(message)
 }
 
 fn native_stream_configuration_message(custom_fps: i32) -> Message {
@@ -678,6 +888,8 @@ pub unsafe extern "C" fn rdn_client_create(
         input_allowed: AtomicBool::new(false),
         receive_clipboard_text: AtomicBool::new(false),
         send_clipboard_text: AtomicBool::new(false),
+        receive_clipboard_rich_text: AtomicBool::new(false),
+        send_clipboard_rich_text: AtomicBool::new(false),
         remote_clipboard_enabled: AtomicBool::new(false),
     });
     Box::into_raw(Box::new(RDNClient {
@@ -749,6 +961,14 @@ pub unsafe extern "C" fn rdn_client_connect(
         .store((*config).send_clipboard_text, Ordering::Release);
     client
         .shared
+        .receive_clipboard_rich_text
+        .store((*config).receive_clipboard_rich_text, Ordering::Release);
+    client
+        .shared
+        .send_clipboard_rich_text
+        .store((*config).send_clipboard_rich_text, Ordering::Release);
+    client
+        .shared
         .remote_clipboard_enabled
         .store(false, Ordering::Release);
     client.shared.sequence.store(0, Ordering::Relaxed);
@@ -782,7 +1002,10 @@ pub unsafe extern "C" fn rdn_client_connect(
     );
     session.lc.write().unwrap().configure_native_viewer(
         &peer_id,
-        (*config).receive_clipboard_text || (*config).send_clipboard_text,
+        (*config).receive_clipboard_text
+            || (*config).send_clipboard_text
+            || (*config).receive_clipboard_rich_text
+            || (*config).send_clipboard_rich_text,
     );
     let round = session.connection_round_state.lock().unwrap().new_round();
     let worker_session = session.clone();
@@ -1174,6 +1397,50 @@ pub unsafe extern "C" fn rdn_client_send_clipboard_text(
     sender.send(Data::Message(message)).map_or(-3, |_| 0)
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_send_clipboard_rich_text(
+    client: *mut RDNClient,
+    payload: *const RDNClipboardRichTextPayload,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    if !client
+        .shared
+        .send_clipboard_rich_text
+        .load(Ordering::Acquire)
+    {
+        return -7;
+    }
+    if !client
+        .shared
+        .remote_clipboard_enabled
+        .load(Ordering::Acquire)
+    {
+        return -8;
+    }
+    let Some(payload) = payload.as_ref() else {
+        return -4;
+    };
+    let Some(message) = (unsafe { native_viewer_clipboard_rich_text_message(payload) }) else {
+        return -4;
+    };
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
+        return -3;
+    };
+    sender.send(Data::Message(message)).map_or(-3, |_| 0)
+}
+
 struct PacketInspection {
     format: RDNPacketFormat,
     flags: u32,
@@ -1443,6 +1710,32 @@ mod tests {
     }
 
     #[test]
+    fn native_viewer_rich_receive_preparse_gate_requires_every_authority() {
+        let ui = BridgeUi::default();
+        assert!(!ui.native_clipboard_rich_text_enabled());
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared.authenticated.store(true, Ordering::Release);
+        ui.shared
+            .receive_clipboard_rich_text
+            .store(true, Ordering::Release);
+        ui.shared
+            .remote_clipboard_enabled
+            .store(true, Ordering::Release);
+        assert!(ui.native_clipboard_rich_text_enabled());
+
+        for gate in [
+            &ui.shared.active,
+            &ui.shared.authenticated,
+            &ui.shared.receive_clipboard_rich_text,
+            &ui.shared.remote_clipboard_enabled,
+        ] {
+            gate.store(false, Ordering::Release);
+            assert!(!ui.native_clipboard_rich_text_enabled());
+            gate.store(true, Ordering::Release);
+        }
+    }
+
+    #[test]
     fn validates_bounded_utf8_text_without_logging_content() {
         assert_eq!(validated_text("中文输入".as_bytes()), Some("中文输入"));
         assert!(validated_text(b"").is_none());
@@ -1529,5 +1822,171 @@ mod tests {
         assert!(native_viewer_clipboard_message(b"").is_none());
         assert!(native_viewer_clipboard_message(b"a\0b").is_none());
         assert!(native_viewer_clipboard_message(&[0xff]).is_none());
+    }
+
+    #[test]
+    fn native_viewer_rich_clipboard_accepts_only_owned_bounded_canonical_bundle() {
+        let mut source = vec![
+            clipboard_fixture(b"plain fallback".to_vec(), false, ClipboardFormat::Text),
+            clipboard_fixture(b"{\\rtf1 rich}".to_vec(), false, ClipboardFormat::Rtf),
+            clipboard_fixture(b"<b>rich</b>".to_vec(), false, ClipboardFormat::Html),
+        ];
+        let bundle = native_viewer_clipboard_rich_text(&source).expect("canonical rich bundle");
+        source
+            .iter_mut()
+            .for_each(|clipboard| clipboard.content.clear());
+        assert_eq!(bundle.plain_text.as_deref(), Some("plain fallback"));
+        assert_eq!(bundle.rtf.as_deref(), Some("{\\rtf1 rich}"));
+        assert_eq!(bundle.html.as_deref(), Some("<b>rich</b>"));
+
+        let at_limit = vec![b'a'; MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES];
+        let compressed = hbb_common::compress::compress(&at_limit);
+        let bundle = native_viewer_clipboard_rich_text(&[clipboard_fixture(
+            compressed,
+            true,
+            ClipboardFormat::Html,
+        )])
+        .expect("bounded compressed rich entry");
+        assert_eq!(bundle.html.map(|html| html.len()), Some(at_limit.len()));
+    }
+
+    #[test]
+    fn native_viewer_rich_clipboard_rejects_ambiguous_or_unbounded_input() {
+        let plain = clipboard_fixture(b"plain".to_vec(), false, ClipboardFormat::Text);
+        let rtf = clipboard_fixture(b"{\\rtf1}".to_vec(), false, ClipboardFormat::Rtf);
+        let html = clipboard_fixture(b"<b>rich</b>".to_vec(), false, ClipboardFormat::Html);
+        assert!(native_viewer_clipboard_rich_text(&[]).is_none());
+        assert!(native_viewer_clipboard_rich_text(std::slice::from_ref(&plain)).is_none());
+        assert!(native_viewer_clipboard_rich_text(&[
+            plain.clone(),
+            rtf.clone(),
+            html.clone(),
+            rtf.clone(),
+        ])
+        .is_none());
+        assert!(native_viewer_clipboard_rich_text(&[rtf.clone(), rtf.clone()]).is_none());
+
+        for invalid in [
+            clipboard_fixture(Vec::new(), false, ClipboardFormat::Html),
+            clipboard_fixture(b"before\0after".to_vec(), false, ClipboardFormat::Html),
+            clipboard_fixture(vec![0xff], false, ClipboardFormat::Rtf),
+            clipboard_fixture(
+                vec![b'a'; MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES + 1],
+                false,
+                ClipboardFormat::Html,
+            ),
+            clipboard_fixture(b"image".to_vec(), false, ClipboardFormat::ImagePng),
+            clipboard_fixture(b"special".to_vec(), false, ClipboardFormat::Special),
+        ] {
+            assert!(native_viewer_clipboard_rich_text(&[invalid]).is_none());
+        }
+
+        let compressed_over_limit =
+            hbb_common::compress::compress(&vec![b'a'; MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES + 1]);
+        assert!(native_viewer_clipboard_rich_text(&[clipboard_fixture(
+            compressed_over_limit,
+            true,
+            ClipboardFormat::Rtf,
+        )])
+        .is_none());
+
+        let mut wrong_metadata = html.clone();
+        wrong_metadata.special_name = "public.html".to_owned();
+        assert!(native_viewer_clipboard_rich_text(&[wrong_metadata]).is_none());
+        let mut wrong_dimensions = html;
+        wrong_dimensions.width = 1;
+        assert!(native_viewer_clipboard_rich_text(&[wrong_dimensions]).is_none());
+        let mut unknown = rtf;
+        unknown.format = hbb_common::protobuf::EnumOrUnknown::from_i32(999);
+        assert!(native_viewer_clipboard_rich_text(&[unknown]).is_none());
+    }
+
+    fn optional_payload_bytes(bytes: Option<&[u8]>) -> (*const u8, usize) {
+        bytes.map_or((ptr::null(), 0), |bytes| (bytes.as_ptr(), bytes.len()))
+    }
+
+    fn rich_payload(
+        plain: Option<&[u8]>,
+        rtf: Option<&[u8]>,
+        html: Option<&[u8]>,
+    ) -> RDNClipboardRichTextPayload {
+        let (plain_utf8, plain_length) = optional_payload_bytes(plain);
+        let (rtf_utf8, rtf_length) = optional_payload_bytes(rtf);
+        let (html_utf8, html_length) = optional_payload_bytes(html);
+        RDNClipboardRichTextPayload {
+            abi_version: ABI_VERSION,
+            plain_utf8,
+            plain_length,
+            rtf_utf8,
+            rtf_length,
+            html_utf8,
+            html_length,
+        }
+    }
+
+    #[test]
+    fn native_viewer_rich_clipboard_builds_canonical_outbound_messages() {
+        let rtf = b"{\\rtf1 outbound}";
+        let payload = rich_payload(None, Some(rtf), None);
+        let message = unsafe { native_viewer_clipboard_rich_text_message(&payload) }
+            .expect("single rich payload");
+        let Some(message::Union::Clipboard(clipboard)) = message.union else {
+            panic!("one rich entry must use Clipboard");
+        };
+        assert_eq!(clipboard.format.enum_value(), Ok(ClipboardFormat::Rtf));
+        assert_eq!(clipboard.content.as_ref(), rtf);
+        assert!(!clipboard.compress);
+        assert!(clipboard.special_name.is_empty());
+        assert_eq!((clipboard.width, clipboard.height), (0, 0));
+
+        let plain = "回退文本".as_bytes();
+        let html = b"<b>outbound</b>";
+        let payload = rich_payload(Some(plain), Some(rtf), Some(html));
+        let message = unsafe { native_viewer_clipboard_rich_text_message(&payload) }
+            .expect("multi rich payload");
+        let Some(message::Union::MultiClipboards(multi)) = message.union else {
+            panic!("multiple rich entries must use MultiClipboards");
+        };
+        assert_eq!(multi.clipboards.len(), 3);
+        for (clipboard, expected_format, expected_content) in [
+            (&multi.clipboards[0], ClipboardFormat::Text, plain),
+            (&multi.clipboards[1], ClipboardFormat::Rtf, rtf.as_slice()),
+            (&multi.clipboards[2], ClipboardFormat::Html, html.as_slice()),
+        ] {
+            assert_eq!(clipboard.format.enum_value(), Ok(expected_format));
+            assert_eq!(clipboard.content.as_ref(), expected_content);
+            assert!(!clipboard.compress);
+            assert!(clipboard.special_name.is_empty());
+            assert_eq!((clipboard.width, clipboard.height), (0, 0));
+        }
+    }
+
+    #[test]
+    fn native_viewer_rich_clipboard_rejects_invalid_outbound_payloads() {
+        let plain = b"plain";
+        let rtf = b"{\\rtf1}";
+        let mut payload = rich_payload(Some(plain), None, None);
+        assert!(unsafe { native_viewer_clipboard_rich_text_message(&payload) }.is_none());
+
+        payload = rich_payload(None, Some(rtf), None);
+        payload.abi_version += 1;
+        assert!(unsafe { native_viewer_clipboard_rich_text_message(&payload) }.is_none());
+
+        payload = rich_payload(None, Some(rtf), None);
+        payload.rtf_utf8 = ptr::null();
+        assert!(unsafe { native_viewer_clipboard_rich_text_message(&payload) }.is_none());
+
+        payload = rich_payload(None, Some(rtf), None);
+        payload.rtf_length = 0;
+        assert!(unsafe { native_viewer_clipboard_rich_text_message(&payload) }.is_none());
+
+        payload = rich_payload(None, Some(rtf), None);
+        payload.rtf_length = MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES + 1;
+        assert!(unsafe { native_viewer_clipboard_rich_text_message(&payload) }.is_none());
+
+        for invalid in [&[0xff][..], &b"before\0after"[..]] {
+            payload = rich_payload(None, None, Some(invalid));
+            assert!(unsafe { native_viewer_clipboard_rich_text_message(&payload) }.is_none());
+        }
     }
 }

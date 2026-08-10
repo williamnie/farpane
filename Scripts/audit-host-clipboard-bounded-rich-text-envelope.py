@@ -137,14 +137,11 @@ def main() -> int:
                 "ClipboardFormat::Text",
             )
         ),
-        "documentationKeepsTransportAndPasteboardClosed": all(
-            marker in architecture and marker in readme
-            for marker in (
-                "1 MiB",
-                "RTF/HTML",
-                "Viewer ABI",
-                "pasteboard",
-            )
+        "documentationKeepsHostTransportAndProductPasteboardClosed": (
+            "1 MiB" in architecture
+            and "Host rich admission/transport" in architecture
+            and "1 MiB" in readme
+            and "no Host rich admission, network transfer owner, AppKit" in readme
         ),
         "canonicalAndVendoredBridgeMatch": bridge == sources["vendor_bridge"],
     }
@@ -204,13 +201,13 @@ def main() -> int:
             "imagesIncluded": False,
         },
         "remainingBoundary": {
-            "viewerRichTextABIRequired": True,
+            "viewerRichTextABIRequired": False,
             "hostViewerTransportWiringRequired": True,
             "pasteboardOwnerRequired": True,
             "imagesRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-rich-text-clipboard-api-contract",
+        "nextImplementationBoundary": "host-viewer-rich-text-transfer-wiring-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-rich-text-envelope-contract" else 1

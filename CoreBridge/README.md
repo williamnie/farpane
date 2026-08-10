@@ -38,7 +38,7 @@ keyboard-map mode so remote shortcuts and IME composition receive real key
 strokes. RustDesk Core remains solely responsible for constructing and
 transmitting wire-protocol input messages.
 
-ABI v6 adds a default-off, directionally configured small-text clipboard API.
+ABI v6 added a default-off, directionally configured small-text clipboard API.
 Rust accepts exactly one non-empty UTF-8 `ClipboardFormat::Text` payload up to
 64 KiB, bounds decompression before decoding, rejects rich metadata and NUL,
 and delivers callback-scoped bytes to Swift without touching the Viewer
@@ -59,7 +59,19 @@ only while Host is off; changing either preference republishes the immutable
 bootstrap, and Host cannot be enabled unless that publication is coherent. The
 legacy foreground Host and background Agent consume the same projection. Small
 text is therefore end-to-end capable after explicit opt-in while remaining off
-by default; rich text, images, and file promises are still unsupported.
+by default; images and file promises are still unsupported.
+
+ABI v7 retains the ABI v6 bounded small-text contract and adds an independently
+default-off semantic rich-text API. One atomic callback/send payload can carry
+an optional 64 KiB plain-text fallback plus at most one RTF and one HTML UTF-8
+representation, each independently capped at 1 MiB. Rust rejects duplicate,
+unknown, image/special, malformed, NUL, invalid UTF-8 and oversized entries;
+compressed incoming representations use bounded decompression. When rich
+receive is disabled, the lifecycle/permission gate runs before parsing or
+decompression and is checked again before callback delivery. Swift copies all
+callback-scoped bytes synchronously and shares the existing disconnect delivery
+gate. No AppKit pasteboard owner or product configuration enables the rich
+directions yet, and Host rich admission/transport remains a later boundary.
 
 The Host rich-payload boundary now classifies wire clipboard formats before
 either directional admission point. Only bounded, non-NUL UTF-8 `Text` may use
@@ -72,6 +84,6 @@ RTF/HTML now have a Rust-owned semantic envelope before any future transfer
 path. It accepts only exact rich-text formats with empty special metadata and
 zero image dimensions, owns the decoded UTF-8 `String`, rejects NUL, and caps
 both the wire payload and bounded decompression output at 1 MiB. The current
-data plane still admits only `InlineSmallText`: no rich Viewer ABI, network
-transport, AppKit pasteboard owner, image payload, or product enablement is
-added by this envelope contract.
+Host data plane still admits only `InlineSmallText`: ABI v7 can safely represent
+Viewer rich text, but no Host rich admission, network transfer owner, AppKit
+pasteboard integration, image payload, or product enablement is connected yet.
