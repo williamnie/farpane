@@ -261,6 +261,11 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   typed failure 与 exact completion，并在 disconnect 前关闭投递。真实 Viewer file event mapping、
   destination descriptor owner、list/download I/O 与 UI 仍未实现；多文件 upload resume、existing-target
   replace 也仍未实现。
+  Viewer Rust 已另建尚未接 callback 的 remote-root listing envelope：最多 1,024 个 regular file/directory
+  entry 与 1 MiB 聚合 UTF-8 name metadata，拒绝 empty/traversal/separator/control、hidden、link/drive/
+  unknown type、private staging、非零大小 directory 及 ASCII case alias，并复制为 Rust-owned strings。
+  完整 Unicode NFC/case-fold 仍必须由未来 Swift manifest callback 再次验证；当前 primitive 不发送命令、
+  不投递事件，也不形成 list/download 能力。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。

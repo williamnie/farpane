@@ -43,5 +43,5 @@ access a local destination.
 
 ## Next step
 
-`host-file-transfer-viewer-list-manifest-command-event-lifecycle`: add a bounded
-remote-list command and canonical manifest event before destination/download I/O.
+`host-file-transfer-viewer-list-command-callback-abi-lifecycle`: wire the owned
+remote-list envelope to a default-off command/callback before download I/O.

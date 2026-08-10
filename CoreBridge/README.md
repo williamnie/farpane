@@ -156,3 +156,13 @@ descriptors or raw protocol errors. Rust does not yet produce file events,
 request remote lists/downloads or own a Viewer destination, and no product
 configuration opts in, so this runtime slice is not file-transfer product
 capability.
+
+The next internal slice owns and structurally bounds an upstream remote-root
+listing before any future ABI callback: at most 1,024 regular file/directory
+entries and 1 MiB aggregate UTF-8 name metadata. Empty, traversal, separated,
+control-character, hidden, link/drive/unknown, private staging, nonzero-sized
+directory and ASCII case-alias entries reject as one envelope. Names are copied
+into Rust-owned strings. Full Unicode NFC/case-fold validation remains the
+Swift manifest boundary's responsibility when the callback is wired; the
+current primitive is not reachable from product code and does not request a
+list or transfer bytes.

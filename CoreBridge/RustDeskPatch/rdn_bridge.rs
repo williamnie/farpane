@@ -12,6 +12,7 @@ use crate::common::input::{
 use crate::ui_session_interface::{io_loop, InvokeUiSession, Session};
 use hbb_common::{message_proto::*, rendezvous_proto::ConnType};
 use std::{
+    collections::HashSet,
     ffi::{c_char, c_void, CStr, CString},
     ptr,
     sync::{
@@ -30,6 +31,9 @@ const MAX_CLIPBOARD_IMAGE_BYTES: usize = 128 * 1024 * 1024;
 const MAX_CLIPBOARD_SVG_UTF8_BYTES: usize = 4 * 1024 * 1024;
 const MAX_CLIPBOARD_IMAGE_DIMENSION: i32 = 8192;
 const MAX_CLIPBOARD_IMAGE_PIXELS: usize = 7680 * 4320;
+const MAX_FILE_TRANSFER_LIST_ENTRIES: usize = 1_024;
+const MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES: usize = 1_024 * 1_024;
+const FILE_TRANSFER_PRIVATE_STAGING_SUFFIX: &str = ".farpane-part";
 const CLIPBOARD_IMAGE_FORMAT_RGBA: u32 = 1;
 const CLIPBOARD_IMAGE_FORMAT_PNG: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_SVG: u32 = 3;
@@ -139,6 +143,20 @@ pub struct RDNFileTransferEvent {
     bytes_completed: u64,
     total_bytes: u64,
     bytes_per_second: f64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeViewerRemoteListEntryKind {
+    Directory,
+    File,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NativeViewerRemoteListEntry {
+    kind: NativeViewerRemoteListEntryKind,
+    relative_path: String,
+    size: u64,
+    modified_time: u64,
 }
 
 #[repr(C)]
@@ -1207,6 +1225,54 @@ unsafe fn optional_string(pointer: *const c_char) -> Result<String, i32> {
     }
 }
 
+fn native_viewer_remote_listing(entries: &[FileEntry]) -> Option<Vec<NativeViewerRemoteListEntry>> {
+    if entries.len() > MAX_FILE_TRANSFER_LIST_ENTRIES {
+        return None;
+    }
+    let mut metadata_utf8_bytes = 0usize;
+    let mut collision_keys = HashSet::with_capacity(entries.len());
+    let mut normalized = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let name = entry.name.as_str();
+        if name.is_empty()
+            || name == "."
+            || name == ".."
+            || name.starts_with('/')
+            || name.ends_with('/')
+            || name.contains('/')
+            || name.contains('\\')
+            || name.chars().any(char::is_control)
+            || name
+                .to_ascii_lowercase()
+                .ends_with(FILE_TRANSFER_PRIVATE_STAGING_SUFFIX)
+        {
+            return None;
+        }
+        metadata_utf8_bytes = metadata_utf8_bytes.checked_add(name.len())?;
+        if metadata_utf8_bytes > MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES {
+            return None;
+        }
+        if !collision_keys.insert(name.to_ascii_lowercase()) {
+            return None;
+        }
+        if entry.is_hidden {
+            return None;
+        }
+        let kind = match entry.entry_type.enum_value() {
+            Ok(FileType::Dir) if entry.size == 0 => NativeViewerRemoteListEntryKind::Directory,
+            Ok(FileType::File) => NativeViewerRemoteListEntryKind::File,
+            _ => return None,
+        };
+        normalized.push(NativeViewerRemoteListEntry {
+            kind,
+            relative_path: name.to_owned(),
+            size: entry.size,
+            modified_time: entry.modified_time,
+        });
+    }
+    Some(normalized)
+}
+
 fn viewer_file_transfer_mode_admission(
     enabled: bool,
     session_epoch: u64,
@@ -2002,6 +2068,16 @@ fn avcc_nal_types(data: &[u8]) -> Option<Vec<u8>> {
 mod tests {
     use super::*;
 
+    fn remote_list_entry(entry_type: FileType, name: &str, size: u64) -> FileEntry {
+        FileEntry {
+            entry_type: entry_type.into(),
+            name: name.to_owned(),
+            size,
+            modified_time: 123,
+            ..Default::default()
+        }
+    }
+
     fn nal(nal_type: u8) -> [u8; 3] {
         [nal_type << 1, 1, 0x80]
     }
@@ -2046,6 +2122,85 @@ mod tests {
             panic!("housekeeping message must be TestDelay");
         };
         assert!(delay.from_client);
+    }
+
+    #[test]
+    fn viewer_remote_listing_owns_bounded_regular_entries() {
+        let mut entries = vec![
+            remote_list_entry(FileType::Dir, "资料", 0),
+            remote_list_entry(FileType::File, "report.txt", 42),
+        ];
+        let listing = native_viewer_remote_listing(&entries).unwrap();
+        entries[0].name = "changed".to_owned();
+        assert_eq!(listing.len(), 2);
+        assert_eq!(listing[0].kind, NativeViewerRemoteListEntryKind::Directory);
+        assert_eq!(listing[0].relative_path, "资料");
+        assert_eq!(listing[0].size, 0);
+        assert_eq!(listing[1].kind, NativeViewerRemoteListEntryKind::File);
+        assert_eq!(listing[1].relative_path, "report.txt");
+        assert_eq!(listing[1].size, 42);
+        assert_eq!(listing[1].modified_time, 123);
+        assert_eq!(native_viewer_remote_listing(&[]), Some(Vec::new()));
+    }
+
+    #[test]
+    fn viewer_remote_listing_rejects_unsafe_types_names_aliases_and_bounds() {
+        for invalid_name in [
+            "",
+            ".",
+            "..",
+            "/absolute",
+            "nested/file",
+            "windows\\path",
+            "bad\nname",
+        ] {
+            assert!(native_viewer_remote_listing(&[remote_list_entry(
+                FileType::File,
+                invalid_name,
+                1,
+            )])
+            .is_none());
+        }
+        assert!(native_viewer_remote_listing(&[
+            remote_list_entry(FileType::File, "Report.txt", 1),
+            remote_list_entry(FileType::File, "report.TXT", 1),
+        ])
+        .is_none());
+        assert!(native_viewer_remote_listing(&[remote_list_entry(
+            FileType::File,
+            "partial.FARPANE-PART",
+            1,
+        )])
+        .is_none());
+
+        let mut hidden = remote_list_entry(FileType::File, "hidden", 1);
+        hidden.is_hidden = true;
+        assert!(native_viewer_remote_listing(&[hidden]).is_none());
+        assert!(native_viewer_remote_listing(&[remote_list_entry(
+            FileType::Dir,
+            "nonempty-dir",
+            1,
+        )])
+        .is_none());
+        assert!(
+            native_viewer_remote_listing(&[remote_list_entry(FileType::FileLink, "link", 1,)])
+                .is_none()
+        );
+        let mut unknown = remote_list_entry(FileType::File, "unknown", 1);
+        unknown.entry_type = hbb_common::protobuf::EnumOrUnknown::from_i32(999);
+        assert!(native_viewer_remote_listing(&[unknown]).is_none());
+
+        let too_many: Vec<_> = (0..=MAX_FILE_TRANSFER_LIST_ENTRIES)
+            .map(|index| remote_list_entry(FileType::File, &format!("file-{index}"), 1))
+            .collect();
+        assert!(native_viewer_remote_listing(&too_many).is_none());
+        let oversized_name = "a".repeat(MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES + 1);
+        assert!(native_viewer_remote_listing(&[remote_list_entry(
+            FileType::File,
+            &oversized_name,
+            1,
+        )])
+        .is_none());
     }
 
     #[test]

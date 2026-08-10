@@ -50,7 +50,7 @@ def main() -> int:
             marker in sources["design"]
             for marker in (
                 "H6.3f2b1 Viewer dedicated file-session and cancel dispatch lifecycle",
-                "host-file-transfer-viewer-list-manifest-command-event-lifecycle",
+                "host-file-transfer-viewer-list-command-callback-abi-lifecycle",
             )
         ),
         "exactModePairRejectsDesktopClipboard": all(
@@ -163,7 +163,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-list-manifest-command-event-lifecycle"
+            "host-file-transfer-viewer-list-command-callback-abi-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
