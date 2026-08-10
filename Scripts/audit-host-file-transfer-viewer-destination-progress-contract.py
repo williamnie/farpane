@@ -53,7 +53,7 @@ def main() -> int:
             marker in design
             for marker in (
                 "H6.3f1 Viewer file-transfer destination/progress API contract",
-                "host-file-transfer-viewer-core-event-command-runtime-lifecycle",
+                "host-file-transfer-viewer-list-manifest-command-event-lifecycle",
             )
         ),
         "destinationIsOpaqueAndSessionBound": all(
@@ -133,7 +133,7 @@ def main() -> int:
                 "session-bound opaque lease",
                 "严格递增 sequence",
                 "Viewer ABI v9",
-                "真实 Viewer file event loop",
+                "真实 Viewer file event mapping",
                 "产品能力必须继续保持关闭",
             )
         ),
@@ -184,7 +184,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-core-event-command-runtime-lifecycle"
+            "host-file-transfer-viewer-list-manifest-command-event-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

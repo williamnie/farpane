@@ -144,12 +144,15 @@ Home now provide independent, default-off image read/write opt-ins. Installed
 two-Mac acceptance remains unverified.
 
 Viewer ABI v9 retains all ABI v8 clipboard behavior and freezes a separate,
-default-off file-transfer seam. The connection configuration accepts only the
-exact ordinary-session pair `false/0`; `true/nonzero` is reserved for a future
-file session and currently returns `NOT_SUPPORTED` before any network worker
-starts. The scalar event callback contains only epoch, transfer ID, sequence,
-bounded progress and typed failure fields—never paths, descriptors or raw
-protocol errors. Cancel is epoch-scoped and returns stable client error codes.
-Rust does not yet produce file events or own a Viewer destination, and no
-product configuration opts in, so this ABI shape is not file-transfer product
+default-off file-transfer seam. The connection configuration accepts exact
+`false/0` desktop mode or exact `true/nonzero` dedicated file mode; file mode
+rejects every desktop clipboard direction, initializes upstream
+`FILE_TRANSFER`, never starts video housekeeping, never enables input, and
+clears its epoch when the worker exits. Cancel requires the exact active epoch,
+authentication, remote file permission and a ready session sender before it can
+enqueue upstream `CancelJob`. The scalar event callback contains only epoch,
+transfer ID, sequence, bounded progress and typed failure fields—never paths,
+descriptors or raw protocol errors. Rust does not yet produce file events,
+request remote lists/downloads or own a Viewer destination, and no product
+configuration opts in, so this runtime slice is not file-transfer product
 capability.

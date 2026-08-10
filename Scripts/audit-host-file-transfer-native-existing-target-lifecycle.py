@@ -147,7 +147,7 @@ def main() -> int:
             for marker in (
                 "existing-target decision",
                 "no-replace",
-                "destination descriptor\n  owner",
+                "destination descriptor owner",
                 "App/Agent",
             )
         ),
@@ -204,7 +204,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-core-event-command-runtime-lifecycle"
+            "host-file-transfer-viewer-list-manifest-command-event-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

@@ -199,8 +199,9 @@ typedef struct RDNConnectionConfig {
     bool receive_clipboard_image;
     bool send_clipboard_image;
     /* ABI v9 seam. Exact pair: false/0 for ordinary Viewer sessions;
-     * true/nonzero reserves a dedicated future file-transfer session. The
-     * current Rust implementation returns NOT_SUPPORTED before network start. */
+     * true/nonzero selects a dedicated file-transfer session. File sessions
+     * reject every desktop clipboard direction and never start video
+     * housekeeping. Product callers remain default-off. */
     bool enable_file_transfer;
     uint64_t file_transfer_session_epoch;
 } RDNConnectionConfig;
@@ -294,8 +295,8 @@ int32_t rdn_client_send_clipboard_rich_text(
  * local-direction/remote-permission errors as other clipboard APIs. */
 int32_t rdn_client_send_clipboard_image(
     RDNClient *client, const RDNClipboardImagePayload *payload);
-/* Default-off ABI seam. A disabled client returns LOCAL_POLICY_DISABLED;
- * enabled sessions remain NOT_SUPPORTED until the Rust event lifecycle lands. */
+/* Default-off ABI seam. Cancellation requires the exact active session epoch,
+ * authentication, remote file permission and a ready file-session sender. */
 int32_t rdn_client_file_transfer_cancel(RDNClient *client,
                                         uint64_t session_epoch,
                                         int32_t transfer_id);
