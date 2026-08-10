@@ -2,6 +2,21 @@ import XCTest
 @testable import CoreBridge
 
 final class ViewerClipboardPollingStateTests: XCTestCase {
+    private var structurallyValidOnePixelPNG: Data {
+        Data([
+            0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+            0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x08, 0x06, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x49, 0x44, 0x41, 0x54,
+            0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44,
+            0x00, 0x00, 0x00, 0x00,
+        ])
+    }
+
     func testProductBackoffIsBoundedAndResetsOnChange() {
         var state = ViewerClipboardPollingState()
         XCTAssertEqual(
@@ -151,6 +166,39 @@ final class ViewerClipboardPollingStateTests: XCTestCase {
                 plainText: String(repeating: "a", count: 64 * 1024 + 1),
                 html: "<b>rich</b>"
             )
+        ))
+    }
+
+    func testImagePolicyRequiresCanonicalBoundedSemanticPayload() {
+        XCTAssertTrue(ViewerClipboardImagePolicy.accepts(.rgba(
+            width: 1,
+            height: 1,
+            pixels: Data([1, 2, 3, 255])
+        )))
+        XCTAssertFalse(ViewerClipboardImagePolicy.accepts(.rgba(
+            width: 1,
+            height: 1,
+            pixels: Data([1, 2, 3])
+        )))
+        XCTAssertTrue(ViewerClipboardImagePolicy.accepts(
+            .png(structurallyValidOnePixelPNG)
+        ))
+        XCTAssertFalse(ViewerClipboardImagePolicy.accepts(
+            .png(Data([0x89, 0x50, 0x4e, 0x47]))
+        ))
+        XCTAssertTrue(ViewerClipboardImagePolicy.accepts(
+            .svg("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>")
+        ))
+        XCTAssertFalse(ViewerClipboardImagePolicy.accepts(
+            .svg("<!DOCTYPE svg><svg></svg>")
+        ))
+        XCTAssertTrue(ViewerClipboardImagePolicy.acceptsDimensions(
+            width: 7_680,
+            height: 4_320
+        ))
+        XCTAssertFalse(ViewerClipboardImagePolicy.acceptsDimensions(
+            width: 8_192,
+            height: 8_192
         ))
     }
 

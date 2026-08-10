@@ -26,7 +26,7 @@ class HostViewerImageTransferWiringContractAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-viewer-image-transfer-wired-default-off",
+            "host-viewer-image-transfer-wired-viewer-enabled",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -38,13 +38,13 @@ class HostViewerImageTransferWiringContractAuditTests(unittest.TestCase):
         self.assertTrue(
             document["claims"]["sessionRevocationAppliesBeforeImageParsing"]
         )
-        self.assertFalse(document["claims"]["viewerProductImageClipboardEnabled"])
+        self.assertTrue(document["claims"]["viewerProductImageClipboardEnabled"])
         self.assertFalse(document["claims"]["hostProductImageClipboardEnabled"])
         self.assertFalse(document["claims"]["svgRenderingSanitized"])
         self.assertFalse(
             document["remainingBoundary"]["hostViewerImageTransportWiringRequired"]
         )
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]["singlePasteboardOwnerImageIntegrationRequired"]
         )
         self.assertTrue(
@@ -55,7 +55,7 @@ class HostViewerImageTransferWiringContractAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-image-pasteboard-owner-explicit-enablement-contract",
+            "host-image-bootstrap-home-opt-in-contract",
         )
 
 

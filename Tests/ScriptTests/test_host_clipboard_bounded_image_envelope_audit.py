@@ -35,23 +35,24 @@ class HostClipboardBoundedImageEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["imageEnvelopeBounded"])
         self.assertTrue(document["claims"]["imageEnvelopeOwned"])
         self.assertTrue(document["claims"]["imageNetworkTransportEnabled"])
-        self.assertFalse(document["claims"]["imagePasteboardEnabled"])
-        self.assertFalse(document["claims"]["imageProductEnabled"])
+        self.assertTrue(document["claims"]["imagePasteboardEnabled"])
+        self.assertTrue(document["claims"]["viewerImageProductEnabled"])
+        self.assertFalse(document["claims"]["hostImageProductEnabled"])
         self.assertFalse(document["claims"]["svgSanitizedForRendering"])
         self.assertFalse(document["remainingBoundary"]["viewerImageABIRequired"])
         self.assertFalse(
             document["remainingBoundary"]["hostViewerImageTransportRequired"]
         )
-        self.assertTrue(document["remainingBoundary"]["pasteboardOwnerRequired"])
+        self.assertFalse(document["remainingBoundary"]["pasteboardOwnerRequired"])
         self.assertTrue(
-            document["remainingBoundary"]["explicitProductOptInRequired"]
+            document["remainingBoundary"]["explicitHostProductOptInRequired"]
         )
         self.assertTrue(
             document["remainingBoundary"]["installedTwoMacAcceptanceRequired"]
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-image-pasteboard-owner-explicit-enablement-contract",
+            "host-image-bootstrap-home-opt-in-contract",
         )
 
 

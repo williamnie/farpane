@@ -3255,7 +3255,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 receiveClipboardText: true,
                 sendClipboardText: true,
                 receiveClipboardRichText: true,
-                sendClipboardRichText: true
+                sendClipboardRichText: true,
+                receiveClipboardImage: true,
+                sendClipboardImage: true
             )
             try launchViewer(
                 fixture: nil,
@@ -3667,11 +3669,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                   sendTextEnabled: configuration.sendClipboardText,
                   receiveRichTextEnabled: configuration.receiveClipboardRichText,
                   sendRichTextEnabled: configuration.sendClipboardRichText,
+                  receiveImageEnabled: configuration.receiveClipboardImage,
+                  sendImageEnabled: configuration.sendClipboardImage,
                   sendText: { [weak self] text in
                       self?.coreClient?.sendClipboardText(text) ?? -3
                   },
                   sendRichText: { [weak self] payload in
                       self?.coreClient?.sendClipboardRichText(payload) ?? -3
+                  },
+                  sendImage: { [weak self] payload in
+                      self?.coreClient?.sendClipboardImage(payload) ?? -3
                   }
               )
         else { throw usageError("viewer clipboard lifecycle unavailable") }
@@ -3822,6 +3829,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                         clipboardSessionEpoch: clipboardSessionEpoch
                     )
                 }
+            },
+            onClipboardImage: { [weak self] payload in
+                DispatchQueue.main.async {
+                    self?.handleViewerClipboardImage(
+                        payload,
+                        coreGeneration: coreGeneration,
+                        attemptID: attemptID,
+                        clipboardSessionEpoch: clipboardSessionEpoch
+                    )
+                }
             }
         )
         try client.connect(configuration)
@@ -3962,7 +3979,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             receiveClipboardText: true,
             sendClipboardText: true,
             receiveClipboardRichText: true,
-            sendClipboardRichText: true
+            sendClipboardRichText: true,
+            receiveClipboardImage: true,
+            sendClipboardImage: true
         )
         defer { password = "" }
 
@@ -4029,7 +4048,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 receiveClipboardText: true,
                 sendClipboardText: true,
                 receiveClipboardRichText: true,
-                sendClipboardRichText: true
+                sendClipboardRichText: true,
+                receiveClipboardImage: true,
+                sendClipboardImage: true
             )
         )
     }
@@ -4279,6 +4300,24 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             clipboardSessionEpoch == viewerClipboardSessionEpoch
         else { return }
         viewerPasteboardOwner.receiveRemoteRichText(
+            payload,
+            sessionEpoch: clipboardSessionEpoch
+        )
+    }
+
+    private func handleViewerClipboardImage(
+        _ payload: CoreClipboardImagePayload,
+        coreGeneration: UInt64,
+        attemptID: UUID?,
+        clipboardSessionEpoch: UInt64?
+    ) {
+        guard coreGeneration == viewerCoreGeneration else { return }
+        if let attemptID, activeAttemptID != attemptID { return }
+        guard
+            let clipboardSessionEpoch,
+            clipboardSessionEpoch == viewerClipboardSessionEpoch
+        else { return }
+        viewerPasteboardOwner.receiveRemoteImage(
             payload,
             sessionEpoch: clipboardSessionEpoch
         )
