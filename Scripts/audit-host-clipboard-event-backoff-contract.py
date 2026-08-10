@@ -201,12 +201,12 @@ def main() -> int:
             "clipboardEnabledByDefault": False,
         },
         "remainingBoundary": {
-            "temporaryObjectCleanupRequired": True,
+            "temporaryObjectCleanupRequired": False,
             "explicitProductEnablementRequired": True,
             "viewerClipboardAPIRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "temporary-clipboard-object-cleanup-contract",
+        "nextImplementationBoundary": "viewer-small-text-clipboard-api-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "event-first-bounded-macos-fallback" else 1

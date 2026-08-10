@@ -40,10 +40,16 @@ class HostClipboardEventBackoffContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["activityResetsFallbackBackoff"])
         self.assertFalse(document["claims"]["nonHostUpstreamBehaviorChanged"])
         self.assertFalse(document["claims"]["clipboardEnabledByDefault"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]["temporaryObjectCleanupRequired"]
+        )
+        self.assertTrue(all(
+            value for name, value in document["remainingBoundary"].items()
+            if name != "temporaryObjectCleanupRequired"
+        ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "temporary-clipboard-object-cleanup-contract",
+            "viewer-small-text-clipboard-api-contract",
         )
 
 

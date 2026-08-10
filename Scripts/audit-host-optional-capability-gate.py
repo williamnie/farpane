@@ -202,10 +202,10 @@ def main() -> int:
             "independentRevocationCommandsRequired": False,
             "directionalXPCUIRequired": False,
             "eventDrivenDynamicBackoffRequired": False,
-            "temporaryObjectCleanupRequired": True,
+            "temporaryObjectCleanupRequired": False,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "temporary-clipboard-object-cleanup-contract",
+        "nextImplementationBoundary": "viewer-small-text-clipboard-api-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "optional-data-capabilities-default-off" else 1

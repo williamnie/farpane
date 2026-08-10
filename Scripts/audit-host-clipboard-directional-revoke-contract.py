@@ -223,10 +223,10 @@ def main() -> int:
         "remainingBoundary": {
             "directionalXPCUIRequired": not (xpc_directional and home_directional),
             "eventDrivenDynamicBackoffRequired": False,
-            "temporaryObjectCleanupRequired": True,
+            "temporaryObjectCleanupRequired": False,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "temporary-clipboard-object-cleanup-contract",
+        "nextImplementationBoundary": "viewer-small-text-clipboard-api-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "independent-directional-revoke-core-contract" else 1
