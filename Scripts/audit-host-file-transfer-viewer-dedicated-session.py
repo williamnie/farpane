@@ -118,7 +118,7 @@ def main() -> int:
             )
         ),
         "abiV12RetainsDedicatedSessionAndProductOff": (
-            "#define RDN_ABI_VERSION 12u" in sources["header"]
+            "#define RDN_ABI_VERSION 13u" in sources["header"]
             and "fileTransferEnabled:" not in product
         ),
         "remainingManifestAndDestinationGapIsExplicit": (

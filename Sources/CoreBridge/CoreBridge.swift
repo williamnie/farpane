@@ -176,6 +176,35 @@ public struct CoreFileTransferEvent: Equatable, Sendable {
     }
 }
 
+public struct CoreFileTransferReceiveBlock: Equatable, Sendable {
+    static let maximumFileCount = Int(RDN_MAX_FILE_TRANSFER_LIST_ENTRIES)
+    static let maximumPayloadBytes = Int(RDN_MAX_FILE_TRANSFER_BLOCK_BYTES)
+
+    public let sessionEpoch: UInt64
+    public let transferID: Int32
+    public let fileNumber: UInt32
+    public let payload: Data
+
+    init?(
+        sessionEpoch: UInt64,
+        transferID: Int32,
+        fileNumber: UInt32,
+        payload: Data
+    ) {
+        guard
+            sessionEpoch > 0,
+            transferID > 0,
+            Int(fileNumber) < Self.maximumFileCount,
+            !payload.isEmpty,
+            payload.count <= Self.maximumPayloadBytes
+        else { return nil }
+        self.sessionEpoch = sessionEpoch
+        self.transferID = transferID
+        self.fileNumber = fileNumber
+        self.payload = payload
+    }
+}
+
 public enum CoreFileTransferListStatus: UInt32, Sendable {
     case success = 1
     case rejected = 2
@@ -515,6 +544,7 @@ private final class CallbackBox: @unchecked Sendable {
     let onFileTransferEvent: @Sendable (CoreFileTransferEvent) -> Void
     let onFileTransferList: @Sendable (CoreFileTransferListEvent) -> Void
     let onFileTransferManifest: @Sendable (CoreFileTransferManifestEvent) -> Void
+    let onFileTransferReceiveBlock: @Sendable (CoreFileTransferReceiveBlock) -> Void
     private let clipboardLifecycleLock = NSLock()
     private var clipboardDeliveryEnabled = true
     private let fileTransferLifecycleLock = NSLock()
@@ -530,7 +560,8 @@ private final class CallbackBox: @unchecked Sendable {
         onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void,
         onFileTransferEvent: @escaping @Sendable (CoreFileTransferEvent) -> Void,
         onFileTransferList: @escaping @Sendable (CoreFileTransferListEvent) -> Void,
-        onFileTransferManifest: @escaping @Sendable (CoreFileTransferManifestEvent) -> Void
+        onFileTransferManifest: @escaping @Sendable (CoreFileTransferManifestEvent) -> Void,
+        onFileTransferReceiveBlock: @escaping @Sendable (CoreFileTransferReceiveBlock) -> Void
     ) {
         self.queue = queue
         self.onState = onState
@@ -542,6 +573,7 @@ private final class CallbackBox: @unchecked Sendable {
         self.onFileTransferEvent = onFileTransferEvent
         self.onFileTransferList = onFileTransferList
         self.onFileTransferManifest = onFileTransferManifest
+        self.onFileTransferReceiveBlock = onFileTransferReceiveBlock
     }
 
     func deliverClipboardText(_ text: String) {
@@ -595,6 +627,15 @@ private final class CallbackBox: @unchecked Sendable {
                 return
             }
             onFileTransferManifest(event)
+        }
+    }
+
+    func deliverFileTransferReceiveBlock(_ block: CoreFileTransferReceiveBlock) {
+        queue.async { [self] in
+            guard fileTransferLifecycleLock.withLock({ fileTransferDeliveryEnabled }) else {
+                return
+            }
+            onFileTransferReceiveBlock(block)
         }
     }
 
@@ -1047,6 +1088,27 @@ private let fileTransferManifestCallback: RDNFileTransferManifestCallback = {
     box.deliverFileTransferManifest(event)
 }
 
+private let fileTransferReceiveBlockCallback: RDNFileTransferReceiveBlockCallback = {
+    context, blockPointer in
+    guard let context, let blockPointer else { return }
+    let raw = blockPointer.pointee
+    guard
+        raw.abi_version == RDN_ABI_VERSION,
+        raw.length > 0,
+        raw.length <= CoreFileTransferReceiveBlock.maximumPayloadBytes,
+        let bytes = raw.data
+    else { return }
+    let payload = Data(bytes: bytes, count: raw.length)
+    guard let block = CoreFileTransferReceiveBlock(
+        sessionEpoch: raw.session_epoch,
+        transferID: raw.transfer_id,
+        fileNumber: raw.file_number,
+        payload: payload
+    ) else { return }
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    box.deliverFileTransferReceiveBlock(block)
+}
+
 public final class RustDeskCoreClient: @unchecked Sendable {
     public static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
     public static let abiVersion = UInt32(RDN_ABI_VERSION)
@@ -1070,7 +1132,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void = { _ in },
         onFileTransferEvent: @escaping @Sendable (CoreFileTransferEvent) -> Void = { _ in },
         onFileTransferList: @escaping @Sendable (CoreFileTransferListEvent) -> Void = { _ in },
-        onFileTransferManifest: @escaping @Sendable (CoreFileTransferManifestEvent) -> Void = { _ in }
+        onFileTransferManifest: @escaping @Sendable (CoreFileTransferManifestEvent) -> Void = { _ in },
+        onFileTransferReceiveBlock: @escaping @Sendable (CoreFileTransferReceiveBlock) -> Void = { _ in }
     ) throws {
         var error = [CChar](repeating: 0, count: 1024)
         guard let library = libraryURL.path.withCString({
@@ -1098,7 +1161,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             onClipboardImage: onClipboardImage,
             onFileTransferEvent: onFileTransferEvent,
             onFileTransferList: onFileTransferList,
-            onFileTransferManifest: onFileTransferManifest
+            onFileTransferManifest: onFileTransferManifest,
+            onFileTransferReceiveBlock: onFileTransferReceiveBlock
         )
         var callbacks = RDNCallbacks(
             abi_version: RDN_ABI_VERSION,
@@ -1110,7 +1174,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             on_clipboard_image: clipboardImageCallback,
             on_file_transfer_event: fileTransferEventCallback,
             on_file_transfer_list: fileTransferListCallback,
-            on_file_transfer_manifest: fileTransferManifestCallback
+            on_file_transfer_manifest: fileTransferManifestCallback,
+            on_file_transfer_receive_block: fileTransferReceiveBlockCallback
         )
         let context = Unmanaged.passUnretained(callbackBox).toOpaque()
         guard let client = rdn_shim_client_create(library, &callbacks, context) else {

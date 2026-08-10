@@ -34,7 +34,7 @@ class HostFileTransferViewerInboundBlockEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
         self.assertTrue(claims["viewerInboundBlockEnvelopeImplemented"])
-        self.assertFalse(claims["viewerReceiveBlockABIImplemented"])
+        self.assertTrue(claims["viewerReceiveBlockABIImplemented"])
         self.assertFalse(claims["viewerDownloadWireDispatchImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
