@@ -226,9 +226,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   使用同一 option 拒绝未授权 scope。当前 App/Agent 不传 opt-in，且没有 Viewer file UI，
   因而这里只建立能力门，不表示产品文件传输已经开放。
 - pinned file service 的 wire/decoded block 已统一限制为 128 KiB；FarPane-owned receive root、
-  descriptor-relative create/resume/mutation 与唯一 owner core 已建立。Native Host 仍不启动
-  external CM，而 receive/mutation 仍投递给 CM，connection 尚未持有/调用该 owner，因此当前
-  file ABI opt-in 仍不具备完整运行链，App/Agent 仍不传 file opt-in，必须继续保持关闭。
+  descriptor-relative create/resume/mutation 与唯一 owner core 已建立。Native Host mutation dispatch
+  已在 dedicated file scope 内把 create-directory、remove-file、non-recursive remove-directory 与
+  same-parent no-replace rename 交给 bound owner；成功返回 upstream done，拒绝/不可用只返回固定、
+  不含路径的错误码，非 native build 继续走原 CM fallback。receive、block/done/cancel 等 write-job
+  lifecycle 仍投递给 external CM，尚未由 native owner 接管，因此当前 file ABI opt-in 仍不具备
+  完整运行链，App/Agent 仍不传 file opt-in，必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

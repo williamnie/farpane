@@ -9,6 +9,7 @@ rich_text_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-rich-text-transfer.p
 viewer_image_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-image-api.patch"
 hbb_common_patch_file="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 file_transfer_block_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
+file_transfer_mutation_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-mutation-dispatch.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 host_file_transfer_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs"
@@ -55,6 +56,14 @@ elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$rich_text_p
   exit 1
 fi
 
+if git -C "$vendor_dir" apply --check "$file_transfer_mutation_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$file_transfer_mutation_patch_file"
+elif ! git -C "$vendor_dir" apply --check --reverse "$file_transfer_mutation_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the H6 file-transfer mutation patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
 hbb_common_dir="$vendor_dir/libs/hbb_common"
 if git -C "$hbb_common_dir" apply --check "$hbb_common_patch_file" 2>/dev/null; then
   git -C "$hbb_common_dir" apply "$hbb_common_patch_file"
@@ -89,6 +98,7 @@ cp "$host_file_transfer_source" "$vendor_dir/src/rdn_host_file_transfer.rs"
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$rich_text_patch_file"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_image_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$file_transfer_mutation_patch_file"
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
 git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_patch_file"

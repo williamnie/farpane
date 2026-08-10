@@ -151,11 +151,11 @@ def main() -> int:
             )
         ),
         "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
-        "laterOwnerCoreExistsAndConnectionWiringIsAbsent": (
+        "laterOwnerMutationDispatchExistsWriteJobsRemainOpen": (
             "pub(crate) struct NativeHostFileServiceOwner" in source
-            and "NativeHostFileServiceOwner" not in sources["connection"]
-            and "native_host_handle_fs" not in sources["connection"]
-            and "native_host_handle_fs" not in host_bridge
+            and "native_host_dispatch_file_mutation" in host_bridge
+            and "send_native_host_file_mutation_response" in sources["connection"]
+            and "self.send_fs(ipc::FS::NewWrite" in sources["connection"]
         ),
     }
     source_lines = {
@@ -197,11 +197,11 @@ def main() -> int:
             "rootPathReplacementCannotRedirectOpenDescriptor": True,
             "safeRemoveAndRenameImplemented": True,
             "nativeHostFileServiceOwnerCoreImplemented": True,
-            "nativeHostFileServiceOwnerImplemented": False,
+            "nativeHostFileServiceOwnerImplemented": True,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-connection-mutation-dispatch",
+        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

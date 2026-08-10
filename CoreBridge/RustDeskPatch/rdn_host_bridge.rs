@@ -27,6 +27,8 @@ use hbb_common::{
     password_security, tokio, toml,
 };
 use serde_json::{json, Map, Value};
+#[cfg(target_os = "macos")]
+use std::path::{Component, Path, PathBuf};
 use std::{
     collections::HashMap,
     ffi::{c_char, c_void, CStr},
@@ -164,6 +166,76 @@ pub(crate) fn native_host_session_is_available() -> bool {
     }
 }
 
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostFileMutation<'a> {
+    CreateDirectory { path: &'a str },
+    RemoveFile { path: &'a str },
+    RemoveDirectory { path: &'a str, recursive: bool },
+    Rename { path: &'a str, new_name: &'a str },
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostFileMutationOutcome {
+    NotNativeHost,
+    Succeeded,
+    Rejected,
+    Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_rename_destination(path: &str, new_name: &str) -> Option<PathBuf> {
+    let mut components = Path::new(new_name).components();
+    let Component::Normal(new_name) = components.next()? else {
+        return None;
+    };
+    if components.next().is_some() {
+        return None;
+    }
+    Path::new(path).parent().map(|parent| parent.join(new_name))
+}
+
+#[cfg(target_os = "macos")]
+fn apply_native_host_file_mutation(
+    owner: &rdn_host_file_transfer::NativeHostFileServiceOwner,
+    mutation: NativeHostFileMutation<'_>,
+) -> Result<(), rdn_host_file_transfer::NativeFileTransferRootError> {
+    match mutation {
+        NativeHostFileMutation::CreateDirectory { path } => owner.create_directory(Path::new(path)),
+        NativeHostFileMutation::RemoveFile { path } => owner.remove_file(Path::new(path)),
+        NativeHostFileMutation::RemoveDirectory { path, recursive } => {
+            owner.remove_directory(Path::new(path), recursive)
+        }
+        NativeHostFileMutation::Rename { path, new_name } => {
+            let destination = native_host_rename_destination(path, new_name)
+                .ok_or(rdn_host_file_transfer::NativeFileTransferRootError::InvalidRelativePath)?;
+            owner.rename_entry(Path::new(path), &destination)
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn native_host_dispatch_file_mutation(
+    mutation: NativeHostFileMutation<'_>,
+) -> NativeHostFileMutationOutcome {
+    let broker = MEDIA_BROKER.lock().unwrap();
+    if broker.binding.is_none() {
+        return if HOST_INSTANCE_LIVE.load(Ordering::Acquire) {
+            NativeHostFileMutationOutcome::Unavailable
+        } else {
+            NativeHostFileMutationOutcome::NotNativeHost
+        };
+    }
+    let Some(owner) = broker.file_service_owner.as_deref() else {
+        return NativeHostFileMutationOutcome::Unavailable;
+    };
+    match apply_native_host_file_mutation(owner, mutation) {
+        Ok(()) => NativeHostFileMutationOutcome::Succeeded,
+        Err(_) => NativeHostFileMutationOutcome::Rejected,
+    }
+}
+
 fn native_host_session_availability_payload(
     available: bool,
 ) -> (&'static str, Option<&'static str>) {
@@ -292,7 +364,7 @@ pub struct RdnHost {
     clipboard_transfer_policy: NativeClipboardTransferPolicy,
     file_transfer_enabled: bool,
     #[cfg(target_os = "macos")]
-    file_service_owner: Option<rdn_host_file_transfer::NativeHostFileServiceOwner>,
+    file_service_owner: Option<Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>>,
     runtime: Option<HostRuntime>,
 }
 
@@ -480,6 +552,8 @@ struct MediaBroker {
     binding: Option<MediaHostBinding>,
     capabilities: MediaCapabilities,
     clipboard_transfer_policy: NativeClipboardTransferPolicy,
+    #[cfg(target_os = "macos")]
+    file_service_owner: Option<Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>>,
     routes: HashMap<u64, MediaRoute>,
     display_revisions: HashMap<u64, u64>,
     pending_display_reconfigures: HashMap<u64, NativeDisplayReconfigureProvenance>,
@@ -2292,6 +2366,10 @@ fn bind_media_host(host: &RdnHost) {
     broker.pending_display_reconfigures.clear();
     broker.capabilities = MediaCapabilities::default();
     broker.clipboard_transfer_policy = host.clipboard_transfer_policy;
+    #[cfg(target_os = "macos")]
+    {
+        broker.file_service_owner = host.file_service_owner.clone();
+    }
     broker.binding = Some(MediaHostBinding {
         instance_id: host.instance_id.clone(),
         callback: host.callbacks.on_event,
@@ -2340,6 +2418,10 @@ fn unbind_media_host() {
         broker.pending_display_reconfigures.clear();
         broker.capabilities = MediaCapabilities::default();
         broker.clipboard_transfer_policy = NativeClipboardTransferPolicy::default();
+        #[cfg(target_os = "macos")]
+        {
+            broker.file_service_owner = None;
+        }
         (binding, routes)
     };
     scrap::codec::set_native_encoding_capabilities(false, false);
@@ -3367,7 +3449,7 @@ pub unsafe extern "C" fn rdn_host_create(
             (!file_transfer_receive_root.is_empty())
                 .then(|| std::path::Path::new(&file_transfer_receive_root)),
         ) {
-            Ok(owner) => owner,
+            Ok(owner) => owner.map(Arc::new),
             Err(error) => {
                 HOST_INSTANCE_LIVE.store(false, Ordering::Release);
                 let code = if error
@@ -5225,6 +5307,97 @@ mod tests {
         );
         assert_eq!(native_host_file_transfer_option(false), "N");
         assert_eq!(native_host_file_transfer_option(true), "Y");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_file_mutation_adapter_is_relative_bounded_and_no_replace() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+            receive_root.as_path(),
+        )
+        .expect("open private receive root");
+
+        assert!(apply_native_host_file_mutation(
+            &owner,
+            NativeHostFileMutation::CreateDirectory { path: "folder" },
+        )
+        .is_ok());
+        drop(
+            owner
+                .create_new_file(Path::new("folder/source.txt"))
+                .expect("create private source"),
+        );
+        assert!(apply_native_host_file_mutation(
+            &owner,
+            NativeHostFileMutation::Rename {
+                path: "folder/source.txt",
+                new_name: "renamed.txt",
+            },
+        )
+        .is_ok());
+        assert!(fixture.root.join("folder/renamed.txt").is_file());
+
+        assert!(apply_native_host_file_mutation(
+            &owner,
+            NativeHostFileMutation::Rename {
+                path: "folder/renamed.txt",
+                new_name: "../escape.txt",
+            },
+        )
+        .is_err());
+        assert!(apply_native_host_file_mutation(
+            &owner,
+            NativeHostFileMutation::RemoveDirectory {
+                path: "folder",
+                recursive: true,
+            },
+        )
+        .is_err());
+        assert!(fixture.root.join("folder/renamed.txt").is_file());
+
+        assert!(apply_native_host_file_mutation(
+            &owner,
+            NativeHostFileMutation::RemoveFile {
+                path: "folder/renamed.txt",
+            },
+        )
+        .is_ok());
+        assert!(apply_native_host_file_mutation(
+            &owner,
+            NativeHostFileMutation::RemoveDirectory {
+                path: "folder",
+                recursive: false,
+            },
+        )
+        .is_ok());
+
+        let mut host = ready_test_host("file-mutation-test");
+        host.file_service_owner = Some(Arc::new(owner));
+        bind_media_host(&host);
+        assert_eq!(
+            native_host_dispatch_file_mutation(NativeHostFileMutation::CreateDirectory {
+                path: "bound",
+            }),
+            NativeHostFileMutationOutcome::Succeeded
+        );
+        assert_eq!(
+            native_host_dispatch_file_mutation(NativeHostFileMutation::CreateDirectory {
+                path: "../escape",
+            }),
+            NativeHostFileMutationOutcome::Rejected
+        );
+        MEDIA_BROKER.lock().unwrap().file_service_owner = None;
+        assert_eq!(
+            native_host_dispatch_file_mutation(NativeHostFileMutation::CreateDirectory {
+                path: "unavailable",
+            }),
+            NativeHostFileMutationOutcome::Unavailable
+        );
+        unbind_media_host();
     }
 
     #[cfg(unix)]

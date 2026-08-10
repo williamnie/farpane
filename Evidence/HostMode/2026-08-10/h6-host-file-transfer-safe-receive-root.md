@@ -60,12 +60,13 @@ operation no longer resolves the replaced path.
 - Existing upstream/CM path-based file transfer is unchanged.
 - This H6.3d1 evidence does not claim the later H6.3d2 mutations were part of
   the original five-test boundary.
-- No Native Host file-service owner, Viewer destination/overwrite/progress UI,
-  or end-to-end file transfer exists.
+- H6.3e1 has since added the Native Host file-service owner and H6.3e3 has
+  connected safe mutations; native write jobs and Viewer
+  destination/overwrite/progress UI remain absent.
 - No installed App, real user file, or two-Mac acceptance was exercised.
 
 ## Next step
 
-H6.3d2 completed safe-root mutations and H6.3e1 composed the owner core. The
-H6.3e2 immutable root contract is now complete. Continue with
-`host-file-transfer-connection-mutation-dispatch`.
+H6.3d2 completed safe-root mutations, H6.3e1 composed the owner core, H6.3e2
+configured its immutable root, and H6.3e3 connected safe mutations. Continue
+with `host-file-transfer-native-write-job-lifecycle`.

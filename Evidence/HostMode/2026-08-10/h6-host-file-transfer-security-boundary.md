@@ -30,8 +30,9 @@ gaps that must be closed before any UI or bootstrap opt-in.
 - remove/create/rename paths only reject empty/NUL and are not constrained to a
   FarPane-owned destination root.
 - Native Host intentionally drops the external CM receiver, while receive,
-  remove, create, rename, and related writes still dispatch only through the CM
-  channel. There is no in-process Native Host file-service owner.
+  related writes still dispatch through the CM channel. H6.3e3 now routes the
+  safe create-directory/remove/rename mutations through the in-process Native
+  Host owner, while write-job ownership remains open.
 - Destination selection, overwrite confirmation, progress/cancel UX, Viewer
   file API, and two-Mac acceptance remain absent.
 
@@ -55,13 +56,15 @@ gaps that must be closed before any UI or bootstrap opt-in.
 ## Non-claims
 
 - Product enablement is not safe yet.
-- Native Host file transfer is not functional end to end.
+- Safe Native Host file mutations are now connected, but native write jobs and
+  end-to-end file transfer are not functional.
 - Existing symlink checks do not close races.
 - File-promise clipboard support remains disabled.
 
 ## Next step
 
 H6.3c completed the bounded-block envelope, H6.3d1 provided the safe root,
-H6.3d2 added mutations, H6.3e1 composed their owner core, and H6.3e2 configured
-the immutable root. Continue with `host-file-transfer-connection-mutation-dispatch`,
-still without enabling product callers.
+H6.3d2 added mutations, H6.3e1 composed their owner core, H6.3e2 configured
+the immutable root, and H6.3e3 connected safe mutations. Continue with
+`host-file-transfer-native-write-job-lifecycle`, still without enabling product
+callers.

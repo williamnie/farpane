@@ -1,0 +1,216 @@
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -683,7 +683,36 @@
+ }
+
+ const NATIVE_HOST_CONTROL_BUSY: &str = "Another remote control session is active";
++
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++const NATIVE_HOST_FILE_OPERATION_REJECTED: &str = "native-file-operation-rejected";
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++const NATIVE_HOST_FILE_OPERATION_UNAVAILABLE: &str = "native-file-operation-unavailable";
++
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++fn native_host_file_mutation_response(
++    id: i32,
++    file_num: i32,
++    mutation: crate::rdn_host_bridge::NativeHostFileMutation<'_>,
++) -> Option<Message> {
++    use crate::rdn_host_bridge::NativeHostFileMutationOutcome;
+
++    match crate::rdn_host_bridge::native_host_dispatch_file_mutation(mutation) {
++        NativeHostFileMutationOutcome::NotNativeHost => None,
++        NativeHostFileMutationOutcome::Succeeded => Some(fs::new_done(id, file_num)),
++        NativeHostFileMutationOutcome::Rejected => Some(fs::new_error(
++            id,
++            NATIVE_HOST_FILE_OPERATION_REJECTED,
++            file_num,
++        )),
++        NativeHostFileMutationOutcome::Unavailable => Some(fs::new_error(
++            id,
++            NATIVE_HOST_FILE_OPERATION_UNAVAILABLE,
++            file_num,
++        )),
++    }
++}
++
+ fn native_host_single_remote_active() -> bool {
+     #[cfg(all(
+         feature = "rdn-native-host",
+@@ -3274,6 +3303,20 @@
+     #[inline]
+     fn send_fs(&mut self, data: ipc::FS) {
+         self.send_to_cm(ipc::Data::FS(data));
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn send_native_host_file_mutation_response(
++        &mut self,
++        id: i32,
++        file_num: i32,
++        mutation: crate::rdn_host_bridge::NativeHostFileMutation<'_>,
++    ) -> bool {
++        let Some(response) = native_host_file_mutation_response(id, file_num, mutation) else {
++            return false;
++        };
++        self.send(response).await;
++        true
+     }
+
+     async fn send_login_error<T: std::string::ToString>(&mut self, err: T) {
+@@ -4663,36 +4706,79 @@
+                                 self.file_transferred = true;
+                             }
+                             Some(file_action::Union::RemoveDir(d)) => {
+-                                self.send_fs(ipc::FS::RemoveDir {
+-                                    path: d.path.clone(),
+-                                    id: d.id,
+-                                    recursive: d.recursive,
+-                                });
+-                                self.file_remove_log_control.on_remove_dir(d);
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let handled_by_native_host = self
++                                    .send_native_host_file_mutation_response(
++                                        d.id,
++                                        0,
++                                        crate::rdn_host_bridge::NativeHostFileMutation::RemoveDirectory {
++                                            path: &d.path,
++                                            recursive: d.recursive,
++                                        },
++                                    )
++                                    .await;
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let handled_by_native_host = false;
++                                if !handled_by_native_host {
++                                    self.send_fs(ipc::FS::RemoveDir {
++                                        path: d.path.clone(),
++                                        id: d.id,
++                                        recursive: d.recursive,
++                                    });
++                                    self.file_remove_log_control.on_remove_dir(d);
++                                }
+                             }
+                             Some(file_action::Union::RemoveFile(f)) => {
+-                                self.send_fs(ipc::FS::RemoveFile {
+-                                    path: f.path.clone(),
+-                                    id: f.id,
+-                                    file_num: f.file_num,
+-                                });
+-                                self.file_remove_log_control.on_remove_file(f);
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let handled_by_native_host = self
++                                    .send_native_host_file_mutation_response(
++                                        f.id,
++                                        f.file_num,
++                                        crate::rdn_host_bridge::NativeHostFileMutation::RemoveFile {
++                                            path: &f.path,
++                                        },
++                                    )
++                                    .await;
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let handled_by_native_host = false;
++                                if !handled_by_native_host {
++                                    self.send_fs(ipc::FS::RemoveFile {
++                                        path: f.path.clone(),
++                                        id: f.id,
++                                        file_num: f.file_num,
++                                    });
++                                    self.file_remove_log_control.on_remove_file(f);
++                                }
+                             }
+                             Some(file_action::Union::Create(c)) => {
+-                                self.send_fs(ipc::FS::CreateDir {
+-                                    path: c.path.clone(),
+-                                    id: c.id,
+-                                });
+-                                self.send_to_cm(ipc::Data::FileTransferLog((
+-                                    "create_dir".to_string(),
+-                                    serde_json::to_string(&FileActionLog {
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let handled_by_native_host = self
++                                    .send_native_host_file_mutation_response(
++                                        c.id,
++                                        0,
++                                        crate::rdn_host_bridge::NativeHostFileMutation::CreateDirectory {
++                                            path: &c.path,
++                                        },
++                                    )
++                                    .await;
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let handled_by_native_host = false;
++                                if !handled_by_native_host {
++                                    self.send_fs(ipc::FS::CreateDir {
++                                        path: c.path.clone(),
+                                         id: c.id,
+-                                        conn_id: self.inner.id(),
+-                                        path: c.path,
+-                                        dir: true,
+-                                    })
+-                                    .unwrap_or_default(),
+-                                )));
++                                    });
++                                    self.send_to_cm(ipc::Data::FileTransferLog((
++                                        "create_dir".to_string(),
++                                        serde_json::to_string(&FileActionLog {
++                                            id: c.id,
++                                            conn_id: self.inner.id(),
++                                            path: c.path,
++                                            dir: true,
++                                        })
++                                        .unwrap_or_default(),
++                                    )));
++                                }
+                             }
+                             Some(file_action::Union::Cancel(c)) => {
+                                 self.send_fs(ipc::FS::CancelWrite { id: c.id });
+@@ -4727,20 +4813,35 @@
+                                 }
+                             }
+                             Some(file_action::Union::Rename(r)) => {
+-                                self.send_fs(ipc::FS::Rename {
+-                                    id: r.id,
+-                                    path: r.path.clone(),
+-                                    new_name: r.new_name.clone(),
+-                                });
+-                                self.send_to_cm(ipc::Data::FileTransferLog((
+-                                    "rename".to_string(),
+-                                    serde_json::to_string(&FileRenameLog {
+-                                        conn_id: self.inner.id(),
+-                                        path: r.path,
+-                                        new_name: r.new_name,
+-                                    })
+-                                    .unwrap_or_default(),
+-                                )));
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let handled_by_native_host = self
++                                    .send_native_host_file_mutation_response(
++                                        r.id,
++                                        0,
++                                        crate::rdn_host_bridge::NativeHostFileMutation::Rename {
++                                            path: &r.path,
++                                            new_name: &r.new_name,
++                                        },
++                                    )
++                                    .await;
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let handled_by_native_host = false;
++                                if !handled_by_native_host {
++                                    self.send_fs(ipc::FS::Rename {
++                                        id: r.id,
++                                        path: r.path.clone(),
++                                        new_name: r.new_name.clone(),
++                                    });
++                                    self.send_to_cm(ipc::Data::FileTransferLog((
++                                        "rename".to_string(),
++                                        serde_json::to_string(&FileRenameLog {
++                                            conn_id: self.inner.id(),
++                                            path: r.path,
++                                            new_name: r.new_name,
++                                        })
++                                        .unwrap_or_default(),
++                                    )));
++                                }
+                             }
+                             _ => {}
+                         }
