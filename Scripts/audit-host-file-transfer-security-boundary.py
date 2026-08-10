@@ -309,10 +309,11 @@ def main() -> int:
             "nativeNewFileWriteLifecycleImplemented": True,
             "nativeResumeDigestLifecycleImplemented": True,
             "nativeReadListDownloadConnectionLifecycleImplemented": True,
+            "viewerDestinationProgressContractImplemented": True,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-viewer-destination-progress-api-contract",
+        "nextImplementationBoundary": "host-file-transfer-viewer-core-abi-event-command-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1

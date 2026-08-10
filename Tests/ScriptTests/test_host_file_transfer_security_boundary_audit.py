@@ -46,11 +46,12 @@ class HostFileTransferSecurityBoundaryAuditTests(unittest.TestCase):
         self.assertTrue(
             claims["nativeReadListDownloadConnectionLifecycleImplemented"]
         )
+        self.assertTrue(claims["viewerDestinationProgressContractImplemented"])
         self.assertFalse(claims["clipboardFilePromiseEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-destination-progress-api-contract",
+            "host-file-transfer-viewer-core-abi-event-command-lifecycle",
         )
 
 

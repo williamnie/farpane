@@ -39,12 +39,13 @@ class HostFileTransferNativeReadListDownloadConnectionAuditTests(unittest.TestCa
         self.assertTrue(
             claims["nativeReadListDownloadConnectionLifecycleImplemented"]
         )
-        self.assertFalse(claims["viewerDestinationProgressApiImplemented"])
+        self.assertTrue(claims["viewerDestinationProgressContractImplemented"])
+        self.assertFalse(claims["viewerCoreFileTransferABIImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-destination-progress-api-contract",
+            "host-file-transfer-viewer-core-abi-event-command-lifecycle",
         )
 
 

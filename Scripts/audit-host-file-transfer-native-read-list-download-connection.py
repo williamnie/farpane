@@ -169,7 +169,7 @@ def main() -> int:
                 "connection-local",
                 "read jobs",
                 "snapshot-bound directory",
-                "destination/progress API/UI",
+                "Viewer C ABI callback/command",
                 "产品能力必须继续保持关闭",
             )
         ),
@@ -217,12 +217,13 @@ def main() -> int:
             "nativeReadListSnapshotPrimitiveImplemented": True,
             "nativeReadListDownloadConnectionLifecycleImplemented": status
             == expected_status,
-            "viewerDestinationProgressApiImplemented": False,
+            "viewerDestinationProgressContractImplemented": True,
+            "viewerCoreFileTransferABIImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-destination-progress-api-contract"
+            "host-file-transfer-viewer-core-abi-event-command-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
