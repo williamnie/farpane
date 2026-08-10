@@ -1,0 +1,175 @@
+diff --git a/src/fs.rs b/src/fs.rs
+index 53a8299..cdc9c84 100644
+--- a/src/fs.rs
++++ b/src/fs.rs
+@@ -1,6 +1,7 @@
+ #[cfg(windows)]
+ use std::os::windows::prelude::*;
+ use std::{
++    borrow::Cow,
+     fmt::{Debug, Display},
+     io::Cursor,
+     path::{Path, PathBuf},
+@@ -18,11 +19,12 @@ use tokio::{
+ use crate::{anyhow::anyhow, bail, get_version_number, message_proto::*, ResultType, Stream};
+ // https://doc.rust-lang.org/std/os/windows/fs/trait.MetadataExt.html
+ use crate::{
+-    compress::{compress, decompress},
++    compress::{compress, decompress_with_limit},
+     config::Config,
+ };
+ 
+ static NEXT_JOB_ID: AtomicI32 = AtomicI32::new(1);
++pub const MAX_FILE_TRANSFER_BLOCK_BYTES: usize = 128 * 1024;
+ 
+ pub fn get_next_job_id() -> i32 {
+     NEXT_JOB_ID.fetch_add(1, Ordering::SeqCst)
+@@ -559,6 +561,30 @@ fn join_validated_path(base: &PathBuf, name: &str) -> ResultType<PathBuf> {
+     Ok(TransferJob::join(base, name))
+ }
+ 
++fn validated_file_transfer_block_payload(
++    block: &FileTransferBlock,
++) -> ResultType<Cow<'_, [u8]>> {
++    if block.data.len() > MAX_FILE_TRANSFER_BLOCK_BYTES {
++        bail!(
++            "file transfer wire payload exceeds {} bytes",
++            MAX_FILE_TRANSFER_BLOCK_BYTES
++        );
++    }
++    if block.compressed {
++        let decoded = decompress_with_limit(&block.data, MAX_FILE_TRANSFER_BLOCK_BYTES).map_err(
++            |_| {
++                anyhow!(
++                    "invalid compressed payload or decoded payload exceeds {} bytes",
++                    MAX_FILE_TRANSFER_BLOCK_BYTES
++                )
++            },
++        )?;
++        Ok(Cow::Owned(decoded))
++    } else {
++        Ok(Cow::Borrowed(block.data.as_ref()))
++    }
++}
++
+ impl TransferJob {
+     #[allow(clippy::too_many_arguments)]
+     pub fn new_write(
+@@ -760,6 +786,7 @@ impl TransferJob {
+         if block.id != self.id {
+             bail!("Wrong id");
+         }
++        let payload = validated_file_transfer_block_payload(&block)?;
+         match &self.data_source {
+             DataSource::FilePath(p) => {
+                 let file_num = block.file_num as usize;
+@@ -807,22 +834,12 @@ impl TransferJob {
+                 }
+             }
+         }
+-        if block.compressed {
+-            let tmp = decompress(&block.data);
+-            self.data_stream
+-                .as_mut()
+-                .ok_or(anyhow!("data stream is None"))?
+-                .write_all(&tmp)
+-                .await?;
+-            self.finished_size += tmp.len() as u64;
+-        } else {
+-            self.data_stream
+-                .as_mut()
+-                .ok_or(anyhow!("file is None"))?
+-                .write_all(&block.data)
+-                .await?;
+-            self.finished_size += block.data.len() as u64;
+-        }
++        self.data_stream
++            .as_mut()
++            .ok_or(anyhow!("data stream is None"))?
++            .write_all(payload.as_ref())
++            .await?;
++        self.finished_size += payload.len() as u64;
+         self.transferred += block.data.len() as u64;
+         Ok(())
+     }
+@@ -949,8 +966,7 @@ impl TransferJob {
+             }
+             DataSource::MemoryCursor(..) => "",
+         };
+-        const BUF_SIZE: usize = 128 * 1024;
+-        let mut buf: Vec<u8> = vec![0; BUF_SIZE];
++        let mut buf: Vec<u8> = vec![0; MAX_FILE_TRANSFER_BLOCK_BYTES];
+         let mut compressed = false;
+         let mut offset: usize = 0;
+         loop {
+@@ -970,7 +986,7 @@ impl TransferJob {
+                 }
+                 Ok(n) => {
+                     offset += n;
+-                    if n == 0 || offset == BUF_SIZE {
++                    if n == 0 || offset == MAX_FILE_TRANSFER_BLOCK_BYTES {
+                         break;
+                     }
+                 }
+@@ -1803,4 +1819,61 @@ mod tests {
+             .expect_err("verbatim drive absolute path must be rejected");
+         assert_err_contains(err, "absolute path");
+     }
++
++    fn transfer_block(data: Vec<u8>, compressed: bool) -> FileTransferBlock {
++        FileTransferBlock {
++            data: data.into(),
++            compressed,
++            ..Default::default()
++        }
++    }
++
++    #[test]
++    fn bounded_file_block_accepts_raw_and_compressed_payloads_at_decoded_limit() {
++        let plain = vec![b'a'; MAX_FILE_TRANSFER_BLOCK_BYTES];
++        let raw = transfer_block(plain.clone(), false);
++        assert_eq!(
++            validated_file_transfer_block_payload(&raw).unwrap().as_ref(),
++            plain.as_slice()
++        );
++
++        let compressed = transfer_block(compress(&plain), true);
++        assert_eq!(
++            validated_file_transfer_block_payload(&compressed)
++                .unwrap()
++                .as_ref(),
++            plain.as_slice()
++        );
++    }
++
++    #[test]
++    fn bounded_file_block_rejects_raw_and_wire_payloads_over_limit() {
++        let raw = transfer_block(vec![0; MAX_FILE_TRANSFER_BLOCK_BYTES + 1], false);
++        assert_err_contains(
++            validated_file_transfer_block_payload(&raw).unwrap_err(),
++            "wire payload exceeds",
++        );
++
++        let compressed = transfer_block(vec![0; MAX_FILE_TRANSFER_BLOCK_BYTES + 1], true);
++        assert_err_contains(
++            validated_file_transfer_block_payload(&compressed).unwrap_err(),
++            "wire payload exceeds",
++        );
++    }
++
++    #[test]
++    fn bounded_file_block_rejects_decoded_oversize_and_malformed_compression() {
++        let oversized_plain = vec![b'a'; MAX_FILE_TRANSFER_BLOCK_BYTES + 1];
++        let oversized = transfer_block(compress(&oversized_plain), true);
++        assert_err_contains(
++            validated_file_transfer_block_payload(&oversized).unwrap_err(),
++            "decoded payload exceeds",
++        );
++
++        let malformed = transfer_block(vec![0x28, 0xb5, 0x2f, 0xfd, 0xff], true);
++        assert_err_contains(
++            validated_file_transfer_block_payload(&malformed).unwrap_err(),
++            "invalid compressed payload",
++        );
++    }
+ }

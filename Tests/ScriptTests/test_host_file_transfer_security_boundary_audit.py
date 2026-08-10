@@ -36,12 +36,12 @@ class HostFileTransferSecurityBoundaryAuditTests(unittest.TestCase):
         self.assertFalse(claims["nativeHostFileTransferFunctional"])
         self.assertTrue(claims["pathTraversalGuardPresent"])
         self.assertFalse(claims["symlinkRaceClosed"])
-        self.assertFalse(claims["compressedPayloadBounded"])
+        self.assertTrue(claims["compressedPayloadBounded"])
         self.assertFalse(claims["clipboardFilePromiseEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-bounded-block-envelope",
+            "host-file-transfer-safe-open-root",
         )
 
 
