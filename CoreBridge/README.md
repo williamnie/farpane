@@ -46,8 +46,8 @@ pasteboard. Swift may send the same bounded semantic text through a dedicated
 call only after local send policy, authentication, and the remote clipboard
 permission all agree. The pinned wire exposes one clipboard negotiation bit;
 the native bridge still enforces receive and send independently. FarPane's
-Viewer product composition explicitly enables the small- and rich-text
-directions and routes all four through one AppKit-owned pasteboard adapter.
+Viewer product composition explicitly enables the small-text, rich-text, and
+image directions and routes all six through one AppKit-owned pasteboard adapter.
 That adapter starts only after authentication, snapshots rather than uploads
 the pre-session local clipboard, suppresses its own writes, dynamically backs
 polling off to four seconds, and stops before Core disconnect. Host Control ABI v15 retains the
@@ -63,9 +63,10 @@ switches only while Host is off; changing any preference republishes the
 immutable bootstrap, and Host cannot be enabled unless that publication is
 coherent. The legacy foreground Host and background Agent consume the same
 projection. Small text and RTF/HTML are therefore end-to-end capable after
-explicit per-direction opt-in while remaining off by default. Image transport
-is bounded and directionally representable in Core, but product pasteboard
-ownership and Host/Viewer opt-in are still disabled; file promises remain unsupported.
+explicit per-direction opt-in while remaining off by default. Viewer image
+directions are product-enabled through the same owner, while Host image
+directions remain default-off and are not yet projected through bootstrap or
+Home; file promises remain unsupported.
 
 ABI v8 retains the ABI v7 bounded small- and rich-text contracts and adds an
 independently default-off semantic image API. RGBA uses positive dimensions,
@@ -75,8 +76,15 @@ not treated as sanitized render input. Rust gates image receive before parsing
 or decompression and rechecks before callback delivery; send uses the same
 active/authenticated/local-direction/remote-permission authority. Swift copies
 callback-scoped bytes synchronously and revalidates format, metadata, bounds,
-PNG structure, and SVG root before queued delivery. Viewer product connections
-do not enable or consume the image directions in this step.
+PNG structure, and SVG root before queued delivery. Viewer product image directions
+are explicitly enabled in device, recovery, and environment connections. The
+single owner prefers `public.svg-image`, then canonical PNG, then bounded TIFF;
+TIFF is decoded only after the 128 MiB input cap and pixel bounds, and is
+canonicalized to PNG before crossing Core. Remote RGBA is also converted to a
+bounded PNG pasteboard representation. Invalid image data fails closed without
+falling back to rich or plain text, and owned-write suppression plus lifecycle
+teardown remain shared. Host image directions remain default-off. SVG is not
+sanitized for rendering and is transported only as untrusted pasteboard bytes.
 
 ABI v8 also retains the ABI v6 bounded small-text contract and the independently
 default-off semantic rich-text API. One atomic callback/send payload can carry
@@ -112,7 +120,8 @@ AppKit owner validates the same limits, reads only after `changeCount` changes,
 prefers one rich bundle over a duplicate plain send, atomically writes one
 `NSPasteboardItem`, and records the final owned-write count to suppress loops.
 Product Host rich configuration remains off until the user explicitly enables
-the matching Home direction. Image product ownership and file promises remain disabled.
+the matching Home direction. Viewer image ownership is enabled; Host image
+configuration and file promises remain disabled.
 
 RGBA, PNG, and SVG now require a Rust-owned image envelope before they can even
 be classified for an independent transfer. RGBA accepts bounded zstd input only
@@ -128,5 +137,6 @@ owns its bytes. Viewer ABI v8 exposes the same default-off bounded image API;
 Host Control ABI v15 now carries independent image read/write policy and both
 Host directions rebuild one validated image as canonical uncompressed bytes
 before the pinned pasteboard helper or network writer. Active-session revoke
-precedes image parsing. Viewer/Host product image enablement, AppKit ownership,
-UI switches, and installed two-Mac acceptance remain disabled or unverified.
+precedes image parsing. Viewer product image enablement and AppKit ownership are
+now implemented through the single existing owner; Host bootstrap/Home image
+switches remain disabled, and installed two-Mac acceptance remains unverified.

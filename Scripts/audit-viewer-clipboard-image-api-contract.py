@@ -139,10 +139,11 @@ def main() -> int:
                 "callbackBox.stopClipboardDelivery()",
             )
         ),
-        "productDoesNotEnableOrOwnImages": (
-            "receiveClipboardImage: true" not in product_sources
-            and "sendClipboardImage: true" not in product_sources
-            and "CoreClipboardImagePayload" not in product_sources
+        "productExplicitlyEnablesAndOwnsImages": (
+            sources["app"].count("receiveClipboardImage: true") == 3
+            and sources["app"].count("sendClipboardImage: true") == 3
+            and "CoreClipboardImagePayload" in sources["pasteboard"]
+            and "receiveRemoteImage(" in sources["pasteboard"]
         ),
         "hostImageTransportIsBoundedAndIndependent": all(
             marker in sources["host_bridge"]
@@ -181,12 +182,13 @@ def main() -> int:
                 "--check --reverse \"$viewer_image_patch_file\"",
             )
         ),
-        "documentationRecordsDefaultOffBoundary": all(
+        "documentationRecordsCoreDefaultAndProductOptInBoundary": all(
             marker in (sources["readme"] + sources["architecture"])
             for marker in (
                 "ABI v8 retains the ABI v7 bounded small- and rich-text contracts",
-                "do not enable or consume the image directions in this step",
-                "新增的 image read/write 仍默认关闭",
+                "Viewer product image directions",
+                "public.svg-image",
+                "Host image directions remain default-off",
                 "Host Control ABI v15 now carries independent image read/write policy",
             )
         ),
@@ -231,17 +233,17 @@ def main() -> int:
             "svgBoundedTo4MiB": True,
             "disabledReceiveParsesImagePayload": False,
             "swiftCopiesCallbackScopedBytes": True,
-            "viewerProductImageClipboardEnabled": False,
+            "viewerProductImageClipboardEnabled": True,
             "hostImageClipboardTransportCapable": True,
             "svgRenderingSanitized": False,
         },
         "remainingBoundary": {
             "hostViewerImageTransportWiringRequired": False,
-            "singlePasteboardOwnerImageIntegrationRequired": True,
+            "singlePasteboardOwnerImageIntegrationRequired": False,
             "hostImageExplicitOptInRequired": True,
             "installedTwoMacImageClipboardAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-image-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-image-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-image-clipboard-api-default-off" else 1

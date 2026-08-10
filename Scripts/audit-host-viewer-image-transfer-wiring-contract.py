@@ -162,15 +162,18 @@ def main() -> int:
                 "private static let hostABIVersion: UInt32 = 15",
             )
         ),
-        "productsAndPasteboardOwnerDoNotEnableImages": all(
-            marker not in product
-            for marker in (
-                "receiveClipboardImage: true",
-                "sendClipboardImage: true",
-                "clipboardImageReadEnabled:",
-                "clipboardImageWriteEnabled:",
-                "CoreClipboardImagePayload",
+        "viewerProductAndOwnerEnableImagesWhileHostDoesNot": (
+            all(
+                marker in product
+                for marker in (
+                    "receiveClipboardImage: true",
+                    "sendClipboardImage: true",
+                    "CoreClipboardImagePayload",
+                    "receiveRemoteImage(",
+                )
             )
+            and "clipboardImageReadEnabled:" not in product
+            and "clipboardImageWriteEnabled:" not in product
         ),
         "documentationKeepsProductAndSanitizerBoundaryHonest": all(
             marker in docs
@@ -202,7 +205,7 @@ def main() -> int:
     missing = [name for name, present in evidence.items() if not present]
     missing_lines = [name for name, number in source_lines.items() if number <= 0]
     status = (
-        "host-viewer-image-transfer-wired-default-off"
+        "host-viewer-image-transfer-wired-viewer-enabled"
         if not missing and not missing_lines
         else "audit-failed"
     )
@@ -220,20 +223,20 @@ def main() -> int:
             "imageDirectionsDefaultOff": True,
             "imageTransportCanonicalAndBounded": True,
             "sessionRevocationAppliesBeforeImageParsing": True,
-            "viewerProductImageClipboardEnabled": False,
+            "viewerProductImageClipboardEnabled": True,
             "hostProductImageClipboardEnabled": False,
             "svgRenderingSanitized": False,
         },
         "remainingBoundary": {
             "hostViewerImageTransportWiringRequired": False,
-            "singlePasteboardOwnerImageIntegrationRequired": True,
+            "singlePasteboardOwnerImageIntegrationRequired": False,
             "hostImageExplicitOptInRequired": True,
             "installedTwoMacImageClipboardAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-image-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-image-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if status == "host-viewer-image-transfer-wired-default-off" else 1
+    return 0 if status == "host-viewer-image-transfer-wired-viewer-enabled" else 1
 
 
 if __name__ == "__main__":

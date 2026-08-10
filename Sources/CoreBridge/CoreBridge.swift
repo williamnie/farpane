@@ -403,12 +403,12 @@ private let clipboardRichTextCallback: RDNClipboardRichTextCallback = {
     ))
 }
 
-private let maximumClipboardImageBytes = Int(RDN_MAX_CLIPBOARD_IMAGE_BYTES)
-private let maximumClipboardSVGUTF8Bytes = Int(RDN_MAX_CLIPBOARD_SVG_UTF8_BYTES)
+package let maximumClipboardImageBytes = Int(RDN_MAX_CLIPBOARD_IMAGE_BYTES)
+package let maximumClipboardSVGUTF8Bytes = Int(RDN_MAX_CLIPBOARD_SVG_UTF8_BYTES)
 private let maximumClipboardImageDimension = UInt32(RDN_MAX_CLIPBOARD_IMAGE_DIMENSION)
 private let maximumClipboardImagePixels = Int(RDN_MAX_CLIPBOARD_IMAGE_PIXELS)
 
-private func clipboardImagePixelCount(width: UInt32, height: UInt32) -> Int? {
+package func clipboardImagePixelCount(width: UInt32, height: UInt32) -> Int? {
     guard
         width > 0,
         height > 0,
@@ -509,7 +509,7 @@ private func clipboardSVGIsCanonical(_ svg: String) -> Bool {
     return afterRoot.contains(">")
 }
 
-private func normalizedClipboardImage(
+package func normalizedClipboardImage(
     _ payload: CoreClipboardImagePayload
 ) -> (format: UInt32, data: Data, width: UInt32, height: UInt32)? {
     switch payload {

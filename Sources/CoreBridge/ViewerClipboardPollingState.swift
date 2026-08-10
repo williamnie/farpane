@@ -31,6 +31,28 @@ package enum ViewerClipboardRichTextPolicy {
     }
 }
 
+package enum ViewerClipboardImagePolicy {
+    package static let maximumImageBytes = maximumClipboardImageBytes
+    package static let maximumSVGUTF8Bytes = maximumClipboardSVGUTF8Bytes
+
+    package static func accepts(_ payload: CoreClipboardImagePayload) -> Bool {
+        normalizedClipboardImage(payload) != nil
+    }
+
+    package static func acceptsDimensions(width: Int, height: Int) -> Bool {
+        guard
+            width > 0,
+            height > 0,
+            width <= Int(UInt32.max),
+            height <= Int(UInt32.max)
+        else { return false }
+        return clipboardImagePixelCount(
+            width: UInt32(width),
+            height: UInt32(height)
+        ) != nil
+    }
+}
+
 package struct ViewerClipboardChangeDecision: Equatable, Sendable {
     package let didChange: Bool
     package let nextDelayMilliseconds: UInt64?

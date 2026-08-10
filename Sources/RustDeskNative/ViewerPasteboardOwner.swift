@@ -1,6 +1,7 @@
 import AppKit
 import CoreBridge
 import Foundation
+import ImageIO
 
 /// The only native Viewer owner allowed to touch NSPasteboard. Rust receives
 /// and sends bounded semantic clipboard payloads only; this adapter binds them
@@ -8,11 +9,21 @@ import Foundation
 final class ViewerPasteboardOwner {
     typealias SendText = (String) -> Int32
     typealias SendRichText = (CoreClipboardRichTextPayload) -> Int32
+    typealias SendImage = (CoreClipboardImagePayload) -> Int32
+
+    private static let svgPasteboardType =
+        NSPasteboard.PasteboardType("public.svg-image")
 
     private enum LocalRichTextRead {
         case absent
         case invalid
         case payload(CoreClipboardRichTextPayload)
+    }
+
+    private enum LocalImageRead {
+        case absent
+        case invalid
+        case payload(CoreClipboardImagePayload)
     }
 
     private let pasteboard: NSPasteboard
@@ -23,9 +34,12 @@ final class ViewerPasteboardOwner {
     private var sendTextEnabled = false
     private var receiveRichTextEnabled = false
     private var sendRichTextEnabled = false
+    private var receiveImageEnabled = false
+    private var sendImageEnabled = false
     private var active = false
     private var sendText: SendText?
     private var sendRichText: SendRichText?
+    private var sendImage: SendImage?
 
     init(pasteboard: NSPasteboard = .general) {
         self.pasteboard = pasteboard
@@ -37,8 +51,11 @@ final class ViewerPasteboardOwner {
         sendTextEnabled: Bool,
         receiveRichTextEnabled: Bool,
         sendRichTextEnabled: Bool,
+        receiveImageEnabled: Bool,
+        sendImageEnabled: Bool,
         sendText: @escaping SendText,
-        sendRichText: @escaping SendRichText
+        sendRichText: @escaping SendRichText,
+        sendImage: @escaping SendImage
     ) -> Bool {
         guard
             Thread.isMainThread,
@@ -50,8 +67,11 @@ final class ViewerPasteboardOwner {
         self.sendTextEnabled = sendTextEnabled
         self.receiveRichTextEnabled = receiveRichTextEnabled
         self.sendRichTextEnabled = sendRichTextEnabled
+        self.receiveImageEnabled = receiveImageEnabled
+        self.sendImageEnabled = sendImageEnabled
         self.sendText = sendText
         self.sendRichText = sendRichText
+        self.sendImage = sendImage
         return true
     }
 
@@ -115,6 +135,40 @@ final class ViewerPasteboardOwner {
         commitRemoteItem(item, sessionEpoch: sessionEpoch)
     }
 
+    func receiveRemoteImage(
+        _ payload: CoreClipboardImagePayload,
+        sessionEpoch: UInt64
+    ) {
+        guard
+            Thread.isMainThread,
+            self.sessionEpoch == sessionEpoch,
+            active,
+            receiveImageEnabled,
+            ViewerClipboardImagePolicy.accepts(payload)
+        else { return }
+
+        let item = NSPasteboardItem()
+        switch payload {
+        case let .rgba(width, height, pixels):
+            guard
+                let png = Self.pngData(
+                    rgba: pixels,
+                    width: Int(width),
+                    height: Int(height)
+                ),
+                item.setData(png, forType: .png)
+            else { return }
+        case let .png(data):
+            guard item.setData(data, forType: .png) else { return }
+        case let .svg(svg):
+            guard item.setData(
+                Data(svg.utf8),
+                forType: Self.svgPasteboardType
+            ) else { return }
+        }
+        commitRemoteItem(item, sessionEpoch: sessionEpoch)
+    }
+
     private func commitRemoteItem(_ item: NSPasteboardItem, sessionEpoch: UInt64) {
         pasteboard.clearContents()
         guard pasteboard.writeObjects([item]) else { return }
@@ -152,8 +206,11 @@ final class ViewerPasteboardOwner {
         sendTextEnabled = false
         receiveRichTextEnabled = false
         sendRichTextEnabled = false
+        receiveImageEnabled = false
+        sendImageEnabled = false
         sendText = nil
         sendRichText = nil
+        sendImage = nil
     }
 
     private func schedule(afterMilliseconds delay: UInt64, sessionEpoch: UInt64) {
@@ -192,10 +249,21 @@ final class ViewerPasteboardOwner {
     }
 
     private var sendsAnyFormat: Bool {
-        sendTextEnabled || sendRichTextEnabled
+        sendTextEnabled || sendRichTextEnabled || sendImageEnabled
     }
 
     private func sendLocalPasteboard() {
+        if sendImageEnabled {
+            switch readLocalImage() {
+            case let .payload(payload):
+                _ = sendImage?(payload)
+                return
+            case .invalid:
+                return
+            case .absent:
+                break
+            }
+        }
         if sendRichTextEnabled {
             switch readLocalRichText() {
             case let .payload(payload):
@@ -216,6 +284,60 @@ final class ViewerPasteboardOwner {
             ViewerClipboardTextPolicy.accepts(text)
         else { return }
         _ = sendText?(text)
+    }
+
+    private func readLocalImage() -> LocalImageRead {
+        let types = pasteboard.types ?? []
+        let hasSVG = types.contains(Self.svgPasteboardType)
+        let hasPNG = types.contains(.png)
+        let hasTIFF = types.contains(.tiff)
+        guard hasSVG || hasPNG || hasTIFF else { return .absent }
+        guard pasteboard.pasteboardItems?.count == 1 else { return .invalid }
+
+        if hasSVG {
+            guard
+                let data = boundedData(
+                    forType: Self.svgPasteboardType,
+                    maximumBytes: ViewerClipboardImagePolicy.maximumSVGUTF8Bytes
+                ),
+                let svg = String(data: data, encoding: .utf8)
+            else { return .invalid }
+            let payload = CoreClipboardImagePayload.svg(svg)
+            return ViewerClipboardImagePolicy.accepts(payload)
+                ? .payload(payload)
+                : .invalid
+        }
+
+        if hasPNG {
+            guard let data = boundedData(
+                forType: .png,
+                maximumBytes: ViewerClipboardImagePolicy.maximumImageBytes
+            ) else { return .invalid }
+            let payload = CoreClipboardImagePayload.png(data)
+            return ViewerClipboardImagePolicy.accepts(payload)
+                ? .payload(payload)
+                : .invalid
+        }
+
+        guard
+            let tiff = boundedData(
+                forType: .tiff,
+                maximumBytes: ViewerClipboardImagePolicy.maximumImageBytes
+            ),
+            let dimensions = Self.imageDimensions(in: tiff),
+            ViewerClipboardImagePolicy.acceptsDimensions(
+                width: dimensions.width,
+                height: dimensions.height
+            ),
+            let bitmap = NSBitmapImageRep(data: tiff),
+            bitmap.pixelsWide == dimensions.width,
+            bitmap.pixelsHigh == dimensions.height,
+            let png = bitmap.representation(using: .png, properties: [:])
+        else { return .invalid }
+        let payload = CoreClipboardImagePayload.png(png)
+        return ViewerClipboardImagePolicy.accepts(payload)
+            ? .payload(payload)
+            : .invalid
     }
 
     private func readLocalRichText() -> LocalRichTextRead {
@@ -274,5 +396,66 @@ final class ViewerPasteboardOwner {
             !value.contains("\0")
         else { return nil }
         return value
+    }
+
+    private func boundedData(
+        forType type: NSPasteboard.PasteboardType,
+        maximumBytes: Int
+    ) -> Data? {
+        guard
+            let data = pasteboard.data(forType: type),
+            !data.isEmpty,
+            data.count <= maximumBytes
+        else { return nil }
+        return data
+    }
+
+    private static func pngData(
+        rgba pixels: Data,
+        width: Int,
+        height: Int
+    ) -> Data? {
+        guard
+            ViewerClipboardImagePolicy.accepts(.rgba(
+                width: UInt32(width),
+                height: UInt32(height),
+                pixels: pixels
+            )),
+            let bitmap = NSBitmapImageRep(
+                bitmapDataPlanes: nil,
+                pixelsWide: width,
+                pixelsHigh: height,
+                bitsPerSample: 8,
+                samplesPerPixel: 4,
+                hasAlpha: true,
+                isPlanar: false,
+                colorSpaceName: .deviceRGB,
+                bytesPerRow: width * 4,
+                bitsPerPixel: 32
+            ),
+            let destination = bitmap.bitmapData
+        else { return nil }
+        pixels.copyBytes(to: destination, count: pixels.count)
+        guard
+            let png = bitmap.representation(using: .png, properties: [:]),
+            ViewerClipboardImagePolicy.accepts(.png(png))
+        else { return nil }
+        return png
+    }
+
+    private static func imageDimensions(in data: Data) -> (width: Int, height: Int)? {
+        let options = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard
+            let source = CGImageSourceCreateWithData(data as CFData, options),
+            CGImageSourceGetCount(source) == 1,
+            let properties = CGImageSourceCopyPropertiesAtIndex(
+                source,
+                0,
+                options
+            ) as? [CFString: Any],
+            let width = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
+            let height = (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue
+        else { return nil }
+        return (width, height)
     }
 }

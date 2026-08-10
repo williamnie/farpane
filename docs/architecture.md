@@ -164,7 +164,7 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
 - Viewer ABI v8 保留 v7 的小文本/富文本边界并新增独立的图片方向；六个方向均默认关闭，
   由本地策略分别约束；
   Rust 只收发至多 64 KiB 的单条 UTF-8 文本，不轮询或写入 macOS pasteboard。
-- Viewer 产品层显式开启小文本与富文本四个方向，系统 pasteboard 只由单一 Swift/AppKit owner
+- Viewer 产品层显式开启小文本、富文本与图片六个方向，系统 pasteboard 只由单一 Swift/AppKit owner
   访问；owner 在认证后启动，先快照而不上传会话前内容，以 changeCount 抑制回环并把
   fallback 轮询从 125 ms 动态退避到 4 s，terminal/Home/App teardown 均先停 owner
   再断开 Core。Host Control ABI v15 保留默认关闭的小文本 read/write 策略，并新增
@@ -175,7 +175,7 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   Host。bootstrap schema v3 投影小文本与富文本四个独立方向；v1 全部迁移为关闭，v2
   保留原有小文本方向并把富文本迁移为关闭。前台 legacy Host 与后台 Agent 消费同一策略，
   Home 仅在 Host 关闭时提供逐方向开关。因此小型文本和 RTF/HTML 在用户显式开启后具备
-  端到端路径、默认仍关闭；图片只完成 Core 传输能力，产品 owner/开关仍关闭，文件 promise 仍不受支持。
+  端到端路径、默认仍关闭；图片已接入 Viewer owner，但 Host 图片开关仍关闭，文件 promise 仍不受支持。
 - ABI v8 保留 v7 的富文本 payload：原子携带可选的 64 KiB plain fallback，以及各自最多 1 MiB
   的 RTF/HTML；重复、未知、图片/special、畸形 metadata、非法 UTF-8、NUL 和超限输入
   均拒绝。receive 门禁在解析/解压前检查并在 callback 前复核，Swift 同步复制 callback
@@ -187,8 +187,10 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   structure；SVG 上限 4 MiB UTF-8，拒绝 NUL、DOCTYPE 与非 `<svg>` root，但不是渲染
   sanitizer。receive 门禁在解析/解压前检查并在 callback 前复核，send 复用同一
   lifecycle/permission authority；Swift 同步复制 callback bytes 后再次检查格式、metadata、
-  大小和结构。六个 Viewer clipboard 方向中，新增的 image read/write 仍默认关闭，产品
-  配置和 AppKit owner 均未接入。
+  大小和结构。Core 的 image read/write 默认仍关闭，但设备连接、自动恢复与环境 live mode
+  三条 Viewer 产品入口显式开启；同一个 AppKit owner 只在 changeCount 变化后读取 exactly one
+  item，优先 `public.svg-image`、其次 PNG、最后 TIFF。TIFF 在 128 MiB 输入上限与像素门禁后
+  转为 canonical PNG，远端 RGBA 也转为 PNG 写入；畸形图片整项拒绝，不降级发送 rich/plain。
 - Host 在两个方向准入前先分类 clipboard wire format：只有无 NUL 的有界 UTF-8 `Text`
   可进入小文本路径；RTF/HTML 必须组成 owned atomic bundle 并由 matching rich direction
   显式准入；RGBA/PNG/SVG 必须是 exactly one validated image envelope 并由 matching image
@@ -200,7 +202,7 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   active-session directional revoke 先于 format admission。Viewer AppKit owner 只在 changeCount
   变化后读取一个 pasteboard item，rich 优先且不会重复发送 plain，远端 bundle 也用一个
   `NSPasteboardItem` 原子写入并记录最终 owned-write count。Host rich 方向只在用户明确开启
-  对应 Home 开关后生效；图片产品 owner 与文件 promise 仍保持关闭。
+  对应 Home 开关后生效；Viewer 图片 owner 已开启，Host 图片开关与文件 promise 仍保持关闭。
 - RGBA/PNG/SVG 进入 Rust-owned image envelope 后才可被标记为需要独立 transfer：RGBA
   要求正尺寸、单边不超过 8192、总像素不超过 7680×4320，bounded zstd 解码后必须恰好
   为每像素 4 bytes；PNG 保持 pinned upstream 的无二次 zstd canonical 形状，以 128 MiB
@@ -210,10 +212,11 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   sanitizer。Viewer ABI v8 已提供独立、默认关闭的 image API；Host ABI v15 也提供独立、
   默认关闭的 image read/write，真实 incoming/outgoing data-plane 只在 active direction 与
   matching image policy 同时允许时，把 exactly one validated envelope 重建为 canonical
-  uncompressed image 后交给 pinned pasteboard helper 或 network writer。AppKit owner、
-  Host bootstrap/Home opt-in 和双机验收尚未接入，图片产品能力继续关闭。
+  uncompressed image 后交给 pinned pasteboard helper 或 network writer。Viewer AppKit owner
+  已接入三种图片语义并复用 session epoch、owned-write suppression 与动态退避；Host
+  bootstrap/Home opt-in 和双机验收尚未接入，因此 Host 图片产品能力继续关闭。
 - 断开后不得投递排队中的旧剪贴板回调；富文本可跨 Viewer ABI v8 并已接单一产品 owner；
-  图片可跨默认关闭的 Viewer ABI v8 与 Host ABI v15 Core 边界，但尚未进入 owner 或产品能力；
+  图片可跨 Viewer ABI v8 与 Host ABI v15 Core 边界并已进入 Viewer owner，但 Host 产品仍未启用；
   文件 promise 不跨 ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。

@@ -192,18 +192,19 @@ def main() -> int:
             "imageEnvelopeBounded": True,
             "imageEnvelopeOwned": True,
             "imageNetworkTransportEnabled": True,
-            "imagePasteboardEnabled": False,
-            "imageProductEnabled": False,
+            "imagePasteboardEnabled": True,
+            "viewerImageProductEnabled": True,
+            "hostImageProductEnabled": False,
             "svgSanitizedForRendering": False,
         },
         "remainingBoundary": {
             "viewerImageABIRequired": False,
             "hostViewerImageTransportRequired": False,
-            "pasteboardOwnerRequired": True,
-            "explicitProductOptInRequired": True,
+            "pasteboardOwnerRequired": False,
+            "explicitHostProductOptInRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-image-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-image-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-image-envelope-contract" else 1
