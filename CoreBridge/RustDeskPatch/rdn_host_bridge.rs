@@ -743,6 +743,16 @@ enum NativeClipboardDirection {
     RemoteWrite,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeClipboardPayloadDisposition {
+    InlineSmallText,
+    // This is a routing requirement, not admission. The current data path
+    // accepts only InlineSmallText; rich payloads stay closed until a bounded
+    // independent transfer owner is implemented.
+    IndependentTransferRequired,
+    Reject,
+}
+
 pub(crate) fn native_host_configured_clipboard_policy() -> NativeClipboardPolicy {
     let broker = MEDIA_BROKER.lock().unwrap();
     if broker.binding.is_some() {
@@ -752,29 +762,84 @@ pub(crate) fn native_host_configured_clipboard_policy() -> NativeClipboardPolicy
     }
 }
 
-fn native_host_small_text_clipboard(clipboard: &Clipboard) -> bool {
-    if clipboard.format.enum_value() != Ok(ClipboardFormat::Text)
-        || !clipboard.special_name.is_empty()
-        || clipboard.width != 0
-        || clipboard.height != 0
-        || clipboard.content.is_empty()
-        || clipboard.content.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES
-    {
-        return false;
-    }
-    let decoded = if clipboard.compress {
-        hbb_common::compress::decompress_with_limit(
-            &clipboard.content,
-            MAX_CLIPBOARD_TEXT_UTF8_BYTES,
-        )
-        .ok()
-    } else {
-        Some(clipboard.content.to_vec())
+fn native_host_clipboard_payload_disposition(
+    clipboard: &Clipboard,
+) -> NativeClipboardPayloadDisposition {
+    let Ok(format) = clipboard.format.enum_value() else {
+        return NativeClipboardPayloadDisposition::Reject;
     };
-    decoded
-        .filter(|bytes| !bytes.is_empty())
-        .and_then(|bytes| String::from_utf8(bytes).ok())
-        .is_some()
+    match format {
+        ClipboardFormat::Text => {
+            if !clipboard.special_name.is_empty()
+                || clipboard.width != 0
+                || clipboard.height != 0
+                || clipboard.content.is_empty()
+                || clipboard.content.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES
+            {
+                return NativeClipboardPayloadDisposition::Reject;
+            }
+            let decoded = if clipboard.compress {
+                hbb_common::compress::decompress_with_limit(
+                    &clipboard.content,
+                    MAX_CLIPBOARD_TEXT_UTF8_BYTES,
+                )
+                .ok()
+            } else {
+                Some(clipboard.content.to_vec())
+            };
+            if decoded
+                .filter(|bytes| !bytes.is_empty())
+                .and_then(|bytes| String::from_utf8(bytes).ok())
+                .is_some_and(|text| !text.contains('\0'))
+            {
+                NativeClipboardPayloadDisposition::InlineSmallText
+            } else {
+                NativeClipboardPayloadDisposition::Reject
+            }
+        }
+        ClipboardFormat::Rtf | ClipboardFormat::Html => {
+            if clipboard.special_name.is_empty()
+                && clipboard.width == 0
+                && clipboard.height == 0
+                && !clipboard.content.is_empty()
+            {
+                NativeClipboardPayloadDisposition::IndependentTransferRequired
+            } else {
+                NativeClipboardPayloadDisposition::Reject
+            }
+        }
+        ClipboardFormat::ImageRgba => {
+            if clipboard.special_name.is_empty()
+                && clipboard.width > 0
+                && clipboard.height > 0
+                && !clipboard.content.is_empty()
+            {
+                NativeClipboardPayloadDisposition::IndependentTransferRequired
+            } else {
+                NativeClipboardPayloadDisposition::Reject
+            }
+        }
+        ClipboardFormat::ImagePng | ClipboardFormat::ImageSvg => {
+            if clipboard.special_name.is_empty()
+                && clipboard.width == 0
+                && clipboard.height == 0
+                && !clipboard.content.is_empty()
+            {
+                NativeClipboardPayloadDisposition::IndependentTransferRequired
+            } else {
+                NativeClipboardPayloadDisposition::Reject
+            }
+        }
+        // Special names are remote-controlled UTI/format identifiers. They
+        // stay rejected until an explicit allowlist and bounded transfer
+        // envelope own both the identifier and payload.
+        ClipboardFormat::Special => NativeClipboardPayloadDisposition::Reject,
+    }
+}
+
+fn native_host_small_text_clipboard(clipboard: &Clipboard) -> bool {
+    native_host_clipboard_payload_disposition(clipboard)
+        == NativeClipboardPayloadDisposition::InlineSmallText
 }
 
 fn native_host_clipboard_direction_allows(
@@ -5236,10 +5301,91 @@ mod tests {
             ClipboardFormat::Text,
         )));
         assert!(!native_host_small_text_clipboard(&clipboard_fixture(
+            b"before\0after".to_vec(),
+            false,
+            ClipboardFormat::Text,
+        )));
+        assert!(!native_host_small_text_clipboard(&clipboard_fixture(
             b"<b>rich</b>".to_vec(),
             false,
             ClipboardFormat::Html,
         )));
+    }
+
+    #[test]
+    fn native_clipboard_payload_taxonomy_separates_inline_text_from_rich_transfer() {
+        assert_eq!(
+            native_host_clipboard_payload_disposition(&clipboard_fixture(
+                b"small text".to_vec(),
+                false,
+                ClipboardFormat::Text,
+            )),
+            NativeClipboardPayloadDisposition::InlineSmallText
+        );
+
+        for format in [
+            ClipboardFormat::Rtf,
+            ClipboardFormat::Html,
+            ClipboardFormat::ImagePng,
+            ClipboardFormat::ImageSvg,
+        ] {
+            let rich = clipboard_fixture(b"rich payload".to_vec(), false, format);
+            assert_eq!(
+                native_host_clipboard_payload_disposition(&rich),
+                NativeClipboardPayloadDisposition::IndependentTransferRequired
+            );
+            assert!(!native_host_clipboard_direction_allows(
+                NativeClipboardPolicy::new(true, true),
+                NativeClipboardDirection::RemoteRead,
+                std::slice::from_ref(&rich),
+            ));
+            let mut message = Message::new();
+            message.set_clipboard(rich);
+            assert!(!native_host_outgoing_clipboard_message_is_allowed(
+                &message, true,
+            ));
+        }
+
+        let mut rgba = clipboard_fixture(vec![0, 0, 0, 255], false, ClipboardFormat::ImageRgba);
+        rgba.width = 1;
+        rgba.height = 1;
+        assert_eq!(
+            native_host_clipboard_payload_disposition(&rgba),
+            NativeClipboardPayloadDisposition::IndependentTransferRequired
+        );
+        assert!(!native_host_clipboard_direction_allows(
+            NativeClipboardPolicy::new(true, true),
+            NativeClipboardDirection::RemoteWrite,
+            std::slice::from_ref(&rgba),
+        ));
+        let mut rgba_message = Message::new();
+        rgba_message.set_clipboard(rgba);
+        assert!(!native_host_outgoing_clipboard_message_is_allowed(
+            &rgba_message,
+            true,
+        ));
+
+        let mut malformed_html =
+            clipboard_fixture(b"<b>rich</b>".to_vec(), false, ClipboardFormat::Html);
+        malformed_html.width = 1;
+        assert_eq!(
+            native_host_clipboard_payload_disposition(&malformed_html),
+            NativeClipboardPayloadDisposition::Reject
+        );
+
+        let mut special = clipboard_fixture(b"untrusted".to_vec(), false, ClipboardFormat::Special);
+        special.special_name = "untrusted.remote.uti".to_owned();
+        assert_eq!(
+            native_host_clipboard_payload_disposition(&special),
+            NativeClipboardPayloadDisposition::Reject
+        );
+
+        let mut unknown = clipboard_fixture(b"unknown".to_vec(), false, ClipboardFormat::Text);
+        unknown.format = hbb_common::protobuf::EnumOrUnknown::from_i32(999);
+        assert_eq!(
+            native_host_clipboard_payload_disposition(&unknown),
+            NativeClipboardPayloadDisposition::Reject
+        );
     }
 
     #[test]
