@@ -101,3 +101,16 @@ prefers one rich bundle over a duplicate plain send, atomically writes one
 `NSPasteboardItem`, and records the final owned-write count to suppress loops.
 Product Host rich configuration remains off until the user explicitly enables
 the matching Home direction. Image payloads and file promises remain disabled.
+
+RGBA, PNG, and SVG now require a Rust-owned image envelope before they can even
+be classified for an independent transfer. RGBA accepts bounded zstd input only
+when positive dimensions are at most 8192 per side, the pixel count is at most
+7680x4320, and the decoded buffer is exactly four bytes per pixel. PNG remains
+canonical without a second zstd layer and has a 128 MiB wire cap; its signature,
+IHDR metadata, bounded dimensions, chunk framing, image-data presence, and exact
+IEND termination are checked without treating that structural check as a future
+renderer. SVG has independent 4 MiB wire and decoded UTF-8 caps and rejects NUL,
+DOCTYPE, and a non-canonical root. SVG is not sanitized for rendering, so a
+future pasteboard owner must keep treating the bytes as untrusted. The envelope
+owns its bytes, but image transport remains disabled: there is no image Viewer
+ABI, Host/Viewer admission, pasteboard write, UI switch, or product enablement.

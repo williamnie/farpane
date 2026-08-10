@@ -194,6 +194,14 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   变化后读取一个 pasteboard item，rich 优先且不会重复发送 plain，远端 bundle 也用一个
   `NSPasteboardItem` 原子写入并记录最终 owned-write count。Host rich 方向只在用户明确开启
   对应 Home 开关后生效；图片和文件 promise 仍保持关闭。
+- RGBA/PNG/SVG 进入 Rust-owned image envelope 后才可被标记为需要独立 transfer：RGBA
+  要求正尺寸、单边不超过 8192、总像素不超过 7680×4320，bounded zstd 解码后必须恰好
+  为每像素 4 bytes；PNG 保持 pinned upstream 的无二次 zstd canonical 形状，以 128 MiB
+  wire 上限检查 signature、IHDR/IDAT/IEND chunk framing、合法 header 与同一尺寸/像素门禁；
+  SVG 的 wire/解码 UTF-8 分别限制为 4 MiB，拒绝 NUL、DOCTYPE 与非 canonical `<svg>`
+  root。三类 payload 均复制为 Rust-owned bytes；SVG 只完成语义形状校验，不是渲染安全
+  sanitizer。该 envelope 尚未进入 Host/Viewer transport、Viewer ABI 或 AppKit pasteboard，
+  图片产品能力继续关闭。
 - 断开后不得投递排队中的旧剪贴板回调；富文本可跨 Viewer ABI v7 并已接单一产品 owner，
   图片和文件 promise 不跨 Viewer ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
