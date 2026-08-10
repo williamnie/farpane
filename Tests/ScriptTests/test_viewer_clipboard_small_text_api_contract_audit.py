@@ -57,17 +57,12 @@ class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["hostSmallTextExplicitOptInRequired"]
         )
-        self.assertTrue(all(
-            value for name, value in document["remainingBoundary"].items()
-            if name not in {
-                "viewerPasteboardOwnerRequired",
-                "viewerExplicitEnablementRequired",
-                "hostSmallTextExplicitOptInRequired",
-            }
-        ))
+        self.assertFalse(document["remainingBoundary"]["richPayloadTransferRequired"])
+        self.assertTrue(document["remainingBoundary"]["physicalOwnershipAndTeardownAcceptanceRequired"])
+        self.assertTrue(document["remainingBoundary"]["physicalLatencyAndIdleCPUAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-small-text-clipboard-installed-two-mac-acceptance",
+            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
         )
 
 

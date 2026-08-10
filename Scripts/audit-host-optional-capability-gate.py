@@ -64,7 +64,7 @@ def main() -> int:
     viewer_swift = sources["viewer_swift"]
     host_swift = sources["host_swift"]
     apply_offset = host_bridge.find(
-        "apply_native_host_optional_capability_policy(host.clipboard_policy);"
+        "apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);"
     )
     identity_offset = host_bridge.find("host.local_id = config::Config::get_id();")
 
@@ -132,8 +132,8 @@ def main() -> int:
             marker in host_bridge + connection
             for marker in (
                 "self.clipboard && !self.disable_clipboard",
-                "active_policy().allows_remote_read()",
-                "native_host_allows_remote_clipboard_write(",
+                "permissions.active_policy().allows_remote_read()",
+                "native_host_prepare_remote_clipboard_write(",
             )
         ),
         "readWritePolicyIsIndependent": all(
@@ -174,7 +174,7 @@ def main() -> int:
         ),
         "hostPolicyApplication": line_number(
             host_bridge,
-            "apply_native_host_optional_capability_policy(host.clipboard_policy);",
+            "apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);",
         ),
         "hostPolicyReadback": line_number(
             host_bridge, "native_host_clipboard_option(clipboard_policy)"

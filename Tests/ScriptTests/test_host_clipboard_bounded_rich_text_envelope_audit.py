@@ -35,17 +35,17 @@ class HostClipboardBoundedRichTextEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["richTextEnvelopeBounded"])
         self.assertTrue(document["claims"]["richTextEnvelopeOwned"])
         self.assertFalse(document["claims"]["richTextInlineAdmitted"])
-        self.assertFalse(document["claims"]["richTextNetworkTransportEnabled"])
+        self.assertTrue(document["claims"]["richTextNetworkTransportEnabled"])
         self.assertFalse(document["claims"]["richTextPasteboardEnabled"])
         self.assertFalse(document["claims"]["imagesIncluded"])
         self.assertFalse(document["remainingBoundary"]["viewerRichTextABIRequired"])
-        self.assertTrue(all(
-            value for name, value in document["remainingBoundary"].items()
-            if name != "viewerRichTextABIRequired"
-        ))
+        self.assertFalse(document["remainingBoundary"]["hostViewerTransportWiringRequired"])
+        self.assertTrue(document["remainingBoundary"]["pasteboardOwnerRequired"])
+        self.assertTrue(document["remainingBoundary"]["imagesRequired"])
+        self.assertTrue(document["remainingBoundary"]["installedTwoMacAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-viewer-rich-text-transfer-wiring-contract",
+            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
         )
 
 

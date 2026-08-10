@@ -156,13 +156,13 @@ def main() -> int:
                 "onClipboardRichText",
             )
         ),
-        "hostRichAdmissionRemainsIndependentAndClosed": all(
+        "hostRichTransportIsSeparatelyGatedAndCanonical": all(
             marker in sources["host_bridge"]
             for marker in (
-                "NativeClipboardPayloadDisposition::IndependentTransferRequired",
-                "NativeClipboardPayloadDisposition::InlineSmallText",
-                "native_host_clipboard_direction_allows",
-                "native_host_outgoing_clipboard_message_is_allowed",
+                "NativeClipboardTransferPolicy",
+                "transfer_policy.rich_text()",
+                "native_host_prepare_outgoing_clipboard_message(",
+                "native_host_prepare_incoming_clipboard_entries(",
             )
         ),
         "regressionsCoverBoundsCanonicalMessagesDefaultsAndLifecycle": all(
@@ -194,7 +194,7 @@ def main() -> int:
             for marker in (
                 "ABI v7 retains the ABI v6",
                 "each independently capped at 1 MiB",
-                "产品层尚未开启 rich 方向",
+                "rich AppKit pasteboard owner remains disabled",
             )
         ),
     }
@@ -240,16 +240,16 @@ def main() -> int:
             "disabledReceiveParsesRichPayload": False,
             "swiftCopiesCallbackScopedBytes": True,
             "viewerProductRichClipboardEnabled": False,
-            "hostRichClipboardAdmitted": False,
+            "hostRichClipboardTransportCapable": True,
             "imageOrFileClipboardEnabled": False,
         },
         "remainingBoundary": {
-            "hostViewerRichTransportWiringRequired": True,
+            "hostViewerRichTransportWiringRequired": False,
             "singlePasteboardOwnerRichIntegrationRequired": True,
             "installedTwoMacRichClipboardAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-viewer-rich-text-transfer-wiring-contract",
+        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-rich-text-clipboard-api-default-off" else 1

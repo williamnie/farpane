@@ -79,7 +79,7 @@ def main() -> int:
                 "ClipboardFormat::Text =>",
                 "decompress_with_limit(",
                 "!text.contains('\\0')",
-                "== NativeClipboardPayloadDisposition::InlineSmallText",
+                "NativeClipboardPayloadDisposition::InlineSmallText",
             )
         ),
         "standardRichTypesRequireIndependentTransfer": all(
@@ -97,13 +97,13 @@ def main() -> int:
             and "let Ok(format) = clipboard.format.enum_value() else" in bridge
             and "EnumOrUnknown::from_i32(999)" in bridge
         ),
-        "richDispositionDoesNotGrantCurrentReadOrWrite": all(
+        "richDispositionRequiresSeparatePolicyAndCanonicalTransfer": all(
             marker in bridge
             for marker in (
-                "native_host_clipboard_direction_allows(",
-                "native_host_outgoing_clipboard_message_is_allowed(",
-                "assert!(!native_host_clipboard_direction_allows(",
-                "assert!(!native_host_outgoing_clipboard_message_is_allowed(",
+                "NativeClipboardTransferPolicy",
+                "transfer_policy.rich_text()",
+                "NativeRichTextTransferBundle::from_clipboards(clipboards)?",
+                "into_canonical_clipboards()",
             )
         ),
         "taxonomyAndNULRegressionAreCovered": all(
@@ -142,7 +142,7 @@ def main() -> int:
             bridge, "fn native_host_clipboard_payload_disposition("
         ),
         "inlineAdmission": line_number(
-            bridge, "== NativeClipboardPayloadDisposition::InlineSmallText"
+            bridge, "NativeClipboardPayloadDisposition::InlineSmallText"
         ),
         "richTextRouting": line_number(
             bridge, "ClipboardFormat::Rtf | ClipboardFormat::Html"
@@ -186,15 +186,15 @@ def main() -> int:
             "richTypesClassified": True,
             "richTypesAdmittedToInlinePath": False,
             "specialUTIOrFormatAccepted": False,
-            "independentRichTransferImplemented": False,
+            "independentRichTransferImplemented": True,
         },
         "remainingBoundary": {
-            "boundedRichTransferEnvelopeRequired": True,
-            "richViewerABIRequired": True,
+            "boundedRichTransferEnvelopeRequired": False,
+            "richViewerABIRequired": False,
             "richPasteboardOwnerRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "bounded-rich-text-transfer-envelope-contract",
+        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "rich-payload-independent-transfer-boundary" else 1

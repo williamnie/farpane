@@ -135,7 +135,7 @@ def main() -> int:
         "clipboardProductDefaultRemainsOff": all(
             marker in sources["bridge"]
             for marker in (
-                "native_host_clipboard_option(NativeClipboardPolicy::default())",
+                "native_host_clipboard_option(NativeClipboardTransferPolicy::default())",
                 "config::keys::OPTION_ENABLE_CLIPBOARD",
                 'config::Config::set_option(key.to_owned(), "N".to_owned())',
             )
@@ -171,7 +171,7 @@ def main() -> int:
             "native_clipboard_activity_resets_listener_fallback_backoff",
         ),
         "defaultOffGate": line_number(
-            sources["bridge"], "native_host_clipboard_option(NativeClipboardPolicy::default())"
+            sources["bridge"], "native_host_clipboard_option(NativeClipboardTransferPolicy::default())"
         ),
         "trackedPatch": line_number(
             patch, "diff --git a/src/clipboard.rs b/src/clipboard.rs"

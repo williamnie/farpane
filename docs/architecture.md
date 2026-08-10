@@ -167,25 +167,30 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
 - Viewer 产品层显式开启两个文本方向，系统 pasteboard 只由单一 Swift/AppKit owner
   访问；owner 在认证后启动，先快照而不上传会话前内容，以 changeCount 抑制回环并把
   fallback 轮询从 125 ms 动态退避到 4 s，terminal/Home/App teardown 均先停 owner
-  再断开 Core。Host Control ABI v13 已独立承载默认关闭的 read/write 策略，Rust
-  只在任一有界文本方向显式开启时持久化上游单一 Boolean。Host bootstrap schema v2
+  再断开 Core。Host Control ABI v14 保留默认关闭的小文本 read/write 策略，并新增
+  与其独立、同样默认关闭的 rich read/write 策略；Rust 只在任一小文本或富文本方向
+  显式开启时持久化上游单一 Boolean，小文本 opt-in 不会隐式开放 RTF/HTML。Host bootstrap schema v2
   将同一方向策略投影给后台 Agent，schema v1 安全迁移为双向关闭；Home 仅在 Host 关闭时
   显示两个显式开关，变更后重新发布 immutable bootstrap，发布不 coherent 时禁止开启
   Host。前台 legacy Host 与后台 Agent 消费同一策略，因此小型文本在用户显式开启后具备
-  端到端路径、默认仍关闭；富文本产品启用、图片和文件 promise 仍不受支持。
+  端到端路径、默认仍关闭；Host/Viewer 的富文本产品启用、图片和文件 promise 仍不受支持。
 - ABI v7 的富文本 payload 原子携带可选的 64 KiB plain fallback，以及各自最多 1 MiB
   的 RTF/HTML；重复、未知、图片/special、畸形 metadata、非法 UTF-8、NUL 和超限输入
   均拒绝。receive 门禁在解析/解压前检查并在 callback 前复核，Swift 同步复制 callback
-  bytes 并复用 disconnect gate。产品层尚未开启 rich 方向，也没有把它接入 AppKit
-  pasteboard 或 Host rich admission/transport。
+  bytes 并复用 disconnect gate。Host 可在独立 rich 方向策略下传递同一 bundle，但
+  产品配置没有开启 Host rich 方向，rich AppKit pasteboard owner remains disabled。
 - Host 在两个方向准入前先分类 clipboard wire format：只有无 NUL 的有界 UTF-8 `Text`
-  可进入现有 inline 路径；RTF/HTML/RGBA/PNG/SVG 明确要求未来独立 transfer owner，当前
-  仍拒绝，远端 `Special` 名称和未知 enum 直接 fail closed。分类本身不开放富剪贴板。
+  可进入小文本路径；RTF/HTML 必须组成 owned atomic bundle 并由 matching rich direction
+  显式准入，RGBA/PNG/SVG、远端 `Special` 名称和未知 enum 继续 fail closed。分类本身不开放
+  富剪贴板产品能力。
 - RTF/HTML 先进入 Rust-owned semantic envelope：只接受 exact format、空 special metadata
   与零图像尺寸，wire 与 bounded decompression 后的 UTF-8 payload 都限制为 1 MiB，解码后
-  由 Rust `String` 独立持有并拒绝 NUL。当前 admission 仍只允许 `InlineSmallText`；本契约
-  不新增 Viewer ABI、网络传输、AppKit pasteboard owner、图片能力或产品开关。
-- 断开后不得投递排队中的旧剪贴板回调，富文本、图片和文件 promise 不跨 Viewer ABI。
+  由 Rust `String` 独立持有并拒绝 NUL。Host ABI v14 分别绑定 rich read/write；进入 pinned
+  pasteboard helper 或 network writer 前先重建 canonical uncompressed Text/RTF/HTML，且
+  active-session directional revoke 先于 format admission。产品 rich 开关、AppKit owner、图片
+  和文件 promise 仍保持关闭。
+- 断开后不得投递排队中的旧剪贴板回调；富文本可跨 Viewer ABI v7，但产品 AppKit owner
+  仍关闭，图片和文件 promise 不跨 Viewer ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

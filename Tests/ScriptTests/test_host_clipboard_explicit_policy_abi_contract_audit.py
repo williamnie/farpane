@@ -34,7 +34,7 @@ class HostClipboardExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         implementation = document["implementation"]
-        self.assertEqual(implementation["hostABIVersion"], 13)
+        self.assertEqual(implementation["hostABIVersion"], 14)
         self.assertTrue(all(implementation["evidence"].values()))
         self.assertTrue(all(implementation["sourceLines"].values()))
         self.assertTrue(document["claims"]["hostDirectionsRepresentable"])
@@ -44,15 +44,16 @@ class HostClipboardExplicitPolicyABIContractAuditTests(unittest.TestCase):
             document["claims"]["endToEndSmallTextExplicitOptInCapable"]
         )
         self.assertFalse(document["claims"]["richClipboardEnabled"])
+        self.assertTrue(document["claims"]["richClipboardTransportCapable"])
         self.assertFalse(
             document["remainingBoundary"]["backgroundBootstrapPropagationRequired"]
         )
         self.assertFalse(document["remainingBoundary"]["homeOptInControlsRequired"])
         self.assertTrue(document["remainingBoundary"]["installedTwoMacAcceptanceRequired"])
-        self.assertTrue(document["remainingBoundary"]["richPayloadTransferRequired"])
+        self.assertFalse(document["remainingBoundary"]["richPayloadTransferRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-small-text-clipboard-installed-two-mac-acceptance",
+            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
         )
 
 

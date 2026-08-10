@@ -19,7 +19,7 @@
 
 use hbb_common::{
     config,
-    message_proto::{message, Clipboard, ClipboardFormat, Message},
+    message_proto::{message, Clipboard, ClipboardFormat, Message, MultiClipboards},
     password_security, tokio, toml,
 };
 use serde_json::{json, Map, Value};
@@ -35,7 +35,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 13;
+const HOST_ABI_VERSION: u32 = 14;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
@@ -208,6 +208,8 @@ pub struct RdnHostCreateOptions {
     server_public_key: *const c_char,
     enable_clipboard_read: bool,
     enable_clipboard_write: bool,
+    enable_clipboard_rich_text_read: bool,
+    enable_clipboard_rich_text_write: bool,
 }
 
 #[repr(C)]
@@ -273,7 +275,7 @@ pub struct RdnHost {
     rendezvous_server: String,
     relay_server: String,
     server_public_key: String,
-    clipboard_policy: NativeClipboardPolicy,
+    clipboard_transfer_policy: NativeClipboardTransferPolicy,
     runtime: Option<HostRuntime>,
 }
 
@@ -460,7 +462,7 @@ impl NativeDisplayReconfigureProvenance {
 struct MediaBroker {
     binding: Option<MediaHostBinding>,
     capabilities: MediaCapabilities,
-    clipboard_policy: NativeClipboardPolicy,
+    clipboard_transfer_policy: NativeClipboardTransferPolicy,
     routes: HashMap<u64, MediaRoute>,
     display_revisions: HashMap<u64, u64>,
     pending_display_reconfigures: HashMap<u64, NativeDisplayReconfigureProvenance>,
@@ -739,6 +741,40 @@ impl NativeClipboardPolicy {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct NativeClipboardTransferPolicy {
+    small_text: NativeClipboardPolicy,
+    rich_text: NativeClipboardPolicy,
+}
+
+impl NativeClipboardTransferPolicy {
+    pub(crate) fn new(small_text: NativeClipboardPolicy, rich_text: NativeClipboardPolicy) -> Self {
+        Self {
+            small_text,
+            rich_text,
+        }
+    }
+
+    pub(crate) fn small_text(self) -> NativeClipboardPolicy {
+        self.small_text
+    }
+
+    pub(crate) fn rich_text(self) -> NativeClipboardPolicy {
+        self.rich_text
+    }
+
+    pub(crate) fn directions(self) -> NativeClipboardPolicy {
+        NativeClipboardPolicy::new(
+            self.small_text.allows_remote_read() || self.rich_text.allows_remote_read(),
+            self.small_text.allows_remote_write() || self.rich_text.allows_remote_write(),
+        )
+    }
+
+    fn any_enabled(self) -> bool {
+        self.small_text.any_enabled() || self.rich_text.any_enabled()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum NativeClipboardDirection {
     RemoteRead,
@@ -748,9 +784,8 @@ enum NativeClipboardDirection {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum NativeClipboardPayloadDisposition {
     InlineSmallText,
-    // This is a routing requirement, not admission. The current data path
-    // accepts only InlineSmallText; rich payloads stay closed until a bounded
-    // independent transfer owner is implemented.
+    // This remains a routing requirement rather than admission: a separate
+    // rich-text direction policy must authorize the bounded canonical bundle.
     IndependentTransferRequired,
     Reject,
 }
@@ -802,12 +837,105 @@ impl NativeRichTextTransferEnvelope {
     }
 }
 
-pub(crate) fn native_host_configured_clipboard_policy() -> NativeClipboardPolicy {
+pub(crate) fn native_host_configured_clipboard_transfer_policy() -> NativeClipboardTransferPolicy {
     let broker = MEDIA_BROKER.lock().unwrap();
     if broker.binding.is_some() {
-        broker.clipboard_policy
+        broker.clipboard_transfer_policy
     } else {
-        NativeClipboardPolicy::default()
+        NativeClipboardTransferPolicy::default()
+    }
+}
+
+fn native_host_small_text_payload(clipboard: &Clipboard) -> Option<String> {
+    if clipboard.format.enum_value().ok()? != ClipboardFormat::Text
+        || !clipboard.special_name.is_empty()
+        || clipboard.width != 0
+        || clipboard.height != 0
+        || clipboard.content.is_empty()
+        || clipboard.content.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES
+    {
+        return None;
+    }
+    let decoded = if clipboard.compress {
+        hbb_common::compress::decompress_with_limit(
+            &clipboard.content,
+            MAX_CLIPBOARD_TEXT_UTF8_BYTES,
+        )
+        .ok()?
+    } else {
+        clipboard.content.to_vec()
+    };
+    if decoded.is_empty() || decoded.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES {
+        return None;
+    }
+    let text = String::from_utf8(decoded).ok()?;
+    (!text.contains('\0')).then_some(text)
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+struct NativeRichTextTransferBundle {
+    plain_text: Option<String>,
+    rtf: Option<String>,
+    html: Option<String>,
+}
+
+impl NativeRichTextTransferBundle {
+    fn from_clipboards(clipboards: &[Clipboard]) -> Option<Self> {
+        if clipboards.is_empty() || clipboards.len() > 3 {
+            return None;
+        }
+        let mut bundle = Self::default();
+        for clipboard in clipboards {
+            match clipboard.format.enum_value().ok()? {
+                ClipboardFormat::Text => {
+                    if bundle.plain_text.is_some() {
+                        return None;
+                    }
+                    bundle.plain_text = Some(native_host_small_text_payload(clipboard)?);
+                }
+                ClipboardFormat::Rtf | ClipboardFormat::Html => {
+                    let envelope = NativeRichTextTransferEnvelope::from_clipboard(clipboard)?;
+                    match envelope.format {
+                        NativeRichTextFormat::Rtf => {
+                            if bundle.rtf.is_some() {
+                                return None;
+                            }
+                            bundle.rtf = Some(envelope.payload);
+                        }
+                        NativeRichTextFormat::Html => {
+                            if bundle.html.is_some() {
+                                return None;
+                            }
+                            bundle.html = Some(envelope.payload);
+                        }
+                    }
+                }
+                _ => return None,
+            }
+        }
+        (bundle.rtf.is_some() || bundle.html.is_some()).then_some(bundle)
+    }
+
+    fn into_canonical_clipboards(self) -> Vec<Clipboard> {
+        let mut clipboards = Vec::with_capacity(3);
+        for (format, payload) in [
+            (ClipboardFormat::Text, self.plain_text),
+            (ClipboardFormat::Rtf, self.rtf),
+            (ClipboardFormat::Html, self.html),
+        ] {
+            if let Some(payload) = payload {
+                clipboards.push(native_host_canonical_clipboard(format, payload));
+            }
+        }
+        clipboards
+    }
+}
+
+fn native_host_canonical_clipboard(format: ClipboardFormat, payload: String) -> Clipboard {
+    Clipboard {
+        content: payload.into_bytes().into(),
+        format: format.into(),
+        ..Default::default()
     }
 }
 
@@ -819,28 +947,7 @@ fn native_host_clipboard_payload_disposition(
     };
     match format {
         ClipboardFormat::Text => {
-            if !clipboard.special_name.is_empty()
-                || clipboard.width != 0
-                || clipboard.height != 0
-                || clipboard.content.is_empty()
-                || clipboard.content.len() > MAX_CLIPBOARD_TEXT_UTF8_BYTES
-            {
-                return NativeClipboardPayloadDisposition::Reject;
-            }
-            let decoded = if clipboard.compress {
-                hbb_common::compress::decompress_with_limit(
-                    &clipboard.content,
-                    MAX_CLIPBOARD_TEXT_UTF8_BYTES,
-                )
-                .ok()
-            } else {
-                Some(clipboard.content.to_vec())
-            };
-            if decoded
-                .filter(|bytes| !bytes.is_empty())
-                .and_then(|bytes| String::from_utf8(bytes).ok())
-                .is_some_and(|text| !text.contains('\0'))
-            {
+            if native_host_small_text_payload(clipboard).is_some() {
                 NativeClipboardPayloadDisposition::InlineSmallText
             } else {
                 NativeClipboardPayloadDisposition::Reject
@@ -886,43 +993,111 @@ fn native_host_small_text_clipboard(clipboard: &Clipboard) -> bool {
         == NativeClipboardPayloadDisposition::InlineSmallText
 }
 
-fn native_host_clipboard_direction_allows(
+fn native_host_clipboard_policy_allows(
     policy: NativeClipboardPolicy,
     direction: NativeClipboardDirection,
-    clipboards: &[Clipboard],
 ) -> bool {
-    let direction_allowed = match direction {
+    match direction {
         NativeClipboardDirection::RemoteRead => policy.allows_remote_read(),
         NativeClipboardDirection::RemoteWrite => policy.allows_remote_write(),
-    };
-    direction_allowed
-        && clipboards.len() == 1
-        && clipboards
-            .first()
-            .is_some_and(native_host_small_text_clipboard)
-}
-
-pub(crate) fn native_host_outgoing_clipboard_message_is_allowed(
-    message: &Message,
-    remote_read_allowed: bool,
-) -> bool {
-    match message.union.as_ref() {
-        Some(message::Union::Clipboard(clipboard)) => {
-            remote_read_allowed && native_host_small_text_clipboard(clipboard)
-        }
-        Some(message::Union::MultiClipboards(clipboards)) => {
-            remote_read_allowed
-                && native_host_clipboard_entries_are_small_text(&clipboards.clipboards)
-        }
-        _ => true,
     }
 }
 
-pub(crate) fn native_host_clipboard_entries_are_small_text(clipboards: &[Clipboard]) -> bool {
-    clipboards.len() == 1
+fn native_host_clipboard_entries_disposition(
+    clipboards: &[Clipboard],
+) -> NativeClipboardPayloadDisposition {
+    if clipboards.len() == 1
         && clipboards
             .first()
             .is_some_and(native_host_small_text_clipboard)
+    {
+        NativeClipboardPayloadDisposition::InlineSmallText
+    } else if NativeRichTextTransferBundle::from_clipboards(clipboards).is_some() {
+        NativeClipboardPayloadDisposition::IndependentTransferRequired
+    } else {
+        NativeClipboardPayloadDisposition::Reject
+    }
+}
+
+fn native_host_prepare_clipboard_entries(
+    transfer_policy: NativeClipboardTransferPolicy,
+    active_directions: NativeClipboardPolicy,
+    direction: NativeClipboardDirection,
+    clipboards: &[Clipboard],
+) -> Option<Vec<Clipboard>> {
+    if !native_host_clipboard_policy_allows(active_directions, direction) {
+        return None;
+    }
+    match native_host_clipboard_entries_disposition(clipboards) {
+        NativeClipboardPayloadDisposition::InlineSmallText
+            if native_host_clipboard_policy_allows(transfer_policy.small_text(), direction) =>
+        {
+            let text = native_host_small_text_payload(clipboards.first()?)?;
+            Some(vec![native_host_canonical_clipboard(
+                ClipboardFormat::Text,
+                text,
+            )])
+        }
+        NativeClipboardPayloadDisposition::IndependentTransferRequired
+            if native_host_clipboard_policy_allows(transfer_policy.rich_text(), direction) =>
+        {
+            Some(
+                NativeRichTextTransferBundle::from_clipboards(clipboards)?
+                    .into_canonical_clipboards(),
+            )
+        }
+        _ => None,
+    }
+}
+
+#[derive(Debug)]
+pub(crate) enum NativeHostOutgoingClipboardDecision {
+    NotClipboard,
+    Send(Message),
+    Reject,
+}
+
+pub(crate) fn native_host_prepare_outgoing_clipboard_message(
+    message: &Message,
+    transfer_policy: NativeClipboardTransferPolicy,
+    active_directions: NativeClipboardPolicy,
+) -> NativeHostOutgoingClipboardDecision {
+    let entries = match message.union.as_ref() {
+        Some(message::Union::Clipboard(clipboard)) => std::slice::from_ref(clipboard),
+        Some(message::Union::MultiClipboards(clipboards)) => clipboards.clipboards.as_slice(),
+        _ => return NativeHostOutgoingClipboardDecision::NotClipboard,
+    };
+    let Some(mut clipboards) = native_host_prepare_clipboard_entries(
+        transfer_policy,
+        active_directions,
+        NativeClipboardDirection::RemoteRead,
+        entries,
+    ) else {
+        return NativeHostOutgoingClipboardDecision::Reject;
+    };
+    let mut canonical = Message::new();
+    if clipboards.len() == 1 {
+        canonical.set_clipboard(clipboards.remove(0));
+    } else {
+        canonical.set_multi_clipboards(MultiClipboards {
+            clipboards,
+            ..Default::default()
+        });
+    }
+    NativeHostOutgoingClipboardDecision::Send(canonical)
+}
+
+pub(crate) fn native_host_prepare_incoming_clipboard_entries(
+    clipboards: &[Clipboard],
+    transfer_policy: NativeClipboardTransferPolicy,
+    active_directions: NativeClipboardPolicy,
+) -> Option<Vec<Clipboard>> {
+    native_host_prepare_clipboard_entries(
+        transfer_policy,
+        active_directions,
+        NativeClipboardDirection::RemoteWrite,
+        clipboards,
+    )
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1872,7 +2047,7 @@ fn bind_media_host(host: &RdnHost) {
     broker.display_revisions.clear();
     broker.pending_display_reconfigures.clear();
     broker.capabilities = MediaCapabilities::default();
-    broker.clipboard_policy = host.clipboard_policy;
+    broker.clipboard_transfer_policy = host.clipboard_transfer_policy;
     broker.binding = Some(MediaHostBinding {
         instance_id: host.instance_id.clone(),
         callback: host.callbacks.on_event,
@@ -1920,7 +2095,7 @@ fn unbind_media_host() {
         broker.display_revisions.clear();
         broker.pending_display_reconfigures.clear();
         broker.capabilities = MediaCapabilities::default();
-        broker.clipboard_policy = NativeClipboardPolicy::default();
+        broker.clipboard_transfer_policy = NativeClipboardTransferPolicy::default();
         (binding, routes)
     };
     scrap::codec::set_native_encoding_capabilities(false, false);
@@ -2951,9 +3126,15 @@ pub unsafe extern "C" fn rdn_host_create(
         rendezvous_server,
         relay_server,
         server_public_key,
-        clipboard_policy: NativeClipboardPolicy::new(
-            (*options).enable_clipboard_read,
-            (*options).enable_clipboard_write,
+        clipboard_transfer_policy: NativeClipboardTransferPolicy::new(
+            NativeClipboardPolicy::new(
+                (*options).enable_clipboard_read,
+                (*options).enable_clipboard_write,
+            ),
+            NativeClipboardPolicy::new(
+                (*options).enable_clipboard_rich_text_read,
+                (*options).enable_clipboard_rich_text_write,
+            ),
         ),
         runtime: None,
     });
@@ -3068,7 +3249,7 @@ fn verify_host_start_storage(host: &RdnHost) -> Result<(), HostStoragePreflightE
         &host.rendezvous_server,
         &host.relay_server,
         &host.server_public_key,
-        host.clipboard_policy,
+        host.clipboard_transfer_policy,
     )
 }
 
@@ -3077,7 +3258,7 @@ const NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS: [&str; 2] = [
     config::keys::OPTION_ENABLE_AUDIO,
 ];
 
-fn native_host_clipboard_option(policy: NativeClipboardPolicy) -> &'static str {
+fn native_host_clipboard_option(policy: NativeClipboardTransferPolicy) -> &'static str {
     if policy.any_enabled() {
         "Y"
     } else {
@@ -3085,7 +3266,7 @@ fn native_host_clipboard_option(policy: NativeClipboardPolicy) -> &'static str {
     }
 }
 
-fn apply_native_host_optional_capability_policy(policy: NativeClipboardPolicy) {
+fn apply_native_host_optional_capability_policy(policy: NativeClipboardTransferPolicy) {
     config::Config::set_option(
         config::keys::OPTION_ENABLE_CLIPBOARD.to_owned(),
         native_host_clipboard_option(policy).to_owned(),
@@ -3122,7 +3303,7 @@ fn verify_host_start_storage_paths(
     _rendezvous_server: &str,
     _relay_server: &str,
     _server_public_key: &str,
-    _clipboard_policy: NativeClipboardPolicy,
+    _clipboard_policy: NativeClipboardTransferPolicy,
 ) -> Result<(), HostStoragePreflightError> {
     Err(HostStoragePreflightError::UnsupportedPlatform)
 }
@@ -3152,7 +3333,7 @@ fn verify_host_start_storage_paths(
     rendezvous_server: &str,
     relay_server: &str,
     server_public_key: &str,
-    clipboard_policy: NativeClipboardPolicy,
+    clipboard_policy: NativeClipboardTransferPolicy,
 ) -> Result<(), HostStoragePreflightError> {
     let (identity, options) = inspect_host_storage_paths(identity_path, options_path, None)?;
     let Some(HostStorageSnapshot::Identity {
@@ -3419,7 +3600,7 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     // enforced small-text direction was supplied at create. File transfer and
     // audio remain disabled. Upstream treats a missing `enable-*` option as
     // enabled, so absence is never accepted as product policy.
-    apply_native_host_optional_capability_policy(host.clipboard_policy);
+    apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);
     // FarPane Host owns an active authenticated screen route as a bounded
     // user-idle sleep assertion. The connection lifecycle releases it when
     // the last remote screen session ends; native mode never forces the
@@ -4555,7 +4736,7 @@ mod tests {
                 rendezvous_server,
                 relay_server,
                 server_public_key,
-                NativeClipboardPolicy::default(),
+                NativeClipboardTransferPolicy::default(),
             ),
             Ok(())
         );
@@ -4582,9 +4763,18 @@ mod tests {
         HostStorageFixture::write_private(&fixture.options, &enabled_options);
 
         for policy in [
-            NativeClipboardPolicy::new(true, false),
-            NativeClipboardPolicy::new(false, true),
-            NativeClipboardPolicy::new(true, true),
+            NativeClipboardTransferPolicy::new(
+                NativeClipboardPolicy::new(true, false),
+                NativeClipboardPolicy::default(),
+            ),
+            NativeClipboardTransferPolicy::new(
+                NativeClipboardPolicy::default(),
+                NativeClipboardPolicy::new(false, true),
+            ),
+            NativeClipboardTransferPolicy::new(
+                NativeClipboardPolicy::new(true, true),
+                NativeClipboardPolicy::new(true, true),
+            ),
         ] {
             assert_eq!(
                 verify_host_start_storage_paths(
@@ -4605,7 +4795,7 @@ mod tests {
                 rendezvous_server,
                 relay_server,
                 server_public_key,
-                NativeClipboardPolicy::default(),
+                NativeClipboardTransferPolicy::default(),
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
@@ -4631,7 +4821,7 @@ mod tests {
                 rendezvous_server,
                 relay_server,
                 server_public_key,
-                NativeClipboardPolicy::default(),
+                NativeClipboardTransferPolicy::default(),
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
@@ -4645,7 +4835,7 @@ mod tests {
                 "127.0.0.1:21118",
                 relay_server,
                 server_public_key,
-                NativeClipboardPolicy::default(),
+                NativeClipboardTransferPolicy::default(),
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
@@ -4666,7 +4856,7 @@ mod tests {
                 rendezvous_server,
                 relay_server,
                 server_public_key,
-                NativeClipboardPolicy::default(),
+                NativeClipboardTransferPolicy::default(),
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
@@ -4688,19 +4878,28 @@ mod tests {
             .iter()
             .all(|key| !config::option2bool(key, "N")));
         assert_eq!(
-            native_host_clipboard_option(NativeClipboardPolicy::default()),
+            native_host_clipboard_option(NativeClipboardTransferPolicy::default()),
             "N"
         );
         assert_eq!(
-            native_host_clipboard_option(NativeClipboardPolicy::new(true, false)),
+            native_host_clipboard_option(NativeClipboardTransferPolicy::new(
+                NativeClipboardPolicy::new(true, false),
+                NativeClipboardPolicy::default(),
+            )),
             "Y"
         );
         assert_eq!(
-            native_host_clipboard_option(NativeClipboardPolicy::new(false, true)),
+            native_host_clipboard_option(NativeClipboardTransferPolicy::new(
+                NativeClipboardPolicy::default(),
+                NativeClipboardPolicy::new(false, true),
+            )),
             "Y"
         );
         assert_eq!(
-            native_host_clipboard_option(NativeClipboardPolicy::new(true, true)),
+            native_host_clipboard_option(NativeClipboardTransferPolicy::new(
+                NativeClipboardPolicy::new(true, true),
+                NativeClipboardPolicy::new(true, true),
+            )),
             "Y"
         );
     }
@@ -4958,7 +5157,7 @@ mod tests {
             rendezvous_server: String::new(),
             relay_server: String::new(),
             server_public_key: String::new(),
-            clipboard_policy: NativeClipboardPolicy::default(),
+            clipboard_transfer_policy: NativeClipboardTransferPolicy::default(),
             runtime: None,
         }
     }
@@ -5267,48 +5466,57 @@ mod tests {
         let clipboards = std::slice::from_ref(&text);
         let read_only = NativeClipboardPolicy::new(true, false);
         let write_only = NativeClipboardPolicy::new(false, true);
+        let small_read_only =
+            NativeClipboardTransferPolicy::new(read_only, NativeClipboardPolicy::default());
+        let small_write_only =
+            NativeClipboardTransferPolicy::new(write_only, NativeClipboardPolicy::default());
 
         let non_clipboard_message = Message::new();
-        assert!(native_host_outgoing_clipboard_message_is_allowed(
-            &non_clipboard_message,
-            false,
+        assert!(matches!(
+            native_host_prepare_outgoing_clipboard_message(
+                &non_clipboard_message,
+                small_read_only,
+                read_only,
+            ),
+            NativeHostOutgoingClipboardDecision::NotClipboard
         ));
         let mut clipboard_message = Message::new();
         clipboard_message.set_clipboard(text.clone());
-        assert!(native_host_outgoing_clipboard_message_is_allowed(
-            &clipboard_message,
-            true,
+        assert!(matches!(
+            native_host_prepare_outgoing_clipboard_message(
+                &clipboard_message,
+                small_read_only,
+                read_only,
+            ),
+            NativeHostOutgoingClipboardDecision::Send(_)
         ));
-        assert!(!native_host_outgoing_clipboard_message_is_allowed(
-            &clipboard_message,
-            false,
+        assert!(matches!(
+            native_host_prepare_outgoing_clipboard_message(
+                &clipboard_message,
+                small_read_only,
+                write_only,
+            ),
+            NativeHostOutgoingClipboardDecision::Reject
         ));
 
-        assert!(native_host_clipboard_direction_allows(
-            read_only,
-            NativeClipboardDirection::RemoteRead,
+        assert!(native_host_prepare_incoming_clipboard_entries(
             clipboards,
-        ));
-        assert!(!native_host_clipboard_direction_allows(
-            read_only,
-            NativeClipboardDirection::RemoteWrite,
-            clipboards,
-        ));
-        assert!(!native_host_clipboard_direction_allows(
+            small_write_only,
             write_only,
-            NativeClipboardDirection::RemoteRead,
+        )
+        .is_some());
+        assert!(native_host_prepare_incoming_clipboard_entries(
             clipboards,
-        ));
-        assert!(native_host_clipboard_direction_allows(
-            write_only,
-            NativeClipboardDirection::RemoteWrite,
-            clipboards,
-        ));
-        assert!(!native_host_clipboard_direction_allows(
-            NativeClipboardPolicy::new(true, true),
-            NativeClipboardDirection::RemoteRead,
+            small_write_only,
+            read_only,
+        )
+        .is_none());
+        assert!(native_host_prepare_incoming_clipboard_entries(
             &[text.clone(), text],
-        ));
+            small_write_only,
+            write_only,
+        )
+        .is_none());
     }
 
     #[test]
@@ -5378,15 +5586,18 @@ mod tests {
                 native_host_clipboard_payload_disposition(&rich),
                 NativeClipboardPayloadDisposition::IndependentTransferRequired
             );
-            assert!(!native_host_clipboard_direction_allows(
-                NativeClipboardPolicy::new(true, true),
-                NativeClipboardDirection::RemoteRead,
-                std::slice::from_ref(&rich),
-            ));
             let mut message = Message::new();
             message.set_clipboard(rich);
-            assert!(!native_host_outgoing_clipboard_message_is_allowed(
-                &message, true,
+            assert!(matches!(
+                native_host_prepare_outgoing_clipboard_message(
+                    &message,
+                    NativeClipboardTransferPolicy::new(
+                        NativeClipboardPolicy::new(true, true),
+                        NativeClipboardPolicy::default(),
+                    ),
+                    NativeClipboardPolicy::new(true, true),
+                ),
+                NativeHostOutgoingClipboardDecision::Reject
             ));
         }
 
@@ -5397,16 +5608,18 @@ mod tests {
             native_host_clipboard_payload_disposition(&rgba),
             NativeClipboardPayloadDisposition::IndependentTransferRequired
         );
-        assert!(!native_host_clipboard_direction_allows(
-            NativeClipboardPolicy::new(true, true),
-            NativeClipboardDirection::RemoteWrite,
-            std::slice::from_ref(&rgba),
-        ));
         let mut rgba_message = Message::new();
         rgba_message.set_clipboard(rgba);
-        assert!(!native_host_outgoing_clipboard_message_is_allowed(
-            &rgba_message,
-            true,
+        assert!(matches!(
+            native_host_prepare_outgoing_clipboard_message(
+                &rgba_message,
+                NativeClipboardTransferPolicy::new(
+                    NativeClipboardPolicy::default(),
+                    NativeClipboardPolicy::new(true, true),
+                ),
+                NativeClipboardPolicy::new(true, true),
+            ),
+            NativeHostOutgoingClipboardDecision::Reject
         ));
 
         let mut malformed_html =
@@ -5524,6 +5737,132 @@ mod tests {
                 ClipboardFormat::Text,
             ))
             .is_none()
+        );
+    }
+
+    #[test]
+    fn native_rich_text_transfer_bundle_is_owned_atomic_and_canonical() {
+        let compressed_html = hbb_common::compress::compress(b"<b>rich</b>");
+        let mut source = vec![
+            clipboard_fixture(compressed_html, true, ClipboardFormat::Html),
+            clipboard_fixture(b"plain fallback".to_vec(), false, ClipboardFormat::Text),
+            clipboard_fixture(b"{\\rtf1 rich}".to_vec(), false, ClipboardFormat::Rtf),
+        ];
+        let bundle = NativeRichTextTransferBundle::from_clipboards(&source).unwrap();
+        source
+            .iter_mut()
+            .for_each(|clipboard| clipboard.content.clear());
+        assert_eq!(bundle.plain_text.as_deref(), Some("plain fallback"));
+        assert_eq!(bundle.rtf.as_deref(), Some("{\\rtf1 rich}"));
+        assert_eq!(bundle.html.as_deref(), Some("<b>rich</b>"));
+
+        let canonical = bundle.into_canonical_clipboards();
+        assert_eq!(canonical.len(), 3);
+        for (clipboard, format, payload) in [
+            (
+                &canonical[0],
+                ClipboardFormat::Text,
+                b"plain fallback".as_slice(),
+            ),
+            (
+                &canonical[1],
+                ClipboardFormat::Rtf,
+                b"{\\rtf1 rich}".as_slice(),
+            ),
+            (
+                &canonical[2],
+                ClipboardFormat::Html,
+                b"<b>rich</b>".as_slice(),
+            ),
+        ] {
+            assert_eq!(clipboard.format.enum_value(), Ok(format));
+            assert_eq!(clipboard.content.as_ref(), payload);
+            assert!(!clipboard.compress);
+            assert!(clipboard.special_name.is_empty());
+            assert_eq!((clipboard.width, clipboard.height), (0, 0));
+        }
+
+        let plain = clipboard_fixture(b"plain".to_vec(), false, ClipboardFormat::Text);
+        let html = clipboard_fixture(b"<b>rich</b>".to_vec(), false, ClipboardFormat::Html);
+        assert!(
+            NativeRichTextTransferBundle::from_clipboards(std::slice::from_ref(&plain)).is_none()
+        );
+        assert!(NativeRichTextTransferBundle::from_clipboards(&[html.clone(), html]).is_none());
+        assert!(
+            NativeRichTextTransferBundle::from_clipboards(&[clipboard_fixture(
+                b"image".to_vec(),
+                false,
+                ClipboardFormat::ImagePng
+            ),])
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn native_host_rich_text_transport_requires_explicit_format_and_direction_policy() {
+        let entries = vec![
+            clipboard_fixture(b"plain fallback".to_vec(), false, ClipboardFormat::Text),
+            clipboard_fixture(b"{\\rtf1 rich}".to_vec(), false, ClipboardFormat::Rtf),
+            clipboard_fixture(b"<b>rich</b>".to_vec(), false, ClipboardFormat::Html),
+        ];
+        let rich_read = NativeClipboardTransferPolicy::new(
+            NativeClipboardPolicy::default(),
+            NativeClipboardPolicy::new(true, false),
+        );
+        let rich_write = NativeClipboardTransferPolicy::new(
+            NativeClipboardPolicy::default(),
+            NativeClipboardPolicy::new(false, true),
+        );
+        let active_read = NativeClipboardPolicy::new(true, false);
+        let active_write = NativeClipboardPolicy::new(false, true);
+        let mut message = Message::new();
+        message.set_multi_clipboards(MultiClipboards {
+            clipboards: entries.clone(),
+            ..Default::default()
+        });
+
+        let NativeHostOutgoingClipboardDecision::Send(canonical) =
+            native_host_prepare_outgoing_clipboard_message(&message, rich_read, active_read)
+        else {
+            panic!("explicit rich read must admit the canonical bundle");
+        };
+        let Some(message::Union::MultiClipboards(canonical)) = canonical.union else {
+            panic!("three representations must remain atomic");
+        };
+        assert_eq!(canonical.clipboards.len(), 3);
+        assert!(canonical
+            .clipboards
+            .iter()
+            .all(|clipboard| !clipboard.compress));
+
+        assert!(matches!(
+            native_host_prepare_outgoing_clipboard_message(
+                &message,
+                NativeClipboardTransferPolicy::new(
+                    NativeClipboardPolicy::new(true, false),
+                    NativeClipboardPolicy::default(),
+                ),
+                active_read,
+            ),
+            NativeHostOutgoingClipboardDecision::Reject
+        ));
+        assert!(matches!(
+            native_host_prepare_outgoing_clipboard_message(&message, rich_read, active_write),
+            NativeHostOutgoingClipboardDecision::Reject
+        ));
+
+        let incoming =
+            native_host_prepare_incoming_clipboard_entries(&entries, rich_write, active_write)
+                .expect("explicit rich write must admit a bounded canonical bundle");
+        assert_eq!(incoming.len(), 3);
+        assert!(incoming.iter().all(|clipboard| !clipboard.compress));
+        assert!(
+            native_host_prepare_incoming_clipboard_entries(&entries, rich_write, active_read,)
+                .is_none()
+        );
+        assert!(
+            native_host_prepare_incoming_clipboard_entries(&entries, rich_read, active_write,)
+                .is_none()
         );
     }
 

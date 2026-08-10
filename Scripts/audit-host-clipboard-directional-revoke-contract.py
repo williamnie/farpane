@@ -71,7 +71,7 @@ def main() -> int:
         "runtimeCannotExceedConfiguredMaximum": all(
             marker in bridge + connection
             for marker in (
-                "restricted_to(clipboard)",
+                "restricted_to(!self.disable_clipboard)",
                 "if enabled && self.maximum & bit != 0",
                 "maximum_policy()",
             )
@@ -105,10 +105,10 @@ def main() -> int:
         "dataPlaneConsumesPerConnectionActivePolicy": all(
             marker in connection
             for marker in (
-                "active_policy().allows_remote_read()",
-                "active_policy().allows_remote_write()",
-                "native_host_outgoing_clipboard_message_is_allowed(",
-                "native_host_allows_remote_clipboard_write(&self",
+                "permissions.active_policy().allows_remote_read()",
+                "native_host_prepare_outgoing_clipboard_message(",
+                "native_host_prepare_remote_clipboard_write(",
+                "permissions.active_policy(),",
             )
         ),
         "snapshotProjectsMaximumThenActivePolicy": all(
@@ -156,10 +156,10 @@ def main() -> int:
             connection, "struct NativeClipboardPermissionState"
         ),
         "outgoingGate": line_number(
-            connection, "native_host_outgoing_clipboard_message_is_allowed("
+            connection, "native_host_prepare_outgoing_clipboard_message("
         ),
         "incomingGate": line_number(
-            connection, "native_host_allows_remote_clipboard_write(&self"
+            connection, "fn native_host_prepare_remote_clipboard_write("
         ),
         "initialSnapshot": line_number(
             connection, "fn native_session_initial_capabilities("

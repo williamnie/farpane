@@ -113,13 +113,14 @@ def main() -> int:
                 "NativeClipboardPayloadDisposition::IndependentTransferRequired",
             )
         ),
-        "currentDataPlaneStillAdmitsOnlyInlineSmallText": all(
+        "boundedEnvelopeFeedsCanonicalRichDataPlane": all(
             marker in bridge
             for marker in (
-                "fn native_host_small_text_clipboard(clipboard: &Clipboard) -> bool",
-                "== NativeClipboardPayloadDisposition::InlineSmallText",
-                "assert!(!native_host_clipboard_direction_allows(",
-                "assert!(!native_host_outgoing_clipboard_message_is_allowed(",
+                "struct NativeRichTextTransferBundle",
+                "NativeRichTextTransferBundle::from_clipboards(clipboards)?",
+                "into_canonical_clipboards()",
+                "native_host_prepare_outgoing_clipboard_message(",
+                "native_host_prepare_incoming_clipboard_entries(",
             )
         ),
         "ownershipAndAdversarialCasesAreCovered": all(
@@ -137,11 +138,11 @@ def main() -> int:
                 "ClipboardFormat::Text",
             )
         ),
-        "documentationKeepsHostTransportAndProductPasteboardClosed": (
+        "documentationKeepsProductPasteboardClosedAfterTransportWiring": (
             "1 MiB" in architecture
-            and "Host rich admission/transport" in architecture
+            and "Host ABI v14" in architecture
             and "1 MiB" in readme
-            and "no Host rich admission, network transfer owner, AppKit" in readme
+            and "rich AppKit pasteboard owner remains disabled" in readme
         ),
         "canonicalAndVendoredBridgeMatch": bridge == sources["vendor_bridge"],
     }
@@ -164,7 +165,7 @@ def main() -> int:
             bridge, "NativeRichTextTransferEnvelope::from_clipboard(clipboard)"
         ),
         "inlineAdmission": line_number(
-            bridge, "== NativeClipboardPayloadDisposition::InlineSmallText"
+            bridge, "NativeClipboardPayloadDisposition::InlineSmallText"
         ),
         "regression": line_number(
             bridge, "native_rich_text_transfer_envelope_is_owned_bounded_and_strict"
@@ -196,18 +197,18 @@ def main() -> int:
             "richTextEnvelopeBounded": True,
             "richTextEnvelopeOwned": True,
             "richTextInlineAdmitted": False,
-            "richTextNetworkTransportEnabled": False,
+            "richTextNetworkTransportEnabled": True,
             "richTextPasteboardEnabled": False,
             "imagesIncluded": False,
         },
         "remainingBoundary": {
             "viewerRichTextABIRequired": False,
-            "hostViewerTransportWiringRequired": True,
+            "hostViewerTransportWiringRequired": False,
             "pasteboardOwnerRequired": True,
             "imagesRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-viewer-rich-text-transfer-wiring-contract",
+        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-rich-text-envelope-contract" else 1
