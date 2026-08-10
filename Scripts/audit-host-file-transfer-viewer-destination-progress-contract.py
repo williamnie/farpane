@@ -133,7 +133,7 @@ def main() -> int:
                 "session-bound opaque lease",
                 "严格递增 sequence",
                 "Viewer ABI v10",
-                "destination\n  descriptor owner",
+                "destination\n  owner",
                 "产品能力必须继续保持关闭",
             )
         ),

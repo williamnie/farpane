@@ -170,7 +170,7 @@ def main() -> int:
                 "read jobs",
                 "snapshot-bound directory",
                 "Viewer ABI v10",
-                "destination\n  descriptor owner",
+                "destination\n  owner",
                 "产品能力必须继续保持关闭",
             )
         ),

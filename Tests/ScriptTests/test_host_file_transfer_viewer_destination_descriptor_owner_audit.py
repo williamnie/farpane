@@ -4,11 +4,11 @@ import subprocess
 import unittest
 
 
-class HostFileTransferViewerRootListLifecycleAuditTests(unittest.TestCase):
-    def test_root_list_lifecycle_is_exact_bounded_and_product_off(self) -> None:
+class HostFileTransferViewerDestinationDescriptorOwnerAuditTests(unittest.TestCase):
+    def test_owner_is_descriptor_pinned_session_bound_and_product_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            ["python3", "Scripts/audit-host-file-transfer-viewer-root-list-lifecycle.py"],
+            ["python3", "Scripts/audit-host-file-transfer-viewer-destination-descriptor-owner.py"],
             cwd=repository,
             check=False,
             capture_output=True,
@@ -19,20 +19,19 @@ class HostFileTransferViewerRootListLifecycleAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-viewer-root-list-lifecycle-audit",
+            "farpane-host-file-transfer-viewer-destination-descriptor-owner-audit",
         )
         self.assertEqual(
             document["status"],
-            "viewer-root-list-abi-lifecycle-implemented-product-off",
+            "viewer-destination-descriptor-owner-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["viewerRootListCommandCallbackImplemented"])
-        self.assertFalse(claims["viewerRecursiveManifestImplemented"])
         self.assertTrue(claims["viewerDestinationDescriptorOwnerImplemented"])
+        self.assertFalse(claims["viewerRecursiveManifestImplemented"])
         self.assertFalse(claims["viewerDownloadIOImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])

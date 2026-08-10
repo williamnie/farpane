@@ -147,7 +147,7 @@ def main() -> int:
             for marker in (
                 "existing-target decision",
                 "no-replace",
-                "destination\n  descriptor owner",
+                "destination\n  owner",
                 "App/Agent",
             )
         ),
