@@ -42,6 +42,12 @@ const FILE_TRANSFER_LIST_ENTRY_FILE: u32 = 2;
 const FILE_TRANSFER_MANIFEST_PART_FILES: u32 = 1;
 const FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES: u32 = 2;
 const MAX_VIEWER_DOWNLOAD_JOBS: usize = 8;
+const FILE_TRANSFER_EVENT_PROGRESS: u32 = 1;
+const FILE_TRANSFER_EVENT_COMPLETED: u32 = 3;
+const FILE_TRANSFER_EVENT_CANCELLED: u32 = 4;
+const FILE_TRANSFER_EVENT_FAILED: u32 = 5;
+const FILE_TRANSFER_FAILURE_NONE: u32 = 0;
+const FILE_TRANSFER_FAILURE_UNAVAILABLE: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_RGBA: u32 = 1;
 const CLIPBOARD_IMAGE_FORMAT_PNG: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_SVG: u32 = 3;
@@ -241,6 +247,113 @@ struct NativeViewerDownloadJob {
     transfer_id: i32,
     total_files: u32,
     total_bytes: u64,
+    sequence: u64,
+    files_completed: u32,
+    bytes_completed: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct NativeViewerDownloadEvent {
+    session_epoch: u64,
+    transfer_id: i32,
+    sequence: u64,
+    kind: u32,
+    failure: u32,
+    current_file_number: i32,
+    files_completed: u32,
+    total_files: u32,
+    bytes_completed: u64,
+    total_bytes: u64,
+    bytes_per_second: f64,
+}
+
+impl NativeViewerDownloadJob {
+    fn progress(
+        &mut self,
+        completed_file_number: i32,
+        bytes_per_second: f64,
+        finished_size: f64,
+    ) -> Option<NativeViewerDownloadEvent> {
+        if completed_file_number < -1
+            || !bytes_per_second.is_finite()
+            || bytes_per_second < 0.0
+            || !finished_size.is_finite()
+            || finished_size < 0.0
+            || finished_size.fract() != 0.0
+            || finished_size > self.total_bytes as f64
+        {
+            return None;
+        }
+        let files_completed = u32::try_from(completed_file_number.checked_add(1)?).ok()?;
+        let bytes_completed = finished_size as u64;
+        if files_completed > self.total_files
+            || files_completed < self.files_completed
+            || bytes_completed > self.total_bytes
+            || bytes_completed < self.bytes_completed
+        {
+            return None;
+        }
+        let sequence = self.sequence.checked_add(1)?;
+        self.sequence = sequence;
+        self.files_completed = files_completed;
+        self.bytes_completed = bytes_completed;
+        Some(self.event(
+            sequence,
+            FILE_TRANSFER_EVENT_PROGRESS,
+            FILE_TRANSFER_FAILURE_NONE,
+            if files_completed < self.total_files {
+                files_completed as i32
+            } else {
+                -1
+            },
+            files_completed,
+            bytes_completed,
+            bytes_per_second,
+        ))
+    }
+
+    fn terminal(self, kind: u32, failure: u32) -> Option<NativeViewerDownloadEvent> {
+        let sequence = self.sequence.checked_add(1)?;
+        let (files_completed, bytes_completed) = if kind == FILE_TRANSFER_EVENT_COMPLETED {
+            (self.total_files, self.total_bytes)
+        } else {
+            (self.files_completed, self.bytes_completed)
+        };
+        Some(self.event(
+            sequence,
+            kind,
+            failure,
+            -1,
+            files_completed,
+            bytes_completed,
+            0.0,
+        ))
+    }
+
+    fn event(
+        self,
+        sequence: u64,
+        kind: u32,
+        failure: u32,
+        current_file_number: i32,
+        files_completed: u32,
+        bytes_completed: u64,
+        bytes_per_second: f64,
+    ) -> NativeViewerDownloadEvent {
+        NativeViewerDownloadEvent {
+            session_epoch: self.session_epoch,
+            transfer_id: self.transfer_id,
+            sequence,
+            kind,
+            failure,
+            current_file_number,
+            files_completed,
+            total_files: self.total_files,
+            bytes_completed,
+            total_bytes: self.total_bytes,
+            bytes_per_second,
+        }
+    }
 }
 
 #[repr(C)]
@@ -371,6 +484,34 @@ struct BridgeShared {
 }
 
 impl BridgeShared {
+    fn emit_file_transfer_event(&self, event: NativeViewerDownloadEvent) {
+        if !self.active.load(Ordering::Acquire)
+            || !self.authenticated.load(Ordering::Acquire)
+            || !self.file_transfer_enabled.load(Ordering::Acquire)
+            || self.file_transfer_session_epoch.load(Ordering::Acquire) != event.session_epoch
+        {
+            return;
+        }
+        let Some(callback) = self.callbacks.on_file_transfer_event else {
+            return;
+        };
+        let raw = RDNFileTransferEvent {
+            abi_version: ABI_VERSION,
+            session_epoch: event.session_epoch,
+            transfer_id: event.transfer_id,
+            sequence: event.sequence,
+            kind: event.kind,
+            failure: event.failure,
+            current_file_number: event.current_file_number,
+            files_completed: event.files_completed,
+            total_files: event.total_files,
+            bytes_completed: event.bytes_completed,
+            total_bytes: event.total_bytes,
+            bytes_per_second: event.bytes_per_second,
+        };
+        unsafe { callback(self.context as *mut c_void, &raw) };
+    }
+
     fn emit_state(&self, state: RDNState, code: i32, message: &'static str) {
         if !self.active.load(Ordering::Acquire) {
             return;
@@ -780,18 +921,35 @@ impl InvokeUiSession for BridgeUi {
                 &[],
             );
         }
-        self.shared
+        let event = self
+            .shared
             .active_file_download_jobs
             .lock()
             .unwrap()
-            .remove(&id);
+            .remove(&id)
+            .and_then(|job| {
+                job.terminal(
+                    FILE_TRANSFER_EVENT_FAILED,
+                    FILE_TRANSFER_FAILURE_UNAVAILABLE,
+                )
+            });
+        if let Some(event) = event {
+            self.shared.emit_file_transfer_event(event);
+        }
     }
     fn job_done(&self, id: i32, _file_num: i32) {
-        self.shared
+        let event = self
+            .shared
             .active_file_download_jobs
             .lock()
             .unwrap()
-            .remove(&id);
+            .remove(&id)
+            .and_then(|job| {
+                job.terminal(FILE_TRANSFER_EVENT_COMPLETED, FILE_TRANSFER_FAILURE_NONE)
+            });
+        if let Some(event) = event {
+            self.shared.emit_file_transfer_event(event);
+        }
     }
     fn clear_all_jobs(&self) {
         self.shared.pending_file_list_request.lock().unwrap().take();
@@ -1019,7 +1177,18 @@ impl InvokeUiSession for BridgeUi {
     }
 
     fn update_block_input_state(&self, _on: bool) {}
-    fn job_progress(&self, _id: i32, _file_num: i32, _speed: f64, _finished_size: f64) {}
+    fn job_progress(&self, id: i32, file_num: i32, speed: f64, finished_size: f64) {
+        let event = self
+            .shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .get_mut(&id)
+            .and_then(|job| job.progress(file_num, speed, finished_size));
+        if let Some(event) = event {
+            self.shared.emit_file_transfer_event(event);
+        }
+    }
     fn adapt_size(&self) {}
     fn on_rgba(&self, _display: usize, _rgba: &mut scrap::ImageRgb) {}
 
@@ -2631,12 +2800,21 @@ pub unsafe extern "C" fn rdn_client_file_transfer_cancel(
     if sender.send(Data::CancelJob(transfer_id)).is_err() {
         return -3;
     }
-    let mut jobs = client.shared.active_file_download_jobs.lock().unwrap();
-    if jobs
-        .get(&transfer_id)
-        .is_some_and(|job| job.session_epoch == session_epoch)
-    {
-        jobs.remove(&transfer_id);
+    let event = {
+        let mut jobs = client.shared.active_file_download_jobs.lock().unwrap();
+        if jobs
+            .get(&transfer_id)
+            .is_some_and(|job| job.session_epoch == session_epoch)
+        {
+            jobs.remove(&transfer_id).and_then(|job| {
+                job.terminal(FILE_TRANSFER_EVENT_CANCELLED, FILE_TRANSFER_FAILURE_NONE)
+            })
+        } else {
+            None
+        }
+    };
+    if let Some(event) = event {
+        client.shared.emit_file_transfer_event(event);
     }
     0
 }
@@ -2846,6 +3024,9 @@ pub unsafe extern "C" fn rdn_client_file_transfer_download_start(
         transfer_id: request.transfer_id,
         total_files: request.total_files,
         total_bytes: request.total_bytes,
+        sequence: 0,
+        files_completed: 0,
+        bytes_completed: 0,
     };
     let mut jobs = client.shared.active_file_download_jobs.lock().unwrap();
     if !client.shared.active.load(Ordering::Acquire)
@@ -2951,6 +3132,42 @@ mod tests {
         status: u32,
         part: u32,
         entries: Vec<(u32, String, u64, u64)>,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct CapturedFileTransferEvent {
+        session_epoch: u64,
+        transfer_id: i32,
+        sequence: u64,
+        kind: u32,
+        failure: u32,
+        current_file_number: i32,
+        files_completed: u32,
+        total_files: u32,
+        bytes_completed: u64,
+        total_bytes: u64,
+        bytes_per_second: f64,
+    }
+
+    unsafe extern "C" fn capture_file_transfer_event(
+        context: *mut c_void,
+        event: *const RDNFileTransferEvent,
+    ) {
+        let capture = &*(context as *const Mutex<Vec<CapturedFileTransferEvent>>);
+        let event = &*event;
+        capture.lock().unwrap().push(CapturedFileTransferEvent {
+            session_epoch: event.session_epoch,
+            transfer_id: event.transfer_id,
+            sequence: event.sequence,
+            kind: event.kind,
+            failure: event.failure,
+            current_file_number: event.current_file_number,
+            files_completed: event.files_completed,
+            total_files: event.total_files,
+            bytes_completed: event.bytes_completed,
+            total_bytes: event.total_bytes,
+            bytes_per_second: event.bytes_per_second,
+        });
     }
 
     unsafe extern "C" fn capture_file_list_event(
@@ -4143,7 +4360,11 @@ mod tests {
 
     #[test]
     fn viewer_download_start_registers_exact_manifest_without_io() {
-        let ui = BridgeUi::default();
+        let captured = Mutex::new(Vec::<CapturedFileTransferEvent>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_file_transfer_event = Some(capture_file_transfer_event);
+        shared.context = &captured as *const _ as usize;
         ui.shared.active.store(true, Ordering::Release);
         ui.shared
             .file_transfer_enabled
@@ -4200,6 +4421,9 @@ mod tests {
                 transfer_id: 61,
                 total_files: 2,
                 total_bytes: 42,
+                sequence: 0,
+                files_completed: 0,
+                bytes_completed: 0,
             })
         );
         assert!(
@@ -4253,6 +4477,141 @@ mod tests {
             .unwrap()
             .is_empty());
         assert!(matches!(receiver.try_recv(), Ok(Data::CancelJob(61))));
+        assert_eq!(
+            captured.lock().unwrap().as_slice(),
+            &[CapturedFileTransferEvent {
+                session_epoch: 7,
+                transfer_id: 61,
+                sequence: 1,
+                kind: FILE_TRANSFER_EVENT_CANCELLED,
+                failure: FILE_TRANSFER_FAILURE_NONE,
+                current_file_number: -1,
+                files_completed: 0,
+                total_files: 2,
+                bytes_completed: 0,
+                total_bytes: 42,
+                bytes_per_second: 0.0,
+            }]
+        );
+    }
+
+    #[test]
+    fn viewer_download_progress_and_terminal_callbacks_are_monotonic_and_stable() {
+        let captured = Mutex::new(Vec::<CapturedFileTransferEvent>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_file_transfer_event = Some(capture_file_transfer_event);
+        shared.context = &captured as *const _ as usize;
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+        let job = NativeViewerDownloadJob {
+            session_epoch: 7,
+            manifest_request_id: 51,
+            transfer_id: 61,
+            total_files: 2,
+            total_bytes: 42,
+            sequence: 0,
+            files_completed: 0,
+            bytes_completed: 0,
+        };
+        ui.shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .insert(61, job);
+
+        ui.job_progress(61, -1, 7.5, 10.0);
+        ui.job_progress(61, -1, 7.5, 9.0);
+        ui.job_progress(61, 0, 8.0, 40.0);
+        ui.job_done(61, 1);
+        ui.job_progress(61, 1, 1.0, 42.0);
+        assert_eq!(
+            captured.lock().unwrap().as_slice(),
+            &[
+                CapturedFileTransferEvent {
+                    session_epoch: 7,
+                    transfer_id: 61,
+                    sequence: 1,
+                    kind: FILE_TRANSFER_EVENT_PROGRESS,
+                    failure: FILE_TRANSFER_FAILURE_NONE,
+                    current_file_number: 0,
+                    files_completed: 0,
+                    total_files: 2,
+                    bytes_completed: 10,
+                    total_bytes: 42,
+                    bytes_per_second: 7.5,
+                },
+                CapturedFileTransferEvent {
+                    session_epoch: 7,
+                    transfer_id: 61,
+                    sequence: 2,
+                    kind: FILE_TRANSFER_EVENT_PROGRESS,
+                    failure: FILE_TRANSFER_FAILURE_NONE,
+                    current_file_number: 1,
+                    files_completed: 1,
+                    total_files: 2,
+                    bytes_completed: 40,
+                    total_bytes: 42,
+                    bytes_per_second: 8.0,
+                },
+                CapturedFileTransferEvent {
+                    session_epoch: 7,
+                    transfer_id: 61,
+                    sequence: 3,
+                    kind: FILE_TRANSFER_EVENT_COMPLETED,
+                    failure: FILE_TRANSFER_FAILURE_NONE,
+                    current_file_number: -1,
+                    files_completed: 2,
+                    total_files: 2,
+                    bytes_completed: 42,
+                    total_bytes: 42,
+                    bytes_per_second: 0.0,
+                },
+            ]
+        );
+
+        ui.shared.active_file_download_jobs.lock().unwrap().insert(
+            62,
+            NativeViewerDownloadJob {
+                transfer_id: 62,
+                ..job
+            },
+        );
+        ui.job_error(62, "raw remote detail".to_owned(), 0);
+        assert_eq!(
+            captured.lock().unwrap().last().copied(),
+            Some(CapturedFileTransferEvent {
+                session_epoch: 7,
+                transfer_id: 62,
+                sequence: 1,
+                kind: FILE_TRANSFER_EVENT_FAILED,
+                failure: FILE_TRANSFER_FAILURE_UNAVAILABLE,
+                current_file_number: -1,
+                files_completed: 0,
+                total_files: 2,
+                bytes_completed: 0,
+                total_bytes: 42,
+                bytes_per_second: 0.0,
+            })
+        );
+
+        let mut precision_boundary_job = NativeViewerDownloadJob {
+            transfer_id: 63,
+            total_bytes: 9_007_199_254_740_995,
+            ..job
+        };
+        assert_eq!(
+            precision_boundary_job.progress(-1, 1.0, precision_boundary_job.total_bytes as f64,),
+            None
+        );
+        assert_eq!(precision_boundary_job.sequence, 0);
+        assert_eq!(precision_boundary_job.bytes_completed, 0);
     }
 
     fn optional_payload_bytes(bytes: Option<&[u8]>) -> (*const u8, usize) {

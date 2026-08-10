@@ -277,9 +277,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   path-free queued download registration（download start）：只跨 ABI 传 exact epoch、completed manifest request ID、transfer ID
   与 aggregate totals，destination lease 保持 Swift-owned；admission 要求 dedicated session、authentication、
   remote permission、ready sender，最多 8 个 unique transfer ID，并在 cancel、terminal job callback、job
-  teardown、disconnect 与 worker exit 清除。该注册不发 wire download request，不借 destination descriptor，
-  不执行 `openat`/write/staging；download dispatch/progress callback mapping 与 UI 仍未实现，多文件 upload
-  resume、existing-target replace 也仍未实现。
+  teardown、disconnect 与 worker exit 清除。已注册 job 的 upstream progress/done/error 和成功 cancel 现在投影为
+  exact-session、严格递增 sequence、单调有界 file/byte/speed 的 typed callback；completion 强制 exact totals，
+  error 只暴露 stable failure，Swift 再以单一严格 initializer 重验并投影到 progress authority。callback 在释放
+  job mutex 后同步发出，避免重入死锁。该注册仍不发 wire download request，不借 destination descriptor，
+  不执行 `openat`/write/staging；safe receive I/O/dispatch 与 UI 仍未实现，多文件 upload resume、existing-target
+  replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。

@@ -49,7 +49,7 @@ is performed.
 
 ## Next step
 
-`host-file-transfer-viewer-download-dispatch-progress-lifecycle`: separately
-design and implement the actual wire dispatch plus progress/terminal mapping,
-while retaining destination-descriptor ownership and descriptor-relative I/O as
+`host-file-transfer-viewer-download-progress-terminal-lifecycle`: first activate
+typed progress/terminal callbacks for the registered lifecycle while retaining
+wire dispatch, destination-descriptor borrowing and descriptor-relative I/O as
 explicit later gates.

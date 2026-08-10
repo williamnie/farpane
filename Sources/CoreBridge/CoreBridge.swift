@@ -90,7 +90,7 @@ public enum CoreClipboardImagePayload: Sendable, Equatable {
     case svg(String)
 }
 
-public enum CoreFileTransferEventKind: UInt32, Sendable {
+public enum CoreFileTransferEventKind: UInt32, Equatable, Sendable {
     case progress = 1
     case waitingForConflict = 2
     case completed = 3
@@ -98,7 +98,7 @@ public enum CoreFileTransferEventKind: UInt32, Sendable {
     case failed = 5
 }
 
-public enum CoreFileTransferFailure: UInt32, Sendable {
+public enum CoreFileTransferFailure: UInt32, Equatable, Sendable {
     case none = 0
     case rejected = 1
     case unavailable = 2
@@ -107,7 +107,7 @@ public enum CoreFileTransferFailure: UInt32, Sendable {
     case connectionClosed = 5
 }
 
-public struct CoreFileTransferEvent: Sendable {
+public struct CoreFileTransferEvent: Equatable, Sendable {
     public let sessionEpoch: UInt64
     public let transferID: Int32
     public let sequence: UInt64
@@ -119,6 +119,61 @@ public struct CoreFileTransferEvent: Sendable {
     public let bytesCompleted: UInt64
     public let totalBytes: UInt64
     public let bytesPerSecond: Double
+
+    init?(
+        sessionEpoch: UInt64,
+        transferID: Int32,
+        sequence: UInt64,
+        kind: CoreFileTransferEventKind,
+        failure: CoreFileTransferFailure,
+        currentFileNumber: Int?,
+        filesCompleted: UInt32,
+        totalFiles: UInt32,
+        bytesCompleted: UInt64,
+        totalBytes: UInt64,
+        bytesPerSecond: Double
+    ) {
+        guard
+            sessionEpoch > 0,
+            transferID > 0,
+            sequence > 0,
+            filesCompleted <= totalFiles,
+            bytesCompleted <= totalBytes,
+            bytesPerSecond.isFinite,
+            bytesPerSecond >= 0,
+            currentFileNumber.map({ $0 >= 0 && $0 < Int(totalFiles) }) ?? true
+        else { return nil }
+
+        switch kind {
+        case .progress:
+            guard failure == .none else { return nil }
+        case .waitingForConflict:
+            guard failure == .none, currentFileNumber != nil else { return nil }
+        case .completed:
+            guard
+                failure == .none,
+                currentFileNumber == nil,
+                filesCompleted == totalFiles,
+                bytesCompleted == totalBytes
+            else { return nil }
+        case .cancelled:
+            guard failure == .none, currentFileNumber == nil else { return nil }
+        case .failed:
+            guard failure != .none, currentFileNumber == nil else { return nil }
+        }
+
+        self.sessionEpoch = sessionEpoch
+        self.transferID = transferID
+        self.sequence = sequence
+        self.kind = kind
+        self.failure = failure
+        self.currentFileNumber = currentFileNumber
+        self.filesCompleted = filesCompleted
+        self.totalFiles = totalFiles
+        self.bytesCompleted = bytesCompleted
+        self.totalBytes = totalBytes
+        self.bytesPerSecond = bytesPerSecond
+    }
 }
 
 public enum CoreFileTransferListStatus: UInt32, Sendable {
@@ -874,54 +929,25 @@ private let fileTransferEventCallback: RDNFileTransferEventCallback = {
     let raw = eventPointer.pointee
     guard
         raw.abi_version == RDN_ABI_VERSION,
-        raw.session_epoch > 0,
-        raw.transfer_id > 0,
-        raw.sequence > 0,
+        raw.current_file_number >= -1,
         let kind = CoreFileTransferEventKind(rawValue: raw.kind),
         let failure = CoreFileTransferFailure(rawValue: raw.failure),
-        raw.files_completed <= raw.total_files,
-        raw.bytes_completed <= raw.total_bytes,
-        raw.bytes_per_second.isFinite,
-        raw.bytes_per_second >= 0,
-        raw.current_file_number >= -1
+        let event = CoreFileTransferEvent(
+            sessionEpoch: raw.session_epoch,
+            transferID: raw.transfer_id,
+            sequence: raw.sequence,
+            kind: kind,
+            failure: failure,
+            currentFileNumber: raw.current_file_number >= 0
+                ? Int(raw.current_file_number)
+                : nil,
+            filesCompleted: raw.files_completed,
+            totalFiles: raw.total_files,
+            bytesCompleted: raw.bytes_completed,
+            totalBytes: raw.total_bytes,
+            bytesPerSecond: raw.bytes_per_second
+        )
     else { return }
-
-    let currentFileNumber = raw.current_file_number >= 0
-        ? Int(raw.current_file_number)
-        : nil
-    switch kind {
-    case .progress:
-        guard failure == .none else { return }
-    case .waitingForConflict:
-        guard failure == .none, let currentFileNumber,
-              currentFileNumber < Int(raw.total_files) else { return }
-    case .completed:
-        guard
-            failure == .none,
-            currentFileNumber == nil,
-            raw.files_completed == raw.total_files,
-            raw.bytes_completed == raw.total_bytes
-        else { return }
-    case .cancelled:
-        guard failure == .none, currentFileNumber == nil else { return }
-    case .failed:
-        guard failure != .none, currentFileNumber == nil else { return }
-    }
-    if let currentFileNumber, currentFileNumber >= Int(raw.total_files) { return }
-
-    let event = CoreFileTransferEvent(
-        sessionEpoch: raw.session_epoch,
-        transferID: raw.transfer_id,
-        sequence: raw.sequence,
-        kind: kind,
-        failure: failure,
-        currentFileNumber: currentFileNumber,
-        filesCompleted: raw.files_completed,
-        totalFiles: raw.total_files,
-        bytesCompleted: raw.bytes_completed,
-        totalBytes: raw.total_bytes,
-        bytesPerSecond: raw.bytes_per_second
-    )
     let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
     box.deliverFileTransferEvent(event)
 }

@@ -196,6 +196,55 @@ package struct ViewerFileTransferProgressUpdate: Equatable, Sendable {
     }
 }
 
+extension CoreFileTransferEvent {
+    package var viewerProgressUpdate: ViewerFileTransferProgressUpdate? {
+        let phase: ViewerFileTransferProgressPhase
+        switch kind {
+        case .progress:
+            phase = .transferring
+        case .waitingForConflict:
+            phase = .waitingForConflict
+        case .completed:
+            phase = .completed
+        case .cancelled:
+            phase = .cancelled
+        case .failed:
+            guard let stableFailure = failure.viewerFailure else { return nil }
+            phase = .failed(stableFailure)
+        }
+
+        return ViewerFileTransferProgressUpdate(
+            sessionEpoch: sessionEpoch,
+            transferID: transferID,
+            sequence: sequence,
+            phase: phase,
+            currentFileNumber: currentFileNumber,
+            filesCompleted: Int(filesCompleted),
+            bytesCompleted: bytesCompleted,
+            bytesPerSecond: bytesPerSecond
+        )
+    }
+}
+
+private extension CoreFileTransferFailure {
+    var viewerFailure: ViewerFileTransferFailure? {
+        switch self {
+        case .none:
+            nil
+        case .rejected:
+            .rejected
+        case .unavailable:
+            .unavailable
+        case .protocolViolation:
+            .protocolViolation
+        case .localIO:
+            .localIO
+        case .connectionClosed:
+            .connectionClosed
+        }
+    }
+}
+
 package struct ViewerFileTransferProgressSnapshot: Equatable, Sendable {
     package let sessionEpoch: UInt64
     package let transferID: Int32
