@@ -36,12 +36,13 @@ class HostFileTransferViewerDestinationProgressContractAuditTests(unittest.TestC
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
         self.assertTrue(claims["viewerDestinationProgressContractImplemented"])
-        self.assertFalse(claims["viewerCoreFileTransferABIImplemented"])
+        self.assertTrue(claims["viewerCoreFileTransferABISeamImplemented"])
+        self.assertFalse(claims["viewerCoreFileTransferRuntimeImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-core-abi-event-command-lifecycle",
+            "host-file-transfer-viewer-core-event-command-runtime-lifecycle",
         )
 
 

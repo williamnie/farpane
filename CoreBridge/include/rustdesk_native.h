@@ -9,7 +9,17 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 8u
+#define RDN_ABI_VERSION 9u
+#define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
+#define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
+#define RDN_CLIENT_ERR_BAD_STATE (-3)
+#define RDN_CLIENT_ERR_INVALID_PAYLOAD (-4)
+#define RDN_CLIENT_ERR_VALIDATION (-5)
+#define RDN_CLIENT_ERR_NOT_AUTHENTICATED (-6)
+#define RDN_CLIENT_ERR_LOCAL_POLICY_DISABLED (-7)
+#define RDN_CLIENT_ERR_REMOTE_PERMISSION_DISABLED (-8)
+#define RDN_CLIENT_ERR_NOT_SUPPORTED (-9)
+#define RDN_CLIENT_ERR_STALE_EPOCH (-10)
 #define RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES (64u * 1024u)
 #define RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES (1024u * 1024u)
 #define RDN_MAX_CLIPBOARD_IMAGE_BYTES 134217728u
@@ -120,6 +130,43 @@ typedef struct RDNClipboardImagePayload {
 typedef void (*RDNClipboardImageCallback)(
     void *context, const RDNClipboardImagePayload *payload);
 
+typedef enum RDNFileTransferEventKind {
+    RDN_FILE_TRANSFER_EVENT_PROGRESS = 1,
+    RDN_FILE_TRANSFER_EVENT_WAITING_FOR_CONFLICT = 2,
+    RDN_FILE_TRANSFER_EVENT_COMPLETED = 3,
+    RDN_FILE_TRANSFER_EVENT_CANCELLED = 4,
+    RDN_FILE_TRANSFER_EVENT_FAILED = 5,
+} RDNFileTransferEventKind;
+
+typedef enum RDNFileTransferFailure {
+    RDN_FILE_TRANSFER_FAILURE_NONE = 0,
+    RDN_FILE_TRANSFER_FAILURE_REJECTED = 1,
+    RDN_FILE_TRANSFER_FAILURE_UNAVAILABLE = 2,
+    RDN_FILE_TRANSFER_FAILURE_PROTOCOL_VIOLATION = 3,
+    RDN_FILE_TRANSFER_FAILURE_LOCAL_IO = 4,
+    RDN_FILE_TRANSFER_FAILURE_CONNECTION_CLOSED = 5,
+} RDNFileTransferFailure;
+
+/* Callback-scoped scalar progress. No local path, descriptor, remote path or
+ * raw protocol error crosses this seam. `current_file_number` is -1 when no
+ * file is active. Swift revalidates every field before queued delivery. */
+typedef struct RDNFileTransferEvent {
+    uint32_t abi_version;
+    uint64_t session_epoch;
+    int32_t transfer_id;
+    uint64_t sequence;
+    uint32_t kind;
+    uint32_t failure;
+    int32_t current_file_number;
+    uint32_t files_completed;
+    uint32_t total_files;
+    uint64_t bytes_completed;
+    uint64_t total_bytes;
+    double bytes_per_second;
+} RDNFileTransferEvent;
+typedef void (*RDNFileTransferEventCallback)(
+    void *context, const RDNFileTransferEvent *event);
+
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
@@ -128,6 +175,7 @@ typedef struct RDNCallbacks {
     RDNClipboardTextCallback on_clipboard_text;
     RDNClipboardRichTextCallback on_clipboard_rich_text;
     RDNClipboardImageCallback on_clipboard_image;
+    RDNFileTransferEventCallback on_file_transfer_event;
 } RDNCallbacks;
 
 typedef struct RDNConnectionConfig {
@@ -150,6 +198,11 @@ typedef struct RDNConnectionConfig {
      * AppKit pasteboard ownership or product enablement. */
     bool receive_clipboard_image;
     bool send_clipboard_image;
+    /* ABI v9 seam. Exact pair: false/0 for ordinary Viewer sessions;
+     * true/nonzero reserves a dedicated future file-transfer session. The
+     * current Rust implementation returns NOT_SUPPORTED before network start. */
+    bool enable_file_transfer;
+    uint64_t file_transfer_session_epoch;
 } RDNConnectionConfig;
 
 typedef enum RDNModifierFlags {
@@ -241,6 +294,11 @@ int32_t rdn_client_send_clipboard_rich_text(
  * local-direction/remote-permission errors as other clipboard APIs. */
 int32_t rdn_client_send_clipboard_image(
     RDNClient *client, const RDNClipboardImagePayload *payload);
+/* Default-off ABI seam. A disabled client returns LOCAL_POLICY_DISABLED;
+ * enabled sessions remain NOT_SUPPORTED until the Rust event lifecycle lands. */
+int32_t rdn_client_file_transfer_cancel(RDNClient *client,
+                                        uint64_t session_epoch,
+                                        int32_t transfer_id);
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
@@ -486,6 +544,9 @@ int32_t rdn_shim_client_send_clipboard_rich_text(
 int32_t rdn_shim_client_send_clipboard_image(
     const RDNCoreLibrary *library, RDNClient *client,
     const RDNClipboardImagePayload *payload);
+int32_t rdn_shim_client_file_transfer_cancel(
+    const RDNCoreLibrary *library, RDNClient *client,
+    uint64_t session_epoch, int32_t transfer_id);
 
 /* Host Control ABI loader surface (rdn-native-host). rdn_shim_open tolerates
  * cores built without the host feature: rdn_shim_host_available reports whether

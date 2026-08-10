@@ -53,7 +53,7 @@ def main() -> int:
             marker in design
             for marker in (
                 "H6.3f1 Viewer file-transfer destination/progress API contract",
-                "host-file-transfer-viewer-core-abi-event-command-lifecycle",
+                "host-file-transfer-viewer-core-event-command-runtime-lifecycle",
             )
         ),
         "destinationIsOpaqueAndSessionBound": all(
@@ -132,13 +132,15 @@ def main() -> int:
             for marker in (
                 "session-bound opaque lease",
                 "严格递增 sequence",
-                "Viewer C ABI callback/command",
+                "Viewer ABI v9",
+                "真实 Viewer file event loop",
                 "产品能力必须继续保持关闭",
             )
         ),
-        "viewerCoreABIAndProductRemainOff": (
-            "#define RDN_ABI_VERSION 8u" in header
-            and "RDNFileTransfer" not in header
+        "viewerCoreABISeamExistsAndProductRemainsOff": (
+            "#define RDN_ABI_VERSION 9u" in header
+            and "RDNFileTransferEventCallback on_file_transfer_event;" in header
+            and "rdn_client_file_transfer_cancel" in header
             and "fileTransferEnabled:" not in product
             and "fileTransferReceiveRoot:" not in product
         ),
@@ -176,12 +178,13 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "viewerDestinationProgressContractImplemented": status == expected_status,
-            "viewerCoreFileTransferABIImplemented": False,
+            "viewerCoreFileTransferABISeamImplemented": True,
+            "viewerCoreFileTransferRuntimeImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-core-abi-event-command-lifecycle"
+            "host-file-transfer-viewer-core-event-command-runtime-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

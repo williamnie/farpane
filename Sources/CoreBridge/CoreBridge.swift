@@ -90,6 +90,37 @@ public enum CoreClipboardImagePayload: Sendable, Equatable {
     case svg(String)
 }
 
+public enum CoreFileTransferEventKind: UInt32, Sendable {
+    case progress = 1
+    case waitingForConflict = 2
+    case completed = 3
+    case cancelled = 4
+    case failed = 5
+}
+
+public enum CoreFileTransferFailure: UInt32, Sendable {
+    case none = 0
+    case rejected = 1
+    case unavailable = 2
+    case protocolViolation = 3
+    case localIO = 4
+    case connectionClosed = 5
+}
+
+public struct CoreFileTransferEvent: Sendable {
+    public let sessionEpoch: UInt64
+    public let transferID: Int32
+    public let sequence: UInt64
+    public let kind: CoreFileTransferEventKind
+    public let failure: CoreFileTransferFailure
+    public let currentFileNumber: Int?
+    public let filesCompleted: UInt32
+    public let totalFiles: UInt32
+    public let bytesCompleted: UInt64
+    public let totalBytes: UInt64
+    public let bytesPerSecond: Double
+}
+
 public struct CoreConnectionConfig: Sendable {
     public let rendezvousServer: String
     public let serverPublicKey: String
@@ -102,6 +133,8 @@ public struct CoreConnectionConfig: Sendable {
     public let sendClipboardRichText: Bool
     public let receiveClipboardImage: Bool
     public let sendClipboardImage: Bool
+    public let fileTransferEnabled: Bool
+    public let fileTransferSessionEpoch: UInt64
 
     public init(
         rendezvousServer: String,
@@ -114,7 +147,9 @@ public struct CoreConnectionConfig: Sendable {
         receiveClipboardRichText: Bool = false,
         sendClipboardRichText: Bool = false,
         receiveClipboardImage: Bool = false,
-        sendClipboardImage: Bool = false
+        sendClipboardImage: Bool = false,
+        fileTransferEnabled: Bool = false,
+        fileTransferSessionEpoch: UInt64 = 0
     ) {
         self.rendezvousServer = rendezvousServer
         self.serverPublicKey = serverPublicKey
@@ -127,6 +162,8 @@ public struct CoreConnectionConfig: Sendable {
         self.sendClipboardRichText = sendClipboardRichText
         self.receiveClipboardImage = receiveClipboardImage
         self.sendClipboardImage = sendClipboardImage
+        self.fileTransferEnabled = fileTransferEnabled
+        self.fileTransferSessionEpoch = fileTransferSessionEpoch
     }
 }
 
@@ -235,8 +272,11 @@ private final class CallbackBox: @unchecked Sendable {
     let onClipboardText: @Sendable (String) -> Void
     let onClipboardRichText: @Sendable (CoreClipboardRichTextPayload) -> Void
     let onClipboardImage: @Sendable (CoreClipboardImagePayload) -> Void
+    let onFileTransferEvent: @Sendable (CoreFileTransferEvent) -> Void
     private let clipboardLifecycleLock = NSLock()
     private var clipboardDeliveryEnabled = true
+    private let fileTransferLifecycleLock = NSLock()
+    private var fileTransferDeliveryEnabled = true
 
     init(
         queue: DispatchQueue,
@@ -245,7 +285,8 @@ private final class CallbackBox: @unchecked Sendable {
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
         onClipboardText: @escaping @Sendable (String) -> Void,
         onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void,
-        onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void
+        onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void,
+        onFileTransferEvent: @escaping @Sendable (CoreFileTransferEvent) -> Void
     ) {
         self.queue = queue
         self.onState = onState
@@ -254,6 +295,7 @@ private final class CallbackBox: @unchecked Sendable {
         self.onClipboardText = onClipboardText
         self.onClipboardRichText = onClipboardRichText
         self.onClipboardImage = onClipboardImage
+        self.onFileTransferEvent = onFileTransferEvent
     }
 
     func deliverClipboardText(_ text: String) {
@@ -280,6 +322,21 @@ private final class CallbackBox: @unchecked Sendable {
     func stopClipboardDelivery() {
         clipboardLifecycleLock.withLock {
             clipboardDeliveryEnabled = false
+        }
+    }
+
+    func deliverFileTransferEvent(_ event: CoreFileTransferEvent) {
+        queue.async { [self] in
+            guard fileTransferLifecycleLock.withLock({ fileTransferDeliveryEnabled }) else {
+                return
+            }
+            onFileTransferEvent(event)
+        }
+    }
+
+    func stopFileTransferDelivery() {
+        fileTransferLifecycleLock.withLock {
+            fileTransferDeliveryEnabled = false
         }
     }
 }
@@ -602,6 +659,64 @@ private let clipboardImageCallback: RDNClipboardImageCallback = { context, paylo
     box.deliverClipboardImage(payload)
 }
 
+private let fileTransferEventCallback: RDNFileTransferEventCallback = {
+    context, eventPointer in
+    guard let context, let eventPointer else { return }
+    let raw = eventPointer.pointee
+    guard
+        raw.abi_version == RDN_ABI_VERSION,
+        raw.session_epoch > 0,
+        raw.transfer_id > 0,
+        raw.sequence > 0,
+        let kind = CoreFileTransferEventKind(rawValue: raw.kind),
+        let failure = CoreFileTransferFailure(rawValue: raw.failure),
+        raw.files_completed <= raw.total_files,
+        raw.bytes_completed <= raw.total_bytes,
+        raw.bytes_per_second.isFinite,
+        raw.bytes_per_second >= 0,
+        raw.current_file_number >= -1
+    else { return }
+
+    let currentFileNumber = raw.current_file_number >= 0
+        ? Int(raw.current_file_number)
+        : nil
+    switch kind {
+    case .progress:
+        guard failure == .none else { return }
+    case .waitingForConflict:
+        guard failure == .none, let currentFileNumber,
+              currentFileNumber < Int(raw.total_files) else { return }
+    case .completed:
+        guard
+            failure == .none,
+            currentFileNumber == nil,
+            raw.files_completed == raw.total_files,
+            raw.bytes_completed == raw.total_bytes
+        else { return }
+    case .cancelled:
+        guard failure == .none, currentFileNumber == nil else { return }
+    case .failed:
+        guard failure != .none, currentFileNumber == nil else { return }
+    }
+    if let currentFileNumber, currentFileNumber >= Int(raw.total_files) { return }
+
+    let event = CoreFileTransferEvent(
+        sessionEpoch: raw.session_epoch,
+        transferID: raw.transfer_id,
+        sequence: raw.sequence,
+        kind: kind,
+        failure: failure,
+        currentFileNumber: currentFileNumber,
+        filesCompleted: raw.files_completed,
+        totalFiles: raw.total_files,
+        bytesCompleted: raw.bytes_completed,
+        totalBytes: raw.total_bytes,
+        bytesPerSecond: raw.bytes_per_second
+    )
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    box.deliverFileTransferEvent(event)
+}
+
 public final class RustDeskCoreClient: @unchecked Sendable {
     public static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
     public static let abiVersion = UInt32(RDN_ABI_VERSION)
@@ -622,7 +737,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
         onClipboardText: @escaping @Sendable (String) -> Void = { _ in },
         onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void = { _ in },
-        onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void = { _ in }
+        onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void = { _ in },
+        onFileTransferEvent: @escaping @Sendable (CoreFileTransferEvent) -> Void = { _ in }
     ) throws {
         var error = [CChar](repeating: 0, count: 1024)
         guard let library = libraryURL.path.withCString({
@@ -647,7 +763,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             onMetrics: onMetrics,
             onClipboardText: onClipboardText,
             onClipboardRichText: onClipboardRichText,
-            onClipboardImage: onClipboardImage
+            onClipboardImage: onClipboardImage,
+            onFileTransferEvent: onFileTransferEvent
         )
         var callbacks = RDNCallbacks(
             abi_version: RDN_ABI_VERSION,
@@ -656,7 +773,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             on_metrics: metricsCallback,
             on_clipboard_text: clipboardTextCallback,
             on_clipboard_rich_text: clipboardRichTextCallback,
-            on_clipboard_image: clipboardImageCallback
+            on_clipboard_image: clipboardImageCallback,
+            on_file_transfer_event: fileTransferEventCallback
         )
         let context = Unmanaged.passUnretained(callbackBox).toOpaque()
         guard let client = rdn_shim_client_create(library, &callbacks, context) else {
@@ -693,7 +811,9 @@ public final class RustDeskCoreClient: @unchecked Sendable {
                             receive_clipboard_rich_text: config.receiveClipboardRichText,
                             send_clipboard_rich_text: config.sendClipboardRichText,
                             receive_clipboard_image: config.receiveClipboardImage,
-                            send_clipboard_image: config.sendClipboardImage
+                            send_clipboard_image: config.sendClipboardImage,
+                            enable_file_transfer: config.fileTransferEnabled,
+                            file_transfer_session_epoch: config.fileTransferSessionEpoch
                         )
                         return rdn_shim_client_connect(library, client, &raw)
                     }
@@ -711,6 +831,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         }
         if shouldDisconnect {
             callbackBox.stopClipboardDelivery()
+            callbackBox.stopFileTransferDelivery()
             rdn_shim_client_disconnect(library, client)
         }
     }
@@ -849,6 +970,19 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             )
             return rdn_shim_client_send_clipboard_image(library, client, &raw)
         }
+    }
+
+    @discardableResult
+    public func cancelFileTransfer(sessionEpoch: UInt64, transferID: Int32) -> Int32 {
+        guard sessionEpoch > 0, transferID > 0 else {
+            return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+        }
+        return rdn_shim_client_file_transfer_cancel(
+            library,
+            client,
+            sessionEpoch,
+            transferID
+        )
     }
 }
 

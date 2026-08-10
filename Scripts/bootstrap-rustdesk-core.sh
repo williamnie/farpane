@@ -156,17 +156,9 @@ elif ! git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_pa
   exit 1
 fi
 
-if [[ -e "$vendor_dir/src/rdn_bridge.rs" ]]; then
-  if ! cmp -s "$vendor_dir/src/rdn_bridge.rs" "$bridge_source"; then
-    print -u2 "existing src/rdn_bridge.rs differs from the tracked bridge source"
-    exit 1
-  fi
-else
-  cp "$bridge_source" "$vendor_dir/src/rdn_bridge.rs"
-fi
-
-# The host bridge is wholly owned by this repository; the tracked source is
-# authoritative and always synced into the vendor checkout.
+# Both native bridges are wholly owned by this repository; tracked sources are
+# authoritative and always synced into the generated vendor checkout.
+cp "$bridge_source" "$vendor_dir/src/rdn_bridge.rs"
 cp "$host_bridge_source" "$vendor_dir/src/rdn_host_bridge.rs"
 cp "$host_file_transfer_source" "$vendor_dir/src/rdn_host_file_transfer.rs"
 
