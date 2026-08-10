@@ -40,7 +40,7 @@ class HostFileTransferViewerABIv9SeamAuditTests(unittest.TestCase):
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-list-command-callback-abi-lifecycle",
+            "host-file-transfer-viewer-destination-descriptor-owner",
         )
 
 

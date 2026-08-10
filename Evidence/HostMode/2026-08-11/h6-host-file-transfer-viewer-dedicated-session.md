@@ -43,5 +43,5 @@ access a local destination.
 
 ## Next step
 
-`host-file-transfer-viewer-list-command-callback-abi-lifecycle`: wire the owned
-remote-list envelope to a default-off command/callback before download I/O.
+`host-file-transfer-viewer-destination-descriptor-owner`: the root-list
+command/callback now exists; pin a session-bound local destination before I/O.

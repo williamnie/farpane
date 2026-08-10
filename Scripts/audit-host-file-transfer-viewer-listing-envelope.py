@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-listing-envelope-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-list-command-callback-abi-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-viewer-destination-descriptor-owner"
 
 
 def read(path: Path) -> str:
@@ -91,15 +91,15 @@ def main() -> int:
                 "MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES + 1",
             )
         ),
-        "unicodeRevalidationGapIsExplicit": (
-            "Full Unicode NFC/case-fold validation remains" in sources["readme"]
-            and "完整 Unicode NFC/case-fold" in sources["architecture"]
-            and "刻意不宣称完整 Unicode NFC/case-fold" in sources["design"]
+        "unicodeRevalidationIsNowLayeredInSwift": (
+            "NFC, full case-fold collision" in sources["readme"]
+            and "byte-exact NFC、完整 case-fold" in sources["architecture"]
+            and "byte-exact NFC、完整 case-fold collision" in sources["design"]
         ),
-        "abiV9HasNoListCommandOrCallback": (
-            "#define RDN_ABI_VERSION 9u" in header
-            and "rdn_client_file_transfer_list" not in header
-            and "RDNFileTransferList" not in header
+        "abiV10RetainsEnvelopeAndAddsListLifecycle": (
+            "#define RDN_ABI_VERSION 10u" in header
+            and "rdn_client_file_transfer_list_root" in header
+            and "RDNFileTransferListEvent" in header
         ),
         "productRemainsOff": "fileTransferEnabled:" not in product,
     }
@@ -134,7 +134,7 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "viewerRemoteListingEnvelopeImplemented": status == expected_status,
-            "viewerListCommandCallbackImplemented": False,
+            "viewerListCommandCallbackImplemented": True,
             "viewerDestinationIOImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,

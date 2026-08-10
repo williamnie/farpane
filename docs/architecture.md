@@ -253,19 +253,17 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   规范化别名、祖先冲突与 private staging，并限制 1,024 entries、1 MiB metadata；connection-local
   progress authority 最多 8 个 job，只接受同 session、严格递增 sequence、单调有界 file/byte progress、
   explicit conflict、typed terminal failure、cancel 与 teardown。该合同不含本地 path/descriptor/raw error。
-  Viewer ABI v9 已冻结 default-off 的 exact policy/epoch pair、path-free scalar event callback 与
+  Viewer ABI v10 保留 v9 default-off 的 exact policy/epoch pair、path-free scalar event callback 与
   epoch-scoped cancel command；true/nonzero 只建立 dedicated `FILE_TRANSFER` session，拒绝同时开启任何
   desktop clipboard direction，不启动视频 housekeeping，也不开放 input。cancel 只有在 exact epoch、
   authenticated、remote file permission 与 ready sender 全部满足时才投递 upstream `CancelJob`，worker
   退出会清除 file mode 与 epoch。Swift callback 重新验证 ABI、epoch/ID/sequence、单调有界 progress、
-  typed failure 与 exact completion，并在 disconnect 前关闭投递。真实 Viewer file event mapping、
-  destination descriptor owner、list/download I/O 与 UI 仍未实现；多文件 upload resume、existing-target
+  typed failure 与 exact completion，并在 disconnect 前关闭投递。v10 另增加 exact-session、single-flight
+  remote-root list command/callback：只发送 `ReadDir("/", include_hidden=false)`，callback-scoped entry 在
+  Rust 做 1,024/1 MiB/type/name/alias 门禁后由 Swift 复制并再次做 byte-exact NFC、完整 case-fold、separator/
+  control 与 size 验证；error 只投影稳定 rejected/unavailable，teardown 清 pending request。destination
+  descriptor owner、recursive manifest/download I/O 与 UI 仍未实现；多文件 upload resume、existing-target
   replace 也仍未实现。
-  Viewer Rust 已另建尚未接 callback 的 remote-root listing envelope：最多 1,024 个 regular file/directory
-  entry 与 1 MiB 聚合 UTF-8 name metadata，拒绝 empty/traversal/separator/control、hidden、link/drive/
-  unknown type、private staging、非零大小 directory 及 ASCII case alias，并复制为 Rust-owned strings。
-  完整 Unicode NFC/case-fold 仍必须由未来 Swift manifest callback 再次验证；当前 primitive 不发送命令、
-  不投递事件，也不形成 list/download 能力。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。

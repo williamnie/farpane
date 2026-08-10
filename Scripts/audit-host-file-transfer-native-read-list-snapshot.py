@@ -158,7 +158,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-list-command-callback-abi-lifecycle"
+            "host-file-transfer-viewer-destination-descriptor-owner"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

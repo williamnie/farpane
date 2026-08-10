@@ -31,13 +31,13 @@ class HostFileTransferViewerListingEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
         self.assertTrue(claims["viewerRemoteListingEnvelopeImplemented"])
-        self.assertFalse(claims["viewerListCommandCallbackImplemented"])
+        self.assertTrue(claims["viewerListCommandCallbackImplemented"])
         self.assertFalse(claims["viewerDestinationIOImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-list-command-callback-abi-lifecycle",
+            "host-file-transfer-viewer-destination-descriptor-owner",
         )
 
 

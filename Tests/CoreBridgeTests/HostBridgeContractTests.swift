@@ -80,7 +80,7 @@ enum HostEventRecorder {
 
 
 /// Host Control ABI contract tests (§8.1, §20.2): the host namespace must
-/// coexist with the viewer ABI v9, export its full symbol surface, and fail
+/// coexist with the viewer ABI v10, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
     private static let hostABIVersion: UInt32 = 17
@@ -122,10 +122,14 @@ final class HostBridgeContractTests: XCTestCase {
         let viewerABI = unsafeBitCast(
             try rawSymbol("rdn_core_abi_version"),
             to: (@convention(c) () -> UInt32).self)
-        XCTAssertEqual(viewerABI(), 9, "viewer ABI must expose the v9 file seam")
+        XCTAssertEqual(viewerABI(), 10, "viewer ABI must expose the v10 list seam")
         XCTAssertNotNil(
             dlsym(handle, "rdn_client_file_transfer_cancel"),
             "viewer file-transfer cancel seam missing"
+        )
+        XCTAssertNotNil(
+            dlsym(handle, "rdn_client_file_transfer_list_root"),
+            "viewer file-transfer list seam missing"
         )
 
         let hostABI = unsafeBitCast(
@@ -183,7 +187,7 @@ final class HostBridgeContractTests: XCTestCase {
             return
         }
         defer { rdn_shim_close(shimLibrary) }
-        XCTAssertEqual(rdn_shim_abi_version(shimLibrary), 9, "viewer ABI must expose v9")
+        XCTAssertEqual(rdn_shim_abi_version(shimLibrary), 10, "viewer ABI must expose v10")
         XCTAssertNotEqual(rdn_shim_host_available(shimLibrary), 0)
         XCTAssertEqual(rdn_shim_host_abi_version(shimLibrary), Self.hostABIVersion)
         XCTAssertEqual(

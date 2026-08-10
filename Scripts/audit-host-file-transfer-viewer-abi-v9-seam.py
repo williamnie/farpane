@@ -59,13 +59,13 @@ def main() -> int:
             marker in sources["design"]
             for marker in (
                 "H6.3f2a Viewer file-transfer ABI v9 default-off seam",
-                "host-file-transfer-viewer-list-command-callback-abi-lifecycle",
+                "host-file-transfer-viewer-destination-descriptor-owner",
             )
         ),
         "abiV9RetainsClipboardAndAddsFileSeam": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 9u",
+                "#define RDN_ABI_VERSION 10u",
                 "RDNClipboardImageCallback on_clipboard_image;",
                 "RDNFileTransferEventCallback on_file_transfer_event;",
                 "bool enable_file_transfer;",
@@ -156,15 +156,15 @@ def main() -> int:
         ),
         "productRemainsOffAndRuntimeGapDocumented": (
             "fileTransferEnabled:" not in product
-            and "真实 Viewer file event mapping" in sources["architecture"]
-            and "Rust does not yet produce file events" in sources["readme"]
+            and "destination\n  descriptor owner" in sources["architecture"]
+            and "No download command" in sources["readme"]
         ),
     }
     source_lines = {
         "designMilestone": line_number(
             sources["design"], "H6.3f2a Viewer file-transfer ABI v9 default-off seam"
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 9u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 10u"),
         "event": line_number(header, "typedef struct RDNFileTransferEvent {"),
         "callback": line_number(header, "RDNFileTransferEventCallback on_file_transfer_event;"),
         "config": line_number(header, "bool enable_file_transfer;"),
@@ -196,7 +196,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-list-command-callback-abi-lifecycle"
+            "host-file-transfer-viewer-destination-descriptor-owner"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
