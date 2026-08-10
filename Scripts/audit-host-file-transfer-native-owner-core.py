@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit H6.3d2 descriptor-relative Native Host receive-root mutations."""
+"""Audit H6.3e1 Native Host file-service owner core composition."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 
-SCHEMA = "farpane-host-file-transfer-safe-root-mutations-audit"
+SCHEMA = "farpane-host-file-transfer-native-owner-core-audit"
 
 
 def read(path: Path) -> str:
@@ -28,6 +28,7 @@ def main() -> int:
         "vendor": repository / "Vendor/rustdesk/src/rdn_host_file_transfer.rs",
         "host_bridge": repository / "CoreBridge/RustDeskPatch/rdn_host_bridge.rs",
         "bootstrap": repository / "Scripts/bootstrap-rustdesk-core.sh",
+        "header": repository / "CoreBridge/include/rustdesk_native.h",
         "connection": repository / "Vendor/rustdesk/src/server/connection.rs",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
@@ -47,14 +48,15 @@ def main() -> int:
     source = sources["canonical"]
     host_bridge = sources["host_bridge"]
     bootstrap = sources["bootstrap"]
+    connection = sources["connection"]
     product = sources["app"] + sources["agent"]
 
     evidence = {
-        "designRecordsH63d2Boundary": all(
+        "designRecordsH63e1Boundary": all(
             marker in design
             for marker in (
-                "H6.3d2 Host descriptor-relative safe-root mutations",
-                "host-file-transfer-native-service-owner",
+                "H6.3e1 Native Host file-service owner core",
+                "host-file-transfer-receive-root-config-contract",
             )
         ),
         "implementationIsMacOSHostFeatureIsolated": all(
@@ -66,54 +68,52 @@ def main() -> int:
             )
         ),
         "canonicalSourceMatchesVendorCheckout": source == sources["vendor"],
-        "directoryCreateIsDescriptorRelativeAndPrivate": all(
+        "ownerIsOnlyModuleVisibleRootAuthority": all(
             marker in source
             for marker in (
-                "pub(crate) fn create_directory",
-                "libc::mkdirat(",
-                "set_created_directory_mode",
-                "0o700 as libc::mode_t",
-                "validate_private_directory",
+                "pub(crate) struct NativeHostFileServiceOwner",
+                "struct NativeFileTransferRoot",
+                "root: NativeFileTransferRoot",
+            )
+        ) and "pub(crate) struct NativeFileTransferRoot" not in source,
+        "ownerAdmissionUsesSafeRoot": all(
+            marker in source
+            for marker in (
+                "impl NativeHostFileServiceOwner",
+                "pub(crate) fn open_existing(root_path: &Path)",
+                "root: NativeFileTransferRoot::open_existing(root_path)?",
             )
         ),
-        "fileRemovalRejectsLinksAndTypeConfusion": all(
+        "ownerRoutesEverySafeRootOperation": all(
             marker in source
             for marker in (
-                "pub(crate) fn remove_file",
-                "checked_stat_at",
-                "libc::AT_SYMLINK_NOFOLLOW",
-                "validate_private_regular_stat",
-                "stat.st_nlink != 1",
-                "libc::unlinkat(parent.as_raw_fd(), file_name.as_ptr(), 0)",
+                "self.root.create_new_file(relative_path)",
+                "self.root.open_existing_file_for_resume(relative_path)",
+                "self.root.create_directory(relative_path)",
+                "self.root.remove_file(relative_path)",
+                "self.root.remove_empty_directory(relative_path)",
+                "self.root.rename_entry(source, destination)",
             )
         ),
-        "directoryRemovalRequiresPrivateEmptyDirectory": all(
+        "recursiveRemovalFailsClosedBeforeMutation": all(
             marker in source
             for marker in (
-                "fn remove_empty_directory",
-                "open_private_child_directory",
-                "validate_private_directory",
-                "libc::AT_REMOVEDIR",
+                "if recursive {",
+                "NativeFileTransferRootError::RecursiveRemovalUnsupported",
+                "native_owner_rejects_recursive_remove_without_touching_tree",
             )
         ),
-        "renameValidatesSourceAndCannotReplaceDestination": all(
+        "focusedTestsCoverOwnerComposition": all(
             marker in source
             for marker in (
-                "pub(crate) fn rename_entry",
-                "validate_private_entry_stat",
-                "libc::renameatx_np(",
-                "libc::RENAME_EXCL",
+                "native_owner_is_the_single_safe_root_mutation_authority",
+                "native_owner_rejects_recursive_remove_without_touching_tree",
             )
         ),
-        "focusedTestsCoverPrivateMutationAndFailClosedCases": all(
-            marker in source
-            for marker in (
-                "mutations_create_and_remove_only_private_entries",
-                "remove_rejects_symlink_hardlink_type_confusion_and_nonempty_directory",
-                "rename_is_no_replace_and_preserves_source_inode_on_success",
-                "rename_rejects_symlink_broad_mode_and_hardlinked_source",
-                "mutations_remain_pinned_after_root_path_replacement",
-            )
+        "errorsRemainFixedAndPathFree": (
+            "impl fmt::Display for NativeFileTransferRootError" in source
+            and "path.display()" not in source
+            and "last_os_error().to_string()" not in source
         ),
         "bootstrapCopiesAndVerifiesCanonicalSource": all(
             marker in bootstrap
@@ -123,57 +123,56 @@ def main() -> int:
                 'cmp -s "$vendor_dir/src/rdn_host_file_transfer.rs" "$host_file_transfer_source"',
             )
         ),
+        "receiveRootConfigAndConnectionWiringRemainAbsent": (
+            "file_transfer_root" not in sources["header"]
+            and "NativeHostFileServiceOwner" not in connection
+            and "native_host_handle_fs" not in connection
+        ),
         "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
-        "laterOwnerCoreExistsAndConnectionWiringIsAbsent": (
-            "pub(crate) struct NativeHostFileServiceOwner" in source
-            and "NativeHostFileServiceOwner" not in sources["connection"]
-            and "native_host_handle_fs" not in sources["connection"]
-            and "native_host_handle_fs" not in host_bridge
-        ),
-        "recursiveRemovalIsDeliberatelyAbsent": (
-            "pub(crate) fn remove_recursive" not in source
-            and "pub(crate) fn remove_directory_recursive" not in source
-            and "pub(crate) fn remove_tree" not in source
-        ),
     }
     source_lines = {
         "designMilestone": line_number(
-            design, "H6.3d2 Host descriptor-relative safe-root mutations"
+            design, "H6.3e1 Native Host file-service owner core"
         ),
         "moduleIsolation": line_number(host_bridge, "mod rdn_host_file_transfer;"),
-        "createDirectory": line_number(source, "pub(crate) fn create_directory"),
-        "removeFile": line_number(source, "pub(crate) fn remove_file"),
-        "removeEmptyDirectory": line_number(
-            source, "fn remove_empty_directory"
+        "owner": line_number(source, "pub(crate) struct NativeHostFileServiceOwner"),
+        "ownerAdmission": line_number(
+            source, "pub(crate) fn open_existing(root_path: &Path)"
         ),
-        "renameEntry": line_number(source, "pub(crate) fn rename_entry"),
-        "noReplaceRename": line_number(source, "libc::RENAME_EXCL"),
-        "replacementTest": line_number(
-            source, "fn mutations_remain_pinned_after_root_path_replacement"
+        "privateRoot": line_number(source, "struct NativeFileTransferRoot"),
+        "ownerCreate": line_number(source, "self.root.create_new_file(relative_path)"),
+        "ownerRemove": line_number(
+            source, "self.root.remove_empty_directory(relative_path)"
+        ),
+        "ownerRename": line_number(source, "self.root.rename_entry(source, destination)"),
+        "recursiveGuard": line_number(source, "if recursive {"),
+        "focusedTests": line_number(
+            source, "fn native_owner_is_the_single_safe_root_mutation_authority"
         ),
         "bootstrapSource": line_number(bootstrap, "host_file_transfer_source="),
     }
     missing = [name for name, present in evidence.items() if not present]
     missing_lines = [name for name, number in source_lines.items() if number <= 0]
     status = (
-        "descriptor-relative-safe-root-mutations-implemented-product-off"
+        "native-file-service-owner-core-implemented-product-off"
         if not missing and not missing_lines
         else "audit-failed"
     )
     result = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "coverageScope": "h6-host-file-transfer-safe-root-mutations",
+        "coverageScope": "h6-host-file-transfer-native-owner-core",
         "status": status,
         "evidence": evidence,
         "sourceLines": source_lines,
         "missingEvidence": missing,
         "missingSourceLines": missing_lines,
         "claims": {
-            "descriptorRelativeSafeRootMutationsImplemented": True,
-            "recursiveRemovalImplemented": False,
             "nativeHostFileServiceOwnerCoreImplemented": True,
-            "nativeHostFileServiceOwnerImplemented": False,
+            "safeRootImplementationModuleVisible": False,
+            "recursiveRemovalImplemented": False,
+            "receiveRootConfigImplemented": False,
+            "connectionDispatchImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
@@ -181,7 +180,7 @@ def main() -> int:
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (
-        "descriptor-relative-safe-root-mutations-implemented-product-off"
+        "native-file-service-owner-core-implemented-product-off"
     ) else 1
 
 

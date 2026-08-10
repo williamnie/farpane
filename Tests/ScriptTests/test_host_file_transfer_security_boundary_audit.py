@@ -39,11 +39,12 @@ class HostFileTransferSecurityBoundaryAuditTests(unittest.TestCase):
         self.assertTrue(claims["compressedPayloadBounded"])
         self.assertTrue(claims["safeReceiveRootPrimitiveImplemented"])
         self.assertTrue(claims["safeRootMutationsImplemented"])
+        self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
         self.assertFalse(claims["clipboardFilePromiseEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-service-owner",
+            "host-file-transfer-receive-root-config-contract",
         )
 
 

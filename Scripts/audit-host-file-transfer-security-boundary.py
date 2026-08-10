@@ -137,10 +137,10 @@ def main() -> int:
         "nativeHostHasDescriptorRelativeSafeRootMutations": all(
             marker in safe_root
             for marker in (
-                "pub(crate) fn create_directory",
-                "pub(crate) fn remove_file",
-                "pub(crate) fn remove_empty_directory",
-                "pub(crate) fn rename_entry",
+                "fn create_directory",
+                "fn remove_file",
+                "fn remove_empty_directory",
+                "fn rename_entry",
                 "libc::AT_SYMLINK_NOFOLLOW",
                 "libc::RENAME_EXCL",
             )
@@ -191,8 +191,9 @@ def main() -> int:
                 "self.send_fs(ipc::FS::Rename",
             )
         ),
-        "noNativeFileServiceOwnerExists": (
-            "NativeHostFileServiceOwner" not in connection
+        "nativeFileServiceOwnerCoreIsNotConnected": (
+            "NativeHostFileServiceOwner" in safe_root
+            and "NativeHostFileServiceOwner" not in connection
             and "native_host_handle_fs" not in connection
             and "native_host_handle_fs" not in host_bridge
         ),
@@ -263,10 +264,11 @@ def main() -> int:
             "compressedPayloadBounded": True,
             "safeReceiveRootPrimitiveImplemented": True,
             "safeRootMutationsImplemented": True,
+            "nativeHostFileServiceOwnerCoreImplemented": True,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-service-owner",
+        "nextImplementationBoundary": "host-file-transfer-receive-root-config-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1

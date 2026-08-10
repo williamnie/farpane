@@ -32,6 +32,7 @@ def main() -> int:
         "bootstrap": repository / "Scripts/bootstrap-rustdesk-core.sh",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
+        "connection": repository / "Vendor/rustdesk/src/server/connection.rs",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -130,12 +131,16 @@ def main() -> int:
         "laterSafeRootMutationsExist": all(
             marker in safe_root
             for marker in (
-                "pub(crate) fn create_directory",
-                "pub(crate) fn remove_file",
-                "pub(crate) fn remove_empty_directory",
-                "pub(crate) fn rename_entry",
+                "fn create_directory",
+                "fn remove_file",
+                "fn remove_empty_directory",
+                "fn rename_entry",
                 "libc::RENAME_EXCL",
             )
+        ),
+        "laterOwnerCoreExistsButConnectionWiringIsAbsent": (
+            "pub(crate) struct NativeHostFileServiceOwner" in safe_root
+            and "NativeHostFileServiceOwner" not in sources["connection"]
         ),
     }
     source_lines = {
@@ -184,10 +189,11 @@ def main() -> int:
             "productFileTransferEnabled": False,
             "symlinkRaceClosed": False,
             "nativeHostFileServiceOwnerImplemented": False,
+            "nativeHostFileServiceOwnerCoreImplemented": True,
             "safeReceiveRootPrimitiveImplemented": True,
             "safeRootMutationsImplemented": True,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-service-owner",
+        "nextImplementationBoundary": "host-file-transfer-receive-root-config-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-file-block-envelope-implemented-product-off" else 1

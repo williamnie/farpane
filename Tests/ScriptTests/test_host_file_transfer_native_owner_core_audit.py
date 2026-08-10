@@ -4,11 +4,11 @@ import subprocess
 import unittest
 
 
-class HostFileTransferSafeRootMutationsAuditTests(unittest.TestCase):
-    def test_descriptor_relative_mutations_are_implemented_but_not_wired(self) -> None:
+class HostFileTransferNativeOwnerCoreAuditTests(unittest.TestCase):
+    def test_owner_core_is_composed_but_not_configured_or_wired(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            ["python3", "Scripts/audit-host-file-transfer-safe-root-mutations.py"],
+            ["python3", "Scripts/audit-host-file-transfer-native-owner-core.py"],
             cwd=repository,
             check=False,
             capture_output=True,
@@ -21,23 +21,22 @@ class HostFileTransferSafeRootMutationsAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-safe-root-mutations-audit",
+            "farpane-host-file-transfer-native-owner-core-audit",
         )
         self.assertEqual(
             document["status"],
-            "descriptor-relative-safe-root-mutations-implemented-product-off",
+            "native-file-service-owner-core-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(
-            claims["descriptorRelativeSafeRootMutationsImplemented"]
-        )
-        self.assertFalse(claims["recursiveRemovalImplemented"])
         self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
-        self.assertFalse(claims["nativeHostFileServiceOwnerImplemented"])
+        self.assertFalse(claims["safeRootImplementationModuleVisible"])
+        self.assertFalse(claims["recursiveRemovalImplemented"])
+        self.assertFalse(claims["receiveRootConfigImplemented"])
+        self.assertFalse(claims["connectionDispatchImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
