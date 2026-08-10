@@ -147,7 +147,7 @@ def main() -> int:
             for marker in (
                 "existing-target decision",
                 "no-replace",
-                "read/list/download",
+                "destination/progress",
                 "App/Agent",
             )
         ),
@@ -198,12 +198,12 @@ def main() -> int:
             "nativeExistingTargetDecisionImplemented": status
             == "native-existing-target-no-replace-decision-implemented-product-off",
             "nativeExistingTargetReplacementImplemented": False,
-            "nativeReadListDownloadImplemented": False,
+            "nativeReadListDownloadImplemented": True,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-native-read-list-download-lifecycle"
+            "host-file-transfer-viewer-destination-progress-api-contract"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

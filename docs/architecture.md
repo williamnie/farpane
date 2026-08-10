@@ -244,8 +244,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   descriptor 下的安全快照 primitive：目录用独立 `openat(".") + fdopendir/readdir` 枚举，只接受当前
   用户精确 `0700` 目录与 `0600` single-link regular file，隐藏 private staging，单目录/整批均限制
   1,024 entries、1 MiB metadata 与 64 层深度；下载打开会复核 snapshot 的 device/inode/size/mtime。
-  该 primitive 尚未接入 connection sender，因此多文件 resume、read/list/download wire lifecycle 与
-  Viewer destination/progress UI 仍未实现。App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
+  dedicated file connection 已把虚拟 `/` 的目录/空目录/递归列表与 Generic Send 接到该 owner；最多
+  8 个 connection-local read jobs 发送 snapshot-bound directory、每文件 digest、128 KiB bounded block
+  与 done，并在 skip/offset confirmation、cancel、remote error、Host unbind 或 connection teardown 时
+  fail closed/释放 descriptor。确认与 EOF 都重新验证 snapshot，替换后的文件不会继续发送；完全不存在
+  Native Host 时才回退上游 CM/path sender。多文件 upload resume、existing-target replace 与 Viewer
+  destination/progress API/UI 仍未实现。App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

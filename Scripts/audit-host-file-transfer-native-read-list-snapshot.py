@@ -108,12 +108,13 @@ def main() -> int:
             )
         ),
         "canonicalOwnerMatchesVendorCheckout": owner == sources["vendor_owner"],
-        "architectureRecordsPrimitiveNotWireLifecycle": all(
+        "architectureRecordsPrimitiveAndConnectionLifecycle": all(
             marker in architecture
             for marker in (
                 "openat(\".\") + fdopendir/readdir",
                 "snapshot 的 device/inode/size/mtime",
-                "尚未接入 connection sender",
+                "dedicated file connection",
+                "connection-local read jobs",
             )
         ),
         "productCallersRemainDisabled": (
@@ -138,7 +139,7 @@ def main() -> int:
     }
     missing = [name for name, present in evidence.items() if not present]
     missing_lines = [name for name, number in source_lines.items() if number <= 0]
-    expected_status = "native-read-list-snapshot-implemented-connection-product-off"
+    expected_status = "native-read-list-snapshot-and-connection-implemented-product-off"
     status = expected_status if not missing and not missing_lines else "audit-failed"
     result = {
         "schema": SCHEMA,
@@ -151,12 +152,12 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "nativeReadListSnapshotPrimitiveImplemented": status == expected_status,
-            "nativeReadListDownloadConnectionLifecycleImplemented": False,
+            "nativeReadListDownloadConnectionLifecycleImplemented": True,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-native-read-list-download-connection-lifecycle"
+            "host-file-transfer-viewer-destination-progress-api-contract"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

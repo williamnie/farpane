@@ -281,6 +281,97 @@ impl NativeHostWriteEntry {
 }
 
 #[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostReadEntryKind {
+    Directory,
+    File,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct NativeHostReadListEntry {
+    name: String,
+    kind: NativeHostReadEntryKind,
+    size: u64,
+    modified_time: u64,
+}
+
+#[cfg(target_os = "macos")]
+impl NativeHostReadListEntry {
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn kind(&self) -> NativeHostReadEntryKind {
+        self.kind
+    }
+
+    pub(crate) fn size(&self) -> u64 {
+        self.size
+    }
+
+    pub(crate) fn modified_time(&self) -> u64 {
+        self.modified_time
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostReadJobError {
+    InvalidPath,
+    InvalidFileNumber,
+    DuplicateJob,
+    TooManyJobs,
+    InvalidConfirmation,
+    OffsetOutOfRange,
+    SnapshotChanged,
+    ReadFailed,
+    Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) enum NativeHostFileReadOutcome<T> {
+    NotNativeHost,
+    Succeeded(T),
+    Rejected(NativeHostReadJobError),
+    Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) enum NativeHostReadJobAdmission {
+    NotNativeHost,
+    Admitted(NativeHostReadJob),
+    Rejected(NativeHostReadJobError),
+    Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostReadJobStep {
+    WaitingForConfirmation,
+    Digest {
+        file_num: i32,
+        file_size: u64,
+        modified_time: u64,
+    },
+    Block {
+        file_num: i32,
+        data: Vec<u8>,
+        compressed: bool,
+    },
+    Done {
+        file_num: i32,
+    },
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostReadConfirmation {
+    Skip,
+    ContinueAt { offset: u32 },
+}
+
+#[cfg(target_os = "macos")]
 #[derive(Debug)]
 struct NativeHostPreparedWriteEntry {
     destination_path: PathBuf,
@@ -873,6 +964,190 @@ impl NativeHostWriteJob {
 }
 
 #[cfg(target_os = "macos")]
+#[derive(Debug)]
+pub(crate) struct NativeHostReadJob {
+    id: i32,
+    owner: Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>,
+    wire_path: String,
+    entries: Vec<rdn_host_file_transfer::NativeHostReadEntry>,
+    next_file_num: usize,
+    current_file: Option<File>,
+    current_offset: u64,
+    awaiting_confirmation: Option<usize>,
+    overwrite_detection: bool,
+}
+
+#[cfg(target_os = "macos")]
+impl NativeHostReadJob {
+    pub(crate) fn id(&self) -> i32 {
+        self.id
+    }
+
+    pub(crate) fn wire_path(&self) -> &str {
+        &self.wire_path
+    }
+
+    pub(crate) fn entries(&self) -> Vec<NativeHostReadListEntry> {
+        self.entries
+            .iter()
+            .map(native_host_read_list_entry)
+            .collect()
+    }
+
+    pub(crate) fn is_waiting_for_confirmation(&self) -> bool {
+        self.awaiting_confirmation.is_some()
+    }
+
+    pub(crate) fn is_current(&self) -> bool {
+        let broker = MEDIA_BROKER.lock().unwrap();
+        broker.binding.is_some()
+            && broker
+                .file_service_owner
+                .as_ref()
+                .is_some_and(|owner| Arc::ptr_eq(owner, &self.owner))
+    }
+
+    pub(crate) fn confirm(
+        &mut self,
+        file_num: i32,
+        confirmation: NativeHostReadConfirmation,
+    ) -> Result<(), NativeHostReadJobError> {
+        if !self.is_current() {
+            return Err(NativeHostReadJobError::Unavailable);
+        }
+        let file_num =
+            usize::try_from(file_num).map_err(|_| NativeHostReadJobError::InvalidFileNumber)?;
+        if self.awaiting_confirmation != Some(file_num)
+            || file_num != self.next_file_num
+            || file_num >= self.entries.len()
+        {
+            return Err(NativeHostReadJobError::InvalidConfirmation);
+        }
+        self.owner
+            .verify_read_file(
+                self.current_file
+                    .as_ref()
+                    .ok_or(NativeHostReadJobError::InvalidConfirmation)?,
+                &self.entries[file_num],
+            )
+            .map_err(native_host_read_job_error)?;
+        match confirmation {
+            NativeHostReadConfirmation::Skip => {
+                self.current_file.take();
+                self.current_offset = 0;
+                self.next_file_num = file_num
+                    .checked_add(1)
+                    .ok_or(NativeHostReadJobError::InvalidFileNumber)?;
+            }
+            NativeHostReadConfirmation::ContinueAt { offset } => {
+                let offset = u64::from(offset);
+                if offset > self.entries[file_num].size() {
+                    return Err(NativeHostReadJobError::OffsetOutOfRange);
+                }
+                self.current_file
+                    .as_mut()
+                    .ok_or(NativeHostReadJobError::InvalidConfirmation)?
+                    .seek(std::io::SeekFrom::Start(offset))
+                    .map_err(|_| NativeHostReadJobError::ReadFailed)?;
+                self.current_offset = offset;
+            }
+        }
+        self.awaiting_confirmation = None;
+        Ok(())
+    }
+
+    pub(crate) fn poll(&mut self) -> Result<NativeHostReadJobStep, NativeHostReadJobError> {
+        if !self.is_current() {
+            return Err(NativeHostReadJobError::Unavailable);
+        }
+        if self.awaiting_confirmation.is_some() {
+            return Ok(NativeHostReadJobStep::WaitingForConfirmation);
+        }
+        loop {
+            if self.next_file_num >= self.entries.len() {
+                return Ok(NativeHostReadJobStep::Done {
+                    file_num: i32::try_from(self.next_file_num)
+                        .map_err(|_| NativeHostReadJobError::InvalidFileNumber)?,
+                });
+            }
+            if self.current_file.is_none() {
+                let file = self
+                    .owner
+                    .open_read_file(&self.entries[self.next_file_num])
+                    .map_err(native_host_read_job_error)?;
+                self.current_file = Some(file);
+                self.current_offset = 0;
+                if self.overwrite_detection {
+                    self.awaiting_confirmation = Some(self.next_file_num);
+                    return Ok(NativeHostReadJobStep::Digest {
+                        file_num: i32::try_from(self.next_file_num)
+                            .map_err(|_| NativeHostReadJobError::InvalidFileNumber)?,
+                        file_size: self.entries[self.next_file_num].size(),
+                        modified_time: self.entries[self.next_file_num].modified_time(),
+                    });
+                }
+            }
+
+            let mut data = vec![0_u8; hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES];
+            let mut read_bytes = 0_usize;
+            while read_bytes < data.len() {
+                let count = self
+                    .current_file
+                    .as_mut()
+                    .ok_or(NativeHostReadJobError::ReadFailed)?
+                    .read(&mut data[read_bytes..])
+                    .map_err(|_| NativeHostReadJobError::ReadFailed)?;
+                if count == 0 {
+                    break;
+                }
+                read_bytes = read_bytes
+                    .checked_add(count)
+                    .ok_or(NativeHostReadJobError::ReadFailed)?;
+            }
+            data.truncate(read_bytes);
+            if data.is_empty() {
+                let file = self
+                    .current_file
+                    .take()
+                    .ok_or(NativeHostReadJobError::ReadFailed)?;
+                if self.current_offset != self.entries[self.next_file_num].size() {
+                    return Err(NativeHostReadJobError::SnapshotChanged);
+                }
+                self.owner
+                    .verify_read_file(&file, &self.entries[self.next_file_num])
+                    .map_err(native_host_read_job_error)?;
+                self.current_offset = 0;
+                self.next_file_num = self
+                    .next_file_num
+                    .checked_add(1)
+                    .ok_or(NativeHostReadJobError::InvalidFileNumber)?;
+                continue;
+            }
+            let next_offset = self
+                .current_offset
+                .checked_add(data.len() as u64)
+                .ok_or(NativeHostReadJobError::SnapshotChanged)?;
+            if next_offset > self.entries[self.next_file_num].size() {
+                return Err(NativeHostReadJobError::SnapshotChanged);
+            }
+            self.current_offset = next_offset;
+            let compressed = hbb_common::compress::compress(&data);
+            let (data, compressed) = if compressed.len() < data.len() {
+                (compressed, true)
+            } else {
+                (data, false)
+            };
+            return Ok(NativeHostReadJobStep::Block {
+                file_num: i32::try_from(self.next_file_num)
+                    .map_err(|_| NativeHostReadJobError::InvalidFileNumber)?,
+                data,
+                compressed,
+            });
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
 pub(crate) enum NativeHostWriteJobAdmission {
     NotNativeHost,
     Admitted(NativeHostWriteJob),
@@ -931,6 +1206,230 @@ pub(crate) fn native_host_begin_new_file_write_job(
     ) {
         Ok(job) => NativeHostWriteJobAdmission::Admitted(job),
         Err(error) => NativeHostWriteJobAdmission::Rejected(error),
+    }
+}
+
+#[cfg(target_os = "macos")]
+enum NativeHostReadOwnerState {
+    NotNativeHost,
+    Available(Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>),
+    Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_read_owner() -> NativeHostReadOwnerState {
+    let broker = MEDIA_BROKER.lock().unwrap();
+    if broker.binding.is_none() {
+        return if HOST_INSTANCE_LIVE.load(Ordering::Acquire) {
+            NativeHostReadOwnerState::Unavailable
+        } else {
+            NativeHostReadOwnerState::NotNativeHost
+        };
+    }
+    match broker.file_service_owner.as_ref() {
+        Some(owner) => NativeHostReadOwnerState::Available(owner.clone()),
+        None => NativeHostReadOwnerState::Unavailable,
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn native_host_list_directory(
+    path: &str,
+    include_hidden: bool,
+) -> NativeHostFileReadOutcome<(String, Vec<NativeHostReadListEntry>)> {
+    let owner = match native_host_read_owner() {
+        NativeHostReadOwnerState::NotNativeHost => {
+            return NativeHostFileReadOutcome::NotNativeHost;
+        }
+        NativeHostReadOwnerState::Unavailable => {
+            return NativeHostFileReadOutcome::Unavailable;
+        }
+        NativeHostReadOwnerState::Available(owner) => owner,
+    };
+    let (relative_path, wire_path) = match native_host_read_wire_path(path) {
+        Ok(value) => value,
+        Err(error) => return NativeHostFileReadOutcome::Rejected(error),
+    };
+    match owner.list_directory(&relative_path, include_hidden) {
+        Ok(entries) => NativeHostFileReadOutcome::Succeeded((
+            wire_path,
+            entries.iter().map(native_host_read_list_entry).collect(),
+        )),
+        Err(error) => NativeHostFileReadOutcome::Rejected(native_host_read_job_error(error)),
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn native_host_list_files_recursive(
+    path: &str,
+    include_hidden: bool,
+) -> NativeHostFileReadOutcome<(String, Vec<NativeHostReadListEntry>)> {
+    let owner = match native_host_read_owner() {
+        NativeHostReadOwnerState::NotNativeHost => {
+            return NativeHostFileReadOutcome::NotNativeHost;
+        }
+        NativeHostReadOwnerState::Unavailable => {
+            return NativeHostFileReadOutcome::Unavailable;
+        }
+        NativeHostReadOwnerState::Available(owner) => owner,
+    };
+    let (relative_path, wire_path) = match native_host_read_wire_path(path) {
+        Ok(value) => value,
+        Err(error) => return NativeHostFileReadOutcome::Rejected(error),
+    };
+    match owner.snapshot_files_recursive(&relative_path, include_hidden) {
+        Ok(entries) => NativeHostFileReadOutcome::Succeeded((
+            wire_path,
+            entries.iter().map(native_host_read_list_entry).collect(),
+        )),
+        Err(error) => NativeHostFileReadOutcome::Rejected(native_host_read_job_error(error)),
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn native_host_list_empty_directories(
+    path: &str,
+    include_hidden: bool,
+) -> NativeHostFileReadOutcome<(String, Vec<String>)> {
+    let owner = match native_host_read_owner() {
+        NativeHostReadOwnerState::NotNativeHost => {
+            return NativeHostFileReadOutcome::NotNativeHost;
+        }
+        NativeHostReadOwnerState::Unavailable => {
+            return NativeHostFileReadOutcome::Unavailable;
+        }
+        NativeHostReadOwnerState::Available(owner) => owner,
+    };
+    let (relative_path, wire_path) = match native_host_read_wire_path(path) {
+        Ok(value) => value,
+        Err(error) => return NativeHostFileReadOutcome::Rejected(error),
+    };
+    match owner.snapshot_empty_directories(&relative_path, include_hidden) {
+        Ok(paths) => {
+            let mut wire_paths = Vec::with_capacity(paths.len());
+            for path in paths {
+                match native_host_relative_to_wire_path(&path) {
+                    Ok(path) => wire_paths.push(path),
+                    Err(error) => return NativeHostFileReadOutcome::Rejected(error),
+                }
+            }
+            NativeHostFileReadOutcome::Succeeded((wire_path, wire_paths))
+        }
+        Err(error) => NativeHostFileReadOutcome::Rejected(native_host_read_job_error(error)),
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn native_host_begin_read_job(
+    id: i32,
+    path: &str,
+    start_file_num: i32,
+    include_hidden: bool,
+    overwrite_detection: bool,
+) -> NativeHostReadJobAdmission {
+    let owner = match native_host_read_owner() {
+        NativeHostReadOwnerState::NotNativeHost => {
+            return NativeHostReadJobAdmission::NotNativeHost;
+        }
+        NativeHostReadOwnerState::Unavailable => {
+            return NativeHostReadJobAdmission::Unavailable;
+        }
+        NativeHostReadOwnerState::Available(owner) => owner,
+    };
+    let (relative_path, wire_path) = match native_host_read_wire_path(path) {
+        Ok(value) => value,
+        Err(error) => return NativeHostReadJobAdmission::Rejected(error),
+    };
+    let entries = match owner.snapshot_files_recursive(&relative_path, include_hidden) {
+        Ok(entries) => entries,
+        Err(error) => {
+            return NativeHostReadJobAdmission::Rejected(native_host_read_job_error(error));
+        }
+    };
+    let start_file_num = match usize::try_from(start_file_num) {
+        Ok(value) => value,
+        Err(_) => {
+            return NativeHostReadJobAdmission::Rejected(NativeHostReadJobError::InvalidFileNumber);
+        }
+    };
+    if (entries.is_empty() && start_file_num != 0)
+        || (!entries.is_empty() && start_file_num >= entries.len())
+    {
+        return NativeHostReadJobAdmission::Rejected(NativeHostReadJobError::InvalidFileNumber);
+    }
+    NativeHostReadJobAdmission::Admitted(NativeHostReadJob {
+        id,
+        owner,
+        wire_path,
+        entries,
+        next_file_num: start_file_num,
+        current_file: None,
+        current_offset: 0,
+        awaiting_confirmation: None,
+        overwrite_detection,
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_read_wire_path(path: &str) -> Result<(PathBuf, String), NativeHostReadJobError> {
+    if path.is_empty() || path == "/" {
+        return Ok((PathBuf::new(), "/".to_owned()));
+    }
+    let relative = path.strip_prefix('/').unwrap_or(path);
+    if relative.is_empty()
+        || relative.starts_with('/')
+        || relative.ends_with('/')
+        || relative.as_bytes().contains(&0)
+    {
+        return Err(NativeHostReadJobError::InvalidPath);
+    }
+    let relative_path = PathBuf::from(relative);
+    if relative_path.components().any(|component| {
+        !matches!(component, Component::Normal(value) if value.as_bytes() != b"." && value.as_bytes() != b"..")
+    }) {
+        return Err(NativeHostReadJobError::InvalidPath);
+    }
+    Ok((relative_path, format!("/{relative}")))
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_relative_to_wire_path(path: &Path) -> Result<String, NativeHostReadJobError> {
+    if path.as_os_str().is_empty() {
+        return Ok("/".to_owned());
+    }
+    let path = path.to_str().ok_or(NativeHostReadJobError::InvalidPath)?;
+    Ok(format!("/{path}"))
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_read_list_entry(
+    entry: &rdn_host_file_transfer::NativeHostReadEntry,
+) -> NativeHostReadListEntry {
+    NativeHostReadListEntry {
+        name: entry.wire_name().to_owned(),
+        kind: match entry.kind() {
+            rdn_host_file_transfer::NativeHostReadEntryKind::Directory => {
+                NativeHostReadEntryKind::Directory
+            }
+            rdn_host_file_transfer::NativeHostReadEntryKind::File => NativeHostReadEntryKind::File,
+        },
+        size: entry.size(),
+        modified_time: entry.modified_time(),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn native_host_read_job_error(
+    error: rdn_host_file_transfer::NativeFileTransferRootError,
+) -> NativeHostReadJobError {
+    match error {
+        rdn_host_file_transfer::NativeFileTransferRootError::InvalidRelativePath => {
+            NativeHostReadJobError::InvalidPath
+        }
+        rdn_host_file_transfer::NativeFileTransferRootError::ReadSnapshotChanged => {
+            NativeHostReadJobError::SnapshotChanged
+        }
+        _ => NativeHostReadJobError::ReadFailed,
     }
 }
 
@@ -5791,6 +6290,7 @@ mod tests {
     use std::{
         ffi::CString,
         fs,
+        io::Write,
         path::{Path, PathBuf},
         sync::atomic::AtomicU64,
     };
@@ -6978,6 +7478,218 @@ mod tests {
             .root
             .join("resume-unbind/file.txt.farpane-part")
             .exists());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_read_lists_virtual_root_recursive_files_and_empty_directories() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(&receive_root)
+                .expect("open read owner"),
+        );
+        owner
+            .create_directory(Path::new("folder"))
+            .expect("create folder");
+        owner
+            .create_directory(Path::new("empty"))
+            .expect("create empty folder");
+        let mut file = owner
+            .create_new_file(Path::new("folder/item.txt"))
+            .expect("create read file");
+        file.write_all(b"payload").expect("write read file");
+        drop(file);
+        let mut host = ready_test_host("native-read-list-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostFileReadOutcome::Succeeded((path, entries)) =
+            native_host_list_directory("/", false)
+        else {
+            panic!("virtual root listing must succeed");
+        };
+        assert_eq!(path, "/");
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| (entry.name(), entry.kind()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("empty", NativeHostReadEntryKind::Directory),
+                ("folder", NativeHostReadEntryKind::Directory),
+            ]
+        );
+
+        let NativeHostFileReadOutcome::Succeeded((path, entries)) =
+            native_host_list_files_recursive("/folder", false)
+        else {
+            panic!("recursive file listing must succeed");
+        };
+        assert_eq!(path, "/folder");
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].name(), "item.txt");
+        assert_eq!(entries[0].kind(), NativeHostReadEntryKind::File);
+        assert_eq!(entries[0].size(), 7);
+
+        let NativeHostFileReadOutcome::Succeeded((path, empty_directories)) =
+            native_host_list_empty_directories("/", false)
+        else {
+            panic!("empty-directory listing must succeed");
+        };
+        assert_eq!(path, "/");
+        assert_eq!(empty_directories, vec!["/empty"]);
+        assert!(matches!(
+            native_host_list_directory("/../escape", false),
+            NativeHostFileReadOutcome::Rejected(NativeHostReadJobError::InvalidPath)
+        ));
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_read_job_requires_confirmation_and_streams_exact_bounded_suffix() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(&receive_root)
+                .expect("open read owner"),
+        );
+        let payload = vec![b'A'; hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES + 37];
+        let mut file = owner
+            .create_new_file(Path::new("payload.bin"))
+            .expect("create payload");
+        file.write_all(&payload).expect("write payload");
+        drop(file);
+        let mut host = ready_test_host("native-read-job-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostReadJobAdmission::Admitted(mut job) =
+            native_host_begin_read_job(81, "/payload.bin", 0, false, true)
+        else {
+            panic!("read job must be admitted");
+        };
+        assert_eq!(job.id(), 81);
+        assert_eq!(job.wire_path(), "/payload.bin");
+        assert_eq!(job.entries().len(), 1);
+        assert!(matches!(
+            job.poll(),
+            Ok(NativeHostReadJobStep::Digest {
+                file_num: 0,
+                file_size,
+                ..
+            }) if file_size == payload.len() as u64
+        ));
+        assert_eq!(
+            job.poll(),
+            Ok(NativeHostReadJobStep::WaitingForConfirmation)
+        );
+        assert_eq!(
+            job.confirm(
+                0,
+                NativeHostReadConfirmation::ContinueAt { offset: u32::MAX },
+            ),
+            Err(NativeHostReadJobError::OffsetOutOfRange)
+        );
+        job.confirm(0, NativeHostReadConfirmation::ContinueAt { offset: 7 })
+            .expect("confirm bounded resume offset");
+
+        let mut received = Vec::new();
+        loop {
+            match job.poll().expect("poll read job") {
+                NativeHostReadJobStep::Block {
+                    file_num,
+                    data,
+                    compressed,
+                } => {
+                    assert_eq!(file_num, 0);
+                    let data = if compressed {
+                        hbb_common::compress::decompress_with_limit(
+                            &data,
+                            hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES,
+                        )
+                        .expect("decode bounded block")
+                    } else {
+                        data
+                    };
+                    assert!(data.len() <= hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES);
+                    received.extend_from_slice(&data);
+                }
+                NativeHostReadJobStep::Done { file_num } => {
+                    assert_eq!(file_num, 1);
+                    break;
+                }
+                other => panic!("unexpected read step: {other:?}"),
+            }
+        }
+        assert_eq!(received, payload[7..]);
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_read_job_skip_snapshot_replacement_and_unbind_fail_closed() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(&receive_root)
+                .expect("open read owner"),
+        );
+        owner
+            .create_directory(Path::new("folder"))
+            .expect("create folder");
+        for (name, bytes) in [("a.txt", b"aaa".as_slice()), ("b.txt", b"bbb".as_slice())] {
+            let mut file = owner
+                .create_new_file(Path::new(&format!("folder/{name}")))
+                .expect("create read fixture");
+            file.write_all(bytes).expect("write read fixture");
+        }
+        let mut host = ready_test_host("native-read-fail-closed-test");
+        host.file_service_owner = Some(owner.clone());
+        bind_media_host(&host);
+
+        let NativeHostReadJobAdmission::Admitted(mut job) =
+            native_host_begin_read_job(82, "/folder", 0, false, true)
+        else {
+            panic!("multi-file read job must be admitted");
+        };
+        assert!(matches!(
+            job.poll(),
+            Ok(NativeHostReadJobStep::Digest { file_num: 0, .. })
+        ));
+        job.confirm(0, NativeHostReadConfirmation::Skip)
+            .expect("skip first file");
+        assert!(matches!(
+            job.poll(),
+            Ok(NativeHostReadJobStep::Digest { file_num: 1, .. })
+        ));
+        owner
+            .rename_entry(Path::new("folder/b.txt"), Path::new("folder/b-old.txt"))
+            .expect("replace snapshotted file");
+        let mut replacement = owner
+            .create_new_file(Path::new("folder/b.txt"))
+            .expect("create replacement");
+        replacement.write_all(b"bbb").expect("write replacement");
+        drop(replacement);
+        assert_eq!(
+            job.confirm(1, NativeHostReadConfirmation::ContinueAt { offset: 0 },),
+            Err(NativeHostReadJobError::SnapshotChanged)
+        );
+
+        let NativeHostReadJobAdmission::Admitted(mut unbound) =
+            native_host_begin_read_job(83, "/folder/b.txt", 0, false, false)
+        else {
+            panic!("unbind read job must be admitted");
+        };
+        unbind_media_host();
+        assert_eq!(unbound.poll(), Err(NativeHostReadJobError::Unavailable));
     }
 
     #[cfg(target_os = "macos")]

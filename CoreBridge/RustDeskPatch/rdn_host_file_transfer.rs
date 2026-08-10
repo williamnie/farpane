@@ -461,6 +461,14 @@ impl NativeFileTransferRoot {
             return Err(NativeFileTransferRootError::ReadFile);
         }
         let file = unsafe { File::from_raw_fd(fd) };
+        self.verify_read_file(&file, entry)?;
+        Ok(file)
+    }
+
+    fn verify_read_file(&self, file: &File, entry: &NativeHostReadEntry) -> RootResult<()> {
+        if entry.kind != NativeHostReadEntryKind::File {
+            return Err(NativeFileTransferRootError::ReadFile);
+        }
         let stat = checked_stat(&file).map_err(|_| NativeFileTransferRootError::ReadFile)?;
         validate_private_regular_stat(&stat)?;
         let (modified_time, modified_time_nanoseconds) = native_host_modified_time(&stat)?;
@@ -476,7 +484,72 @@ impl NativeFileTransferRoot {
         {
             return Err(NativeFileTransferRootError::ReadSnapshotChanged);
         }
-        Ok(file)
+        Ok(())
+    }
+
+    fn snapshot_empty_directories(
+        &self,
+        relative_path: &Path,
+        include_hidden: bool,
+    ) -> RootResult<Vec<PathBuf>> {
+        reject_reserved_read_path(relative_path)?;
+        self.open_relative_directory_for_read(relative_path)?;
+        let mut empty_directories = Vec::new();
+        let mut metadata_bytes = 0_usize;
+        let mut visited_entries = 0_usize;
+        self.snapshot_empty_directories_recursive(
+            relative_path,
+            include_hidden,
+            0,
+            &mut metadata_bytes,
+            &mut visited_entries,
+            &mut empty_directories,
+        )?;
+        Ok(empty_directories)
+    }
+
+    fn snapshot_empty_directories_recursive(
+        &self,
+        directory_path: &Path,
+        include_hidden: bool,
+        depth: usize,
+        metadata_bytes: &mut usize,
+        visited_entries: &mut usize,
+        empty_directories: &mut Vec<PathBuf>,
+    ) -> RootResult<()> {
+        if depth > NATIVE_HOST_READ_MAX_DEPTH {
+            return Err(NativeFileTransferRootError::ReadLimitExceeded);
+        }
+        let entries = self.list_directory(directory_path, include_hidden)?;
+        if entries.is_empty() {
+            empty_directories.push(directory_path.to_path_buf());
+            return Ok(());
+        }
+        for entry in entries {
+            *visited_entries = visited_entries
+                .checked_add(1)
+                .ok_or(NativeFileTransferRootError::ReadLimitExceeded)?;
+            if *visited_entries > NATIVE_HOST_READ_MAX_ENTRIES {
+                return Err(NativeFileTransferRootError::ReadLimitExceeded);
+            }
+            *metadata_bytes = metadata_bytes
+                .checked_add(entry.relative_path.as_os_str().as_bytes().len())
+                .ok_or(NativeFileTransferRootError::ReadLimitExceeded)?;
+            if *metadata_bytes > NATIVE_HOST_READ_MAX_METADATA_BYTES {
+                return Err(NativeFileTransferRootError::ReadLimitExceeded);
+            }
+            if entry.kind == NativeHostReadEntryKind::Directory {
+                self.snapshot_empty_directories_recursive(
+                    &entry.relative_path,
+                    include_hidden,
+                    depth + 1,
+                    metadata_bytes,
+                    visited_entries,
+                    empty_directories,
+                )?;
+            }
+        }
+        Ok(())
     }
 
     fn open_relative_directory_for_read(&self, relative_path: &Path) -> RootResult<File> {
@@ -660,6 +733,23 @@ impl NativeHostFileServiceOwner {
 
     pub(crate) fn open_read_file(&self, entry: &NativeHostReadEntry) -> RootResult<File> {
         self.root.open_read_file(entry)
+    }
+
+    pub(crate) fn verify_read_file(
+        &self,
+        file: &File,
+        entry: &NativeHostReadEntry,
+    ) -> RootResult<()> {
+        self.root.verify_read_file(file, entry)
+    }
+
+    pub(crate) fn snapshot_empty_directories(
+        &self,
+        relative_path: &Path,
+        include_hidden: bool,
+    ) -> RootResult<Vec<PathBuf>> {
+        self.root
+            .snapshot_empty_directories(relative_path, include_hidden)
     }
 }
 

@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostFileTransferNativeExistingTargetLifecycleAuditTests(unittest.TestCase):
-    def test_existing_target_is_explicit_no_replace_and_product_remains_off(self) -> None:
+class HostFileTransferNativeReadListDownloadConnectionAuditTests(unittest.TestCase):
+    def test_native_read_list_download_connection_is_bounded_and_product_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-file-transfer-native-existing-target-lifecycle.py",
+                "Scripts/audit-host-file-transfer-native-read-list-download-connection.py",
             ],
             cwd=repository,
             check=False,
@@ -24,22 +24,22 @@ class HostFileTransferNativeExistingTargetLifecycleAuditTests(unittest.TestCase)
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-native-existing-target-lifecycle-audit",
+            "farpane-host-file-transfer-native-read-list-download-connection-audit",
         )
         self.assertEqual(
             document["status"],
-            "native-existing-target-no-replace-decision-implemented-product-off",
+            "native-read-list-download-connection-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["nativeNewFileWriteLifecycleImplemented"])
-        self.assertTrue(claims["nativeSingleFileResumeDigestLifecycleImplemented"])
-        self.assertTrue(claims["nativeExistingTargetDecisionImplemented"])
-        self.assertFalse(claims["nativeExistingTargetReplacementImplemented"])
-        self.assertTrue(claims["nativeReadListDownloadImplemented"])
+        self.assertTrue(claims["nativeReadListSnapshotPrimitiveImplemented"])
+        self.assertTrue(
+            claims["nativeReadListDownloadConnectionLifecycleImplemented"]
+        )
+        self.assertFalse(claims["viewerDestinationProgressApiImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
