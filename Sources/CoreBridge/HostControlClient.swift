@@ -353,6 +353,7 @@ public struct HostServerConfiguration: Sendable {
     public let clipboardImageReadEnabled: Bool
     public let clipboardImageWriteEnabled: Bool
     public let fileTransferEnabled: Bool
+    public let fileTransferReceiveRoot: String?
 
     public init(
         rendezvousServer: String,
@@ -364,7 +365,8 @@ public struct HostServerConfiguration: Sendable {
         clipboardRichTextWriteEnabled: Bool = false,
         clipboardImageReadEnabled: Bool = false,
         clipboardImageWriteEnabled: Bool = false,
-        fileTransferEnabled: Bool = false
+        fileTransferEnabled: Bool = false,
+        fileTransferReceiveRoot: String? = nil
     ) {
         self.rendezvousServer = rendezvousServer
         self.relayServer = relayServer
@@ -376,6 +378,7 @@ public struct HostServerConfiguration: Sendable {
         self.clipboardImageReadEnabled = clipboardImageReadEnabled
         self.clipboardImageWriteEnabled = clipboardImageWriteEnabled
         self.fileTransferEnabled = fileTransferEnabled
+        self.fileTransferReceiveRoot = fileTransferReceiveRoot
     }
 }
 
@@ -1800,20 +1803,29 @@ public final class HostControlClient: @unchecked Sendable {
         let created = configuration.rendezvousServer.withCString { rendezvousServer in
             configuration.relayServer.withCString { relayServer in
                 configuration.serverPublicKey.withCString { serverPublicKey in
-                    var options = RdnHostCreateOptions(
-                        abi_version: Self.hostABIVersion,
-                        rendezvous_server: rendezvousServer,
-                        relay_server: relayServer,
-                        server_public_key: serverPublicKey,
-                        enable_clipboard_read: configuration.clipboardReadEnabled,
-                        enable_clipboard_write: configuration.clipboardWriteEnabled,
-                        enable_clipboard_rich_text_read: configuration.clipboardRichTextReadEnabled,
-                        enable_clipboard_rich_text_write: configuration.clipboardRichTextWriteEnabled,
-                        enable_clipboard_image_read: configuration.clipboardImageReadEnabled,
-                        enable_clipboard_image_write: configuration.clipboardImageWriteEnabled,
-                        enable_file_transfer: configuration.fileTransferEnabled
-                    )
-                    return rdn_shim_host_create(library, &options, &callbacks, &handle)
+                    (configuration.fileTransferReceiveRoot ?? "").withCString {
+                        fileTransferReceiveRoot in
+                        var options = RdnHostCreateOptions(
+                            abi_version: Self.hostABIVersion,
+                            rendezvous_server: rendezvousServer,
+                            relay_server: relayServer,
+                            server_public_key: serverPublicKey,
+                            enable_clipboard_read: configuration.clipboardReadEnabled,
+                            enable_clipboard_write: configuration.clipboardWriteEnabled,
+                            enable_clipboard_rich_text_read: configuration.clipboardRichTextReadEnabled,
+                            enable_clipboard_rich_text_write: configuration.clipboardRichTextWriteEnabled,
+                            enable_clipboard_image_read: configuration.clipboardImageReadEnabled,
+                            enable_clipboard_image_write: configuration.clipboardImageWriteEnabled,
+                            enable_file_transfer: configuration.fileTransferEnabled,
+                            file_transfer_receive_root: fileTransferReceiveRoot
+                        )
+                        return rdn_shim_host_create(
+                            library,
+                            &options,
+                            &callbacks,
+                            &handle
+                        )
+                    }
                 }
             }
         }

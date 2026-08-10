@@ -46,7 +46,7 @@ class HostFileTransferBoundedBlockEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(claims["safeRootMutationsImplemented"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-receive-root-config-contract",
+            "host-file-transfer-connection-mutation-dispatch",
         )
 
 

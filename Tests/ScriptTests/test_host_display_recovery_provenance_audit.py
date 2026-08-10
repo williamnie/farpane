@@ -32,14 +32,14 @@ class HostDisplayRecoveryProvenanceAuditTests(unittest.TestCase):
         self.assertEqual(document["missingEvidence"], [])
 
         implementation = document["implementation"]
-        self.assertEqual(implementation["hostControlABI"], 16)
+        self.assertEqual(implementation["hostControlABI"], 17)
         self.assertEqual(implementation["hostEventEnvelopeSchema"], 1)
         self.assertEqual(implementation["hostMediaABI"], 1)
         self.assertTrue(all(implementation["evidence"].values()))
         self.assertTrue(all(implementation["sourceLines"].values()))
 
         target = document["targetContract"]
-        self.assertEqual(target["versioning"]["hostControlABI"], 16)
+        self.assertEqual(target["versioning"]["hostControlABI"], 17)
         self.assertEqual(target["versioning"]["hostMediaABI"], 1)
         self.assertEqual(
             target["rustAuthority"]["acceptedEventType"],

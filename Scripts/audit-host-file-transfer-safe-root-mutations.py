@@ -177,7 +177,7 @@ def main() -> int:
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-receive-root-config-contract",
+        "nextImplementationBoundary": "host-file-transfer-connection-mutation-dispatch",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

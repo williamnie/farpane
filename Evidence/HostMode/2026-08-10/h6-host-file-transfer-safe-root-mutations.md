@@ -63,5 +63,5 @@ retained root owner. No mutation reaches `outside`.
 ## Next step
 
 H6.3e1 composed the owner core. Continue with
-`host-file-transfer-receive-root-config-contract`: provide an immutable,
-fail-closed root only with explicit Host opt-in before connection dispatch.
+H6.3e2's immutable root contract is now complete. Continue with
+`host-file-transfer-connection-mutation-dispatch`.

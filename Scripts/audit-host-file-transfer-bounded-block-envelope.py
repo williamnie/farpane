@@ -193,7 +193,7 @@ def main() -> int:
             "safeReceiveRootPrimitiveImplemented": True,
             "safeRootMutationsImplemented": True,
         },
-        "nextImplementationBoundary": "host-file-transfer-receive-root-config-contract",
+        "nextImplementationBoundary": "host-file-transfer-connection-mutation-dispatch",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-file-block-envelope-implemented-product-off" else 1

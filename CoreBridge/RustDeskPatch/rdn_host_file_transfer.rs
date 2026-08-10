@@ -19,6 +19,7 @@ use std::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeFileTransferRootError {
     InvalidRoot,
+    InvalidOwnerConfiguration,
     OpenRoot,
     UnsafeRoot,
     InvalidRelativePath,
@@ -38,6 +39,7 @@ impl fmt::Display for NativeFileTransferRootError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
             Self::InvalidRoot => "invalid native file-transfer root",
+            Self::InvalidOwnerConfiguration => "invalid native file-transfer owner configuration",
             Self::OpenRoot => "unable to open native file-transfer root",
             Self::UnsafeRoot => "unsafe native file-transfer root",
             Self::InvalidRelativePath => "invalid native file-transfer relative path",
@@ -251,6 +253,17 @@ pub(crate) struct NativeHostFileServiceOwner {
 
 #[allow(dead_code)]
 impl NativeHostFileServiceOwner {
+    pub(crate) fn from_immutable_configuration(
+        enabled: bool,
+        root_path: Option<&Path>,
+    ) -> RootResult<Option<Self>> {
+        match (enabled, root_path) {
+            (false, None) => Ok(None),
+            (true, Some(root_path)) => Self::open_existing(root_path).map(Some),
+            _ => Err(NativeFileTransferRootError::InvalidOwnerConfiguration),
+        }
+    }
+
     pub(crate) fn open_existing(root_path: &Path) -> RootResult<Self> {
         Ok(Self {
             root: NativeFileTransferRoot::open_existing(root_path)?,
@@ -933,5 +946,36 @@ mod tests {
             NativeFileTransferRootError::RecursiveRemovalUnsupported
         );
         assert!(trusted.join("folder/item.download").is_file());
+    }
+
+    #[test]
+    fn immutable_owner_configuration_requires_exact_policy_root_pair() {
+        let sandbox = TestDirectory::new("owner_configuration");
+        let trusted = sandbox.child("trusted");
+        create_private_directory(&trusted);
+
+        assert!(
+            NativeHostFileServiceOwner::from_immutable_configuration(false, None)
+                .expect("disabled without root")
+                .is_none()
+        );
+        assert_eq!(
+            NativeHostFileServiceOwner::from_immutable_configuration(
+                false,
+                Some(trusted.as_path()),
+            )
+            .unwrap_err(),
+            NativeFileTransferRootError::InvalidOwnerConfiguration
+        );
+        assert_eq!(
+            NativeHostFileServiceOwner::from_immutable_configuration(true, None).unwrap_err(),
+            NativeFileTransferRootError::InvalidOwnerConfiguration
+        );
+        assert!(NativeHostFileServiceOwner::from_immutable_configuration(
+            true,
+            Some(trusted.as_path()),
+        )
+        .expect("enabled with safe root")
+        .is_some());
     }
 }

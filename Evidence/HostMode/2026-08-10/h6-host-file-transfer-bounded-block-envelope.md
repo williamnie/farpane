@@ -57,6 +57,6 @@ product callers.
 ## Next step
 
 H6.3d1 established the descriptor-relative no-follow receive root, H6.3d2 added
-safe mutations, and H6.3e1 composed their owner core. The next boundary is
-`host-file-transfer-receive-root-config-contract`, still before any product
-caller can opt in.
+safe mutations, H6.3e1 composed their owner core, and H6.3e2 configured the
+immutable root. Continue with `host-file-transfer-connection-mutation-dispatch`,
+still before any product caller can opt in.

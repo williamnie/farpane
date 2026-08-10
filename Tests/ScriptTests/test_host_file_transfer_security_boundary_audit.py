@@ -44,7 +44,7 @@ class HostFileTransferSecurityBoundaryAuditTests(unittest.TestCase):
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-receive-root-config-contract",
+            "host-file-transfer-connection-mutation-dispatch",
         )
 
 

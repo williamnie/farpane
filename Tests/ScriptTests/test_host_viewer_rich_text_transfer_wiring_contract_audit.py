@@ -35,7 +35,7 @@ class HostViewerRichTextTransferWiringContractAuditTests(unittest.TestCase):
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(document["claims"]["hostABIv16Implemented"])
+        self.assertTrue(document["claims"]["hostABIv17Implemented"])
         self.assertTrue(document["claims"]["smallAndRichDirectionsIndependent"])
         self.assertTrue(document["claims"]["richTransportCanonicalAndBounded"])
         self.assertTrue(document["claims"]["sessionRevocationAppliesToRich"])

@@ -39,7 +39,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const HOST_ABI_VERSION: u32 = 16;
+const HOST_ABI_VERSION: u32 = 17;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
@@ -223,6 +223,7 @@ pub struct RdnHostCreateOptions {
     enable_clipboard_image_read: bool,
     enable_clipboard_image_write: bool,
     enable_file_transfer: bool,
+    file_transfer_receive_root: *const c_char,
 }
 
 #[repr(C)]
@@ -290,6 +291,8 @@ pub struct RdnHost {
     server_public_key: String,
     clipboard_transfer_policy: NativeClipboardTransferPolicy,
     file_transfer_enabled: bool,
+    #[cfg(target_os = "macos")]
+    file_service_owner: Option<rdn_host_file_transfer::NativeHostFileServiceOwner>,
     runtime: Option<HostRuntime>,
 }
 
@@ -3340,9 +3343,14 @@ pub unsafe extern "C" fn rdn_host_create(
         Ok(value) => value,
         Err(code) => return code,
     };
+    let file_transfer_receive_root = match optional_string((*options).file_transfer_receive_root) {
+        Ok(value) => value,
+        Err(code) => return code,
+    };
     if !valid_server(&rendezvous_server, false)
         || !valid_server(&relay_server, true)
         || !valid_server_public_key(&server_public_key)
+        || (*options).enable_file_transfer != !file_transfer_receive_root.is_empty()
     {
         return RDN_HOST_ERR_VALIDATION;
     }
@@ -3351,6 +3359,31 @@ pub unsafe extern "C" fn rdn_host_create(
         .is_err()
     {
         return RDN_HOST_ERR_BAD_STATE;
+    }
+    #[cfg(target_os = "macos")]
+    let file_service_owner =
+        match rdn_host_file_transfer::NativeHostFileServiceOwner::from_immutable_configuration(
+            (*options).enable_file_transfer,
+            (!file_transfer_receive_root.is_empty())
+                .then(|| std::path::Path::new(&file_transfer_receive_root)),
+        ) {
+            Ok(owner) => owner,
+            Err(error) => {
+                HOST_INSTANCE_LIVE.store(false, Ordering::Release);
+                let code = if error
+                    == rdn_host_file_transfer::NativeFileTransferRootError::InvalidOwnerConfiguration
+                {
+                    RDN_HOST_ERR_VALIDATION
+                } else {
+                    RDN_HOST_ERR_STORAGE
+                };
+                return code;
+            }
+        };
+    #[cfg(not(target_os = "macos"))]
+    if (*options).enable_file_transfer {
+        HOST_INSTANCE_LIVE.store(false, Ordering::Release);
+        return RDN_HOST_ERR_NOT_SUPPORTED;
     }
     let host = Box::new(RdnHost {
         instance_id: random_instance_id(),
@@ -3382,6 +3415,8 @@ pub unsafe extern "C" fn rdn_host_create(
             ),
         ),
         file_transfer_enabled: (*options).enable_file_transfer,
+        #[cfg(target_os = "macos")]
+        file_service_owner,
         runtime: None,
     });
     *out_host = Box::into_raw(host);
@@ -5489,6 +5524,8 @@ mod tests {
             server_public_key: String::new(),
             clipboard_transfer_policy: NativeClipboardTransferPolicy::default(),
             file_transfer_enabled: false,
+            #[cfg(target_os = "macos")]
+            file_service_owner: None,
             runtime: None,
         }
     }
