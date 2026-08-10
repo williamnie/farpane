@@ -7,11 +7,26 @@ public enum HostAgentBootstrapConfigurationError: Error, Equatable {
     case invalidDocument
 }
 
+public struct HostAgentClipboardPolicy: Equatable, Sendable {
+    public static let disabled = Self(
+        allowRemoteRead: false,
+        allowRemoteWrite: false
+    )
+
+    public let allowRemoteRead: Bool
+    public let allowRemoteWrite: Bool
+
+    public init(allowRemoteRead: Bool, allowRemoteWrite: Bool) {
+        self.allowRemoteRead = allowRemoteRead
+        self.allowRemoteWrite = allowRemoteWrite
+    }
+}
+
 /// Immutable, non-secret input that must be validated before HostAgent may
 /// switch the Rust config namespace or create HostCore. Disk ownership,
 /// atomic publication and the single-writer lease are separate later gates.
 public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
-    public static let currentSchemaVersion = 1
+    public static let currentSchemaVersion = 2
     public static let maximumDocumentBytes = 64 * 1_024
     public static let maximumConfigRevision: UInt64 = 9_007_199_254_740_991
 
@@ -20,6 +35,7 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
     public let agentBuildID: String
     public let rendezvousServer: String
     public let serverPublicKey: String
+    public let clipboardPolicy: HostAgentClipboardPolicy
 
     /// These namespace components are product-owned constants, never values
     /// accepted from disk or an environment variable.
@@ -31,13 +47,15 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         configRevision: UInt64,
         agentBuildID: String,
         rendezvousServer: String,
-        serverPublicKey: String
+        serverPublicKey: String,
+        clipboardPolicy: HostAgentClipboardPolicy
     ) {
         self.schemaVersion = schemaVersion
         self.configRevision = configRevision
         self.agentBuildID = agentBuildID
         self.rendezvousServer = rendezvousServer
         self.serverPublicKey = serverPublicKey
+        self.clipboardPolicy = clipboardPolicy
     }
 
     public static func decode(_ data: Data) throws -> Self {
@@ -54,16 +72,22 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             throw HostAgentBootstrapConfigurationError.invalidDocument
         }
         guard let document = value as? [String: Any],
-              Set(document.keys) == Set([
-                  "schemaVersion", "configRevision", "agentBuildID", "server",
-              ]),
               let schemaValue = strictUInt64(document["schemaVersion"]),
               schemaValue <= UInt64(Int.max)
         else { throw HostAgentBootstrapConfigurationError.invalidDocument }
 
         let schemaVersion = Int(schemaValue)
-        guard schemaVersion == currentSchemaVersion else {
+        guard schemaVersion == 1 || schemaVersion == currentSchemaVersion else {
             throw HostAgentBootstrapConfigurationError.unsupportedSchema(schemaVersion)
+        }
+        let expectedKeys: Set<String> = schemaVersion == 1
+            ? ["schemaVersion", "configRevision", "agentBuildID", "server"]
+            : [
+                "schemaVersion", "configRevision", "agentBuildID", "server",
+                "clipboard",
+            ]
+        guard Set(document.keys) == expectedKeys else {
+            throw HostAgentBootstrapConfigurationError.invalidDocument
         }
         guard let configRevision = strictUInt64(document["configRevision"]),
               (1...maximumConfigRevision).contains(configRevision),
@@ -77,13 +101,42 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
               validNetworkValue(serverPublicKey, maximumUTF8Bytes: 8_192)
         else { throw HostAgentBootstrapConfigurationError.invalidDocument }
 
+        let clipboardPolicy: HostAgentClipboardPolicy
+        if schemaVersion == 1 {
+            clipboardPolicy = .disabled
+        } else {
+            guard let clipboard = document["clipboard"] as? [String: Any],
+                  Set(clipboard.keys) == Set([
+                      "allowRemoteRead", "allowRemoteWrite",
+                  ]),
+                  let allowRemoteRead = strictBool(
+                      clipboard["allowRemoteRead"]
+                  ),
+                  let allowRemoteWrite = strictBool(
+                      clipboard["allowRemoteWrite"]
+                  )
+            else { throw HostAgentBootstrapConfigurationError.invalidDocument }
+            clipboardPolicy = HostAgentClipboardPolicy(
+                allowRemoteRead: allowRemoteRead,
+                allowRemoteWrite: allowRemoteWrite
+            )
+        }
+
         return Self(
             schemaVersion: schemaVersion,
             configRevision: configRevision,
             agentBuildID: agentBuildID,
             rendezvousServer: rendezvousServer,
-            serverPublicKey: serverPublicKey
+            serverPublicKey: serverPublicKey,
+            clipboardPolicy: clipboardPolicy
         )
+    }
+
+    private static func strictBool(_ value: Any?) -> Bool? {
+        guard let number = value as? NSNumber,
+              CFGetTypeID(number) == CFBooleanGetTypeID()
+        else { return nil }
+        return number.boolValue
     }
 
     static func strictUInt64(_ value: Any?) -> UInt64? {

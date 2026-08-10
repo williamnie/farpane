@@ -105,6 +105,22 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
         }
     }
 
+    package static func allowsClipboardPolicyChange(
+        control: HostAgentBackgroundHomeControlState,
+        viewerConnectionInProgress: Bool
+    ) -> Bool {
+        control.isInteractive
+            && !control.isOn
+            && !viewerConnectionInProgress
+    }
+
+    package static func allowsHostToggle(
+        control: HostAgentBackgroundHomeControlState,
+        bootstrapReady: Bool
+    ) -> Bool {
+        control.isInteractive && (control.isOn || bootstrapReady)
+    }
+
     package static func launchRoute(
         registration: HostAgentBackgroundRegistrationStatus,
         legacy: HostAgentLegacyHostMigrationAssessment

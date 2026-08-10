@@ -40,8 +40,13 @@ class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["smallTextBoundedTo64KiB"])
         self.assertFalse(document["claims"]["viewerRustOwnsSystemPasteboard"])
         self.assertTrue(document["claims"]["viewerProductClipboardEnabled"])
-        self.assertFalse(document["claims"]["hostProductClipboardEnabled"])
-        self.assertFalse(document["claims"]["endToEndClipboardEnabled"])
+        self.assertFalse(
+            document["claims"]["hostProductClipboardEnabledByDefault"]
+        )
+        self.assertTrue(document["claims"]["hostProductExplicitOptInCapable"])
+        self.assertTrue(
+            document["claims"]["endToEndSmallTextExplicitOptInCapable"]
+        )
         self.assertFalse(document["claims"]["richClipboardEnabled"])
         self.assertFalse(
             document["remainingBoundary"]["viewerPasteboardOwnerRequired"]
@@ -49,7 +54,7 @@ class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["viewerExplicitEnablementRequired"]
         )
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]["hostSmallTextExplicitOptInRequired"]
         )
         self.assertTrue(all(
@@ -57,11 +62,12 @@ class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
             if name not in {
                 "viewerPasteboardOwnerRequired",
                 "viewerExplicitEnablementRequired",
+                "hostSmallTextExplicitOptInRequired",
             }
         ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-small-text-clipboard-explicit-opt-in-contract",
+            "host-small-text-clipboard-installed-two-mac-acceptance",
         )
 
 

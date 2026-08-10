@@ -32,7 +32,11 @@ class HostOptionalCapabilityGateAuditTests(unittest.TestCase):
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertFalse(any(document["claims"].values()))
+        self.assertFalse(document["claims"]["clipboardEnabledByDefault"])
+        self.assertTrue(document["claims"]["clipboardExplicitOptInCapable"])
+        self.assertFalse(document["claims"]["richClipboardImplemented"])
+        self.assertFalse(document["claims"]["fileTransferEnabled"])
+        self.assertFalse(document["claims"]["systemAudioEnabled"])
         self.assertFalse(
             document["remainingBoundary"]["independentRevocationCommandsRequired"]
         )
@@ -46,19 +50,12 @@ class HostOptionalCapabilityGateAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["viewerSmallTextClipboardAPIRequired"]
         )
-        self.assertTrue(all(
-            value for name, value in document["remainingBoundary"].items()
-            if name not in {
-                "independentRevocationCommandsRequired",
-                "directionalXPCUIRequired",
-                "eventDrivenDynamicBackoffRequired",
-                "temporaryObjectCleanupRequired",
-                "viewerSmallTextClipboardAPIRequired",
-            }
-        ))
+        self.assertFalse(
+            document["remainingBoundary"]["explicitProductEnablementRequired"]
+        )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-small-text-clipboard-explicit-opt-in-contract",
+            "host-small-text-clipboard-installed-two-mac-acceptance",
         )
 
 

@@ -13,21 +13,30 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            integration.reconcileSavedCatalog(from: fixture.store),
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled
+            ),
             .waitingForServer
         )
         XCTAssertFalse(FileManager.default.fileExists(atPath: fixture.projectionURL.path))
 
         try fixture.store.save(catalog(server: "one.example.invalid:21116"))
         XCTAssertEqual(
-            integration.reconcileSavedCatalog(from: fixture.store),
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled
+            ),
             .ready(configRevision: 1)
         )
 
         var unsaved = try fixture.store.load()
         unsaved.server = server("unsaved.example.invalid:21116")
         XCTAssertEqual(
-            integration.reconcileSavedCatalog(from: fixture.store),
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled
+            ),
             .ready(configRevision: 1)
         )
         XCTAssertEqual(
@@ -37,7 +46,10 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
 
         try fixture.store.save(unsaved)
         XCTAssertEqual(
-            integration.reconcileSavedCatalog(from: fixture.store),
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled
+            ),
             .ready(configRevision: 2)
         )
         XCTAssertEqual(
@@ -74,6 +86,36 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
         }
     }
 
+    func testReconcilesExplicitClipboardPolicyIntoCanonicalProjection() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let integration = try HostAgentBootstrapProductIntegration(
+            applicationSupportURL: fixture.applicationSupport,
+            agentBuildID: "202608080001"
+        )
+        try fixture.store.save(catalog(server: "one.example.invalid:21116"))
+
+        XCTAssertEqual(
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: HostAgentClipboardPolicy(
+                    allowRemoteRead: false,
+                    allowRemoteWrite: true
+                )
+            ),
+            .ready(configRevision: 1)
+        )
+        let configuration = try readProjection(fixture)
+        XCTAssertEqual(configuration.schemaVersion, 2)
+        XCTAssertEqual(
+            configuration.clipboardPolicy,
+            HostAgentClipboardPolicy(
+                allowRemoteRead: false,
+                allowRemoteWrite: true
+            )
+        )
+    }
+
     func testPublicationBusyDegradesWithoutRollingBackCatalogAndCanRetry() throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
@@ -83,7 +125,10 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
         )
         try fixture.store.save(catalog(server: "one.example.invalid:21116"))
         XCTAssertEqual(
-            integration.reconcileSavedCatalog(from: fixture.store),
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled
+            ),
             .ready(configRevision: 1)
         )
         try fixture.store.save(catalog(server: "two.example.invalid:21116"))
@@ -98,7 +143,10 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
         XCTAssertEqual(flock(descriptor, LOCK_EX | LOCK_NB), 0)
 
         XCTAssertEqual(
-            integration.reconcileSavedCatalog(from: fixture.store),
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled
+            ),
             .degraded
         )
         XCTAssertEqual(
@@ -113,7 +161,10 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
 
         XCTAssertEqual(flock(descriptor, LOCK_UN), 0)
         XCTAssertEqual(
-            integration.reconcileSavedCatalog(from: fixture.store),
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled
+            ),
             .ready(configRevision: 2)
         )
         XCTAssertEqual(

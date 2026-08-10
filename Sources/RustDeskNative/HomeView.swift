@@ -56,6 +56,9 @@ struct HostHomeSnapshot: Equatable {
     var isReady: Bool
     var allowsHostCommands: Bool
     var isStreaming: Bool
+    var clipboardReadEnabled: Bool
+    var clipboardWriteEnabled: Bool
+    var allowsClipboardPolicyChange: Bool
     var statusText: String
     var localID: String
     var temporaryPassword: String
@@ -93,6 +96,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onOpenServerSettings: (() -> Void)?
     var onDeviceAction: ((UUID, HomeDeviceAction) -> Void)?
     var onHostToggle: ((Bool) -> Void)?
+    var onHostClipboardReadToggle: ((Bool) -> Void)?
+    var onHostClipboardWriteToggle: ((Bool) -> Void)?
     var onRevealHostPassword: (() -> Void)?
     var onRegenerateHostPassword: (() -> Void)?
     var onSetHostPermanentPassword: (() -> Void)?
@@ -129,6 +134,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostPermanentPasswordLabel = NSTextField(labelWithString: "永久密码：未设置")
     private let hostSetPermanentPasswordButton = NSButton()
     private let hostClearPermanentPasswordButton = NSButton()
+    private let hostClipboardReadSwitch = NSSwitch()
+    private let hostClipboardWriteSwitch = NSSwitch()
     private let hostApprovalContainer = NSView()
     private let hostApprovalTitleLabel = NSTextField(labelWithString: "新的远程连接请求")
     private let hostApprovalIdentityLabel = NSTextField(wrappingLabelWithString: "")
@@ -163,6 +170,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             isReady: false,
             allowsHostCommands: false,
             isStreaming: false,
+            clipboardReadEnabled: false,
+            clipboardWriteEnabled: false,
+            allowsClipboardPolicyChange: false,
             statusText: "已关闭",
             localID: "",
             temporaryPassword: "",
@@ -204,6 +214,14 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostSwitch.state = snapshot.host.isEnabled ? .on : .off
         hostSwitch.isEnabled = snapshot.connectingPeerID == nil
             && snapshot.host.isControlEnabled
+        hostClipboardReadSwitch.state = snapshot.host.clipboardReadEnabled
+            ? .on : .off
+        hostClipboardWriteSwitch.state = snapshot.host.clipboardWriteEnabled
+            ? .on : .off
+        let clipboardPolicyInteractive = snapshot.connectingPeerID == nil
+            && snapshot.host.allowsClipboardPolicyChange
+        hostClipboardReadSwitch.isEnabled = clipboardPolicyInteractive
+        hostClipboardWriteSwitch.isEnabled = clipboardPolicyInteractive
         hostStatusLabel.stringValue = snapshot.host.statusText
         hostStatusDot.layer?.backgroundColor = hostStatusColor(snapshot.host).cgColor
         hostIDLabel.stringValue = "本机 ID：\(snapshot.host.localID.nonEmpty ?? "—")"
@@ -582,6 +600,62 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostPermanentPasswordDetails.alignment = .centerY
         hostPermanentPasswordDetails.spacing = 12
 
+        let hostClipboardTitle = NSTextField(
+            labelWithString: "剪贴板同步（仅小型文本，最多 64 KiB）"
+        )
+        hostClipboardTitle.font = .systemFont(ofSize: 12, weight: .medium)
+        hostClipboardTitle.textColor = .secondaryLabelColor
+
+        hostClipboardReadSwitch.target = self
+        hostClipboardReadSwitch.action = #selector(hostClipboardReadToggleChanged)
+        hostClipboardReadSwitch.setAccessibilityLabel("允许远端读取本机剪贴板")
+        let hostClipboardReadLabel = NSTextField(
+            labelWithString: "允许远端读取本机剪贴板"
+        )
+        hostClipboardReadLabel.font = .systemFont(ofSize: 12)
+        hostClipboardReadLabel.textColor = .secondaryLabelColor
+        let hostClipboardReadRow = NSStackView(views: [
+            hostClipboardReadLabel,
+            NSView(),
+            hostClipboardReadSwitch,
+        ])
+        hostClipboardReadRow.orientation = .horizontal
+        hostClipboardReadRow.alignment = .centerY
+
+        hostClipboardWriteSwitch.target = self
+        hostClipboardWriteSwitch.action = #selector(hostClipboardWriteToggleChanged)
+        hostClipboardWriteSwitch.setAccessibilityLabel("允许远端写入本机剪贴板")
+        let hostClipboardWriteLabel = NSTextField(
+            labelWithString: "允许远端写入本机剪贴板"
+        )
+        hostClipboardWriteLabel.font = .systemFont(ofSize: 12)
+        hostClipboardWriteLabel.textColor = .secondaryLabelColor
+        let hostClipboardWriteRow = NSStackView(views: [
+            hostClipboardWriteLabel,
+            NSView(),
+            hostClipboardWriteSwitch,
+        ])
+        hostClipboardWriteRow.orientation = .horizontal
+        hostClipboardWriteRow.alignment = .centerY
+
+        let hostClipboardSettings = NSStackView(views: [
+            hostClipboardTitle,
+            hostClipboardReadRow,
+            hostClipboardWriteRow,
+        ])
+        hostClipboardSettings.orientation = .vertical
+        hostClipboardSettings.alignment = .leading
+        hostClipboardSettings.spacing = 5
+        for view in [
+            hostClipboardTitle,
+            hostClipboardReadRow,
+            hostClipboardWriteRow,
+        ] {
+            view.widthAnchor.constraint(
+                equalTo: hostClipboardSettings.widthAnchor
+            ).isActive = true
+        }
+
         hostSessionContainer.wantsLayer = true
         hostSessionContainer.layer?.cornerRadius = 9
         hostSessionContainer.layer?.backgroundColor = NSColor.systemBlue
@@ -777,6 +851,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostHeader,
             hostDetails,
             hostPermanentPasswordDetails,
+            hostClipboardSettings,
             hostSessionContainer,
             hostApprovalContainer,
             hostMediaDiagnosticLabel,
@@ -790,6 +865,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostHeader,
             hostDetails,
             hostPermanentPasswordDetails,
+            hostClipboardSettings,
             hostSessionContainer,
             hostApprovalContainer,
             hostMediaDiagnosticLabel,
@@ -1059,6 +1135,16 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     @objc private func openServerSettings() { onOpenServerSettings?() }
 
     @objc private func hostToggleChanged() { onHostToggle?(hostSwitch.state == .on) }
+
+    @objc private func hostClipboardReadToggleChanged() {
+        guard snapshot.host.allowsClipboardPolicyChange else { return }
+        onHostClipboardReadToggle?(hostClipboardReadSwitch.state == .on)
+    }
+
+    @objc private func hostClipboardWriteToggleChanged() {
+        guard snapshot.host.allowsClipboardPolicyChange else { return }
+        onHostClipboardWriteToggle?(hostClipboardWriteSwitch.state == .on)
+    }
 
     @objc private func revealHostPassword() { onRevealHostPassword?() }
 

@@ -102,6 +102,88 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         )
     }
 
+    func testClipboardPolicyChangesRequireInteractiveHostOffAndNoViewerStart() {
+        XCTAssertTrue(
+            HostAgentBackgroundHomeRoutingPolicy
+                .allowsClipboardPolicyChange(
+                    control: HostAgentBackgroundHomeControlState(
+                        isOn: false,
+                        isInteractive: true
+                    ),
+                    viewerConnectionInProgress: false
+                )
+        )
+        for (control, viewerConnectionInProgress) in [
+            (
+                HostAgentBackgroundHomeControlState(
+                    isOn: true,
+                    isInteractive: true
+                ),
+                false
+            ),
+            (
+                HostAgentBackgroundHomeControlState(
+                    isOn: false,
+                    isInteractive: false
+                ),
+                false
+            ),
+            (
+                HostAgentBackgroundHomeControlState(
+                    isOn: false,
+                    isInteractive: true
+                ),
+                true
+            ),
+        ] {
+            XCTAssertFalse(
+                HostAgentBackgroundHomeRoutingPolicy
+                    .allowsClipboardPolicyChange(
+                        control: control,
+                        viewerConnectionInProgress:
+                            viewerConnectionInProgress
+                    )
+            )
+        }
+    }
+
+    func testHostEnableRequiresPublishedBootstrapButDisableRemainsAvailable() {
+        let off = HostAgentBackgroundHomeControlState(
+            isOn: false,
+            isInteractive: true
+        )
+        XCTAssertFalse(
+            HostAgentBackgroundHomeRoutingPolicy.allowsHostToggle(
+                control: off,
+                bootstrapReady: false
+            )
+        )
+        XCTAssertTrue(
+            HostAgentBackgroundHomeRoutingPolicy.allowsHostToggle(
+                control: off,
+                bootstrapReady: true
+            )
+        )
+        XCTAssertTrue(
+            HostAgentBackgroundHomeRoutingPolicy.allowsHostToggle(
+                control: HostAgentBackgroundHomeControlState(
+                    isOn: true,
+                    isInteractive: true
+                ),
+                bootstrapReady: false
+            )
+        )
+        XCTAssertFalse(
+            HostAgentBackgroundHomeRoutingPolicy.allowsHostToggle(
+                control: HostAgentBackgroundHomeControlState(
+                    isOn: true,
+                    isInteractive: false
+                ),
+                bootstrapReady: true
+            )
+        )
+    }
+
     func testToggleRoutesIgnoreNoopUnknownConflictAndInFlightRequests() {
         let routes: [HostAgentBackgroundHomeToggleRoute] = [
             toggleRoute(false, .notRegistered, .eligible),
@@ -235,6 +317,57 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         XCTAssertEqual(appSource.components(
             separatedBy: "beginHostAgentBackgroundUnregistration()"
         ).count - 1, 2)
+    }
+
+    func testClipboardPolicyUIAndBothHostOwnersUseOneExplicitProjection() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/RustDeskNativeApp.swift"
+            ),
+            encoding: .utf8
+        )
+        let homeSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/HomeView.swift"
+            ),
+            encoding: .utf8
+        )
+        let agentSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+            ),
+            encoding: .utf8
+        )
+
+        for marker in [
+            "farpane.host.clipboard.allowRemoteRead",
+            "farpane.host.clipboard.allowRemoteWrite",
+            "clipboardPolicy: currentHostClipboardPolicy()",
+            "clipboardReadEnabled: clipboardPolicy.allowRemoteRead",
+            "clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite",
+            "allowsClipboardPolicyChange(",
+        ] {
+            XCTAssertTrue(appSource.contains(marker), marker)
+        }
+        for marker in [
+            "允许远端读取本机剪贴板",
+            "允许远端写入本机剪贴板",
+            "onHostClipboardReadToggle",
+            "onHostClipboardWriteToggle",
+            "snapshot.host.allowsClipboardPolicyChange",
+        ] {
+            XCTAssertTrue(homeSource.contains(marker), marker)
+        }
+        XCTAssertTrue(agentSource.contains(
+            "configuration.clipboardPolicy.allowRemoteRead"
+        ))
+        XCTAssertTrue(agentSource.contains(
+            "configuration.clipboardPolicy.allowRemoteWrite"
+        ))
     }
 }
 

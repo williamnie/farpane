@@ -22,7 +22,8 @@ class HostClipboardDataPlaneGateAuditTests(unittest.TestCase):
         self.assertTrue(all(line > 0 for line in payload["sourceLines"].values()))
         self.assertTrue(payload["claims"]["readWriteDataGatesIndependent"])
         self.assertTrue(payload["claims"]["smallUtf8TextBounded"])
-        self.assertFalse(payload["claims"]["clipboardDataPathEnabled"])
+        self.assertFalse(payload["claims"]["clipboardDataPathEnabledByDefault"])
+        self.assertTrue(payload["claims"]["clipboardDataPathExplicitOptInCapable"])
         self.assertFalse(payload["claims"]["richClipboardImplemented"])
         self.assertFalse(payload["remainingBoundary"]["directionalXPCUIRequired"])
         self.assertFalse(
@@ -34,9 +35,12 @@ class HostClipboardDataPlaneGateAuditTests(unittest.TestCase):
         self.assertFalse(
             payload["remainingBoundary"]["viewerSmallTextClipboardAPIRequired"]
         )
+        self.assertFalse(
+            payload["remainingBoundary"]["explicitProductEnablementRequired"]
+        )
         self.assertEqual(
             payload["nextImplementationBoundary"],
-            "host-small-text-clipboard-explicit-opt-in-contract",
+            "host-small-text-clipboard-installed-two-mac-acceptance",
         )
 
 
