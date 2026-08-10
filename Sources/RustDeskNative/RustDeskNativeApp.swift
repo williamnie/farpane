@@ -128,6 +128,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         "farpane.host.clipboard.richText.allowRemoteRead"
     private static let hostClipboardRichTextWriteEnabledDefaultsKey =
         "farpane.host.clipboard.richText.allowRemoteWrite"
+    private static let hostClipboardImageReadEnabledDefaultsKey =
+        "farpane.host.clipboard.image.allowRemoteRead"
+    private static let hostClipboardImageWriteEnabledDefaultsKey =
+        "farpane.host.clipboard.image.allowRemoteWrite"
 
     private let options = Options(arguments: CommandLine.arguments)
     private let hostViewerConcurrencyEvidenceOwner =
@@ -641,6 +645,24 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 allowRemoteRichTextWrite: enabled
             )
         }
+        view.onHostClipboardImageReadToggle = { [weak self] enabled in
+            self?.handleHostClipboardPolicyToggle(
+                allowRemoteRead: nil,
+                allowRemoteWrite: nil,
+                allowRemoteRichTextRead: nil,
+                allowRemoteRichTextWrite: nil,
+                allowRemoteImageRead: enabled
+            )
+        }
+        view.onHostClipboardImageWriteToggle = { [weak self] enabled in
+            self?.handleHostClipboardPolicyToggle(
+                allowRemoteRead: nil,
+                allowRemoteWrite: nil,
+                allowRemoteRichTextRead: nil,
+                allowRemoteRichTextWrite: nil,
+                allowRemoteImageWrite: enabled
+            )
+        }
         view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
         view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
         view.onSetHostPermanentPassword = { [weak self] in self?.presentHostPermanentPassword() }
@@ -786,6 +808,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     clipboardPolicy.allowRemoteRichTextRead,
                 clipboardRichTextWriteEnabled:
                     clipboardPolicy.allowRemoteRichTextWrite,
+                clipboardImageReadEnabled:
+                    clipboardPolicy.allowRemoteImageRead,
+                clipboardImageWriteEnabled:
+                    clipboardPolicy.allowRemoteImageWrite,
                 allowsClipboardPolicyChange:
                     HostAgentBackgroundHomeRoutingPolicy
                         .allowsClipboardPolicyChange(
@@ -916,6 +942,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             ),
             allowRemoteRichTextWrite: UserDefaults.standard.bool(
                 forKey: Self.hostClipboardRichTextWriteEnabledDefaultsKey
+            ),
+            allowRemoteImageRead: UserDefaults.standard.bool(
+                forKey: Self.hostClipboardImageReadEnabledDefaultsKey
+            ),
+            allowRemoteImageWrite: UserDefaults.standard.bool(
+                forKey: Self.hostClipboardImageWriteEnabledDefaultsKey
             )
         )
     }
@@ -1169,7 +1201,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         allowRemoteRead: Bool?,
         allowRemoteWrite: Bool?,
         allowRemoteRichTextRead: Bool?,
-        allowRemoteRichTextWrite: Bool?
+        allowRemoteRichTextWrite: Bool?,
+        allowRemoteImageRead: Bool? = nil,
+        allowRemoteImageWrite: Bool? = nil
     ) {
         guard Thread.isMainThread else { return }
         MainActor.assumeIsolated {
@@ -1202,7 +1236,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                         ?? current.allowRemoteRichTextRead,
                 allowRemoteRichTextWrite:
                     allowRemoteRichTextWrite
-                        ?? current.allowRemoteRichTextWrite
+                        ?? current.allowRemoteRichTextWrite,
+                allowRemoteImageRead:
+                    allowRemoteImageRead ?? current.allowRemoteImageRead,
+                allowRemoteImageWrite:
+                    allowRemoteImageWrite ?? current.allowRemoteImageWrite
             )
             UserDefaults.standard.set(
                 updated.allowRemoteRead,
@@ -1219,6 +1257,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             UserDefaults.standard.set(
                 updated.allowRemoteRichTextWrite,
                 forKey: Self.hostClipboardRichTextWriteEnabledDefaultsKey
+            )
+            UserDefaults.standard.set(
+                updated.allowRemoteImageRead,
+                forKey: Self.hostClipboardImageReadEnabledDefaultsKey
+            )
+            UserDefaults.standard.set(
+                updated.allowRemoteImageWrite,
+                forKey: Self.hostClipboardImageWriteEnabledDefaultsKey
             )
             reconcileHostAgentBootstrap()
             refreshHomeUI()
@@ -1486,7 +1532,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 clipboardRichTextReadEnabled:
                     clipboardPolicy.allowRemoteRichTextRead,
                 clipboardRichTextWriteEnabled:
-                    clipboardPolicy.allowRemoteRichTextWrite
+                    clipboardPolicy.allowRemoteRichTextWrite,
+                clipboardImageReadEnabled:
+                    clipboardPolicy.allowRemoteImageRead,
+                clipboardImageWriteEnabled:
+                    clipboardPolicy.allowRemoteImageWrite
             ))
             hostRuntimeActive = true
             hostRuntimeQuiescenceConfirmed = true

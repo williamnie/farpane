@@ -55,18 +55,19 @@ independent, default-off bounded-text read/write policy and adds separate,
 default-off rich-text and image read/write policies. The Rust Host lifetime persists the
 pinned upstream Boolean only when at least one small-text, rich-text, or image direction is
 explicitly requested; enabling small text never implies RTF or HTML. Host
-bootstrap schema v3 projects four independent small- and rich-text directions
-to the Agent. Schema v1 decodes with all clipboard directions disabled; schema
-v2 preserves its two small-text directions while migrating both rich-text
-directions to disabled. Home exposes separate small-text and RTF/HTML read/write
-switches only while Host is off; changing any preference republishes the
+bootstrap schema v4 projects six independent small-text, rich-text, and image
+directions to the Agent. Schema v1 decodes with all clipboard directions
+disabled; schema v2 preserves small text while migrating rich text and images
+to disabled, and schema v3 preserves small/rich directions while migrating
+images to disabled. Home exposes separate small-text, RTF/HTML, and
+RGBA/PNG/SVG read/write switches only while Host is off; changing any preference
+republishes the
 immutable bootstrap, and Host cannot be enabled unless that publication is
 coherent. The legacy foreground Host and background Agent consume the same
 projection. Small text and RTF/HTML are therefore end-to-end capable after
-explicit per-direction opt-in while remaining off by default. Viewer image
-directions are product-enabled through the same owner, while Host image
-directions remain default-off and are not yet projected through bootstrap or
-Home; file promises remain unsupported.
+explicit per-direction opt-in while remaining off by default. Image directions
+use the same explicit, default-off Host product contract and existing Viewer
+owner; file promises remain unsupported.
 
 ABI v8 retains the ABI v7 bounded small- and rich-text contracts and adds an
 independently default-off semantic image API. RGBA uses positive dimensions,
@@ -83,7 +84,8 @@ TIFF is decoded only after the 128 MiB input cap and pixel bounds, and is
 canonicalized to PNG before crossing Core. Remote RGBA is also converted to a
 bounded PNG pasteboard representation. Invalid image data fails closed without
 falling back to rich or plain text, and owned-write suppression plus lifecycle
-teardown remain shared. Host image directions remain default-off. SVG is not
+teardown remain shared. Host image directions remain default-off until the
+user enables the matching Home direction. SVG is not
 sanitized for rendering and is transported only as untrusted pasteboard bytes.
 
 ABI v8 also retains the ABI v6 bounded small-text contract and the independently
@@ -119,9 +121,8 @@ session's directional revoke applies before format admission. The Viewer
 AppKit owner validates the same limits, reads only after `changeCount` changes,
 prefers one rich bundle over a duplicate plain send, atomically writes one
 `NSPasteboardItem`, and records the final owned-write count to suppress loops.
-Product Host rich configuration remains off until the user explicitly enables
-the matching Home direction. Viewer image ownership is enabled; Host image
-configuration and file promises remain disabled.
+Product Host rich and image configuration remains off until the user explicitly
+enables the matching Home direction. File promises remain disabled.
 
 RGBA, PNG, and SVG now require a Rust-owned image envelope before they can even
 be classified for an independent transfer. RGBA accepts bounded zstd input only
@@ -138,5 +139,6 @@ Host Control ABI v15 now carries independent image read/write policy and both
 Host directions rebuild one validated image as canonical uncompressed bytes
 before the pinned pasteboard helper or network writer. Active-session revoke
 precedes image parsing. Viewer product image enablement and AppKit ownership are
-now implemented through the single existing owner; Host bootstrap/Home image
-switches remain disabled, and installed two-Mac acceptance remains unverified.
+implemented through the single existing owner; Host bootstrap schema v4 and
+Home now provide independent, default-off image read/write opt-ins. Installed
+two-Mac acceptance remains unverified.

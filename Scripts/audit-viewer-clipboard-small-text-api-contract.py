@@ -181,7 +181,7 @@ def main() -> int:
                 "ABI v8 also retains the ABI v6 bounded small-text contract",
                 "AppKit-owned pasteboard adapter",
                 "Host Control ABI v15",
-                "bootstrap schema v2",
+                "bootstrap schema v4",
             )
         ),
     }
@@ -231,16 +231,18 @@ def main() -> int:
             "hostProductExplicitOptInCapable": True,
             "endToEndSmallTextExplicitOptInCapable": True,
             "richClipboardEnabled": True,
+            "imageClipboardEnabled": True,
         },
         "remainingBoundary": {
             "viewerPasteboardOwnerRequired": False,
             "viewerExplicitEnablementRequired": False,
             "hostSmallTextExplicitOptInRequired": False,
             "richPayloadTransferRequired": False,
+            "imagePayloadTransferRequired": False,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": "host-image-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-small-text-clipboard-api-default-off" else 1

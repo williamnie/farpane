@@ -6,7 +6,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
     func testDecodesExactVersionedImmutableHostBootstrapInput() throws {
         let configuration = try HostAgentBootstrapConfiguration.decode(validDocument())
 
-        XCTAssertEqual(configuration.schemaVersion, 3)
+        XCTAssertEqual(configuration.schemaVersion, 4)
         XCTAssertEqual(configuration.configRevision, 7)
         XCTAssertEqual(configuration.agentBuildID, "20260808155349")
         XCTAssertEqual(
@@ -20,7 +20,9 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
                 allowRemoteRead: true,
                 allowRemoteWrite: false,
                 allowRemoteRichTextRead: false,
-                allowRemoteRichTextWrite: true
+                allowRemoteRichTextWrite: true,
+                allowRemoteImageRead: true,
+                allowRemoteImageWrite: false
             )
         )
         XCTAssertEqual(configuration.hostConfigAppName, "FarPaneHost")
@@ -48,7 +50,28 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
                 allowRemoteRead: true,
                 allowRemoteWrite: false,
                 allowRemoteRichTextRead: false,
-                allowRemoteRichTextWrite: false
+                allowRemoteRichTextWrite: false,
+                allowRemoteImageRead: false,
+                allowRemoteImageWrite: false
+            )
+        )
+    }
+
+    func testSchemaThreePreservesTextAndDisablesImage() throws {
+        let configuration = try HostAgentBootstrapConfiguration.decode(
+            schemaThreeDocument()
+        )
+
+        XCTAssertEqual(configuration.schemaVersion, 3)
+        XCTAssertEqual(
+            configuration.clipboardPolicy,
+            HostAgentClipboardPolicy(
+                allowRemoteRead: true,
+                allowRemoteWrite: false,
+                allowRemoteRichTextRead: false,
+                allowRemoteRichTextWrite: true,
+                allowRemoteImageRead: false,
+                allowRemoteImageWrite: false
             )
         )
     }
@@ -75,15 +98,19 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     func testRejectsUnsupportedSchemaUnsafeStringsAndOversizedInput() throws {
         var future = try object(from: validDocument())
-        future["schemaVersion"] = 4
+        future["schemaVersion"] = 5
         XCTAssertThrowsError(try HostAgentBootstrapConfiguration.decode(data(future))) { error in
-            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(4))
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(5))
         }
 
         var numericClipboard = try object(from: validDocument())
         numericClipboard["clipboard"] = [
             "allowRemoteRead": 1,
             "allowRemoteWrite": false,
+            "allowRemoteRichTextRead": false,
+            "allowRemoteRichTextWrite": false,
+            "allowRemoteImageRead": false,
+            "allowRemoteImageWrite": false,
         ]
         XCTAssertThrowsError(
             try HostAgentBootstrapConfiguration.decode(data(numericClipboard))
@@ -100,9 +127,29 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
             "allowRemoteWrite": false,
             "allowRemoteRichTextRead": 1,
             "allowRemoteRichTextWrite": false,
+            "allowRemoteImageRead": false,
+            "allowRemoteImageWrite": false,
         ]
         XCTAssertThrowsError(
             try HostAgentBootstrapConfiguration.decode(data(numericRichClipboard))
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentBootstrapConfigurationError,
+                .invalidDocument
+            )
+        }
+
+        var numericImageClipboard = try object(from: validDocument())
+        numericImageClipboard["clipboard"] = [
+            "allowRemoteRead": true,
+            "allowRemoteWrite": false,
+            "allowRemoteRichTextRead": false,
+            "allowRemoteRichTextWrite": true,
+            "allowRemoteImageRead": 1,
+            "allowRemoteImageWrite": false,
+        ]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(numericImageClipboard))
         ) { error in
             XCTAssertEqual(
                 error as? HostAgentBootstrapConfigurationError,
@@ -135,8 +182,28 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     private func validDocument() throws -> Data {
         data([
-            "schemaVersion": 3,
+            "schemaVersion": 4,
             "configRevision": 7,
+            "agentBuildID": "20260808155349",
+            "server": [
+                "rendezvousServer": "hermes.example.invalid:21116",
+                "serverPublicKey": "public-key",
+            ],
+            "clipboard": [
+                "allowRemoteRead": true,
+                "allowRemoteWrite": false,
+                "allowRemoteRichTextRead": false,
+                "allowRemoteRichTextWrite": true,
+                "allowRemoteImageRead": true,
+                "allowRemoteImageWrite": false,
+            ],
+        ])
+    }
+
+    private func schemaThreeDocument() -> Data {
+        data([
+            "schemaVersion": 3,
+            "configRevision": 6,
             "agentBuildID": "20260808155349",
             "server": [
                 "rendezvousServer": "hermes.example.invalid:21116",

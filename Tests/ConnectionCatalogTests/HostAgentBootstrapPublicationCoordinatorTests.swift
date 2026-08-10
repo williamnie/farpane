@@ -222,8 +222,31 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
                 applicationSupportURL: fixture.applicationSupport
             )
         ).load()
-        XCTAssertEqual(configuration.schemaVersion, 3)
+        XCTAssertEqual(configuration.schemaVersion, 4)
         XCTAssertEqual(configuration.clipboardPolicy, smallReadAndRichWrite)
+        let imageRead = HostAgentClipboardPolicy(
+            allowRemoteRead: true,
+            allowRemoteWrite: false,
+            allowRemoteRichTextRead: false,
+            allowRemoteRichTextWrite: true,
+            allowRemoteImageRead: true,
+            allowRemoteImageWrite: false
+        )
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                clipboardPolicy: imageRead
+            ).configRevision,
+            4
+        )
+        let imageConfiguration = try HostAgentBootstrapConfigurationReader(
+            directoryURL: HostAgentBootstrapProductLayout.directoryURL(
+                applicationSupportURL: fixture.applicationSupport
+            )
+        ).load()
+        XCTAssertEqual(imageConfiguration.schemaVersion, 4)
+        XCTAssertEqual(imageConfiguration.clipboardPolicy, imageRead)
     }
 
     func testLegacySchemaOnePublicationUpgradesWithClipboardDisabled() throws {
@@ -260,7 +283,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 3)
+        XCTAssertEqual(upgraded.schemaVersion, 4)
         XCTAssertEqual(upgraded.clipboardPolicy, .disabled)
     }
 
@@ -306,10 +329,64 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 3)
+        XCTAssertEqual(upgraded.schemaVersion, 4)
         XCTAssertEqual(upgraded.clipboardPolicy, policy)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteRichTextRead)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteRichTextWrite)
+        XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageRead)
+        XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageWrite)
+    }
+
+    func testSchemaThreePublicationUpgradesWithImageDisabled() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let directory = try HostAgentBootstrapProductDirectoryPreparer.prepare(
+            applicationSupportURL: fixture.applicationSupport
+        )
+        let schemaThree = try JSONSerialization.data(
+            withJSONObject: [
+                "schemaVersion": 3,
+                "configRevision": 9,
+                "agentBuildID": "build-1",
+                "server": [
+                    "rendezvousServer": "one.example.invalid:21116",
+                    "serverPublicKey": "public-key",
+                ],
+                "clipboard": [
+                    "allowRemoteRead": false,
+                    "allowRemoteWrite": true,
+                    "allowRemoteRichTextRead": true,
+                    "allowRemoteRichTextWrite": false,
+                ],
+            ],
+            options: [.sortedKeys]
+        )
+        _ = try HostAgentBootstrapConfigurationPublisher(
+            directoryURL: directory
+        ).publish(schemaThree)
+
+        let policy = HostAgentClipboardPolicy(
+            allowRemoteRead: false,
+            allowRemoteWrite: true,
+            allowRemoteRichTextRead: true,
+            allowRemoteRichTextWrite: false
+        )
+        let outcome = try HostAgentBootstrapPublicationCoordinator(
+            applicationSupportURL: fixture.applicationSupport
+        ).publish(
+            catalog: catalog(server: "one.example.invalid:21116"),
+            agentBuildID: "build-1",
+            clipboardPolicy: policy
+        )
+
+        XCTAssertEqual(outcome.configRevision, 10)
+        let upgraded = try HostAgentBootstrapConfigurationReader(
+            directoryURL: directory
+        ).load()
+        XCTAssertEqual(upgraded.schemaVersion, 4)
+        XCTAssertEqual(upgraded.clipboardPolicy, policy)
+        XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageRead)
+        XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageWrite)
     }
 
     private func catalog(server: String) -> DeviceCatalogDocument {

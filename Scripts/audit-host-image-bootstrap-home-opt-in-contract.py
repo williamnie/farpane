@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the H6.2i2 Host clipboard bootstrap and Home opt-in contract."""
+"""Audit the H6.2k5 Host image bootstrap and Home opt-in contract."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 
-SCHEMA = "farpane-host-clipboard-bootstrap-home-opt-in-contract-audit"
+SCHEMA = "farpane-host-image-bootstrap-home-opt-in-contract-audit"
 
 
 def read(path: Path) -> str:
@@ -23,12 +23,15 @@ def main() -> int:
     repository = Path(__file__).resolve().parent.parent
     paths = {
         "design": repository / "docs/host-mode-design.md",
+        "architecture": repository / "docs/architecture.md",
+        "readme": repository / "CoreBridge/README.md",
         "bootstrap": repository / "Sources/ConnectionCatalog/HostAgentBootstrapConfiguration.swift",
         "builder": repository / "Sources/ConnectionCatalog/HostAgentBootstrapProjectionBuilder.swift",
         "coordinator": repository / "Sources/ConnectionCatalog/HostAgentBootstrapPublicationCoordinator.swift",
         "integration": repository / "Sources/ConnectionCatalog/HostAgentBootstrapProductIntegration.swift",
-        "routing": repository / "Sources/CoreBridge/HostAgentBackgroundHomeRoutingPolicy.swift",
         "host_control": repository / "Sources/CoreBridge/HostControlClient.swift",
+        "viewer_control": repository / "Sources/CoreBridge/CoreBridge.swift",
+        "routing": repository / "Sources/CoreBridge/HostAgentBackgroundHomeRoutingPolicy.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "home": repository / "Sources/RustDeskNative/HomeView.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
@@ -64,34 +67,38 @@ def main() -> int:
             "routing_tests",
         )
     )
+    docs = sources["readme"] + sources["architecture"]
 
     evidence = {
         "designRecordsBoundedProductStep": all(
             marker in sources["design"]
             for marker in (
-                "H6.2i2 Host clipboard bootstrap and Home opt-in contract",
-                "host-small-text-clipboard-installed-two-mac-acceptance",
+                "H6.2k5 Host image bootstrap and Home opt-in contract",
+                "host-image-clipboard-installed-two-mac-acceptance",
             )
         ),
-        "bootstrapV4RetainsIndependentSmallTextDirections": all(
+        "bootstrapV4CarriesSixIndependentDirections": all(
             marker in bootstrap
             for marker in (
                 "public static let currentSchemaVersion = 4",
-                "public let clipboardPolicy: HostAgentClipboardPolicy",
-                '"allowRemoteRead", "allowRemoteWrite",',
+                "public let allowRemoteImageRead: Bool",
+                "public let allowRemoteImageWrite: Bool",
+                '"allowRemoteImageRead", "allowRemoteImageWrite"',
             )
         ),
-        "legacySchemasDoNotImplicitlyEnableClipboard": all(
+        "legacySchemasKeepNewerFormatsDisabled": all(
             marker in bootstrap
             for marker in (
-                "(1...currentSchemaVersion).contains(schemaVersion)",
                 "if schemaVersion == 1",
                 "clipboardPolicy = .disabled",
                 "if schemaVersion == 2",
                 "allowRemoteRichTextRead = false",
+                "if schemaVersion <= 3",
+                "allowRemoteImageRead = false",
+                "allowRemoteImageWrite = false",
             )
         ),
-        "clipboardBooleansAndKeysAreStrict": all(
+        "allClipboardBooleansAndKeysAreStrict": all(
             marker in bootstrap
             for marker in (
                 "Set(clipboard.keys) == expectedClipboardKeys",
@@ -99,154 +106,171 @@ def main() -> int:
                 "CFGetTypeID(number) == CFBooleanGetTypeID()",
             )
         ),
-        "projectionAndRevisionIncludePolicy": (
-            '"clipboard": [' in builder
-            and "clipboardPolicy: clipboardPolicy" in coordinator
-            and "desiredAtCurrentRevision == existing" in coordinator
+        "projectionAndRevisionIncludeImagePolicy": all(
+            marker in builder + coordinator
+            for marker in (
+                '"allowRemoteImageRead":',
+                '"allowRemoteImageWrite":',
+                "clipboardPolicy: clipboardPolicy",
+                "desiredAtCurrentRevision == existing",
+            )
         ),
-        "productIntegrationRequiresExplicitPolicy": all(
+        "productIntegrationRequiresOneExplicitPolicy": all(
             marker in sources["integration"]
             for marker in (
                 "clipboardPolicy: HostAgentClipboardPolicy",
                 "clipboardPolicy: clipboardPolicy",
             )
         ),
-        "preferencesAreIndependentAndAbsentMeansOff": all(
+        "sixPreferencesAreIndependentAndAbsentMeansOff": all(
             marker in app
             for marker in (
                 "farpane.host.clipboard.allowRemoteRead",
                 "farpane.host.clipboard.allowRemoteWrite",
-                "UserDefaults.standard.bool(",
-                "allowRemoteRead ?? current.allowRemoteRead",
-                "allowRemoteWrite ?? current.allowRemoteWrite",
+                "farpane.host.clipboard.richText.allowRemoteRead",
+                "farpane.host.clipboard.richText.allowRemoteWrite",
+                "farpane.host.clipboard.image.allowRemoteRead",
+                "farpane.host.clipboard.image.allowRemoteWrite",
+                "allowRemoteImageRead ?? current.allowRemoteImageRead",
+                "allowRemoteImageWrite ?? current.allowRemoteImageWrite",
             )
         ),
-        "homeShowsExplicitBoundedTextDirections": all(
+        "homeShowsExplicitBoundedImageDirections": all(
             marker in home
             for marker in (
-                "小型文本（最多 64 KiB）",
-                "允许远端读取本机剪贴板",
-                "允许远端写入本机剪贴板",
-                "onHostClipboardReadToggle",
-                "onHostClipboardWriteToggle",
+                "图片（RGBA/PNG 最多 128 MiB，SVG 最多 4 MiB）",
+                "允许远端读取本机图片",
+                "允许远端写入图片到本机",
+                "onHostClipboardImageReadToggle",
+                "onHostClipboardImageWriteToggle",
             )
         ),
-        "policyChangesRequireHostOffAndRepublish": (
+        "policyChangesReuseHostOffRepublishGate": (
             "allowsClipboardPolicyChange(" in routing
             and "&& !control.isOn" in routing
             and "&& !viewerConnectionInProgress" in routing
             and "guard HostAgentBackgroundHomeRoutingPolicy" in app
             and "reconcileHostAgentBootstrap()" in app
         ),
-        "hostEnableFailsClosedWithoutCoherentBootstrap": (
-            "allowsHostToggle(" in routing
-            and "control.isInteractive && (control.isOn || bootstrapReady)" in routing
-            and "bootstrapReady: bootstrapReady" in app
-        ),
-        "backgroundAndLegacyOwnersUseSamePolicy": all(
+        "backgroundAndLegacyOwnersUseAllSixDirections": all(
             marker in app + agent
             for marker in (
                 "clipboardPolicy: currentHostClipboardPolicy()",
-                "clipboardReadEnabled: clipboardPolicy.allowRemoteRead",
-                "clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite",
-                "configuration.clipboardPolicy.allowRemoteRead",
-                "configuration.clipboardPolicy.allowRemoteWrite",
+                "clipboardImageReadEnabled:",
+                "clipboardImageWriteEnabled:",
+                ".allowRemoteImageRead",
+                ".allowRemoteImageWrite",
             )
         ),
         "coreDefaultsRemainClosed": all(
             marker in sources["host_control"]
             for marker in (
-                "clipboardReadEnabled: Bool = false",
-                "clipboardWriteEnabled: Bool = false",
+                "clipboardImageReadEnabled: Bool = false",
+                "clipboardImageWriteEnabled: Bool = false",
+            )
+        ),
+        "viewerProductDirectionsAreExplicitlyEnabled": all(
+            marker in app + sources["viewer_control"]
+            for marker in (
+                "receiveClipboardImage: Bool = false",
+                "sendClipboardImage: Bool = false",
+                "receiveClipboardImage: true",
+                "sendClipboardImage: true",
             )
         ),
         "regressionsCoverMigrationRevisionProjectionAndRoutes": all(
             marker in tests
             for marker in (
-                "testLegacySchemaOneMigratesToClipboardDisabled",
+                "testSchemaThreePreservesTextAndDisablesImage",
+                "testSchemaThreePublicationUpgradesWithImageDisabled",
                 "testClipboardPolicyChangesAdvanceRevisionAndRemainDirectional",
-                "testLegacySchemaOnePublicationUpgradesWithClipboardDisabled",
                 "testReconcilesExplicitClipboardPolicyIntoCanonicalProjection",
                 "testClipboardPolicyChangesRequireInteractiveHostOffAndNoViewerStart",
-                "testHostEnableRequiresPublishedBootstrapButDisableRemainsAvailable",
                 "testClipboardPolicyUIAndBothHostOwnersUseOneExplicitProjection",
+            )
+        ),
+        "documentationRecordsExplicitHostImageOptIn": all(
+            marker in docs
+            for marker in (
+                "bootstrap schema v4",
+                "RGBA/PNG",
+                "six independent",
+                "off by default",
             )
         ),
     }
     source_lines = {
         "designMilestone": line_number(
             sources["design"],
-            "H6.2i2 Host clipboard bootstrap and Home opt-in contract",
+            "H6.2k5 Host image bootstrap and Home opt-in contract",
         ),
         "bootstrapSchema": line_number(
             bootstrap, "public static let currentSchemaVersion = 4"
         ),
-        "legacyMigration": line_number(bootstrap, "clipboardPolicy = .disabled"),
+        "imagePolicyField": line_number(
+            bootstrap, "public let allowRemoteImageRead: Bool"
+        ),
+        "schemaThreeMigration": line_number(
+            bootstrap, "if schemaVersion <= 3"
+        ),
         "strictBoolean": line_number(bootstrap, "private static func strictBool"),
-        "projection": line_number(builder, '"clipboard": ['),
+        "projection": line_number(builder, '"allowRemoteImageRead":'),
         "revisionComparison": line_number(
             coordinator, "desiredAtCurrentRevision == existing"
         ),
-        "productIntegration": line_number(
-            sources["integration"], "clipboardPolicy: HostAgentClipboardPolicy"
+        "imageReadPreference": line_number(
+            app, "farpane.host.clipboard.image.allowRemoteRead"
         ),
-        "readPreference": line_number(
-            app, "farpane.host.clipboard.allowRemoteRead"
-        ),
-        "homeReadSwitch": line_number(home, "允许远端读取本机剪贴板"),
-        "homeWriteSwitch": line_number(home, "允许远端写入本机剪贴板"),
+        "homeImageReadSwitch": line_number(home, "允许远端读取本机图片"),
+        "homeImageWriteSwitch": line_number(home, "允许远端写入图片到本机"),
         "policyRoute": line_number(routing, "allowsClipboardPolicyChange("),
-        "hostEnableGate": line_number(routing, "allowsHostToggle("),
-        "agentProjection": line_number(
-            agent, "configuration.clipboardPolicy.allowRemoteRead"
-        ),
-        "legacyProjection": line_number(
-            app, "clipboardReadEnabled: clipboardPolicy.allowRemoteRead"
-        ),
+        "agentProjection": line_number(agent, "clipboardImageReadEnabled:"),
+        "legacyProjection": line_number(app, "clipboardImageReadEnabled:"),
         "migrationTest": line_number(
-            sources["bootstrap_tests"],
-            "testLegacySchemaOneMigratesToClipboardDisabled",
+            sources["coordinator_tests"],
+            "testSchemaThreePublicationUpgradesWithImageDisabled",
         ),
         "routeTest": line_number(
             sources["routing_tests"],
-            "testHostEnableRequiresPublishedBootstrapButDisableRemainsAvailable",
+            "testClipboardPolicyUIAndBothHostOwnersUseOneExplicitProjection",
         ),
     }
     missing = [name for name, present in evidence.items() if not present]
     missing_lines = [name for name, number in source_lines.items() if number <= 0]
     status = (
-        "host-clipboard-bootstrap-home-opt-in-ready"
+        "host-image-bootstrap-home-opt-in-ready"
         if not missing and not missing_lines
         else "audit-failed"
     )
     result = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "coverageScope": "h6-host-clipboard-bootstrap-home-opt-in",
+        "coverageScope": "h6-host-image-bootstrap-home-opt-in",
         "status": status,
         "evidence": evidence,
         "missingEvidence": missing,
         "sourceLines": source_lines,
         "missingSourceLines": missing_lines,
         "claims": {
-            "legacyConfigurationEnablesClipboard": False,
-            "clipboardEnabledByDefault": False,
-            "independentHomeOptInAvailable": True,
-            "endToEndSmallTextExplicitOptInCapable": True,
-            "richClipboardEnabled": True,
-            "imageClipboardEnabled": True,
+            "legacyConfigurationEnablesImage": False,
+            "hostImageEnabledByDefault": False,
+            "independentHostImageOptInAvailable": True,
+            "endToEndImageExplicitOptInCapable": True,
+            "svgSanitizedForRendering": False,
+            "filePromiseClipboardEnabled": False,
         },
         "remainingBoundary": {
-            "installedTwoMacAcceptanceRequired": True,
+            "installedTwoMacImageClipboardAcceptanceRequired": True,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
-            "richPayloadTransferRequired": False,
-            "imagePayloadTransferRequired": False,
+            "filePromiseImplementationRequired": True,
         },
-        "nextImplementationBoundary": "host-image-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": (
+            "host-image-clipboard-installed-two-mac-acceptance"
+        ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
-    return 0 if status == "host-clipboard-bootstrap-home-opt-in-ready" else 1
+    return 0 if status == "host-image-bootstrap-home-opt-in-ready" else 1
 
 
 if __name__ == "__main__":

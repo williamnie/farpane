@@ -39,7 +39,7 @@ class HostViewerImageTransferWiringContractAuditTests(unittest.TestCase):
             document["claims"]["sessionRevocationAppliesBeforeImageParsing"]
         )
         self.assertTrue(document["claims"]["viewerProductImageClipboardEnabled"])
-        self.assertFalse(document["claims"]["hostProductImageClipboardEnabled"])
+        self.assertTrue(document["claims"]["hostProductImageClipboardEnabled"])
         self.assertFalse(document["claims"]["svgRenderingSanitized"])
         self.assertFalse(
             document["remainingBoundary"]["hostViewerImageTransportWiringRequired"]
@@ -47,7 +47,7 @@ class HostViewerImageTransferWiringContractAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["singlePasteboardOwnerImageIntegrationRequired"]
         )
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]["hostImageExplicitOptInRequired"]
         )
         self.assertTrue(
@@ -55,7 +55,7 @@ class HostViewerImageTransferWiringContractAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-image-bootstrap-home-opt-in-contract",
+            "host-image-clipboard-installed-two-mac-acceptance",
         )
 
 

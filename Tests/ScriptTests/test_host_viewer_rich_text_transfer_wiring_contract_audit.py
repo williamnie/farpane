@@ -41,7 +41,8 @@ class HostViewerRichTextTransferWiringContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["sessionRevocationAppliesToRich"])
         self.assertTrue(document["claims"]["hostProductRichClipboardEnabled"])
         self.assertTrue(document["claims"]["viewerProductRichClipboardEnabled"])
-        self.assertFalse(document["claims"]["imageOrFileClipboardEnabled"])
+        self.assertTrue(document["claims"]["imageClipboardEnabled"])
+        self.assertFalse(document["claims"]["filePromiseClipboardEnabled"])
         self.assertFalse(
             document["remainingBoundary"]["hostViewerRichTransportWiringRequired"]
         )
@@ -56,7 +57,7 @@ class HostViewerRichTextTransferWiringContractAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-rich-text-clipboard-installed-two-mac-acceptance",
+            "host-image-clipboard-installed-two-mac-acceptance",
         )
 
 

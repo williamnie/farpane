@@ -76,10 +76,10 @@ def main() -> int:
                 "host-rich-text-clipboard-installed-two-mac-acceptance",
             )
         ),
-        "bootstrapV3CarriesFourIndependentDirections": all(
+        "bootstrapV4RetainsRichTextDirections": all(
             marker in bootstrap
             for marker in (
-                "public static let currentSchemaVersion = 3",
+                "public static let currentSchemaVersion = 4",
                 "public let clipboardPolicy: HostAgentClipboardPolicy",
                 "public let allowRemoteRichTextRead: Bool",
                 "public let allowRemoteRichTextWrite: Bool",
@@ -94,6 +94,8 @@ def main() -> int:
                 "if schemaVersion == 2",
                 "allowRemoteRichTextRead = false",
                 "allowRemoteRichTextWrite = false",
+                "if schemaVersion <= 3",
+                "allowRemoteImageRead = false",
             )
         ),
         "allClipboardBooleansAndKeysAreStrict": all(
@@ -120,7 +122,7 @@ def main() -> int:
                 "clipboardPolicy: clipboardPolicy",
             )
         ),
-        "fourPreferencesAreIndependentAndAbsentMeansOff": all(
+        "richPreferencesRemainIndependentAndAbsentMeansOff": all(
             marker in app
             for marker in (
                 "farpane.host.clipboard.allowRemoteRead",
@@ -186,9 +188,9 @@ def main() -> int:
         "documentationRecordsExplicitHostRichOptIn": all(
             marker in docs
             for marker in (
-                "bootstrap schema v3",
+                "bootstrap schema v4",
                 "RTF/HTML",
-                "four independent",
+                "six independent",
                 "off by default",
             )
         ),
@@ -199,7 +201,7 @@ def main() -> int:
             "H6.2j6 Host rich-text bootstrap and Home opt-in contract",
         ),
         "bootstrapSchema": line_number(
-            bootstrap, "public static let currentSchemaVersion = 3"
+            bootstrap, "public static let currentSchemaVersion = 4"
         ),
         "richPolicyField": line_number(
             bootstrap, "public let allowRemoteRichTextRead: Bool"
@@ -254,16 +256,18 @@ def main() -> int:
             "richTextEnabledByDefault": False,
             "independentHostRichTextOptInAvailable": True,
             "endToEndRichTextExplicitOptInCapable": True,
-            "imageOrFileClipboardEnabled": False,
+            "imageClipboardEnabled": True,
+            "filePromiseClipboardEnabled": False,
         },
         "remainingBoundary": {
             "installedTwoMacRichClipboardAcceptanceRequired": True,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
-            "imageAndFilePromiseImplementationRequired": True,
+            "imageImplementationRequired": False,
+            "filePromiseImplementationRequired": True,
         },
         "nextImplementationBoundary": (
-            "host-rich-text-clipboard-installed-two-mac-acceptance"
+            "host-image-clipboard-installed-two-mac-acceptance"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

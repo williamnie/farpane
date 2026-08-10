@@ -162,7 +162,7 @@ def main() -> int:
                 "private static let hostABIVersion: UInt32 = 15",
             )
         ),
-        "viewerProductAndOwnerEnableImagesWhileHostDoesNot": (
+        "viewerAndHostProductImagePathsAreExplicit": (
             all(
                 marker in product
                 for marker in (
@@ -170,10 +170,11 @@ def main() -> int:
                     "sendClipboardImage: true",
                     "CoreClipboardImagePayload",
                     "receiveRemoteImage(",
+                    "farpane.host.clipboard.image.allowRemoteRead",
+                    "clipboardImageReadEnabled:",
+                    ".allowRemoteImageRead",
                 )
             )
-            and "clipboardImageReadEnabled:" not in product
-            and "clipboardImageWriteEnabled:" not in product
         ),
         "documentationKeepsProductAndSanitizerBoundaryHonest": all(
             marker in docs
@@ -181,7 +182,8 @@ def main() -> int:
                 "Host Control ABI v15 now carries independent image read/write policy",
                 "AppKit ownership",
                 "SVG is not sanitized for rendering",
-                "图片产品能力继续关闭",
+                "Host bootstrap schema v4",
+                "acceptance remains unverified",
             )
         ),
         "canonicalAndVendoredBridgeMatch": host == sources["vendor_bridge"],
@@ -224,16 +226,16 @@ def main() -> int:
             "imageTransportCanonicalAndBounded": True,
             "sessionRevocationAppliesBeforeImageParsing": True,
             "viewerProductImageClipboardEnabled": True,
-            "hostProductImageClipboardEnabled": False,
+            "hostProductImageClipboardEnabled": True,
             "svgRenderingSanitized": False,
         },
         "remainingBoundary": {
             "hostViewerImageTransportWiringRequired": False,
             "singlePasteboardOwnerImageIntegrationRequired": False,
-            "hostImageExplicitOptInRequired": True,
+            "hostImageExplicitOptInRequired": False,
             "installedTwoMacImageClipboardAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-image-bootstrap-home-opt-in-contract",
+        "nextImplementationBoundary": "host-image-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-viewer-image-transfer-wired-viewer-enabled" else 1

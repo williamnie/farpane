@@ -159,12 +159,15 @@ def main() -> int:
             and "fputs(" not in owner
             and "NSLog(" not in owner
         ),
-        "hostProductImageDirectionsRemainDefaultOff": (
+        "hostProductImageDirectionsRequireExplicitDefaultOffOptIn": (
             "clipboardImageReadEnabled: Bool = false" in sources["host"]
             and "clipboardImageWriteEnabled: Bool = false" in sources["host"]
-            and "clipboardImageReadEnabled:" not in host_product
-            and "clipboardImageWriteEnabled:" not in host_product
-            and "allowRemoteImage" not in host_product
+            and "farpane.host.clipboard.image.allowRemoteRead" in host_product
+            and "farpane.host.clipboard.image.allowRemoteWrite" in host_product
+            and "clipboardImageReadEnabled:" in host_product
+            and "clipboardImageWriteEnabled:" in host_product
+            and "allowRemoteImageRead" in host_product
+            and "allowRemoteImageWrite" in host_product
         ),
         "regressionsCoverPolicyFormatsCompositionAndLifecycle": all(
             marker in tests
@@ -237,17 +240,17 @@ def main() -> int:
             "localTIFFCanonicalizedToPNG": True,
             "pollingBackoffBounded": True,
             "clipboardContentLogged": False,
-            "hostProductImageClipboardEnabled": False,
+            "hostProductImageClipboardEnabled": True,
             "svgRenderingSanitized": False,
             "filePromiseClipboardEnabled": False,
         },
         "remainingBoundary": {
             "viewerImagePasteboardOwnerRequired": False,
-            "hostImageExplicitOptInRequired": True,
+            "hostImageExplicitOptInRequired": False,
             "installedTwoMacImageClipboardAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-image-bootstrap-home-opt-in-contract",
+        "nextImplementationBoundary": "host-image-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-image-pasteboard-owner-explicitly-enabled" else 1
