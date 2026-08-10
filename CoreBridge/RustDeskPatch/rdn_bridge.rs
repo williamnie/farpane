@@ -22,10 +22,17 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 7;
+const ABI_VERSION: u32 = 8;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
+const MAX_CLIPBOARD_IMAGE_BYTES: usize = 128 * 1024 * 1024;
+const MAX_CLIPBOARD_SVG_UTF8_BYTES: usize = 4 * 1024 * 1024;
+const MAX_CLIPBOARD_IMAGE_DIMENSION: i32 = 8192;
+const MAX_CLIPBOARD_IMAGE_PIXELS: usize = 7680 * 4320;
+const CLIPBOARD_IMAGE_FORMAT_RGBA: u32 = 1;
+const CLIPBOARD_IMAGE_FORMAT_PNG: u32 = 2;
+const CLIPBOARD_IMAGE_FORMAT_SVG: u32 = 3;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 
 #[repr(C)]
@@ -94,6 +101,7 @@ type MetricsCallback = unsafe extern "C" fn(*mut c_void, *const RDNCoreMetrics);
 type ClipboardTextCallback = unsafe extern "C" fn(*mut c_void, *const u8, usize);
 type ClipboardRichTextCallback =
     unsafe extern "C" fn(*mut c_void, *const RDNClipboardRichTextPayload);
+type ClipboardImageCallback = unsafe extern "C" fn(*mut c_void, *const RDNClipboardImagePayload);
 
 #[repr(C)]
 pub struct RDNClipboardRichTextPayload {
@@ -107,6 +115,16 @@ pub struct RDNClipboardRichTextPayload {
 }
 
 #[repr(C)]
+pub struct RDNClipboardImagePayload {
+    abi_version: u32,
+    format: u32,
+    data: *const u8,
+    length: usize,
+    width: u32,
+    height: u32,
+}
+
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct RDNCallbacks {
     abi_version: u32,
@@ -115,6 +133,7 @@ pub struct RDNCallbacks {
     on_metrics: Option<MetricsCallback>,
     on_clipboard_text: Option<ClipboardTextCallback>,
     on_clipboard_rich_text: Option<ClipboardRichTextCallback>,
+    on_clipboard_image: Option<ClipboardImageCallback>,
 }
 
 #[repr(C)]
@@ -129,6 +148,8 @@ pub struct RDNConnectionConfig {
     send_clipboard_text: bool,
     receive_clipboard_rich_text: bool,
     send_clipboard_rich_text: bool,
+    receive_clipboard_image: bool,
+    send_clipboard_image: bool,
 }
 
 const MODIFIER_SHIFT: u32 = 1 << 0;
@@ -213,6 +234,8 @@ struct BridgeShared {
     send_clipboard_text: AtomicBool,
     receive_clipboard_rich_text: AtomicBool,
     send_clipboard_rich_text: AtomicBool,
+    receive_clipboard_image: AtomicBool,
+    send_clipboard_image: AtomicBool,
     remote_clipboard_enabled: AtomicBool,
 }
 
@@ -296,6 +319,36 @@ impl BridgeShared {
         unsafe { callback(self.context as *mut c_void, &payload) };
     }
 
+    fn emit_clipboard_image(&self, image: NativeViewerClipboardImage) {
+        if !clipboard_receive_allowed(
+            self.active.load(Ordering::Acquire),
+            self.authenticated.load(Ordering::Acquire),
+            self.receive_clipboard_image.load(Ordering::Acquire),
+            self.remote_clipboard_enabled.load(Ordering::Acquire),
+        ) {
+            return;
+        }
+        let Some(callback) = self.callbacks.on_clipboard_image else {
+            return;
+        };
+        let (format, width, height) = match image.kind {
+            NativeViewerClipboardImageKind::Rgba { width, height } => {
+                (CLIPBOARD_IMAGE_FORMAT_RGBA, width, height)
+            }
+            NativeViewerClipboardImageKind::Png => (CLIPBOARD_IMAGE_FORMAT_PNG, 0, 0),
+            NativeViewerClipboardImageKind::Svg => (CLIPBOARD_IMAGE_FORMAT_SVG, 0, 0),
+        };
+        let payload = RDNClipboardImagePayload {
+            abi_version: ABI_VERSION,
+            format,
+            data: image.payload.as_ptr(),
+            length: image.payload.len(),
+            width,
+            height,
+        };
+        unsafe { callback(self.context as *mut c_void, &payload) };
+    }
+
     fn emit_video(&self, frame: &VideoFrame) -> bool {
         if !self.active.load(Ordering::Acquire) {
             return true;
@@ -352,6 +405,7 @@ impl Default for BridgeUi {
                     on_metrics: None,
                     on_clipboard_text: None,
                     on_clipboard_rich_text: None,
+                    on_clipboard_image: None,
                 },
                 context: 0,
                 active: AtomicBool::new(false),
@@ -364,6 +418,8 @@ impl Default for BridgeUi {
                 send_clipboard_text: AtomicBool::new(false),
                 receive_clipboard_rich_text: AtomicBool::new(false),
                 send_clipboard_rich_text: AtomicBool::new(false),
+                receive_clipboard_image: AtomicBool::new(false),
+                send_clipboard_image: AtomicBool::new(false),
                 remote_clipboard_enabled: AtomicBool::new(false),
             }),
         }
@@ -568,6 +624,19 @@ impl InvokeUiSession for BridgeUi {
                 html,
             });
     }
+
+    fn native_clipboard_image_enabled(&self) -> bool {
+        clipboard_receive_allowed(
+            self.shared.active.load(Ordering::Acquire),
+            self.shared.authenticated.load(Ordering::Acquire),
+            self.shared.receive_clipboard_image.load(Ordering::Acquire),
+            self.shared.remote_clipboard_enabled.load(Ordering::Acquire),
+        )
+    }
+
+    fn native_clipboard_image(&self, image: NativeViewerClipboardImage) {
+        self.shared.emit_clipboard_image(image);
+    }
 }
 
 pub struct RDNClient {
@@ -592,6 +661,12 @@ impl RDNClient {
             .store(false, Ordering::Release);
         self.shared
             .send_clipboard_rich_text
+            .store(false, Ordering::Release);
+        self.shared
+            .receive_clipboard_image
+            .store(false, Ordering::Release);
+        self.shared
+            .send_clipboard_image
             .store(false, Ordering::Release);
         self.shared
             .remote_clipboard_enabled
@@ -729,6 +804,241 @@ pub(crate) fn native_viewer_clipboard_rich_text(
         }
     }
     (bundle.rtf.is_some() || bundle.html.is_some()).then_some(bundle)
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NativeViewerClipboardImageKind {
+    Rgba { width: u32, height: u32 },
+    Png,
+    Svg,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NativeViewerClipboardImage {
+    pub(crate) kind: NativeViewerClipboardImageKind,
+    pub(crate) payload: Vec<u8>,
+}
+
+pub(crate) fn native_viewer_clipboard_image(
+    clipboards: &[Clipboard],
+) -> Option<NativeViewerClipboardImage> {
+    let clipboard = match clipboards {
+        [clipboard] if clipboard.special_name.is_empty() => clipboard,
+        _ => return None,
+    };
+    match clipboard.format.enum_value().ok()? {
+        ClipboardFormat::ImageRgba => {
+            let width = u32::try_from(clipboard.width).ok()?;
+            let height = u32::try_from(clipboard.height).ok()?;
+            let pixel_count = native_viewer_image_pixel_count(width, height)?;
+            let expected_bytes = pixel_count.checked_mul(4)?;
+            let payload = native_viewer_image_payload_bytes(
+                clipboard,
+                MAX_CLIPBOARD_IMAGE_BYTES,
+                MAX_CLIPBOARD_IMAGE_BYTES,
+                true,
+            )?;
+            (payload.len() == expected_bytes).then_some(NativeViewerClipboardImage {
+                kind: NativeViewerClipboardImageKind::Rgba { width, height },
+                payload,
+            })
+        }
+        ClipboardFormat::ImagePng => {
+            if clipboard.compress || clipboard.width != 0 || clipboard.height != 0 {
+                return None;
+            }
+            let payload = native_viewer_image_payload_bytes(
+                clipboard,
+                MAX_CLIPBOARD_IMAGE_BYTES,
+                MAX_CLIPBOARD_IMAGE_BYTES,
+                false,
+            )?;
+            native_viewer_png_dimensions(&payload)?;
+            Some(NativeViewerClipboardImage {
+                kind: NativeViewerClipboardImageKind::Png,
+                payload,
+            })
+        }
+        ClipboardFormat::ImageSvg => {
+            if clipboard.width != 0 || clipboard.height != 0 {
+                return None;
+            }
+            let payload = native_viewer_image_payload_bytes(
+                clipboard,
+                MAX_CLIPBOARD_SVG_UTF8_BYTES,
+                MAX_CLIPBOARD_SVG_UTF8_BYTES,
+                true,
+            )?;
+            native_viewer_svg_has_canonical_root(&payload)?;
+            Some(NativeViewerClipboardImage {
+                kind: NativeViewerClipboardImageKind::Svg,
+                payload,
+            })
+        }
+        _ => None,
+    }
+}
+
+fn native_viewer_image_payload_bytes(
+    clipboard: &Clipboard,
+    wire_limit: usize,
+    decoded_limit: usize,
+    allow_compressed: bool,
+) -> Option<Vec<u8>> {
+    if clipboard.content.is_empty() || clipboard.content.len() > wire_limit {
+        return None;
+    }
+    let payload = if clipboard.compress {
+        if !allow_compressed {
+            return None;
+        }
+        hbb_common::compress::decompress_with_limit(&clipboard.content, decoded_limit).ok()?
+    } else {
+        clipboard.content.to_vec()
+    };
+    (!payload.is_empty() && payload.len() <= decoded_limit).then_some(payload)
+}
+
+fn native_viewer_image_pixel_count(width: u32, height: u32) -> Option<usize> {
+    if width == 0
+        || height == 0
+        || width > MAX_CLIPBOARD_IMAGE_DIMENSION as u32
+        || height > MAX_CLIPBOARD_IMAGE_DIMENSION as u32
+    {
+        return None;
+    }
+    let pixels = usize::try_from(width)
+        .ok()?
+        .checked_mul(usize::try_from(height).ok()?)?;
+    (pixels <= MAX_CLIPBOARD_IMAGE_PIXELS).then_some(pixels)
+}
+
+fn native_viewer_png_dimensions(payload: &[u8]) -> Option<(u32, u32)> {
+    const SIGNATURE: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
+    if payload.len() < 33 || payload.get(..8)? != SIGNATURE {
+        return None;
+    }
+
+    let mut offset = 8usize;
+    let mut dimensions = None;
+    let mut has_image_data = false;
+    loop {
+        let header_end = offset.checked_add(8)?;
+        if header_end > payload.len() {
+            return None;
+        }
+        let length = u32::from_be_bytes(payload[offset..offset + 4].try_into().ok()?) as usize;
+        let chunk_type = &payload[offset + 4..header_end];
+        let chunk_end = header_end.checked_add(length)?.checked_add(4)?;
+        if chunk_end > payload.len() {
+            return None;
+        }
+        let data = &payload[header_end..header_end + length];
+        match chunk_type {
+            b"IHDR" if offset == 8 && length == 13 && dimensions.is_none() => {
+                let width = u32::from_be_bytes(data[0..4].try_into().ok()?);
+                let height = u32::from_be_bytes(data[4..8].try_into().ok()?);
+                native_viewer_image_pixel_count(width, height)?;
+                let bit_depth = data[8];
+                let color_type = data[9];
+                let valid_depth = match color_type {
+                    0 => matches!(bit_depth, 1 | 2 | 4 | 8 | 16),
+                    2 | 4 | 6 => matches!(bit_depth, 8 | 16),
+                    3 => matches!(bit_depth, 1 | 2 | 4 | 8),
+                    _ => false,
+                };
+                if !valid_depth || data[10] != 0 || data[11] != 0 || data[12] > 1 {
+                    return None;
+                }
+                dimensions = Some((width, height));
+            }
+            b"IHDR" => return None,
+            b"IDAT" if dimensions.is_some() && length > 0 => has_image_data = true,
+            b"IEND" if length == 0 => {
+                return (chunk_end == payload.len() && has_image_data).then_some(dimensions?)
+            }
+            _ if dimensions.is_none() => return None,
+            _ => {}
+        }
+        offset = chunk_end;
+    }
+}
+
+fn native_viewer_svg_has_canonical_root(payload: &[u8]) -> Option<()> {
+    let svg = std::str::from_utf8(payload).ok()?;
+    if svg.contains('\0') {
+        return None;
+    }
+    let mut remainder = svg.trim_start_matches(['\u{feff}', ' ', '\t', '\r', '\n']);
+    if remainder.starts_with("<?xml") {
+        let end = remainder.get(..1024.min(remainder.len()))?.find("?>")?;
+        remainder = remainder[end + 2..].trim_start();
+    }
+    if remainder
+        .as_bytes()
+        .windows(9)
+        .any(|window| window.eq_ignore_ascii_case(b"<!doctype"))
+    {
+        return None;
+    }
+    let after_root = remainder.strip_prefix("<svg")?;
+    (after_root
+        .as_bytes()
+        .first()
+        .is_some_and(|byte| byte.is_ascii_whitespace() || *byte == b'>')
+        && after_root.contains('>'))
+    .then_some(())
+}
+
+unsafe fn native_viewer_clipboard_image_message(
+    payload: &RDNClipboardImagePayload,
+) -> Option<Message> {
+    if payload.abi_version != ABI_VERSION || payload.data.is_null() || payload.length == 0 {
+        return None;
+    }
+    let bytes = unsafe { std::slice::from_raw_parts(payload.data, payload.length) };
+    let (format, width, height) = match payload.format {
+        CLIPBOARD_IMAGE_FORMAT_RGBA => {
+            let pixel_count = native_viewer_image_pixel_count(payload.width, payload.height)?;
+            let expected_bytes = pixel_count.checked_mul(4)?;
+            if bytes.len() > MAX_CLIPBOARD_IMAGE_BYTES || bytes.len() != expected_bytes {
+                return None;
+            }
+            (
+                ClipboardFormat::ImageRgba,
+                i32::try_from(payload.width).ok()?,
+                i32::try_from(payload.height).ok()?,
+            )
+        }
+        CLIPBOARD_IMAGE_FORMAT_PNG => {
+            if payload.width != 0 || payload.height != 0 || bytes.len() > MAX_CLIPBOARD_IMAGE_BYTES
+            {
+                return None;
+            }
+            native_viewer_png_dimensions(bytes)?;
+            (ClipboardFormat::ImagePng, 0, 0)
+        }
+        CLIPBOARD_IMAGE_FORMAT_SVG => {
+            if payload.width != 0
+                || payload.height != 0
+                || bytes.len() > MAX_CLIPBOARD_SVG_UTF8_BYTES
+            {
+                return None;
+            }
+            native_viewer_svg_has_canonical_root(bytes)?;
+            (ClipboardFormat::ImageSvg, 0, 0)
+        }
+        _ => return None,
+    };
+    let mut message = Message::new();
+    message.set_clipboard(Clipboard {
+        content: bytes.to_vec().into(),
+        format: format.into(),
+        width,
+        height,
+        ..Default::default()
+    });
+    Some(message)
 }
 
 fn native_viewer_clipboard_message(bytes: &[u8]) -> Option<Message> {
@@ -890,6 +1200,8 @@ pub unsafe extern "C" fn rdn_client_create(
         send_clipboard_text: AtomicBool::new(false),
         receive_clipboard_rich_text: AtomicBool::new(false),
         send_clipboard_rich_text: AtomicBool::new(false),
+        receive_clipboard_image: AtomicBool::new(false),
+        send_clipboard_image: AtomicBool::new(false),
         remote_clipboard_enabled: AtomicBool::new(false),
     });
     Box::into_raw(Box::new(RDNClient {
@@ -969,6 +1281,14 @@ pub unsafe extern "C" fn rdn_client_connect(
         .store((*config).send_clipboard_rich_text, Ordering::Release);
     client
         .shared
+        .receive_clipboard_image
+        .store((*config).receive_clipboard_image, Ordering::Release);
+    client
+        .shared
+        .send_clipboard_image
+        .store((*config).send_clipboard_image, Ordering::Release);
+    client
+        .shared
         .remote_clipboard_enabled
         .store(false, Ordering::Release);
     client.shared.sequence.store(0, Ordering::Relaxed);
@@ -1005,7 +1325,9 @@ pub unsafe extern "C" fn rdn_client_connect(
         (*config).receive_clipboard_text
             || (*config).send_clipboard_text
             || (*config).receive_clipboard_rich_text
-            || (*config).send_clipboard_rich_text,
+            || (*config).send_clipboard_rich_text
+            || (*config).receive_clipboard_image
+            || (*config).send_clipboard_image,
     );
     let round = session.connection_round_state.lock().unwrap().new_round();
     let worker_session = session.clone();
@@ -1429,6 +1751,46 @@ pub unsafe extern "C" fn rdn_client_send_clipboard_rich_text(
         return -4;
     };
     let Some(message) = (unsafe { native_viewer_clipboard_rich_text_message(payload) }) else {
+        return -4;
+    };
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
+        return -3;
+    };
+    sender.send(Data::Message(message)).map_or(-3, |_| 0)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_send_clipboard_image(
+    client: *mut RDNClient,
+    payload: *const RDNClipboardImagePayload,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    if !client.shared.send_clipboard_image.load(Ordering::Acquire) {
+        return -7;
+    }
+    if !client
+        .shared
+        .remote_clipboard_enabled
+        .load(Ordering::Acquire)
+    {
+        return -8;
+    }
+    let Some(payload) = payload.as_ref() else {
+        return -4;
+    };
+    let Some(message) = (unsafe { native_viewer_clipboard_image_message(payload) }) else {
         return -4;
     };
     let session = client.session.lock().unwrap().clone();
@@ -1899,6 +2261,237 @@ mod tests {
         let mut unknown = rtf;
         unknown.format = hbb_common::protobuf::EnumOrUnknown::from_i32(999);
         assert!(native_viewer_clipboard_rich_text(&[unknown]).is_none());
+    }
+
+    #[test]
+    fn native_viewer_image_receive_preparse_gate_requires_every_authority() {
+        let ui = BridgeUi::default();
+        assert!(!ui.native_clipboard_image_enabled());
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared.authenticated.store(true, Ordering::Release);
+        ui.shared
+            .receive_clipboard_image
+            .store(true, Ordering::Release);
+        ui.shared
+            .remote_clipboard_enabled
+            .store(true, Ordering::Release);
+        assert!(ui.native_clipboard_image_enabled());
+
+        for gate in [
+            &ui.shared.active,
+            &ui.shared.authenticated,
+            &ui.shared.receive_clipboard_image,
+            &ui.shared.remote_clipboard_enabled,
+        ] {
+            gate.store(false, Ordering::Release);
+            assert!(!ui.native_clipboard_image_enabled());
+            gate.store(true, Ordering::Release);
+        }
+    }
+
+    #[test]
+    fn native_viewer_image_clipboard_accepts_owned_bounded_canonical_payloads() {
+        let mut rgba = clipboard_fixture(vec![1, 2, 3, 255], false, ClipboardFormat::ImageRgba);
+        rgba.width = 1;
+        rgba.height = 1;
+        let image = native_viewer_clipboard_image(std::slice::from_ref(&rgba)).unwrap();
+        assert_eq!(
+            image.kind,
+            NativeViewerClipboardImageKind::Rgba {
+                width: 1,
+                height: 1,
+            }
+        );
+        rgba.content.clear();
+        assert_eq!(image.payload, vec![1, 2, 3, 255]);
+
+        let mut png = Vec::new();
+        repng::encode(&mut png, 1, 1, &[7, 8, 9, 255]).unwrap();
+        let image = native_viewer_clipboard_image(&[clipboard_fixture(
+            png.clone(),
+            false,
+            ClipboardFormat::ImagePng,
+        )])
+        .unwrap();
+        assert_eq!(image.kind, NativeViewerClipboardImageKind::Png);
+        assert_eq!(image.payload, png);
+
+        let svg = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>".to_vec();
+        let image = native_viewer_clipboard_image(&[clipboard_fixture(
+            hbb_common::compress::compress(&svg),
+            true,
+            ClipboardFormat::ImageSvg,
+        )])
+        .unwrap();
+        assert_eq!(image.kind, NativeViewerClipboardImageKind::Svg);
+        assert_eq!(image.payload, svg);
+    }
+
+    #[test]
+    fn native_viewer_image_clipboard_rejects_ambiguous_or_unbounded_input() {
+        let mut rgba = clipboard_fixture(vec![1, 2, 3], false, ClipboardFormat::ImageRgba);
+        rgba.width = 1;
+        rgba.height = 1;
+        assert!(native_viewer_clipboard_image(&[rgba]).is_none());
+
+        let mut excessive = clipboard_fixture(vec![0; 4], false, ClipboardFormat::ImageRgba);
+        excessive.width = MAX_CLIPBOARD_IMAGE_DIMENSION + 1;
+        excessive.height = 1;
+        assert!(native_viewer_clipboard_image(&[excessive.clone()]).is_none());
+        excessive.width = MAX_CLIPBOARD_IMAGE_DIMENSION;
+        excessive.height = MAX_CLIPBOARD_IMAGE_DIMENSION;
+        assert!(native_viewer_clipboard_image(&[excessive]).is_none());
+
+        let mut png = Vec::new();
+        repng::encode(&mut png, 1, 1, &[0, 0, 0, 255]).unwrap();
+        assert!(native_viewer_clipboard_image(&[clipboard_fixture(
+            hbb_common::compress::compress(&png),
+            true,
+            ClipboardFormat::ImagePng,
+        )])
+        .is_none());
+        assert!(native_viewer_clipboard_image(&[clipboard_fixture(
+            png[..24].to_vec(),
+            false,
+            ClipboardFormat::ImagePng,
+        )])
+        .is_none());
+
+        for invalid_svg in [
+            vec![0xff],
+            b"before\0after".to_vec(),
+            b"<html></html>".to_vec(),
+            b"<!DOCTYPE svg><svg></svg>".to_vec(),
+        ] {
+            assert!(native_viewer_clipboard_image(&[clipboard_fixture(
+                invalid_svg,
+                false,
+                ClipboardFormat::ImageSvg,
+            )])
+            .is_none());
+        }
+        assert!(native_viewer_clipboard_image(&[clipboard_fixture(
+            hbb_common::compress::compress(&vec![b'a'; MAX_CLIPBOARD_SVG_UTF8_BYTES + 1]),
+            true,
+            ClipboardFormat::ImageSvg,
+        )])
+        .is_none());
+
+        let mut special = clipboard_fixture(png, false, ClipboardFormat::ImagePng);
+        special.special_name = "public.png".to_owned();
+        assert!(native_viewer_clipboard_image(&[special]).is_none());
+        assert!(native_viewer_clipboard_image(&[]).is_none());
+    }
+
+    fn image_payload(
+        format: u32,
+        bytes: &[u8],
+        width: u32,
+        height: u32,
+    ) -> RDNClipboardImagePayload {
+        RDNClipboardImagePayload {
+            abi_version: ABI_VERSION,
+            format,
+            data: bytes.as_ptr(),
+            length: bytes.len(),
+            width,
+            height,
+        }
+    }
+
+    #[test]
+    fn native_viewer_image_clipboard_builds_canonical_outbound_messages() {
+        let rgba = [1, 2, 3, 255];
+        let payload = image_payload(CLIPBOARD_IMAGE_FORMAT_RGBA, &rgba, 1, 1);
+        let message = unsafe { native_viewer_clipboard_image_message(&payload) }.unwrap();
+        let Some(message::Union::Clipboard(clipboard)) = message.union else {
+            panic!("one image must use Clipboard");
+        };
+        assert_eq!(
+            clipboard.format.enum_value(),
+            Ok(ClipboardFormat::ImageRgba)
+        );
+        assert_eq!(clipboard.content.as_ref(), rgba);
+        assert_eq!((clipboard.width, clipboard.height), (1, 1));
+        assert!(!clipboard.compress);
+
+        let svg = b"<svg></svg>";
+        let payload = image_payload(CLIPBOARD_IMAGE_FORMAT_SVG, svg, 0, 0);
+        let message = unsafe { native_viewer_clipboard_image_message(&payload) }.unwrap();
+        let Some(message::Union::Clipboard(clipboard)) = message.union else {
+            panic!("one image must use Clipboard");
+        };
+        assert_eq!(clipboard.format.enum_value(), Ok(ClipboardFormat::ImageSvg));
+        assert_eq!(clipboard.content.as_ref(), svg);
+        assert_eq!((clipboard.width, clipboard.height), (0, 0));
+        assert!(!clipboard.compress);
+    }
+
+    #[test]
+    fn native_viewer_image_clipboard_rejects_invalid_outbound_payloads() {
+        let rgba = [1, 2, 3, 255];
+        let mut payload = image_payload(CLIPBOARD_IMAGE_FORMAT_RGBA, &rgba, 1, 1);
+        payload.abi_version += 1;
+        assert!(unsafe { native_viewer_clipboard_image_message(&payload) }.is_none());
+
+        payload = image_payload(CLIPBOARD_IMAGE_FORMAT_RGBA, &rgba, 1, 1);
+        payload.data = ptr::null();
+        assert!(unsafe { native_viewer_clipboard_image_message(&payload) }.is_none());
+
+        payload = image_payload(CLIPBOARD_IMAGE_FORMAT_RGBA, &rgba[..3], 1, 1);
+        assert!(unsafe { native_viewer_clipboard_image_message(&payload) }.is_none());
+
+        payload = image_payload(CLIPBOARD_IMAGE_FORMAT_PNG, b"not png", 0, 0);
+        assert!(unsafe { native_viewer_clipboard_image_message(&payload) }.is_none());
+
+        payload = image_payload(CLIPBOARD_IMAGE_FORMAT_SVG, b"<html></html>", 0, 0);
+        assert!(unsafe { native_viewer_clipboard_image_message(&payload) }.is_none());
+
+        payload = image_payload(999, &rgba, 0, 0);
+        assert!(unsafe { native_viewer_clipboard_image_message(&payload) }.is_none());
+    }
+
+    #[test]
+    fn native_viewer_image_send_requires_every_lifecycle_and_permission_gate() {
+        let ui = BridgeUi::default();
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(None),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let svg = b"<svg></svg>";
+        let payload = image_payload(CLIPBOARD_IMAGE_FORMAT_SVG, svg, 0, 0);
+        let client_pointer = &mut client as *mut RDNClient;
+
+        assert_eq!(
+            unsafe { rdn_client_send_clipboard_image(client_pointer, &payload) },
+            -3
+        );
+        ui.shared.active.store(true, Ordering::Release);
+        assert_eq!(
+            unsafe { rdn_client_send_clipboard_image(client_pointer, &payload) },
+            -6
+        );
+        ui.shared.authenticated.store(true, Ordering::Release);
+        assert_eq!(
+            unsafe { rdn_client_send_clipboard_image(client_pointer, &payload) },
+            -7
+        );
+        ui.shared
+            .send_clipboard_image
+            .store(true, Ordering::Release);
+        assert_eq!(
+            unsafe { rdn_client_send_clipboard_image(client_pointer, &payload) },
+            -8
+        );
+        ui.shared
+            .remote_clipboard_enabled
+            .store(true, Ordering::Release);
+        assert_eq!(
+            unsafe { rdn_client_send_clipboard_image(client_pointer, &payload) },
+            -3
+        );
     }
 
     fn optional_payload_bytes(bytes: Option<&[u8]>) -> (*const u8, usize) {

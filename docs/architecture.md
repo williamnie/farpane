@@ -161,7 +161,7 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
 - 第一版允许复制压缩后的 H265 packet；禁止复制解码后的 4K RGBA frame。
 - Rust 回调不得直接修改 AppKit/SwiftUI 状态，Swift 必须切换到合适队列。
 - 网络线程、解码线程、渲染线程相互隔离。
-- Viewer ABI v7 保留 v6 的小文本边界并新增独立的富文本方向；四个方向均默认关闭，
+- Viewer ABI v8 保留 v7 的小文本/富文本边界并新增独立的图片方向；六个方向均默认关闭，
   由本地策略分别约束；
   Rust 只收发至多 64 KiB 的单条 UTF-8 文本，不轮询或写入 macOS pasteboard。
 - Viewer 产品层显式开启小文本与富文本四个方向，系统 pasteboard 只由单一 Swift/AppKit owner
@@ -176,12 +176,19 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   保留原有小文本方向并把富文本迁移为关闭。前台 legacy Host 与后台 Agent 消费同一策略，
   Home 仅在 Host 关闭时提供逐方向开关。因此小型文本和 RTF/HTML 在用户显式开启后具备
   端到端路径、默认仍关闭；图片和文件 promise 仍不受支持。
-- ABI v7 的富文本 payload 原子携带可选的 64 KiB plain fallback，以及各自最多 1 MiB
+- ABI v8 保留 v7 的富文本 payload：原子携带可选的 64 KiB plain fallback，以及各自最多 1 MiB
   的 RTF/HTML；重复、未知、图片/special、畸形 metadata、非法 UTF-8、NUL 和超限输入
   均拒绝。receive 门禁在解析/解压前检查并在 callback 前复核，Swift 同步复制 callback
   bytes 并复用 disconnect gate。Host 可在独立 rich 方向策略下传递同一 bundle；Viewer
   产品配置已显式开启 rich receive/send，并由上述同一个 AppKit owner 接入；Host 产品
   通过 bootstrap schema v3 与 Home 提供独立、默认关闭的 rich read/write 开关。
+- ABI v8 的 image payload 单独携带 RGBA/PNG/SVG：RGBA 要求正尺寸、单边不超过 8192、
+  总像素不超过 7680×4320 且恰好每像素 4 bytes；PNG 上限 128 MiB 并检查 canonical
+  structure；SVG 上限 4 MiB UTF-8，拒绝 NUL、DOCTYPE 与非 `<svg>` root，但不是渲染
+  sanitizer。receive 门禁在解析/解压前检查并在 callback 前复核，send 复用同一
+  lifecycle/permission authority；Swift 同步复制 callback bytes 后再次检查格式、metadata、
+  大小和结构。六个 Viewer clipboard 方向中，新增的 image read/write 仍默认关闭，产品
+  配置和 AppKit owner 均未接入。
 - Host 在两个方向准入前先分类 clipboard wire format：只有无 NUL 的有界 UTF-8 `Text`
   可进入小文本路径；RTF/HTML 必须组成 owned atomic bundle 并由 matching rich direction
   显式准入，RGBA/PNG/SVG、远端 `Special` 名称和未知 enum 继续 fail closed。分类本身不开放
@@ -200,10 +207,10 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   wire 上限检查 signature、IHDR/IDAT/IEND chunk framing、合法 header 与同一尺寸/像素门禁；
   SVG 的 wire/解码 UTF-8 分别限制为 4 MiB，拒绝 NUL、DOCTYPE 与非 canonical `<svg>`
   root。三类 payload 均复制为 Rust-owned bytes；SVG 只完成语义形状校验，不是渲染安全
-  sanitizer。该 envelope 尚未进入 Host/Viewer transport、Viewer ABI 或 AppKit pasteboard，
-  图片产品能力继续关闭。
-- 断开后不得投递排队中的旧剪贴板回调；富文本可跨 Viewer ABI v7 并已接单一产品 owner，
-  图片和文件 promise 不跨 Viewer ABI。
+  sanitizer。Viewer ABI v8 已提供独立、默认关闭的 image API，但该 envelope 尚未进入
+  Host/Viewer image transport 或 AppKit pasteboard，图片产品能力继续关闭。
+- 断开后不得投递排队中的旧剪贴板回调；富文本可跨 Viewer ABI v8 并已接单一产品 owner；
+  图片只可跨默认关闭的 ABI v8 语义边界，尚未进入 owner 或产品能力；文件 promise 不跨 ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

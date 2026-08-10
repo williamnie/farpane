@@ -66,7 +66,18 @@ projection. Small text and RTF/HTML are therefore end-to-end capable after
 explicit per-direction opt-in while remaining off by default; image payloads
 and file promises are still unsupported.
 
-ABI v7 retains the ABI v6 bounded small-text contract and adds an independently
+ABI v8 retains the ABI v7 bounded small- and rich-text contracts and adds an
+independently default-off semantic image API. RGBA uses positive dimensions,
+the shared 8192-side/7680x4320-pixel bounds, and exactly four bytes per pixel;
+PNG uses canonical bytes under 128 MiB; SVG is bounded to 4 MiB UTF-8 and is
+not treated as sanitized render input. Rust gates image receive before parsing
+or decompression and rechecks before callback delivery; send uses the same
+active/authenticated/local-direction/remote-permission authority. Swift copies
+callback-scoped bytes synchronously and revalidates format, metadata, bounds,
+PNG structure, and SVG root before queued delivery. Viewer product connections
+do not enable or consume the image directions in this step.
+
+ABI v8 also retains the ABI v6 bounded small-text contract and the independently
 default-off semantic rich-text API. One atomic callback/send payload can carry
 an optional 64 KiB plain-text fallback plus at most one RTF and one HTML UTF-8
 representation, each independently capped at 1 MiB. Rust rejects duplicate,
@@ -112,5 +123,6 @@ IEND termination are checked without treating that structural check as a future
 renderer. SVG has independent 4 MiB wire and decoded UTF-8 caps and rejects NUL,
 DOCTYPE, and a non-canonical root. SVG is not sanitized for rendering, so a
 future pasteboard owner must keep treating the bytes as untrusted. The envelope
-owns its bytes, but image transport remains disabled: there is no image Viewer
-ABI, Host/Viewer admission, pasteboard write, UI switch, or product enablement.
+owns its bytes. Viewer ABI v8 now exposes a separate default-off bounded image
+API, but Host/Viewer image admission, AppKit pasteboard ownership, UI switches,
+and product enablement remain disabled.

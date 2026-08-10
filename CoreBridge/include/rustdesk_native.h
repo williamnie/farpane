@@ -9,9 +9,13 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 7u
+#define RDN_ABI_VERSION 8u
 #define RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES (64u * 1024u)
 #define RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES (1024u * 1024u)
+#define RDN_MAX_CLIPBOARD_IMAGE_BYTES 134217728u
+#define RDN_MAX_CLIPBOARD_SVG_UTF8_BYTES 4194304u
+#define RDN_MAX_CLIPBOARD_IMAGE_DIMENSION 8192u
+#define RDN_MAX_CLIPBOARD_IMAGE_PIXELS 33177600u
 
 typedef struct RDNClient RDNClient;
 
@@ -95,6 +99,27 @@ typedef struct RDNClipboardRichTextPayload {
 typedef void (*RDNClipboardRichTextCallback)(
     void *context, const RDNClipboardRichTextPayload *payload);
 
+typedef enum RDNClipboardImageFormat {
+    RDN_CLIPBOARD_IMAGE_FORMAT_RGBA = 1,
+    RDN_CLIPBOARD_IMAGE_FORMAT_PNG = 2,
+    RDN_CLIPBOARD_IMAGE_FORMAT_SVG = 3,
+} RDNClipboardImageFormat;
+
+/* Callback-scoped semantic image bytes. RGBA requires positive width/height
+ * and exactly four bytes per pixel. PNG and SVG require zero width/height;
+ * PNG dimensions are embedded and validated by Rust, while SVG is bounded
+ * UTF-8. The callback must copy data before returning. */
+typedef struct RDNClipboardImagePayload {
+    uint32_t abi_version;
+    uint32_t format;
+    const uint8_t *data;
+    size_t length;
+    uint32_t width;
+    uint32_t height;
+} RDNClipboardImagePayload;
+typedef void (*RDNClipboardImageCallback)(
+    void *context, const RDNClipboardImagePayload *payload);
+
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
@@ -102,6 +127,7 @@ typedef struct RDNCallbacks {
     RDNMetricsCallback on_metrics;
     RDNClipboardTextCallback on_clipboard_text;
     RDNClipboardRichTextCallback on_clipboard_rich_text;
+    RDNClipboardImageCallback on_clipboard_image;
 } RDNCallbacks;
 
 typedef struct RDNConnectionConfig {
@@ -120,6 +146,10 @@ typedef struct RDNConnectionConfig {
      * not imply AppKit pasteboard ownership or product enablement. */
     bool receive_clipboard_rich_text;
     bool send_clipboard_rich_text;
+    /* Independent local image policy. Both default false and do not imply
+     * AppKit pasteboard ownership or product enablement. */
+    bool receive_clipboard_image;
+    bool send_clipboard_image;
 } RDNConnectionConfig;
 
 typedef enum RDNModifierFlags {
@@ -207,6 +237,10 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client,
  * local-direction/remote-permission errors as the small-text API. */
 int32_t rdn_client_send_clipboard_rich_text(
     RDNClient *client, const RDNClipboardRichTextPayload *payload);
+/* Sends one canonical bounded RGBA/PNG/SVG payload. Returns the same -7/-8
+ * local-direction/remote-permission errors as other clipboard APIs. */
+int32_t rdn_client_send_clipboard_image(
+    RDNClient *client, const RDNClipboardImagePayload *payload);
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
@@ -438,6 +472,9 @@ int32_t rdn_shim_client_send_clipboard_text(const RDNCoreLibrary *library,
 int32_t rdn_shim_client_send_clipboard_rich_text(
     const RDNCoreLibrary *library, RDNClient *client,
     const RDNClipboardRichTextPayload *payload);
+int32_t rdn_shim_client_send_clipboard_image(
+    const RDNCoreLibrary *library, RDNClient *client,
+    const RDNClipboardImagePayload *payload);
 
 /* Host Control ABI loader surface (rdn-native-host). rdn_shim_open tolerates
  * cores built without the host feature: rdn_shim_host_available reports whether

@@ -44,6 +44,7 @@ nm -gU "$staged_core" | grep -q _rdn_client_send_key
 nm -gU "$staged_core" | grep -q _rdn_client_send_text
 nm -gU "$staged_core" | grep -q _rdn_client_send_clipboard_text
 nm -gU "$staged_core" | grep -q _rdn_client_send_clipboard_rich_text
+nm -gU "$staged_core" | grep -q _rdn_client_send_clipboard_image
 nm -gU "$staged_core" | grep -q _rdn_host_abi_version
 nm -gU "$staged_core" | grep -q _rdn_host_set_config_root
 nm -gU "$staged_core" | grep -q _rdn_host_create

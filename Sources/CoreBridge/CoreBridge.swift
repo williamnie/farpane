@@ -84,6 +84,12 @@ public struct CoreClipboardRichTextPayload: Sendable, Equatable {
     }
 }
 
+public enum CoreClipboardImagePayload: Sendable, Equatable {
+    case rgba(width: UInt32, height: UInt32, pixels: Data)
+    case png(Data)
+    case svg(String)
+}
+
 public struct CoreConnectionConfig: Sendable {
     public let rendezvousServer: String
     public let serverPublicKey: String
@@ -94,6 +100,8 @@ public struct CoreConnectionConfig: Sendable {
     public let sendClipboardText: Bool
     public let receiveClipboardRichText: Bool
     public let sendClipboardRichText: Bool
+    public let receiveClipboardImage: Bool
+    public let sendClipboardImage: Bool
 
     public init(
         rendezvousServer: String,
@@ -104,7 +112,9 @@ public struct CoreConnectionConfig: Sendable {
         receiveClipboardText: Bool = false,
         sendClipboardText: Bool = false,
         receiveClipboardRichText: Bool = false,
-        sendClipboardRichText: Bool = false
+        sendClipboardRichText: Bool = false,
+        receiveClipboardImage: Bool = false,
+        sendClipboardImage: Bool = false
     ) {
         self.rendezvousServer = rendezvousServer
         self.serverPublicKey = serverPublicKey
@@ -115,6 +125,8 @@ public struct CoreConnectionConfig: Sendable {
         self.sendClipboardText = sendClipboardText
         self.receiveClipboardRichText = receiveClipboardRichText
         self.sendClipboardRichText = sendClipboardRichText
+        self.receiveClipboardImage = receiveClipboardImage
+        self.sendClipboardImage = sendClipboardImage
     }
 }
 
@@ -222,6 +234,7 @@ private final class CallbackBox: @unchecked Sendable {
     let onMetrics: @Sendable (CoreRuntimeMetrics) -> Void
     let onClipboardText: @Sendable (String) -> Void
     let onClipboardRichText: @Sendable (CoreClipboardRichTextPayload) -> Void
+    let onClipboardImage: @Sendable (CoreClipboardImagePayload) -> Void
     private let clipboardLifecycleLock = NSLock()
     private var clipboardDeliveryEnabled = true
 
@@ -231,7 +244,8 @@ private final class CallbackBox: @unchecked Sendable {
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
         onClipboardText: @escaping @Sendable (String) -> Void,
-        onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void
+        onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void,
+        onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void
     ) {
         self.queue = queue
         self.onState = onState
@@ -239,6 +253,7 @@ private final class CallbackBox: @unchecked Sendable {
         self.onMetrics = onMetrics
         self.onClipboardText = onClipboardText
         self.onClipboardRichText = onClipboardRichText
+        self.onClipboardImage = onClipboardImage
     }
 
     func deliverClipboardText(_ text: String) {
@@ -252,6 +267,13 @@ private final class CallbackBox: @unchecked Sendable {
         queue.async { [self] in
             guard clipboardLifecycleLock.withLock({ clipboardDeliveryEnabled }) else { return }
             onClipboardRichText(payload)
+        }
+    }
+
+    func deliverClipboardImage(_ payload: CoreClipboardImagePayload) {
+        queue.async { [self] in
+            guard clipboardLifecycleLock.withLock({ clipboardDeliveryEnabled }) else { return }
+            onClipboardImage(payload)
         }
     }
 
@@ -381,6 +403,205 @@ private let clipboardRichTextCallback: RDNClipboardRichTextCallback = {
     ))
 }
 
+private let maximumClipboardImageBytes = Int(RDN_MAX_CLIPBOARD_IMAGE_BYTES)
+private let maximumClipboardSVGUTF8Bytes = Int(RDN_MAX_CLIPBOARD_SVG_UTF8_BYTES)
+private let maximumClipboardImageDimension = UInt32(RDN_MAX_CLIPBOARD_IMAGE_DIMENSION)
+private let maximumClipboardImagePixels = Int(RDN_MAX_CLIPBOARD_IMAGE_PIXELS)
+
+private func clipboardImagePixelCount(width: UInt32, height: UInt32) -> Int? {
+    guard
+        width > 0,
+        height > 0,
+        width <= maximumClipboardImageDimension,
+        height <= maximumClipboardImageDimension
+    else { return nil }
+    let (pixels, overflow) = Int(width).multipliedReportingOverflow(by: Int(height))
+    guard !overflow, pixels <= maximumClipboardImagePixels else { return nil }
+    return pixels
+}
+
+private func clipboardPNGUInt32(_ data: Data, at offset: Int) -> UInt32? {
+    guard offset >= 0, offset <= data.count - 4 else { return nil }
+    return (UInt32(data[data.startIndex + offset]) << 24)
+        | (UInt32(data[data.startIndex + offset + 1]) << 16)
+        | (UInt32(data[data.startIndex + offset + 2]) << 8)
+        | UInt32(data[data.startIndex + offset + 3])
+}
+
+private func clipboardPNGChunkIs(_ data: Data, at offset: Int, _ bytes: [UInt8]) -> Bool {
+    guard offset >= 0, offset <= data.count - bytes.count else { return false }
+    return bytes.enumerated().allSatisfy { index, byte in
+        data[data.startIndex + offset + index] == byte
+    }
+}
+
+private func clipboardPNGIsCanonical(_ data: Data) -> Bool {
+    let signature: [UInt8] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+    guard
+        data.count >= 33,
+        clipboardPNGChunkIs(data, at: 0, signature)
+    else { return false }
+
+    var offset = 8
+    var hasDimensions = false
+    var hasImageData = false
+    while true {
+        guard let rawLength = clipboardPNGUInt32(data, at: offset) else { return false }
+        let length = Int(rawLength)
+        let headerEnd = offset.addingReportingOverflow(8)
+        guard !headerEnd.overflow else { return false }
+        let dataEnd = headerEnd.partialValue.addingReportingOverflow(length)
+        guard !dataEnd.overflow else { return false }
+        let chunkEnd = dataEnd.partialValue.addingReportingOverflow(4)
+        guard !chunkEnd.overflow, chunkEnd.partialValue <= data.count else { return false }
+
+        let typeOffset = offset + 4
+        if clipboardPNGChunkIs(data, at: typeOffset, [0x49, 0x48, 0x44, 0x52]) {
+            guard offset == 8, length == 13, !hasDimensions else { return false }
+            guard
+                let width = clipboardPNGUInt32(data, at: headerEnd.partialValue),
+                let height = clipboardPNGUInt32(data, at: headerEnd.partialValue + 4),
+                clipboardImagePixelCount(width: width, height: height) != nil
+            else { return false }
+            let bitDepth = data[data.startIndex + headerEnd.partialValue + 8]
+            let colorType = data[data.startIndex + headerEnd.partialValue + 9]
+            let validDepth: Bool
+            switch colorType {
+            case 0: validDepth = [1, 2, 4, 8, 16].contains(bitDepth)
+            case 2, 4, 6: validDepth = [8, 16].contains(bitDepth)
+            case 3: validDepth = [1, 2, 4, 8].contains(bitDepth)
+            default: validDepth = false
+            }
+            guard
+                validDepth,
+                data[data.startIndex + headerEnd.partialValue + 10] == 0,
+                data[data.startIndex + headerEnd.partialValue + 11] == 0,
+                data[data.startIndex + headerEnd.partialValue + 12] <= 1
+            else { return false }
+            hasDimensions = true
+        } else if clipboardPNGChunkIs(data, at: typeOffset, [0x49, 0x44, 0x41, 0x54]) {
+            guard hasDimensions else { return false }
+            if length > 0 { hasImageData = true }
+        } else if clipboardPNGChunkIs(data, at: typeOffset, [0x49, 0x45, 0x4e, 0x44]) {
+            return length == 0 && hasDimensions && hasImageData && chunkEnd.partialValue == data.count
+        } else if !hasDimensions {
+            return false
+        }
+        offset = chunkEnd.partialValue
+    }
+}
+
+private func clipboardSVGIsCanonical(_ svg: String) -> Bool {
+    guard !svg.isEmpty, !svg.contains("\0") else { return false }
+    var remainder = svg.drop(while: {
+        $0 == "\u{feff}" || $0 == " " || $0 == "\t" || $0 == "\r" || $0 == "\n"
+    })
+    if remainder.hasPrefix("<?xml") {
+        guard let end = remainder.prefix(1024).range(of: "?>") else { return false }
+        remainder = remainder[end.upperBound...].drop(while: { $0.isWhitespace })
+    }
+    guard
+        remainder.range(of: "<!doctype", options: .caseInsensitive) == nil,
+        remainder.hasPrefix("<svg")
+    else { return false }
+    let afterRoot = remainder.dropFirst(4)
+    guard let first = afterRoot.first, first == ">" || first.isWhitespace else { return false }
+    return afterRoot.contains(">")
+}
+
+private func normalizedClipboardImage(
+    _ payload: CoreClipboardImagePayload
+) -> (format: UInt32, data: Data, width: UInt32, height: UInt32)? {
+    switch payload {
+    case .rgba(let width, let height, let pixels):
+        guard let pixelCount = clipboardImagePixelCount(width: width, height: height) else {
+            return nil
+        }
+        let (expectedBytes, overflow) = pixelCount.multipliedReportingOverflow(by: 4)
+        guard
+            !overflow,
+            expectedBytes == pixels.count,
+            pixels.count <= maximumClipboardImageBytes
+        else { return nil }
+        return (
+            UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_RGBA.rawValue),
+            pixels,
+            width,
+            height
+        )
+    case .png(let data):
+        guard data.count <= maximumClipboardImageBytes, clipboardPNGIsCanonical(data) else {
+            return nil
+        }
+        return (UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_PNG.rawValue), data, 0, 0)
+    case .svg(let svg):
+        let data = Data(svg.utf8)
+        guard
+            data.count <= maximumClipboardSVGUTF8Bytes,
+            clipboardSVGIsCanonical(svg)
+        else { return nil }
+        return (UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_SVG.rawValue), data, 0, 0)
+    }
+}
+
+private let clipboardImageCallback: RDNClipboardImageCallback = { context, payloadPointer in
+    guard let context, let payloadPointer else { return }
+    let raw = payloadPointer.pointee
+    guard raw.abi_version == RDN_ABI_VERSION, let bytes = raw.data, raw.length > 0 else {
+        return
+    }
+    switch raw.format {
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_RGBA.rawValue):
+        guard
+            let pixelCount = clipboardImagePixelCount(width: raw.width, height: raw.height),
+            raw.length == pixelCount * 4,
+            raw.length <= maximumClipboardImageBytes
+        else { return }
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_PNG.rawValue):
+        guard raw.width == 0, raw.height == 0, raw.length <= maximumClipboardImageBytes else {
+            return
+        }
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_SVG.rawValue):
+        guard raw.width == 0, raw.height == 0, raw.length <= maximumClipboardSVGUTF8Bytes else {
+            return
+        }
+    default:
+        return
+    }
+    let data = Data(bytes: bytes, count: raw.length)
+    let candidate: CoreClipboardImagePayload
+    switch raw.format {
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_RGBA.rawValue):
+        candidate = .rgba(width: raw.width, height: raw.height, pixels: data)
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_PNG.rawValue):
+        candidate = .png(data)
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_SVG.rawValue):
+        guard let svg = String(data: data, encoding: .utf8) else { return }
+        candidate = .svg(svg)
+    default:
+        return
+    }
+    guard let normalized = normalizedClipboardImage(candidate) else { return }
+    let payload: CoreClipboardImagePayload
+    switch normalized.format {
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_RGBA.rawValue):
+        payload = .rgba(
+            width: normalized.width,
+            height: normalized.height,
+            pixels: normalized.data
+        )
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_PNG.rawValue):
+        payload = .png(normalized.data)
+    case UInt32(RDN_CLIPBOARD_IMAGE_FORMAT_SVG.rawValue):
+        guard let svg = String(data: normalized.data, encoding: .utf8) else { return }
+        payload = .svg(svg)
+    default:
+        return
+    }
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    box.deliverClipboardImage(payload)
+}
+
 public final class RustDeskCoreClient: @unchecked Sendable {
     public static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
     public static let abiVersion = UInt32(RDN_ABI_VERSION)
@@ -400,7 +621,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
         onClipboardText: @escaping @Sendable (String) -> Void = { _ in },
-        onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void = { _ in }
+        onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void = { _ in },
+        onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void = { _ in }
     ) throws {
         var error = [CChar](repeating: 0, count: 1024)
         guard let library = libraryURL.path.withCString({
@@ -424,7 +646,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             onVideo: onVideo,
             onMetrics: onMetrics,
             onClipboardText: onClipboardText,
-            onClipboardRichText: onClipboardRichText
+            onClipboardRichText: onClipboardRichText,
+            onClipboardImage: onClipboardImage
         )
         var callbacks = RDNCallbacks(
             abi_version: RDN_ABI_VERSION,
@@ -432,7 +655,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             on_video: videoCallback,
             on_metrics: metricsCallback,
             on_clipboard_text: clipboardTextCallback,
-            on_clipboard_rich_text: clipboardRichTextCallback
+            on_clipboard_rich_text: clipboardRichTextCallback,
+            on_clipboard_image: clipboardImageCallback
         )
         let context = Unmanaged.passUnretained(callbackBox).toOpaque()
         guard let client = rdn_shim_client_create(library, &callbacks, context) else {
@@ -467,7 +691,9 @@ public final class RustDeskCoreClient: @unchecked Sendable {
                             receive_clipboard_text: config.receiveClipboardText,
                             send_clipboard_text: config.sendClipboardText,
                             receive_clipboard_rich_text: config.receiveClipboardRichText,
-                            send_clipboard_rich_text: config.sendClipboardRichText
+                            send_clipboard_rich_text: config.sendClipboardRichText,
+                            receive_clipboard_image: config.receiveClipboardImage,
+                            send_clipboard_image: config.sendClipboardImage
                         )
                         return rdn_shim_client_connect(library, client, &raw)
                     }
@@ -605,6 +831,23 @@ public final class RustDeskCoreClient: @unchecked Sendable {
                     )
                 }
             }
+        }
+    }
+
+    @discardableResult
+    public func sendClipboardImage(_ payload: CoreClipboardImagePayload) -> Int32 {
+        guard let normalized = normalizedClipboardImage(payload) else { return -4 }
+        return normalized.data.withUnsafeBytes { bytes in
+            guard let baseAddress = bytes.bindMemory(to: UInt8.self).baseAddress else { return -4 }
+            var raw = RDNClipboardImagePayload(
+                abi_version: RDN_ABI_VERSION,
+                format: normalized.format,
+                data: baseAddress,
+                length: normalized.data.count,
+                width: normalized.width,
+                height: normalized.height
+            )
+            return rdn_shim_client_send_clipboard_image(library, client, &raw)
         }
     }
 }

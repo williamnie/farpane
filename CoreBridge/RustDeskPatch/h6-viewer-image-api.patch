@@ -1,0 +1,51 @@
+diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -1504,6 +1504,13 @@
+                                 );
+                             }
+                         }
++                        if self.handler.native_clipboard_image_enabled() {
++                            if let Some(image) =
++                                crate::rdn_bridge::native_viewer_clipboard_image(&clipboards)
++                            {
++                                self.handler.native_clipboard_image(image);
++                            }
++                        }
+                         #[cfg(target_os = "ios")]
+                         {
+                             let content = if cb.compress {
+@@ -1550,6 +1557,13 @@
+                                 );
+                             }
+                         }
++                        if self.handler.native_clipboard_image_enabled() {
++                            if let Some(image) = crate::rdn_bridge::native_viewer_clipboard_image(
++                                &_mcb.clipboards,
++                            ) {
++                                self.handler.native_clipboard_image(image);
++                            }
++                        }
+                         #[cfg(target_os = "ios")]
+                         {
+                             if let Some(cb) = _mcb
+diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs
+--- a/src/ui_session_interface.rs
++++ b/src/ui_session_interface.rs
+@@ -1739,6 +1739,16 @@
+         _html: Option<String>,
+     ) {
+     }
++    #[cfg(feature = "rdn-native-core")]
++    fn native_clipboard_image_enabled(&self) -> bool {
++        false
++    }
++    #[cfg(feature = "rdn-native-core")]
++    fn native_clipboard_image(
++        &self,
++        _image: crate::rdn_bridge::NativeViewerClipboardImage,
++    ) {
++    }
+     fn cancel_msgbox(&self, tag: &str);
+     fn switch_back(&self, id: &str);
+     fn portable_service_running(&self, running: bool);
