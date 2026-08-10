@@ -2,6 +2,73 @@
 import XCTest
 
 final class ViewerFileTransferRecursiveManifestAuthorityTests: XCTestCase {
+    func testABIManifestPartsRevalidateAndProjectSemanticPayloads() throws {
+        let file = CoreFileTransferListEntry(
+            kind: .file,
+            relativePath: "资料/report.txt",
+            size: 42,
+            modifiedTime: 10
+        )
+        let files = try XCTUnwrap(CoreFileTransferManifestEvent(
+            sessionEpoch: 7,
+            requestID: 11,
+            status: .success,
+            part: .files,
+            entries: [file]
+        ))
+        guard case let .files(projectedFiles) = files.recursiveManifestPart else {
+            return XCTFail("files event must project one semantic files part")
+        }
+        XCTAssertEqual(projectedFiles.first?.relativePath, "资料/report.txt")
+
+        let directory = CoreFileTransferListEntry(
+            kind: .directory,
+            relativePath: "资料/empty",
+            size: 0,
+            modifiedTime: 0
+        )
+        let directories = try XCTUnwrap(CoreFileTransferManifestEvent(
+            sessionEpoch: 7,
+            requestID: 11,
+            status: .success,
+            part: .emptyDirectories,
+            entries: [directory]
+        ))
+        XCTAssertEqual(
+            directories.recursiveManifestPart,
+            .emptyDirectories(["资料/empty"])
+        )
+
+        XCTAssertNil(CoreFileTransferManifestEvent(
+            sessionEpoch: 7,
+            requestID: 11,
+            status: .success,
+            part: .files,
+            entries: [directory]
+        ))
+        XCTAssertNil(CoreFileTransferManifestEvent(
+            sessionEpoch: 7,
+            requestID: 11,
+            status: .success,
+            part: .emptyDirectories,
+            entries: [file]
+        ))
+        XCTAssertNil(CoreFileTransferManifestEvent(
+            sessionEpoch: 7,
+            requestID: 11,
+            status: .rejected,
+            part: .files,
+            entries: [file]
+        ))
+        XCTAssertNotNil(CoreFileTransferManifestEvent(
+            sessionEpoch: 7,
+            requestID: 11,
+            status: .unavailable,
+            part: .files,
+            entries: []
+        ))
+    }
+
     func testCompletesOnlyAfterBothExactSessionPartsInEitherOrder() throws {
         let file = try makeFile(path: "资料/report.txt", size: 42)
         var authority = ViewerFileTransferRecursiveManifestAuthority()

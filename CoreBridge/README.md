@@ -143,7 +143,7 @@ implemented through the single existing owner; Host bootstrap schema v4 and
 Home now provide independent, default-off image read/write opt-ins. Installed
 two-Mac acceptance remains unverified.
 
-Viewer ABI v10 retains all ABI v8 clipboard behavior and the v9 separate,
+Viewer ABI v11 retains all ABI v8 clipboard behavior and the v9 separate,
 default-off file-transfer seam. The connection configuration accepts exact
 `false/0` desktop mode or exact `true/nonzero` dedicated file mode; file mode
 rejects every desktop clipboard direction, initializes upstream
@@ -154,7 +154,7 @@ enqueue upstream `CancelJob`. The scalar event callback contains only epoch,
 transfer ID, sequence, bounded progress and typed failure fields—never paths,
 descriptors or raw protocol errors.
 
-ABI v10 additionally owns one exact-session, single-flight remote-root list
+ABI v11 retains one exact-session, single-flight remote-root list
 request. It sends only upstream `ReadDir("/", include_hidden=false)` after all
 file-session and remote-permission gates pass. The callback carries a positive
 request ID and callback-scoped entries: at most 1,024 regular file/directory
@@ -169,8 +169,18 @@ destination owner can now pin one pre-existing euid-owned private `0700`
 directory with no-follow read-only open, retain only descriptor identity and an
 opaque lease, and revalidate identity/owner/mode for each scoped borrow before
 exact-epoch teardown closes it. A transport-independent recursive-manifest
-authority can now join one bounded files part and one bounded empty-directory
-part for an exact epoch/request, then apply the canonical combined manifest
-validation. No remote recursive-manifest command/callback, download command,
-`openat`/write, picker UI or product configuration exists, so these remain
-internal lifecycles rather than file-transfer product capability.
+authority joins one bounded files part and one bounded empty-directory part for
+an exact epoch/request, then applies the canonical combined manifest validation.
+ABI v11 now requests those parts with root-bound
+`AllFiles(id, "/", include_hidden=false)` and
+`ReadEmptyDirs("/", include_hidden=false)`. Rust owns and bounds each response,
+rejects hidden/private-staging/unsafe/type-invalid/case-alias metadata, keeps one
+exact request in flight, and clears pending state on duplicate, malformed,
+remote error, disconnect, worker exit or job teardown. Because
+`ReadEmptyDirsResponse` has no request ID, only one manifest request is admitted
+per session epoch; retry requires reconnecting with a fresh epoch, preventing a
+late response from being attributed to a new request. Swift synchronously copies the
+callback-scoped entries and revalidates ABI, epoch, request, status, part, type,
+size, mtime, path and case-fold collisions before queued delivery. No download command,
+`openat`/write, picker UI or product configuration exists, so this
+remains an internal lifecycle rather than file-transfer product capability.

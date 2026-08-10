@@ -191,6 +191,95 @@ public struct CoreFileTransferListEvent: Equatable, Sendable {
     }
 }
 
+public enum CoreFileTransferManifestPartKind: UInt32, Sendable {
+    case files = 1
+    case emptyDirectories = 2
+}
+
+public struct CoreFileTransferManifestEvent: Equatable, Sendable {
+    public let sessionEpoch: UInt64
+    public let requestID: Int32
+    public let status: CoreFileTransferListStatus
+    public let part: CoreFileTransferManifestPartKind
+    public let entries: [CoreFileTransferListEntry]
+
+    init?(
+        sessionEpoch: UInt64,
+        requestID: Int32,
+        status: CoreFileTransferListStatus,
+        part: CoreFileTransferManifestPartKind,
+        entries: [CoreFileTransferListEntry]
+    ) {
+        guard sessionEpoch > 0, requestID > 0 else { return nil }
+        if status != .success {
+            guard entries.isEmpty else { return nil }
+        }
+        guard entries.count <= Int(RDN_MAX_FILE_TRANSFER_LIST_ENTRIES) else {
+            return nil
+        }
+
+        var metadataBytes = 0
+        var collisionKeys = Set<String>()
+        for entry in entries {
+            let nextMetadata = metadataBytes.addingReportingOverflow(
+                entry.relativePath.utf8.count
+            )
+            guard
+                !nextMetadata.overflow,
+                nextMetadata.partialValue
+                    <= Int(RDN_MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES),
+                ViewerFileTransferManifest.accepts(relativePath: entry.relativePath),
+                !entry.relativePath.contains("\\"),
+                entry.relativePath.rangeOfCharacter(from: .controlCharacters) == nil
+            else { return nil }
+            switch part {
+            case .files:
+                guard
+                    entry.kind == .file,
+                    Int64(exactly: entry.modifiedTime) != nil
+                else { return nil }
+            case .emptyDirectories:
+                guard
+                    entry.kind == .directory,
+                    entry.size == 0,
+                    entry.modifiedTime == 0
+                else { return nil }
+            }
+            let collisionKey = entry.relativePath.precomposedStringWithCanonicalMapping.folding(
+                options: [.caseInsensitive],
+                locale: Locale(identifier: "en_US_POSIX")
+            )
+            guard collisionKeys.insert(collisionKey).inserted else { return nil }
+            metadataBytes = nextMetadata.partialValue
+        }
+        self.sessionEpoch = sessionEpoch
+        self.requestID = requestID
+        self.status = status
+        self.part = part
+        self.entries = entries
+    }
+
+    package var recursiveManifestPart: ViewerFileTransferRecursiveManifestPart? {
+        guard status == .success else { return nil }
+        switch part {
+        case .files:
+            let files = entries.compactMap { entry in
+                Int64(exactly: entry.modifiedTime).flatMap { modifiedTime in
+                    ViewerFileTransferFile(
+                        relativePath: entry.relativePath,
+                        size: entry.size,
+                        modifiedTime: modifiedTime
+                    )
+                }
+            }
+            guard files.count == entries.count else { return nil }
+            return .files(files)
+        case .emptyDirectories:
+            return .emptyDirectories(entries.map(\.relativePath))
+        }
+    }
+}
+
 public struct CoreConnectionConfig: Sendable {
     public let rendezvousServer: String
     public let serverPublicKey: String
@@ -344,6 +433,7 @@ private final class CallbackBox: @unchecked Sendable {
     let onClipboardImage: @Sendable (CoreClipboardImagePayload) -> Void
     let onFileTransferEvent: @Sendable (CoreFileTransferEvent) -> Void
     let onFileTransferList: @Sendable (CoreFileTransferListEvent) -> Void
+    let onFileTransferManifest: @Sendable (CoreFileTransferManifestEvent) -> Void
     private let clipboardLifecycleLock = NSLock()
     private var clipboardDeliveryEnabled = true
     private let fileTransferLifecycleLock = NSLock()
@@ -358,7 +448,8 @@ private final class CallbackBox: @unchecked Sendable {
         onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void,
         onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void,
         onFileTransferEvent: @escaping @Sendable (CoreFileTransferEvent) -> Void,
-        onFileTransferList: @escaping @Sendable (CoreFileTransferListEvent) -> Void
+        onFileTransferList: @escaping @Sendable (CoreFileTransferListEvent) -> Void,
+        onFileTransferManifest: @escaping @Sendable (CoreFileTransferManifestEvent) -> Void
     ) {
         self.queue = queue
         self.onState = onState
@@ -369,6 +460,7 @@ private final class CallbackBox: @unchecked Sendable {
         self.onClipboardImage = onClipboardImage
         self.onFileTransferEvent = onFileTransferEvent
         self.onFileTransferList = onFileTransferList
+        self.onFileTransferManifest = onFileTransferManifest
     }
 
     func deliverClipboardText(_ text: String) {
@@ -413,6 +505,15 @@ private final class CallbackBox: @unchecked Sendable {
                 return
             }
             onFileTransferList(event)
+        }
+    }
+
+    func deliverFileTransferManifest(_ event: CoreFileTransferManifestEvent) {
+        queue.async { [self] in
+            guard fileTransferLifecycleLock.withLock({ fileTransferDeliveryEnabled }) else {
+                return
+            }
+            onFileTransferManifest(event)
         }
     }
 
@@ -845,6 +946,55 @@ private let fileTransferListCallback: RDNFileTransferListCallback = {
     box.deliverFileTransferList(event)
 }
 
+private let fileTransferManifestCallback: RDNFileTransferManifestCallback = {
+    context, eventPointer in
+    guard let context, let eventPointer else { return }
+    let raw = eventPointer.pointee
+    guard
+        raw.abi_version == RDN_ABI_VERSION,
+        raw.session_epoch > 0,
+        raw.request_id > 0,
+        let status = CoreFileTransferListStatus(rawValue: raw.status),
+        let part = CoreFileTransferManifestPartKind(rawValue: raw.part),
+        raw.entry_count <= Int(RDN_MAX_FILE_TRANSFER_LIST_ENTRIES)
+    else { return }
+
+    var entries: [CoreFileTransferListEntry] = []
+    entries.reserveCapacity(raw.entry_count)
+    if raw.entry_count > 0 {
+        guard let rawEntries = raw.entries else { return }
+        for index in 0..<raw.entry_count {
+            let rawEntry = rawEntries.advanced(by: index).pointee
+            guard
+                let kind = CoreFileTransferListEntryKind(rawValue: rawEntry.kind),
+                rawEntry.relative_path_length > 0,
+                rawEntry.relative_path_length
+                    <= Int(RDN_MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES),
+                let pathBytes = rawEntry.relative_path_utf8
+            else { return }
+            let pathData = Data(bytes: pathBytes, count: rawEntry.relative_path_length)
+            guard let relativePath = String(data: pathData, encoding: .utf8) else { return }
+            entries.append(CoreFileTransferListEntry(
+                kind: kind,
+                relativePath: relativePath,
+                size: rawEntry.size,
+                modifiedTime: rawEntry.modified_time
+            ))
+        }
+    } else if raw.entries != nil {
+        return
+    }
+    guard let event = CoreFileTransferManifestEvent(
+        sessionEpoch: raw.session_epoch,
+        requestID: raw.request_id,
+        status: status,
+        part: part,
+        entries: entries
+    ) else { return }
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    box.deliverFileTransferManifest(event)
+}
+
 public final class RustDeskCoreClient: @unchecked Sendable {
     public static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
     public static let abiVersion = UInt32(RDN_ABI_VERSION)
@@ -867,7 +1017,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void = { _ in },
         onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void = { _ in },
         onFileTransferEvent: @escaping @Sendable (CoreFileTransferEvent) -> Void = { _ in },
-        onFileTransferList: @escaping @Sendable (CoreFileTransferListEvent) -> Void = { _ in }
+        onFileTransferList: @escaping @Sendable (CoreFileTransferListEvent) -> Void = { _ in },
+        onFileTransferManifest: @escaping @Sendable (CoreFileTransferManifestEvent) -> Void = { _ in }
     ) throws {
         var error = [CChar](repeating: 0, count: 1024)
         guard let library = libraryURL.path.withCString({
@@ -894,7 +1045,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             onClipboardRichText: onClipboardRichText,
             onClipboardImage: onClipboardImage,
             onFileTransferEvent: onFileTransferEvent,
-            onFileTransferList: onFileTransferList
+            onFileTransferList: onFileTransferList,
+            onFileTransferManifest: onFileTransferManifest
         )
         var callbacks = RDNCallbacks(
             abi_version: RDN_ABI_VERSION,
@@ -905,7 +1057,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             on_clipboard_rich_text: clipboardRichTextCallback,
             on_clipboard_image: clipboardImageCallback,
             on_file_transfer_event: fileTransferEventCallback,
-            on_file_transfer_list: fileTransferListCallback
+            on_file_transfer_list: fileTransferListCallback,
+            on_file_transfer_manifest: fileTransferManifestCallback
         )
         let context = Unmanaged.passUnretained(callbackBox).toOpaque()
         guard let client = rdn_shim_client_create(library, &callbacks, context) else {
@@ -1122,6 +1275,22 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
         }
         return rdn_shim_client_file_transfer_list_root(
+            library,
+            client,
+            sessionEpoch,
+            requestID
+        )
+    }
+
+    @discardableResult
+    public func requestFileTransferRecursiveManifest(
+        sessionEpoch: UInt64,
+        requestID: Int32
+    ) -> Int32 {
+        guard sessionEpoch > 0, requestID > 0 else {
+            return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+        }
+        return rdn_shim_client_file_transfer_manifest_root(
             library,
             client,
             sessionEpoch,

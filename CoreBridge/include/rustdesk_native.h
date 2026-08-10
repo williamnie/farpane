@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 10u
+#define RDN_ABI_VERSION 11u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -202,6 +202,26 @@ typedef struct RDNFileTransferListEvent {
 typedef void (*RDNFileTransferListCallback)(
     void *context, const RDNFileTransferListEvent *event);
 
+typedef enum RDNFileTransferManifestPartKind {
+    RDN_FILE_TRANSFER_MANIFEST_PART_FILES = 1,
+    RDN_FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES = 2,
+} RDNFileTransferManifestPartKind;
+
+/* Callback-scoped recursive manifest metadata. Each successful event carries
+ * exactly one bounded semantic part. File paths and empty-directory paths are
+ * relative UTF-8 slices; Swift copies and revalidates before queued delivery. */
+typedef struct RDNFileTransferManifestEvent {
+    uint32_t abi_version;
+    uint64_t session_epoch;
+    int32_t request_id;
+    uint32_t status;
+    uint32_t part;
+    const RDNFileTransferListEntry *entries;
+    size_t entry_count;
+} RDNFileTransferManifestEvent;
+typedef void (*RDNFileTransferManifestCallback)(
+    void *context, const RDNFileTransferManifestEvent *event);
+
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
@@ -212,6 +232,7 @@ typedef struct RDNCallbacks {
     RDNClipboardImageCallback on_clipboard_image;
     RDNFileTransferEventCallback on_file_transfer_event;
     RDNFileTransferListCallback on_file_transfer_list;
+    RDNFileTransferManifestCallback on_file_transfer_manifest;
 } RDNCallbacks;
 
 typedef struct RDNConnectionConfig {
@@ -342,6 +363,12 @@ int32_t rdn_client_file_transfer_cancel(RDNClient *client,
 int32_t rdn_client_file_transfer_list_root(RDNClient *client,
                                            uint64_t session_epoch,
                                            int32_t request_id);
+/* Requests one recursive root manifest for the session epoch. ReadEmptyDirs
+ * responses carry no request ID, so a second request in the same epoch is
+ * rejected even after the first completes; reconnect with a fresh epoch. */
+int32_t rdn_client_file_transfer_manifest_root(RDNClient *client,
+                                               uint64_t session_epoch,
+                                               int32_t request_id);
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
@@ -591,6 +618,9 @@ int32_t rdn_shim_client_file_transfer_cancel(
     const RDNCoreLibrary *library, RDNClient *client,
     uint64_t session_epoch, int32_t transfer_id);
 int32_t rdn_shim_client_file_transfer_list_root(
+    const RDNCoreLibrary *library, RDNClient *client,
+    uint64_t session_epoch, int32_t request_id);
+int32_t rdn_shim_client_file_transfer_manifest_root(
     const RDNCoreLibrary *library, RDNClient *client,
     uint64_t session_epoch, int32_t request_id);
 

@@ -118,16 +118,16 @@ def main() -> int:
                 "FileHandle",
             )
         ),
-        "abiRemainsV10AndRemoteLifecycleAbsent": (
-            "#define RDN_ABI_VERSION 10u" in sources["header"]
-            and "rdn_client_file_transfer_manifest" not in sources["header"]
-            and "rdn_client_file_transfer_manifest" not in sources["bridge"]
-            and "requestFileTransferRecursiveManifest" not in sources["core"]
+        "abiV11AddsRemoteLifecycleWithoutChangingAuthority": (
+            "#define RDN_ABI_VERSION 11u" in sources["header"]
+            and "rdn_client_file_transfer_manifest_root" in sources["header"]
+            and "rdn_client_file_transfer_manifest_root" in sources["bridge"]
+            and "requestFileTransferRecursiveManifest" in sources["core"]
         ),
         "productRemainsOffAndGapIsExplicit": (
             "fileTransferEnabled:" not in product
-            and "远端 recursive-manifest command/callback" in sources["architecture"]
-            and "No remote recursive-manifest command/callback" in sources["readme"]
+            and "download start" in sources["architecture"]
+            and "No download command" in sources["readme"]
         ),
     }
     source_lines = {
@@ -163,7 +163,7 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "viewerRecursiveManifestAuthorityImplemented": status == expected_status,
-            "viewerRecursiveManifestABILifecycleImplemented": False,
+            "viewerRecursiveManifestABILifecycleImplemented": status == expected_status,
             "viewerDownloadIOImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,

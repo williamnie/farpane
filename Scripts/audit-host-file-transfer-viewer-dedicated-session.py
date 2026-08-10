@@ -117,13 +117,13 @@ def main() -> int:
                 "receiver.try_recv(), Ok(Data::CancelJob(23))",
             )
         ),
-        "abiRemainsV9AndProductOff": (
-            "#define RDN_ABI_VERSION 10u" in sources["header"]
+        "abiV11RetainsDedicatedSessionAndProductOff": (
+            "#define RDN_ABI_VERSION 11u" in sources["header"]
             and "fileTransferEnabled:" not in product
         ),
         "remainingManifestAndDestinationGapIsExplicit": (
             "destination\n  owner" in sources["architecture"]
-            and "No remote recursive-manifest command/callback" in sources["readme"]
+            and "No download command" in sources["readme"]
         ),
     }
     source_lines = {

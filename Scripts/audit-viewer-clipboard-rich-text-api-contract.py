@@ -63,7 +63,7 @@ def main() -> int:
         "viewerABIv7CarriesBoundedSemanticBundle": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 10u",
+                "#define RDN_ABI_VERSION 11u",
                 "#define RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES (64u * 1024u)",
                 "#define RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES (1024u * 1024u)",
                 "typedef struct RDNClipboardRichTextPayload",
@@ -201,7 +201,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.2j3 Viewer rich-text clipboard API contract"
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 10u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 11u"),
         "richLimit": line_number(header, "RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES"),
         "richPayload": line_number(header, "typedef struct RDNClipboardRichTextPayload"),
         "richCallback": line_number(header, "RDNClipboardRichTextCallback on_clipboard_rich_text;"),

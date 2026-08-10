@@ -169,7 +169,7 @@ def main() -> int:
                 "connection-local",
                 "read jobs",
                 "snapshot-bound directory",
-                "Viewer ABI v10",
+                "Viewer ABI v11",
                 "destination\n  owner",
                 "产品能力必须继续保持关闭",
             )
