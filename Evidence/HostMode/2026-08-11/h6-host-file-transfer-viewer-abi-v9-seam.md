@@ -11,11 +11,11 @@ transfer while keeping the product and network runtime disabled.
   file event. No path, descriptor, byte pointer or raw protocol error crosses
   the callback.
 - Configuration is an exact pair: ordinary Viewer sessions use `false/0`.
-  Mismatched pairs fail validation; reserved `true/nonzero` fails with stable
-  not-supported before a network worker starts.
+  Mismatched pairs fail validation. H6.3f2b1 subsequently connected the
+  `true/nonzero` pair to a dedicated, product-disabled file session.
 - Cancel requires a positive transfer ID and exact nonzero session epoch. The
-  disabled, stale, inactive and not-supported cases return stable client error
-  codes.
+  disabled, stale, inactive, unauthenticated and permission-denied cases return
+  stable client error codes.
 - Swift revalidates ABI, epoch/ID/sequence, enums, monotonic bounds, finite
   speed, conflict file number and exact completion before queued delivery.
   Disconnect closes file-event delivery before the Core disconnect.
@@ -39,8 +39,8 @@ transfer while keeping the product and network runtime disabled.
 
 - Rust does not produce file events and does not create a Viewer file-session
   event loop, destination descriptor owner, listing/download I/O or product UI.
-- The reserved enabled pair intentionally returns not-supported; product file
-  transfer remains unavailable and App/Agent do not opt in.
+- The enabled pair now establishes only the dedicated session/cancel runtime;
+  product file transfer remains unavailable and App/Agent do not opt in.
 - No App was installed or started. No real user file, Hermes/server, CI,
   dependency, database, push or deploy state changed.
 - Two-Mac file-transfer acceptance remains unverified and non-blocking under the
@@ -48,6 +48,5 @@ transfer while keeping the product and network runtime disabled.
 
 ## Next step
 
-`host-file-transfer-viewer-core-event-command-runtime-lifecycle`: implement the
-real Rust Viewer file-session event loop and map bounded list/download events
-into the frozen ABI without exposing paths or raw errors.
+`host-file-transfer-viewer-list-manifest-command-event-lifecycle`: implement the
+bounded remote-list command and manifest event before destination/download I/O.

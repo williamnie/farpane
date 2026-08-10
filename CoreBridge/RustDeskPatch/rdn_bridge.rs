@@ -479,14 +479,19 @@ impl InvokeUiSession for BridgeUi {
 
     fn on_connected(&self, _conn_type: ConnType) {
         self.shared.authenticated.store(true, Ordering::Release);
-        let allowed = input_is_allowed(
-            true,
-            self.shared.remote_keyboard_enabled.load(Ordering::Acquire),
-        );
+        let file_transfer = self.shared.file_transfer_enabled.load(Ordering::Acquire);
+        let allowed = !file_transfer
+            && input_is_allowed(
+                true,
+                self.shared.remote_keyboard_enabled.load(Ordering::Acquire),
+            );
         self.shared.input_allowed.store(allowed, Ordering::Release);
         self.shared
             .emit_state(RDNState::Authenticated, 0, "authenticated");
-        if allowed {
+        if file_transfer {
+            self.shared
+                .emit_state(RDNState::Streaming, 0, "file-transfer-ready");
+        } else if allowed {
             self.shared
                 .emit_state(RDNState::ControlReady, 0, "control-ready");
         }
@@ -498,8 +503,8 @@ impl InvokeUiSession for BridgeUi {
             self.shared
                 .remote_keyboard_enabled
                 .store(value, Ordering::Release);
-            let allowed =
-                input_is_allowed(self.shared.authenticated.load(Ordering::Acquire), value);
+            let allowed = !self.shared.file_transfer_enabled.load(Ordering::Acquire)
+                && input_is_allowed(self.shared.authenticated.load(Ordering::Acquire), value);
             self.shared.input_allowed.store(allowed, Ordering::Release);
             if allowed {
                 self.shared
@@ -513,7 +518,9 @@ impl InvokeUiSession for BridgeUi {
     }
 
     fn close_success(&self) {
-        self.shared.emit_state(RDNState::Streaming, 0, "streaming");
+        if !self.shared.file_transfer_enabled.load(Ordering::Acquire) {
+            self.shared.emit_state(RDNState::Streaming, 0, "streaming");
+        }
     }
 
     fn update_quality_status(&self, status: QualityStatus) {
@@ -1200,11 +1207,15 @@ unsafe fn optional_string(pointer: *const c_char) -> Result<String, i32> {
     }
 }
 
-fn viewer_file_transfer_seam_admission(enabled: bool, session_epoch: u64) -> i32 {
+fn viewer_file_transfer_mode_admission(
+    enabled: bool,
+    session_epoch: u64,
+    desktop_clipboard_requested: bool,
+) -> i32 {
     if enabled != (session_epoch > 0) {
         -5
-    } else if enabled {
-        -9
+    } else if enabled && desktop_clipboard_requested {
+        -5
     } else {
         0
     }
@@ -1275,16 +1286,21 @@ pub unsafe extern "C" fn rdn_client_connect(
     if (*config).abi_version != ABI_VERSION {
         return -2;
     }
-    let file_transfer_admission = viewer_file_transfer_seam_admission(
+    let desktop_clipboard_requested = (*config).receive_clipboard_text
+        || (*config).send_clipboard_text
+        || (*config).receive_clipboard_rich_text
+        || (*config).send_clipboard_rich_text
+        || (*config).receive_clipboard_image
+        || (*config).send_clipboard_image;
+    let file_transfer_admission = viewer_file_transfer_mode_admission(
         (*config).enable_file_transfer,
         (*config).file_transfer_session_epoch,
+        desktop_clipboard_requested,
     );
     if file_transfer_admission != 0 {
-        // ABI v9 freezes the policy/epoch seam before the dedicated Viewer
-        // file-transfer event loop exists. Never start a desktop connection
-        // that could be mistaken for an authorized file-transfer session.
         return file_transfer_admission;
     }
+    let file_transfer_mode = (*config).enable_file_transfer;
     let client = &*client;
     if client.worker.lock().unwrap().is_some() {
         return -4;
@@ -1347,11 +1363,11 @@ pub unsafe extern "C" fn rdn_client_connect(
     client
         .shared
         .file_transfer_enabled
-        .store(false, Ordering::Release);
+        .store(file_transfer_mode, Ordering::Release);
     client
         .shared
         .file_transfer_session_epoch
-        .store(0, Ordering::Release);
+        .store((*config).file_transfer_session_epoch, Ordering::Release);
     client.shared.sequence.store(0, Ordering::Relaxed);
     *client.shared.dimensions.write().unwrap() = (0, 0);
     client
@@ -1374,22 +1390,22 @@ pub unsafe extern "C" fn rdn_client_connect(
     };
     session.lc.write().unwrap().initialize(
         target,
-        ConnType::DEFAULT_CONN,
+        if file_transfer_mode {
+            ConnType::FILE_TRANSFER
+        } else {
+            ConnType::DEFAULT_CONN
+        },
         None,
         (*config).force_relay,
         None,
         None,
         None,
     );
-    session.lc.write().unwrap().configure_native_viewer(
-        &peer_id,
-        (*config).receive_clipboard_text
-            || (*config).send_clipboard_text
-            || (*config).receive_clipboard_rich_text
-            || (*config).send_clipboard_rich_text
-            || (*config).receive_clipboard_image
-            || (*config).send_clipboard_image,
-    );
+    session
+        .lc
+        .write()
+        .unwrap()
+        .configure_native_viewer(&peer_id, desktop_clipboard_requested);
     let round = session.connection_round_state.lock().unwrap().new_round();
     let worker_session = session.clone();
     let worker_shared = client.shared.clone();
@@ -1397,47 +1413,57 @@ pub unsafe extern "C" fn rdn_client_connect(
         io_loop(worker_session, round);
         worker_shared.authenticated.store(false, Ordering::Release);
         worker_shared.input_allowed.store(false, Ordering::Release);
+        worker_shared
+            .file_transfer_enabled
+            .store(false, Ordering::Release);
+        worker_shared
+            .file_transfer_session_epoch
+            .store(0, Ordering::Release);
         worker_shared.emit_state(RDNState::Disconnected, 0, "disconnected");
     });
-    let housekeeping_session = session.clone();
-    let housekeeping_shared = client.shared.clone();
-    let custom_fps = native_stream_fps((*config).force_relay);
-    let housekeeping = std::thread::spawn(move || {
-        let mut ticks = 0;
-        let mut configuration_sent = false;
-        while housekeeping_shared.active.load(Ordering::Acquire) {
-            std::thread::sleep(Duration::from_millis(100));
-            if !housekeeping_shared.active.load(Ordering::Acquire) {
-                break;
-            }
-            if !configuration_sent {
-                if let Some(sender) = housekeeping_session.sender.read().unwrap().as_ref() {
-                    if sender
-                        .send(Data::Message(native_stream_configuration_message(
-                            custom_fps,
-                        )))
-                        .is_err()
-                    {
-                        break;
-                    }
-                    configuration_sent = true;
-                }
-            }
-            ticks += 1;
-            if ticks < 50 {
-                continue;
-            }
-            ticks = 0;
-            if let Some(sender) = housekeeping_session.sender.read().unwrap().as_ref() {
-                if sender.send(Data::Message(housekeeping_message())).is_err() {
+    let housekeeping = if file_transfer_mode {
+        None
+    } else {
+        let housekeeping_session = session.clone();
+        let housekeeping_shared = client.shared.clone();
+        let custom_fps = native_stream_fps((*config).force_relay);
+        Some(std::thread::spawn(move || {
+            let mut ticks = 0;
+            let mut configuration_sent = false;
+            while housekeeping_shared.active.load(Ordering::Acquire) {
+                std::thread::sleep(Duration::from_millis(100));
+                if !housekeeping_shared.active.load(Ordering::Acquire) {
                     break;
                 }
+                if !configuration_sent {
+                    if let Some(sender) = housekeeping_session.sender.read().unwrap().as_ref() {
+                        if sender
+                            .send(Data::Message(native_stream_configuration_message(
+                                custom_fps,
+                            )))
+                            .is_err()
+                        {
+                            break;
+                        }
+                        configuration_sent = true;
+                    }
+                }
+                ticks += 1;
+                if ticks < 50 {
+                    continue;
+                }
+                ticks = 0;
+                if let Some(sender) = housekeeping_session.sender.read().unwrap().as_ref() {
+                    if sender.send(Data::Message(housekeeping_message())).is_err() {
+                        break;
+                    }
+                }
             }
-        }
-    });
+        }))
+    };
     *client.session.lock().unwrap() = Some(session);
     *client.worker.lock().unwrap() = Some(worker);
-    *client.housekeeping.lock().unwrap() = Some(housekeeping);
+    *client.housekeeping.lock().unwrap() = housekeeping;
     0
 }
 
@@ -1890,7 +1916,20 @@ pub unsafe extern "C" fn rdn_client_file_transfer_cancel(
     {
         return -10;
     }
-    -9
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    if !*session.server_file_transfer_enabled.read().unwrap() {
+        return -8;
+    }
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
+        return -3;
+    };
+    sender.send(Data::CancelJob(transfer_id)).map_or(-3, |_| 0)
 }
 
 struct PacketInspection {
@@ -2586,10 +2625,11 @@ mod tests {
 
     #[test]
     fn viewer_file_transfer_v9_seam_is_exact_pair_and_fail_closed() {
-        assert_eq!(viewer_file_transfer_seam_admission(false, 0), 0);
-        assert_eq!(viewer_file_transfer_seam_admission(false, 1), -5);
-        assert_eq!(viewer_file_transfer_seam_admission(true, 0), -5);
-        assert_eq!(viewer_file_transfer_seam_admission(true, 1), -9);
+        assert_eq!(viewer_file_transfer_mode_admission(false, 0, false), 0);
+        assert_eq!(viewer_file_transfer_mode_admission(false, 1, false), -5);
+        assert_eq!(viewer_file_transfer_mode_admission(true, 0, false), -5);
+        assert_eq!(viewer_file_transfer_mode_admission(true, 1, false), 0);
+        assert_eq!(viewer_file_transfer_mode_admission(true, 1, true), -5);
 
         let ui = BridgeUi::default();
         let mut client = RDNClient {
@@ -2628,8 +2668,58 @@ mod tests {
         );
         assert_eq!(
             unsafe { rdn_client_file_transfer_cancel(client_pointer, 2, 1) },
-            -9
+            -6
         );
+    }
+
+    #[test]
+    fn viewer_file_transfer_mode_dispatches_exact_epoch_cancel_only_when_ready() {
+        let desktop_ui = BridgeUi::default();
+        desktop_ui.shared.active.store(true, Ordering::Release);
+        desktop_ui.on_connected(ConnType::DEFAULT_CONN);
+        assert!(desktop_ui.shared.input_allowed.load(Ordering::Acquire));
+
+        let ui = BridgeUi::default();
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+        assert!(ui.shared.authenticated.load(Ordering::Acquire));
+        assert!(!ui.shared.input_allowed.load(Ordering::Acquire));
+
+        let (sender, mut receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
+        let session = Session {
+            sender: Arc::new(RwLock::new(Some(sender))),
+            ui_handler: ui.clone(),
+            server_file_transfer_enabled: Arc::new(RwLock::new(false)),
+            ..Default::default()
+        };
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(Some(session.clone())),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let client_pointer = &mut client as *mut RDNClient;
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 6, 23) },
+            -10
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 7, 23) },
+            -8
+        );
+        *session.server_file_transfer_enabled.write().unwrap() = true;
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 7, 23) },
+            0
+        );
+        assert!(matches!(receiver.try_recv(), Ok(Data::CancelJob(23))));
     }
 
     fn optional_payload_bytes(bytes: Option<&[u8]>) -> (*const u8, usize) {

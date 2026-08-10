@@ -59,7 +59,7 @@ def main() -> int:
             marker in sources["design"]
             for marker in (
                 "H6.3f2a Viewer file-transfer ABI v9 default-off seam",
-                "host-file-transfer-viewer-core-event-command-runtime-lifecycle",
+                "host-file-transfer-viewer-list-manifest-command-event-lifecycle",
             )
         ),
         "abiV9RetainsClipboardAndAddsFileSeam": all(
@@ -101,9 +101,10 @@ def main() -> int:
         "rustAdmissionPrecedesNetworkAndFailsClosed": all(
             marker in bridge
             for marker in (
-                "viewer_file_transfer_seam_admission(enabled: bool, session_epoch: u64)",
+                "fn viewer_file_transfer_mode_admission(",
                 "if enabled != (session_epoch > 0)",
-                "let file_transfer_admission = viewer_file_transfer_seam_admission(",
+                "else if enabled && desktop_clipboard_requested",
+                "let file_transfer_admission = viewer_file_transfer_mode_admission(",
                 "if file_transfer_admission != 0",
                 "return file_transfer_admission;",
                 "emit_state(RDNState::Connecting",
@@ -148,14 +149,14 @@ def main() -> int:
             marker in (bridge + sources["swift_tests"])
             for marker in (
                 "viewer_file_transfer_v9_seam_is_exact_pair_and_fail_closed",
-                "viewer_file_transfer_seam_admission(false, 0)",
+                "viewer_file_transfer_mode_admission(false, 0, false)",
                 "rdn_client_file_transfer_cancel(client_pointer, 2, 1)",
                 "testViewerFileTransferSeamIsDefaultOffAndEpochScoped",
             )
         ),
         "productRemainsOffAndRuntimeGapDocumented": (
             "fileTransferEnabled:" not in product
-            and "真实 Viewer file event loop" in sources["architecture"]
+            and "真实 Viewer file event mapping" in sources["architecture"]
             and "Rust does not yet produce file events" in sources["readme"]
         ),
     }
@@ -168,7 +169,7 @@ def main() -> int:
         "callback": line_number(header, "RDNFileTransferEventCallback on_file_transfer_event;"),
         "config": line_number(header, "bool enable_file_transfer;"),
         "cancel": line_number(header, "rdn_client_file_transfer_cancel"),
-        "rustAdmission": line_number(bridge, "fn viewer_file_transfer_seam_admission("),
+        "rustAdmission": line_number(bridge, "fn viewer_file_transfer_mode_admission("),
         "rustCancel": line_number(bridge, "fn rdn_client_file_transfer_cancel("),
         "swiftCallback": line_number(swift, "private let fileTransferEventCallback"),
         "swiftCancel": line_number(swift, "public func cancelFileTransfer(sessionEpoch:"),
@@ -188,13 +189,14 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "viewerFileTransferABISeamImplemented": status == expected_status,
+            "viewerFileTransferSessionLifecycleImplemented": status == expected_status,
             "viewerFileTransferRuntimeImplemented": False,
             "viewerDestinationDescriptorOwnerImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-core-event-command-runtime-lifecycle"
+            "host-file-transfer-viewer-list-manifest-command-event-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

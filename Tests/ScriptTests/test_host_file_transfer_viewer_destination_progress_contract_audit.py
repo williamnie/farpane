@@ -42,7 +42,7 @@ class HostFileTransferViewerDestinationProgressContractAuditTests(unittest.TestC
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-core-event-command-runtime-lifecycle",
+            "host-file-transfer-viewer-list-manifest-command-event-lifecycle",
         )
 
 

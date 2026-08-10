@@ -170,7 +170,7 @@ def main() -> int:
                 "read jobs",
                 "snapshot-bound directory",
                 "Viewer ABI v9",
-                "真实 Viewer file event loop",
+                "真实 Viewer file event mapping",
                 "产品能力必须继续保持关闭",
             )
         ),
@@ -225,7 +225,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-core-event-command-runtime-lifecycle"
+            "host-file-transfer-viewer-list-manifest-command-event-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

@@ -4,43 +4,36 @@ import subprocess
 import unittest
 
 
-class HostFileTransferNativeExistingTargetLifecycleAuditTests(unittest.TestCase):
-    def test_existing_target_is_explicit_no_replace_and_product_remains_off(self) -> None:
+class HostFileTransferViewerDedicatedSessionAuditTests(unittest.TestCase):
+    def test_dedicated_session_and_cancel_are_gated_and_product_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            [
-                "python3",
-                "Scripts/audit-host-file-transfer-native-existing-target-lifecycle.py",
-            ],
+            ["python3", "Scripts/audit-host-file-transfer-viewer-dedicated-session.py"],
             cwd=repository,
             check=False,
             capture_output=True,
             text=True,
         )
 
-        self.assertEqual(
-            completed.returncode, 0, completed.stderr or completed.stdout
-        )
+        self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-native-existing-target-lifecycle-audit",
+            "farpane-host-file-transfer-viewer-dedicated-session-audit",
         )
         self.assertEqual(
             document["status"],
-            "native-existing-target-no-replace-decision-implemented-product-off",
+            "viewer-dedicated-file-session-cancel-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["nativeNewFileWriteLifecycleImplemented"])
-        self.assertTrue(claims["nativeSingleFileResumeDigestLifecycleImplemented"])
-        self.assertTrue(claims["nativeExistingTargetDecisionImplemented"])
-        self.assertFalse(claims["nativeExistingTargetReplacementImplemented"])
-        self.assertTrue(claims["nativeReadListDownloadImplemented"])
-        self.assertTrue(claims["viewerDestinationProgressContractImplemented"])
+        self.assertTrue(claims["viewerDedicatedFileSessionImplemented"])
+        self.assertTrue(claims["viewerCancelDispatchImplemented"])
+        self.assertFalse(claims["viewerListManifestLifecycleImplemented"])
+        self.assertFalse(claims["viewerDestinationIOImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
