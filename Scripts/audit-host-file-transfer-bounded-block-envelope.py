@@ -25,6 +25,8 @@ def main() -> int:
         "design": repository / "docs/host-mode-design.md",
         "fs": repository / "Vendor/rustdesk/libs/hbb_common/src/fs.rs",
         "compress": repository / "Vendor/rustdesk/libs/hbb_common/src/compress.rs",
+        "safe_root": repository
+        / "CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs",
         "patch": repository
         / "CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch",
         "bootstrap": repository / "Scripts/bootstrap-rustdesk-core.sh",
@@ -45,6 +47,7 @@ def main() -> int:
     design = sources["design"]
     fs = sources["fs"]
     compress = sources["compress"]
+    safe_root = sources["safe_root"]
     patch = sources["patch"]
     bootstrap = sources["bootstrap"]
     product = sources["app"] + sources["agent"]
@@ -63,7 +66,7 @@ def main() -> int:
             marker in design
             for marker in (
                 "H6.3c Host bounded file-transfer block envelope",
-                "host-file-transfer-safe-open-root",
+                "host-file-transfer-safe-root-mutations",
             )
         ),
         "senderAndReceiverShare128KiBLimit": all(
@@ -115,6 +118,15 @@ def main() -> int:
             )
         ),
         "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
+        "laterSafeReceiveRootPrimitiveExists": all(
+            marker in safe_root
+            for marker in (
+                "struct NativeFileTransferRoot",
+                "pub(crate) fn create_new_file",
+                "pub(crate) fn open_existing_file_for_resume",
+                "open_root_descriptor_survives_path_replacement",
+            )
+        ),
     }
     source_lines = {
         "designMilestone": line_number(
@@ -162,8 +174,10 @@ def main() -> int:
             "productFileTransferEnabled": False,
             "symlinkRaceClosed": False,
             "nativeHostFileServiceOwnerImplemented": False,
+            "safeReceiveRootPrimitiveImplemented": True,
+            "safeRootMutationsImplemented": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-safe-open-root",
+        "nextImplementationBoundary": "host-file-transfer-safe-root-mutations",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-file-block-envelope-implemented-product-off" else 1

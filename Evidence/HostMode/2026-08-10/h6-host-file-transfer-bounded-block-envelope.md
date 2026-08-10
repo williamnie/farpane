@@ -56,6 +56,7 @@ product callers.
 
 ## Next step
 
-`host-file-transfer-safe-open-root`: introduce a descriptor/handle-based
-no-follow receive root and make create/resume/remove/rename operations fail
-closed outside it before implementing the Native Host file-service owner.
+H6.3d1 has since established the descriptor-relative no-follow receive root and
+safe create/resume primitives. The next boundary is
+`host-file-transfer-safe-root-mutations`: add safe directory/remove/rename
+operations before implementing the Native Host file-service owner.

@@ -30,6 +30,8 @@ def main() -> int:
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
         "connection": repository / "Vendor/rustdesk/src/server/connection.rs",
         "fs": repository / "Vendor/rustdesk/libs/hbb_common/src/fs.rs",
+        "safe_root": repository
+        / "CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs",
         "build_core": repository / "Scripts/build-rust-core.sh",
     }
     try:
@@ -50,6 +52,7 @@ def main() -> int:
     product = sources["app"] + sources["agent"]
     connection = sources["connection"]
     fs = sources["fs"]
+    safe_root = sources["safe_root"]
     build_core = sources["build_core"]
 
     established = {
@@ -119,6 +122,16 @@ def main() -> int:
                 "MAX_FILE_TRANSFER_BLOCK_BYTES: usize = 128 * 1024",
                 "validated_file_transfer_block_payload(&block)?",
                 "decompress_with_limit(&block.data, MAX_FILE_TRANSFER_BLOCK_BYTES)",
+            )
+        ),
+        "nativeHostHasDescriptorRelativeReceiveRootPrimitive": all(
+            marker in safe_root
+            for marker in (
+                "struct NativeFileTransferRoot",
+                "libc::O_DIRECTORY | libc::O_NOFOLLOW",
+                "pub(crate) fn create_new_file",
+                "pub(crate) fn open_existing_file_for_resume",
+                "open_root_descriptor_survives_path_replacement",
             )
         ),
         "productCallersStillDoNotOptIn": (
@@ -198,6 +211,7 @@ def main() -> int:
             fs,
             "decompress_with_limit(&block.data, MAX_FILE_TRANSFER_BLOCK_BYTES)",
         ),
+        "safeReceiveRoot": line_number(safe_root, "struct NativeFileTransferRoot"),
         "toctouAcknowledgement": line_number(
             fs, "known TOCTOU window for symlink races"
         ),
@@ -233,10 +247,12 @@ def main() -> int:
             "pathTraversalGuardPresent": True,
             "symlinkRaceClosed": False,
             "compressedPayloadBounded": True,
+            "safeReceiveRootPrimitiveImplemented": True,
+            "safeRootMutationsImplemented": False,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-safe-open-root",
+        "nextImplementationBoundary": "host-file-transfer-safe-root-mutations",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1

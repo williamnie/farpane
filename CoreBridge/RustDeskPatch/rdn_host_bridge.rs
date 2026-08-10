@@ -17,6 +17,10 @@
 // - temporary passwords never appear in logs; snapshot presentation is
 //   redacted unless explicitly revealed for one copy.
 
+#[cfg(target_os = "macos")]
+#[path = "rdn_host_file_transfer.rs"]
+mod rdn_host_file_transfer;
+
 use hbb_common::{
     config,
     message_proto::{message, Clipboard, ClipboardFormat, Message, MultiClipboards},
