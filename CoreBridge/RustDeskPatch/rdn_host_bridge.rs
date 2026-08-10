@@ -229,6 +229,9 @@ pub(crate) enum NativeHostWriteJobError {
     TooManyJobs,
     UnexpectedFileNumber,
     DigestMismatch,
+    ExistingTargetUnsafe,
+    ExistingTargetDecisionRequired,
+    ExistingTargetReplacementUnsupported,
     ResumeUnsupported,
     ResumeStateInvalid,
     WirePayloadTooLarge,
@@ -238,6 +241,24 @@ pub(crate) enum NativeHostWriteJobError {
     TotalSizeMismatch,
     Storage,
     Unavailable,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostWriteDigestDecision {
+    ConfirmedOffset(u32),
+    ExistingTarget {
+        file_size: u64,
+        last_modified: u64,
+        is_identical: bool,
+    },
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum NativeHostExistingTargetDecision {
+    Skip,
+    Replace { offset: u32 },
 }
 
 #[cfg(target_os = "macos")]
@@ -594,7 +615,9 @@ pub(crate) struct NativeHostWriteJob {
     next_file_num: usize,
     expected_total_size: u64,
     written_total_size: u64,
+    skipped_total_size: u64,
     overwrite_detection: bool,
+    awaiting_existing_target: Option<usize>,
 }
 
 #[cfg(target_os = "macos")]
@@ -618,7 +641,7 @@ impl NativeHostWriteJob {
         file_size: u64,
         last_modified: u64,
         is_resume: bool,
-    ) -> Result<u32, NativeHostWriteJobError> {
+    ) -> Result<NativeHostWriteDigestDecision, NativeHostWriteJobError> {
         if !self.is_current() {
             return Err(NativeHostWriteJobError::Unavailable);
         }
@@ -630,6 +653,9 @@ impl NativeHostWriteJob {
         if file_num != self.next_file_num || file_num >= self.entries.len() {
             return Err(NativeHostWriteJobError::UnexpectedFileNumber);
         }
+        if self.awaiting_existing_target.is_some() {
+            return Err(NativeHostWriteJobError::ExistingTargetDecisionRequired);
+        }
         if let Some((current_num, current)) = self.current.as_ref() {
             if *current_num + 1 != file_num || current.written_size != current.expected_size {
                 return Err(NativeHostWriteJobError::UnexpectedFileNumber);
@@ -639,8 +665,30 @@ impl NativeHostWriteJob {
         if entry.expected_size != file_size || entry.modified_time != last_modified {
             return Err(NativeHostWriteJobError::DigestMismatch);
         }
+        let existing = self
+            .owner
+            .try_open_existing_file_for_digest(&entry.destination_path)
+            .map_err(|_| NativeHostWriteJobError::ExistingTargetUnsafe)?;
+        if let Some(existing) = existing {
+            let metadata = existing
+                .metadata()
+                .map_err(|_| NativeHostWriteJobError::ExistingTargetUnsafe)?;
+            let existing_modified = metadata
+                .modified()
+                .map_err(|_| NativeHostWriteJobError::ExistingTargetUnsafe)?
+                .duration_since(UNIX_EPOCH)
+                .map_err(|_| NativeHostWriteJobError::ExistingTargetUnsafe)?
+                .as_secs();
+            let existing_size = metadata.len();
+            self.awaiting_existing_target = Some(file_num);
+            return Ok(NativeHostWriteDigestDecision::ExistingTarget {
+                file_size: existing_size,
+                last_modified: existing_modified,
+                is_identical: existing_size == file_size && existing_modified == last_modified,
+            });
+        }
         if !is_resume {
-            return Ok(0);
+            return Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0));
         }
         if self.entries.len() != 1 || entry.expected_size > u32::MAX as u64 {
             return Err(NativeHostWriteJobError::ResumeUnsupported);
@@ -653,14 +701,58 @@ impl NativeHostWriteJob {
             }
         };
         let Some(resumed) = resumed else {
-            return Ok(0);
+            return Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0));
         };
         let offset = u32::try_from(resumed.written_size)
             .map_err(|_| NativeHostWriteJobError::ResumeUnsupported)?;
         self.written_total_size = resumed.written_size;
         self.current = Some((file_num, resumed));
         self.next_file_num = file_num + 1;
-        Ok(offset)
+        Ok(NativeHostWriteDigestDecision::ConfirmedOffset(offset))
+    }
+
+    pub(crate) fn confirm_existing_target_decision(
+        &mut self,
+        file_num: i32,
+        decision: NativeHostExistingTargetDecision,
+    ) -> Result<(), NativeHostWriteJobError> {
+        if !self.is_current() {
+            return Err(NativeHostWriteJobError::Unavailable);
+        }
+        let file_num =
+            usize::try_from(file_num).map_err(|_| NativeHostWriteJobError::UnexpectedFileNumber)?;
+        if self.awaiting_existing_target != Some(file_num)
+            || file_num != self.next_file_num
+            || file_num >= self.entries.len()
+        {
+            return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+        }
+        match decision {
+            NativeHostExistingTargetDecision::Skip => {}
+            NativeHostExistingTargetDecision::Replace { offset } => {
+                let _ = offset;
+                return Err(NativeHostWriteJobError::ExistingTargetReplacementUnsupported);
+            }
+        }
+        if let Some((current_num, current)) = self.current.take() {
+            if current_num + 1 != file_num || current.written_size != current.expected_size {
+                self.current = Some((current_num, current));
+                return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+            }
+            current.commit()?;
+        }
+        self.owner
+            .remove_file_if_exists(&self.entries[file_num].staging_path)
+            .map_err(|_| NativeHostWriteJobError::ExistingTargetUnsafe)?;
+        self.skipped_total_size = self
+            .skipped_total_size
+            .checked_add(self.entries[file_num].expected_size)
+            .ok_or(NativeHostWriteJobError::TotalSizeMismatch)?;
+        self.next_file_num = file_num
+            .checked_add(1)
+            .ok_or(NativeHostWriteJobError::UnexpectedFileNumber)?;
+        self.awaiting_existing_target = None;
+        Ok(())
     }
 
     pub(crate) fn write_block(
@@ -686,6 +778,9 @@ impl NativeHostWriteJob {
         };
         let file_num =
             usize::try_from(file_num).map_err(|_| NativeHostWriteJobError::UnexpectedFileNumber)?;
+        if self.awaiting_existing_target.is_some() {
+            return Err(NativeHostWriteJobError::ExistingTargetDecisionRequired);
+        }
         if file_num >= self.entries.len() {
             return Err(NativeHostWriteJobError::UnexpectedFileNumber);
         }
@@ -745,18 +840,23 @@ impl NativeHostWriteJob {
         let done_file_num =
             usize::try_from(file_num).map_err(|_| NativeHostWriteJobError::UnexpectedFileNumber)?;
         if done_file_num != self.entries.len()
-            || self.written_total_size != self.expected_total_size
+            || self.awaiting_existing_target.is_some()
+            || self
+                .written_total_size
+                .checked_add(self.skipped_total_size)
+                .ok_or(NativeHostWriteJobError::TotalSizeMismatch)?
+                != self.expected_total_size
         {
             return Err(NativeHostWriteJobError::TotalSizeMismatch);
         }
-        let (current_num, current) = self
-            .current
-            .take()
-            .ok_or(NativeHostWriteJobError::FileSizeMismatch)?;
-        if current_num + 1 != self.entries.len() {
-            return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+        if let Some((current_num, current)) = self.current.take() {
+            if current_num + 1 != self.entries.len() {
+                return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+            }
+            current.commit()?;
+        } else if self.next_file_num != self.entries.len() {
+            return Err(NativeHostWriteJobError::FileSizeMismatch);
         }
-        current.commit()?;
         self.next_file_num = self.entries.len();
         Ok(())
     }
@@ -921,7 +1021,9 @@ fn prepare_native_host_write_job(
         next_file_num: 0,
         expected_total_size,
         written_total_size: 0,
+        skipped_total_size: 0,
         overwrite_detection,
+        awaiting_existing_target: None,
     })
 }
 
@@ -6159,9 +6261,15 @@ mod tests {
             panic!("native write job must be admitted");
         };
         assert_eq!(job.id(), 41);
-        assert_eq!(job.confirm_file_digest(0, 3, 1, false), Ok(0));
+        assert_eq!(
+            job.confirm_file_digest(0, 3, 1, false),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
         assert_eq!(job.write_block(0, b"abc", false), Ok(()));
-        assert_eq!(job.confirm_file_digest(1, 4, 2, false), Ok(0));
+        assert_eq!(
+            job.confirm_file_digest(1, 4, 2, false),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
         let compressed = hbb_common::compress::compress(b"defg");
         assert_eq!(job.write_block(1, &compressed, true), Ok(()));
         assert_eq!(job.finish(2), Ok(()));
@@ -6209,7 +6317,10 @@ mod tests {
         ) else {
             panic!("native write job must be admitted");
         };
-        assert_eq!(job.confirm_file_digest(0, 3, 3, true), Ok(0));
+        assert_eq!(
+            job.confirm_file_digest(0, 3, 3, true),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
         assert_eq!(
             job.write_block(1, b"x", false),
             Err(NativeHostWriteJobError::UnexpectedFileNumber)
@@ -6380,7 +6491,10 @@ mod tests {
         ) else {
             panic!("first native resume job must be admitted");
         };
-        assert_eq!(first.confirm_file_digest(0, 6, 10, true), Ok(0));
+        assert_eq!(
+            first.confirm_file_digest(0, 6, 10, true),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
         assert_eq!(first.write_block(0, b"abc", false), Ok(()));
         drop(first);
         assert_eq!(
@@ -6400,7 +6514,10 @@ mod tests {
         else {
             panic!("second native resume job must be admitted");
         };
-        assert_eq!(resumed.confirm_file_digest(0, 6, 10, true), Ok(3));
+        assert_eq!(
+            resumed.confirm_file_digest(0, 6, 10, true),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(3))
+        );
         assert_eq!(resumed.write_block(0, b"def", false), Ok(()));
         assert_eq!(resumed.finish(1), Ok(()));
         assert_eq!(
@@ -6408,6 +6525,210 @@ mod tests {
             b"abcdef"
         );
         assert!(!fixture.root.join("resume/file.txt.farpane-part").exists());
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_existing_target_requires_skip_and_preserves_original() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let destination = fixture.root.join("existing/file.txt");
+        fs::create_dir(destination.parent().unwrap()).expect("create existing parent");
+        fs::set_permissions(
+            destination.parent().unwrap(),
+            fs::Permissions::from_mode(0o700),
+        )
+        .expect("secure existing parent");
+        HostStorageFixture::write_private(&destination, b"original");
+        HostStorageFixture::write_private(
+            &fixture.root.join("existing/file.txt.farpane-part"),
+            b"old-partial",
+        );
+        let existing_modified = fs::metadata(&destination)
+            .unwrap()
+            .modified()
+            .unwrap()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+                receive_root.as_path(),
+            )
+            .expect("open private receive root"),
+        );
+        let mut host = ready_test_host("native-existing-skip-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostWriteJobAdmission::Admitted(mut job) = native_host_begin_new_file_write_job(
+            63,
+            "existing/file.txt",
+            0,
+            vec![NativeHostWriteEntry::new(String::new(), 3, 99)],
+            3,
+            true,
+        ) else {
+            panic!("existing-target job must be admitted");
+        };
+        assert_eq!(
+            job.confirm_file_digest(0, 3, 99, false),
+            Ok(NativeHostWriteDigestDecision::ExistingTarget {
+                file_size: 8,
+                last_modified: existing_modified,
+                is_identical: false,
+            })
+        );
+        assert_eq!(
+            job.write_block(0, b"new", false),
+            Err(NativeHostWriteJobError::ExistingTargetDecisionRequired)
+        );
+        assert_eq!(
+            job.confirm_existing_target_decision(0, NativeHostExistingTargetDecision::Skip),
+            Ok(())
+        );
+        assert_eq!(job.finish(1), Ok(()));
+        assert_eq!(fs::read(&destination).unwrap(), b"original");
+        assert!(!fixture.root.join("existing/file.txt.farpane-part").exists());
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_existing_target_rejects_replace_decisions_and_unsafe_entries() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let destination = fixture.root.join("replace.txt");
+        HostStorageFixture::write_private(&destination, b"keep");
+        let existing_modified = fs::metadata(&destination)
+            .unwrap()
+            .modified()
+            .unwrap()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+                receive_root.as_path(),
+            )
+            .expect("open private receive root"),
+        );
+        let mut host = ready_test_host("native-existing-replace-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostWriteJobAdmission::Admitted(mut job) = native_host_begin_new_file_write_job(
+            64,
+            "replace.txt",
+            0,
+            vec![NativeHostWriteEntry::new(
+                String::new(),
+                4,
+                existing_modified,
+            )],
+            4,
+            true,
+        ) else {
+            panic!("replace-target job must be admitted");
+        };
+        assert_eq!(
+            job.confirm_file_digest(0, 4, existing_modified, false),
+            Ok(NativeHostWriteDigestDecision::ExistingTarget {
+                file_size: 4,
+                last_modified: existing_modified,
+                is_identical: true,
+            })
+        );
+        assert_eq!(
+            job.confirm_existing_target_decision(
+                0,
+                NativeHostExistingTargetDecision::Replace { offset: 0 },
+            ),
+            Err(NativeHostWriteJobError::ExistingTargetReplacementUnsupported)
+        );
+        job.abort();
+        assert_eq!(fs::read(&destination).unwrap(), b"keep");
+
+        let unsafe_target = fixture.root.join("unsafe.txt");
+        HostStorageFixture::write_private(&unsafe_target, b"unsafe");
+        fs::set_permissions(&unsafe_target, fs::Permissions::from_mode(0o644)).unwrap();
+        let NativeHostWriteJobAdmission::Admitted(mut unsafe_job) =
+            native_host_begin_new_file_write_job(
+                65,
+                "unsafe.txt",
+                0,
+                vec![NativeHostWriteEntry::new(String::new(), 6, 101)],
+                6,
+                true,
+            )
+        else {
+            panic!("unsafe-target job must be admitted before descriptor inspection");
+        };
+        assert_eq!(
+            unsafe_job.confirm_file_digest(0, 6, 101, false),
+            Err(NativeHostWriteJobError::ExistingTargetUnsafe)
+        );
+        unsafe_job.abort();
+        assert_eq!(fs::read(&unsafe_target).unwrap(), b"unsafe");
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_existing_target_skip_preserves_multifile_accounting() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let batch = fixture.root.join("batch");
+        fs::create_dir(&batch).expect("create batch directory");
+        fs::set_permissions(&batch, fs::Permissions::from_mode(0o700))
+            .expect("secure batch directory");
+        HostStorageFixture::write_private(&batch.join("keep.txt"), b"keep");
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+                receive_root.as_path(),
+            )
+            .expect("open private receive root"),
+        );
+        let mut host = ready_test_host("native-existing-multifile-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostWriteJobAdmission::Admitted(mut job) = native_host_begin_new_file_write_job(
+            66,
+            "batch",
+            0,
+            vec![
+                NativeHostWriteEntry::new("new.txt".to_string(), 3, 102),
+                NativeHostWriteEntry::new("keep.txt".to_string(), 4, 103),
+            ],
+            7,
+            true,
+        ) else {
+            panic!("multi-file existing-target job must be admitted");
+        };
+        assert_eq!(
+            job.confirm_file_digest(0, 3, 102, false),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
+        assert_eq!(job.write_block(0, b"new", false), Ok(()));
+        assert!(matches!(
+            job.confirm_file_digest(1, 4, 103, false),
+            Ok(NativeHostWriteDigestDecision::ExistingTarget { .. })
+        ));
+        assert_eq!(
+            job.confirm_existing_target_decision(1, NativeHostExistingTargetDecision::Skip),
+            Ok(())
+        );
+        assert_eq!(job.finish(2), Ok(()));
+        assert_eq!(fs::read(batch.join("new.txt")).unwrap(), b"new");
+        assert_eq!(fs::read(batch.join("keep.txt")).unwrap(), b"keep");
         unbind_media_host();
     }
 
@@ -6491,7 +6812,10 @@ mod tests {
         ) else {
             panic!("tamper seed job must be admitted");
         };
-        assert_eq!(first.confirm_file_digest(0, 6, 11, true), Ok(0));
+        assert_eq!(
+            first.confirm_file_digest(0, 6, 11, true),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
         assert_eq!(first.write_block(0, b"abc", false), Ok(()));
         drop(first);
         let staging = fixture.root.join("tamper/file.txt.farpane-part");
@@ -6535,7 +6859,10 @@ mod tests {
         else {
             panic!("mismatch seed job must be admitted");
         };
-        assert_eq!(mismatch_seed.confirm_file_digest(0, 4, 12, true), Ok(0));
+        assert_eq!(
+            mismatch_seed.confirm_file_digest(0, 4, 12, true),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
         assert_eq!(mismatch_seed.write_block(0, b"ab", false), Ok(()));
         drop(mismatch_seed);
         let NativeHostWriteJobAdmission::Admitted(mut mismatch_resume) =
@@ -6585,7 +6912,10 @@ mod tests {
         ) else {
             panic!("abort job must be admitted");
         };
-        assert_eq!(job.confirm_file_digest(0, 4, 14, true), Ok(0));
+        assert_eq!(
+            job.confirm_file_digest(0, 4, 14, true),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
         assert_eq!(job.write_block(0, b"ab", false), Ok(()));
         job.abort();
         assert!(!fixture.root.join("abort/file.txt.farpane-part").exists());
@@ -6619,7 +6949,10 @@ mod tests {
         ) else {
             panic!("resume unbind seed must be admitted");
         };
-        assert_eq!(first.confirm_file_digest(0, 4, 15, true), Ok(0));
+        assert_eq!(
+            first.confirm_file_digest(0, 4, 15, true),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
         assert_eq!(first.write_block(0, b"ab", false), Ok(()));
         drop(first);
 

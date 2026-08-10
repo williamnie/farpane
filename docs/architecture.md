@@ -237,8 +237,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   exact size/mtime，并以 descriptor xattr 持久化 committed offset 与 SHA-256 prefix digest；恢复前
   重算 prefix、截断未 checkpoint 尾部，篡改或矛盾状态 fail closed。job admission 原子独占 staging
   path；disconnect 保留已验证 partial，cancel/error 删除当前 staging，connection 回复验证后的真实
-  offset。多文件 resume、existing-target/overwrite 决策、read/list/download 与 Viewer
-  destination/progress UI 尚未实现。App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
+  offset。existing-target decision 现在只通过 descriptor-relative、read-only/no-follow 打开当前用户
+  `0600` single-link regular target，并把实际 size/mtime/identical 摘要返回发送端；决定到达前 block
+  fail closed。明确 skip 会保留原目标、清除安全的旧 staging，并计入多文件逻辑总大小；replace/offset
+  决定继续以稳定错误拒绝，最终提交仍是 `RENAME_EXCL` no-replace。多文件 resume、
+  read/list/download 与 Viewer destination/progress UI 尚未实现。App/Agent 仍不传 file opt-in，产品能力
+  必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 
