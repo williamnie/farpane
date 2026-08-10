@@ -413,6 +413,54 @@ final class ViewerFileTransferContractTests: XCTestCase {
         XCTAssertNil(authority.begin(try makeRequest(epoch: 1, identifier: 99)))
     }
 
+    func testReceiveBlockOwnsOnlyBoundedExactSemanticPayload() throws {
+        let payload = Data("owned".utf8)
+        let block = try XCTUnwrap(CoreFileTransferReceiveBlock(
+            sessionEpoch: 7,
+            transferID: 61,
+            fileNumber: 1,
+            payload: payload
+        ))
+        XCTAssertEqual(block.sessionEpoch, 7)
+        XCTAssertEqual(block.transferID, 61)
+        XCTAssertEqual(block.fileNumber, 1)
+        XCTAssertEqual(block.payload, payload)
+
+        XCTAssertNil(CoreFileTransferReceiveBlock(
+            sessionEpoch: 0,
+            transferID: 61,
+            fileNumber: 0,
+            payload: payload
+        ))
+        XCTAssertNil(CoreFileTransferReceiveBlock(
+            sessionEpoch: 7,
+            transferID: 0,
+            fileNumber: 0,
+            payload: payload
+        ))
+        XCTAssertNil(CoreFileTransferReceiveBlock(
+            sessionEpoch: 7,
+            transferID: 61,
+            fileNumber: UInt32(CoreFileTransferReceiveBlock.maximumFileCount),
+            payload: payload
+        ))
+        XCTAssertNil(CoreFileTransferReceiveBlock(
+            sessionEpoch: 7,
+            transferID: 61,
+            fileNumber: 0,
+            payload: Data()
+        ))
+        XCTAssertNil(CoreFileTransferReceiveBlock(
+            sessionEpoch: 7,
+            transferID: 61,
+            fileNumber: 0,
+            payload: Data(
+                repeating: 0,
+                count: CoreFileTransferReceiveBlock.maximumPayloadBytes + 1
+            )
+        ))
+    }
+
     private func makeManifest() throws -> ViewerFileTransferManifest {
         let file = try XCTUnwrap(ViewerFileTransferFile(
             relativePath: "one.txt",

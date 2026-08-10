@@ -121,7 +121,7 @@ def main() -> int:
             and "renameatx_np" in owner
         ),
         "abiAndProductRemainOff": (
-            "#define RDN_ABI_VERSION 12u" in sources["header"]
+            "#define RDN_ABI_VERSION 13u" in sources["header"]
             and "fileTransferEnabled:" not in product
             and "No download command" in sources["readme"]
             and "handle 不含路径/descriptor" in sources["architecture"]

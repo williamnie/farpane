@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostFileTransferViewerInboundBlockEnvelopeAuditTests(unittest.TestCase):
-    def test_block_is_owned_bounded_exact_and_product_off(self) -> None:
+class HostFileTransferViewerReceiveBlockABILifecycleAuditTests(unittest.TestCase):
+    def test_callback_is_scoped_exact_bounded_and_product_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-file-transfer-viewer-inbound-block-envelope.py",
+                "Scripts/audit-host-file-transfer-viewer-receive-block-abi-lifecycle.py",
             ],
             cwd=repository,
             check=False,
@@ -22,25 +22,26 @@ class HostFileTransferViewerInboundBlockEnvelopeAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-viewer-inbound-block-envelope-audit",
+            "farpane-host-file-transfer-viewer-receive-block-abi-lifecycle-audit",
         )
         self.assertEqual(
             document["status"],
-            "viewer-inbound-block-envelope-implemented-product-off",
+            "viewer-receive-block-abi-lifecycle-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["viewerInboundBlockEnvelopeImplemented"])
-        self.assertTrue(claims["viewerReceiveBlockABIImplemented"])
+        self.assertTrue(claims["viewerReceiveBlockABILifecycleImplemented"])
+        self.assertFalse(claims["viewerIOLoopReceiveInterceptionImplemented"])
         self.assertFalse(claims["viewerDownloadWireDispatchImplemented"])
+        self.assertFalse(claims["viewerDestinationWriteImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-receive-block-abi-lifecycle",
+            "host-file-transfer-viewer-io-loop-receive-interception-lifecycle",
         )
 
 

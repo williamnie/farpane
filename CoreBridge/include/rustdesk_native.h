@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 12u
+#define RDN_ABI_VERSION 13u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -28,6 +28,7 @@ extern "C" {
 #define RDN_MAX_CLIPBOARD_IMAGE_PIXELS 33177600u
 #define RDN_MAX_FILE_TRANSFER_LIST_ENTRIES 1024u
 #define RDN_MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES 1048576u
+#define RDN_MAX_FILE_TRANSFER_BLOCK_BYTES (128u * 1024u)
 
 typedef struct RDNClient RDNClient;
 
@@ -234,6 +235,20 @@ typedef struct RDNFileTransferManifestEvent {
 typedef void (*RDNFileTransferManifestCallback)(
     void *context, const RDNFileTransferManifestEvent *event);
 
+/* Callback-scoped decoded bytes for one registered download file. Rust has
+ * already matched the transfer/file and enforced the canonical block bound;
+ * Swift must copy and revalidate before queued delivery. */
+typedef struct RDNFileTransferReceiveBlock {
+    uint32_t abi_version;
+    uint64_t session_epoch;
+    int32_t transfer_id;
+    uint32_t file_number;
+    const uint8_t *data;
+    size_t length;
+} RDNFileTransferReceiveBlock;
+typedef void (*RDNFileTransferReceiveBlockCallback)(
+    void *context, const RDNFileTransferReceiveBlock *block);
+
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
@@ -245,6 +260,7 @@ typedef struct RDNCallbacks {
     RDNFileTransferEventCallback on_file_transfer_event;
     RDNFileTransferListCallback on_file_transfer_list;
     RDNFileTransferManifestCallback on_file_transfer_manifest;
+    RDNFileTransferReceiveBlockCallback on_file_transfer_receive_block;
 } RDNCallbacks;
 
 typedef struct RDNConnectionConfig {

@@ -23,7 +23,7 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 12;
+const ABI_VERSION: u32 = 13;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -124,6 +124,8 @@ type FileTransferEventCallback = unsafe extern "C" fn(*mut c_void, *const RDNFil
 type FileTransferListCallback = unsafe extern "C" fn(*mut c_void, *const RDNFileTransferListEvent);
 type FileTransferManifestCallback =
     unsafe extern "C" fn(*mut c_void, *const RDNFileTransferManifestEvent);
+type FileTransferReceiveBlockCallback =
+    unsafe extern "C" fn(*mut c_void, *const RDNFileTransferReceiveBlock);
 
 #[repr(C)]
 pub struct RDNClipboardRichTextPayload {
@@ -202,6 +204,16 @@ struct RDNFileTransferManifestEvent {
     entry_count: usize,
 }
 
+#[repr(C)]
+struct RDNFileTransferReceiveBlock {
+    abi_version: u32,
+    session_epoch: u64,
+    transfer_id: i32,
+    file_number: u32,
+    data: *const u8,
+    length: usize,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum NativeViewerRemoteListEntryKind {
     Directory,
@@ -269,6 +281,7 @@ struct NativeViewerDownloadEvent {
 
 #[derive(Debug, Eq, PartialEq)]
 struct NativeViewerReceiveBlock {
+    session_epoch: u64,
     transfer_id: i32,
     file_number: u32,
     payload: Vec<u8>,
@@ -299,6 +312,7 @@ impl NativeViewerDownloadJob {
             return None;
         }
         Some(NativeViewerReceiveBlock {
+            session_epoch: self.session_epoch,
             transfer_id: self.transfer_id,
             file_number,
             payload,
@@ -406,6 +420,7 @@ pub struct RDNCallbacks {
     on_file_transfer_event: Option<FileTransferEventCallback>,
     on_file_transfer_list: Option<FileTransferListCallback>,
     on_file_transfer_manifest: Option<FileTransferManifestCallback>,
+    on_file_transfer_receive_block: Option<FileTransferReceiveBlockCallback>,
 }
 
 #[repr(C)]
@@ -752,6 +767,34 @@ impl BridgeShared {
         unsafe { callback(self.context as *mut c_void, &event) };
     }
 
+    fn emit_file_transfer_receive_block(&self, block: &NativeViewerReceiveBlock) -> bool {
+        if !self.active.load(Ordering::Acquire)
+            || !self.authenticated.load(Ordering::Acquire)
+            || !self.file_transfer_enabled.load(Ordering::Acquire)
+            || block.session_epoch == 0
+            || self.file_transfer_session_epoch.load(Ordering::Acquire) != block.session_epoch
+            || block.transfer_id <= 0
+            || block.file_number as usize >= MAX_FILE_TRANSFER_LIST_ENTRIES
+            || block.payload.is_empty()
+            || block.payload.len() > hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES
+        {
+            return false;
+        }
+        let Some(callback) = self.callbacks.on_file_transfer_receive_block else {
+            return false;
+        };
+        let raw = RDNFileTransferReceiveBlock {
+            abi_version: ABI_VERSION,
+            session_epoch: block.session_epoch,
+            transfer_id: block.transfer_id,
+            file_number: block.file_number,
+            data: block.payload.as_ptr(),
+            length: block.payload.len(),
+        };
+        unsafe { callback(self.context as *mut c_void, &raw) };
+        true
+    }
+
     fn emit_video(&self, frame: &VideoFrame) -> bool {
         if !self.active.load(Ordering::Acquire) {
             return true;
@@ -812,6 +855,7 @@ impl Default for BridgeUi {
                     on_file_transfer_event: None,
                     on_file_transfer_list: None,
                     on_file_transfer_manifest: None,
+                    on_file_transfer_receive_block: None,
                 },
                 context: 0,
                 active: AtomicBool::new(false),
@@ -3186,6 +3230,15 @@ mod tests {
         bytes_per_second: f64,
     }
 
+    #[derive(Debug, Eq, PartialEq)]
+    struct CapturedFileReceiveBlock {
+        abi_version: u32,
+        session_epoch: u64,
+        transfer_id: i32,
+        file_number: u32,
+        payload: Vec<u8>,
+    }
+
     unsafe extern "C" fn capture_file_transfer_event(
         context: *mut c_void,
         event: *const RDNFileTransferEvent,
@@ -3204,6 +3257,22 @@ mod tests {
             bytes_completed: event.bytes_completed,
             total_bytes: event.total_bytes,
             bytes_per_second: event.bytes_per_second,
+        });
+    }
+
+    unsafe extern "C" fn capture_file_receive_block(
+        context: *mut c_void,
+        block: *const RDNFileTransferReceiveBlock,
+    ) {
+        let capture = &*(context as *const Mutex<Vec<CapturedFileReceiveBlock>>);
+        let block = &*block;
+        let payload = std::slice::from_raw_parts(block.data, block.length).to_vec();
+        capture.lock().unwrap().push(CapturedFileReceiveBlock {
+            abi_version: block.abi_version,
+            session_epoch: block.session_epoch,
+            transfer_id: block.transfer_id,
+            file_number: block.file_number,
+            payload,
         });
     }
 
@@ -4416,6 +4485,7 @@ mod tests {
         assert_eq!(
             job.receive_block(&raw),
             Some(NativeViewerReceiveBlock {
+                session_epoch: 7,
                 transfer_id: 61,
                 file_number: 0,
                 payload: b"raw".to_vec(),
@@ -4433,6 +4503,7 @@ mod tests {
         assert_eq!(
             job.receive_block(&compressed),
             Some(NativeViewerReceiveBlock {
+                session_epoch: 7,
                 transfer_id: 61,
                 file_number: 1,
                 payload: plain,
@@ -4495,6 +4566,50 @@ mod tests {
                 true,
             ))
             .is_none());
+    }
+
+    #[test]
+    fn viewer_receive_block_callback_is_exact_session_and_callback_scoped() {
+        let captured = Mutex::new(Vec::<CapturedFileReceiveBlock>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_file_transfer_receive_block = Some(capture_file_receive_block);
+        shared.context = &captured as *const _ as usize;
+        let mut block = NativeViewerReceiveBlock {
+            session_epoch: 7,
+            transfer_id: 61,
+            file_number: 1,
+            payload: b"owned".to_vec(),
+        };
+
+        assert!(!ui.shared.emit_file_transfer_receive_block(&block));
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared.authenticated.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        assert!(ui.shared.emit_file_transfer_receive_block(&block));
+        block.payload.fill(b'x');
+        assert_eq!(
+            captured.lock().unwrap().as_slice(),
+            &[CapturedFileReceiveBlock {
+                abi_version: ABI_VERSION,
+                session_epoch: 7,
+                transfer_id: 61,
+                file_number: 1,
+                payload: b"owned".to_vec(),
+            }]
+        );
+
+        block.session_epoch = 8;
+        assert!(!ui.shared.emit_file_transfer_receive_block(&block));
+        ui.shared.authenticated.store(false, Ordering::Release);
+        block.session_epoch = 7;
+        assert!(!ui.shared.emit_file_transfer_receive_block(&block));
+        assert_eq!(captured.lock().unwrap().len(), 1);
     }
 
     #[test]
