@@ -23,7 +23,7 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 10;
+const ABI_VERSION: u32 = 11;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -39,6 +39,8 @@ const FILE_TRANSFER_LIST_REJECTED: u32 = 2;
 const FILE_TRANSFER_LIST_UNAVAILABLE: u32 = 3;
 const FILE_TRANSFER_LIST_ENTRY_DIRECTORY: u32 = 1;
 const FILE_TRANSFER_LIST_ENTRY_FILE: u32 = 2;
+const FILE_TRANSFER_MANIFEST_PART_FILES: u32 = 1;
+const FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_RGBA: u32 = 1;
 const CLIPBOARD_IMAGE_FORMAT_PNG: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_SVG: u32 = 3;
@@ -113,6 +115,8 @@ type ClipboardRichTextCallback =
 type ClipboardImageCallback = unsafe extern "C" fn(*mut c_void, *const RDNClipboardImagePayload);
 type FileTransferEventCallback = unsafe extern "C" fn(*mut c_void, *const RDNFileTransferEvent);
 type FileTransferListCallback = unsafe extern "C" fn(*mut c_void, *const RDNFileTransferListEvent);
+type FileTransferManifestCallback =
+    unsafe extern "C" fn(*mut c_void, *const RDNFileTransferManifestEvent);
 
 #[repr(C)]
 pub struct RDNClipboardRichTextPayload {
@@ -170,6 +174,17 @@ struct RDNFileTransferListEvent {
     entry_count: usize,
 }
 
+#[repr(C)]
+struct RDNFileTransferManifestEvent {
+    abi_version: u32,
+    session_epoch: u64,
+    request_id: i32,
+    status: u32,
+    part: u32,
+    entries: *const RDNFileTransferListEntry,
+    entry_count: usize,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum NativeViewerRemoteListEntryKind {
     Directory,
@@ -190,6 +205,14 @@ struct NativeViewerListRequest {
     request_id: i32,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct NativeViewerManifestRequest {
+    session_epoch: u64,
+    request_id: i32,
+    files_delivered: bool,
+    empty_directories_delivered: bool,
+}
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct RDNCallbacks {
@@ -202,6 +225,7 @@ pub struct RDNCallbacks {
     on_clipboard_image: Option<ClipboardImageCallback>,
     on_file_transfer_event: Option<FileTransferEventCallback>,
     on_file_transfer_list: Option<FileTransferListCallback>,
+    on_file_transfer_manifest: Option<FileTransferManifestCallback>,
 }
 
 #[repr(C)]
@@ -310,6 +334,8 @@ struct BridgeShared {
     file_transfer_enabled: AtomicBool,
     file_transfer_session_epoch: AtomicU64,
     pending_file_list_request: Mutex<Option<NativeViewerListRequest>>,
+    file_manifest_request_epoch: AtomicU64,
+    pending_file_manifest_request: Mutex<Option<NativeViewerManifestRequest>>,
 }
 
 impl BridgeShared {
@@ -468,6 +494,54 @@ impl BridgeShared {
         unsafe { callback(self.context as *mut c_void, &event) };
     }
 
+    fn emit_file_transfer_manifest(
+        &self,
+        request: NativeViewerManifestRequest,
+        status: u32,
+        part: u32,
+        listing: &[NativeViewerRemoteListEntry],
+    ) {
+        if !self.active.load(Ordering::Acquire)
+            || !self.authenticated.load(Ordering::Acquire)
+            || !self.file_transfer_enabled.load(Ordering::Acquire)
+            || self.file_transfer_session_epoch.load(Ordering::Acquire) != request.session_epoch
+        {
+            return;
+        }
+        let Some(callback) = self.callbacks.on_file_transfer_manifest else {
+            return;
+        };
+        let entries: Vec<_> = listing
+            .iter()
+            .map(|entry| RDNFileTransferListEntry {
+                kind: match entry.kind {
+                    NativeViewerRemoteListEntryKind::Directory => {
+                        FILE_TRANSFER_LIST_ENTRY_DIRECTORY
+                    }
+                    NativeViewerRemoteListEntryKind::File => FILE_TRANSFER_LIST_ENTRY_FILE,
+                },
+                relative_path_utf8: entry.relative_path.as_bytes().as_ptr(),
+                relative_path_length: entry.relative_path.len(),
+                size: entry.size,
+                modified_time: entry.modified_time,
+            })
+            .collect();
+        let event = RDNFileTransferManifestEvent {
+            abi_version: ABI_VERSION,
+            session_epoch: request.session_epoch,
+            request_id: request.request_id,
+            status,
+            part,
+            entries: if entries.is_empty() {
+                ptr::null()
+            } else {
+                entries.as_ptr()
+            },
+            entry_count: entries.len(),
+        };
+        unsafe { callback(self.context as *mut c_void, &event) };
+    }
+
     fn emit_video(&self, frame: &VideoFrame) -> bool {
         if !self.active.load(Ordering::Acquire) {
             return true;
@@ -527,6 +601,7 @@ impl Default for BridgeUi {
                     on_clipboard_image: None,
                     on_file_transfer_event: None,
                     on_file_transfer_list: None,
+                    on_file_transfer_manifest: None,
                 },
                 context: 0,
                 active: AtomicBool::new(false),
@@ -545,6 +620,8 @@ impl Default for BridgeUi {
                 file_transfer_enabled: AtomicBool::new(false),
                 file_transfer_session_epoch: AtomicU64::new(0),
                 pending_file_list_request: Mutex::new(None),
+                file_manifest_request_epoch: AtomicU64::new(0),
+                pending_file_manifest_request: Mutex::new(None),
             }),
         }
     }
@@ -639,16 +716,44 @@ impl InvokeUiSession for BridgeUi {
     }
 
     fn set_fingerprint(&self, _fingerprint: String) {}
-    fn job_error(&self, _id: i32, _error: String, _file_num: i32) {
-        let request = self.shared.pending_file_list_request.lock().unwrap().take();
+    fn job_error(&self, id: i32, _error: String, _file_num: i32) {
+        let request = if id == 0 {
+            self.shared.pending_file_list_request.lock().unwrap().take()
+        } else {
+            None
+        };
         if let Some(request) = request {
             self.shared
                 .emit_file_transfer_list(request, FILE_TRANSFER_LIST_UNAVAILABLE, &[]);
+        }
+        let manifest_request = {
+            let mut pending = self.shared.pending_file_manifest_request.lock().unwrap();
+            if pending
+                .as_ref()
+                .is_some_and(|request| id == 0 || request.request_id == id)
+            {
+                pending.take()
+            } else {
+                None
+            }
+        };
+        if let Some(request) = manifest_request {
+            self.shared.emit_file_transfer_manifest(
+                request,
+                FILE_TRANSFER_LIST_UNAVAILABLE,
+                FILE_TRANSFER_MANIFEST_PART_FILES,
+                &[],
+            );
         }
     }
     fn job_done(&self, _id: i32, _file_num: i32) {}
     fn clear_all_jobs(&self) {
         self.shared.pending_file_list_request.lock().unwrap().take();
+        self.shared
+            .pending_file_manifest_request
+            .lock()
+            .unwrap()
+            .take();
     }
     fn new_message(&self, _message: String) {}
     fn update_transfer_list(&self) {}
@@ -656,12 +761,77 @@ impl InvokeUiSession for BridgeUi {
 
     fn update_folder_files(
         &self,
-        _id: i32,
+        id: i32,
         entries: &Vec<FileEntry>,
         path: String,
         is_local: bool,
         only_count: bool,
     ) {
+        if id > 0 {
+            let request = {
+                let pending = self.shared.pending_file_manifest_request.lock().unwrap();
+                pending
+                    .as_ref()
+                    .filter(|request| request.request_id == id)
+                    .copied()
+            };
+            let Some(request) = request else { return };
+            if is_local || only_count || path != "/" {
+                self.shared
+                    .pending_file_manifest_request
+                    .lock()
+                    .unwrap()
+                    .take();
+                self.shared.emit_file_transfer_manifest(
+                    request,
+                    FILE_TRANSFER_LIST_REJECTED,
+                    FILE_TRANSFER_MANIFEST_PART_FILES,
+                    &[],
+                );
+                return;
+            }
+            let Some(listing) = native_viewer_remote_manifest_files(entries) else {
+                self.shared
+                    .pending_file_manifest_request
+                    .lock()
+                    .unwrap()
+                    .take();
+                self.shared.emit_file_transfer_manifest(
+                    request,
+                    FILE_TRANSFER_LIST_REJECTED,
+                    FILE_TRANSFER_MANIFEST_PART_FILES,
+                    &[],
+                );
+                return;
+            };
+            let duplicate_or_complete = {
+                let mut pending = self.shared.pending_file_manifest_request.lock().unwrap();
+                let Some(active) = pending.as_mut() else {
+                    return;
+                };
+                if active.request_id != id || active.files_delivered {
+                    pending.take();
+                    true
+                } else {
+                    active.files_delivered = true;
+                    if active.empty_directories_delivered {
+                        pending.take();
+                    }
+                    false
+                }
+            };
+            self.shared.emit_file_transfer_manifest(
+                request,
+                if duplicate_or_complete {
+                    FILE_TRANSFER_LIST_REJECTED
+                } else {
+                    FILE_TRANSFER_LIST_SUCCESS
+                },
+                FILE_TRANSFER_MANIFEST_PART_FILES,
+                if duplicate_or_complete { &[] } else { &listing },
+            );
+            return;
+        }
         let request = self.shared.pending_file_list_request.lock().unwrap().take();
         let Some(request) = request else { return };
         if is_local || only_count || path != "/" {
@@ -678,6 +848,54 @@ impl InvokeUiSession for BridgeUi {
                 .shared
                 .emit_file_transfer_list(request, FILE_TRANSFER_LIST_REJECTED, &[]),
         }
+    }
+
+    fn update_empty_dirs(&self, response: ReadEmptyDirsResponse) {
+        let request = {
+            let pending = self.shared.pending_file_manifest_request.lock().unwrap();
+            pending.as_ref().copied()
+        };
+        let Some(request) = request else { return };
+        let Some(listing) = native_viewer_remote_manifest_empty_directories(&response) else {
+            self.shared
+                .pending_file_manifest_request
+                .lock()
+                .unwrap()
+                .take();
+            self.shared.emit_file_transfer_manifest(
+                request,
+                FILE_TRANSFER_LIST_REJECTED,
+                FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES,
+                &[],
+            );
+            return;
+        };
+        let duplicate_or_complete = {
+            let mut pending = self.shared.pending_file_manifest_request.lock().unwrap();
+            let Some(active) = pending.as_mut() else {
+                return;
+            };
+            if active.empty_directories_delivered {
+                pending.take();
+                true
+            } else {
+                active.empty_directories_delivered = true;
+                if active.files_delivered {
+                    pending.take();
+                }
+                false
+            }
+        };
+        self.shared.emit_file_transfer_manifest(
+            request,
+            if duplicate_or_complete {
+                FILE_TRANSFER_LIST_REJECTED
+            } else {
+                FILE_TRANSFER_LIST_SUCCESS
+            },
+            FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES,
+            if duplicate_or_complete { &[] } else { &listing },
+        );
     }
 
     fn confirm_delete_files(&self, _id: i32, _index: i32, _name: String) {}
@@ -833,6 +1051,14 @@ impl RDNClient {
             .file_transfer_session_epoch
             .store(0, Ordering::Release);
         self.shared.pending_file_list_request.lock().unwrap().take();
+        self.shared
+            .file_manifest_request_epoch
+            .store(0, Ordering::Release);
+        self.shared
+            .pending_file_manifest_request
+            .lock()
+            .unwrap()
+            .take();
         self.shared.active.store(false, Ordering::Release);
         if let Some(session) = self.session.lock().unwrap().as_ref() {
             if let Some(sender) = session.sender.read().unwrap().as_ref() {
@@ -1379,6 +1605,89 @@ fn native_viewer_remote_listing(entries: &[FileEntry]) -> Option<Vec<NativeViewe
     Some(normalized)
 }
 
+fn native_viewer_manifest_relative_path(path: &str) -> bool {
+    !path.is_empty()
+        && !path.starts_with('/')
+        && !path.ends_with('/')
+        && !path.contains('\\')
+        && !path.chars().any(char::is_control)
+        && path.split('/').all(|component| {
+            !component.is_empty()
+                && component != "."
+                && component != ".."
+                && !component
+                    .to_ascii_lowercase()
+                    .ends_with(FILE_TRANSFER_PRIVATE_STAGING_SUFFIX)
+        })
+}
+
+fn native_viewer_remote_manifest_files(
+    entries: &[FileEntry],
+) -> Option<Vec<NativeViewerRemoteListEntry>> {
+    if entries.len() > MAX_FILE_TRANSFER_LIST_ENTRIES {
+        return None;
+    }
+    let mut metadata_utf8_bytes = 0usize;
+    let mut collision_keys = HashSet::with_capacity(entries.len());
+    let mut normalized = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let path = entry.name.as_str();
+        if entry.is_hidden
+            || entry.entry_type.enum_value() != Ok(FileType::File)
+            || !native_viewer_manifest_relative_path(path)
+        {
+            return None;
+        }
+        metadata_utf8_bytes = metadata_utf8_bytes.checked_add(path.len())?;
+        if metadata_utf8_bytes > MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES
+            || !collision_keys.insert(path.to_ascii_lowercase())
+        {
+            return None;
+        }
+        normalized.push(NativeViewerRemoteListEntry {
+            kind: NativeViewerRemoteListEntryKind::File,
+            relative_path: path.to_owned(),
+            size: entry.size,
+            modified_time: entry.modified_time,
+        });
+    }
+    Some(normalized)
+}
+
+fn native_viewer_remote_manifest_empty_directories(
+    response: &ReadEmptyDirsResponse,
+) -> Option<Vec<NativeViewerRemoteListEntry>> {
+    if response.path != "/" || response.empty_dirs.len() > MAX_FILE_TRANSFER_LIST_ENTRIES {
+        return None;
+    }
+    let mut metadata_utf8_bytes = 0usize;
+    let mut collision_keys = HashSet::with_capacity(response.empty_dirs.len());
+    let mut normalized = Vec::with_capacity(response.empty_dirs.len());
+    for directory in &response.empty_dirs {
+        let wire_path = directory.path.as_str();
+        let path = wire_path.strip_prefix('/')?;
+        if directory.id != 0
+            || !directory.entries.is_empty()
+            || !native_viewer_manifest_relative_path(path)
+        {
+            return None;
+        }
+        metadata_utf8_bytes = metadata_utf8_bytes.checked_add(path.len())?;
+        if metadata_utf8_bytes > MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES
+            || !collision_keys.insert(path.to_ascii_lowercase())
+        {
+            return None;
+        }
+        normalized.push(NativeViewerRemoteListEntry {
+            kind: NativeViewerRemoteListEntryKind::Directory,
+            relative_path: path.to_owned(),
+            size: 0,
+            modified_time: 0,
+        });
+    }
+    Some(normalized)
+}
+
 fn native_viewer_file_list_root_message() -> Message {
     let mut action = FileAction::new();
     action.set_read_dir(ReadDir {
@@ -1389,6 +1698,28 @@ fn native_viewer_file_list_root_message() -> Message {
     let mut message = Message::new();
     message.set_file_action(action);
     message
+}
+
+fn native_viewer_file_manifest_root_messages(request_id: i32) -> (Message, Message) {
+    let mut files_action = FileAction::new();
+    files_action.set_all_files(ReadAllFiles {
+        id: request_id,
+        path: "/".to_owned(),
+        include_hidden: false,
+        ..Default::default()
+    });
+    let mut files_message = Message::new();
+    files_message.set_file_action(files_action);
+
+    let mut directories_action = FileAction::new();
+    directories_action.set_read_empty_dirs(ReadEmptyDirs {
+        path: "/".to_owned(),
+        include_hidden: false,
+        ..Default::default()
+    });
+    let mut directories_message = Message::new();
+    directories_message.set_file_action(directories_action);
+    (files_message, directories_message)
 }
 
 fn viewer_file_transfer_mode_admission(
@@ -1442,6 +1773,8 @@ pub unsafe extern "C" fn rdn_client_create(
         file_transfer_enabled: AtomicBool::new(false),
         file_transfer_session_epoch: AtomicU64::new(0),
         pending_file_list_request: Mutex::new(None),
+        file_manifest_request_epoch: AtomicU64::new(0),
+        pending_file_manifest_request: Mutex::new(None),
     });
     Box::into_raw(Box::new(RDNClient {
         shared,
@@ -1559,6 +1892,16 @@ pub unsafe extern "C" fn rdn_client_connect(
         .lock()
         .unwrap()
         .take();
+    client
+        .shared
+        .file_manifest_request_epoch
+        .store(0, Ordering::Release);
+    client
+        .shared
+        .pending_file_manifest_request
+        .lock()
+        .unwrap()
+        .take();
     client.shared.sequence.store(0, Ordering::Relaxed);
     *client.shared.dimensions.write().unwrap() = (0, 0);
     client
@@ -1612,6 +1955,14 @@ pub unsafe extern "C" fn rdn_client_connect(
             .store(0, Ordering::Release);
         worker_shared
             .pending_file_list_request
+            .lock()
+            .unwrap()
+            .take();
+        worker_shared
+            .file_manifest_request_epoch
+            .store(0, Ordering::Release);
+        worker_shared
+            .pending_file_manifest_request
             .lock()
             .unwrap()
             .take();
@@ -2191,6 +2542,78 @@ pub unsafe extern "C" fn rdn_client_file_transfer_list_root(
     0
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_file_transfer_manifest_root(
+    client: *mut RDNClient,
+    session_epoch: u64,
+    request_id: i32,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    if session_epoch == 0 || request_id <= 0 {
+        return -4;
+    }
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if !client.shared.file_transfer_enabled.load(Ordering::Acquire) {
+        return -7;
+    }
+    if client
+        .shared
+        .file_transfer_session_epoch
+        .load(Ordering::Acquire)
+        != session_epoch
+    {
+        return -10;
+    }
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    if !*session.server_file_transfer_enabled.read().unwrap() {
+        return -8;
+    }
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
+        return -3;
+    };
+    let request = NativeViewerManifestRequest {
+        session_epoch,
+        request_id,
+        files_delivered: false,
+        empty_directories_delivered: false,
+    };
+    if client
+        .shared
+        .file_manifest_request_epoch
+        .compare_exchange(0, session_epoch, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return -3;
+    }
+    {
+        let mut pending = client.shared.pending_file_manifest_request.lock().unwrap();
+        debug_assert!(pending.is_none());
+        *pending = Some(request);
+    }
+    let (files_message, directories_message) =
+        native_viewer_file_manifest_root_messages(request_id);
+    if sender.send(Data::Message(files_message)).is_err()
+        || sender.send(Data::Message(directories_message)).is_err()
+    {
+        let mut pending = client.shared.pending_file_manifest_request.lock().unwrap();
+        if pending.as_ref() == Some(&request) {
+            pending.take();
+        }
+        return -3;
+    }
+    0
+}
+
 struct PacketInspection {
     format: RDNPacketFormat,
     flags: u32,
@@ -2269,6 +2692,15 @@ mod tests {
         entries: Vec<(u32, String, u64, u64)>,
     }
 
+    #[derive(Debug, Eq, PartialEq)]
+    struct CapturedFileManifestEvent {
+        session_epoch: u64,
+        request_id: i32,
+        status: u32,
+        part: u32,
+        entries: Vec<(u32, String, u64, u64)>,
+    }
+
     unsafe extern "C" fn capture_file_list_event(
         context: *mut c_void,
         event: *const RDNFileTransferListEvent,
@@ -2298,6 +2730,40 @@ mod tests {
             session_epoch: event.session_epoch,
             request_id: event.request_id,
             status: event.status,
+            entries,
+        });
+    }
+
+    unsafe extern "C" fn capture_file_manifest_event(
+        context: *mut c_void,
+        event: *const RDNFileTransferManifestEvent,
+    ) {
+        let capture = &*(context as *const Mutex<Vec<CapturedFileManifestEvent>>);
+        let event = &*event;
+        let entries = if event.entry_count == 0 {
+            Vec::new()
+        } else {
+            std::slice::from_raw_parts(event.entries, event.entry_count)
+                .iter()
+                .map(|entry| {
+                    let bytes = std::slice::from_raw_parts(
+                        entry.relative_path_utf8,
+                        entry.relative_path_length,
+                    );
+                    (
+                        entry.kind,
+                        String::from_utf8(bytes.to_vec()).unwrap(),
+                        entry.size,
+                        entry.modified_time,
+                    )
+                })
+                .collect()
+        };
+        capture.lock().unwrap().push(CapturedFileManifestEvent {
+            session_epoch: event.session_epoch,
+            request_id: event.request_id,
+            status: event.status,
+            part: event.part,
             entries,
         });
     }
@@ -2435,6 +2901,54 @@ mod tests {
             1,
         )])
         .is_none());
+    }
+
+    #[test]
+    fn viewer_recursive_manifest_parts_are_owned_bounded_and_semantic() {
+        let mut files = vec![
+            remote_list_entry(FileType::File, "资料/report.txt", 42),
+            remote_list_entry(FileType::File, "top.txt", 1),
+        ];
+        let listing = native_viewer_remote_manifest_files(&files).unwrap();
+        files[0].name = "changed".to_owned();
+        assert_eq!(listing[0].relative_path, "资料/report.txt");
+        assert!(native_viewer_remote_manifest_files(&[remote_list_entry(
+            FileType::Dir,
+            "folder",
+            0
+        ),])
+        .is_none());
+        assert!(native_viewer_remote_manifest_files(&[remote_list_entry(
+            FileType::File,
+            "a/../escape",
+            1
+        ),])
+        .is_none());
+
+        let response = ReadEmptyDirsResponse {
+            path: "/".to_owned(),
+            empty_dirs: vec![FileDirectory {
+                path: "/资料/empty".to_owned(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let directories = native_viewer_remote_manifest_empty_directories(&response).unwrap();
+        assert_eq!(directories[0].relative_path, "资料/empty");
+        assert_eq!(
+            directories[0].kind,
+            NativeViewerRemoteListEntryKind::Directory
+        );
+
+        let invalid = ReadEmptyDirsResponse {
+            path: "/".to_owned(),
+            empty_dirs: vec![FileDirectory {
+                path: "/bad/../empty".to_owned(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        assert!(native_viewer_remote_manifest_empty_directories(&invalid).is_none());
     }
 
     #[test]
@@ -3242,6 +3756,137 @@ mod tests {
             FILE_TRANSFER_LIST_UNAVAILABLE
         );
         assert!(captured.lock().unwrap()[2].entries.is_empty());
+    }
+
+    #[test]
+    fn viewer_recursive_manifest_command_delivers_two_exact_parts_and_clears() {
+        let captured = Mutex::new(Vec::<CapturedFileManifestEvent>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_file_transfer_manifest = Some(capture_file_manifest_event);
+        shared.context = &captured as *const _ as usize;
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+
+        let (sender, mut receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
+        let session = Session {
+            sender: Arc::new(RwLock::new(Some(sender))),
+            ui_handler: ui.clone(),
+            server_file_transfer_enabled: Arc::new(RwLock::new(true)),
+            ..Default::default()
+        };
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(Some(session)),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let client_pointer = &mut client as *mut RDNClient;
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_manifest_root(client_pointer, 6, 51) },
+            -10
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_manifest_root(client_pointer, 7, 51) },
+            0
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_manifest_root(client_pointer, 7, 52) },
+            -3
+        );
+
+        let Ok(Data::Message(files_message)) = receiver.try_recv() else {
+            panic!("manifest request must send recursive files message");
+        };
+        let Some(message::Union::FileAction(files_action)) = files_message.union else {
+            panic!("recursive files message must be FileAction");
+        };
+        let Some(file_action::Union::AllFiles(files)) = files_action.union else {
+            panic!("recursive files message must be AllFiles");
+        };
+        assert_eq!(
+            (files.id, files.path.as_str(), files.include_hidden),
+            (51, "/", false)
+        );
+
+        let Ok(Data::Message(directories_message)) = receiver.try_recv() else {
+            panic!("manifest request must send empty-directories message");
+        };
+        let Some(message::Union::FileAction(directories_action)) = directories_message.union else {
+            panic!("empty-directories message must be FileAction");
+        };
+        let Some(file_action::Union::ReadEmptyDirs(directories)) = directories_action.union else {
+            panic!("empty-directories message must be ReadEmptyDirs");
+        };
+        assert_eq!(
+            (directories.path.as_str(), directories.include_hidden),
+            ("/", false)
+        );
+
+        ui.update_empty_dirs(ReadEmptyDirsResponse {
+            path: "/".to_owned(),
+            empty_dirs: vec![FileDirectory {
+                path: "/资料/empty".to_owned(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        });
+        ui.update_folder_files(
+            51,
+            &vec![remote_list_entry(FileType::File, "资料/report.txt", 42)],
+            "/".to_owned(),
+            false,
+            false,
+        );
+        assert_eq!(
+            captured.lock().unwrap().as_slice(),
+            &[
+                CapturedFileManifestEvent {
+                    session_epoch: 7,
+                    request_id: 51,
+                    status: FILE_TRANSFER_LIST_SUCCESS,
+                    part: FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES,
+                    entries: vec![(
+                        FILE_TRANSFER_LIST_ENTRY_DIRECTORY,
+                        "资料/empty".to_owned(),
+                        0,
+                        0,
+                    )],
+                },
+                CapturedFileManifestEvent {
+                    session_epoch: 7,
+                    request_id: 51,
+                    status: FILE_TRANSFER_LIST_SUCCESS,
+                    part: FILE_TRANSFER_MANIFEST_PART_FILES,
+                    entries: vec![(
+                        FILE_TRANSFER_LIST_ENTRY_FILE,
+                        "资料/report.txt".to_owned(),
+                        42,
+                        123,
+                    )],
+                },
+            ]
+        );
+        assert!(ui
+            .shared
+            .pending_file_manifest_request
+            .lock()
+            .unwrap()
+            .is_none());
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_manifest_root(client_pointer, 7, 52) },
+            -3,
+            "an untagged empty-directory response makes manifest single-use per epoch"
+        );
+        assert!(receiver.try_recv().is_err());
     }
 
     fn optional_payload_bytes(bytes: Option<&[u8]>) -> (*const u8, usize) {

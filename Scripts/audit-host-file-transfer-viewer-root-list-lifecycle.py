@@ -63,10 +63,10 @@ def main() -> int:
                 NEXT_BOUNDARY,
             )
         ),
-        "abiV10HasBoundedCallbackScopedListShape": all(
+        "abiV11RetainsBoundedCallbackScopedListShape": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 10u",
+                "#define RDN_ABI_VERSION 11u",
                 "#define RDN_MAX_FILE_TRANSFER_LIST_ENTRIES 1024u",
                 "typedef struct RDNFileTransferListEntry {",
                 "const uint8_t *relative_path_utf8;",
@@ -151,13 +151,13 @@ def main() -> int:
         ),
         "productRemainsOffAndIOGapIsExplicit": (
             "fileTransferEnabled:" not in product
-            and "远端 recursive-manifest command/callback" in sources["architecture"]
-            and "No remote recursive-manifest command/callback" in sources["readme"]
+            and "download start" in sources["architecture"]
+            and "No download command" in sources["readme"]
         ),
         "recursiveAuthorityNowPrecedesRemoteManifestABI": (
             "package struct ViewerFileTransferRecursiveManifestAuthority"
             in sources["recursive_authority"]
-            and "rdn_client_file_transfer_manifest" not in header
+            and "rdn_client_file_transfer_manifest_root" in header
         ),
     }
     source_lines = {
@@ -165,7 +165,7 @@ def main() -> int:
             sources["design"],
             "H6.3f2b2b Viewer root-list command/callback ABI lifecycle",
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 10u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 11u"),
         "listEvent": line_number(header, "typedef struct RDNFileTransferListEvent {"),
         "listCommand": line_number(header, "rdn_client_file_transfer_list_root"),
         "rustCommand": line_number(bridge, "fn rdn_client_file_transfer_list_root("),
@@ -194,7 +194,7 @@ def main() -> int:
         "claims": {
             "viewerRootListCommandCallbackImplemented": status == expected_status,
             "viewerRecursiveManifestAuthorityImplemented": status == expected_status,
-            "viewerRecursiveManifestABILifecycleImplemented": False,
+            "viewerRecursiveManifestABILifecycleImplemented": status == expected_status,
             "viewerDestinationDescriptorOwnerImplemented": status == expected_status,
             "viewerDownloadIOImplemented": False,
             "productFileTransferEnabled": False,

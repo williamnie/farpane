@@ -122,15 +122,15 @@ def main() -> int:
             )
         ),
         "abiAndProductRemainOff": (
-            "#define RDN_ABI_VERSION 10u" in sources["header"]
+            "#define RDN_ABI_VERSION 11u" in sources["header"]
             and "fileTransferEnabled:" not in product
-            and "No remote recursive-manifest command/callback" in sources["readme"]
+            and "No download command" in sources["readme"]
             and "不保存路径也不创建文件" in sources["architecture"]
         ),
         "recursiveAuthorityNowPrecedesRemoteManifestABI": (
             "package struct ViewerFileTransferRecursiveManifestAuthority"
             in sources["recursive_authority"]
-            and "rdn_client_file_transfer_manifest" not in sources["header"]
+            and "rdn_client_file_transfer_manifest_root" in sources["header"]
         ),
     }
     source_lines = {

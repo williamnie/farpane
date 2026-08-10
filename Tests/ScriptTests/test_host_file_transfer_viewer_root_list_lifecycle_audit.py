@@ -32,7 +32,7 @@ class HostFileTransferViewerRootListLifecycleAuditTests(unittest.TestCase):
         claims = document["claims"]
         self.assertTrue(claims["viewerRootListCommandCallbackImplemented"])
         self.assertTrue(claims["viewerRecursiveManifestAuthorityImplemented"])
-        self.assertFalse(claims["viewerRecursiveManifestABILifecycleImplemented"])
+        self.assertTrue(claims["viewerRecursiveManifestABILifecycleImplemented"])
         self.assertTrue(claims["viewerDestinationDescriptorOwnerImplemented"])
         self.assertFalse(claims["viewerDownloadIOImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
