@@ -60,3 +60,10 @@ bootstrap, and Host cannot be enabled unless that publication is coherent. The
 legacy foreground Host and background Agent consume the same projection. Small
 text is therefore end-to-end capable after explicit opt-in while remaining off
 by default; rich text, images, and file promises are still unsupported.
+
+The Host rich-payload boundary now classifies wire clipboard formats before
+either directional admission point. Only bounded, non-NUL UTF-8 `Text` may use
+the existing inline path. RTF, HTML, RGBA, PNG, and SVG are explicitly routed
+to a future independent transfer owner and remain rejected by the current
+read/write gates; remote `Special` format names and unknown enum values reject
+outright. Classification does not enable rich clipboard transport.

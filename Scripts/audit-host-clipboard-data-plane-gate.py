@@ -93,10 +93,11 @@ def main() -> int:
             marker in bridge
             for marker in (
                 "MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024",
-                "clipboard.format.enum_value() != Ok(ClipboardFormat::Text)",
-                "!clipboard.special_name.is_empty()",
+                "ClipboardFormat::Text =>",
+                "clipboard.special_name.is_empty()",
                 "clipboards.len() == 1",
                 "String::from_utf8(bytes).ok()",
+                "!text.contains('\\0')",
             )
         ),
         "compressedPayloadHasDecodedHardLimit": all(

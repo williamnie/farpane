@@ -172,6 +172,9 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   显示两个显式开关，变更后重新发布 immutable bootstrap，发布不 coherent 时禁止开启
   Host。前台 legacy Host 与后台 Agent 消费同一策略，因此小型文本在用户显式开启后具备
   端到端路径、默认仍关闭；富文本、图片和文件 promise 仍不受支持。
+- Host 在两个方向准入前先分类 clipboard wire format：只有无 NUL 的有界 UTF-8 `Text`
+  可进入现有 inline 路径；RTF/HTML/RGBA/PNG/SVG 明确要求未来独立 transfer owner，当前
+  仍拒绝，远端 `Special` 名称和未知 enum 直接 fail closed。分类本身不开放富剪贴板。
 - 断开后不得投递排队中的旧剪贴板回调，富文本、图片和文件 promise 不跨 Viewer ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
