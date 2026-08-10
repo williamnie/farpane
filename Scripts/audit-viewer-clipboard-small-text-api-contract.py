@@ -174,12 +174,13 @@ def main() -> int:
                 "diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs",
             )
         ),
-        "documentationKeepsProductDisabled": all(
+        "documentationRecordsViewerEnablementAndHostBoundary": all(
             marker in (sources["readme"] + sources["architecture"])
             for marker in (
                 "ABI v6 adds a default-off",
-                "Product UI\nand pasteboard synchronization remain disabled",
-                "系统 pasteboard 所有权保留给后续 Swift/AppKit 产品层",
+                "AppKit-owned pasteboard adapter",
+                "Host clipboard policy remains",
+                "Host 侧仍默认关闭",
             )
         ),
     }
@@ -224,17 +225,20 @@ def main() -> int:
             "directionsIndependentlyEnforced": True,
             "smallTextBoundedTo64KiB": True,
             "viewerRustOwnsSystemPasteboard": False,
-            "productClipboardEnabled": False,
+            "viewerProductClipboardEnabled": True,
+            "hostProductClipboardEnabled": False,
+            "endToEndClipboardEnabled": False,
             "richClipboardEnabled": False,
         },
         "remainingBoundary": {
-            "viewerPasteboardOwnerRequired": True,
-            "explicitProductEnablementRequired": True,
+            "viewerPasteboardOwnerRequired": False,
+            "viewerExplicitEnablementRequired": False,
+            "hostSmallTextExplicitOptInRequired": True,
             "richPayloadTransferRequired": True,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-pasteboard-owner-and-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-small-text-clipboard-explicit-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-small-text-clipboard-api-default-off" else 1

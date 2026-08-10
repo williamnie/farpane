@@ -45,5 +45,11 @@ and delivers callback-scoped bytes to Swift without touching the Viewer
 pasteboard. Swift may send the same bounded semantic text through a dedicated
 call only after local send policy, authentication, and the remote clipboard
 permission all agree. The pinned wire exposes one clipboard negotiation bit;
-the native bridge still enforces receive and send independently. Product UI
-and pasteboard synchronization remain disabled until their later H6 gate.
+the native bridge still enforces receive and send independently. FarPane's
+Viewer product composition explicitly enables both text directions and routes
+them through one AppKit-owned pasteboard adapter. That adapter starts only
+after authentication, snapshots rather than uploads the pre-session local
+clipboard, suppresses its own writes, dynamically backs polling off to four
+seconds, and stops before Core disconnect. Host clipboard policy remains
+default-off until its separate explicit opt-in gate, so this is not yet an
+end-to-end clipboard enablement claim.

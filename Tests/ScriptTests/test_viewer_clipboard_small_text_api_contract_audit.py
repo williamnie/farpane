@@ -39,12 +39,29 @@ class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["directionsIndependentlyEnforced"])
         self.assertTrue(document["claims"]["smallTextBoundedTo64KiB"])
         self.assertFalse(document["claims"]["viewerRustOwnsSystemPasteboard"])
-        self.assertFalse(document["claims"]["productClipboardEnabled"])
+        self.assertTrue(document["claims"]["viewerProductClipboardEnabled"])
+        self.assertFalse(document["claims"]["hostProductClipboardEnabled"])
+        self.assertFalse(document["claims"]["endToEndClipboardEnabled"])
         self.assertFalse(document["claims"]["richClipboardEnabled"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]["viewerPasteboardOwnerRequired"]
+        )
+        self.assertFalse(
+            document["remainingBoundary"]["viewerExplicitEnablementRequired"]
+        )
+        self.assertTrue(
+            document["remainingBoundary"]["hostSmallTextExplicitOptInRequired"]
+        )
+        self.assertTrue(all(
+            value for name, value in document["remainingBoundary"].items()
+            if name not in {
+                "viewerPasteboardOwnerRequired",
+                "viewerExplicitEnablementRequired",
+            }
+        ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-pasteboard-owner-and-explicit-enablement-contract",
+            "host-small-text-clipboard-explicit-opt-in-contract",
         )
 
 

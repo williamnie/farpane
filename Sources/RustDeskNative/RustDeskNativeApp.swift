@@ -155,6 +155,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var liveDecoder: LiveHEVCDecoder?
     private var coreClient: RustDeskCoreClient?
     private var viewerEvidenceSessionEpoch: UInt64?
+    private let viewerPasteboardOwner = ViewerPasteboardOwner()
+    private var viewerClipboardCommittedEpoch: UInt64 = 0
+    private var viewerClipboardSessionEpoch: UInt64?
     private var viewerAutomaticRecoveryOwner: ViewerAutomaticRecoveryOwner?
     private var viewerRecoveryDeviceID: UUID?
     private var viewerRecoveryCommittedEpoch: UInt64 = 0
@@ -553,6 +556,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func showHomeUI(error: String = "") {
         stopViewerAutomaticRecovery()
+        stopViewerClipboard()
         let viewerLifecycleStopped = stopViewerLifecycleEvidence()
         if viewerLifecycleStopped {
             reaffirmHostAgentApplicationConcurrencyEvidence()
@@ -3078,7 +3082,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 serverPublicKey: server.serverPublicKey,
                 peerID: peerID,
                 password: password,
-                forceRelay: server.forceRelay
+                forceRelay: server.forceRelay,
+                receiveClipboardText: true,
+                sendClipboardText: true
             )
             try launchViewer(
                 fixture: nil,
@@ -3483,6 +3489,23 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             }
         }
 
+        guard let clipboardSessionEpoch = nextViewerClipboardSessionEpoch(),
+              viewerPasteboardOwner.begin(
+                  sessionEpoch: clipboardSessionEpoch,
+                  receiveEnabled: configuration.receiveClipboardText,
+                  sendEnabled: configuration.sendClipboardText,
+                  sendText: { [weak self] text in
+                      self?.coreClient?.sendClipboardText(text) ?? -3
+                  }
+              )
+        else { throw usageError("viewer clipboard lifecycle unavailable") }
+        viewerClipboardSessionEpoch = clipboardSessionEpoch
+        defer {
+            if !viewerStarted {
+                stopViewerClipboard()
+            }
+        }
+
         let decoder = LiveHEVCDecoder(
             metrics: metrics,
             output: { [weak renderer] pixelBuffer, _ in renderer?.enqueue(pixelBuffer) }
@@ -3560,6 +3583,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         viewerCoreGeneration += 1
         let coreGeneration = viewerCoreGeneration
+        let clipboardSessionEpoch = viewerClipboardSessionEpoch
         let fallbackFPS = options.fps
         let keyboardController = self.keyboardController
         let client = try RustDeskCoreClient(
@@ -3602,6 +3626,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     networkDelayMS: Int(value.networkDelayMS),
                     targetBitrate: value.targetBitrate
                 )
+            },
+            onClipboardText: { [weak self] text in
+                DispatchQueue.main.async {
+                    self?.handleViewerClipboardText(
+                        text,
+                        coreGeneration: coreGeneration,
+                        attemptID: attemptID,
+                        clipboardSessionEpoch: clipboardSessionEpoch
+                    )
+                }
             }
         )
         try client.connect(configuration)
@@ -3644,6 +3678,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             )
         }
 
+        if event.state == .authenticated || event.state == .streaming {
+            if let clipboardSessionEpoch = viewerClipboardSessionEpoch {
+                viewerPasteboardOwner.activate(
+                    sessionEpoch: clipboardSessionEpoch
+                )
+            }
+        }
+
         if event.state == .streaming {
             if let recoverySessionEpoch = viewerRecoverySessionEpoch {
                 _ = viewerAutomaticRecoveryOwner?.observeStreaming(
@@ -3663,6 +3705,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
 
         guard Self.isTerminalState(event.state) else { return }
+        if let clipboardSessionEpoch = viewerClipboardSessionEpoch {
+            viewerPasteboardOwner.suspend(
+                sessionEpoch: clipboardSessionEpoch
+            )
+        }
         if let evidenceSessionEpoch {
             _ = hostViewerConcurrencyEvidenceOwner.observeViewerTerminal(
                 sessionEpoch: evidenceSessionEpoch
@@ -3725,7 +3772,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             serverPublicKey: server.serverPublicKey,
             peerID: device.peerID,
             password: password,
-            forceRelay: server.forceRelay
+            forceRelay: server.forceRelay,
+            receiveClipboardText: true,
+            sendClipboardText: true
         )
         defer { password = "" }
 
@@ -3788,7 +3837,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 serverPublicKey: key,
                 peerID: peerID,
                 password: password,
-                forceRelay: options.forceRelay
+                forceRelay: options.forceRelay,
+                receiveClipboardText: true,
+                sendClipboardText: true
             )
         )
     }
@@ -3972,6 +4023,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         didFinish = true
         stopHostMode(preservePreference: true, reason: .appExit, releaseClient: true)
         stopViewerAutomaticRecovery()
+        stopViewerClipboard()
         _ = stopViewerLifecycleEvidence()
         guard let metrics else { return }
         player?.stop()
@@ -3998,6 +4050,36 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         viewerAutomaticRecoveryOwner?.cancelAndWait()
         viewerAutomaticRecoveryOwner = nil
         viewerRecoverySessionEpoch = nil
+    }
+
+    private func nextViewerClipboardSessionEpoch() -> UInt64? {
+        guard viewerClipboardCommittedEpoch < UInt64.max else { return nil }
+        viewerClipboardCommittedEpoch += 1
+        return viewerClipboardCommittedEpoch
+    }
+
+    private func handleViewerClipboardText(
+        _ text: String,
+        coreGeneration: UInt64,
+        attemptID: UUID?,
+        clipboardSessionEpoch: UInt64?
+    ) {
+        guard coreGeneration == viewerCoreGeneration else { return }
+        if let attemptID, activeAttemptID != attemptID { return }
+        guard
+            let clipboardSessionEpoch,
+            clipboardSessionEpoch == viewerClipboardSessionEpoch
+        else { return }
+        viewerPasteboardOwner.receiveRemoteText(
+            text,
+            sessionEpoch: clipboardSessionEpoch
+        )
+    }
+
+    private func stopViewerClipboard() {
+        guard let sessionEpoch = viewerClipboardSessionEpoch else { return }
+        viewerClipboardSessionEpoch = nil
+        viewerPasteboardOwner.stop(sessionEpoch: sessionEpoch)
     }
 
     @discardableResult
