@@ -113,6 +113,14 @@ def main() -> int:
                 "set_files_rejects_empty_name_in_multi_file_transfer",
             )
         ),
+        "fileBlocksHaveMatchingWireAndDecodedHardLimit": all(
+            marker in fs
+            for marker in (
+                "MAX_FILE_TRANSFER_BLOCK_BYTES: usize = 128 * 1024",
+                "validated_file_transfer_block_payload(&block)?",
+                "decompress_with_limit(&block.data, MAX_FILE_TRANSFER_BLOCK_BYTES)",
+            )
+        ),
         "productCallersStillDoNotOptIn": (
             "fileTransferEnabled:" not in product
             and "fileTransferEnabled: true" not in product
@@ -124,14 +132,6 @@ def main() -> int:
     }
 
     gaps = {
-        "compressedBlocksUseUnboundedDecompression": (
-            "let tmp = decompress(&block.data);" in fs
-            and "decompress_with_limit(&block.data" not in fs
-        ),
-        "decodedBlockHasNoExplicitHardLimit": (
-            "MAX_FILE_TRANSFER_BLOCK" not in fs
-            and "MAX_DECODED_FILE_TRANSFER_BLOCK" not in fs
-        ),
         "writeOpenHasDocumentedSymlinkTOCTOU": all(
             marker in fs
             for marker in (
@@ -194,8 +194,9 @@ def main() -> int:
         ),
         "nameValidation": line_number(fs, "fn validate_file_name_no_traversal"),
         "symlinkValidation": line_number(fs, "fn validate_no_symlink_components"),
-        "unboundedDecompression": line_number(
-            fs, "let tmp = decompress(&block.data);"
+        "boundedDecompression": line_number(
+            fs,
+            "decompress_with_limit(&block.data, MAX_FILE_TRANSFER_BLOCK_BYTES)",
         ),
         "toctouAcknowledgement": line_number(
             fs, "known TOCTOU window for symlink races"
@@ -231,11 +232,11 @@ def main() -> int:
             "nativeHostFileTransferFunctional": False,
             "pathTraversalGuardPresent": True,
             "symlinkRaceClosed": False,
-            "compressedPayloadBounded": False,
+            "compressedPayloadBounded": True,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-bounded-block-envelope",
+        "nextImplementationBoundary": "host-file-transfer-safe-open-root",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1

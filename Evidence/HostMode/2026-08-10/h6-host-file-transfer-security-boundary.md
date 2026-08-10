@@ -22,8 +22,9 @@ gaps that must be closed before any UI or bootstrap opt-in.
 
 ## Open gaps
 
-- Compressed `FileTransferBlock` payloads use legacy unbounded `decompress` and
-  have no decoded-block hard limit.
+- H6.3c follow-up: compressed `FileTransferBlock` payloads now have matching
+  128 KiB wire and decoded hard limits. This item is no longer open; it remains
+  here as the audit finding that selected the H6.3c implementation boundary.
 - Path validation followed by `File::create`/resume reopen has a documented
   symlink TOCTOU window; it is not descriptor/handle based.
 - remove/create/rename paths only reject empty/NUL and are not constrained to a
@@ -36,8 +37,9 @@ gaps that must be closed before any UI or bootstrap opt-in.
 
 ## Verification
 
-- Machine audit status: `audited-not-product-ready`; 9/9 established guards,
-  8/8 expected open gaps, and 10/10 source anchors present.
+- Current machine audit status remains `audited-not-product-ready`; bounded
+  blocks are now an established guard while the remaining safe-open/root,
+  file-service owner, and product UX gaps stay open.
 - Focused `hbb_common::fs` release tests: 14/14 passed, including relative and
   absolute traversal, NUL, full-list rejection, and symlink escape cases.
 - Native Host connection scope tests: 4/4 passed.
@@ -59,7 +61,7 @@ gaps that must be closed before any UI or bootstrap opt-in.
 
 ## Next step
 
-`host-file-transfer-bounded-block-envelope`: replace unbounded compressed-block
-decode with a documented hard limit and exact tests for at-limit, over-limit,
-malformed, and uncompressed oversize input before addressing safe-open/root and
+H6.3c completed the bounded-block envelope. The next boundary is
+`host-file-transfer-safe-open-root`: close the documented symlink race and bind
+all receive-side mutations to a FarPane-owned destination root before adding
 the Native Host file-service owner.

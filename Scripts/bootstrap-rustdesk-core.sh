@@ -8,6 +8,7 @@ patch_file="$repo_dir/CoreBridge/RustDeskPatch/upstream-1.4.9.patch"
 rich_text_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-rich-text-transfer.patch"
 viewer_image_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-image-api.patch"
 hbb_common_patch_file="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
+file_transfer_block_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 
@@ -62,6 +63,14 @@ elif ! git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
   exit 1
 fi
 
+if git -C "$hbb_common_dir" apply --check "$file_transfer_block_patch_file" 2>/dev/null; then
+  git -C "$hbb_common_dir" apply "$file_transfer_block_patch_file"
+elif ! git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_patch_file" 2>/dev/null; then
+  print -u2 "hbb_common checkout has changes that do not match the H6 file-transfer block patch"
+  git -C "$hbb_common_dir" status --short >&2
+  exit 1
+fi
+
 if [[ -e "$vendor_dir/src/rdn_bridge.rs" ]]; then
   if ! cmp -s "$vendor_dir/src/rdn_bridge.rs" "$bridge_source"; then
     print -u2 "existing src/rdn_bridge.rs differs from the tracked bridge source"
@@ -80,4 +89,5 @@ git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$rich_text_patch_fi
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_image_patch_file"
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
+git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_patch_file"
 print "RUSTDESK_CORE_SOURCE_READY commit=$actual_commit"
