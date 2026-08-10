@@ -32,14 +32,14 @@ class HostIdleAuthenticatedConnectionAuthorityAuditTests(unittest.TestCase):
         self.assertEqual(document["missingEvidence"], [])
 
         implementation = document["implementation"]
-        self.assertEqual(implementation["hostABIVersion"], 12)
-        self.assertEqual(implementation["headerABIVersion"], 12)
+        self.assertEqual(implementation["hostABIVersion"], 13)
+        self.assertEqual(implementation["headerABIVersion"], 13)
         self.assertEqual(implementation["snapshotSchemaVersion"], 8)
         self.assertTrue(all(implementation["evidence"].values()))
         self.assertTrue(all(implementation["sourceLines"].values()))
 
         target = document["targetContract"]
-        self.assertEqual(target["hostABIVersion"], 12)
+        self.assertEqual(target["hostABIVersion"], 13)
         self.assertEqual(target["hostSnapshotSchemaVersion"], 8)
         self.assertEqual(target["runtimeStateSchemaVersion"], 2)
         self.assertEqual(

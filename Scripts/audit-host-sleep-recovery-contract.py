@@ -139,7 +139,7 @@ def main() -> int:
         "fn fail_host_sleep_recovery",
     )
     evidence = {
-        "sleepABIPreservedUnderHostABIV12": rust_abi == 12 and header_abi == 12,
+        "sleepABIPreservedUnderHostABIV13": rust_abi == 13 and header_abi == 13,
         "snapshotSchemaV8Implemented": snapshot_schema == 8,
         "sleepSymbolsExportedEndToEnd": all(
             symbol in sources["bridge"]

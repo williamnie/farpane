@@ -191,7 +191,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 12u
+#define RDN_HOST_ABI_VERSION 13u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -268,6 +268,10 @@ typedef struct RdnHostCreateOptions {
     const char *rendezvous_server;
     const char *relay_server;
     const char *server_public_key;
+    /* Independent local maximum policy for bounded small-text clipboard.
+     * Both directions must be supplied explicitly and default off in Swift. */
+    bool enable_clipboard_read;
+    bool enable_clipboard_write;
 } RdnHostCreateOptions;
 
 uint32_t rdn_host_abi_version(void);

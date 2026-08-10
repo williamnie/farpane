@@ -166,7 +166,9 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
 - Viewer 产品层显式开启两个文本方向，系统 pasteboard 只由单一 Swift/AppKit owner
   访问；owner 在认证后启动，先快照而不上传会话前内容，以 changeCount 抑制回环并把
   fallback 轮询从 125 ms 动态退避到 4 s，terminal/Home/App teardown 均先停 owner
-  再断开 Core。Host 侧仍默认关闭，需后续独立 opt-in 后才形成端到端能力。
+  再断开 Core。Host Control ABI v13 已独立承载默认关闭的 read/write 策略，Rust
+  只在任一有界文本方向显式开启时持久化上游单一 Boolean；当前 App/Agent 调用仍使用
+  两个 false 默认值，需后续贯通后台 bootstrap 与 Home opt-in 后才形成端到端能力。
 - 断开后不得投递排队中的旧剪贴板回调，富文本、图片和文件 promise 不跨 Viewer ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。

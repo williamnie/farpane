@@ -50,6 +50,9 @@ Viewer product composition explicitly enables both text directions and routes
 them through one AppKit-owned pasteboard adapter. That adapter starts only
 after authentication, snapshots rather than uploads the pre-session local
 clipboard, suppresses its own writes, dynamically backs polling off to four
-seconds, and stops before Core disconnect. Host clipboard policy remains
-default-off until its separate explicit opt-in gate, so this is not yet an
-end-to-end clipboard enablement claim.
+seconds, and stops before Core disconnect. Host Control ABI v13 now carries
+independent, default-off read/write policy into the Rust Host lifetime and
+persists the upstream Boolean only when either bounded direction is explicitly
+requested. Current App and Agent callers still use both defaults, so this is
+not yet an end-to-end clipboard enablement claim; background bootstrap and Home
+opt-in remain a separate product boundary.

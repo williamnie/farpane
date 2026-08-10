@@ -188,7 +188,7 @@ def main() -> int:
             "diff --git a/libs/clipboard/src/platform/unix/macos/item_data_provider.rs",
         ),
         "defaultOffGate": line_number(
-            sources["bridge"], "NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS"
+            sources["bridge"], "native_host_clipboard_option(NativeClipboardPolicy::default())"
         ),
     }
     missing = [name for name, present in evidence.items() if not present]

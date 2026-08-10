@@ -166,7 +166,7 @@ def main() -> int:
         "clipboardProductDefaultRemainsOff": all(
             marker in bridge
             for marker in (
-                "NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS",
+                "native_host_clipboard_option(NativeClipboardPolicy::default())",
                 "config::keys::OPTION_ENABLE_CLIPBOARD",
                 'config::Config::set_option(key.to_owned(), "N".to_owned())',
             )
@@ -207,7 +207,7 @@ def main() -> int:
             policy_tests, "testClipboardDirectionsExposeAndSubmitIndependently"
         ),
         "defaultOffGate": line_number(
-            bridge, "NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS"
+            bridge, "native_host_clipboard_option(NativeClipboardPolicy::default())"
         ),
     }
     missing = [name for name, present in evidence.items() if not present]

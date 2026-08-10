@@ -131,16 +131,16 @@ def main() -> int:
         "hostRemainsDefaultOff": all(
             marker in sources["host"]
             for marker in (
-                "NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS",
-                "(config::keys::OPTION_ENABLE_CLIPBOARD, \"N\")",
+                "native_host_clipboard_option(NativeClipboardPolicy::default())",
+                '"N"',
             )
         ),
         "documentationKeepsEndToEndBoundaryHonest": all(
             marker in (sources["architecture"] + sources["readme"])
             for marker in (
                 "AppKit-owned pasteboard adapter",
-                "Host clipboard policy remains",
-                "Host 侧仍默认关闭",
+                "Host Control ABI v13",
+                "当前 App/Agent 调用仍使用",
                 "富文本、图片和文件 promise 不跨 Viewer ABI",
             )
         ),
@@ -165,7 +165,7 @@ def main() -> int:
         "sessionGate": line_number(app, "clipboardSessionEpoch == viewerClipboardSessionEpoch"),
         "teardown": line_number(app, "private func stopViewerClipboard()"),
         "hostDefaultOff": line_number(
-            sources["host"], "NATIVE_HOST_DEFAULT_DISABLED_OPTION_KEYS"
+            sources["host"], "native_host_clipboard_option(NativeClipboardPolicy::default())"
         ),
         "focusedTests": line_number(
             sources["polling_tests"], "final class ViewerClipboardPollingStateTests"

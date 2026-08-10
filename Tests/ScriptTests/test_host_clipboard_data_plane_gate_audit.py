@@ -36,7 +36,7 @@ class HostClipboardDataPlaneGateAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             payload["nextImplementationBoundary"],
-            "viewer-pasteboard-owner-and-explicit-enablement-contract",
+            "host-small-text-clipboard-explicit-opt-in-contract",
         )
 
 
