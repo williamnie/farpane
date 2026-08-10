@@ -35,7 +35,7 @@ class HostFileTransferViewerSafeStagingReservationLifecycleAuditTests(unittest.T
         claims = document["claims"]
         self.assertTrue(claims["viewerStagingReservationImplemented"])
         self.assertTrue(claims["viewerPayloadWriteImplemented"])
-        self.assertFalse(claims["viewerFinalCommitImplemented"])
+        self.assertTrue(claims["viewerFinalCommitImplemented"])
         self.assertFalse(claims["viewerDownloadWireDispatchImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])

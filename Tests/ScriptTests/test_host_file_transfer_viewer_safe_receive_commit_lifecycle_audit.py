@@ -4,11 +4,14 @@ import subprocess
 import unittest
 
 
-class HostFileTransferViewerDestinationDescriptorOwnerAuditTests(unittest.TestCase):
-    def test_owner_is_descriptor_pinned_session_bound_and_product_off(self) -> None:
+class HostFileTransferViewerSafeReceiveCommitLifecycleAuditTests(unittest.TestCase):
+    def test_commit_is_durable_atomic_no_replace_and_product_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            ["python3", "Scripts/audit-host-file-transfer-viewer-destination-descriptor-owner.py"],
+            [
+                "python3",
+                "Scripts/audit-host-file-transfer-viewer-safe-receive-commit-lifecycle.py",
+            ],
             cwd=repository,
             check=False,
             capture_output=True,
@@ -19,26 +22,25 @@ class HostFileTransferViewerDestinationDescriptorOwnerAuditTests(unittest.TestCa
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-viewer-destination-descriptor-owner-audit",
+            "farpane-host-file-transfer-viewer-safe-receive-commit-lifecycle-audit",
         )
         self.assertEqual(
             document["status"],
-            "viewer-destination-descriptor-owner-implemented-product-off",
+            "viewer-safe-receive-commit-lifecycle-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["viewerDestinationDescriptorOwnerImplemented"])
-        self.assertTrue(claims["viewerRecursiveManifestAuthorityImplemented"])
-        self.assertFalse(claims["viewerRecursiveManifestABILifecycleImplemented"])
-        self.assertTrue(claims["viewerDownloadIOImplemented"])
+        self.assertTrue(claims["viewerPayloadWriteImplemented"])
+        self.assertTrue(claims["viewerFinalCommitImplemented"])
+        self.assertFalse(claims["viewerDownloadWireDispatchImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-recursive-manifest-abi-lifecycle",
+            "host-file-transfer-viewer-download-dispatch-receive-adapter-lifecycle",
         )
 
 

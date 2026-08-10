@@ -119,7 +119,7 @@ def main() -> int:
             )
         ),
         "preAndPostWriteMetadataAreExactAndNoFollow": (
-            write.count("Self.reservationMetadataMatches(reservation)") == 2
+            write.count("Self.reservationMetadataMatches(reservation)") >= 2
             and all(marker in metadata for marker in (
                 "AT_SYMLINK_NOFOLLOW",
                 "Darwin.fstat(reservation.fileDescriptor, &descriptorStatus)",
@@ -149,16 +149,14 @@ def main() -> int:
                 "size: UInt64.max",
             )
         ),
-        "commitWireABIAndProductRemainOff": (
-            all(marker not in owner for marker in (
-                "Darwin.fsync(",
-                "renameatx_np",
-                "Darwin.futimes(",
-            ))
+        "successorCommitImplementedWhileWireABIAndProductRemainOff": (
+            "Darwin.fsync(" in owner
+            and "renameatx_np" in owner
+            and "Darwin.futimens(" in owner
             and "RDNFileTransferReceiveReservation" not in sources["header"]
             and "Data::SendFiles" not in write + metadata + pwrite
             and "fileTransferEnabled:" not in product
-            and "does not fsync, apply mtime" in sources["readme"]
+            and "does not dispatch a download wire request" in sources["readme"]
         ),
     }
     source_lines = {
@@ -196,7 +194,7 @@ def main() -> int:
         "claims": {
             "viewerStagingReservationImplemented": status == expected_status,
             "viewerPayloadWriteImplemented": status == expected_status,
-            "viewerFinalCommitImplemented": False,
+            "viewerFinalCommitImplemented": status == expected_status,
             "viewerDownloadWireDispatchImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,

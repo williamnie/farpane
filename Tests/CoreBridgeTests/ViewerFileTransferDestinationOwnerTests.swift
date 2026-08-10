@@ -394,6 +394,90 @@ final class ViewerFileTransferDestinationOwnerTests: XCTestCase {
         XCTAssertFalse(owner.cancelReservation(replacementReservation))
     }
 
+    func testCommitsExactFileWithDeclaredModifiedTimeAndNoStagingRemainder() throws {
+        let directory = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let owner = try XCTUnwrap(ViewerFileTransferDestinationOwner(
+            sessionEpoch: 49,
+            directoryURL: directory,
+            leaseToken: 91
+        ))
+        let lease = try XCTUnwrap(owner.lease)
+        let file = try XCTUnwrap(ViewerFileTransferFile(
+            relativePath: "nested/committed.txt",
+            size: 5,
+            modifiedTime: 1_700_000_000
+        ))
+        let request = try makeRequest(lease: lease, transferID: 31, file: file)
+        let reservation = try XCTUnwrap(owner.reserveNewFile(
+            for: request,
+            fileNumber: 0,
+            reservationToken: 101
+        ))
+
+        XCTAssertEqual(owner.writePayload(Data("hello".utf8), to: reservation), 5)
+        XCTAssertEqual(owner.commitReservation(reservation), .committed)
+
+        let final = directory.appendingPathComponent("nested/committed.txt")
+        let staging = directory.appendingPathComponent("nested/committed.txt.farpane-part")
+        XCTAssertEqual(try Data(contentsOf: final), Data("hello".utf8))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: staging.path))
+        var status = stat()
+        XCTAssertEqual(Darwin.lstat(final.path, &status), 0)
+        XCTAssertEqual(status.st_mode & S_IFMT, S_IFREG)
+        XCTAssertEqual(status.st_mode & mode_t(0o777), mode_t(0o600))
+        XCTAssertEqual(status.st_uid, geteuid())
+        XCTAssertEqual(status.st_nlink, 1)
+        XCTAssertEqual(status.st_size, 5)
+        XCTAssertEqual(status.st_mtimespec.tv_sec, 1_700_000_000)
+        XCTAssertFalse(owner.cancelReservation(reservation))
+        XCTAssertEqual(owner.commitReservation(reservation), .rejected)
+    }
+
+    func testCommitRejectsIncompleteFileAndNeverReplacesRacingDestination() throws {
+        let directory = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let owner = try XCTUnwrap(ViewerFileTransferDestinationOwner(
+            sessionEpoch: 59,
+            directoryURL: directory,
+            leaseToken: 111
+        ))
+        let lease = try XCTUnwrap(owner.lease)
+        let file = try XCTUnwrap(ViewerFileTransferFile(
+            relativePath: "commit.txt",
+            size: 5,
+            modifiedTime: 10
+        ))
+
+        let incompleteRequest = try makeRequest(lease: lease, transferID: 41, file: file)
+        let incomplete = try XCTUnwrap(owner.reserveNewFile(
+            for: incompleteRequest,
+            fileNumber: 0,
+            reservationToken: 121
+        ))
+        XCTAssertEqual(owner.writePayload(Data("four".utf8), to: incomplete), 4)
+        XCTAssertEqual(owner.commitReservation(incomplete), .rejected)
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: directory.appendingPathComponent("commit.txt.farpane-part").path
+        ))
+
+        let raceRequest = try makeRequest(lease: lease, transferID: 42, file: file)
+        let race = try XCTUnwrap(owner.reserveNewFile(
+            for: raceRequest,
+            fileNumber: 0,
+            reservationToken: 122
+        ))
+        XCTAssertEqual(owner.writePayload(Data("hello".utf8), to: race), 5)
+        let final = directory.appendingPathComponent("commit.txt")
+        let existing = Data("existing".utf8)
+        XCTAssertTrue(FileManager.default.createFile(atPath: final.path, contents: existing))
+        XCTAssertEqual(owner.commitReservation(race), .rejected)
+        XCTAssertEqual(try Data(contentsOf: final), existing)
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: directory.appendingPathComponent("commit.txt.farpane-part").path
+        ))
+    }
+
     private func makePrivateDirectory() throws -> URL {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
