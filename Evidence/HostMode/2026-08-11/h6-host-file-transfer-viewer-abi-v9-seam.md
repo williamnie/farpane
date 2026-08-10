@@ -48,5 +48,5 @@ transfer while keeping the product and network runtime disabled.
 
 ## Next step
 
-`host-file-transfer-viewer-list-manifest-command-event-lifecycle`: implement the
-bounded remote-list command and manifest event before destination/download I/O.
+`host-file-transfer-viewer-list-command-callback-abi-lifecycle`: wire the owned
+remote-list envelope to a default-off command/callback before download I/O.

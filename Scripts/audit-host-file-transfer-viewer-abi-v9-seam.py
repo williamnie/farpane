@@ -59,7 +59,7 @@ def main() -> int:
             marker in sources["design"]
             for marker in (
                 "H6.3f2a Viewer file-transfer ABI v9 default-off seam",
-                "host-file-transfer-viewer-list-manifest-command-event-lifecycle",
+                "host-file-transfer-viewer-list-command-callback-abi-lifecycle",
             )
         ),
         "abiV9RetainsClipboardAndAddsFileSeam": all(
@@ -196,7 +196,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-list-manifest-command-event-lifecycle"
+            "host-file-transfer-viewer-list-command-callback-abi-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
