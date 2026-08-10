@@ -67,3 +67,11 @@ the existing inline path. RTF, HTML, RGBA, PNG, and SVG are explicitly routed
 to a future independent transfer owner and remain rejected by the current
 read/write gates; remote `Special` format names and unknown enum values reject
 outright. Classification does not enable rich clipboard transport.
+
+RTF/HTML now have a Rust-owned semantic envelope before any future transfer
+path. It accepts only exact rich-text formats with empty special metadata and
+zero image dimensions, owns the decoded UTF-8 `String`, rejects NUL, and caps
+both the wire payload and bounded decompression output at 1 MiB. The current
+data plane still admits only `InlineSmallText`: no rich Viewer ABI, network
+transport, AppKit pasteboard owner, image payload, or product enablement is
+added by this envelope contract.

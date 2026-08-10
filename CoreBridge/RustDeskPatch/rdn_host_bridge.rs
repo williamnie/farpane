@@ -42,6 +42,8 @@ const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
+const MAX_CLIPBOARD_RICH_TEXT_WIRE_BYTES: usize = 1024 * 1024;
+const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
 const MAX_NAME_BYTES: usize = 64;
 const MAX_SERVER_BYTES: usize = 512;
 const MAX_SERVER_PUBLIC_KEY_BYTES: usize = 1024;
@@ -753,6 +755,53 @@ enum NativeClipboardPayloadDisposition {
     Reject,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeRichTextFormat {
+    Rtf,
+    Html,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NativeRichTextTransferEnvelope {
+    format: NativeRichTextFormat,
+    payload: String,
+}
+
+impl NativeRichTextTransferEnvelope {
+    fn from_clipboard(clipboard: &Clipboard) -> Option<Self> {
+        let format = match clipboard.format.enum_value().ok()? {
+            ClipboardFormat::Rtf => NativeRichTextFormat::Rtf,
+            ClipboardFormat::Html => NativeRichTextFormat::Html,
+            _ => return None,
+        };
+        if !clipboard.special_name.is_empty()
+            || clipboard.width != 0
+            || clipboard.height != 0
+            || clipboard.content.is_empty()
+            || clipboard.content.len() > MAX_CLIPBOARD_RICH_TEXT_WIRE_BYTES
+        {
+            return None;
+        }
+        let decoded = if clipboard.compress {
+            hbb_common::compress::decompress_with_limit(
+                &clipboard.content,
+                MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES,
+            )
+            .ok()?
+        } else {
+            clipboard.content.to_vec()
+        };
+        if decoded.is_empty() || decoded.len() > MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES {
+            return None;
+        }
+        let payload = String::from_utf8(decoded).ok()?;
+        if payload.contains('\0') {
+            return None;
+        }
+        Some(Self { format, payload })
+    }
+}
+
 pub(crate) fn native_host_configured_clipboard_policy() -> NativeClipboardPolicy {
     let broker = MEDIA_BROKER.lock().unwrap();
     if broker.binding.is_some() {
@@ -798,15 +847,10 @@ fn native_host_clipboard_payload_disposition(
             }
         }
         ClipboardFormat::Rtf | ClipboardFormat::Html => {
-            if clipboard.special_name.is_empty()
-                && clipboard.width == 0
-                && clipboard.height == 0
-                && !clipboard.content.is_empty()
-            {
-                NativeClipboardPayloadDisposition::IndependentTransferRequired
-            } else {
-                NativeClipboardPayloadDisposition::Reject
-            }
+            NativeRichTextTransferEnvelope::from_clipboard(clipboard)
+                .map_or(NativeClipboardPayloadDisposition::Reject, |_| {
+                    NativeClipboardPayloadDisposition::IndependentTransferRequired
+                })
         }
         ClipboardFormat::ImageRgba => {
             if clipboard.special_name.is_empty()
@@ -5385,6 +5429,101 @@ mod tests {
         assert_eq!(
             native_host_clipboard_payload_disposition(&unknown),
             NativeClipboardPayloadDisposition::Reject
+        );
+    }
+
+    #[test]
+    fn native_rich_text_transfer_envelope_is_owned_bounded_and_strict() {
+        for (format, expected) in [
+            (ClipboardFormat::Rtf, NativeRichTextFormat::Rtf),
+            (ClipboardFormat::Html, NativeRichTextFormat::Html),
+        ] {
+            let mut source = clipboard_fixture(b"rich text".to_vec(), false, format);
+            let envelope = NativeRichTextTransferEnvelope::from_clipboard(&source).unwrap();
+            source.content.clear();
+            assert_eq!(envelope.format, expected);
+            assert_eq!(envelope.payload, "rich text");
+        }
+
+        let at_limit = vec![b'a'; MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES];
+        let envelope = NativeRichTextTransferEnvelope::from_clipboard(&clipboard_fixture(
+            at_limit.clone(),
+            false,
+            ClipboardFormat::Rtf,
+        ))
+        .unwrap();
+        assert_eq!(envelope.payload.len(), MAX_CLIPBOARD_RICH_TEXT_WIRE_BYTES);
+
+        let compressed_at_limit = hbb_common::compress::compress(&at_limit);
+        let envelope = NativeRichTextTransferEnvelope::from_clipboard(&clipboard_fixture(
+            compressed_at_limit,
+            true,
+            ClipboardFormat::Html,
+        ))
+        .unwrap();
+        assert_eq!(envelope.payload.len(), MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES);
+
+        let compressed_over_limit =
+            hbb_common::compress::compress(&vec![b'a'; MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES + 1]);
+        assert!(
+            NativeRichTextTransferEnvelope::from_clipboard(&clipboard_fixture(
+                compressed_over_limit,
+                true,
+                ClipboardFormat::Rtf,
+            ))
+            .is_none()
+        );
+        assert!(
+            NativeRichTextTransferEnvelope::from_clipboard(&clipboard_fixture(
+                vec![b'a'; MAX_CLIPBOARD_RICH_TEXT_WIRE_BYTES + 1],
+                false,
+                ClipboardFormat::Html,
+            ))
+            .is_none()
+        );
+
+        for content in [vec![0xff], b"before\0after".to_vec()] {
+            assert!(
+                NativeRichTextTransferEnvelope::from_clipboard(&clipboard_fixture(
+                    content,
+                    false,
+                    ClipboardFormat::Html,
+                ))
+                .is_none()
+            );
+        }
+
+        let mut wrong_metadata =
+            clipboard_fixture(b"<b>rich</b>".to_vec(), false, ClipboardFormat::Html);
+        wrong_metadata.special_name = "public.html".to_owned();
+        assert!(NativeRichTextTransferEnvelope::from_clipboard(&wrong_metadata).is_none());
+
+        for (width, height) in [(1, 0), (0, 1)] {
+            let mut wrong_dimensions =
+                clipboard_fixture(b"{\\rtf1}".to_vec(), false, ClipboardFormat::Rtf);
+            wrong_dimensions.width = width;
+            wrong_dimensions.height = height;
+            assert!(NativeRichTextTransferEnvelope::from_clipboard(&wrong_dimensions).is_none());
+        }
+        assert!(
+            NativeRichTextTransferEnvelope::from_clipboard(&clipboard_fixture(
+                Vec::new(),
+                false,
+                ClipboardFormat::Rtf,
+            ))
+            .is_none()
+        );
+
+        let mut unknown_format = clipboard_fixture(b"rich".to_vec(), false, ClipboardFormat::Rtf);
+        unknown_format.format = hbb_common::protobuf::EnumOrUnknown::from_i32(999);
+        assert!(NativeRichTextTransferEnvelope::from_clipboard(&unknown_format).is_none());
+        assert!(
+            NativeRichTextTransferEnvelope::from_clipboard(&clipboard_fixture(
+                b"plain".to_vec(),
+                false,
+                ClipboardFormat::Text,
+            ))
+            .is_none()
         );
     }
 

@@ -1894,6 +1894,8 @@ flowchart TD
 
 > 更新（2026-08-10）：**H6.2j1 Host rich clipboard transfer-boundary taxonomy 已完成自动实现**。Host 的 outgoing 与 incoming clipboard 准入现在先经过同一三态 payload disposition：只有 exactly one、至多 64 KiB、解压后仍有界、合法 UTF-8 且不含 NUL 的 `Text` 可进入既有 inline small-text 路径；RTF、HTML、RGBA、PNG、SVG 只被标记为必须交给未来独立 transfer owner，当前两个方向门禁仍明确拒绝；远端控制的 `Special` format/UTI 与未知 enum 直接 reject。该分类同时修复了 Host 小文本此前未拒绝 embedded NUL 的不一致边界，并以真实方向/消息门禁回归证明 rich disposition 不等于 admission。上游 `from_multi_clipboards` 仍可能对 rich payload 走无界解压，因此在新的 bounded envelope、Viewer ABI 和 pasteboard owner 建立前不会调用该路径。本步未新增 ABI/schema/UI、未启用富类型、未读写真实 pasteboard，也不把分类冒充传输实现。机器审计与完整验证见 `Evidence/HostMode/2026-08-10/h6-host-clipboard-rich-transfer-boundary.md`；下一自动边界为 **bounded-rich-text-transfer-envelope-contract**，先为 RTF/HTML 建立独立有界 envelope，再单独处理图片和文件。
 
+> 更新（2026-08-10）：**H6.2j2 Host bounded rich-text transfer envelope contract 已完成自动实现**。RTF/HTML 现在必须先通过 Rust-owned semantic envelope：只接受 exact `Rtf`/`Html` format、空 `special_name`、零图像尺寸与非空内容，wire 与解码后 UTF-8 payload 都以 1 MiB 为独立硬上限；压缩输入只使用 bounded zstd decode，解码结果由自有 `String` 持有并拒绝非法 UTF-8 与 NUL。Host 的 rich payload classifier 只有在 envelope 构造成功后才返回 `IndependentTransferRequired`，畸形 metadata、超限 wire、解压炸弹与非 rich format 都 fail closed。现有 incoming/outgoing data-plane admission 仍只接受 `InlineSmallText`，因此本步不新增 Viewer/Host ABI、不连接网络 transfer、不读取或写入 pasteboard、不启用图片或富剪贴板产品能力。机器审计与完整验证见 `Evidence/HostMode/2026-08-10/h6-host-clipboard-bounded-rich-text-envelope.md`；下一自动边界为 **viewer-rich-text-clipboard-api-contract**，之后再接 Host/Viewer transport 与单一 pasteboard owner。
+
 退出条件：各产品目标场景 pass/fail 证据齐全；无 sleep assertion 泄漏、无输入泄漏、无未解释 backlog。
 
 ### 26.9 阶段 8 — H6 可选能力（§3.3、§12.2、§21 H6）

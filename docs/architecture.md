@@ -175,6 +175,10 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
 - Host 在两个方向准入前先分类 clipboard wire format：只有无 NUL 的有界 UTF-8 `Text`
   可进入现有 inline 路径；RTF/HTML/RGBA/PNG/SVG 明确要求未来独立 transfer owner，当前
   仍拒绝，远端 `Special` 名称和未知 enum 直接 fail closed。分类本身不开放富剪贴板。
+- RTF/HTML 先进入 Rust-owned semantic envelope：只接受 exact format、空 special metadata
+  与零图像尺寸，wire 与 bounded decompression 后的 UTF-8 payload 都限制为 1 MiB，解码后
+  由 Rust `String` 独立持有并拒绝 NUL。当前 admission 仍只允许 `InlineSmallText`；本契约
+  不新增 Viewer ABI、网络传输、AppKit pasteboard owner、图片能力或产品开关。
 - 断开后不得投递排队中的旧剪贴板回调，富文本、图片和文件 promise 不跨 Viewer ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
