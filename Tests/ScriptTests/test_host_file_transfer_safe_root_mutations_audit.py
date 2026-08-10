@@ -37,12 +37,12 @@ class HostFileTransferSafeRootMutationsAuditTests(unittest.TestCase):
         )
         self.assertFalse(claims["recursiveRemovalImplemented"])
         self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
-        self.assertFalse(claims["nativeHostFileServiceOwnerImplemented"])
+        self.assertTrue(claims["nativeHostFileServiceOwnerImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-connection-mutation-dispatch",
+            "host-file-transfer-native-write-job-lifecycle",
         )
 
 

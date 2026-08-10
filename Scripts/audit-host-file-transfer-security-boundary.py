@@ -164,7 +164,7 @@ def main() -> int:
                 "File::create(&path).await?",
             )
         ),
-        "managementPathsOnlyRejectEmptyAndNUL": all(
+        "legacyWriteJobDestinationStillUsesPathChecks": all(
             marker in fs
             for marker in (
                 "fn validate_fs_path_argument",
@@ -181,21 +181,20 @@ def main() -> int:
                 "self.send_to_cm(ipc::Data::FS(data));",
             )
         ),
-        "receiveAndMutationsStillDependOnCMChannel": all(
+        "writeJobsStillDependOnCMChannel": all(
             marker in connection
             for marker in (
                 "self.send_fs(ipc::FS::NewWrite",
-                "self.send_fs(ipc::FS::RemoveDir",
-                "self.send_fs(ipc::FS::RemoveFile",
-                "self.send_fs(ipc::FS::CreateDir",
-                "self.send_fs(ipc::FS::Rename",
+                "self.send_fs(ipc::FS::WriteBlock",
+                "self.send_fs(ipc::FS::WriteDone",
+                "self.send_fs(ipc::FS::CancelWrite",
             )
         ),
-        "nativeFileServiceOwnerCoreIsNotConnected": (
+        "nativeMutationsConnectedButWriteJobsNotOwned": (
             "NativeHostFileServiceOwner" in safe_root
-            and "NativeHostFileServiceOwner" not in connection
-            and "native_host_handle_fs" not in connection
-            and "native_host_handle_fs" not in host_bridge
+            and "native_host_dispatch_file_mutation" in host_bridge
+            and "send_native_host_file_mutation_response" in connection
+            and "self.send_fs(ipc::FS::NewWrite" in connection
         ),
         "noProductDestinationOrOverwriteUXExists": (
             "fileTransferEnabled:" not in product
@@ -265,10 +264,11 @@ def main() -> int:
             "safeReceiveRootPrimitiveImplemented": True,
             "safeRootMutationsImplemented": True,
             "nativeHostFileServiceOwnerCoreImplemented": True,
+            "safeMutationConnectionDispatchImplemented": True,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-connection-mutation-dispatch",
+        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1

@@ -116,7 +116,7 @@ def main() -> int:
         "ownerRetainsAdmittedDescriptorForHostLifetime": all(
             marker in bridge
             for marker in (
-                "file_service_owner: Option<rdn_host_file_transfer::NativeHostFileServiceOwner>",
+                "file_service_owner: Option<Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>>",
                 "file_service_owner,",
             )
         ),
@@ -151,9 +151,10 @@ def main() -> int:
             "fileTransferEnabled:" not in product
             and "fileTransferReceiveRoot:" not in product
         ),
-        "connectionDispatchStillAbsent": (
-            "NativeHostFileServiceOwner" not in connection
-            and "native_host_handle_fs" not in connection
+        "laterMutationDispatchExistsWriteJobsRemainOpen": (
+            "send_native_host_file_mutation_response" in connection
+            and "NativeHostFileMutation::CreateDirectory" in connection
+            and "self.send_fs(ipc::FS::NewWrite" in connection
         ),
         "canonicalSourcesMatchVendorCheckout": (
             bridge == sources["vendor_bridge"]
@@ -187,7 +188,7 @@ def main() -> int:
         "rustOwnerAdmission": line_number(bridge, "from_immutable_configuration("),
         "rustOwnerRetention": line_number(
             bridge,
-            "file_service_owner: Option<rdn_host_file_transfer::NativeHostFileServiceOwner>",
+            "file_service_owner: Option<Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>>",
         ),
         "ownerPairContract": line_number(
             owner, "pub(crate) fn from_immutable_configuration"
@@ -224,11 +225,11 @@ def main() -> int:
             "disabledWithRootAccepted": False,
             "unsafeRootAccepted": False,
             "ownerRetainedForHostLifetime": True,
-            "connectionDispatchImplemented": False,
+            "connectionDispatchImplemented": True,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-connection-mutation-dispatch",
+        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

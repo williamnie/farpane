@@ -32,7 +32,7 @@ The product remains disabled: current App and HostAgent callers use the default
 - The Swift configuration test proves default nil and explicit root projection.
 - The machine audit verifies ABI v17 across C/Rust/Swift, validation ordering,
   owner retention, singleton release on admission failure, product default-off,
-  and absence of connection dispatch.
+  and the later mutation-only connection dispatch with write jobs still open.
 
 ## Verification
 
@@ -45,14 +45,14 @@ The product remains disabled: current App and HostAgent callers use the default
 
 ## Non-claims
 
-- `Connection::send_fs` is not routed to the owner.
-- Mutation responses, write jobs, cancellation, teardown, Viewer destination
-  selection, progress UI, and end-to-end transfer are not implemented here.
+- H6.3e3 has since routed safe mutation responses to the owner; native write
+  jobs, cancellation, teardown, Viewer destination selection, progress UI, and
+  end-to-end transfer are not implemented.
 - No App/Agent opt-in, installed App, real user file, Hermes change, push, or
   two-Mac acceptance was exercised.
 
 ## Next step
 
-`host-file-transfer-connection-mutation-dispatch`: route safe create-directory,
-non-recursive remove, and no-replace rename through the connection-local owner
-with stable remote responses, while leaving product callers disabled.
+H6.3e3 connected safe mutations. Continue with
+`host-file-transfer-native-write-job-lifecycle`, while leaving product callers
+disabled.

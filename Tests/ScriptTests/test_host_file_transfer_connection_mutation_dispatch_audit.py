@@ -4,11 +4,14 @@ import subprocess
 import unittest
 
 
-class HostFileTransferNativeOwnerCoreAuditTests(unittest.TestCase):
-    def test_owner_core_is_composed_but_not_configured_or_wired(self) -> None:
+class HostFileTransferConnectionMutationDispatchAuditTests(unittest.TestCase):
+    def test_safe_mutations_are_dispatched_without_opening_write_jobs(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            ["python3", "Scripts/audit-host-file-transfer-native-owner-core.py"],
+            [
+                "python3",
+                "Scripts/audit-host-file-transfer-connection-mutation-dispatch.py",
+            ],
             cwd=repository,
             check=False,
             capture_output=True,
@@ -21,22 +24,20 @@ class HostFileTransferNativeOwnerCoreAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-native-owner-core-audit",
+            "farpane-host-file-transfer-connection-mutation-dispatch-audit",
         )
         self.assertEqual(
             document["status"],
-            "native-file-service-owner-core-implemented-product-off",
+            "native-file-mutations-dispatched-write-jobs-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
-        self.assertFalse(claims["safeRootImplementationModuleVisible"])
+        self.assertTrue(claims["safeMutationConnectionDispatchImplemented"])
         self.assertFalse(claims["recursiveRemovalImplemented"])
-        self.assertTrue(claims["receiveRootConfigImplemented"])
-        self.assertTrue(claims["connectionDispatchImplemented"])
+        self.assertFalse(claims["nativeWriteJobLifecycleImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(

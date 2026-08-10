@@ -44,13 +44,13 @@ ten H6.3d1/d2 tests, the focused suite is 12/12.
 
 - H6.3e2 has since added the receive-root field; this H6.3e1 evidence does not
   claim it was present in the original owner-core boundary.
-- `Connection::send_fs` is not routed to this owner; write jobs, responses,
-  cancellation, and teardown are not implemented here.
+- H6.3e3 has since routed safe directory/file mutations to this owner; native
+  write jobs, cancellation, and write-job teardown are still not implemented.
 - No App/Agent opt-in, Viewer UI, installed App, real user file, Hermes change,
   push, or two-Mac acceptance was exercised.
 
 ## Next step
 
-H6.3e2 completed the immutable receive-root contract. Continue with
-`host-file-transfer-connection-mutation-dispatch`, keeping current product
-callers disabled.
+H6.3e2 completed the immutable receive-root contract and H6.3e3 connected safe
+mutations. Continue with `host-file-transfer-native-write-job-lifecycle`,
+keeping current product callers disabled.

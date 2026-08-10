@@ -138,9 +138,10 @@ def main() -> int:
                 "libc::RENAME_EXCL",
             )
         ),
-        "laterOwnerCoreExistsButConnectionWiringIsAbsent": (
+        "laterOwnerMutationDispatchExistsWriteJobsRemainOpen": (
             "pub(crate) struct NativeHostFileServiceOwner" in safe_root
-            and "NativeHostFileServiceOwner" not in sources["connection"]
+            and "send_native_host_file_mutation_response" in sources["connection"]
+            and "self.send_fs(ipc::FS::NewWrite" in sources["connection"]
         ),
     }
     source_lines = {
@@ -188,12 +189,12 @@ def main() -> int:
             "compressedPayloadBounded": True,
             "productFileTransferEnabled": False,
             "symlinkRaceClosed": False,
-            "nativeHostFileServiceOwnerImplemented": False,
+            "nativeHostFileServiceOwnerImplemented": True,
             "nativeHostFileServiceOwnerCoreImplemented": True,
             "safeReceiveRootPrimitiveImplemented": True,
             "safeRootMutationsImplemented": True,
         },
-        "nextImplementationBoundary": "host-file-transfer-connection-mutation-dispatch",
+        "nextImplementationBoundary": "host-file-transfer-native-write-job-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-file-block-envelope-implemented-product-off" else 1
