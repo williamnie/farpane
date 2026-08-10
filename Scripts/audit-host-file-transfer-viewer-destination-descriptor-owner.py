@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-destination-descriptor-owner-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-recursive-manifest-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-viewer-recursive-manifest-abi-lifecycle"
 
 
 def read(path: Path) -> str:
@@ -29,6 +29,7 @@ def main() -> int:
         "owner": repository / "Sources/CoreBridge/ViewerFileTransferDestinationOwner.swift",
         "contract": repository / "Sources/CoreBridge/ViewerFileTransferContract.swift",
         "tests": repository / "Tests/CoreBridgeTests/ViewerFileTransferDestinationOwnerTests.swift",
+        "recursive_authority": repository / "Sources/CoreBridge/ViewerFileTransferRecursiveManifestAuthority.swift",
         "header": repository / "CoreBridge/include/rustdesk_native.h",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
@@ -123,8 +124,13 @@ def main() -> int:
         "abiAndProductRemainOff": (
             "#define RDN_ABI_VERSION 10u" in sources["header"]
             and "fileTransferEnabled:" not in product
-            and "No recursive manifest, download command" in sources["readme"]
+            and "No remote recursive-manifest command/callback" in sources["readme"]
             and "不保存路径也不创建文件" in sources["architecture"]
+        ),
+        "recursiveAuthorityNowPrecedesRemoteManifestABI": (
+            "package struct ViewerFileTransferRecursiveManifestAuthority"
+            in sources["recursive_authority"]
+            and "rdn_client_file_transfer_manifest" not in sources["header"]
         ),
     }
     source_lines = {
@@ -156,7 +162,8 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "viewerDestinationDescriptorOwnerImplemented": status == expected_status,
-            "viewerRecursiveManifestImplemented": False,
+            "viewerRecursiveManifestAuthorityImplemented": status == expected_status,
+            "viewerRecursiveManifestABILifecycleImplemented": False,
             "viewerDownloadIOImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,

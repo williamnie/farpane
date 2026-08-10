@@ -264,7 +264,9 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   control 与 size 验证；error 只投影稳定 rejected/unavailable，teardown 清 pending request。Viewer destination
   owner 只用用户预选路径 no-follow 打开当前 euid 的 private `0700` 目录，后续仅持有 exact-session lease 与
   pinned descriptor/device/inode；每次 scoped borrow 重验 identity/owner/mode，exact teardown/deinit close，
-  不保存路径也不创建文件。recursive manifest/download I/O 与 UI 仍未实现；多文件 upload resume、existing-target
+  不保存路径也不创建文件。纯 Swift recursive-manifest authority 以 exact epoch/request、files/empty-directories
+  两个独立有界 part 合成既有 canonical manifest；duplicate/malformed part 与 combined collision fail closed，
+  但远端 recursive-manifest command/callback、download I/O 与 UI 仍未实现；多文件 upload resume、existing-target
   replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。

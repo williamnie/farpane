@@ -168,6 +168,9 @@ errors expose only stable rejected/unavailable status. A session-bound
 destination owner can now pin one pre-existing euid-owned private `0700`
 directory with no-follow read-only open, retain only descriptor identity and an
 opaque lease, and revalidate identity/owner/mode for each scoped borrow before
-exact-epoch teardown closes it. No recursive manifest, download command,
-`openat`/write, picker UI or product configuration exists, so this remains an
-internal lifecycle rather than file-transfer product capability.
+exact-epoch teardown closes it. A transport-independent recursive-manifest
+authority can now join one bounded files part and one bounded empty-directory
+part for an exact epoch/request, then apply the canonical combined manifest
+validation. No remote recursive-manifest command/callback, download command,
+`openat`/write, picker UI or product configuration exists, so these remain
+internal lifecycles rather than file-transfer product capability.
