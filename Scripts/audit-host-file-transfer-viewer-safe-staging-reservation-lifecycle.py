@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-safe-staging-reservation-lifecycle-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-safe-receive-write-commit-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-viewer-safe-receive-write-lifecycle"
 
 
 def read(path: Path) -> str:
@@ -138,8 +138,8 @@ def main() -> int:
             marker in cancel + cleanup + owner
             for marker in (
                 "activeReservations[handle.transferID]?.handle == handle",
-                "FileIdentity(device: status.st_dev, inode: status.st_ino) == reservation.identity",
-                "isPrivateOwnedEmptyFile(status)",
+                "FileIdentity(device: namedStatus.st_dev, inode: namedStatus.st_ino)",
+                "isPrivateOwnedFile(namedStatus)",
                 "Darwin.unlinkat(reservation.parentDescriptor, $0, 0)",
                 "let reservations = Array(activeReservations.values)",
                 "activeReservations.removeAll()",
@@ -156,17 +156,17 @@ def main() -> int:
                 "ViewerFileTransferDestinationOwner.maximumActiveReservations",
             )
         ),
-        "payloadCommitWireABIAndProductRemainOff": (
-            all(marker not in owner for marker in (
-                "Darwin.write(",
-                "Darwin.pwrite(",
+        "boundedWriteEvolutionStillLeavesCommitWireABIAndProductOff": (
+            "maximumWriteChunkBytes = 128 * 1_024" in owner
+            and "Darwin.pwrite(" in owner
+            and all(marker not in owner for marker in (
                 "Darwin.fsync(",
                 "renameatx_np",
             ))
             and "RDNFileTransferReceiveReservation" not in sources["header"]
             and "Data::SendFiles" not in reserve + parent + cleanup
             and "fileTransferEnabled:" not in product
-            and "does not\nwrite payload bytes" in sources["readme"]
+            and "does not fsync, apply mtime" in sources["readme"]
         ),
     }
     source_lines = {
@@ -204,7 +204,7 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "viewerStagingReservationImplemented": status == expected_status,
-            "viewerPayloadWriteImplemented": False,
+            "viewerPayloadWriteImplemented": status == expected_status,
             "viewerFinalCommitImplemented": False,
             "viewerDownloadWireDispatchImplemented": False,
             "productFileTransferEnabled": False,

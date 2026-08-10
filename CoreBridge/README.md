@@ -200,6 +200,13 @@ an existing final entry, and creates a `0600`, single-link, empty
 `*.farpane-part` with `O_EXCL|O_NOFOLLOW`. Reservation handles contain no path or
 descriptor; cancel, exact teardown and deinit unlink only the originally created
 inode, so a replaced staging name is left untouched. This primitive does not
-write payload bytes, fsync, rename/commit a final file or borrow across the ABI.
-No picker UI or product configuration exists, so it remains internal rather than
-file-transfer product capability.
+borrow across the ABI. An exact reservation can now accept nonempty payload
+chunks of at most 128 KiB through `pwrite` at its tracked offset. Pre/post-write
+checks require the staging name and open descriptor to retain the original
+device/inode, current-euid `0600` single-link regular-file shape and exact tracked
+size; checked totals may never exceed the manifest declaration. Invalid bounds,
+metadata drift or a partial/system write failure terminates the reservation and
+removes only a still-matching partial. It still does not fsync, apply mtime,
+rename/commit a final file or dispatch a download wire request. No picker UI or
+product configuration exists, so it remains internal rather than file-transfer
+product capability.

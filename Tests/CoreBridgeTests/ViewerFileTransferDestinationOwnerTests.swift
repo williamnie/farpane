@@ -171,6 +171,21 @@ final class ViewerFileTransferDestinationOwnerTests: XCTestCase {
             fileNumber: 1,
             reservationToken: 30
         ))
+        let unrepresentable = try XCTUnwrap(ViewerFileTransferFile(
+            relativePath: "reports/huge.txt",
+            size: UInt64.max,
+            modifiedTime: 10
+        ))
+        let unrepresentableRequest = try makeRequest(
+            lease: lease,
+            transferID: 6,
+            file: unrepresentable
+        )
+        XCTAssertNil(owner.reserveNewFile(
+            for: unrepresentableRequest,
+            fileNumber: 0,
+            reservationToken: 29
+        ))
         let reservation = try XCTUnwrap(owner.reserveNewFile(
             for: request,
             fileNumber: 0,
@@ -254,6 +269,11 @@ final class ViewerFileTransferDestinationOwnerTests: XCTestCase {
             reservationToken: 999
         ))
 
+        XCTAssertEqual(owner.writePayload(
+            Data("x".utf8),
+            to: reservations[1]
+        ), 1)
+
         let firstStaging = directory.appendingPathComponent("file-0.txt.farpane-part")
         XCTAssertEqual(Darwin.unlink(firstStaging.path), 0)
         XCTAssertTrue(FileManager.default.createFile(
@@ -274,6 +294,104 @@ final class ViewerFileTransferDestinationOwnerTests: XCTestCase {
         }
         XCTAssertTrue(FileManager.default.fileExists(atPath: firstStaging.path))
         XCTAssertNil(owner.lease)
+    }
+
+    func testWritesBoundedPayloadAtExactOffsetWithoutCommitting() throws {
+        let directory = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let owner = try XCTUnwrap(ViewerFileTransferDestinationOwner(
+            sessionEpoch: 29,
+            directoryURL: directory,
+            leaseToken: 51
+        ))
+        let lease = try XCTUnwrap(owner.lease)
+        let file = try XCTUnwrap(ViewerFileTransferFile(
+            relativePath: "payload.txt",
+            size: 5,
+            modifiedTime: 10
+        ))
+        let request = try makeRequest(lease: lease, transferID: 17, file: file)
+        let reservation = try XCTUnwrap(owner.reserveNewFile(
+            for: request,
+            fileNumber: 0,
+            reservationToken: 61
+        ))
+        let stale = ViewerFileTransferReceiveReservation(
+            sessionEpoch: reservation.sessionEpoch,
+            transferID: reservation.transferID,
+            fileNumber: reservation.fileNumber,
+            token: reservation.token + 1
+        )
+        XCTAssertNil(owner.writePayload(Data("bad".utf8), to: stale))
+
+        XCTAssertEqual(owner.writePayload(Data("he".utf8), to: reservation), 2)
+        XCTAssertEqual(owner.writePayload(Data("llo".utf8), to: reservation), 5)
+        let staging = directory.appendingPathComponent("payload.txt.farpane-part")
+        XCTAssertEqual(try Data(contentsOf: staging), Data("hello".utf8))
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: directory.appendingPathComponent("payload.txt").path
+        ))
+
+        XCTAssertNil(owner.writePayload(Data("!".utf8), to: reservation))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: staging.path))
+        XCTAssertFalse(owner.cancelReservation(reservation))
+    }
+
+    func testInvalidPayloadAndReplacementDriftAbortFailClosed() throws {
+        let directory = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let owner = try XCTUnwrap(ViewerFileTransferDestinationOwner(
+            sessionEpoch: 39,
+            directoryURL: directory,
+            leaseToken: 71
+        ))
+        let lease = try XCTUnwrap(owner.lease)
+        let file = try XCTUnwrap(ViewerFileTransferFile(
+            relativePath: "drift.txt",
+            size: UInt64(ViewerFileTransferDestinationOwner.maximumWriteChunkBytes + 1),
+            modifiedTime: 0
+        ))
+
+        let emptyRequest = try makeRequest(lease: lease, transferID: 21, file: file)
+        let emptyReservation = try XCTUnwrap(owner.reserveNewFile(
+            for: emptyRequest,
+            fileNumber: 0,
+            reservationToken: 81
+        ))
+        XCTAssertNil(owner.writePayload(Data(), to: emptyReservation))
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: directory.appendingPathComponent("drift.txt.farpane-part").path
+        ))
+
+        let oversizeRequest = try makeRequest(lease: lease, transferID: 22, file: file)
+        let oversizeReservation = try XCTUnwrap(owner.reserveNewFile(
+            for: oversizeRequest,
+            fileNumber: 0,
+            reservationToken: 82
+        ))
+        XCTAssertNil(owner.writePayload(
+            Data(repeating: 1, count: ViewerFileTransferDestinationOwner.maximumWriteChunkBytes + 1),
+            to: oversizeReservation
+        ))
+
+        let replacementRequest = try makeRequest(lease: lease, transferID: 23, file: file)
+        let replacementReservation = try XCTUnwrap(owner.reserveNewFile(
+            for: replacementRequest,
+            fileNumber: 0,
+            reservationToken: 83
+        ))
+        XCTAssertEqual(owner.writePayload(Data("safe".utf8), to: replacementReservation), 4)
+        let staging = directory.appendingPathComponent("drift.txt.farpane-part")
+        XCTAssertEqual(Darwin.unlink(staging.path), 0)
+        let replacement = Data("replacement".utf8)
+        XCTAssertTrue(FileManager.default.createFile(
+            atPath: staging.path,
+            contents: replacement
+        ))
+        XCTAssertEqual(Darwin.chmod(staging.path, 0o600), 0)
+        XCTAssertNil(owner.writePayload(Data("next".utf8), to: replacementReservation))
+        XCTAssertEqual(try Data(contentsOf: staging), replacement)
+        XCTAssertFalse(owner.cancelReservation(replacementReservation))
     }
 
     private func makePrivateDirectory() throws -> URL {
