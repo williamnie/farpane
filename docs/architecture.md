@@ -151,6 +151,8 @@ void rdn_client_disconnect(RDNClient *client);
 int32_t rdn_client_send_pointer(RDNClient *client, const RDNPointerEvent *event);
 int32_t rdn_client_send_key(RDNClient *client, const RDNKeyEvent *event);
 int32_t rdn_client_send_text(RDNClient *client, const uint8_t *utf8, size_t length);
+int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
+                                       size_t length);
 ```
 
 边界规则：
@@ -159,6 +161,10 @@ int32_t rdn_client_send_text(RDNClient *client, const uint8_t *utf8, size_t leng
 - 第一版允许复制压缩后的 H265 packet；禁止复制解码后的 4K RGBA frame。
 - Rust 回调不得直接修改 AppKit/SwiftUI 状态，Swift 必须切换到合适队列。
 - 网络线程、解码线程、渲染线程相互隔离。
+- Viewer ABI v6 的剪贴板边界默认关闭，接收与发送由本地独立策略约束；
+  Rust 只收发至多 64 KiB 的单条 UTF-8 文本，不轮询或写入 macOS pasteboard。
+- 系统 pasteboard 所有权保留给后续 Swift/AppKit 产品层；断开后不得投递排队中的
+  旧剪贴板回调，富文本、图片和文件 promise 不跨 Viewer ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

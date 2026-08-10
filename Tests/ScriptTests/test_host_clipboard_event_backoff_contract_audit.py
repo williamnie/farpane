@@ -43,13 +43,14 @@ class HostClipboardEventBackoffContractAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["temporaryObjectCleanupRequired"]
         )
+        self.assertFalse(document["remainingBoundary"]["viewerClipboardAPIRequired"])
         self.assertTrue(all(
             value for name, value in document["remainingBoundary"].items()
-            if name != "temporaryObjectCleanupRequired"
+            if name not in {"temporaryObjectCleanupRequired", "viewerClipboardAPIRequired"}
         ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-small-text-clipboard-api-contract",
+            "viewer-pasteboard-owner-and-explicit-enablement-contract",
         )
 
 

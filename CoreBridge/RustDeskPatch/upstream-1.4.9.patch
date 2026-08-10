@@ -6929,3 +6929,163 @@ index 75ddb9c..b3dc5bd 100644
          std::fs::File::create(&path).expect("create provider fixture");
          let (tx, rx) = channel();
          drop(rx);
+diff --git a/src/client.rs b/src/client.rs
+index 7511f7b..4ea3d98 100644
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -1780,7 +1780,7 @@ impl Deref for LoginConfigHandler {
+
+ impl LoginConfigHandler {
+     #[cfg(feature = "rdn-native-core")]
+-    pub fn configure_native_viewer(&mut self, peer_id: &str) {
++    pub fn configure_native_viewer(&mut self, peer_id: &str, clipboard_text_enabled: bool) {
+         // The custom-server target is `peer@server?key=...`; keep that target
+         // only in `other_server` and use the existing plain peer profile as an
+         // in-memory baseline so session updates cannot create a target-named
+@@ -1791,7 +1791,7 @@ impl LoginConfigHandler {
+         self.config.password.clear();
+         self.config.view_only.v = false;
+         self.config.disable_audio.v = true;
+-        self.config.disable_clipboard.v = true;
++        self.config.disable_clipboard.v = !clipboard_text_enabled;
+     }
+
+     /// Initialize the login config handler.
+diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
+index 4bb52bf..e9dde42 100644
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -1,5 +1,13 @@
+-#[cfg(not(any(target_os = "android", target_os = "ios")))]
+-use crate::clipboard::{update_clipboard, ClipboardSide};
++#[cfg(all(
++    not(feature = "rdn-native-core"),
++    not(any(target_os = "android", target_os = "ios"))
++))]
++use crate::clipboard::update_clipboard;
++#[cfg(all(
++    not(any(target_os = "android", target_os = "ios")),
++    any(target_os = "windows", feature = "unix-file-copy-paste")
++))]
++use crate::clipboard::ClipboardSide;
+ #[cfg(not(any(target_os = "ios")))]
+ use crate::{audio_service, clipboard::CLIPBOARD_INTERVAL, ConnInner, CLIENT_SERVER};
+ use crate::{
+@@ -370,7 +378,7 @@ impl<T: InvokeUiSession> Remote<T> {
+             .unwrap()
+             .set_disconnected(round);
+
+-        #[cfg(not(target_os = "ios"))]
++        #[cfg(all(not(feature = "rdn-native-core"), not(target_os = "ios")))]
+         if self.handler.is_default() && _set_disconnected_ok {
+             Client::try_stop_clipboard();
+         }
+@@ -1389,10 +1397,13 @@ impl<T: InvokeUiSession> Remote<T> {
+                         #[cfg(all(target_os = "windows", not(feature = "flutter")))]
+                         self.check_clipboard_file_context();
+                         if self.handler.is_default() {
+-                            #[cfg(feature = "flutter")]
++                            #[cfg(all(feature = "flutter", not(feature = "rdn-native-core")))]
+                             #[cfg(not(target_os = "ios"))]
+                             let rx = Client::try_start_clipboard(None);
+-                            #[cfg(not(feature = "flutter"))]
++                            #[cfg(all(
++                                not(feature = "flutter"),
++                                not(feature = "rdn-native-core")
++                            ))]
+                             #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                             let rx = Client::try_start_clipboard(Some(
+                                 crate::client::ClientClipboardContext {
+@@ -1404,13 +1415,18 @@ impl<T: InvokeUiSession> Remote<T> {
+                                     ),
+                                 },
+                             ));
++                            #[cfg(all(feature = "rdn-native-core", not(target_os = "ios")))]
++                            let rx: Option<tokio::sync::mpsc::UnboundedReceiver<()>> = None;
+                             // To make sure current text clipboard data is updated.
+                             #[cfg(not(target_os = "ios"))]
+                             if let Some(mut rx) = rx {
+                                 timeout(CLIPBOARD_INTERVAL, rx.recv()).await.ok();
+                             }
+
+-                            #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                            #[cfg(all(
++                                not(feature = "rdn-native-core"),
++                                not(any(target_os = "android", target_os = "ios"))
++                            ))]
+                             if self.handler.lc.read().unwrap().sync_init_clipboard.v {
+                                 if let Some(msg_out) = crate::clipboard::get_current_clipboard_msg(
+                                     &peer_version,
+@@ -1468,8 +1484,18 @@ impl<T: InvokeUiSession> Remote<T> {
+                         !lc.disable_clipboard.v && !lc.view_only.v
+                     };
+                     if clipboard_allowed {
+-                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                        #[cfg(all(
++                            not(feature = "rdn-native-core"),
++                            not(any(target_os = "android", target_os = "ios"))
++                        ))]
+                         update_clipboard(vec![cb], ClipboardSide::Client);
++                        #[cfg(all(
++                            feature = "rdn-native-core",
++                            not(any(target_os = "android", target_os = "ios"))
++                        ))]
++                        if let Some(text) = crate::rdn_bridge::native_viewer_clipboard_text(&[cb]) {
++                            self.handler.native_clipboard_text(text);
++                        }
+                         #[cfg(target_os = "ios")]
+                         {
+                             let content = if cb.compress {
+@@ -1491,8 +1517,20 @@ impl<T: InvokeUiSession> Remote<T> {
+                         !lc.disable_clipboard.v && !lc.view_only.v
+                     };
+                     if clipboard_allowed {
+-                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                        #[cfg(all(
++                            not(feature = "rdn-native-core"),
++                            not(any(target_os = "android", target_os = "ios"))
++                        ))]
+                         update_clipboard(_mcb.clipboards, ClipboardSide::Client);
++                        #[cfg(all(
++                            feature = "rdn-native-core",
++                            not(any(target_os = "android", target_os = "ios"))
++                        ))]
++                        if let Some(text) =
++                            crate::rdn_bridge::native_viewer_clipboard_text(&_mcb.clipboards)
++                        {
++                            self.handler.native_clipboard_text(text);
++                        }
+                         #[cfg(target_os = "ios")]
+                         {
+                             if let Some(cb) = _mcb
+diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs
+index b78cdad..58d74d6 100644
+--- a/src/ui_session_interface.rs
++++ b/src/ui_session_interface.rs
+@@ -1726,6 +1726,8 @@ pub trait InvokeUiSession: Send + Sync + Clone + 'static + Sized + Default {
+     fn msgbox(&self, msgtype: &str, title: &str, text: &str, link: &str, retry: bool);
+     #[cfg(any(target_os = "android", target_os = "ios"))]
+     fn clipboard(&self, content: String);
++    #[cfg(feature = "rdn-native-core")]
++    fn native_clipboard_text(&self, _content: String) {}
+     fn cancel_msgbox(&self, tag: &str);
+     fn switch_back(&self, id: &str);
+     fn portable_service_running(&self, running: bool);
+diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
+index e9dde42..68713ae 100644
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -2,12 +2,7 @@
+     not(feature = "rdn-native-core"),
+     not(any(target_os = "android", target_os = "ios"))
+ ))]
+-use crate::clipboard::update_clipboard;
+-#[cfg(all(
+-    not(any(target_os = "android", target_os = "ios")),
+-    any(target_os = "windows", feature = "unix-file-copy-paste")
+-))]
+-use crate::clipboard::ClipboardSide;
++use crate::clipboard::{update_clipboard, ClipboardSide};
+ #[cfg(not(any(target_os = "ios")))]
+ use crate::{audio_service, clipboard::CLIPBOARD_INTERVAL, ConnInner, CLIENT_SERVER};
+ use crate::{

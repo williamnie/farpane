@@ -224,9 +224,10 @@ def main() -> int:
             "directionalXPCUIRequired": not (xpc_directional and home_directional),
             "eventDrivenDynamicBackoffRequired": False,
             "temporaryObjectCleanupRequired": False,
+            "viewerSmallTextClipboardAPIRequired": False,
             "explicitProductEnablementRequired": True,
         },
-        "nextImplementationBoundary": "viewer-small-text-clipboard-api-contract",
+        "nextImplementationBoundary": "viewer-pasteboard-owner-and-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "independent-directional-revoke-core-contract" else 1

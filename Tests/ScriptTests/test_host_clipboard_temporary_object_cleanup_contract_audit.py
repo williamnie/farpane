@@ -40,10 +40,16 @@ class HostClipboardTemporaryObjectCleanupContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["newerLocalClipboardPreserved"])
         self.assertFalse(document["claims"]["richClipboardEnabledByDefault"])
         self.assertFalse(document["claims"]["filePromiseCompiledInCurrentProduct"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(
+            document["remainingBoundary"]["viewerSmallTextClipboardAPIRequired"]
+        )
+        self.assertTrue(all(
+            value for name, value in document["remainingBoundary"].items()
+            if name != "viewerSmallTextClipboardAPIRequired"
+        ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-small-text-clipboard-api-contract",
+            "viewer-pasteboard-owner-and-explicit-enablement-contract",
         )
 
 

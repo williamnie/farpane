@@ -203,10 +203,10 @@ def main() -> int:
         "remainingBoundary": {
             "temporaryObjectCleanupRequired": False,
             "explicitProductEnablementRequired": True,
-            "viewerClipboardAPIRequired": True,
+            "viewerClipboardAPIRequired": False,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-small-text-clipboard-api-contract",
+        "nextImplementationBoundary": "viewer-pasteboard-owner-and-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "event-first-bounded-macos-fallback" else 1

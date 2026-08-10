@@ -9,7 +9,8 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 5u
+#define RDN_ABI_VERSION 6u
+#define RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES (64u * 1024u)
 
 typedef struct RDNClient RDNClient;
 
@@ -73,12 +74,16 @@ typedef void (*RDNVideoCallback)(void *context,
                                  const RDNEncodedVideoFrame *frame);
 typedef void (*RDNMetricsCallback)(void *context,
                                    const RDNCoreMetrics *metrics);
+/* Callback-scoped UTF-8 bytes. The callback must copy before returning. */
+typedef void (*RDNClipboardTextCallback)(void *context, const uint8_t *utf8,
+                                         size_t length);
 
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
     RDNVideoCallback on_video;
     RDNMetricsCallback on_metrics;
+    RDNClipboardTextCallback on_clipboard_text;
 } RDNCallbacks;
 
 typedef struct RDNConnectionConfig {
@@ -88,6 +93,11 @@ typedef struct RDNConnectionConfig {
     const char *peer_id;
     const char *password;
     bool force_relay;
+    /* Viewer-local directional policy. Both default false in Swift. The
+     * pinned RustDesk wire has one clipboard negotiation bit; Rust still
+     * enforces receive and send independently at the native bridge. */
+    bool receive_clipboard_text;
+    bool send_clipboard_text;
 } RDNConnectionConfig;
 
 typedef enum RDNModifierFlags {
@@ -167,6 +177,10 @@ int32_t rdn_client_send_pointer(RDNClient *client,
 int32_t rdn_client_send_key(RDNClient *client, const RDNKeyEvent *event);
 int32_t rdn_client_send_text(RDNClient *client, const uint8_t *utf8,
                              size_t length);
+/* Sends one uncompressed ClipboardFormat::Text payload. Returns -7 when the
+ * local send direction is disabled and -8 when the peer revoked clipboard. */
+int32_t rdn_client_send_clipboard_text(RDNClient *client,
+                                       const uint8_t *utf8, size_t length);
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
@@ -383,6 +397,10 @@ int32_t rdn_shim_client_send_key(const RDNCoreLibrary *library,
 int32_t rdn_shim_client_send_text(const RDNCoreLibrary *library,
                                   RDNClient *client, const uint8_t *utf8,
                                   size_t length);
+int32_t rdn_shim_client_send_clipboard_text(const RDNCoreLibrary *library,
+                                            RDNClient *client,
+                                            const uint8_t *utf8,
+                                            size_t length);
 
 /* Host Control ABI loader surface (rdn-native-host). rdn_shim_open tolerates
  * cores built without the host feature: rdn_shim_host_available reports whether

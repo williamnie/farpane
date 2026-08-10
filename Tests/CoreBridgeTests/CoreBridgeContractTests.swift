@@ -19,7 +19,7 @@ final class CoreBridgeContractTests: XCTestCase {
     }
 
     func testPinsRustDesk149Commit() {
-        XCTAssertEqual(RustDeskCoreClient.abiVersion, 5)
+        XCTAssertEqual(RustDeskCoreClient.abiVersion, 6)
         XCTAssertEqual(
             RustDeskCoreClient.expectedUpstreamCommit,
             "6c578292e8ebbbec708b76986ba8c4bc7c509747"
@@ -817,6 +817,48 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         XCTAssertEqual(config.password, "one-time-password")
         XCTAssertFalse(config.forceRelay)
+        XCTAssertFalse(config.receiveClipboardText)
+        XCTAssertFalse(config.sendClipboardText)
+    }
+
+    func testViewerClipboardDirectionsAreExplicitAndIndependent() {
+        let receiveOnly = CoreConnectionConfig(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            peerID: "123456789",
+            receiveClipboardText: true
+        )
+        XCTAssertTrue(receiveOnly.receiveClipboardText)
+        XCTAssertFalse(receiveOnly.sendClipboardText)
+
+        let sendOnly = CoreConnectionConfig(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            peerID: "123456789",
+            sendClipboardText: true
+        )
+        XCTAssertFalse(sendOnly.receiveClipboardText)
+        XCTAssertTrue(sendOnly.sendClipboardText)
+    }
+
+    func testViewerClipboardDeliveryStopsBeforeCoreDisconnect() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sourceURL = repositoryRoot
+            .appendingPathComponent("Sources/CoreBridge/CoreBridge.swift")
+        let source = try String(contentsOf: sourceURL, encoding: .utf8)
+
+        XCTAssertTrue(source.contains(
+            "guard clipboardLifecycleLock.withLock({ clipboardDeliveryEnabled }) else { return }"
+        ))
+        XCTAssertTrue(source.contains("box.deliverClipboardText(text)"))
+        let stop = try XCTUnwrap(source.range(of: "callbackBox.stopClipboardDelivery()"))
+        let disconnect = try XCTUnwrap(source.range(
+            of: "rdn_shim_client_disconnect(library, client)"
+        ))
+        XCTAssertLessThan(stop.lowerBound, disconnect.lowerBound)
     }
 
     func testPhase3InputTypesStaySemantic() {
