@@ -7,9 +7,10 @@ relative directory creation, safe file removal, empty-directory removal, and
 atomic no-replace rename. All operations remain pinned to the root descriptor
 admitted by H6.3d1.
 
-This is still a security primitive, not product enablement. No Native Host
-file-service owner calls these methods, and App/HostAgent still do not opt into
-file transfer.
+This is still a security primitive, not product enablement. H6.3e1 has since
+made a Native Host file-service owner core the only module-visible caller, but
+it is not configured or connected. App/HostAgent still do not opt into file
+transfer.
 
 ## Contract
 
@@ -55,12 +56,12 @@ retained root owner. No mutation reaches `outside`.
 ## Non-claims
 
 - Existing upstream/CM path-based file transfer is unchanged.
-- No Native Host file-service owner, Viewer destination/overwrite/progress UI,
-  or end-to-end file transfer exists.
+- No configured/connected Native Host file-service owner, Viewer
+  destination/overwrite/progress UI, or end-to-end file transfer exists.
 - No installed App, real user file, or two-Mac acceptance was exercised.
 
 ## Next step
 
-`host-file-transfer-native-service-owner`: compose the bounded block envelope
-and descriptor-relative root primitives behind the existing default-off Host
-policy without turning on product callers.
+H6.3e1 composed the owner core. Continue with
+`host-file-transfer-receive-root-config-contract`: provide an immutable,
+fail-closed root only with explicit Host opt-in before connection dispatch.

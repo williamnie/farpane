@@ -41,11 +41,12 @@ class HostFileTransferBoundedBlockEnvelopeAuditTests(unittest.TestCase):
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["symlinkRaceClosed"])
         self.assertFalse(claims["nativeHostFileServiceOwnerImplemented"])
+        self.assertTrue(claims["nativeHostFileServiceOwnerCoreImplemented"])
         self.assertTrue(claims["safeReceiveRootPrimitiveImplemented"])
         self.assertTrue(claims["safeRootMutationsImplemented"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-service-owner",
+            "host-file-transfer-receive-root-config-contract",
         )
 
 

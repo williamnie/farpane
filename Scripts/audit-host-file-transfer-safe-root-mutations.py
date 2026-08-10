@@ -90,7 +90,7 @@ def main() -> int:
         "directoryRemovalRequiresPrivateEmptyDirectory": all(
             marker in source
             for marker in (
-                "pub(crate) fn remove_empty_directory",
+                "fn remove_empty_directory",
                 "open_private_child_directory",
                 "validate_private_directory",
                 "libc::AT_REMOVEDIR",
@@ -124,9 +124,9 @@ def main() -> int:
             )
         ),
         "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
-        "nativeFileServiceOwnerStillAbsent": (
-            "NativeHostFileServiceOwner" not in sources["connection"]
-            and "NativeHostFileServiceOwner" not in host_bridge
+        "laterOwnerCoreExistsAndConnectionWiringIsAbsent": (
+            "pub(crate) struct NativeHostFileServiceOwner" in source
+            and "NativeHostFileServiceOwner" not in sources["connection"]
             and "native_host_handle_fs" not in sources["connection"]
             and "native_host_handle_fs" not in host_bridge
         ),
@@ -144,7 +144,7 @@ def main() -> int:
         "createDirectory": line_number(source, "pub(crate) fn create_directory"),
         "removeFile": line_number(source, "pub(crate) fn remove_file"),
         "removeEmptyDirectory": line_number(
-            source, "pub(crate) fn remove_empty_directory"
+            source, "fn remove_empty_directory"
         ),
         "renameEntry": line_number(source, "pub(crate) fn rename_entry"),
         "noReplaceRename": line_number(source, "libc::RENAME_EXCL"),
@@ -172,11 +172,12 @@ def main() -> int:
         "claims": {
             "descriptorRelativeSafeRootMutationsImplemented": True,
             "recursiveRemovalImplemented": False,
+            "nativeHostFileServiceOwnerCoreImplemented": True,
             "nativeHostFileServiceOwnerImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-service-owner",
+        "nextImplementationBoundary": "host-file-transfer-receive-root-config-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

@@ -61,8 +61,7 @@ gaps that must be closed before any UI or bootstrap opt-in.
 
 ## Next step
 
-H6.3c completed the bounded-block envelope. H6.3d1 then provided a
-descriptor-relative macOS receive-root primitive, and H6.3d2 added safe
-directory/remove/rename mutations. The next boundary is
-`host-file-transfer-native-service-owner`: compose those primitives without
-enabling product callers by default.
+H6.3c completed the bounded-block envelope, H6.3d1 provided the safe root,
+H6.3d2 added mutations, and H6.3e1 composed their owner core. The next boundary
+is `host-file-transfer-receive-root-config-contract`, still without enabling
+product callers by default.

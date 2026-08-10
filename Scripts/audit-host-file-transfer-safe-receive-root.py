@@ -134,10 +134,10 @@ def main() -> int:
         "laterSafeRootMutationsExist": all(
             marker in source
             for marker in (
-                "pub(crate) fn create_directory",
-                "pub(crate) fn remove_file",
-                "pub(crate) fn remove_empty_directory",
-                "pub(crate) fn rename_entry",
+                "fn create_directory",
+                "fn remove_file",
+                "fn remove_empty_directory",
+                "fn rename_entry",
                 "libc::RENAME_EXCL",
                 "mutations_remain_pinned_after_root_path_replacement",
             )
@@ -151,9 +151,9 @@ def main() -> int:
             )
         ),
         "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
-        "nativeFileServiceOwnerStillAbsent": (
-            "NativeHostFileServiceOwner" not in sources["connection"]
-            and "NativeHostFileServiceOwner" not in host_bridge
+        "laterOwnerCoreExistsAndConnectionWiringIsAbsent": (
+            "pub(crate) struct NativeHostFileServiceOwner" in source
+            and "NativeHostFileServiceOwner" not in sources["connection"]
             and "native_host_handle_fs" not in sources["connection"]
             and "native_host_handle_fs" not in host_bridge
         ),
@@ -163,7 +163,7 @@ def main() -> int:
             design, "H6.3d1 Host descriptor-relative receive-root primitive"
         ),
         "moduleIsolation": line_number(host_bridge, 'mod rdn_host_file_transfer;'),
-        "rootAdmission": line_number(source, "pub(crate) fn open_existing(path: &Path)"),
+        "rootAdmission": line_number(source, "fn open_existing(path: &Path)"),
         "rootTraversal": line_number(source, "fn absolute_root_components"),
         "relativeValidation": line_number(source, "fn relative_path_components"),
         "safeCreate": line_number(source, "pub(crate) fn create_new_file"),
@@ -196,11 +196,12 @@ def main() -> int:
             "safeCreateAndResumePrimitiveImplemented": True,
             "rootPathReplacementCannotRedirectOpenDescriptor": True,
             "safeRemoveAndRenameImplemented": True,
+            "nativeHostFileServiceOwnerCoreImplemented": True,
             "nativeHostFileServiceOwnerImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-service-owner",
+        "nextImplementationBoundary": "host-file-transfer-receive-root-config-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

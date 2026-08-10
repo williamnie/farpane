@@ -66,6 +66,6 @@ operation no longer resolves the replaced path.
 
 ## Next step
 
-H6.3d2 completed `host-file-transfer-safe-root-mutations`. The next boundary is
-`host-file-transfer-native-service-owner`, composing the primitives without
-enabling product callers by default.
+H6.3d2 completed safe-root mutations and H6.3e1 composed the owner core. The
+next boundary is `host-file-transfer-receive-root-config-contract`, supplying a
+root only under explicit immutable policy before connection dispatch.

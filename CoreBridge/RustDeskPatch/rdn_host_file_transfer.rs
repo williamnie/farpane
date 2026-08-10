@@ -1,8 +1,8 @@
 // FarPane Native Host file-transfer receive-root primitives.
 //
 // This module is feature-isolated by its `rdn_host_bridge` parent and compiled
-// only on macOS. H6.3d1 establishes descriptor-relative create/resume behavior;
-// the later Native Host file-service owner will be the only product caller.
+// only on macOS. The Native Host file-service owner is the only public module
+// authority over descriptor-relative receive-root operations.
 
 use hbb_common::libc;
 use std::{
@@ -30,6 +30,7 @@ pub(crate) enum NativeFileTransferRootError {
     UnsafeFile,
     RemoveFile,
     RemoveDirectory,
+    RecursiveRemovalUnsupported,
     RenameEntry,
 }
 
@@ -48,6 +49,9 @@ impl fmt::Display for NativeFileTransferRootError {
             Self::UnsafeFile => "unsafe native file-transfer file",
             Self::RemoveFile => "unable to remove native file-transfer file",
             Self::RemoveDirectory => "unable to remove native file-transfer directory",
+            Self::RecursiveRemovalUnsupported => {
+                "recursive native file-transfer removal is unsupported"
+            }
             Self::RenameEntry => "unable to rename native file-transfer entry",
         })
     }
@@ -57,15 +61,13 @@ impl std::error::Error for NativeFileTransferRootError {}
 
 type RootResult<T> = Result<T, NativeFileTransferRootError>;
 
-#[allow(dead_code)]
 #[derive(Debug)]
-pub(crate) struct NativeFileTransferRoot {
+struct NativeFileTransferRoot {
     directory: File,
 }
 
-#[allow(dead_code)]
 impl NativeFileTransferRoot {
-    pub(crate) fn open_existing(path: &Path) -> RootResult<Self> {
+    fn open_existing(path: &Path) -> RootResult<Self> {
         let components = absolute_root_components(path)?;
         let root_path = CString::new("/").expect("root path has no NUL");
         let root_fd = unsafe {
@@ -101,7 +103,7 @@ impl NativeFileTransferRoot {
         Ok(Self { directory })
     }
 
-    pub(crate) fn create_new_file(&self, relative_path: &Path) -> RootResult<File> {
+    fn create_new_file(&self, relative_path: &Path) -> RootResult<File> {
         let (parent, file_name) = self.open_relative_parent(relative_path, true)?;
         let fd = unsafe {
             libc::openat(
@@ -122,7 +124,7 @@ impl NativeFileTransferRoot {
         Ok(file)
     }
 
-    pub(crate) fn open_existing_file_for_resume(&self, relative_path: &Path) -> RootResult<File> {
+    fn open_existing_file_for_resume(&self, relative_path: &Path) -> RootResult<File> {
         let (parent, file_name) = self.open_relative_parent(relative_path, false)?;
         let fd = unsafe {
             libc::openat(
@@ -139,7 +141,7 @@ impl NativeFileTransferRoot {
         Ok(file)
     }
 
-    pub(crate) fn create_directory(&self, relative_path: &Path) -> RootResult<()> {
+    fn create_directory(&self, relative_path: &Path) -> RootResult<()> {
         let (parent, directory_name) = self.open_relative_parent(relative_path, false)?;
         if unsafe {
             libc::mkdirat(
@@ -162,7 +164,7 @@ impl NativeFileTransferRoot {
         Ok(())
     }
 
-    pub(crate) fn remove_file(&self, relative_path: &Path) -> RootResult<()> {
+    fn remove_file(&self, relative_path: &Path) -> RootResult<()> {
         let (parent, file_name) = self.open_relative_parent(relative_path, false)?;
         let stat = checked_stat_at(&parent, &file_name, NativeFileTransferRootError::RemoveFile)?;
         validate_private_regular_stat(&stat)?;
@@ -172,7 +174,7 @@ impl NativeFileTransferRoot {
         Ok(())
     }
 
-    pub(crate) fn remove_empty_directory(&self, relative_path: &Path) -> RootResult<()> {
+    fn remove_empty_directory(&self, relative_path: &Path) -> RootResult<()> {
         let (parent, directory_name) = self.open_relative_parent(relative_path, false)?;
         let directory = open_private_child_directory(
             &parent,
@@ -194,7 +196,7 @@ impl NativeFileTransferRoot {
         Ok(())
     }
 
-    pub(crate) fn rename_entry(&self, source: &Path, destination: &Path) -> RootResult<()> {
+    fn rename_entry(&self, source: &Path, destination: &Path) -> RootResult<()> {
         let (source_parent, source_name) = self.open_relative_parent(source, false)?;
         let source_stat = checked_stat_at(
             &source_parent,
@@ -238,6 +240,48 @@ impl NativeFileTransferRoot {
             parent = open_private_child_directory(&parent, component, create_missing)?;
         }
         Ok((parent, file_name))
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub(crate) struct NativeHostFileServiceOwner {
+    root: NativeFileTransferRoot,
+}
+
+#[allow(dead_code)]
+impl NativeHostFileServiceOwner {
+    pub(crate) fn open_existing(root_path: &Path) -> RootResult<Self> {
+        Ok(Self {
+            root: NativeFileTransferRoot::open_existing(root_path)?,
+        })
+    }
+
+    pub(crate) fn create_new_file(&self, relative_path: &Path) -> RootResult<File> {
+        self.root.create_new_file(relative_path)
+    }
+
+    pub(crate) fn open_existing_file_for_resume(&self, relative_path: &Path) -> RootResult<File> {
+        self.root.open_existing_file_for_resume(relative_path)
+    }
+
+    pub(crate) fn create_directory(&self, relative_path: &Path) -> RootResult<()> {
+        self.root.create_directory(relative_path)
+    }
+
+    pub(crate) fn remove_file(&self, relative_path: &Path) -> RootResult<()> {
+        self.root.remove_file(relative_path)
+    }
+
+    pub(crate) fn remove_directory(&self, relative_path: &Path, recursive: bool) -> RootResult<()> {
+        if recursive {
+            return Err(NativeFileTransferRootError::RecursiveRemovalUnsupported);
+        }
+        self.root.remove_empty_directory(relative_path)
+    }
+
+    pub(crate) fn rename_entry(&self, source: &Path, destination: &Path) -> RootResult<()> {
+        self.root.rename_entry(source, destination)
     }
 }
 
@@ -830,5 +874,64 @@ mod tests {
         assert!(!moved.join("source.download").exists());
         assert!(!moved.join("folder").exists());
         assert_eq!(fs::read_dir(&outside).expect("read outside").count(), 0);
+    }
+
+    #[test]
+    fn native_owner_is_the_single_safe_root_mutation_authority() {
+        let sandbox = TestDirectory::new("owner_authority");
+        let trusted = sandbox.child("trusted");
+        create_private_directory(&trusted);
+        let owner = NativeHostFileServiceOwner::open_existing(&trusted).expect("open owner");
+
+        owner
+            .create_directory(Path::new("folder"))
+            .expect("create directory");
+        drop(
+            owner
+                .create_new_file(Path::new("folder/item.download"))
+                .expect("create file"),
+        );
+        drop(
+            owner
+                .open_existing_file_for_resume(Path::new("folder/item.download"))
+                .expect("resume file"),
+        );
+        owner
+            .rename_entry(
+                Path::new("folder/item.download"),
+                Path::new("folder/renamed.download"),
+            )
+            .expect("rename file");
+        owner
+            .remove_file(Path::new("folder/renamed.download"))
+            .expect("remove file");
+        owner
+            .remove_directory(Path::new("folder"), false)
+            .expect("remove empty directory");
+        assert!(!trusted.join("folder").exists());
+    }
+
+    #[test]
+    fn native_owner_rejects_recursive_remove_without_touching_tree() {
+        let sandbox = TestDirectory::new("owner_recursive_remove");
+        let trusted = sandbox.child("trusted");
+        create_private_directory(&trusted);
+        let owner = NativeHostFileServiceOwner::open_existing(&trusted).expect("open owner");
+        owner
+            .create_directory(Path::new("folder"))
+            .expect("create directory");
+        drop(
+            owner
+                .create_new_file(Path::new("folder/item.download"))
+                .expect("create file"),
+        );
+
+        assert_eq!(
+            owner
+                .remove_directory(Path::new("folder"), true)
+                .unwrap_err(),
+            NativeFileTransferRootError::RecursiveRemovalUnsupported
+        );
+        assert!(trusted.join("folder/item.download").is_file());
     }
 }
