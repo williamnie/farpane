@@ -4,11 +4,11 @@ import subprocess
 import unittest
 
 
-class ViewerClipboardImageAPIContractAuditTests(unittest.TestCase):
-    def test_viewer_image_api_is_bounded_directional_and_default_off(self) -> None:
+class HostViewerImageTransferWiringContractAuditTests(unittest.TestCase):
+    def test_host_viewer_image_transport_is_bounded_and_default_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            ["python3", "Scripts/audit-viewer-clipboard-image-api-contract.py"],
+            ["python3", "Scripts/audit-host-viewer-image-transfer-wiring-contract.py"],
             cwd=repository,
             check=False,
             capture_output=True,
@@ -21,25 +21,25 @@ class ViewerClipboardImageAPIContractAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-viewer-image-clipboard-api-contract-audit",
+            "farpane-host-viewer-image-transfer-wiring-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "viewer-image-clipboard-api-default-off",
+            "host-viewer-image-transfer-wired-default-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(document["claims"]["viewerABIv8Implemented"])
+        self.assertTrue(document["claims"]["hostABIv15Implemented"])
         self.assertTrue(document["claims"]["imageDirectionsDefaultOff"])
-        self.assertTrue(document["claims"]["rgbaAndPNGBoundedTo128MiB"])
-        self.assertTrue(document["claims"]["svgBoundedTo4MiB"])
-        self.assertFalse(document["claims"]["disabledReceiveParsesImagePayload"])
-        self.assertTrue(document["claims"]["swiftCopiesCallbackScopedBytes"])
+        self.assertTrue(document["claims"]["imageTransportCanonicalAndBounded"])
+        self.assertTrue(
+            document["claims"]["sessionRevocationAppliesBeforeImageParsing"]
+        )
         self.assertFalse(document["claims"]["viewerProductImageClipboardEnabled"])
-        self.assertTrue(document["claims"]["hostImageClipboardTransportCapable"])
+        self.assertFalse(document["claims"]["hostProductImageClipboardEnabled"])
         self.assertFalse(document["claims"]["svgRenderingSanitized"])
         self.assertFalse(
             document["remainingBoundary"]["hostViewerImageTransportWiringRequired"]

@@ -180,7 +180,7 @@ def main() -> int:
             for marker in (
                 "ABI v8 also retains the ABI v6 bounded small-text contract",
                 "AppKit-owned pasteboard adapter",
-                "Host Control ABI v14",
+                "Host Control ABI v15",
                 "bootstrap schema v2",
             )
         ),

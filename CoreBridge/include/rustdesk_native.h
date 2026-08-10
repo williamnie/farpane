@@ -251,7 +251,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 14u
+#define RDN_HOST_ABI_VERSION 15u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -336,6 +336,10 @@ typedef struct RdnHostCreateOptions {
      * small text does not implicitly admit RTF or HTML. */
     bool enable_clipboard_rich_text_read;
     bool enable_clipboard_rich_text_write;
+    /* Images are an independent, default-off capability. Only bounded
+     * canonical RGBA, PNG, and SVG payloads may cross the Host bridge. */
+    bool enable_clipboard_image_read;
+    bool enable_clipboard_image_write;
 } RdnHostCreateOptions;
 
 uint32_t rdn_host_abi_version(void);

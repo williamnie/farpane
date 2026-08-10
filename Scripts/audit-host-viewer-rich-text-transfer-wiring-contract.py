@@ -59,10 +59,10 @@ def main() -> int:
         "designRecordsBoundedWiringStep": (
             "H6.2j4 Host↔Viewer rich-text transfer wiring contract" in sources["design"]
         ),
-        "hostABIv14SeparatesSmallAndRichDirections": all(
+        "hostABIv15RetainsSmallAndRichDirections": all(
             marker in header
             for marker in (
-                "#define RDN_HOST_ABI_VERSION 14u",
+                "#define RDN_HOST_ABI_VERSION 15u",
                 "bool enable_clipboard_read;",
                 "bool enable_clipboard_write;",
                 "bool enable_clipboard_rich_text_read;",
@@ -93,7 +93,9 @@ def main() -> int:
                 "pub(crate) struct NativeClipboardTransferPolicy",
                 "small_text: NativeClipboardPolicy",
                 "rich_text: NativeClipboardPolicy",
-                "self.small_text.any_enabled() || self.rich_text.any_enabled()",
+                "image: NativeClipboardPolicy",
+                "self.rich_text.any_enabled()",
+                "self.image.any_enabled()",
                 "transfer_policy.small_text()",
                 "transfer_policy.rich_text()",
             )
@@ -152,11 +154,11 @@ def main() -> int:
                 "message.set_multi_clipboards(MultiClipboards",
             )
         ),
-        "imagesSpecialAndFilesRemainRejected": all(
+        "imagePolicyIsIndependentAndSpecialFilesRemainRejected": all(
             marker in host
             for marker in (
                 "ClipboardFormat::ImageRgba",
-                "ClipboardFormat::ImagePng | ClipboardFormat::ImageSvg",
+                "transfer_policy.image()",
                 "ClipboardFormat::Special => NativeClipboardPayloadDisposition::Reject",
             )
         ),
@@ -181,14 +183,14 @@ def main() -> int:
                 "native_host_rich_text_transport_requires_explicit_format_and_direction_policy",
                 "native_clipboard_permissions_revoke_directions_without_exceeding_maximum",
                 "testHostClipboardDirectionsDefaultOffAndRemainIndependent",
-                "private static let hostABIVersion: UInt32 = 14",
+                "private static let hostABIVersion: UInt32 = 15",
                 "XCTAssertEqual(hostABI(), Self.hostABIVersion)",
             )
         ),
         "documentationRecordsExplicitProductOptInBoundary": all(
             marker in docs
             for marker in (
-                "Host Control ABI v14",
+                "Host Control ABI v15",
                 "Viewer product configuration",
                 "Host product configuration exposes independent",
                 "canonical, uncompressed Text/RTF/HTML",
@@ -199,7 +201,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.2j4 Host↔Viewer rich-text transfer wiring contract"
         ),
-        "hostABIVersion": line_number(header, "#define RDN_HOST_ABI_VERSION 14u"),
+        "hostABIVersion": line_number(header, "#define RDN_HOST_ABI_VERSION 15u"),
         "hostRichRead": line_number(header, "bool enable_clipboard_rich_text_read;"),
         "swiftRichDefault": line_number(swift, "clipboardRichTextReadEnabled: Bool = false"),
         "transferPolicy": line_number(host, "pub(crate) struct NativeClipboardTransferPolicy"),
@@ -228,7 +230,7 @@ def main() -> int:
         "sourceLines": source_lines,
         "missingSourceLines": missing_lines,
         "claims": {
-            "hostABIv14Implemented": True,
+            "hostABIv15Implemented": True,
             "smallAndRichDirectionsIndependent": True,
             "richTransportCanonicalAndBounded": True,
             "sessionRevocationAppliesToRich": True,

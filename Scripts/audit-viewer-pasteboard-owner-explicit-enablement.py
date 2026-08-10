@@ -141,7 +141,7 @@ def main() -> int:
             marker in (sources["architecture"] + sources["readme"])
             for marker in (
                 "AppKit-owned pasteboard adapter",
-                "Host Control ABI v14",
+                "Host Control ABI v15",
                 "bootstrap schema v2",
                 "Viewer product configuration",
                 "one AppKit-owned pasteboard adapter",
