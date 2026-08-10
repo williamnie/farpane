@@ -23,7 +23,7 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 9;
+const ABI_VERSION: u32 = 10;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -34,6 +34,11 @@ const MAX_CLIPBOARD_IMAGE_PIXELS: usize = 7680 * 4320;
 const MAX_FILE_TRANSFER_LIST_ENTRIES: usize = 1_024;
 const MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES: usize = 1_024 * 1_024;
 const FILE_TRANSFER_PRIVATE_STAGING_SUFFIX: &str = ".farpane-part";
+const FILE_TRANSFER_LIST_SUCCESS: u32 = 1;
+const FILE_TRANSFER_LIST_REJECTED: u32 = 2;
+const FILE_TRANSFER_LIST_UNAVAILABLE: u32 = 3;
+const FILE_TRANSFER_LIST_ENTRY_DIRECTORY: u32 = 1;
+const FILE_TRANSFER_LIST_ENTRY_FILE: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_RGBA: u32 = 1;
 const CLIPBOARD_IMAGE_FORMAT_PNG: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_SVG: u32 = 3;
@@ -107,6 +112,7 @@ type ClipboardRichTextCallback =
     unsafe extern "C" fn(*mut c_void, *const RDNClipboardRichTextPayload);
 type ClipboardImageCallback = unsafe extern "C" fn(*mut c_void, *const RDNClipboardImagePayload);
 type FileTransferEventCallback = unsafe extern "C" fn(*mut c_void, *const RDNFileTransferEvent);
+type FileTransferListCallback = unsafe extern "C" fn(*mut c_void, *const RDNFileTransferListEvent);
 
 #[repr(C)]
 pub struct RDNClipboardRichTextPayload {
@@ -145,6 +151,25 @@ pub struct RDNFileTransferEvent {
     bytes_per_second: f64,
 }
 
+#[repr(C)]
+struct RDNFileTransferListEntry {
+    kind: u32,
+    relative_path_utf8: *const u8,
+    relative_path_length: usize,
+    size: u64,
+    modified_time: u64,
+}
+
+#[repr(C)]
+struct RDNFileTransferListEvent {
+    abi_version: u32,
+    session_epoch: u64,
+    request_id: i32,
+    status: u32,
+    entries: *const RDNFileTransferListEntry,
+    entry_count: usize,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum NativeViewerRemoteListEntryKind {
     Directory,
@@ -159,6 +184,12 @@ struct NativeViewerRemoteListEntry {
     modified_time: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct NativeViewerListRequest {
+    session_epoch: u64,
+    request_id: i32,
+}
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct RDNCallbacks {
@@ -170,6 +201,7 @@ pub struct RDNCallbacks {
     on_clipboard_rich_text: Option<ClipboardRichTextCallback>,
     on_clipboard_image: Option<ClipboardImageCallback>,
     on_file_transfer_event: Option<FileTransferEventCallback>,
+    on_file_transfer_list: Option<FileTransferListCallback>,
 }
 
 #[repr(C)]
@@ -277,6 +309,7 @@ struct BridgeShared {
     remote_clipboard_enabled: AtomicBool,
     file_transfer_enabled: AtomicBool,
     file_transfer_session_epoch: AtomicU64,
+    pending_file_list_request: Mutex<Option<NativeViewerListRequest>>,
 }
 
 impl BridgeShared {
@@ -389,6 +422,52 @@ impl BridgeShared {
         unsafe { callback(self.context as *mut c_void, &payload) };
     }
 
+    fn emit_file_transfer_list(
+        &self,
+        request: NativeViewerListRequest,
+        status: u32,
+        listing: &[NativeViewerRemoteListEntry],
+    ) {
+        if !self.active.load(Ordering::Acquire)
+            || !self.authenticated.load(Ordering::Acquire)
+            || !self.file_transfer_enabled.load(Ordering::Acquire)
+            || self.file_transfer_session_epoch.load(Ordering::Acquire) != request.session_epoch
+        {
+            return;
+        }
+        let Some(callback) = self.callbacks.on_file_transfer_list else {
+            return;
+        };
+        let entries: Vec<_> = listing
+            .iter()
+            .map(|entry| RDNFileTransferListEntry {
+                kind: match entry.kind {
+                    NativeViewerRemoteListEntryKind::Directory => {
+                        FILE_TRANSFER_LIST_ENTRY_DIRECTORY
+                    }
+                    NativeViewerRemoteListEntryKind::File => FILE_TRANSFER_LIST_ENTRY_FILE,
+                },
+                relative_path_utf8: entry.relative_path.as_bytes().as_ptr(),
+                relative_path_length: entry.relative_path.len(),
+                size: entry.size,
+                modified_time: entry.modified_time,
+            })
+            .collect();
+        let event = RDNFileTransferListEvent {
+            abi_version: ABI_VERSION,
+            session_epoch: request.session_epoch,
+            request_id: request.request_id,
+            status,
+            entries: if entries.is_empty() {
+                ptr::null()
+            } else {
+                entries.as_ptr()
+            },
+            entry_count: entries.len(),
+        };
+        unsafe { callback(self.context as *mut c_void, &event) };
+    }
+
     fn emit_video(&self, frame: &VideoFrame) -> bool {
         if !self.active.load(Ordering::Acquire) {
             return true;
@@ -447,6 +526,7 @@ impl Default for BridgeUi {
                     on_clipboard_rich_text: None,
                     on_clipboard_image: None,
                     on_file_transfer_event: None,
+                    on_file_transfer_list: None,
                 },
                 context: 0,
                 active: AtomicBool::new(false),
@@ -464,6 +544,7 @@ impl Default for BridgeUi {
                 remote_clipboard_enabled: AtomicBool::new(false),
                 file_transfer_enabled: AtomicBool::new(false),
                 file_transfer_session_epoch: AtomicU64::new(0),
+                pending_file_list_request: Mutex::new(None),
             }),
         }
     }
@@ -558,9 +639,17 @@ impl InvokeUiSession for BridgeUi {
     }
 
     fn set_fingerprint(&self, _fingerprint: String) {}
-    fn job_error(&self, _id: i32, _error: String, _file_num: i32) {}
+    fn job_error(&self, _id: i32, _error: String, _file_num: i32) {
+        let request = self.shared.pending_file_list_request.lock().unwrap().take();
+        if let Some(request) = request {
+            self.shared
+                .emit_file_transfer_list(request, FILE_TRANSFER_LIST_UNAVAILABLE, &[]);
+        }
+    }
     fn job_done(&self, _id: i32, _file_num: i32) {}
-    fn clear_all_jobs(&self) {}
+    fn clear_all_jobs(&self) {
+        self.shared.pending_file_list_request.lock().unwrap().take();
+    }
     fn new_message(&self, _message: String) {}
     fn update_transfer_list(&self) {}
     fn load_last_job(&self, _count: i32, _json: &str, _auto_start: bool) {}
@@ -568,11 +657,27 @@ impl InvokeUiSession for BridgeUi {
     fn update_folder_files(
         &self,
         _id: i32,
-        _entries: &Vec<FileEntry>,
-        _path: String,
-        _is_local: bool,
-        _only_count: bool,
+        entries: &Vec<FileEntry>,
+        path: String,
+        is_local: bool,
+        only_count: bool,
     ) {
+        let request = self.shared.pending_file_list_request.lock().unwrap().take();
+        let Some(request) = request else { return };
+        if is_local || only_count || path != "/" {
+            self.shared
+                .emit_file_transfer_list(request, FILE_TRANSFER_LIST_REJECTED, &[]);
+            return;
+        }
+        match native_viewer_remote_listing(entries) {
+            Some(listing) => {
+                self.shared
+                    .emit_file_transfer_list(request, FILE_TRANSFER_LIST_SUCCESS, &listing)
+            }
+            None => self
+                .shared
+                .emit_file_transfer_list(request, FILE_TRANSFER_LIST_REJECTED, &[]),
+        }
     }
 
     fn confirm_delete_files(&self, _id: i32, _index: i32, _name: String) {}
@@ -727,6 +832,7 @@ impl RDNClient {
         self.shared
             .file_transfer_session_epoch
             .store(0, Ordering::Release);
+        self.shared.pending_file_list_request.lock().unwrap().take();
         self.shared.active.store(false, Ordering::Release);
         if let Some(session) = self.session.lock().unwrap().as_ref() {
             if let Some(sender) = session.sender.read().unwrap().as_ref() {
@@ -1273,6 +1379,18 @@ fn native_viewer_remote_listing(entries: &[FileEntry]) -> Option<Vec<NativeViewe
     Some(normalized)
 }
 
+fn native_viewer_file_list_root_message() -> Message {
+    let mut action = FileAction::new();
+    action.set_read_dir(ReadDir {
+        path: "/".to_owned(),
+        include_hidden: false,
+        ..Default::default()
+    });
+    let mut message = Message::new();
+    message.set_file_action(action);
+    message
+}
+
 fn viewer_file_transfer_mode_admission(
     enabled: bool,
     session_epoch: u64,
@@ -1323,6 +1441,7 @@ pub unsafe extern "C" fn rdn_client_create(
         remote_clipboard_enabled: AtomicBool::new(false),
         file_transfer_enabled: AtomicBool::new(false),
         file_transfer_session_epoch: AtomicU64::new(0),
+        pending_file_list_request: Mutex::new(None),
     });
     Box::into_raw(Box::new(RDNClient {
         shared,
@@ -1434,6 +1553,12 @@ pub unsafe extern "C" fn rdn_client_connect(
         .shared
         .file_transfer_session_epoch
         .store((*config).file_transfer_session_epoch, Ordering::Release);
+    client
+        .shared
+        .pending_file_list_request
+        .lock()
+        .unwrap()
+        .take();
     client.shared.sequence.store(0, Ordering::Relaxed);
     *client.shared.dimensions.write().unwrap() = (0, 0);
     client
@@ -1485,6 +1610,11 @@ pub unsafe extern "C" fn rdn_client_connect(
         worker_shared
             .file_transfer_session_epoch
             .store(0, Ordering::Release);
+        worker_shared
+            .pending_file_list_request
+            .lock()
+            .unwrap()
+            .take();
         worker_shared.emit_state(RDNState::Disconnected, 0, "disconnected");
     });
     let housekeeping = if file_transfer_mode {
@@ -1998,6 +2128,69 @@ pub unsafe extern "C" fn rdn_client_file_transfer_cancel(
     sender.send(Data::CancelJob(transfer_id)).map_or(-3, |_| 0)
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_file_transfer_list_root(
+    client: *mut RDNClient,
+    session_epoch: u64,
+    request_id: i32,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    if session_epoch == 0 || request_id <= 0 {
+        return -4;
+    }
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if !client.shared.file_transfer_enabled.load(Ordering::Acquire) {
+        return -7;
+    }
+    if client
+        .shared
+        .file_transfer_session_epoch
+        .load(Ordering::Acquire)
+        != session_epoch
+    {
+        return -10;
+    }
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    if !*session.server_file_transfer_enabled.read().unwrap() {
+        return -8;
+    }
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
+        return -3;
+    };
+    let request = NativeViewerListRequest {
+        session_epoch,
+        request_id,
+    };
+    {
+        let mut pending = client.shared.pending_file_list_request.lock().unwrap();
+        if pending.is_some() {
+            return -3;
+        }
+        *pending = Some(request);
+    }
+    if sender
+        .send(Data::Message(native_viewer_file_list_root_message()))
+        .is_err()
+    {
+        let mut pending = client.shared.pending_file_list_request.lock().unwrap();
+        if pending.as_ref() == Some(&request) {
+            pending.take();
+        }
+        return -3;
+    }
+    0
+}
+
 struct PacketInspection {
     format: RDNPacketFormat,
     flags: u32,
@@ -2067,6 +2260,47 @@ fn avcc_nal_types(data: &[u8]) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct CapturedFileListEvent {
+        session_epoch: u64,
+        request_id: i32,
+        status: u32,
+        entries: Vec<(u32, String, u64, u64)>,
+    }
+
+    unsafe extern "C" fn capture_file_list_event(
+        context: *mut c_void,
+        event: *const RDNFileTransferListEvent,
+    ) {
+        let capture = &*(context as *const Mutex<Vec<CapturedFileListEvent>>);
+        let event = &*event;
+        let entries = if event.entry_count == 0 {
+            Vec::new()
+        } else {
+            std::slice::from_raw_parts(event.entries, event.entry_count)
+                .iter()
+                .map(|entry| {
+                    let bytes = std::slice::from_raw_parts(
+                        entry.relative_path_utf8,
+                        entry.relative_path_length,
+                    );
+                    (
+                        entry.kind,
+                        String::from_utf8(bytes.to_vec()).unwrap(),
+                        entry.size,
+                        entry.modified_time,
+                    )
+                })
+                .collect()
+        };
+        capture.lock().unwrap().push(CapturedFileListEvent {
+            session_epoch: event.session_epoch,
+            request_id: event.request_id,
+            status: event.status,
+            entries,
+        });
+    }
 
     fn remote_list_entry(entry_type: FileType, name: &str, size: u64) -> FileEntry {
         FileEntry {
@@ -2875,6 +3109,139 @@ mod tests {
             0
         );
         assert!(matches!(receiver.try_recv(), Ok(Data::CancelJob(23))));
+    }
+
+    #[test]
+    fn viewer_file_transfer_list_root_is_exact_single_flight_and_callback_scoped() {
+        let captured = Mutex::new(Vec::<CapturedFileListEvent>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_file_transfer_list = Some(capture_file_list_event);
+        shared.context = &captured as *const _ as usize;
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+
+        let (sender, mut receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
+        let session = Session {
+            sender: Arc::new(RwLock::new(Some(sender))),
+            ui_handler: ui.clone(),
+            server_file_transfer_enabled: Arc::new(RwLock::new(false)),
+            ..Default::default()
+        };
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(Some(session.clone())),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let client_pointer = &mut client as *mut RDNClient;
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_list_root(client_pointer, 6, 41) },
+            -10
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_list_root(client_pointer, 7, 41) },
+            -8
+        );
+        *session.server_file_transfer_enabled.write().unwrap() = true;
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_list_root(client_pointer, 7, 41) },
+            0
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_list_root(client_pointer, 7, 42) },
+            -3
+        );
+        let Ok(Data::Message(message)) = receiver.try_recv() else {
+            panic!("list request must send one message");
+        };
+        let Some(message::Union::FileAction(action)) = message.union else {
+            panic!("list request must send FileAction");
+        };
+        let Some(file_action::Union::ReadDir(read)) = action.union else {
+            panic!("list request must send ReadDir");
+        };
+        assert_eq!(read.path, "/");
+        assert!(!read.include_hidden);
+
+        ui.update_folder_files(
+            0,
+            &vec![
+                remote_list_entry(FileType::Dir, "资料", 0),
+                remote_list_entry(FileType::File, "report.txt", 42),
+            ],
+            "/".to_owned(),
+            false,
+            false,
+        );
+        assert_eq!(
+            captured.lock().unwrap().as_slice(),
+            &[CapturedFileListEvent {
+                session_epoch: 7,
+                request_id: 41,
+                status: FILE_TRANSFER_LIST_SUCCESS,
+                entries: vec![
+                    (
+                        FILE_TRANSFER_LIST_ENTRY_DIRECTORY,
+                        "资料".to_owned(),
+                        0,
+                        123
+                    ),
+                    (
+                        FILE_TRANSFER_LIST_ENTRY_FILE,
+                        "report.txt".to_owned(),
+                        42,
+                        123
+                    ),
+                ],
+            }]
+        );
+        assert!(ui
+            .shared
+            .pending_file_list_request
+            .lock()
+            .unwrap()
+            .is_none());
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_list_root(client_pointer, 7, 42) },
+            0
+        );
+        let _ = receiver.try_recv();
+        ui.update_folder_files(
+            0,
+            &vec![
+                remote_list_entry(FileType::File, "Alias", 1),
+                remote_list_entry(FileType::File, "alias", 1),
+            ],
+            "/".to_owned(),
+            false,
+            false,
+        );
+        assert_eq!(
+            captured.lock().unwrap()[1].status,
+            FILE_TRANSFER_LIST_REJECTED
+        );
+        assert!(captured.lock().unwrap()[1].entries.is_empty());
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_list_root(client_pointer, 7, 43) },
+            0
+        );
+        let _ = receiver.try_recv();
+        ui.job_error(0, "remote detail must not cross ABI".to_owned(), -1);
+        assert_eq!(
+            captured.lock().unwrap()[2].status,
+            FILE_TRANSFER_LIST_UNAVAILABLE
+        );
+        assert!(captured.lock().unwrap()[2].entries.is_empty());
     }
 
     fn optional_payload_bytes(bytes: Option<&[u8]>) -> (*const u8, usize) {

@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 9u
+#define RDN_ABI_VERSION 10u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -26,6 +26,8 @@ extern "C" {
 #define RDN_MAX_CLIPBOARD_SVG_UTF8_BYTES 4194304u
 #define RDN_MAX_CLIPBOARD_IMAGE_DIMENSION 8192u
 #define RDN_MAX_CLIPBOARD_IMAGE_PIXELS 33177600u
+#define RDN_MAX_FILE_TRANSFER_LIST_ENTRIES 1024u
+#define RDN_MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES 1048576u
 
 typedef struct RDNClient RDNClient;
 
@@ -167,6 +169,39 @@ typedef struct RDNFileTransferEvent {
 typedef void (*RDNFileTransferEventCallback)(
     void *context, const RDNFileTransferEvent *event);
 
+typedef enum RDNFileTransferListStatus {
+    RDN_FILE_TRANSFER_LIST_SUCCESS = 1,
+    RDN_FILE_TRANSFER_LIST_REJECTED = 2,
+    RDN_FILE_TRANSFER_LIST_UNAVAILABLE = 3,
+} RDNFileTransferListStatus;
+
+typedef enum RDNFileTransferListEntryKind {
+    RDN_FILE_TRANSFER_LIST_ENTRY_DIRECTORY = 1,
+    RDN_FILE_TRANSFER_LIST_ENTRY_FILE = 2,
+} RDNFileTransferListEntryKind;
+
+/* Callback-scoped remote-root metadata. Paths are UTF-8 byte slices owned by
+ * Rust and valid only during the callback; Swift must copy and revalidate.
+ * Directories have size zero. No local path or descriptor crosses this seam. */
+typedef struct RDNFileTransferListEntry {
+    uint32_t kind;
+    const uint8_t *relative_path_utf8;
+    size_t relative_path_length;
+    uint64_t size;
+    uint64_t modified_time;
+} RDNFileTransferListEntry;
+
+typedef struct RDNFileTransferListEvent {
+    uint32_t abi_version;
+    uint64_t session_epoch;
+    int32_t request_id;
+    uint32_t status;
+    const RDNFileTransferListEntry *entries;
+    size_t entry_count;
+} RDNFileTransferListEvent;
+typedef void (*RDNFileTransferListCallback)(
+    void *context, const RDNFileTransferListEvent *event);
+
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
@@ -176,6 +211,7 @@ typedef struct RDNCallbacks {
     RDNClipboardRichTextCallback on_clipboard_rich_text;
     RDNClipboardImageCallback on_clipboard_image;
     RDNFileTransferEventCallback on_file_transfer_event;
+    RDNFileTransferListCallback on_file_transfer_list;
 } RDNCallbacks;
 
 typedef struct RDNConnectionConfig {
@@ -198,7 +234,7 @@ typedef struct RDNConnectionConfig {
      * AppKit pasteboard ownership or product enablement. */
     bool receive_clipboard_image;
     bool send_clipboard_image;
-    /* ABI v9 seam. Exact pair: false/0 for ordinary Viewer sessions;
+    /* ABI v10 seam. Exact pair: false/0 for ordinary Viewer sessions;
      * true/nonzero selects a dedicated file-transfer session. File sessions
      * reject every desktop clipboard direction and never start video
      * housekeeping. Product callers remain default-off. */
@@ -300,6 +336,12 @@ int32_t rdn_client_send_clipboard_image(
 int32_t rdn_client_file_transfer_cancel(RDNClient *client,
                                         uint64_t session_epoch,
                                         int32_t transfer_id);
+/* Requests one remote-root listing. Only one positive request ID may be in
+ * flight for the exact active file-session epoch. The callback is bounded,
+ * callback-scoped and may report success, rejected or unavailable. */
+int32_t rdn_client_file_transfer_list_root(RDNClient *client,
+                                           uint64_t session_epoch,
+                                           int32_t request_id);
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
@@ -548,6 +590,9 @@ int32_t rdn_shim_client_send_clipboard_image(
 int32_t rdn_shim_client_file_transfer_cancel(
     const RDNCoreLibrary *library, RDNClient *client,
     uint64_t session_epoch, int32_t transfer_id);
+int32_t rdn_shim_client_file_transfer_list_root(
+    const RDNCoreLibrary *library, RDNClient *client,
+    uint64_t session_epoch, int32_t request_id);
 
 /* Host Control ABI loader surface (rdn-native-host). rdn_shim_open tolerates
  * cores built without the host feature: rdn_shim_host_available reports whether

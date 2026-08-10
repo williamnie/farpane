@@ -143,7 +143,7 @@ implemented through the single existing owner; Host bootstrap schema v4 and
 Home now provide independent, default-off image read/write opt-ins. Installed
 two-Mac acceptance remains unverified.
 
-Viewer ABI v9 retains all ABI v8 clipboard behavior and freezes a separate,
+Viewer ABI v10 retains all ABI v8 clipboard behavior and the v9 separate,
 default-off file-transfer seam. The connection configuration accepts exact
 `false/0` desktop mode or exact `true/nonzero` dedicated file mode; file mode
 rejects every desktop clipboard direction, initializes upstream
@@ -152,17 +152,18 @@ clears its epoch when the worker exits. Cancel requires the exact active epoch,
 authentication, remote file permission and a ready session sender before it can
 enqueue upstream `CancelJob`. The scalar event callback contains only epoch,
 transfer ID, sequence, bounded progress and typed failure fields—never paths,
-descriptors or raw protocol errors. Rust does not yet produce file events,
-request remote lists/downloads or own a Viewer destination, and no product
-configuration opts in, so this runtime slice is not file-transfer product
-capability.
+descriptors or raw protocol errors.
 
-The next internal slice owns and structurally bounds an upstream remote-root
-listing before any future ABI callback: at most 1,024 regular file/directory
+ABI v10 additionally owns one exact-session, single-flight remote-root list
+request. It sends only upstream `ReadDir("/", include_hidden=false)` after all
+file-session and remote-permission gates pass. The callback carries a positive
+request ID and callback-scoped entries: at most 1,024 regular file/directory
 entries and 1 MiB aggregate UTF-8 name metadata. Empty, traversal, separated,
 control-character, hidden, link/drive/unknown, private staging, nonzero-sized
 directory and ASCII case-alias entries reject as one envelope. Names are copied
-into Rust-owned strings. Full Unicode NFC/case-fold validation remains the
-Swift manifest boundary's responsibility when the callback is wired; the
-current primitive is not reachable from product code and does not request a
-list or transfer bytes.
+into Rust-owned strings, then Swift copies them again and enforces byte-exact
+NFC, full case-fold collision, separator/control and size rules before queued
+delivery. Disconnect and worker exit clear pending request state, while remote
+errors expose only stable rejected/unavailable status. No download command,
+destination owner or product configuration exists, so this remains an internal
+list lifecycle rather than file-transfer product capability.

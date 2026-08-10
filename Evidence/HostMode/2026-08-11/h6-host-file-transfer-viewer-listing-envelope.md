@@ -42,5 +42,5 @@ callback, access a destination or enable the product.
 
 ## Next step
 
-`host-file-transfer-viewer-list-command-callback-abi-lifecycle`: connect this
-owned envelope to a default-off, exact-session list command/callback lifecycle.
+`host-file-transfer-viewer-destination-descriptor-owner`: the exact-session
+list command/callback now exists; pin a safe local destination before I/O.

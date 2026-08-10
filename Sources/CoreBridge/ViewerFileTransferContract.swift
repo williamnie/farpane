@@ -101,7 +101,9 @@ package struct ViewerFileTransferManifest: Equatable, Sendable {
             !relativePath.hasSuffix("/"),
             !relativePath.contains("\0"),
             relativePath.utf8.count <= maximumMetadataUTF8Bytes,
-            relativePath == relativePath.precomposedStringWithCanonicalMapping
+            relativePath.utf8.elementsEqual(
+                relativePath.precomposedStringWithCanonicalMapping.utf8
+            )
         else { return false }
         let components = relativePath.split(separator: "/", omittingEmptySubsequences: false)
         return !components.isEmpty && components.allSatisfy { component in

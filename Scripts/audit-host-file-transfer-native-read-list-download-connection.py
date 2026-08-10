@@ -169,8 +169,8 @@ def main() -> int:
                 "connection-local",
                 "read jobs",
                 "snapshot-bound directory",
-                "Viewer ABI v9",
-                "真实 Viewer file event mapping",
+                "Viewer ABI v10",
+                "destination\n  descriptor owner",
                 "产品能力必须继续保持关闭",
             )
         ),
@@ -225,7 +225,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-list-command-callback-abi-lifecycle"
+            "host-file-transfer-viewer-destination-descriptor-owner"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

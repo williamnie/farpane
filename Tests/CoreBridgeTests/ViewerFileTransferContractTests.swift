@@ -2,6 +2,80 @@
 import XCTest
 
 final class ViewerFileTransferContractTests: XCTestCase {
+    func testRemoteRootListRevalidatesOwnedMetadataAndStableFailures() throws {
+        let directory = CoreFileTransferListEntry(
+            kind: .directory,
+            relativePath: "资料",
+            size: 0,
+            modifiedTime: 10
+        )
+        let file = CoreFileTransferListEntry(
+            kind: .file,
+            relativePath: "report.txt",
+            size: 42,
+            modifiedTime: 20
+        )
+        let success = try XCTUnwrap(CoreFileTransferListEvent(
+            sessionEpoch: 7,
+            requestID: 3,
+            status: .success,
+            entries: [directory, file]
+        ))
+        XCTAssertEqual(success.entries, [directory, file])
+        XCTAssertNotNil(CoreFileTransferListEvent(
+            sessionEpoch: 7,
+            requestID: 4,
+            status: .success,
+            entries: []
+        ))
+        XCTAssertNotNil(CoreFileTransferListEvent(
+            sessionEpoch: 7,
+            requestID: 5,
+            status: .unavailable,
+            entries: []
+        ))
+        XCTAssertNil(CoreFileTransferListEvent(
+            sessionEpoch: 7,
+            requestID: 5,
+            status: .rejected,
+            entries: [file]
+        ))
+
+        for invalidPath in ["nested/file", "windows\\path", "bad\nname", "e\u{301}"] {
+            XCTAssertNil(CoreFileTransferListEvent(
+                sessionEpoch: 7,
+                requestID: 6,
+                status: .success,
+                entries: [CoreFileTransferListEntry(
+                    kind: .file,
+                    relativePath: invalidPath,
+                    size: 1,
+                    modifiedTime: 0
+                )]
+            ), invalidPath)
+        }
+        XCTAssertNil(CoreFileTransferListEvent(
+            sessionEpoch: 7,
+            requestID: 7,
+            status: .success,
+            entries: [CoreFileTransferListEntry(
+                kind: .directory,
+                relativePath: "nonempty",
+                size: 1,
+                modifiedTime: 0
+            )]
+        ))
+        XCTAssertNil(CoreFileTransferListEvent(
+            sessionEpoch: 7,
+            requestID: 8,
+            status: .success,
+            entries: [
+                CoreFileTransferListEntry(kind: .file, relativePath: "Alias", size: 1, modifiedTime: 0),
+                CoreFileTransferListEntry(kind: .file, relativePath: "alias", size: 1, modifiedTime: 0),
+            ]
+        ))
+    }
+
     func testManifestAcceptsOnlyBoundedCanonicalNonCollidingPaths() throws {
         let first = try XCTUnwrap(ViewerFileTransferFile(
             relativePath: "reports/one.txt",
@@ -25,6 +99,7 @@ final class ViewerFileTransferContractTests: XCTestCase {
         }
         XCTAssertFalse(ViewerFileTransferManifest.accepts(relativePath: "private.farpane-part"))
         XCTAssertFalse(ViewerFileTransferManifest.accepts(relativePath: "private.FARPANE-PART"))
+        XCTAssertFalse(ViewerFileTransferManifest.accepts(relativePath: "e\u{301}"))
         XCTAssertNil(ViewerFileTransferManifest(files: [first], emptyDirectories: [first.relativePath]))
         XCTAssertNil(ViewerFileTransferManifest(files: [first], emptyDirectories: ["reports"]))
 

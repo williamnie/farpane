@@ -50,7 +50,7 @@ def main() -> int:
             marker in sources["design"]
             for marker in (
                 "H6.3f2b1 Viewer dedicated file-session and cancel dispatch lifecycle",
-                "host-file-transfer-viewer-list-command-callback-abi-lifecycle",
+                "host-file-transfer-viewer-destination-descriptor-owner",
             )
         ),
         "exactModePairRejectsDesktopClipboard": all(
@@ -118,12 +118,12 @@ def main() -> int:
             )
         ),
         "abiRemainsV9AndProductOff": (
-            "#define RDN_ABI_VERSION 9u" in sources["header"]
+            "#define RDN_ABI_VERSION 10u" in sources["header"]
             and "fileTransferEnabled:" not in product
         ),
         "remainingManifestAndDestinationGapIsExplicit": (
-            "真实 Viewer file event mapping" in sources["architecture"]
-            and "request remote lists/downloads" in sources["readme"]
+            "destination\n  descriptor owner" in sources["architecture"]
+            and "No download command" in sources["readme"]
         ),
     }
     source_lines = {
@@ -163,7 +163,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-list-command-callback-abi-lifecycle"
+            "host-file-transfer-viewer-destination-descriptor-owner"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

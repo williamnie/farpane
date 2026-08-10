@@ -53,7 +53,7 @@ def main() -> int:
             marker in design
             for marker in (
                 "H6.3f1 Viewer file-transfer destination/progress API contract",
-                "host-file-transfer-viewer-list-command-callback-abi-lifecycle",
+                "host-file-transfer-viewer-destination-descriptor-owner",
             )
         ),
         "destinationIsOpaqueAndSessionBound": all(
@@ -132,13 +132,13 @@ def main() -> int:
             for marker in (
                 "session-bound opaque lease",
                 "严格递增 sequence",
-                "Viewer ABI v9",
-                "真实 Viewer file event mapping",
+                "Viewer ABI v10",
+                "destination\n  descriptor owner",
                 "产品能力必须继续保持关闭",
             )
         ),
         "viewerCoreABISeamExistsAndProductRemainsOff": (
-            "#define RDN_ABI_VERSION 9u" in header
+            "#define RDN_ABI_VERSION 10u" in header
             and "RDNFileTransferEventCallback on_file_transfer_event;" in header
             and "rdn_client_file_transfer_cancel" in header
             and "fileTransferEnabled:" not in product
@@ -184,7 +184,7 @@ def main() -> int:
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-list-command-callback-abi-lifecycle"
+            "host-file-transfer-viewer-destination-descriptor-owner"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
