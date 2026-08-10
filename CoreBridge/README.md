@@ -46,11 +46,11 @@ pasteboard. Swift may send the same bounded semantic text through a dedicated
 call only after local send policy, authentication, and the remote clipboard
 permission all agree. The pinned wire exposes one clipboard negotiation bit;
 the native bridge still enforces receive and send independently. FarPane's
-Viewer product composition explicitly enables both text directions and routes
-them through one AppKit-owned pasteboard adapter. That adapter starts only
-after authentication, snapshots rather than uploads the pre-session local
-clipboard, suppresses its own writes, dynamically backs polling off to four
-seconds, and stops before Core disconnect. Host Control ABI v14 retains the
+Viewer product composition explicitly enables the small- and rich-text
+directions and routes all four through one AppKit-owned pasteboard adapter.
+That adapter starts only after authentication, snapshots rather than uploads
+the pre-session local clipboard, suppresses its own writes, dynamically backs
+polling off to four seconds, and stops before Core disconnect. Host Control ABI v14 retains the
 independent, default-off bounded-text read/write policy and adds separate,
 default-off rich-text read/write policy. The Rust Host lifetime persists the
 pinned upstream Boolean only when at least one small- or rich-text direction is
@@ -74,8 +74,10 @@ receive is disabled, the lifecycle/permission gate runs before parsing or
 decompression and is checked again before callback delivery. Swift copies all
 callback-scoped bytes synchronously and shares the existing disconnect delivery
 gate. The Host can now carry the same bounded semantic bundle in both
-directions under its own explicit rich policy, but product configuration does
-not enable those Host directions; the rich AppKit pasteboard owner remains disabled.
+directions under its own explicit rich policy. Viewer product configuration
+enables rich receive/send and the single AppKit owner reads or writes one
+multi-representation item; Host product configuration still does not enable
+its rich directions.
 
 The Host rich-payload boundary classifies wire clipboard formats before either
 directional admission point. Only bounded, non-NUL UTF-8 `Text` may use the
@@ -91,6 +93,9 @@ both the wire payload and bounded decompression output at 1 MiB. Host Control
 ABI v14 binds this path to separate rich read/write directions. Incoming and
 outgoing messages are rebuilt as canonical, uncompressed Text/RTF/HTML entries
 before reaching the pinned pasteboard helper or network writer, and the active
-session's directional revoke applies before format admission. Product Host
-configuration, the Viewer AppKit owner, image payloads, and file promises remain
+session's directional revoke applies before format admission. The Viewer
+AppKit owner validates the same limits, reads only after `changeCount` changes,
+prefers one rich bundle over a duplicate plain send, atomically writes one
+`NSPasteboardItem`, and records the final owned-write count to suppress loops.
+Product Host rich configuration, image payloads, and file promises remain
 disabled.

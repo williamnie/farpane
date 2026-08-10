@@ -194,7 +194,7 @@ def main() -> int:
             "richPasteboardOwnerRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "rich-payload-independent-transfer-boundary" else 1

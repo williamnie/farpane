@@ -164,7 +164,7 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
 - Viewer ABI v7 保留 v6 的小文本边界并新增独立的富文本方向；四个方向均默认关闭，
   由本地策略分别约束；
   Rust 只收发至多 64 KiB 的单条 UTF-8 文本，不轮询或写入 macOS pasteboard。
-- Viewer 产品层显式开启两个文本方向，系统 pasteboard 只由单一 Swift/AppKit owner
+- Viewer 产品层显式开启小文本与富文本四个方向，系统 pasteboard 只由单一 Swift/AppKit owner
   访问；owner 在认证后启动，先快照而不上传会话前内容，以 changeCount 抑制回环并把
   fallback 轮询从 125 ms 动态退避到 4 s，terminal/Home/App teardown 均先停 owner
   再断开 Core。Host Control ABI v14 保留默认关闭的小文本 read/write 策略，并新增
@@ -177,8 +177,9 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
 - ABI v7 的富文本 payload 原子携带可选的 64 KiB plain fallback，以及各自最多 1 MiB
   的 RTF/HTML；重复、未知、图片/special、畸形 metadata、非法 UTF-8、NUL 和超限输入
   均拒绝。receive 门禁在解析/解压前检查并在 callback 前复核，Swift 同步复制 callback
-  bytes 并复用 disconnect gate。Host 可在独立 rich 方向策略下传递同一 bundle，但
-  产品配置没有开启 Host rich 方向，rich AppKit pasteboard owner remains disabled。
+  bytes 并复用 disconnect gate。Host 可在独立 rich 方向策略下传递同一 bundle；Viewer
+  产品配置已显式开启 rich receive/send，并由上述同一个 AppKit owner 接入，但 Host 产品
+  配置仍没有开启 rich 方向。
 - Host 在两个方向准入前先分类 clipboard wire format：只有无 NUL 的有界 UTF-8 `Text`
   可进入小文本路径；RTF/HTML 必须组成 owned atomic bundle 并由 matching rich direction
   显式准入，RGBA/PNG/SVG、远端 `Special` 名称和未知 enum 继续 fail closed。分类本身不开放
@@ -187,10 +188,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   与零图像尺寸，wire 与 bounded decompression 后的 UTF-8 payload 都限制为 1 MiB，解码后
   由 Rust `String` 独立持有并拒绝 NUL。Host ABI v14 分别绑定 rich read/write；进入 pinned
   pasteboard helper 或 network writer 前先重建 canonical uncompressed Text/RTF/HTML，且
-  active-session directional revoke 先于 format admission。产品 rich 开关、AppKit owner、图片
-  和文件 promise 仍保持关闭。
-- 断开后不得投递排队中的旧剪贴板回调；富文本可跨 Viewer ABI v7，但产品 AppKit owner
-  仍关闭，图片和文件 promise 不跨 Viewer ABI。
+  active-session directional revoke 先于 format admission。Viewer AppKit owner 只在 changeCount
+  变化后读取一个 pasteboard item，rich 优先且不会重复发送 plain，远端 bundle 也用一个
+  `NSPasteboardItem` 原子写入并记录最终 owned-write count。Host rich 产品开关、图片和文件
+  promise 仍保持关闭。
+- 断开后不得投递排队中的旧剪贴板回调；富文本可跨 Viewer ABI v7 并已接单一产品 owner，
+  图片和文件 promise 不跨 Viewer ABI。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 

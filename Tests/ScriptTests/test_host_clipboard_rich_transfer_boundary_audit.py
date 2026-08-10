@@ -47,7 +47,7 @@ class HostClipboardRichTransferBoundaryAuditTests(unittest.TestCase):
         self.assertTrue(document["remainingBoundary"]["installedTwoMacAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+            "host-rich-text-bootstrap-home-opt-in-contract",
         )
 
 

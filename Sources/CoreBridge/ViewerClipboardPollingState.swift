@@ -10,6 +10,32 @@ package enum ViewerClipboardTextPolicy {
     }
 }
 
+package enum ViewerClipboardRichTextPolicy {
+    package static let maximumRichTextUTF8Bytes = 1024 * 1024
+
+    package static func accepts(_ payload: CoreClipboardRichTextPayload) -> Bool {
+        guard payload.rtf != nil || payload.html != nil else { return false }
+        if let plainText = payload.plainText,
+           !ViewerClipboardTextPolicy.accepts(plainText) {
+            return false
+        }
+        return acceptsRichRepresentation(payload.rtf)
+            && acceptsRichRepresentation(payload.html)
+    }
+
+    private static func acceptsRichRepresentation(_ value: String?) -> Bool {
+        guard let value else { return true }
+        return !value.isEmpty
+            && !value.contains("\0")
+            && value.utf8.count <= maximumRichTextUTF8Bytes
+    }
+}
+
+package struct ViewerClipboardChangeDecision: Equatable, Sendable {
+    package let didChange: Bool
+    package let nextDelayMilliseconds: UInt64?
+}
+
 package struct ViewerClipboardPollDecision: Equatable, Sendable {
     package let textToSend: String?
     package let nextDelayMilliseconds: UInt64?
@@ -45,9 +71,37 @@ package struct ViewerClipboardPollingState: Sendable {
         changeCount: Int,
         text: @autoclosure () -> String?
     ) -> ViewerClipboardPollDecision {
-        guard self.sessionEpoch == sessionEpoch else {
+        let change = observeChange(
+            sessionEpoch: sessionEpoch,
+            changeCount: changeCount
+        )
+        guard change.nextDelayMilliseconds != nil else {
             return ViewerClipboardPollDecision(
                 textToSend: nil,
+                nextDelayMilliseconds: nil
+            )
+        }
+        guard change.didChange else {
+            return ViewerClipboardPollDecision(
+                textToSend: nil,
+                nextDelayMilliseconds: change.nextDelayMilliseconds
+            )
+        }
+        return ViewerClipboardPollDecision(
+            textToSend: text().flatMap {
+                ViewerClipboardTextPolicy.accepts($0) ? $0 : nil
+            },
+            nextDelayMilliseconds: change.nextDelayMilliseconds
+        )
+    }
+
+    package mutating func observeChange(
+        sessionEpoch: UInt64,
+        changeCount: Int
+    ) -> ViewerClipboardChangeDecision {
+        guard self.sessionEpoch == sessionEpoch else {
+            return ViewerClipboardChangeDecision(
+                didChange: false,
                 nextDelayMilliseconds: nil
             )
         }
@@ -57,18 +111,16 @@ package struct ViewerClipboardPollingState: Sendable {
                 delayIndex + 1,
                 Self.productDelaysMilliseconds.count - 1
             )
-            return ViewerClipboardPollDecision(
-                textToSend: nil,
+            return ViewerClipboardChangeDecision(
+                didChange: false,
                 nextDelayMilliseconds: Self.productDelaysMilliseconds[delayIndex]
             )
         }
 
         observedChangeCount = changeCount
         delayIndex = 0
-        return ViewerClipboardPollDecision(
-            textToSend: text().flatMap {
-                ViewerClipboardTextPolicy.accepts($0) ? $0 : nil
-            },
+        return ViewerClipboardChangeDecision(
+            didChange: true,
             nextDelayMilliseconds: Self.productDelaysMilliseconds[delayIndex]
         )
     }

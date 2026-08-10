@@ -230,7 +230,7 @@ def main() -> int:
             "hostProductClipboardEnabledByDefault": False,
             "hostProductExplicitOptInCapable": True,
             "endToEndSmallTextExplicitOptInCapable": True,
-            "richClipboardEnabled": False,
+            "richClipboardEnabled": True,
         },
         "remainingBoundary": {
             "viewerPasteboardOwnerRequired": False,
@@ -240,7 +240,7 @@ def main() -> int:
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-small-text-clipboard-api-default-off" else 1

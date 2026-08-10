@@ -40,12 +40,12 @@ class HostViewerRichTextTransferWiringContractAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["richTransportCanonicalAndBounded"])
         self.assertTrue(document["claims"]["sessionRevocationAppliesToRich"])
         self.assertFalse(document["claims"]["hostProductRichClipboardEnabled"])
-        self.assertFalse(document["claims"]["viewerProductRichClipboardEnabled"])
+        self.assertTrue(document["claims"]["viewerProductRichClipboardEnabled"])
         self.assertFalse(document["claims"]["imageOrFileClipboardEnabled"])
         self.assertFalse(
             document["remainingBoundary"]["hostViewerRichTransportWiringRequired"]
         )
-        self.assertTrue(
+        self.assertFalse(
             document["remainingBoundary"]["singlePasteboardOwnerRichIntegrationRequired"]
         )
         self.assertTrue(
@@ -56,7 +56,7 @@ class HostViewerRichTextTransferWiringContractAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+            "host-rich-text-bootstrap-home-opt-in-contract",
         )
 
 

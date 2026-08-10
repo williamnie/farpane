@@ -221,7 +221,7 @@ def main() -> int:
             "installedTwoMacAcceptanceRequired": True,
             "richPayloadTransferRequired": False,
         },
-        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-clipboard-explicit-policy-abi-ready-default-off" else 1

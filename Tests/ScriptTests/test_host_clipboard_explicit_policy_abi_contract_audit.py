@@ -53,7 +53,7 @@ class HostClipboardExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertFalse(document["remainingBoundary"]["richPayloadTransferRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+            "host-rich-text-bootstrap-home-opt-in-contract",
         )
 
 

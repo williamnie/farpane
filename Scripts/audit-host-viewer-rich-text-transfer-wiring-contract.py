@@ -180,11 +180,12 @@ def main() -> int:
                 "XCTAssertEqual(hostABI(), Self.hostABIVersion)",
             )
         ),
-        "documentationRecordsDefaultOffProductBoundary": all(
+        "documentationRecordsViewerEnabledHostDefaultOffBoundary": all(
             marker in docs
             for marker in (
                 "Host Control ABI v14",
-                "rich AppKit pasteboard owner remains disabled",
+                "Viewer product configuration",
+                "Host product configuration still does not enable",
                 "canonical, uncompressed Text/RTF/HTML",
             )
         ),
@@ -227,16 +228,16 @@ def main() -> int:
             "richTransportCanonicalAndBounded": True,
             "sessionRevocationAppliesToRich": True,
             "hostProductRichClipboardEnabled": False,
-            "viewerProductRichClipboardEnabled": False,
+            "viewerProductRichClipboardEnabled": True,
             "imageOrFileClipboardEnabled": False,
         },
         "remainingBoundary": {
             "hostViewerRichTransportWiringRequired": False,
-            "singlePasteboardOwnerRichIntegrationRequired": True,
+            "singlePasteboardOwnerRichIntegrationRequired": False,
             "installedTwoMacRichClipboardAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-viewer-rich-text-transfer-wired-default-off" else 1

@@ -3199,7 +3199,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 password: password,
                 forceRelay: server.forceRelay,
                 receiveClipboardText: true,
-                sendClipboardText: true
+                sendClipboardText: true,
+                receiveClipboardRichText: true,
+                sendClipboardRichText: true
             )
             try launchViewer(
                 fixture: nil,
@@ -3607,10 +3609,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard let clipboardSessionEpoch = nextViewerClipboardSessionEpoch(),
               viewerPasteboardOwner.begin(
                   sessionEpoch: clipboardSessionEpoch,
-                  receiveEnabled: configuration.receiveClipboardText,
-                  sendEnabled: configuration.sendClipboardText,
+                  receiveTextEnabled: configuration.receiveClipboardText,
+                  sendTextEnabled: configuration.sendClipboardText,
+                  receiveRichTextEnabled: configuration.receiveClipboardRichText,
+                  sendRichTextEnabled: configuration.sendClipboardRichText,
                   sendText: { [weak self] text in
                       self?.coreClient?.sendClipboardText(text) ?? -3
+                  },
+                  sendRichText: { [weak self] payload in
+                      self?.coreClient?.sendClipboardRichText(payload) ?? -3
                   }
               )
         else { throw usageError("viewer clipboard lifecycle unavailable") }
@@ -3746,6 +3753,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 DispatchQueue.main.async {
                     self?.handleViewerClipboardText(
                         text,
+                        coreGeneration: coreGeneration,
+                        attemptID: attemptID,
+                        clipboardSessionEpoch: clipboardSessionEpoch
+                    )
+                }
+            },
+            onClipboardRichText: { [weak self] payload in
+                DispatchQueue.main.async {
+                    self?.handleViewerClipboardRichText(
+                        payload,
                         coreGeneration: coreGeneration,
                         attemptID: attemptID,
                         clipboardSessionEpoch: clipboardSessionEpoch
@@ -3889,7 +3906,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             password: password,
             forceRelay: server.forceRelay,
             receiveClipboardText: true,
-            sendClipboardText: true
+            sendClipboardText: true,
+            receiveClipboardRichText: true,
+            sendClipboardRichText: true
         )
         defer { password = "" }
 
@@ -3954,7 +3973,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 password: password,
                 forceRelay: options.forceRelay,
                 receiveClipboardText: true,
-                sendClipboardText: true
+                sendClipboardText: true,
+                receiveClipboardRichText: true,
+                sendClipboardRichText: true
             )
         )
     }
@@ -4187,6 +4208,24 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         else { return }
         viewerPasteboardOwner.receiveRemoteText(
             text,
+            sessionEpoch: clipboardSessionEpoch
+        )
+    }
+
+    private func handleViewerClipboardRichText(
+        _ payload: CoreClipboardRichTextPayload,
+        coreGeneration: UInt64,
+        attemptID: UUID?,
+        clipboardSessionEpoch: UInt64?
+    ) {
+        guard coreGeneration == viewerCoreGeneration else { return }
+        if let attemptID, activeAttemptID != attemptID { return }
+        guard
+            let clipboardSessionEpoch,
+            clipboardSessionEpoch == viewerClipboardSessionEpoch
+        else { return }
+        viewerPasteboardOwner.receiveRemoteRichText(
+            payload,
             sessionEpoch: clipboardSessionEpoch
         )
     }
