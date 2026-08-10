@@ -58,6 +58,8 @@ struct HostHomeSnapshot: Equatable {
     var isStreaming: Bool
     var clipboardReadEnabled: Bool
     var clipboardWriteEnabled: Bool
+    var clipboardRichTextReadEnabled: Bool = false
+    var clipboardRichTextWriteEnabled: Bool = false
     var allowsClipboardPolicyChange: Bool
     var statusText: String
     var localID: String
@@ -98,6 +100,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onHostToggle: ((Bool) -> Void)?
     var onHostClipboardReadToggle: ((Bool) -> Void)?
     var onHostClipboardWriteToggle: ((Bool) -> Void)?
+    var onHostClipboardRichTextReadToggle: ((Bool) -> Void)?
+    var onHostClipboardRichTextWriteToggle: ((Bool) -> Void)?
     var onRevealHostPassword: (() -> Void)?
     var onRegenerateHostPassword: (() -> Void)?
     var onSetHostPermanentPassword: (() -> Void)?
@@ -136,6 +140,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostClearPermanentPasswordButton = NSButton()
     private let hostClipboardReadSwitch = NSSwitch()
     private let hostClipboardWriteSwitch = NSSwitch()
+    private let hostClipboardRichTextReadSwitch = NSSwitch()
+    private let hostClipboardRichTextWriteSwitch = NSSwitch()
     private let hostApprovalContainer = NSView()
     private let hostApprovalTitleLabel = NSTextField(labelWithString: "新的远程连接请求")
     private let hostApprovalIdentityLabel = NSTextField(wrappingLabelWithString: "")
@@ -218,10 +224,16 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             ? .on : .off
         hostClipboardWriteSwitch.state = snapshot.host.clipboardWriteEnabled
             ? .on : .off
+        hostClipboardRichTextReadSwitch.state = snapshot.host
+            .clipboardRichTextReadEnabled ? .on : .off
+        hostClipboardRichTextWriteSwitch.state = snapshot.host
+            .clipboardRichTextWriteEnabled ? .on : .off
         let clipboardPolicyInteractive = snapshot.connectingPeerID == nil
             && snapshot.host.allowsClipboardPolicyChange
         hostClipboardReadSwitch.isEnabled = clipboardPolicyInteractive
         hostClipboardWriteSwitch.isEnabled = clipboardPolicyInteractive
+        hostClipboardRichTextReadSwitch.isEnabled = clipboardPolicyInteractive
+        hostClipboardRichTextWriteSwitch.isEnabled = clipboardPolicyInteractive
         hostStatusLabel.stringValue = snapshot.host.statusText
         hostStatusDot.layer?.backgroundColor = hostStatusColor(snapshot.host).cgColor
         hostIDLabel.stringValue = "本机 ID：\(snapshot.host.localID.nonEmpty ?? "—")"
@@ -600,11 +612,15 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostPermanentPasswordDetails.alignment = .centerY
         hostPermanentPasswordDetails.spacing = 12
 
-        let hostClipboardTitle = NSTextField(
-            labelWithString: "剪贴板同步（仅小型文本，最多 64 KiB）"
-        )
+        let hostClipboardTitle = NSTextField(labelWithString: "剪贴板同步（默认关闭）")
         hostClipboardTitle.font = .systemFont(ofSize: 12, weight: .medium)
         hostClipboardTitle.textColor = .secondaryLabelColor
+
+        let hostClipboardSmallTextTitle = NSTextField(
+            labelWithString: "小型文本（最多 64 KiB）"
+        )
+        hostClipboardSmallTextTitle.font = .systemFont(ofSize: 11)
+        hostClipboardSmallTextTitle.textColor = .tertiaryLabelColor
 
         hostClipboardReadSwitch.target = self
         hostClipboardReadSwitch.action = #selector(hostClipboardReadToggleChanged)
@@ -638,10 +654,58 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostClipboardWriteRow.orientation = .horizontal
         hostClipboardWriteRow.alignment = .centerY
 
+        let hostClipboardRichTextTitle = NSTextField(
+            labelWithString: "富文本 RTF/HTML（每种最多 1 MiB）"
+        )
+        hostClipboardRichTextTitle.font = .systemFont(ofSize: 11)
+        hostClipboardRichTextTitle.textColor = .tertiaryLabelColor
+
+        hostClipboardRichTextReadSwitch.target = self
+        hostClipboardRichTextReadSwitch.action =
+            #selector(hostClipboardRichTextReadToggleChanged)
+        hostClipboardRichTextReadSwitch.setAccessibilityLabel(
+            "允许远端读取本机富文本"
+        )
+        let hostClipboardRichTextReadLabel = NSTextField(
+            labelWithString: "允许远端读取本机富文本"
+        )
+        hostClipboardRichTextReadLabel.font = .systemFont(ofSize: 12)
+        hostClipboardRichTextReadLabel.textColor = .secondaryLabelColor
+        let hostClipboardRichTextReadRow = NSStackView(views: [
+            hostClipboardRichTextReadLabel,
+            NSView(),
+            hostClipboardRichTextReadSwitch,
+        ])
+        hostClipboardRichTextReadRow.orientation = .horizontal
+        hostClipboardRichTextReadRow.alignment = .centerY
+
+        hostClipboardRichTextWriteSwitch.target = self
+        hostClipboardRichTextWriteSwitch.action =
+            #selector(hostClipboardRichTextWriteToggleChanged)
+        hostClipboardRichTextWriteSwitch.setAccessibilityLabel(
+            "允许远端写入本机富文本"
+        )
+        let hostClipboardRichTextWriteLabel = NSTextField(
+            labelWithString: "允许远端写入本机富文本"
+        )
+        hostClipboardRichTextWriteLabel.font = .systemFont(ofSize: 12)
+        hostClipboardRichTextWriteLabel.textColor = .secondaryLabelColor
+        let hostClipboardRichTextWriteRow = NSStackView(views: [
+            hostClipboardRichTextWriteLabel,
+            NSView(),
+            hostClipboardRichTextWriteSwitch,
+        ])
+        hostClipboardRichTextWriteRow.orientation = .horizontal
+        hostClipboardRichTextWriteRow.alignment = .centerY
+
         let hostClipboardSettings = NSStackView(views: [
             hostClipboardTitle,
+            hostClipboardSmallTextTitle,
             hostClipboardReadRow,
             hostClipboardWriteRow,
+            hostClipboardRichTextTitle,
+            hostClipboardRichTextReadRow,
+            hostClipboardRichTextWriteRow,
         ])
         hostClipboardSettings.orientation = .vertical
         hostClipboardSettings.alignment = .leading
@@ -1144,6 +1208,20 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     @objc private func hostClipboardWriteToggleChanged() {
         guard snapshot.host.allowsClipboardPolicyChange else { return }
         onHostClipboardWriteToggle?(hostClipboardWriteSwitch.state == .on)
+    }
+
+    @objc private func hostClipboardRichTextReadToggleChanged() {
+        guard snapshot.host.allowsClipboardPolicyChange else { return }
+        onHostClipboardRichTextReadToggle?(
+            hostClipboardRichTextReadSwitch.state == .on
+        )
+    }
+
+    @objc private func hostClipboardRichTextWriteToggleChanged() {
+        guard snapshot.host.allowsClipboardPolicyChange else { return }
+        onHostClipboardRichTextWriteToggle?(
+            hostClipboardRichTextWriteSwitch.state == .on
+        )
     }
 
     @objc private func revealHostPassword() { onRevealHostPassword?() }

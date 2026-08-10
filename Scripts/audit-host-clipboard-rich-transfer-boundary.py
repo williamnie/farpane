@@ -191,10 +191,10 @@ def main() -> int:
         "remainingBoundary": {
             "boundedRichTransferEnvelopeRequired": False,
             "richViewerABIRequired": False,
-            "richPasteboardOwnerRequired": True,
+            "richPasteboardOwnerRequired": False,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
+        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "rich-payload-independent-transfer-boundary" else 1

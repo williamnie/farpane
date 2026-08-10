@@ -55,14 +55,16 @@ independent, default-off bounded-text read/write policy and adds separate,
 default-off rich-text read/write policy. The Rust Host lifetime persists the
 pinned upstream Boolean only when at least one small- or rich-text direction is
 explicitly requested; enabling small text never implies RTF or HTML. Host
-bootstrap schema v2 projects only the small-text policy to the Agent while
-schema v1 decodes as disabled. Home exposes two small-text switches only while
-Host is off; changing either preference republishes the immutable bootstrap,
-and Host cannot be enabled unless that publication is coherent. The legacy
-foreground Host and background Agent consume the same projection. Small text
-is therefore end-to-end capable after explicit opt-in while remaining off by
-default; rich product enablement, images, and file promises are still
-unsupported.
+bootstrap schema v3 projects four independent small- and rich-text directions
+to the Agent. Schema v1 decodes with all clipboard directions disabled; schema
+v2 preserves its two small-text directions while migrating both rich-text
+directions to disabled. Home exposes separate small-text and RTF/HTML read/write
+switches only while Host is off; changing any preference republishes the
+immutable bootstrap, and Host cannot be enabled unless that publication is
+coherent. The legacy foreground Host and background Agent consume the same
+projection. Small text and RTF/HTML are therefore end-to-end capable after
+explicit per-direction opt-in while remaining off by default; image payloads
+and file promises are still unsupported.
 
 ABI v7 retains the ABI v6 bounded small-text contract and adds an independently
 default-off semantic rich-text API. One atomic callback/send payload can carry
@@ -76,8 +78,8 @@ callback-scoped bytes synchronously and shares the existing disconnect delivery
 gate. The Host can now carry the same bounded semantic bundle in both
 directions under its own explicit rich policy. Viewer product configuration
 enables rich receive/send and the single AppKit owner reads or writes one
-multi-representation item; Host product configuration still does not enable
-its rich directions.
+multi-representation item; Host product configuration exposes independent,
+default-off rich read/write opt-ins through bootstrap schema v3 and Home.
 
 The Host rich-payload boundary classifies wire clipboard formats before either
 directional admission point. Only bounded, non-NUL UTF-8 `Text` may use the
@@ -97,5 +99,5 @@ session's directional revoke applies before format admission. The Viewer
 AppKit owner validates the same limits, reads only after `changeCount` changes,
 prefers one rich bundle over a duplicate plain send, atomically writes one
 `NSPasteboardItem`, and records the final owned-write count to suppress loops.
-Product Host rich configuration, image payloads, and file promises remain
-disabled.
+Product Host rich configuration remains off until the user explicitly enables
+the matching Home direction. Image payloads and file promises remain disabled.

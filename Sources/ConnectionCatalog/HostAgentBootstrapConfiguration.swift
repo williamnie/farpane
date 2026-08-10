@@ -10,15 +10,26 @@ public enum HostAgentBootstrapConfigurationError: Error, Equatable {
 public struct HostAgentClipboardPolicy: Equatable, Sendable {
     public static let disabled = Self(
         allowRemoteRead: false,
-        allowRemoteWrite: false
+        allowRemoteWrite: false,
+        allowRemoteRichTextRead: false,
+        allowRemoteRichTextWrite: false
     )
 
     public let allowRemoteRead: Bool
     public let allowRemoteWrite: Bool
+    public let allowRemoteRichTextRead: Bool
+    public let allowRemoteRichTextWrite: Bool
 
-    public init(allowRemoteRead: Bool, allowRemoteWrite: Bool) {
+    public init(
+        allowRemoteRead: Bool,
+        allowRemoteWrite: Bool,
+        allowRemoteRichTextRead: Bool = false,
+        allowRemoteRichTextWrite: Bool = false
+    ) {
         self.allowRemoteRead = allowRemoteRead
         self.allowRemoteWrite = allowRemoteWrite
+        self.allowRemoteRichTextRead = allowRemoteRichTextRead
+        self.allowRemoteRichTextWrite = allowRemoteRichTextWrite
     }
 }
 
@@ -26,7 +37,7 @@ public struct HostAgentClipboardPolicy: Equatable, Sendable {
 /// switch the Rust config namespace or create HostCore. Disk ownership,
 /// atomic publication and the single-writer lease are separate later gates.
 public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
-    public static let currentSchemaVersion = 2
+    public static let currentSchemaVersion = 3
     public static let maximumDocumentBytes = 64 * 1_024
     public static let maximumConfigRevision: UInt64 = 9_007_199_254_740_991
 
@@ -77,15 +88,20 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         else { throw HostAgentBootstrapConfigurationError.invalidDocument }
 
         let schemaVersion = Int(schemaValue)
-        guard schemaVersion == 1 || schemaVersion == currentSchemaVersion else {
+        guard (1...currentSchemaVersion).contains(schemaVersion) else {
             throw HostAgentBootstrapConfigurationError.unsupportedSchema(schemaVersion)
         }
-        let expectedKeys: Set<String> = schemaVersion == 1
-            ? ["schemaVersion", "configRevision", "agentBuildID", "server"]
-            : [
+        let expectedKeys: Set<String>
+        if schemaVersion == 1 {
+            expectedKeys = [
+                "schemaVersion", "configRevision", "agentBuildID", "server",
+            ]
+        } else {
+            expectedKeys = [
                 "schemaVersion", "configRevision", "agentBuildID", "server",
                 "clipboard",
             ]
+        }
         guard Set(document.keys) == expectedKeys else {
             throw HostAgentBootstrapConfigurationError.invalidDocument
         }
@@ -105,10 +121,20 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         if schemaVersion == 1 {
             clipboardPolicy = .disabled
         } else {
-            guard let clipboard = document["clipboard"] as? [String: Any],
-                  Set(clipboard.keys) == Set([
-                      "allowRemoteRead", "allowRemoteWrite",
-                  ]),
+            guard let clipboard = document["clipboard"] as? [String: Any]
+            else { throw HostAgentBootstrapConfigurationError.invalidDocument }
+            let expectedClipboardKeys: Set<String>
+            if schemaVersion == 2 {
+                expectedClipboardKeys = [
+                    "allowRemoteRead", "allowRemoteWrite",
+                ]
+            } else {
+                expectedClipboardKeys = [
+                    "allowRemoteRead", "allowRemoteWrite",
+                    "allowRemoteRichTextRead", "allowRemoteRichTextWrite",
+                ]
+            }
+            guard Set(clipboard.keys) == expectedClipboardKeys,
                   let allowRemoteRead = strictBool(
                       clipboard["allowRemoteRead"]
                   ),
@@ -116,9 +142,28 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
                       clipboard["allowRemoteWrite"]
                   )
             else { throw HostAgentBootstrapConfigurationError.invalidDocument }
+            let allowRemoteRichTextRead: Bool
+            let allowRemoteRichTextWrite: Bool
+            if schemaVersion == 2 {
+                allowRemoteRichTextRead = false
+                allowRemoteRichTextWrite = false
+            } else {
+                guard let decodedRead = strictBool(
+                    clipboard["allowRemoteRichTextRead"]
+                ),
+                let decodedWrite = strictBool(
+                    clipboard["allowRemoteRichTextWrite"]
+                ) else {
+                    throw HostAgentBootstrapConfigurationError.invalidDocument
+                }
+                allowRemoteRichTextRead = decodedRead
+                allowRemoteRichTextWrite = decodedWrite
+            }
             clipboardPolicy = HostAgentClipboardPolicy(
                 allowRemoteRead: allowRemoteRead,
-                allowRemoteWrite: allowRemoteWrite
+                allowRemoteWrite: allowRemoteWrite,
+                allowRemoteRichTextRead: allowRemoteRichTextRead,
+                allowRemoteRichTextWrite: allowRemoteRichTextWrite
             )
         }
 

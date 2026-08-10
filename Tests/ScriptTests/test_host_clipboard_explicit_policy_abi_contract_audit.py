@@ -43,7 +43,7 @@ class HostClipboardExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertTrue(
             document["claims"]["endToEndSmallTextExplicitOptInCapable"]
         )
-        self.assertFalse(document["claims"]["richClipboardEnabled"])
+        self.assertTrue(document["claims"]["richClipboardEnabled"])
         self.assertTrue(document["claims"]["richClipboardTransportCapable"])
         self.assertFalse(
             document["remainingBoundary"]["backgroundBootstrapPropagationRequired"]
@@ -53,7 +53,7 @@ class HostClipboardExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertFalse(document["remainingBoundary"]["richPayloadTransferRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-rich-text-bootstrap-home-opt-in-contract",
+            "host-rich-text-clipboard-installed-two-mac-acceptance",
         )
 
 

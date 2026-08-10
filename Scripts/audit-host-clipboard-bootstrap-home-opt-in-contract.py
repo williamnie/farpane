@@ -73,26 +73,28 @@ def main() -> int:
                 "host-small-text-clipboard-installed-two-mac-acceptance",
             )
         ),
-        "bootstrapV2CarriesIndependentDirections": all(
+        "bootstrapV3RetainsIndependentSmallTextDirections": all(
             marker in bootstrap
             for marker in (
-                "public static let currentSchemaVersion = 2",
+                "public static let currentSchemaVersion = 3",
                 "public let clipboardPolicy: HostAgentClipboardPolicy",
-                '"allowRemoteRead", "allowRemoteWrite"',
+                '"allowRemoteRead", "allowRemoteWrite",',
             )
         ),
-        "legacyV1FailsClosedToDisabled": all(
+        "legacySchemasDoNotImplicitlyEnableClipboard": all(
             marker in bootstrap
             for marker in (
-                "schemaVersion == 1 || schemaVersion == currentSchemaVersion",
+                "(1...currentSchemaVersion).contains(schemaVersion)",
                 "if schemaVersion == 1",
                 "clipboardPolicy = .disabled",
+                "if schemaVersion == 2",
+                "allowRemoteRichTextRead = false",
             )
         ),
         "clipboardBooleansAndKeysAreStrict": all(
             marker in bootstrap
             for marker in (
-                "Set(clipboard.keys) == Set([",
+                "Set(clipboard.keys) == expectedClipboardKeys",
                 "private static func strictBool",
                 "CFGetTypeID(number) == CFBooleanGetTypeID()",
             )
@@ -122,7 +124,7 @@ def main() -> int:
         "homeShowsExplicitBoundedTextDirections": all(
             marker in home
             for marker in (
-                "剪贴板同步（仅小型文本，最多 64 KiB）",
+                "小型文本（最多 64 KiB）",
                 "允许远端读取本机剪贴板",
                 "允许远端写入本机剪贴板",
                 "onHostClipboardReadToggle",
@@ -177,7 +179,7 @@ def main() -> int:
             "H6.2i2 Host clipboard bootstrap and Home opt-in contract",
         ),
         "bootstrapSchema": line_number(
-            bootstrap, "public static let currentSchemaVersion = 2"
+            bootstrap, "public static let currentSchemaVersion = 3"
         ),
         "legacyMigration": line_number(bootstrap, "clipboardPolicy = .disabled"),
         "strictBoolean": line_number(bootstrap, "private static func strictBool"),
@@ -231,15 +233,15 @@ def main() -> int:
             "clipboardEnabledByDefault": False,
             "independentHomeOptInAvailable": True,
             "endToEndSmallTextExplicitOptInCapable": True,
-            "richClipboardEnabled": False,
+            "richClipboardEnabled": True,
         },
         "remainingBoundary": {
             "installedTwoMacAcceptanceRequired": True,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
-            "richPayloadTransferRequired": True,
+            "richPayloadTransferRequired": False,
         },
-        "nextImplementationBoundary": "host-small-text-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-clipboard-bootstrap-home-opt-in-ready" else 1

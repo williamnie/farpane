@@ -150,9 +150,11 @@ def main() -> int:
             and "fputs(" not in owner
             and "NSLog(" not in owner
         ),
-        "hostProductRichDirectionsRemainOff": (
-            "clipboardRichTextReadEnabled:" not in host_product
-            and "clipboardRichTextWriteEnabled:" not in host_product
+        "hostProductRichDirectionsRequireExplicitOptIn": (
+            "clipboardRichTextReadEnabled:" in host_product
+            and "clipboardRichTextWriteEnabled:" in host_product
+            and ".allowRemoteRichTextRead" in host_product
+            and ".allowRemoteRichTextWrite" in host_product
             and "clipboardRichTextReadEnabled: Bool = false" in sources["host_swift"]
             and "clipboardRichTextWriteEnabled: Bool = false" in sources["host_swift"]
         ),
@@ -167,12 +169,12 @@ def main() -> int:
                 "receiveRemoteRichText(",
             )
         ),
-        "documentationRecordsViewerEnabledHostDefaultOffBoundary": all(
+        "documentationRecordsViewerAndHostOptInBoundary": all(
             marker in docs
             for marker in (
                 "Viewer product configuration",
                 "single AppKit owner",
-                "Host product configuration still does not enable",
+                "Host product configuration exposes independent",
                 "NSPasteboardItem",
             )
         ),
@@ -224,16 +226,16 @@ def main() -> int:
             "richBundlePreferredWithoutDuplicatePlainSend": True,
             "pollingBackoffBounded": True,
             "clipboardContentLogged": False,
-            "hostProductRichClipboardEnabled": False,
+            "hostProductRichClipboardEnabled": True,
             "imageOrFileClipboardEnabled": False,
         },
         "remainingBoundary": {
             "viewerRichPasteboardOwnerRequired": False,
-            "hostRichProductOptInRequired": True,
+            "hostRichProductOptInRequired": False,
             "installedTwoMacRichClipboardAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
+        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-rich-text-pasteboard-owner-explicitly-enabled" else 1
