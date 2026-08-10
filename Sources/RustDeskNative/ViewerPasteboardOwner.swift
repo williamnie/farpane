@@ -3,19 +3,29 @@ import CoreBridge
 import Foundation
 
 /// The only native Viewer owner allowed to touch NSPasteboard. Rust receives
-/// and sends bounded text bytes only; this adapter binds those bytes to one
-/// current App session and suppresses its own writes from the local poller.
+/// and sends bounded semantic clipboard payloads only; this adapter binds them
+/// to one current App session and suppresses its own writes from the poller.
 final class ViewerPasteboardOwner {
     typealias SendText = (String) -> Int32
+    typealias SendRichText = (CoreClipboardRichTextPayload) -> Int32
+
+    private enum LocalRichTextRead {
+        case absent
+        case invalid
+        case payload(CoreClipboardRichTextPayload)
+    }
 
     private let pasteboard: NSPasteboard
     private var pollingState = ViewerClipboardPollingState()
     private var timer: Timer?
     private var sessionEpoch: UInt64?
-    private var receiveEnabled = false
-    private var sendEnabled = false
+    private var receiveTextEnabled = false
+    private var sendTextEnabled = false
+    private var receiveRichTextEnabled = false
+    private var sendRichTextEnabled = false
     private var active = false
     private var sendText: SendText?
+    private var sendRichText: SendRichText?
 
     init(pasteboard: NSPasteboard = .general) {
         self.pasteboard = pasteboard
@@ -23,9 +33,12 @@ final class ViewerPasteboardOwner {
 
     func begin(
         sessionEpoch: UInt64,
-        receiveEnabled: Bool,
-        sendEnabled: Bool,
-        sendText: @escaping SendText
+        receiveTextEnabled: Bool,
+        sendTextEnabled: Bool,
+        receiveRichTextEnabled: Bool,
+        sendRichTextEnabled: Bool,
+        sendText: @escaping SendText,
+        sendRichText: @escaping SendRichText
     ) -> Bool {
         guard
             Thread.isMainThread,
@@ -33,9 +46,12 @@ final class ViewerPasteboardOwner {
             self.sessionEpoch == nil
         else { return false }
         self.sessionEpoch = sessionEpoch
-        self.receiveEnabled = receiveEnabled
-        self.sendEnabled = sendEnabled
+        self.receiveTextEnabled = receiveTextEnabled
+        self.sendTextEnabled = sendTextEnabled
+        self.receiveRichTextEnabled = receiveRichTextEnabled
+        self.sendRichTextEnabled = sendRichTextEnabled
         self.sendText = sendText
+        self.sendRichText = sendRichText
         return true
     }
 
@@ -46,7 +62,7 @@ final class ViewerPasteboardOwner {
             !active
         else { return }
         active = true
-        guard sendEnabled else { return }
+        guard sendsAnyFormat else { return }
         guard let delay = pollingState.begin(
             sessionEpoch: sessionEpoch,
             currentChangeCount: pasteboard.changeCount
@@ -62,14 +78,48 @@ final class ViewerPasteboardOwner {
             Thread.isMainThread,
             self.sessionEpoch == sessionEpoch,
             active,
-            receiveEnabled,
+            receiveTextEnabled,
             ViewerClipboardTextPolicy.accepts(text)
         else { return }
 
-        pasteboard.clearContents()
-        guard pasteboard.setString(text, forType: .string) else { return }
+        let item = NSPasteboardItem()
+        guard item.setString(text, forType: .string) else { return }
+        commitRemoteItem(item, sessionEpoch: sessionEpoch)
+    }
 
-        guard sendEnabled, let delay = pollingState.observeOwnedWrite(
+    func receiveRemoteRichText(
+        _ payload: CoreClipboardRichTextPayload,
+        sessionEpoch: UInt64
+    ) {
+        guard
+            Thread.isMainThread,
+            self.sessionEpoch == sessionEpoch,
+            active,
+            receiveRichTextEnabled,
+            ViewerClipboardRichTextPolicy.accepts(payload)
+        else { return }
+
+        let item = NSPasteboardItem()
+        if let plainText = payload.plainText,
+           !item.setString(plainText, forType: .string) {
+            return
+        }
+        if let rtf = payload.rtf,
+           !item.setData(Data(rtf.utf8), forType: .rtf) {
+            return
+        }
+        if let html = payload.html,
+           !item.setData(Data(html.utf8), forType: .html) {
+            return
+        }
+        commitRemoteItem(item, sessionEpoch: sessionEpoch)
+    }
+
+    private func commitRemoteItem(_ item: NSPasteboardItem, sessionEpoch: UInt64) {
+        pasteboard.clearContents()
+        guard pasteboard.writeObjects([item]) else { return }
+
+        guard sendsAnyFormat, let delay = pollingState.observeOwnedWrite(
             sessionEpoch: sessionEpoch,
             resultingChangeCount: pasteboard.changeCount
         ) else { return }
@@ -86,7 +136,7 @@ final class ViewerPasteboardOwner {
         active = false
         timer?.invalidate()
         timer = nil
-        if sendEnabled {
+        if sendsAnyFormat {
             _ = pollingState.stop(sessionEpoch: sessionEpoch)
         }
     }
@@ -98,9 +148,12 @@ final class ViewerPasteboardOwner {
         else { return }
         suspend(sessionEpoch: sessionEpoch)
         self.sessionEpoch = nil
-        receiveEnabled = false
-        sendEnabled = false
+        receiveTextEnabled = false
+        sendTextEnabled = false
+        receiveRichTextEnabled = false
+        sendRichTextEnabled = false
         sendText = nil
+        sendRichText = nil
     }
 
     private func schedule(afterMilliseconds delay: UInt64, sessionEpoch: UInt64) {
@@ -122,20 +175,104 @@ final class ViewerPasteboardOwner {
             Thread.isMainThread,
             self.sessionEpoch == sessionEpoch,
             active,
-            sendEnabled
+            sendsAnyFormat
         else { return }
 
         let changeCount = pasteboard.changeCount
-        let decision = pollingState.observePoll(
+        let decision = pollingState.observeChange(
             sessionEpoch: sessionEpoch,
-            changeCount: changeCount,
-            text: pasteboard.string(forType: .string)
+            changeCount: changeCount
         )
-        if let text = decision.textToSend {
-            _ = sendText?(text)
+        if decision.didChange {
+            sendLocalPasteboard()
         }
         if let delay = decision.nextDelayMilliseconds {
             schedule(afterMilliseconds: delay, sessionEpoch: sessionEpoch)
         }
+    }
+
+    private var sendsAnyFormat: Bool {
+        sendTextEnabled || sendRichTextEnabled
+    }
+
+    private func sendLocalPasteboard() {
+        if sendRichTextEnabled {
+            switch readLocalRichText() {
+            case let .payload(payload):
+                _ = sendRichText?(payload)
+                return
+            case .invalid:
+                return
+            case .absent:
+                break
+            }
+        }
+        guard
+            sendTextEnabled,
+            let text = boundedUTF8String(
+                forType: .string,
+                maximumBytes: ViewerClipboardTextPolicy.maximumUTF8Bytes
+            ),
+            ViewerClipboardTextPolicy.accepts(text)
+        else { return }
+        _ = sendText?(text)
+    }
+
+    private func readLocalRichText() -> LocalRichTextRead {
+        let types = pasteboard.types ?? []
+        let hasRTF = types.contains(.rtf)
+        let hasHTML = types.contains(.html)
+        guard hasRTF || hasHTML else { return .absent }
+        guard pasteboard.pasteboardItems?.count == 1 else { return .invalid }
+
+        var plainText: String?
+        if types.contains(.string) {
+            guard let value = boundedUTF8String(
+                forType: .string,
+                maximumBytes: ViewerClipboardTextPolicy.maximumUTF8Bytes
+            ), ViewerClipboardTextPolicy.accepts(value) else { return .invalid }
+            plainText = value
+        }
+
+        var rtf: String?
+        if hasRTF {
+            guard let value = boundedUTF8String(
+                forType: .rtf,
+                maximumBytes: ViewerClipboardRichTextPolicy.maximumRichTextUTF8Bytes
+            ) else { return .invalid }
+            rtf = value
+        }
+
+        var html: String?
+        if hasHTML {
+            guard let value = boundedUTF8String(
+                forType: .html,
+                maximumBytes: ViewerClipboardRichTextPolicy.maximumRichTextUTF8Bytes
+            ) else { return .invalid }
+            html = value
+        }
+
+        let payload = CoreClipboardRichTextPayload(
+            plainText: plainText,
+            rtf: rtf,
+            html: html
+        )
+        return ViewerClipboardRichTextPolicy.accepts(payload)
+            ? .payload(payload)
+            : .invalid
+    }
+
+    private func boundedUTF8String(
+        forType type: NSPasteboard.PasteboardType,
+        maximumBytes: Int
+    ) -> String? {
+        guard
+            let data = pasteboard.data(forType: type),
+            !data.isEmpty,
+            data.count <= maximumBytes,
+            let value = String(data: data, encoding: .utf8),
+            !value.contains("\0")
+        else { return nil }
+        return value
     }
 }

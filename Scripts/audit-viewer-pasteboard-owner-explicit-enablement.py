@@ -66,8 +66,10 @@ def main() -> int:
         "allViewerProductEntriesExplicitlyEnableBothDirections": (
             app.count("receiveClipboardText: true") == 3
             and app.count("sendClipboardText: true") == 3
-            and "receiveEnabled: configuration.receiveClipboardText" in app
-            and "sendEnabled: configuration.sendClipboardText" in app
+            and app.count("receiveClipboardRichText: true") == 3
+            and app.count("sendClipboardRichText: true") == 3
+            and "receiveTextEnabled: configuration.receiveClipboardText" in app
+            and "sendTextEnabled: configuration.sendClipboardText" in app
         ),
         "appKitIsTheSingleSwiftPasteboardOwner": all(
             marker in owner
@@ -141,7 +143,8 @@ def main() -> int:
                 "AppKit-owned pasteboard adapter",
                 "Host Control ABI v14",
                 "bootstrap schema v2",
-                "rich AppKit pasteboard owner remains disabled",
+                "Viewer product configuration",
+                "one AppKit-owned pasteboard adapter",
             )
         ),
     }
@@ -159,7 +162,7 @@ def main() -> int:
         ),
         "ownedWriteSuppression": line_number(polling, "observeOwnedWrite("),
         "pasteboardOwner": line_number(owner, "final class ViewerPasteboardOwner"),
-        "pasteboardWrite": line_number(owner, "pasteboard.setString(text, forType: .string)"),
+        "pasteboardWrite": line_number(owner, "pasteboard.writeObjects([item])"),
         "productEnablement": line_number(app, "receiveClipboardText: true"),
         "clipboardCallback": line_number(app, "onClipboardText: { [weak self] text in"),
         "sessionGate": line_number(app, "clipboardSessionEpoch == viewerClipboardSessionEpoch"),
@@ -200,7 +203,7 @@ def main() -> int:
             "hostClipboardEnabledByDefault": False,
             "hostClipboardExplicitOptInCapable": True,
             "endToEndSmallTextExplicitOptInCapable": True,
-            "richClipboardEnabled": False,
+            "richClipboardEnabled": True,
         },
         "remainingBoundary": {
             "hostSmallTextExplicitOptInRequired": False,
@@ -208,7 +211,7 @@ def main() -> int:
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-pasteboard-owner-explicitly-enabled" else 1

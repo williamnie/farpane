@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class ViewerPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCase):
-    def test_viewer_product_owner_is_bounded_and_explicit(self) -> None:
+class ViewerRichTextPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCase):
+    def test_viewer_rich_pasteboard_owner_is_single_bounded_and_explicit(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-viewer-pasteboard-owner-explicit-enablement.py",
+                "Scripts/audit-viewer-rich-text-pasteboard-owner-explicit-enablement.py",
             ],
             cwd=repository,
             check=False,
@@ -24,34 +24,31 @@ class ViewerPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-viewer-pasteboard-owner-explicit-enablement-audit",
+            "farpane-viewer-rich-text-pasteboard-owner-explicit-enablement-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "viewer-pasteboard-owner-explicitly-enabled",
+            "viewer-rich-text-pasteboard-owner-explicitly-enabled",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(document["claims"]["viewerDirectionsExplicitlyEnabled"])
-        self.assertTrue(document["claims"]["appKitOwnsViewerPasteboard"])
+        self.assertTrue(document["claims"]["viewerRichDirectionsExplicitlyEnabled"])
+        self.assertTrue(document["claims"]["oneAppKitOwnerHandlesSmallAndRichClipboard"])
         self.assertFalse(document["claims"]["preSessionClipboardUploaded"])
+        self.assertTrue(document["claims"]["richBundlePreferredWithoutDuplicatePlainSend"])
         self.assertTrue(document["claims"]["pollingBackoffBounded"])
         self.assertFalse(document["claims"]["clipboardContentLogged"])
-        self.assertFalse(document["claims"]["hostClipboardEnabledByDefault"])
-        self.assertTrue(document["claims"]["hostClipboardExplicitOptInCapable"])
-        self.assertTrue(
-            document["claims"]["endToEndSmallTextExplicitOptInCapable"]
-        )
-        self.assertTrue(document["claims"]["richClipboardEnabled"])
+        self.assertFalse(document["claims"]["hostProductRichClipboardEnabled"])
+        self.assertFalse(document["claims"]["imageOrFileClipboardEnabled"])
         self.assertFalse(
-            document["remainingBoundary"]["hostSmallTextExplicitOptInRequired"]
+            document["remainingBoundary"]["viewerRichPasteboardOwnerRequired"]
         )
-        self.assertFalse(document["remainingBoundary"]["richPayloadTransferRequired"])
+        self.assertTrue(document["remainingBoundary"]["hostRichProductOptInRequired"])
         self.assertTrue(
-            document["remainingBoundary"]["physicalOwnershipAndTeardownAcceptanceRequired"]
+            document["remainingBoundary"]["installedTwoMacRichClipboardAcceptanceRequired"]
         )
         self.assertTrue(
             document["remainingBoundary"]["physicalLatencyAndIdleCPUAcceptanceRequired"]

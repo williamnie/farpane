@@ -36,16 +36,16 @@ class HostClipboardBoundedRichTextEnvelopeAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["richTextEnvelopeOwned"])
         self.assertFalse(document["claims"]["richTextInlineAdmitted"])
         self.assertTrue(document["claims"]["richTextNetworkTransportEnabled"])
-        self.assertFalse(document["claims"]["richTextPasteboardEnabled"])
+        self.assertTrue(document["claims"]["richTextPasteboardEnabled"])
         self.assertFalse(document["claims"]["imagesIncluded"])
         self.assertFalse(document["remainingBoundary"]["viewerRichTextABIRequired"])
         self.assertFalse(document["remainingBoundary"]["hostViewerTransportWiringRequired"])
-        self.assertTrue(document["remainingBoundary"]["pasteboardOwnerRequired"])
+        self.assertFalse(document["remainingBoundary"]["pasteboardOwnerRequired"])
         self.assertTrue(document["remainingBoundary"]["imagesRequired"])
         self.assertTrue(document["remainingBoundary"]["installedTwoMacAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+            "host-rich-text-bootstrap-home-opt-in-contract",
         )
 
 

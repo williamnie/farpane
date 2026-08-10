@@ -47,7 +47,7 @@ class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
         self.assertTrue(
             document["claims"]["endToEndSmallTextExplicitOptInCapable"]
         )
-        self.assertFalse(document["claims"]["richClipboardEnabled"])
+        self.assertTrue(document["claims"]["richClipboardEnabled"])
         self.assertFalse(
             document["remainingBoundary"]["viewerPasteboardOwnerRequired"]
         )
@@ -62,7 +62,7 @@ class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
         self.assertTrue(document["remainingBoundary"]["physicalLatencyAndIdleCPUAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+            "host-rich-text-bootstrap-home-opt-in-contract",
         )
 
 

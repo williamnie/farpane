@@ -138,11 +138,12 @@ def main() -> int:
                 "ClipboardFormat::Text",
             )
         ),
-        "documentationKeepsProductPasteboardClosedAfterTransportWiring": (
+        "documentationRecordsViewerOwnerAndHostProductBoundary": (
             "1 MiB" in architecture
             and "Host ABI v14" in architecture
             and "1 MiB" in readme
-            and "rich AppKit pasteboard owner remains disabled" in readme
+            and "Viewer product configuration" in readme
+            and "Host product configuration still does not enable" in readme
         ),
         "canonicalAndVendoredBridgeMatch": bridge == sources["vendor_bridge"],
     }
@@ -198,17 +199,17 @@ def main() -> int:
             "richTextEnvelopeOwned": True,
             "richTextInlineAdmitted": False,
             "richTextNetworkTransportEnabled": True,
-            "richTextPasteboardEnabled": False,
+            "richTextPasteboardEnabled": True,
             "imagesIncluded": False,
         },
         "remainingBoundary": {
             "viewerRichTextABIRequired": False,
             "hostViewerTransportWiringRequired": False,
-            "pasteboardOwnerRequired": True,
+            "pasteboardOwnerRequired": False,
             "imagesRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-rich-text-envelope-contract" else 1

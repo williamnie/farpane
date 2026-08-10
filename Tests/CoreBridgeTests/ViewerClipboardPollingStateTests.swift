@@ -52,6 +52,29 @@ final class ViewerClipboardPollingStateTests: XCTestCase {
         XCTAssertEqual(reads, 1)
     }
 
+    func testChangeDecisionDoesNotRequirePasteboardReadAndRetainsBackoff() {
+        var state = ViewerClipboardPollingState()
+        XCTAssertEqual(state.begin(sessionEpoch: 5, currentChangeCount: 10), 125)
+        XCTAssertEqual(
+            state.observeChange(sessionEpoch: 5, changeCount: 10),
+            ViewerClipboardChangeDecision(
+                didChange: false,
+                nextDelayMilliseconds: 250
+            )
+        )
+        XCTAssertEqual(
+            state.observeChange(sessionEpoch: 5, changeCount: 11),
+            ViewerClipboardChangeDecision(
+                didChange: true,
+                nextDelayMilliseconds: 125
+            )
+        )
+        XCTAssertNil(
+            state.observeChange(sessionEpoch: 4, changeCount: 12)
+                .nextDelayMilliseconds
+        )
+    }
+
     func testInitialClipboardIsNotSentAndOwnedRemoteWriteIsSuppressed() {
         var state = ViewerClipboardPollingState()
         XCTAssertEqual(
@@ -98,6 +121,36 @@ final class ViewerClipboardPollingStateTests: XCTestCase {
         ))
         XCTAssertFalse(ViewerClipboardTextPolicy.accepts(
             String(repeating: "你", count: 22_000)
+        ))
+    }
+
+    func testRichTextPolicyRequiresBoundedAtomicRichRepresentation() {
+        XCTAssertFalse(ViewerClipboardRichTextPolicy.accepts(
+            CoreClipboardRichTextPayload(plainText: "plain")
+        ))
+        XCTAssertTrue(ViewerClipboardRichTextPolicy.accepts(
+            CoreClipboardRichTextPayload(
+                plainText: "plain",
+                rtf: "{\\rtf1 rich}",
+                html: "<b>rich</b>"
+            )
+        ))
+        XCTAssertFalse(ViewerClipboardRichTextPolicy.accepts(
+            CoreClipboardRichTextPayload(rtf: "bad\0rtf")
+        ))
+        XCTAssertFalse(ViewerClipboardRichTextPolicy.accepts(
+            CoreClipboardRichTextPayload(html: "")
+        ))
+        XCTAssertFalse(ViewerClipboardRichTextPolicy.accepts(
+            CoreClipboardRichTextPayload(
+                rtf: String(repeating: "a", count: 1024 * 1024 + 1)
+            )
+        ))
+        XCTAssertFalse(ViewerClipboardRichTextPolicy.accepts(
+            CoreClipboardRichTextPayload(
+                plainText: String(repeating: "a", count: 64 * 1024 + 1),
+                html: "<b>rich</b>"
+            )
         ))
     }
 

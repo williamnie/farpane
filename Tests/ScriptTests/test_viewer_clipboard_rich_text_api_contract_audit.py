@@ -43,16 +43,16 @@ class ViewerClipboardRichTextAPIContractAuditTests(unittest.TestCase):
         )
         self.assertFalse(document["claims"]["disabledReceiveParsesRichPayload"])
         self.assertTrue(document["claims"]["swiftCopiesCallbackScopedBytes"])
-        self.assertFalse(document["claims"]["viewerProductRichClipboardEnabled"])
+        self.assertTrue(document["claims"]["viewerProductRichClipboardEnabled"])
         self.assertTrue(document["claims"]["hostRichClipboardTransportCapable"])
         self.assertFalse(document["claims"]["imageOrFileClipboardEnabled"])
         self.assertFalse(document["remainingBoundary"]["hostViewerRichTransportWiringRequired"])
-        self.assertTrue(document["remainingBoundary"]["singlePasteboardOwnerRichIntegrationRequired"])
+        self.assertFalse(document["remainingBoundary"]["singlePasteboardOwnerRichIntegrationRequired"])
         self.assertTrue(document["remainingBoundary"]["installedTwoMacRichClipboardAcceptanceRequired"])
         self.assertTrue(document["remainingBoundary"]["physicalLatencyAndIdleCPUAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+            "host-rich-text-bootstrap-home-opt-in-contract",
         )
 
 

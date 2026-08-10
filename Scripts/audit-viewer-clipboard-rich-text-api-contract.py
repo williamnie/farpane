@@ -147,14 +147,12 @@ def main() -> int:
                 "callbackBox.stopClipboardDelivery()",
             )
         ),
-        "productRichPasteboardRemainsUnwired": all(
-            marker not in product_sources
-            for marker in (
-                "receiveClipboardRichText",
-                "sendClipboardRichText",
-                "sendClipboardRichText(",
-                "onClipboardRichText",
-            )
+        "productRichPasteboardOwnerIsExplicitlyEnabled": (
+            sources["app"].count("receiveClipboardRichText: true") == 3
+            and sources["app"].count("sendClipboardRichText: true") == 3
+            and "receiveRemoteRichText(" in sources["pasteboard"]
+            and "sendClipboardRichText(payload)" in sources["app"]
+            and "onClipboardRichText: { [weak self] payload in" in sources["app"]
         ),
         "hostRichTransportIsSeparatelyGatedAndCanonical": all(
             marker in sources["host_bridge"]
@@ -194,7 +192,8 @@ def main() -> int:
             for marker in (
                 "ABI v7 retains the ABI v6",
                 "each independently capped at 1 MiB",
-                "rich AppKit pasteboard owner remains disabled",
+                "Viewer product configuration",
+                "one AppKit-owned pasteboard adapter",
             )
         ),
     }
@@ -239,17 +238,17 @@ def main() -> int:
             "rtfAndHTMLIndependentlyBoundedTo1MiB": True,
             "disabledReceiveParsesRichPayload": False,
             "swiftCopiesCallbackScopedBytes": True,
-            "viewerProductRichClipboardEnabled": False,
+            "viewerProductRichClipboardEnabled": True,
             "hostRichClipboardTransportCapable": True,
             "imageOrFileClipboardEnabled": False,
         },
         "remainingBoundary": {
             "hostViewerRichTransportWiringRequired": False,
-            "singlePasteboardOwnerRichIntegrationRequired": True,
+            "singlePasteboardOwnerRichIntegrationRequired": False,
             "installedTwoMacRichClipboardAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
+        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-rich-text-clipboard-api-default-off" else 1
