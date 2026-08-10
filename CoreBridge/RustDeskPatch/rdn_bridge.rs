@@ -267,7 +267,44 @@ struct NativeViewerDownloadEvent {
     bytes_per_second: f64,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+struct NativeViewerReceiveBlock {
+    transfer_id: i32,
+    file_number: u32,
+    payload: Vec<u8>,
+}
+
 impl NativeViewerDownloadJob {
+    fn receive_block(&self, block: &FileTransferBlock) -> Option<NativeViewerReceiveBlock> {
+        if block.id != self.transfer_id
+            || block.data.is_empty()
+            || block.data.len() > hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES
+        {
+            return None;
+        }
+        let file_number = u32::try_from(block.file_num).ok()?;
+        if file_number >= self.total_files {
+            return None;
+        }
+        let payload = if block.compressed {
+            hbb_common::compress::decompress_with_limit(
+                &block.data,
+                hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES,
+            )
+            .ok()?
+        } else {
+            block.data.to_vec()
+        };
+        if payload.is_empty() || payload.len() > hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES {
+            return None;
+        }
+        Some(NativeViewerReceiveBlock {
+            transfer_id: self.transfer_id,
+            file_number,
+            payload,
+        })
+    }
+
     fn progress(
         &mut self,
         completed_file_number: i32,
@@ -4356,6 +4393,108 @@ mod tests {
             "an untagged empty-directory response makes manifest single-use per epoch"
         );
         assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn viewer_receive_block_owns_raw_and_bounded_decompressed_payloads() {
+        let job = NativeViewerDownloadJob {
+            session_epoch: 7,
+            manifest_request_id: 51,
+            transfer_id: 61,
+            total_files: 2,
+            total_bytes: 42,
+            sequence: 0,
+            files_completed: 0,
+            bytes_completed: 0,
+        };
+        let raw = FileTransferBlock {
+            id: 61,
+            file_num: 0,
+            data: b"raw".to_vec().into(),
+            ..Default::default()
+        };
+        assert_eq!(
+            job.receive_block(&raw),
+            Some(NativeViewerReceiveBlock {
+                transfer_id: 61,
+                file_number: 0,
+                payload: b"raw".to_vec(),
+            })
+        );
+
+        let plain = vec![b'a'; hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES];
+        let compressed = FileTransferBlock {
+            id: 61,
+            file_num: 1,
+            data: hbb_common::compress::compress(&plain).into(),
+            compressed: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            job.receive_block(&compressed),
+            Some(NativeViewerReceiveBlock {
+                transfer_id: 61,
+                file_number: 1,
+                payload: plain,
+            })
+        );
+    }
+
+    #[test]
+    fn viewer_receive_block_rejects_wrong_job_file_and_payload_bounds() {
+        let job = NativeViewerDownloadJob {
+            session_epoch: 7,
+            manifest_request_id: 51,
+            transfer_id: 61,
+            total_files: 2,
+            total_bytes: 42,
+            sequence: 0,
+            files_completed: 0,
+            bytes_completed: 0,
+        };
+        let block = |id, file_num, data: Vec<u8>, compressed| FileTransferBlock {
+            id,
+            file_num,
+            data: data.into(),
+            compressed,
+            ..Default::default()
+        };
+
+        assert!(job
+            .receive_block(&block(60, 0, b"x".to_vec(), false))
+            .is_none());
+        assert!(job
+            .receive_block(&block(61, -1, b"x".to_vec(), false))
+            .is_none());
+        assert!(job
+            .receive_block(&block(61, 2, b"x".to_vec(), false))
+            .is_none());
+        assert!(job
+            .receive_block(&block(61, 0, Vec::new(), false))
+            .is_none());
+        assert!(job
+            .receive_block(&block(
+                61,
+                0,
+                vec![0; hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES + 1],
+                false,
+            ))
+            .is_none());
+        assert!(job
+            .receive_block(&block(61, 0, b"not-zstd".to_vec(), true))
+            .is_none());
+        assert!(job
+            .receive_block(&block(
+                61,
+                0,
+                hbb_common::compress::compress(&vec![
+                    b'a';
+                    hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES
+                        + 1
+                ]),
+                true,
+            ))
+            .is_none());
     }
 
     #[test]
