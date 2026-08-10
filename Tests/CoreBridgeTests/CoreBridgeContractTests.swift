@@ -19,7 +19,7 @@ final class CoreBridgeContractTests: XCTestCase {
     }
 
     func testPinsRustDesk149Commit() {
-        XCTAssertEqual(RustDeskCoreClient.abiVersion, 6)
+        XCTAssertEqual(RustDeskCoreClient.abiVersion, 7)
         XCTAssertEqual(
             RustDeskCoreClient.expectedUpstreamCommit,
             "6c578292e8ebbbec708b76986ba8c4bc7c509747"
@@ -821,6 +821,8 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(config.forceRelay)
         XCTAssertFalse(config.receiveClipboardText)
         XCTAssertFalse(config.sendClipboardText)
+        XCTAssertFalse(config.receiveClipboardRichText)
+        XCTAssertFalse(config.sendClipboardRichText)
     }
 
     func testHostClipboardDirectionsDefaultOffAndRemainIndependent() {
@@ -857,6 +859,8 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         XCTAssertTrue(receiveOnly.receiveClipboardText)
         XCTAssertFalse(receiveOnly.sendClipboardText)
+        XCTAssertFalse(receiveOnly.receiveClipboardRichText)
+        XCTAssertFalse(receiveOnly.sendClipboardRichText)
 
         let sendOnly = CoreConnectionConfig(
             rendezvousServer: "192.0.2.1",
@@ -866,6 +870,30 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         XCTAssertFalse(sendOnly.receiveClipboardText)
         XCTAssertTrue(sendOnly.sendClipboardText)
+        XCTAssertFalse(sendOnly.receiveClipboardRichText)
+        XCTAssertFalse(sendOnly.sendClipboardRichText)
+
+        let receiveRichOnly = CoreConnectionConfig(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            peerID: "123456789",
+            receiveClipboardRichText: true
+        )
+        XCTAssertFalse(receiveRichOnly.receiveClipboardText)
+        XCTAssertFalse(receiveRichOnly.sendClipboardText)
+        XCTAssertTrue(receiveRichOnly.receiveClipboardRichText)
+        XCTAssertFalse(receiveRichOnly.sendClipboardRichText)
+
+        let sendRichOnly = CoreConnectionConfig(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            peerID: "123456789",
+            sendClipboardRichText: true
+        )
+        XCTAssertFalse(sendRichOnly.receiveClipboardText)
+        XCTAssertFalse(sendRichOnly.sendClipboardText)
+        XCTAssertFalse(sendRichOnly.receiveClipboardRichText)
+        XCTAssertTrue(sendRichOnly.sendClipboardRichText)
     }
 
     func testViewerClipboardDeliveryStopsBeforeCoreDisconnect() throws {
@@ -881,6 +909,7 @@ final class CoreBridgeContractTests: XCTestCase {
             "guard clipboardLifecycleLock.withLock({ clipboardDeliveryEnabled }) else { return }"
         ))
         XCTAssertTrue(source.contains("box.deliverClipboardText(text)"))
+        XCTAssertTrue(source.contains("box.deliverClipboardRichText(CoreClipboardRichTextPayload("))
         let stop = try XCTUnwrap(source.range(of: "callbackBox.stopClipboardDelivery()"))
         let disconnect = try XCTUnwrap(source.range(
             of: "rdn_shim_client_disconnect(library, client)"

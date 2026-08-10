@@ -38,10 +38,14 @@ class HostClipboardBoundedRichTextEnvelopeAuditTests(unittest.TestCase):
         self.assertFalse(document["claims"]["richTextNetworkTransportEnabled"])
         self.assertFalse(document["claims"]["richTextPasteboardEnabled"])
         self.assertFalse(document["claims"]["imagesIncluded"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertFalse(document["remainingBoundary"]["viewerRichTextABIRequired"])
+        self.assertTrue(all(
+            value for name, value in document["remainingBoundary"].items()
+            if name != "viewerRichTextABIRequired"
+        ))
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-rich-text-clipboard-api-contract",
+            "host-viewer-rich-text-transfer-wiring-contract",
         )
 
 

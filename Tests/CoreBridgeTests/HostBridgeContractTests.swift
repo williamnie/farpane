@@ -75,7 +75,7 @@ enum HostEventRecorder {
 
 
 /// Host Control ABI contract tests (§8.1, §20.2): the host namespace must
-/// coexist with the viewer ABI v6, export its full symbol surface, and fail
+/// coexist with the viewer ABI v7, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
     private static let hostABIVersion: UInt32 = 13
@@ -117,7 +117,7 @@ final class HostBridgeContractTests: XCTestCase {
         let viewerABI = unsafeBitCast(
             try rawSymbol("rdn_core_abi_version"),
             to: (@convention(c) () -> UInt32).self)
-        XCTAssertEqual(viewerABI(), 6, "viewer ABI must stay at v6 alongside the host ABI")
+        XCTAssertEqual(viewerABI(), 7, "viewer ABI must stay at v7 alongside the host ABI")
 
         let hostABI = unsafeBitCast(
             try rawSymbol("rdn_host_abi_version"),
@@ -174,7 +174,7 @@ final class HostBridgeContractTests: XCTestCase {
             return
         }
         defer { rdn_shim_close(shimLibrary) }
-        XCTAssertEqual(rdn_shim_abi_version(shimLibrary), 6, "viewer ABI must stay at v6")
+        XCTAssertEqual(rdn_shim_abi_version(shimLibrary), 7, "viewer ABI must stay at v7")
         XCTAssertNotEqual(rdn_shim_host_available(shimLibrary), 0)
         XCTAssertEqual(rdn_shim_host_abi_version(shimLibrary), Self.hostABIVersion)
         XCTAssertEqual(

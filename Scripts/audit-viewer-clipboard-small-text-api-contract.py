@@ -60,10 +60,10 @@ def main() -> int:
                 "Viewer pasteboard owner and explicit enablement contract",
             )
         ),
-        "viewerABIv6IsVersionedAndBounded": all(
+        "viewerABIv7RetainsBoundedSmallText": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 6u",
+                "#define RDN_ABI_VERSION 7u",
                 "#define RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES (64u * 1024u)",
                 "RDNClipboardTextCallback on_clipboard_text;",
                 "bool receive_clipboard_text;",
@@ -121,14 +121,15 @@ def main() -> int:
             for marker in (
                 'not(feature = "rdn-native-core")',
                 "let rx: Option<tokio::sync::mpsc::UnboundedReceiver<()>> = None;",
-                "native_viewer_clipboard_text(&[cb])",
+                "let clipboards = [cb]",
+                "native_viewer_clipboard_text(&clipboards)",
                 "self.handler.native_clipboard_text(text);",
             )
         ),
         "wireNegotiationIsExplicitlyAdapted": (
-            "configure_native_viewer(&mut self, peer_id: &str, clipboard_text_enabled: bool)"
+            "configure_native_viewer(&mut self, peer_id: &str, clipboard_enabled: bool)"
             in sources["client"]
-            and "self.config.disable_clipboard.v = !clipboard_text_enabled;"
+            and "self.config.disable_clipboard.v = !clipboard_enabled;"
             in sources["client"]
         ),
         "callbackSurfaceIsNativeOnly": (
@@ -177,7 +178,7 @@ def main() -> int:
         "documentationRecordsViewerEnablementAndHostBoundary": all(
             marker in (sources["readme"] + sources["architecture"])
             for marker in (
-                "ABI v6 adds a default-off",
+                "ABI v7 retains the ABI v6",
                 "AppKit-owned pasteboard adapter",
                 "Host Control ABI v13",
                 "bootstrap schema v2",
@@ -188,7 +189,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.2g Viewer small-text clipboard API contract"
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 6u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 7u"),
         "sizeLimit": line_number(header, "RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES"),
         "clipboardCallback": line_number(header, "RDNClipboardTextCallback on_clipboard_text;"),
         "sendAPI": line_number(header, "rdn_client_send_clipboard_text"),
@@ -221,7 +222,7 @@ def main() -> int:
         "sourceLines": source_lines,
         "missingSourceLines": missing_lines,
         "claims": {
-            "viewerABIv6Implemented": True,
+            "viewerABIv7RetainsSmallText": True,
             "directionsIndependentlyEnforced": True,
             "smallTextBoundedTo64KiB": True,
             "viewerRustOwnsSystemPasteboard": False,

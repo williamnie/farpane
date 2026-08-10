@@ -35,7 +35,7 @@ class ViewerClipboardSmallTextAPIContractAuditTests(unittest.TestCase):
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
-        self.assertTrue(document["claims"]["viewerABIv6Implemented"])
+        self.assertTrue(document["claims"]["viewerABIv7RetainsSmallText"])
         self.assertTrue(document["claims"]["directionsIndependentlyEnforced"])
         self.assertTrue(document["claims"]["smallTextBoundedTo64KiB"])
         self.assertFalse(document["claims"]["viewerRustOwnsSystemPasteboard"])

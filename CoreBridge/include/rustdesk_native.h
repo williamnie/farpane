@@ -9,8 +9,9 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 6u
+#define RDN_ABI_VERSION 7u
 #define RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES (64u * 1024u)
+#define RDN_MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES (1024u * 1024u)
 
 typedef struct RDNClient RDNClient;
 
@@ -78,12 +79,29 @@ typedef void (*RDNMetricsCallback)(void *context,
 typedef void (*RDNClipboardTextCallback)(void *context, const uint8_t *utf8,
                                          size_t length);
 
+/* Callback-scoped semantic rich-text bundle. Every non-NULL byte pointer is
+ * valid only for the duration of the callback and must be copied. Plain text
+ * is optional and retains the 64 KiB text limit; RTF and HTML are optional,
+ * independently limited to 1 MiB, and at least one rich field is required. */
+typedef struct RDNClipboardRichTextPayload {
+    uint32_t abi_version;
+    const uint8_t *plain_utf8;
+    size_t plain_length;
+    const uint8_t *rtf_utf8;
+    size_t rtf_length;
+    const uint8_t *html_utf8;
+    size_t html_length;
+} RDNClipboardRichTextPayload;
+typedef void (*RDNClipboardRichTextCallback)(
+    void *context, const RDNClipboardRichTextPayload *payload);
+
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
     RDNVideoCallback on_video;
     RDNMetricsCallback on_metrics;
     RDNClipboardTextCallback on_clipboard_text;
+    RDNClipboardRichTextCallback on_clipboard_rich_text;
 } RDNCallbacks;
 
 typedef struct RDNConnectionConfig {
@@ -98,6 +116,10 @@ typedef struct RDNConnectionConfig {
      * enforces receive and send independently at the native bridge. */
     bool receive_clipboard_text;
     bool send_clipboard_text;
+    /* Independent local rich-text policy. Both default false in Swift and do
+     * not imply AppKit pasteboard ownership or product enablement. */
+    bool receive_clipboard_rich_text;
+    bool send_clipboard_rich_text;
 } RDNConnectionConfig;
 
 typedef enum RDNModifierFlags {
@@ -181,6 +203,10 @@ int32_t rdn_client_send_text(RDNClient *client, const uint8_t *utf8,
  * local send direction is disabled and -8 when the peer revoked clipboard. */
 int32_t rdn_client_send_clipboard_text(RDNClient *client,
                                        const uint8_t *utf8, size_t length);
+/* Sends one canonical uncompressed RTF/HTML bundle. Returns the same -7/-8
+ * local-direction/remote-permission errors as the small-text API. */
+int32_t rdn_client_send_clipboard_rich_text(
+    RDNClient *client, const RDNClipboardRichTextPayload *payload);
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
@@ -405,6 +431,9 @@ int32_t rdn_shim_client_send_clipboard_text(const RDNCoreLibrary *library,
                                             RDNClient *client,
                                             const uint8_t *utf8,
                                             size_t length);
+int32_t rdn_shim_client_send_clipboard_rich_text(
+    const RDNCoreLibrary *library, RDNClient *client,
+    const RDNClipboardRichTextPayload *payload);
 
 /* Host Control ABI loader surface (rdn-native-host). rdn_shim_open tolerates
  * cores built without the host feature: rdn_shim_host_available reports whether
