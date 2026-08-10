@@ -150,8 +150,8 @@ def main() -> int:
     )
 
     current_evidence = {
-        "hostABIV15AndSnapshotV8AreImplemented": (
-            rust_abi == 15 and header_abi == 15 and snapshot_schema == 8
+        "hostABIV16AndSnapshotV8AreImplemented": (
+            rust_abi == 16 and header_abi == 16 and snapshot_schema == 8
         ),
         "authedConnectionsIsTheAllTypeAuthority": (
             "pub static ref AUTHED_CONNS" in connection
@@ -226,7 +226,7 @@ def main() -> int:
     missing = [name for name, present in current_evidence.items() if not present]
 
     target_contract = {
-        "hostABIVersion": 15,
+        "hostABIVersion": 16,
         "hostSnapshotSchemaVersion": 8,
         "hostSnapshotField": "authenticatedConnectionCount",
         "authority": "RustDesk server AUTHED_CONNS length across every AuthConnType",

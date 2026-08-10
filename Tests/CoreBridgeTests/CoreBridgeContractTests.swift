@@ -838,6 +838,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(disabled.clipboardRichTextWriteEnabled)
         XCTAssertFalse(disabled.clipboardImageReadEnabled)
         XCTAssertFalse(disabled.clipboardImageWriteEnabled)
+        XCTAssertFalse(disabled.fileTransferEnabled)
 
         let readOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
@@ -910,6 +911,19 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(imageWriteOnly.clipboardRichTextWriteEnabled)
         XCTAssertFalse(imageWriteOnly.clipboardImageReadEnabled)
         XCTAssertTrue(imageWriteOnly.clipboardImageWriteEnabled)
+
+        let fileTransferOnly = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            fileTransferEnabled: true
+        )
+        XCTAssertFalse(fileTransferOnly.clipboardReadEnabled)
+        XCTAssertFalse(fileTransferOnly.clipboardWriteEnabled)
+        XCTAssertFalse(fileTransferOnly.clipboardRichTextReadEnabled)
+        XCTAssertFalse(fileTransferOnly.clipboardRichTextWriteEnabled)
+        XCTAssertFalse(fileTransferOnly.clipboardImageReadEnabled)
+        XCTAssertFalse(fileTransferOnly.clipboardImageWriteEnabled)
+        XCTAssertTrue(fileTransferOnly.fileTransferEnabled)
     }
 
     func testViewerClipboardDirectionsAreExplicitAndIndependent() {

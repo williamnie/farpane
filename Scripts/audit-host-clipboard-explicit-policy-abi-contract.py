@@ -64,9 +64,7 @@ def main() -> int:
     product_sources = sources["app"] + sources["agent"]
     tests = sources["core_tests"] + sources["host_tests"] + bridge
 
-    policy_call = bridge.find(
-        "apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);"
-    )
+    policy_call = bridge.find("apply_native_host_optional_capability_policy(")
     identity_read = bridge.find("host.local_id = config::Config::get_id();")
     evidence = {
         "designRecordsBoundedH6Step": all(
@@ -118,11 +116,12 @@ def main() -> int:
             and "native_host_clipboard_option(clipboard_policy)" in bridge
             and "PersistenceMismatch" in bridge
         ),
-        "fileAndAudioRemainAlwaysDisabled": all(
+        "filePolicyIsIndependentAndAudioRemainsDisabled": all(
             marker in bridge
             for marker in (
+                "file_transfer_enabled: bool",
+                "native_host_file_transfer_option(file_transfer_enabled)",
                 "NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS",
-                "OPTION_ENABLE_FILE_TRANSFER",
                 "OPTION_ENABLE_AUDIO",
                 'Config::set_option(key.to_owned(), "N".to_owned())',
             )
@@ -145,7 +144,7 @@ def main() -> int:
             marker in tests
             for marker in (
                 "testHostClipboardDirectionsDefaultOffAndRemainIndependent",
-                "native_host_optional_data_capabilities_require_explicit_clipboard_policy",
+                "native_host_optional_data_capabilities_require_explicit_policy",
                 "host_storage_readback_accepts_explicit_clipboard_opt_in_only",
                 "enableClipboardRead: false",
                 "enableClipboardWrite: false",
@@ -174,14 +173,14 @@ def main() -> int:
         ),
         "policyApplication": line_number(
             bridge,
-            "apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);",
+            "apply_native_host_optional_capability_policy(",
         ),
         "policyReadback": line_number(
             bridge, "native_host_clipboard_option(clipboard_policy)"
         ),
         "rustPolicyTest": line_number(
             bridge,
-            "native_host_optional_data_capabilities_require_explicit_clipboard_policy",
+            "native_host_optional_data_capabilities_require_explicit_policy",
         ),
         "swiftPolicyTest": line_number(
             sources["core_tests"],

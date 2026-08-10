@@ -140,7 +140,7 @@ def main() -> int:
         ),
         "documentationRecordsViewerOwnerAndHostProductBoundary": (
             "1 MiB" in architecture
-            and "Host ABI v15" in architecture
+            and "Host ABI v16" in architecture
             and "1 MiB" in readme
             and "Viewer product configuration" in readme
             and "Host product configuration exposes independent" in readme
