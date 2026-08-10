@@ -1,0 +1,126 @@
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -3491,5 +3491,7 @@
+     #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+     async fn confirm_native_host_file_digest(&mut self, digest: &FileTransferDigest) -> bool {
++        use crate::rdn_host_bridge::NativeHostWriteDigestDecision;
++
+         let Some(index) = self
+             .native_host_write_jobs
+             .iter()
+@@ -3505,6 +3507,6 @@
+             return true;
+         };
+-        let offset = self.native_host_write_jobs[index].confirm_file_digest(
++        let decision = self.native_host_write_jobs[index].confirm_file_digest(
+             digest.file_num,
+             digest.file_size,
+             digest.last_modified,
+@@ -3513,7 +3515,7 @@
+             digest.is_resume,
+         );
+-        let offset = match offset {
+-            Ok(offset) => offset,
++        let decision = match decision {
++            Ok(decision) => decision,
+             Err(error) => {
+                 self.native_host_write_jobs.remove(index).abort();
+                 self.send_native_host_write_failure(digest.id, digest.file_num, error)
+@@ -3522,12 +3524,36 @@
+                 return true;
+             }
+         };
+-        let request = FileTransferSendConfirmRequest {
+-            id: digest.id,
+-            file_num: digest.file_num,
+-            union: Some(file_transfer_send_confirm_request::Union::OffsetBlk(offset)),
+-            ..Default::default()
+-        };
+-        self.send(fs::new_send_confirm(request)).await;
++        match decision {
++            NativeHostWriteDigestDecision::ConfirmedOffset(offset) => {
++                let request = FileTransferSendConfirmRequest {
++                    id: digest.id,
++                    file_num: digest.file_num,
++                    union: Some(file_transfer_send_confirm_request::Union::OffsetBlk(offset)),
++                    ..Default::default()
++                };
++                self.send(fs::new_send_confirm(request)).await;
++            }
++            NativeHostWriteDigestDecision::ExistingTarget {
++                file_size,
++                last_modified,
++                is_identical,
++            } => {
++                let mut response = FileResponse::new();
++                response.set_digest(FileTransferDigest {
++                    id: digest.id,
++                    file_num: digest.file_num,
++                    last_modified,
++                    file_size,
++                    is_upload: true,
++                    is_identical,
++                    is_resume: digest.is_resume,
++                    ..Default::default()
++                });
++                let mut message = Message::new();
++                message.set_file_response(response);
++                self.send(message).await;
++            }
++        }
+         true
+     }
+@@ -3535,2 +3559,35 @@
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn confirm_native_host_existing_target_decision(
++        &mut self,
++        request: &FileTransferSendConfirmRequest,
++    ) -> bool {
++        use crate::rdn_host_bridge::NativeHostExistingTargetDecision;
++
++        let Some(index) = self
++            .native_host_write_jobs
++            .iter()
++            .position(|job| job.id() == request.id)
++        else {
++            return false;
++        };
++        let decision = match request.union {
++            Some(file_transfer_send_confirm_request::Union::Skip(true)) => {
++                NativeHostExistingTargetDecision::Skip
++            }
++            Some(file_transfer_send_confirm_request::Union::OffsetBlk(offset)) => {
++                NativeHostExistingTargetDecision::Replace { offset }
++            }
++            _ => NativeHostExistingTargetDecision::Replace { offset: 0 },
++        };
++        if let Err(error) = self.native_host_write_jobs[index]
++            .confirm_existing_target_decision(request.file_num, decision)
++        {
++            self.native_host_write_jobs.remove(index).abort();
++            self.send_native_host_write_failure(request.id, request.file_num, error)
++                .await;
++        }
++        true
++    }
++
+     #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+     async fn finish_native_host_write_job(&mut self, done: &FileTransferDone) -> bool {
+@@ -5078,7 +5135,15 @@
+                                 }
+                             }
+                             Some(file_action::Union::SendConfirm(r)) => {
+-                                if let Some(job) = fs::get_job(r.id, &mut self.read_jobs) {
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let handled_by_native_host = self
++                                    .confirm_native_host_existing_target_decision(&r)
++                                    .await;
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let handled_by_native_host = false;
++                                if handled_by_native_host {
++                                    // Native Host write jobs own existing-target decisions.
++                                } else if let Some(job) = fs::get_job(r.id, &mut self.read_jobs) {
+                                     job.confirm(&r).await;
+                                 } else if self.cm_read_job_ids.contains(&r.id) {
+                                     // Forward to CM for CM-read jobs

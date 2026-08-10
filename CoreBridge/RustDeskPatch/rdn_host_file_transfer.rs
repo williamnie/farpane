@@ -154,6 +154,30 @@ impl NativeFileTransferRoot {
         Ok(Some(file))
     }
 
+    fn try_open_existing_file_for_digest(&self, relative_path: &Path) -> RootResult<Option<File>> {
+        let (parent, file_name) = match self.open_relative_parent(relative_path, false) {
+            Ok(value) => value,
+            Err(NativeFileTransferRootError::OpenDirectory) => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        let fd = unsafe {
+            libc::openat(
+                parent.as_raw_fd(),
+                file_name.as_ptr(),
+                libc::O_RDONLY | libc::O_NONBLOCK | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            if std::io::Error::last_os_error().raw_os_error() == Some(libc::ENOENT) {
+                return Ok(None);
+            }
+            return Err(NativeFileTransferRootError::OpenFile);
+        }
+        let file = unsafe { File::from_raw_fd(fd) };
+        validate_private_regular_file(&file)?;
+        Ok(Some(file))
+    }
+
     fn open_existing_file_for_resume(&self, relative_path: &Path) -> RootResult<File> {
         self.try_open_existing_file_for_resume(relative_path)?
             .ok_or(NativeFileTransferRootError::OpenFile)
@@ -190,6 +214,29 @@ impl NativeFileTransferRoot {
             return Err(NativeFileTransferRootError::RemoveFile);
         }
         Ok(())
+    }
+
+    fn remove_file_if_exists(&self, relative_path: &Path) -> RootResult<bool> {
+        let (parent, file_name) = match self.open_relative_parent(relative_path, false) {
+            Ok(value) => value,
+            Err(NativeFileTransferRootError::OpenDirectory) => return Ok(false),
+            Err(error) => return Err(error),
+        };
+        let stat =
+            match checked_stat_at(&parent, &file_name, NativeFileTransferRootError::RemoveFile) {
+                Ok(stat) => stat,
+                Err(NativeFileTransferRootError::RemoveFile)
+                    if std::io::Error::last_os_error().raw_os_error() == Some(libc::ENOENT) =>
+                {
+                    return Ok(false);
+                }
+                Err(error) => return Err(error),
+            };
+        validate_private_regular_stat(&stat)?;
+        if unsafe { libc::unlinkat(parent.as_raw_fd(), file_name.as_ptr(), 0) } != 0 {
+            return Err(NativeFileTransferRootError::RemoveFile);
+        }
+        Ok(true)
     }
 
     fn remove_empty_directory(&self, relative_path: &Path) -> RootResult<()> {
@@ -352,12 +399,23 @@ impl NativeHostFileServiceOwner {
         self.root.try_open_existing_file_for_resume(relative_path)
     }
 
+    pub(crate) fn try_open_existing_file_for_digest(
+        &self,
+        relative_path: &Path,
+    ) -> RootResult<Option<File>> {
+        self.root.try_open_existing_file_for_digest(relative_path)
+    }
+
     pub(crate) fn create_directory(&self, relative_path: &Path) -> RootResult<()> {
         self.root.create_directory(relative_path)
     }
 
     pub(crate) fn remove_file(&self, relative_path: &Path) -> RootResult<()> {
         self.root.remove_file(relative_path)
+    }
+
+    pub(crate) fn remove_file_if_exists(&self, relative_path: &Path) -> RootResult<bool> {
+        self.root.remove_file_if_exists(relative_path)
     }
 
     pub(crate) fn remove_directory(&self, relative_path: &Path, recursive: bool) -> RootResult<()> {

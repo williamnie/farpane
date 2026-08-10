@@ -12,6 +12,7 @@ file_transfer_block_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-trans
 file_transfer_mutation_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-mutation-dispatch.patch"
 file_transfer_native_new_write_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-new-write.patch"
 file_transfer_native_resume_digest_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-resume-digest.patch"
+file_transfer_native_existing_target_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-existing-target.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 host_file_transfer_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs"
@@ -60,6 +61,10 @@ fi
 
 if git -C "$vendor_dir" apply --check "$file_transfer_mutation_patch_file" 2>/dev/null; then
   git -C "$vendor_dir" apply "$file_transfer_mutation_patch_file"
+elif git -C "$vendor_dir" apply --check --reverse "$file_transfer_native_existing_target_patch_file" 2>/dev/null; then
+  # The existing-target layer overlaps the later write layers. Its reverse
+  # applicability proves the lower mutation layer is already present.
+  :
 elif git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$file_transfer_native_resume_digest_patch_file" 2>/dev/null; then
   # The resume-digest layer overlaps both later file-write layers. Its reverse
   # applicability proves the lower mutation layer is already present.
@@ -76,6 +81,9 @@ fi
 
 if git -C "$vendor_dir" apply --unidiff-zero --check "$file_transfer_native_new_write_patch_file" 2>/dev/null; then
   git -C "$vendor_dir" apply --unidiff-zero "$file_transfer_native_new_write_patch_file"
+elif git -C "$vendor_dir" apply --check --reverse "$file_transfer_native_existing_target_patch_file" 2>/dev/null; then
+  # The existing-target layer proves the lower new-write layer is present.
+  :
 elif git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$file_transfer_native_resume_digest_patch_file" 2>/dev/null; then
   # The resume-digest layer rewrites new-write connection hooks. Its reverse
   # applicability proves the new-write layer is already present underneath.
@@ -88,8 +96,20 @@ fi
 
 if git -C "$vendor_dir" apply --unidiff-zero --check "$file_transfer_native_resume_digest_patch_file" 2>/dev/null; then
   git -C "$vendor_dir" apply --unidiff-zero "$file_transfer_native_resume_digest_patch_file"
+elif git -C "$vendor_dir" apply --check --reverse "$file_transfer_native_existing_target_patch_file" 2>/dev/null; then
+  # The existing-target layer rewrites resume digest confirmation hooks. Its
+  # reverse applicability proves the resume layer is present underneath.
+  :
 elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$file_transfer_native_resume_digest_patch_file" 2>/dev/null; then
   print -u2 "RustDesk checkout has changes that do not match the H6 native resume-digest patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
+if git -C "$vendor_dir" apply --check "$file_transfer_native_existing_target_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$file_transfer_native_existing_target_patch_file"
+elif ! git -C "$vendor_dir" apply --check --reverse "$file_transfer_native_existing_target_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the H6 native existing-target patch"
   git -C "$vendor_dir" status --short >&2
   exit 1
 fi
@@ -128,7 +148,7 @@ cp "$host_file_transfer_source" "$vendor_dir/src/rdn_host_file_transfer.rs"
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$rich_text_patch_file"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_image_patch_file"
-git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$file_transfer_native_resume_digest_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$file_transfer_native_existing_target_patch_file"
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
 git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_patch_file"

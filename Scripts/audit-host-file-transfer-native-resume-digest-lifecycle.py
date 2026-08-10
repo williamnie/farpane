@@ -125,7 +125,8 @@ def main() -> int:
         "connectionReturnsVerifiedOffsetNotConstantZero": all(
             marker in connection
             for marker in (
-                "let offset = self.native_host_write_jobs[index].confirm_file_digest",
+                "let decision = self.native_host_write_jobs[index].confirm_file_digest",
+                "NativeHostWriteDigestDecision::ConfirmedOffset(offset)",
                 "file_transfer_send_confirm_request::Union::OffsetBlk(offset)",
             )
         ) and "confirm_native_host_new_file_digest" not in connection,
@@ -157,7 +158,7 @@ def main() -> int:
             for marker in (
                 "single-file resume",
                 "UInt32",
-                "overwrite",
+                "existing-target decision",
                 "App/Agent",
             )
         ),
