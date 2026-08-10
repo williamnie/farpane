@@ -22,7 +22,7 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 8;
+const ABI_VERSION: u32 = 9;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -102,6 +102,7 @@ type ClipboardTextCallback = unsafe extern "C" fn(*mut c_void, *const u8, usize)
 type ClipboardRichTextCallback =
     unsafe extern "C" fn(*mut c_void, *const RDNClipboardRichTextPayload);
 type ClipboardImageCallback = unsafe extern "C" fn(*mut c_void, *const RDNClipboardImagePayload);
+type FileTransferEventCallback = unsafe extern "C" fn(*mut c_void, *const RDNFileTransferEvent);
 
 #[repr(C)]
 pub struct RDNClipboardRichTextPayload {
@@ -125,6 +126,22 @@ pub struct RDNClipboardImagePayload {
 }
 
 #[repr(C)]
+pub struct RDNFileTransferEvent {
+    abi_version: u32,
+    session_epoch: u64,
+    transfer_id: i32,
+    sequence: u64,
+    kind: u32,
+    failure: u32,
+    current_file_number: i32,
+    files_completed: u32,
+    total_files: u32,
+    bytes_completed: u64,
+    total_bytes: u64,
+    bytes_per_second: f64,
+}
+
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct RDNCallbacks {
     abi_version: u32,
@@ -134,6 +151,7 @@ pub struct RDNCallbacks {
     on_clipboard_text: Option<ClipboardTextCallback>,
     on_clipboard_rich_text: Option<ClipboardRichTextCallback>,
     on_clipboard_image: Option<ClipboardImageCallback>,
+    on_file_transfer_event: Option<FileTransferEventCallback>,
 }
 
 #[repr(C)]
@@ -150,6 +168,8 @@ pub struct RDNConnectionConfig {
     send_clipboard_rich_text: bool,
     receive_clipboard_image: bool,
     send_clipboard_image: bool,
+    enable_file_transfer: bool,
+    file_transfer_session_epoch: u64,
 }
 
 const MODIFIER_SHIFT: u32 = 1 << 0;
@@ -237,6 +257,8 @@ struct BridgeShared {
     receive_clipboard_image: AtomicBool,
     send_clipboard_image: AtomicBool,
     remote_clipboard_enabled: AtomicBool,
+    file_transfer_enabled: AtomicBool,
+    file_transfer_session_epoch: AtomicU64,
 }
 
 impl BridgeShared {
@@ -406,6 +428,7 @@ impl Default for BridgeUi {
                     on_clipboard_text: None,
                     on_clipboard_rich_text: None,
                     on_clipboard_image: None,
+                    on_file_transfer_event: None,
                 },
                 context: 0,
                 active: AtomicBool::new(false),
@@ -421,6 +444,8 @@ impl Default for BridgeUi {
                 receive_clipboard_image: AtomicBool::new(false),
                 send_clipboard_image: AtomicBool::new(false),
                 remote_clipboard_enabled: AtomicBool::new(false),
+                file_transfer_enabled: AtomicBool::new(false),
+                file_transfer_session_epoch: AtomicU64::new(0),
             }),
         }
     }
@@ -671,6 +696,12 @@ impl RDNClient {
         self.shared
             .remote_clipboard_enabled
             .store(false, Ordering::Release);
+        self.shared
+            .file_transfer_enabled
+            .store(false, Ordering::Release);
+        self.shared
+            .file_transfer_session_epoch
+            .store(0, Ordering::Release);
         self.shared.active.store(false, Ordering::Release);
         if let Some(session) = self.session.lock().unwrap().as_ref() {
             if let Some(sender) = session.sender.read().unwrap().as_ref() {
@@ -1169,6 +1200,16 @@ unsafe fn optional_string(pointer: *const c_char) -> Result<String, i32> {
     }
 }
 
+fn viewer_file_transfer_seam_admission(enabled: bool, session_epoch: u64) -> i32 {
+    if enabled != (session_epoch > 0) {
+        -5
+    } else if enabled {
+        -9
+    } else {
+        0
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn rdn_core_abi_version() -> u32 {
     ABI_VERSION
@@ -1203,6 +1244,8 @@ pub unsafe extern "C" fn rdn_client_create(
         receive_clipboard_image: AtomicBool::new(false),
         send_clipboard_image: AtomicBool::new(false),
         remote_clipboard_enabled: AtomicBool::new(false),
+        file_transfer_enabled: AtomicBool::new(false),
+        file_transfer_session_epoch: AtomicU64::new(0),
     });
     Box::into_raw(Box::new(RDNClient {
         shared,
@@ -1231,6 +1274,16 @@ pub unsafe extern "C" fn rdn_client_connect(
     }
     if (*config).abi_version != ABI_VERSION {
         return -2;
+    }
+    let file_transfer_admission = viewer_file_transfer_seam_admission(
+        (*config).enable_file_transfer,
+        (*config).file_transfer_session_epoch,
+    );
+    if file_transfer_admission != 0 {
+        // ABI v9 freezes the policy/epoch seam before the dedicated Viewer
+        // file-transfer event loop exists. Never start a desktop connection
+        // that could be mistaken for an authorized file-transfer session.
+        return file_transfer_admission;
     }
     let client = &*client;
     if client.worker.lock().unwrap().is_some() {
@@ -1291,6 +1344,14 @@ pub unsafe extern "C" fn rdn_client_connect(
         .shared
         .remote_clipboard_enabled
         .store(false, Ordering::Release);
+    client
+        .shared
+        .file_transfer_enabled
+        .store(false, Ordering::Release);
+    client
+        .shared
+        .file_transfer_session_epoch
+        .store(0, Ordering::Release);
     client.shared.sequence.store(0, Ordering::Relaxed);
     *client.shared.dimensions.write().unwrap() = (0, 0);
     client
@@ -1801,6 +1862,35 @@ pub unsafe extern "C" fn rdn_client_send_clipboard_image(
         return -3;
     };
     sender.send(Data::Message(message)).map_or(-3, |_| 0)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_file_transfer_cancel(
+    client: *mut RDNClient,
+    session_epoch: u64,
+    transfer_id: i32,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    if session_epoch == 0 || transfer_id <= 0 {
+        return -4;
+    }
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if !client.shared.file_transfer_enabled.load(Ordering::Acquire) {
+        return -7;
+    }
+    if client
+        .shared
+        .file_transfer_session_epoch
+        .load(Ordering::Acquire)
+        != session_epoch
+    {
+        return -10;
+    }
+    -9
 }
 
 struct PacketInspection {
@@ -2491,6 +2581,54 @@ mod tests {
         assert_eq!(
             unsafe { rdn_client_send_clipboard_image(client_pointer, &payload) },
             -3
+        );
+    }
+
+    #[test]
+    fn viewer_file_transfer_v9_seam_is_exact_pair_and_fail_closed() {
+        assert_eq!(viewer_file_transfer_seam_admission(false, 0), 0);
+        assert_eq!(viewer_file_transfer_seam_admission(false, 1), -5);
+        assert_eq!(viewer_file_transfer_seam_admission(true, 0), -5);
+        assert_eq!(viewer_file_transfer_seam_admission(true, 1), -9);
+
+        let ui = BridgeUi::default();
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(None),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let client_pointer = &mut client as *mut RDNClient;
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 1, 1) },
+            -3
+        );
+        ui.shared.active.store(true, Ordering::Release);
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 0, 1) },
+            -4
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 1, 0) },
+            -4
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 1, 1) },
+            -7
+        );
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(2, Ordering::Release);
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 1, 1) },
+            -10
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_cancel(client_pointer, 2, 1) },
+            -9
         );
     }
 

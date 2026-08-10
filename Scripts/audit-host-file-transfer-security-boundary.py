@@ -313,7 +313,7 @@ def main() -> int:
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-viewer-core-abi-event-command-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-viewer-core-event-command-runtime-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1

@@ -44,7 +44,7 @@ class HostFileTransferNativeReadListSnapshotAuditTests(unittest.TestCase):
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-core-abi-event-command-lifecycle",
+            "host-file-transfer-viewer-core-event-command-runtime-lifecycle",
         )
 
 

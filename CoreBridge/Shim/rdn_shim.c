@@ -19,6 +19,8 @@ typedef int32_t (*client_send_clipboard_rich_text_fn)(
     RDNClient *, const RDNClipboardRichTextPayload *);
 typedef int32_t (*client_send_clipboard_image_fn)(
     RDNClient *, const RDNClipboardImagePayload *);
+typedef int32_t (*client_file_transfer_cancel_fn)(RDNClient *, uint64_t,
+                                                  int32_t);
 typedef uint32_t (*abi_version_fn)(void);
 typedef const char *(*upstream_commit_fn)(void);
 
@@ -55,6 +57,7 @@ struct RDNCoreLibrary {
     client_send_clipboard_text_fn client_send_clipboard_text;
     client_send_clipboard_rich_text_fn client_send_clipboard_rich_text;
     client_send_clipboard_image_fn client_send_clipboard_image;
+    client_file_transfer_cancel_fn client_file_transfer_cancel;
     abi_version_fn abi_version;
     upstream_commit_fn upstream_commit;
     int host_available;
@@ -121,6 +124,9 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     library->client_send_clipboard_image =
         (client_send_clipboard_image_fn)dlsym(
             handle, "rdn_client_send_clipboard_image");
+    library->client_file_transfer_cancel =
+        (client_file_transfer_cancel_fn)dlsym(
+            handle, "rdn_client_file_transfer_cancel");
     library->abi_version = (abi_version_fn)dlsym(handle, "rdn_core_abi_version");
     library->upstream_commit = (upstream_commit_fn)dlsym(handle, "rdn_core_upstream_commit");
     if (library->client_create == NULL || library->client_destroy == NULL ||
@@ -131,6 +137,7 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
         library->client_send_clipboard_text == NULL ||
         library->client_send_clipboard_rich_text == NULL ||
         library->client_send_clipboard_image == NULL ||
+        library->client_file_transfer_cancel == NULL ||
         library->abi_version == NULL || library->upstream_commit == NULL) {
         rdn_shim_close(library);
         write_error(error, error_size, "core library is missing required ABI symbols");
@@ -278,6 +285,15 @@ int32_t rdn_shim_client_send_clipboard_image(
     return library == NULL
                ? -1
                : library->client_send_clipboard_image(client, payload);
+}
+
+int32_t rdn_shim_client_file_transfer_cancel(
+    const RDNCoreLibrary *library, RDNClient *client,
+    uint64_t session_epoch, int32_t transfer_id) {
+    return library == NULL
+               ? RDN_CLIENT_ERR_INVALID_ARGUMENT
+               : library->client_file_transfer_cancel(
+                     client, session_epoch, transfer_id);
 }
 
 int rdn_shim_host_available(const RDNCoreLibrary *library) {

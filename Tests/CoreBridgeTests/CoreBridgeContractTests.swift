@@ -19,7 +19,7 @@ final class CoreBridgeContractTests: XCTestCase {
     }
 
     func testPinsRustDesk149Commit() {
-        XCTAssertEqual(RustDeskCoreClient.abiVersion, 8)
+        XCTAssertEqual(RustDeskCoreClient.abiVersion, 9)
         XCTAssertEqual(
             RustDeskCoreClient.expectedUpstreamCommit,
             "6c578292e8ebbbec708b76986ba8c4bc7c509747"
@@ -824,6 +824,8 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(config.receiveClipboardRichText)
         XCTAssertFalse(config.sendClipboardRichText)
         XCTAssertFalse(config.receiveClipboardImage)
+        XCTAssertFalse(config.fileTransferEnabled)
+        XCTAssertEqual(config.fileTransferSessionEpoch, 0)
         XCTAssertFalse(config.sendClipboardImage)
     }
 
@@ -1019,6 +1021,30 @@ final class CoreBridgeContractTests: XCTestCase {
             CoreClipboardImagePayload.svg("<svg></svg>"),
             CoreClipboardImagePayload.svg("<svg></svg>")
         )
+    }
+
+    func testViewerFileTransferSeamIsDefaultOffAndEpochScoped() {
+        let disabled = CoreConnectionConfig(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            peerID: "123456789"
+        )
+        XCTAssertFalse(disabled.fileTransferEnabled)
+        XCTAssertEqual(disabled.fileTransferSessionEpoch, 0)
+
+        let reserved = CoreConnectionConfig(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            peerID: "123456789",
+            fileTransferEnabled: true,
+            fileTransferSessionEpoch: 7
+        )
+        XCTAssertTrue(reserved.fileTransferEnabled)
+        XCTAssertEqual(reserved.fileTransferSessionEpoch, 7)
+        XCTAssertFalse(reserved.receiveClipboardText)
+        XCTAssertFalse(reserved.sendClipboardText)
+        XCTAssertFalse(reserved.receiveClipboardImage)
+        XCTAssertFalse(reserved.sendClipboardImage)
     }
 
     func testViewerClipboardDeliveryStopsBeforeCoreDisconnect() throws {

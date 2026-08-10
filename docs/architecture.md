@@ -253,8 +253,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   规范化别名、祖先冲突与 private staging，并限制 1,024 entries、1 MiB metadata；connection-local
   progress authority 最多 8 个 job，只接受同 session、严格递增 sequence、单调有界 file/byte progress、
   explicit conflict、typed terminal failure、cancel 与 teardown。该合同不含本地 path/descriptor/raw error。
-  Viewer C ABI callback/command、destination descriptor owner、真实 I/O 与 UI 仍未实现；多文件 upload
-  resume、existing-target replace 也仍未实现。App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
+  Viewer ABI v9 已冻结 default-off 的 exact policy/epoch pair、path-free scalar event callback 与
+  epoch-scoped cancel command；enable pair 会在网络启动前返回 not-supported，ordinary false/0 会话
+  保持原行为。Swift callback 重新验证 ABI、epoch/ID/sequence、单调有界 progress、typed failure 与
+  exact completion，并在 disconnect 前关闭投递。真实 Viewer file event loop、destination descriptor
+  owner、list/download I/O 与 UI 仍未实现；多文件 upload resume、existing-target replace 也仍未实现。
+  App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
 - 视频队列最多保留 2 帧；积压时丢弃旧的非关键帧，优先低延迟而不是完整播放。
 
