@@ -180,7 +180,7 @@ def main() -> int:
             for marker in (
                 "ABI v7 retains the ABI v6",
                 "AppKit-owned pasteboard adapter",
-                "Host Control ABI v13",
+                "Host Control ABI v14",
                 "bootstrap schema v2",
             )
         ),
@@ -236,11 +236,11 @@ def main() -> int:
             "viewerPasteboardOwnerRequired": False,
             "viewerExplicitEnablementRequired": False,
             "hostSmallTextExplicitOptInRequired": False,
-            "richPayloadTransferRequired": True,
+            "richPayloadTransferRequired": False,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-small-text-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-small-text-clipboard-api-default-off" else 1

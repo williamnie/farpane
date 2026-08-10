@@ -217,7 +217,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 13u
+#define RDN_HOST_ABI_VERSION 14u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -298,6 +298,10 @@ typedef struct RdnHostCreateOptions {
      * Both directions must be supplied explicitly and default off in Swift. */
     bool enable_clipboard_read;
     bool enable_clipboard_write;
+    /* Rich text is a separate, default-off capability. Enabling bounded
+     * small text does not implicitly admit RTF or HTML. */
+    bool enable_clipboard_rich_text_read;
+    bool enable_clipboard_rich_text_write;
 } RdnHostCreateOptions;
 
 uint32_t rdn_host_abi_version(void);

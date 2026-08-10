@@ -1,0 +1,156 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -207,0 +208 @@
++    transfer_policy: crate::rdn_host_bridge::NativeClipboardTransferPolicy,
+@@ -230,2 +231,4 @@
+-    fn new(maximum: crate::rdn_host_bridge::NativeClipboardPolicy) -> Self {
+-        let maximum = Self::bits(maximum);
++    fn new(
++        transfer_policy: crate::rdn_host_bridge::NativeClipboardTransferPolicy,
++    ) -> Self {
++        let maximum = Self::bits(transfer_policy.directions());
+@@ -234,0 +238 @@
++            transfer_policy,
+@@ -243,0 +248,4 @@
++    }
++
++    fn transfer_policy(&self) -> crate::rdn_host_bridge::NativeClipboardTransferPolicy {
++        self.transfer_policy
+@@ -988,7 +996,2 @@
+-        if let Some(permissions) = self.native_clipboard_permissions.as_ref() {
+-            let remote_read_allowed = crate::rdn_host_bridge::native_host_is_bound()
+-                && permissions.active_policy().allows_remote_read();
+-            if !crate::rdn_host_bridge::native_host_outgoing_clipboard_message_is_allowed(
+-                &msg,
+-                remote_read_allowed,
+-            ) {
++        let msg = if let Some(permissions) = self.native_clipboard_permissions.as_ref() {
++            if !crate::rdn_host_bridge::native_host_is_bound() {
+@@ -997 +1000,14 @@
+-        }
++            match crate::rdn_host_bridge::native_host_prepare_outgoing_clipboard_message(
++                &msg,
++                permissions.transfer_policy(),
++                permissions.active_policy(),
++            ) {
++                crate::rdn_host_bridge::NativeHostOutgoingClipboardDecision::NotClipboard => msg,
++                crate::rdn_host_bridge::NativeHostOutgoingClipboardDecision::Send(message) => {
++                    Arc::new(message)
++                }
++                crate::rdn_host_bridge::NativeHostOutgoingClipboardDecision::Reject => return,
++            }
++        } else {
++            msg
++        };
+@@ -1117,4 +1133,8 @@
+-            Arc::new(NativeClipboardPermissionState::new(
+-                crate::rdn_host_bridge::native_host_configured_clipboard_policy()
+-                    .restricted_to(clipboard),
+-            ))
++            let transfer_policy =
++                crate::rdn_host_bridge::native_host_configured_clipboard_transfer_policy();
++            let transfer_policy = if clipboard {
++                transfer_policy
++            } else {
++                crate::rdn_host_bridge::NativeClipboardTransferPolicy::default()
++            };
++            Arc::new(NativeClipboardPermissionState::new(transfer_policy))
+@@ -3113,12 +3133,17 @@
+-    fn native_host_allows_remote_clipboard_write(&self, clipboards: &[Clipboard]) -> bool {
+-        self.native_clipboard_permissions
+-            .as_ref()
+-            .map(|permissions| {
+-                crate::rdn_host_bridge::native_host_is_bound()
+-                    && permissions.active_policy().allows_remote_write()
+-                    && !self.disable_clipboard
+-                    && crate::rdn_host_bridge::native_host_clipboard_entries_are_small_text(
+-                        clipboards,
+-                    )
+-            })
+-            .unwrap_or(true)
++    fn native_host_prepare_remote_clipboard_write(
++        &self,
++        clipboards: &[Clipboard],
++    ) -> Option<Vec<Clipboard>> {
++        let Some(permissions) = self.native_clipboard_permissions.as_ref() else {
++            // A binary compiled with the feature may still run without a
++            // native Host binding. Preserve pinned upstream behavior there.
++            return Some(clipboards.to_vec());
++        };
++        if !crate::rdn_host_bridge::native_host_is_bound() || self.disable_clipboard {
++            return None;
++        }
++        crate::rdn_host_bridge::native_host_prepare_incoming_clipboard_entries(
++            clipboards,
++            permissions.transfer_policy(),
++            permissions.active_policy(),
++        )
+@@ -4296 +4321 @@
+-                    let native_host_allows = self.native_host_allows_remote_clipboard_write(
++                    let native_host_clipboards = self.native_host_prepare_remote_clipboard_write(
+@@ -4303,0 +4329,5 @@
++                    #[cfg(all(
++                        feature = "rdn-native-host",
++                        not(any(target_os = "android", target_os = "ios"))
++                    ))]
++                    let native_host_allows = native_host_clipboards.is_some();
+@@ -4308 +4338,12 @@
+-                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                        #[cfg(all(
++                            feature = "rdn-native-host",
++                            not(any(target_os = "android", target_os = "ios"))
++                        ))]
++                        update_clipboard(
++                            native_host_clipboards.expect("admission checked"),
++                            ClipboardSide::Host,
++                        );
++                        #[cfg(all(
++                            not(feature = "rdn-native-host"),
++                            not(any(target_os = "android", target_os = "ios"))
++                        ))]
+@@ -4339,2 +4380,2 @@
+-                    let native_host_allows =
+-                        self.native_host_allows_remote_clipboard_write(&_mcb.clipboards);
++                    let native_host_clipboards =
++                        self.native_host_prepare_remote_clipboard_write(&_mcb.clipboards);
+@@ -4345,0 +4387,5 @@
++                    #[cfg(all(
++                        feature = "rdn-native-host",
++                        not(any(target_os = "android", target_os = "ios"))
++                    ))]
++                    let native_host_allows = native_host_clipboards.is_some();
+@@ -4350 +4396,12 @@
+-                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                        #[cfg(all(
++                            feature = "rdn-native-host",
++                            not(any(target_os = "android", target_os = "ios"))
++                        ))]
++                        update_clipboard(
++                            native_host_clipboards.expect("admission checked"),
++                            ClipboardSide::Host,
++                        );
++                        #[cfg(all(
++                            not(feature = "rdn-native-host"),
++                            not(any(target_os = "android", target_os = "ios"))
++                        ))]
+@@ -9336 +9393,3 @@
+-        use crate::rdn_host_bridge::NativeClipboardPolicy;
++        use crate::rdn_host_bridge::{
++            NativeClipboardPolicy, NativeClipboardTransferPolicy,
++        };
+@@ -9339 +9398,4 @@
+-            NativeClipboardPolicy::bidirectional(true),
++            NativeClipboardTransferPolicy::new(
++                NativeClipboardPolicy::bidirectional(true),
++                NativeClipboardPolicy::default(),
++            ),
+@@ -9352,3 +9414,6 @@
+-        let permissions = NativeClipboardPermissionState::new(NativeClipboardPolicy::new(
+-            true, false,
+-        ));
++        let permissions = NativeClipboardPermissionState::new(
++            NativeClipboardTransferPolicy::new(
++                NativeClipboardPolicy::new(true, false),
++                NativeClipboardPolicy::default(),
++            ),
++        );

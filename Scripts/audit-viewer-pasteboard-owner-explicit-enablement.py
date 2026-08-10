@@ -131,7 +131,7 @@ def main() -> int:
         "hostRemainsDefaultOff": all(
             marker in sources["host"]
             for marker in (
-                "native_host_clipboard_option(NativeClipboardPolicy::default())",
+                "native_host_clipboard_option(NativeClipboardTransferPolicy::default())",
                 '"N"',
             )
         ),
@@ -139,9 +139,9 @@ def main() -> int:
             marker in (sources["architecture"] + sources["readme"])
             for marker in (
                 "AppKit-owned pasteboard adapter",
-                "Host Control ABI v13",
+                "Host Control ABI v14",
                 "bootstrap schema v2",
-                "富文本、图片和文件 promise 不跨 Viewer ABI",
+                "rich AppKit pasteboard owner remains disabled",
             )
         ),
     }
@@ -165,7 +165,7 @@ def main() -> int:
         "sessionGate": line_number(app, "clipboardSessionEpoch == viewerClipboardSessionEpoch"),
         "teardown": line_number(app, "private func stopViewerClipboard()"),
         "hostDefaultOff": line_number(
-            sources["host"], "native_host_clipboard_option(NativeClipboardPolicy::default())"
+            sources["host"], "native_host_clipboard_option(NativeClipboardTransferPolicy::default())"
         ),
         "focusedTests": line_number(
             sources["polling_tests"], "final class ViewerClipboardPollingStateTests"
@@ -204,11 +204,11 @@ def main() -> int:
         },
         "remainingBoundary": {
             "hostSmallTextExplicitOptInRequired": False,
-            "richPayloadTransferRequired": True,
+            "richPayloadTransferRequired": False,
             "physicalOwnershipAndTeardownAcceptanceRequired": True,
             "physicalLatencyAndIdleCPUAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-small-text-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "viewer-pasteboard-owner-explicitly-enabled" else 1

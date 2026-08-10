@@ -29,6 +29,8 @@ def main() -> int:
         "compress": repository / "Vendor/rustdesk/libs/hbb_common/src/compress.rs",
         "upstream_patch": repository
         / "CoreBridge/RustDeskPatch/upstream-1.4.9.patch",
+        "rich_patch": repository
+        / "CoreBridge/RustDeskPatch/h6-rich-text-transfer.patch",
         "hbb_patch": repository
         / "CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch",
     }
@@ -53,7 +55,7 @@ def main() -> int:
     bridge = sources["host_bridge"]
     connection = sources["connection"]
     compress = sources["compress"]
-    patches = sources["upstream_patch"] + sources["hbb_patch"]
+    patches = sources["upstream_patch"] + sources["rich_patch"] + sources["hbb_patch"]
     evidence = {
         "designRequiresDirectionalBoundedText": all(
             marker in design
@@ -67,26 +69,26 @@ def main() -> int:
             marker in bridge
             for marker in (
                 "OPTION_ENABLE_CLIPBOARD",
-                "native_host_clipboard_option(NativeClipboardPolicy::default())",
+                "native_host_clipboard_option(NativeClipboardTransferPolicy::default())",
                 '"N"',
-                "broker.clipboard_policy = NativeClipboardPolicy::default()",
+                "broker.clipboard_transfer_policy = NativeClipboardTransferPolicy::default()",
             )
         ),
         "readDirectionGatesSubscriptionAndSend": all(
             marker in connection + bridge
             for marker in (
-                "active_policy().allows_remote_read()",
-                "native_host_outgoing_clipboard_message_is_allowed(",
+                "permissions.active_policy().allows_remote_read()",
+                "native_host_prepare_outgoing_clipboard_message(",
                 "NativeClipboardDirection::RemoteRead",
             )
         ),
         "writeDirectionGatesBeforePasteboardUpdate": all(
             marker in connection + bridge
             for marker in (
-                "native_host_allows_remote_clipboard_write(",
-                "&& native_host_allows",
+                "native_host_prepare_incoming_clipboard_entries(",
+                "native_host_allows = native_host_clipboards.is_some()",
                 "NativeClipboardDirection::RemoteWrite",
-                "update_clipboard(vec![cb], ClipboardSide::Host)",
+                "native_host_clipboards.expect(\"admission checked\")",
             )
         ),
         "singleSmallUtf8TextOnly": all(
@@ -96,7 +98,7 @@ def main() -> int:
                 "ClipboardFormat::Text =>",
                 "clipboard.special_name.is_empty()",
                 "clipboards.len() == 1",
-                "String::from_utf8(bytes).ok()",
+                "String::from_utf8(decoded).ok()",
                 "!text.contains('\\0')",
             )
         ),
@@ -127,8 +129,8 @@ def main() -> int:
         "trackedPatchCarriesBothDataGates": all(
             marker in patches
             for marker in (
-                "native_host_outgoing_clipboard_message_is_allowed",
-                "native_host_allows_remote_clipboard_write",
+                "native_host_prepare_outgoing_clipboard_message",
+                "native_host_prepare_remote_clipboard_write",
                 "decompress_with_limit",
             )
         ),
@@ -142,13 +144,13 @@ def main() -> int:
         "smallTextLimit": line_number(bridge, "MAX_CLIPBOARD_TEXT_UTF8_BYTES"),
         "payloadValidator": line_number(bridge, "fn native_host_small_text_clipboard("),
         "directionGate": line_number(
-            bridge, "fn native_host_clipboard_direction_allows("
+            bridge, "fn native_host_clipboard_policy_allows("
         ),
         "outgoingGate": line_number(
-            connection, "native_host_outgoing_clipboard_message_is_allowed("
+            bridge, "native_host_prepare_outgoing_clipboard_message("
         ),
         "incomingGate": line_number(
-            connection, "native_host_allows_remote_clipboard_write("
+            connection, "native_host_prepare_remote_clipboard_write("
         ),
         "boundedDecompress": line_number(compress, "pub fn decompress_with_limit("),
         "directionTest": line_number(

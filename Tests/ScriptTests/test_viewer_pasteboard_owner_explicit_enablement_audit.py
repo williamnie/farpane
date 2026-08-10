@@ -49,7 +49,7 @@ class ViewerPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCase):
         self.assertFalse(
             document["remainingBoundary"]["hostSmallTextExplicitOptInRequired"]
         )
-        self.assertTrue(document["remainingBoundary"]["richPayloadTransferRequired"])
+        self.assertFalse(document["remainingBoundary"]["richPayloadTransferRequired"])
         self.assertTrue(
             document["remainingBoundary"]["physicalOwnershipAndTeardownAcceptanceRequired"]
         )
@@ -58,7 +58,7 @@ class ViewerPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-small-text-clipboard-installed-two-mac-acceptance",
+            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
         )
 
 

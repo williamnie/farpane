@@ -157,8 +157,8 @@ def main() -> int:
     )
 
     current_evidence = {
-        "hostABIV13AndSnapshotV8PreserveSessionAvailability": (
-            rust_abi == 13 and header_abi == 13 and snapshot_schema == 8
+        "hostABIV14AndSnapshotV8PreserveSessionAvailability": (
+            rust_abi == 14 and header_abi == 14 and snapshot_schema == 8
         ),
         "rustActiveAquaAuthorityFailsClosed": all(
             marker in patch
@@ -476,7 +476,7 @@ def main() -> int:
     missing = [name for name, present in current_evidence.items() if not present]
 
     target_contract = {
-        "hostABIVersion": 13,
+        "hostABIVersion": 14,
         "snapshotSchemaVersion": 8,
         "topLevelTuple": {
             "available": {

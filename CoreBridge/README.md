@@ -50,16 +50,19 @@ Viewer product composition explicitly enables both text directions and routes
 them through one AppKit-owned pasteboard adapter. That adapter starts only
 after authentication, snapshots rather than uploads the pre-session local
 clipboard, suppresses its own writes, dynamically backs polling off to four
-seconds, and stops before Core disconnect. Host Control ABI v13 now carries
-independent, default-off read/write policy into the Rust Host lifetime and
-persists the upstream Boolean only when either bounded direction is explicitly
-requested. Host bootstrap schema v2 projects the same independent policy to the
-Agent while schema v1 decodes as disabled. Home exposes two explicit switches
-only while Host is off; changing either preference republishes the immutable
-bootstrap, and Host cannot be enabled unless that publication is coherent. The
-legacy foreground Host and background Agent consume the same projection. Small
-text is therefore end-to-end capable after explicit opt-in while remaining off
-by default; images and file promises are still unsupported.
+seconds, and stops before Core disconnect. Host Control ABI v14 retains the
+independent, default-off bounded-text read/write policy and adds separate,
+default-off rich-text read/write policy. The Rust Host lifetime persists the
+pinned upstream Boolean only when at least one small- or rich-text direction is
+explicitly requested; enabling small text never implies RTF or HTML. Host
+bootstrap schema v2 projects only the small-text policy to the Agent while
+schema v1 decodes as disabled. Home exposes two small-text switches only while
+Host is off; changing either preference republishes the immutable bootstrap,
+and Host cannot be enabled unless that publication is coherent. The legacy
+foreground Host and background Agent consume the same projection. Small text
+is therefore end-to-end capable after explicit opt-in while remaining off by
+default; rich product enablement, images, and file promises are still
+unsupported.
 
 ABI v7 retains the ABI v6 bounded small-text contract and adds an independently
 default-off semantic rich-text API. One atomic callback/send payload can carry
@@ -70,20 +73,24 @@ compressed incoming representations use bounded decompression. When rich
 receive is disabled, the lifecycle/permission gate runs before parsing or
 decompression and is checked again before callback delivery. Swift copies all
 callback-scoped bytes synchronously and shares the existing disconnect delivery
-gate. No AppKit pasteboard owner or product configuration enables the rich
-directions yet, and Host rich admission/transport remains a later boundary.
+gate. The Host can now carry the same bounded semantic bundle in both
+directions under its own explicit rich policy, but product configuration does
+not enable those Host directions; the rich AppKit pasteboard owner remains disabled.
 
-The Host rich-payload boundary now classifies wire clipboard formats before
-either directional admission point. Only bounded, non-NUL UTF-8 `Text` may use
-the existing inline path. RTF, HTML, RGBA, PNG, and SVG are explicitly routed
-to a future independent transfer owner and remain rejected by the current
-read/write gates; remote `Special` format names and unknown enum values reject
-outright. Classification does not enable rich clipboard transport.
+The Host rich-payload boundary classifies wire clipboard formats before either
+directional admission point. Only bounded, non-NUL UTF-8 `Text` may use the
+small-text path. RTF and HTML must form one owned semantic bundle and are
+admitted only by the matching rich direction; RGBA, PNG, SVG, remote `Special`
+format names, and unknown enum values still reject outright. Classification
+alone does not enable rich clipboard transport.
 
 RTF/HTML now have a Rust-owned semantic envelope before any future transfer
 path. It accepts only exact rich-text formats with empty special metadata and
 zero image dimensions, owns the decoded UTF-8 `String`, rejects NUL, and caps
-both the wire payload and bounded decompression output at 1 MiB. The current
-Host data plane still admits only `InlineSmallText`: ABI v7 can safely represent
-Viewer rich text, but no Host rich admission, network transfer owner, AppKit
-pasteboard integration, image payload, or product enablement is connected yet.
+both the wire payload and bounded decompression output at 1 MiB. Host Control
+ABI v14 binds this path to separate rich read/write directions. Incoming and
+outgoing messages are rebuilt as canonical, uncompressed Text/RTF/HTML entries
+before reaching the pinned pasteboard helper or network writer, and the active
+session's directional revoke applies before format admission. Product Host
+configuration, the Viewer AppKit owner, image payloads, and file promises remain
+disabled.

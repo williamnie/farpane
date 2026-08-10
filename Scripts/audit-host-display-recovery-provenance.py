@@ -250,7 +250,7 @@ def main() -> int:
             "recoveryEvidenceOwner.cancelAndWait()",
         ),
         "currentABIVersionsAreSynchronized": (
-            rust_host_abi == header_host_abi == 13
+            rust_host_abi == header_host_abi == 14
             and rust_media_abi == header_media_abi == 1
         ),
     }
@@ -290,12 +290,12 @@ def main() -> int:
 
     target_contract = {
         "versioning": {
-            "hostControlABI": 13,
+            "hostControlABI": 14,
             "hostEventEnvelopeSchema": 1,
             "hostMediaABI": 1,
             "rule": (
-                "Host ABI bump is required because the event semantics change; "
-                "the encoded-packet C structs do not change"
+                "Host ABI v13 introduced the event semantics; current v14 retains "
+                "them while the encoded-packet C structs remain unchanged"
             ),
         },
         "rustAuthority": {

@@ -40,11 +40,14 @@ class HostClipboardRichTransferBoundaryAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["richTypesClassified"])
         self.assertFalse(document["claims"]["richTypesAdmittedToInlinePath"])
         self.assertFalse(document["claims"]["specialUTIOrFormatAccepted"])
-        self.assertFalse(document["claims"]["independentRichTransferImplemented"])
-        self.assertTrue(all(document["remainingBoundary"].values()))
+        self.assertTrue(document["claims"]["independentRichTransferImplemented"])
+        self.assertFalse(document["remainingBoundary"]["boundedRichTransferEnvelopeRequired"])
+        self.assertFalse(document["remainingBoundary"]["richViewerABIRequired"])
+        self.assertTrue(document["remainingBoundary"]["richPasteboardOwnerRequired"])
+        self.assertTrue(document["remainingBoundary"]["installedTwoMacAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "bounded-rich-text-transfer-envelope-contract",
+            "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
         )
 
 

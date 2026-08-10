@@ -65,7 +65,7 @@ def main() -> int:
     tests = sources["core_tests"] + sources["host_tests"] + bridge
 
     policy_call = bridge.find(
-        "apply_native_host_optional_capability_policy(host.clipboard_policy);"
+        "apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);"
     )
     identity_read = bridge.find("host.local_id = config::Config::get_id();")
     evidence = {
@@ -76,7 +76,7 @@ def main() -> int:
                 "host-clipboard-bootstrap-home-opt-in-contract",
             )
         ),
-        "hostABIV13IsSynchronized": header_abi == rust_abi == 13,
+        "hostABIV14RetainsSmallTextPolicy": header_abi == rust_abi == 14,
         "cCreateOptionsCarryIndependentDirections": all(
             marker in header
             for marker in (
@@ -96,16 +96,16 @@ def main() -> int:
         "rustCopiesPolicyIntoHostLifetime": all(
             marker in bridge
             for marker in (
-                "clipboard_policy: NativeClipboardPolicy",
+                "clipboard_transfer_policy: NativeClipboardTransferPolicy",
                 "(*options).enable_clipboard_read",
                 "(*options).enable_clipboard_write",
-                "broker.clipboard_policy = host.clipboard_policy",
+                "broker.clipboard_transfer_policy = host.clipboard_transfer_policy",
             )
         ),
         "upstreamBooleanIsOnlyAnExplicitAdapter": all(
             marker in bridge
             for marker in (
-                "fn native_host_clipboard_option(policy: NativeClipboardPolicy)",
+                "fn native_host_clipboard_option(policy: NativeClipboardTransferPolicy)",
                 "if policy.any_enabled()",
                 '"Y"',
                 '"N"',
@@ -158,7 +158,7 @@ def main() -> int:
             sources["design"],
             "H6.2i1 Host small-text clipboard explicit-policy ABI seam",
         ),
-        "hostABIV13": line_number(header, "RDN_HOST_ABI_VERSION 13u"),
+        "hostABIV14": line_number(header, "RDN_HOST_ABI_VERSION 14u"),
         "cReadDirection": line_number(header, "bool enable_clipboard_read;"),
         "cWriteDirection": line_number(header, "bool enable_clipboard_write;"),
         "swiftReadDefault": line_number(
@@ -172,7 +172,7 @@ def main() -> int:
         ),
         "policyApplication": line_number(
             bridge,
-            "apply_native_host_optional_capability_policy(host.clipboard_policy);",
+            "apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);",
         ),
         "policyReadback": line_number(
             bridge, "native_host_clipboard_option(clipboard_policy)"
@@ -211,6 +211,7 @@ def main() -> int:
             "hostProductExplicitOptInCapable": True,
             "endToEndSmallTextExplicitOptInCapable": True,
             "richClipboardEnabled": False,
+            "richClipboardTransportCapable": True,
             "fileTransferEnabled": False,
             "systemAudioEnabled": False,
         },
@@ -218,9 +219,9 @@ def main() -> int:
             "backgroundBootstrapPropagationRequired": False,
             "homeOptInControlsRequired": False,
             "installedTwoMacAcceptanceRequired": True,
-            "richPayloadTransferRequired": True,
+            "richPayloadTransferRequired": False,
         },
-        "nextImplementationBoundary": "host-small-text-clipboard-installed-two-mac-acceptance",
+        "nextImplementationBoundary": "viewer-rich-text-pasteboard-owner-explicit-enablement-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-clipboard-explicit-policy-abi-ready-default-off" else 1

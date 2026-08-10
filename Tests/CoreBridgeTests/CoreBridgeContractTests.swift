@@ -832,6 +832,8 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         XCTAssertFalse(disabled.clipboardReadEnabled)
         XCTAssertFalse(disabled.clipboardWriteEnabled)
+        XCTAssertFalse(disabled.clipboardRichTextReadEnabled)
+        XCTAssertFalse(disabled.clipboardRichTextWriteEnabled)
 
         let readOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
@@ -840,6 +842,8 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         XCTAssertTrue(readOnly.clipboardReadEnabled)
         XCTAssertFalse(readOnly.clipboardWriteEnabled)
+        XCTAssertFalse(readOnly.clipboardRichTextReadEnabled)
+        XCTAssertFalse(readOnly.clipboardRichTextWriteEnabled)
 
         let writeOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
@@ -848,6 +852,28 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         XCTAssertFalse(writeOnly.clipboardReadEnabled)
         XCTAssertTrue(writeOnly.clipboardWriteEnabled)
+        XCTAssertFalse(writeOnly.clipboardRichTextReadEnabled)
+        XCTAssertFalse(writeOnly.clipboardRichTextWriteEnabled)
+
+        let richReadOnly = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            clipboardRichTextReadEnabled: true
+        )
+        XCTAssertFalse(richReadOnly.clipboardReadEnabled)
+        XCTAssertFalse(richReadOnly.clipboardWriteEnabled)
+        XCTAssertTrue(richReadOnly.clipboardRichTextReadEnabled)
+        XCTAssertFalse(richReadOnly.clipboardRichTextWriteEnabled)
+
+        let richWriteOnly = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            clipboardRichTextWriteEnabled: true
+        )
+        XCTAssertFalse(richWriteOnly.clipboardReadEnabled)
+        XCTAssertFalse(richWriteOnly.clipboardWriteEnabled)
+        XCTAssertFalse(richWriteOnly.clipboardRichTextReadEnabled)
+        XCTAssertTrue(richWriteOnly.clipboardRichTextWriteEnabled)
     }
 
     func testViewerClipboardDirectionsAreExplicitAndIndependent() {
