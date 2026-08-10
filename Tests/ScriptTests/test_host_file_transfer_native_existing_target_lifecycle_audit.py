@@ -39,12 +39,12 @@ class HostFileTransferNativeExistingTargetLifecycleAuditTests(unittest.TestCase)
         self.assertTrue(claims["nativeSingleFileResumeDigestLifecycleImplemented"])
         self.assertTrue(claims["nativeExistingTargetDecisionImplemented"])
         self.assertFalse(claims["nativeExistingTargetReplacementImplemented"])
-        self.assertFalse(claims["nativeReadListDownloadImplemented"])
+        self.assertTrue(claims["nativeReadListDownloadImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-read-list-download-lifecycle",
+            "host-file-transfer-viewer-destination-progress-api-contract",
         )
 
 

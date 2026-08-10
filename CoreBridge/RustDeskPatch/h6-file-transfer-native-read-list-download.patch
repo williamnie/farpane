@@ -1,0 +1,665 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -694,8 +694,55 @@
+ const NATIVE_HOST_FILE_WRITE_UNAVAILABLE: &str = "native-file-write-unavailable";
+ #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+ const MAX_NATIVE_HOST_WRITE_JOBS_PER_CONNECTION: usize = 8;
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++const NATIVE_HOST_FILE_READ_REJECTED: &str = "native-file-read-rejected";
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++const NATIVE_HOST_FILE_READ_UNAVAILABLE: &str = "native-file-read-unavailable";
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++const MAX_NATIVE_HOST_READ_JOBS_PER_CONNECTION: usize = 8;
++
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++fn native_host_read_file_entries(
++    entries: Vec<crate::rdn_host_bridge::NativeHostReadListEntry>,
++) -> Vec<FileEntry> {
++    entries
++        .into_iter()
++        .map(|entry| FileEntry {
++            entry_type: match entry.kind() {
++                crate::rdn_host_bridge::NativeHostReadEntryKind::Directory => FileType::Dir,
++                crate::rdn_host_bridge::NativeHostReadEntryKind::File => FileType::File,
++            }
++            .into(),
++            name: entry.name().to_owned(),
++            size: entry.size(),
++            modified_time: entry.modified_time(),
++            ..Default::default()
++        })
++        .collect()
++}
+
+ #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++fn native_host_read_confirmation(
++    request: &FileTransferSendConfirmRequest,
++) -> Result<
++    crate::rdn_host_bridge::NativeHostReadConfirmation,
++    crate::rdn_host_bridge::NativeHostReadJobError,
++> {
++    match request.union {
++        Some(file_transfer_send_confirm_request::Union::Skip(true)) => {
++            Ok(crate::rdn_host_bridge::NativeHostReadConfirmation::Skip)
++        }
++        Some(file_transfer_send_confirm_request::Union::Skip(false)) => {
++            Ok(crate::rdn_host_bridge::NativeHostReadConfirmation::ContinueAt { offset: 0 })
++        }
++        Some(file_transfer_send_confirm_request::Union::OffsetBlk(offset)) => {
++            Ok(crate::rdn_host_bridge::NativeHostReadConfirmation::ContinueAt { offset })
++        }
++        _ => Err(crate::rdn_host_bridge::NativeHostReadJobError::InvalidConfirmation),
++    }
++}
++
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+ fn native_host_file_mutation_response(
+     id: i32,
+     file_num: i32,
+@@ -887,6 +934,8 @@
+     server: super::ServerPtrWeak,
+     hash: Hash,
+     read_jobs: Vec<fs::TransferJob>,
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    native_host_read_jobs: Vec<crate::rdn_host_bridge::NativeHostReadJob>,
+     #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+     native_host_write_jobs: Vec<crate::rdn_host_bridge::NativeHostWriteJob>,
+     timer: crate::RustDeskInterval,
+@@ -1193,6 +1242,8 @@
+             server,
+             hash,
+             read_jobs: Vec::new(),
++            #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++            native_host_read_jobs: Vec::new(),
+             timer: crate::rustdesk_interval(time::interval(SEC30)),
+             file_timer: crate::rustdesk_interval(time::interval(SEC30)),
+             file_transfer: None,
+@@ -1758,6 +1809,8 @@
+                     }
+                 },
+                 _ = conn.file_timer.tick() => {
++                    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                    conn.poll_native_host_read_job().await;
+                     if !conn.read_jobs.is_empty() {
+                         conn.send_to_cm(ipc::Data::FileTransferLog(("transfer".to_string(), fs::serialize_transfer_jobs(&conn.read_jobs))));
+                         match fs::handle_read_jobs(&mut conn.read_jobs, &mut conn.stream).await {
+@@ -1771,7 +1824,15 @@
+                                 break;
+                             }
+                         }
+-                    } else {
++                    }
++                    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                    let native_host_read_ready = conn
++                        .native_host_read_jobs
++                        .iter()
++                        .any(|job| !job.is_waiting_for_confirmation());
++                    #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                    let native_host_read_ready = false;
++                    if conn.read_jobs.is_empty() && !native_host_read_ready {
+                         conn.file_timer = crate::rustdesk_interval(time::interval_at(Instant::now() + SEC30, SEC30));
+                     }
+                 }
+@@ -2852,13 +2913,19 @@
+             self.keyboard = false;
+             #[cfg(not(any(target_os = "android", target_os = "ios")))]
+             let _ = self.input_permission.set_enabled(false);
+-            let dir = if !dir.is_empty() && std::path::Path::new(&dir).is_dir() {
++            #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++            let native_host_dir = crate::rdn_host_bridge::native_host_is_bound();
++            #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++            let native_host_dir = false;
++            let dir = if native_host_dir {
++                &dir
++            } else if !dir.is_empty() && std::path::Path::new(&dir).is_dir() {
+                 &dir
+             } else {
+                 ""
+             };
+             if !wait_session_id_confirm {
+-                self.read_dir(dir, show_hidden);
++                self.read_dir(dir, show_hidden).await;
+             } else {
+                 self.delayed_read_dir = Some((dir.to_owned(), show_hidden));
+             }
+@@ -3326,7 +3393,308 @@
+             return false;
+         };
+         self.send(response).await;
++        true
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn send_native_host_read_failure(
++        &mut self,
++        id: i32,
++        file_num: i32,
++        error: crate::rdn_host_bridge::NativeHostReadJobError,
++    ) {
++        let error = if matches!(
++            error,
++            crate::rdn_host_bridge::NativeHostReadJobError::Unavailable
++        ) {
++            NATIVE_HOST_FILE_READ_UNAVAILABLE
++        } else {
++            NATIVE_HOST_FILE_READ_REJECTED
++        };
++        self.send(fs::new_error(id, error, file_num)).await;
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn send_native_host_directory(&mut self, path: &str, include_hidden: bool) -> bool {
++        use crate::rdn_host_bridge::{NativeHostFileReadOutcome, NativeHostReadJobError};
++
++        match crate::rdn_host_bridge::native_host_list_directory(path, include_hidden) {
++            NativeHostFileReadOutcome::NotNativeHost => false,
++            NativeHostFileReadOutcome::Succeeded((path, entries)) => {
++                self.send(fs::new_dir(0, path, native_host_read_file_entries(entries)))
++                    .await;
++                true
++            }
++            NativeHostFileReadOutcome::Rejected(error) => {
++                self.send_native_host_read_failure(0, -1, error).await;
++                true
++            }
++            NativeHostFileReadOutcome::Unavailable => {
++                self.send_native_host_read_failure(0, -1, NativeHostReadJobError::Unavailable)
++                    .await;
++                true
++            }
++        }
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn send_native_host_empty_directories(
++        &mut self,
++        path: &str,
++        include_hidden: bool,
++    ) -> bool {
++        use crate::rdn_host_bridge::{NativeHostFileReadOutcome, NativeHostReadJobError};
++
++        match crate::rdn_host_bridge::native_host_list_empty_directories(path, include_hidden) {
++            NativeHostFileReadOutcome::NotNativeHost => false,
++            NativeHostFileReadOutcome::Succeeded((path, empty_directories)) => {
++                let mut response = FileResponse::new();
++                response.set_empty_dirs(ReadEmptyDirsResponse {
++                    path,
++                    empty_dirs: empty_directories
++                        .into_iter()
++                        .map(|path| FileDirectory {
++                            path,
++                            ..Default::default()
++                        })
++                        .collect(),
++                    ..Default::default()
++                });
++                let mut message = Message::new();
++                message.set_file_response(response);
++                self.send(message).await;
++                true
++            }
++            NativeHostFileReadOutcome::Rejected(error) => {
++                self.send_native_host_read_failure(0, -1, error).await;
++                true
++            }
++            NativeHostFileReadOutcome::Unavailable => {
++                self.send_native_host_read_failure(0, -1, NativeHostReadJobError::Unavailable)
++                    .await;
++                true
++            }
++        }
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn send_native_host_all_files(
++        &mut self,
++        id: i32,
++        path: &str,
++        include_hidden: bool,
++    ) -> bool {
++        use crate::rdn_host_bridge::{NativeHostFileReadOutcome, NativeHostReadJobError};
++
++        match crate::rdn_host_bridge::native_host_list_files_recursive(path, include_hidden) {
++            NativeHostFileReadOutcome::NotNativeHost => false,
++            NativeHostFileReadOutcome::Succeeded((path, entries)) => {
++                self.send(fs::new_dir(
++                    id,
++                    path,
++                    native_host_read_file_entries(entries),
++                ))
++                .await;
++                true
++            }
++            NativeHostFileReadOutcome::Rejected(error) => {
++                self.send_native_host_read_failure(id, -1, error).await;
++                true
++            }
++            NativeHostFileReadOutcome::Unavailable => {
++                self.send_native_host_read_failure(id, -1, NativeHostReadJobError::Unavailable)
++                    .await;
++                true
++            }
++        }
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn begin_native_host_read_job(
++        &mut self,
++        request: &FileTransferSendRequest,
++        overwrite_detection: bool,
++    ) -> bool {
++        use crate::rdn_host_bridge::{NativeHostReadJobAdmission, NativeHostReadJobError};
++
++        match crate::rdn_host_bridge::native_host_begin_read_job(
++            request.id,
++            &request.path,
++            request.file_num,
++            request.include_hidden,
++            overwrite_detection,
++        ) {
++            NativeHostReadJobAdmission::NotNativeHost => false,
++            NativeHostReadJobAdmission::Admitted(job) => {
++                let duplicate = self
++                    .native_host_read_jobs
++                    .iter()
++                    .any(|active| active.id() == request.id)
++                    || self
++                        .native_host_write_jobs
++                        .iter()
++                        .any(|active| active.id() == request.id)
++                    || self.read_jobs.iter().any(|active| active.id == request.id)
++                    || self.cm_read_job_ids.contains(&request.id);
++                if duplicate {
++                    self.send_native_host_read_failure(
++                        request.id,
++                        request.file_num,
++                        NativeHostReadJobError::DuplicateJob,
++                    )
++                    .await;
++                    return true;
++                }
++                if self.native_host_read_jobs.len() >= MAX_NATIVE_HOST_READ_JOBS_PER_CONNECTION {
++                    self.send_native_host_read_failure(
++                        request.id,
++                        request.file_num,
++                        NativeHostReadJobError::TooManyJobs,
++                    )
++                    .await;
++                    return true;
++                }
++                let path = job.wire_path().to_owned();
++                let entries = native_host_read_file_entries(job.entries());
++                self.send(fs::new_dir(request.id, path.clone(), entries.clone()))
++                    .await;
++                self.post_file_audit(
++                    FileAuditType::RemoteSend,
++                    &path,
++                    Self::get_files_for_audit(fs::JobType::Generic, entries),
++                    json!({}),
++                );
++                self.native_host_read_jobs.push(job);
++                self.file_timer = crate::rustdesk_interval(time::interval(MILLI1));
++                true
++            }
++            NativeHostReadJobAdmission::Rejected(error) => {
++                self.send_native_host_read_failure(request.id, request.file_num, error)
++                    .await;
++                true
++            }
++            NativeHostReadJobAdmission::Unavailable => {
++                self.send_native_host_read_failure(
++                    request.id,
++                    request.file_num,
++                    NativeHostReadJobError::Unavailable,
++                )
++                .await;
++                true
++            }
++        }
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn poll_native_host_read_job(&mut self) -> bool {
++        use crate::rdn_host_bridge::NativeHostReadJobStep;
++
++        let Some(index) = self
++            .native_host_read_jobs
++            .iter()
++            .position(|job| !job.is_waiting_for_confirmation())
++        else {
++            return false;
++        };
++        let id = self.native_host_read_jobs[index].id();
++        let result = self.native_host_read_jobs[index].poll();
++        match result {
++            Ok(NativeHostReadJobStep::WaitingForConfirmation) => {}
++            Ok(NativeHostReadJobStep::Digest {
++                file_num,
++                file_size,
++                modified_time,
++            }) => {
++                let mut response = FileResponse::new();
++                response.set_digest(FileTransferDigest {
++                    id,
++                    file_num,
++                    file_size,
++                    last_modified: modified_time,
++                    is_upload: false,
++                    ..Default::default()
++                });
++                let mut message = Message::new();
++                message.set_file_response(response);
++                self.send(message).await;
++            }
++            Ok(NativeHostReadJobStep::Block {
++                file_num,
++                data,
++                compressed,
++            }) => {
++                self.send(fs::new_block(FileTransferBlock {
++                    id,
++                    file_num,
++                    data: data.into(),
++                    compressed,
++                    ..Default::default()
++                }))
++                .await;
++            }
++            Ok(NativeHostReadJobStep::Done { file_num }) => {
++                self.native_host_read_jobs.remove(index);
++                self.send(fs::new_done(id, file_num)).await;
++            }
++            Err(error) => {
++                self.native_host_read_jobs.remove(index);
++                self.send_native_host_read_failure(id, -1, error).await;
++            }
++        }
++        true
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    async fn confirm_native_host_read_job(
++        &mut self,
++        request: &FileTransferSendConfirmRequest,
++    ) -> bool {
++        use crate::rdn_host_bridge::NativeHostReadJobError;
++
++        let Some(index) = self
++            .native_host_read_jobs
++            .iter()
++            .position(|job| job.id() == request.id)
++        else {
++            return false;
++        };
++        let confirmation = match native_host_read_confirmation(request) {
++            Ok(confirmation) => confirmation,
++            Err(_) => {
++                self.native_host_read_jobs.remove(index);
++                self.send_native_host_read_failure(
++                    request.id,
++                    request.file_num,
++                    NativeHostReadJobError::InvalidConfirmation,
++                )
++                .await;
++                return true;
++            }
++        };
++        if let Err(error) =
++            self.native_host_read_jobs[index].confirm(request.file_num, confirmation)
++        {
++            self.native_host_read_jobs.remove(index);
++            self.send_native_host_read_failure(request.id, request.file_num, error)
++                .await;
++        } else {
++            self.file_timer = crate::rustdesk_interval(time::interval(MILLI1));
++        }
+         true
++    }
++
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    fn cancel_native_host_read_job(&mut self, id: i32) -> bool {
++        if let Some(index) = self
++            .native_host_read_jobs
++            .iter()
++            .position(|job| job.id() == id)
++        {
++            self.native_host_read_jobs.remove(index);
++            true
++        } else {
++            false
++        }
+     }
+
+     #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+@@ -4899,13 +5267,21 @@
+                         }
+                         match fa.union {
+                             Some(file_action::Union::ReadEmptyDirs(rd)) => {
+-                                self.read_empty_dirs(&rd.path, rd.include_hidden);
++                                self.read_empty_dirs(&rd.path, rd.include_hidden).await;
+                             }
+                             Some(file_action::Union::ReadDir(rd)) => {
+-                                self.read_dir(&rd.path, rd.include_hidden);
++                                self.read_dir(&rd.path, rd.include_hidden).await;
+                             }
+                             Some(file_action::Union::AllFiles(f)) => {
+-                                if crate::common::need_fs_cm_send_files() {
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let handled_by_native_host = self
++                                    .send_native_host_all_files(f.id, &f.path, f.include_hidden)
++                                    .await;
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let handled_by_native_host = false;
++                                if handled_by_native_host {
++                                    // Native Host exposes only its pinned virtual file root.
++                                } else if crate::common::need_fs_cm_send_files() {
+                                     self.send_fs(ipc::FS::ReadAllFiles {
+                                         path: f.path,
+                                         id: f.id,
+@@ -4946,7 +5322,20 @@
+                                         let od = can_enable_overwrite_detection(
+                                             get_version_number(&self.lr.version),
+                                         );
+-                                        if crate::common::need_fs_cm_send_files() {
++                                        #[cfg(all(
++                                            feature = "rdn-native-host",
++                                            target_os = "macos"
++                                        ))]
++                                        let handled_by_native_host =
++                                            self.begin_native_host_read_job(&s, od).await;
++                                        #[cfg(not(all(
++                                            feature = "rdn-native-host",
++                                            target_os = "macos"
++                                        )))]
++                                        let handled_by_native_host = false;
++                                        if handled_by_native_host {
++                                            // Native Host owns the descriptor-relative read job.
++                                        } else if crate::common::need_fs_cm_send_files() {
+                                             // Delegate file reading to CM on Windows
+                                             self.cm_read_job_ids.insert(id);
+                                             self.send_fs(ipc::FS::ReadFile {
+@@ -5117,6 +5506,10 @@
+                             }
+                             Some(file_action::Union::Cancel(c)) => {
+                                 #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                let native_read_cancelled = self.cancel_native_host_read_job(c.id);
++                                #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
++                                let native_read_cancelled = false;
++                                #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+                                 let native_write_cancelled =
+                                     self.cancel_native_host_write_job(c.id);
+                                 #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
+@@ -5124,11 +5517,13 @@
+                                 if !native_write_cancelled {
+                                     self.send_fs(ipc::FS::CancelWrite { id: c.id });
+                                 }
+-                                let _ = self.cm_read_job_ids.remove(&c.id);
+-                                self.send_fs(ipc::FS::CancelRead {
+-                                    id: c.id,
+-                                    conn_id: self.inner.id(),
+-                                });
++                                if !native_read_cancelled {
++                                    let _ = self.cm_read_job_ids.remove(&c.id);
++                                    self.send_fs(ipc::FS::CancelRead {
++                                        id: c.id,
++                                        conn_id: self.inner.id(),
++                                    });
++                                }
+                                 if let Some(job) = fs::remove_job(c.id, &mut self.read_jobs) {
+                                     self.send_to_cm(ipc::Data::FileTransferLog((
+                                         "transfer".to_string(),
+@@ -5138,26 +5533,36 @@
+                             }
+                             Some(file_action::Union::SendConfirm(r)) => {
+                                 #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+-                                let handled_by_native_host = self
+-                                    .confirm_native_host_existing_target_decision(&r)
+-                                    .await;
++                                let handled_by_native_host =
++                                    self.confirm_native_host_existing_target_decision(&r).await;
+                                 #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
+                                 let handled_by_native_host = false;
+                                 if handled_by_native_host {
+                                     // Native Host write jobs own existing-target decisions.
+-                                } else if let Some(job) = fs::get_job(r.id, &mut self.read_jobs) {
+-                                    job.confirm(&r).await;
+-                                } else if self.cm_read_job_ids.contains(&r.id) {
+-                                    // Forward to CM for CM-read jobs
+-                                    self.send_fs(ipc::FS::SendConfirmForRead {
+-                                        id: r.id,
+-                                        file_num: r.file_num,
+-                                        skip: r.skip(),
+-                                        offset_blk: r.offset_blk(),
+-                                        conn_id: self.inner.id(),
+-                                    });
+                                 } else {
+-                                    if let Ok(sc) = r.write_to_bytes() {
++                                    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++                                    let handled_by_native_host =
++                                        self.confirm_native_host_read_job(&r).await;
++                                    #[cfg(not(all(
++                                        feature = "rdn-native-host",
++                                        target_os = "macos"
++                                    )))]
++                                    let handled_by_native_host = false;
++                                    if handled_by_native_host {
++                                        // Native Host read jobs own download confirmations.
++                                    } else if let Some(job) = fs::get_job(r.id, &mut self.read_jobs)
++                                    {
++                                        job.confirm(&r).await;
++                                    } else if self.cm_read_job_ids.contains(&r.id) {
++                                        // Forward to CM for CM-read jobs
++                                        self.send_fs(ipc::FS::SendConfirmForRead {
++                                            id: r.id,
++                                            file_num: r.file_num,
++                                            skip: r.skip(),
++                                            offset_blk: r.offset_blk(),
++                                            conn_id: self.inner.id(),
++                                        });
++                                    } else if let Ok(sc) = r.write_to_bytes() {
+                                         self.send_fs(ipc::FS::SendConfirm(sc));
+                                     }
+                                 }
+@@ -5245,8 +5650,11 @@
+                     }
+                     Some(file_response::Union::Error(e)) => {
+                         #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+-                        let handled_by_native_host =
+-                            self.reject_native_host_write_error(&e).await;
++                        let handled_by_native_host = if self.cancel_native_host_read_job(e.id) {
++                            true
++                        } else {
++                            self.reject_native_host_write_error(&e).await
++                        };
+                         #[cfg(not(all(feature = "rdn-native-host", target_os = "macos")))]
+                         let handled_by_native_host = false;
+                         if !handled_by_native_host {
+@@ -5420,7 +5828,7 @@
+                             }
+                             if self.file_transfer.is_some() {
+                                 if let Some((dir, show_hidden)) = self.delayed_read_dir.take() {
+-                                    self.read_dir(&dir, show_hidden);
++                                    self.read_dir(&dir, show_hidden).await;
+                                 }
+                             } else if self.view_camera {
+                                 self.try_sub_camera_displays();
+@@ -6680,6 +7088,8 @@
+             return;
+         }
+         self.closed = true;
++        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++        self.native_host_read_jobs.clear();
+         // If voice A,B -> C, and A,B has voice call
+         // B disconnects, C will reset the voice call input.
+         //
+@@ -6934,7 +7344,14 @@
+         }
+     }
+
+-    fn read_empty_dirs(&mut self, dir: &str, include_hidden: bool) {
++    async fn read_empty_dirs(&mut self, dir: &str, include_hidden: bool) {
++        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++        if self
++            .send_native_host_empty_directories(dir, include_hidden)
++            .await
++        {
++            return;
++        }
+         let dir = dir.to_string();
+         self.send_fs(ipc::FS::ReadEmptyDirs {
+             dir,
+@@ -6942,7 +7359,11 @@
+         });
+     }
+
+-    fn read_dir(&mut self, dir: &str, include_hidden: bool) {
++    async fn read_dir(&mut self, dir: &str, include_hidden: bool) {
++        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++        if self.send_native_host_directory(dir, include_hidden).await {
++            return;
++        }
+         let dir = dir.to_string();
+         self.send_fs(ipc::FS::ReadDir {
+             dir,
+@@ -8844,6 +9265,41 @@
+     #[allow(unused)]
+     use super::*;
+
++    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++    #[test]
++    fn native_host_read_confirmation_maps_wire_decisions_fail_closed() {
++        use crate::rdn_host_bridge::{NativeHostReadConfirmation, NativeHostReadJobError};
++
++        let request = |union| FileTransferSendConfirmRequest {
++            id: 1,
++            file_num: 2,
++            union,
++            ..Default::default()
++        };
++        assert_eq!(
++            native_host_read_confirmation(&request(Some(
++                file_transfer_send_confirm_request::Union::Skip(true),
++            ))),
++            Ok(NativeHostReadConfirmation::Skip)
++        );
++        assert_eq!(
++            native_host_read_confirmation(&request(Some(
++                file_transfer_send_confirm_request::Union::Skip(false),
++            ))),
++            Ok(NativeHostReadConfirmation::ContinueAt { offset: 0 })
++        );
++        assert_eq!(
++            native_host_read_confirmation(&request(Some(
++                file_transfer_send_confirm_request::Union::OffsetBlk(7),
++            ))),
++            Ok(NativeHostReadConfirmation::ContinueAt { offset: 7 })
++        );
++        assert_eq!(
++            native_host_read_confirmation(&request(None)),
++            Err(NativeHostReadJobError::InvalidConfirmation)
++        );
++    }
++
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+     #[test]
+     fn input_receiver_disconnect_releases_local_block_before_exit() {

@@ -28,7 +28,7 @@ class HostFileTransferNativeReadListSnapshotAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["status"],
-            "native-read-list-snapshot-implemented-connection-product-off",
+            "native-read-list-snapshot-and-connection-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -36,14 +36,14 @@ class HostFileTransferNativeReadListSnapshotAuditTests(unittest.TestCase):
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
         self.assertTrue(claims["nativeReadListSnapshotPrimitiveImplemented"])
-        self.assertFalse(
+        self.assertTrue(
             claims["nativeReadListDownloadConnectionLifecycleImplemented"]
         )
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-native-read-list-download-connection-lifecycle",
+            "host-file-transfer-viewer-destination-progress-api-contract",
         )
 
 

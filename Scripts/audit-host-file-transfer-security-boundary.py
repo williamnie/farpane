@@ -170,6 +170,19 @@ def main() -> int:
                 "try_open_existing_file_for_resume",
             )
         ),
+        "nativeHostOwnsReadListDownloadConnectionLifecycle": all(
+            marker in (host_bridge + connection + safe_root)
+            for marker in (
+                "pub(crate) struct NativeHostReadJob",
+                "native_host_list_directory",
+                "native_host_list_empty_directories",
+                "native_host_list_files_recursive",
+                "begin_native_host_read_job",
+                "poll_native_host_read_job",
+                "confirm_native_host_read_job",
+                "MAX_NATIVE_HOST_READ_JOBS_PER_CONNECTION: usize = 8",
+            )
+        ),
         "productCallersStillDoNotOptIn": (
             "fileTransferEnabled:" not in product
             and "fileTransferEnabled: true" not in product
@@ -214,12 +227,6 @@ def main() -> int:
                 "self.send_fs(ipc::FS::WriteDone",
                 "self.send_fs(ipc::FS::CancelWrite",
             )
-        ),
-        "nativeReadListAndDownloadJobsNotOwned": (
-            "self.send_fs(ipc::FS::ReadDir" in connection
-            and "self.send_fs(ipc::FS::ReadAllFiles" in connection
-            and "self.send_fs(ipc::FS::ReadFile" in connection
-            and "native_host_read_jobs" not in connection
         ),
         "noProductDestinationOrOverwriteUXExists": (
             "fileTransferEnabled:" not in product
@@ -301,10 +308,11 @@ def main() -> int:
             "safeMutationConnectionDispatchImplemented": True,
             "nativeNewFileWriteLifecycleImplemented": True,
             "nativeResumeDigestLifecycleImplemented": True,
+            "nativeReadListDownloadConnectionLifecycleImplemented": True,
             "clipboardFilePromiseEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-existing-target-decision-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-viewer-destination-progress-api-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "audited-not-product-ready" else 1
