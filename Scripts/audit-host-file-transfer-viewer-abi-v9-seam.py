@@ -156,8 +156,8 @@ def main() -> int:
         ),
         "productRemainsOffAndRuntimeGapDocumented": (
             "fileTransferEnabled:" not in product
-            and "destination\n  descriptor owner" in sources["architecture"]
-            and "No download command" in sources["readme"]
+            and "destination\n  owner" in sources["architecture"]
+            and "No recursive manifest, download command" in sources["readme"]
         ),
     }
     source_lines = {

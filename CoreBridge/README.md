@@ -164,6 +164,10 @@ directory and ASCII case-alias entries reject as one envelope. Names are copied
 into Rust-owned strings, then Swift copies them again and enforces byte-exact
 NFC, full case-fold collision, separator/control and size rules before queued
 delivery. Disconnect and worker exit clear pending request state, while remote
-errors expose only stable rejected/unavailable status. No download command,
-destination owner or product configuration exists, so this remains an internal
-list lifecycle rather than file-transfer product capability.
+errors expose only stable rejected/unavailable status. A session-bound
+destination owner can now pin one pre-existing euid-owned private `0700`
+directory with no-follow read-only open, retain only descriptor identity and an
+opaque lease, and revalidate identity/owner/mode for each scoped borrow before
+exact-epoch teardown closes it. No recursive manifest, download command,
+`openat`/write, picker UI or product configuration exists, so this remains an
+internal lifecycle rather than file-transfer product capability.

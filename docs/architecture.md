@@ -261,8 +261,10 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   typed failure 与 exact completion，并在 disconnect 前关闭投递。v10 另增加 exact-session、single-flight
   remote-root list command/callback：只发送 `ReadDir("/", include_hidden=false)`，callback-scoped entry 在
   Rust 做 1,024/1 MiB/type/name/alias 门禁后由 Swift 复制并再次做 byte-exact NFC、完整 case-fold、separator/
-  control 与 size 验证；error 只投影稳定 rejected/unavailable，teardown 清 pending request。destination
-  descriptor owner、recursive manifest/download I/O 与 UI 仍未实现；多文件 upload resume、existing-target
+  control 与 size 验证；error 只投影稳定 rejected/unavailable，teardown 清 pending request。Viewer destination
+  owner 只用用户预选路径 no-follow 打开当前 euid 的 private `0700` 目录，后续仅持有 exact-session lease 与
+  pinned descriptor/device/inode；每次 scoped borrow 重验 identity/owner/mode，exact teardown/deinit close，
+  不保存路径也不创建文件。recursive manifest/download I/O 与 UI 仍未实现；多文件 upload resume、existing-target
   replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。

@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-root-list-lifecycle-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-destination-descriptor-owner"
+NEXT_BOUNDARY = "host-file-transfer-viewer-recursive-manifest-lifecycle"
 
 
 def read(path: Path) -> str:
@@ -31,6 +31,7 @@ def main() -> int:
         "bridge": repository / "CoreBridge/RustDeskPatch/rdn_bridge.rs",
         "swift": repository / "Sources/CoreBridge/CoreBridge.swift",
         "manifest": repository / "Sources/CoreBridge/ViewerFileTransferContract.swift",
+        "destination_owner": repository / "Sources/CoreBridge/ViewerFileTransferDestinationOwner.swift",
         "swift_tests": repository / "Tests/CoreBridgeTests/ViewerFileTransferContractTests.swift",
         "host_tests": repository / "Tests/CoreBridgeTests/HostBridgeContractTests.swift",
         "build_core": repository / "Scripts/build-rust-core.sh",
@@ -141,10 +142,16 @@ def main() -> int:
                 "testRemoteRootListRevalidatesOwnedMetadataAndStableFailures",
             )
         ),
+        "destinationOwnerNowPrecedesRemainingIOGap": (
+            "package final class ViewerFileTransferDestinationOwner" in sources["destination_owner"]
+            and "O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC"
+            in sources["destination_owner"]
+            and "openat(" not in sources["destination_owner"]
+        ),
         "productRemainsOffAndIOGapIsExplicit": (
             "fileTransferEnabled:" not in product
-            and "destination\n  descriptor owner" in sources["architecture"]
-            and "No download command" in sources["readme"]
+            and "recursive manifest/download I/O" in sources["architecture"]
+            and "No recursive manifest, download command" in sources["readme"]
         ),
     }
     source_lines = {
@@ -181,7 +188,7 @@ def main() -> int:
         "claims": {
             "viewerRootListCommandCallbackImplemented": status == expected_status,
             "viewerRecursiveManifestImplemented": False,
-            "viewerDestinationDescriptorOwnerImplemented": False,
+            "viewerDestinationDescriptorOwnerImplemented": status == expected_status,
             "viewerDownloadIOImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
