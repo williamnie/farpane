@@ -98,7 +98,7 @@ def main() -> int:
                 "sessionEpoch == self.sessionEpoch",
                 "directoryDescriptor = nil",
                 "deinit {",
-                "Darwin.close(directoryDescriptor)",
+                "Darwin.close(descriptor)",
             )
         ),
         "regressionsCoverFailClosedAndPinnedIdentity": all(
@@ -111,21 +111,22 @@ def main() -> int:
                 "XCTAssertEqual(borrowedInode, originalInode)",
             )
         ),
-        "noDownloadOrCreationPrimitive": all(
-            marker not in owner
-            for marker in (
-                "openat(",
+        "stagingEvolutionPreservesPinnedOwnerAndNoPayloadCommit": (
+            "package func reserveNewFile(" in owner
+            and "Darwin.openat(" in owner
+            and "O_EXCL | O_NOFOLLOW" in owner
+            and all(marker not in owner for marker in (
                 "Darwin.write(",
-                "mkdir(",
-                "createFile(",
-                "FileHandle",
-            )
+                "Darwin.pwrite(",
+                "Darwin.fsync(",
+                "renameatx_np",
+            ))
         ),
         "abiAndProductRemainOff": (
             "#define RDN_ABI_VERSION 12u" in sources["header"]
             and "fileTransferEnabled:" not in product
             and "No download command" in sources["readme"]
-            and "不保存路径也不创建文件" in sources["architecture"]
+            and "handle 不含路径/descriptor" in sources["architecture"]
         ),
         "recursiveAuthorityNowPrecedesRemoteManifestABI": (
             "package struct ViewerFileTransferRecursiveManifestAuthority"

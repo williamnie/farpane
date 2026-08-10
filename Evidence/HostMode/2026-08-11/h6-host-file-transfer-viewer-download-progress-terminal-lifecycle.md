@@ -44,6 +44,6 @@ receive I/O is active, and product file transfer remains default-off.
 
 ## Next step
 
-`host-file-transfer-viewer-safe-receive-io-dispatch-lifecycle`: design and add
-the descriptor-owned receive path and actual wire dispatch without exposing a
-path or borrowed descriptor across the ABI.
+`host-file-transfer-viewer-safe-staging-reservation-lifecycle`: first reserve
+descriptor-owned private staging files without exposing a path or descriptor;
+payload write, final commit and actual wire dispatch remain later gates.
