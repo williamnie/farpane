@@ -86,8 +86,8 @@ def main() -> int:
             marker in bridge
             for marker in (
                 "ClipboardFormat::Rtf | ClipboardFormat::Html",
-                "ClipboardFormat::ImageRgba =>",
-                "ClipboardFormat::ImagePng | ClipboardFormat::ImageSvg",
+                "ClipboardFormat::ImageRgba | ClipboardFormat::ImagePng | ClipboardFormat::ImageSvg",
+                "NativeImageTransferEnvelope::from_clipboard(clipboard)",
                 "NativeClipboardPayloadDisposition::IndependentTransferRequired",
             )
         ),
@@ -147,7 +147,10 @@ def main() -> int:
         "richTextRouting": line_number(
             bridge, "ClipboardFormat::Rtf | ClipboardFormat::Html"
         ),
-        "imageRouting": line_number(bridge, "ClipboardFormat::ImageRgba =>"),
+        "imageRouting": line_number(
+            bridge,
+            "ClipboardFormat::ImageRgba | ClipboardFormat::ImagePng | ClipboardFormat::ImageSvg",
+        ),
         "specialRejection": line_number(
             bridge,
             "ClipboardFormat::Special => NativeClipboardPayloadDisposition::Reject",

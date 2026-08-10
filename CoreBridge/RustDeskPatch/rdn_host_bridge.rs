@@ -44,6 +44,12 @@ const MAX_ENVELOPE_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_WIRE_BYTES: usize = 1024 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
+const MAX_CLIPBOARD_IMAGE_WIRE_BYTES: usize = 128 * 1024 * 1024;
+const MAX_CLIPBOARD_IMAGE_DECODED_BYTES: usize = 128 * 1024 * 1024;
+const MAX_CLIPBOARD_SVG_WIRE_BYTES: usize = 4 * 1024 * 1024;
+const MAX_CLIPBOARD_SVG_UTF8_BYTES: usize = 4 * 1024 * 1024;
+const MAX_CLIPBOARD_IMAGE_DIMENSION: i32 = 8192;
+const MAX_CLIPBOARD_IMAGE_PIXELS: usize = 7680 * 4320;
 const MAX_NAME_BYTES: usize = 64;
 const MAX_SERVER_BYTES: usize = 512;
 const MAX_SERVER_PUBLIC_KEY_BYTES: usize = 1024;
@@ -837,6 +843,202 @@ impl NativeRichTextTransferEnvelope {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeImageFormat {
+    Rgba { width: i32, height: i32 },
+    Png { width: i32, height: i32 },
+    Svg,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NativeImageTransferEnvelope {
+    format: NativeImageFormat,
+    payload: Vec<u8>,
+}
+
+impl NativeImageTransferEnvelope {
+    fn from_clipboard(clipboard: &Clipboard) -> Option<Self> {
+        if !clipboard.special_name.is_empty() {
+            return None;
+        }
+        match clipboard.format.enum_value().ok()? {
+            ClipboardFormat::ImageRgba => {
+                let pixel_count = native_image_pixel_count(clipboard.width, clipboard.height)?;
+                let expected_bytes = pixel_count.checked_mul(4)?;
+                let payload = native_image_payload_bytes(
+                    clipboard,
+                    MAX_CLIPBOARD_IMAGE_WIRE_BYTES,
+                    MAX_CLIPBOARD_IMAGE_DECODED_BYTES,
+                    true,
+                )?;
+                if payload.len() != expected_bytes {
+                    return None;
+                }
+                Some(Self {
+                    format: NativeImageFormat::Rgba {
+                        width: clipboard.width,
+                        height: clipboard.height,
+                    },
+                    payload,
+                })
+            }
+            ClipboardFormat::ImagePng => {
+                if clipboard.width != 0 || clipboard.height != 0 {
+                    return None;
+                }
+                // Pinned upstream already emits PNG as its compressed image
+                // representation, so a second zstd layer is non-canonical.
+                let payload = native_image_payload_bytes(
+                    clipboard,
+                    MAX_CLIPBOARD_IMAGE_WIRE_BYTES,
+                    MAX_CLIPBOARD_IMAGE_WIRE_BYTES,
+                    false,
+                )?;
+                let (width, height) = native_png_dimensions(&payload)?;
+                Some(Self {
+                    format: NativeImageFormat::Png { width, height },
+                    payload,
+                })
+            }
+            ClipboardFormat::ImageSvg => {
+                if clipboard.width != 0 || clipboard.height != 0 {
+                    return None;
+                }
+                let payload = native_image_payload_bytes(
+                    clipboard,
+                    MAX_CLIPBOARD_SVG_WIRE_BYTES,
+                    MAX_CLIPBOARD_SVG_UTF8_BYTES,
+                    true,
+                )?;
+                let svg = std::str::from_utf8(&payload).ok()?;
+                if svg.contains('\0') || !native_svg_has_canonical_root(svg) {
+                    return None;
+                }
+                Some(Self {
+                    format: NativeImageFormat::Svg,
+                    payload,
+                })
+            }
+            _ => None,
+        }
+    }
+}
+
+fn native_image_payload_bytes(
+    clipboard: &Clipboard,
+    wire_limit: usize,
+    decoded_limit: usize,
+    allow_compressed: bool,
+) -> Option<Vec<u8>> {
+    if clipboard.content.is_empty() || clipboard.content.len() > wire_limit {
+        return None;
+    }
+    let payload = if clipboard.compress {
+        if !allow_compressed {
+            return None;
+        }
+        hbb_common::compress::decompress_with_limit(&clipboard.content, decoded_limit).ok()?
+    } else {
+        clipboard.content.to_vec()
+    };
+    (!payload.is_empty() && payload.len() <= decoded_limit).then_some(payload)
+}
+
+fn native_image_pixel_count(width: i32, height: i32) -> Option<usize> {
+    if width <= 0
+        || height <= 0
+        || width > MAX_CLIPBOARD_IMAGE_DIMENSION
+        || height > MAX_CLIPBOARD_IMAGE_DIMENSION
+    {
+        return None;
+    }
+    let pixels = usize::try_from(width)
+        .ok()?
+        .checked_mul(usize::try_from(height).ok()?)?;
+    (pixels <= MAX_CLIPBOARD_IMAGE_PIXELS).then_some(pixels)
+}
+
+fn native_png_dimensions(payload: &[u8]) -> Option<(i32, i32)> {
+    const SIGNATURE: &[u8; 8] = b"\x89PNG\r\n\x1a\n";
+    if payload.len() < 33 || payload.get(..8)? != SIGNATURE {
+        return None;
+    }
+
+    let mut offset = 8usize;
+    let mut dimensions = None;
+    let mut has_image_data = false;
+    loop {
+        let header_end = offset.checked_add(8)?;
+        if header_end > payload.len() {
+            return None;
+        }
+        let length = u32::from_be_bytes(payload[offset..offset + 4].try_into().ok()?) as usize;
+        let chunk_type = &payload[offset + 4..header_end];
+        let chunk_end = header_end.checked_add(length)?.checked_add(4)?;
+        if chunk_end > payload.len() {
+            return None;
+        }
+        let data = &payload[header_end..header_end + length];
+        match chunk_type {
+            b"IHDR" if offset == 8 && length == 13 && dimensions.is_none() => {
+                let width = u32::from_be_bytes(data[0..4].try_into().ok()?);
+                let height = u32::from_be_bytes(data[4..8].try_into().ok()?);
+                let width = i32::try_from(width).ok()?;
+                let height = i32::try_from(height).ok()?;
+                native_image_pixel_count(width, height)?;
+                let bit_depth = data[8];
+                let color_type = data[9];
+                let valid_depth = match color_type {
+                    0 => matches!(bit_depth, 1 | 2 | 4 | 8 | 16),
+                    2 | 4 | 6 => matches!(bit_depth, 8 | 16),
+                    3 => matches!(bit_depth, 1 | 2 | 4 | 8),
+                    _ => false,
+                };
+                if !valid_depth || data[10] != 0 || data[11] != 0 || data[12] > 1 {
+                    return None;
+                }
+                dimensions = Some((width, height));
+            }
+            b"IHDR" => return None,
+            b"IDAT" if dimensions.is_some() && length > 0 => has_image_data = true,
+            b"IEND" if length == 0 => {
+                return (chunk_end == payload.len() && has_image_data).then_some(dimensions?)
+            }
+            _ if dimensions.is_none() => return None,
+            _ => {}
+        }
+        offset = chunk_end;
+    }
+}
+
+fn native_svg_has_canonical_root(svg: &str) -> bool {
+    let mut remainder = svg.trim_start_matches(['\u{feff}', ' ', '\t', '\r', '\n']);
+    if remainder.starts_with("<?xml") {
+        let Some(end) = remainder
+            .get(..1024.min(remainder.len()))
+            .and_then(|prefix| prefix.find("?>"))
+        else {
+            return false;
+        };
+        remainder = remainder[end + 2..].trim_start();
+    }
+    if remainder
+        .as_bytes()
+        .windows(9)
+        .any(|window| window.eq_ignore_ascii_case(b"<!doctype"))
+    {
+        return false;
+    }
+    let Some(after_root) = remainder.strip_prefix("<svg") else {
+        return false;
+    };
+    after_root
+        .as_bytes()
+        .first()
+        .is_some_and(|byte| byte.is_ascii_whitespace() || *byte == b'>')
+        && after_root.contains('>')
+}
+
 pub(crate) fn native_host_configured_clipboard_transfer_policy() -> NativeClipboardTransferPolicy {
     let broker = MEDIA_BROKER.lock().unwrap();
     if broker.binding.is_some() {
@@ -959,27 +1161,11 @@ fn native_host_clipboard_payload_disposition(
                     NativeClipboardPayloadDisposition::IndependentTransferRequired
                 })
         }
-        ClipboardFormat::ImageRgba => {
-            if clipboard.special_name.is_empty()
-                && clipboard.width > 0
-                && clipboard.height > 0
-                && !clipboard.content.is_empty()
-            {
-                NativeClipboardPayloadDisposition::IndependentTransferRequired
-            } else {
-                NativeClipboardPayloadDisposition::Reject
-            }
-        }
-        ClipboardFormat::ImagePng | ClipboardFormat::ImageSvg => {
-            if clipboard.special_name.is_empty()
-                && clipboard.width == 0
-                && clipboard.height == 0
-                && !clipboard.content.is_empty()
-            {
-                NativeClipboardPayloadDisposition::IndependentTransferRequired
-            } else {
-                NativeClipboardPayloadDisposition::Reject
-            }
+        ClipboardFormat::ImageRgba | ClipboardFormat::ImagePng | ClipboardFormat::ImageSvg => {
+            NativeImageTransferEnvelope::from_clipboard(clipboard)
+                .map_or(NativeClipboardPayloadDisposition::Reject, |_| {
+                    NativeClipboardPayloadDisposition::IndependentTransferRequired
+                })
         }
         // Special names are remote-controlled UTI/format identifiers. They
         // stay rejected until an explicit allowlist and bounded transfer
@@ -5575,12 +5761,7 @@ mod tests {
             NativeClipboardPayloadDisposition::InlineSmallText
         );
 
-        for format in [
-            ClipboardFormat::Rtf,
-            ClipboardFormat::Html,
-            ClipboardFormat::ImagePng,
-            ClipboardFormat::ImageSvg,
-        ] {
+        for format in [ClipboardFormat::Rtf, ClipboardFormat::Html] {
             let rich = clipboard_fixture(b"rich payload".to_vec(), false, format);
             assert_eq!(
                 native_host_clipboard_payload_disposition(&rich),
@@ -5621,6 +5802,35 @@ mod tests {
             ),
             NativeHostOutgoingClipboardDecision::Reject
         ));
+
+        let mut png = Vec::new();
+        repng::encode(&mut png, 1, 1, &[0, 0, 0, 255]).unwrap();
+        for image in [
+            clipboard_fixture(png, false, ClipboardFormat::ImagePng),
+            clipboard_fixture(
+                b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>".to_vec(),
+                false,
+                ClipboardFormat::ImageSvg,
+            ),
+        ] {
+            assert_eq!(
+                native_host_clipboard_payload_disposition(&image),
+                NativeClipboardPayloadDisposition::IndependentTransferRequired
+            );
+            let mut message = Message::new();
+            message.set_clipboard(image);
+            assert!(matches!(
+                native_host_prepare_outgoing_clipboard_message(
+                    &message,
+                    NativeClipboardTransferPolicy::new(
+                        NativeClipboardPolicy::default(),
+                        NativeClipboardPolicy::new(true, true),
+                    ),
+                    NativeClipboardPolicy::new(true, true),
+                ),
+                NativeHostOutgoingClipboardDecision::Reject
+            ));
+        }
 
         let mut malformed_html =
             clipboard_fixture(b"<b>rich</b>".to_vec(), false, ClipboardFormat::Html);
@@ -5738,6 +5948,141 @@ mod tests {
             ))
             .is_none()
         );
+    }
+
+    #[test]
+    fn native_image_transfer_envelope_is_owned_bounded_and_format_strict() {
+        let mut rgba = clipboard_fixture(vec![1, 2, 3, 255], false, ClipboardFormat::ImageRgba);
+        rgba.width = 1;
+        rgba.height = 1;
+        let envelope = NativeImageTransferEnvelope::from_clipboard(&rgba).unwrap();
+        assert_eq!(
+            envelope.format,
+            NativeImageFormat::Rgba {
+                width: 1,
+                height: 1,
+            }
+        );
+        assert_eq!(envelope.payload, vec![1, 2, 3, 255]);
+        rgba.content.clear();
+        assert_eq!(envelope.payload, vec![1, 2, 3, 255]);
+
+        let compressed_rgba = hbb_common::compress::compress(&[4, 5, 6, 255]);
+        let mut rgba = clipboard_fixture(compressed_rgba, true, ClipboardFormat::ImageRgba);
+        rgba.width = 1;
+        rgba.height = 1;
+        assert!(NativeImageTransferEnvelope::from_clipboard(&rgba).is_some());
+
+        let mut wrong_rgba_length =
+            clipboard_fixture(vec![1, 2, 3], false, ClipboardFormat::ImageRgba);
+        wrong_rgba_length.width = 1;
+        wrong_rgba_length.height = 1;
+        assert!(NativeImageTransferEnvelope::from_clipboard(&wrong_rgba_length).is_none());
+
+        let mut excessive_rgba = clipboard_fixture(vec![0; 4], false, ClipboardFormat::ImageRgba);
+        excessive_rgba.width = MAX_CLIPBOARD_IMAGE_DIMENSION + 1;
+        excessive_rgba.height = 1;
+        assert!(NativeImageTransferEnvelope::from_clipboard(&excessive_rgba).is_none());
+        excessive_rgba.width = MAX_CLIPBOARD_IMAGE_DIMENSION;
+        excessive_rgba.height = MAX_CLIPBOARD_IMAGE_DIMENSION;
+        assert!(NativeImageTransferEnvelope::from_clipboard(&excessive_rgba).is_none());
+
+        let mut png = Vec::new();
+        repng::encode(&mut png, 1, 1, &[7, 8, 9, 255]).unwrap();
+        let envelope = NativeImageTransferEnvelope::from_clipboard(&clipboard_fixture(
+            png.clone(),
+            false,
+            ClipboardFormat::ImagePng,
+        ))
+        .unwrap();
+        assert_eq!(
+            envelope.format,
+            NativeImageFormat::Png {
+                width: 1,
+                height: 1,
+            }
+        );
+        assert_eq!(envelope.payload, png);
+
+        let mut png_with_wire_dimensions =
+            clipboard_fixture(png.clone(), false, ClipboardFormat::ImagePng);
+        png_with_wire_dimensions.width = 1;
+        assert!(NativeImageTransferEnvelope::from_clipboard(&png_with_wire_dimensions).is_none());
+        assert!(
+            NativeImageTransferEnvelope::from_clipboard(&clipboard_fixture(
+                png[..24].to_vec(),
+                false,
+                ClipboardFormat::ImagePng,
+            ))
+            .is_none()
+        );
+
+        let mut compressed_png = clipboard_fixture(
+            hbb_common::compress::compress(&png),
+            true,
+            ClipboardFormat::ImagePng,
+        );
+        assert!(NativeImageTransferEnvelope::from_clipboard(&compressed_png).is_none());
+        compressed_png.compress = false;
+        assert!(NativeImageTransferEnvelope::from_clipboard(&compressed_png).is_none());
+
+        let svg = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>".to_vec();
+        let envelope = NativeImageTransferEnvelope::from_clipboard(&clipboard_fixture(
+            hbb_common::compress::compress(&svg),
+            true,
+            ClipboardFormat::ImageSvg,
+        ))
+        .unwrap();
+        assert_eq!(envelope.format, NativeImageFormat::Svg);
+        assert_eq!(envelope.payload, svg);
+        assert!(
+            NativeImageTransferEnvelope::from_clipboard(&clipboard_fixture(
+                b"<?xml version=\"1.0\"?><svg></svg>".to_vec(),
+                false,
+                ClipboardFormat::ImageSvg,
+            ))
+            .is_some()
+        );
+
+        for invalid_svg in [
+            vec![0xff],
+            b"before\0after".to_vec(),
+            b"<html></html>".to_vec(),
+            b"<svg ".to_vec(),
+            b"<!DOCTYPE svg><svg></svg>".to_vec(),
+        ] {
+            assert!(
+                NativeImageTransferEnvelope::from_clipboard(&clipboard_fixture(
+                    invalid_svg,
+                    false,
+                    ClipboardFormat::ImageSvg,
+                ))
+                .is_none()
+            );
+        }
+        assert!(
+            NativeImageTransferEnvelope::from_clipboard(&clipboard_fixture(
+                vec![b'a'; MAX_CLIPBOARD_SVG_UTF8_BYTES + 1],
+                false,
+                ClipboardFormat::ImageSvg,
+            ))
+            .is_none()
+        );
+        assert!(
+            NativeImageTransferEnvelope::from_clipboard(&clipboard_fixture(
+                hbb_common::compress::compress(&vec![b'a'; MAX_CLIPBOARD_SVG_UTF8_BYTES + 1]),
+                true,
+                ClipboardFormat::ImageSvg,
+            ))
+            .is_none()
+        );
+
+        let mut wrong_metadata = clipboard_fixture(png, false, ClipboardFormat::ImagePng);
+        wrong_metadata.special_name = "public.png".to_owned();
+        assert!(NativeImageTransferEnvelope::from_clipboard(&wrong_metadata).is_none());
+        let mut unknown = clipboard_fixture(vec![1], false, ClipboardFormat::ImagePng);
+        unknown.format = hbb_common::protobuf::EnumOrUnknown::from_i32(999);
+        assert!(NativeImageTransferEnvelope::from_clipboard(&unknown).is_none());
     }
 
     #[test]
