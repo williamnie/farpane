@@ -58,7 +58,7 @@ class ViewerPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-rich-text-bootstrap-home-opt-in-contract",
+            "host-rich-text-clipboard-installed-two-mac-acceptance",
         )
 
 

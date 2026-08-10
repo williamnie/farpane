@@ -52,7 +52,7 @@ class ViewerClipboardRichTextAPIContractAuditTests(unittest.TestCase):
         self.assertTrue(document["remainingBoundary"]["physicalLatencyAndIdleCPUAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-rich-text-bootstrap-home-opt-in-contract",
+            "host-rich-text-clipboard-installed-two-mac-acceptance",
         )
 
 

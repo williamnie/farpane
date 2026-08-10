@@ -124,6 +124,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         "farpane.host.clipboard.allowRemoteRead"
     private static let hostClipboardWriteEnabledDefaultsKey =
         "farpane.host.clipboard.allowRemoteWrite"
+    private static let hostClipboardRichTextReadEnabledDefaultsKey =
+        "farpane.host.clipboard.richText.allowRemoteRead"
+    private static let hostClipboardRichTextWriteEnabledDefaultsKey =
+        "farpane.host.clipboard.richText.allowRemoteWrite"
 
     private let options = Options(arguments: CommandLine.arguments)
     private let hostViewerConcurrencyEvidenceOwner =
@@ -608,13 +612,33 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onHostClipboardReadToggle = { [weak self] enabled in
             self?.handleHostClipboardPolicyToggle(
                 allowRemoteRead: enabled,
-                allowRemoteWrite: nil
+                allowRemoteWrite: nil,
+                allowRemoteRichTextRead: nil,
+                allowRemoteRichTextWrite: nil
             )
         }
         view.onHostClipboardWriteToggle = { [weak self] enabled in
             self?.handleHostClipboardPolicyToggle(
                 allowRemoteRead: nil,
-                allowRemoteWrite: enabled
+                allowRemoteWrite: enabled,
+                allowRemoteRichTextRead: nil,
+                allowRemoteRichTextWrite: nil
+            )
+        }
+        view.onHostClipboardRichTextReadToggle = { [weak self] enabled in
+            self?.handleHostClipboardPolicyToggle(
+                allowRemoteRead: nil,
+                allowRemoteWrite: nil,
+                allowRemoteRichTextRead: enabled,
+                allowRemoteRichTextWrite: nil
+            )
+        }
+        view.onHostClipboardRichTextWriteToggle = { [weak self] enabled in
+            self?.handleHostClipboardPolicyToggle(
+                allowRemoteRead: nil,
+                allowRemoteWrite: nil,
+                allowRemoteRichTextRead: nil,
+                allowRemoteRichTextWrite: enabled
             )
         }
         view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
@@ -758,6 +782,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 isStreaming: usesLegacyHost && hostMediaRoute != nil,
                 clipboardReadEnabled: clipboardPolicy.allowRemoteRead,
                 clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite,
+                clipboardRichTextReadEnabled:
+                    clipboardPolicy.allowRemoteRichTextRead,
+                clipboardRichTextWriteEnabled:
+                    clipboardPolicy.allowRemoteRichTextWrite,
                 allowsClipboardPolicyChange:
                     HostAgentBackgroundHomeRoutingPolicy
                         .allowsClipboardPolicyChange(
@@ -882,6 +910,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             ),
             allowRemoteWrite: UserDefaults.standard.bool(
                 forKey: Self.hostClipboardWriteEnabledDefaultsKey
+            ),
+            allowRemoteRichTextRead: UserDefaults.standard.bool(
+                forKey: Self.hostClipboardRichTextReadEnabledDefaultsKey
+            ),
+            allowRemoteRichTextWrite: UserDefaults.standard.bool(
+                forKey: Self.hostClipboardRichTextWriteEnabledDefaultsKey
             )
         )
     }
@@ -1133,7 +1167,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func handleHostClipboardPolicyToggle(
         allowRemoteRead: Bool?,
-        allowRemoteWrite: Bool?
+        allowRemoteWrite: Bool?,
+        allowRemoteRichTextRead: Bool?,
+        allowRemoteRichTextWrite: Bool?
     ) {
         guard Thread.isMainThread else { return }
         MainActor.assumeIsolated {
@@ -1160,7 +1196,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 allowRemoteRead:
                     allowRemoteRead ?? current.allowRemoteRead,
                 allowRemoteWrite:
-                    allowRemoteWrite ?? current.allowRemoteWrite
+                    allowRemoteWrite ?? current.allowRemoteWrite,
+                allowRemoteRichTextRead:
+                    allowRemoteRichTextRead
+                        ?? current.allowRemoteRichTextRead,
+                allowRemoteRichTextWrite:
+                    allowRemoteRichTextWrite
+                        ?? current.allowRemoteRichTextWrite
             )
             UserDefaults.standard.set(
                 updated.allowRemoteRead,
@@ -1169,6 +1211,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             UserDefaults.standard.set(
                 updated.allowRemoteWrite,
                 forKey: Self.hostClipboardWriteEnabledDefaultsKey
+            )
+            UserDefaults.standard.set(
+                updated.allowRemoteRichTextRead,
+                forKey: Self.hostClipboardRichTextReadEnabledDefaultsKey
+            )
+            UserDefaults.standard.set(
+                updated.allowRemoteRichTextWrite,
+                forKey: Self.hostClipboardRichTextWriteEnabledDefaultsKey
             )
             reconcileHostAgentBootstrap()
             refreshHomeUI()
@@ -1432,7 +1482,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 rendezvousServer: server.rendezvousServer,
                 serverPublicKey: server.serverPublicKey,
                 clipboardReadEnabled: clipboardPolicy.allowRemoteRead,
-                clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite
+                clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite,
+                clipboardRichTextReadEnabled:
+                    clipboardPolicy.allowRemoteRichTextRead,
+                clipboardRichTextWriteEnabled:
+                    clipboardPolicy.allowRemoteRichTextWrite
             ))
             hostRuntimeActive = true
             hostRuntimeQuiescenceConfirmed = true

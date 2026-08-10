@@ -100,18 +100,22 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
                 from: fixture.store,
                 clipboardPolicy: HostAgentClipboardPolicy(
                     allowRemoteRead: false,
-                    allowRemoteWrite: true
+                    allowRemoteWrite: true,
+                    allowRemoteRichTextRead: true,
+                    allowRemoteRichTextWrite: false
                 )
             ),
             .ready(configRevision: 1)
         )
         let configuration = try readProjection(fixture)
-        XCTAssertEqual(configuration.schemaVersion, 2)
+        XCTAssertEqual(configuration.schemaVersion, 3)
         XCTAssertEqual(
             configuration.clipboardPolicy,
             HostAgentClipboardPolicy(
                 allowRemoteRead: false,
-                allowRemoteWrite: true
+                allowRemoteWrite: true,
+                allowRemoteRichTextRead: true,
+                allowRemoteRichTextWrite: false
             )
         )
     }

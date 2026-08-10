@@ -346,9 +346,15 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         for marker in [
             "farpane.host.clipboard.allowRemoteRead",
             "farpane.host.clipboard.allowRemoteWrite",
+            "farpane.host.clipboard.richText.allowRemoteRead",
+            "farpane.host.clipboard.richText.allowRemoteWrite",
             "clipboardPolicy: currentHostClipboardPolicy()",
             "clipboardReadEnabled: clipboardPolicy.allowRemoteRead",
             "clipboardWriteEnabled: clipboardPolicy.allowRemoteWrite",
+            "clipboardRichTextReadEnabled:",
+            "clipboardPolicy.allowRemoteRichTextRead",
+            "clipboardRichTextWriteEnabled:",
+            "clipboardPolicy.allowRemoteRichTextWrite",
             "allowsClipboardPolicyChange(",
         ] {
             XCTAssertTrue(appSource.contains(marker), marker)
@@ -356,8 +362,12 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         for marker in [
             "允许远端读取本机剪贴板",
             "允许远端写入本机剪贴板",
+            "允许远端读取本机富文本",
+            "允许远端写入本机富文本",
             "onHostClipboardReadToggle",
             "onHostClipboardWriteToggle",
+            "onHostClipboardRichTextReadToggle",
+            "onHostClipboardRichTextWriteToggle",
             "snapshot.host.allowsClipboardPolicyChange",
         ] {
             XCTAssertTrue(homeSource.contains(marker), marker)
@@ -367,6 +377,12 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         ))
         XCTAssertTrue(agentSource.contains(
             "configuration.clipboardPolicy.allowRemoteWrite"
+        ))
+        XCTAssertTrue(agentSource.contains(
+            ".allowRemoteRichTextRead"
+        ))
+        XCTAssertTrue(agentSource.contains(
+            ".allowRemoteRichTextWrite"
         ))
     }
 }

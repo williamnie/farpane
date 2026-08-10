@@ -140,7 +140,7 @@ final class HostAgentBootstrapPreparationTests: XCTestCase {
         let configuration = try HostAgentBootstrapConfiguration.decode(document)
 
         XCTAssertEqual(configuration.configRevision, 9)
-        XCTAssertEqual(configuration.schemaVersion, 2)
+        XCTAssertEqual(configuration.schemaVersion, 3)
         XCTAssertEqual(configuration.rendezvousServer, "hermes.example.invalid:21116")
         XCTAssertEqual(configuration.serverPublicKey, "public-key")
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)

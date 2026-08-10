@@ -6,7 +6,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
     func testDecodesExactVersionedImmutableHostBootstrapInput() throws {
         let configuration = try HostAgentBootstrapConfiguration.decode(validDocument())
 
-        XCTAssertEqual(configuration.schemaVersion, 2)
+        XCTAssertEqual(configuration.schemaVersion, 3)
         XCTAssertEqual(configuration.configRevision, 7)
         XCTAssertEqual(configuration.agentBuildID, "20260808155349")
         XCTAssertEqual(
@@ -18,7 +18,9 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
             configuration.clipboardPolicy,
             HostAgentClipboardPolicy(
                 allowRemoteRead: true,
-                allowRemoteWrite: false
+                allowRemoteWrite: false,
+                allowRemoteRichTextRead: false,
+                allowRemoteRichTextWrite: true
             )
         )
         XCTAssertEqual(configuration.hostConfigAppName, "FarPaneHost")
@@ -32,6 +34,23 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
         XCTAssertEqual(configuration.schemaVersion, 1)
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
+    }
+
+    func testSchemaTwoPreservesSmallTextAndDisablesRichText() throws {
+        let configuration = try HostAgentBootstrapConfiguration.decode(
+            schemaTwoDocument()
+        )
+
+        XCTAssertEqual(configuration.schemaVersion, 2)
+        XCTAssertEqual(
+            configuration.clipboardPolicy,
+            HostAgentClipboardPolicy(
+                allowRemoteRead: true,
+                allowRemoteWrite: false,
+                allowRemoteRichTextRead: false,
+                allowRemoteRichTextWrite: false
+            )
+        )
     }
 
     func testRejectsUnknownCredentialAndAmbiguousRevisionFields() throws {
@@ -56,9 +75,9 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     func testRejectsUnsupportedSchemaUnsafeStringsAndOversizedInput() throws {
         var future = try object(from: validDocument())
-        future["schemaVersion"] = 3
+        future["schemaVersion"] = 4
         XCTAssertThrowsError(try HostAgentBootstrapConfiguration.decode(data(future))) { error in
-            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(3))
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(4))
         }
 
         var numericClipboard = try object(from: validDocument())
@@ -68,6 +87,22 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         ]
         XCTAssertThrowsError(
             try HostAgentBootstrapConfiguration.decode(data(numericClipboard))
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentBootstrapConfigurationError,
+                .invalidDocument
+            )
+        }
+
+        var numericRichClipboard = try object(from: validDocument())
+        numericRichClipboard["clipboard"] = [
+            "allowRemoteRead": true,
+            "allowRemoteWrite": false,
+            "allowRemoteRichTextRead": 1,
+            "allowRemoteRichTextWrite": false,
+        ]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(numericRichClipboard))
         ) { error in
             XCTAssertEqual(
                 error as? HostAgentBootstrapConfigurationError,
@@ -100,8 +135,26 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     private func validDocument() throws -> Data {
         data([
-            "schemaVersion": 2,
+            "schemaVersion": 3,
             "configRevision": 7,
+            "agentBuildID": "20260808155349",
+            "server": [
+                "rendezvousServer": "hermes.example.invalid:21116",
+                "serverPublicKey": "public-key",
+            ],
+            "clipboard": [
+                "allowRemoteRead": true,
+                "allowRemoteWrite": false,
+                "allowRemoteRichTextRead": false,
+                "allowRemoteRichTextWrite": true,
+            ],
+        ])
+    }
+
+    private func schemaTwoDocument() -> Data {
+        data([
+            "schemaVersion": 2,
+            "configRevision": 6,
             "agentBuildID": "20260808155349",
             "server": [
                 "rendezvousServer": "hermes.example.invalid:21116",

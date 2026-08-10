@@ -98,7 +98,13 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                     clipboardReadEnabled:
                         configuration.clipboardPolicy.allowRemoteRead,
                     clipboardWriteEnabled:
-                        configuration.clipboardPolicy.allowRemoteWrite
+                        configuration.clipboardPolicy.allowRemoteWrite,
+                    clipboardRichTextReadEnabled:
+                        configuration.clipboardPolicy
+                            .allowRemoteRichTextRead,
+                    clipboardRichTextWriteEnabled:
+                        configuration.clipboardPolicy
+                            .allowRemoteRichTextWrite
                 )
             )
         }

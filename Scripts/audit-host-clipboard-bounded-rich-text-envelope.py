@@ -143,7 +143,7 @@ def main() -> int:
             and "Host ABI v14" in architecture
             and "1 MiB" in readme
             and "Viewer product configuration" in readme
-            and "Host product configuration still does not enable" in readme
+            and "Host product configuration exposes independent" in readme
         ),
         "canonicalAndVendoredBridgeMatch": bridge == sources["vendor_bridge"],
     }
@@ -209,7 +209,7 @@ def main() -> int:
             "imagesRequired": True,
             "installedTwoMacAcceptanceRequired": True,
         },
-        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
+        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "bounded-rich-text-envelope-contract" else 1

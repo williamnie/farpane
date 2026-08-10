@@ -43,11 +43,11 @@ class HostClipboardRichTransferBoundaryAuditTests(unittest.TestCase):
         self.assertTrue(document["claims"]["independentRichTransferImplemented"])
         self.assertFalse(document["remainingBoundary"]["boundedRichTransferEnvelopeRequired"])
         self.assertFalse(document["remainingBoundary"]["richViewerABIRequired"])
-        self.assertTrue(document["remainingBoundary"]["richPasteboardOwnerRequired"])
+        self.assertFalse(document["remainingBoundary"]["richPasteboardOwnerRequired"])
         self.assertTrue(document["remainingBoundary"]["installedTwoMacAcceptanceRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-rich-text-bootstrap-home-opt-in-contract",
+            "host-rich-text-clipboard-installed-two-mac-acceptance",
         )
 
 

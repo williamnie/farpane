@@ -41,12 +41,12 @@ class ViewerRichTextPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCas
         self.assertTrue(document["claims"]["richBundlePreferredWithoutDuplicatePlainSend"])
         self.assertTrue(document["claims"]["pollingBackoffBounded"])
         self.assertFalse(document["claims"]["clipboardContentLogged"])
-        self.assertFalse(document["claims"]["hostProductRichClipboardEnabled"])
+        self.assertTrue(document["claims"]["hostProductRichClipboardEnabled"])
         self.assertFalse(document["claims"]["imageOrFileClipboardEnabled"])
         self.assertFalse(
             document["remainingBoundary"]["viewerRichPasteboardOwnerRequired"]
         )
-        self.assertTrue(document["remainingBoundary"]["hostRichProductOptInRequired"])
+        self.assertFalse(document["remainingBoundary"]["hostRichProductOptInRequired"])
         self.assertTrue(
             document["remainingBoundary"]["installedTwoMacRichClipboardAcceptanceRequired"]
         )
@@ -55,7 +55,7 @@ class ViewerRichTextPasteboardOwnerExplicitEnablementAuditTests(unittest.TestCas
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-rich-text-bootstrap-home-opt-in-contract",
+            "host-rich-text-clipboard-installed-two-mac-acceptance",
         )
 
 

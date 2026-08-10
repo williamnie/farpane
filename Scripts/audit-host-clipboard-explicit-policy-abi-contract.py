@@ -210,7 +210,7 @@ def main() -> int:
             "hostDirectionsDefaultOff": True,
             "hostProductExplicitOptInCapable": True,
             "endToEndSmallTextExplicitOptInCapable": True,
-            "richClipboardEnabled": False,
+            "richClipboardEnabled": True,
             "richClipboardTransportCapable": True,
             "fileTransferEnabled": False,
             "systemAudioEnabled": False,
@@ -221,7 +221,7 @@ def main() -> int:
             "installedTwoMacAcceptanceRequired": True,
             "richPayloadTransferRequired": False,
         },
-        "nextImplementationBoundary": "host-rich-text-bootstrap-home-opt-in-contract",
+        "nextImplementationBoundary": "host-rich-text-clipboard-installed-two-mac-acceptance",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-clipboard-explicit-policy-abi-ready-default-off" else 1
