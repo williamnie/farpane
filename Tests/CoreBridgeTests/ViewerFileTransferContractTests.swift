@@ -177,6 +177,115 @@ final class ViewerFileTransferContractTests: XCTestCase {
         ))
     }
 
+    func testCoreProgressEventValidatesAndProjectsStableViewerUpdate() throws {
+        let event = try XCTUnwrap(CoreFileTransferEvent(
+            sessionEpoch: 7,
+            transferID: 3,
+            sequence: 2,
+            kind: .progress,
+            failure: .none,
+            currentFileNumber: 0,
+            filesCompleted: 0,
+            totalFiles: 1,
+            bytesCompleted: 2,
+            totalBytes: 4,
+            bytesPerSecond: 5
+        ))
+        XCTAssertEqual(event.viewerProgressUpdate, ViewerFileTransferProgressUpdate(
+            sessionEpoch: 7,
+            transferID: 3,
+            sequence: 2,
+            phase: .transferring,
+            currentFileNumber: 0,
+            filesCompleted: 0,
+            bytesCompleted: 2,
+            bytesPerSecond: 5
+        ))
+
+        let failed = try XCTUnwrap(CoreFileTransferEvent(
+            sessionEpoch: 7,
+            transferID: 3,
+            sequence: 3,
+            kind: .failed,
+            failure: .unavailable,
+            currentFileNumber: nil,
+            filesCompleted: 0,
+            totalFiles: 1,
+            bytesCompleted: 2,
+            totalBytes: 4,
+            bytesPerSecond: 0
+        ))
+        XCTAssertEqual(failed.viewerProgressUpdate?.phase, .failed(.unavailable))
+    }
+
+    func testCoreProgressEventRejectsMalformedTerminalAndBounds() {
+        XCTAssertNil(CoreFileTransferEvent(
+            sessionEpoch: 7,
+            transferID: 3,
+            sequence: 0,
+            kind: .progress,
+            failure: .none,
+            currentFileNumber: 0,
+            filesCompleted: 0,
+            totalFiles: 1,
+            bytesCompleted: 0,
+            totalBytes: 4,
+            bytesPerSecond: 0
+        ))
+        XCTAssertNil(CoreFileTransferEvent(
+            sessionEpoch: 7,
+            transferID: 3,
+            sequence: 1,
+            kind: .progress,
+            failure: .none,
+            currentFileNumber: 1,
+            filesCompleted: 0,
+            totalFiles: 1,
+            bytesCompleted: 0,
+            totalBytes: 4,
+            bytesPerSecond: 0
+        ))
+        XCTAssertNil(CoreFileTransferEvent(
+            sessionEpoch: 7,
+            transferID: 3,
+            sequence: 1,
+            kind: .completed,
+            failure: .none,
+            currentFileNumber: nil,
+            filesCompleted: 0,
+            totalFiles: 1,
+            bytesCompleted: 4,
+            totalBytes: 4,
+            bytesPerSecond: 0
+        ))
+        XCTAssertNil(CoreFileTransferEvent(
+            sessionEpoch: 7,
+            transferID: 3,
+            sequence: 1,
+            kind: .failed,
+            failure: .none,
+            currentFileNumber: nil,
+            filesCompleted: 0,
+            totalFiles: 1,
+            bytesCompleted: 0,
+            totalBytes: 4,
+            bytesPerSecond: 0
+        ))
+        XCTAssertNil(CoreFileTransferEvent(
+            sessionEpoch: 7,
+            transferID: 3,
+            sequence: 1,
+            kind: .cancelled,
+            failure: .none,
+            currentFileNumber: 0,
+            filesCompleted: 0,
+            totalFiles: 1,
+            bytesCompleted: 0,
+            totalBytes: 4,
+            bytesPerSecond: 0
+        ))
+    }
+
     func testProgressIsMonotonicBoundedAndTerminal() throws {
         var authority = ViewerFileTransferProgressAuthority()
         let request = try makeRequest(epoch: 7, identifier: 3)

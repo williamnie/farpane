@@ -41,7 +41,7 @@ class HostFileTransferViewerDownloadStartABILifecycleAuditTests(unittest.TestCas
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-download-dispatch-progress-lifecycle",
+            "host-file-transfer-viewer-download-progress-terminal-lifecycle",
         )
 
 

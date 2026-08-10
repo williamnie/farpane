@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-download-start-abi-lifecycle-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-download-dispatch-progress-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-viewer-download-progress-terminal-lifecycle"
 
 
 def read(path: Path) -> str:
@@ -130,7 +130,8 @@ def main() -> int:
             for marker in (
                 "sender.send(Data::CancelJob(transfer_id))",
                 ".active_file_download_jobs",
-                ".remove(&id);",
+                ".remove(&id)",
+                ".remove(&transfer_id)",
                 ".clear();",
                 "job.session_epoch == session_epoch",
                 "completed_file_manifest_request",
@@ -179,8 +180,9 @@ def main() -> int:
         ),
         "productAndDownloadIORemainOff": (
             "fileTransferEnabled:" not in product
-            and "No download command dispatches a wire request" in sources["readme"]
-            and "download dispatch/progress callback mapping" in sources["architecture"]
+            and "No download command" in sources["readme"]
+            and "dispatches a wire request" in sources["readme"]
+            and "safe receive I/O/dispatch" in sources["architecture"]
         ),
     }
     source_lines = {

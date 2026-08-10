@@ -187,6 +187,12 @@ Only epoch, manifest request ID, transfer ID and aggregate totals cross the ABI;
 the destination lease remains Swift-owned. Admission requires the active dedicated
 session, authentication, remote permission, ready sender and one of at most eight
 unique transfer IDs. Cancel, terminal job callbacks, job teardown, disconnect and
-worker exit clear registrations. No download command dispatches a wire request or
-performs `openat`/write/staging, and no picker UI or product configuration exists,
-so this remains an internal lifecycle rather than file-transfer product capability.
+worker exit clear registrations. Registered jobs now translate upstream progress,
+done, error and successful cancel into exact-session callbacks with checked,
+strictly increasing sequence numbers, monotonic bounded file/byte totals and stable
+typed failures. Completion reports exact manifest totals; Swift validates the same
+semantic envelope once before projecting it to the Viewer progress authority. The
+callback is emitted after the Rust job lock is released. No download command
+dispatches a wire request or performs `openat`/write/staging, and no picker UI or
+product configuration exists, so this remains an internal lifecycle rather than
+file-transfer product capability.
