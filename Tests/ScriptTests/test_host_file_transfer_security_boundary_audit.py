@@ -37,11 +37,13 @@ class HostFileTransferSecurityBoundaryAuditTests(unittest.TestCase):
         self.assertTrue(claims["pathTraversalGuardPresent"])
         self.assertFalse(claims["symlinkRaceClosed"])
         self.assertTrue(claims["compressedPayloadBounded"])
+        self.assertTrue(claims["safeReceiveRootPrimitiveImplemented"])
+        self.assertFalse(claims["safeRootMutationsImplemented"])
         self.assertFalse(claims["clipboardFilePromiseEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-safe-open-root",
+            "host-file-transfer-safe-root-mutations",
         )
 
 

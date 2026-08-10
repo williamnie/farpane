@@ -11,6 +11,7 @@ hbb_common_patch_file="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.pat
 file_transfer_block_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
+host_file_transfer_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs"
 
 if [[ ! -d "$vendor_dir/.git" ]]; then
   mkdir -p "${vendor_dir:h}"
@@ -83,6 +84,7 @@ fi
 # The host bridge is wholly owned by this repository; the tracked source is
 # authoritative and always synced into the vendor checkout.
 cp "$host_bridge_source" "$vendor_dir/src/rdn_host_bridge.rs"
+cp "$host_file_transfer_source" "$vendor_dir/src/rdn_host_file_transfer.rs"
 
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$rich_text_patch_file"
@@ -90,4 +92,8 @@ git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_image_patch
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
 git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_patch_file"
+if ! cmp -s "$vendor_dir/src/rdn_host_file_transfer.rs" "$host_file_transfer_source"; then
+  print -u2 "native Host file-transfer root source differs from its canonical source"
+  exit 1
+fi
 print "RUSTDESK_CORE_SOURCE_READY commit=$actual_commit"

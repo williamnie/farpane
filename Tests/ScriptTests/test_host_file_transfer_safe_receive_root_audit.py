@@ -4,14 +4,11 @@ import subprocess
 import unittest
 
 
-class HostFileTransferBoundedBlockEnvelopeAuditTests(unittest.TestCase):
-    def test_file_blocks_are_bounded_before_any_file_open(self) -> None:
+class HostFileTransferSafeReceiveRootAuditTests(unittest.TestCase):
+    def test_descriptor_relative_receive_root_is_implemented_but_not_wired(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
-            [
-                "python3",
-                "Scripts/audit-host-file-transfer-bounded-block-envelope.py",
-            ],
+            ["python3", "Scripts/audit-host-file-transfer-safe-receive-root.py"],
             cwd=repository,
             check=False,
             capture_output=True,
@@ -24,25 +21,24 @@ class HostFileTransferBoundedBlockEnvelopeAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-bounded-block-envelope-audit",
+            "farpane-host-file-transfer-safe-receive-root-audit",
         )
         self.assertEqual(
             document["status"],
-            "bounded-file-block-envelope-implemented-product-off",
+            "descriptor-relative-receive-root-primitive-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertEqual(claims["wireBlockLimitBytes"], 128 * 1024)
-        self.assertEqual(claims["decodedBlockLimitBytes"], 128 * 1024)
-        self.assertTrue(claims["compressedPayloadBounded"])
-        self.assertFalse(claims["productFileTransferEnabled"])
-        self.assertFalse(claims["symlinkRaceClosed"])
+        self.assertTrue(claims["descriptorRelativeRootPrimitiveImplemented"])
+        self.assertTrue(claims["safeCreateAndResumePrimitiveImplemented"])
+        self.assertTrue(claims["rootPathReplacementCannotRedirectOpenDescriptor"])
+        self.assertFalse(claims["safeRemoveAndRenameImplemented"])
         self.assertFalse(claims["nativeHostFileServiceOwnerImplemented"])
-        self.assertTrue(claims["safeReceiveRootPrimitiveImplemented"])
-        self.assertFalse(claims["safeRootMutationsImplemented"])
+        self.assertFalse(claims["productFileTransferEnabled"])
+        self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
             "host-file-transfer-safe-root-mutations",

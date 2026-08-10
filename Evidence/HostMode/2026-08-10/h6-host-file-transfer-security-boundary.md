@@ -62,6 +62,7 @@ gaps that must be closed before any UI or bootstrap opt-in.
 ## Next step
 
 H6.3c completed the bounded-block envelope. The next boundary is
-`host-file-transfer-safe-open-root`: close the documented symlink race and bind
-all receive-side mutations to a FarPane-owned destination root before adding
-the Native Host file-service owner.
+partially complete: H6.3d1 now provides a descriptor-relative macOS receive-root
+primitive for safe create/resume, but it is not yet wired. The next boundary is
+`host-file-transfer-safe-root-mutations`: add descriptor-relative directory,
+remove, and rename operations before the Native Host file-service owner.
