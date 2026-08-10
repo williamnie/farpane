@@ -153,11 +153,12 @@ def main() -> int:
         "claims": {
             "nativeReadListSnapshotPrimitiveImplemented": status == expected_status,
             "nativeReadListDownloadConnectionLifecycleImplemented": True,
+            "viewerDestinationProgressContractImplemented": True,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-destination-progress-api-contract"
+            "host-file-transfer-viewer-core-abi-event-command-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

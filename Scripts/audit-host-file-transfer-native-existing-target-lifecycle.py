@@ -147,7 +147,7 @@ def main() -> int:
             for marker in (
                 "existing-target decision",
                 "no-replace",
-                "destination/progress",
+                "destination descriptor owner",
                 "App/Agent",
             )
         ),
@@ -199,11 +199,12 @@ def main() -> int:
             == "native-existing-target-no-replace-decision-implemented-product-off",
             "nativeExistingTargetReplacementImplemented": False,
             "nativeReadListDownloadImplemented": True,
+            "viewerDestinationProgressContractImplemented": True,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-destination-progress-api-contract"
+            "host-file-transfer-viewer-core-abi-event-command-lifecycle"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
