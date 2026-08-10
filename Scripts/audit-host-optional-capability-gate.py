@@ -63,9 +63,7 @@ def main() -> int:
     viewer_bridge = sources["viewer_bridge"]
     viewer_swift = sources["viewer_swift"]
     host_swift = sources["host_swift"]
-    apply_offset = host_bridge.find(
-        "apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);"
-    )
+    apply_offset = host_bridge.find("apply_native_host_optional_capability_policy(")
     identity_offset = host_bridge.find("host.local_id = config::Config::get_id();")
 
     evidence = {
@@ -79,9 +77,8 @@ def main() -> int:
             )
         ),
         "productClaimsOptionalDataCapabilitiesDisabled": (
-            "音频、剪贴板和文件传输默认关闭" in readme
-            and "Audio, clipboard, and file transfer default to disabled"
-            in readme
+            "音频和文件传输产品能力默认关闭" in readme
+            and "Audio and file transfer remain product-default-off" in readme
         ),
         "upstreamMissingEnableOptionDefaultsOn": all(
             marker in config
@@ -91,12 +88,13 @@ def main() -> int:
                 'pub const OPTION_ENABLE_CLIPBOARD: &str = "enable-clipboard"',
             )
         ),
-        "hostPinsExplicitClipboardPolicyAndOtherCapabilitiesOffBeforeIdentity": (
+        "hostPinsExplicitIndependentPoliciesBeforeIdentity": (
             all(
                 marker in host_bridge
                 for marker in (
                     "NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS",
-                    "native_host_clipboard_option(policy)",
+                    "native_host_clipboard_option(clipboard_policy)",
+                    "native_host_file_transfer_option(file_transfer_enabled)",
                     "OPTION_ENABLE_CLIPBOARD",
                     "OPTION_ENABLE_FILE_TRANSFER",
                     "OPTION_ENABLE_AUDIO",
@@ -111,7 +109,7 @@ def main() -> int:
             marker in host_bridge
             for marker in (
                 "native_host_clipboard_option(clipboard_policy)",
-                '(config::keys::OPTION_ENABLE_FILE_TRANSFER, "N")',
+                "native_host_file_transfer_option(file_transfer_enabled)",
                 '(config::keys::OPTION_ENABLE_AUDIO, "N")',
                 "PersistenceMismatch",
             )
@@ -174,7 +172,7 @@ def main() -> int:
         ),
         "hostPolicyApplication": line_number(
             host_bridge,
-            "apply_native_host_optional_capability_policy(host.clipboard_transfer_policy);",
+            "apply_native_host_optional_capability_policy(",
         ),
         "hostPolicyReadback": line_number(
             host_bridge, "native_host_clipboard_option(clipboard_policy)"

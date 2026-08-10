@@ -59,10 +59,10 @@ def main() -> int:
         "designRecordsBoundedWiringStep": (
             "H6.2j4 Host↔Viewer rich-text transfer wiring contract" in sources["design"]
         ),
-        "hostABIv15RetainsSmallAndRichDirections": all(
+        "hostABIv16RetainsSmallAndRichDirections": all(
             marker in header
             for marker in (
-                "#define RDN_HOST_ABI_VERSION 15u",
+                "#define RDN_HOST_ABI_VERSION 16u",
                 "bool enable_clipboard_read;",
                 "bool enable_clipboard_write;",
                 "bool enable_clipboard_rich_text_read;",
@@ -183,7 +183,7 @@ def main() -> int:
                 "native_host_rich_text_transport_requires_explicit_format_and_direction_policy",
                 "native_clipboard_permissions_revoke_directions_without_exceeding_maximum",
                 "testHostClipboardDirectionsDefaultOffAndRemainIndependent",
-                "private static let hostABIVersion: UInt32 = 15",
+                "private static let hostABIVersion: UInt32 = 16",
                 "XCTAssertEqual(hostABI(), Self.hostABIVersion)",
             )
         ),
@@ -201,7 +201,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.2j4 Host↔Viewer rich-text transfer wiring contract"
         ),
-        "hostABIVersion": line_number(header, "#define RDN_HOST_ABI_VERSION 15u"),
+        "hostABIVersion": line_number(header, "#define RDN_HOST_ABI_VERSION 16u"),
         "hostRichRead": line_number(header, "bool enable_clipboard_rich_text_read;"),
         "swiftRichDefault": line_number(swift, "clipboardRichTextReadEnabled: Bool = false"),
         "transferPolicy": line_number(host, "pub(crate) struct NativeClipboardTransferPolicy"),
@@ -230,7 +230,7 @@ def main() -> int:
         "sourceLines": source_lines,
         "missingSourceLines": missing_lines,
         "claims": {
-            "hostABIv15Implemented": True,
+            "hostABIv16Implemented": True,
             "smallAndRichDirectionsIndependent": True,
             "richTransportCanonicalAndBounded": True,
             "sessionRevocationAppliesToRich": True,

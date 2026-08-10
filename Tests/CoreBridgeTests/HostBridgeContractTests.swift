@@ -17,6 +17,7 @@ struct HostCreateOptionsRaw {
     var enableClipboardRichTextWrite: Bool
     var enableClipboardImageRead: Bool
     var enableClipboardImageWrite: Bool
+    var enableFileTransfer: Bool
 }
 
 struct HostCallbacksRaw {
@@ -82,7 +83,7 @@ enum HostEventRecorder {
 /// coexist with the viewer ABI v8, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
-    private static let hostABIVersion: UInt32 = 15
+    private static let hostABIVersion: UInt32 = 16
     private static let hostMediaABIVersion: UInt32 = 1
     private static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
 
@@ -339,7 +340,8 @@ final class HostBridgeContractTests: XCTestCase {
             enableClipboardRichTextRead: false,
             enableClipboardRichTextWrite: false,
             enableClipboardImageRead: false,
-            enableClipboardImageWrite: false)
+            enableClipboardImageWrite: false,
+            enableFileTransfer: false)
         var callbacks = HostCallbacksRaw(
             abiVersion: Self.hostABIVersion,
             onEvent: nil,
