@@ -157,7 +157,7 @@ def main() -> int:
                 )
             )
         ),
-        "nativeNewFileLifecycleExistsResumeRemainsOpen": all(
+        "nativeWriteLifecycleIncludesVerifiedSingleFileResume": all(
             marker in connection + bridge
             for marker in (
                 "native_host_write_jobs: Vec<crate::rdn_host_bridge::NativeHostWriteJob>",
@@ -165,6 +165,8 @@ def main() -> int:
                 "write_native_host_file_block",
                 "finish_native_host_write_job",
                 "NativeHostWriteJobError::ResumeUnsupported",
+                "confirm_native_host_file_digest",
+                "file_transfer_send_confirm_request::Union::OffsetBlk(offset)",
                 "self.send_fs(ipc::FS::NewWrite",
             )
         ),
@@ -200,7 +202,7 @@ def main() -> int:
             for marker in (
                 "Native Host mutation dispatch",
                 "Native Host new-file write jobs",
-                "resume/digest offset",
+                "single-file resume",
                 "App/Agent",
             )
         ),
@@ -251,11 +253,11 @@ def main() -> int:
             "safeMutationConnectionDispatchImplemented": True,
             "recursiveRemovalImplemented": False,
             "nativeNewFileWriteLifecycleImplemented": True,
-            "nativeResumeDigestLifecycleImplemented": False,
+            "nativeResumeDigestLifecycleImplemented": True,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-existing-target-decision-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "native-file-mutations-dispatched-write-jobs-off" else 1

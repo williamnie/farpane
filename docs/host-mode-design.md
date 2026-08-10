@@ -100,6 +100,14 @@ V1 应让用户在一个原生页面中完成以下操作：
 
 音频、剪贴板和文件传输采用独立功能开关和阶段门禁，不能阻塞核心屏幕/输入 MVP。
 
+### 3.4 当前开发完成口径（2026-08-11）
+
+当前只有一台 Mac mini 可用，Host Mode 的阶段完成以代码实现、自动化测试、fresh build、
+静态契约审计和可安全执行的 Mac mini 单机 smoke 为准。需要第二台控制端的画面、远程输入、
+剪贴板、文件传输、Direct/Relay 与双 active-session 现场检查继续如实记为“未验证”，但不再阻塞
+开发步骤或整体开发完成。该口径不把未执行的双机检查写成已通过，也不替代未来发布、兼容性、
+性能或 notarization 验收；设备恢复后可按 §20.3/§20.4 作为可选补验收执行。
+
 ## 4. 外部约束
 
 ### 4.1 RustDesk 不是稳定 Host SDK
@@ -1931,6 +1939,8 @@ flowchart TD
 > 更新（2026-08-10）：**H6.3e3 Native Host connection mutation dispatch 已完成自动实现**。Host create 接纳的 descriptor-backed owner 现在以 `Arc` 绑定到当前运行中的 Host broker，并在 unbind/stop 时先清除；Host 实例仍 live 但 owner/binding 不可用时，mutation fail closed，只有完全不存在 Native Host 时才保留 upstream CM fallback。dedicated `FileTransfer` scope 内的 create-directory、remove-file、non-recursive remove-directory 与 rename 已分别进入 owner；rename 只接受单个新 basename、保持 source 同 parent，并继续由 `RENAME_EXCL` 禁止覆盖。成功返回 upstream `done`，拒绝与暂不可用只返回两个固定且不含路径的稳定错误；native 成功/失败都不把 mutation 或路径发给不存在的 CM。递归删除仍在任何 lookup 前拒绝。实现由独立 canonical patch 纳入 bootstrap apply/reverse-check，Focused real-filesystem 测试覆盖 success、traversal、recursive remove、bound/rejected/unavailable outcome。当前 `NewWrite`、block/done/cancel/digest 等 write-job lifecycle 仍投递 CM，App/Agent 也继续不传 file opt-in，因此产品文件传输保持关闭；本步不新增 ABI/schema/UI，不操作真实用户文件，不安装/启动、修改 Hermes、push 或宣称双机验收。机器审计与验证见 `Evidence/HostMode/2026-08-10/h6-host-file-transfer-connection-mutation-dispatch.md`；下一自动边界为 **host-file-transfer-native-write-job-lifecycle**。
 
 > 更新（2026-08-11）：**H6.3e4a Native Host new-file write-job lifecycle 已完成自动实现**。dedicated `FileTransfer` connection 现在本地持有最多 8 个 Native Host write jobs；每批只接受起始 file number 0、1–1,024 个真实 `File` entry、最多 1 MiB 路径元数据、严格相对且互不重复的 destination，并要求 entry size 求和精确等于 `total_size`。每个文件通过 descriptor-backed owner 在同 parent 建立 reserved `*.farpane-part`、保持 `0600`/single-link/no-follow；远端 mutation 同时禁止触碰该 reserved namespace。raw/compressed block 在写前继续共用 128 KiB wire/decoded hard limit，文件编号必须单调、单文件和整批字节必须精确。文件切换或 Done 时先验证大小、设置声明 mtime、`sync_all`，再以 `RENAME_EXCL` 原子 no-replace 提交；cancel、remote error、connection drop、Host unbind 或任何写入失败都会关闭 handle 并只删除当前未提交 staging，已提交的前序文件保持上游逐文件语义。现代新文件 digest 只在 exact size/mtime 且 `is_resume=false` 时回复 offset 0；resume、overwrite、existing target、read/list/download 与 Viewer destination/progress UI 仍 fail closed/未实现。Native 路径所有错误只返回固定且不含路径的 rejected/unavailable，完全不存在 Native Host 时才保留 upstream CM fallback。实现由独立 zero-context canonical patch 纳入 bootstrap；4 个 real-filesystem tests 覆盖 multi-file raw/compressed commit、wire/decoded/顺序/size/resume 拒绝、cancel/drop 清 staging与 unbind 后拒绝。App/Agent 继续不传 file opt-in，产品文件传输保持关闭；本步不新增 ABI/schema/UI，不操作真实用户文件，不安装/启动、修改 Hermes、push 或宣称双机验收。机器审计与验证见 `Evidence/HostMode/2026-08-11/h6-host-file-transfer-native-new-write-lifecycle.md`；下一自动边界为 **host-file-transfer-native-resume-digest-lifecycle**。
+
+> 更新（2026-08-11）：**H6.3e4b Native Host single-file resume/digest lifecycle 已完成自动实现**。只对单文件且声明大小不超过 wire offset 的 `UInt32` 上限开放 resume；job admission 原子独占整批 staging path，避免两个 connection 同时续写同一 partial。每次 block 写入后先更新绑定 expected size、mtime、committed offset 与 SHA-256 prefix digest 的 descriptor xattr checkpoint，再 `sync_all`，只有 durable checkpoint 才推进可恢复 offset。重连时只通过 descriptor/no-follow owner 打开 private `0600` single-link staging，要求 metadata 精确一致、实际长度覆盖 checkpoint，并重新计算 prefix digest；未 checkpoint 的尾部会截断，篡改、缺失或矛盾状态会删除 staging 并 fail closed。网络断开或 job drop 保留已验证 partial，显式 cancel、remote error、finish failure 和写入失败则删除当前 staging；Host unbind 后旧 job 不能写，但已持久化 partial 可供后续新 Host owner 恢复。connection 回复验证后的真实 offset，不再固定为 0；独立 zero-context patch 已进入 bootstrap apply/reverse-check。多文件 resume、existing target/overwrite 决策、read/list/download、Viewer destination/progress UI 与产品开关仍未实现；App/Agent 继续关闭文件传输。双机文件传输记为未验证且不阻塞当前开发口径。本步不改 ABI/schema/UI、真实用户文件、Hermes、CI、依赖或数据库。机器审计与验证见 `Evidence/HostMode/2026-08-11/h6-host-file-transfer-native-resume-digest-lifecycle.md`；下一自动边界为 **host-file-transfer-native-existing-target-decision-lifecycle**。
 
 退出条件：各产品目标场景 pass/fail 证据齐全；无 sleep assertion 泄漏、无输入泄漏、无未解释 backlog。
 

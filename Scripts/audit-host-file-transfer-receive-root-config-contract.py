@@ -228,11 +228,11 @@ def main() -> int:
             "ownerRetainedForHostLifetime": True,
             "connectionDispatchImplemented": True,
             "nativeNewFileWriteLifecycleImplemented": True,
-            "nativeResumeDigestLifecycleImplemented": False,
+            "nativeResumeDigestLifecycleImplemented": True,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "host-file-transfer-native-resume-digest-lifecycle",
+        "nextImplementationBoundary": "host-file-transfer-native-existing-target-decision-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == (

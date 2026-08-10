@@ -6,6 +6,7 @@
 
 use hbb_common::libc;
 use std::{
+    collections::HashSet,
     ffi::{CString, OsStr},
     fmt,
     fs::File,
@@ -13,7 +14,8 @@ use std::{
         ffi::OsStrExt,
         io::{AsRawFd, FromRawFd},
     },
-    path::Path,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,6 +35,7 @@ pub(crate) enum NativeFileTransferRootError {
     RemoveDirectory,
     RecursiveRemovalUnsupported,
     RenameEntry,
+    WritePathBusy,
 }
 
 impl fmt::Display for NativeFileTransferRootError {
@@ -55,6 +58,7 @@ impl fmt::Display for NativeFileTransferRootError {
                 "recursive native file-transfer removal is unsupported"
             }
             Self::RenameEntry => "unable to rename native file-transfer entry",
+            Self::WritePathBusy => "native file-transfer write path is already reserved",
         })
     }
 }
@@ -126,8 +130,12 @@ impl NativeFileTransferRoot {
         Ok(file)
     }
 
-    fn open_existing_file_for_resume(&self, relative_path: &Path) -> RootResult<File> {
-        let (parent, file_name) = self.open_relative_parent(relative_path, false)?;
+    fn try_open_existing_file_for_resume(&self, relative_path: &Path) -> RootResult<Option<File>> {
+        let (parent, file_name) = match self.open_relative_parent(relative_path, false) {
+            Ok(value) => value,
+            Err(NativeFileTransferRootError::OpenDirectory) => return Ok(None),
+            Err(error) => return Err(error),
+        };
         let fd = unsafe {
             libc::openat(
                 parent.as_raw_fd(),
@@ -136,11 +144,19 @@ impl NativeFileTransferRoot {
             )
         };
         if fd < 0 {
+            if std::io::Error::last_os_error().raw_os_error() == Some(libc::ENOENT) {
+                return Ok(None);
+            }
             return Err(NativeFileTransferRootError::OpenFile);
         }
         let file = unsafe { File::from_raw_fd(fd) };
         validate_private_regular_file(&file)?;
-        Ok(file)
+        Ok(Some(file))
+    }
+
+    fn open_existing_file_for_resume(&self, relative_path: &Path) -> RootResult<File> {
+        self.try_open_existing_file_for_resume(relative_path)?
+            .ok_or(NativeFileTransferRootError::OpenFile)
     }
 
     fn create_directory(&self, relative_path: &Path) -> RootResult<()> {
@@ -249,6 +265,26 @@ impl NativeFileTransferRoot {
 #[derive(Debug)]
 pub(crate) struct NativeHostFileServiceOwner {
     root: NativeFileTransferRoot,
+    write_reservations: Mutex<HashSet<PathBuf>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct NativeHostWriteReservations {
+    owner: Arc<NativeHostFileServiceOwner>,
+    paths: Vec<PathBuf>,
+}
+
+impl Drop for NativeHostWriteReservations {
+    fn drop(&mut self) {
+        let mut reservations = self
+            .owner
+            .write_reservations
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        for path in &self.paths {
+            reservations.remove(path);
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -267,6 +303,37 @@ impl NativeHostFileServiceOwner {
     pub(crate) fn open_existing(root_path: &Path) -> RootResult<Self> {
         Ok(Self {
             root: NativeFileTransferRoot::open_existing(root_path)?,
+            write_reservations: Mutex::new(HashSet::new()),
+        })
+    }
+
+    pub(crate) fn reserve_write_paths(
+        self: &Arc<Self>,
+        relative_paths: &[PathBuf],
+    ) -> RootResult<NativeHostWriteReservations> {
+        if relative_paths.is_empty() {
+            return Err(NativeFileTransferRootError::InvalidRelativePath);
+        }
+        let mut unique = HashSet::with_capacity(relative_paths.len());
+        for path in relative_paths {
+            relative_path_components(path)?;
+            if !unique.insert(path.clone()) {
+                return Err(NativeFileTransferRootError::InvalidRelativePath);
+            }
+        }
+
+        let mut reservations = self
+            .write_reservations
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if unique.iter().any(|path| reservations.contains(path)) {
+            return Err(NativeFileTransferRootError::WritePathBusy);
+        }
+        reservations.extend(unique.iter().cloned());
+        drop(reservations);
+        Ok(NativeHostWriteReservations {
+            owner: self.clone(),
+            paths: unique.into_iter().collect(),
         })
     }
 
@@ -276,6 +343,13 @@ impl NativeHostFileServiceOwner {
 
     pub(crate) fn open_existing_file_for_resume(&self, relative_path: &Path) -> RootResult<File> {
         self.root.open_existing_file_for_resume(relative_path)
+    }
+
+    pub(crate) fn try_open_existing_file_for_resume(
+        &self,
+        relative_path: &Path,
+    ) -> RootResult<Option<File>> {
+        self.root.try_open_existing_file_for_resume(relative_path)
     }
 
     pub(crate) fn create_directory(&self, relative_path: &Path) -> RootResult<()> {
@@ -663,6 +737,47 @@ mod tests {
                 .unwrap_err(),
             NativeFileTransferRootError::UnsafeFile
         );
+    }
+
+    #[test]
+    fn write_path_reservations_are_atomic_and_release_on_drop() {
+        let sandbox = TestDirectory::new("write_reservations");
+        let trusted = sandbox.child("trusted");
+        create_private_directory(&trusted);
+        let owner = Arc::new(
+            NativeHostFileServiceOwner::open_existing(&trusted).expect("open file-service owner"),
+        );
+        let paths = vec![
+            PathBuf::from("first.download"),
+            PathBuf::from("nested/second.download"),
+        ];
+
+        let reservation = owner
+            .reserve_write_paths(&paths)
+            .expect("reserve distinct write paths");
+        assert_eq!(
+            owner
+                .reserve_write_paths(&[PathBuf::from("nested/second.download")])
+                .unwrap_err(),
+            NativeFileTransferRootError::WritePathBusy
+        );
+        assert_eq!(
+            owner
+                .reserve_write_paths(&[
+                    PathBuf::from("third.download"),
+                    PathBuf::from("nested/second.download"),
+                ])
+                .unwrap_err(),
+            NativeFileTransferRootError::WritePathBusy
+        );
+        let independent = owner
+            .reserve_write_paths(&[PathBuf::from("third.download")])
+            .expect("failed atomic attempt must not reserve a prefix");
+        drop(independent);
+        drop(reservation);
+        owner
+            .reserve_write_paths(&paths)
+            .expect("released paths can be reserved again");
     }
 
     #[test]

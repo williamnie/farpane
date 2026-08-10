@@ -1,0 +1,37 @@
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -3484 +3484 @@
+-            self.native_host_write_jobs.remove(index);
++            self.native_host_write_jobs.remove(index).abort();
+@@ -3492 +3492 @@
+-    async fn confirm_native_host_new_file_digest(&mut self, digest: &FileTransferDigest) -> bool {
++    async fn confirm_native_host_file_digest(&mut self, digest: &FileTransferDigest) -> bool {
+@@ -3508 +3508 @@
+-        let result = self.native_host_write_jobs[index].confirm_new_file_digest(
++        let offset = self.native_host_write_jobs[index].confirm_file_digest(
+@@ -3514,6 +3514,9 @@
+-        if let Err(error) = result {
+-            self.native_host_write_jobs.remove(index);
+-            self.send_native_host_write_failure(digest.id, digest.file_num, error)
+-                .await;
+-            return true;
+-        }
++        let offset = match offset {
++            Ok(offset) => offset,
++            Err(error) => {
++                self.native_host_write_jobs.remove(index).abort();
++                self.send_native_host_write_failure(digest.id, digest.file_num, error)
++                    .await;
++                return true;
++            }
++        };
+@@ -3523 +3526 @@
+-            union: Some(file_transfer_send_confirm_request::Union::OffsetBlk(0)),
++            union: Some(file_transfer_send_confirm_request::Union::OffsetBlk(offset)),
+@@ -3565 +3568 @@
+-            self.native_host_write_jobs.remove(index);
++            self.native_host_write_jobs.remove(index).abort();
+@@ -5162 +5165 @@
+-                            self.confirm_native_host_new_file_digest(&d).await;
++                            self.confirm_native_host_file_digest(&d).await;
