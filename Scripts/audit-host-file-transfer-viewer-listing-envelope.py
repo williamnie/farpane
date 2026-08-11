@@ -101,7 +101,7 @@ def main() -> int:
             and "rdn_client_file_transfer_list_root" in header
             and "RDNFileTransferListEvent" in header
         ),
-        "productRemainsOff": "fileTransferPolicy:" not in product,
+        "productRemainsOff": "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product,
     }
     source_lines = {
         "designMilestone": line_number(

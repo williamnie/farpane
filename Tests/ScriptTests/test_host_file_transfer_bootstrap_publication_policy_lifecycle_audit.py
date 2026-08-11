@@ -26,19 +26,19 @@ class HostFileTransferBootstrapPublicationPolicyLifecycleAuditTests(
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["status"],
-            "bootstrap-publication-runtime-policy-implemented-home-opt-in-off",
+            "bootstrap-publication-runtime-policy-implemented-home-opt-in-downstream",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(document["claims"]["bootstrapPolicyPublicationImplemented"])
         self.assertTrue(document["claims"]["agentRuntimePolicyProjectionImplemented"])
-        self.assertFalse(document["claims"]["hostHomeFileTransferOptInImplemented"])
+        self.assertTrue(document["claims"]["hostHomeFileTransferOptInImplemented"])
         self.assertFalse(document["claims"]["productFileTransferEnabledByDefault"])
         self.assertFalse(document["claims"]["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-host-home-receive-root-opt-in-lifecycle",
+            "host-file-transfer-product-development-completion-audit",
         )
 
 

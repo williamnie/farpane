@@ -51,6 +51,28 @@ public struct HostAgentFileTransferPolicy: Equatable, Sendable {
         self.enabled = enabled
         self.receiveRoot = receiveRoot
     }
+
+    public static func validatedEnabled(
+        receiveRoot: String
+    ) -> Self? {
+        guard validReceiveRoot(receiveRoot) else { return nil }
+        return Self(enabled: true, receiveRoot: receiveRoot)
+    }
+
+    fileprivate static func validReceiveRoot(_ value: String) -> Bool {
+        guard !value.isEmpty,
+              value.utf8.count <= 4_096,
+              value == value.trimmingCharacters(
+                  in: .whitespacesAndNewlines
+              ),
+              value.unicodeScalars.allSatisfy({
+                  !CharacterSet.controlCharacters.contains($0)
+              }),
+              value.hasPrefix("/"),
+              value != "/"
+        else { return false }
+        return (value as NSString).standardizingPath == value
+    }
 }
 
 /// Immutable, non-secret input that must be validated before HostAgent may
@@ -232,12 +254,10 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             let receiveRootValue = fileTransfer["receiveRoot"]
             if enabled {
                 guard let receiveRoot = receiveRootValue as? String,
-                      validReceiveRoot(receiveRoot)
+                      let policy = HostAgentFileTransferPolicy
+                        .validatedEnabled(receiveRoot: receiveRoot)
                 else { throw HostAgentBootstrapConfigurationError.invalidDocument }
-                fileTransferPolicy = HostAgentFileTransferPolicy(
-                    enabled: true,
-                    receiveRoot: receiveRoot
-                )
+                fileTransferPolicy = policy
             } else {
                 guard receiveRootValue is NSNull else {
                     throw HostAgentBootstrapConfigurationError.invalidDocument
@@ -295,14 +315,6 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             && value.unicodeScalars.allSatisfy {
                 !CharacterSet.whitespacesAndNewlines.contains($0)
             }
-    }
-
-    private static func validReceiveRoot(_ value: String) -> Bool {
-        guard validString(value, maximumUTF8Bytes: 4_096),
-              value.hasPrefix("/"),
-              value != "/"
-        else { return false }
-        return (value as NSString).standardizingPath == value
     }
 
     private static func validString(_ value: String, maximumUTF8Bytes: Int) -> Bool {

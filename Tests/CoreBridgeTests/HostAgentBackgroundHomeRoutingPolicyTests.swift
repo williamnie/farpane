@@ -147,6 +147,37 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         }
     }
 
+    func testFileTransferPolicyChangesUseTheSameHostOffGate() {
+        let allowed = HostAgentBackgroundHomeControlState(
+            isOn: false,
+            isInteractive: true
+        )
+        XCTAssertTrue(
+            HostAgentBackgroundHomeRoutingPolicy
+                .allowsFileTransferPolicyChange(
+                    control: allowed,
+                    viewerConnectionInProgress: false
+                )
+        )
+        XCTAssertFalse(
+            HostAgentBackgroundHomeRoutingPolicy
+                .allowsFileTransferPolicyChange(
+                    control: HostAgentBackgroundHomeControlState(
+                        isOn: true,
+                        isInteractive: true
+                    ),
+                    viewerConnectionInProgress: false
+                )
+        )
+        XCTAssertFalse(
+            HostAgentBackgroundHomeRoutingPolicy
+                .allowsFileTransferPolicyChange(
+                    control: allowed,
+                    viewerConnectionInProgress: true
+                )
+        )
+    }
+
     func testHostEnableRequiresPublishedBootstrapButDisableRemainsAvailable() {
         let off = HostAgentBackgroundHomeControlState(
             isOn: false,
@@ -399,6 +430,58 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         ))
         XCTAssertTrue(agentSource.contains(
             ".allowRemoteImageWrite"
+        ))
+    }
+
+    func testFileTransferHomeOptInUsesOnePolicyForBothHostOwners() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/RustDeskNativeApp.swift"
+            ),
+            encoding: .utf8
+        )
+        let homeSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/HomeView.swift"
+            ),
+            encoding: .utf8
+        )
+        let agentSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+            ),
+            encoding: .utf8
+        )
+
+        for marker in [
+            "farpane.host.fileTransfer.enabled",
+            "farpane.host.fileTransfer.receiveRoot",
+            "fileTransferPolicy: currentHostFileTransferPolicy()",
+            "fileTransferEnabled: fileTransferPolicy.enabled",
+            "fileTransferReceiveRoot: fileTransferPolicy.receiveRoot",
+            "allowsFileTransferPolicyChange(",
+            "HostFileTransferReceiveRootPickerController",
+        ] {
+            XCTAssertTrue(appSource.contains(marker), marker)
+        }
+        for marker in [
+            "文件接收（默认关闭）",
+            "FarPane Receive",
+            "onHostFileTransferToggle",
+            "onChooseHostFileTransferReceiveRoot",
+            "snapshot.host.allowsFileTransferPolicyChange",
+        ] {
+            XCTAssertTrue(homeSource.contains(marker), marker)
+        }
+        XCTAssertTrue(agentSource.contains(
+            "configuration.fileTransferPolicy.enabled"
+        ))
+        XCTAssertTrue(agentSource.contains(
+            "configuration.fileTransferPolicy.receiveRoot"
         ))
     }
 }

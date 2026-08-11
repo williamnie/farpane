@@ -176,8 +176,8 @@ def main() -> int:
             and owner == sources["vendor_owner"]
         ),
         "productCallersRemainDisabled": (
-            "fileTransferPolicy:" not in product
-            and "fileTransferPolicy:" not in product
+            "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
+            and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
         ),
         "architectureRecordsNewFileOnlyBoundary": all(
             marker in architecture

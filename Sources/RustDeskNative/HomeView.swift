@@ -63,6 +63,9 @@ struct HostHomeSnapshot: Equatable {
     var clipboardImageReadEnabled: Bool = false
     var clipboardImageWriteEnabled: Bool = false
     var allowsClipboardPolicyChange: Bool
+    var fileTransferEnabled: Bool = false
+    var fileTransferReceiveRootName: String = ""
+    var allowsFileTransferPolicyChange: Bool = false
     var statusText: String
     var localID: String
     var temporaryPassword: String
@@ -106,6 +109,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onHostClipboardRichTextWriteToggle: ((Bool) -> Void)?
     var onHostClipboardImageReadToggle: ((Bool) -> Void)?
     var onHostClipboardImageWriteToggle: ((Bool) -> Void)?
+    var onHostFileTransferToggle: ((Bool) -> Void)?
+    var onChooseHostFileTransferReceiveRoot: (() -> Void)?
     var onRevealHostPassword: (() -> Void)?
     var onRegenerateHostPassword: (() -> Void)?
     var onSetHostPermanentPassword: (() -> Void)?
@@ -148,6 +153,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostClipboardRichTextWriteSwitch = NSSwitch()
     private let hostClipboardImageReadSwitch = NSSwitch()
     private let hostClipboardImageWriteSwitch = NSSwitch()
+    private let hostFileTransferSwitch = NSSwitch()
+    private let hostFileTransferReceiveRootLabel = NSTextField(
+        labelWithString: "接收文件夹：未选择"
+    )
+    private let hostFileTransferReceiveRootButton = NSButton()
     private let hostApprovalContainer = NSView()
     private let hostApprovalTitleLabel = NSTextField(labelWithString: "新的远程连接请求")
     private let hostApprovalIdentityLabel = NSTextField(wrappingLabelWithString: "")
@@ -246,6 +256,17 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostClipboardRichTextWriteSwitch.isEnabled = clipboardPolicyInteractive
         hostClipboardImageReadSwitch.isEnabled = clipboardPolicyInteractive
         hostClipboardImageWriteSwitch.isEnabled = clipboardPolicyInteractive
+        hostFileTransferSwitch.state = snapshot.host.fileTransferEnabled
+            ? .on : .off
+        let fileTransferPolicyInteractive = snapshot.connectingPeerID == nil
+            && snapshot.host.allowsFileTransferPolicyChange
+        hostFileTransferSwitch.isEnabled = fileTransferPolicyInteractive
+        hostFileTransferReceiveRootButton.isEnabled =
+            fileTransferPolicyInteractive
+        hostFileTransferReceiveRootButton.title = snapshot.host
+            .fileTransferEnabled ? "更改位置" : "选择并启用"
+        hostFileTransferReceiveRootLabel.stringValue =
+            "接收文件夹：\(snapshot.host.fileTransferReceiveRootName.nonEmpty ?? "未选择")"
         hostStatusLabel.stringValue = snapshot.host.statusText
         hostStatusDot.layer?.backgroundColor = hostStatusColor(snapshot.host).cgColor
         hostIDLabel.stringValue = "本机 ID：\(snapshot.host.localID.nonEmpty ?? "—")"
@@ -783,6 +804,63 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             ).isActive = true
         }
 
+        let hostFileTransferTitle = NSTextField(
+            labelWithString: "文件接收（默认关闭）"
+        )
+        hostFileTransferTitle.font = .systemFont(ofSize: 12, weight: .medium)
+        hostFileTransferTitle.textColor = .secondaryLabelColor
+        hostFileTransferSwitch.target = self
+        hostFileTransferSwitch.action = #selector(hostFileTransferToggleChanged)
+        hostFileTransferSwitch.setAccessibilityLabel("允许远端发送文件到本机")
+        let hostFileTransferToggleLabel = NSTextField(
+            labelWithString: "允许远端发送文件到本机"
+        )
+        hostFileTransferToggleLabel.font = .systemFont(ofSize: 12)
+        hostFileTransferToggleLabel.textColor = .secondaryLabelColor
+        let hostFileTransferToggleRow = NSStackView(views: [
+            hostFileTransferToggleLabel,
+            NSView(),
+            hostFileTransferSwitch,
+        ])
+        hostFileTransferToggleRow.orientation = .horizontal
+        hostFileTransferToggleRow.alignment = .centerY
+
+        hostFileTransferReceiveRootLabel.font = .systemFont(ofSize: 11)
+        hostFileTransferReceiveRootLabel.textColor = .tertiaryLabelColor
+        hostFileTransferReceiveRootLabel.lineBreakMode = .byTruncatingMiddle
+        hostFileTransferReceiveRootButton.bezelStyle = .inline
+        hostFileTransferReceiveRootButton.target = self
+        hostFileTransferReceiveRootButton.action =
+            #selector(chooseHostFileTransferReceiveRoot)
+        hostFileTransferReceiveRootButton.setAccessibilityLabel(
+            "选择 FarPane Receive 接收文件夹的位置"
+        )
+        let hostFileTransferRootRow = NSStackView(views: [
+            hostFileTransferReceiveRootLabel,
+            NSView(),
+            hostFileTransferReceiveRootButton,
+        ])
+        hostFileTransferRootRow.orientation = .horizontal
+        hostFileTransferRootRow.alignment = .centerY
+
+        let hostFileTransferSettings = NSStackView(views: [
+            hostFileTransferTitle,
+            hostFileTransferToggleRow,
+            hostFileTransferRootRow,
+        ])
+        hostFileTransferSettings.orientation = .vertical
+        hostFileTransferSettings.alignment = .leading
+        hostFileTransferSettings.spacing = 5
+        for view in [
+            hostFileTransferTitle,
+            hostFileTransferToggleRow,
+            hostFileTransferRootRow,
+        ] {
+            view.widthAnchor.constraint(
+                equalTo: hostFileTransferSettings.widthAnchor
+            ).isActive = true
+        }
+
         hostSessionContainer.wantsLayer = true
         hostSessionContainer.layer?.cornerRadius = 9
         hostSessionContainer.layer?.backgroundColor = NSColor.systemBlue
@@ -979,6 +1057,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostDetails,
             hostPermanentPasswordDetails,
             hostClipboardSettings,
+            hostFileTransferSettings,
             hostSessionContainer,
             hostApprovalContainer,
             hostMediaDiagnosticLabel,
@@ -993,6 +1072,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostDetails,
             hostPermanentPasswordDetails,
             hostClipboardSettings,
+            hostFileTransferSettings,
             hostSessionContainer,
             hostApprovalContainer,
             hostMediaDiagnosticLabel,
@@ -1299,6 +1379,16 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         onHostClipboardImageWriteToggle?(
             hostClipboardImageWriteSwitch.state == .on
         )
+    }
+
+    @objc private func hostFileTransferToggleChanged() {
+        guard snapshot.host.allowsFileTransferPolicyChange else { return }
+        onHostFileTransferToggle?(hostFileTransferSwitch.state == .on)
+    }
+
+    @objc private func chooseHostFileTransferReceiveRoot() {
+        guard snapshot.host.allowsFileTransferPolicyChange else { return }
+        onChooseHostFileTransferReceiveRoot?()
     }
 
     @objc private func revealHostPassword() { onRevealHostPassword?() }

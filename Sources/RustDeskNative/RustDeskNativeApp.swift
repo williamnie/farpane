@@ -164,6 +164,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         "farpane.host.clipboard.image.allowRemoteRead"
     private static let hostClipboardImageWriteEnabledDefaultsKey =
         "farpane.host.clipboard.image.allowRemoteWrite"
+    private static let hostFileTransferEnabledDefaultsKey =
+        "farpane.host.fileTransfer.enabled"
+    private static let hostFileTransferReceiveRootDefaultsKey =
+        "farpane.host.fileTransfer.receiveRoot"
 
     private let options = Options(arguments: CommandLine.arguments)
     private let hostViewerConcurrencyEvidenceOwner =
@@ -213,6 +217,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         ViewerFileTransferDestinationPickerController?
     private var viewerFileTransferPasswordPrompt:
         ViewerFileTransferPasswordPromptController?
+    private var hostFileTransferReceiveRootPicker:
+        HostFileTransferReceiveRootPickerController?
     private var viewerAutomaticRecoveryOwner: ViewerAutomaticRecoveryOwner?
     private var viewerRecoveryDeviceID: UUID?
     private var viewerRecoveryCommittedEpoch: UInt64 = 0
@@ -228,6 +234,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostMediaRoute: HostMediaControl?
     private var hostMediaSuspendedForSessionUnavailable = false
     private var hostMediaStatusText: String?
+    private var hostFileTransferPolicyErrorText = ""
     private var hostMediaGeneration: UInt64 = 0
     private var hostMediaCapabilitiesInstanceID = ""
     private var hostMediaCapabilitiesProbeID: UUID?
@@ -610,6 +617,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     private func showHomeUI(error: String = "") {
+        let hostReceiveRootPicker = hostFileTransferReceiveRootPicker
+        hostFileTransferReceiveRootPicker = nil
+        hostReceiveRootPicker?.cancel()
         stopViewerAutomaticRecovery()
         stopViewerClipboard()
         stopViewerFileTransfer()
@@ -706,6 +716,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 allowRemoteRichTextWrite: nil,
                 allowRemoteImageWrite: enabled
             )
+        }
+        view.onHostFileTransferToggle = { [weak self] enabled in
+            self?.handleHostFileTransferPolicyToggle(enabled)
+        }
+        view.onChooseHostFileTransferReceiveRoot = { [weak self] in
+            self?.beginHostFileTransferReceiveRootSelection()
         }
         view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
         view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
@@ -819,6 +835,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 session: session
             )
         let clipboardPolicy = currentHostClipboardPolicy()
+        let fileTransferPolicy = currentHostFileTransferPolicy()
         let bootstrapReady: Bool
         if case .ready = hostAgentBootstrapState {
             bootstrapReady = true
@@ -859,6 +876,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 allowsClipboardPolicyChange:
                     HostAgentBackgroundHomeRoutingPolicy
                         .allowsClipboardPolicyChange(
+                            control: hostControl,
+                            viewerConnectionInProgress:
+                                activeAttemptID != nil
+                        ),
+                fileTransferEnabled: fileTransferPolicy.enabled,
+                fileTransferReceiveRootName:
+                    fileTransferPolicy.receiveRoot.map {
+                        URL(fileURLWithPath: $0).lastPathComponent
+                    } ?? "",
+                allowsFileTransferPolicyChange:
+                    HostAgentBackgroundHomeRoutingPolicy
+                        .allowsFileTransferPolicyChange(
                             control: hostControl,
                             viewerConnectionInProgress:
                                 activeAttemptID != nil
@@ -924,6 +953,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             backgroundRuntimeError,
             usesLegacyHost ? "" : backgroundCommand.errorText,
             bootstrapError,
+            hostFileTransferPolicyErrorText,
             usesLegacyHost ? "" : hostAgentRuntimeConfigurationErrorText,
         ]
             .filter { !$0.isEmpty }
@@ -968,7 +998,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         hostAgentBootstrapState = hostAgentBootstrapIntegration
             .reconcileSavedCatalog(
                 from: catalogStore,
-                clipboardPolicy: currentHostClipboardPolicy()
+                clipboardPolicy: currentHostClipboardPolicy(),
+                fileTransferPolicy: currentHostFileTransferPolicy()
             )
         refreshHostAgentRuntimeConfigurationCoherence()
     }
@@ -994,6 +1025,23 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 forKey: Self.hostClipboardImageWriteEnabledDefaultsKey
             )
         )
+    }
+
+    private func currentHostFileTransferPolicy()
+        -> HostAgentFileTransferPolicy
+    {
+        guard UserDefaults.standard.bool(
+            forKey: Self.hostFileTransferEnabledDefaultsKey
+        ),
+        let receiveRoot = UserDefaults.standard.string(
+            forKey: Self.hostFileTransferReceiveRootDefaultsKey
+        ),
+        let policy = HostAgentFileTransferPolicy.validatedEnabled(
+            receiveRoot: receiveRoot
+        ) else {
+            return .disabled
+        }
+        return policy
     }
 
     private var coherentHostAgentBackgroundActivationView:
@@ -1315,6 +1363,101 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    private func handleHostFileTransferPolicyToggle(_ enabled: Bool) {
+        guard Thread.isMainThread else { return }
+        MainActor.assumeIsolated {
+            guard hostFileTransferPolicyChangeAllowed() else {
+                refreshHomeUI()
+                return
+            }
+            if enabled {
+                beginHostFileTransferReceiveRootSelection()
+                refreshHomeUI()
+                return
+            }
+
+            let picker = hostFileTransferReceiveRootPicker
+            hostFileTransferReceiveRootPicker = nil
+            picker?.cancel()
+            UserDefaults.standard.set(
+                false,
+                forKey: Self.hostFileTransferEnabledDefaultsKey
+            )
+            UserDefaults.standard.removeObject(
+                forKey: Self.hostFileTransferReceiveRootDefaultsKey
+            )
+            hostFileTransferPolicyErrorText = ""
+            reconcileHostAgentBootstrap()
+            refreshHomeUI()
+        }
+    }
+
+    private func beginHostFileTransferReceiveRootSelection() {
+        guard Thread.isMainThread else { return }
+        MainActor.assumeIsolated {
+            guard hostFileTransferPolicyChangeAllowed(),
+                  hostFileTransferReceiveRootPicker == nil,
+                  let window
+            else {
+                refreshHomeUI()
+                return
+            }
+            let picker = HostFileTransferReceiveRootPickerController()
+            hostFileTransferReceiveRootPicker = picker
+            picker.begin(on: window) { [weak self, weak picker] result in
+                guard let self, let picker,
+                      self.hostFileTransferReceiveRootPicker === picker
+                else { return }
+                self.hostFileTransferReceiveRootPicker = nil
+                switch result {
+                case .selected(let receiveRoot):
+                    guard let policy = HostAgentFileTransferPolicy
+                        .validatedEnabled(receiveRoot: receiveRoot),
+                        let canonicalReceiveRoot = policy.receiveRoot
+                    else {
+                        self.hostFileTransferPolicyErrorText =
+                            "接收文件夹路径无效，文件接收仍保持关闭。"
+                        self.refreshHomeUI()
+                        return
+                    }
+                    UserDefaults.standard.set(
+                        canonicalReceiveRoot,
+                        forKey: Self.hostFileTransferReceiveRootDefaultsKey
+                    )
+                    UserDefaults.standard.set(
+                        true,
+                        forKey: Self.hostFileTransferEnabledDefaultsKey
+                    )
+                    self.hostFileTransferPolicyErrorText = ""
+                    self.reconcileHostAgentBootstrap()
+                case .cancelled:
+                    break
+                case .rejected:
+                    self.hostFileTransferPolicyErrorText =
+                        "无法创建私有 FarPane Receive 文件夹；请选择属于当前用户且不可被其他用户写入的位置。"
+                }
+                self.refreshHomeUI()
+            }
+        }
+    }
+
+    @MainActor
+    private func hostFileTransferPolicyChangeAllowed() -> Bool {
+        let legacy = HostAgentLegacyHostMigrationGate.assess(
+            captureLegacyHostMigrationEvidence()
+        )
+        let control = HostAgentBackgroundHomeRoutingPolicy.controlState(
+            registration: hostAgentBackgroundRegistrationStatus,
+            legacy: legacy,
+            flow: hostAgentBackgroundFlow
+        )
+        return HostAgentBackgroundHomeRoutingPolicy
+            .allowsFileTransferPolicyChange(
+                control: control,
+                viewerConnectionInProgress: activeAttemptID != nil
+            )
+    }
+
     @MainActor
     private func handleHostProductToggleOnMain(_ enabled: Bool) {
         let legacy = HostAgentLegacyHostMigrationGate.assess(
@@ -1568,6 +1711,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 client = created
             }
             let clipboardPolicy = currentHostClipboardPolicy()
+            let fileTransferPolicy = currentHostFileTransferPolicy()
             try client.start(configuration: HostServerConfiguration(
                 rendezvousServer: server.rendezvousServer,
                 serverPublicKey: server.serverPublicKey,
@@ -1580,7 +1724,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 clipboardImageReadEnabled:
                     clipboardPolicy.allowRemoteImageRead,
                 clipboardImageWriteEnabled:
-                    clipboardPolicy.allowRemoteImageWrite
+                    clipboardPolicy.allowRemoteImageWrite,
+                fileTransferEnabled: fileTransferPolicy.enabled,
+                fileTransferReceiveRoot: fileTransferPolicy.receiveRoot
             ))
             hostRuntimeActive = true
             hostRuntimeQuiescenceConfirmed = true
@@ -4349,6 +4495,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func finish() {
         guard !didFinish else { return }
         didFinish = true
+        let hostReceiveRootPicker = hostFileTransferReceiveRootPicker
+        hostFileTransferReceiveRootPicker = nil
+        hostReceiveRootPicker?.cancel()
         stopHostMode(preservePreference: true, reason: .appExit, releaseClient: true)
         stopViewerAutomaticRecovery()
         stopViewerClipboard()

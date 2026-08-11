@@ -156,7 +156,7 @@ def main() -> int:
             )
         ),
         "productRemainsOffAndRuntimeGapDocumented": (
-            "fileTransferPolicy:" not in product
+            "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "destination\n  owner" in sources["architecture"]
             and "No download command" in sources["readme"]
         ),

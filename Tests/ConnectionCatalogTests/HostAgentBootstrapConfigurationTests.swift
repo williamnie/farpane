@@ -140,6 +140,25 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         }
     }
 
+    func testBuildsOnlyCanonicalEnabledFileTransferPolicy() {
+        XCTAssertEqual(
+            HostAgentFileTransferPolicy.validatedEnabled(
+                receiveRoot: "/Users/example/FarPane Receive"
+            ),
+            HostAgentFileTransferPolicy(
+                enabled: true,
+                receiveRoot: "/Users/example/FarPane Receive"
+            )
+        )
+        for root in ["", "relative", "/", "/Users/example/../escape"] {
+            XCTAssertNil(
+                HostAgentFileTransferPolicy.validatedEnabled(
+                    receiveRoot: root
+                )
+            )
+        }
+    }
+
     func testRejectsUnknownCredentialAndAmbiguousRevisionFields() throws {
         var credential = try object(from: validDocument())
         credential["password"] = "must-not-enter-bootstrap"

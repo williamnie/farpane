@@ -122,7 +122,7 @@ def main() -> int:
         ),
         "abiAndProductRemainOff": (
             "#define RDN_ABI_VERSION 13u" in sources["header"]
-            and "fileTransferPolicy:" not in product
+            and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "No download command" in sources["readme"]
             and "handle 不含路径/descriptor" in sources["architecture"]
         ),

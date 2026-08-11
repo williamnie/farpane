@@ -146,7 +146,7 @@ def main() -> int:
             )
         ),
         "productAndDownloadIORemainOff": (
-            "fileTransferPolicy:" not in product
+            "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "No download command" in sources["readme"]
             and "download start" in sources["architecture"]
             and "rdn_client_file_transfer_download_start" in header

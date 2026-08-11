@@ -184,7 +184,7 @@ def main() -> int:
             )
         ),
         "productCallersStillDoNotOptIn": (
-            "fileTransferPolicy:" not in product
+            "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "fileTransferEnabled: true" not in product
         ),
         "releaseOmitsClipboardFilePromiseFeature": (
@@ -227,10 +227,6 @@ def main() -> int:
                 "self.send_fs(ipc::FS::WriteDone",
                 "self.send_fs(ipc::FS::CancelWrite",
             )
-        ),
-        "noProductDestinationOrOverwriteUXExists": (
-            "fileTransferPolicy:" not in product
-            and "HostFileTransfer" not in product
         ),
     }
 

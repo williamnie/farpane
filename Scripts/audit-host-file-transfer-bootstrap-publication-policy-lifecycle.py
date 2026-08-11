@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-bootstrap-publication-policy-lifecycle-audit"
-NEXT_BOUNDARY = "host-file-transfer-host-home-receive-root-opt-in-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-product-development-completion-audit"
 
 
 def read(path: Path) -> str:
@@ -91,9 +91,12 @@ def main() -> int:
                 "configuration.fileTransferPolicy.receiveRoot",
             )
         ),
-        "appStillPublishesDefaultDisabledPolicy": (
+        "homeOptInPreservesDefaultDisabledPolicy": (
             "clipboardPolicy: currentHostClipboardPolicy()" in app_reconcile
-            and "fileTransferPolicy:" not in app_reconcile
+            and "fileTransferPolicy: currentHostFileTransferPolicy()"
+                in app_reconcile
+            and "farpane.host.fileTransfer.enabled" in sources["app"]
+            and "return .disabled" in sources["app"]
         ),
         "regressionsCoverRevisionIntegrationAndRuntime": all(
             marker in (
@@ -137,7 +140,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "bootstrap-publication-runtime-policy-implemented-home-opt-in-off"
+            "bootstrap-publication-runtime-policy-implemented-home-opt-in-downstream"
             if passed else "audit-failed"
         ),
         "coverageScope": "h6-host-file-transfer-bootstrap-publication-policy-lifecycle",
@@ -148,7 +151,7 @@ def main() -> int:
         "claims": {
             "bootstrapPolicyPublicationImplemented": passed,
             "agentRuntimePolicyProjectionImplemented": passed,
-            "hostHomeFileTransferOptInImplemented": False,
+            "hostHomeFileTransferOptInImplemented": passed,
             "productFileTransferEnabledByDefault": False,
             "twoMacAcceptanceComplete": False,
         },

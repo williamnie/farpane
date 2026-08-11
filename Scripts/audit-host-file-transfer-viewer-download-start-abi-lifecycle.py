@@ -186,7 +186,7 @@ def main() -> int:
             )
         ),
         "productAndDownloadIORemainOff": (
-            "fileTransferPolicy:" not in product
+            "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "Download start now queues exactly one" in sources["readme"]
             and "不会创建上游 path-based local write job" in sources["architecture"]
         ),
