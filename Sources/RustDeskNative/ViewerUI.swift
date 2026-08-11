@@ -8,6 +8,7 @@ final class ViewerChromeView: NSView {
     var onDisconnect: (() -> Void)?
     var onToggleFullscreen: (() -> Void)?
     var onToggleKeyboardGrab: (() -> Void)?
+    var onFileTransferAction: (() -> Void)?
     var onOpenKeyboardPermissions: (() -> Void)?
     var onControlOverlayVisibilityChanged: ((Bool) -> Void)?
 
@@ -20,12 +21,17 @@ final class ViewerChromeView: NSView {
     private let keyboardStatusLabel = NSTextField(labelWithString: "")
     private let keyboardGrabButton = NSButton(title: "独占键盘", target: nil, action: nil)
     private let keyboardPermissionButton = NSButton(title: "权限设置", target: nil, action: nil)
+    private let fileTransferButton = NSButton(title: "接收文件", target: nil, action: nil)
     private let hudButton = NSButton(title: "显示 HUD", target: nil, action: nil)
     private let fullscreenButton = NSButton(title: "全屏", target: nil, action: nil)
     private let showsAcceptanceControls: Bool
+    private let showsFileTransferControls: Bool
     private var hudVisible: Bool
     private var keyboardGrabActive = false
     private var keyboardGrabAvailable = false
+    private var fileTransferAvailable = false
+    private var fileTransferActive = false
+    private var fileTransferCancellable = false
     private var controlsExpanded = false
     private var controlsPinned = false
     private var pointerInsideControls = false
@@ -36,11 +42,13 @@ final class ViewerChromeView: NSView {
     init(
         videoView: ViewerMetalView,
         metrics: PipelineMetrics,
-        showsAcceptanceControls: Bool
+        showsAcceptanceControls: Bool,
+        showsFileTransferControls: Bool
     ) {
         self.videoView = videoView
         self.metrics = metrics
         self.showsAcceptanceControls = showsAcceptanceControls
+        self.showsFileTransferControls = showsFileTransferControls
         hudVisible = showsAcceptanceControls
             || UserDefaults.standard.bool(forKey: Self.hudPreferenceKey)
         super.init(frame: .zero)
@@ -138,6 +146,30 @@ final class ViewerChromeView: NSView {
         }
     }
 
+    func setFileTransferAvailable(_ available: Bool) {
+        fileTransferAvailable = available
+        fileTransferButton.isEnabled = fileTransferActive
+            ? fileTransferCancellable
+            : available
+    }
+
+    func updateFileTransferAction(active: Bool, cancellable: Bool = false) {
+        fileTransferActive = active
+        fileTransferCancellable = active && cancellable
+        fileTransferButton.title = active
+            ? (fileTransferCancellable ? "取消接收" : "正在准备…")
+            : "接收文件"
+        fileTransferButton.contentTintColor = fileTransferCancellable
+            ? .systemOrange
+            : nil
+        fileTransferButton.isEnabled = active
+            ? fileTransferCancellable
+            : fileTransferAvailable
+        fileTransferButton.toolTip = fileTransferCancellable
+            ? "取消当前文件接收"
+            : "选择本机私有目录并接收远端共享文件"
+    }
+
     func updateHUD(_ value: PipelineHUDSnapshot) {
         hudLabel.stringValue = String(
             format: "远端 %dx%d  →  本地 %dx%d\n编码 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  丢帧 %d\n队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
@@ -194,6 +226,12 @@ final class ViewerChromeView: NSView {
         keyboardPermissionButton.target = self
         keyboardPermissionButton.action = #selector(openKeyboardPermissions)
         keyboardPermissionButton.isHidden = true
+        fileTransferButton.bezelStyle = .rounded
+        fileTransferButton.target = self
+        fileTransferButton.action = #selector(fileTransferAction)
+        fileTransferButton.isEnabled = false
+        fileTransferButton.toolTip = "选择本机私有目录并接收远端共享文件"
+        fileTransferButton.setAccessibilityLabel("接收远端文件")
         hudButton.bezelStyle = .rounded
         hudButton.target = self
         hudButton.action = #selector(toggleHUD)
@@ -207,6 +245,7 @@ final class ViewerChromeView: NSView {
         let acceptanceButton = actionButton("验收记录", #selector(showChecklist))
 
         var views: [NSView] = [stateLabel, keyboardStatusLabel, keyboardPermissionButton, NSView(), keyboardGrabButton]
+        if showsFileTransferControls { views.append(fileTransferButton) }
         if showsAcceptanceControls { views.append(acceptanceButton) }
         views.append(contentsOf: [hudButton, fullscreenButton, disconnectButton, collapseButton])
         let controlsStack = NSStackView(views: views)
@@ -342,6 +381,11 @@ final class ViewerChromeView: NSView {
 
     @objc private func openKeyboardPermissions() {
         onOpenKeyboardPermissions?()
+        scheduleCollapse()
+    }
+
+    @objc private func fileTransferAction() {
+        onFileTransferAction?()
         scheduleCollapse()
     }
 
