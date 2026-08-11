@@ -125,7 +125,7 @@ def main() -> int:
             and "requestFileTransferRecursiveManifest" in sources["core"]
         ),
         "productRemainsOffAndGapIsExplicit": (
-            "fileTransferEnabled:" not in product
+            "fileTransferPolicy:" not in product
             and "download start" in sources["architecture"]
             and "No download command" in sources["readme"]
         ),

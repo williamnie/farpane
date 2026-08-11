@@ -167,7 +167,7 @@ def main() -> int:
             and all(marker not in progress + done + error + cancel for marker in (
                 "openat", "File::create", "write_all", "destination"
             ))
-            and "fileTransferEnabled:" not in product
+            and "fileTransferPolicy:" not in product
             and "No download command" in sources["readme"]
             and "dispatches a wire request" in sources["readme"]
         ),

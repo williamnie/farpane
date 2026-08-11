@@ -1994,6 +1994,8 @@ flowchart TD
 
 > 更新（2026-08-11）：**H6.3f2b2t1 Host file-transfer bootstrap schema v5 contract 已完成自动实现**。Host Agent immutable bootstrap 从 schema v4 升至 v5，新增独立 `HostAgentFileTransferPolicy`：默认 canonical projection 固定 `enabled=false`/`receiveRoot=null`，开启必须与非根目录、规范化、4 KiB UTF-8 上限内的绝对 receive root 精确成对；额外键、数值伪装 Boolean、pair mismatch、相对/含 `..`/根路径及 future schema 均 fail closed。schema v1–v4 保留既有 clipboard 迁移并把 file policy 固定迁移为关闭，因此升级不会隐式开放文件接收。本步只完成严格文档与 builder 投影，publication coordinator、Home picker/UserDefaults、后台 Agent 和 legacy Host 仍未接线，产品能力继续关闭；未启动 GUI、访问真实用户文件、安装、修改 Hermes、CI、依赖、数据库或 push，双机验收未验证且不阻塞。证据见 `Evidence/HostMode/2026-08-11/h6-host-file-transfer-bootstrap-schema-v5-contract.md`；下一自动边界为 **host-file-transfer-bootstrap-publication-policy-lifecycle**。
 
+> 更新（2026-08-11）：**H6.3f2b2t2 Host file-transfer bootstrap publication policy lifecycle 已完成自动实现**。schema v5 file policy 现在贯通 canonical builder、publication coordinator、product integration 与后台 HostAgent runtime：permission/root 的任何变化都会参与 same-revision equality 并推进 `configRevision`，exact retry 继续 idempotent；Agent 只从已验证 bootstrap 精确投影 `fileTransferEnabled`/`fileTransferReceiveRoot` 到 Host ABI v17。App 当前仍只传 clipboard policy，所以 integration 的 file policy 默认 `.disabled`，产品不会提前开放文件传输。历史 H6.3 审计的默认关闭判据同步校正为“App 未传显式 file policy”，不再把 Agent 缺少 ABI 接线当作前提。本步未实现 Home picker/UserDefaults 或 legacy 前台 Host 接线，未启动 GUI、访问真实用户文件、安装、修改 Hermes、CI、依赖、数据库或 push；双机验收未验证且不阻塞。证据见 `Evidence/HostMode/2026-08-11/h6-host-file-transfer-bootstrap-publication-policy-lifecycle.md`；下一自动边界为 **host-file-transfer-host-home-receive-root-opt-in-lifecycle**。
+
 退出条件：各产品目标场景 pass/fail 证据齐全；无 sleep assertion 泄漏、无输入泄漏、无未解释 backlog。
 
 ### 26.9 阶段 8 — H6 可选能力（§3.3、§12.2、§21 H6）

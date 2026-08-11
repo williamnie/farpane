@@ -194,8 +194,8 @@ def main() -> int:
             and owner == sources["vendor_owner"]
         ),
         "productCallersRemainDisabled": (
-            "fileTransferEnabled:" not in product
-            and "fileTransferReceiveRoot:" not in product
+            "fileTransferPolicy:" not in product
+            and "fileTransferPolicy:" not in product
         ),
         "architectureRecordsMutationOnlyBoundary": all(
             marker in architecture

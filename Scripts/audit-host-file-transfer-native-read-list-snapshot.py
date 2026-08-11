@@ -118,8 +118,8 @@ def main() -> int:
             )
         ),
         "productCallersRemainDisabled": (
-            "fileTransferEnabled:" not in product
-            and "fileTransferReceiveRoot:" not in product
+            "fileTransferPolicy:" not in product
+            and "fileTransferPolicy:" not in product
         ),
     }
     source_lines = {

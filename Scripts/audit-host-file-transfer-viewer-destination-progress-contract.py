@@ -141,8 +141,8 @@ def main() -> int:
             "#define RDN_ABI_VERSION 13u" in header
             and "RDNFileTransferEventCallback on_file_transfer_event;" in header
             and "rdn_client_file_transfer_cancel" in header
-            and "fileTransferEnabled:" not in product
-            and "fileTransferReceiveRoot:" not in product
+            and "fileTransferPolicy:" not in product
+            and "fileTransferPolicy:" not in product
         ),
     }
     source_lines = {

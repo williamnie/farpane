@@ -130,7 +130,7 @@ def main() -> int:
             and "begin_native_host_write_job" in connection
             and "NativeHostWriteJobError::ResumeUnsupported" in host_bridge
         ),
-        "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
+        "productStillDoesNotOptIn": "fileTransferPolicy:" not in product,
     }
     source_lines = {
         "designMilestone": line_number(

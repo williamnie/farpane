@@ -110,7 +110,11 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                             .allowRemoteImageRead,
                     clipboardImageWriteEnabled:
                         configuration.clipboardPolicy
-                            .allowRemoteImageWrite
+                            .allowRemoteImageWrite,
+                    fileTransferEnabled:
+                        configuration.fileTransferPolicy.enabled,
+                    fileTransferReceiveRoot:
+                        configuration.fileTransferPolicy.receiveRoot
                 )
             )
         }

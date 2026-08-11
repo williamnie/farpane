@@ -125,6 +125,32 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
         )
     }
 
+    func testReconcilesExplicitFileTransferPolicyIntoCanonicalProjection() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let integration = try HostAgentBootstrapProductIntegration(
+            applicationSupportURL: fixture.applicationSupport,
+            agentBuildID: "202608080001"
+        )
+        try fixture.store.save(catalog(server: "one.example.invalid:21116"))
+        let policy = HostAgentFileTransferPolicy(
+            enabled: true,
+            receiveRoot: "/Users/example/FarPane Receive"
+        )
+
+        XCTAssertEqual(
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled,
+                fileTransferPolicy: policy
+            ),
+            .ready(configRevision: 1)
+        )
+        let configuration = try readProjection(fixture)
+        XCTAssertEqual(configuration.fileTransferPolicy, policy)
+        XCTAssertEqual(configuration.clipboardPolicy, .disabled)
+    }
+
     func testPublicationBusyDegradesWithoutRollingBackCatalogAndCanRetry() throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }

@@ -184,7 +184,7 @@ def main() -> int:
             )
         ),
         "productCallersStillDoNotOptIn": (
-            "fileTransferEnabled:" not in product
+            "fileTransferPolicy:" not in product
             and "fileTransferEnabled: true" not in product
         ),
         "releaseOmitsClipboardFilePromiseFeature": (
@@ -229,7 +229,7 @@ def main() -> int:
             )
         ),
         "noProductDestinationOrOverwriteUXExists": (
-            "fileTransferEnabled:" not in product
+            "fileTransferPolicy:" not in product
             and "HostFileTransfer" not in product
         ),
     }

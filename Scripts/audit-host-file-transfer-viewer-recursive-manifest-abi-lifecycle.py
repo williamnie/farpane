@@ -146,7 +146,7 @@ def main() -> int:
             )
         ),
         "productAndDownloadIORemainOff": (
-            "fileTransferEnabled:" not in product
+            "fileTransferPolicy:" not in product
             and "No download command" in sources["readme"]
             and "download start" in sources["architecture"]
             and "rdn_client_file_transfer_download_start" in header

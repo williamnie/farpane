@@ -218,7 +218,7 @@ def main() -> int:
         "viewerABIUnchangedAndHostProductOptInStillOff": (
             "#define RDN_ABI_VERSION 13u" in sources["header"]
             and "fileTransferEnabled: true" not in product_sources
-            and "fileTransferReceiveRoot:" not in product_sources
+            and "fileTransferPolicy:" not in product_sources
             and "Viewer download picker" in sources["readme"]
             and "live Viewer" in sources["architecture"]
             and "directory-only" in sources["architecture"]

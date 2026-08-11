@@ -166,7 +166,7 @@ def main() -> int:
             and "self.shared.emit_file_transfer_receive_block(&block)" in production_bridge
             and "Data::SendFiles" not in rust_emit
             and "pwrite" not in rust_emit
-            and "fileTransferEnabled:" not in product
+            and "fileTransferPolicy:" not in product
             and "No wire download request or destination write" in sources["readme"]
             and "wire download request、destination write 与 UI 仍未实现" in sources["architecture"]
         ),
