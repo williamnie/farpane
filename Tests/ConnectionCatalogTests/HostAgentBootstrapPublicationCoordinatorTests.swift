@@ -251,6 +251,62 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         XCTAssertEqual(imageConfiguration.fileTransferPolicy, .disabled)
     }
 
+    func testFileTransferPolicyChangesAdvanceRevisionAndRemainExact() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let coordinator = HostAgentBootstrapPublicationCoordinator(
+            applicationSupportURL: fixture.applicationSupport
+        )
+        let source = catalog(server: "one.example.invalid:21116")
+
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1"
+            ).configRevision,
+            1
+        )
+        let enabled = HostAgentFileTransferPolicy(
+            enabled: true,
+            receiveRoot: "/Users/example/FarPane Receive"
+        )
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                fileTransferPolicy: enabled
+            ).configRevision,
+            2
+        )
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                fileTransferPolicy: enabled
+            ).publicationResult,
+            .unchanged
+        )
+        let changedRoot = HostAgentFileTransferPolicy(
+            enabled: true,
+            receiveRoot: "/Users/example/Another FarPane Receive"
+        )
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                fileTransferPolicy: changedRoot
+            ).configRevision,
+            3
+        )
+        let configuration = try HostAgentBootstrapConfigurationReader(
+            directoryURL: HostAgentBootstrapProductLayout.directoryURL(
+                applicationSupportURL: fixture.applicationSupport
+            )
+        ).load()
+        XCTAssertEqual(configuration.fileTransferPolicy, changedRoot)
+        XCTAssertEqual(configuration.clipboardPolicy, .disabled)
+    }
+
     func testLegacySchemaOnePublicationUpgradesWithClipboardDisabled() throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }

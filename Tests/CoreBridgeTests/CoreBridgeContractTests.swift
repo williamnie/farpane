@@ -253,6 +253,14 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(runtimeSource.contains("configOrganization: configuration.hostConfigOrganization"))
         XCTAssertTrue(runtimeSource.contains("rendezvousServer: configuration.rendezvousServer"))
         XCTAssertTrue(runtimeSource.contains("serverPublicKey: configuration.serverPublicKey"))
+        XCTAssertTrue(runtimeSource.contains(
+            "fileTransferEnabled:\n"
+                + "                        configuration.fileTransferPolicy.enabled"
+        ))
+        XCTAssertTrue(runtimeSource.contains(
+            "fileTransferReceiveRoot:\n"
+                + "                        configuration.fileTransferPolicy.receiveRoot"
+        ))
 
         let appURL = repositoryRoot
             .appendingPathComponent("Sources/RustDeskNative/RustDeskNativeApp.swift")

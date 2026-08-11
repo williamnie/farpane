@@ -152,7 +152,7 @@ def main() -> int:
             and "renameatx_np" in sources["destination_owner"]
         ),
         "productRemainsOffAndIOGapIsExplicit": (
-            "fileTransferEnabled:" not in product
+            "fileTransferPolicy:" not in product
             and "download start" in sources["architecture"]
             and "No download command" in sources["readme"]
         ),

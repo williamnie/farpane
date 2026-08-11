@@ -101,7 +101,7 @@ def main() -> int:
             and "rdn_client_file_transfer_list_root" in header
             and "RDNFileTransferListEvent" in header
         ),
-        "productRemainsOff": "fileTransferEnabled:" not in product,
+        "productRemainsOff": "fileTransferPolicy:" not in product,
     }
     source_lines = {
         "designMilestone": line_number(

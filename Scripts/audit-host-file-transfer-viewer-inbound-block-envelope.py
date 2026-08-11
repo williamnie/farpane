@@ -114,7 +114,7 @@ def main() -> int:
             "#define RDN_ABI_VERSION 13u" in sources["header"]
             and "RDNFileTransferReceiveBlockCallback" in sources["header"]
             and "Data::SendFiles" not in receive
-            and "fileTransferEnabled:" not in product
+            and "fileTransferPolicy:" not in product
             and "does not dispatch a download wire request" in sources["readme"]
         ),
     }

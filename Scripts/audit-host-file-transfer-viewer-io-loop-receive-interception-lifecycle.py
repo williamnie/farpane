@@ -121,7 +121,7 @@ def main() -> int:
             "Data::SendFiles" not in hook
             and "pwrite" not in hook
             and "writeFileTransferPayload" not in sources["swift"]
-            and "fileTransferEnabled:" not in product
+            and "fileTransferPolicy:" not in product
             and "No wire download request or destination write" in sources["readme"]
             and "wire download request、destination write 与 UI 仍未实现" in sources["architecture"]
         ),

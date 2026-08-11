@@ -40,7 +40,8 @@ public final class HostAgentBootstrapPublicationCoordinator: @unchecked Sendable
     public func publish(
         catalog: DeviceCatalogDocument,
         agentBuildID: String,
-        clipboardPolicy: HostAgentClipboardPolicy = .disabled
+        clipboardPolicy: HostAgentClipboardPolicy = .disabled,
+        fileTransferPolicy: HostAgentFileTransferPolicy = .disabled
     ) throws -> HostAgentBootstrapPublicationOutcome {
         let directoryURL = try HostAgentBootstrapProductDirectoryPreparer.prepare(
             applicationSupportURL: applicationSupportURL
@@ -65,7 +66,8 @@ public final class HostAgentBootstrapPublicationCoordinator: @unchecked Sendable
                 catalog: catalog,
                 configRevision: existing.configRevision,
                 agentBuildID: agentBuildID,
-                clipboardPolicy: clipboardPolicy
+                clipboardPolicy: clipboardPolicy,
+                fileTransferPolicy: fileTransferPolicy
             )
             let desiredAtCurrentRevision = try HostAgentBootstrapConfiguration.decode(
                 sameRevisionDocument
@@ -93,7 +95,8 @@ public final class HostAgentBootstrapPublicationCoordinator: @unchecked Sendable
             catalog: catalog,
             configRevision: proposedRevision,
             agentBuildID: agentBuildID,
-            clipboardPolicy: clipboardPolicy
+            clipboardPolicy: clipboardPolicy,
+            fileTransferPolicy: fileTransferPolicy
         )
         let result = try publisher.publish(document)
         return HostAgentBootstrapPublicationOutcome(

@@ -119,7 +119,7 @@ def main() -> int:
                 'apply --check --reverse "$file_transfer_block_patch_file"',
             )
         ),
-        "productStillDoesNotOptIn": "fileTransferEnabled:" not in product,
+        "productStillDoesNotOptIn": "fileTransferPolicy:" not in product,
         "laterSafeReceiveRootPrimitiveExists": all(
             marker in safe_root
             for marker in (
