@@ -181,10 +181,10 @@ def main() -> int:
             and "audioEnabled: audioPolicy.enabled" in app
             and "configuration.audioPolicy.enabled" in agent
         ),
-        "coreHostDefaultsOffWhileViewerRemainsOff": (
+        "coreHostAndViewerPoliciesRemainDefaultOff": (
             "audioEnabled: Bool = false" in sources["host_control"]
             and "receiveAudio: Bool = false" in sources["viewer"]
-            and "receiveAudio:" not in app
+            and "viewerAudioOptInForNextConnection = false" in app
         ),
         "focusedRegressionCoversSchemaPromptAndBothOwners": all(
             marker in tests
@@ -264,11 +264,11 @@ def main() -> int:
             "hostAgentNeverPromptsForMicrophone": True,
             "backgroundHostProjectionImplemented": True,
             "legacyHostProjectionImplemented": True,
-            "viewerAudioImplemented": False,
+            "viewerAudioImplemented": True,
             "virtualAudioInputSelectionImplemented": False,
             "installedAudioAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "viewer-audio-explicit-policy-abi-contract",
+        "nextImplementationBoundary": "virtual-audio-input-selection",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1

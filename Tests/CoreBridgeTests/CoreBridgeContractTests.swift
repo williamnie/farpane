@@ -19,7 +19,7 @@ final class CoreBridgeContractTests: XCTestCase {
     }
 
     func testPinsRustDesk149Commit() {
-        XCTAssertEqual(RustDeskCoreClient.abiVersion, 17)
+        XCTAssertEqual(RustDeskCoreClient.abiVersion, 18)
         XCTAssertEqual(
             RustDeskCoreClient.expectedUpstreamCommit,
             "6c578292e8ebbbec708b76986ba8c4bc7c509747"

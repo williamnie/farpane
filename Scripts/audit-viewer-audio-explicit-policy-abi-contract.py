@@ -47,6 +47,7 @@ def main() -> int:
         "client_io": repository / "Vendor/rustdesk/src/client/io_loop.rs",
         "swift": repository / "Sources/CoreBridge/CoreBridge.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
+        "home": repository / "Sources/RustDeskNative/HomeView.swift",
         "file_product": repository
         / "Sources/CoreBridge/ViewerFileTransferProductComposition.swift",
         "patch": repository
@@ -95,7 +96,7 @@ def main() -> int:
     bridge = sources["bridge"]
     client = sources["client"]
     swift = sources["swift"]
-    app_product = sources["app"] + sources["file_product"]
+    app_product = sources["app"] + sources["home"] + sources["file_product"]
     receive_policy_read = bridge.find("let receive_audio = (*config).receive_audio;")
     epoch_creation = bridge.find("let Some(connection_epoch) = next_viewer_connection_epoch()")
     worker_spawn = bridge.find("let worker = std::thread::spawn")
@@ -107,8 +108,8 @@ def main() -> int:
                 "viewer-audio-product-opt-in-permission-lifecycle",
             )
         ),
-        "viewerABIIsExactlyV17AndHostRemainsV18": (
-            viewer_abi == bridge_abi == 17 and host_abi == 18
+        "viewerABIStillCarriesV17PolicyAndHostRemainsV18": (
+            viewer_abi == bridge_abi == 18 and host_abi == 18
         ),
         "cSwiftAndRustCarryOneImmutableReceivePolicy": all(
             marker in header + swift + bridge
@@ -143,7 +144,7 @@ def main() -> int:
                 "msg.disable_audio = BoolOption::Yes.into();",
                 "MediaData::AudioFormat(f)",
                 "MediaData::AudioFrame(Box::new(frame))",
-                "if !self.handler.lc.read().unwrap().disable_audio.v",
+                "if !lc.disable_audio.v && audio_active",
             )
         ),
         "dedicatedFileSessionRejectsDesktopAudio": all(
@@ -154,9 +155,10 @@ def main() -> int:
                 "desktop_clipboard_requested || receive_audio",
             )
         ),
-        "productCallersRemainDefaultOff": (
-            "receiveAudio:" not in app_product
-            and "receiveAudio: Bool = false" in swift
+        "productPolicyRemainsDefaultOff": (
+            "receiveAudio: Bool = false" in swift
+            and "viewerAudioOptInForNextConnection = false" in app_product
+            and "本次连接接收远端音频（默认关闭，断开后重置）" in app_product
         ),
         "canonicalAndVendoredBridgeMatch": bridge == sources["vendor_bridge"],
         "patchStackOwnsUpstreamClientChange": all(
@@ -178,7 +180,7 @@ def main() -> int:
                 "XCTAssertFalse(reserved.receiveAudio)",
                 "native_viewer_audio_disabled(false)",
                 "native_viewer_audio_disabled(true)",
-                "viewer ABI must expose v17",
+                "viewer ABI must expose v18",
             )
         ),
         "noNewAudioPayloadABIOrWire": (
@@ -191,7 +193,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.1d Viewer audio explicit-policy ABI contract"
         ),
-        "viewerABIv17": line_number(header, "RDN_ABI_VERSION 17u"),
+        "viewerABICurrent": line_number(header, "RDN_ABI_VERSION 18u"),
         "hostABIv18": line_number(header, "RDN_HOST_ABI_VERSION 18u"),
         "cPolicy": line_number(header, "bool receive_audio;"),
         "swiftDefault": line_number(swift, "receiveAudio: Bool = false"),
@@ -201,7 +203,7 @@ def main() -> int:
         "loginWire": line_number(client, "msg.disable_audio = BoolOption::Yes.into();"),
         "frameGate": line_number(
             sources["client_io"],
-            "if !self.handler.lc.read().unwrap().disable_audio.v",
+            "if !lc.disable_audio.v && audio_active",
         ),
         "fileIsolation": line_number(bridge, "desktop_clipboard_requested || receive_audio"),
         "patchStack": line_number(
@@ -234,15 +236,15 @@ def main() -> int:
         "claims": {
             "viewerReceiveAudioABICapable": True,
             "viewerAudioEnabledByDefault": False,
-            "viewerAudioProductEnabled": False,
+            "viewerAudioProductEnabled": True,
             "dedicatedFileSessionRejectsAudio": True,
-            "viewerRemoteAudioPermissionPresented": False,
+            "viewerRemoteAudioPermissionPresented": True,
             "virtualAudioInputSelectionImplemented": False,
             "installedAudioAcceptanceComplete": False,
             "rustDeskWireChanged": False,
             "hermesChanged": False,
         },
-        "nextImplementationBoundary": "viewer-audio-product-opt-in-permission-lifecycle",
+        "nextImplementationBoundary": "virtual-audio-input-selection",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1

@@ -598,7 +598,7 @@ def main() -> int:
         not missing_evidence
         and not missing_gaps
         and all(source_lines.values())
-        and viewer_abi == 17
+        and viewer_abi == 18
         and host_abi == 18
     ) else 1
 

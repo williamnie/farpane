@@ -33,7 +33,7 @@ class ViewerAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
             document["status"],
             "viewer-audio-abi-capable-product-default-off",
         )
-        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 17})
+        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 18})
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
@@ -41,16 +41,16 @@ class ViewerAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
         claims = document["claims"]
         self.assertTrue(claims["viewerReceiveAudioABICapable"])
         self.assertFalse(claims["viewerAudioEnabledByDefault"])
-        self.assertFalse(claims["viewerAudioProductEnabled"])
+        self.assertTrue(claims["viewerAudioProductEnabled"])
         self.assertTrue(claims["dedicatedFileSessionRejectsAudio"])
-        self.assertFalse(claims["viewerRemoteAudioPermissionPresented"])
+        self.assertTrue(claims["viewerRemoteAudioPermissionPresented"])
         self.assertFalse(claims["virtualAudioInputSelectionImplemented"])
         self.assertFalse(claims["installedAudioAcceptanceComplete"])
         self.assertFalse(claims["rustDeskWireChanged"])
         self.assertFalse(claims["hermesChanged"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-audio-product-opt-in-permission-lifecycle",
+            "virtual-audio-input-selection",
         )
 
 

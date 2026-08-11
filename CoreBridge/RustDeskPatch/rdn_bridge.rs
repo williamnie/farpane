@@ -4,7 +4,9 @@
 // 6c578292e8ebbbec708b76986ba8c4bc7c509747. The surrounding RustDesk-derived
 // build is AGPL-3.0; see CoreBridge/README.md and the repository root LICENSE.
 
-use crate::client::{native_viewer_audio_disabled, Data, QualityStatus};
+use crate::client::{
+    native_viewer_audio_disabled, native_viewer_audio_is_active, Data, QualityStatus,
+};
 use crate::common::input::{
     MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_WHEEL, MOUSE_TYPE_DOWN, MOUSE_TYPE_MOVE,
     MOUSE_TYPE_TRACKPAD, MOUSE_TYPE_UP, MOUSE_TYPE_WHEEL,
@@ -23,7 +25,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-const ABI_VERSION: u32 = 17;
+const ABI_VERSION: u32 = 18;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -189,7 +191,31 @@ pub struct RDNCoreMetrics {
     target_bitrate: u64,
 }
 
+const REMOTE_PERMISSION_AUDIO: u32 = 1;
+
+#[repr(C)]
+pub struct RDNRemotePermissionEvent {
+    abi_version: u32,
+    connection_epoch: u64,
+    permission: u32,
+    enabled: bool,
+}
+
+fn native_remote_audio_permission_event(
+    connection_epoch: u64,
+    enabled: bool,
+) -> Option<RDNRemotePermissionEvent> {
+    (connection_epoch > 0).then_some(RDNRemotePermissionEvent {
+        abi_version: ABI_VERSION,
+        connection_epoch,
+        permission: REMOTE_PERMISSION_AUDIO,
+        enabled,
+    })
+}
+
 type StateCallback = unsafe extern "C" fn(*mut c_void, RDNState, i32, *const c_char);
+type RemotePermissionCallback =
+    unsafe extern "C" fn(*mut c_void, *const RDNRemotePermissionEvent);
 type VideoCallback = unsafe extern "C" fn(*mut c_void, *const RDNEncodedVideoFrame);
 type DisplayCatalogCallback = unsafe extern "C" fn(*mut c_void, *const RDNDisplayCatalogEvent);
 type DisplaySelectionCallback = unsafe extern "C" fn(*mut c_void, *const RDNDisplaySelectionEvent);
@@ -832,6 +858,7 @@ fn native_viewer_upload_cancel_message(transfer_id: i32) -> Message {
 pub struct RDNCallbacks {
     abi_version: u32,
     on_state: Option<StateCallback>,
+    on_remote_permission: Option<RemotePermissionCallback>,
     on_video: Option<VideoCallback>,
     on_display_catalog: Option<DisplayCatalogCallback>,
     on_display_selection: Option<DisplaySelectionCallback>,
@@ -1035,6 +1062,7 @@ struct BridgeShared {
     display_catalog_delivery: Mutex<()>,
     authenticated: AtomicBool,
     remote_keyboard_enabled: AtomicBool,
+    remote_audio_enabled: AtomicBool,
     input_allowed: AtomicBool,
     receive_clipboard_text: AtomicBool,
     send_clipboard_text: AtomicBool,
@@ -1526,6 +1554,21 @@ impl BridgeShared {
         };
         let message = CString::new(message).expect("static bridge message contains no NUL");
         unsafe { callback(self.context as *mut c_void, state, code, message.as_ptr()) };
+    }
+
+    fn emit_remote_audio_permission(&self) {
+        if !self.active.load(Ordering::Acquire) {
+            return;
+        }
+        let connection_epoch = self.connection_epoch.load(Ordering::Acquire);
+        let Some(callback) = self.callbacks.on_remote_permission else {
+            return;
+        };
+        let Some(event) = native_remote_audio_permission_event(
+            connection_epoch,
+            self.remote_audio_enabled.load(Ordering::Acquire),
+        ) else { return };
+        unsafe { callback(self.context as *mut c_void, &event) };
     }
 
     fn emit_metrics(&self, status: QualityStatus) {
@@ -2027,6 +2070,7 @@ impl Default for BridgeUi {
                 callbacks: RDNCallbacks {
                     abi_version: ABI_VERSION,
                     on_state: None,
+                    on_remote_permission: None,
                     on_video: None,
                     on_display_catalog: None,
                     on_display_selection: None,
@@ -2049,6 +2093,7 @@ impl Default for BridgeUi {
                 display_catalog_delivery: Mutex::new(()),
                 authenticated: AtomicBool::new(false),
                 remote_keyboard_enabled: AtomicBool::new(true),
+                remote_audio_enabled: AtomicBool::new(true),
                 input_allowed: AtomicBool::new(false),
                 receive_clipboard_text: AtomicBool::new(false),
                 send_clipboard_text: AtomicBool::new(false),
@@ -2109,6 +2154,7 @@ impl InvokeUiSession for BridgeUi {
 
     fn on_connected(&self, _conn_type: ConnType) {
         self.shared.authenticated.store(true, Ordering::Release);
+        self.shared.emit_remote_audio_permission();
         let file_transfer = self.shared.file_transfer_enabled.load(Ordering::Acquire);
         let allowed = !file_transfer
             && input_is_allowed(
@@ -2144,6 +2190,11 @@ impl InvokeUiSession for BridgeUi {
             self.shared
                 .remote_clipboard_enabled
                 .store(value, Ordering::Release);
+        } else if name == "audio" {
+            self.shared
+                .remote_audio_enabled
+                .store(value, Ordering::Release);
+            self.shared.emit_remote_audio_permission();
         }
     }
 
@@ -3526,6 +3577,7 @@ pub unsafe extern "C" fn rdn_client_create(
         display_catalog_delivery: Mutex::new(()),
         authenticated: AtomicBool::new(false),
         remote_keyboard_enabled: AtomicBool::new(true),
+        remote_audio_enabled: AtomicBool::new(true),
         input_allowed: AtomicBool::new(false),
         receive_clipboard_text: AtomicBool::new(false),
         send_clipboard_text: AtomicBool::new(false),
@@ -3626,6 +3678,10 @@ pub unsafe extern "C" fn rdn_client_connect(
     client
         .shared
         .remote_keyboard_enabled
+        .store(true, Ordering::Release);
+    client
+        .shared
+        .remote_audio_enabled
         .store(true, Ordering::Release);
     client.shared.input_allowed.store(false, Ordering::Release);
     client
@@ -6334,6 +6390,17 @@ mod tests {
         assert_eq!(viewer_file_transfer_mode_admission(true, 1, true), -5);
         assert!(native_viewer_audio_disabled(false));
         assert!(!native_viewer_audio_disabled(true));
+        assert!(!native_viewer_audio_is_active(false, false, false));
+        assert!(!native_viewer_audio_is_active(false, true, true));
+        assert!(!native_viewer_audio_is_active(true, false, true));
+        assert!(!native_viewer_audio_is_active(true, true, false));
+        assert!(native_viewer_audio_is_active(true, true, true));
+        assert!(native_remote_audio_permission_event(0, true).is_none());
+        let permission = native_remote_audio_permission_event(9, false).unwrap();
+        assert_eq!(permission.abi_version, ABI_VERSION);
+        assert_eq!(permission.connection_epoch, 9);
+        assert_eq!(permission.permission, REMOTE_PERMISSION_AUDIO);
+        assert!(!permission.enabled);
 
         let ui = BridgeUi::default();
         let mut client = RDNClient {

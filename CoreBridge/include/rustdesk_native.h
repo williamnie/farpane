@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 17u
+#define RDN_ABI_VERSION 18u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -47,6 +47,22 @@ typedef enum RDNState {
     RDN_STATE_ERROR = 8,
     RDN_STATE_CONTROL_READY = 9,
 } RDNState;
+
+typedef enum RDNRemotePermissionKind {
+    RDN_REMOTE_PERMISSION_AUDIO = 1,
+} RDNRemotePermissionKind;
+
+/* Connection-scoped remote permission projection. The absence of an event is
+ * never evidence of permission; Rust emits the authoritative audio value at
+ * authentication and whenever the remote changes it. */
+typedef struct RDNRemotePermissionEvent {
+    uint32_t abi_version;
+    uint64_t connection_epoch;
+    uint32_t permission;
+    bool enabled;
+} RDNRemotePermissionEvent;
+typedef void (*RDNRemotePermissionCallback)(
+    void *context, const RDNRemotePermissionEvent *event);
 
 typedef enum RDNCodec {
     RDN_CODEC_UNKNOWN = 0,
@@ -354,6 +370,7 @@ typedef int32_t (*RDNFileTransferUploadReadCallback)(
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
+    RDNRemotePermissionCallback on_remote_permission;
     RDNVideoCallback on_video;
     RDNDisplayCatalogCallback on_display_catalog;
     RDNDisplaySelectionCallback on_display_selection;

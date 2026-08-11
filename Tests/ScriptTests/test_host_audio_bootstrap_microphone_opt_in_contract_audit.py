@@ -44,12 +44,12 @@ class HostAudioBootstrapMicrophoneOptInContractAuditTests(unittest.TestCase):
         self.assertTrue(claims["hostAgentNeverPromptsForMicrophone"])
         self.assertTrue(claims["backgroundHostProjectionImplemented"])
         self.assertTrue(claims["legacyHostProjectionImplemented"])
-        self.assertFalse(claims["viewerAudioImplemented"])
+        self.assertTrue(claims["viewerAudioImplemented"])
         self.assertFalse(claims["virtualAudioInputSelectionImplemented"])
         self.assertFalse(claims["installedAudioAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-audio-explicit-policy-abi-contract",
+            "virtual-audio-input-selection",
         )
 
 
