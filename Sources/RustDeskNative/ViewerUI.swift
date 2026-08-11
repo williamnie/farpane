@@ -29,6 +29,7 @@ final class ViewerChromeView: NSView {
     private let keyboardStatusLabel = NSTextField(labelWithString: "")
     private let keyboardGrabButton = NSButton(title: "独占键盘", target: nil, action: nil)
     private let keyboardPermissionButton = NSButton(title: "权限设置", target: nil, action: nil)
+    private let audioStatusLabel = NSTextField(labelWithString: "音频：本次未开启")
     private let fileTransferButton = NSButton(title: "接收文件", target: nil, action: nil)
     private let fileTransferUploadButton = NSButton(title: "发送文件", target: nil, action: nil)
     private let displaySelector = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -37,6 +38,7 @@ final class ViewerChromeView: NSView {
     private let showsAcceptanceControls: Bool
     private let showsFileTransferControls: Bool
     private let showsDisplayControls: Bool
+    private let showsAudioStatus: Bool
     private var hudVisible: Bool
     private var keyboardGrabActive = false
     private var keyboardGrabAvailable = false
@@ -56,13 +58,15 @@ final class ViewerChromeView: NSView {
         metrics: PipelineMetrics,
         showsAcceptanceControls: Bool,
         showsFileTransferControls: Bool,
-        showsDisplayControls: Bool
+        showsDisplayControls: Bool,
+        showsAudioStatus: Bool
     ) {
         self.videoView = videoView
         self.metrics = metrics
         self.showsAcceptanceControls = showsAcceptanceControls
         self.showsFileTransferControls = showsFileTransferControls
         self.showsDisplayControls = showsDisplayControls
+        self.showsAudioStatus = showsAudioStatus
         hudVisible = showsAcceptanceControls
             || UserDefaults.standard.bool(forKey: Self.hudPreferenceKey)
         super.init(frame: .zero)
@@ -228,6 +232,17 @@ final class ViewerChromeView: NSView {
         }
     }
 
+    func updateAudioSession(_ presentation: ViewerAudioSessionPresentation) {
+        audioStatusLabel.stringValue = presentation.statusText
+        audioStatusLabel.textColor = presentation.statusIsError
+            ? .systemOrange
+            : .secondaryLabelColor
+        if presentation.statusIsError {
+            controlsPinned = true
+            setControlsExpanded(true)
+        }
+    }
+
     func updateHUD(_ value: PipelineHUDSnapshot) {
         hudLabel.stringValue = String(
             format: "远端 %dx%d  →  本地 %dx%d\n编码 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  丢帧 %d\n队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
@@ -274,6 +289,9 @@ final class ViewerChromeView: NSView {
         keyboardStatusLabel.isHidden = true
         keyboardStatusLabel.lineBreakMode = .byTruncatingTail
         keyboardStatusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        audioStatusLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        audioStatusLabel.lineBreakMode = .byTruncatingTail
+        audioStatusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         keyboardGrabButton.bezelStyle = .rounded
         keyboardGrabButton.target = self
@@ -320,6 +338,7 @@ final class ViewerChromeView: NSView {
         let acceptanceButton = actionButton("验收记录", #selector(showChecklist))
 
         var views: [NSView] = [stateLabel, keyboardStatusLabel, keyboardPermissionButton, NSView(), keyboardGrabButton]
+        if showsAudioStatus { views.append(audioStatusLabel) }
         if showsDisplayControls { views.append(displaySelector) }
         if showsFileTransferControls {
             views.append(fileTransferButton)

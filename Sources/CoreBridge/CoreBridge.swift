@@ -49,6 +49,26 @@ public struct CoreStateEvent: Sendable {
     public let message: String
 }
 
+public enum CoreRemotePermission: UInt32, Equatable, Sendable {
+    case audio = 1
+}
+
+public struct CoreRemotePermissionEvent: Equatable, Sendable {
+    public let connectionEpoch: UInt64
+    public let permission: CoreRemotePermission
+    public let enabled: Bool
+
+    public init(
+        connectionEpoch: UInt64,
+        permission: CoreRemotePermission,
+        enabled: Bool
+    ) {
+        self.connectionEpoch = connectionEpoch
+        self.permission = permission
+        self.enabled = enabled
+    }
+}
+
 public struct CoreVideoPacket: Sendable {
     public let codec: CoreVideoCodec
     public let format: CorePacketFormat
@@ -761,6 +781,7 @@ private final class FileTransferCancelRelay: @unchecked Sendable {
 private final class CallbackBox: @unchecked Sendable {
     let queue: DispatchQueue
     let onState: @Sendable (CoreStateEvent) -> Void
+    let onRemotePermission: @Sendable (CoreRemotePermissionEvent) -> Void
     let onVideo: @Sendable (CoreVideoPacket) -> Void
     let onDisplayCatalog: @Sendable (CoreDisplayCatalogEvent) -> Void
     let onDisplaySelection: @Sendable (CoreDisplaySelectionEvent) -> Void
@@ -785,6 +806,7 @@ private final class CallbackBox: @unchecked Sendable {
     init(
         queue: DispatchQueue,
         onState: @escaping @Sendable (CoreStateEvent) -> Void,
+        onRemotePermission: @escaping @Sendable (CoreRemotePermissionEvent) -> Void,
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onDisplayCatalog: @escaping @Sendable (CoreDisplayCatalogEvent) -> Void,
         onDisplaySelection: @escaping @Sendable (CoreDisplaySelectionEvent) -> Void,
@@ -802,6 +824,7 @@ private final class CallbackBox: @unchecked Sendable {
     ) {
         self.queue = queue
         self.onState = onState
+        self.onRemotePermission = onRemotePermission
         self.onVideo = onVideo
         self.onDisplayCatalog = onDisplayCatalog
         self.onDisplaySelection = onDisplaySelection
@@ -1018,6 +1041,24 @@ private let stateCallback: RDNStateCallback = { context, state, code, message in
         message: message.map { String(cString: $0) } ?? ""
     )
     box.queue.async { box.onState(event) }
+}
+
+private let remotePermissionCallback: RDNRemotePermissionCallback = {
+    context, eventPointer in
+    guard let context, let eventPointer else { return }
+    let raw = eventPointer.pointee
+    guard
+        raw.abi_version == RDN_ABI_VERSION,
+        raw.connection_epoch > 0,
+        let permission = CoreRemotePermission(rawValue: raw.permission)
+    else { return }
+    let event = CoreRemotePermissionEvent(
+        connectionEpoch: raw.connection_epoch,
+        permission: permission,
+        enabled: raw.enabled
+    )
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    box.queue.async { box.onRemotePermission(event) }
 }
 
 private let displayCatalogCallback: RDNDisplayCatalogCallback = { context, eventPointer in
@@ -1611,6 +1652,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         libraryURL: URL,
         callbackQueue: DispatchQueue = DispatchQueue(label: "io.rustdesknative.core-events", qos: .userInteractive),
         onState: @escaping @Sendable (CoreStateEvent) -> Void,
+        onRemotePermission: @escaping @Sendable (CoreRemotePermissionEvent) -> Void = { _ in },
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
         onDisplayCatalog: @escaping @Sendable (CoreDisplayCatalogEvent) -> Void = { _ in },
@@ -1645,6 +1687,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         let callbackBox = CallbackBox(
             queue: callbackQueue,
             onState: onState,
+            onRemotePermission: onRemotePermission,
             onVideo: onVideo,
             onDisplayCatalog: onDisplayCatalog,
             onDisplaySelection: onDisplaySelection,
@@ -1663,6 +1706,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         var callbacks = RDNCallbacks(
             abi_version: RDN_ABI_VERSION,
             on_state: stateCallback,
+            on_remote_permission: remotePermissionCallback,
             on_video: videoCallback,
             on_display_catalog: displayCatalogCallback,
             on_display_selection: displaySelectionCallback,

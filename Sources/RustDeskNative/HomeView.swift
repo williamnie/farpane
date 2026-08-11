@@ -89,6 +89,7 @@ struct HomeSnapshot: Equatable {
     var statusText: String
     var errorText: String
     var connectingPeerID: String?
+    var viewerAudioOptIn: Bool = false
     var host: HostHomeSnapshot
 }
 
@@ -103,6 +104,7 @@ enum HomeDeviceAction {
 
 final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onQuickConnect: ((String) -> Void)?
+    var onViewerAudioOptInToggle: ((Bool) -> Void)?
     var onOpenServerSettings: (() -> Void)?
     var onDeviceAction: ((UUID, HomeDeviceAction) -> Void)?
     var onHostToggle: ((Bool) -> Void)?
@@ -129,6 +131,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let peerField = NSTextField()
     private let peerContainer = NSView()
     private let connectButton = AccentButton(title: "连接", target: nil, action: nil)
+    private let viewerAudioOptInSwitch = NSSwitch()
     private let filterControl = NSSegmentedControl(
         labels: ["全部", "收藏"],
         trackingMode: .selectOne,
@@ -241,6 +244,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         peerField.isEnabled = snapshot.connectingPeerID == nil
         connectButton.title = snapshot.connectingPeerID == nil ? "连接" : "连接中…"
         serverButton.isEnabled = snapshot.connectingPeerID == nil
+        viewerAudioOptInSwitch.state = snapshot.viewerAudioOptIn ? .on : .off
+        viewerAudioOptInSwitch.isEnabled = snapshot.connectingPeerID == nil
         hostSwitch.state = snapshot.host.isEnabled ? .on : .off
         hostSwitch.isEnabled = snapshot.connectingPeerID == nil
             && snapshot.host.isControlEnabled
@@ -556,10 +561,29 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         quickLabel.font = .systemFont(ofSize: 11, weight: .semibold)
         quickLabel.textColor = .tertiaryLabelColor
 
-        let quickCard = NSStackView(views: [quickLabel, quickRow])
+        viewerAudioOptInSwitch.target = self
+        viewerAudioOptInSwitch.action = #selector(viewerAudioOptInChanged)
+        viewerAudioOptInSwitch.setAccessibilityLabel("本次连接接收远端音频")
+        let viewerAudioLabel = NSTextField(
+            labelWithString: "本次连接接收远端音频（默认关闭，断开后重置）"
+        )
+        viewerAudioLabel.font = .systemFont(ofSize: 11.5)
+        viewerAudioLabel.textColor = .secondaryLabelColor
+        let viewerAudioRow = NSStackView(views: [
+            viewerAudioLabel,
+            NSView(),
+            viewerAudioOptInSwitch,
+        ])
+        viewerAudioRow.orientation = .horizontal
+        viewerAudioRow.alignment = .centerY
+
+        let quickCard = NSStackView(views: [quickLabel, quickRow, viewerAudioRow])
         quickCard.orientation = .vertical
         quickCard.alignment = .leading
         quickCard.spacing = 8
+        viewerAudioRow.widthAnchor.constraint(
+            equalTo: quickCard.widthAnchor
+        ).isActive = true
 
         let quickContainer = NSView()
         quickContainer.wantsLayer = true
@@ -1395,6 +1419,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     }
 
     @objc private func openServerSettings() { onOpenServerSettings?() }
+
+    @objc private func viewerAudioOptInChanged() {
+        guard snapshot.connectingPeerID == nil else { return }
+        onViewerAudioOptInToggle?(viewerAudioOptInSwitch.state == .on)
+    }
 
     @objc private func hostToggleChanged() { onHostToggle?(hostSwitch.state == .on) }
 

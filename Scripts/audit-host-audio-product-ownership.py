@@ -167,6 +167,26 @@ def main() -> int:
             and "!receive_audio" in client
             and "let receive_audio = (*config).receive_audio;" in viewer_bridge
         ),
+        "viewerProductOptInAndRemotePermissionLifecycleAreImplemented": all(
+            marker in sources["viewer_swift"] + sources["home"] + product
+            for marker in (
+                "public enum CoreRemotePermission",
+                "ViewerAudioSessionOwner",
+                "viewerAudioOptInForNextConnection = false",
+                "本次连接接收远端音频（默认关闭，断开后重置）",
+                "onRemotePermission:",
+                "receiveAudio: viewerSessionReceiveAudio",
+            )
+        ) and all(
+            marker in viewer_bridge + client + client_io
+            for marker in (
+                'else if name == "audio"',
+                "emit_remote_audio_permission",
+                "native_viewer_audio_is_active",
+                "native_viewer_set_remote_audio_permission",
+                "self.audio_sender.send(MediaData::Reset).ok();",
+            )
+        ),
         "activeSessionAudioRevocationAlreadyUsesConnectionAuthority": all(
             marker in host_bridge + connection for marker in (
                 "NativeSessionCommand::DisableAudio",
@@ -198,10 +218,6 @@ def main() -> int:
     }
 
     gaps = {
-        "viewerBridgeDoesNotProjectRemoteAudioPermission": (
-            'else if name == "clipboard"' in viewer_bridge
-            and 'name == "audio"' not in viewer_bridge
-        ),
         "virtualInputSelectionHasNoFarPaneProductOwner": (
             '"audio-input"' not in product
             and "BlackHole" not in product
@@ -229,6 +245,9 @@ def main() -> int:
         ),
         "viewerAudioIngress": line_number(client_io, "Some(misc::Union::AudioFormat(f))"),
         "viewerAudioPlayback": line_number(client, "pub struct AudioHandler"),
+        "viewerRemotePermission": line_number(
+            viewer_bridge, "emit_remote_audio_permission"
+        ),
         "hostAudioPolicyPin": line_number(host_bridge, "native_host_audio_option(audio_enabled)"),
         "activeSessionRevoke": line_number(host_bridge, "NativeSessionCommand::DisableAudio"),
         "hostMicrophoneOptIn": line_number(product, "farpane.host.audio.enabled"),
@@ -246,12 +265,12 @@ def main() -> int:
         not missing_evidence
         and not missing_gaps
         and all(source_lines.values())
-        and viewer_abi == 17
+        and viewer_abi == 18
         and host_abi == 18
     )
     target_contract = {
         "hostABI": 18,
-        "viewerABI": 17,
+        "viewerABI": 18,
         "hostPolicy": "explicit immutable enableAudio boolean, default false",
         "viewerPolicy": "explicit immutable receiveAudio boolean, default false",
         "defaultCaptureSource": "native system-default microphone",
@@ -288,7 +307,7 @@ def main() -> int:
         "targetContract": target_contract,
         "claims": {
             "hostAudioEnabled": False,
-            "viewerAudioEnabled": False,
+            "viewerAudioEnabled": True,
             "audioProductDevelopmentComplete": False,
             "hostABIChangeRequired": False,
             "viewerABIChangeRequired": False,
@@ -297,7 +316,7 @@ def main() -> int:
             "rootDependencyChangeRequired": False,
             "installedAudioAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "viewer-audio-product-opt-in-permission-lifecycle",
+        "nextImplementationBoundary": "virtual-audio-input-selection",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1

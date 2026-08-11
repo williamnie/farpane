@@ -82,6 +82,7 @@ private struct PendingProductConnection {
     var password: String
     let savePassword: Bool
     let usedStoredCredential: Bool
+    let receiveAudio: Bool
 }
 
 /// Non-secret projection retained for an explicit Viewer file action. The
@@ -237,6 +238,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var viewerRecoveryCommittedEpoch: UInt64 = 0
     private var viewerRecoverySessionEpoch: UInt64?
     private var viewerCoreGeneration: UInt64 = 0
+    private var viewerAudioOptInForNextConnection = false
+    private var viewerSessionReceiveAudio = false
+    private var viewerAudioSessionOwner: ViewerAudioSessionOwner?
     private var viewerDisplaySelectionInputOwner:
         ViewerDisplaySelectionInputOwner?
     private var hostClient: HostControlClient?
@@ -646,6 +650,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         stopViewerClipboard()
         stopViewerFileTransfer()
         stopViewerDisplaySelectionInput()
+        viewerAudioSessionOwner?.stop()
+        viewerAudioSessionOwner = nil
         let viewerLifecycleStopped = stopViewerLifecycleEvidence()
         if viewerLifecycleStopped {
             reaffirmHostAgentApplicationConcurrencyEvidence()
@@ -664,6 +670,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         viewerRecoveryDeviceID = nil
         viewerRecoverySessionEpoch = nil
         viewerCoreGeneration = 0
+        viewerAudioOptInForNextConnection = false
+        viewerSessionReceiveAudio = false
         keyboardController = nil
         liveDecoder = nil
         renderer = nil
@@ -683,6 +691,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         window.minSize = NSSize(width: 720, height: 560)
         let view = HomeView()
         view.onQuickConnect = { [weak self] peerID in self?.handleQuickConnect(peerID: peerID) }
+        view.onViewerAudioOptInToggle = { [weak self] enabled in
+            guard let self, self.activeAttemptID == nil else { return }
+            self.viewerAudioOptInForNextConnection = enabled
+            self.refreshHomeUI()
+        }
         view.onOpenServerSettings = { [weak self] in self?.presentServerSettings() }
         view.onDeviceAction = { [weak self] deviceID, action in
             self?.handleDeviceAction(deviceID: deviceID, action: action)
@@ -875,6 +888,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             statusText: activeAttemptID == nil ? "就绪" : "正在建立安全连接…",
             errorText: error,
             connectingPeerID: pendingProductConnection?.peerID,
+            viewerAudioOptIn: viewerAudioOptInForNextConnection,
             host: HostHomeSnapshot(
                 isEnabled: hostControl.isOn,
                 isControlEnabled:
@@ -3593,7 +3607,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         deviceID: UUID?,
         peerID: String,
         saveByDefault: Bool,
-        message: String
+        message: String,
+        receiveAudio: Bool? = nil
     ) {
         guard activeAttemptID == nil, let window else { return }
         let prompt = PasswordPromptController()
@@ -3613,7 +3628,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 peerID: peerID,
                 password: result.password,
                 savePassword: result.saveToKeychain,
-                usedStoredCredential: false
+                usedStoredCredential: false,
+                receiveAudio: receiveAudio
             )
         }
     }
@@ -3624,9 +3640,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         peerID: String,
         password: String,
         savePassword: Bool,
-        usedStoredCredential: Bool
+        usedStoredCredential: Bool,
+        receiveAudio requestedReceiveAudio: Bool? = nil
     ) {
         guard activeAttemptID == nil, let server = catalog.server, server.isComplete else { return }
+        let receiveAudio = requestedReceiveAudio
+            ?? viewerAudioOptInForNextConnection
         if hostRuntimeActive || hostClient != nil
             || !hostRuntimeQuiescenceConfirmed {
             guard stopHostMode(
@@ -3640,6 +3659,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             }
         }
         let attemptID = UUID()
+        viewerAudioOptInForNextConnection = false
+        viewerSessionReceiveAudio = receiveAudio
         activeAttemptID = attemptID
         viewerRecoveryDeviceID = deviceID
         pendingProductConnection = PendingProductConnection(
@@ -3649,7 +3670,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             peerID: peerID,
             password: password,
             savePassword: savePassword,
-            usedStoredCredential: usedStoredCredential
+            usedStoredCredential: usedStoredCredential,
+            receiveAudio: receiveAudio
         )
         homeErrorText = ""
         refreshHomeUI()
@@ -3665,6 +3687,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 peerID: peerID,
                 password: password,
                 forceRelay: server.forceRelay,
+                receiveAudio: receiveAudio,
                 receiveClipboardText: true,
                 sendClipboardText: true,
                 receiveClipboardRichText: true,
@@ -3723,6 +3746,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let retrySaveByDefault = pendingProductConnection.map {
             $0.savePassword || $0.usedStoredCredential
         } ?? false
+        let retryReceiveAudio = pendingProductConnection?.receiveAudio ?? false
         let shouldRetryPassword = event.state == .passwordRequired || event.state == .authenticationFailed
         activeAttemptID = nil
         showHomeUI(error: Self.connectionStateText(event))
@@ -3732,7 +3756,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 deviceID: retryDeviceExisted ? retryDeviceID : nil,
                 peerID: retryPeerID,
                 saveByDefault: retrySaveByDefault,
-                message: "已保存或刚输入的密码不可用，请重新输入。认证成功后才会更新钥匙串。"
+                message: "已保存或刚输入的密码不可用，请重新输入。认证成功后才会更新钥匙串。",
+                receiveAudio: retryReceiveAudio
             )
         }
     }
@@ -3927,7 +3952,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             metrics: metrics,
             showsAcceptanceControls: automatedRun && fixture == nil,
             showsFileTransferControls: liveConfiguration != nil,
-            showsDisplayControls: liveConfiguration != nil
+            showsDisplayControls: liveConfiguration != nil,
+            showsAudioStatus: liveConfiguration != nil
         )
         let window = self.window ?? NSWindow(
             contentRect: windowFrame,
@@ -4231,6 +4257,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         )
         viewerDisplaySelectionInputOwner = displaySelectionInputOwner
         refreshViewerDisplaySelection(chrome: chrome)
+        viewerAudioSessionOwner?.stop()
+        let audioSessionOwner = ViewerAudioSessionOwner(
+            receiveAudio: configuration.receiveAudio
+        )
+        viewerAudioSessionOwner = audioSessionOwner
+        refreshViewerAudioSession(chrome: chrome)
         let client = try RustDeskCoreClient(
             libraryURL: coreURL,
             onState: {
@@ -4244,6 +4276,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                         keyboardController: keyboardController,
                         attemptID: attemptID,
                         evidenceSessionEpoch: evidenceSessionEpoch
+                    )
+                }
+            },
+            onRemotePermission: { [weak self] event in
+                DispatchQueue.main.async {
+                    self?.handleViewerRemotePermission(
+                        event,
+                        coreGeneration: coreGeneration,
+                        attemptID: attemptID
                     )
                 }
             },
@@ -4340,6 +4381,24 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         refreshViewerDisplaySelection(chrome: viewerChrome)
     }
 
+    private func handleViewerRemotePermission(
+        _ event: CoreRemotePermissionEvent,
+        coreGeneration: UInt64,
+        attemptID: UUID?
+    ) {
+        guard coreGeneration == viewerCoreGeneration else { return }
+        if let attemptID, activeAttemptID != attemptID { return }
+        guard viewerAudioSessionOwner?.observe(event) == true else { return }
+        refreshViewerAudioSession(chrome: viewerChrome)
+    }
+
+    private func refreshViewerAudioSession(chrome: ViewerChromeView?) {
+        guard let snapshot = viewerAudioSessionOwner?.snapshot() else { return }
+        chrome?.updateAudioSession(
+            ViewerAudioSessionPresentationPolicy.project(snapshot)
+        )
+    }
+
     private func handleViewerDisplaySelection(
         _ event: CoreDisplaySelectionEvent,
         coreGeneration: UInt64,
@@ -4395,6 +4454,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             viewerDisplaySelectionInputOwner?.setControlAvailable(true)
             refreshViewerDisplaySelection(chrome: chrome)
         } else if Self.isTerminalState(event.state) {
+            viewerAudioSessionOwner?.stop()
+            refreshViewerAudioSession(chrome: chrome)
             chrome?.setKeyboardGrabAvailable(false)
             viewerDisplaySelectionInputOwner?.setControlAvailable(false)
             refreshViewerDisplaySelection(chrome: chrome)
@@ -4506,6 +4567,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             peerID: device.peerID,
             password: password,
             forceRelay: server.forceRelay,
+            receiveAudio: viewerSessionReceiveAudio,
             receiveClipboardText: true,
             sendClipboardText: true,
             receiveClipboardRichText: true,

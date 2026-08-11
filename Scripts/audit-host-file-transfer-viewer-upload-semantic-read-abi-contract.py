@@ -61,7 +61,7 @@ def main() -> int:
         "viewerABIV14DeclaresPathFreeStartAndReadCallback": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 17u",
+                "#define RDN_ABI_VERSION 18u",
                 "RDNFileTransferUploadStart",
                 "RDNFileTransferUploadReadRequest",
                 "RDNFileTransferUploadReadCallback",
@@ -81,7 +81,7 @@ def main() -> int:
         "rustOwnsBoundedSemanticJobsAndExactReads": all(
             marker in bridge
             for marker in (
-                "const ABI_VERSION: u32 = 17;",
+                "const ABI_VERSION: u32 = 18;",
                 "active_file_upload_jobs: Mutex<HashMap<i32, NativeViewerUploadJob>>",
                 "native_viewer_upload_manifest(",
                 "read_file_transfer_upload_source(",
@@ -135,7 +135,7 @@ def main() -> int:
         "designMilestone": line_number(
             design, "H6.3j Viewer upload semantic-read ABI contract"
         ),
-        "viewerABIVersion": line_number(header, "#define RDN_ABI_VERSION 17u"),
+        "viewerABIVersion": line_number(header, "#define RDN_ABI_VERSION 18u"),
         "uploadStartStruct": line_number(header, "RDNFileTransferUploadStart"),
         "uploadReadCallback": line_number(
             header, "RDNFileTransferUploadReadCallback"

@@ -37,9 +37,9 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
             document["status"],
             "host-opt-in-implemented-development-incomplete",
         )
-        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 17})
+        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 18})
         self.assertEqual(document["targetContract"]["hostABI"], 18)
-        self.assertEqual(document["targetContract"]["viewerABI"], 17)
+        self.assertEqual(document["targetContract"]["viewerABI"], 18)
         self.assertEqual(
             document["targetContract"]["defaultCaptureSource"],
             "native system-default microphone",
@@ -55,7 +55,7 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
         self.assertEqual(document["missingGaps"], [])
         claims = document["claims"]
         self.assertFalse(claims["hostAudioEnabled"])
-        self.assertFalse(claims["viewerAudioEnabled"])
+        self.assertTrue(claims["viewerAudioEnabled"])
         self.assertFalse(claims["audioProductDevelopmentComplete"])
         self.assertFalse(claims["hostABIChangeRequired"])
         self.assertFalse(claims["viewerABIChangeRequired"])
@@ -64,7 +64,7 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
         self.assertFalse(claims["rootDependencyChangeRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-audio-product-opt-in-permission-lifecycle",
+            "virtual-audio-input-selection",
         )
 
 
