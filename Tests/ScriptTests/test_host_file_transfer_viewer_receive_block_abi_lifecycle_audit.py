@@ -34,7 +34,7 @@ class HostFileTransferViewerReceiveBlockABILifecycleAuditTests(unittest.TestCase
         self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
         self.assertTrue(claims["viewerReceiveBlockABILifecycleImplemented"])
-        self.assertFalse(claims["viewerIOLoopReceiveInterceptionImplemented"])
+        self.assertTrue(claims["viewerIOLoopReceiveInterceptionImplemented"])
         self.assertFalse(claims["viewerDownloadWireDispatchImplemented"])
         self.assertFalse(claims["viewerDestinationWriteImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])

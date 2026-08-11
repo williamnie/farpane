@@ -1368,6 +1368,21 @@ impl InvokeUiSession for BridgeUi {
     fn native_clipboard_image(&self, image: NativeViewerClipboardImage) {
         self.shared.emit_clipboard_image(image);
     }
+
+    fn native_file_transfer_receive_block(&self, block: &FileTransferBlock) -> bool {
+        let job = {
+            let jobs = self.shared.active_file_download_jobs.lock().unwrap();
+            let Some(job) = jobs.get(&block.id) else {
+                return false;
+            };
+            *job
+        };
+        let semantic = job.receive_block(block);
+        if let Some(block) = semantic {
+            self.shared.emit_file_transfer_receive_block(&block);
+        }
+        true
+    }
 }
 
 pub struct RDNClient {
@@ -4610,6 +4625,58 @@ mod tests {
         block.session_epoch = 7;
         assert!(!ui.shared.emit_file_transfer_receive_block(&block));
         assert_eq!(captured.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn viewer_io_loop_hook_consumes_only_registered_download_blocks() {
+        let captured = Mutex::new(Vec::<CapturedFileReceiveBlock>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_file_transfer_receive_block = Some(capture_file_receive_block);
+        shared.context = &captured as *const _ as usize;
+        shared.active.store(true, Ordering::Release);
+        shared.authenticated.store(true, Ordering::Release);
+        shared.file_transfer_enabled.store(true, Ordering::Release);
+        shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        shared.active_file_download_jobs.lock().unwrap().insert(
+            61,
+            NativeViewerDownloadJob {
+                session_epoch: 7,
+                manifest_request_id: 51,
+                transfer_id: 61,
+                total_files: 2,
+                total_bytes: 10,
+                sequence: 0,
+                files_completed: 0,
+                bytes_completed: 0,
+            },
+        );
+
+        let block = |id, file_num, data: Vec<u8>| FileTransferBlock {
+            id,
+            file_num,
+            data: data.into(),
+            compressed: false,
+            ..Default::default()
+        };
+        assert!(!ui.native_file_transfer_receive_block(&block(60, 0, b"foreign".to_vec())));
+        assert!(ui.native_file_transfer_receive_block(&block(61, 0, b"owned".to_vec())));
+        assert!(ui.native_file_transfer_receive_block(&block(61, 2, b"invalid".to_vec())));
+        assert_eq!(
+            captured.lock().unwrap().as_slice(),
+            &[CapturedFileReceiveBlock {
+                abi_version: ABI_VERSION,
+                session_epoch: 7,
+                transfer_id: 61,
+                file_number: 0,
+                payload: b"owned".to_vec(),
+            }]
+        );
+
+        ui.shared.active_file_download_jobs.lock().unwrap().clear();
+        assert!(!ui.native_file_transfer_receive_block(&block(61, 0, b"stale".to_vec())));
     }
 
     #[test]

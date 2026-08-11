@@ -293,7 +293,9 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   manifest file-number 范围内的 block，raw/decoded 均复用 upstream 128 KiB 上限，compressed payload 先限界解压并
   复制为 owned bytes，empty/oversize/malformed/mismatch 全部 fail closed。该注册仍不发 wire download request、不跨
   ABI 借 descriptor；v13 已增加 callback-scoped decoded block seam，Rust 在投递前重验 active/authenticated/
-  file-mode/exact epoch，Swift 在 callback 内复制并复核 epoch/ID/file/bounds 后才排队；io-loop dispatch 与 UI 仍未实现，
+  file-mode/exact epoch，Swift 在 callback 内复制并复核 epoch/ID/file/bounds 后才排队；feature-gated io-loop hook
+  只消费仍在 Bridge 注册的 transfer ID，matching malformed block fail closed，unmatched block 保留上游 write-job 路径，
+  且 callback 前释放 job lock；wire download request、destination write 与 UI 仍未实现，
   多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。

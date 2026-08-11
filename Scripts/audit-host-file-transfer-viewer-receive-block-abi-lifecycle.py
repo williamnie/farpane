@@ -160,13 +160,15 @@ def main() -> int:
             ))
             and "XCTAssertEqual(viewerABI(), 13" in sources["host_tests"]
         ),
-        "ioLoopDispatchDestinationWriteAndProductRemainOff": (
-            ".emit_file_transfer_receive_block(" not in production_bridge
+        "ioLoopInterceptionIsExactWhileWireWriteAndProductRemainOff": (
+            "fn native_file_transfer_receive_block(" in production_bridge
+            and "active_file_download_jobs.lock().unwrap()" in production_bridge
+            and "self.shared.emit_file_transfer_receive_block(&block)" in production_bridge
             and "Data::SendFiles" not in rust_emit
             and "pwrite" not in rust_emit
             and "fileTransferEnabled:" not in product
-            and "io-loop still does not invoke the callback" in sources["readme"]
-            and "io-loop dispatch 与 UI 仍未实现" in sources["architecture"]
+            and "No wire download request or destination write" in sources["readme"]
+            and "wire download request、destination write 与 UI 仍未实现" in sources["architecture"]
         ),
     }
     source_lines = {
@@ -203,7 +205,7 @@ def main() -> int:
         "missingSourceLines": missing_lines,
         "claims": {
             "viewerReceiveBlockABILifecycleImplemented": status == expected_status,
-            "viewerIOLoopReceiveInterceptionImplemented": False,
+            "viewerIOLoopReceiveInterceptionImplemented": status == expected_status,
             "viewerDownloadWireDispatchImplemented": False,
             "viewerDestinationWriteImplemented": False,
             "productFileTransferEnabled": False,

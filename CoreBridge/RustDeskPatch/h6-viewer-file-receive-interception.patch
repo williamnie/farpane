@@ -1,0 +1,36 @@
+diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -1779,11 +1779,17 @@
+                         Some(file_response::Union::Block(block)) => {
+-                            if let Some(job) = fs::get_job(block.id, &mut self.write_jobs) {
+-                                if let Err(_err) = job.write(block).await {
+-                                    // to-do: add "skip" for writing job
+-                                }
+-                                if job.r#type == fs::JobType::Generic {
+-                                    self.update_jobs_status();
++                            #[cfg(feature = "rdn-native-core")]
++                            let consumed = self.handler.native_file_transfer_receive_block(&block);
++                            #[cfg(not(feature = "rdn-native-core"))]
++                            let consumed = false;
++                            if !consumed {
++                                if let Some(job) = fs::get_job(block.id, &mut self.write_jobs) {
++                                    if let Err(_err) = job.write(block).await {
++                                        // to-do: add "skip" for writing job
++                                    }
++                                    if job.r#type == fs::JobType::Generic {
++                                        self.update_jobs_status();
++                                    }
+                                 }
+                             }
+                         }
+                         Some(file_response::Union::Done(d)) => {
+diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs
+--- a/src/ui_session_interface.rs
++++ b/src/ui_session_interface.rs
+@@ -1753,1 +1753,5 @@
++    #[cfg(feature = "rdn-native-core")]
++    fn native_file_transfer_receive_block(&self, _block: &FileTransferBlock) -> bool {
++        false
++    }
+     fn cancel_msgbox(&self, tag: &str);
