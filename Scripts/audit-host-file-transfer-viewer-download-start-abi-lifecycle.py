@@ -76,7 +76,7 @@ def main() -> int:
         "abiV12StartIsPathFreeAndScalarOnly": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 15u",
+                "#define RDN_ABI_VERSION 16u",
                 "typedef struct RDNFileTransferDownloadStart",
                 "uint64_t session_epoch;",
                 "int32_t manifest_request_id;",
@@ -196,7 +196,7 @@ def main() -> int:
             sources["design"],
             "H6.3f2b2f Viewer download-start ABI lifecycle",
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 15u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 16u"),
         "startRequest": line_number(header, "typedef struct RDNFileTransferDownloadStart"),
         "startCommand": line_number(header, "rdn_client_file_transfer_download_start"),
         "rustCommand": line_number(bridge, "fn rdn_client_file_transfer_download_start("),

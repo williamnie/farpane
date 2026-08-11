@@ -259,6 +259,13 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   tuple 进入解码队列。dedicated file session 不发布目录，disconnect 清 authority。v15 尚不包含选择命令、
   terminal event 或产品 selector；Host ABI 仍为 v17，Host media displayRevision 与 input mapping generation
   不得复用为 Viewer catalog revision。
+  Viewer ABI v16 在该目录上增加 exact selection command/terminal callback：admission 必须匹配当前
+  desktop connection epoch、available catalog revision、可选 display index 与严格递增的正 command ID，
+  且每个连接最多一个 pending command。选择当前 index 不发 wire，直接产生 typed `alreadySelected`；
+  其他选择只由相同 revision 下的 canonical `SwitchDisplay` echo 完成。catalog change、disconnect 或
+  remote selection drift 各自以 typed failure 唯一终结命令。函数返回值只表示 admission，Swift 严格投影
+  terminal event。产品 selector/input quiescence 与 Host negative/out-of-range/offline/geometry validation
+  仍是独立后续边界。
   Viewer ABI v14 保留 v9 default-off 的 exact policy/epoch pair、path-free scalar event callback 与
   epoch-scoped cancel command；true/nonzero 只建立 dedicated `FILE_TRANSFER` session，拒绝同时开启任何
   desktop clipboard direction，不启动视频 housekeeping，也不开放 input。cancel 只有在 exact epoch、

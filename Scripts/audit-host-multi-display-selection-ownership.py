@@ -67,6 +67,7 @@ def main() -> int:
     paths = {
         "design": repository / "docs/host-mode-design.md",
         "header": repository / "CoreBridge/include/rustdesk_native.h",
+        "shim": repository / "CoreBridge/Shim/rdn_shim.c",
         "viewer_bridge": repository / "CoreBridge/RustDeskPatch/rdn_bridge.rs",
         "host_bridge": repository / "CoreBridge/RustDeskPatch/rdn_host_bridge.rs",
         "server_connection": repository / "Vendor/rustdesk/src/server/connection.rs",
@@ -223,7 +224,8 @@ def main() -> int:
                 "fn set_displays(&self, displays: &Vec<DisplayInfo>)",
                 "fn set_current_display(&self, display: i32)",
                 "fn switch_display(&self, display: &SwitchDisplay)",
-                "publish_selected_display(display.display)",
+                "NativeViewerDisplaySelectionIngress::SwitchEcho",
+                "NativeViewerDisplaySelectionIngress::RemoteFollow",
             )
         ),
         "viewerCatalogABIIsStrictAndConnectionScoped": all(
@@ -236,6 +238,47 @@ def main() -> int:
                 "uint64_t display_catalog_revision;",
             )
         ),
+        "viewerSelectionABIIsStrictAndTerminal": (
+            all(
+                marker in sources["header"]
+                for marker in (
+                    "typedef struct RDNDisplaySelectionRequest",
+                    "typedef struct RDNDisplaySelectionEvent",
+                    "RDNDisplaySelectionCallback on_display_selection;",
+                    "int32_t rdn_client_select_display(",
+                    "int32_t rdn_shim_client_select_display(",
+                )
+            )
+            and all(
+                marker in sources["shim"]
+                for marker in (
+                    'dlsym(handle, "rdn_client_select_display")',
+                    "library->client_select_display == NULL",
+                    "int32_t rdn_shim_client_select_display(",
+                )
+            )
+            and all(
+                marker in sources["viewer_bridge"]
+                for marker in (
+                    "pending_selection: Option<NativeViewerDisplaySelectionPending>",
+                    "pub unsafe extern \"C\" fn rdn_client_select_display(",
+                    "fn emit_display_selection(&self, snapshot: NativeViewerDisplaySelectionSnapshot)",
+                    "DISPLAY_SELECTION_RESULT_ALREADY_SELECTED",
+                    "DISPLAY_SELECTION_FAILURE_CATALOG_CHANGED",
+                    "DISPLAY_SELECTION_FAILURE_CONNECTION_CLOSED",
+                    "DISPLAY_SELECTION_FAILURE_REMOTE_SELECTION_DRIFT",
+                )
+            )
+            and all(
+                marker in sources["swift_bridge"]
+                for marker in (
+                    "public struct CoreDisplaySelectionRequest",
+                    "public struct CoreDisplaySelectionEvent",
+                    "private let displaySelectionCallback",
+                    "public func selectDisplay(_ request: CoreDisplaySelectionRequest)",
+                )
+            )
+        ),
         "hostMediaDisplayRevisionIsSeparateRouteLocalAuthority": (
             "display_revisions: HashMap<u64, u64>" in sources["host_bridge"]
             and "pending_display_reconfigures" in sources["host_bridge"]
@@ -244,15 +287,6 @@ def main() -> int:
     }
 
     gaps = {
-        "viewerSelectDisplayCommandMissing": (
-            "rdn_client_select_display" not in sources["header"]
-            and "rdn_client_select_display" not in sources["viewer_bridge"]
-            and "rdn_shim_client_select_display" not in sources["swift_bridge"]
-        ),
-        "selectionCommandTerminalEventMissing": (
-            "RDNDisplaySelectionEvent" not in sources["header"]
-            and "on_display_selection" not in sources["viewer_bridge"]
-        ),
         "hostRejectsNoNegativeOrOutOfRangeDisplayBeforeSwitch": (
             "let display_idx = s.display as usize;" in host_switch
             and "s.display < 0" not in host_switch
@@ -301,10 +335,22 @@ def main() -> int:
             sources["host_bridge"],
             "display_revisions: HashMap<u64, u64>",
         ),
+        "viewerSelectionRequest": line_number(
+            sources["header"],
+            "typedef struct RDNDisplaySelectionRequest",
+        ),
+        "viewerSelectionAuthority": line_number(
+            sources["viewer_bridge"],
+            "pub unsafe extern \"C\" fn rdn_client_select_display(",
+        ),
+        "swiftSelectionProjection": line_number(
+            sources["swift_bridge"],
+            "public struct CoreDisplaySelectionRequest",
+        ),
     }
 
     target_contract = {
-        "viewerABI": 15,
+        "viewerABI": 16,
         "hostABI": 17,
         "catalogIdentity": "connectionEpoch + catalogRevision + displayIndex",
         "catalogOwner": "Rust Bridge normalized PeerInfo displays",
@@ -365,7 +411,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "catalog-abi-implemented-selection-pending"
+            "selection-command-implemented-product-pending"
             if not missing_evidence and not missing_gaps
             else "audit-drift"
         ),
@@ -391,14 +437,14 @@ def main() -> int:
             "hermesChangeRequired": False,
             "installedTwoMacAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "viewer-select-display-command-lifecycle",
+        "nextImplementationBoundary": "host-display-switch-validation-lifecycle",
     }
     print(json.dumps(document, sort_keys=True))
     return 0 if (
         not missing_evidence
         and not missing_gaps
         and all(source_lines.values())
-        and viewer_abi == 15
+        and viewer_abi == 16
         and host_abi == 17
     ) else 1
 

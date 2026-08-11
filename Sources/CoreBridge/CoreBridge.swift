@@ -194,6 +194,71 @@ public struct CoreDisplayCatalogProjectionState: Sendable {
     }
 }
 
+public enum CoreDisplaySelectionResult: UInt32, Equatable, Sendable {
+    case selected = 1
+    case alreadySelected = 2
+    case failed = 3
+}
+
+public enum CoreDisplaySelectionFailure: UInt32, Equatable, Sendable {
+    case none = 0
+    case catalogChanged = 1
+    case connectionClosed = 2
+    case remoteSelectionDrift = 3
+}
+
+public struct CoreDisplaySelectionRequest: Equatable, Sendable {
+    public let connectionEpoch: UInt64
+    public let commandID: UInt64
+    public let catalogRevision: UInt64
+    public let displayIndex: UInt32
+
+    public init?(
+        connectionEpoch: UInt64,
+        commandID: UInt64,
+        catalogRevision: UInt64,
+        displayIndex: UInt32
+    ) {
+        guard connectionEpoch > 0, commandID > 0, catalogRevision > 0 else { return nil }
+        self.connectionEpoch = connectionEpoch
+        self.commandID = commandID
+        self.catalogRevision = catalogRevision
+        self.displayIndex = displayIndex
+    }
+}
+
+public struct CoreDisplaySelectionEvent: Equatable, Sendable {
+    public let connectionEpoch: UInt64
+    public let commandID: UInt64
+    public let catalogRevision: UInt64
+    public let displayIndex: UInt32
+    public let result: CoreDisplaySelectionResult
+    public let failure: CoreDisplaySelectionFailure
+
+    public init?(
+        connectionEpoch: UInt64,
+        commandID: UInt64,
+        catalogRevision: UInt64,
+        displayIndex: UInt32,
+        result: CoreDisplaySelectionResult,
+        failure: CoreDisplaySelectionFailure
+    ) {
+        guard connectionEpoch > 0, commandID > 0, catalogRevision > 0 else { return nil }
+        switch result {
+        case .selected, .alreadySelected:
+            guard failure == .none else { return nil }
+        case .failed:
+            guard failure != .none else { return nil }
+        }
+        self.connectionEpoch = connectionEpoch
+        self.commandID = commandID
+        self.catalogRevision = catalogRevision
+        self.displayIndex = displayIndex
+        self.result = result
+        self.failure = failure
+    }
+}
+
 public struct CoreRuntimeMetrics: Sendable {
     public let remoteFPS: Double
     public let networkDelayMS: Int32
@@ -695,6 +760,7 @@ private final class CallbackBox: @unchecked Sendable {
     let onState: @Sendable (CoreStateEvent) -> Void
     let onVideo: @Sendable (CoreVideoPacket) -> Void
     let onDisplayCatalog: @Sendable (CoreDisplayCatalogEvent) -> Void
+    let onDisplaySelection: @Sendable (CoreDisplaySelectionEvent) -> Void
     let onMetrics: @Sendable (CoreRuntimeMetrics) -> Void
     let onClipboardText: @Sendable (String) -> Void
     let onClipboardRichText: @Sendable (CoreClipboardRichTextPayload) -> Void
@@ -718,6 +784,7 @@ private final class CallbackBox: @unchecked Sendable {
         onState: @escaping @Sendable (CoreStateEvent) -> Void,
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onDisplayCatalog: @escaping @Sendable (CoreDisplayCatalogEvent) -> Void,
+        onDisplaySelection: @escaping @Sendable (CoreDisplaySelectionEvent) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
         onClipboardText: @escaping @Sendable (String) -> Void,
         onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void,
@@ -734,6 +801,7 @@ private final class CallbackBox: @unchecked Sendable {
         self.onState = onState
         self.onVideo = onVideo
         self.onDisplayCatalog = onDisplayCatalog
+        self.onDisplaySelection = onDisplaySelection
         self.onMetrics = onMetrics
         self.onClipboardText = onClipboardText
         self.onClipboardRichText = onClipboardRichText
@@ -753,6 +821,10 @@ private final class CallbackBox: @unchecked Sendable {
             guard displayLifecycleLock.withLock({ displayProjection.isCurrent(event) }) else { return }
             onDisplayCatalog(event)
         }
+    }
+
+    func deliverDisplaySelection(_ event: CoreDisplaySelectionEvent) {
+        queue.async { [self] in onDisplaySelection(event) }
     }
 
     func acceptsVideoFrame(connectionEpoch: UInt64, catalogRevision: UInt64, displayIndex: UInt32) -> Bool {
@@ -996,6 +1068,26 @@ private let displayCatalogCallback: RDNDisplayCatalogCallback = { context, event
     ) else { return }
     let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
     box.observeDisplayCatalog(event)
+}
+
+private let displaySelectionCallback: RDNDisplaySelectionCallback = { context, eventPointer in
+    guard let context, let eventPointer else { return }
+    let raw = eventPointer.pointee
+    guard
+        raw.abi_version == RDN_ABI_VERSION,
+        let result = CoreDisplaySelectionResult(rawValue: raw.result),
+        let failure = CoreDisplaySelectionFailure(rawValue: raw.failure),
+        let event = CoreDisplaySelectionEvent(
+            connectionEpoch: raw.connection_epoch,
+            commandID: raw.command_id,
+            catalogRevision: raw.catalog_revision,
+            displayIndex: raw.display_index,
+            result: result,
+            failure: failure
+        )
+    else { return }
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    box.deliverDisplaySelection(event)
 }
 
 private let videoCallback: RDNVideoCallback = { context, framePointer in
@@ -1519,6 +1611,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
         onDisplayCatalog: @escaping @Sendable (CoreDisplayCatalogEvent) -> Void = { _ in },
+        onDisplaySelection: @escaping @Sendable (CoreDisplaySelectionEvent) -> Void = { _ in },
         onClipboardText: @escaping @Sendable (String) -> Void = { _ in },
         onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void = { _ in },
         onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void = { _ in },
@@ -1551,6 +1644,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             onState: onState,
             onVideo: onVideo,
             onDisplayCatalog: onDisplayCatalog,
+            onDisplaySelection: onDisplaySelection,
             onMetrics: onMetrics,
             onClipboardText: onClipboardText,
             onClipboardRichText: onClipboardRichText,
@@ -1568,6 +1662,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             on_state: stateCallback,
             on_video: videoCallback,
             on_display_catalog: displayCatalogCallback,
+            on_display_selection: displaySelectionCallback,
             on_metrics: metricsCallback,
             on_clipboard_text: clipboardTextCallback,
             on_clipboard_rich_text: clipboardRichTextCallback,
@@ -1643,6 +1738,18 @@ public final class RustDeskCoreClient: @unchecked Sendable {
     @discardableResult
     public func requestKeyframe(display: UInt32) -> Bool {
         rdn_shim_client_request_keyframe(library, client, display) == 0
+    }
+
+    @discardableResult
+    public func selectDisplay(_ request: CoreDisplaySelectionRequest) -> Int32 {
+        var raw = RDNDisplaySelectionRequest(
+            abi_version: RDN_ABI_VERSION,
+            connection_epoch: request.connectionEpoch,
+            command_id: request.commandID,
+            catalog_revision: request.catalogRevision,
+            display_index: request.displayIndex
+        )
+        return rdn_shim_client_select_display(library, client, &raw)
     }
 
     @discardableResult

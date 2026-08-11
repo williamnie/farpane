@@ -155,6 +155,18 @@ selection. Dedicated file-transfer sessions never publish catalogs, and
 disconnect clears the authority. The v15 seam intentionally does not yet add a
 display-selection command, terminal event, or product selector.
 
+Viewer ABI v16 adds the exact display-selection command lifecycle on top of the
+v15 catalog. Admission requires the active desktop connection epoch, a positive
+strictly increasing command ID, the exact current available catalog revision,
+and a selectable display index; one connection can own only one pending command.
+Selecting the current index emits typed `alreadySelected` without a wire send.
+Otherwise Rust sends the canonical upstream `SwitchDisplay`, and only its matching
+echo under the unchanged catalog resolves `selected`. Catalog change, disconnect,
+or remote selection drift emits one typed failure and clears the pending authority.
+The function return is admission only; Swift projects the terminal callback
+strictly. Product selector/input quiescence and Host range validation remain
+separate boundaries.
+
 Viewer ABI v14 retains all ABI v8 clipboard behavior and the v9 separate,
 default-off file-transfer seam. The connection configuration accepts exact
 `false/0` desktop mode or exact `true/nonzero` dedicated file mode; file mode
