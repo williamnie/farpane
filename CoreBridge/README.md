@@ -192,8 +192,9 @@ done, error and successful cancel into exact-session callbacks with checked,
 strictly increasing sequence numbers, monotonic bounded file/byte totals and stable
 typed failures. Completion reports exact manifest totals; Swift validates the same
 semantic envelope once before projecting it to the Viewer progress authority. The
-callback is emitted after the Rust job lock is released. No download command
-dispatches a wire request. The Swift destination owner can now reserve at most
+callback is emitted after the Rust job lock is released. The earlier
+registration-only boundary was recorded as: “No download command dispatches a wire request.”
+The Swift destination owner can now reserve at most
 eight descriptor-relative new-file staging entries: it duplicates the pinned
 root, creates or revalidates private `0700` parents with `mkdirat/openat`, rejects
 an existing final entry, and creates a `0600`, single-link, empty
@@ -225,6 +226,14 @@ feature-gated io-loop hook now consumes only blocks whose transfer ID is still
 registered by this bridge; matching malformed blocks fail closed, while
 unmatched blocks retain the upstream write-job path. This hook releases the job
 lock before callback delivery. No wire download request or destination write is
-issued yet.
+issued by the interception hook itself. Download start now queues exactly one
+root `FileAction::Send` with the registered positive transfer ID, generic type,
+file number zero and hidden files disabled. It sends the protocol message
+directly rather than `Data::SendFiles`, so RustDesk does not create a path-based
+local write job; a closed queue rolls the registration back while duplicate or
+rejected starts cannot enqueue another request. Overwrite-digest confirmation
+and destination reservation/write/commit are still not connected to callbacks,
+so the remote sender is not yet allowed to advance into payload blocks and
+product file transfer remains off.
 No picker UI or product configuration exists, so it remains internal rather than
 file-transfer product capability.

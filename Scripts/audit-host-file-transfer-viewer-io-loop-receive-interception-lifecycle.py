@@ -63,7 +63,7 @@ def main() -> int:
     regression = function_body(
         bridge,
         "fn viewer_io_loop_hook_consumes_only_registered_download_blocks()",
-        "fn viewer_download_start_registers_exact_manifest_without_io()",
+        "fn viewer_download_start_registers_exact_manifest_and_dispatches_bounded_wire_request()",
     )
     evidence = {
         "designRecordsBoundedH63f2b2m": all(

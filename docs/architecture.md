@@ -295,7 +295,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   ABI 借 descriptor；v13 已增加 callback-scoped decoded block seam，Rust 在投递前重验 active/authenticated/
   file-mode/exact epoch，Swift 在 callback 内复制并复核 epoch/ID/file/bounds 后才排队；feature-gated io-loop hook
   只消费仍在 Bridge 注册的 transfer ID，matching malformed block fail closed，unmatched block 保留上游 write-job 路径，
-  且 callback 前释放 job lock；wire download request、destination write 与 UI 仍未实现，
+  且 callback 前释放 job lock；该 hook 自身的 wire download request、destination write 与 UI 仍未实现。后续 download
+  start 现在只在 exact completed manifest 注册成功后直接入队一个根路径 `/`、hidden=false、file=0、generic 的
+  `FileAction::Send`，不用 `Data::SendFiles`，因此不会创建上游 path-based local write job；queue 关闭会在同一 job
+  mutex 临界区回滚 registration，duplicate/rejected start 不会重复发命令。overwrite digest confirmation 与 receive
+  callback 到 descriptor owner 的 reservation/write/commit adapter、产品 UI 仍未连接，因此远端 sender 尚不能进入
+  payload block 阶段，
   多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。

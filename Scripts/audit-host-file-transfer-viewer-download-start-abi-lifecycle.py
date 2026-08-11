@@ -107,18 +107,24 @@ def main() -> int:
                 "total_files: request.total_files",
                 "total_bytes: request.total_bytes",
                 "server_file_transfer_enabled",
-                "session.sender.read().unwrap().is_none()",
+                "session.sender.read().unwrap().as_ref().cloned()",
                 "MAX_VIEWER_DOWNLOAD_JOBS",
                 "jobs.contains_key(&request.transfer_id)",
                 "jobs.insert(request.transfer_id, job)",
             )
         ),
-        "registrationDoesNotDispatchOrPerformIO": all(
+        "pathFreeRegistrationDispatchesCanonicalRootWithoutDestinationIO": all(
+            marker in rust_start
+            for marker in (
+                "native_viewer_file_download_root_message",
+                "sender",
+                ".send(Data::Message",
+                "jobs.remove(&request.transfer_id)",
+            )
+        ) and all(
             marker not in rust_start
             for marker in (
                 "Data::SendFiles",
-                "Data::Message",
-                "sender.send",
                 "openat",
                 "File::create",
                 "write_all",
@@ -167,11 +173,12 @@ def main() -> int:
             and 'dlsym(handle, "rdn_client_file_transfer_download_start")'
             in sources["host_tests"]
         ),
-        "regressionsCoverExactScalarNoIOAndCancel": all(
+        "regressionsCoverExactScalarWireShapeRollbackAndCancel": all(
             marker in (bridge + sources["swift_tests"])
             for marker in (
-                "viewer_download_start_registers_exact_manifest_without_io",
-                "registration must not start file I/O",
+                "viewer_download_start_registers_exact_manifest_and_dispatches_bounded_wire_request",
+                "file_action::Union::Send(send)",
+                "viewer_download_start_rolls_back_registration_when_wire_queue_is_closed",
                 "request.total_files = 3",
                 "Ok(Data::CancelJob(61))",
                 "testDownloadStartProjectsOnlyExactManifestAndScalarTotals",
@@ -180,9 +187,8 @@ def main() -> int:
         ),
         "productAndDownloadIORemainOff": (
             "fileTransferEnabled:" not in product
-            and "No download command" in sources["readme"]
-            and "dispatches a wire request" in sources["readme"]
-            and "仍不发 wire download request" in sources["architecture"]
+            and "Download start now queues exactly one" in sources["readme"]
+            and "不会创建上游 path-based local write job" in sources["architecture"]
         ),
     }
     source_lines = {
@@ -199,7 +205,7 @@ def main() -> int:
         "swiftCommand": line_number(swift, "func startFileTransferDownload("),
         "rustRegression": line_number(
             bridge,
-            "fn viewer_download_start_registers_exact_manifest_without_io()",
+            "fn viewer_download_start_registers_exact_manifest_and_dispatches_bounded_wire_request()",
         ),
         "swiftRegression": line_number(
             sources["swift_tests"],
@@ -222,7 +228,7 @@ def main() -> int:
         "claims": {
             "viewerRecursiveManifestABILifecycleImplemented": status == expected_status,
             "viewerDownloadStartImplemented": status == expected_status,
-            "viewerDownloadWireDispatchImplemented": False,
+            "viewerDownloadWireDispatchImplemented": status == expected_status,
             "viewerDownloadIOImplemented": False,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,

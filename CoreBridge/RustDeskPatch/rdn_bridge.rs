@@ -2105,6 +2105,16 @@ fn native_viewer_file_manifest_root_messages(request_id: i32) -> (Message, Messa
     (files_message, directories_message)
 }
 
+fn native_viewer_file_download_root_message(transfer_id: i32) -> Message {
+    hbb_common::fs::new_send(
+        transfer_id,
+        hbb_common::fs::JobType::Generic,
+        "/".to_owned(),
+        0,
+        false,
+    )
+}
+
 fn client_clear_completed_manifest(shared: &BridgeShared, session_epoch: u64) {
     let mut completed = shared.completed_file_manifest_request.lock().unwrap();
     if completed
@@ -3111,9 +3121,9 @@ pub unsafe extern "C" fn rdn_client_file_transfer_download_start(
     if !*session.server_file_transfer_enabled.read().unwrap() {
         return -8;
     }
-    if session.sender.read().unwrap().is_none() {
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
         return -3;
-    }
+    };
     let job = NativeViewerDownloadJob {
         session_epoch: request.session_epoch,
         manifest_request_id: request.manifest_request_id,
@@ -3140,6 +3150,18 @@ pub unsafe extern "C" fn rdn_client_file_transfer_download_start(
         return -3;
     }
     jobs.insert(request.transfer_id, job);
+    // The unbounded channel enqueue is nonblocking. Keeping the job mutex here
+    // makes a closed queue rollback atomic with registration, so cancel/retry
+    // cannot observe or replace a half-dispatched transfer ID.
+    if sender
+        .send(Data::Message(native_viewer_file_download_root_message(
+            request.transfer_id,
+        )))
+        .is_err()
+    {
+        jobs.remove(&request.transfer_id);
+        return -3;
+    }
     0
 }
 
@@ -4680,7 +4702,7 @@ mod tests {
     }
 
     #[test]
-    fn viewer_download_start_registers_exact_manifest_without_io() {
+    fn viewer_download_start_registers_exact_manifest_and_dispatches_bounded_wire_request() {
         let captured = Mutex::new(Vec::<CapturedFileTransferEvent>::new());
         let mut ui = BridgeUi::default();
         let shared = Arc::get_mut(&mut ui.shared).unwrap();
@@ -4747,9 +4769,30 @@ mod tests {
                 bytes_completed: 0,
             })
         );
-        assert!(
-            receiver.try_recv().is_err(),
-            "registration must not start file I/O"
+        let Ok(Data::Message(message)) = receiver.try_recv() else {
+            panic!("download start must send one wire message");
+        };
+        let Some(message::Union::FileAction(action)) = message.union else {
+            panic!("download start must send FileAction");
+        };
+        let Some(file_action::Union::Send(send)) = action.union else {
+            panic!("download start must send a send-files request");
+        };
+        assert_eq!(
+            (
+                send.id,
+                send.path.as_str(),
+                send.file_num,
+                send.include_hidden,
+                send.file_type.enum_value(),
+            ),
+            (
+                61,
+                "/",
+                0,
+                false,
+                Ok(file_transfer_send_request::FileType::Generic)
+            )
         );
         assert_eq!(
             unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
@@ -4786,6 +4829,10 @@ mod tests {
             unsafe { rdn_client_file_transfer_download_start(client_pointer, &request) },
             -4
         );
+        assert!(
+            receiver.try_recv().is_err(),
+            "rejected or duplicate starts must not dispatch another request"
+        );
 
         assert_eq!(
             unsafe { rdn_client_file_transfer_cancel(client_pointer, 7, 61) },
@@ -4814,6 +4861,60 @@ mod tests {
                 bytes_per_second: 0.0,
             }]
         );
+    }
+
+    #[test]
+    fn viewer_download_start_rolls_back_registration_when_wire_queue_is_closed() {
+        let ui = BridgeUi::default();
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+        *ui.shared.completed_file_manifest_request.lock().unwrap() =
+            Some(NativeViewerCompletedManifest {
+                session_epoch: 7,
+                request_id: 51,
+                total_files: 2,
+                total_bytes: 42,
+            });
+
+        let (sender, receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
+        drop(receiver);
+        let session = Session {
+            sender: Arc::new(RwLock::new(Some(sender))),
+            ui_handler: ui.clone(),
+            server_file_transfer_enabled: Arc::new(RwLock::new(true)),
+            ..Default::default()
+        };
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(Some(session)),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let request = RDNFileTransferDownloadStart {
+            abi_version: ABI_VERSION,
+            session_epoch: 7,
+            manifest_request_id: 51,
+            transfer_id: 61,
+            total_files: 2,
+            total_bytes: 42,
+        };
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_download_start(&mut client, &request) },
+            -3
+        );
+        assert!(ui
+            .shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .is_empty());
     }
 
     #[test]
