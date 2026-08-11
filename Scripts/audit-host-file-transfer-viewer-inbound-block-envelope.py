@@ -59,7 +59,7 @@ def main() -> int:
     tests = function_body(
         bridge,
         "fn viewer_receive_block_owns_raw_and_bounded_decompressed_payloads()",
-        "fn viewer_download_start_registers_exact_manifest_without_io()",
+        "fn viewer_download_start_registers_exact_manifest_and_dispatches_bounded_wire_request()",
     )
     product = sources["app"] + sources["agent"]
     evidence = {

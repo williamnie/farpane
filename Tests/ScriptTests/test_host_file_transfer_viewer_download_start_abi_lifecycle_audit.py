@@ -35,7 +35,7 @@ class HostFileTransferViewerDownloadStartABILifecycleAuditTests(unittest.TestCas
         claims = document["claims"]
         self.assertTrue(claims["viewerRecursiveManifestABILifecycleImplemented"])
         self.assertTrue(claims["viewerDownloadStartImplemented"])
-        self.assertFalse(claims["viewerDownloadWireDispatchImplemented"])
+        self.assertTrue(claims["viewerDownloadWireDispatchImplemented"])
         self.assertFalse(claims["viewerDownloadIOImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
