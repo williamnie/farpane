@@ -47,7 +47,7 @@ class HostFileTransferProductDevelopmentCompletionAuditTests(
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-upload-wire-abi-ownership-audit",
+            "host-file-transfer-viewer-upload-semantic-read-abi-contract",
         )
 
 
