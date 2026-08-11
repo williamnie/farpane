@@ -74,6 +74,10 @@ def main() -> int:
         "viewer_ui": repository / "Sources/RustDeskNative/ViewerUI.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "swift_bridge": repository / "Sources/CoreBridge/CoreBridge.swift",
+        "host_switch_patch": repository
+        / "CoreBridge/RustDeskPatch/h6-host-display-switch-validation.patch",
+        "bootstrap": repository / "Scripts/bootstrap-rustdesk-core.sh",
+        "verifier": repository / "Scripts/verify-rustdesk-core-source.sh",
     }
     try:
         verified = subprocess.run(
@@ -188,9 +192,9 @@ def main() -> int:
         "nativeHostSwitchOwnsServiceSelectionAndInputEpoch": (
             ordered(
                 host_switch,
-                "let display_idx = s.display as usize;",
+                "validate_monitor_display_switch_target(",
                 "self.switch_display_to(display_idx, server.clone())",
-                "make_display_changed_msg(self.display_idx, None, self.video_source())",
+                "self.send_current_display_changed().await",
             )
             and all(
                 marker in host_switch_owner
@@ -201,6 +205,46 @@ def main() -> int:
                     "self.input_mapping.advance();",
                 )
             )
+        ),
+        "nativeHostRejectsInvalidMonitorTargetBeforeServiceMutation": (
+            all(
+                marker in sources["server_connection"]
+                for marker in (
+                    "fn validate_monitor_display_switch_target(",
+                    "usize::try_from(requested_display).ok()?",
+                    "let display = get_display(display_idx)?;",
+                    "!display.online",
+                    "display.width <= 0",
+                    "display.height <= 0",
+                    "!display.scale.is_finite()",
+                    "display.x.checked_add(display.width)?;",
+                    "display.y.checked_add(display.height)?;",
+                    "self.send_current_display_changed().await;",
+                    "monitor_display_switch_target_is_live_bounded_and_fail_closed",
+                )
+            )
+            and ordered(
+                host_switch,
+                "validate_monitor_display_switch_target(",
+                "let Some(display_idx) = display_idx else",
+                "self.send_current_display_changed().await;",
+                "return;",
+                "self.switch_display_to(display_idx, server.clone())",
+            )
+            and all(
+                marker in sources["host_switch_patch"]
+                for marker in (
+                    "validate_monitor_display_switch_target",
+                    "send_current_display_changed",
+                    "monitor_display_switch_target_is_live_bounded_and_fail_closed",
+                )
+            )
+            and "host_display_switch_validation_patch_file=" in sources["bootstrap"]
+            and 'apply --unidiff-zero --check --reverse "$host_display_switch_validation_patch_file"'
+            in sources["bootstrap"]
+            and "host_display_switch_validation_patch=" in sources["verifier"]
+            and 'apply --unidiff-zero --check --reverse "$host_display_switch_validation_patch"'
+            in sources["verifier"]
         ),
         "peerSwitchEchoIsConsumedBeforeFollowingDisplayFrames": (
             "Send SwitchDisplay on the same channel as VideoFrame" in sources["server_connection"]
@@ -287,11 +331,6 @@ def main() -> int:
     }
 
     gaps = {
-        "hostRejectsNoNegativeOrOutOfRangeDisplayBeforeSwitch": (
-            "let display_idx = s.display as usize;" in host_switch
-            and "s.display < 0" not in host_switch
-            and "get_display_info(display_idx).is_none()" not in host_switch
-        ),
         "viewerProductDisplaySelectorMissing": (
             "onSelectDisplay" not in sources["viewer_ui"]
             and "displaySelector" not in sources["viewer_ui"]
@@ -322,6 +361,10 @@ def main() -> int:
         "nativeHostSwitch": line_number(
             sources["server_connection"],
             "    async fn handle_switch_display(&mut self, s: SwitchDisplay)",
+        ),
+        "nativeHostSwitchValidation": line_number(
+            sources["server_connection"],
+            "fn validate_monitor_display_switch_target(",
         ),
         "viewerCatalogOwner": line_number(
             sources["viewer_bridge"],
@@ -411,7 +454,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "selection-command-implemented-product-pending"
+            "host-validation-implemented-product-pending"
             if not missing_evidence and not missing_gaps
             else "audit-drift"
         ),
@@ -437,7 +480,7 @@ def main() -> int:
             "hermesChangeRequired": False,
             "installedTwoMacAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "host-display-switch-validation-lifecycle",
+        "nextImplementationBoundary": "viewer-display-selection-input-quiescence-lifecycle",
     }
     print(json.dumps(document, sort_keys=True))
     return 0 if (

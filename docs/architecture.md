@@ -266,6 +266,10 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   remote selection drift 各自以 typed failure 唯一终结命令。函数返回值只表示 admission，Swift 严格投影
   terminal event。产品 selector/input quiescence 与 Host negative/out-of-range/offline/geometry validation
   仍是独立后续边界。
+  Host monitor 切换入口现在在改变 service subscription 前读取自己的 live display-service inventory：
+  negative/不存在 index、offline、非正 width/height、非 finite/非正 scale 与坐标边界溢出全部 fail closed。
+  拒绝时通过既有 canonical `SwitchDisplay` response 重申当前 display，使 Viewer pending command 以 typed
+  drift 结束，同时不改变 media route 或 input-mapping generation。该门禁不改变 Viewer/Host ABI 或 protobuf。
   Viewer ABI v14 保留 v9 default-off 的 exact policy/epoch pair、path-free scalar event callback 与
   epoch-scoped cancel command；true/nonzero 只建立 dedicated `FILE_TRANSFER` session，拒绝同时开启任何
   desktop clipboard direction，不启动视频 housekeeping，也不开放 input。cancel 只有在 exact epoch、
