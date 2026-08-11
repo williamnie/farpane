@@ -117,9 +117,9 @@ def main() -> int:
             and "read_file_transfer_upload_source(" in bridge
             and "must not retain the request or buffer" in header
         ),
-        "productUploadActionRemainsDefaultUnwired": (
-            "requestFileTransferUpload" not in sources["app"]
-            and "onFileTransferUploadAction" not in sources["viewer_ui"]
+        "productUploadActionUsesSemanticSeam": (
+            "requestFileTransferUpload" in sources["app"]
+            and "onFileTransferUploadAction" in sources["viewer_ui"]
         ),
         "designRecordsScopeAndNonBlockingAcceptanceGap": all(
             marker in design
@@ -156,7 +156,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "viewer-upload-semantic-read-abi-implemented-product-off"
+            "viewer-upload-semantic-read-abi-implemented-product-on"
             if passed else "audit-failed"
         ),
         "coverageScope": "h6-host-file-transfer-viewer-upload-semantic-read-abi",
@@ -170,11 +170,11 @@ def main() -> int:
             "swiftDescriptorReadAuthorityImplemented": passed,
             "rustSemanticUploadJobImplemented": passed,
             "viewerUploadWireImplemented": passed,
-            "viewerUploadProductActionImplemented": False,
+            "viewerUploadProductActionImplemented": passed,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": (
-            "host-file-transfer-viewer-upload-product-action-lifecycle"
+            "host-file-transfer-installed-single-mac-smoke"
             if passed
             else NEXT_BOUNDARY
         ),

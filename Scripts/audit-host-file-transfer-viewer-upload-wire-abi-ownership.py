@@ -200,7 +200,7 @@ def main() -> int:
             "viewerABIChangedByThisAudit": False,
             "viewerABIV14SemanticReadImplemented": passed,
             "viewerUploadWireImplemented": passed,
-            "viewerUploadProductActionImplemented": False,
+            "viewerUploadProductActionImplemented": passed,
             "twoMacAcceptanceComplete": False,
         },
         "frozenSeam": {

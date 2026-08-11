@@ -347,6 +347,196 @@ final class ViewerFileTransferProductCompositionTests: XCTestCase {
         XCTAssertTrue(core.manifestRequests.isEmpty)
     }
 
+    func testExplicitUploadActionPinsSourceAndStartsOnlyAfterReady() throws {
+        let source = try makeSourceFile(contents: Data("hello".utf8))
+        defer { try? FileManager.default.removeItem(at: source) }
+        let core = ViewerFileTransferProductCoreRecorder()
+        let events = ViewerFileTransferProductEventRecorder()
+        let composition = try XCTUnwrap(ViewerFileTransferProductComposition(
+            sessionEpoch: 41,
+            makeCore: { callbacks in
+                core.callbacks = callbacks
+                return core
+            },
+            onEvent: events.handler
+        ))
+
+        XCTAssertEqual(
+            composition.requestFileTransferUpload(
+                baseConfiguration: baseConfiguration(),
+                selectedURLs: [source]
+            ),
+            .accepted(transferID: 1)
+        )
+        XCTAssertEqual(composition.snapshot().queuedTransferID, 1)
+        XCTAssertTrue(core.uploadStarts.isEmpty)
+
+        core.emitState(.streaming)
+
+        XCTAssertNil(composition.snapshot().queuedTransferID)
+        XCTAssertEqual(core.uploadStarts, [
+            .init(epoch: 41, transferID: 1),
+        ])
+        guard case .transfer(.progress(let queued)) = events.values.last else {
+            return XCTFail("expected queued upload progress")
+        }
+        XCTAssertEqual(queued.direction, .upload)
+        XCTAssertEqual(queued.totalFiles, 1)
+        XCTAssertEqual(queued.totalBytes, 5)
+
+        core.emitTransfer(try uploadEvent(
+            epoch: 41,
+            sequence: 1,
+            kind: .completed,
+            filesCompleted: 1,
+            bytesCompleted: 5,
+            totalBytes: 5
+        ))
+        XCTAssertEqual(events.values.last, .transfer(.finished(
+            sessionEpoch: 41,
+            transferID: 1,
+            outcome: .completed
+        )))
+    }
+
+    func testQueuedUploadCanBeCancelledAndUnsafeSourceFailsClosed() throws {
+        let source = try makeSourceFile(contents: Data("cancel".utf8))
+        defer { try? FileManager.default.removeItem(at: source) }
+        let core = ViewerFileTransferProductCoreRecorder()
+        let events = ViewerFileTransferProductEventRecorder()
+        let composition = try XCTUnwrap(ViewerFileTransferProductComposition(
+            sessionEpoch: 42,
+            makeCore: { callbacks in
+                core.callbacks = callbacks
+                return core
+            },
+            onEvent: events.handler
+        ))
+        XCTAssertEqual(
+            composition.requestFileTransferUpload(
+                baseConfiguration: baseConfiguration(),
+                selectedURLs: [source]
+            ),
+            .accepted(transferID: 1)
+        )
+        XCTAssertTrue(composition.requestCancellation(transferID: 1))
+        core.emitState(.streaming)
+        XCTAssertTrue(core.uploadStarts.isEmpty)
+        XCTAssertTrue(events.values.contains(.transfer(.finished(
+            sessionEpoch: 42,
+            transferID: 1,
+            outcome: .cancelled
+        ))))
+
+        let unsafe = source.deletingLastPathComponent()
+            .appendingPathComponent("missing-\(UUID().uuidString)")
+        let rejectedCore = ViewerFileTransferProductCoreRecorder()
+        let rejected = try XCTUnwrap(ViewerFileTransferProductComposition(
+            sessionEpoch: 43,
+            makeCore: { callbacks in
+                rejectedCore.callbacks = callbacks
+                return rejectedCore
+            },
+            onEvent: { _ in }
+        ))
+        XCTAssertEqual(
+            rejected.requestFileTransferUpload(
+                baseConfiguration: baseConfiguration(),
+                selectedURLs: [unsafe]
+            ),
+            .sourceRejected
+        )
+        XCTAssertNil(rejectedCore.connectedConfiguration)
+    }
+
+    func testActiveUploadCancellationWaitsForExactTerminalEvent() throws {
+        let source = try makeSourceFile(contents: Data("cancel".utf8))
+        defer { try? FileManager.default.removeItem(at: source) }
+        let core = ViewerFileTransferProductCoreRecorder()
+        let events = ViewerFileTransferProductEventRecorder()
+        let composition = try XCTUnwrap(ViewerFileTransferProductComposition(
+            sessionEpoch: 44,
+            makeCore: { callbacks in
+                core.callbacks = callbacks
+                return core
+            },
+            onEvent: events.handler
+        ))
+        XCTAssertEqual(
+            composition.requestFileTransferUpload(
+                baseConfiguration: baseConfiguration(),
+                selectedURLs: [source]
+            ),
+            .accepted(transferID: 1)
+        )
+        core.emitState(.streaming)
+
+        XCTAssertTrue(composition.requestCancellation(transferID: 1))
+        XCTAssertTrue(core.operations.contains(.cancel(
+            epoch: 44,
+            transferID: 1
+        )))
+        guard case .transfer(.progress(let cancelling)) = events.values.last else {
+            return XCTFail("expected cancelling progress")
+        }
+        XCTAssertEqual(cancelling.phase, .cancelling)
+
+        core.emitTransfer(try uploadEvent(
+            epoch: 44,
+            sequence: 1,
+            kind: .cancelled,
+            filesCompleted: 0,
+            bytesCompleted: 0,
+            totalBytes: 6
+        ))
+        XCTAssertEqual(events.values.last, .transfer(.finished(
+            sessionEpoch: 44,
+            transferID: 1,
+            outcome: .cancelled
+        )))
+    }
+
+    func testUploadProtocolViolationCancelsDiscardsAndFailsClosed() throws {
+        let source = try makeSourceFile(contents: Data("guard".utf8))
+        defer { try? FileManager.default.removeItem(at: source) }
+        let core = ViewerFileTransferProductCoreRecorder()
+        let events = ViewerFileTransferProductEventRecorder()
+        let composition = try XCTUnwrap(ViewerFileTransferProductComposition(
+            sessionEpoch: 45,
+            makeCore: { callbacks in
+                core.callbacks = callbacks
+                return core
+            },
+            onEvent: events.handler
+        ))
+        XCTAssertEqual(
+            composition.requestFileTransferUpload(
+                baseConfiguration: baseConfiguration(),
+                selectedURLs: [source]
+            ),
+            .accepted(transferID: 1)
+        )
+        core.emitState(.streaming)
+        core.emitTransfer(try uploadEvent(
+            epoch: 45,
+            sequence: 1,
+            kind: .progress,
+            filesCompleted: 0,
+            bytesCompleted: 1,
+            totalBytes: 99
+        ))
+
+        XCTAssertEqual(core.operations.suffix(2), [
+            .cancel(epoch: 45, transferID: 1),
+            .discardUpload(epoch: 45, transferID: 1),
+        ])
+        XCTAssertEqual(events.values.last, .transfer(.finished(
+            sessionEpoch: 45,
+            transferID: 1,
+            outcome: .failed(.protocolViolation)
+        )))
+    }
+
     private func baseConfiguration() -> CoreConnectionConfig {
         CoreConnectionConfig(
             rendezvousServer: "127.0.0.1:21116",
@@ -375,6 +565,13 @@ final class ViewerFileTransferProductCompositionTests: XCTestCase {
             ofItemAtPath: directory.path
         )
         return directory
+    }
+
+    private func makeSourceFile(contents: Data) throws -> URL {
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("upload-\(UUID().uuidString).txt")
+        try contents.write(to: file, options: .withoutOverwriting)
+        return file
     }
 
     private func fileEntry(path: String, size: UInt64) -> CoreFileTransferListEntry {
@@ -419,6 +616,30 @@ final class ViewerFileTransferProductCompositionTests: XCTestCase {
             bytesPerSecond: 0
         ))
     }
+
+    private func uploadEvent(
+        epoch: UInt64,
+        sequence: UInt64,
+        kind: CoreFileTransferEventKind,
+        filesCompleted: UInt32,
+        bytesCompleted: UInt64,
+        totalBytes: UInt64,
+        failure: CoreFileTransferFailure = .none
+    ) throws -> CoreFileTransferEvent {
+        try XCTUnwrap(CoreFileTransferEvent(
+            sessionEpoch: epoch,
+            transferID: 1,
+            sequence: sequence,
+            kind: kind,
+            failure: failure,
+            currentFileNumber: nil,
+            filesCompleted: filesCompleted,
+            totalFiles: 1,
+            bytesCompleted: bytesCompleted,
+            totalBytes: totalBytes,
+            bytesPerSecond: 0
+        ))
+    }
 }
 
 private final class ViewerFileTransferProductCoreRecorder:
@@ -438,6 +659,7 @@ private final class ViewerFileTransferProductCoreRecorder:
     enum Operation: Equatable {
         case cancel(epoch: UInt64, transferID: Int32)
         case discard(epoch: UInt64, transferID: Int32)
+        case discardUpload(epoch: UInt64, transferID: Int32)
         case disconnect
     }
 
@@ -448,6 +670,7 @@ private final class ViewerFileTransferProductCoreRecorder:
     private(set) var connectedConfiguration: CoreConnectionConfig?
     private(set) var manifestRequests: [ManifestRequest] = []
     private(set) var starts: [Start] = []
+    private(set) var uploadStarts: [Start] = []
     private(set) var operations: [Operation] = []
     private var receiveCallbacks: [
         Int32: @Sendable (ViewerFileTransferReceiveEvent) -> Void
@@ -505,11 +728,34 @@ private final class ViewerFileTransferProductCoreRecorder:
         return 0
     }
 
+    func startFileTransferUpload(
+        _ request: ViewerFileTransferUploadRequest,
+        sourceOwner: ViewerFileTransferUploadSourceOwner
+    ) -> Int32 {
+        lock.withLock {
+            uploadStarts.append(.init(
+                epoch: request.sessionEpoch,
+                transferID: request.transferID
+            ))
+        }
+        return 0
+    }
+
     func discardFileTransferReceive(sessionEpoch: UInt64, transferID: Int32) -> Bool {
         lock.withLock {
             operations.append(.discard(epoch: sessionEpoch, transferID: transferID))
             return receiveCallbacks.removeValue(forKey: transferID) != nil
         }
+    }
+
+    func discardFileTransferUpload(sessionEpoch: UInt64, transferID: Int32) -> Bool {
+        lock.withLock {
+            operations.append(.discardUpload(
+                epoch: sessionEpoch,
+                transferID: transferID
+            ))
+        }
+        return true
     }
 
     func emitState(_ state: CoreConnectionState) {

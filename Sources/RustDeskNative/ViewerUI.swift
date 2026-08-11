@@ -1,6 +1,11 @@
 import AppKit
 import VideoPipeline
 
+enum ViewerFileTransferActionDirection {
+    case download
+    case upload
+}
+
 final class ViewerChromeView: NSView {
     private static let hudPreferenceKey = "viewer.session-hud-visible.v1"
 
@@ -9,6 +14,7 @@ final class ViewerChromeView: NSView {
     var onToggleFullscreen: (() -> Void)?
     var onToggleKeyboardGrab: (() -> Void)?
     var onFileTransferAction: (() -> Void)?
+    var onFileTransferUploadAction: (() -> Void)?
     var onOpenKeyboardPermissions: (() -> Void)?
     var onControlOverlayVisibilityChanged: ((Bool) -> Void)?
 
@@ -22,6 +28,7 @@ final class ViewerChromeView: NSView {
     private let keyboardGrabButton = NSButton(title: "独占键盘", target: nil, action: nil)
     private let keyboardPermissionButton = NSButton(title: "权限设置", target: nil, action: nil)
     private let fileTransferButton = NSButton(title: "接收文件", target: nil, action: nil)
+    private let fileTransferUploadButton = NSButton(title: "发送文件", target: nil, action: nil)
     private let hudButton = NSButton(title: "显示 HUD", target: nil, action: nil)
     private let fullscreenButton = NSButton(title: "全屏", target: nil, action: nil)
     private let showsAcceptanceControls: Bool
@@ -32,6 +39,7 @@ final class ViewerChromeView: NSView {
     private var fileTransferAvailable = false
     private var fileTransferActive = false
     private var fileTransferCancellable = false
+    private var fileTransferDirection: ViewerFileTransferActionDirection?
     private var controlsExpanded = false
     private var controlsPinned = false
     private var pointerInsideControls = false
@@ -149,25 +157,35 @@ final class ViewerChromeView: NSView {
     func setFileTransferAvailable(_ available: Bool) {
         fileTransferAvailable = available
         fileTransferButton.isEnabled = fileTransferActive
-            ? fileTransferCancellable
+            ? fileTransferDirection == .download && fileTransferCancellable
+            : available
+        fileTransferUploadButton.isEnabled = fileTransferActive
+            ? fileTransferDirection == .upload && fileTransferCancellable
             : available
     }
 
-    func updateFileTransferAction(active: Bool, cancellable: Bool = false) {
+    func updateFileTransferAction(
+        active: Bool,
+        cancellable: Bool = false,
+        direction: ViewerFileTransferActionDirection = .download
+    ) {
         fileTransferActive = active
         fileTransferCancellable = active && cancellable
-        fileTransferButton.title = active
-            ? (fileTransferCancellable ? "取消接收" : "正在准备…")
-            : "接收文件"
-        fileTransferButton.contentTintColor = fileTransferCancellable
-            ? .systemOrange
-            : nil
-        fileTransferButton.isEnabled = active
-            ? fileTransferCancellable
-            : fileTransferAvailable
-        fileTransferButton.toolTip = fileTransferCancellable
-            ? "取消当前文件接收"
-            : "选择本机私有目录并接收远端共享文件"
+        fileTransferDirection = active ? direction : nil
+        updateFileTransferButton(
+            fileTransferButton,
+            direction: .download,
+            idleTitle: "接收文件",
+            cancelTitle: "取消接收",
+            idleToolTip: "选择本机私有目录并接收远端共享文件"
+        )
+        updateFileTransferButton(
+            fileTransferUploadButton,
+            direction: .upload,
+            idleTitle: "发送文件",
+            cancelTitle: "取消发送",
+            idleToolTip: "选择本机文件或文件夹并发送到远端"
+        )
     }
 
     func updateHUD(_ value: PipelineHUDSnapshot) {
@@ -232,6 +250,12 @@ final class ViewerChromeView: NSView {
         fileTransferButton.isEnabled = false
         fileTransferButton.toolTip = "选择本机私有目录并接收远端共享文件"
         fileTransferButton.setAccessibilityLabel("接收远端文件")
+        fileTransferUploadButton.bezelStyle = .rounded
+        fileTransferUploadButton.target = self
+        fileTransferUploadButton.action = #selector(fileTransferUploadAction)
+        fileTransferUploadButton.isEnabled = false
+        fileTransferUploadButton.toolTip = "选择本机文件或文件夹并发送到远端"
+        fileTransferUploadButton.setAccessibilityLabel("发送文件到远端")
         hudButton.bezelStyle = .rounded
         hudButton.target = self
         hudButton.action = #selector(toggleHUD)
@@ -245,7 +269,10 @@ final class ViewerChromeView: NSView {
         let acceptanceButton = actionButton("验收记录", #selector(showChecklist))
 
         var views: [NSView] = [stateLabel, keyboardStatusLabel, keyboardPermissionButton, NSView(), keyboardGrabButton]
-        if showsFileTransferControls { views.append(fileTransferButton) }
+        if showsFileTransferControls {
+            views.append(fileTransferButton)
+            views.append(fileTransferUploadButton)
+        }
         if showsAcceptanceControls { views.append(acceptanceButton) }
         views.append(contentsOf: [hudButton, fullscreenButton, disconnectButton, collapseButton])
         let controlsStack = NSStackView(views: views)
@@ -389,7 +416,35 @@ final class ViewerChromeView: NSView {
         scheduleCollapse()
     }
 
+    @objc private func fileTransferUploadAction() {
+        onFileTransferUploadAction?()
+        scheduleCollapse()
+    }
+
     @objc private func disconnect() { onDisconnect?() }
+
+    private func updateFileTransferButton(
+        _ button: NSButton,
+        direction: ViewerFileTransferActionDirection,
+        idleTitle: String,
+        cancelTitle: String,
+        idleToolTip: String
+    ) {
+        let isActiveDirection = fileTransferActive
+            && fileTransferDirection == direction
+        button.title = isActiveDirection
+            ? (fileTransferCancellable ? cancelTitle : "正在准备…")
+            : idleTitle
+        button.contentTintColor = isActiveDirection && fileTransferCancellable
+            ? .systemOrange
+            : nil
+        button.isEnabled = isActiveDirection
+            ? fileTransferCancellable
+            : (!fileTransferActive && fileTransferAvailable)
+        button.toolTip = isActiveDirection && fileTransferCancellable
+            ? (direction == .download ? "取消当前文件接收" : "取消当前文件发送")
+            : idleToolTip
+    }
 
     @objc private func showChecklist() {
         guard let metrics else { return }

@@ -26,7 +26,7 @@ class HostFileTransferViewerUploadSelectionManifestContractAuditTests(
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["status"],
-            "viewer-upload-selection-manifest-implemented-product-off",
+            "viewer-upload-selection-manifest-implemented-product-on",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -36,8 +36,8 @@ class HostFileTransferViewerUploadSelectionManifestContractAuditTests(
         self.assertTrue(claims["descriptorOwnedManifestImplemented"])
         self.assertTrue(claims["pathFreeUploadRequestImplemented"])
         self.assertTrue(claims["viewerABIV14SemanticReadAvailable"])
-        self.assertFalse(claims["viewerUploadWireDispatchImplemented"])
-        self.assertFalse(claims["viewerUploadProductActionImplemented"])
+        self.assertTrue(claims["viewerUploadWireDispatchImplemented"])
+        self.assertTrue(claims["viewerUploadProductActionImplemented"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],

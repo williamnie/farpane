@@ -312,7 +312,7 @@ final class ViewerFileTransferUploadSourceOwnerTests: XCTestCase {
         }, .rejected)
     }
 
-    func testUploadPickerContractIsExplicitAndStillNotProductWired() throws {
+    func testUploadPickerContractIsExplicitAndProductWired() throws {
         let repository = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -345,9 +345,12 @@ final class ViewerFileTransferUploadSourceOwnerTests: XCTestCase {
         ] {
             XCTAssertTrue(dialogs.contains(marker), marker)
         }
-        XCTAssertFalse(app.contains("requestFileTransferUpload"))
-        XCTAssertFalse(viewerUI.contains("onFileTransferUploadAction"))
-        XCTAssertFalse(viewerUI.contains("发送文件"))
+        XCTAssertTrue(app.contains("requestFileTransferUpload"))
+        XCTAssertTrue(app.contains(
+            "selection: .upload(selectedURLs: selectedURLs)"
+        ))
+        XCTAssertTrue(viewerUI.contains("onFileTransferUploadAction"))
+        XCTAssertTrue(viewerUI.contains("发送文件"))
     }
 
     private func makePrivateDirectory() throws -> URL {

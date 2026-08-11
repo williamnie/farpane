@@ -7,7 +7,7 @@ import unittest
 class HostFileTransferViewerUploadSemanticReadABIContractAuditTests(
     unittest.TestCase
 ):
-    def test_current_repository_reports_semantic_read_without_wire_or_product(self) -> None:
+    def test_current_repository_reports_semantic_read_with_product_action(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -26,7 +26,7 @@ class HostFileTransferViewerUploadSemanticReadABIContractAuditTests(
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["status"],
-            "viewer-upload-semantic-read-abi-implemented-product-off",
+            "viewer-upload-semantic-read-abi-implemented-product-on",
         )
         self.assertTrue(all(document["evidence"].values()))
         self.assertEqual(document["missingEvidence"], [])
@@ -37,11 +37,11 @@ class HostFileTransferViewerUploadSemanticReadABIContractAuditTests(
         self.assertTrue(claims["swiftDescriptorReadAuthorityImplemented"])
         self.assertTrue(claims["rustSemanticUploadJobImplemented"])
         self.assertTrue(claims["viewerUploadWireImplemented"])
-        self.assertFalse(claims["viewerUploadProductActionImplemented"])
+        self.assertTrue(claims["viewerUploadProductActionImplemented"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-upload-product-action-lifecycle",
+            "host-file-transfer-installed-single-mac-smoke",
         )
 
 

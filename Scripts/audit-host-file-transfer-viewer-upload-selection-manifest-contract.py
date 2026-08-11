@@ -135,12 +135,12 @@ def main() -> int:
             and "XCTAssertTrue(owner.teardown(sessionEpoch: 9))"
                 in sources["tests"]
         ),
-        "productRemainsUnwiredAfterSemanticABIV14": (
+        "productNowConsumesDescriptorOwnedSelection": (
             "#define RDN_ABI_VERSION 14u" in sources["header"]
             and "RDNFileTransferUploadStart" in sources["header"]
-            and "requestFileTransferUpload" not in sources["app"]
-            and "onFileTransferUploadAction" not in sources["viewer_ui"]
-            and "发送文件" not in sources["viewer_ui"]
+            and "requestFileTransferUpload" in sources["app"]
+            and "onFileTransferUploadAction" in sources["viewer_ui"]
+            and "发送文件" in sources["viewer_ui"]
         ),
     }
     source_lines = {
@@ -172,7 +172,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "viewer-upload-selection-manifest-implemented-product-off"
+            "viewer-upload-selection-manifest-implemented-product-on"
             if passed else "audit-failed"
         ),
         "coverageScope": "h6-host-file-transfer-viewer-upload-selection-manifest-contract",
@@ -188,8 +188,8 @@ def main() -> int:
                 "#define RDN_ABI_VERSION 14u" in sources["header"]
                 and "RDNFileTransferUploadReadRequest" in sources["header"]
             ),
-            "viewerUploadWireDispatchImplemented": False,
-            "viewerUploadProductActionImplemented": False,
+            "viewerUploadWireDispatchImplemented": passed,
+            "viewerUploadProductActionImplemented": passed,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": NEXT_BOUNDARY,
