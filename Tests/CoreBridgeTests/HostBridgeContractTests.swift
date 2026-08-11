@@ -122,7 +122,7 @@ final class HostBridgeContractTests: XCTestCase {
         let viewerABI = unsafeBitCast(
             try rawSymbol("rdn_core_abi_version"),
             to: (@convention(c) () -> UInt32).self)
-        XCTAssertEqual(viewerABI(), 14, "viewer ABI must expose the v14 upload-read seam")
+        XCTAssertEqual(viewerABI(), 15, "viewer ABI must expose the v15 display-catalog seam")
         XCTAssertNotNil(
             dlsym(handle, "rdn_client_file_transfer_cancel"),
             "viewer file-transfer cancel seam missing"
@@ -199,7 +199,7 @@ final class HostBridgeContractTests: XCTestCase {
             return
         }
         defer { rdn_shim_close(shimLibrary) }
-        XCTAssertEqual(rdn_shim_abi_version(shimLibrary), 14, "viewer ABI must expose v14")
+        XCTAssertEqual(rdn_shim_abi_version(shimLibrary), 15, "viewer ABI must expose v15")
         XCTAssertNotEqual(rdn_shim_host_available(shimLibrary), 0)
         XCTAssertEqual(rdn_shim_host_abi_version(shimLibrary), Self.hostABIVersion)
         XCTAssertEqual(

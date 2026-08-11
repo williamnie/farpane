@@ -153,7 +153,7 @@ def main() -> int:
             )
         ),
         "viewerABIUnchangedAndHostProductOptInRemainsOff": (
-            "#define RDN_ABI_VERSION 14u" in sources["header"]
+            "#define RDN_ABI_VERSION 15u" in sources["header"]
             and "ViewerFileTransferProductComposition" not in sources["header"]
             and "fileTransferEnabled: true" not in product_sources
             and "farpane.host.fileTransfer.enabled" in product_sources and "return .disabled" in product_sources

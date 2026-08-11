@@ -23,7 +23,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-const ABI_VERSION: u32 = 14;
+const ABI_VERSION: u32 = 15;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -33,6 +33,20 @@ const MAX_CLIPBOARD_IMAGE_DIMENSION: i32 = 8192;
 const MAX_CLIPBOARD_IMAGE_PIXELS: usize = 7680 * 4320;
 const MAX_FILE_TRANSFER_LIST_ENTRIES: usize = 1_024;
 const MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES: usize = 1_024 * 1_024;
+const MAX_DISPLAY_CATALOG_ENTRIES: usize = 64;
+const MAX_DISPLAY_NAME_UTF8_BYTES: usize = 512;
+const DISPLAY_CATALOG_STATUS_AVAILABLE: u32 = 1;
+const DISPLAY_CATALOG_STATUS_UNAVAILABLE: u32 = 2;
+const DISPLAY_INDEX_UNKNOWN: u32 = u32::MAX;
+static NEXT_VIEWER_CONNECTION_EPOCH: AtomicU64 = AtomicU64::new(1);
+
+fn next_viewer_connection_epoch() -> Option<u64> {
+    NEXT_VIEWER_CONNECTION_EPOCH
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+            value.checked_add(1)
+        })
+        .ok()
+}
 const FILE_TRANSFER_PRIVATE_STAGING_SUFFIX: &str = ".farpane-part";
 const FILE_TRANSFER_LIST_SUCCESS: u32 = 1;
 const FILE_TRANSFER_LIST_REJECTED: u32 = 2;
@@ -111,6 +125,33 @@ pub struct RDNEncodedVideoFrame {
     width: u32,
     height: u32,
     display: u32,
+    connection_epoch: u64,
+    display_catalog_revision: u64,
+}
+
+#[repr(C)]
+pub struct RDNDisplayCatalogEntry {
+    display_index: u32,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    online: bool,
+    scale: f64,
+    name_utf8: *const u8,
+    name_length: usize,
+}
+
+#[repr(C)]
+pub struct RDNDisplayCatalogEvent {
+    abi_version: u32,
+    connection_epoch: u64,
+    catalog_revision: u64,
+    status: u32,
+    selected_display_index: u32,
+    selected_display_known: bool,
+    entries: *const RDNDisplayCatalogEntry,
+    entry_count: usize,
 }
 
 #[repr(C)]
@@ -123,6 +164,7 @@ pub struct RDNCoreMetrics {
 
 type StateCallback = unsafe extern "C" fn(*mut c_void, RDNState, i32, *const c_char);
 type VideoCallback = unsafe extern "C" fn(*mut c_void, *const RDNEncodedVideoFrame);
+type DisplayCatalogCallback = unsafe extern "C" fn(*mut c_void, *const RDNDisplayCatalogEvent);
 type MetricsCallback = unsafe extern "C" fn(*mut c_void, *const RDNCoreMetrics);
 type ClipboardTextCallback = unsafe extern "C" fn(*mut c_void, *const u8, usize);
 type ClipboardRichTextCallback =
@@ -763,6 +805,7 @@ pub struct RDNCallbacks {
     abi_version: u32,
     on_state: Option<StateCallback>,
     on_video: Option<VideoCallback>,
+    on_display_catalog: Option<DisplayCatalogCallback>,
     on_metrics: Option<MetricsCallback>,
     on_clipboard_text: Option<ClipboardTextCallback>,
     on_clipboard_rich_text: Option<ClipboardRichTextCallback>,
@@ -861,12 +904,82 @@ pub struct RDNKeyEvent {
     modifiers: u32,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct NativeViewerDisplayCatalogEntry {
+    display_index: u32,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    online: bool,
+    scale: f64,
+    name: Vec<u8>,
+}
+
+#[derive(Clone, Default)]
+struct NativeViewerDisplayCatalogState {
+    initialized: bool,
+    revision: u64,
+    entries: Option<Arc<[NativeViewerDisplayCatalogEntry]>>,
+    selected_display_index: Option<u32>,
+}
+
+#[derive(Clone)]
+struct NativeViewerDisplayCatalogSnapshot {
+    connection_epoch: u64,
+    revision: u64,
+    entries: Option<Arc<[NativeViewerDisplayCatalogEntry]>>,
+    selected_display_index: Option<u32>,
+}
+
+fn normalized_native_viewer_display_catalog(
+    displays: &[DisplayInfo],
+) -> Option<Vec<NativeViewerDisplayCatalogEntry>> {
+    if displays.len() > MAX_DISPLAY_CATALOG_ENTRIES {
+        return None;
+    }
+    displays
+        .iter()
+        .enumerate()
+        .map(|(index, display)| {
+            let name = display.name.as_bytes();
+            let valid_geometry = if display.online {
+                display.width > 0 && display.height > 0
+            } else {
+                display.width >= 0 && display.height >= 0
+            };
+            if !valid_geometry
+                || !display.scale.is_finite()
+                || display.scale <= 0.0
+                || display.scale > 16.0
+                || name.len() > MAX_DISPLAY_NAME_UTF8_BYTES
+                || display.name.chars().any(char::is_control)
+            {
+                return None;
+            }
+            Some(NativeViewerDisplayCatalogEntry {
+                display_index: u32::try_from(index).ok()?,
+                x: display.x,
+                y: display.y,
+                width: display.width,
+                height: display.height,
+                online: display.online,
+                scale: display.scale,
+                name: name.to_vec(),
+            })
+        })
+        .collect()
+}
+
 struct BridgeShared {
     callbacks: RDNCallbacks,
     context: usize,
     active: AtomicBool,
     sequence: AtomicU64,
     dimensions: RwLock<(u32, u32)>,
+    connection_epoch: AtomicU64,
+    display_catalog: Mutex<NativeViewerDisplayCatalogState>,
+    display_catalog_delivery: Mutex<()>,
     authenticated: AtomicBool,
     remote_keyboard_enabled: AtomicBool,
     input_allowed: AtomicBool,
@@ -1578,6 +1691,152 @@ impl BridgeShared {
         true
     }
 
+    fn emit_display_catalog(&self, snapshot: NativeViewerDisplayCatalogSnapshot) {
+        let Some(callback) = self.callbacks.on_display_catalog else {
+            return;
+        };
+        let raw_entries: Vec<RDNDisplayCatalogEntry> = snapshot
+            .entries
+            .as_deref()
+            .unwrap_or(&[])
+            .iter()
+            .map(|entry| RDNDisplayCatalogEntry {
+                display_index: entry.display_index,
+                x: entry.x,
+                y: entry.y,
+                width: entry.width,
+                height: entry.height,
+                online: entry.online,
+                scale: entry.scale,
+                name_utf8: if entry.name.is_empty() {
+                    ptr::null()
+                } else {
+                    entry.name.as_ptr()
+                },
+                name_length: entry.name.len(),
+            })
+            .collect();
+        let event = RDNDisplayCatalogEvent {
+            abi_version: ABI_VERSION,
+            connection_epoch: snapshot.connection_epoch,
+            catalog_revision: snapshot.revision,
+            status: if snapshot.entries.is_some() {
+                DISPLAY_CATALOG_STATUS_AVAILABLE
+            } else {
+                DISPLAY_CATALOG_STATUS_UNAVAILABLE
+            },
+            selected_display_index: snapshot
+                .selected_display_index
+                .unwrap_or(DISPLAY_INDEX_UNKNOWN),
+            selected_display_known: snapshot.selected_display_index.is_some(),
+            entries: if raw_entries.is_empty() {
+                ptr::null()
+            } else {
+                raw_entries.as_ptr()
+            },
+            entry_count: raw_entries.len(),
+        };
+        unsafe { callback(self.context as *mut c_void, &event) };
+    }
+
+    fn publish_display_catalog(&self, displays: &[DisplayInfo], selected: Option<Option<u32>>) {
+        if !self.active.load(Ordering::Acquire)
+            || self.file_transfer_enabled.load(Ordering::Acquire)
+        {
+            return;
+        }
+        let connection_epoch = self.connection_epoch.load(Ordering::Acquire);
+        if connection_epoch == 0 {
+            return;
+        }
+        let delivery = self.display_catalog_delivery.lock().unwrap();
+        let normalized = normalized_native_viewer_display_catalog(displays).map(Arc::from);
+        let mut state = self.display_catalog.lock().unwrap();
+        let catalog_changed =
+            !state.initialized || state.entries.as_deref() != normalized.as_deref();
+        if catalog_changed {
+            state.initialized = true;
+            state.revision = state.revision.saturating_add(1).max(1);
+            state.entries = normalized;
+        }
+        let candidate = selected.unwrap_or(state.selected_display_index);
+        let validated = state.entries.as_deref().and_then(|entries| {
+            candidate.and_then(|index| {
+                entries
+                    .get(index as usize)
+                    .filter(|entry| entry.display_index == index && entry.online)
+                    .map(|_| index)
+            })
+        });
+        let selection_changed = state.selected_display_index != validated;
+        state.selected_display_index = validated;
+        if !catalog_changed && !selection_changed {
+            return;
+        }
+        let snapshot = NativeViewerDisplayCatalogSnapshot {
+            connection_epoch,
+            revision: state.revision,
+            entries: state.entries.clone(),
+            selected_display_index: state.selected_display_index,
+        };
+        drop(state);
+        self.emit_display_catalog(snapshot);
+        drop(delivery);
+    }
+
+    fn publish_selected_display(&self, display: i32) {
+        if display < 0
+            || !self.active.load(Ordering::Acquire)
+            || self.file_transfer_enabled.load(Ordering::Acquire)
+        {
+            return;
+        }
+        let connection_epoch = self.connection_epoch.load(Ordering::Acquire);
+        if connection_epoch == 0 {
+            return;
+        }
+        let delivery = self.display_catalog_delivery.lock().unwrap();
+        let mut state = self.display_catalog.lock().unwrap();
+        if !state.initialized {
+            return;
+        }
+        let index = display as u32;
+        let valid = state.entries.as_deref().is_some_and(|entries| {
+            entries
+                .get(index as usize)
+                .is_some_and(|entry| entry.display_index == index && entry.online)
+        });
+        if !valid || state.selected_display_index == Some(index) {
+            return;
+        }
+        state.selected_display_index = Some(index);
+        let snapshot = NativeViewerDisplayCatalogSnapshot {
+            connection_epoch,
+            revision: state.revision,
+            entries: state.entries.clone(),
+            selected_display_index: state.selected_display_index,
+        };
+        drop(state);
+        self.emit_display_catalog(snapshot);
+        drop(delivery);
+    }
+
+    fn video_catalog_binding(&self, display: u32) -> Option<(u64, u64)> {
+        if !self.active.load(Ordering::Acquire)
+            || self.file_transfer_enabled.load(Ordering::Acquire)
+        {
+            return None;
+        }
+        let connection_epoch = self.connection_epoch.load(Ordering::Acquire);
+        let state = self.display_catalog.lock().unwrap();
+        (connection_epoch > 0
+            && state.initialized
+            && state.revision > 0
+            && state.entries.is_some()
+            && state.selected_display_index == Some(display))
+        .then_some((connection_epoch, state.revision))
+    }
+
     fn emit_video(&self, frame: &VideoFrame) -> bool {
         if !self.active.load(Ordering::Acquire) {
             return true;
@@ -1591,6 +1850,12 @@ impl BridgeShared {
             _ => return false,
         };
         let (width, height) = *self.dimensions.read().unwrap();
+        let display = frame.display.max(0) as u32;
+        let Some((connection_epoch, display_catalog_revision)) =
+            self.video_catalog_binding(display)
+        else {
+            return true;
+        };
         for encoded in encoded_frames.frames.iter() {
             let inspection = inspect_packet(&encoded.data);
             let mut flags = inspection.flags;
@@ -1608,7 +1873,9 @@ impl BridgeShared {
                 flags,
                 width,
                 height,
-                display: frame.display.max(0) as u32,
+                display,
+                connection_epoch,
+                display_catalog_revision,
             };
             // encoded.data is owned by the protobuf frame and remains valid only
             // for this synchronous callback. The Swift side copies compressed bytes.
@@ -1631,6 +1898,7 @@ impl Default for BridgeUi {
                     abi_version: ABI_VERSION,
                     on_state: None,
                     on_video: None,
+                    on_display_catalog: None,
                     on_metrics: None,
                     on_clipboard_text: None,
                     on_clipboard_rich_text: None,
@@ -1645,6 +1913,9 @@ impl Default for BridgeUi {
                 active: AtomicBool::new(false),
                 sequence: AtomicU64::new(0),
                 dimensions: RwLock::new((0, 0)),
+                connection_epoch: AtomicU64::new(0),
+                display_catalog: Mutex::new(NativeViewerDisplayCatalogState::default()),
+                display_catalog_delivery: Mutex::new(()),
                 authenticated: AtomicBool::new(false),
                 remote_keyboard_enabled: AtomicBool::new(true),
                 input_allowed: AtomicBool::new(false),
@@ -1689,10 +1960,17 @@ impl InvokeUiSession for BridgeUi {
     fn switch_display(&self, display: &SwitchDisplay) {
         *self.shared.dimensions.write().unwrap() =
             (display.width.max(0) as u32, display.height.max(0) as u32);
+        self.shared.publish_selected_display(display.display);
     }
 
-    fn set_peer_info(&self, _peer_info: &PeerInfo) {}
-    fn set_displays(&self, _displays: &Vec<DisplayInfo>) {}
+    fn set_peer_info(&self, peer_info: &PeerInfo) {
+        let selected = u32::try_from(peer_info.current_display).ok();
+        self.shared
+            .publish_display_catalog(&peer_info.displays, Some(selected));
+    }
+    fn set_displays(&self, displays: &Vec<DisplayInfo>) {
+        self.shared.publish_display_catalog(displays, None);
+    }
     fn set_platform_additions(&self, _data: &str) {}
 
     fn on_connected(&self, _conn_type: ConnType) {
@@ -2114,7 +2392,9 @@ impl InvokeUiSession for BridgeUi {
     }
     fn next_rgba(&self, _display: usize) {}
     fn set_multiple_windows_session(&self, _sessions: Vec<WindowsSession>) {}
-    fn set_current_display(&self, _display: i32) {}
+    fn set_current_display(&self, display: i32) {
+        self.shared.publish_selected_display(display);
+    }
     fn update_record_status(&self, _start: bool) {}
     fn printer_request(&self, _id: i32, _path: String) {}
     fn handle_screenshot_resp(&self, _sid: String, _message: String) {}
@@ -2261,6 +2541,8 @@ impl RDNClient {
         self.shared
             .file_transfer_session_epoch
             .store(0, Ordering::Release);
+        self.shared.connection_epoch.store(0, Ordering::Release);
+        *self.shared.display_catalog.lock().unwrap() = NativeViewerDisplayCatalogState::default();
         self.shared.pending_file_list_request.lock().unwrap().take();
         self.shared
             .file_manifest_request_epoch
@@ -3102,6 +3384,9 @@ pub unsafe extern "C" fn rdn_client_create(
         active: AtomicBool::new(true),
         sequence: AtomicU64::new(0),
         dimensions: RwLock::new((0, 0)),
+        connection_epoch: AtomicU64::new(0),
+        display_catalog: Mutex::new(NativeViewerDisplayCatalogState::default()),
+        display_catalog_delivery: Mutex::new(()),
         authenticated: AtomicBool::new(false),
         remote_keyboard_enabled: AtomicBool::new(true),
         input_allowed: AtomicBool::new(false),
@@ -3189,7 +3474,16 @@ pub unsafe extern "C" fn rdn_client_connect(
         return -5;
     }
 
+    let Some(connection_epoch) = next_viewer_connection_epoch() else {
+        return -3;
+    };
+
     client.shared.active.store(true, Ordering::Release);
+    client
+        .shared
+        .connection_epoch
+        .store(connection_epoch, Ordering::Release);
+    *client.shared.display_catalog.lock().unwrap() = NativeViewerDisplayCatalogState::default();
     client.shared.authenticated.store(false, Ordering::Release);
     client
         .shared
@@ -3317,6 +3611,8 @@ pub unsafe extern "C" fn rdn_client_connect(
         worker_shared
             .file_transfer_session_epoch
             .store(0, Ordering::Release);
+        worker_shared.connection_epoch.store(0, Ordering::Release);
+        *worker_shared.display_catalog.lock().unwrap() = NativeViewerDisplayCatalogState::default();
         worker_shared
             .pending_file_list_request
             .lock()
@@ -4372,6 +4668,27 @@ mod tests {
         payload: Vec<u8>,
     }
 
+    #[derive(Debug, PartialEq)]
+    struct CapturedDisplayCatalogEntry {
+        display_index: u32,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        online: bool,
+        scale: f64,
+        name: String,
+    }
+
+    #[derive(Debug, PartialEq)]
+    struct CapturedDisplayCatalogEvent {
+        connection_epoch: u64,
+        catalog_revision: u64,
+        status: u32,
+        selected_display_index: Option<u32>,
+        entries: Vec<CapturedDisplayCatalogEntry>,
+    }
+
     #[derive(Default, Debug, Eq, PartialEq)]
     struct UploadReadCapture {
         source: Vec<u8>,
@@ -4459,6 +4776,71 @@ mod tests {
             file_number: block.file_number,
             payload,
         });
+    }
+
+    unsafe extern "C" fn capture_display_catalog(
+        context: *mut c_void,
+        event: *const RDNDisplayCatalogEvent,
+    ) {
+        let capture = &*(context as *const Mutex<Vec<CapturedDisplayCatalogEvent>>);
+        let event = &*event;
+        let entries = if event.entry_count == 0 {
+            Vec::new()
+        } else {
+            std::slice::from_raw_parts(event.entries, event.entry_count)
+                .iter()
+                .map(|entry| {
+                    let name = if entry.name_length == 0 {
+                        String::new()
+                    } else {
+                        String::from_utf8(
+                            std::slice::from_raw_parts(entry.name_utf8, entry.name_length).to_vec(),
+                        )
+                        .unwrap()
+                    };
+                    CapturedDisplayCatalogEntry {
+                        display_index: entry.display_index,
+                        x: entry.x,
+                        y: entry.y,
+                        width: entry.width,
+                        height: entry.height,
+                        online: entry.online,
+                        scale: entry.scale,
+                        name,
+                    }
+                })
+                .collect()
+        };
+        capture.lock().unwrap().push(CapturedDisplayCatalogEvent {
+            connection_epoch: event.connection_epoch,
+            catalog_revision: event.catalog_revision,
+            status: event.status,
+            selected_display_index: event
+                .selected_display_known
+                .then_some(event.selected_display_index),
+            entries,
+        });
+    }
+
+    fn display_info(
+        name: &str,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        online: bool,
+        scale: f64,
+    ) -> DisplayInfo {
+        DisplayInfo {
+            x,
+            y,
+            width,
+            height,
+            name: name.to_owned(),
+            online,
+            scale,
+            ..Default::default()
+        }
     }
 
     unsafe extern "C" fn capture_file_list_event(
@@ -4595,6 +4977,215 @@ mod tests {
             panic!("housekeeping message must be TestDelay");
         };
         assert!(delay.from_client);
+    }
+
+    #[test]
+    fn native_viewer_display_catalog_is_revisioned_and_binds_selected_frames() {
+        let captured = Mutex::new(Vec::<CapturedDisplayCatalogEvent>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_display_catalog = Some(capture_display_catalog);
+        shared.context = &captured as *const _ as usize;
+        ui.shared.connection_epoch.store(7, Ordering::Release);
+        ui.shared.active.store(true, Ordering::Release);
+
+        let mut peer = PeerInfo {
+            displays: vec![
+                display_info("Built-in", 0, 0, 1920, 1080, true, 2.0),
+                display_info("Studio", 1920, 0, 2560, 1440, true, 1.0),
+            ],
+            current_display: 1,
+            ..Default::default()
+        };
+        ui.set_peer_info(&peer);
+        ui.set_displays(&peer.displays);
+        assert_eq!(captured.lock().unwrap().len(), 1);
+        assert_eq!(ui.shared.video_catalog_binding(1), Some((7, 1)));
+        assert_eq!(ui.shared.video_catalog_binding(0), None);
+
+        peer.displays[1].width = 3008;
+        ui.set_displays(&peer.displays);
+        ui.set_current_display(0);
+        ui.switch_display(&SwitchDisplay {
+            display: 1,
+            width: 3008,
+            height: 1440,
+            ..Default::default()
+        });
+
+        assert_eq!(ui.shared.video_catalog_binding(1), Some((7, 2)));
+        assert_eq!(
+            captured.lock().unwrap().as_slice(),
+            &[
+                CapturedDisplayCatalogEvent {
+                    connection_epoch: 7,
+                    catalog_revision: 1,
+                    status: DISPLAY_CATALOG_STATUS_AVAILABLE,
+                    selected_display_index: Some(1),
+                    entries: vec![
+                        CapturedDisplayCatalogEntry {
+                            display_index: 0,
+                            x: 0,
+                            y: 0,
+                            width: 1920,
+                            height: 1080,
+                            online: true,
+                            scale: 2.0,
+                            name: "Built-in".to_owned(),
+                        },
+                        CapturedDisplayCatalogEntry {
+                            display_index: 1,
+                            x: 1920,
+                            y: 0,
+                            width: 2560,
+                            height: 1440,
+                            online: true,
+                            scale: 1.0,
+                            name: "Studio".to_owned(),
+                        },
+                    ],
+                },
+                CapturedDisplayCatalogEvent {
+                    connection_epoch: 7,
+                    catalog_revision: 2,
+                    status: DISPLAY_CATALOG_STATUS_AVAILABLE,
+                    selected_display_index: Some(1),
+                    entries: vec![
+                        CapturedDisplayCatalogEntry {
+                            display_index: 0,
+                            x: 0,
+                            y: 0,
+                            width: 1920,
+                            height: 1080,
+                            online: true,
+                            scale: 2.0,
+                            name: "Built-in".to_owned(),
+                        },
+                        CapturedDisplayCatalogEntry {
+                            display_index: 1,
+                            x: 1920,
+                            y: 0,
+                            width: 3008,
+                            height: 1440,
+                            online: true,
+                            scale: 1.0,
+                            name: "Studio".to_owned(),
+                        },
+                    ],
+                },
+                CapturedDisplayCatalogEvent {
+                    connection_epoch: 7,
+                    catalog_revision: 2,
+                    status: DISPLAY_CATALOG_STATUS_AVAILABLE,
+                    selected_display_index: Some(0),
+                    entries: vec![
+                        CapturedDisplayCatalogEntry {
+                            display_index: 0,
+                            x: 0,
+                            y: 0,
+                            width: 1920,
+                            height: 1080,
+                            online: true,
+                            scale: 2.0,
+                            name: "Built-in".to_owned(),
+                        },
+                        CapturedDisplayCatalogEntry {
+                            display_index: 1,
+                            x: 1920,
+                            y: 0,
+                            width: 3008,
+                            height: 1440,
+                            online: true,
+                            scale: 1.0,
+                            name: "Studio".to_owned(),
+                        },
+                    ],
+                },
+                CapturedDisplayCatalogEvent {
+                    connection_epoch: 7,
+                    catalog_revision: 2,
+                    status: DISPLAY_CATALOG_STATUS_AVAILABLE,
+                    selected_display_index: Some(1),
+                    entries: vec![
+                        CapturedDisplayCatalogEntry {
+                            display_index: 0,
+                            x: 0,
+                            y: 0,
+                            width: 1920,
+                            height: 1080,
+                            online: true,
+                            scale: 2.0,
+                            name: "Built-in".to_owned(),
+                        },
+                        CapturedDisplayCatalogEntry {
+                            display_index: 1,
+                            x: 1920,
+                            y: 0,
+                            width: 3008,
+                            height: 1440,
+                            online: true,
+                            scale: 1.0,
+                            name: "Studio".to_owned(),
+                        },
+                    ],
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn native_viewer_display_catalog_fails_closed_on_malformed_inventory() {
+        let captured = Mutex::new(Vec::<CapturedDisplayCatalogEvent>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_display_catalog = Some(capture_display_catalog);
+        shared.context = &captured as *const _ as usize;
+        ui.shared.connection_epoch.store(9, Ordering::Release);
+        ui.shared.active.store(true, Ordering::Release);
+
+        let valid = vec![display_info("Main", 0, 0, 1920, 1080, true, 2.0)];
+        ui.set_displays(&valid);
+        ui.set_current_display(0);
+        assert_eq!(ui.shared.video_catalog_binding(0), Some((9, 1)));
+
+        let malformed = vec![display_info("bad\nname", 0, 0, 1920, 1080, true, 2.0)];
+        ui.set_displays(&malformed);
+        ui.set_displays(&malformed);
+        assert_eq!(ui.shared.video_catalog_binding(0), None);
+        assert_eq!(captured.lock().unwrap().len(), 3);
+        assert_eq!(
+            captured.lock().unwrap()[2],
+            CapturedDisplayCatalogEvent {
+                connection_epoch: 9,
+                catalog_revision: 2,
+                status: DISPLAY_CATALOG_STATUS_UNAVAILABLE,
+                selected_display_index: None,
+                entries: Vec::new(),
+            }
+        );
+
+        assert!(normalized_native_viewer_display_catalog(&vec![display_info(
+            "Main",
+            0,
+            0,
+            1920,
+            1080,
+            true,
+            f64::NAN,
+        )])
+        .is_none());
+        assert!(normalized_native_viewer_display_catalog(
+            &(0..=MAX_DISPLAY_CATALOG_ENTRIES)
+                .map(|index| display_info(&format!("Display {index}"), 0, 0, 1, 1, true, 1.0))
+                .collect::<Vec<_>>()
+        )
+        .is_none());
+
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.set_displays(&valid);
+        assert_eq!(captured.lock().unwrap().len(), 3);
     }
 
     #[test]

@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 14u
+#define RDN_ABI_VERSION 15u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -29,6 +29,9 @@ extern "C" {
 #define RDN_MAX_FILE_TRANSFER_LIST_ENTRIES 1024u
 #define RDN_MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES 1048576u
 #define RDN_MAX_FILE_TRANSFER_BLOCK_BYTES (128u * 1024u)
+#define RDN_MAX_DISPLAY_CATALOG_ENTRIES 64u
+#define RDN_MAX_DISPLAY_NAME_UTF8_BYTES 512u
+#define RDN_DISPLAY_INDEX_UNKNOWN UINT32_MAX
 
 typedef struct RDNClient RDNClient;
 
@@ -77,7 +80,41 @@ typedef struct RDNEncodedVideoFrame {
     uint32_t width;
     uint32_t height;
     uint32_t display;
+    uint64_t connection_epoch;
+    uint64_t display_catalog_revision;
 } RDNEncodedVideoFrame;
+
+typedef enum RDNDisplayCatalogStatus {
+    RDN_DISPLAY_CATALOG_STATUS_AVAILABLE = 1,
+    RDN_DISPLAY_CATALOG_STATUS_UNAVAILABLE = 2,
+} RDNDisplayCatalogStatus;
+
+/* Callback-scoped display inventory. Entry order is the wire display index;
+ * names are presentation-only UTF-8 and must be copied before returning. */
+typedef struct RDNDisplayCatalogEntry {
+    uint32_t display_index;
+    int32_t x;
+    int32_t y;
+    int32_t width;
+    int32_t height;
+    bool online;
+    double scale;
+    const uint8_t *name_utf8;
+    size_t name_length;
+} RDNDisplayCatalogEntry;
+
+typedef struct RDNDisplayCatalogEvent {
+    uint32_t abi_version;
+    uint64_t connection_epoch;
+    uint64_t catalog_revision;
+    uint32_t status;
+    uint32_t selected_display_index;
+    bool selected_display_known;
+    const RDNDisplayCatalogEntry *entries;
+    size_t entry_count;
+} RDNDisplayCatalogEvent;
+typedef void (*RDNDisplayCatalogCallback)(
+    void *context, const RDNDisplayCatalogEvent *event);
 
 typedef struct RDNCoreMetrics {
     uint32_t abi_version;
@@ -283,6 +320,7 @@ typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
     RDNVideoCallback on_video;
+    RDNDisplayCatalogCallback on_display_catalog;
     RDNMetricsCallback on_metrics;
     RDNClipboardTextCallback on_clipboard_text;
     RDNClipboardRichTextCallback on_clipboard_rich_text;

@@ -143,6 +143,18 @@ implemented through the single existing owner; Host bootstrap schema v4 and
 Home now provide independent, default-off image read/write opt-ins. Installed
 two-Mac acceptance remains unverified.
 
+Viewer ABI v15 adds a callback-scoped, connection-scoped display catalog while
+retaining the v14 file-transfer surface below. Rust normalizes initial and
+dynamic `PeerInfo.displays`, remote-follow selection, and `SwitchDisplay` echo
+into `connection epoch + catalog revision + display index`; inventories are
+bounded to 64 entries and display names to 512 UTF-8 bytes. Malformed inventory
+is one typed unavailable catalog, semantic duplicates keep their revision, and
+inventory/status changes advance it. Encoded frames carry the same tuple, and
+Rust plus Swift both drop frames that do not match the current available
+selection. Dedicated file-transfer sessions never publish catalogs, and
+disconnect clears the authority. The v15 seam intentionally does not yet add a
+display-selection command, terminal event, or product selector.
+
 Viewer ABI v14 retains all ABI v8 clipboard behavior and the v9 separate,
 default-off file-transfer seam. The connection configuration accepts exact
 `false/0` desktop mode or exact `true/nonzero` dedicated file mode; file mode
