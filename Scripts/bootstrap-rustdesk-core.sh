@@ -19,6 +19,7 @@ file_transfer_native_existing_target_patch_file="$repo_dir/CoreBridge/RustDeskPa
 file_transfer_native_read_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-read-list-download.patch"
 host_display_switch_validation_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-host-display-switch-validation.patch"
 audio_local_policy_approval_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-audio-local-policy-approval.patch"
+viewer_audio_policy_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-explicit-policy.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 host_file_transfer_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs"
@@ -223,6 +224,14 @@ elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$audio_local
   exit 1
 fi
 
+if git -C "$vendor_dir" apply --unidiff-zero --check "$viewer_audio_policy_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply --unidiff-zero "$viewer_audio_policy_patch_file"
+elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_policy_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the H6 Viewer audio policy patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
 hbb_common_dir="$vendor_dir/libs/hbb_common"
 if git -C "$hbb_common_dir" apply --check "$hbb_common_patch_file" 2>/dev/null; then
   git -C "$hbb_common_dir" apply "$hbb_common_patch_file"
@@ -255,6 +264,7 @@ else
 fi
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_display_switch_validation_patch_file"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$audio_local_policy_approval_patch_file"
+git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_policy_patch_file"
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
 git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_patch_file"

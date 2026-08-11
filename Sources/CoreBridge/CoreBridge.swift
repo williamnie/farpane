@@ -589,6 +589,7 @@ public struct CoreConnectionConfig: Sendable {
     public let peerID: String
     public let password: String
     public let forceRelay: Bool
+    public let receiveAudio: Bool
     public let receiveClipboardText: Bool
     public let sendClipboardText: Bool
     public let receiveClipboardRichText: Bool
@@ -604,6 +605,7 @@ public struct CoreConnectionConfig: Sendable {
         peerID: String,
         password: String = "",
         forceRelay: Bool = false,
+        receiveAudio: Bool = false,
         receiveClipboardText: Bool = false,
         sendClipboardText: Bool = false,
         receiveClipboardRichText: Bool = false,
@@ -618,6 +620,7 @@ public struct CoreConnectionConfig: Sendable {
         self.peerID = peerID
         self.password = password
         self.forceRelay = forceRelay
+        self.receiveAudio = receiveAudio
         self.receiveClipboardText = receiveClipboardText
         self.sendClipboardText = sendClipboardText
         self.receiveClipboardRichText = receiveClipboardRichText
@@ -1704,6 +1707,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
                             peer_id: peerID,
                             password: password,
                             force_relay: config.forceRelay,
+                            receive_audio: config.receiveAudio,
                             receive_clipboard_text: config.receiveClipboardText,
                             send_clipboard_text: config.sendClipboardText,
                             receive_clipboard_rich_text: config.receiveClipboardRichText,

@@ -183,7 +183,8 @@ def main() -> int:
         ),
         "coreHostDefaultsOffWhileViewerRemainsOff": (
             "audioEnabled: Bool = false" in sources["host_control"]
-            and "receiveAudio" not in sources["viewer"]
+            and "receiveAudio: Bool = false" in sources["viewer"]
+            and "receiveAudio:" not in app
         ),
         "focusedRegressionCoversSchemaPromptAndBothOwners": all(
             marker in tests

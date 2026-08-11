@@ -58,8 +58,9 @@ def main() -> int:
             for marker in (
                 "fn viewer_file_transfer_mode_admission(",
                 "if enabled != (session_epoch > 0)",
-                "else if enabled && desktop_clipboard_requested",
+                "else if enabled && desktop_capability_requested",
                 "let desktop_clipboard_requested = (*config).receive_clipboard_text",
+                "desktop_clipboard_requested || receive_audio",
             )
         ),
         "admissionPrecedesRuntimeMutation": (
@@ -118,7 +119,7 @@ def main() -> int:
             )
         ),
         "abiV12RetainsDedicatedSessionAndProductOff": (
-            "#define RDN_ABI_VERSION 16u" in sources["header"]
+            "#define RDN_ABI_VERSION 17u" in sources["header"]
             and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
         ),
         "remainingManifestAndDestinationGapIsExplicit": (

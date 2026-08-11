@@ -19,7 +19,7 @@ final class CoreBridgeContractTests: XCTestCase {
     }
 
     func testPinsRustDesk149Commit() {
-        XCTAssertEqual(RustDeskCoreClient.abiVersion, 16)
+        XCTAssertEqual(RustDeskCoreClient.abiVersion, 17)
         XCTAssertEqual(
             RustDeskCoreClient.expectedUpstreamCommit,
             "6c578292e8ebbbec708b76986ba8c4bc7c509747"
@@ -827,6 +827,7 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         XCTAssertEqual(config.password, "one-time-password")
         XCTAssertFalse(config.forceRelay)
+        XCTAssertFalse(config.receiveAudio)
         XCTAssertFalse(config.receiveClipboardText)
         XCTAssertFalse(config.sendClipboardText)
         XCTAssertFalse(config.receiveClipboardRichText)
@@ -1044,6 +1045,27 @@ final class CoreBridgeContractTests: XCTestCase {
         )
     }
 
+    func testViewerAudioPolicyDefaultsOffAndRemainsIndependent() {
+        let disabled = CoreConnectionConfig(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            peerID: "123456789"
+        )
+        XCTAssertFalse(disabled.receiveAudio)
+
+        let audioOnly = CoreConnectionConfig(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            peerID: "123456789",
+            receiveAudio: true
+        )
+        XCTAssertTrue(audioOnly.receiveAudio)
+        XCTAssertFalse(audioOnly.receiveClipboardText)
+        XCTAssertFalse(audioOnly.sendClipboardText)
+        XCTAssertFalse(audioOnly.fileTransferEnabled)
+        XCTAssertEqual(audioOnly.fileTransferSessionEpoch, 0)
+    }
+
     func testViewerFileTransferSeamIsDefaultOffAndEpochScoped() {
         let disabled = CoreConnectionConfig(
             rendezvousServer: "192.0.2.1",
@@ -1062,6 +1084,7 @@ final class CoreBridgeContractTests: XCTestCase {
         )
         XCTAssertTrue(reserved.fileTransferEnabled)
         XCTAssertEqual(reserved.fileTransferSessionEpoch, 7)
+        XCTAssertFalse(reserved.receiveAudio)
         XCTAssertFalse(reserved.receiveClipboardText)
         XCTAssertFalse(reserved.sendClipboardText)
         XCTAssertFalse(reserved.receiveClipboardImage)

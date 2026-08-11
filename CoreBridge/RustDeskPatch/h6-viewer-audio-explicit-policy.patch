@@ -1,0 +1,21 @@
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -1781,0 +1782,5 @@
++#[cfg(feature = "rdn-native-core")]
++pub(crate) fn native_viewer_audio_disabled(receive_audio: bool) -> bool {
++    !receive_audio
++}
++
+@@ -1783 +1788,6 @@
+-    pub fn configure_native_viewer(&mut self, peer_id: &str, clipboard_enabled: bool) {
++    pub fn configure_native_viewer(
++        &mut self,
++        peer_id: &str,
++        clipboard_enabled: bool,
++        receive_audio: bool,
++    ) {
+@@ -1793 +1803,3 @@
+-        self.config.disable_audio.v = true;
++        self.config.disable_audio.v = native_viewer_audio_disabled(
++            receive_audio,
++        );

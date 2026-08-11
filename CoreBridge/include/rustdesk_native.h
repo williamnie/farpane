@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 16u
+#define RDN_ABI_VERSION 17u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -375,6 +375,10 @@ typedef struct RDNConnectionConfig {
     const char *peer_id;
     const char *password;
     bool force_relay;
+    /* Viewer-local audio playback policy. Defaults false in Swift. Rust
+     * projects false to disable-audio before login and drops audio frames;
+     * true uses the existing RustDesk AudioFormat/AudioFrame path. */
+    bool receive_audio;
     /* Viewer-local directional policy. Both default false in Swift. The
      * pinned RustDesk wire has one clipboard negotiation bit; Rust still
      * enforces receive and send independently at the native bridge. */
