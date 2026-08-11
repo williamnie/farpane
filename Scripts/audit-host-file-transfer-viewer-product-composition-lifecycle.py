@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-product-composition-lifecycle-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-download-picker-action-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-host-home-receive-root-opt-in-lifecycle"
 
 
 def read(path: Path) -> str:
@@ -75,7 +75,7 @@ def main() -> int:
             marker in sources["design"]
             for marker in (
                 "H6.3f2b2r Viewer product composition lifecycle",
-                NEXT_BOUNDARY,
+                "host-file-transfer-viewer-download-picker-action-lifecycle",
             )
         ),
         "dedicatedCoreProjectionIsExactAndClipboardFree": all(
@@ -124,16 +124,17 @@ def main() -> int:
             "core?.disconnect()",
             "teardownComplete = true",
         ),
-        "appOwnsInertCompositionAndStopsBeforeDesktopCore": all(
+        "appOwnsCompositionAndStopsBeforeDesktopCore": all(
             marker in app
             for marker in (
                 "private var viewerFileTransferComposition:",
-                "prepareViewerFileTransferComposition(coreURL: coreURL)",
+                "prepareViewerFileTransferComposition(",
                 "ViewerFileTransferProductComposition(",
                 "onFileTransferEvent: callbacks.onTransfer",
                 "onFileTransferManifest: callbacks.onManifest",
                 "private func stopViewerFileTransfer()",
-                "viewerFileTransferComposition?.teardown()",
+                "let composition = viewerFileTransferComposition",
+                "composition?.teardown()",
             )
         ) and ordered(home, "stopViewerFileTransfer()", "coreClient?.disconnect()")
             and ordered(finish, "stopViewerFileTransfer()", "coreClient?.disconnect()"),
@@ -151,16 +152,24 @@ def main() -> int:
                 ".disconnect",
             )
         ),
-        "viewerABIUnchangedAndEntryRemainsOff": (
+        "viewerABIUnchangedAndHostProductOptInRemainsOff": (
             "#define RDN_ABI_VERSION 13u" in sources["header"]
             and "ViewerFileTransferProductComposition" not in sources["header"]
             and "fileTransferEnabled: true" not in product_sources
+            and "fileTransferReceiveRoot:" not in product_sources
             and ".start(baseConfiguration:" not in app
             and ".beginDownload(destinationDirectory:" not in app
-            and "NSOpenPanel" not in app
+            and "composition.requestDownload(" in app
             and "product composition" in sources["readme"]
             and "product composition" in sources["architecture"]
         ),
+        "downstreamDownloadPickerActionImplemented": all(
+            marker in sources["design"]
+            for marker in (
+                "H6.3f2b2s Viewer download picker/action lifecycle",
+                NEXT_BOUNDARY,
+            )
+        ) and "private func handleViewerFileTransferAction()" in app,
     }
     source_lines = {
         "designMilestone": line_number(
@@ -181,7 +190,7 @@ def main() -> int:
         "appOwner": line_number(app, "private var viewerFileTransferComposition:"),
         "appPreparation": line_number(
             app,
-            "private func prepareViewerFileTransferComposition(coreURL: URL)",
+            "private func prepareViewerFileTransferComposition(",
         ),
         "regression": line_number(
             tests,
@@ -190,7 +199,7 @@ def main() -> int:
     }
     missing = [name for name, present in evidence.items() if not present]
     missing_lines = [name for name, number in source_lines.items() if number <= 0]
-    expected_status = "viewer-product-composition-implemented-entry-off"
+    expected_status = "viewer-product-composition-implemented-action-downstream"
     status = expected_status if not missing and not missing_lines else "audit-failed"
     result = {
         "schema": SCHEMA,
@@ -204,7 +213,7 @@ def main() -> int:
         "claims": {
             "viewerSessionOrchestrationImplemented": status == expected_status,
             "viewerProductCompositionImplemented": status == expected_status,
-            "viewerDownloadPickerActionImplemented": False,
+            "viewerDownloadPickerActionImplemented": status == expected_status,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },

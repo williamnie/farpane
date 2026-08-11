@@ -248,12 +248,19 @@ cancellation. A package-scoped session owner now serializes recursive-manifest
 requests for one exact connection epoch, retains up to eight active destination
 owners, starts each download only after both manifest parts join, requires the
 receive adapter's local terminal proof before accepting the matching Core
-terminal, and orders exact cancel/discard/destination teardown. No picker,
-button or regular desktop configuration enables file transfer. An inert product
-composition now owns a separate dedicated Core factory and exact file epoch,
+terminal, and orders exact cancel/discard/destination teardown. A product
+composition owns a separate dedicated Core factory and exact file epoch,
 projects every clipboard direction off before explicit start, routes only the
 matching manifest/progress callbacks, creates private destination owners only
-after file-session readiness, and tears down session authority before that
-dedicated Core. The App retains this composition for the Viewer attempt and
-closes it before the desktop Core, but does not call start or beginDownload, so
-the network/file product path remains off.
+after an explicit action, and tears down session authority before that dedicated
+Core. The Viewer download picker is live-session-only, directory-only,
+single-selection and alias-closed. Selection immediately pins a current-euid
+`0700` descriptor owner before the dedicated Core starts; the selected path is
+not retained. The App obtains the matching access password from Keychain only
+after selection, otherwise requests it in a secure sheet, and clears the
+temporary value after synchronous configuration projection. One action is
+allowed per dedicated epoch; the button remains disabled until desktop
+streaming, exposes cancellation only after the transfer is active, and returns
+Home/App teardown still closes picker/prompt/session before the desktop Core.
+Host App/Agent receive-root opt-in remains off, so end-to-end product file
+transfer is not yet enabled.

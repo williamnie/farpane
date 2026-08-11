@@ -5,7 +5,7 @@ import unittest
 
 
 class HostFileTransferViewerProductCompositionLifecycleAuditTests(unittest.TestCase):
-    def test_product_composition_is_dedicated_owned_and_entry_off(self) -> None:
+    def test_product_composition_is_dedicated_owned_with_action_downstream(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -26,7 +26,7 @@ class HostFileTransferViewerProductCompositionLifecycleAuditTests(unittest.TestC
         )
         self.assertEqual(
             document["status"],
-            "viewer-product-composition-implemented-entry-off",
+            "viewer-product-composition-implemented-action-downstream",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -35,12 +35,12 @@ class HostFileTransferViewerProductCompositionLifecycleAuditTests(unittest.TestC
         claims = document["claims"]
         self.assertTrue(claims["viewerSessionOrchestrationImplemented"])
         self.assertTrue(claims["viewerProductCompositionImplemented"])
-        self.assertFalse(claims["viewerDownloadPickerActionImplemented"])
+        self.assertTrue(claims["viewerDownloadPickerActionImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-download-picker-action-lifecycle",
+            "host-file-transfer-host-home-receive-root-opt-in-lifecycle",
         )
 
 

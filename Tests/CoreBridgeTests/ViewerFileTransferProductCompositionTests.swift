@@ -227,6 +227,126 @@ final class ViewerFileTransferProductCompositionTests: XCTestCase {
         XCTAssertEqual(core.disconnectCount, 1)
     }
 
+    func testExplicitDownloadActionPinsDestinationAndStartsOnlyAfterReady() throws {
+        let directory = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let core = ViewerFileTransferProductCoreRecorder()
+        let events = ViewerFileTransferProductEventRecorder()
+        let composition = try XCTUnwrap(ViewerFileTransferProductComposition(
+            sessionEpoch: 38,
+            makeCore: { callbacks in
+                core.callbacks = callbacks
+                return core
+            },
+            onEvent: events.handler
+        ))
+
+        XCTAssertEqual(
+            composition.requestDownload(
+                baseConfiguration: baseConfiguration(),
+                destinationDirectory: directory
+            ),
+            .accepted(transferID: 1)
+        )
+        XCTAssertEqual(composition.snapshot().queuedTransferID, 1)
+        XCTAssertTrue(core.manifestRequests.isEmpty)
+
+        core.emitState(.streaming)
+
+        XCTAssertNil(composition.snapshot().queuedTransferID)
+        XCTAssertEqual(core.manifestRequests, [.init(epoch: 38, requestID: 1)])
+        XCTAssertEqual(events.values.prefix(2), [
+            .connectionReady(sessionEpoch: 38),
+            .transfer(.manifestRequested(
+                sessionEpoch: 38,
+                requestID: 1,
+                transferID: 1
+            )),
+        ])
+    }
+
+    func testQueuedDownloadActionCanBeCancelledBeforeConnectionIsReady() throws {
+        let directory = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let core = ViewerFileTransferProductCoreRecorder()
+        let events = ViewerFileTransferProductEventRecorder()
+        let composition = try XCTUnwrap(ViewerFileTransferProductComposition(
+            sessionEpoch: 39,
+            makeCore: { callbacks in
+                core.callbacks = callbacks
+                return core
+            },
+            onEvent: events.handler
+        ))
+        XCTAssertEqual(
+            composition.requestDownload(
+                baseConfiguration: baseConfiguration(),
+                destinationDirectory: directory
+            ),
+            .accepted(transferID: 1)
+        )
+
+        XCTAssertTrue(composition.requestCancellation(transferID: 1))
+        XCTAssertNil(composition.snapshot().queuedTransferID)
+        core.emitState(.streaming)
+
+        XCTAssertTrue(core.manifestRequests.isEmpty)
+        XCTAssertEqual(events.values.last, .connectionReady(sessionEpoch: 39))
+        XCTAssertTrue(events.values.contains(.transfer(.finished(
+            sessionEpoch: 39,
+            transferID: 1,
+            outcome: .cancelled
+        ))))
+    }
+
+    func testDownloadActionRejectsUnsafeDestinationAndSynchronousFailure() throws {
+        let unsafeDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: unsafeDirectory,
+            withIntermediateDirectories: false
+        )
+        defer { try? FileManager.default.removeItem(at: unsafeDirectory) }
+        try FileManager.default.setAttributes(
+            [.posixPermissions: NSNumber(value: Int16(0o755))],
+            ofItemAtPath: unsafeDirectory.path
+        )
+        let core = ViewerFileTransferProductCoreRecorder()
+        let composition = try XCTUnwrap(ViewerFileTransferProductComposition(
+            sessionEpoch: 40,
+            makeCore: { callbacks in
+                core.callbacks = callbacks
+                return core
+            },
+            onEvent: { _ in }
+        ))
+        XCTAssertEqual(
+            composition.requestDownload(
+                baseConfiguration: baseConfiguration(),
+                destinationDirectory: unsafeDirectory
+            ),
+            .destinationRejected
+        )
+        XCTAssertNil(core.connectedConfiguration)
+
+        let privateDirectory = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: privateDirectory) }
+        core.stateDuringConnect = .authenticationFailed
+        XCTAssertEqual(
+            composition.requestDownload(
+                baseConfiguration: baseConfiguration(),
+                destinationDirectory: privateDirectory
+            ),
+            .unavailable
+        )
+        XCTAssertEqual(
+            composition.snapshot().phase,
+            .failed(.authenticationRejected)
+        )
+        XCTAssertNil(composition.snapshot().queuedTransferID)
+        XCTAssertTrue(core.manifestRequests.isEmpty)
+    }
+
     private func baseConfiguration() -> CoreConnectionConfig {
         CoreConnectionConfig(
             rendezvousServer: "127.0.0.1:21116",

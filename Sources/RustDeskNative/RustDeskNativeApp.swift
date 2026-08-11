@@ -84,6 +84,38 @@ private struct PendingProductConnection {
     let usedStoredCredential: Bool
 }
 
+/// Non-secret projection retained for an explicit Viewer file action. The
+/// password is fetched from Keychain or requested from the user only after a
+/// destination is selected, then consumed synchronously by the composition.
+private struct ViewerFileTransferConnectionContext {
+    let rendezvousServer: String
+    let serverPublicKey: String
+    let peerID: String
+    let forceRelay: Bool
+    let credentialDeviceID: UUID?
+
+    init(
+        baseConfiguration: CoreConnectionConfig,
+        credentialDeviceID: UUID?
+    ) {
+        rendezvousServer = baseConfiguration.rendezvousServer
+        serverPublicKey = baseConfiguration.serverPublicKey
+        peerID = baseConfiguration.peerID
+        forceRelay = baseConfiguration.forceRelay
+        self.credentialDeviceID = credentialDeviceID
+    }
+
+    func configuration(password: String) -> CoreConnectionConfig {
+        CoreConnectionConfig(
+            rendezvousServer: rendezvousServer,
+            serverPublicKey: serverPublicKey,
+            peerID: peerID,
+            password: password,
+            forceRelay: forceRelay
+        )
+    }
+}
+
 /// Breaks the construction cycle between the pipeline and its access-unit
 /// callback while keeping backpressure recovery on the encoder callback
 /// boundary. A late callback can only reach its own (possibly cancelled)
@@ -173,6 +205,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var viewerFileTransferComposition:
         ViewerFileTransferProductComposition?
     private var viewerFileTransferCommittedEpoch: UInt64 = 0
+    private var viewerFileTransferConnectionContext:
+        ViewerFileTransferConnectionContext?
+    private var viewerFileTransferActiveTransferID: Int32?
+    private var viewerFileTransferActionConsumed = false
+    private var viewerFileTransferDestinationPicker:
+        ViewerFileTransferDestinationPickerController?
+    private var viewerFileTransferPasswordPrompt:
+        ViewerFileTransferPasswordPromptController?
     private var viewerAutomaticRecoveryOwner: ViewerAutomaticRecoveryOwner?
     private var viewerRecoveryDeviceID: UUID?
     private var viewerRecoveryCommittedEpoch: UInt64 = 0
@@ -3566,7 +3606,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let chrome = ViewerChromeView(
             videoView: view,
             metrics: metrics,
-            showsAcceptanceControls: automatedRun && fixture == nil
+            showsAcceptanceControls: automatedRun && fixture == nil,
+            showsFileTransferControls: liveConfiguration != nil
         )
         let window = self.window ?? NSWindow(
             contentRect: windowFrame,
@@ -3641,6 +3682,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             keyboardController = nil
         }
         chrome.onToggleFullscreen = { [weak window] in window?.toggleFullScreen(nil) }
+        chrome.onFileTransferAction = { [weak self] in
+            self?.handleViewerFileTransferAction()
+        }
         chrome.onDisconnect = { [weak self] in
             guard let self else { return }
             if self.automatedRun { NSApplication.shared.terminate(nil) }
@@ -3743,7 +3787,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             }
         }
 
-        guard prepareViewerFileTransferComposition(coreURL: coreURL) else {
+        guard prepareViewerFileTransferComposition(
+            coreURL: coreURL,
+            baseConfiguration: configuration
+        ) else {
             throw usageError("viewer file-transfer lifecycle unavailable")
         }
         defer {
@@ -3942,6 +3989,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 message: "连接状态变化，已退出键盘独占",
                 isError: false
             )
+        }
+        if event.state == .streaming {
+            chrome?.setFileTransferAvailable(
+                !viewerFileTransferActionConsumed
+            )
+        } else if Self.isTerminalState(event.state) {
+            chrome?.setFileTransferAvailable(false)
         }
 
         if event.state == .authenticated || event.state == .streaming {
@@ -4333,7 +4387,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         return viewerClipboardCommittedEpoch
     }
 
-    private func prepareViewerFileTransferComposition(coreURL: URL) -> Bool {
+    private func prepareViewerFileTransferComposition(
+        coreURL: URL,
+        baseConfiguration: CoreConnectionConfig
+    ) -> Bool {
         stopViewerFileTransfer()
         guard let sessionEpoch = nextViewerFileTransferSessionEpoch(),
               let composition = ViewerFileTransferProductComposition(
@@ -4359,18 +4416,163 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
               )
         else { return false }
         viewerFileTransferComposition = composition
+        viewerFileTransferActionConsumed = false
+        let verifiedCredentialDeviceID = pendingProductConnection.flatMap {
+            $0.usedStoredCredential || $0.savePassword ? $0.deviceID : nil
+        }
+        viewerFileTransferConnectionContext =
+            ViewerFileTransferConnectionContext(
+                baseConfiguration: baseConfiguration,
+                credentialDeviceID: verifiedCredentialDeviceID
+            )
         return true
     }
 
     private func stopViewerFileTransfer() {
-        _ = viewerFileTransferComposition?.teardown()
+        let composition = viewerFileTransferComposition
+        let destinationPicker = viewerFileTransferDestinationPicker
+        let passwordPrompt = viewerFileTransferPasswordPrompt
         viewerFileTransferComposition = nil
+        viewerFileTransferDestinationPicker = nil
+        viewerFileTransferPasswordPrompt = nil
+        viewerFileTransferActiveTransferID = nil
+        viewerFileTransferActionConsumed = false
+        viewerFileTransferConnectionContext = nil
+        viewerChrome?.updateFileTransferAction(active: false)
+        viewerChrome?.setFileTransferAvailable(false)
+        destinationPicker?.cancel()
+        passwordPrompt?.cancel()
+        _ = composition?.teardown()
     }
 
     private func nextViewerFileTransferSessionEpoch() -> UInt64? {
         guard viewerFileTransferCommittedEpoch < UInt64.max else { return nil }
         viewerFileTransferCommittedEpoch += 1
         return viewerFileTransferCommittedEpoch
+    }
+
+    private func handleViewerFileTransferAction() {
+        guard let composition = viewerFileTransferComposition else { return }
+        if let transferID = viewerFileTransferActiveTransferID {
+            guard composition.requestCancellation(transferID: transferID) else {
+                viewerChrome?.updateState(
+                    "当前文件接收尚不能取消",
+                    isError: true
+                )
+                return
+            }
+            viewerChrome?.updateState("正在取消文件接收…", isError: false)
+            return
+        }
+        guard !viewerFileTransferActionConsumed else { return }
+        guard
+            viewerFileTransferDestinationPicker == nil,
+            viewerFileTransferPasswordPrompt == nil,
+            let window
+        else { return }
+        let sessionEpoch = composition.snapshot().sessionEpoch
+
+        let picker = ViewerFileTransferDestinationPickerController()
+        viewerFileTransferDestinationPicker = picker
+        picker.begin(on: window) { [weak self] destination in
+            guard let self else { return }
+            self.viewerFileTransferDestinationPicker = nil
+            guard
+                let destination,
+                self.viewerFileTransferComposition?.snapshot().sessionEpoch
+                    == sessionEpoch
+            else { return }
+            self.resolveViewerFileTransferPassword(
+                destinationDirectory: destination,
+                sessionEpoch: sessionEpoch
+            )
+        }
+    }
+
+    private func resolveViewerFileTransferPassword(
+        destinationDirectory: URL,
+        sessionEpoch: UInt64
+    ) {
+        guard
+            let context = viewerFileTransferConnectionContext,
+            viewerFileTransferComposition?.snapshot().sessionEpoch
+                == sessionEpoch
+        else { return }
+        if let deviceID = context.credentialDeviceID {
+            do {
+                if var password = try credentialStore.read(deviceID: deviceID),
+                   !password.isEmpty {
+                    startViewerFileTransferDownload(
+                        destinationDirectory: destinationDirectory,
+                        password: password,
+                        sessionEpoch: sessionEpoch
+                    )
+                    password = ""
+                    return
+                }
+            } catch {
+                // The explicit secure prompt is the fail-closed fallback.
+            }
+        }
+        guard let window, viewerFileTransferPasswordPrompt == nil else { return }
+        let prompt = ViewerFileTransferPasswordPromptController()
+        viewerFileTransferPasswordPrompt = prompt
+        prompt.begin(on: window) { [weak self] suppliedPassword in
+            guard let self else { return }
+            self.viewerFileTransferPasswordPrompt = nil
+            guard var suppliedPassword,
+                  self.viewerFileTransferComposition?.snapshot().sessionEpoch
+                    == sessionEpoch
+            else { return }
+            self.startViewerFileTransferDownload(
+                destinationDirectory: destinationDirectory,
+                password: suppliedPassword,
+                sessionEpoch: sessionEpoch
+            )
+            suppliedPassword = ""
+        }
+    }
+
+    private func startViewerFileTransferDownload(
+        destinationDirectory: URL,
+        password: String,
+        sessionEpoch: UInt64
+    ) {
+        guard
+            viewerFileTransferActiveTransferID == nil,
+            let context = viewerFileTransferConnectionContext,
+            let composition = viewerFileTransferComposition,
+            composition.snapshot().sessionEpoch == sessionEpoch
+        else { return }
+        var configuration = context.configuration(password: password)
+        let result = composition.requestDownload(
+            baseConfiguration: configuration,
+            destinationDirectory: destinationDirectory
+        )
+        configuration = context.configuration(password: "")
+        _ = configuration
+        switch result {
+        case .accepted(let transferID):
+            viewerFileTransferActionConsumed = true
+            viewerFileTransferActiveTransferID = transferID
+            viewerChrome?.updateFileTransferAction(
+                active: true,
+                cancellable: false
+            )
+            viewerChrome?.updateState(
+                "正在建立文件传输通道…",
+                isError: false
+            )
+        case .destinationRejected:
+            viewerChrome?.updateState(
+                "接收目录必须属于当前用户且权限为 0700",
+                isError: true
+            )
+        case .unavailable:
+            viewerFileTransferActionConsumed = true
+            viewerChrome?.updateState("文件接收启动失败", isError: true)
+            viewerChrome?.setFileTransferAvailable(false)
+        }
     }
 
     private func handleViewerFileTransferProductEvent(
@@ -4385,9 +4587,55 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         case .connectionReady:
             viewerChrome?.updateState("文件传输通道已就绪", isError: false)
         case .connectionFailed:
+            viewerFileTransferActiveTransferID = nil
+            viewerChrome?.updateFileTransferAction(active: false)
+            viewerChrome?.setFileTransferAvailable(false)
             viewerChrome?.updateState("文件传输通道不可用", isError: true)
-        case .transfer:
-            break
+        case .transfer(let transferEvent):
+            handleViewerFileTransferSessionEvent(transferEvent)
+        }
+    }
+
+    private func handleViewerFileTransferSessionEvent(
+        _ event: ViewerFileTransferSessionEvent
+    ) {
+        switch event {
+        case .manifestRequested(_, _, let transferID):
+            guard transferID == viewerFileTransferActiveTransferID else { return }
+            viewerChrome?.updateState("正在读取远端文件清单…", isError: false)
+        case .progress(let progress):
+            guard progress.transferID == viewerFileTransferActiveTransferID else {
+                return
+            }
+            viewerChrome?.updateFileTransferAction(
+                active: true,
+                cancellable: !progress.phase.isTerminal
+            )
+            viewerChrome?.updateState(
+                "正在接收文件（\(progress.filesCompleted)/\(progress.totalFiles)）",
+                isError: false
+            )
+        case .fileCommitted(_, let transferID, let fileNumber):
+            guard transferID == viewerFileTransferActiveTransferID else { return }
+            viewerChrome?.updateState(
+                "已安全接收第 \(fileNumber + 1) 个文件",
+                isError: false
+            )
+        case .finished(_, let transferID, let outcome):
+            guard transferID == viewerFileTransferActiveTransferID else { return }
+            viewerFileTransferActiveTransferID = nil
+            viewerChrome?.updateFileTransferAction(active: false)
+            // Recursive manifest authority is intentionally one-shot per
+            // dedicated epoch, so another action requires a new Viewer attempt.
+            viewerChrome?.setFileTransferAvailable(false)
+            switch outcome {
+            case .completed:
+                viewerChrome?.updateState("文件接收完成", isError: false)
+            case .cancelled:
+                viewerChrome?.updateState("文件接收已取消", isError: false)
+            case .failed:
+                viewerChrome?.updateState("文件接收失败", isError: true)
+            }
         }
     }
 
