@@ -173,6 +173,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         "farpane.host.fileTransfer.enabled"
     private static let hostFileTransferReceiveRootDefaultsKey =
         "farpane.host.fileTransfer.receiveRoot"
+    private static let hostAudioEnabledDefaultsKey =
+        "farpane.host.audio.enabled"
 
     private let options = Options(arguments: CommandLine.arguments)
     private let hostViewerConcurrencyEvidenceOwner =
@@ -183,6 +185,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private lazy var hostAgentBootstrapIntegration = try? HostAgentBootstrapProductIntegration()
     private lazy var hostAgentRuntimeConfigurationReader =
         try? HostAgentRuntimeConfigurationObservationReader()
+    private lazy var hostMicrophoneAuthorizationAuthority =
+        HostMicrophoneAuthorizationAuthority.makeProduct()
     private let credentialStore: DeviceCredentialStore = KeychainDeviceCredentialStore(
         service: ProcessInfo.processInfo.environment["RDN_KEYCHAIN_SERVICE"]
             ?? KeychainDeviceCredentialStore.defaultService
@@ -246,6 +250,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var hostMediaSuspendedForSessionUnavailable = false
     private var hostMediaStatusText: String?
     private var hostFileTransferPolicyErrorText = ""
+    private var hostAudioPolicyErrorText = ""
     private var hostMediaGeneration: UInt64 = 0
     private var hostMediaCapabilitiesInstanceID = ""
     private var hostMediaCapabilitiesProbeID: UUID?
@@ -572,6 +577,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     func applicationDidBecomeActive(_ notification: Notification) {
         keyboardController?.resumeIfRequested()
         reconcileHostProductOwnership()
+        MainActor.assumeIsolated {
+            if hostAudioPolicyChangeAllowed() {
+                reconcileHostAgentBootstrap()
+            }
+            refreshHomeUI()
+        }
         hostAgentBackgroundActivationOwner.refreshRegistration()
     }
 
@@ -735,6 +746,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onChooseHostFileTransferReceiveRoot = { [weak self] in
             self?.beginHostFileTransferReceiveRootSelection()
         }
+        view.onHostAudioToggle = { [weak self] enabled in
+            self?.handleHostAudioPolicyToggle(enabled)
+        }
         view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
         view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
         view.onSetHostPermanentPassword = { [weak self] in self?.presentHostPermanentPassword() }
@@ -848,6 +862,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             )
         let clipboardPolicy = currentHostClipboardPolicy()
         let fileTransferPolicy = currentHostFileTransferPolicy()
+        let audioPolicy = currentHostAudioPolicy()
         let bootstrapReady: Bool
         if case .ready = hostAgentBootstrapState {
             bootstrapReady = true
@@ -903,6 +918,19 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                             control: hostControl,
                             viewerConnectionInProgress:
                                 activeAttemptID != nil
+                        ),
+                audioEnabled: audioPolicy.enabled,
+                microphoneAuthorizationText:
+                    hostMicrophoneAuthorizationText(),
+                allowsAudioPolicyChange:
+                    HostAgentBackgroundHomeRoutingPolicy
+                        .allowsAudioPolicyChange(
+                            control: hostControl,
+                            viewerConnectionInProgress:
+                                activeAttemptID != nil,
+                            authorizationRequestInProgress:
+                                hostMicrophoneAuthorizationAuthority
+                                    .isRequestPending()
                         ),
                 statusText: hostProductStatusText(
                     hostReadiness: hostReadiness,
@@ -966,6 +994,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             usesLegacyHost ? "" : backgroundCommand.errorText,
             bootstrapError,
             hostFileTransferPolicyErrorText,
+            hostAudioPolicyErrorText,
             usesLegacyHost ? "" : hostAgentRuntimeConfigurationErrorText,
         ]
             .filter { !$0.isEmpty }
@@ -1011,7 +1040,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             .reconcileSavedCatalog(
                 from: catalogStore,
                 clipboardPolicy: currentHostClipboardPolicy(),
-                fileTransferPolicy: currentHostFileTransferPolicy()
+                fileTransferPolicy: currentHostFileTransferPolicy(),
+                audioPolicy: currentHostAudioPolicy()
             )
         refreshHostAgentRuntimeConfigurationCoherence()
     }
@@ -1054,6 +1084,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             return .disabled
         }
         return policy
+    }
+
+    private func currentHostAudioPolicy() -> HostAgentAudioPolicy {
+        guard UserDefaults.standard.bool(
+            forKey: Self.hostAudioEnabledDefaultsKey
+        ), hostMicrophoneAuthorizationAuthority.authorizationStatus()
+            == .authorized
+        else { return .disabled }
+        return HostAgentAudioPolicy(enabled: true)
     }
 
     private var coherentHostAgentBackgroundActivationView:
@@ -1404,6 +1443,126 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
     }
 
+    private func handleHostAudioPolicyToggle(_ enabled: Bool) {
+        guard Thread.isMainThread else { return }
+        MainActor.assumeIsolated {
+            guard hostAudioPolicyChangeAllowed() else {
+                refreshHomeUI()
+                return
+            }
+            if !enabled {
+                UserDefaults.standard.set(
+                    false,
+                    forKey: Self.hostAudioEnabledDefaultsKey
+                )
+                hostAudioPolicyErrorText = ""
+                reconcileHostAgentBootstrap()
+                refreshHomeUI()
+                return
+            }
+
+            switch hostMicrophoneAuthorizationAuthority
+                .authorizationStatus()
+            {
+            case .authorized:
+                enableHostAudioAfterAuthorization()
+            case .denied, .restricted:
+                UserDefaults.standard.set(
+                    false,
+                    forKey: Self.hostAudioEnabledDefaultsKey
+                )
+                hostAudioPolicyErrorText =
+                    "麦克风权限未授权；请在系统设置的“隐私与安全性”中允许 FarPane 使用麦克风。"
+                reconcileHostAgentBootstrap()
+                refreshHomeUI()
+            case .notDetermined:
+                let result = hostMicrophoneAuthorizationAuthority
+                    .requestAuthorization { [weak self] status in
+                        DispatchQueue.main.async { [weak self] in
+                            self?.completeHostMicrophoneAuthorization(status)
+                        }
+                    }
+                switch result {
+                case .admitted, .busy:
+                    refreshHomeUI()
+                case .alreadyAuthorized:
+                    enableHostAudioAfterAuthorization()
+                case .unavailable:
+                    hostAudioPolicyErrorText =
+                        "麦克风权限不可用，远程音频仍保持关闭。"
+                    refreshHomeUI()
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func completeHostMicrophoneAuthorization(
+        _ status: HostMicrophoneAuthorizationStatus
+    ) {
+        guard status == .authorized,
+              hostAudioPolicyChangeAllowed()
+        else {
+            UserDefaults.standard.set(
+                false,
+                forKey: Self.hostAudioEnabledDefaultsKey
+            )
+            hostAudioPolicyErrorText = status == .authorized
+                ? "Host 状态已变化，麦克风授权已保留，但远程音频仍保持关闭。"
+                : "麦克风权限未授权，远程音频仍保持关闭。"
+            reconcileHostAgentBootstrap()
+            refreshHomeUI()
+            return
+        }
+        enableHostAudioAfterAuthorization()
+    }
+
+    @MainActor
+    private func enableHostAudioAfterAuthorization() {
+        UserDefaults.standard.set(
+            true,
+            forKey: Self.hostAudioEnabledDefaultsKey
+        )
+        hostAudioPolicyErrorText = ""
+        reconcileHostAgentBootstrap()
+        refreshHomeUI()
+    }
+
+    @MainActor
+    private func hostAudioPolicyChangeAllowed() -> Bool {
+        let legacy = HostAgentLegacyHostMigrationGate.assess(
+            captureLegacyHostMigrationEvidence()
+        )
+        let control = HostAgentBackgroundHomeRoutingPolicy.controlState(
+            registration: hostAgentBackgroundRegistrationStatus,
+            legacy: legacy,
+            flow: hostAgentBackgroundFlow
+        )
+        return HostAgentBackgroundHomeRoutingPolicy
+            .allowsAudioPolicyChange(
+                control: control,
+                viewerConnectionInProgress: activeAttemptID != nil,
+                authorizationRequestInProgress:
+                    hostMicrophoneAuthorizationAuthority.isRequestPending()
+            )
+    }
+
+    private func hostMicrophoneAuthorizationText() -> String {
+        if hostMicrophoneAuthorizationAuthority.isRequestPending() {
+            return "麦克风权限：等待确认"
+        }
+        switch hostMicrophoneAuthorizationAuthority.authorizationStatus() {
+        case .authorized:
+            return "麦克风权限：已授权"
+        case .notDetermined:
+            return "麦克风权限：开启时询问"
+        case .denied:
+            return "麦克风权限：未授权"
+        case .restricted:
+            return "麦克风权限：受系统限制"
+        }
+    }
+
     private func beginHostFileTransferReceiveRootSelection() {
         guard Thread.isMainThread else { return }
         MainActor.assumeIsolated {
@@ -1724,6 +1883,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             }
             let clipboardPolicy = currentHostClipboardPolicy()
             let fileTransferPolicy = currentHostFileTransferPolicy()
+            let audioPolicy = currentHostAudioPolicy()
             try client.start(configuration: HostServerConfiguration(
                 rendezvousServer: server.rendezvousServer,
                 serverPublicKey: server.serverPublicKey,
@@ -1737,6 +1897,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     clipboardPolicy.allowRemoteImageRead,
                 clipboardImageWriteEnabled:
                     clipboardPolicy.allowRemoteImageWrite,
+                audioEnabled: audioPolicy.enabled,
                 fileTransferEnabled: fileTransferPolicy.enabled,
                 fileTransferReceiveRoot: fileTransferPolicy.receiveRoot
             ))

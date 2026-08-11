@@ -124,6 +124,17 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
         )
     }
 
+    package static func allowsAudioPolicyChange(
+        control: HostAgentBackgroundHomeControlState,
+        viewerConnectionInProgress: Bool,
+        authorizationRequestInProgress: Bool
+    ) -> Bool {
+        allowsClipboardPolicyChange(
+            control: control,
+            viewerConnectionInProgress: viewerConnectionInProgress
+        ) && !authorizationRequestInProgress
+    }
+
     package static func allowsHostToggle(
         control: HostAgentBackgroundHomeControlState,
         bootstrapReady: Bool

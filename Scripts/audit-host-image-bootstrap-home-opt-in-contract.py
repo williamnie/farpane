@@ -80,7 +80,7 @@ def main() -> int:
         "bootstrapV5CarriesSixIndependentDirections": all(
             marker in bootstrap
             for marker in (
-                "public static let currentSchemaVersion = 5",
+                "public static let currentSchemaVersion = 6",
                 "public let allowRemoteImageRead: Bool",
                 "public let allowRemoteImageWrite: Bool",
                 '"allowRemoteImageRead", "allowRemoteImageWrite"',
@@ -205,7 +205,7 @@ def main() -> int:
             "H6.2k5 Host image bootstrap and Home opt-in contract",
         ),
         "bootstrapSchema": line_number(
-            bootstrap, "public static let currentSchemaVersion = 5"
+            bootstrap, "public static let currentSchemaVersion = 6"
         ),
         "imagePolicyField": line_number(
             bootstrap, "public let allowRemoteImageRead: Bool"

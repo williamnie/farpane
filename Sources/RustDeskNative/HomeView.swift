@@ -66,6 +66,9 @@ struct HostHomeSnapshot: Equatable {
     var fileTransferEnabled: Bool = false
     var fileTransferReceiveRootName: String = ""
     var allowsFileTransferPolicyChange: Bool = false
+    var audioEnabled: Bool = false
+    var microphoneAuthorizationText: String = "麦克风权限：开启时询问"
+    var allowsAudioPolicyChange: Bool = false
     var statusText: String
     var localID: String
     var temporaryPassword: String
@@ -111,6 +114,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onHostClipboardImageWriteToggle: ((Bool) -> Void)?
     var onHostFileTransferToggle: ((Bool) -> Void)?
     var onChooseHostFileTransferReceiveRoot: (() -> Void)?
+    var onHostAudioToggle: ((Bool) -> Void)?
     var onRevealHostPassword: (() -> Void)?
     var onRegenerateHostPassword: (() -> Void)?
     var onSetHostPermanentPassword: (() -> Void)?
@@ -158,6 +162,10 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         labelWithString: "接收文件夹：未选择"
     )
     private let hostFileTransferReceiveRootButton = NSButton()
+    private let hostAudioSwitch = NSSwitch()
+    private let hostMicrophoneAuthorizationLabel = NSTextField(
+        labelWithString: "麦克风权限：开启时询问"
+    )
     private let hostApprovalContainer = NSView()
     private let hostApprovalTitleLabel = NSTextField(labelWithString: "新的远程连接请求")
     private let hostApprovalIdentityLabel = NSTextField(wrappingLabelWithString: "")
@@ -267,6 +275,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             .fileTransferEnabled ? "更改位置" : "选择并启用"
         hostFileTransferReceiveRootLabel.stringValue =
             "接收文件夹：\(snapshot.host.fileTransferReceiveRootName.nonEmpty ?? "未选择")"
+        hostAudioSwitch.state = snapshot.host.audioEnabled ? .on : .off
+        hostAudioSwitch.isEnabled = snapshot.connectingPeerID == nil
+            && snapshot.host.allowsAudioPolicyChange
+        hostMicrophoneAuthorizationLabel.stringValue = snapshot.host
+            .microphoneAuthorizationText
         hostStatusLabel.stringValue = snapshot.host.statusText
         hostStatusDot.layer?.backgroundColor = hostStatusColor(snapshot.host).cgColor
         hostIDLabel.stringValue = "本机 ID：\(snapshot.host.localID.nonEmpty ?? "—")"
@@ -861,6 +874,46 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             ).isActive = true
         }
 
+        let hostAudioTitle = NSTextField(
+            labelWithString: "远程音频（默认关闭）"
+        )
+        hostAudioTitle.font = .systemFont(ofSize: 12, weight: .medium)
+        hostAudioTitle.textColor = .secondaryLabelColor
+        hostAudioSwitch.target = self
+        hostAudioSwitch.action = #selector(hostAudioToggleChanged)
+        hostAudioSwitch.setAccessibilityLabel("允许远端收听本机麦克风")
+        let hostAudioToggleLabel = NSTextField(
+            labelWithString: "允许远端收听本机麦克风"
+        )
+        hostAudioToggleLabel.font = .systemFont(ofSize: 12)
+        hostAudioToggleLabel.textColor = .secondaryLabelColor
+        let hostAudioToggleRow = NSStackView(views: [
+            hostAudioToggleLabel,
+            NSView(),
+            hostAudioSwitch,
+        ])
+        hostAudioToggleRow.orientation = .horizontal
+        hostAudioToggleRow.alignment = .centerY
+        hostMicrophoneAuthorizationLabel.font = .systemFont(ofSize: 11)
+        hostMicrophoneAuthorizationLabel.textColor = .tertiaryLabelColor
+        let hostAudioSettings = NSStackView(views: [
+            hostAudioTitle,
+            hostAudioToggleRow,
+            hostMicrophoneAuthorizationLabel,
+        ])
+        hostAudioSettings.orientation = .vertical
+        hostAudioSettings.alignment = .leading
+        hostAudioSettings.spacing = 5
+        for view in [
+            hostAudioTitle,
+            hostAudioToggleRow,
+            hostMicrophoneAuthorizationLabel,
+        ] {
+            view.widthAnchor.constraint(
+                equalTo: hostAudioSettings.widthAnchor
+            ).isActive = true
+        }
+
         hostSessionContainer.wantsLayer = true
         hostSessionContainer.layer?.cornerRadius = 9
         hostSessionContainer.layer?.backgroundColor = NSColor.systemBlue
@@ -1057,6 +1110,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostDetails,
             hostPermanentPasswordDetails,
             hostClipboardSettings,
+            hostAudioSettings,
             hostFileTransferSettings,
             hostSessionContainer,
             hostApprovalContainer,
@@ -1072,6 +1126,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostDetails,
             hostPermanentPasswordDetails,
             hostClipboardSettings,
+            hostAudioSettings,
             hostFileTransferSettings,
             hostSessionContainer,
             hostApprovalContainer,
@@ -1384,6 +1439,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     @objc private func hostFileTransferToggleChanged() {
         guard snapshot.host.allowsFileTransferPolicyChange else { return }
         onHostFileTransferToggle?(hostFileTransferSwitch.state == .on)
+    }
+
+    @objc private func hostAudioToggleChanged() {
+        guard snapshot.host.allowsAudioPolicyChange else { return }
+        onHostAudioToggle?(hostAudioSwitch.state == .on)
     }
 
     @objc private func chooseHostFileTransferReceiveRoot() {

@@ -111,6 +111,10 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                     clipboardImageWriteEnabled:
                         configuration.clipboardPolicy
                             .allowRemoteImageWrite,
+                    audioEnabled:
+                        configuration.audioPolicy.enabled
+                            && HostMicrophoneAuthorizationAuthority
+                                .isAuthorizedWithoutPrompt(),
                     fileTransferEnabled:
                         configuration.fileTransferPolicy.enabled,
                     fileTransferReceiveRoot:
