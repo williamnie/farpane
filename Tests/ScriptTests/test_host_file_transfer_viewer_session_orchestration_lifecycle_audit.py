@@ -35,7 +35,7 @@ class HostFileTransferViewerSessionOrchestrationLifecycleAuditTests(unittest.Tes
         claims = document["claims"]
         self.assertTrue(claims["viewerReceiveWriteAdapterImplemented"])
         self.assertTrue(claims["viewerSessionOrchestrationImplemented"])
-        self.assertFalse(claims["viewerProductCompositionImplemented"])
+        self.assertTrue(claims["viewerProductCompositionImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(

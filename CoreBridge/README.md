@@ -249,5 +249,11 @@ requests for one exact connection epoch, retains up to eight active destination
 owners, starts each download only after both manifest parts join, requires the
 receive adapter's local terminal proof before accepting the matching Core
 terminal, and orders exact cancel/discard/destination teardown. No picker,
-product route or product configuration constructs this owner, so file transfer
-remains internal and off.
+button or regular desktop configuration enables file transfer. An inert product
+composition now owns a separate dedicated Core factory and exact file epoch,
+projects every clipboard direction off before explicit start, routes only the
+matching manifest/progress callbacks, creates private destination owners only
+after file-session readiness, and tears down session authority before that
+dedicated Core. The App retains this composition for the Viewer attempt and
+closes it before the desktop Core, but does not call start or beginDownload, so
+the network/file product path remains off.

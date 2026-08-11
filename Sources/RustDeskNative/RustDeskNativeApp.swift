@@ -170,6 +170,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private let viewerPasteboardOwner = ViewerPasteboardOwner()
     private var viewerClipboardCommittedEpoch: UInt64 = 0
     private var viewerClipboardSessionEpoch: UInt64?
+    private var viewerFileTransferComposition:
+        ViewerFileTransferProductComposition?
+    private var viewerFileTransferCommittedEpoch: UInt64 = 0
     private var viewerAutomaticRecoveryOwner: ViewerAutomaticRecoveryOwner?
     private var viewerRecoveryDeviceID: UUID?
     private var viewerRecoveryCommittedEpoch: UInt64 = 0
@@ -569,6 +572,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func showHomeUI(error: String = "") {
         stopViewerAutomaticRecovery()
         stopViewerClipboard()
+        stopViewerFileTransfer()
         let viewerLifecycleStopped = stopViewerLifecycleEvidence()
         if viewerLifecycleStopped {
             reaffirmHostAgentApplicationConcurrencyEvidence()
@@ -3739,6 +3743,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             }
         }
 
+        guard prepareViewerFileTransferComposition(coreURL: coreURL) else {
+            throw usageError("viewer file-transfer lifecycle unavailable")
+        }
+        defer {
+            if !viewerStarted {
+                stopViewerFileTransfer()
+            }
+        }
+
         let decoder = LiveHEVCDecoder(
             metrics: metrics,
             output: { [weak renderer] pixelBuffer, _ in renderer?.enqueue(pixelBuffer) }
@@ -4285,6 +4298,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         stopHostMode(preservePreference: true, reason: .appExit, releaseClient: true)
         stopViewerAutomaticRecovery()
         stopViewerClipboard()
+        stopViewerFileTransfer()
         _ = stopViewerLifecycleEvidence()
         guard let metrics else { return }
         player?.stop()
@@ -4317,6 +4331,64 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard viewerClipboardCommittedEpoch < UInt64.max else { return nil }
         viewerClipboardCommittedEpoch += 1
         return viewerClipboardCommittedEpoch
+    }
+
+    private func prepareViewerFileTransferComposition(coreURL: URL) -> Bool {
+        stopViewerFileTransfer()
+        guard let sessionEpoch = nextViewerFileTransferSessionEpoch(),
+              let composition = ViewerFileTransferProductComposition(
+                  sessionEpoch: sessionEpoch,
+                  makeCore: { callbacks in
+                      try RustDeskCoreClient(
+                          libraryURL: coreURL,
+                          onState: callbacks.onState,
+                          onVideo: { _ in },
+                          onMetrics: { _ in },
+                          onFileTransferEvent: callbacks.onTransfer,
+                          onFileTransferManifest: callbacks.onManifest
+                      )
+                  },
+                  onEvent: { [weak self] event in
+                      DispatchQueue.main.async {
+                          self?.handleViewerFileTransferProductEvent(
+                              event,
+                              sessionEpoch: sessionEpoch
+                          )
+                      }
+                  }
+              )
+        else { return false }
+        viewerFileTransferComposition = composition
+        return true
+    }
+
+    private func stopViewerFileTransfer() {
+        _ = viewerFileTransferComposition?.teardown()
+        viewerFileTransferComposition = nil
+    }
+
+    private func nextViewerFileTransferSessionEpoch() -> UInt64? {
+        guard viewerFileTransferCommittedEpoch < UInt64.max else { return nil }
+        viewerFileTransferCommittedEpoch += 1
+        return viewerFileTransferCommittedEpoch
+    }
+
+    private func handleViewerFileTransferProductEvent(
+        _ event: ViewerFileTransferProductEvent,
+        sessionEpoch: UInt64
+    ) {
+        guard
+            viewerFileTransferComposition?.snapshot().sessionEpoch
+                == sessionEpoch
+        else { return }
+        switch event {
+        case .connectionReady:
+            viewerChrome?.updateState("文件传输通道已就绪", isError: false)
+        case .connectionFailed:
+            viewerChrome?.updateState("文件传输通道不可用", isError: true)
+        case .transfer:
+            break
+        }
     }
 
     private func handleViewerClipboardText(

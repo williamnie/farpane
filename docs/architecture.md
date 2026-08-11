@@ -309,7 +309,11 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   失败还经 exact relay 请求 Core cancel。package-scoped session owner 现固定 one connection epoch，串行 recursive-manifest
   request，并允许最多 8 个 manifest-complete download 并发；它强持有 destination owner，只有 receive adapter 先给出 exact
   local completed/cancelled/remote-failed proof 才接受对应 Core terminal，Core command reject、protocol drift、用户 cancel 与
-  connection teardown 都按 transfer ID 先 cancel/discard receive route 再关闭 descriptor。picker 与产品 UI 仍未连接，
+  connection teardown 都按 transfer ID 先 cancel/discard receive route 再关闭 descriptor。Viewer product composition 现为每次
+  Viewer attempt 惰性持有独立 dedicated Core factory 与 exact file epoch；只有未来显式 start 才会把 server/peer/credential
+  投影到 clipboard 全关、file mode 全开的独立配置，ready 后才允许创建 private destination owner，App 返回 Home 或退出时先
+  teardown session/destination 再关闭 dedicated Core，随后才断开 desktop Core。当前没有 picker/button，也没有调用 start 或
+  beginDownload，故不会建立 file network runtime；
   多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。
