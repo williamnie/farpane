@@ -220,7 +220,11 @@ compressed bytes are limit-decoded into an owned `Vec<u8>`. Empty, oversized,
 malformed-compressed or mismatched blocks fail closed. ABI v13 exposes the accepted owned
 block through a callback-scoped epoch/transfer/file/bytes struct; Rust rechecks
 active, authenticated, file-mode and exact epoch immediately before the callback,
-while Swift copies and revalidates the bounded bytes before queueing. No wire
-interception calls this helper yet, so the io-loop still does not invoke the callback.
+while Swift copies and revalidates the bounded bytes before queueing. The
+feature-gated io-loop hook now consumes only blocks whose transfer ID is still
+registered by this bridge; matching malformed blocks fail closed, while
+unmatched blocks retain the upstream write-job path. This hook releases the job
+lock before callback delivery. No wire download request or destination write is
+issued yet.
 No picker UI or product configuration exists, so it remains internal rather than
 file-transfer product capability.

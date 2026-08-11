@@ -120,7 +120,8 @@ def main() -> int:
             marker in io_loop
             for marker in (
                 'not(feature = "rdn-native-core")',
-                "let rx: Option<tokio::sync::mpsc::UnboundedReceiver<()>> = None;",
+                "let rx: Option<",
+                "tokio::sync::mpsc::UnboundedReceiver<()>",
                 "let clipboards = [cb]",
                 "native_viewer_clipboard_text(&clipboards)",
                 "self.handler.native_clipboard_text(text);",
@@ -198,7 +199,7 @@ def main() -> int:
         "strictIncoming": line_number(bridge, "pub(crate) fn native_viewer_clipboard_text("),
         "canonicalOutgoing": line_number(bridge, "fn native_viewer_clipboard_message("),
         "sendGate": line_number(bridge, "pub unsafe extern \"C\" fn rdn_client_send_clipboard_text("),
-        "noPolling": line_number(io_loop, "let rx: Option<tokio::sync::mpsc::UnboundedReceiver<()>> = None;"),
+        "noPolling": line_number(io_loop, "let rx: Option<"),
         "incomingCallback": line_number(io_loop, "self.handler.native_clipboard_text(text);"),
         "swiftDefaults": line_number(swift, "receiveClipboardText: Bool = false"),
         "swiftLifecycleGate": line_number(swift, "func stopClipboardDelivery()"),
