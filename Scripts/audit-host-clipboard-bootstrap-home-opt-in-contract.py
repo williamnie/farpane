@@ -76,7 +76,7 @@ def main() -> int:
         "bootstrapV5RetainsIndependentSmallTextDirections": all(
             marker in bootstrap
             for marker in (
-                "public static let currentSchemaVersion = 5",
+                "public static let currentSchemaVersion = 6",
                 "public let clipboardPolicy: HostAgentClipboardPolicy",
                 '"allowRemoteRead", "allowRemoteWrite",',
             )
@@ -179,7 +179,7 @@ def main() -> int:
             "H6.2i2 Host clipboard bootstrap and Home opt-in contract",
         ),
         "bootstrapSchema": line_number(
-            bootstrap, "public static let currentSchemaVersion = 5"
+            bootstrap, "public static let currentSchemaVersion = 6"
         ),
         "legacyMigration": line_number(bootstrap, "clipboardPolicy = .disabled"),
         "strictBoolean": line_number(bootstrap, "private static func strictBool"),

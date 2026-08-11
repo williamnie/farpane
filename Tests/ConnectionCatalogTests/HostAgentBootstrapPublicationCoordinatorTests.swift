@@ -222,7 +222,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
                 applicationSupportURL: fixture.applicationSupport
             )
         ).load()
-        XCTAssertEqual(configuration.schemaVersion, 5)
+        XCTAssertEqual(configuration.schemaVersion, 6)
         XCTAssertEqual(configuration.clipboardPolicy, smallReadAndRichWrite)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         let imageRead = HostAgentClipboardPolicy(
@@ -246,7 +246,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
                 applicationSupportURL: fixture.applicationSupport
             )
         ).load()
-        XCTAssertEqual(imageConfiguration.schemaVersion, 5)
+        XCTAssertEqual(imageConfiguration.schemaVersion, 6)
         XCTAssertEqual(imageConfiguration.clipboardPolicy, imageRead)
         XCTAssertEqual(imageConfiguration.fileTransferPolicy, .disabled)
     }
@@ -307,6 +307,57 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
     }
 
+    func testAudioPolicyChangesAdvanceRevisionAndRemainExact() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let coordinator = HostAgentBootstrapPublicationCoordinator(
+            applicationSupportURL: fixture.applicationSupport
+        )
+        let source = catalog(server: "one.example.invalid:21116")
+
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1"
+            ).configRevision,
+            1
+        )
+        let enabled = HostAgentAudioPolicy(enabled: true)
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                audioPolicy: enabled
+            ).configRevision,
+            2
+        )
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                audioPolicy: enabled
+            ).publicationResult,
+            .unchanged
+        )
+        XCTAssertEqual(
+            try coordinator.publish(
+                catalog: source,
+                agentBuildID: "build-1",
+                audioPolicy: .disabled
+            ).configRevision,
+            3
+        )
+        let configuration = try HostAgentBootstrapConfigurationReader(
+            directoryURL: HostAgentBootstrapProductLayout.directoryURL(
+                applicationSupportURL: fixture.applicationSupport
+            )
+        ).load()
+        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(configuration.audioPolicy, .disabled)
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+        XCTAssertEqual(configuration.clipboardPolicy, .disabled)
+    }
+
     func testLegacySchemaOnePublicationUpgradesWithClipboardDisabled() throws {
         let fixture = try makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.root) }
@@ -341,7 +392,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 5)
+        XCTAssertEqual(upgraded.schemaVersion, 6)
         XCTAssertEqual(upgraded.clipboardPolicy, .disabled)
         XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
     }
@@ -388,7 +439,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 5)
+        XCTAssertEqual(upgraded.schemaVersion, 6)
         XCTAssertEqual(upgraded.clipboardPolicy, policy)
         XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteRichTextRead)
@@ -443,7 +494,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 5)
+        XCTAssertEqual(upgraded.schemaVersion, 6)
         XCTAssertEqual(upgraded.clipboardPolicy, policy)
         XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageRead)

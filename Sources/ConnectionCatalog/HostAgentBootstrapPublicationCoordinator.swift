@@ -41,7 +41,8 @@ public final class HostAgentBootstrapPublicationCoordinator: @unchecked Sendable
         catalog: DeviceCatalogDocument,
         agentBuildID: String,
         clipboardPolicy: HostAgentClipboardPolicy = .disabled,
-        fileTransferPolicy: HostAgentFileTransferPolicy = .disabled
+        fileTransferPolicy: HostAgentFileTransferPolicy = .disabled,
+        audioPolicy: HostAgentAudioPolicy = .disabled
     ) throws -> HostAgentBootstrapPublicationOutcome {
         let directoryURL = try HostAgentBootstrapProductDirectoryPreparer.prepare(
             applicationSupportURL: applicationSupportURL
@@ -67,7 +68,8 @@ public final class HostAgentBootstrapPublicationCoordinator: @unchecked Sendable
                 configRevision: existing.configRevision,
                 agentBuildID: agentBuildID,
                 clipboardPolicy: clipboardPolicy,
-                fileTransferPolicy: fileTransferPolicy
+                fileTransferPolicy: fileTransferPolicy,
+                audioPolicy: audioPolicy
             )
             let desiredAtCurrentRevision = try HostAgentBootstrapConfiguration.decode(
                 sameRevisionDocument
@@ -96,7 +98,8 @@ public final class HostAgentBootstrapPublicationCoordinator: @unchecked Sendable
             configRevision: proposedRevision,
             agentBuildID: agentBuildID,
             clipboardPolicy: clipboardPolicy,
-            fileTransferPolicy: fileTransferPolicy
+            fileTransferPolicy: fileTransferPolicy,
+            audioPolicy: audioPolicy
         )
         let result = try publisher.publish(document)
         return HostAgentBootstrapPublicationOutcome(

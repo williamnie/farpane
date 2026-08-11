@@ -6,7 +6,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
     func testDecodesExactVersionedImmutableHostBootstrapInput() throws {
         let configuration = try HostAgentBootstrapConfiguration.decode(validDocument())
 
-        XCTAssertEqual(configuration.schemaVersion, 5)
+        XCTAssertEqual(configuration.schemaVersion, 6)
         XCTAssertEqual(configuration.configRevision, 7)
         XCTAssertEqual(configuration.agentBuildID, "20260808155349")
         XCTAssertEqual(
@@ -32,6 +32,10 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
                 receiveRoot: "/Users/example/FarPane Receive"
             )
         )
+        XCTAssertEqual(
+            configuration.audioPolicy,
+            HostAgentAudioPolicy(enabled: true)
+        )
         XCTAssertEqual(configuration.hostConfigAppName, "FarPaneHost")
         XCTAssertEqual(configuration.hostConfigOrganization, "io.rustdesknative")
     }
@@ -44,6 +48,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.schemaVersion, 1)
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+        XCTAssertEqual(configuration.audioPolicy, .disabled)
     }
 
     func testSchemaTwoPreservesSmallTextAndDisablesRichText() throws {
@@ -64,6 +69,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
             )
         )
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+        XCTAssertEqual(configuration.audioPolicy, .disabled)
     }
 
     func testSchemaThreePreservesTextAndDisablesImage() throws {
@@ -84,6 +90,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
             )
         )
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+        XCTAssertEqual(configuration.audioPolicy, .disabled)
     }
 
     func testSchemaFourPreservesClipboardAndDisablesFileTransfer() throws {
@@ -93,6 +100,17 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
         XCTAssertEqual(configuration.schemaVersion, 4)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+        XCTAssertEqual(configuration.audioPolicy, .disabled)
+    }
+
+    func testSchemaFivePreservesFileTransferAndDisablesAudio() throws {
+        let configuration = try HostAgentBootstrapConfiguration.decode(
+            schemaFiveDocument()
+        )
+
+        XCTAssertEqual(configuration.schemaVersion, 5)
+        XCTAssertTrue(configuration.fileTransferPolicy.enabled)
+        XCTAssertEqual(configuration.audioPolicy, .disabled)
     }
 
     func testRejectsFileTransferPairMismatchAndUnsafeReceiveRoot() throws {
@@ -181,9 +199,53 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     func testRejectsUnsupportedSchemaUnsafeStringsAndOversizedInput() throws {
         var future = try object(from: validDocument())
-        future["schemaVersion"] = 6
+        future["schemaVersion"] = 7
         XCTAssertThrowsError(try HostAgentBootstrapConfiguration.decode(data(future))) { error in
-            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(6))
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(7))
+        }
+
+        var missingAudio = try object(from: validDocument())
+        missingAudio.removeValue(forKey: "audio")
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(missingAudio))
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentBootstrapConfigurationError,
+                .invalidDocument
+            )
+        }
+
+        var downgradedAudio = try object(from: schemaFiveDocument())
+        downgradedAudio["audio"] = ["enabled": true]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(downgradedAudio))
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentBootstrapConfigurationError,
+                .invalidDocument
+            )
+        }
+
+        var numericAudio = try object(from: validDocument())
+        numericAudio["audio"] = ["enabled": 1]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(numericAudio))
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentBootstrapConfigurationError,
+                .invalidDocument
+            )
+        }
+
+        var extraAudioKey = try object(from: validDocument())
+        extraAudioKey["audio"] = ["enabled": true, "source": "microphone"]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(extraAudioKey))
+        ) { error in
+            XCTAssertEqual(
+                error as? HostAgentBootstrapConfigurationError,
+                .invalidDocument
+            )
         }
 
         var numericClipboard = try object(from: validDocument())
@@ -265,8 +327,35 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     private func validDocument() throws -> Data {
         data([
-            "schemaVersion": 5,
+            "schemaVersion": 6,
             "configRevision": 7,
+            "agentBuildID": "20260808155349",
+            "server": [
+                "rendezvousServer": "hermes.example.invalid:21116",
+                "serverPublicKey": "public-key",
+            ],
+            "clipboard": [
+                "allowRemoteRead": true,
+                "allowRemoteWrite": false,
+                "allowRemoteRichTextRead": false,
+                "allowRemoteRichTextWrite": true,
+                "allowRemoteImageRead": true,
+                "allowRemoteImageWrite": false,
+            ],
+            "fileTransfer": [
+                "enabled": true,
+                "receiveRoot": "/Users/example/FarPane Receive",
+            ],
+            "audio": [
+                "enabled": true,
+            ],
+        ])
+    }
+
+    private func schemaFiveDocument() -> Data {
+        data([
+            "schemaVersion": 5,
+            "configRevision": 6,
             "agentBuildID": "20260808155349",
             "server": [
                 "rendezvousServer": "hermes.example.invalid:21116",

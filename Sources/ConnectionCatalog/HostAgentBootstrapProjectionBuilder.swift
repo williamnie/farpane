@@ -12,7 +12,8 @@ public enum HostAgentBootstrapProjectionBuilder {
         configRevision: UInt64,
         agentBuildID: String,
         clipboardPolicy: HostAgentClipboardPolicy = .disabled,
-        fileTransferPolicy: HostAgentFileTransferPolicy = .disabled
+        fileTransferPolicy: HostAgentFileTransferPolicy = .disabled,
+        audioPolicy: HostAgentAudioPolicy = .disabled
     ) throws -> Data {
         guard catalog.schemaVersion == DeviceCatalogDocument.currentSchemaVersion else {
             throw HostAgentBootstrapProjectionBuilderError.unsupportedCatalogSchema(
@@ -46,6 +47,9 @@ public enum HostAgentBootstrapProjectionBuilder {
             "fileTransfer": [
                 "enabled": fileTransferPolicy.enabled,
                 "receiveRoot": fileTransferPolicy.receiveRoot as Any? ?? NSNull(),
+            ],
+            "audio": [
+                "enabled": audioPolicy.enabled,
             ],
         ]
         do {

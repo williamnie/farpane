@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
-    def test_host_audio_is_abi_capable_but_product_default_off(self) -> None:
+class HostAudioBootstrapMicrophoneOptInContractAuditTests(unittest.TestCase):
+    def test_audio_opt_in_requires_main_app_tcc_and_both_host_owners(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-audio-explicit-policy-abi-contract.py",
+                "Scripts/audit-host-audio-bootstrap-microphone-opt-in-contract.py",
             ],
             cwd=repository,
             check=False,
@@ -26,25 +26,26 @@ class HostAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-audio-explicit-policy-abi-contract-audit",
+            "farpane-host-audio-bootstrap-microphone-opt-in-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-audio-abi-capable-product-default-off",
+            "host-audio-bootstrap-microphone-opt-in-ready",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
-        implementation = document["implementation"]
-        self.assertEqual(implementation["hostABIVersion"], 18)
-        self.assertTrue(all(implementation["evidence"].values()))
-        self.assertTrue(all(implementation["sourceLines"].values()))
+        self.assertTrue(all(document["evidence"].values()))
+        self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
         self.assertFalse(claims["hostAudioEnabledByDefault"])
-        self.assertTrue(claims["hostAudioABICapable"])
-        self.assertTrue(claims["hostAudioProductEnabled"])
+        self.assertTrue(claims["explicitHomeMicrophoneOptInImplemented"])
+        self.assertTrue(claims["mainAppOwnsPromptingAuthorization"])
+        self.assertTrue(claims["hostAgentNeverPromptsForMicrophone"])
+        self.assertTrue(claims["backgroundHostProjectionImplemented"])
+        self.assertTrue(claims["legacyHostProjectionImplemented"])
         self.assertFalse(claims["viewerAudioImplemented"])
-        self.assertTrue(claims["microphoneTCCImplemented"])
+        self.assertFalse(claims["virtualAudioInputSelectionImplemented"])
         self.assertFalse(claims["installedAudioAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],

@@ -110,8 +110,9 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
             .ready(configRevision: 1)
         )
         let configuration = try readProjection(fixture)
-        XCTAssertEqual(configuration.schemaVersion, 5)
+        XCTAssertEqual(configuration.schemaVersion, 6)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+        XCTAssertEqual(configuration.audioPolicy, .disabled)
         XCTAssertEqual(
             configuration.clipboardPolicy,
             HostAgentClipboardPolicy(
@@ -148,6 +149,31 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
         )
         let configuration = try readProjection(fixture)
         XCTAssertEqual(configuration.fileTransferPolicy, policy)
+        XCTAssertEqual(configuration.clipboardPolicy, .disabled)
+    }
+
+    func testReconcilesExplicitAudioPolicyIntoCanonicalProjection() throws {
+        let fixture = try makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let integration = try HostAgentBootstrapProductIntegration(
+            applicationSupportURL: fixture.applicationSupport,
+            agentBuildID: "202608080001"
+        )
+        try fixture.store.save(catalog(server: "one.example.invalid:21116"))
+        let policy = HostAgentAudioPolicy(enabled: true)
+
+        XCTAssertEqual(
+            integration.reconcileSavedCatalog(
+                from: fixture.store,
+                clipboardPolicy: .disabled,
+                audioPolicy: policy
+            ),
+            .ready(configRevision: 1)
+        )
+        let configuration = try readProjection(fixture)
+        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(configuration.audioPolicy, policy)
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
     }
 

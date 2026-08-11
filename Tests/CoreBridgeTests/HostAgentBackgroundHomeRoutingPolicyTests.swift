@@ -178,6 +178,48 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         )
     }
 
+    func testAudioPolicyChangesRequireHostOffNoViewerAndNoAuthorizationRequest() {
+        let allowed = HostAgentBackgroundHomeControlState(
+            isOn: false,
+            isInteractive: true
+        )
+        XCTAssertTrue(
+            HostAgentBackgroundHomeRoutingPolicy
+                .allowsAudioPolicyChange(
+                    control: allowed,
+                    viewerConnectionInProgress: false,
+                    authorizationRequestInProgress: false
+                )
+        )
+        XCTAssertFalse(
+            HostAgentBackgroundHomeRoutingPolicy
+                .allowsAudioPolicyChange(
+                    control: HostAgentBackgroundHomeControlState(
+                        isOn: true,
+                        isInteractive: true
+                    ),
+                    viewerConnectionInProgress: false,
+                    authorizationRequestInProgress: false
+                )
+        )
+        XCTAssertFalse(
+            HostAgentBackgroundHomeRoutingPolicy
+                .allowsAudioPolicyChange(
+                    control: allowed,
+                    viewerConnectionInProgress: true,
+                    authorizationRequestInProgress: false
+                )
+        )
+        XCTAssertFalse(
+            HostAgentBackgroundHomeRoutingPolicy
+                .allowsAudioPolicyChange(
+                    control: allowed,
+                    viewerConnectionInProgress: false,
+                    authorizationRequestInProgress: true
+                )
+        )
+    }
+
     func testHostEnableRequiresPublishedBootstrapButDisableRemainsAvailable() {
         let off = HostAgentBackgroundHomeControlState(
             isOn: false,
@@ -483,6 +525,74 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         XCTAssertTrue(agentSource.contains(
             "configuration.fileTransferPolicy.receiveRoot"
         ))
+    }
+
+    func testMicrophoneOptInPromptsOnlyFromHomeAndBothHostOwnersFailClosed() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/RustDeskNativeApp.swift"
+            ),
+            encoding: .utf8
+        )
+        let homeSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/HomeView.swift"
+            ),
+            encoding: .utf8
+        )
+        let agentSource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
+            ),
+            encoding: .utf8
+        )
+        let authoritySource = try String(
+            contentsOf: repositoryRoot.appendingPathComponent(
+                "Sources/RustDeskNative/HostMicrophoneAuthorizationAuthority.swift"
+            ),
+            encoding: .utf8
+        )
+        let info = try String(
+            contentsOf: repositoryRoot.appendingPathComponent("App/Info.plist"),
+            encoding: .utf8
+        )
+
+        for marker in [
+            "farpane.host.audio.enabled",
+            "audioPolicy: currentHostAudioPolicy()",
+            "audioEnabled: audioPolicy.enabled",
+            "handleHostAudioPolicyToggle",
+            ".requestAuthorization",
+            "allowsAudioPolicyChange(",
+        ] {
+            XCTAssertTrue(appSource.contains(marker), marker)
+        }
+        for marker in [
+            "远程音频（默认关闭）",
+            "允许远端收听本机麦克风",
+            "onHostAudioToggle",
+            "snapshot.host.allowsAudioPolicyChange",
+        ] {
+            XCTAssertTrue(homeSource.contains(marker), marker)
+        }
+        XCTAssertTrue(agentSource.contains(
+            "configuration.audioPolicy.enabled"
+        ))
+        XCTAssertTrue(agentSource.contains("isAuthorizedWithoutPrompt()"))
+        XCTAssertFalse(agentSource.contains("requestAuthorization"))
+        XCTAssertTrue(authoritySource.contains(
+            "AVCaptureDevice.requestAccess("
+        ))
+        XCTAssertTrue(authoritySource.contains(
+            "AVCaptureDevice.authorizationStatus(for: .audio)"
+        ))
+        XCTAssertTrue(info.contains("NSMicrophoneUsageDescription"))
+        XCTAssertTrue(info.contains("RustDeskNative"))
+        XCTAssertTrue(info.contains("io.rustdesknative.viewer"))
     }
 }
 

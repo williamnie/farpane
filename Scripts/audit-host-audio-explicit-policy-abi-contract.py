@@ -40,12 +40,17 @@ def main() -> int:
         "audio_service": repository / "Vendor/rustdesk/src/server/audio_service.rs",
         "host_control": repository / "Sources/CoreBridge/HostControlClient.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
+        "home": repository / "Sources/RustDeskNative/HomeView.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
         "viewer": repository / "Sources/CoreBridge/CoreBridge.swift",
         "client": repository / "Vendor/rustdesk/src/client.rs",
         "info": repository / "App/Info.plist",
         "permission": repository
         / "Sources/RustDeskNative/HostAgentDisplayTCCRecoveryAuthority.swift",
+        "microphone": repository
+        / "Sources/RustDeskNative/HostMicrophoneAuthorizationAuthority.swift",
+        "host_bootstrap": repository
+        / "Sources/ConnectionCatalog/HostAgentBootstrapConfiguration.swift",
         "build": repository / "Scripts/build-rust-core.sh",
         "bootstrap": repository / "Scripts/bootstrap-rustdesk-core.sh",
         "verifier": repository / "Scripts/verify-rustdesk-core-source.sh",
@@ -161,18 +166,20 @@ def main() -> int:
                 "msg_out.set_audio_frame(AudioFrame",
             )
         ),
-        "productCallersRemainDefaultOff": (
-            "audioEnabled: true" not in product
-            and "farpane.host.audio.enabled" not in product
+        "productPolicyRetainsDefaultOff": (
+            "public static let disabled = Self(enabled: false)"
+            in sources["host_bootstrap"]
+            and "var audioEnabled: Bool = false"
+            in sources["home"]
         ),
         "viewerPolicyRemainsOutOfScope": (
             "receiveAudio: Bool" not in sources["viewer"]
             and "self.config.disable_audio.v = true;" in sources["client"]
         ),
-        "microphoneTCCRemainsOutOfScope": (
-            "NSMicrophoneUsageDescription" not in sources["info"]
-            and "AVCaptureDevice" not in sources["permission"]
-            and "AVFoundation" not in sources["permission"]
+        "laterMicrophoneTCCExtensionDoesNotAlterHostABI": (
+            "NSMicrophoneUsageDescription" in sources["info"]
+            and "AVCaptureDevice.requestAccess(" in sources["microphone"]
+            and header_abi == rust_abi == 18
         ),
         "releaseBuildStillExcludesScreenCaptureKit": (
             "rdn-native-core,rdn-native-host" in sources["build"]
@@ -247,14 +254,14 @@ def main() -> int:
         "claims": {
             "hostAudioEnabledByDefault": False,
             "hostAudioABICapable": True,
-            "hostAudioProductEnabled": False,
+            "hostAudioProductEnabled": True,
             "viewerAudioImplemented": False,
-            "microphoneTCCImplemented": False,
+            "microphoneTCCImplemented": True,
             "installedAudioAcceptanceComplete": False,
             "rustDeskWireChanged": False,
             "hermesChanged": False,
         },
-        "nextImplementationBoundary": "host-audio-bootstrap-microphone-opt-in-contract",
+        "nextImplementationBoundary": "viewer-audio-explicit-policy-abi-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-audio-abi-capable-product-default-off" else 1

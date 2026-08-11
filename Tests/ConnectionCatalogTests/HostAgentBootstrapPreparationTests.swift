@@ -140,11 +140,12 @@ final class HostAgentBootstrapPreparationTests: XCTestCase {
         let configuration = try HostAgentBootstrapConfiguration.decode(document)
 
         XCTAssertEqual(configuration.configRevision, 9)
-        XCTAssertEqual(configuration.schemaVersion, 5)
+        XCTAssertEqual(configuration.schemaVersion, 6)
         XCTAssertEqual(configuration.rendezvousServer, "hermes.example.invalid:21116")
         XCTAssertEqual(configuration.serverPublicKey, "public-key")
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+        XCTAssertEqual(configuration.audioPolicy, .disabled)
         XCTAssertEqual(
             document,
             try HostAgentBootstrapProjectionBuilder.build(
@@ -195,6 +196,27 @@ final class HostAgentBootstrapPreparationTests: XCTestCase {
                 receiveRoot: "/Users/example/FarPane Receive"
             )
         )
+    }
+
+    func testBuildsExplicitAudioProjection() throws {
+        let catalog = DeviceCatalogDocument(
+            server: ServerConfiguration(
+                displayName: "Hermes",
+                rendezvousServer: "hermes.example.invalid:21116",
+                serverPublicKey: "public-key"
+            )
+        )
+
+        let document = try HostAgentBootstrapProjectionBuilder.build(
+            catalog: catalog,
+            configRevision: 11,
+            agentBuildID: "20260808155349",
+            audioPolicy: HostAgentAudioPolicy(enabled: true)
+        )
+        let configuration = try HostAgentBootstrapConfiguration.decode(document)
+
+        XCTAssertEqual(configuration.audioPolicy, HostAgentAudioPolicy(enabled: true))
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
     }
 
     func testProjectionFailsClosedForMissingFutureOrUnsafeCatalogInput() throws {

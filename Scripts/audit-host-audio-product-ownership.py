@@ -49,6 +49,11 @@ def main() -> int:
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
         "permission": repository
         / "Sources/RustDeskNative/HostAgentDisplayTCCRecoveryAuthority.swift",
+        "microphone": repository
+        / "Sources/RustDeskNative/HostMicrophoneAuthorizationAuthority.swift",
+        "bootstrap": repository
+        / "Sources/ConnectionCatalog/HostAgentBootstrapConfiguration.swift",
+        "home": repository / "Sources/RustDeskNative/HomeView.swift",
         "info": repository / "App/Info.plist",
         "build_core": repository / "Scripts/build-rust-core.sh",
         "cargo": repository / "Vendor/rustdesk/Cargo.toml",
@@ -176,6 +181,18 @@ def main() -> int:
         "canonicalAndVendoredHostBridgeMatch": (
             host_bridge == sources["vendor_host_bridge"]
         ),
+        "hostMicrophoneOptInAndTCCProjectionAreImplemented": all(
+            marker in sources["microphone"] + sources["info"] + sources["bootstrap"]
+            + sources["home"] + product
+            for marker in (
+                "AVCaptureDevice.requestAccess(",
+                "NSMicrophoneUsageDescription",
+                "public let audioPolicy: HostAgentAudioPolicy",
+                "远程音频（默认关闭）",
+                "farpane.host.audio.enabled",
+                "isAuthorizedWithoutPrompt()",
+            )
+        ),
     }
 
     gaps = {
@@ -183,16 +200,6 @@ def main() -> int:
             "bool receive_audio;" not in header
             and "receiveAudio: Bool" not in sources["viewer_swift"]
             and "self.config.disable_audio.v = true;" in client
-        ),
-        "microphoneTCCPreflightAndUsageDescriptionAreMissing": (
-            "NSMicrophoneUsageDescription" not in sources["info"]
-            and "AVCaptureDevice" not in sources["permission"]
-            and "AVFoundation" not in sources["permission"]
-        ),
-        "bootstrapAndHomeHaveNoAudioOptIn": (
-            "farpane.host.audio.enabled" not in product
-            and "audioEnabled: Bool" not in product
-            and "enableAudio" not in product
         ),
         "viewerBridgeDoesNotProjectRemoteAudioPermission": (
             'else if name == "clipboard"' in viewer_bridge
@@ -225,7 +232,13 @@ def main() -> int:
         "viewerAudioPlayback": line_number(client, "pub struct AudioHandler"),
         "hostAudioPolicyPin": line_number(host_bridge, "native_host_audio_option(audio_enabled)"),
         "activeSessionRevoke": line_number(host_bridge, "NativeSessionCommand::DisableAudio"),
-        "infoPlist": line_number(sources["info"], "<dict>"),
+        "hostMicrophoneOptIn": line_number(product, "farpane.host.audio.enabled"),
+        "microphoneTCC": line_number(
+            sources["microphone"], "AVCaptureDevice.requestAccess("
+        ),
+        "infoPlist": line_number(
+            sources["info"], "NSMicrophoneUsageDescription"
+        ),
     }
 
     missing_evidence = [name for name, present in evidence.items() if not present]
@@ -262,7 +275,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "host-policy-implemented-development-incomplete"
+            "host-opt-in-implemented-development-incomplete"
             if healthy
             else "audit-failed"
         ),
@@ -285,7 +298,7 @@ def main() -> int:
             "rootDependencyChangeRequired": False,
             "installedAudioAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "host-audio-bootstrap-microphone-opt-in-contract",
+        "nextImplementationBoundary": "viewer-audio-explicit-policy-abi-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1

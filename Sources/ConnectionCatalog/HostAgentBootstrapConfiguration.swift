@@ -75,11 +75,21 @@ public struct HostAgentFileTransferPolicy: Equatable, Sendable {
     }
 }
 
+public struct HostAgentAudioPolicy: Equatable, Sendable {
+    public static let disabled = Self(enabled: false)
+
+    public let enabled: Bool
+
+    public init(enabled: Bool) {
+        self.enabled = enabled
+    }
+}
+
 /// Immutable, non-secret input that must be validated before HostAgent may
 /// switch the Rust config namespace or create HostCore. Disk ownership,
 /// atomic publication and the single-writer lease are separate later gates.
 public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
-    public static let currentSchemaVersion = 5
+    public static let currentSchemaVersion = 6
     public static let maximumDocumentBytes = 64 * 1_024
     public static let maximumConfigRevision: UInt64 = 9_007_199_254_740_991
 
@@ -90,6 +100,7 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
     public let serverPublicKey: String
     public let clipboardPolicy: HostAgentClipboardPolicy
     public let fileTransferPolicy: HostAgentFileTransferPolicy
+    public let audioPolicy: HostAgentAudioPolicy
 
     /// These namespace components are product-owned constants, never values
     /// accepted from disk or an environment variable.
@@ -103,7 +114,8 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         rendezvousServer: String,
         serverPublicKey: String,
         clipboardPolicy: HostAgentClipboardPolicy,
-        fileTransferPolicy: HostAgentFileTransferPolicy
+        fileTransferPolicy: HostAgentFileTransferPolicy,
+        audioPolicy: HostAgentAudioPolicy
     ) {
         self.schemaVersion = schemaVersion
         self.configRevision = configRevision
@@ -112,6 +124,7 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         self.serverPublicKey = serverPublicKey
         self.clipboardPolicy = clipboardPolicy
         self.fileTransferPolicy = fileTransferPolicy
+        self.audioPolicy = audioPolicy
     }
 
     public static func decode(_ data: Data) throws -> Self {
@@ -146,10 +159,15 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
                 "schemaVersion", "configRevision", "agentBuildID", "server",
                 "clipboard",
             ]
-        } else {
+        } else if schemaVersion == 5 {
             expectedKeys = [
                 "schemaVersion", "configRevision", "agentBuildID", "server",
                 "clipboard", "fileTransfer",
+            ]
+        } else {
+            expectedKeys = [
+                "schemaVersion", "configRevision", "agentBuildID", "server",
+                "clipboard", "fileTransfer", "audio",
             ]
         }
         guard Set(document.keys) == expectedKeys else {
@@ -266,6 +284,17 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             }
         }
 
+        let audioPolicy: HostAgentAudioPolicy
+        if schemaVersion <= 5 {
+            audioPolicy = .disabled
+        } else {
+            guard let audio = document["audio"] as? [String: Any],
+                  Set(audio.keys) == Set(["enabled"]),
+                  let enabled = strictBool(audio["enabled"])
+            else { throw HostAgentBootstrapConfigurationError.invalidDocument }
+            audioPolicy = HostAgentAudioPolicy(enabled: enabled)
+        }
+
         return Self(
             schemaVersion: schemaVersion,
             configRevision: configRevision,
@@ -273,7 +302,8 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             rendezvousServer: rendezvousServer,
             serverPublicKey: serverPublicKey,
             clipboardPolicy: clipboardPolicy,
-            fileTransferPolicy: fileTransferPolicy
+            fileTransferPolicy: fileTransferPolicy,
+            audioPolicy: audioPolicy
         )
     }
 
