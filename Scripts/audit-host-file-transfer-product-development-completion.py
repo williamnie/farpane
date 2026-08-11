@@ -9,8 +9,8 @@ import subprocess
 
 
 SCHEMA = "farpane-host-file-transfer-product-development-completion-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-upload-selection-manifest-contract"
-MINIMUM_REQUIRED_AUDITS = 37
+NEXT_BOUNDARY = "host-file-transfer-viewer-upload-wire-abi-ownership-audit"
+MINIMUM_REQUIRED_AUDITS = 38
 
 
 def read(path: Path) -> str:
@@ -80,6 +80,8 @@ def main() -> int:
         / "Sources/RustDeskNative/ViewerFileTransferDialogs.swift",
         "viewer_contract": repository
         / "Sources/CoreBridge/ViewerFileTransferContract.swift",
+        "viewer_upload_contract": repository
+        / "Sources/CoreBridge/ViewerFileTransferUploadContract.swift",
         "viewer_composition": repository
         / "Sources/CoreBridge/ViewerFileTransferProductComposition.swift",
     }
@@ -126,12 +128,16 @@ def main() -> int:
         "audit-host-file-transfer-viewer-safe-receive-write-lifecycle.py",
         "audit-host-file-transfer-viewer-safe-receive-commit-lifecycle.py",
     )
+    upload_selection_audits = (
+        "audit-host-file-transfer-viewer-upload-selection-manifest-contract.py",
+    )
 
     app = sources["app"]
     home = sources["home"]
     viewer_ui = sources["viewer_ui"]
     viewer_dialogs = sources["viewer_dialogs"]
     viewer_contract = sources["viewer_contract"]
+    viewer_upload_contract = sources["viewer_upload_contract"]
     viewer_composition = sources["viewer_composition"]
 
     host_opt_in = includes_all(passed_audits, policy_audits) and all(
@@ -154,6 +160,18 @@ def main() -> int:
         )
     )
     safety_complete = includes_all(passed_audits, safety_audits)
+    upload_selection = includes_all(
+        passed_audits,
+        upload_selection_audits,
+    ) and all(
+        marker in viewer_upload_contract + viewer_dialogs
+        for marker in (
+            "ViewerFileTransferUploadRequest",
+            "ViewerFileTransferUploadSourcePickerController",
+            "panel.canChooseFiles = true",
+            "panel.canChooseDirectories = true",
+        )
+    )
 
     upload_markers = (
         "ViewerFileTransferUploadRequest",
@@ -162,13 +180,19 @@ def main() -> int:
         'NSButton(title: "发送文件"',
         "panel.canChooseFiles = true",
     )
-    upload_sources = viewer_contract + viewer_composition + viewer_ui + viewer_dialogs
+    upload_sources = (
+        viewer_contract
+        + viewer_upload_contract
+        + viewer_composition
+        + viewer_ui
+        + viewer_dialogs
+    )
     viewer_upload = all(marker in upload_sources for marker in upload_markers)
     viewer_upload_gap_proven = (
         "case download = 1" in viewer_contract
         and not viewer_upload
         and "onFileTransferUploadAction" not in viewer_ui
-        and "panel.canChooseFiles = true" not in viewer_dialogs
+        and "requestFileTransferUpload" not in viewer_composition
     )
 
     evidence = {
@@ -209,6 +233,7 @@ def main() -> int:
         "viewerUploadGapIsProvenByCurrentProductSources": (
             viewer_upload_gap_proven
         ),
+        "viewerUploadSelectionManifestIsReadyForWireReview": upload_selection,
     }
 
     development_complete = all((
@@ -265,6 +290,7 @@ def main() -> int:
             "hostReceiveDataPlaneImplemented": host_receive,
             "hostSendDataPlaneImplemented": host_send,
             "viewerDownloadProductActionImplemented": viewer_download,
+            "viewerUploadSelectionManifestImplemented": upload_selection,
             "viewerUploadProductActionImplemented": viewer_upload,
             "fileTransferProductDevelopmentComplete": development_complete,
             "installedSingleMacSmokeComplete": False,

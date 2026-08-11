@@ -41,6 +41,52 @@ final class ViewerFileTransferDestinationPickerController {
     }
 }
 
+/// Owns one explicit upload-source selection. The returned URLs must be
+/// consumed immediately by the descriptor-backed CoreBridge owner; this
+/// controller is intentionally not wired to Viewer product UI yet.
+final class ViewerFileTransferUploadSourcePickerController {
+    private var panel: NSOpenPanel?
+
+    func begin(
+        on window: NSWindow,
+        completion: @escaping ([URL]?) -> Void
+    ) {
+        guard panel == nil else {
+            completion(nil)
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.message = "选择要发送的文件或文件夹。FarPane 会拒绝符号链接和不安全条目，并忽略文件夹中的隐藏内容。"
+        panel.prompt = "选择发送内容"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.canCreateDirectories = false
+        panel.resolvesAliases = false
+        self.panel = panel
+        panel.beginSheetModal(for: window) { [weak self, weak panel] response in
+            guard let self else { return }
+            let selected = response == .OK ? panel?.urls : nil
+            self.panel = nil
+            guard let selected, !selected.isEmpty else {
+                completion(nil)
+                return
+            }
+            completion(selected)
+        }
+    }
+
+    func cancel() {
+        guard let panel else { return }
+        if let parent = panel.sheetParent {
+            parent.endSheet(panel, returnCode: .cancel)
+        } else {
+            panel.close()
+        }
+        self.panel = nil
+    }
+}
+
 /// Requests the remote access password only when no Keychain credential is
 /// available. The secure field and temporary String are cleared immediately.
 final class ViewerFileTransferPasswordPromptController {
