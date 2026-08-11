@@ -1,0 +1,29 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -680,0 +681,11 @@
++#[cfg(all(
++    feature = "rdn-native-host",
++    not(any(target_os = "android", target_os = "ios"))
++))]
++fn native_host_audio_capability_requested(
++    local_audio_enabled: bool,
++    remote_audio_disabled: bool,
++) -> bool {
++    local_audio_enabled && !remote_audio_disabled
++}
++
+@@ -3351 +3362,4 @@
+-                if !peer_disables(|option| option.disable_audio.enum_value_or_default()) {
++                if native_host_audio_capability_requested(
++                    self.audio_enabled(),
++                    peer_disables(|option| option.disable_audio.enum_value_or_default()),
++                ) {
+@@ -10458,0 +10473,8 @@
++    #[test]
++    fn native_host_audio_request_intersects_local_and_remote_policy() {
++        assert!(!native_host_audio_capability_requested(false, false));
++        assert!(!native_host_audio_capability_requested(false, true));
++        assert!(!native_host_audio_capability_requested(true, true));
++        assert!(native_host_audio_capability_requested(true, false));
++    }
++

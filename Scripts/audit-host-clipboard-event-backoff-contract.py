@@ -137,7 +137,7 @@ def main() -> int:
             for marker in (
                 "native_host_clipboard_option(NativeClipboardTransferPolicy::default())",
                 "config::keys::OPTION_ENABLE_CLIPBOARD",
-                'config::Config::set_option(key.to_owned(), "N".to_owned())',
+                "native_host_clipboard_option(clipboard_policy).to_owned()",
             )
         ),
     }

@@ -63,10 +63,10 @@ def main() -> int:
         "designRecordsImageWiringStep": (
             "H6.2k3 Host↔Viewer image transfer wiring contract" in sources["design"]
         ),
-        "hostABIv17RetainsIndependentImageDirections": all(
+        "currentHostABIRetainsIndependentImageDirections": all(
             marker in header
             for marker in (
-                "#define RDN_HOST_ABI_VERSION 17u",
+                "#define RDN_HOST_ABI_VERSION 18u",
                 "bool enable_clipboard_read;",
                 "bool enable_clipboard_rich_text_read;",
                 "bool enable_clipboard_image_read;",
@@ -159,7 +159,7 @@ def main() -> int:
                 "testHostClipboardDirectionsDefaultOffAndRemainIndependent",
                 "clipboardImageReadEnabled: true",
                 "clipboardImageWriteEnabled: true",
-                "private static let hostABIVersion: UInt32 = 17",
+                "private static let hostABIVersion: UInt32 = 18",
             )
         ),
         "viewerAndHostProductImagePathsAreExplicit": (
@@ -192,7 +192,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.2k3 Host↔Viewer image transfer wiring contract"
         ),
-        "hostABIVersion": line_number(header, "#define RDN_HOST_ABI_VERSION 17u"),
+        "hostABIVersion": line_number(header, "#define RDN_HOST_ABI_VERSION 18u"),
         "hostImageRead": line_number(header, "bool enable_clipboard_image_read;"),
         "swiftImageDefault": line_number(swift, "clipboardImageReadEnabled: Bool = false"),
         "transferPolicy": line_number(host, "pub(crate) struct NativeClipboardTransferPolicy"),

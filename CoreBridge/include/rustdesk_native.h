@@ -522,7 +522,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 17u
+#define RDN_HOST_ABI_VERSION 18u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -611,6 +611,9 @@ typedef struct RdnHostCreateOptions {
      * canonical RGBA, PNG, and SVG payloads may cross the Host bridge. */
     bool enable_clipboard_image_read;
     bool enable_clipboard_image_write;
+    /* Native microphone audio is an independent, default-off capability.
+     * System-audio loopback remains an explicit virtual-input product path. */
+    bool enable_audio;
     /* Dedicated file-service permission. This capability is independent from
      * clipboard payloads and defaults off in Swift. */
     bool enable_file_transfer;

@@ -161,7 +161,7 @@ def main() -> int:
         "richClipboardRemainsOutsideProductFeatureSet": (
             'rdn-native-host = ["scrap/rdn-native-host"]' in cargo
             and 'unix-file-copy-paste = [' in cargo
-            and 'config::Config::set_option(key.to_owned(), "N".to_owned())'
+            and "native_host_clipboard_option(clipboard_policy).to_owned()"
             in sources["bridge"]
         ),
     }

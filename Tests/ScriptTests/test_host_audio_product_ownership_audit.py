@@ -33,8 +33,11 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
             "farpane-host-audio-product-ownership-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "implementation-required")
-        self.assertEqual(document["currentABI"], {"host": 17, "viewer": 16})
+        self.assertEqual(
+            document["status"],
+            "host-policy-implemented-development-incomplete",
+        )
+        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 16})
         self.assertEqual(document["targetContract"]["hostABI"], 18)
         self.assertEqual(document["targetContract"]["viewerABI"], 17)
         self.assertEqual(
@@ -54,14 +57,14 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
         self.assertFalse(claims["hostAudioEnabled"])
         self.assertFalse(claims["viewerAudioEnabled"])
         self.assertFalse(claims["audioProductDevelopmentComplete"])
-        self.assertTrue(claims["hostABIChangeRequired"])
+        self.assertFalse(claims["hostABIChangeRequired"])
         self.assertTrue(claims["viewerABIChangeRequired"])
         self.assertFalse(claims["rustDeskWireChangeRequired"])
         self.assertFalse(claims["hermesChangeRequired"])
         self.assertFalse(claims["rootDependencyChangeRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-audio-explicit-policy-abi-contract",
+            "host-audio-bootstrap-microphone-opt-in-contract",
         )
 
 

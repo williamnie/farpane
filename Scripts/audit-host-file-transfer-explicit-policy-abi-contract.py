@@ -73,7 +73,7 @@ def main() -> int:
                 "host-file-transfer-security-boundary-audit",
             )
         ),
-        "hostABIv17RetainsFilePolicy": header_abi == rust_abi == 17,
+        "currentHostABIRetainsFilePolicy": header_abi == rust_abi and header_abi >= 17,
         "cCreateOptionsCarryDedicatedFilePolicy": (
             "bool enable_file_transfer;" in header
         ),
@@ -99,14 +99,13 @@ def main() -> int:
             and "native_host_file_transfer_option(file_transfer_enabled)" in bridge
             and "PersistenceMismatch" in bridge
         ),
-        "audioRemainsUnconditionallyDisabled": all(
+        "audioPolicyIsIndependentAndProductDefaultOff": all(
             marker in bridge
             for marker in (
-                "NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS",
-                "OPTION_ENABLE_AUDIO",
-                'Config::set_option(key.to_owned(), "N".to_owned())',
+                "audio_enabled: bool",
+                "native_host_audio_option(audio_enabled)",
             )
-        ),
+        ) and "audioEnabled: true" not in product_sources,
         "upstreamLoginConsumesSameFilePermission": all(
             marker in connection
             for marker in (
@@ -136,7 +135,9 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.3a Host file-transfer explicit-policy ABI seam"
         ),
-        "hostABIv17": line_number(header, "RDN_HOST_ABI_VERSION 17u"),
+        "currentHostABI": line_number(
+            header, f"RDN_HOST_ABI_VERSION {header_abi}u"
+        ),
         "cFilePolicy": line_number(header, "bool enable_file_transfer;"),
         "swiftDefault": line_number(host_control, "fileTransferEnabled: Bool = false"),
         "rustPolicyCopy": line_number(

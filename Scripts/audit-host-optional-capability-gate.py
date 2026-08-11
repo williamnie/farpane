@@ -92,13 +92,12 @@ def main() -> int:
             all(
                 marker in host_bridge
                 for marker in (
-                    "NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS",
                     "native_host_clipboard_option(clipboard_policy)",
                     "native_host_file_transfer_option(file_transfer_enabled)",
+                    "native_host_audio_option(audio_enabled)",
                     "OPTION_ENABLE_CLIPBOARD",
                     "OPTION_ENABLE_FILE_TRANSFER",
                     "OPTION_ENABLE_AUDIO",
-                    'Config::set_option(key.to_owned(), "N".to_owned())',
                 )
             )
             and apply_offset >= 0
@@ -110,7 +109,7 @@ def main() -> int:
             for marker in (
                 "native_host_clipboard_option(clipboard_policy)",
                 "native_host_file_transfer_option(file_transfer_enabled)",
-                '(config::keys::OPTION_ENABLE_AUDIO, "N")',
+                "native_host_audio_option(audio_enabled)",
                 "PersistenceMismatch",
             )
         ),

@@ -29,14 +29,6 @@ def define_version(source: str, name: str) -> int:
     return int(match.group(1))
 
 
-def section(source: str, start: str, end: str) -> str:
-    start_offset = source.find(start)
-    end_offset = source.find(end, start_offset + len(start))
-    if start_offset < 0 or end_offset <= start_offset:
-        return ""
-    return source[start_offset:end_offset]
-
-
 def main() -> int:
     repository = Path(__file__).resolve().parent.parent
     verifier = repository / "Scripts/verify-rustdesk-core-source.sh"
@@ -101,13 +93,7 @@ def main() -> int:
     client = sources["client"]
     client_io = sources["client_io"]
     viewer_bridge = sources["viewer_bridge"]
-    product = sources["host_swift"] + sources["viewer_swift"] + sources["app"] + sources["agent"]
-    approval = section(
-        connection,
-        "let peer_option = self.options_in_login.as_ref();",
-        "let _ = crate::rdn_host_bridge::native_host_begin_approval(",
-    )
-
+    product = sources["app"] + sources["agent"]
     evidence = {
         "designFreezesIndependentOptionalAudioBoundary": all(marker in design for marker in (
             "音频、剪贴板和文件传输采用独立功能开关和阶段门禁",
@@ -161,11 +147,11 @@ def main() -> int:
                 "d.decode_float(&frame.data, buffer, false)",
             )
         ),
-        "nativeHostCurrentlyPinsAudioDefaultOffBeforeRuntime": all(
+        "nativeHostOwnsExplicitDefaultOffAudioPolicyBeforeRuntime": all(
             marker in host_bridge for marker in (
-                "Audio remains disabled.",
+                "audio_enabled: (*options).enable_audio",
                 "OPTION_ENABLE_AUDIO",
-                '(config::keys::OPTION_ENABLE_AUDIO, "N")',
+                "native_host_audio_option(audio_enabled)",
                 "apply_native_host_optional_capability_policy(",
                 "host.local_id = config::Config::get_id();",
             )
@@ -193,11 +179,6 @@ def main() -> int:
     }
 
     gaps = {
-        "hostCreateOptionsLacksExplicitAudioPolicy": (
-            "bool enable_audio;" not in header
-            and "audioEnabled: Bool" not in sources["host_swift"]
-            and '(config::keys::OPTION_ENABLE_AUDIO, "N")' in host_bridge
-        ),
         "viewerConfigLacksExplicitReceiveAudioPolicy": (
             "bool receive_audio;" not in header
             and "receiveAudio: Bool" not in sources["viewer_swift"]
@@ -216,11 +197,6 @@ def main() -> int:
         "viewerBridgeDoesNotProjectRemoteAudioPermission": (
             'else if name == "clipboard"' in viewer_bridge
             and 'name == "audio"' not in viewer_bridge
-        ),
-        "approvalRequestDoesNotIntersectLocalAudioPolicy": (
-            "if !peer_disables(|option| option.disable_audio.enum_value_or_default())" in approval
-            and 'requested_capabilities.push("hearSystemAudio".to_owned())' in approval
-            and "self.audio_enabled()" not in approval
         ),
         "virtualInputSelectionHasNoFarPaneProductOwner": (
             '"audio-input"' not in product
@@ -247,7 +223,7 @@ def main() -> int:
         "viewerAudioDefaultOff": line_number(client, "self.config.disable_audio.v = true;"),
         "viewerAudioIngress": line_number(client_io, "Some(misc::Union::AudioFormat(f))"),
         "viewerAudioPlayback": line_number(client, "pub struct AudioHandler"),
-        "hostAudioPolicyPin": line_number(host_bridge, '(config::keys::OPTION_ENABLE_AUDIO, "N")'),
+        "hostAudioPolicyPin": line_number(host_bridge, "native_host_audio_option(audio_enabled)"),
         "activeSessionRevoke": line_number(host_bridge, "NativeSessionCommand::DisableAudio"),
         "infoPlist": line_number(sources["info"], "<dict>"),
     }
@@ -259,7 +235,7 @@ def main() -> int:
         and not missing_gaps
         and all(source_lines.values())
         and viewer_abi == 16
-        and host_abi == 17
+        and host_abi == 18
     )
     target_contract = {
         "hostABI": 18,
@@ -285,7 +261,11 @@ def main() -> int:
     result = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "status": "implementation-required" if healthy else "audit-failed",
+        "status": (
+            "host-policy-implemented-development-incomplete"
+            if healthy
+            else "audit-failed"
+        ),
         "pinnedRustDeskCommit": PINNED_RUSTDESK_COMMIT,
         "currentABI": {"host": host_abi, "viewer": viewer_abi},
         "evidence": evidence,
@@ -298,14 +278,14 @@ def main() -> int:
             "hostAudioEnabled": False,
             "viewerAudioEnabled": False,
             "audioProductDevelopmentComplete": False,
-            "hostABIChangeRequired": True,
+            "hostABIChangeRequired": False,
             "viewerABIChangeRequired": True,
             "rustDeskWireChangeRequired": False,
             "hermesChangeRequired": False,
             "rootDependencyChangeRequired": False,
             "installedAudioAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "host-audio-explicit-policy-abi-contract",
+        "nextImplementationBoundary": "host-audio-bootstrap-microphone-opt-in-contract",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1
