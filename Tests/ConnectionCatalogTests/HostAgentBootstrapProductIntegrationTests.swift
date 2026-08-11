@@ -110,7 +110,8 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
             .ready(configRevision: 1)
         )
         let configuration = try readProjection(fixture)
-        XCTAssertEqual(configuration.schemaVersion, 4)
+        XCTAssertEqual(configuration.schemaVersion, 5)
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         XCTAssertEqual(
             configuration.clipboardPolicy,
             HostAgentClipboardPolicy(

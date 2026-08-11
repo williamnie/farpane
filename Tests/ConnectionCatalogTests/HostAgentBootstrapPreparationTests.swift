@@ -140,10 +140,11 @@ final class HostAgentBootstrapPreparationTests: XCTestCase {
         let configuration = try HostAgentBootstrapConfiguration.decode(document)
 
         XCTAssertEqual(configuration.configRevision, 9)
-        XCTAssertEqual(configuration.schemaVersion, 4)
+        XCTAssertEqual(configuration.schemaVersion, 5)
         XCTAssertEqual(configuration.rendezvousServer, "hermes.example.invalid:21116")
         XCTAssertEqual(configuration.serverPublicKey, "public-key")
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         XCTAssertEqual(
             document,
             try HostAgentBootstrapProjectionBuilder.build(
@@ -165,6 +166,35 @@ final class HostAgentBootstrapPreparationTests: XCTestCase {
         ] {
             XCTAssertFalse(persisted.contains(forbidden))
         }
+    }
+
+    func testBuildsExplicitFileTransferProjection() throws {
+        let catalog = DeviceCatalogDocument(
+            server: ServerConfiguration(
+                displayName: "Hermes",
+                rendezvousServer: "hermes.example.invalid:21116",
+                serverPublicKey: "public-key"
+            )
+        )
+
+        let document = try HostAgentBootstrapProjectionBuilder.build(
+            catalog: catalog,
+            configRevision: 10,
+            agentBuildID: "20260808155349",
+            fileTransferPolicy: HostAgentFileTransferPolicy(
+                enabled: true,
+                receiveRoot: "/Users/example/FarPane Receive"
+            )
+        )
+        let configuration = try HostAgentBootstrapConfiguration.decode(document)
+
+        XCTAssertEqual(
+            configuration.fileTransferPolicy,
+            HostAgentFileTransferPolicy(
+                enabled: true,
+                receiveRoot: "/Users/example/FarPane Receive"
+            )
+        )
     }
 
     func testProjectionFailsClosedForMissingFutureOrUnsafeCatalogInput() throws {

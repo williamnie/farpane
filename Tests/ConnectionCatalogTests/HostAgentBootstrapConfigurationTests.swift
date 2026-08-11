@@ -6,7 +6,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
     func testDecodesExactVersionedImmutableHostBootstrapInput() throws {
         let configuration = try HostAgentBootstrapConfiguration.decode(validDocument())
 
-        XCTAssertEqual(configuration.schemaVersion, 4)
+        XCTAssertEqual(configuration.schemaVersion, 5)
         XCTAssertEqual(configuration.configRevision, 7)
         XCTAssertEqual(configuration.agentBuildID, "20260808155349")
         XCTAssertEqual(
@@ -25,6 +25,13 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
                 allowRemoteImageWrite: false
             )
         )
+        XCTAssertEqual(
+            configuration.fileTransferPolicy,
+            HostAgentFileTransferPolicy(
+                enabled: true,
+                receiveRoot: "/Users/example/FarPane Receive"
+            )
+        )
         XCTAssertEqual(configuration.hostConfigAppName, "FarPaneHost")
         XCTAssertEqual(configuration.hostConfigOrganization, "io.rustdesknative")
     }
@@ -36,6 +43,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
         XCTAssertEqual(configuration.schemaVersion, 1)
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
     }
 
     func testSchemaTwoPreservesSmallTextAndDisablesRichText() throws {
@@ -55,6 +63,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
                 allowRemoteImageWrite: false
             )
         )
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
     }
 
     func testSchemaThreePreservesTextAndDisablesImage() throws {
@@ -74,6 +83,61 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
                 allowRemoteImageWrite: false
             )
         )
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+    }
+
+    func testSchemaFourPreservesClipboardAndDisablesFileTransfer() throws {
+        let configuration = try HostAgentBootstrapConfiguration.decode(
+            schemaFourDocument()
+        )
+
+        XCTAssertEqual(configuration.schemaVersion, 4)
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
+    }
+
+    func testRejectsFileTransferPairMismatchAndUnsafeReceiveRoot() throws {
+        var enabledWithoutRoot = try object(from: validDocument())
+        enabledWithoutRoot["fileTransfer"] = [
+            "enabled": true,
+            "receiveRoot": NSNull(),
+        ]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(enabledWithoutRoot))
+        ) { error in
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .invalidDocument)
+        }
+
+        var disabledWithRoot = try object(from: validDocument())
+        disabledWithRoot["fileTransfer"] = [
+            "enabled": false,
+            "receiveRoot": "/Users/example/FarPane Receive",
+        ]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(disabledWithRoot))
+        ) { error in
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .invalidDocument)
+        }
+
+        for root in ["relative/path", "/Users/example/../escape", "/"] {
+            var unsafe = try object(from: validDocument())
+            unsafe["fileTransfer"] = ["enabled": true, "receiveRoot": root]
+            XCTAssertThrowsError(
+                try HostAgentBootstrapConfiguration.decode(data(unsafe))
+            ) { error in
+                XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .invalidDocument)
+            }
+        }
+
+        var numericEnabled = try object(from: validDocument())
+        numericEnabled["fileTransfer"] = [
+            "enabled": 1,
+            "receiveRoot": "/Users/example/FarPane Receive",
+        ]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(numericEnabled))
+        ) { error in
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .invalidDocument)
+        }
     }
 
     func testRejectsUnknownCredentialAndAmbiguousRevisionFields() throws {
@@ -98,9 +162,9 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     func testRejectsUnsupportedSchemaUnsafeStringsAndOversizedInput() throws {
         var future = try object(from: validDocument())
-        future["schemaVersion"] = 5
+        future["schemaVersion"] = 6
         XCTAssertThrowsError(try HostAgentBootstrapConfiguration.decode(data(future))) { error in
-            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(5))
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(6))
         }
 
         var numericClipboard = try object(from: validDocument())
@@ -182,8 +246,32 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     private func validDocument() throws -> Data {
         data([
-            "schemaVersion": 4,
+            "schemaVersion": 5,
             "configRevision": 7,
+            "agentBuildID": "20260808155349",
+            "server": [
+                "rendezvousServer": "hermes.example.invalid:21116",
+                "serverPublicKey": "public-key",
+            ],
+            "clipboard": [
+                "allowRemoteRead": true,
+                "allowRemoteWrite": false,
+                "allowRemoteRichTextRead": false,
+                "allowRemoteRichTextWrite": true,
+                "allowRemoteImageRead": true,
+                "allowRemoteImageWrite": false,
+            ],
+            "fileTransfer": [
+                "enabled": true,
+                "receiveRoot": "/Users/example/FarPane Receive",
+            ],
+        ])
+    }
+
+    private func schemaFourDocument() -> Data {
+        data([
+            "schemaVersion": 4,
+            "configRevision": 6,
             "agentBuildID": "20260808155349",
             "server": [
                 "rendezvousServer": "hermes.example.invalid:21116",

@@ -41,11 +41,23 @@ public struct HostAgentClipboardPolicy: Equatable, Sendable {
     }
 }
 
+public struct HostAgentFileTransferPolicy: Equatable, Sendable {
+    public static let disabled = Self(enabled: false, receiveRoot: nil)
+
+    public let enabled: Bool
+    public let receiveRoot: String?
+
+    public init(enabled: Bool, receiveRoot: String?) {
+        self.enabled = enabled
+        self.receiveRoot = receiveRoot
+    }
+}
+
 /// Immutable, non-secret input that must be validated before HostAgent may
 /// switch the Rust config namespace or create HostCore. Disk ownership,
 /// atomic publication and the single-writer lease are separate later gates.
 public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
-    public static let currentSchemaVersion = 4
+    public static let currentSchemaVersion = 5
     public static let maximumDocumentBytes = 64 * 1_024
     public static let maximumConfigRevision: UInt64 = 9_007_199_254_740_991
 
@@ -55,6 +67,7 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
     public let rendezvousServer: String
     public let serverPublicKey: String
     public let clipboardPolicy: HostAgentClipboardPolicy
+    public let fileTransferPolicy: HostAgentFileTransferPolicy
 
     /// These namespace components are product-owned constants, never values
     /// accepted from disk or an environment variable.
@@ -67,7 +80,8 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         agentBuildID: String,
         rendezvousServer: String,
         serverPublicKey: String,
-        clipboardPolicy: HostAgentClipboardPolicy
+        clipboardPolicy: HostAgentClipboardPolicy,
+        fileTransferPolicy: HostAgentFileTransferPolicy
     ) {
         self.schemaVersion = schemaVersion
         self.configRevision = configRevision
@@ -75,6 +89,7 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
         self.rendezvousServer = rendezvousServer
         self.serverPublicKey = serverPublicKey
         self.clipboardPolicy = clipboardPolicy
+        self.fileTransferPolicy = fileTransferPolicy
     }
 
     public static func decode(_ data: Data) throws -> Self {
@@ -104,10 +119,15 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             expectedKeys = [
                 "schemaVersion", "configRevision", "agentBuildID", "server",
             ]
-        } else {
+        } else if schemaVersion <= 4 {
             expectedKeys = [
                 "schemaVersion", "configRevision", "agentBuildID", "server",
                 "clipboard",
+            ]
+        } else {
+            expectedKeys = [
+                "schemaVersion", "configRevision", "agentBuildID", "server",
+                "clipboard", "fileTransfer",
             ]
         }
         guard Set(document.keys) == expectedKeys else {
@@ -200,13 +220,40 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             )
         }
 
+        let fileTransferPolicy: HostAgentFileTransferPolicy
+        if schemaVersion <= 4 {
+            fileTransferPolicy = .disabled
+        } else {
+            guard let fileTransfer = document["fileTransfer"] as? [String: Any],
+                  Set(fileTransfer.keys) == Set(["enabled", "receiveRoot"]),
+                  let enabled = strictBool(fileTransfer["enabled"])
+            else { throw HostAgentBootstrapConfigurationError.invalidDocument }
+
+            let receiveRootValue = fileTransfer["receiveRoot"]
+            if enabled {
+                guard let receiveRoot = receiveRootValue as? String,
+                      validReceiveRoot(receiveRoot)
+                else { throw HostAgentBootstrapConfigurationError.invalidDocument }
+                fileTransferPolicy = HostAgentFileTransferPolicy(
+                    enabled: true,
+                    receiveRoot: receiveRoot
+                )
+            } else {
+                guard receiveRootValue is NSNull else {
+                    throw HostAgentBootstrapConfigurationError.invalidDocument
+                }
+                fileTransferPolicy = .disabled
+            }
+        }
+
         return Self(
             schemaVersion: schemaVersion,
             configRevision: configRevision,
             agentBuildID: agentBuildID,
             rendezvousServer: rendezvousServer,
             serverPublicKey: serverPublicKey,
-            clipboardPolicy: clipboardPolicy
+            clipboardPolicy: clipboardPolicy,
+            fileTransferPolicy: fileTransferPolicy
         )
     }
 
@@ -248,6 +295,14 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             && value.unicodeScalars.allSatisfy {
                 !CharacterSet.whitespacesAndNewlines.contains($0)
             }
+    }
+
+    private static func validReceiveRoot(_ value: String) -> Bool {
+        guard validString(value, maximumUTF8Bytes: 4_096),
+              value.hasPrefix("/"),
+              value != "/"
+        else { return false }
+        return (value as NSString).standardizingPath == value
     }
 
     private static func validString(_ value: String, maximumUTF8Bytes: Int) -> Bool {

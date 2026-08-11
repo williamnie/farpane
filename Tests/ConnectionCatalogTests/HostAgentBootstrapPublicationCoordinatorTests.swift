@@ -222,8 +222,9 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
                 applicationSupportURL: fixture.applicationSupport
             )
         ).load()
-        XCTAssertEqual(configuration.schemaVersion, 4)
+        XCTAssertEqual(configuration.schemaVersion, 5)
         XCTAssertEqual(configuration.clipboardPolicy, smallReadAndRichWrite)
+        XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         let imageRead = HostAgentClipboardPolicy(
             allowRemoteRead: true,
             allowRemoteWrite: false,
@@ -245,8 +246,9 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
                 applicationSupportURL: fixture.applicationSupport
             )
         ).load()
-        XCTAssertEqual(imageConfiguration.schemaVersion, 4)
+        XCTAssertEqual(imageConfiguration.schemaVersion, 5)
         XCTAssertEqual(imageConfiguration.clipboardPolicy, imageRead)
+        XCTAssertEqual(imageConfiguration.fileTransferPolicy, .disabled)
     }
 
     func testLegacySchemaOnePublicationUpgradesWithClipboardDisabled() throws {
@@ -283,8 +285,9 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 4)
+        XCTAssertEqual(upgraded.schemaVersion, 5)
         XCTAssertEqual(upgraded.clipboardPolicy, .disabled)
+        XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
     }
 
     func testSchemaTwoPublicationUpgradesWithRichTextDisabled() throws {
@@ -329,8 +332,9 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 4)
+        XCTAssertEqual(upgraded.schemaVersion, 5)
         XCTAssertEqual(upgraded.clipboardPolicy, policy)
+        XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteRichTextRead)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteRichTextWrite)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageRead)
@@ -383,8 +387,9 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 4)
+        XCTAssertEqual(upgraded.schemaVersion, 5)
         XCTAssertEqual(upgraded.clipboardPolicy, policy)
+        XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageRead)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageWrite)
     }

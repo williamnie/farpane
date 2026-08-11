@@ -11,7 +11,8 @@ public enum HostAgentBootstrapProjectionBuilder {
         catalog: DeviceCatalogDocument,
         configRevision: UInt64,
         agentBuildID: String,
-        clipboardPolicy: HostAgentClipboardPolicy = .disabled
+        clipboardPolicy: HostAgentClipboardPolicy = .disabled,
+        fileTransferPolicy: HostAgentFileTransferPolicy = .disabled
     ) throws -> Data {
         guard catalog.schemaVersion == DeviceCatalogDocument.currentSchemaVersion else {
             throw HostAgentBootstrapProjectionBuilderError.unsupportedCatalogSchema(
@@ -41,6 +42,10 @@ public enum HostAgentBootstrapProjectionBuilder {
                     clipboardPolicy.allowRemoteImageRead,
                 "allowRemoteImageWrite":
                     clipboardPolicy.allowRemoteImageWrite,
+            ],
+            "fileTransfer": [
+                "enabled": fileTransferPolicy.enabled,
+                "receiveRoot": fileTransferPolicy.receiveRoot as Any? ?? NSNull(),
             ],
         ]
         do {
