@@ -244,6 +244,10 @@ durable no-replace commit. Zero-byte files and manifest empty directories are
 published before remote completion can be forwarded; premature completion,
 stale/order/size drift and local I/O fail closed, with durability-unconfirmed
 remaining a distinct terminal. Local block failure requests exact Core
-cancellation. No picker, session orchestrator, product route or product
-configuration calls this package API, so file transfer remains internal and
-off.
+cancellation. A package-scoped session owner now serializes recursive-manifest
+requests for one exact connection epoch, retains up to eight active destination
+owners, starts each download only after both manifest parts join, requires the
+receive adapter's local terminal proof before accepting the matching Core
+terminal, and orders exact cancel/discard/destination teardown. No picker,
+product route or product configuration constructs this owner, so file transfer
+remains internal and off.

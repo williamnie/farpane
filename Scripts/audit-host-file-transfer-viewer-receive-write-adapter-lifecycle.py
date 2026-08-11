@@ -29,6 +29,7 @@ def main() -> int:
         "header": repository / "CoreBridge/include/rustdesk_native.h",
         "core": repository / "Sources/CoreBridge/CoreBridge.swift",
         "adapter": repository / "Sources/CoreBridge/ViewerFileTransferReceiveAdapter.swift",
+        "sessionOwner": repository / "Sources/CoreBridge/ViewerFileTransferSessionOwner.swift",
         "destination": repository / "Sources/CoreBridge/ViewerFileTransferDestinationOwner.swift",
         "tests": repository / "Tests/CoreBridgeTests/ViewerFileTransferReceiveAdapterTests.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
@@ -50,6 +51,7 @@ def main() -> int:
     core = sources["core"]
     product = sources["app"] + sources["agent"]
     tests = sources["tests"]
+    session_owner = sources["sessionOwner"]
     evidence = {
         "designRecordsBoundedH63f2b2p": all(
             marker in sources["design"]
@@ -152,6 +154,15 @@ def main() -> int:
                 ".failed(.remote(.unavailable))",
             )
         ),
+        "downstreamSessionOrchestrationImplemented": all(
+            marker in session_owner
+            for marker in (
+                "package final class ViewerFileTransferSessionOwner",
+                "core.requestFileTransferRecursiveManifest(",
+                "core.startFileTransferDownload(",
+                "core.discardFileTransferReceive(",
+            )
+        ),
         "viewerABIUnchangedAndProductRemainsOff": (
             "#define RDN_ABI_VERSION 13u" in sources["header"]
             and "ViewerFileTransferReceiveAdapter" not in sources["header"]
@@ -194,7 +205,7 @@ def main() -> int:
             "viewerDownloadWireRequestImplemented": status == expected_status,
             "viewerDigestConfirmationImplemented": status == expected_status,
             "viewerReceiveWriteAdapterImplemented": status == expected_status,
-            "viewerSessionOrchestrationImplemented": False,
+            "viewerSessionOrchestrationImplemented": status == expected_status,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },

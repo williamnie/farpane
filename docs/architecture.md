@@ -306,7 +306,10 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   start 拒绝会回滚 route；callback queue 依 manifest 顺序执行 descriptor-relative reserve、bounded `pwrite`、mtime/file
   fsync、no-replace rename 与 parent fsync，零字节文件及 empty directories 也必须在 remote completed 向上发布前完成。
   stale/order/size drift、premature completed 与 local I/O 均 fail closed，durability-unconfirmed 保持独立 terminal，block
-  失败还经 exact relay 请求 Core cancel。session orchestrator、picker 与产品 UI 仍未连接，
+  失败还经 exact relay 请求 Core cancel。package-scoped session owner 现固定 one connection epoch，串行 recursive-manifest
+  request，并允许最多 8 个 manifest-complete download 并发；它强持有 destination owner，只有 receive adapter 先给出 exact
+  local completed/cancelled/remote-failed proof 才接受对应 Core terminal，Core command reject、protocol drift、用户 cancel 与
+  connection teardown 都按 transfer ID 先 cancel/discard receive route 再关闭 descriptor。picker 与产品 UI 仍未连接，
   多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。

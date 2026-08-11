@@ -36,7 +36,7 @@ class HostFileTransferViewerReceiveWriteAdapterLifecycleAuditTests(unittest.Test
         self.assertTrue(claims["viewerDownloadWireRequestImplemented"])
         self.assertTrue(claims["viewerDigestConfirmationImplemented"])
         self.assertTrue(claims["viewerReceiveWriteAdapterImplemented"])
-        self.assertFalse(claims["viewerSessionOrchestrationImplemented"])
+        self.assertTrue(claims["viewerSessionOrchestrationImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(

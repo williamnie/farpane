@@ -259,7 +259,7 @@ package struct ViewerFileTransferProgressSnapshot: Equatable, Sendable {
     package let bytesPerSecond: Double
 }
 
-/// Pure Viewer contract for a future file-transfer adapter. Local paths and
+/// Pure Viewer progress contract used by the session owner. Local paths and
 /// descriptors stay behind the destination lease owner; callbacks expose only
 /// bounded manifest metadata, monotonic progress and stable failure kinds.
 package struct ViewerFileTransferProgressAuthority: Sendable {
@@ -392,6 +392,16 @@ package struct ViewerFileTransferProgressAuthority: Sendable {
             activeTransfers.removeValue(forKey: identifier)
         }
         return identifiers
+    }
+
+    @discardableResult
+    package mutating func teardown(sessionEpoch: UInt64, transferID: Int32) -> Bool {
+        guard
+            let active = activeTransfers[transferID],
+            active.snapshot.sessionEpoch == sessionEpoch
+        else { return false }
+        activeTransfers.removeValue(forKey: transferID)
+        return true
     }
 
     private func acceptsTransition(
