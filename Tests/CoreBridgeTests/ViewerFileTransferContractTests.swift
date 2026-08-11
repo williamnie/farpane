@@ -397,7 +397,10 @@ final class ViewerFileTransferContractTests: XCTestCase {
             bytesCompleted: 0,
             speed: 0
         ))?.phase, .cancelled)
-        XCTAssertEqual(authority.teardown(sessionEpoch: 4), [2])
+        XCTAssertFalse(authority.teardown(sessionEpoch: 5, transferID: 2))
+        XCTAssertTrue(authority.teardown(sessionEpoch: 4, transferID: 2))
+        XCTAssertFalse(authority.teardown(sessionEpoch: 4, transferID: 2))
+        XCTAssertEqual(authority.teardown(sessionEpoch: 4), [])
         XCTAssertEqual(authority.activeCount, 0)
     }
 

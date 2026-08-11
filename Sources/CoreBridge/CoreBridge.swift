@@ -704,7 +704,8 @@ private final class CallbackBox: @unchecked Sendable {
         )
     }
 
-    func rollbackFileTransferReceive(sessionEpoch: UInt64, transferID: Int32) {
+    @discardableResult
+    func rollbackFileTransferReceive(sessionEpoch: UInt64, transferID: Int32) -> Bool {
         fileTransferReceiveAdapter.rollback(
             sessionEpoch: sessionEpoch,
             transferID: transferID
@@ -1532,6 +1533,17 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             )
         }
         return result
+    }
+
+    @discardableResult
+    package func discardFileTransferReceive(
+        sessionEpoch: UInt64,
+        transferID: Int32
+    ) -> Bool {
+        callbackBox.rollbackFileTransferReceive(
+            sessionEpoch: sessionEpoch,
+            transferID: transferID
+        )
     }
 }
 
