@@ -95,9 +95,10 @@ def main() -> int:
         "schemaSixCarriesStrictDefaultOffAudioPolicy": all(
             marker in configuration
             for marker in (
-                "public static let currentSchemaVersion = 6",
-                "public static let disabled = Self(enabled: false)",
-                'Set(audio.keys) == Set(["enabled"])',
+                "public static let currentSchemaVersion = 7",
+                "public static let disabled = Self(enabled: false, inputDeviceName: nil)",
+                "schemaVersion == 6",
+                'Set(["enabled"])',
                 'let enabled = strictBool(audio["enabled"])',
                 "if schemaVersion <= 5",
                 "audioPolicy = .disabled",
@@ -125,7 +126,7 @@ def main() -> int:
             for marker in (
                 "var audioEnabled: Bool = false",
                 "远程音频（默认关闭）",
-                "允许远端收听本机麦克风",
+                "允许远端接收本机音频",
                 "onHostAudioToggle",
                 "snapshot.host.allowsAudioPolicyChange",
             )
@@ -206,7 +207,7 @@ def main() -> int:
             "H6.1c Host audio bootstrap and microphone opt-in contract",
         ),
         "bootstrapSchema": line_number(
-            configuration, "public static let currentSchemaVersion = 6"
+            configuration, "public static let currentSchemaVersion = 7"
         ),
         "legacyAudioMigration": line_number(
             configuration, "if schemaVersion <= 5"
@@ -265,10 +266,10 @@ def main() -> int:
             "backgroundHostProjectionImplemented": True,
             "legacyHostProjectionImplemented": True,
             "viewerAudioImplemented": True,
-            "virtualAudioInputSelectionImplemented": False,
+            "virtualAudioInputSelectionImplemented": True,
             "installedAudioAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": "virtual-audio-input-selection",
+        "nextImplementationBoundary": "host-audio-product-development-completion-audit",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1

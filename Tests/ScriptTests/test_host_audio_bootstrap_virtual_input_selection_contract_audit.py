@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostVirtualAudioInputSelectionABIContractAuditTests(unittest.TestCase):
-    def test_explicit_input_is_immutable_bounded_and_fails_closed(self) -> None:
+class HostAudioBootstrapVirtualInputSelectionContractAuditTests(unittest.TestCase):
+    def test_schema_catalog_home_and_runtime_are_one_fail_closed_policy(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-virtual-audio-input-selection-abi-contract.py",
+                "Scripts/audit-host-audio-bootstrap-virtual-input-selection-contract.py",
             ],
             cwd=repository,
             check=False,
@@ -26,23 +26,21 @@ class HostVirtualAudioInputSelectionABIContractAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-virtual-audio-input-selection-abi-contract-audit",
+            "farpane-host-audio-bootstrap-virtual-input-selection-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-virtual-audio-input-abi-capable-product-selector",
+            "host-audio-bootstrap-and-virtual-input-selection-implemented",
         )
-        self.assertEqual(document["currentABI"], {"host": 19, "viewer": 18})
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
-        claims = document["claims"]
-        self.assertFalse(claims["virtualInputSelectedByDefault"])
-        self.assertTrue(claims["virtualInputProductSelectorImplemented"])
-        self.assertTrue(claims["missingExplicitInputFallsClosed"])
-        self.assertFalse(claims["rustDeskWireChanged"])
-        self.assertFalse(claims["hermesChanged"])
+        self.assertTrue(document["claims"]["defaultMicrophoneRemainsDefault"])
+        self.assertFalse(document["claims"]["virtualInputAutoInstalled"])
+        self.assertTrue(document["claims"]["missingExplicitInputFallsClosed"])
+        self.assertFalse(document["claims"]["dualMacAudioAcceptanceComplete"])
+        self.assertFalse(document["claims"]["hermesChanged"])
         self.assertEqual(
             document["nextImplementationBoundary"],
             "host-audio-product-development-completion-audit",

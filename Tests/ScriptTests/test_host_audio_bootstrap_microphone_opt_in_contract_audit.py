@@ -45,11 +45,11 @@ class HostAudioBootstrapMicrophoneOptInContractAuditTests(unittest.TestCase):
         self.assertTrue(claims["backgroundHostProjectionImplemented"])
         self.assertTrue(claims["legacyHostProjectionImplemented"])
         self.assertTrue(claims["viewerAudioImplemented"])
-        self.assertFalse(claims["virtualAudioInputSelectionImplemented"])
+        self.assertTrue(claims["virtualAudioInputSelectionImplemented"])
         self.assertFalse(claims["installedAudioAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "virtual-audio-input-selection",
+            "host-audio-product-development-completion-audit",
         )
 
 

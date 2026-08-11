@@ -176,6 +176,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         "farpane.host.fileTransfer.receiveRoot"
     private static let hostAudioEnabledDefaultsKey =
         "farpane.host.audio.enabled"
+    private static let hostAudioInputDeviceNameDefaultsKey =
+        "farpane.host.audio.inputDeviceName"
 
     private let options = Options(arguments: CommandLine.arguments)
     private let hostViewerConcurrencyEvidenceOwner =
@@ -188,6 +190,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         try? HostAgentRuntimeConfigurationObservationReader()
     private lazy var hostMicrophoneAuthorizationAuthority =
         HostMicrophoneAuthorizationAuthority.makeProduct()
+    private let hostAudioInputDeviceCatalogOwner =
+        HostAudioInputDeviceCatalogOwner.makeProduct()
     private let credentialStore: DeviceCredentialStore = KeychainDeviceCredentialStore(
         service: ProcessInfo.processInfo.environment["RDN_KEYCHAIN_SERVICE"]
             ?? KeychainDeviceCredentialStore.defaultService
@@ -643,6 +647,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     private func showHomeUI(error: String = "") {
+        _ = hostAudioInputDeviceCatalogOwner.refresh()
         let hostReceiveRootPicker = hostFileTransferReceiveRootPicker
         hostFileTransferReceiveRootPicker = nil
         hostReceiveRootPicker?.cancel()
@@ -762,6 +767,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         view.onHostAudioToggle = { [weak self] enabled in
             self?.handleHostAudioPolicyToggle(enabled)
         }
+        view.onHostAudioInputSelection = { [weak self] name in
+            self?.handleHostAudioInputSelection(name)
+        }
+        view.onRefreshHostAudioInputs = { [weak self] in
+            self?.refreshHostAudioInputs()
+        }
         view.onRevealHostPassword = { [weak self] in self?.revealHostTemporaryPassword() }
         view.onRegenerateHostPassword = { [weak self] in self?.regenerateHostTemporaryPassword() }
         view.onSetHostPermanentPassword = { [weak self] in self?.presentHostPermanentPassword() }
@@ -876,6 +887,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let clipboardPolicy = currentHostClipboardPolicy()
         let fileTransferPolicy = currentHostFileTransferPolicy()
         let audioPolicy = currentHostAudioPolicy()
+        let audioInputDeviceName = UserDefaults.standard.string(
+            forKey: Self.hostAudioInputDeviceNameDefaultsKey
+        )
         let bootstrapReady: Bool
         if case .ready = hostAgentBootstrapState {
             bootstrapReady = true
@@ -934,6 +948,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                                 activeAttemptID != nil
                         ),
                 audioEnabled: audioPolicy.enabled,
+                audioInputDeviceNames:
+                    hostAudioInputDeviceCatalogOwner.catalog.uniqueNames,
+                audioInputDeviceName: audioInputDeviceName,
+                audioInputDeviceAvailable: audioInputDeviceName.map(
+                    hostAudioInputDeviceCatalogOwner.catalog.containsUnique
+                ) ?? true,
                 microphoneAuthorizationText:
                     hostMicrophoneAuthorizationText(),
                 allowsAudioPolicyChange:
@@ -1106,7 +1126,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         ), hostMicrophoneAuthorizationAuthority.authorizationStatus()
             == .authorized
         else { return .disabled }
-        return HostAgentAudioPolicy(enabled: true)
+        let selectedName = UserDefaults.standard.string(
+            forKey: Self.hostAudioInputDeviceNameDefaultsKey
+        )
+        guard selectedName.map(
+            hostAudioInputDeviceCatalogOwner.catalog.containsUnique
+        ) ?? true,
+        let policy = HostAgentAudioPolicy.validatedEnabled(
+            inputDeviceName: selectedName
+        ) else {
+            return .disabled
+        }
+        return policy
     }
 
     private var coherentHostAgentBackgroundActivationView:
@@ -1475,6 +1506,23 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 return
             }
 
+            _ = hostAudioInputDeviceCatalogOwner.refresh()
+            if let selectedName = UserDefaults.standard.string(
+                forKey: Self.hostAudioInputDeviceNameDefaultsKey
+            ), !hostAudioInputDeviceCatalogOwner.catalog.containsUnique(
+                selectedName
+            ) {
+                UserDefaults.standard.set(
+                    false,
+                    forKey: Self.hostAudioEnabledDefaultsKey
+                )
+                hostAudioPolicyErrorText =
+                    "已选音频输入不可用或名称不唯一；远程音频保持关闭。"
+                reconcileHostAgentBootstrap()
+                refreshHomeUI()
+                return
+            }
+
             switch hostMicrophoneAuthorizationAuthority
                 .authorizationStatus()
             {
@@ -1507,6 +1555,69 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     refreshHomeUI()
                 }
             }
+        }
+    }
+
+    private func handleHostAudioInputSelection(_ name: String?) {
+        guard Thread.isMainThread else { return }
+        MainActor.assumeIsolated {
+            guard hostAudioPolicyChangeAllowed() else {
+                refreshHomeUI()
+                return
+            }
+            _ = hostAudioInputDeviceCatalogOwner.refresh()
+            if let name {
+                guard hostAudioInputDeviceCatalogOwner.catalog.containsUnique(
+                    name
+                ) else {
+                    UserDefaults.standard.set(
+                        false,
+                        forKey: Self.hostAudioEnabledDefaultsKey
+                    )
+                    hostAudioPolicyErrorText =
+                        "所选音频输入不可用或名称不唯一；远程音频保持关闭。"
+                    reconcileHostAgentBootstrap()
+                    refreshHomeUI()
+                    return
+                }
+                UserDefaults.standard.set(
+                    name,
+                    forKey: Self.hostAudioInputDeviceNameDefaultsKey
+                )
+            } else {
+                UserDefaults.standard.removeObject(
+                    forKey: Self.hostAudioInputDeviceNameDefaultsKey
+                )
+            }
+            hostAudioPolicyErrorText = ""
+            reconcileHostAgentBootstrap()
+            refreshHomeUI()
+        }
+    }
+
+    private func refreshHostAudioInputs() {
+        guard Thread.isMainThread else { return }
+        MainActor.assumeIsolated {
+            guard hostAudioPolicyChangeAllowed() else {
+                refreshHomeUI()
+                return
+            }
+            let succeeded = hostAudioInputDeviceCatalogOwner.refresh()
+            if !succeeded {
+                hostAudioPolicyErrorText =
+                    "无法读取音频输入设备；显式设备音频保持关闭。"
+            } else if let selectedName = UserDefaults.standard.string(
+                forKey: Self.hostAudioInputDeviceNameDefaultsKey
+            ), !hostAudioInputDeviceCatalogOwner.catalog.containsUnique(
+                selectedName
+            ) {
+                hostAudioPolicyErrorText =
+                    "已选音频输入不可用或名称不唯一；不会回退默认麦克风。"
+            } else {
+                hostAudioPolicyErrorText = ""
+            }
+            reconcileHostAgentBootstrap()
+            refreshHomeUI()
         }
     }
 
@@ -1912,6 +2023,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 clipboardImageWriteEnabled:
                     clipboardPolicy.allowRemoteImageWrite,
                 audioEnabled: audioPolicy.enabled,
+                audioInputDeviceName: audioPolicy.inputDeviceName,
                 fileTransferEnabled: fileTransferPolicy.enabled,
                 fileTransferReceiveRoot: fileTransferPolicy.receiveRoot
             ))

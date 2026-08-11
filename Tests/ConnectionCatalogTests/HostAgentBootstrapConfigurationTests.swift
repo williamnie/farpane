@@ -6,7 +6,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
     func testDecodesExactVersionedImmutableHostBootstrapInput() throws {
         let configuration = try HostAgentBootstrapConfiguration.decode(validDocument())
 
-        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(configuration.schemaVersion, 7)
         XCTAssertEqual(configuration.configRevision, 7)
         XCTAssertEqual(configuration.agentBuildID, "20260808155349")
         XCTAssertEqual(
@@ -34,7 +34,10 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         )
         XCTAssertEqual(
             configuration.audioPolicy,
-            HostAgentAudioPolicy(enabled: true)
+            HostAgentAudioPolicy(
+                enabled: true,
+                inputDeviceName: "BlackHole 2ch"
+            )
         )
         XCTAssertEqual(configuration.hostConfigAppName, "FarPaneHost")
         XCTAssertEqual(configuration.hostConfigOrganization, "io.rustdesknative")
@@ -111,6 +114,68 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.schemaVersion, 5)
         XCTAssertTrue(configuration.fileTransferPolicy.enabled)
         XCTAssertEqual(configuration.audioPolicy, .disabled)
+    }
+
+    func testSchemaSixPreservesAudioAndMigratesToDefaultInput() throws {
+        let configuration = try HostAgentBootstrapConfiguration.decode(
+            schemaSixDocument()
+        )
+
+        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(
+            configuration.audioPolicy,
+            HostAgentAudioPolicy(enabled: true, inputDeviceName: nil)
+        )
+    }
+
+    func testAudioInputPolicyIsStrictAndFailClosed() throws {
+        var disabledWithInput = try object(from: validDocument())
+        disabledWithInput["audio"] = [
+            "enabled": false,
+            "inputDeviceName": "BlackHole 2ch",
+        ]
+        XCTAssertThrowsError(
+            try HostAgentBootstrapConfiguration.decode(data(disabledWithInput))
+        )
+
+        for invalidName in ["", " BlackHole 2ch", "BlackHole\n2ch", String(repeating: "a", count: 513)] {
+            var invalid = try object(from: validDocument())
+            invalid["audio"] = [
+                "enabled": true,
+                "inputDeviceName": invalidName,
+            ]
+            XCTAssertThrowsError(
+                try HostAgentBootstrapConfiguration.decode(data(invalid))
+            )
+        }
+
+        var defaultInput = try object(from: validDocument())
+        defaultInput["audio"] = [
+            "enabled": true,
+            "inputDeviceName": NSNull(),
+        ]
+        XCTAssertNil(
+            try HostAgentBootstrapConfiguration.decode(data(defaultInput))
+                .audioPolicy.inputDeviceName
+        )
+    }
+
+    func testAudioInputCatalogOnlyExposesValidUniqueExactNames() {
+        let catalog = HostAudioInputDeviceCatalog(reportedNames: [
+            "Mac mini Microphone",
+            "BlackHole 2ch",
+            "BlackHole 2ch",
+            " padded",
+            "Loopback Audio",
+            "bad\nname",
+        ])
+
+        XCTAssertEqual(
+            catalog.uniqueNames,
+            ["Loopback Audio", "Mac mini Microphone"]
+        )
+        XCTAssertTrue(catalog.containsUnique("Loopback Audio"))
+        XCTAssertFalse(catalog.containsUnique("BlackHole 2ch"))
     }
 
     func testRejectsFileTransferPairMismatchAndUnsafeReceiveRoot() throws {
@@ -199,9 +264,9 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
 
     func testRejectsUnsupportedSchemaUnsafeStringsAndOversizedInput() throws {
         var future = try object(from: validDocument())
-        future["schemaVersion"] = 7
+        future["schemaVersion"] = 8
         XCTAssertThrowsError(try HostAgentBootstrapConfiguration.decode(data(future))) { error in
-            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(7))
+            XCTAssertEqual(error as? HostAgentBootstrapConfigurationError, .unsupportedSchema(8))
         }
 
         var missingAudio = try object(from: validDocument())
@@ -227,7 +292,10 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         }
 
         var numericAudio = try object(from: validDocument())
-        numericAudio["audio"] = ["enabled": 1]
+        numericAudio["audio"] = [
+            "enabled": 1,
+            "inputDeviceName": NSNull(),
+        ]
         XCTAssertThrowsError(
             try HostAgentBootstrapConfiguration.decode(data(numericAudio))
         ) { error in
@@ -238,7 +306,11 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         }
 
         var extraAudioKey = try object(from: validDocument())
-        extraAudioKey["audio"] = ["enabled": true, "source": "microphone"]
+        extraAudioKey["audio"] = [
+            "enabled": true,
+            "inputDeviceName": NSNull(),
+            "source": "microphone",
+        ]
         XCTAssertThrowsError(
             try HostAgentBootstrapConfiguration.decode(data(extraAudioKey))
         ) { error in
@@ -326,6 +398,34 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
     }
 
     private func validDocument() throws -> Data {
+        data([
+            "schemaVersion": 7,
+            "configRevision": 7,
+            "agentBuildID": "20260808155349",
+            "server": [
+                "rendezvousServer": "hermes.example.invalid:21116",
+                "serverPublicKey": "public-key",
+            ],
+            "clipboard": [
+                "allowRemoteRead": true,
+                "allowRemoteWrite": false,
+                "allowRemoteRichTextRead": false,
+                "allowRemoteRichTextWrite": true,
+                "allowRemoteImageRead": true,
+                "allowRemoteImageWrite": false,
+            ],
+            "fileTransfer": [
+                "enabled": true,
+                "receiveRoot": "/Users/example/FarPane Receive",
+            ],
+            "audio": [
+                "enabled": true,
+                "inputDeviceName": "BlackHole 2ch",
+            ],
+        ])
+    }
+
+    private func schemaSixDocument() -> Data {
         data([
             "schemaVersion": 6,
             "configRevision": 7,

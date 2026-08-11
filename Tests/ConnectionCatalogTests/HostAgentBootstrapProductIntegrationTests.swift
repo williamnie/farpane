@@ -110,7 +110,7 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
             .ready(configRevision: 1)
         )
         let configuration = try readProjection(fixture)
-        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(configuration.schemaVersion, 7)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         XCTAssertEqual(configuration.audioPolicy, .disabled)
         XCTAssertEqual(
@@ -160,7 +160,10 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
             agentBuildID: "202608080001"
         )
         try fixture.store.save(catalog(server: "one.example.invalid:21116"))
-        let policy = HostAgentAudioPolicy(enabled: true)
+        let policy = HostAgentAudioPolicy(
+            enabled: true,
+            inputDeviceName: "BlackHole 2ch"
+        )
 
         XCTAssertEqual(
             integration.reconcileSavedCatalog(
@@ -171,7 +174,7 @@ final class HostAgentBootstrapProductIntegrationTests: XCTestCase {
             .ready(configRevision: 1)
         )
         let configuration = try readProjection(fixture)
-        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(configuration.schemaVersion, 7)
         XCTAssertEqual(configuration.audioPolicy, policy)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)

@@ -222,7 +222,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
                 applicationSupportURL: fixture.applicationSupport
             )
         ).load()
-        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(configuration.schemaVersion, 7)
         XCTAssertEqual(configuration.clipboardPolicy, smallReadAndRichWrite)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         let imageRead = HostAgentClipboardPolicy(
@@ -246,7 +246,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
                 applicationSupportURL: fixture.applicationSupport
             )
         ).load()
-        XCTAssertEqual(imageConfiguration.schemaVersion, 6)
+        XCTAssertEqual(imageConfiguration.schemaVersion, 7)
         XCTAssertEqual(imageConfiguration.clipboardPolicy, imageRead)
         XCTAssertEqual(imageConfiguration.fileTransferPolicy, .disabled)
     }
@@ -322,7 +322,10 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
             ).configRevision,
             1
         )
-        let enabled = HostAgentAudioPolicy(enabled: true)
+        let enabled = HostAgentAudioPolicy(
+            enabled: true,
+            inputDeviceName: "BlackHole 2ch"
+        )
         XCTAssertEqual(
             try coordinator.publish(
                 catalog: source,
@@ -352,7 +355,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
                 applicationSupportURL: fixture.applicationSupport
             )
         ).load()
-        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(configuration.schemaVersion, 7)
         XCTAssertEqual(configuration.audioPolicy, .disabled)
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
@@ -392,7 +395,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 6)
+        XCTAssertEqual(upgraded.schemaVersion, 7)
         XCTAssertEqual(upgraded.clipboardPolicy, .disabled)
         XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
     }
@@ -439,7 +442,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 6)
+        XCTAssertEqual(upgraded.schemaVersion, 7)
         XCTAssertEqual(upgraded.clipboardPolicy, policy)
         XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteRichTextRead)
@@ -494,7 +497,7 @@ final class HostAgentBootstrapPublicationCoordinatorTests: XCTestCase {
         let upgraded = try HostAgentBootstrapConfigurationReader(
             directoryURL: directory
         ).load()
-        XCTAssertEqual(upgraded.schemaVersion, 6)
+        XCTAssertEqual(upgraded.schemaVersion, 7)
         XCTAssertEqual(upgraded.clipboardPolicy, policy)
         XCTAssertEqual(upgraded.fileTransferPolicy, .disabled)
         XCTAssertFalse(upgraded.clipboardPolicy.allowRemoteImageRead)

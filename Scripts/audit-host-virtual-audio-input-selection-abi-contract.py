@@ -172,10 +172,12 @@ def main() -> int:
                 'audioInputDeviceName: "BlackHole 2ch"',
             )
         ),
-        "productAndBootstrapRemainDefaultMicrophone": (
-            "audioInputDeviceName:" not in product
-            and '"inputDevice"' not in sources["bootstrap_config"]
-            and '"audioInputDevice"' not in sources["bootstrap_config"]
+        "laterProductProjectionPreservesTheABIContract": all(
+            marker in product
+            for marker in (
+                "public let inputDeviceName: String?",
+                "audioInputDeviceName: audioPolicy.inputDeviceName",
+            )
         ),
         "existingRustDeskAudioWireAndPayloadOwnershipRemainUnchanged": (
             "RDNAudio" not in header
@@ -234,7 +236,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "host-virtual-audio-input-abi-capable-product-default-microphone"
+            "host-virtual-audio-input-abi-capable-product-selector"
             if healthy
             else "audit-failed"
         ),
@@ -245,14 +247,14 @@ def main() -> int:
         "missingSourceLines": missing_source_lines,
         "claims": {
             "virtualInputSelectedByDefault": False,
-            "virtualInputProductSelectorImplemented": False,
+            "virtualInputProductSelectorImplemented": True,
             "missingExplicitInputFallsClosed": True,
             "installedAudioAcceptanceComplete": False,
             "rustDeskWireChanged": False,
             "hermesChanged": False,
         },
         "nextImplementationBoundary": (
-            "host-audio-bootstrap-virtual-input-selection-contract"
+            "host-audio-product-development-completion-audit"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

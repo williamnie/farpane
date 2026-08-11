@@ -563,8 +563,10 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
 
         for marker in [
             "farpane.host.audio.enabled",
+            "farpane.host.audio.inputDeviceName",
             "audioPolicy: currentHostAudioPolicy()",
             "audioEnabled: audioPolicy.enabled",
+            "audioInputDeviceName: audioPolicy.inputDeviceName",
             "handleHostAudioPolicyToggle",
             ".requestAuthorization",
             "allowsAudioPolicyChange(",
@@ -573,7 +575,9 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         }
         for marker in [
             "远程音频（默认关闭）",
-            "允许远端收听本机麦克风",
+            "允许远端接收本机音频",
+            "系统默认麦克风",
+            "onHostAudioInputSelection",
             "onHostAudioToggle",
             "snapshot.host.allowsAudioPolicyChange",
         ] {
@@ -581,6 +585,9 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         }
         XCTAssertTrue(agentSource.contains(
             "configuration.audioPolicy.enabled"
+        ))
+        XCTAssertTrue(agentSource.contains(
+            "configuration.audioPolicy.inputDeviceName"
         ))
         XCTAssertTrue(agentSource.contains("isAuthorizedWithoutPrompt()"))
         XCTAssertFalse(agentSource.contains("requestAuthorization"))

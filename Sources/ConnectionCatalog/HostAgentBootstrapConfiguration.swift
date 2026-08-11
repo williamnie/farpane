@@ -76,12 +76,57 @@ public struct HostAgentFileTransferPolicy: Equatable, Sendable {
 }
 
 public struct HostAgentAudioPolicy: Equatable, Sendable {
-    public static let disabled = Self(enabled: false)
+    public static let disabled = Self(enabled: false, inputDeviceName: nil)
 
     public let enabled: Bool
+    public let inputDeviceName: String?
 
-    public init(enabled: Bool) {
+    public init(enabled: Bool, inputDeviceName: String? = nil) {
         self.enabled = enabled
+        self.inputDeviceName = inputDeviceName
+    }
+
+    public static func validatedEnabled(
+        inputDeviceName: String?
+    ) -> Self? {
+        guard inputDeviceName.map(validInputDeviceName) ?? true else {
+            return nil
+        }
+        return Self(enabled: true, inputDeviceName: inputDeviceName)
+    }
+
+    public static func validInputDeviceName(_ value: String) -> Bool {
+        !value.isEmpty
+            && value.utf8.count <= 512
+            && value == value.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            && value.unicodeScalars.allSatisfy {
+                !CharacterSet.controlCharacters.contains($0)
+            }
+    }
+}
+
+public struct HostAudioInputDeviceCatalog: Equatable, Sendable {
+    public let uniqueNames: [String]
+
+    public init(reportedNames: [String]) {
+        let validNames = reportedNames.filter(
+            HostAgentAudioPolicy.validInputDeviceName
+        )
+        let counts = Dictionary(
+            grouping: validNames,
+            by: { $0 }
+        ).mapValues(\.count)
+        uniqueNames = counts.compactMap { name, count in
+            count == 1 ? name : nil
+        }.sorted { lhs, rhs in
+            lhs.localizedStandardCompare(rhs) == .orderedAscending
+        }
+    }
+
+    public func containsUnique(_ name: String) -> Bool {
+        uniqueNames.contains(name)
     }
 }
 
@@ -89,7 +134,7 @@ public struct HostAgentAudioPolicy: Equatable, Sendable {
 /// switch the Rust config namespace or create HostCore. Disk ownership,
 /// atomic publication and the single-writer lease are separate later gates.
 public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
-    public static let currentSchemaVersion = 6
+    public static let currentSchemaVersion = 7
     public static let maximumDocumentBytes = 64 * 1_024
     public static let maximumConfigRevision: UInt64 = 9_007_199_254_740_991
 
@@ -289,10 +334,37 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
             audioPolicy = .disabled
         } else {
             guard let audio = document["audio"] as? [String: Any],
-                  Set(audio.keys) == Set(["enabled"]),
+                  Set(audio.keys) == (schemaVersion == 6
+                    ? Set(["enabled"])
+                    : Set(["enabled", "inputDeviceName"])),
                   let enabled = strictBool(audio["enabled"])
             else { throw HostAgentBootstrapConfigurationError.invalidDocument }
-            audioPolicy = HostAgentAudioPolicy(enabled: enabled)
+            if schemaVersion == 6 {
+                audioPolicy = enabled
+                    ? HostAgentAudioPolicy(enabled: true)
+                    : .disabled
+            } else if enabled {
+                let inputValue = audio["inputDeviceName"]
+                let inputDeviceName: String?
+                if inputValue is NSNull {
+                    inputDeviceName = nil
+                } else if let name = inputValue as? String {
+                    inputDeviceName = name
+                } else {
+                    throw HostAgentBootstrapConfigurationError.invalidDocument
+                }
+                guard let policy = HostAgentAudioPolicy.validatedEnabled(
+                    inputDeviceName: inputDeviceName
+                ) else {
+                    throw HostAgentBootstrapConfigurationError.invalidDocument
+                }
+                audioPolicy = policy
+            } else {
+                guard audio["inputDeviceName"] is NSNull else {
+                    throw HostAgentBootstrapConfigurationError.invalidDocument
+                }
+                audioPolicy = .disabled
+            }
         }
 
         return Self(

@@ -140,7 +140,7 @@ final class HostAgentBootstrapPreparationTests: XCTestCase {
         let configuration = try HostAgentBootstrapConfiguration.decode(document)
 
         XCTAssertEqual(configuration.configRevision, 9)
-        XCTAssertEqual(configuration.schemaVersion, 6)
+        XCTAssertEqual(configuration.schemaVersion, 7)
         XCTAssertEqual(configuration.rendezvousServer, "hermes.example.invalid:21116")
         XCTAssertEqual(configuration.serverPublicKey, "public-key")
         XCTAssertEqual(configuration.clipboardPolicy, .disabled)
@@ -211,11 +211,20 @@ final class HostAgentBootstrapPreparationTests: XCTestCase {
             catalog: catalog,
             configRevision: 11,
             agentBuildID: "20260808155349",
-            audioPolicy: HostAgentAudioPolicy(enabled: true)
+            audioPolicy: HostAgentAudioPolicy(
+                enabled: true,
+                inputDeviceName: "BlackHole 2ch"
+            )
         )
         let configuration = try HostAgentBootstrapConfiguration.decode(document)
 
-        XCTAssertEqual(configuration.audioPolicy, HostAgentAudioPolicy(enabled: true))
+        XCTAssertEqual(
+            configuration.audioPolicy,
+            HostAgentAudioPolicy(
+                enabled: true,
+                inputDeviceName: "BlackHole 2ch"
+            )
+        )
         XCTAssertEqual(configuration.fileTransferPolicy, .disabled)
     }
 

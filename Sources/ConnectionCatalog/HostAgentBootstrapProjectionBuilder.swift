@@ -50,6 +50,8 @@ public enum HostAgentBootstrapProjectionBuilder {
             ],
             "audio": [
                 "enabled": audioPolicy.enabled,
+                "inputDeviceName":
+                    audioPolicy.inputDeviceName as Any? ?? NSNull(),
             ],
         ]
         do {

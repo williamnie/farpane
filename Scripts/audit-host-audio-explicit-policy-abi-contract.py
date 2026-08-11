@@ -167,7 +167,7 @@ def main() -> int:
             )
         ),
         "productPolicyRetainsDefaultOff": (
-            "public static let disabled = Self(enabled: false)"
+            "public static let disabled = Self(enabled: false, inputDeviceName: nil)"
             in sources["host_bootstrap"]
             and "var audioEnabled: Bool = false"
             in sources["home"]
@@ -257,13 +257,13 @@ def main() -> int:
             "hostAudioEnabledByDefault": False,
             "hostAudioABICapable": True,
             "hostAudioProductEnabled": True,
-            "viewerAudioImplemented": False,
+            "viewerAudioImplemented": True,
             "microphoneTCCImplemented": True,
             "installedAudioAcceptanceComplete": False,
             "rustDeskWireChanged": False,
             "hermesChanged": False,
         },
-        "nextImplementationBoundary": "viewer-audio-explicit-policy-abi-contract",
+        "nextImplementationBoundary": "host-audio-product-development-completion-audit",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if status == "host-audio-abi-capable-product-default-off" else 1
