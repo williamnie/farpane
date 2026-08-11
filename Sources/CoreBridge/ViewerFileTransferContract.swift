@@ -2,6 +2,7 @@ import Foundation
 
 package enum ViewerFileTransferDirection: UInt32, Equatable, Sendable {
     case download = 1
+    case upload = 2
 }
 
 package enum ViewerFileTransferFailure: UInt32, Equatable, Sendable {

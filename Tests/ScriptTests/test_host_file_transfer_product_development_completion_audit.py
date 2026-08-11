@@ -29,13 +29,14 @@ class HostFileTransferProductDevelopmentCompletionAuditTests(
             "product-development-incomplete-viewer-upload",
         )
         self.assertEqual(document["failedRequiredAudits"], [])
-        self.assertGreaterEqual(document["requiredAuditCount"], 37)
+        self.assertGreaterEqual(document["requiredAuditCount"], 38)
         self.assertTrue(all(document["evidence"].values()))
         claims = document["claims"]
         self.assertTrue(claims["hostExplicitReceiveOptInImplemented"])
         self.assertTrue(claims["hostReceiveDataPlaneImplemented"])
         self.assertTrue(claims["hostSendDataPlaneImplemented"])
         self.assertTrue(claims["viewerDownloadProductActionImplemented"])
+        self.assertTrue(claims["viewerUploadSelectionManifestImplemented"])
         self.assertFalse(claims["viewerUploadProductActionImplemented"])
         self.assertFalse(claims["fileTransferProductDevelopmentComplete"])
         self.assertFalse(claims["installedSingleMacSmokeComplete"])
@@ -46,7 +47,7 @@ class HostFileTransferProductDevelopmentCompletionAuditTests(
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-upload-selection-manifest-contract",
+            "host-file-transfer-viewer-upload-wire-abi-ownership-audit",
         )
 
 
