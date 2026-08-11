@@ -79,6 +79,8 @@ def main() -> int:
         "swift_bridge": repository / "Sources/CoreBridge/CoreBridge.swift",
         "selection_input_owner": repository
         / "Sources/CoreBridge/ViewerDisplaySelectionInputOwner.swift",
+        "selection_presentation": repository
+        / "Sources/CoreBridge/ViewerDisplaySelectionPresentation.swift",
         "selection_input_tests": repository
         / "Tests/CoreBridgeTests/ViewerDisplaySelectionInputOwnerTests.swift",
         "host_switch_patch": repository
@@ -387,15 +389,53 @@ def main() -> int:
                 )
             )
         ),
-    }
-
-    gaps = {
-        "viewerProductDisplaySelectorMissing": (
-            "onSelectDisplay" not in sources["viewer_ui"]
-            and "displaySelector" not in sources["viewer_ui"]
-            and "onSelectDisplay" not in sources["app"]
+        "viewerProductDisplaySelectorLifecycleImplemented": (
+            all(
+                marker in sources["selection_presentation"]
+                for marker in (
+                    "package struct ViewerDisplaySelectionItemPresentation",
+                    "package let displayIndex: UInt32",
+                    "package enum ViewerDisplaySelectionPresentationPolicy",
+                    "snapshot.pendingRequest != nil",
+                    "snapshot.inputQuiesced",
+                    "entry.name.trimmingCharacters",
+                )
+            )
+            and all(
+                marker in sources["viewer_ui"]
+                for marker in (
+                    "var onSelectDisplay: ((UInt32) -> Void)?",
+                    "private let displaySelector = NSPopUpButton",
+                    "func updateDisplaySelection(",
+                    "menuItem.tag = Int(item.displayIndex)",
+                    "@objc private func selectDisplay()",
+                    "onSelectDisplay?(displayIndex)",
+                )
+            )
+            and all(
+                marker in sources["app"]
+                for marker in (
+                    "showsDisplayControls: liveConfiguration != nil",
+                    "chrome.onSelectDisplay =",
+                    "selectViewerDisplay(displayIndex: displayIndex)",
+                    "refreshViewerDisplaySelection(chrome:",
+                    "setControlAvailable(true)",
+                    "setControlAvailable(false)",
+                )
+            )
+            and all(
+                marker in sources["selection_input_tests"]
+                for marker in (
+                    "testPresentationProjectsReadyPendingAndFailureWithoutUsingNameAsIdentity",
+                    "testReplacementCarriesFailClosedPauseAndPromptsExplicitRetry",
+                    '"chrome.onSelectDisplay ="',
+                    '"updateDisplaySelection("',
+                )
+            )
         ),
     }
+
+    gaps = {}
     missing_evidence = [name for name, present in evidence.items() if not present]
     missing_gaps = [name for name, present in gaps.items() if not present]
 
@@ -452,6 +492,14 @@ def main() -> int:
         "viewerSelectionProductQuiescence": line_number(
             sources["app"],
             "releaseAllInputForDisplaySelection()",
+        ),
+        "viewerDisplaySelector": line_number(
+            sources["viewer_ui"],
+            "private let displaySelector = NSPopUpButton",
+        ),
+        "viewerDisplayPresentation": line_number(
+            sources["selection_presentation"],
+            "package enum ViewerDisplaySelectionPresentationPolicy",
         ),
     }
 
@@ -517,7 +565,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "input-quiescence-implemented-selector-pending"
+            "selector-implemented-development-audit-pending"
             if not missing_evidence and not missing_gaps
             else "audit-drift"
         ),
@@ -543,7 +591,7 @@ def main() -> int:
             "hermesChangeRequired": False,
             "installedTwoMacAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "viewer-display-selector-product-lifecycle",
+        "nextImplementationBoundary": "multi-display-product-development-completion-audit",
     }
     print(json.dumps(document, sort_keys=True))
     return 0 if (

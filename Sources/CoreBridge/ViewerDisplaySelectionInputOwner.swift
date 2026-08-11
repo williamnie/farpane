@@ -3,10 +3,16 @@ import Foundation
 package enum ViewerDisplaySelectionInputResult: Equatable, Sendable {
     case admitted(CoreDisplaySelectionRequest)
     case catalogUnavailable
+    case controlUnavailable
     case displayUnavailable
     case selectionPending
     case commandIDExhausted
     case coreRejected(Int32)
+}
+
+package enum ViewerDisplaySelectionInputFailure: Equatable, Sendable {
+    case admissionRejected
+    case terminal(CoreDisplaySelectionFailure)
 }
 
 package enum ViewerDisplaySelectionInputTerminalDecision: Equatable, Sendable {
@@ -19,6 +25,8 @@ package enum ViewerDisplaySelectionInputTerminalDecision: Equatable, Sendable {
 package struct ViewerDisplaySelectionInputSnapshot: Equatable, Sendable {
     package let catalog: CoreDisplayCatalogEvent?
     package let pendingRequest: CoreDisplaySelectionRequest?
+    package let failure: ViewerDisplaySelectionInputFailure?
+    package let controlAvailable: Bool
     package let inputQuiesced: Bool
     package let stopped: Bool
 }
@@ -39,6 +47,8 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
     private var pendingRequest: CoreDisplaySelectionRequest?
     private var pendingSuccess: CoreDisplaySelectionEvent?
     private var nextCommandID: UInt64 = 1
+    private var failure: ViewerDisplaySelectionInputFailure?
+    private var controlAvailable = false
     private var inputQuiesced = false
     private var stopped = false
 
@@ -60,9 +70,17 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
         return ViewerDisplaySelectionInputSnapshot(
             catalog: catalog,
             pendingRequest: pendingRequest,
+            failure: failure,
+            controlAvailable: controlAvailable,
             inputQuiesced: inputQuiesced,
             stopped: stopped
         )
+    }
+
+    package func setControlAvailable(_ available: Bool) {
+        lock.lock()
+        if !stopped { controlAvailable = available }
+        lock.unlock()
     }
 
     @discardableResult
@@ -93,6 +111,10 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
             lock.unlock()
             return .catalogUnavailable
         }
+        guard controlAvailable else {
+            lock.unlock()
+            return .controlUnavailable
+        }
         guard pendingRequest == nil else {
             lock.unlock()
             return .selectionPending
@@ -118,6 +140,7 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
         nextCommandID = nextCommandID == UInt64.max ? 0 : nextCommandID + 1
         pendingRequest = request
         pendingSuccess = nil
+        failure = nil
         quiescedBeforeAttempt = inputQuiesced
         inputQuiesced = true
         lock.unlock()
@@ -131,6 +154,7 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
         if pendingRequest == request {
             pendingRequest = nil
             pendingSuccess = nil
+            failure = .admissionRejected
             if !quiescedBeforeAttempt {
                 inputQuiesced = false
                 shouldResume = true
@@ -161,12 +185,14 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
         case .failed:
             pendingRequest = nil
             pendingSuccess = nil
+            failure = .terminal(event.failure)
             decision = .failed(event.failure)
         case .selected, .alreadySelected:
             pendingSuccess = event
             if pendingSuccessMatchesCurrentCatalogLocked() {
                 pendingRequest = nil
                 pendingSuccess = nil
+                failure = nil
                 inputQuiesced = false
                 shouldResume = true
                 decision = .resumed
@@ -184,9 +210,11 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
     package func stop() {
         lock.lock()
         stopped = true
+        controlAvailable = false
         catalog = nil
         pendingRequest = nil
         pendingSuccess = nil
+        failure = nil
         lock.unlock()
     }
 

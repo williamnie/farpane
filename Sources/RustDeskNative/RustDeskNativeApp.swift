@@ -3765,7 +3765,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             videoView: view,
             metrics: metrics,
             showsAcceptanceControls: automatedRun && fixture == nil,
-            showsFileTransferControls: liveConfiguration != nil
+            showsFileTransferControls: liveConfiguration != nil,
+            showsDisplayControls: liveConfiguration != nil
         )
         let window = self.window ?? NSWindow(
             contentRect: windowFrame,
@@ -3845,6 +3846,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         chrome.onFileTransferUploadAction = { [weak self] in
             self?.handleViewerFileTransferUploadAction()
+        }
+        chrome.onSelectDisplay = { [weak self] displayIndex in
+            _ = self?.selectViewerDisplay(displayIndex: displayIndex)
         }
         chrome.onDisconnect = { [weak self] in
             guard let self else { return }
@@ -4065,6 +4069,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             }
         )
         viewerDisplaySelectionInputOwner = displaySelectionInputOwner
+        refreshViewerDisplaySelection(chrome: chrome)
         let client = try RustDeskCoreClient(
             libraryURL: coreURL,
             onState: {
@@ -4171,6 +4176,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard coreGeneration == viewerCoreGeneration else { return }
         if let attemptID, activeAttemptID != attemptID { return }
         _ = viewerDisplaySelectionInputOwner?.observeCatalog(event)
+        refreshViewerDisplaySelection(chrome: viewerChrome)
     }
 
     private func handleViewerDisplaySelection(
@@ -4181,14 +4187,24 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard coreGeneration == viewerCoreGeneration else { return }
         if let attemptID, activeAttemptID != attemptID { return }
         _ = viewerDisplaySelectionInputOwner?.observeSelection(event)
+        refreshViewerDisplaySelection(chrome: viewerChrome)
     }
 
     @discardableResult
     private func selectViewerDisplay(
         displayIndex: UInt32
     ) -> ViewerDisplaySelectionInputResult {
-        viewerDisplaySelectionInputOwner?.select(displayIndex: displayIndex)
+        let result = viewerDisplaySelectionInputOwner?.select(displayIndex: displayIndex)
             ?? .catalogUnavailable
+        refreshViewerDisplaySelection(chrome: viewerChrome)
+        return result
+    }
+
+    private func refreshViewerDisplaySelection(chrome: ViewerChromeView?) {
+        guard let snapshot = viewerDisplaySelectionInputOwner?.snapshot() else { return }
+        chrome?.updateDisplaySelection(
+            ViewerDisplaySelectionPresentationPolicy.project(snapshot)
+        )
     }
 
     private func handleViewerCoreState(
@@ -4215,8 +4231,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         }
         if event.state == .controlReady {
             chrome?.setKeyboardGrabAvailable(true)
+            viewerDisplaySelectionInputOwner?.setControlAvailable(true)
+            refreshViewerDisplaySelection(chrome: chrome)
         } else if Self.isTerminalState(event.state) {
             chrome?.setKeyboardGrabAvailable(false)
+            viewerDisplaySelectionInputOwner?.setControlAvailable(false)
+            refreshViewerDisplaySelection(chrome: chrome)
             keyboardController?.disable(
                 message: "连接状态变化，已退出键盘独占",
                 isError: false

@@ -34,7 +34,7 @@ class HostMultiDisplaySelectionOwnershipAuditTests(unittest.TestCase):
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
-            document["status"], "input-quiescence-implemented-selector-pending"
+            document["status"], "selector-implemented-development-audit-pending"
         )
         self.assertEqual(document["currentABI"], {"host": 17, "viewer": 16})
         self.assertEqual(document["targetContract"]["viewerABI"], 16)
@@ -45,10 +45,10 @@ class HostMultiDisplaySelectionOwnershipAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-display-selector-product-lifecycle",
+            "multi-display-product-development-completion-audit",
         )
         self.assertTrue(all(document["evidence"].values()))
-        self.assertTrue(all(document["gaps"].values()))
+        self.assertEqual(document["gaps"], {})
         self.assertTrue(all(document["sourceLines"].values()))
         self.assertFalse(document["claims"]["currentMultiDisplayProductComplete"])
         self.assertFalse(document["claims"]["hostABIChangeRequired"])
