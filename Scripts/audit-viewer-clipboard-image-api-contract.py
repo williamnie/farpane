@@ -63,7 +63,7 @@ def main() -> int:
         "viewerABIv8CarriesBoundedSemanticImage": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 16u",
+                "#define RDN_ABI_VERSION 17u",
                 "#define RDN_MAX_CLIPBOARD_IMAGE_BYTES 134217728u",
                 "#define RDN_MAX_CLIPBOARD_SVG_UTF8_BYTES 4194304u",
                 "#define RDN_MAX_CLIPBOARD_IMAGE_DIMENSION 8192u",
@@ -197,7 +197,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.2k2 Viewer image clipboard API contract"
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 16u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 17u"),
         "imagePayload": line_number(header, "typedef struct RDNClipboardImagePayload"),
         "imageCallback": line_number(header, "RDNClipboardImageCallback on_clipboard_image;"),
         "imageSendAPI": line_number(header, "rdn_client_send_clipboard_image"),

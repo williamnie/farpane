@@ -136,7 +136,7 @@ def main() -> int:
                 in sources["tests"]
         ),
         "productNowConsumesDescriptorOwnedSelection": (
-            "#define RDN_ABI_VERSION 16u" in sources["header"]
+            "#define RDN_ABI_VERSION 17u" in sources["header"]
             and "RDNFileTransferUploadStart" in sources["header"]
             and "requestFileTransferUpload" in sources["app"]
             and "onFileTransferUploadAction" in sources["viewer_ui"]
@@ -185,7 +185,7 @@ def main() -> int:
             "descriptorOwnedManifestImplemented": passed,
             "pathFreeUploadRequestImplemented": passed,
             "viewerABIV14SemanticReadAvailable": (
-                "#define RDN_ABI_VERSION 16u" in sources["header"]
+                "#define RDN_ABI_VERSION 17u" in sources["header"]
                 and "RDNFileTransferUploadReadRequest" in sources["header"]
             ),
             "viewerUploadWireDispatchImplemented": passed,

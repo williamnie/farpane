@@ -37,7 +37,7 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
             document["status"],
             "host-opt-in-implemented-development-incomplete",
         )
-        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 16})
+        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 17})
         self.assertEqual(document["targetContract"]["hostABI"], 18)
         self.assertEqual(document["targetContract"]["viewerABI"], 17)
         self.assertEqual(
@@ -58,13 +58,13 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
         self.assertFalse(claims["viewerAudioEnabled"])
         self.assertFalse(claims["audioProductDevelopmentComplete"])
         self.assertFalse(claims["hostABIChangeRequired"])
-        self.assertTrue(claims["viewerABIChangeRequired"])
+        self.assertFalse(claims["viewerABIChangeRequired"])
         self.assertFalse(claims["rustDeskWireChangeRequired"])
         self.assertFalse(claims["hermesChangeRequired"])
         self.assertFalse(claims["rootDependencyChangeRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-audio-explicit-policy-abi-contract",
+            "viewer-audio-product-opt-in-permission-lifecycle",
         )
 
 

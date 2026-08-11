@@ -138,7 +138,7 @@ def main() -> int:
             )
         ),
         "viewerCoreABISeamExistsAndProductRemainsOff": (
-            "#define RDN_ABI_VERSION 16u" in header
+            "#define RDN_ABI_VERSION 17u" in header
             and "RDNFileTransferEventCallback on_file_transfer_event;" in header
             and "rdn_client_file_transfer_cancel" in header
             and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product

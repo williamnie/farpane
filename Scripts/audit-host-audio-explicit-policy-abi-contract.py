@@ -172,9 +172,11 @@ def main() -> int:
             and "var audioEnabled: Bool = false"
             in sources["home"]
         ),
-        "viewerPolicyRemainsOutOfScope": (
-            "receiveAudio: Bool" not in sources["viewer"]
-            and "self.config.disable_audio.v = true;" in sources["client"]
+        "laterViewerPolicyExtensionPreservesDefaultOff": (
+            "receiveAudio: Bool = false" in sources["viewer"]
+            and "native_viewer_audio_disabled(receive_audio: bool)"
+            in sources["client"]
+            and "!receive_audio" in sources["client"]
         ),
         "laterMicrophoneTCCExtensionDoesNotAlterHostABI": (
             "NSMicrophoneUsageDescription" in sources["info"]

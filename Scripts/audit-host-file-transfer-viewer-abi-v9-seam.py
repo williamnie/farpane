@@ -65,7 +65,7 @@ def main() -> int:
         "abiV9RetainsClipboardAndAddsFileSeam": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 16u",
+                "#define RDN_ABI_VERSION 17u",
                 "RDNClipboardImageCallback on_clipboard_image;",
                 "RDNFileTransferEventCallback on_file_transfer_event;",
                 "bool enable_file_transfer;",
@@ -103,7 +103,7 @@ def main() -> int:
             for marker in (
                 "fn viewer_file_transfer_mode_admission(",
                 "if enabled != (session_epoch > 0)",
-                "else if enabled && desktop_clipboard_requested",
+                "else if enabled && desktop_capability_requested",
                 "let file_transfer_admission = viewer_file_transfer_mode_admission(",
                 "if file_transfer_admission != 0",
                 "return file_transfer_admission;",
@@ -165,7 +165,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.3f2a Viewer file-transfer ABI v9 default-off seam"
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 16u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 17u"),
         "event": line_number(header, "typedef struct RDNFileTransferEvent {"),
         "callback": line_number(header, "RDNFileTransferEventCallback on_file_transfer_event;"),
         "config": line_number(header, "bool enable_file_transfer;"),

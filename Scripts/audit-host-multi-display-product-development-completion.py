@@ -171,7 +171,7 @@ def main() -> int:
             "guard coreGeneration == viewerCoreGeneration else { return }",
         )),
         "focusedTestsCoverCatalogCommandInputAndPresentation": tests,
-        "abiVersionsMatchImplementedContract": viewer_abi == 16 and host_abi == 18,
+        "abiVersionsMatchImplementedContract": viewer_abi == 17 and host_abi == 18,
         "stagedEvidenceChainExists": all(path.is_file() for path in evidence_paths),
     }
     claims = {

@@ -4,7 +4,7 @@
 // 6c578292e8ebbbec708b76986ba8c4bc7c509747. The surrounding RustDesk-derived
 // build is AGPL-3.0; see CoreBridge/README.md and the repository root LICENSE.
 
-use crate::client::{Data, QualityStatus};
+use crate::client::{native_viewer_audio_disabled, Data, QualityStatus};
 use crate::common::input::{
     MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_WHEEL, MOUSE_TYPE_DOWN, MOUSE_TYPE_MOVE,
     MOUSE_TYPE_TRACKPAD, MOUSE_TYPE_UP, MOUSE_TYPE_WHEEL,
@@ -23,7 +23,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-const ABI_VERSION: u32 = 16;
+const ABI_VERSION: u32 = 17;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -854,6 +854,7 @@ pub struct RDNConnectionConfig {
     peer_id: *const c_char,
     password: *const c_char,
     force_relay: bool,
+    receive_audio: bool,
     receive_clipboard_text: bool,
     send_clipboard_text: bool,
     receive_clipboard_rich_text: bool,
@@ -3485,11 +3486,11 @@ fn client_clear_completed_manifest(shared: &BridgeShared, session_epoch: u64) {
 fn viewer_file_transfer_mode_admission(
     enabled: bool,
     session_epoch: u64,
-    desktop_clipboard_requested: bool,
+    desktop_capability_requested: bool,
 ) -> i32 {
     if enabled != (session_epoch > 0) {
         -5
-    } else if enabled && desktop_clipboard_requested {
+    } else if enabled && desktop_capability_requested {
         -5
     } else {
         0
@@ -3577,10 +3578,11 @@ pub unsafe extern "C" fn rdn_client_connect(
         || (*config).send_clipboard_rich_text
         || (*config).receive_clipboard_image
         || (*config).send_clipboard_image;
+    let receive_audio = (*config).receive_audio;
     let file_transfer_admission = viewer_file_transfer_mode_admission(
         (*config).enable_file_transfer,
         (*config).file_transfer_session_epoch,
-        desktop_clipboard_requested,
+        desktop_clipboard_requested || receive_audio,
     );
     if file_transfer_admission != 0 {
         return file_transfer_admission;
@@ -3733,7 +3735,11 @@ pub unsafe extern "C" fn rdn_client_connect(
         .lc
         .write()
         .unwrap()
-        .configure_native_viewer(&peer_id, desktop_clipboard_requested);
+        .configure_native_viewer(
+            &peer_id,
+            desktop_clipboard_requested,
+            receive_audio,
+        );
     let round = session.connection_round_state.lock().unwrap().new_round();
     let worker_session = session.clone();
     let worker_shared = client.shared.clone();
@@ -6326,6 +6332,8 @@ mod tests {
         assert_eq!(viewer_file_transfer_mode_admission(true, 0, false), -5);
         assert_eq!(viewer_file_transfer_mode_admission(true, 1, false), 0);
         assert_eq!(viewer_file_transfer_mode_admission(true, 1, true), -5);
+        assert!(native_viewer_audio_disabled(false));
+        assert!(!native_viewer_audio_disabled(true));
 
         let ui = BridgeUi::default();
         let mut client = RDNClient {

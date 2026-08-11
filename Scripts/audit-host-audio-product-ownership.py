@@ -161,9 +161,11 @@ def main() -> int:
                 "host.local_id = config::Config::get_id();",
             )
         ),
-        "nativeViewerCurrentlyPinsAudioDefaultOff": (
-            "self.config.disable_audio.v = true;" in client
-            and ".configure_native_viewer(&peer_id, desktop_clipboard_requested)" in viewer_bridge
+        "nativeViewerExplicitPolicyDefaultsAudioOff": (
+            "receiveAudio: Bool = false" in sources["viewer_swift"]
+            and "native_viewer_audio_disabled(receive_audio: bool)" in client
+            and "!receive_audio" in client
+            and "let receive_audio = (*config).receive_audio;" in viewer_bridge
         ),
         "activeSessionAudioRevocationAlreadyUsesConnectionAuthority": all(
             marker in host_bridge + connection for marker in (
@@ -196,11 +198,6 @@ def main() -> int:
     }
 
     gaps = {
-        "viewerConfigLacksExplicitReceiveAudioPolicy": (
-            "bool receive_audio;" not in header
-            and "receiveAudio: Bool" not in sources["viewer_swift"]
-            and "self.config.disable_audio.v = true;" in client
-        ),
         "viewerBridgeDoesNotProjectRemoteAudioPermission": (
             'else if name == "clipboard"' in viewer_bridge
             and 'name == "audio"' not in viewer_bridge
@@ -227,7 +224,9 @@ def main() -> int:
         "hostAudioSubscription": line_number(connection, "fn audio_enabled(&self) -> bool"),
         "hostAudioCapture": line_number(audio_service, "fn get_audio_input(audio_input: &str)"),
         "hostOpusEncoder": line_number(audio_service, "Encoder::new(sample_rate, encode_channel, LowDelay)"),
-        "viewerAudioDefaultOff": line_number(client, "self.config.disable_audio.v = true;"),
+        "viewerAudioDefaultOff": line_number(
+            sources["viewer_swift"], "receiveAudio: Bool = false"
+        ),
         "viewerAudioIngress": line_number(client_io, "Some(misc::Union::AudioFormat(f))"),
         "viewerAudioPlayback": line_number(client, "pub struct AudioHandler"),
         "hostAudioPolicyPin": line_number(host_bridge, "native_host_audio_option(audio_enabled)"),
@@ -247,7 +246,7 @@ def main() -> int:
         not missing_evidence
         and not missing_gaps
         and all(source_lines.values())
-        and viewer_abi == 16
+        and viewer_abi == 17
         and host_abi == 18
     )
     target_contract = {
@@ -292,13 +291,13 @@ def main() -> int:
             "viewerAudioEnabled": False,
             "audioProductDevelopmentComplete": False,
             "hostABIChangeRequired": False,
-            "viewerABIChangeRequired": True,
+            "viewerABIChangeRequired": False,
             "rustDeskWireChangeRequired": False,
             "hermesChangeRequired": False,
             "rootDependencyChangeRequired": False,
             "installedAudioAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "viewer-audio-explicit-policy-abi-contract",
+        "nextImplementationBoundary": "viewer-audio-product-opt-in-permission-lifecycle",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1

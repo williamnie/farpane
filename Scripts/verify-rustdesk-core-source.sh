@@ -12,6 +12,7 @@ viewer_file_upload_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-file-uplo
 native_read_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-read-list-download.patch"
 host_display_switch_validation_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-host-display-switch-validation.patch"
 audio_local_policy_approval_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-audio-local-policy-approval.patch"
+viewer_audio_policy_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-explicit-policy.patch"
 hbb_secret_wipe_patch="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 hbb_bounded_block_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
 
@@ -37,6 +38,7 @@ if ! git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_patch" 2>
 fi
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_display_switch_validation_patch"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$audio_local_policy_approval_patch"
+git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_policy_patch"
 
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_secret_wipe_patch"
