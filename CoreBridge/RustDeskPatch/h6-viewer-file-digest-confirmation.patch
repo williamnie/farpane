@@ -1,0 +1,32 @@
+diff --git a/src/client/io_loop.rs b/src/client/io_loop.rs
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -1647,3 +1647,14 @@
+                         Some(file_response::Union::Digest(digest)) => {
+-                            if digest.is_upload {
++                            #[cfg(feature = "rdn-native-core")]
++                            let (consumed, confirmation) = self
++                                .handler
++                                .native_file_transfer_download_digest_confirmation(&digest);
++                            #[cfg(not(feature = "rdn-native-core"))]
++                            let (consumed, confirmation) = (false, None);
++                            if let Some(confirmation) = confirmation {
++                                allow_err!(peer.send(&new_send_confirm(confirmation)).await);
++                            }
++                            if consumed {
++                                // Matching malformed or duplicate digests fail closed.
++                            } else if digest.is_upload {
+                                 if let Some(job) = fs::get_job(digest.id, &mut self.read_jobs) {
+diff --git a/src/ui_session_interface.rs b/src/ui_session_interface.rs
+--- a/src/ui_session_interface.rs
++++ b/src/ui_session_interface.rs
+@@ -1753,2 +1753,9 @@
++    #[cfg(feature = "rdn-native-core")]
++    fn native_file_transfer_download_digest_confirmation(
++        &self,
++        _digest: &FileTransferDigest,
++    ) -> (bool, Option<FileTransferSendConfirmRequest>) {
++        (false, None)
++    }
+     #[cfg(feature = "rdn-native-core")]
+     fn native_file_transfer_receive_block(&self, _block: &FileTransferBlock) -> bool {

@@ -298,9 +298,11 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   且 callback 前释放 job lock；该 hook 自身的 wire download request、destination write 与 UI 仍未实现。后续 download
   start 现在只在 exact completed manifest 注册成功后直接入队一个根路径 `/`、hidden=false、file=0、generic 的
   `FileAction::Send`，不用 `Data::SendFiles`，因此不会创建上游 path-based local write job；queue 关闭会在同一 job
-  mutex 临界区回滚 registration，duplicate/rejected start 不会重复发命令。overwrite digest confirmation 与 receive
-  callback 到 descriptor owner 的 reservation/write/commit adapter、产品 UI 仍未连接，因此远端 sender 尚不能进入
-  payload block 阶段，
+  mutex 临界区回滚 registration，duplicate/rejected start 不会重复发命令。digest confirmation 现由 Rust 内部保留的
+  per-file manifest size/mtime authority 驱动，只按 file number 严格顺序接受 exact new-file digest，并通过既有 peer
+  回复 `OffsetBlk(0)`；matching malformed/duplicate/resume/identical/nonzero-offset digest 被消费并 fail closed，foreign
+  job 保留 upstream fallback，且 receive block 只有在对应 file digest 已确认后才可进入 semantic callback。callback 到
+  descriptor owner 的 reservation/write/commit adapter 与产品 UI 仍未连接，因此 payload 仍在 callback 边界丢弃，
   多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。

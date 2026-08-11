@@ -101,7 +101,7 @@ def main() -> int:
                 "file_transfer_session_epoch",
                 "return -10;",
                 "authenticated.load(Ordering::Acquire)",
-                "NativeViewerCompletedManifest",
+                "completed_manifest.files.len()",
                 "completed_file_manifest_request",
                 "request_id: request.manifest_request_id",
                 "total_files: request.total_files",

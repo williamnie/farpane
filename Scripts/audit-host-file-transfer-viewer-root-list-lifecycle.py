@@ -84,7 +84,7 @@ def main() -> int:
                 "if !client.shared.authenticated.load(Ordering::Acquire)",
                 "if !*session.server_file_transfer_enabled.read().unwrap()",
                 "if pending.is_some()",
-                "*pending = Some(request);",
+                "*pending = Some(request.clone());",
                 "native_viewer_file_list_root_message()",
                 'path: "/".to_owned()',
                 "include_hidden: false",

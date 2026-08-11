@@ -234,7 +234,7 @@ struct NativeViewerListRequest {
     request_id: i32,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct NativeViewerManifestRequest {
     session_epoch: u64,
     request_id: i32,
@@ -242,23 +242,33 @@ struct NativeViewerManifestRequest {
     empty_directories_delivered: bool,
     total_files: Option<u32>,
     total_bytes: Option<u64>,
+    files: Option<Vec<NativeViewerManifestFileAuthority>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct NativeViewerManifestFileAuthority {
+    size: u64,
+    modified_time: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct NativeViewerCompletedManifest {
     session_epoch: u64,
     request_id: i32,
     total_files: u32,
     total_bytes: u64,
+    files: Arc<[NativeViewerManifestFileAuthority]>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct NativeViewerDownloadJob {
     session_epoch: u64,
     manifest_request_id: i32,
     transfer_id: i32,
     total_files: u32,
     total_bytes: u64,
+    manifest_files: Arc<[NativeViewerManifestFileAuthority]>,
+    next_digest_file_number: u32,
     sequence: u64,
     files_completed: u32,
     bytes_completed: u64,
@@ -288,6 +298,35 @@ struct NativeViewerReceiveBlock {
 }
 
 impl NativeViewerDownloadJob {
+    fn confirm_digest(
+        &mut self,
+        digest: &FileTransferDigest,
+    ) -> Option<FileTransferSendConfirmRequest> {
+        if digest.id != self.transfer_id
+            || digest.is_upload
+            || digest.is_resume
+            || digest.is_identical
+            || digest.transferred_size != 0
+        {
+            return None;
+        }
+        let file_number = u32::try_from(digest.file_num).ok()?;
+        if file_number != self.next_digest_file_number {
+            return None;
+        }
+        let authority = self.manifest_files.get(file_number as usize)?;
+        if digest.file_size != authority.size || digest.last_modified != authority.modified_time {
+            return None;
+        }
+        self.next_digest_file_number = file_number.checked_add(1)?;
+        Some(FileTransferSendConfirmRequest {
+            id: self.transfer_id,
+            file_num: digest.file_num,
+            union: Some(file_transfer_send_confirm_request::Union::OffsetBlk(0)),
+            ..Default::default()
+        })
+    }
+
     fn receive_block(&self, block: &FileTransferBlock) -> Option<NativeViewerReceiveBlock> {
         if block.id != self.transfer_id
             || block.data.is_empty()
@@ -296,7 +335,7 @@ impl NativeViewerDownloadJob {
             return None;
         }
         let file_number = u32::try_from(block.file_num).ok()?;
-        if file_number >= self.total_files {
+        if file_number >= self.total_files || file_number >= self.next_digest_file_number {
             return None;
         }
         let payload = if block.compressed {
@@ -382,7 +421,7 @@ impl NativeViewerDownloadJob {
     }
 
     fn event(
-        self,
+        &self,
         sequence: u64,
         kind: u32,
         failure: u32,
@@ -1068,7 +1107,7 @@ impl InvokeUiSession for BridgeUi {
                 pending
                     .as_ref()
                     .filter(|request| request.request_id == id)
-                    .copied()
+                    .cloned()
             };
             let Some(request) = request else { return };
             if is_local || only_count || path != "/" {
@@ -1120,6 +1159,13 @@ impl InvokeUiSession for BridgeUi {
                 return;
             };
             let total_files = listing.len() as u32;
+            let files = listing
+                .iter()
+                .map(|entry| NativeViewerManifestFileAuthority {
+                    size: entry.size,
+                    modified_time: entry.modified_time,
+                })
+                .collect();
             let (duplicate, completed) = {
                 let mut pending = self.shared.pending_file_manifest_request.lock().unwrap();
                 let Some(active) = pending.as_mut() else {
@@ -1132,6 +1178,7 @@ impl InvokeUiSession for BridgeUi {
                     active.files_delivered = true;
                     active.total_files = Some(total_files);
                     active.total_bytes = Some(total_bytes);
+                    active.files = Some(files);
                     if active.empty_directories_delivered {
                         let completed = pending.take().and_then(|request| {
                             Some(NativeViewerCompletedManifest {
@@ -1139,6 +1186,7 @@ impl InvokeUiSession for BridgeUi {
                                 request_id: request.request_id,
                                 total_files: request.total_files?,
                                 total_bytes: request.total_bytes?,
+                                files: request.files?.into(),
                             })
                         });
                         (false, completed)
@@ -1185,7 +1233,7 @@ impl InvokeUiSession for BridgeUi {
     fn update_empty_dirs(&self, response: ReadEmptyDirsResponse) {
         let request = {
             let pending = self.shared.pending_file_manifest_request.lock().unwrap();
-            pending.as_ref().copied()
+            pending.as_ref().cloned()
         };
         let Some(request) = request else { return };
         let Some(listing) = native_viewer_remote_manifest_empty_directories(&response) else {
@@ -1220,6 +1268,7 @@ impl InvokeUiSession for BridgeUi {
                             request_id: request.request_id,
                             total_files: request.total_files?,
                             total_bytes: request.total_bytes?,
+                            files: request.files?.into(),
                         })
                     });
                     (false, completed)
@@ -1369,13 +1418,24 @@ impl InvokeUiSession for BridgeUi {
         self.shared.emit_clipboard_image(image);
     }
 
+    fn native_file_transfer_download_digest_confirmation(
+        &self,
+        digest: &FileTransferDigest,
+    ) -> (bool, Option<FileTransferSendConfirmRequest>) {
+        let mut jobs = self.shared.active_file_download_jobs.lock().unwrap();
+        let Some(job) = jobs.get_mut(&digest.id) else {
+            return (false, None);
+        };
+        (true, job.confirm_digest(digest))
+    }
+
     fn native_file_transfer_receive_block(&self, block: &FileTransferBlock) -> bool {
         let job = {
             let jobs = self.shared.active_file_download_jobs.lock().unwrap();
             let Some(job) = jobs.get(&block.id) else {
                 return false;
             };
-            *job
+            job.clone()
         };
         let semantic = job.receive_block(block);
         if let Some(block) = semantic {
@@ -2973,7 +3033,7 @@ pub unsafe extern "C" fn rdn_client_file_transfer_list_root(
         if pending.is_some() {
             return -3;
         }
-        *pending = Some(request);
+        *pending = Some(request.clone());
     }
     if sender
         .send(Data::Message(native_viewer_file_list_root_message()))
@@ -3034,6 +3094,7 @@ pub unsafe extern "C" fn rdn_client_file_transfer_manifest_root(
         empty_directories_delivered: false,
         total_files: None,
         total_bytes: None,
+        files: None,
     };
     if client
         .shared
@@ -3046,7 +3107,7 @@ pub unsafe extern "C" fn rdn_client_file_transfer_manifest_root(
     {
         let mut pending = client.shared.pending_file_manifest_request.lock().unwrap();
         debug_assert!(pending.is_none());
-        *pending = Some(request);
+        *pending = Some(request.clone());
     }
     let (files_message, directories_message) =
         native_viewer_file_manifest_root_messages(request_id);
@@ -3099,21 +3160,25 @@ pub unsafe extern "C" fn rdn_client_file_transfer_download_start(
     if !client.shared.authenticated.load(Ordering::Acquire) {
         return -6;
     }
-    let completed_manifest = client
-        .shared
-        .completed_file_manifest_request
-        .lock()
-        .unwrap();
-    if *completed_manifest
-        != Some(NativeViewerCompletedManifest {
-            session_epoch: request.session_epoch,
-            request_id: request.manifest_request_id,
-            total_files: request.total_files,
-            total_bytes: request.total_bytes,
-        })
-    {
-        return -3;
-    }
+    let manifest_files = {
+        let completed_manifest = client
+            .shared
+            .completed_file_manifest_request
+            .lock()
+            .unwrap();
+        let Some(completed_manifest) = completed_manifest.as_ref() else {
+            return -3;
+        };
+        if completed_manifest.session_epoch != request.session_epoch
+            || completed_manifest.request_id != request.manifest_request_id
+            || completed_manifest.total_files != request.total_files
+            || completed_manifest.total_bytes != request.total_bytes
+            || completed_manifest.files.len() != request.total_files as usize
+        {
+            return -3;
+        }
+        completed_manifest.files.clone()
+    };
     let session = client.session.lock().unwrap().clone();
     let Some(session) = session else {
         return -3;
@@ -3130,6 +3195,8 @@ pub unsafe extern "C" fn rdn_client_file_transfer_download_start(
         transfer_id: request.transfer_id,
         total_files: request.total_files,
         total_bytes: request.total_bytes,
+        manifest_files,
+        next_digest_file_number: 0,
         sequence: 0,
         files_completed: 0,
         bytes_completed: 0,
@@ -3388,6 +3455,19 @@ mod tests {
             modified_time: 123,
             ..Default::default()
         }
+    }
+
+    fn viewer_manifest_file_authorities(
+        entries: &[(u64, u64)],
+    ) -> Arc<[NativeViewerManifestFileAuthority]> {
+        entries
+            .iter()
+            .map(|(size, modified_time)| NativeViewerManifestFileAuthority {
+                size: *size,
+                modified_time: *modified_time,
+            })
+            .collect::<Vec<_>>()
+            .into()
     }
 
     fn nal(nal_type: u8) -> [u8; 3] {
@@ -4509,6 +4589,8 @@ mod tests {
             transfer_id: 61,
             total_files: 2,
             total_bytes: 42,
+            manifest_files: viewer_manifest_file_authorities(&[(10, 100), (32, 200)]),
+            next_digest_file_number: 2,
             sequence: 0,
             files_completed: 0,
             bytes_completed: 0,
@@ -4556,6 +4638,8 @@ mod tests {
             transfer_id: 61,
             total_files: 2,
             total_bytes: 42,
+            manifest_files: viewer_manifest_file_authorities(&[(10, 100), (32, 200)]),
+            next_digest_file_number: 2,
             sequence: 0,
             files_completed: 0,
             bytes_completed: 0,
@@ -4670,6 +4754,8 @@ mod tests {
                 transfer_id: 61,
                 total_files: 2,
                 total_bytes: 10,
+                manifest_files: viewer_manifest_file_authorities(&[(5, 100), (5, 200)]),
+                next_digest_file_number: 2,
                 sequence: 0,
                 files_completed: 0,
                 bytes_completed: 0,
@@ -4702,6 +4788,137 @@ mod tests {
     }
 
     #[test]
+    fn viewer_digest_hook_confirms_only_exact_manifest_file_sequence() {
+        let ui = BridgeUi::default();
+        ui.shared.active_file_download_jobs.lock().unwrap().insert(
+            61,
+            NativeViewerDownloadJob {
+                session_epoch: 7,
+                manifest_request_id: 51,
+                transfer_id: 61,
+                total_files: 2,
+                total_bytes: 42,
+                manifest_files: viewer_manifest_file_authorities(&[(10, 100), (32, 200)]),
+                next_digest_file_number: 0,
+                sequence: 0,
+                files_completed: 0,
+                bytes_completed: 0,
+            },
+        );
+        let digest = |id, file_num, size, modified_time| FileTransferDigest {
+            id,
+            file_num,
+            file_size: size,
+            last_modified: modified_time,
+            ..Default::default()
+        };
+        let block = |file_num| FileTransferBlock {
+            id: 61,
+            file_num,
+            data: b"owned".to_vec().into(),
+            ..Default::default()
+        };
+
+        assert!(ui
+            .shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .get(&61)
+            .unwrap()
+            .receive_block(&block(0))
+            .is_none());
+
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&digest(60, 0, 10, 100)),
+            (false, None)
+        );
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&digest(61, 1, 32, 200)),
+            (true, None),
+            "out-of-order digest must be consumed without confirmation"
+        );
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&digest(61, 0, 11, 100)),
+            (true, None),
+            "manifest size drift must fail closed"
+        );
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&digest(61, 0, 10, 101)),
+            (true, None),
+            "manifest mtime drift must fail closed"
+        );
+
+        let (consumed, confirmation) =
+            ui.native_file_transfer_download_digest_confirmation(&digest(61, 0, 10, 100));
+        assert!(consumed);
+        let confirmation = confirmation.expect("exact first digest must be confirmed");
+        assert_eq!((confirmation.id, confirmation.file_num), (61, 0));
+        assert_eq!(
+            confirmation.union,
+            Some(file_transfer_send_confirm_request::Union::OffsetBlk(0))
+        );
+        {
+            let jobs = ui.shared.active_file_download_jobs.lock().unwrap();
+            let job = jobs.get(&61).unwrap();
+            assert!(job.receive_block(&block(0)).is_some());
+            assert!(job.receive_block(&block(1)).is_none());
+        }
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&digest(61, 0, 10, 100)),
+            (true, None),
+            "duplicate digest must fail closed"
+        );
+
+        let mut resume = digest(61, 1, 32, 200);
+        resume.is_resume = true;
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&resume),
+            (true, None)
+        );
+        resume.is_resume = false;
+        resume.transferred_size = 1;
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&resume),
+            (true, None)
+        );
+        resume.transferred_size = 0;
+        resume.is_upload = true;
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&resume),
+            (true, None)
+        );
+        resume.is_upload = false;
+        resume.is_identical = true;
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&resume),
+            (true, None)
+        );
+
+        let (consumed, confirmation) =
+            ui.native_file_transfer_download_digest_confirmation(&digest(61, 1, 32, 200));
+        assert!(consumed);
+        assert_eq!(
+            confirmation.and_then(|request| request.union),
+            Some(file_transfer_send_confirm_request::Union::OffsetBlk(0))
+        );
+        assert!(ui
+            .shared
+            .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .get(&61)
+            .unwrap()
+            .receive_block(&block(1))
+            .is_some());
+        ui.shared.active_file_download_jobs.lock().unwrap().clear();
+        assert_eq!(
+            ui.native_file_transfer_download_digest_confirmation(&digest(61, 1, 32, 200)),
+            (false, None)
+        );
+    }
+
+    #[test]
     fn viewer_download_start_registers_exact_manifest_and_dispatches_bounded_wire_request() {
         let captured = Mutex::new(Vec::<CapturedFileTransferEvent>::new());
         let mut ui = BridgeUi::default();
@@ -4722,6 +4939,7 @@ mod tests {
                 request_id: 51,
                 total_files: 2,
                 total_bytes: 42,
+                files: viewer_manifest_file_authorities(&[(10, 100), (32, 200)]),
             });
 
         let (sender, mut receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
@@ -4757,13 +4975,15 @@ mod tests {
                 .lock()
                 .unwrap()
                 .get(&61)
-                .copied(),
+                .cloned(),
             Some(NativeViewerDownloadJob {
                 session_epoch: 7,
                 manifest_request_id: 51,
                 transfer_id: 61,
                 total_files: 2,
                 total_bytes: 42,
+                manifest_files: viewer_manifest_file_authorities(&[(10, 100), (32, 200)]),
+                next_digest_file_number: 0,
                 sequence: 0,
                 files_completed: 0,
                 bytes_completed: 0,
@@ -4880,6 +5100,7 @@ mod tests {
                 request_id: 51,
                 total_files: 2,
                 total_bytes: 42,
+                files: viewer_manifest_file_authorities(&[(10, 100), (32, 200)]),
             });
 
         let (sender, receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
@@ -4938,6 +5159,8 @@ mod tests {
             transfer_id: 61,
             total_files: 2,
             total_bytes: 42,
+            manifest_files: viewer_manifest_file_authorities(&[(10, 100), (32, 200)]),
+            next_digest_file_number: 2,
             sequence: 0,
             files_completed: 0,
             bytes_completed: 0,
@@ -4946,7 +5169,7 @@ mod tests {
             .active_file_download_jobs
             .lock()
             .unwrap()
-            .insert(61, job);
+            .insert(61, job.clone());
 
         ui.job_progress(61, -1, 7.5, 10.0);
         ui.job_progress(61, -1, 7.5, 9.0);
@@ -5002,7 +5225,7 @@ mod tests {
             62,
             NativeViewerDownloadJob {
                 transfer_id: 62,
-                ..job
+                ..job.clone()
             },
         );
         ui.job_error(62, "raw remote detail".to_owned(), 0);

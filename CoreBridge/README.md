@@ -231,9 +231,14 @@ root `FileAction::Send` with the registered positive transfer ID, generic type,
 file number zero and hidden files disabled. It sends the protocol message
 directly rather than `Data::SendFiles`, so RustDesk does not create a path-based
 local write job; a closed queue rolls the registration back while duplicate or
-rejected starts cannot enqueue another request. Overwrite-digest confirmation
-and destination reservation/write/commit are still not connected to callbacks,
-so the remote sender is not yet allowed to advance into payload blocks and
-product file transfer remains off.
+rejected starts cannot enqueue another request. Digest confirmation now retains
+the completed manifest's per-file size/mtime authority inside Rust, accepts only
+the next exact new-file digest, and sends `OffsetBlk(0)` through the existing
+peer; matching malformed, duplicate, resume, identical, or nonzero-offset
+digests fail closed, while foreign jobs keep upstream behavior. Inbound blocks
+are admitted only after that file's digest was confirmed. The callback-to-
+destination reservation/write/commit adapter is still not connected, so decoded
+payload is dropped at the semantic callback boundary and product file transfer
+remains off.
 No picker UI or product configuration exists, so it remains internal rather than
 file-transfer product capability.
