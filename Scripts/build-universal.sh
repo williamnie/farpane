@@ -107,6 +107,7 @@ for build_architecture in "${build_architectures[@]}"; do
   core_libraries+=("$core")
 done
 for core in "${core_libraries[@]}"; do
+  nm -gU "$core" | grep -q _rdn_client_select_display
   nm -gU "$core" | grep -q _rdn_client_send_pointer
   nm -gU "$core" | grep -q _rdn_client_send_key
   nm -gU "$core" | grep -q _rdn_client_send_text

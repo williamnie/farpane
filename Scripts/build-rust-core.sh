@@ -39,6 +39,7 @@ file "$staged_core"
 nm -gU "$staged_core" | grep -q _rdn_core_abi_version
 nm -gU "$staged_core" | grep -q _rdn_client_connect
 nm -gU "$staged_core" | grep -q _rdn_client_request_keyframe
+nm -gU "$staged_core" | grep -q _rdn_client_select_display
 nm -gU "$staged_core" | grep -q _rdn_client_send_pointer
 nm -gU "$staged_core" | grep -q _rdn_client_send_key
 nm -gU "$staged_core" | grep -q _rdn_client_send_text

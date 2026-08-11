@@ -63,7 +63,7 @@ def main() -> int:
         "viewerABIv7RetainsBoundedSmallText": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 15u",
+                "#define RDN_ABI_VERSION 16u",
                 "#define RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES (64u * 1024u)",
                 "RDNClipboardTextCallback on_clipboard_text;",
                 "bool receive_clipboard_text;",
@@ -190,7 +190,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.2g Viewer small-text clipboard API contract"
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 15u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 16u"),
         "sizeLimit": line_number(header, "RDN_MAX_CLIPBOARD_TEXT_UTF8_BYTES"),
         "clipboardCallback": line_number(header, "RDNClipboardTextCallback on_clipboard_text;"),
         "sendAPI": line_number(header, "rdn_client_send_clipboard_text"),

@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 15u
+#define RDN_ABI_VERSION 16u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -115,6 +115,41 @@ typedef struct RDNDisplayCatalogEvent {
 } RDNDisplayCatalogEvent;
 typedef void (*RDNDisplayCatalogCallback)(
     void *context, const RDNDisplayCatalogEvent *event);
+
+typedef enum RDNDisplaySelectionResult {
+    RDN_DISPLAY_SELECTION_RESULT_SELECTED = 1,
+    RDN_DISPLAY_SELECTION_RESULT_ALREADY_SELECTED = 2,
+    RDN_DISPLAY_SELECTION_RESULT_FAILED = 3,
+} RDNDisplaySelectionResult;
+
+typedef enum RDNDisplaySelectionFailure {
+    RDN_DISPLAY_SELECTION_FAILURE_NONE = 0,
+    RDN_DISPLAY_SELECTION_FAILURE_CATALOG_CHANGED = 1,
+    RDN_DISPLAY_SELECTION_FAILURE_CONNECTION_CLOSED = 2,
+    RDN_DISPLAY_SELECTION_FAILURE_REMOTE_SELECTION_DRIFT = 3,
+} RDNDisplaySelectionFailure;
+
+typedef struct RDNDisplaySelectionRequest {
+    uint32_t abi_version;
+    uint64_t connection_epoch;
+    uint64_t command_id;
+    uint64_t catalog_revision;
+    uint32_t display_index;
+} RDNDisplaySelectionRequest;
+
+/* Exactly one terminal callback is emitted for every admitted request. The
+ * command function's zero return means admission only, never completion. */
+typedef struct RDNDisplaySelectionEvent {
+    uint32_t abi_version;
+    uint64_t connection_epoch;
+    uint64_t command_id;
+    uint64_t catalog_revision;
+    uint32_t display_index;
+    uint32_t result;
+    uint32_t failure;
+} RDNDisplaySelectionEvent;
+typedef void (*RDNDisplaySelectionCallback)(
+    void *context, const RDNDisplaySelectionEvent *event);
 
 typedef struct RDNCoreMetrics {
     uint32_t abi_version;
@@ -321,6 +356,7 @@ typedef struct RDNCallbacks {
     RDNStateCallback on_state;
     RDNVideoCallback on_video;
     RDNDisplayCatalogCallback on_display_catalog;
+    RDNDisplaySelectionCallback on_display_selection;
     RDNMetricsCallback on_metrics;
     RDNClipboardTextCallback on_clipboard_text;
     RDNClipboardRichTextCallback on_clipboard_rich_text;
@@ -432,6 +468,8 @@ int32_t rdn_client_connect(RDNClient *client,
                            const RDNConnectionConfig *config);
 void rdn_client_disconnect(RDNClient *client);
 int32_t rdn_client_request_keyframe(RDNClient *client, uint32_t display);
+int32_t rdn_client_select_display(
+    RDNClient *client, const RDNDisplaySelectionRequest *request);
 int32_t rdn_client_send_pointer(RDNClient *client,
                                 const RDNPointerEvent *event);
 int32_t rdn_client_send_key(RDNClient *client, const RDNKeyEvent *event);
@@ -700,6 +738,9 @@ void rdn_shim_client_disconnect(const RDNCoreLibrary *library,
 int32_t rdn_shim_client_request_keyframe(const RDNCoreLibrary *library,
                                          RDNClient *client,
                                          uint32_t display);
+int32_t rdn_shim_client_select_display(
+    const RDNCoreLibrary *library, RDNClient *client,
+    const RDNDisplaySelectionRequest *request);
 int32_t rdn_shim_client_send_pointer(const RDNCoreLibrary *library,
                                      RDNClient *client,
                                      const RDNPointerEvent *event);

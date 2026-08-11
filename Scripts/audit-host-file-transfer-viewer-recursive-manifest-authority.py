@@ -119,7 +119,7 @@ def main() -> int:
             )
         ),
         "abiV12RetainsRemoteLifecycleWithoutChangingAuthority": (
-            "#define RDN_ABI_VERSION 15u" in sources["header"]
+            "#define RDN_ABI_VERSION 16u" in sources["header"]
             and "rdn_client_file_transfer_manifest_root" in sources["header"]
             and "rdn_client_file_transfer_manifest_root" in sources["bridge"]
             and "requestFileTransferRecursiveManifest" in sources["core"]

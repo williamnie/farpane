@@ -10,6 +10,8 @@ typedef void (*client_destroy_fn)(RDNClient *);
 typedef int32_t (*client_connect_fn)(RDNClient *, const RDNConnectionConfig *);
 typedef void (*client_disconnect_fn)(RDNClient *);
 typedef int32_t (*client_request_keyframe_fn)(RDNClient *, uint32_t);
+typedef int32_t (*client_select_display_fn)(
+    RDNClient *, const RDNDisplaySelectionRequest *);
 typedef int32_t (*client_send_pointer_fn)(RDNClient *, const RDNPointerEvent *);
 typedef int32_t (*client_send_key_fn)(RDNClient *, const RDNKeyEvent *);
 typedef int32_t (*client_send_text_fn)(RDNClient *, const uint8_t *, size_t);
@@ -59,6 +61,7 @@ struct RDNCoreLibrary {
     client_connect_fn client_connect;
     client_disconnect_fn client_disconnect;
     client_request_keyframe_fn client_request_keyframe;
+    client_select_display_fn client_select_display;
     client_send_pointer_fn client_send_pointer;
     client_send_key_fn client_send_key;
     client_send_text_fn client_send_text;
@@ -122,6 +125,8 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     library->client_disconnect = (client_disconnect_fn)dlsym(handle, "rdn_client_disconnect");
     library->client_request_keyframe =
         (client_request_keyframe_fn)dlsym(handle, "rdn_client_request_keyframe");
+    library->client_select_display =
+        (client_select_display_fn)dlsym(handle, "rdn_client_select_display");
     library->client_send_pointer =
         (client_send_pointer_fn)dlsym(handle, "rdn_client_send_pointer");
     library->client_send_key =
@@ -156,6 +161,7 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     if (library->client_create == NULL || library->client_destroy == NULL ||
         library->client_connect == NULL || library->client_disconnect == NULL ||
         library->client_request_keyframe == NULL ||
+        library->client_select_display == NULL ||
         library->client_send_pointer == NULL || library->client_send_key == NULL ||
         library->client_send_text == NULL ||
         library->client_send_clipboard_text == NULL ||
@@ -270,6 +276,14 @@ int32_t rdn_shim_client_request_keyframe(const RDNCoreLibrary *library,
                                          RDNClient *client,
                                          uint32_t display) {
     return library == NULL ? -1 : library->client_request_keyframe(client, display);
+}
+
+int32_t rdn_shim_client_select_display(
+    const RDNCoreLibrary *library, RDNClient *client,
+    const RDNDisplaySelectionRequest *request) {
+    return library == NULL
+               ? RDN_CLIENT_ERR_INVALID_ARGUMENT
+               : library->client_select_display(client, request);
 }
 
 int32_t rdn_shim_client_send_pointer(const RDNCoreLibrary *library,

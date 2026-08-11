@@ -93,8 +93,8 @@ def main() -> int:
             )
         ),
         "abiV14RetainsCallbackScopedSemanticBytes": (
-            "#define RDN_ABI_VERSION 15u" in header
-            and "const ABI_VERSION: u32 = 15;" in bridge
+            "#define RDN_ABI_VERSION 16u" in header
+            and "const ABI_VERSION: u32 = 16;" in bridge
             and all(marker in raw_struct for marker in (
                 "abi_version: u32",
                 "session_epoch: u64",
@@ -158,7 +158,7 @@ def main() -> int:
                 "maximumFileCount",
                 "maximumPayloadBytes + 1",
             ))
-            and "XCTAssertEqual(viewerABI(), 15" in sources["host_tests"]
+            and "XCTAssertEqual(viewerABI(), 16" in sources["host_tests"]
         ),
         "ioLoopInterceptionIsExactWhileWireWriteAndProductRemainOff": (
             "fn native_file_transfer_receive_block(" in production_bridge
@@ -176,7 +176,7 @@ def main() -> int:
             sources["design"],
             "H6.3f2b2l Viewer receive-block ABI lifecycle",
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 15u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 16u"),
         "rawCallbackStruct": line_number(header, "typedef struct RDNFileTransferReceiveBlock"),
         "rustEmitter": line_number(bridge, "fn emit_file_transfer_receive_block("),
         "swiftSemanticBlock": line_number(swift, "struct CoreFileTransferReceiveBlock"),

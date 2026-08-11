@@ -118,7 +118,7 @@ def main() -> int:
             )
         ),
         "abiV12RetainsDedicatedSessionAndProductOff": (
-            "#define RDN_ABI_VERSION 15u" in sources["header"]
+            "#define RDN_ABI_VERSION 16u" in sources["header"]
             and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
         ),
         "remainingManifestAndDestinationGapIsExplicit": (

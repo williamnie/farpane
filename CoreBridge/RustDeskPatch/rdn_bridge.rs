@@ -23,7 +23,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-const ABI_VERSION: u32 = 15;
+const ABI_VERSION: u32 = 16;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -38,6 +38,13 @@ const MAX_DISPLAY_NAME_UTF8_BYTES: usize = 512;
 const DISPLAY_CATALOG_STATUS_AVAILABLE: u32 = 1;
 const DISPLAY_CATALOG_STATUS_UNAVAILABLE: u32 = 2;
 const DISPLAY_INDEX_UNKNOWN: u32 = u32::MAX;
+const DISPLAY_SELECTION_RESULT_SELECTED: u32 = 1;
+const DISPLAY_SELECTION_RESULT_ALREADY_SELECTED: u32 = 2;
+const DISPLAY_SELECTION_RESULT_FAILED: u32 = 3;
+const DISPLAY_SELECTION_FAILURE_NONE: u32 = 0;
+const DISPLAY_SELECTION_FAILURE_CATALOG_CHANGED: u32 = 1;
+const DISPLAY_SELECTION_FAILURE_CONNECTION_CLOSED: u32 = 2;
+const DISPLAY_SELECTION_FAILURE_REMOTE_SELECTION_DRIFT: u32 = 3;
 static NEXT_VIEWER_CONNECTION_EPOCH: AtomicU64 = AtomicU64::new(1);
 
 fn next_viewer_connection_epoch() -> Option<u64> {
@@ -155,6 +162,26 @@ pub struct RDNDisplayCatalogEvent {
 }
 
 #[repr(C)]
+pub struct RDNDisplaySelectionRequest {
+    abi_version: u32,
+    connection_epoch: u64,
+    command_id: u64,
+    catalog_revision: u64,
+    display_index: u32,
+}
+
+#[repr(C)]
+pub struct RDNDisplaySelectionEvent {
+    abi_version: u32,
+    connection_epoch: u64,
+    command_id: u64,
+    catalog_revision: u64,
+    display_index: u32,
+    result: u32,
+    failure: u32,
+}
+
+#[repr(C)]
 pub struct RDNCoreMetrics {
     abi_version: u32,
     remote_fps: f64,
@@ -165,6 +192,7 @@ pub struct RDNCoreMetrics {
 type StateCallback = unsafe extern "C" fn(*mut c_void, RDNState, i32, *const c_char);
 type VideoCallback = unsafe extern "C" fn(*mut c_void, *const RDNEncodedVideoFrame);
 type DisplayCatalogCallback = unsafe extern "C" fn(*mut c_void, *const RDNDisplayCatalogEvent);
+type DisplaySelectionCallback = unsafe extern "C" fn(*mut c_void, *const RDNDisplaySelectionEvent);
 type MetricsCallback = unsafe extern "C" fn(*mut c_void, *const RDNCoreMetrics);
 type ClipboardTextCallback = unsafe extern "C" fn(*mut c_void, *const u8, usize);
 type ClipboardRichTextCallback =
@@ -806,6 +834,7 @@ pub struct RDNCallbacks {
     on_state: Option<StateCallback>,
     on_video: Option<VideoCallback>,
     on_display_catalog: Option<DisplayCatalogCallback>,
+    on_display_selection: Option<DisplaySelectionCallback>,
     on_metrics: Option<MetricsCallback>,
     on_clipboard_text: Option<ClipboardTextCallback>,
     on_clipboard_rich_text: Option<ClipboardRichTextCallback>,
@@ -922,6 +951,23 @@ struct NativeViewerDisplayCatalogState {
     revision: u64,
     entries: Option<Arc<[NativeViewerDisplayCatalogEntry]>>,
     selected_display_index: Option<u32>,
+    last_selection_command_id: u64,
+    pending_selection: Option<NativeViewerDisplaySelectionPending>,
+}
+
+#[derive(Clone, Copy)]
+struct NativeViewerDisplaySelectionPending {
+    connection_epoch: u64,
+    command_id: u64,
+    catalog_revision: u64,
+    display_index: u32,
+}
+
+#[derive(Clone, Copy)]
+struct NativeViewerDisplaySelectionSnapshot {
+    pending: NativeViewerDisplaySelectionPending,
+    result: u32,
+    failure: u32,
 }
 
 #[derive(Clone)]
@@ -930,6 +976,12 @@ struct NativeViewerDisplayCatalogSnapshot {
     revision: u64,
     entries: Option<Arc<[NativeViewerDisplayCatalogEntry]>>,
     selected_display_index: Option<u32>,
+}
+
+#[derive(Clone, Copy)]
+enum NativeViewerDisplaySelectionIngress {
+    RemoteFollow,
+    SwitchEcho,
 }
 
 fn normalized_native_viewer_display_catalog(
@@ -1739,6 +1791,22 @@ impl BridgeShared {
         unsafe { callback(self.context as *mut c_void, &event) };
     }
 
+    fn emit_display_selection(&self, snapshot: NativeViewerDisplaySelectionSnapshot) {
+        let Some(callback) = self.callbacks.on_display_selection else {
+            return;
+        };
+        let event = RDNDisplaySelectionEvent {
+            abi_version: ABI_VERSION,
+            connection_epoch: snapshot.pending.connection_epoch,
+            command_id: snapshot.pending.command_id,
+            catalog_revision: snapshot.pending.catalog_revision,
+            display_index: snapshot.pending.display_index,
+            result: snapshot.result,
+            failure: snapshot.failure,
+        };
+        unsafe { callback(self.context as *mut c_void, &event) };
+    }
+
     fn publish_display_catalog(&self, displays: &[DisplayInfo], selected: Option<Option<u32>>) {
         if !self.active.load(Ordering::Acquire)
             || self.file_transfer_enabled.load(Ordering::Acquire)
@@ -1754,6 +1822,18 @@ impl BridgeShared {
         let mut state = self.display_catalog.lock().unwrap();
         let catalog_changed =
             !state.initialized || state.entries.as_deref() != normalized.as_deref();
+        let selection_terminal = catalog_changed
+            .then(|| {
+                state
+                    .pending_selection
+                    .take()
+                    .map(|pending| NativeViewerDisplaySelectionSnapshot {
+                        pending,
+                        result: DISPLAY_SELECTION_RESULT_FAILED,
+                        failure: DISPLAY_SELECTION_FAILURE_CATALOG_CHANGED,
+                    })
+            })
+            .flatten();
         if catalog_changed {
             state.initialized = true;
             state.revision = state.revision.saturating_add(1).max(1);
@@ -1780,13 +1860,15 @@ impl BridgeShared {
             selected_display_index: state.selected_display_index,
         };
         drop(state);
+        if let Some(terminal) = selection_terminal {
+            self.emit_display_selection(terminal);
+        }
         self.emit_display_catalog(snapshot);
         drop(delivery);
     }
 
-    fn publish_selected_display(&self, display: i32) {
-        if display < 0
-            || !self.active.load(Ordering::Acquire)
+    fn publish_selected_display(&self, display: i32, ingress: NativeViewerDisplaySelectionIngress) {
+        if !self.active.load(Ordering::Acquire)
             || self.file_transfer_enabled.load(Ordering::Acquire)
         {
             return;
@@ -1800,24 +1882,71 @@ impl BridgeShared {
         if !state.initialized {
             return;
         }
-        let index = display as u32;
-        let valid = state.entries.as_deref().is_some_and(|entries| {
-            entries
-                .get(index as usize)
-                .is_some_and(|entry| entry.display_index == index && entry.online)
+        let index = u32::try_from(display).ok();
+        let valid_index = index.filter(|index| {
+            state.entries.as_deref().is_some_and(|entries| {
+                entries
+                    .get(*index as usize)
+                    .is_some_and(|entry| entry.display_index == *index && entry.online)
+            })
         });
-        if !valid || state.selected_display_index == Some(index) {
-            return;
-        }
-        state.selected_display_index = Some(index);
-        let snapshot = NativeViewerDisplayCatalogSnapshot {
-            connection_epoch,
-            revision: state.revision,
-            entries: state.entries.clone(),
-            selected_display_index: state.selected_display_index,
-        };
+        let terminal = state.pending_selection.take().map(|pending| {
+            let selected = matches!(ingress, NativeViewerDisplaySelectionIngress::SwitchEcho)
+                && valid_index == Some(pending.display_index)
+                && pending.connection_epoch == connection_epoch
+                && pending.catalog_revision == state.revision;
+            NativeViewerDisplaySelectionSnapshot {
+                pending,
+                result: if selected {
+                    DISPLAY_SELECTION_RESULT_SELECTED
+                } else {
+                    DISPLAY_SELECTION_RESULT_FAILED
+                },
+                failure: if selected {
+                    DISPLAY_SELECTION_FAILURE_NONE
+                } else {
+                    DISPLAY_SELECTION_FAILURE_REMOTE_SELECTION_DRIFT
+                },
+            }
+        });
+        let catalog_snapshot =
+            if valid_index.is_some() && state.selected_display_index != valid_index {
+                state.selected_display_index = valid_index;
+                Some(NativeViewerDisplayCatalogSnapshot {
+                    connection_epoch,
+                    revision: state.revision,
+                    entries: state.entries.clone(),
+                    selected_display_index: state.selected_display_index,
+                })
+            } else {
+                None
+            };
         drop(state);
-        self.emit_display_catalog(snapshot);
+        if let Some(snapshot) = catalog_snapshot {
+            self.emit_display_catalog(snapshot);
+        }
+        if let Some(terminal) = terminal {
+            self.emit_display_selection(terminal);
+        }
+        drop(delivery);
+    }
+
+    fn terminate_display_selection(&self, failure: u32) {
+        let delivery = self.display_catalog_delivery.lock().unwrap();
+        let terminal = self
+            .display_catalog
+            .lock()
+            .unwrap()
+            .pending_selection
+            .take()
+            .map(|pending| NativeViewerDisplaySelectionSnapshot {
+                pending,
+                result: DISPLAY_SELECTION_RESULT_FAILED,
+                failure,
+            });
+        if let Some(terminal) = terminal {
+            self.emit_display_selection(terminal);
+        }
         drop(delivery);
     }
 
@@ -1899,6 +2028,7 @@ impl Default for BridgeUi {
                     on_state: None,
                     on_video: None,
                     on_display_catalog: None,
+                    on_display_selection: None,
                     on_metrics: None,
                     on_clipboard_text: None,
                     on_clipboard_rich_text: None,
@@ -1960,7 +2090,10 @@ impl InvokeUiSession for BridgeUi {
     fn switch_display(&self, display: &SwitchDisplay) {
         *self.shared.dimensions.write().unwrap() =
             (display.width.max(0) as u32, display.height.max(0) as u32);
-        self.shared.publish_selected_display(display.display);
+        self.shared.publish_selected_display(
+            display.display,
+            NativeViewerDisplaySelectionIngress::SwitchEcho,
+        );
     }
 
     fn set_peer_info(&self, peer_info: &PeerInfo) {
@@ -2393,7 +2526,8 @@ impl InvokeUiSession for BridgeUi {
     fn next_rgba(&self, _display: usize) {}
     fn set_multiple_windows_session(&self, _sessions: Vec<WindowsSession>) {}
     fn set_current_display(&self, display: i32) {
-        self.shared.publish_selected_display(display);
+        self.shared
+            .publish_selected_display(display, NativeViewerDisplaySelectionIngress::RemoteFollow);
     }
     fn update_record_status(&self, _start: bool) {}
     fn printer_request(&self, _id: i32, _path: String) {}
@@ -2512,6 +2646,8 @@ pub struct RDNClient {
 
 impl RDNClient {
     fn disconnect(&self, emit_state: bool) {
+        self.shared
+            .terminate_display_selection(DISPLAY_SELECTION_FAILURE_CONNECTION_CLOSED);
         self.shared.authenticated.store(false, Ordering::Release);
         self.shared.input_allowed.store(false, Ordering::Release);
         self.shared
@@ -3603,6 +3739,7 @@ pub unsafe extern "C" fn rdn_client_connect(
     let worker_shared = client.shared.clone();
     let worker = std::thread::spawn(move || {
         io_loop(worker_session, round);
+        worker_shared.terminate_display_selection(DISPLAY_SELECTION_FAILURE_CONNECTION_CLOSED);
         worker_shared.authenticated.store(false, Ordering::Release);
         worker_shared.input_allowed.store(false, Ordering::Release);
         worker_shared
@@ -3694,6 +3831,94 @@ pub unsafe extern "C" fn rdn_client_disconnect(client: *mut RDNClient) {
     if let Some(client) = client.as_ref() {
         client.disconnect(true);
     }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_select_display(
+    client: *mut RDNClient,
+    request: *const RDNDisplaySelectionRequest,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    let Some(request) = request.as_ref() else {
+        return -1;
+    };
+    if request.abi_version != ABI_VERSION {
+        return -2;
+    }
+    if request.connection_epoch == 0 || request.command_id == 0 || request.catalog_revision == 0 {
+        return -4;
+    }
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if client.shared.file_transfer_enabled.load(Ordering::Acquire) {
+        return -7;
+    }
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    if client.shared.connection_epoch.load(Ordering::Acquire) != request.connection_epoch {
+        return -10;
+    }
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    if session.sender.read().unwrap().is_none() {
+        return -3;
+    }
+
+    let delivery = client.shared.display_catalog_delivery.lock().unwrap();
+    if !client.shared.active.load(Ordering::Acquire)
+        || !client.shared.authenticated.load(Ordering::Acquire)
+        || client.shared.connection_epoch.load(Ordering::Acquire) != request.connection_epoch
+    {
+        return -10;
+    }
+    let mut state = client.shared.display_catalog.lock().unwrap();
+    if !state.initialized || state.entries.is_none() || state.revision != request.catalog_revision {
+        return -10;
+    }
+    if state.pending_selection.is_some() {
+        return -3;
+    }
+    if request.command_id <= state.last_selection_command_id {
+        return -5;
+    }
+    let selectable = state.entries.as_deref().is_some_and(|entries| {
+        entries
+            .get(request.display_index as usize)
+            .is_some_and(|entry| entry.display_index == request.display_index && entry.online)
+    });
+    if !selectable {
+        return -5;
+    }
+    state.last_selection_command_id = request.command_id;
+    let pending = NativeViewerDisplaySelectionPending {
+        connection_epoch: request.connection_epoch,
+        command_id: request.command_id,
+        catalog_revision: request.catalog_revision,
+        display_index: request.display_index,
+    };
+    if state.selected_display_index == Some(request.display_index) {
+        drop(state);
+        client
+            .shared
+            .emit_display_selection(NativeViewerDisplaySelectionSnapshot {
+                pending,
+                result: DISPLAY_SELECTION_RESULT_ALREADY_SELECTED,
+                failure: DISPLAY_SELECTION_FAILURE_NONE,
+            });
+        drop(delivery);
+        return 0;
+    }
+    state.pending_selection = Some(pending);
+    drop(state);
+    session.switch_display(request.display_index as i32);
+    drop(delivery);
+    0
 }
 
 #[no_mangle]
@@ -4689,6 +4914,16 @@ mod tests {
         entries: Vec<CapturedDisplayCatalogEntry>,
     }
 
+    #[derive(Debug, Eq, PartialEq)]
+    struct CapturedDisplaySelectionEvent {
+        connection_epoch: u64,
+        command_id: u64,
+        catalog_revision: u64,
+        display_index: u32,
+        result: u32,
+        failure: u32,
+    }
+
     #[derive(Default, Debug, Eq, PartialEq)]
     struct UploadReadCapture {
         source: Vec<u8>,
@@ -4819,6 +5054,22 @@ mod tests {
                 .selected_display_known
                 .then_some(event.selected_display_index),
             entries,
+        });
+    }
+
+    unsafe extern "C" fn capture_display_selection(
+        context: *mut c_void,
+        event: *const RDNDisplaySelectionEvent,
+    ) {
+        let capture = &*(context as *const Mutex<Vec<CapturedDisplaySelectionEvent>>);
+        let event = &*event;
+        capture.lock().unwrap().push(CapturedDisplaySelectionEvent {
+            connection_epoch: event.connection_epoch,
+            command_id: event.command_id,
+            catalog_revision: event.catalog_revision,
+            display_index: event.display_index,
+            result: event.result,
+            failure: event.failure,
         });
     }
 
@@ -5186,6 +5437,184 @@ mod tests {
             .store(true, Ordering::Release);
         ui.set_displays(&valid);
         assert_eq!(captured.lock().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn native_viewer_display_selection_is_exact_single_flight_and_terminal() {
+        let captured = Mutex::new(Vec::<CapturedDisplaySelectionEvent>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_display_selection = Some(capture_display_selection);
+        shared.context = &captured as *const _ as usize;
+        ui.shared.connection_epoch.store(7, Ordering::Release);
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared.authenticated.store(true, Ordering::Release);
+        let displays = vec![
+            display_info("Main", 0, 0, 1920, 1080, true, 2.0),
+            display_info("Studio", 1920, 0, 2560, 1440, true, 1.0),
+        ];
+        ui.shared.publish_display_catalog(&displays, Some(Some(0)));
+
+        let (sender, mut receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
+        let session = Session {
+            sender: Arc::new(RwLock::new(Some(sender))),
+            ui_handler: ui.clone(),
+            ..Default::default()
+        };
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(Some(session)),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let client_pointer = &mut client as *mut RDNClient;
+        let request = |command_id, catalog_revision, display_index| RDNDisplaySelectionRequest {
+            abi_version: ABI_VERSION,
+            connection_epoch: 7,
+            command_id,
+            catalog_revision,
+            display_index,
+        };
+
+        let current = request(1, 1, 0);
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &current) },
+            0
+        );
+        assert!(receiver.try_recv().is_err());
+        assert_eq!(
+            captured.lock().unwrap().as_slice(),
+            &[CapturedDisplaySelectionEvent {
+                connection_epoch: 7,
+                command_id: 1,
+                catalog_revision: 1,
+                display_index: 0,
+                result: DISPLAY_SELECTION_RESULT_ALREADY_SELECTED,
+                failure: DISPLAY_SELECTION_FAILURE_NONE,
+            }]
+        );
+
+        let target = request(2, 1, 1);
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &target) },
+            0
+        );
+        let duplicate_while_pending = request(3, 1, 0);
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &duplicate_while_pending) },
+            -3
+        );
+        let mut sent_switch = false;
+        while let Ok(data) = receiver.try_recv() {
+            let Data::Message(message) = data else {
+                continue;
+            };
+            let Some(message::Union::Misc(misc)) = message.union else {
+                continue;
+            };
+            if let Some(misc::Union::SwitchDisplay(display)) = misc.union {
+                sent_switch = display.display == 1;
+            }
+        }
+        assert!(sent_switch);
+        ui.switch_display(&SwitchDisplay {
+            display: 1,
+            width: 2560,
+            height: 1440,
+            ..Default::default()
+        });
+        assert_eq!(
+            captured.lock().unwrap()[1],
+            CapturedDisplaySelectionEvent {
+                connection_epoch: 7,
+                command_id: 2,
+                catalog_revision: 1,
+                display_index: 1,
+                result: DISPLAY_SELECTION_RESULT_SELECTED,
+                failure: DISPLAY_SELECTION_FAILURE_NONE,
+            }
+        );
+
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &target) },
+            -5
+        );
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &duplicate_while_pending) },
+            0
+        );
+        let mut changed = displays.clone();
+        changed[1].width = 3008;
+        ui.set_displays(&changed);
+        assert_eq!(
+            captured.lock().unwrap()[2],
+            CapturedDisplaySelectionEvent {
+                connection_epoch: 7,
+                command_id: 3,
+                catalog_revision: 1,
+                display_index: 0,
+                result: DISPLAY_SELECTION_RESULT_FAILED,
+                failure: DISPLAY_SELECTION_FAILURE_CATALOG_CHANGED,
+            }
+        );
+
+        let remote_drift = request(4, 2, 0);
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &remote_drift) },
+            0
+        );
+        ui.set_current_display(0);
+        assert_eq!(
+            captured.lock().unwrap()[3],
+            CapturedDisplaySelectionEvent {
+                connection_epoch: 7,
+                command_id: 4,
+                catalog_revision: 2,
+                display_index: 0,
+                result: DISPLAY_SELECTION_RESULT_FAILED,
+                failure: DISPLAY_SELECTION_FAILURE_REMOTE_SELECTION_DRIFT,
+            }
+        );
+
+        let mut stale_epoch = request(5, 2, 1);
+        stale_epoch.connection_epoch = 6;
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &stale_epoch) },
+            -10
+        );
+        let stale_revision = request(5, 1, 1);
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &stale_revision) },
+            -10
+        );
+        let out_of_range = request(5, 2, 9);
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &out_of_range) },
+            -5
+        );
+
+        let disconnect = request(5, 2, 1);
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &disconnect) },
+            0
+        );
+        client.disconnect(false);
+        assert_eq!(
+            captured.lock().unwrap()[4],
+            CapturedDisplaySelectionEvent {
+                connection_epoch: 7,
+                command_id: 5,
+                catalog_revision: 2,
+                display_index: 1,
+                result: DISPLAY_SELECTION_RESULT_FAILED,
+                failure: DISPLAY_SELECTION_FAILURE_CONNECTION_CLOSED,
+            }
+        );
+
+        assert_eq!(
+            unsafe { rdn_client_select_display(client_pointer, &current) },
+            -3
+        );
     }
 
     #[test]

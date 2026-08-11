@@ -114,7 +114,7 @@ def main() -> int:
             )
         ),
         "currentViewerABIImplementsOnlyFrozenSemanticSeam": (
-            "#define RDN_ABI_VERSION 15u" in header
+            "#define RDN_ABI_VERSION 16u" in header
             and "RDNFileTransferUploadStart" in header
             and "RDNFileTransferUploadReadRequest" in header
             and "rdn_client_file_transfer_upload_start" in header
@@ -159,7 +159,7 @@ def main() -> int:
         "designMilestone": line_number(
             design, "H6.3i Viewer upload wire/ABI ownership audit"
         ),
-        "viewerABIVersion": line_number(header, "#define RDN_ABI_VERSION 15u"),
+        "viewerABIVersion": line_number(header, "#define RDN_ABI_VERSION 16u"),
         "pathBasedSend": line_number(io_loop, "Data::SendFiles("),
         "canonicalReceive": line_number(fs, "pub fn new_receive("),
         "boundedWireBlock": line_number(
