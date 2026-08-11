@@ -119,7 +119,7 @@ def main() -> int:
                 'apply --check --reverse "$file_transfer_block_patch_file"',
             )
         ),
-        "productStillDoesNotOptIn": "fileTransferPolicy:" not in product,
+        "productStillDoesNotOptIn": "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product,
         "laterSafeReceiveRootPrimitiveExists": all(
             marker in safe_root
             for marker in (

@@ -123,7 +123,7 @@ def main() -> int:
                 'cmp -s "$vendor_dir/src/rdn_host_file_transfer.rs" "$host_file_transfer_source"',
             )
         ),
-        "productStillDoesNotOptIn": "fileTransferPolicy:" not in product,
+        "productStillDoesNotOptIn": "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product,
         "laterOwnerMutationAndNewWritesExistResumeRemainsOpen": (
             "pub(crate) struct NativeHostFileServiceOwner" in source
             and "native_host_dispatch_file_mutation" in host_bridge

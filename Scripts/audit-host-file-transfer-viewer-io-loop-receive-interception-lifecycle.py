@@ -121,7 +121,7 @@ def main() -> int:
             "Data::SendFiles" not in hook
             and "pwrite" not in hook
             and "writeFileTransferPayload" not in sources["swift"]
-            and "fileTransferPolicy:" not in product
+            and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "No wire download request or destination write" in sources["readme"]
             and "wire download request、destination write 与 UI 仍未实现" in sources["architecture"]
         ),

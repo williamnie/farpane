@@ -114,6 +114,16 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
             && !viewerConnectionInProgress
     }
 
+    package static func allowsFileTransferPolicyChange(
+        control: HostAgentBackgroundHomeControlState,
+        viewerConnectionInProgress: Bool
+    ) -> Bool {
+        allowsClipboardPolicyChange(
+            control: control,
+            viewerConnectionInProgress: viewerConnectionInProgress
+        )
+    }
+
     package static func allowsHostToggle(
         control: HostAgentBackgroundHomeControlState,
         bootstrapReady: Bool

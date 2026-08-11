@@ -4,7 +4,7 @@ import subprocess
 import unittest
 
 
-class HostFileTransferBootstrapPublicationPolicyLifecycleAuditTests(
+class HostFileTransferHostHomeReceiveRootOptInLifecycleAuditTests(
     unittest.TestCase
 ):
     def test_current_repository_passes(self) -> None:
@@ -12,7 +12,7 @@ class HostFileTransferBootstrapPublicationPolicyLifecycleAuditTests(
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-file-transfer-bootstrap-publication-policy-lifecycle.py",
+                "Scripts/audit-host-file-transfer-host-home-receive-root-opt-in-lifecycle.py",
             ],
             cwd=repository,
             check=False,
@@ -26,16 +26,19 @@ class HostFileTransferBootstrapPublicationPolicyLifecycleAuditTests(
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["status"],
-            "bootstrap-publication-runtime-policy-implemented-home-opt-in-downstream",
+            "host-home-receive-root-opt-in-implemented",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
-        self.assertTrue(document["claims"]["bootstrapPolicyPublicationImplemented"])
-        self.assertTrue(document["claims"]["agentRuntimePolicyProjectionImplemented"])
-        self.assertTrue(document["claims"]["hostHomeFileTransferOptInImplemented"])
-        self.assertFalse(document["claims"]["productFileTransferEnabledByDefault"])
-        self.assertFalse(document["claims"]["twoMacAcceptanceComplete"])
+        claims = document["claims"]
+        self.assertFalse(claims["hostFileTransferEnabledByDefault"])
+        self.assertTrue(claims["explicitHomeOptInImplemented"])
+        self.assertTrue(claims["privateReceiveRootProvisioningImplemented"])
+        self.assertTrue(claims["backgroundHostProjectionImplemented"])
+        self.assertTrue(claims["legacyHostProjectionImplemented"])
+        self.assertFalse(claims["installedSingleMacSmokeComplete"])
+        self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
             "host-file-transfer-product-development-completion-audit",

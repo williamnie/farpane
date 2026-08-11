@@ -163,7 +163,7 @@ def main() -> int:
             and "renameatx_np" in owner
             and "RDNFileTransferReceiveReservation" not in sources["header"]
             and "Data::SendFiles" not in reserve + parent + cleanup
-            and "fileTransferPolicy:" not in product
+            and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "does not dispatch a download wire request" in sources["readme"]
         ),
     }

@@ -167,7 +167,7 @@ def main() -> int:
             and all(marker not in progress + done + error + cancel for marker in (
                 "openat", "File::create", "write_all", "destination"
             ))
-            and "fileTransferPolicy:" not in product
+            and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "No download command" in sources["readme"]
             and "dispatches a wire request" in sources["readme"]
         ),

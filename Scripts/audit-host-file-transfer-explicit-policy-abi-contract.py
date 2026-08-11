@@ -118,7 +118,7 @@ def main() -> int:
         ),
         "productCallersDoNotEnableFileTransfer": (
             "fileTransferEnabled: true" not in product_sources
-            and "fileTransferPolicy:" not in product_sources
+            and "farpane.host.fileTransfer.enabled" in product_sources and "return .disabled" in product_sources
         ),
         "defaultAndExplicitReadbackHaveTests": all(
             marker in (sources["core_tests"] + bridge)

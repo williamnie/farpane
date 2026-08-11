@@ -152,8 +152,8 @@ def main() -> int:
             )
         ),
         "productCallersRemainDisabled": (
-            "fileTransferPolicy:" not in product
-            and "fileTransferPolicy:" not in product
+            "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
+            and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
         ),
     }
     source_lines = {

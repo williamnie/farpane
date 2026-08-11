@@ -155,7 +155,7 @@ def main() -> int:
             and "Darwin.futimens(" in owner
             and "RDNFileTransferReceiveReservation" not in sources["header"]
             and "Data::SendFiles" not in write + metadata + pwrite
-            and "fileTransferPolicy:" not in product
+            and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
             and "does not dispatch a download wire request" in sources["readme"]
         ),
     }

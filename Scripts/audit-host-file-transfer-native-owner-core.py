@@ -130,7 +130,7 @@ def main() -> int:
             and "begin_native_host_write_job" in connection
             and "NativeHostWriteJobError::ResumeUnsupported" in host_bridge
         ),
-        "productStillDoesNotOptIn": "fileTransferPolicy:" not in product,
+        "productStillDoesNotOptIn": "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product,
     }
     source_lines = {
         "designMilestone": line_number(

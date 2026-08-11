@@ -148,8 +148,8 @@ def main() -> int:
             )
         ),
         "productCallersRemainDisabledWithoutRoot": (
-            "fileTransferPolicy:" not in product
-            and "fileTransferPolicy:" not in product
+            "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
+            and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
         ),
         "laterMutationAndNewWriteDispatchExistResumeRemainsOpen": (
             "send_native_host_file_mutation_response" in connection
