@@ -46,11 +46,7 @@ for symbol in $required_symbols; do
   }
 done
 
-git -C "$repo_dir/Vendor/rustdesk" diff --check
-git -C "$repo_dir/Vendor/rustdesk" apply --check --reverse \
-  "$repo_dir/CoreBridge/RustDeskPatch/upstream-1.4.9.patch"
-git -C "$repo_dir/Vendor/rustdesk/libs/hbb_common" apply --check --reverse \
-  "$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
+"$repo_dir/Scripts/verify-rustdesk-core-source.sh"
 
 cd "$repo_dir"
 swift build -c release
