@@ -43,12 +43,12 @@ class HostAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertFalse(claims["hostAudioEnabledByDefault"])
         self.assertTrue(claims["hostAudioABICapable"])
         self.assertTrue(claims["hostAudioProductEnabled"])
-        self.assertFalse(claims["viewerAudioImplemented"])
+        self.assertTrue(claims["viewerAudioImplemented"])
         self.assertTrue(claims["microphoneTCCImplemented"])
         self.assertFalse(claims["installedAudioAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-audio-explicit-policy-abi-contract",
+            "host-audio-product-development-completion-audit",
         )
 
 

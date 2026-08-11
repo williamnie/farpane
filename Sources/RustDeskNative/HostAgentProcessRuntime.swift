@@ -115,6 +115,8 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                         configuration.audioPolicy.enabled
                             && HostMicrophoneAuthorizationAuthority
                                 .isAuthorizedWithoutPrompt(),
+                    audioInputDeviceName:
+                        configuration.audioPolicy.inputDeviceName,
                     fileTransferEnabled:
                         configuration.fileTransferPolicy.enabled,
                     fileTransferReceiveRoot:

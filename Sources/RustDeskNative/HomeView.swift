@@ -67,6 +67,9 @@ struct HostHomeSnapshot: Equatable {
     var fileTransferReceiveRootName: String = ""
     var allowsFileTransferPolicyChange: Bool = false
     var audioEnabled: Bool = false
+    var audioInputDeviceNames: [String] = []
+    var audioInputDeviceName: String?
+    var audioInputDeviceAvailable: Bool = true
     var microphoneAuthorizationText: String = "麦克风权限：开启时询问"
     var allowsAudioPolicyChange: Bool = false
     var statusText: String
@@ -117,6 +120,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onHostFileTransferToggle: ((Bool) -> Void)?
     var onChooseHostFileTransferReceiveRoot: (() -> Void)?
     var onHostAudioToggle: ((Bool) -> Void)?
+    var onHostAudioInputSelection: ((String?) -> Void)?
+    var onRefreshHostAudioInputs: (() -> Void)?
     var onRevealHostPassword: (() -> Void)?
     var onRegenerateHostPassword: (() -> Void)?
     var onSetHostPermanentPassword: (() -> Void)?
@@ -166,6 +171,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     )
     private let hostFileTransferReceiveRootButton = NSButton()
     private let hostAudioSwitch = NSSwitch()
+    private let hostAudioInputPopup = NSPopUpButton()
+    private let hostAudioInputRefreshButton = NSButton()
+    private let hostAudioInputStatusLabel = NSTextField(
+        labelWithString: "音频输入：系统默认麦克风"
+    )
     private let hostMicrophoneAuthorizationLabel = NSTextField(
         labelWithString: "麦克风权限：开启时询问"
     )
@@ -283,6 +293,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostAudioSwitch.state = snapshot.host.audioEnabled ? .on : .off
         hostAudioSwitch.isEnabled = snapshot.connectingPeerID == nil
             && snapshot.host.allowsAudioPolicyChange
+        applyHostAudioInputSelection(snapshot.host)
         hostMicrophoneAuthorizationLabel.stringValue = snapshot.host
             .microphoneAuthorizationText
         hostStatusLabel.stringValue = snapshot.host.statusText
@@ -905,9 +916,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostAudioTitle.textColor = .secondaryLabelColor
         hostAudioSwitch.target = self
         hostAudioSwitch.action = #selector(hostAudioToggleChanged)
-        hostAudioSwitch.setAccessibilityLabel("允许远端收听本机麦克风")
+        hostAudioSwitch.setAccessibilityLabel("允许远端接收本机音频")
         let hostAudioToggleLabel = NSTextField(
-            labelWithString: "允许远端收听本机麦克风"
+            labelWithString: "允许远端接收本机音频"
         )
         hostAudioToggleLabel.font = .systemFont(ofSize: 12)
         hostAudioToggleLabel.textColor = .secondaryLabelColor
@@ -918,11 +929,34 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         ])
         hostAudioToggleRow.orientation = .horizontal
         hostAudioToggleRow.alignment = .centerY
+        hostAudioInputPopup.target = self
+        hostAudioInputPopup.action = #selector(hostAudioInputSelectionChanged)
+        hostAudioInputPopup.setAccessibilityLabel("选择远程音频输入设备")
+        hostAudioInputRefreshButton.title = "刷新"
+        hostAudioInputRefreshButton.bezelStyle = .inline
+        hostAudioInputRefreshButton.target = self
+        hostAudioInputRefreshButton.action = #selector(refreshHostAudioInputs)
+        hostAudioInputRefreshButton.setAccessibilityLabel("刷新音频输入设备")
+        let hostAudioInputLabel = NSTextField(labelWithString: "音频输入")
+        hostAudioInputLabel.font = .systemFont(ofSize: 12)
+        hostAudioInputLabel.textColor = .secondaryLabelColor
+        let hostAudioInputRow = NSStackView(views: [
+            hostAudioInputLabel,
+            NSView(),
+            hostAudioInputPopup,
+            hostAudioInputRefreshButton,
+        ])
+        hostAudioInputRow.orientation = .horizontal
+        hostAudioInputRow.alignment = .centerY
+        hostAudioInputStatusLabel.font = .systemFont(ofSize: 11)
+        hostAudioInputStatusLabel.textColor = .tertiaryLabelColor
         hostMicrophoneAuthorizationLabel.font = .systemFont(ofSize: 11)
         hostMicrophoneAuthorizationLabel.textColor = .tertiaryLabelColor
         let hostAudioSettings = NSStackView(views: [
             hostAudioTitle,
             hostAudioToggleRow,
+            hostAudioInputRow,
+            hostAudioInputStatusLabel,
             hostMicrophoneAuthorizationLabel,
         ])
         hostAudioSettings.orientation = .vertical
@@ -931,6 +965,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         for view in [
             hostAudioTitle,
             hostAudioToggleRow,
+            hostAudioInputRow,
+            hostAudioInputStatusLabel,
             hostMicrophoneAuthorizationLabel,
         ] {
             view.widthAnchor.constraint(
@@ -1473,6 +1509,55 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     @objc private func hostAudioToggleChanged() {
         guard snapshot.host.allowsAudioPolicyChange else { return }
         onHostAudioToggle?(hostAudioSwitch.state == .on)
+    }
+
+    @objc private func hostAudioInputSelectionChanged() {
+        guard snapshot.host.allowsAudioPolicyChange,
+              let value = hostAudioInputPopup.selectedItem?
+                .representedObject as? String
+        else { return }
+        onHostAudioInputSelection?(value.isEmpty ? nil : value)
+    }
+
+    private func applyHostAudioInputSelection(_ host: HostHomeSnapshot) {
+        hostAudioInputPopup.removeAllItems()
+        hostAudioInputPopup.addItem(withTitle: "系统默认麦克风")
+        hostAudioInputPopup.lastItem?.representedObject = ""
+        for name in host.audioInputDeviceNames {
+            hostAudioInputPopup.addItem(withTitle: name)
+            hostAudioInputPopup.lastItem?.representedObject = name
+        }
+        if let selected = host.audioInputDeviceName,
+           !host.audioInputDeviceNames.contains(selected) {
+            hostAudioInputPopup.addItem(withTitle: "不可用：\(selected)")
+            hostAudioInputPopup.lastItem?.representedObject = selected
+        }
+        let representedValue = host.audioInputDeviceName ?? ""
+        if let item = hostAudioInputPopup.itemArray.first(where: {
+            ($0.representedObject as? String) == representedValue
+        }) {
+            hostAudioInputPopup.select(item)
+        }
+        hostAudioInputPopup.isEnabled = snapshot.connectingPeerID == nil
+            && host.allowsAudioPolicyChange
+        hostAudioInputRefreshButton.isEnabled = snapshot.connectingPeerID == nil
+            && host.allowsAudioPolicyChange
+        if let selected = host.audioInputDeviceName {
+            hostAudioInputStatusLabel.stringValue = host.audioInputDeviceAvailable
+                ? "音频输入：\(selected)"
+                : "已选设备不可用或名称不唯一；不会回退默认麦克风"
+            hostAudioInputStatusLabel.textColor = host.audioInputDeviceAvailable
+                ? .tertiaryLabelColor
+                : .systemOrange
+        } else {
+            hostAudioInputStatusLabel.stringValue = "音频输入：系统默认麦克风"
+            hostAudioInputStatusLabel.textColor = .tertiaryLabelColor
+        }
+    }
+
+    @objc private func refreshHostAudioInputs() {
+        guard snapshot.host.allowsAudioPolicyChange else { return }
+        onRefreshHostAudioInputs?()
     }
 
     @objc private func chooseHostFileTransferReceiveRoot() {

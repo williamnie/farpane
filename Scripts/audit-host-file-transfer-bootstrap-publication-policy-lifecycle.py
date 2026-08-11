@@ -60,7 +60,7 @@ def main() -> int:
         "schemaV5PolicyRemainsDefaultOff": all(
             marker in sources["configuration"]
             for marker in (
-                "public static let currentSchemaVersion = 6",
+                "public static let currentSchemaVersion = 7",
                 "public static let disabled = Self(enabled: false, receiveRoot: nil)",
                 "public let fileTransferPolicy: HostAgentFileTransferPolicy",
             )

@@ -31,7 +31,7 @@ class HostVirtualAudioInputSelectionABIContractAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-virtual-audio-input-abi-capable-product-default-microphone",
+            "host-virtual-audio-input-abi-capable-product-selector",
         )
         self.assertEqual(document["currentABI"], {"host": 19, "viewer": 18})
         self.assertEqual(document["missingEvidence"], [])
@@ -39,13 +39,13 @@ class HostVirtualAudioInputSelectionABIContractAuditTests(unittest.TestCase):
         self.assertTrue(all(document["evidence"].values()))
         claims = document["claims"]
         self.assertFalse(claims["virtualInputSelectedByDefault"])
-        self.assertFalse(claims["virtualInputProductSelectorImplemented"])
+        self.assertTrue(claims["virtualInputProductSelectorImplemented"])
         self.assertTrue(claims["missingExplicitInputFallsClosed"])
         self.assertFalse(claims["rustDeskWireChanged"])
         self.assertFalse(claims["linux-hostChanged"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-audio-bootstrap-virtual-input-selection-contract",
+            "host-audio-product-development-completion-audit",
         )
 
 
