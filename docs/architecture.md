@@ -253,12 +253,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   规范化别名、祖先冲突与 private staging，并限制 1,024 entries、1 MiB metadata；connection-local
   progress authority 最多 8 个 job，只接受同 session、严格递增 sequence、单调有界 file/byte progress、
   explicit conflict、typed terminal failure、cancel 与 teardown。该合同不含本地 path/descriptor/raw error。
-  Viewer ABI v13 保留 v9 default-off 的 exact policy/epoch pair、path-free scalar event callback 与
+  Viewer ABI v14 保留 v9 default-off 的 exact policy/epoch pair、path-free scalar event callback 与
   epoch-scoped cancel command；true/nonzero 只建立 dedicated `FILE_TRANSFER` session，拒绝同时开启任何
   desktop clipboard direction，不启动视频 housekeeping，也不开放 input。cancel 只有在 exact epoch、
   authenticated、remote file permission 与 ready sender 全部满足时才投递 upstream `CancelJob`，worker
   退出会清除 file mode 与 epoch。Swift callback 重新验证 ABI、epoch/ID/sequence、单调有界 progress、
-  typed failure 与 exact completion，并在 disconnect 前关闭投递。v13 保留 exact-session、single-flight
+  typed failure 与 exact completion，并在 disconnect 前关闭投递。v14 保留 exact-session、single-flight
   remote-root list command/callback：只发送 `ReadDir("/", include_hidden=false)`，callback-scoped entry 在
   Rust 做 1,024/1 MiB/type/name/alias 门禁后由 Swift 复制并再次做 byte-exact NFC、完整 case-fold、separator/
   control 与 size 验证；error 只投影稳定 rejected/unavailable，teardown 清 pending request。Viewer destination
@@ -266,14 +266,14 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   pinned descriptor/device/inode；每次 scoped borrow 重验 identity/owner/mode，exact teardown/deinit close，
   不保存路径也不创建文件。纯 Swift recursive-manifest authority 以 exact epoch/request、files/empty-directories
   两个独立有界 part 合成既有 canonical manifest；duplicate/malformed part 与 combined collision fail closed。
-  v13 保留 v11 的 exact-session、single-flight recursive-manifest command/callback：只向远端根发送
+  v14 保留 v11 的 exact-session、single-flight recursive-manifest command/callback：只向远端根发送
   `AllFiles(id, "/", include_hidden=false)` 与 `ReadEmptyDirs("/", include_hidden=false)`，Rust 分别把 regular
   files 和 empty directories 约束为 1,024 entries/1 MiB metadata、canonical relative path、无 hidden/private
   staging/case alias 的 callback-scoped semantic part；两部分可任意顺序到达，duplicate/malformed/exact remote
   error 会清除 pending request，disconnect、worker exit 与 job teardown 也不保留 pending 状态。由于
   `ReadEmptyDirsResponse` 没有 request ID，同一 session epoch 只允许一次 manifest request，后续请求须以 fresh
   epoch 重连，避免迟到响应被错误归属。Swift 同步复制 metadata，
-  复核 ABI/epoch/request/status/part/type/size/mtime/path/case-fold 后才投递到既有 authority。v13 保留
+  复核 ABI/epoch/request/status/part/type/size/mtime/path/case-fold 后才投递到既有 authority。v14 保留
   path-free queued download registration（download start）：只跨 ABI 传 exact epoch、completed manifest request ID、transfer ID
   与 aggregate totals，destination lease 保持 Swift-owned；admission 要求 dedicated session、authentication、
   remote permission、ready sender，最多 8 个 unique transfer ID，并在 cancel、terminal job callback、job
@@ -292,7 +292,7 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   普通失败安全重试。Rust 侧另新增尚未接 ABI/wire 的入站 block envelope：只接纳 matching registered transfer、
   manifest file-number 范围内的 block，raw/decoded 均复用 upstream 128 KiB 上限，compressed payload 先限界解压并
   复制为 owned bytes，empty/oversize/malformed/mismatch 全部 fail closed。该注册仍不发 wire download request、不跨
-  ABI 借 descriptor；v13 已增加 callback-scoped decoded block seam，Rust 在投递前重验 active/authenticated/
+  ABI 借 descriptor；v14 已增加 callback-scoped decoded block seam，Rust 在投递前重验 active/authenticated/
   file-mode/exact epoch，Swift 在 callback 内复制并复核 epoch/ID/file/bounds 后才排队；feature-gated io-loop hook
   只消费仍在 Bridge 注册的 transfer ID，matching malformed block fail closed，unmatched block 保留上游 write-job 路径，
   且 callback 前释放 job lock；该 hook 自身的 wire download request、destination write 与 UI 仍未实现。后续 download
@@ -316,7 +316,13 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   server/peer/credential 投影到 clipboard 全关、file mode 全开的独立配置，file-ready 后才发送 manifest/download；active 后才
   开放 exact cancel。该 epoch 仍因 upstream empty-dir response 无 request ID 而只允许一次 action。App 返回 Home 或退出时先
   使 picker/prompt callback 失效，再 teardown session/destination 与 dedicated Core，随后才断开 desktop Core；Host App/Agent
-  仍未配置 receive-root/file opt-in，因此端到端产品文件传输尚未开放；
+  receive-root/file opt-in 已接产品但默认关闭，用户显式开启后才开放 Host file service 与既有 Viewer download 方向；
+  Viewer upload 在 v14 只新增默认未接 wire 的 semantic read seam：Swift descriptor owner 以 exact session/transfer/
+  opaque source token 持有来源，Rust 最多注册 8 个 bounded manifest job，并通过同步 callback 传入 exact file number、
+  offset 与 Rust caller-owned、最大 128 KiB buffer。Swift 在返回前完成精确读取，双方在 callback 前后复核 epoch、job、
+  token 与 descriptor identity；path/fd 不跨 ABI，短读、stale route 与 teardown 并发全部 fail closed。cancel、terminal、
+  disconnect 和 worker exit 会清除对应 semantic ownership。本阶段尚不发送 `FileAction::Receive/Create` 或 block，也未增加
+  Viewer 上传按钮，所以不能据此声明产品上传可用；
   多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。

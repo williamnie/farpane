@@ -164,7 +164,7 @@ def main() -> int:
             )
         ),
         "viewerABIUnchangedAndProductRemainsOff": (
-            "#define RDN_ABI_VERSION 13u" in sources["header"]
+            "#define RDN_ABI_VERSION 14u" in sources["header"]
             and "ViewerFileTransferReceiveAdapter" not in sources["header"]
             and "startFileTransferDownload(" not in product
             and "ViewerFileTransferReceiveAdapter" not in product

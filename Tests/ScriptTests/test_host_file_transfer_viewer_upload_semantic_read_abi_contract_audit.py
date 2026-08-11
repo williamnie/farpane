@@ -4,15 +4,15 @@ import subprocess
 import unittest
 
 
-class HostFileTransferViewerUploadSelectionManifestContractAuditTests(
+class HostFileTransferViewerUploadSemanticReadABIContractAuditTests(
     unittest.TestCase
 ):
-    def test_current_repository_passes(self) -> None:
+    def test_current_repository_reports_semantic_read_without_wire_or_product(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-file-transfer-viewer-upload-selection-manifest-contract.py",
+                "Scripts/audit-host-file-transfer-viewer-upload-semantic-read-abi-contract.py",
             ],
             cwd=repository,
             check=False,
@@ -26,22 +26,22 @@ class HostFileTransferViewerUploadSelectionManifestContractAuditTests(
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["status"],
-            "viewer-upload-selection-manifest-implemented-product-off",
+            "viewer-upload-semantic-read-abi-implemented-product-off",
         )
+        self.assertTrue(all(document["evidence"].values()))
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
-        self.assertTrue(all(document["evidence"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["viewerUploadSelectionImplemented"])
-        self.assertTrue(claims["descriptorOwnedManifestImplemented"])
-        self.assertTrue(claims["pathFreeUploadRequestImplemented"])
-        self.assertTrue(claims["viewerABIV14SemanticReadAvailable"])
-        self.assertFalse(claims["viewerUploadWireDispatchImplemented"])
+        self.assertTrue(claims["viewerABIV14Implemented"])
+        self.assertFalse(claims["pathOrDescriptorCrossesABI"])
+        self.assertTrue(claims["swiftDescriptorReadAuthorityImplemented"])
+        self.assertTrue(claims["rustSemanticUploadJobImplemented"])
+        self.assertFalse(claims["viewerUploadWireImplemented"])
         self.assertFalse(claims["viewerUploadProductActionImplemented"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-upload-wire-abi-ownership-audit",
+            "host-file-transfer-viewer-upload-wire-job-lifecycle",
         )
 
 

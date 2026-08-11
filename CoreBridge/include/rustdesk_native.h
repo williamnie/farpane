@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define RDN_ABI_VERSION 13u
+#define RDN_ABI_VERSION 14u
 #define RDN_CLIENT_ERR_INVALID_ARGUMENT (-1)
 #define RDN_CLIENT_ERR_ABI_MISMATCH (-2)
 #define RDN_CLIENT_ERR_BAD_STATE (-3)
@@ -249,6 +249,36 @@ typedef struct RDNFileTransferReceiveBlock {
 typedef void (*RDNFileTransferReceiveBlockCallback)(
     void *context, const RDNFileTransferReceiveBlock *block);
 
+/* Path-free upload registration. Entries are borrowed only for the duration
+ * of rdn_client_file_transfer_upload_start. Success establishes semantic job
+ * ownership only; no wire message is dispatched by the v14 contract step. */
+typedef struct RDNFileTransferUploadStart {
+    uint32_t abi_version;
+    uint64_t session_epoch;
+    int32_t transfer_id;
+    uint64_t source_token;
+    const RDNFileTransferListEntry *entries;
+    size_t entry_count;
+    uint64_t total_bytes;
+} RDNFileTransferUploadStart;
+
+/* Synchronous caller-owned upload read. Rust supplies an exact bounded range
+ * and mutable buffer. Swift must fill it before returning, set bytes_written,
+ * and must not retain the request or buffer. No path or descriptor crosses. */
+typedef struct RDNFileTransferUploadReadRequest {
+    uint32_t abi_version;
+    uint64_t session_epoch;
+    int32_t transfer_id;
+    uint64_t source_token;
+    uint32_t file_number;
+    uint64_t offset;
+    uint8_t *buffer;
+    size_t length;
+} RDNFileTransferUploadReadRequest;
+typedef int32_t (*RDNFileTransferUploadReadCallback)(
+    void *context, const RDNFileTransferUploadReadRequest *request,
+    size_t *bytes_written);
+
 typedef struct RDNCallbacks {
     uint32_t abi_version;
     RDNStateCallback on_state;
@@ -261,6 +291,7 @@ typedef struct RDNCallbacks {
     RDNFileTransferListCallback on_file_transfer_list;
     RDNFileTransferManifestCallback on_file_transfer_manifest;
     RDNFileTransferReceiveBlockCallback on_file_transfer_receive_block;
+    RDNFileTransferUploadReadCallback on_file_transfer_upload_read;
 } RDNCallbacks;
 
 typedef struct RDNConnectionConfig {
@@ -401,6 +432,10 @@ int32_t rdn_client_file_transfer_manifest_root(RDNClient *client,
  * Success means queued lifecycle ownership only; no file I/O is started. */
 int32_t rdn_client_file_transfer_download_start(
     RDNClient *client, const RDNFileTransferDownloadStart *request);
+/* Registers a bounded path-free upload source. Success is semantic ownership
+ * only; canonical RustDesk wire dispatch is a separate lifecycle step. */
+int32_t rdn_client_file_transfer_upload_start(
+    RDNClient *client, const RDNFileTransferUploadStart *request);
 uint32_t rdn_core_abi_version(void);
 const char *rdn_core_upstream_commit(void);
 
@@ -658,6 +693,9 @@ int32_t rdn_shim_client_file_transfer_manifest_root(
 int32_t rdn_shim_client_file_transfer_download_start(
     const RDNCoreLibrary *library, RDNClient *client,
     const RDNFileTransferDownloadStart *request);
+int32_t rdn_shim_client_file_transfer_upload_start(
+    const RDNCoreLibrary *library, RDNClient *client,
+    const RDNFileTransferUploadStart *request);
 
 /* Host Control ABI loader surface (rdn-native-host). rdn_shim_open tolerates
  * cores built without the host feature: rdn_shim_host_available reports whether

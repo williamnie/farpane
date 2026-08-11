@@ -213,6 +213,45 @@ package final class ViewerFileTransferUploadSourceOwner: @unchecked Sendable {
         return result
     }
 
+    /// Fills one exact caller-owned range while keeping path and descriptor
+    /// authority inside this owner. Short reads and identity drift fail closed.
+    package func readPinnedBytes(
+        for lease: ViewerFileTransferUploadSourceLease,
+        fileNumber: Int,
+        offset: UInt64,
+        into buffer: UnsafeMutablePointer<UInt8>,
+        length: Int
+    ) -> Bool {
+        guard
+            length > 0,
+            length <= CoreFileTransferReceiveBlock.maximumPayloadBytes,
+            offset <= UInt64(Int64.max)
+        else { return false }
+        let end = offset.addingReportingOverflow(UInt64(length))
+        guard !end.overflow, end.partialValue <= UInt64(Int64.max) else {
+            return false
+        }
+        return withPinnedFileDescriptor(
+            for: lease,
+            fileNumber: fileNumber
+        ) { descriptor in
+            var completed = 0
+            while completed < length {
+                let readOffset = offset + UInt64(completed)
+                let count = Darwin.pread(
+                    descriptor,
+                    buffer.advanced(by: completed),
+                    length - completed,
+                    off_t(readOffset)
+                )
+                if count < 0, errno == EINTR { continue }
+                guard count > 0 else { return false }
+                completed += count
+            }
+            return completed == length
+        } == true
+    }
+
     @discardableResult
     package func teardown(sessionEpoch: UInt64) -> Bool {
         lock.lock()

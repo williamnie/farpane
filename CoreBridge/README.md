@@ -143,7 +143,7 @@ implemented through the single existing owner; Host bootstrap schema v4 and
 Home now provide independent, default-off image read/write opt-ins. Installed
 two-Mac acceptance remains unverified.
 
-Viewer ABI v13 retains all ABI v8 clipboard behavior and the v9 separate,
+Viewer ABI v14 retains all ABI v8 clipboard behavior and the v9 separate,
 default-off file-transfer seam. The connection configuration accepts exact
 `false/0` desktop mode or exact `true/nonzero` dedicated file mode; file mode
 rejects every desktop clipboard direction, initializes upstream
@@ -154,7 +154,7 @@ enqueue upstream `CancelJob`. The scalar event callback contains only epoch,
 transfer ID, sequence, bounded progress and typed failure fields—never paths,
 descriptors or raw protocol errors.
 
-ABI v13 retains one exact-session, single-flight remote-root list
+ABI v14 retains one exact-session, single-flight remote-root list
 request. It sends only upstream `ReadDir("/", include_hidden=false)` after all
 file-session and remote-permission gates pass. The callback carries a positive
 request ID and callback-scoped entries: at most 1,024 regular file/directory
@@ -171,7 +171,7 @@ opaque lease, and revalidate identity/owner/mode for each scoped borrow before
 exact-epoch teardown closes it. A transport-independent recursive-manifest
 authority joins one bounded files part and one bounded empty-directory part for
 an exact epoch/request, then applies the canonical combined manifest validation.
-ABI v13 retains the v11 root-bound recursive-manifest requests:
+ABI v14 retains the v11 root-bound recursive-manifest requests:
 `AllFiles(id, "/", include_hidden=false)` and
 `ReadEmptyDirs("/", include_hidden=false)`. Rust owns and bounds each response,
 rejects hidden/private-staging/unsafe/type-invalid/case-alias metadata, keeps one
@@ -181,7 +181,7 @@ remote error, disconnect, worker exit or job teardown. Because
 per session epoch; retry requires reconnecting with a fresh epoch, preventing a
 late response from being attributed to a new request. Swift synchronously copies the
 callback-scoped entries and revalidates ABI, epoch, request, status, part, type,
-size, mtime, path and case-fold collisions before queued delivery. ABI v13 retains a
+size, mtime, path and case-fold collisions before queued delivery. ABI v14 retains a
 path-free queued download registration bound to that exact completed manifest.
 Only epoch, manifest request ID, transfer ID and aggregate totals cross the ABI;
 the destination lease remains Swift-owned. Admission requires the active dedicated
@@ -218,7 +218,7 @@ Rust owns an internal path-free inbound-block envelope: the block must match the
 registered transfer and manifest
 file-number range, raw and decoded payloads share the upstream 128 KiB bound, and
 compressed bytes are limit-decoded into an owned `Vec<u8>`. Empty, oversized,
-malformed-compressed or mismatched blocks fail closed. ABI v13 exposes the accepted owned
+malformed-compressed or mismatched blocks fail closed. ABI v14 exposes the accepted owned
 block through a callback-scoped epoch/transfer/file/bytes struct; Rust rechecks
 active, authenticated, file-mode and exact epoch immediately before the callback,
 while Swift copies and revalidates the bounded bytes before queueing. The
@@ -262,5 +262,18 @@ temporary value after synchronous configuration projection. One action is
 allowed per dedicated epoch; the button remains disabled until desktop
 streaming, exposes cancellation only after the transfer is active, and returns
 Home/App teardown still closes picker/prompt/session before the desktop Core.
-Host App/Agent receive-root opt-in remains off, so end-to-end product file
-transfer is not yet enabled.
+Host App/Agent receive-root opt-in remains default off; explicitly enabling it
+opens the Host file service for the existing Viewer download action. The
+opposite Viewer upload product direction remains unavailable.
+
+ABI v14 also adds the default-unwired Viewer upload semantic seam. Swift keeps
+all source descriptors inside a session-bound owner and registers only an
+opaque source token plus a bounded, normalized manifest. Rust owns at most
+eight semantic upload jobs and invokes one synchronous read callback with an
+exact file number, offset, and Rust-owned buffer of at most 128 KiB. Swift fills
+that buffer before returning and both sides recheck the exact epoch, transfer,
+token, file authority, and descriptor identity; paths and descriptors never
+cross the ABI, and short or stale reads fail closed. Cancel, terminal events,
+disconnect, and worker exit remove the matching ownership. This step does not
+project `FileAction::Receive`/`Create`, send blocks, or expose an upload product
+action; those remain separate lifecycle boundaries.

@@ -135,8 +135,9 @@ def main() -> int:
             and "XCTAssertTrue(owner.teardown(sessionEpoch: 9))"
                 in sources["tests"]
         ),
-        "productAndWireRemainUnchanged": (
-            "#define RDN_ABI_VERSION 13u" in sources["header"]
+        "productRemainsUnwiredAfterSemanticABIV14": (
+            "#define RDN_ABI_VERSION 14u" in sources["header"]
+            and "RDNFileTransferUploadStart" in sources["header"]
             and "requestFileTransferUpload" not in sources["app"]
             and "onFileTransferUploadAction" not in sources["viewer_ui"]
             and "发送文件" not in sources["viewer_ui"]
@@ -183,8 +184,10 @@ def main() -> int:
             "viewerUploadSelectionImplemented": passed,
             "descriptorOwnedManifestImplemented": passed,
             "pathFreeUploadRequestImplemented": passed,
-            "viewerABIUnchanged": "#define RDN_ABI_VERSION 13u"
-                in sources["header"],
+            "viewerABIV14SemanticReadAvailable": (
+                "#define RDN_ABI_VERSION 14u" in sources["header"]
+                and "RDNFileTransferUploadReadRequest" in sources["header"]
+            ),
             "viewerUploadWireDispatchImplemented": False,
             "viewerUploadProductActionImplemented": False,
             "twoMacAcceptanceComplete": False,

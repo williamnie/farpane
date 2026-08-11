@@ -199,6 +199,119 @@ final class ViewerFileTransferUploadSourceOwnerTests: XCTestCase {
         ))
     }
 
+    func testReadsExactPinnedRangesAndRejectsShortOrStaleReads() throws {
+        let root = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("range.bin")
+        try write(Data("0123456789".utf8), to: file)
+        let owner = try XCTUnwrap(ViewerFileTransferUploadSourceOwner(
+            sessionEpoch: 12,
+            selectedURLs: [file],
+            leaseToken: 44
+        ))
+        let lease = try XCTUnwrap(owner.lease)
+
+        var bytes = [UInt8](repeating: 0, count: 4)
+        XCTAssertTrue(bytes.withUnsafeMutableBufferPointer { buffer in
+            owner.readPinnedBytes(
+                for: lease,
+                fileNumber: 0,
+                offset: 3,
+                into: buffer.baseAddress!,
+                length: buffer.count
+            )
+        })
+        XCTAssertEqual(Data(bytes), Data("3456".utf8))
+        XCTAssertFalse(bytes.withUnsafeMutableBufferPointer { buffer in
+            owner.readPinnedBytes(
+                for: lease,
+                fileNumber: 0,
+                offset: 8,
+                into: buffer.baseAddress!,
+                length: buffer.count
+            )
+        })
+        XCTAssertTrue(owner.teardown(sessionEpoch: 12))
+        XCTAssertFalse(bytes.withUnsafeMutableBufferPointer { buffer in
+            owner.readPinnedBytes(
+                for: lease,
+                fileNumber: 0,
+                offset: 0,
+                into: buffer.baseAddress!,
+                length: buffer.count
+            )
+        })
+    }
+
+    func testSemanticReadAdapterBindsExactRouteAndClosesOnTerminal() throws {
+        let root = try makePrivateDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("payload.bin")
+        try write(Data("abcdefgh".utf8), to: file)
+        let owner = try XCTUnwrap(ViewerFileTransferUploadSourceOwner(
+            sessionEpoch: 21,
+            selectedURLs: [file],
+            leaseToken: 55
+        ))
+        let request = try XCTUnwrap(owner.makeUploadRequest(transferID: 6))
+        let adapter = ViewerFileTransferUploadReadAdapter()
+        XCTAssertTrue(adapter.begin(request, sourceOwner: owner))
+        XCTAssertFalse(adapter.begin(request, sourceOwner: owner))
+
+        var bytes = [UInt8](repeating: 0, count: 3)
+        let accepted = bytes.withUnsafeMutableBufferPointer { buffer in
+            adapter.read(
+                sessionEpoch: 21,
+                transferID: 6,
+                sourceToken: 55,
+                fileNumber: 0,
+                offset: 2,
+                buffer: buffer.baseAddress!,
+                length: buffer.count
+            )
+        }
+        XCTAssertEqual(accepted, .success(bytesWritten: 3))
+        XCTAssertEqual(Data(bytes), Data("cde".utf8))
+        XCTAssertEqual(bytes.withUnsafeMutableBufferPointer { buffer in
+            adapter.read(
+                sessionEpoch: 21,
+                transferID: 6,
+                sourceToken: 56,
+                fileNumber: 0,
+                offset: 2,
+                buffer: buffer.baseAddress!,
+                length: buffer.count
+            )
+        }, .rejected)
+
+        let terminal = try XCTUnwrap(CoreFileTransferEvent(
+            sessionEpoch: 21,
+            transferID: 6,
+            sequence: 1,
+            kind: .cancelled,
+            failure: .none,
+            currentFileNumber: nil,
+            filesCompleted: 0,
+            totalFiles: 1,
+            bytesCompleted: 0,
+            totalBytes: 8,
+            bytesPerSecond: 0
+        ))
+        XCTAssertTrue(adapter.observe(terminal))
+        XCTAssertNil(owner.lease)
+        XCTAssertEqual(bytes.withUnsafeMutableBufferPointer { buffer in
+            adapter.read(
+                sessionEpoch: 21,
+                transferID: 6,
+                sourceToken: 55,
+                fileNumber: 0,
+                offset: 0,
+                buffer: buffer.baseAddress!,
+                length: buffer.count
+            )
+        }, .rejected)
+    }
+
     func testUploadPickerContractIsExplicitAndStillNotProductWired() throws {
         let repository = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

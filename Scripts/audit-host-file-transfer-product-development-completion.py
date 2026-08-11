@@ -9,8 +9,8 @@ import subprocess
 
 
 SCHEMA = "farpane-host-file-transfer-product-development-completion-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-upload-semantic-read-abi-contract"
-MINIMUM_REQUIRED_AUDITS = 38
+NEXT_BOUNDARY = "host-file-transfer-viewer-upload-wire-job-lifecycle"
+MINIMUM_REQUIRED_AUDITS = 39
 
 
 def read(path: Path) -> str:
@@ -130,6 +130,7 @@ def main() -> int:
     )
     upload_selection_audits = (
         "audit-host-file-transfer-viewer-upload-selection-manifest-contract.py",
+        "audit-host-file-transfer-viewer-upload-semantic-read-abi-contract.py",
     )
 
     app = sources["app"]

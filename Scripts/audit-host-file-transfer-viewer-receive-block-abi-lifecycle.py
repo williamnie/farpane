@@ -61,7 +61,7 @@ def main() -> int:
     raw_struct = function_body(
         bridge,
         "struct RDNFileTransferReceiveBlock",
-        "#[derive(Clone, Copy, Debug, Eq, PartialEq)]",
+        "struct RDNFileTransferUploadStart",
     )
     rust_emit = function_body(
         bridge,
@@ -92,9 +92,9 @@ def main() -> int:
                 NEXT_BOUNDARY,
             )
         ),
-        "abiV13CarriesOnlyCallbackScopedSemanticBytes": (
-            "#define RDN_ABI_VERSION 13u" in header
-            and "const ABI_VERSION: u32 = 13;" in bridge
+        "abiV14RetainsCallbackScopedSemanticBytes": (
+            "#define RDN_ABI_VERSION 14u" in header
+            and "const ABI_VERSION: u32 = 14;" in bridge
             and all(marker in raw_struct for marker in (
                 "abi_version: u32",
                 "session_epoch: u64",
@@ -158,7 +158,7 @@ def main() -> int:
                 "maximumFileCount",
                 "maximumPayloadBytes + 1",
             ))
-            and "XCTAssertEqual(viewerABI(), 13" in sources["host_tests"]
+            and "XCTAssertEqual(viewerABI(), 14" in sources["host_tests"]
         ),
         "ioLoopInterceptionIsExactWhileWireWriteAndProductRemainOff": (
             "fn native_file_transfer_receive_block(" in production_bridge
@@ -176,7 +176,7 @@ def main() -> int:
             sources["design"],
             "H6.3f2b2l Viewer receive-block ABI lifecycle",
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 13u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 14u"),
         "rawCallbackStruct": line_number(header, "typedef struct RDNFileTransferReceiveBlock"),
         "rustEmitter": line_number(bridge, "fn emit_file_transfer_receive_block("),
         "swiftSemanticBlock": line_number(swift, "struct CoreFileTransferReceiveBlock"),
