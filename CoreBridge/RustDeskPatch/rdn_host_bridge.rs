@@ -778,6 +778,20 @@ impl NativeHostWriteJob {
                 is_identical: existing_size == file_size && existing_modified == last_modified,
             });
         }
+        if !is_resume && entry.expected_size == 0 {
+            if let Some((current_num, current)) = self.current.take() {
+                if current_num + 1 != file_num || current.written_size != current.expected_size {
+                    self.current = Some((current_num, current));
+                    return Err(NativeHostWriteJobError::UnexpectedFileNumber);
+                }
+                current.commit()?;
+            }
+            NativeHostWriteFile::create(self.owner.clone(), entry)?.commit()?;
+            self.next_file_num = file_num
+                .checked_add(1)
+                .ok_or(NativeHostWriteJobError::UnexpectedFileNumber)?;
+            return Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0));
+        }
         if !is_resume {
             return Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0));
         }
@@ -1449,8 +1463,9 @@ fn prepare_native_host_write_job(
     if entries.len() > MAX_NATIVE_HOST_WRITE_FILES {
         return Err(NativeHostWriteJobError::TooManyFiles);
     }
+    let base_is_receive_root = base_path.is_empty();
     let base_path = Path::new(base_path);
-    if !native_host_write_relative_path_is_valid(base_path) {
+    if !base_is_receive_root && !native_host_write_relative_path_is_valid(base_path) {
         return Err(NativeHostWriteJobError::InvalidPath);
     }
     let mut metadata_bytes = base_path.as_os_str().as_bytes().len();
@@ -1471,7 +1486,12 @@ fn prepare_native_host_write_job(
         expected_total_size = expected_total_size
             .checked_add(entry.expected_size)
             .ok_or(NativeHostWriteJobError::TotalSizeMismatch)?;
-        let destination_path = if single_entry && entry.name.is_empty() {
+        let destination_path = if base_is_receive_root {
+            if entry.name.is_empty() {
+                return Err(NativeHostWriteJobError::InvalidPath);
+            }
+            PathBuf::from(&entry.name)
+        } else if single_entry && entry.name.is_empty() {
             base_path.to_path_buf()
         } else {
             if entry.name.is_empty() {
@@ -6787,6 +6807,52 @@ mod tests {
             .root
             .join("incoming/nested/b.txt.farpane-part")
             .exists());
+        unbind_media_host();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn native_host_receive_root_commits_zero_length_before_following_file() {
+        let _lock = MEDIA_BROKER_TEST_LOCK.lock().unwrap();
+        unbind_media_host();
+        let fixture = HostStorageFixture::new();
+        let receive_root = fs::canonicalize(&fixture.root).expect("canonical receive root");
+        let owner = Arc::new(
+            rdn_host_file_transfer::NativeHostFileServiceOwner::open_existing(
+                receive_root.as_path(),
+            )
+            .expect("open private receive root"),
+        );
+        let mut host = ready_test_host("native-write-root-zero-test");
+        host.file_service_owner = Some(owner);
+        bind_media_host(&host);
+
+        let NativeHostWriteJobAdmission::Admitted(mut job) = native_host_begin_new_file_write_job(
+            45,
+            "",
+            0,
+            vec![
+                NativeHostWriteEntry::new("zero.txt".to_string(), 0, 11),
+                NativeHostWriteEntry::new("data.txt".to_string(), 3, 12),
+            ],
+            3,
+            true,
+        ) else {
+            panic!("receive-root write job must be admitted");
+        };
+        assert_eq!(
+            job.confirm_file_digest(0, 0, 11, false),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
+        assert_eq!(fs::read(fixture.root.join("zero.txt")).unwrap(), b"");
+        assert_eq!(
+            job.confirm_file_digest(1, 3, 12, false),
+            Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
+        );
+        assert_eq!(job.write_block(1, b"abc", false), Ok(()));
+        assert_eq!(job.finish(2), Ok(()));
+        assert_eq!(fs::read(fixture.root.join("data.txt")).unwrap(), b"abc");
+        assert!(!fixture.root.join("zero.txt.farpane-part").exists());
         unbind_media_host();
     }
 

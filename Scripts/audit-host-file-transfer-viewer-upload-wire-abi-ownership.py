@@ -9,7 +9,7 @@ from pathlib import Path
 
 SCHEMA = "farpane-host-file-transfer-viewer-upload-wire-abi-ownership-audit"
 PINNED_RUSTDESK_COMMIT = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
-NEXT_BOUNDARY = "host-file-transfer-viewer-upload-semantic-read-abi-contract"
+NEXT_BOUNDARY = "host-file-transfer-viewer-upload-product-action-lifecycle"
 
 
 def read(path: Path) -> str:
@@ -119,7 +119,7 @@ def main() -> int:
             and "RDNFileTransferUploadReadRequest" in header
             and "rdn_client_file_transfer_upload_start" in header
             and "on_file_transfer_upload_read" in header
-            and "wire projection is a separate next boundary" in bridge
+            and "fn file_transfer_upload_poll(&self)" in bridge
         ),
         "minimalVersionedSemanticSeamIsFrozen": (
             "H6.3i Viewer upload wire/ABI ownership audit" in design
@@ -199,7 +199,7 @@ def main() -> int:
             "viewerABIV14Required": passed,
             "viewerABIChangedByThisAudit": False,
             "viewerABIV14SemanticReadImplemented": passed,
-            "viewerUploadWireImplemented": False,
+            "viewerUploadWireImplemented": passed,
             "viewerUploadProductActionImplemented": False,
             "twoMacAcceptanceComplete": False,
         },

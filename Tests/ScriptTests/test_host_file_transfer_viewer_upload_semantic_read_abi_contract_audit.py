@@ -36,12 +36,12 @@ class HostFileTransferViewerUploadSemanticReadABIContractAuditTests(
         self.assertFalse(claims["pathOrDescriptorCrossesABI"])
         self.assertTrue(claims["swiftDescriptorReadAuthorityImplemented"])
         self.assertTrue(claims["rustSemanticUploadJobImplemented"])
-        self.assertFalse(claims["viewerUploadWireImplemented"])
+        self.assertTrue(claims["viewerUploadWireImplemented"])
         self.assertFalse(claims["viewerUploadProductActionImplemented"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-upload-wire-job-lifecycle",
+            "host-file-transfer-viewer-upload-product-action-lifecycle",
         )
 
 

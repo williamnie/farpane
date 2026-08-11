@@ -20,7 +20,7 @@ use std::{
         Arc, Mutex, RwLock,
     },
     thread::JoinHandle,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 const ABI_VERSION: u32 = 14;
@@ -48,7 +48,14 @@ const FILE_TRANSFER_EVENT_COMPLETED: u32 = 3;
 const FILE_TRANSFER_EVENT_CANCELLED: u32 = 4;
 const FILE_TRANSFER_EVENT_FAILED: u32 = 5;
 const FILE_TRANSFER_FAILURE_NONE: u32 = 0;
+const FILE_TRANSFER_FAILURE_REJECTED: u32 = 1;
 const FILE_TRANSFER_FAILURE_UNAVAILABLE: u32 = 2;
+const FILE_TRANSFER_FAILURE_PROTOCOL_VIOLATION: u32 = 3;
+const FILE_TRANSFER_FAILURE_LOCAL_IO: u32 = 4;
+const FILE_TRANSFER_FAILURE_CONNECTION_CLOSED: u32 = 5;
+const VIEWER_UPLOAD_ACTIVE_POLL_INTERVAL_MS: u64 = 1;
+const VIEWER_UPLOAD_WAITING_POLL_INTERVAL_MS: u64 = 100;
+const VIEWER_UPLOAD_WIRE_TIMEOUT: Duration = Duration::from_secs(30);
 const CLIPBOARD_IMAGE_FORMAT_RGBA: u32 = 1;
 const CLIPBOARD_IMAGE_FORMAT_PNG: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_SVG: u32 = 3;
@@ -302,6 +309,21 @@ struct NativeViewerUploadJob {
     files: Arc<[NativeViewerUploadFileAuthority]>,
     empty_directories: Arc<[String]>,
     total_bytes: u64,
+    stage: NativeViewerUploadStage,
+    stage_started: Instant,
+    sequence: u64,
+    files_completed: u32,
+    bytes_completed: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NativeViewerUploadStage {
+    AwaitingCreate { directory_number: usize },
+    ReadyDigest { file_number: u32 },
+    AwaitingConfirmation { file_number: u32 },
+    Sending { file_number: u32, offset: u64 },
+    ReadyDone,
+    AwaitingDone,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -491,6 +513,102 @@ impl NativeViewerDownloadJob {
 }
 
 impl NativeViewerUploadJob {
+    fn poll_interval_ms(&self) -> u64 {
+        match self.stage {
+            NativeViewerUploadStage::ReadyDigest { .. }
+            | NativeViewerUploadStage::Sending { .. }
+            | NativeViewerUploadStage::ReadyDone => VIEWER_UPLOAD_ACTIVE_POLL_INTERVAL_MS,
+            NativeViewerUploadStage::AwaitingCreate { .. }
+            | NativeViewerUploadStage::AwaitingConfirmation { .. }
+            | NativeViewerUploadStage::AwaitingDone => VIEWER_UPLOAD_WAITING_POLL_INTERVAL_MS,
+        }
+    }
+
+    fn timed_out(&self, now: Instant) -> bool {
+        now.saturating_duration_since(self.stage_started) >= VIEWER_UPLOAD_WIRE_TIMEOUT
+    }
+
+    fn transition(&mut self, stage: NativeViewerUploadStage) {
+        self.stage = stage;
+        self.stage_started = Instant::now();
+    }
+
+    fn initial_message(&self) -> Option<Message> {
+        match self.stage {
+            NativeViewerUploadStage::AwaitingCreate {
+                directory_number: 0,
+            } => native_viewer_upload_create_message(
+                self.transfer_id,
+                self.empty_directories.first()?.clone(),
+            ),
+            NativeViewerUploadStage::ReadyDigest { file_number: 0 } => {
+                native_viewer_upload_receive_message(self)
+            }
+            _ => None,
+        }
+    }
+
+    fn next_digest_message(&mut self, file_number: u32) -> Option<Message> {
+        let file = self.files.get(file_number as usize)?;
+        let message = native_viewer_upload_digest_message(
+            self.transfer_id,
+            file_number,
+            file.size,
+            file.modified_time,
+        );
+        self.transition(NativeViewerUploadStage::AwaitingConfirmation { file_number });
+        Some(message)
+    }
+
+    fn next_done_message(&mut self) -> Option<Message> {
+        let file_number = i32::try_from(self.files.len()).ok()?;
+        self.transition(NativeViewerUploadStage::AwaitingDone);
+        Some(hbb_common::fs::new_done(self.transfer_id, file_number))
+    }
+
+    fn advance_file(&mut self, file_number: u32, count_remaining_bytes: bool) -> bool {
+        let Some(file) = self.files.get(file_number as usize) else {
+            return false;
+        };
+        if count_remaining_bytes {
+            let Some(bytes_completed) = self.bytes_completed.checked_add(file.size) else {
+                return false;
+            };
+            if bytes_completed > self.total_bytes {
+                return false;
+            }
+            self.bytes_completed = bytes_completed;
+        }
+        let Some(files_completed) = self.files_completed.checked_add(1) else {
+            return false;
+        };
+        if files_completed as usize > self.files.len() {
+            return false;
+        }
+        self.files_completed = files_completed;
+        if files_completed as usize == self.files.len() {
+            self.transition(NativeViewerUploadStage::ReadyDone);
+        } else {
+            self.transition(NativeViewerUploadStage::ReadyDigest {
+                file_number: files_completed,
+            });
+        }
+        true
+    }
+
+    fn progress_event(&mut self, current_file_number: i32) -> Option<NativeViewerDownloadEvent> {
+        let sequence = self.sequence.checked_add(1)?;
+        self.sequence = sequence;
+        Some(self.event(
+            sequence,
+            FILE_TRANSFER_EVENT_PROGRESS,
+            FILE_TRANSFER_FAILURE_NONE,
+            current_file_number,
+            self.files_completed,
+            self.bytes_completed,
+        ))
+    }
+
     fn read_source(
         &self,
         callback: FileTransferUploadReadCallback,
@@ -528,20 +646,115 @@ impl NativeViewerUploadJob {
     }
 
     fn terminal(self, kind: u32, failure: u32) -> Option<NativeViewerDownloadEvent> {
-        Some(NativeViewerDownloadEvent {
-            session_epoch: self.session_epoch,
-            transfer_id: self.transfer_id,
-            sequence: 1,
+        let sequence = self.sequence.checked_add(1)?;
+        let (files_completed, bytes_completed) = if kind == FILE_TRANSFER_EVENT_COMPLETED {
+            (u32::try_from(self.files.len()).ok()?, self.total_bytes)
+        } else {
+            (self.files_completed, self.bytes_completed)
+        };
+        Some(self.event(
+            sequence,
             kind,
             failure,
-            current_file_number: -1,
-            files_completed: 0,
-            total_files: u32::try_from(self.files.len()).ok()?,
-            bytes_completed: 0,
+            -1,
+            files_completed,
+            bytes_completed,
+        ))
+    }
+
+    fn event(
+        &self,
+        sequence: u64,
+        kind: u32,
+        failure: u32,
+        current_file_number: i32,
+        files_completed: u32,
+        bytes_completed: u64,
+    ) -> NativeViewerDownloadEvent {
+        NativeViewerDownloadEvent {
+            session_epoch: self.session_epoch,
+            transfer_id: self.transfer_id,
+            sequence,
+            kind,
+            failure,
+            current_file_number,
+            files_completed,
+            total_files: self.files.len() as u32,
+            bytes_completed,
             total_bytes: self.total_bytes,
             bytes_per_second: 0.0,
-        })
+        }
     }
+}
+
+fn native_viewer_upload_create_message(transfer_id: i32, path: String) -> Option<Message> {
+    if transfer_id <= 0 || path.is_empty() {
+        return None;
+    }
+    let mut action = FileAction::new();
+    action.set_create(FileDirCreate {
+        id: transfer_id,
+        path,
+        ..Default::default()
+    });
+    let mut message = Message::new();
+    message.set_file_action(action);
+    Some(message)
+}
+
+fn native_viewer_upload_receive_message(job: &NativeViewerUploadJob) -> Option<Message> {
+    if job.files.is_empty() {
+        return None;
+    }
+    let files = job
+        .files
+        .iter()
+        .map(|file| FileEntry {
+            entry_type: FileType::File.into(),
+            name: file.relative_path.clone(),
+            size: file.size,
+            modified_time: file.modified_time,
+            ..Default::default()
+        })
+        .collect();
+    Some(hbb_common::fs::new_receive(
+        job.transfer_id,
+        String::new(),
+        0,
+        files,
+        job.total_bytes,
+    ))
+}
+
+fn native_viewer_upload_digest_message(
+    transfer_id: i32,
+    file_number: u32,
+    file_size: u64,
+    modified_time: u64,
+) -> Message {
+    let mut response = FileResponse::new();
+    response.set_digest(FileTransferDigest {
+        id: transfer_id,
+        file_num: i32::try_from(file_number).unwrap_or(-1),
+        last_modified: modified_time,
+        file_size,
+        is_resume: false,
+        ..Default::default()
+    });
+    let mut message = Message::new();
+    message.set_file_response(response);
+    message
+}
+
+fn native_viewer_upload_cancel_message(transfer_id: i32) -> Message {
+    let mut action = FileAction::new();
+    action.set_cancel(FileTransferCancel {
+        id: transfer_id,
+        ..Default::default()
+    });
+    let mut message = Message::new();
+    message.set_file_action(action);
+    message
 }
 
 #[repr(C)]
@@ -672,6 +885,7 @@ struct BridgeShared {
     completed_file_manifest_request: Mutex<Option<NativeViewerCompletedManifest>>,
     active_file_download_jobs: Mutex<HashMap<i32, NativeViewerDownloadJob>>,
     active_file_upload_jobs: Mutex<HashMap<i32, NativeViewerUploadJob>>,
+    file_upload_poll_cursor: AtomicU64,
 }
 
 impl BridgeShared {
@@ -712,6 +926,397 @@ impl BridgeShared {
             return None;
         }
         Some(payload)
+    }
+
+    fn file_transfer_upload_poll_interval_ms(&self) -> u64 {
+        self.active_file_upload_jobs
+            .lock()
+            .unwrap()
+            .values()
+            .map(NativeViewerUploadJob::poll_interval_ms)
+            .min()
+            .unwrap_or(0)
+    }
+
+    fn file_transfer_upload_poll(&self) -> Option<Message> {
+        let now = Instant::now();
+        let cursor = self.file_upload_poll_cursor.load(Ordering::Acquire) as i32;
+        let candidate = {
+            let jobs = self.active_file_upload_jobs.lock().unwrap();
+            let mut ids: Vec<_> = jobs.keys().copied().collect();
+            ids.sort_unstable();
+            let split = ids.iter().position(|id| *id > cursor).unwrap_or(0);
+            ids.rotate_left(split);
+            ids.into_iter().find_map(|id| {
+                let job = jobs.get(&id)?;
+                let ready = matches!(
+                    job.stage,
+                    NativeViewerUploadStage::ReadyDigest { .. }
+                        | NativeViewerUploadStage::Sending { .. }
+                        | NativeViewerUploadStage::ReadyDone
+                );
+                (ready || job.timed_out(now)).then(|| (id, job.clone()))
+            })
+        }?;
+        self.file_upload_poll_cursor
+            .store(candidate.0 as u64, Ordering::Release);
+        let (transfer_id, snapshot) = candidate;
+
+        if !self.active.load(Ordering::Acquire)
+            || !self.authenticated.load(Ordering::Acquire)
+            || !self.file_transfer_enabled.load(Ordering::Acquire)
+            || self.file_transfer_session_epoch.load(Ordering::Acquire) != snapshot.session_epoch
+        {
+            self.active_file_upload_jobs
+                .lock()
+                .unwrap()
+                .remove(&transfer_id);
+            return None;
+        }
+        if snapshot.timed_out(now) {
+            let event = self
+                .active_file_upload_jobs
+                .lock()
+                .unwrap()
+                .remove(&transfer_id)
+                .filter(|job| job == &snapshot)
+                .and_then(|job| {
+                    job.terminal(
+                        FILE_TRANSFER_EVENT_FAILED,
+                        FILE_TRANSFER_FAILURE_UNAVAILABLE,
+                    )
+                });
+            if let Some(event) = event {
+                self.emit_file_transfer_event(event);
+                return Some(native_viewer_upload_cancel_message(transfer_id));
+            }
+            return None;
+        }
+
+        match snapshot.stage {
+            NativeViewerUploadStage::ReadyDigest { file_number } => {
+                let message = {
+                    let mut jobs = self.active_file_upload_jobs.lock().unwrap();
+                    let job = jobs.get_mut(&transfer_id)?;
+                    if job != &snapshot {
+                        return None;
+                    }
+                    job.next_digest_message(file_number)
+                };
+                message
+            }
+            NativeViewerUploadStage::ReadyDone => {
+                let message = {
+                    let mut jobs = self.active_file_upload_jobs.lock().unwrap();
+                    let job = jobs.get_mut(&transfer_id)?;
+                    if job != &snapshot {
+                        return None;
+                    }
+                    job.next_done_message()
+                };
+                message
+            }
+            NativeViewerUploadStage::Sending {
+                file_number,
+                offset,
+            } => {
+                let file = snapshot.files.get(file_number as usize)?;
+                if offset == file.size {
+                    let event = {
+                        let mut jobs = self.active_file_upload_jobs.lock().unwrap();
+                        let job = jobs.get_mut(&transfer_id)?;
+                        if job != &snapshot || !job.advance_file(file_number, false) {
+                            return None;
+                        }
+                        job.progress_event(-1)
+                    };
+                    if let Some(event) = event {
+                        self.emit_file_transfer_event(event);
+                    }
+                    return None;
+                }
+                let remaining = file.size.checked_sub(offset)?;
+                let length = usize::try_from(
+                    remaining.min(hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES as u64),
+                )
+                .ok()?;
+                let Some(mut payload) =
+                    self.read_file_transfer_upload_source(transfer_id, file_number, offset, length)
+                else {
+                    let event = self
+                        .active_file_upload_jobs
+                        .lock()
+                        .unwrap()
+                        .remove(&transfer_id)
+                        .filter(|job| job == &snapshot)
+                        .and_then(|job| {
+                            job.terminal(FILE_TRANSFER_EVENT_FAILED, FILE_TRANSFER_FAILURE_LOCAL_IO)
+                        });
+                    if let Some(event) = event {
+                        self.emit_file_transfer_event(event);
+                        return Some(native_viewer_upload_cancel_message(transfer_id));
+                    }
+                    return None;
+                };
+                let encoded = hbb_common::compress::compress(&payload);
+                let (mut data, compressed) = if encoded.len() < payload.len() {
+                    payload.fill(0);
+                    (encoded, true)
+                } else {
+                    (payload, false)
+                };
+                let next_offset = offset.checked_add(length as u64)?;
+                let event = {
+                    let mut jobs = self.active_file_upload_jobs.lock().unwrap();
+                    let job = jobs.get_mut(&transfer_id)?;
+                    if job != &snapshot || next_offset > file.size {
+                        data.fill(0);
+                        return None;
+                    }
+                    job.bytes_completed = job.bytes_completed.checked_add(length as u64)?;
+                    if job.bytes_completed > job.total_bytes {
+                        return None;
+                    }
+                    job.transition(NativeViewerUploadStage::Sending {
+                        file_number,
+                        offset: next_offset,
+                    });
+                    job.progress_event(file_number as i32)
+                };
+                if let Some(event) = event {
+                    self.emit_file_transfer_event(event);
+                }
+                Some(hbb_common::fs::new_block(FileTransferBlock {
+                    id: transfer_id,
+                    file_num: file_number as i32,
+                    data: data.into(),
+                    compressed,
+                    ..Default::default()
+                }))
+            }
+            NativeViewerUploadStage::AwaitingCreate { .. }
+            | NativeViewerUploadStage::AwaitingConfirmation { .. }
+            | NativeViewerUploadStage::AwaitingDone => None,
+        }
+    }
+
+    fn file_transfer_upload_confirmation(
+        &self,
+        request: &FileTransferSendConfirmRequest,
+    ) -> (bool, Vec<Message>) {
+        let mut event = None;
+        let mut failed = false;
+        {
+            let mut jobs = self.active_file_upload_jobs.lock().unwrap();
+            let Some(job) = jobs.get_mut(&request.id) else {
+                return (false, Vec::new());
+            };
+            let NativeViewerUploadStage::AwaitingConfirmation { file_number } = job.stage else {
+                drop(jobs);
+                return self.fail_file_transfer_upload(
+                    request.id,
+                    FILE_TRANSFER_FAILURE_PROTOCOL_VIOLATION,
+                    true,
+                );
+            };
+            if request.file_num != file_number as i32 {
+                failed = true;
+            } else {
+                match request.union {
+                    Some(file_transfer_send_confirm_request::Union::OffsetBlk(0)) => {
+                        let Some(file) = job.files.get(file_number as usize) else {
+                            drop(jobs);
+                            return self.fail_file_transfer_upload(
+                                request.id,
+                                FILE_TRANSFER_FAILURE_PROTOCOL_VIOLATION,
+                                true,
+                            );
+                        };
+                        if file.size == 0 {
+                            if !job.advance_file(file_number, false) {
+                                failed = true;
+                            } else {
+                                event = job.progress_event(-1);
+                            }
+                        } else {
+                            job.transition(NativeViewerUploadStage::Sending {
+                                file_number,
+                                offset: 0,
+                            });
+                        }
+                    }
+                    Some(file_transfer_send_confirm_request::Union::Skip(true)) => {
+                        if !job.advance_file(file_number, true) {
+                            failed = true;
+                        } else {
+                            event = job.progress_event(-1);
+                        }
+                    }
+                    _ => failed = true,
+                }
+            }
+        }
+        if failed {
+            return self.fail_file_transfer_upload(
+                request.id,
+                FILE_TRANSFER_FAILURE_PROTOCOL_VIOLATION,
+                true,
+            );
+        }
+        if let Some(event) = event {
+            self.emit_file_transfer_event(event);
+        }
+        (true, Vec::new())
+    }
+
+    fn file_transfer_upload_existing_target(
+        &self,
+        digest: &FileTransferDigest,
+    ) -> (bool, Vec<Message>) {
+        let mut event = None;
+        let mut failed = false;
+        {
+            let mut jobs = self.active_file_upload_jobs.lock().unwrap();
+            let Some(job) = jobs.get_mut(&digest.id) else {
+                return (false, Vec::new());
+            };
+            let NativeViewerUploadStage::AwaitingConfirmation { file_number } = job.stage else {
+                drop(jobs);
+                return self.fail_file_transfer_upload(
+                    digest.id,
+                    FILE_TRANSFER_FAILURE_PROTOCOL_VIOLATION,
+                    true,
+                );
+            };
+            if !digest.is_upload
+                || digest.is_resume
+                || digest.transferred_size != 0
+                || digest.file_num != file_number as i32
+                || !job.advance_file(file_number, true)
+            {
+                failed = true;
+            } else {
+                event = job.progress_event(-1);
+            }
+        }
+        if failed {
+            return self.fail_file_transfer_upload(
+                digest.id,
+                FILE_TRANSFER_FAILURE_PROTOCOL_VIOLATION,
+                true,
+            );
+        }
+        if let Some(event) = event {
+            self.emit_file_transfer_event(event);
+        }
+        let confirmation = FileTransferSendConfirmRequest {
+            id: digest.id,
+            file_num: digest.file_num,
+            union: Some(file_transfer_send_confirm_request::Union::Skip(true)),
+            ..Default::default()
+        };
+        (true, vec![hbb_common::fs::new_send_confirm(confirmation)])
+    }
+
+    fn file_transfer_upload_done(&self, done: &FileTransferDone) -> (bool, Vec<Message>) {
+        let mut messages = Vec::new();
+        let mut terminal = None;
+        let mut failed = false;
+        {
+            let mut jobs = self.active_file_upload_jobs.lock().unwrap();
+            let Some(job) = jobs.get_mut(&done.id) else {
+                return (false, messages);
+            };
+            match job.stage {
+                NativeViewerUploadStage::AwaitingCreate { directory_number }
+                    if done.file_num == 0 =>
+                {
+                    let next = directory_number + 1;
+                    if next < job.empty_directories.len() {
+                        job.transition(NativeViewerUploadStage::AwaitingCreate {
+                            directory_number: next,
+                        });
+                        if let Some(message) = native_viewer_upload_create_message(
+                            job.transfer_id,
+                            job.empty_directories[next].clone(),
+                        ) {
+                            messages.push(message);
+                        } else {
+                            failed = true;
+                        }
+                    } else if job.files.is_empty() {
+                        let job = jobs
+                            .remove(&done.id)
+                            .expect("upload job remains registered");
+                        terminal =
+                            job.terminal(FILE_TRANSFER_EVENT_COMPLETED, FILE_TRANSFER_FAILURE_NONE);
+                    } else {
+                        job.transition(NativeViewerUploadStage::ReadyDigest { file_number: 0 });
+                        if let Some(message) = native_viewer_upload_receive_message(job) {
+                            messages.push(message);
+                        } else {
+                            failed = true;
+                        }
+                    }
+                }
+                NativeViewerUploadStage::AwaitingDone
+                    if done.file_num == job.files.len() as i32 =>
+                {
+                    let job = jobs
+                        .remove(&done.id)
+                        .expect("upload job remains registered");
+                    terminal =
+                        job.terminal(FILE_TRANSFER_EVENT_COMPLETED, FILE_TRANSFER_FAILURE_NONE);
+                }
+                _ => failed = true,
+            }
+        }
+        if failed {
+            return self.fail_file_transfer_upload(
+                done.id,
+                FILE_TRANSFER_FAILURE_PROTOCOL_VIOLATION,
+                true,
+            );
+        }
+        if let Some(event) = terminal {
+            self.emit_file_transfer_event(event);
+        }
+        (true, messages)
+    }
+
+    fn file_transfer_upload_error(&self, error: &FileTransferError) -> (bool, Vec<Message>) {
+        if !self
+            .active_file_upload_jobs
+            .lock()
+            .unwrap()
+            .contains_key(&error.id)
+        {
+            return (false, Vec::new());
+        }
+        self.fail_file_transfer_upload(error.id, FILE_TRANSFER_FAILURE_REJECTED, false)
+    }
+
+    fn fail_file_transfer_upload(
+        &self,
+        transfer_id: i32,
+        failure: u32,
+        send_cancel: bool,
+    ) -> (bool, Vec<Message>) {
+        let event = self
+            .active_file_upload_jobs
+            .lock()
+            .unwrap()
+            .remove(&transfer_id)
+            .and_then(|job| job.terminal(FILE_TRANSFER_EVENT_FAILED, failure));
+        if let Some(event) = event {
+            self.emit_file_transfer_event(event);
+        }
+        let messages = if send_cancel {
+            vec![native_viewer_upload_cancel_message(transfer_id)]
+        } else {
+            Vec::new()
+        };
+        (true, messages)
     }
 
     fn emit_file_transfer_event(&self, event: NativeViewerDownloadEvent) {
@@ -1058,6 +1663,7 @@ impl Default for BridgeUi {
                 completed_file_manifest_request: Mutex::new(None),
                 active_file_download_jobs: Mutex::new(HashMap::new()),
                 active_file_upload_jobs: Mutex::new(HashMap::new()),
+                file_upload_poll_cursor: AtomicU64::new(0),
             }),
         }
     }
@@ -1584,6 +2190,36 @@ impl InvokeUiSession for BridgeUi {
             self.shared.emit_file_transfer_receive_block(&block);
         }
         true
+    }
+
+    fn native_file_transfer_upload_poll_interval_ms(&self) -> u64 {
+        self.shared.file_transfer_upload_poll_interval_ms()
+    }
+
+    fn native_file_transfer_upload_poll(&self) -> Option<Message> {
+        self.shared.file_transfer_upload_poll()
+    }
+
+    fn native_file_transfer_upload_confirmation(
+        &self,
+        request: &FileTransferSendConfirmRequest,
+    ) -> (bool, Vec<Message>) {
+        self.shared.file_transfer_upload_confirmation(request)
+    }
+
+    fn native_file_transfer_upload_existing_target(
+        &self,
+        digest: &FileTransferDigest,
+    ) -> (bool, Vec<Message>) {
+        self.shared.file_transfer_upload_existing_target(digest)
+    }
+
+    fn native_file_transfer_upload_done(&self, done: &FileTransferDone) -> (bool, Vec<Message>) {
+        self.shared.file_transfer_upload_done(done)
+    }
+
+    fn native_file_transfer_upload_error(&self, error: &FileTransferError) -> (bool, Vec<Message>) {
+        self.shared.file_transfer_upload_error(error)
     }
 }
 
@@ -2274,6 +2910,37 @@ fn native_viewer_remote_manifest_empty_directories(
     Some(normalized)
 }
 
+fn native_viewer_upload_directory_projection(leaves: &[String]) -> Option<Vec<String>> {
+    let mut projected = HashSet::new();
+    for leaf in leaves {
+        let mut path = String::new();
+        for component in leaf.split('/') {
+            if !path.is_empty() {
+                path.push('/');
+            }
+            path.push_str(component);
+            projected.insert(path.clone());
+        }
+    }
+    if projected.len() > MAX_FILE_TRANSFER_LIST_ENTRIES {
+        return None;
+    }
+    let metadata_bytes = projected
+        .iter()
+        .try_fold(0usize, |total, path| total.checked_add(path.len()))?;
+    if metadata_bytes > MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES {
+        return None;
+    }
+    let mut projected: Vec<_> = projected.into_iter().collect();
+    projected.sort_by(|left, right| {
+        left.matches('/')
+            .count()
+            .cmp(&right.matches('/').count())
+            .then_with(|| left.as_bytes().cmp(right.as_bytes()))
+    });
+    Some(projected)
+}
+
 unsafe fn native_viewer_upload_manifest(
     request: &RDNFileTransferUploadStart,
 ) -> Option<(Vec<NativeViewerUploadFileAuthority>, Vec<String>)> {
@@ -2339,6 +3006,7 @@ unsafe fn native_viewer_upload_manifest(
             }
         }
     }
+    let empty_directories = native_viewer_upload_directory_projection(&empty_directories)?;
     Some((files, empty_directories))
 }
 
@@ -2452,6 +3120,7 @@ pub unsafe extern "C" fn rdn_client_create(
         completed_file_manifest_request: Mutex::new(None),
         active_file_download_jobs: Mutex::new(HashMap::new()),
         active_file_upload_jobs: Mutex::new(HashMap::new()),
+        file_upload_poll_cursor: AtomicU64::new(0),
     });
     Box::into_raw(Box::new(RDNClient {
         shared,
@@ -3176,6 +3845,35 @@ pub unsafe extern "C" fn rdn_client_file_transfer_cancel(
     if !client.shared.authenticated.load(Ordering::Acquire) {
         return -6;
     }
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    if !*session.server_file_transfer_enabled.read().unwrap() {
+        return -8;
+    }
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
+        return -3;
+    };
+    if sender.send(Data::CancelJob(transfer_id)).is_err() {
+        let upload_event = client
+            .shared
+            .active_file_upload_jobs
+            .lock()
+            .unwrap()
+            .remove(&transfer_id)
+            .filter(|job| job.session_epoch == session_epoch)
+            .and_then(|job| {
+                job.terminal(
+                    FILE_TRANSFER_EVENT_FAILED,
+                    FILE_TRANSFER_FAILURE_CONNECTION_CLOSED,
+                )
+            });
+        if let Some(event) = upload_event {
+            client.shared.emit_file_transfer_event(event);
+        }
+        return -3;
+    }
     let upload_event = {
         let mut jobs = client.shared.active_file_upload_jobs.lock().unwrap();
         if jobs
@@ -3190,23 +3888,8 @@ pub unsafe extern "C" fn rdn_client_file_transfer_cancel(
         }
     };
     if let Some(event) = upload_event {
-        // v14 upload jobs have not dispatched wire, so cancellation is local
-        // ownership teardown and must not send a foreign CancelJob to peer.
         client.shared.emit_file_transfer_event(event);
         return 0;
-    }
-    let session = client.session.lock().unwrap().clone();
-    let Some(session) = session else {
-        return -3;
-    };
-    if !*session.server_file_transfer_enabled.read().unwrap() {
-        return -8;
-    }
-    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
-        return -3;
-    };
-    if sender.send(Data::CancelJob(transfer_id)).is_err() {
-        return -3;
     }
     let event = {
         let mut jobs = client.shared.active_file_download_jobs.lock().unwrap();
@@ -3512,11 +4195,12 @@ pub unsafe extern "C" fn rdn_client_file_transfer_upload_start(
     if !client.shared.authenticated.load(Ordering::Acquire) {
         return -6;
     }
-    if client
-        .shared
-        .callbacks
-        .on_file_transfer_upload_read
-        .is_none()
+    if !files.is_empty()
+        && client
+            .shared
+            .callbacks
+            .on_file_transfer_upload_read
+            .is_none()
     {
         return -5;
     }
@@ -3527,9 +4211,16 @@ pub unsafe extern "C" fn rdn_client_file_transfer_upload_start(
     if !*session.server_file_transfer_enabled.read().unwrap() {
         return -8;
     }
-    if session.sender.read().unwrap().as_ref().is_none() {
+    let Some(sender) = session.sender.read().unwrap().as_ref().cloned() else {
         return -3;
-    }
+    };
+    let stage = if empty_directories.is_empty() {
+        NativeViewerUploadStage::ReadyDigest { file_number: 0 }
+    } else {
+        NativeViewerUploadStage::AwaitingCreate {
+            directory_number: 0,
+        }
+    };
     let job = NativeViewerUploadJob {
         session_epoch: request.session_epoch,
         transfer_id: request.transfer_id,
@@ -3537,6 +4228,14 @@ pub unsafe extern "C" fn rdn_client_file_transfer_upload_start(
         files: files.into(),
         empty_directories: empty_directories.into(),
         total_bytes: request.total_bytes,
+        stage,
+        stage_started: Instant::now(),
+        sequence: 0,
+        files_completed: 0,
+        bytes_completed: 0,
+    };
+    let Some(initial_message) = job.initial_message() else {
+        return -4;
     };
     let download_jobs = client.shared.active_file_download_jobs.lock().unwrap();
     let mut upload_jobs = client.shared.active_file_upload_jobs.lock().unwrap();
@@ -3555,8 +4254,10 @@ pub unsafe extern "C" fn rdn_client_file_transfer_upload_start(
         return -3;
     }
     upload_jobs.insert(request.transfer_id, job);
-    // v14 freezes ownership and synchronous reads only. The canonical
-    // FileAction::Receive/Create wire projection is a separate next boundary.
+    if sender.send(Data::Message(initial_message)).is_err() {
+        upload_jobs.remove(&request.transfer_id);
+        return -3;
+    }
     0
 }
 
@@ -5466,7 +6167,7 @@ mod tests {
     #[test]
     fn viewer_upload_manifest_revalidates_bounded_files_directories_and_totals() {
         let file_path = b"Folder/file.bin";
-        let directory_path = b"Empty";
+        let directory_path = b"Empty/Deep";
         let entries = [
             RDNFileTransferListEntry {
                 kind: FILE_TRANSFER_LIST_ENTRY_FILE,
@@ -5502,7 +6203,10 @@ mod tests {
                 modified_time: 123,
             }]
         );
-        assert_eq!(directories, vec!["Empty".to_owned()]);
+        assert_eq!(
+            directories,
+            vec!["Empty".to_owned(), "Empty/Deep".to_owned()]
+        );
 
         request.total_bytes = 7;
         assert!(unsafe { native_viewer_upload_manifest(&request) }.is_none());
@@ -5583,9 +6287,27 @@ mod tests {
             -3,
             "duplicate semantic transfer IDs must fail closed"
         );
-        assert!(
-            receiver.try_recv().is_err(),
-            "v14 registration must not dispatch wire"
+        let Ok(Data::Message(message)) = receiver.try_recv() else {
+            panic!("upload start must send one wire message");
+        };
+        let Some(message::Union::FileAction(action)) = message.union else {
+            panic!("upload start must send FileAction");
+        };
+        let Some(file_action::Union::Receive(receive)) = action.union else {
+            panic!("file upload must declare a receive job");
+        };
+        assert_eq!(
+            (receive.id, receive.path.as_str(), receive.file_num),
+            (71, "", 0)
+        );
+        assert_eq!(receive.files.len(), 1);
+        assert_eq!(
+            (
+                receive.files[0].name.as_str(),
+                receive.files[0].size,
+                receive.files[0].modified_time,
+            ),
+            ("payload.bin", 8, 123)
         );
         assert_eq!(
             ui.shared
@@ -5611,6 +6333,230 @@ mod tests {
             .shared
             .read_file_transfer_upload_source(71, 0, 0, 4)
             .is_none());
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+
+        let digest_message = ui
+            .shared
+            .file_transfer_upload_poll()
+            .expect("ready upload must emit digest");
+        let Some(message::Union::FileResponse(response)) = digest_message.union else {
+            panic!("upload poll must emit FileResponse");
+        };
+        let Some(file_response::Union::Digest(digest)) = response.union else {
+            panic!("first upload poll must emit digest");
+        };
+        assert_eq!(
+            (
+                digest.id,
+                digest.file_num,
+                digest.file_size,
+                digest.last_modified
+            ),
+            (71, 0, 8, 123)
+        );
+        assert_eq!(
+            ui.shared
+                .file_transfer_upload_confirmation(&FileTransferSendConfirmRequest {
+                    id: 71,
+                    file_num: 0,
+                    union: Some(file_transfer_send_confirm_request::Union::OffsetBlk(0)),
+                    ..Default::default()
+                }),
+            (true, Vec::new())
+        );
+        let block_message = ui
+            .shared
+            .file_transfer_upload_poll()
+            .expect("confirmed upload must emit one bounded block");
+        let Some(message::Union::FileResponse(response)) = block_message.union else {
+            panic!("upload block must use FileResponse");
+        };
+        let Some(file_response::Union::Block(block)) = response.union else {
+            panic!("confirmed upload must emit block");
+        };
+        let payload = if block.compressed {
+            hbb_common::compress::decompress_with_limit(
+                &block.data,
+                hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES,
+            )
+            .unwrap()
+        } else {
+            block.data.to_vec()
+        };
+        assert_eq!(
+            (block.id, block.file_num, payload.as_slice()),
+            (71, 0, &b"abcdefgh"[..])
+        );
+        assert!(ui.shared.file_transfer_upload_poll().is_none());
+        let done_message = ui
+            .shared
+            .file_transfer_upload_poll()
+            .expect("completed payload must emit Done");
+        let Some(message::Union::FileResponse(response)) = done_message.union else {
+            panic!("upload Done must use FileResponse");
+        };
+        let Some(file_response::Union::Done(done)) = response.union else {
+            panic!("final upload poll must emit Done");
+        };
+        assert_eq!((done.id, done.file_num), (71, 1));
+        assert_eq!(
+            ui.shared.file_transfer_upload_done(&done),
+            (true, Vec::new())
+        );
+        assert!(ui.shared.active_file_upload_jobs.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn viewer_upload_confirmation_rejects_resume_and_skips_existing_without_replace() {
+        let ui = BridgeUi::default();
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+        let upload_job = |transfer_id| NativeViewerUploadJob {
+            session_epoch: 7,
+            transfer_id,
+            source_token: 81,
+            files: vec![NativeViewerUploadFileAuthority {
+                relative_path: "payload.bin".to_owned(),
+                size: 8,
+                modified_time: 123,
+            }]
+            .into(),
+            empty_directories: Vec::new().into(),
+            total_bytes: 8,
+            stage: NativeViewerUploadStage::AwaitingConfirmation { file_number: 0 },
+            stage_started: Instant::now(),
+            sequence: 0,
+            files_completed: 0,
+            bytes_completed: 0,
+        };
+        ui.shared
+            .active_file_upload_jobs
+            .lock()
+            .unwrap()
+            .insert(71, upload_job(71));
+        let (consumed, messages) =
+            ui.shared
+                .file_transfer_upload_confirmation(&FileTransferSendConfirmRequest {
+                    id: 71,
+                    file_num: 0,
+                    union: Some(file_transfer_send_confirm_request::Union::OffsetBlk(1)),
+                    ..Default::default()
+                });
+        assert!(consumed);
+        assert_eq!(messages.len(), 1);
+        assert!(matches!(
+            messages[0].union.as_ref(),
+            Some(message::Union::FileAction(FileAction {
+                union: Some(file_action::Union::Cancel(FileTransferCancel {
+                    id: 71,
+                    ..
+                })),
+                ..
+            }))
+        ));
+        assert!(!ui
+            .shared
+            .active_file_upload_jobs
+            .lock()
+            .unwrap()
+            .contains_key(&71));
+
+        ui.shared
+            .active_file_upload_jobs
+            .lock()
+            .unwrap()
+            .insert(72, upload_job(72));
+        let (consumed, messages) =
+            ui.shared
+                .file_transfer_upload_existing_target(&FileTransferDigest {
+                    id: 72,
+                    file_num: 0,
+                    is_upload: true,
+                    ..Default::default()
+                });
+        assert!(consumed);
+        assert_eq!(messages.len(), 1);
+        let Some(message::Union::FileAction(action)) = messages[0].union.as_ref() else {
+            panic!("existing target must emit FileAction");
+        };
+        let Some(file_action::Union::SendConfirm(confirm)) = action.union.as_ref() else {
+            panic!("existing target must emit SendConfirm");
+        };
+        assert_eq!(
+            confirm.union,
+            Some(file_transfer_send_confirm_request::Union::Skip(true))
+        );
+        assert!(matches!(
+            ui.shared
+                .active_file_upload_jobs
+                .lock()
+                .unwrap()
+                .get(&72)
+                .map(|job| job.stage),
+            Some(NativeViewerUploadStage::ReadyDone)
+        ));
+    }
+
+    #[test]
+    fn viewer_upload_empty_directories_wait_for_each_exact_done() {
+        let ui = BridgeUi::default();
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+        ui.shared.active_file_upload_jobs.lock().unwrap().insert(
+            73,
+            NativeViewerUploadJob {
+                session_epoch: 7,
+                transfer_id: 73,
+                source_token: 81,
+                files: Vec::new().into(),
+                empty_directories: vec!["a".to_owned(), "a/b".to_owned()].into(),
+                total_bytes: 0,
+                stage: NativeViewerUploadStage::AwaitingCreate {
+                    directory_number: 0,
+                },
+                stage_started: Instant::now(),
+                sequence: 0,
+                files_completed: 0,
+                bytes_completed: 0,
+            },
+        );
+        let (consumed, messages) = ui.shared.file_transfer_upload_done(&FileTransferDone {
+            id: 73,
+            file_num: 0,
+            ..Default::default()
+        });
+        assert!(consumed);
+        assert_eq!(messages.len(), 1);
+        let Some(message::Union::FileAction(action)) = messages[0].union.as_ref() else {
+            panic!("next empty directory must use FileAction");
+        };
+        let Some(file_action::Union::Create(create)) = action.union.as_ref() else {
+            panic!("next empty directory must use Create");
+        };
+        assert_eq!(create.path, "a/b");
+        assert_eq!(
+            ui.shared.file_transfer_upload_done(&FileTransferDone {
+                id: 73,
+                file_num: 0,
+                ..Default::default()
+            }),
+            (true, Vec::new())
+        );
+        assert!(ui.shared.active_file_upload_jobs.lock().unwrap().is_empty());
     }
 
     #[test]
