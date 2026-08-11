@@ -30,6 +30,7 @@ def main() -> int:
         "core": repository / "Sources/CoreBridge/CoreBridge.swift",
         "contract": repository / "Sources/CoreBridge/ViewerFileTransferContract.swift",
         "owner": repository / "Sources/CoreBridge/ViewerFileTransferSessionOwner.swift",
+        "composition": repository / "Sources/CoreBridge/ViewerFileTransferProductComposition.swift",
         "tests": repository / "Tests/CoreBridgeTests/ViewerFileTransferSessionOwnerTests.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
@@ -49,6 +50,7 @@ def main() -> int:
     core = sources["core"]
     contract = sources["contract"]
     tests = sources["tests"]
+    composition = sources["composition"]
     product = sources["app"] + sources["agent"]
     evidence = {
         "designRecordsBoundedH63f2b2q": all(
@@ -159,6 +161,15 @@ def main() -> int:
             and "session owner now" in sources["readme"]
             and "session owner" in sources["architecture"]
         ),
+        "downstreamProductCompositionImplemented": all(
+            marker in composition
+            for marker in (
+                "package final class ViewerFileTransferProductComposition",
+                "fileTransferEnabled: true",
+                "owner?.teardown(sessionEpoch: sessionEpoch)",
+                "core?.disconnect()",
+            )
+        ),
     }
     source_lines = {
         "designMilestone": line_number(
@@ -194,7 +205,7 @@ def main() -> int:
         "claims": {
             "viewerReceiveWriteAdapterImplemented": status == expected_status,
             "viewerSessionOrchestrationImplemented": status == expected_status,
-            "viewerProductCompositionImplemented": False,
+            "viewerProductCompositionImplemented": status == expected_status,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
