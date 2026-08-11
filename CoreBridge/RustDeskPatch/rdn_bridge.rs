@@ -14,7 +14,7 @@ use hbb_common::{message_proto::*, rendezvous_proto::ConnType};
 use std::{
     collections::{HashMap, HashSet},
     ffi::{c_char, c_void, CStr, CString},
-    ptr,
+    ptr, slice,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         Arc, Mutex, RwLock,
@@ -23,7 +23,7 @@ use std::{
     time::Duration,
 };
 
-const ABI_VERSION: u32 = 13;
+const ABI_VERSION: u32 = 14;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -42,6 +42,7 @@ const FILE_TRANSFER_LIST_ENTRY_FILE: u32 = 2;
 const FILE_TRANSFER_MANIFEST_PART_FILES: u32 = 1;
 const FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES: u32 = 2;
 const MAX_VIEWER_DOWNLOAD_JOBS: usize = 8;
+const MAX_VIEWER_UPLOAD_JOBS: usize = 8;
 const FILE_TRANSFER_EVENT_PROGRESS: u32 = 1;
 const FILE_TRANSFER_EVENT_COMPLETED: u32 = 3;
 const FILE_TRANSFER_EVENT_CANCELLED: u32 = 4;
@@ -126,6 +127,8 @@ type FileTransferManifestCallback =
     unsafe extern "C" fn(*mut c_void, *const RDNFileTransferManifestEvent);
 type FileTransferReceiveBlockCallback =
     unsafe extern "C" fn(*mut c_void, *const RDNFileTransferReceiveBlock);
+type FileTransferUploadReadCallback =
+    unsafe extern "C" fn(*mut c_void, *const RDNFileTransferUploadReadRequest, *mut usize) -> i32;
 
 #[repr(C)]
 pub struct RDNClipboardRichTextPayload {
@@ -175,7 +178,8 @@ pub struct RDNFileTransferDownloadStart {
 }
 
 #[repr(C)]
-struct RDNFileTransferListEntry {
+#[derive(Clone, Copy)]
+pub struct RDNFileTransferListEntry {
     kind: u32,
     relative_path_utf8: *const u8,
     relative_path_length: usize,
@@ -211,6 +215,29 @@ struct RDNFileTransferReceiveBlock {
     transfer_id: i32,
     file_number: u32,
     data: *const u8,
+    length: usize,
+}
+
+#[repr(C)]
+pub struct RDNFileTransferUploadStart {
+    abi_version: u32,
+    session_epoch: u64,
+    transfer_id: i32,
+    source_token: u64,
+    entries: *const RDNFileTransferListEntry,
+    entry_count: usize,
+    total_bytes: u64,
+}
+
+#[repr(C)]
+pub struct RDNFileTransferUploadReadRequest {
+    abi_version: u32,
+    session_epoch: u64,
+    transfer_id: i32,
+    source_token: u64,
+    file_number: u32,
+    offset: u64,
+    buffer: *mut u8,
     length: usize,
 }
 
@@ -258,6 +285,23 @@ struct NativeViewerCompletedManifest {
     total_files: u32,
     total_bytes: u64,
     files: Arc<[NativeViewerManifestFileAuthority]>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NativeViewerUploadFileAuthority {
+    relative_path: String,
+    size: u64,
+    modified_time: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NativeViewerUploadJob {
+    session_epoch: u64,
+    transfer_id: i32,
+    source_token: u64,
+    files: Arc<[NativeViewerUploadFileAuthority]>,
+    empty_directories: Arc<[String]>,
+    total_bytes: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -446,6 +490,60 @@ impl NativeViewerDownloadJob {
     }
 }
 
+impl NativeViewerUploadJob {
+    fn read_source(
+        &self,
+        callback: FileTransferUploadReadCallback,
+        context: usize,
+        file_number: u32,
+        offset: u64,
+        length: usize,
+    ) -> Option<Vec<u8>> {
+        if length == 0 || length > hbb_common::fs::MAX_FILE_TRANSFER_BLOCK_BYTES {
+            return None;
+        }
+        let file = self.files.get(file_number as usize)?;
+        let end = offset.checked_add(length as u64)?;
+        if offset >= file.size || end > file.size {
+            return None;
+        }
+        let mut payload = vec![0; length];
+        let request = RDNFileTransferUploadReadRequest {
+            abi_version: ABI_VERSION,
+            session_epoch: self.session_epoch,
+            transfer_id: self.transfer_id,
+            source_token: self.source_token,
+            file_number,
+            offset,
+            buffer: payload.as_mut_ptr(),
+            length,
+        };
+        let mut bytes_written = 0usize;
+        let result = unsafe { callback(context as *mut c_void, &request, &mut bytes_written) };
+        if result != 0 || bytes_written != length {
+            payload.fill(0);
+            return None;
+        }
+        Some(payload)
+    }
+
+    fn terminal(self, kind: u32, failure: u32) -> Option<NativeViewerDownloadEvent> {
+        Some(NativeViewerDownloadEvent {
+            session_epoch: self.session_epoch,
+            transfer_id: self.transfer_id,
+            sequence: 1,
+            kind,
+            failure,
+            current_file_number: -1,
+            files_completed: 0,
+            total_files: u32::try_from(self.files.len()).ok()?,
+            bytes_completed: 0,
+            total_bytes: self.total_bytes,
+            bytes_per_second: 0.0,
+        })
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct RDNCallbacks {
@@ -460,6 +558,7 @@ pub struct RDNCallbacks {
     on_file_transfer_list: Option<FileTransferListCallback>,
     on_file_transfer_manifest: Option<FileTransferManifestCallback>,
     on_file_transfer_receive_block: Option<FileTransferReceiveBlockCallback>,
+    on_file_transfer_upload_read: Option<FileTransferUploadReadCallback>,
 }
 
 #[repr(C)]
@@ -572,9 +671,49 @@ struct BridgeShared {
     pending_file_manifest_request: Mutex<Option<NativeViewerManifestRequest>>,
     completed_file_manifest_request: Mutex<Option<NativeViewerCompletedManifest>>,
     active_file_download_jobs: Mutex<HashMap<i32, NativeViewerDownloadJob>>,
+    active_file_upload_jobs: Mutex<HashMap<i32, NativeViewerUploadJob>>,
 }
 
 impl BridgeShared {
+    fn read_file_transfer_upload_source(
+        &self,
+        transfer_id: i32,
+        file_number: u32,
+        offset: u64,
+        length: usize,
+    ) -> Option<Vec<u8>> {
+        let job = self
+            .active_file_upload_jobs
+            .lock()
+            .unwrap()
+            .get(&transfer_id)
+            .cloned()?;
+        if !self.active.load(Ordering::Acquire)
+            || !self.authenticated.load(Ordering::Acquire)
+            || !self.file_transfer_enabled.load(Ordering::Acquire)
+            || self.file_transfer_session_epoch.load(Ordering::Acquire) != job.session_epoch
+        {
+            return None;
+        }
+        let callback = self.callbacks.on_file_transfer_upload_read?;
+        let mut payload = job.read_source(callback, self.context, file_number, offset, length)?;
+        if !self.active.load(Ordering::Acquire)
+            || !self.authenticated.load(Ordering::Acquire)
+            || !self.file_transfer_enabled.load(Ordering::Acquire)
+            || self.file_transfer_session_epoch.load(Ordering::Acquire) != job.session_epoch
+            || self
+                .active_file_upload_jobs
+                .lock()
+                .unwrap()
+                .get(&transfer_id)
+                != Some(&job)
+        {
+            payload.fill(0);
+            return None;
+        }
+        Some(payload)
+    }
+
     fn emit_file_transfer_event(&self, event: NativeViewerDownloadEvent) {
         if !self.active.load(Ordering::Acquire)
             || !self.authenticated.load(Ordering::Acquire)
@@ -895,6 +1034,7 @@ impl Default for BridgeUi {
                     on_file_transfer_list: None,
                     on_file_transfer_manifest: None,
                     on_file_transfer_receive_block: None,
+                    on_file_transfer_upload_read: None,
                 },
                 context: 0,
                 active: AtomicBool::new(false),
@@ -917,6 +1057,7 @@ impl Default for BridgeUi {
                 pending_file_manifest_request: Mutex::new(None),
                 completed_file_manifest_request: Mutex::new(None),
                 active_file_download_jobs: Mutex::new(HashMap::new()),
+                active_file_upload_jobs: Mutex::new(HashMap::new()),
             }),
         }
     }
@@ -1088,6 +1229,7 @@ impl InvokeUiSession for BridgeUi {
             .lock()
             .unwrap()
             .clear();
+        self.shared.active_file_upload_jobs.lock().unwrap().clear();
     }
     fn new_message(&self, _message: String) {}
     fn update_transfer_list(&self) {}
@@ -1502,6 +1644,7 @@ impl RDNClient {
             .lock()
             .unwrap()
             .clear();
+        self.shared.active_file_upload_jobs.lock().unwrap().clear();
         self.shared.active.store(false, Ordering::Release);
         if let Some(session) = self.session.lock().unwrap().as_ref() {
             if let Some(sender) = session.sender.read().unwrap().as_ref() {
@@ -2131,6 +2274,74 @@ fn native_viewer_remote_manifest_empty_directories(
     Some(normalized)
 }
 
+unsafe fn native_viewer_upload_manifest(
+    request: &RDNFileTransferUploadStart,
+) -> Option<(Vec<NativeViewerUploadFileAuthority>, Vec<String>)> {
+    if request.entry_count == 0
+        || request.entry_count > MAX_FILE_TRANSFER_LIST_ENTRIES
+        || request.entries.is_null()
+    {
+        return None;
+    }
+    let entries = slice::from_raw_parts(request.entries, request.entry_count);
+    let mut metadata_utf8_bytes = 0usize;
+    let mut collision_keys = HashSet::with_capacity(entries.len());
+    let mut all_collision_keys = Vec::with_capacity(entries.len());
+    let mut files = Vec::new();
+    let mut empty_directories = Vec::new();
+    let mut total_bytes = 0u64;
+    for entry in entries {
+        if entry.relative_path_utf8.is_null() || entry.relative_path_length == 0 {
+            return None;
+        }
+        metadata_utf8_bytes = metadata_utf8_bytes.checked_add(entry.relative_path_length)?;
+        if metadata_utf8_bytes > MAX_FILE_TRANSFER_LIST_METADATA_UTF8_BYTES {
+            return None;
+        }
+        let bytes = slice::from_raw_parts(entry.relative_path_utf8, entry.relative_path_length);
+        let path = std::str::from_utf8(bytes).ok()?;
+        if !native_viewer_manifest_relative_path(path) {
+            return None;
+        }
+        let collision_key = path.to_ascii_lowercase();
+        if !collision_keys.insert(collision_key.clone()) {
+            return None;
+        }
+        all_collision_keys.push(collision_key);
+        match entry.kind {
+            FILE_TRANSFER_LIST_ENTRY_FILE => {
+                total_bytes = total_bytes.checked_add(entry.size)?;
+                files.push(NativeViewerUploadFileAuthority {
+                    relative_path: path.to_owned(),
+                    size: entry.size,
+                    modified_time: entry.modified_time,
+                });
+            }
+            FILE_TRANSFER_LIST_ENTRY_DIRECTORY if entry.size == 0 && entry.modified_time == 0 => {
+                empty_directories.push(path.to_owned());
+            }
+            _ => return None,
+        }
+    }
+    if total_bytes != request.total_bytes {
+        return None;
+    }
+    for path in &all_collision_keys {
+        let components: Vec<_> = path.split('/').collect();
+        let mut ancestor = String::new();
+        for component in components.iter().take(components.len().saturating_sub(1)) {
+            if !ancestor.is_empty() {
+                ancestor.push('/');
+            }
+            ancestor.push_str(component);
+            if collision_keys.contains(&ancestor) {
+                return None;
+            }
+        }
+    }
+    Some((files, empty_directories))
+}
+
 fn native_viewer_file_list_root_message() -> Message {
     let mut action = FileAction::new();
     action.set_read_dir(ReadDir {
@@ -2240,6 +2451,7 @@ pub unsafe extern "C" fn rdn_client_create(
         pending_file_manifest_request: Mutex::new(None),
         completed_file_manifest_request: Mutex::new(None),
         active_file_download_jobs: Mutex::new(HashMap::new()),
+        active_file_upload_jobs: Mutex::new(HashMap::new()),
     });
     Box::into_raw(Box::new(RDNClient {
         shared,
@@ -2379,6 +2591,12 @@ pub unsafe extern "C" fn rdn_client_connect(
         .lock()
         .unwrap()
         .clear();
+    client
+        .shared
+        .active_file_upload_jobs
+        .lock()
+        .unwrap()
+        .clear();
     client.shared.sequence.store(0, Ordering::Relaxed);
     *client.shared.dimensions.write().unwrap() = (0, 0);
     client
@@ -2450,6 +2668,11 @@ pub unsafe extern "C" fn rdn_client_connect(
             .take();
         worker_shared
             .active_file_download_jobs
+            .lock()
+            .unwrap()
+            .clear();
+        worker_shared
+            .active_file_upload_jobs
             .lock()
             .unwrap()
             .clear();
@@ -2953,6 +3176,25 @@ pub unsafe extern "C" fn rdn_client_file_transfer_cancel(
     if !client.shared.authenticated.load(Ordering::Acquire) {
         return -6;
     }
+    let upload_event = {
+        let mut jobs = client.shared.active_file_upload_jobs.lock().unwrap();
+        if jobs
+            .get(&transfer_id)
+            .is_some_and(|job| job.session_epoch == session_epoch)
+        {
+            jobs.remove(&transfer_id).and_then(|job| {
+                job.terminal(FILE_TRANSFER_EVENT_CANCELLED, FILE_TRANSFER_FAILURE_NONE)
+            })
+        } else {
+            None
+        }
+    };
+    if let Some(event) = upload_event {
+        // v14 upload jobs have not dispatched wire, so cancellation is local
+        // ownership teardown and must not send a foreign CancelJob to peer.
+        client.shared.emit_file_transfer_event(event);
+        return 0;
+    }
     let session = client.session.lock().unwrap().clone();
     let Some(session) = session else {
         return -3;
@@ -3232,6 +3474,92 @@ pub unsafe extern "C" fn rdn_client_file_transfer_download_start(
     0
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn rdn_client_file_transfer_upload_start(
+    client: *mut RDNClient,
+    request: *const RDNFileTransferUploadStart,
+) -> i32 {
+    let Some(client) = client.as_ref() else {
+        return -1;
+    };
+    let Some(request) = request.as_ref() else {
+        return -4;
+    };
+    if request.abi_version != ABI_VERSION
+        || request.session_epoch == 0
+        || request.transfer_id <= 0
+        || request.source_token == 0
+    {
+        return -4;
+    }
+    let Some((files, empty_directories)) = native_viewer_upload_manifest(request) else {
+        return -4;
+    };
+    if !client.shared.active.load(Ordering::Acquire) {
+        return -3;
+    }
+    if !client.shared.file_transfer_enabled.load(Ordering::Acquire) {
+        return -7;
+    }
+    if client
+        .shared
+        .file_transfer_session_epoch
+        .load(Ordering::Acquire)
+        != request.session_epoch
+    {
+        return -10;
+    }
+    if !client.shared.authenticated.load(Ordering::Acquire) {
+        return -6;
+    }
+    if client
+        .shared
+        .callbacks
+        .on_file_transfer_upload_read
+        .is_none()
+    {
+        return -5;
+    }
+    let session = client.session.lock().unwrap().clone();
+    let Some(session) = session else {
+        return -3;
+    };
+    if !*session.server_file_transfer_enabled.read().unwrap() {
+        return -8;
+    }
+    if session.sender.read().unwrap().as_ref().is_none() {
+        return -3;
+    }
+    let job = NativeViewerUploadJob {
+        session_epoch: request.session_epoch,
+        transfer_id: request.transfer_id,
+        source_token: request.source_token,
+        files: files.into(),
+        empty_directories: empty_directories.into(),
+        total_bytes: request.total_bytes,
+    };
+    let download_jobs = client.shared.active_file_download_jobs.lock().unwrap();
+    let mut upload_jobs = client.shared.active_file_upload_jobs.lock().unwrap();
+    if !client.shared.active.load(Ordering::Acquire)
+        || !client.shared.file_transfer_enabled.load(Ordering::Acquire)
+        || client
+            .shared
+            .file_transfer_session_epoch
+            .load(Ordering::Acquire)
+            != request.session_epoch
+        || !client.shared.authenticated.load(Ordering::Acquire)
+        || upload_jobs.len() >= MAX_VIEWER_UPLOAD_JOBS
+        || upload_jobs.contains_key(&request.transfer_id)
+        || download_jobs.contains_key(&request.transfer_id)
+    {
+        return -3;
+    }
+    upload_jobs.insert(request.transfer_id, job);
+    // v14 freezes ownership and synchronous reads only. The canonical
+    // FileAction::Receive/Create wire projection is a separate next boundary.
+    0
+}
+
 struct PacketInspection {
     format: RDNPacketFormat,
     flags: u32,
@@ -3341,6 +3669,58 @@ mod tests {
         transfer_id: i32,
         file_number: u32,
         payload: Vec<u8>,
+    }
+
+    #[derive(Default, Debug, Eq, PartialEq)]
+    struct UploadReadCapture {
+        source: Vec<u8>,
+        requests: Vec<(u64, i32, u64, u32, u64, usize)>,
+        short_write: bool,
+        reject: bool,
+    }
+
+    unsafe extern "C" fn capture_file_upload_read(
+        context: *mut c_void,
+        request: *const RDNFileTransferUploadReadRequest,
+        bytes_written: *mut usize,
+    ) -> i32 {
+        if context.is_null() || request.is_null() || bytes_written.is_null() {
+            return -4;
+        }
+        *bytes_written = 0;
+        let capture = &*(context as *const Mutex<UploadReadCapture>);
+        let request = &*request;
+        if request.abi_version != ABI_VERSION || request.buffer.is_null() || request.length == 0 {
+            return -4;
+        }
+        let mut capture = capture.lock().unwrap();
+        capture.requests.push((
+            request.session_epoch,
+            request.transfer_id,
+            request.source_token,
+            request.file_number,
+            request.offset,
+            request.length,
+        ));
+        if capture.reject {
+            return -5;
+        }
+        let Ok(offset) = usize::try_from(request.offset) else {
+            return -5;
+        };
+        let Some(end) = offset.checked_add(request.length) else {
+            return -5;
+        };
+        let Some(source) = capture.source.get(offset..end) else {
+            return -5;
+        };
+        ptr::copy_nonoverlapping(source.as_ptr(), request.buffer, source.len());
+        *bytes_written = if capture.short_write {
+            request.length.saturating_sub(1)
+        } else {
+            request.length
+        };
+        0
     }
 
     unsafe extern "C" fn capture_file_transfer_event(
@@ -5081,6 +5461,156 @@ mod tests {
                 bytes_per_second: 0.0,
             }]
         );
+    }
+
+    #[test]
+    fn viewer_upload_manifest_revalidates_bounded_files_directories_and_totals() {
+        let file_path = b"Folder/file.bin";
+        let directory_path = b"Empty";
+        let entries = [
+            RDNFileTransferListEntry {
+                kind: FILE_TRANSFER_LIST_ENTRY_FILE,
+                relative_path_utf8: file_path.as_ptr(),
+                relative_path_length: file_path.len(),
+                size: 8,
+                modified_time: 123,
+            },
+            RDNFileTransferListEntry {
+                kind: FILE_TRANSFER_LIST_ENTRY_DIRECTORY,
+                relative_path_utf8: directory_path.as_ptr(),
+                relative_path_length: directory_path.len(),
+                size: 0,
+                modified_time: 0,
+            },
+        ];
+        let mut request = RDNFileTransferUploadStart {
+            abi_version: ABI_VERSION,
+            session_epoch: 7,
+            transfer_id: 71,
+            source_token: 81,
+            entries: entries.as_ptr(),
+            entry_count: entries.len(),
+            total_bytes: 8,
+        };
+        let (files, directories) = unsafe { native_viewer_upload_manifest(&request) }
+            .expect("bounded canonical upload manifest");
+        assert_eq!(
+            files,
+            vec![NativeViewerUploadFileAuthority {
+                relative_path: "Folder/file.bin".to_owned(),
+                size: 8,
+                modified_time: 123,
+            }]
+        );
+        assert_eq!(directories, vec!["Empty".to_owned()]);
+
+        request.total_bytes = 7;
+        assert!(unsafe { native_viewer_upload_manifest(&request) }.is_none());
+        request.total_bytes = 8;
+        request.entry_count = 0;
+        assert!(unsafe { native_viewer_upload_manifest(&request) }.is_none());
+
+        let ancestor = b"Folder";
+        let collision = [
+            entries[0],
+            RDNFileTransferListEntry {
+                kind: FILE_TRANSFER_LIST_ENTRY_DIRECTORY,
+                relative_path_utf8: ancestor.as_ptr(),
+                relative_path_length: ancestor.len(),
+                size: 0,
+                modified_time: 0,
+            },
+        ];
+        request.entries = collision.as_ptr();
+        request.entry_count = collision.len();
+        assert!(unsafe { native_viewer_upload_manifest(&request) }.is_none());
+    }
+
+    #[test]
+    fn viewer_upload_start_registers_semantic_job_and_reads_exact_callback_range() {
+        let capture = Mutex::new(UploadReadCapture {
+            source: b"abcdefgh".to_vec(),
+            ..Default::default()
+        });
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_file_transfer_upload_read = Some(capture_file_upload_read);
+        shared.context = &capture as *const _ as usize;
+        shared.active.store(true, Ordering::Release);
+        shared.file_transfer_enabled.store(true, Ordering::Release);
+        shared
+            .file_transfer_session_epoch
+            .store(7, Ordering::Release);
+        ui.on_connected(ConnType::FILE_TRANSFER);
+
+        let (sender, mut receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
+        let session = Session {
+            sender: Arc::new(RwLock::new(Some(sender))),
+            ui_handler: ui.clone(),
+            server_file_transfer_enabled: Arc::new(RwLock::new(true)),
+            ..Default::default()
+        };
+        let mut client = RDNClient {
+            shared: ui.shared.clone(),
+            session: Mutex::new(Some(session)),
+            worker: Mutex::new(None),
+            housekeeping: Mutex::new(None),
+        };
+        let file_path = b"payload.bin";
+        let entries = [RDNFileTransferListEntry {
+            kind: FILE_TRANSFER_LIST_ENTRY_FILE,
+            relative_path_utf8: file_path.as_ptr(),
+            relative_path_length: file_path.len(),
+            size: 8,
+            modified_time: 123,
+        }];
+        let request = RDNFileTransferUploadStart {
+            abi_version: ABI_VERSION,
+            session_epoch: 7,
+            transfer_id: 71,
+            source_token: 81,
+            entries: entries.as_ptr(),
+            entry_count: entries.len(),
+            total_bytes: 8,
+        };
+
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_upload_start(&mut client, &request) },
+            0
+        );
+        assert_eq!(
+            unsafe { rdn_client_file_transfer_upload_start(&mut client, &request) },
+            -3,
+            "duplicate semantic transfer IDs must fail closed"
+        );
+        assert!(
+            receiver.try_recv().is_err(),
+            "v14 registration must not dispatch wire"
+        );
+        assert_eq!(
+            ui.shared
+                .read_file_transfer_upload_source(71, 0, 2, 4)
+                .as_deref(),
+            Some(&b"cdef"[..])
+        );
+        assert_eq!(capture.lock().unwrap().requests, vec![(7, 71, 81, 0, 2, 4)]);
+        assert!(ui
+            .shared
+            .read_file_transfer_upload_source(71, 0, 7, 2)
+            .is_none());
+        capture.lock().unwrap().short_write = true;
+        assert!(ui
+            .shared
+            .read_file_transfer_upload_source(71, 0, 0, 4)
+            .is_none());
+        capture.lock().unwrap().short_write = false;
+        ui.shared
+            .file_transfer_session_epoch
+            .store(8, Ordering::Release);
+        assert!(ui
+            .shared
+            .read_file_transfer_upload_source(71, 0, 0, 4)
+            .is_none());
     }
 
     #[test]

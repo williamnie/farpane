@@ -35,7 +35,7 @@ class HostFileTransferViewerUploadSelectionManifestContractAuditTests(
         self.assertTrue(claims["viewerUploadSelectionImplemented"])
         self.assertTrue(claims["descriptorOwnedManifestImplemented"])
         self.assertTrue(claims["pathFreeUploadRequestImplemented"])
-        self.assertTrue(claims["viewerABIUnchanged"])
+        self.assertTrue(claims["viewerABIV14SemanticReadAvailable"])
         self.assertFalse(claims["viewerUploadWireDispatchImplemented"])
         self.assertFalse(claims["viewerUploadProductActionImplemented"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])

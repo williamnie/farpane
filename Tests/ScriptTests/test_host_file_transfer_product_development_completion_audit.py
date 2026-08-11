@@ -29,7 +29,7 @@ class HostFileTransferProductDevelopmentCompletionAuditTests(
             "product-development-incomplete-viewer-upload",
         )
         self.assertEqual(document["failedRequiredAudits"], [])
-        self.assertGreaterEqual(document["requiredAuditCount"], 38)
+        self.assertGreaterEqual(document["requiredAuditCount"], 39)
         self.assertTrue(all(document["evidence"].values()))
         claims = document["claims"]
         self.assertTrue(claims["hostExplicitReceiveOptInImplemented"])
@@ -47,7 +47,7 @@ class HostFileTransferProductDevelopmentCompletionAuditTests(
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-upload-semantic-read-abi-contract",
+            "host-file-transfer-viewer-upload-wire-job-lifecycle",
         )
 
 

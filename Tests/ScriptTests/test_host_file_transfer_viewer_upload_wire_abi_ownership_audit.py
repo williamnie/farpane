@@ -39,6 +39,7 @@ class HostFileTransferViewerUploadWireABIOwnershipAuditTests(
         self.assertTrue(claims["rustOwnsUploadProtocolState"])
         self.assertTrue(claims["viewerABIV14Required"])
         self.assertFalse(claims["viewerABIChangedByThisAudit"])
+        self.assertTrue(claims["viewerABIV14SemanticReadImplemented"])
         self.assertFalse(claims["viewerUploadWireImplemented"])
         seam = document["frozenSeam"]
         self.assertEqual(seam["maximumReadBytes"], 128 * 1024)

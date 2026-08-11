@@ -64,7 +64,7 @@ def main() -> int:
         "abiV12RetainsTwoCallbackScopedSemanticParts": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 13u",
+                "#define RDN_ABI_VERSION 14u",
                 "typedef enum RDNFileTransferManifestPartKind",
                 "RDN_FILE_TRANSFER_MANIFEST_PART_FILES = 1",
                 "RDN_FILE_TRANSFER_MANIFEST_PART_EMPTY_DIRECTORIES = 2",
@@ -157,7 +157,7 @@ def main() -> int:
             sources["design"],
             "H6.3f2b2e Viewer recursive manifest ABI lifecycle",
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 13u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 14u"),
         "manifestEvent": line_number(header, "typedef struct RDNFileTransferManifestEvent"),
         "manifestCommand": line_number(header, "rdn_client_file_transfer_manifest_root"),
         "rustCommand": line_number(bridge, "fn rdn_client_file_transfer_manifest_root("),

@@ -113,11 +113,13 @@ def main() -> int:
                 "F_DUPFD_CLOEXEC",
             )
         ),
-        "currentViewerABIDoesNotPretendUploadExists": (
-            "#define RDN_ABI_VERSION 13u" in header
-            and "RDNFileTransferUploadStart" not in header
-            and "rdn_client_file_transfer_upload_start" not in header
-            and "on_file_transfer_upload_read" not in header
+        "currentViewerABIImplementsOnlyFrozenSemanticSeam": (
+            "#define RDN_ABI_VERSION 14u" in header
+            and "RDNFileTransferUploadStart" in header
+            and "RDNFileTransferUploadReadRequest" in header
+            and "rdn_client_file_transfer_upload_start" in header
+            and "on_file_transfer_upload_read" in header
+            and "wire projection is a separate next boundary" in bridge
         ),
         "minimalVersionedSemanticSeamIsFrozen": (
             "H6.3i Viewer upload wire/ABI ownership audit" in design
@@ -157,7 +159,7 @@ def main() -> int:
         "designMilestone": line_number(
             design, "H6.3i Viewer upload wire/ABI ownership audit"
         ),
-        "viewerABIVersion": line_number(header, "#define RDN_ABI_VERSION 13u"),
+        "viewerABIVersion": line_number(header, "#define RDN_ABI_VERSION 14u"),
         "pathBasedSend": line_number(io_loop, "Data::SendFiles("),
         "canonicalReceive": line_number(fs, "pub fn new_receive("),
         "boundedWireBlock": line_number(
@@ -196,6 +198,7 @@ def main() -> int:
             "rustOwnsUploadProtocolState": passed,
             "viewerABIV14Required": passed,
             "viewerABIChangedByThisAudit": False,
+            "viewerABIV14SemanticReadImplemented": passed,
             "viewerUploadWireImplemented": False,
             "viewerUploadProductActionImplemented": False,
             "twoMacAcceptanceComplete": False,

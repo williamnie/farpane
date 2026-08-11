@@ -576,6 +576,7 @@ private final class CallbackBox: @unchecked Sendable {
     let onFileTransferReceiveBlock: @Sendable (CoreFileTransferReceiveBlock) -> Void
     private let fileTransferCancelRelay: FileTransferCancelRelay
     private let fileTransferReceiveAdapter: ViewerFileTransferReceiveAdapter
+    private let fileTransferUploadReadAdapter: ViewerFileTransferUploadReadAdapter
     private let clipboardLifecycleLock = NSLock()
     private var clipboardDeliveryEnabled = true
     private let fileTransferLifecycleLock = NSLock()
@@ -594,7 +595,8 @@ private final class CallbackBox: @unchecked Sendable {
         onFileTransferManifest: @escaping @Sendable (CoreFileTransferManifestEvent) -> Void,
         onFileTransferReceiveBlock: @escaping @Sendable (CoreFileTransferReceiveBlock) -> Void,
         fileTransferCancelRelay: FileTransferCancelRelay,
-        fileTransferReceiveAdapter: ViewerFileTransferReceiveAdapter
+        fileTransferReceiveAdapter: ViewerFileTransferReceiveAdapter,
+        fileTransferUploadReadAdapter: ViewerFileTransferUploadReadAdapter
     ) {
         self.queue = queue
         self.onState = onState
@@ -609,6 +611,7 @@ private final class CallbackBox: @unchecked Sendable {
         self.onFileTransferReceiveBlock = onFileTransferReceiveBlock
         self.fileTransferCancelRelay = fileTransferCancelRelay
         self.fileTransferReceiveAdapter = fileTransferReceiveAdapter
+        self.fileTransferUploadReadAdapter = fileTransferUploadReadAdapter
     }
 
     func deliverClipboardText(_ text: String) {
@@ -643,6 +646,7 @@ private final class CallbackBox: @unchecked Sendable {
             guard fileTransferLifecycleLock.withLock({ fileTransferDeliveryEnabled }) else {
                 return
             }
+            _ = fileTransferUploadReadAdapter.observe(event)
             switch fileTransferReceiveAdapter.observe(event) {
             case .unhandled, .forward:
                 onFileTransferEvent(event)
@@ -704,9 +708,51 @@ private final class CallbackBox: @unchecked Sendable {
         )
     }
 
+    func beginFileTransferUpload(
+        _ request: ViewerFileTransferUploadRequest,
+        sourceOwner: ViewerFileTransferUploadSourceOwner
+    ) -> Bool {
+        fileTransferLifecycleLock.withLock { fileTransferDeliveryEnabled }
+            && fileTransferUploadReadAdapter.begin(
+                request,
+                sourceOwner: sourceOwner
+            )
+    }
+
+    func readFileTransferUpload(
+        sessionEpoch: UInt64,
+        transferID: Int32,
+        sourceToken: UInt64,
+        fileNumber: UInt32,
+        offset: UInt64,
+        buffer: UnsafeMutablePointer<UInt8>,
+        length: Int
+    ) -> ViewerFileTransferUploadReadAdapterResult {
+        guard fileTransferLifecycleLock.withLock({ fileTransferDeliveryEnabled }) else {
+            return .rejected
+        }
+        return fileTransferUploadReadAdapter.read(
+            sessionEpoch: sessionEpoch,
+            transferID: transferID,
+            sourceToken: sourceToken,
+            fileNumber: fileNumber,
+            offset: offset,
+            buffer: buffer,
+            length: length
+        )
+    }
+
     @discardableResult
     func rollbackFileTransferReceive(sessionEpoch: UInt64, transferID: Int32) -> Bool {
         fileTransferReceiveAdapter.rollback(
+            sessionEpoch: sessionEpoch,
+            transferID: transferID
+        )
+    }
+
+    @discardableResult
+    func rollbackFileTransferUpload(sessionEpoch: UInt64, transferID: Int32) -> Bool {
+        fileTransferUploadReadAdapter.rollback(
             sessionEpoch: sessionEpoch,
             transferID: transferID
         )
@@ -717,6 +763,7 @@ private final class CallbackBox: @unchecked Sendable {
             fileTransferDeliveryEnabled = false
         }
         fileTransferReceiveAdapter.teardownAll()
+        fileTransferUploadReadAdapter.teardownAll()
         fileTransferCancelRelay.unbind()
     }
 }
@@ -1184,6 +1231,46 @@ private let fileTransferReceiveBlockCallback: RDNFileTransferReceiveBlockCallbac
     box.deliverFileTransferReceiveBlock(block)
 }
 
+private let fileTransferUploadReadCallback: RDNFileTransferUploadReadCallback = {
+    context, requestPointer, bytesWrittenPointer in
+    guard let bytesWrittenPointer else {
+        return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+    }
+    bytesWrittenPointer.pointee = 0
+    guard let context, let requestPointer else {
+        return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+    }
+    let raw = requestPointer.pointee
+    guard
+        raw.abi_version == RDN_ABI_VERSION,
+        raw.session_epoch > 0,
+        raw.transfer_id > 0,
+        raw.source_token > 0,
+        raw.length > 0,
+        raw.length <= CoreFileTransferReceiveBlock.maximumPayloadBytes,
+        let buffer = raw.buffer
+    else { return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD) }
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    switch box.readFileTransferUpload(
+        sessionEpoch: raw.session_epoch,
+        transferID: raw.transfer_id,
+        sourceToken: raw.source_token,
+        fileNumber: raw.file_number,
+        offset: raw.offset,
+        buffer: buffer,
+        length: raw.length
+    ) {
+    case .success(let bytesWritten):
+        guard bytesWritten == raw.length else {
+            return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+        }
+        bytesWrittenPointer.pointee = bytesWritten
+        return 0
+    case .rejected:
+        return Int32(RDN_CLIENT_ERR_VALIDATION)
+    }
+}
+
 public final class RustDeskCoreClient: @unchecked Sendable {
     public static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
     public static let abiVersion = UInt32(RDN_ABI_VERSION)
@@ -1228,6 +1315,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
 
         let fileTransferCancelRelay = FileTransferCancelRelay()
         let fileTransferReceiveAdapter = ViewerFileTransferReceiveAdapter()
+        let fileTransferUploadReadAdapter = ViewerFileTransferUploadReadAdapter()
         let callbackBox = CallbackBox(
             queue: callbackQueue,
             onState: onState,
@@ -1241,7 +1329,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             onFileTransferManifest: onFileTransferManifest,
             onFileTransferReceiveBlock: onFileTransferReceiveBlock,
             fileTransferCancelRelay: fileTransferCancelRelay,
-            fileTransferReceiveAdapter: fileTransferReceiveAdapter
+            fileTransferReceiveAdapter: fileTransferReceiveAdapter,
+            fileTransferUploadReadAdapter: fileTransferUploadReadAdapter
         )
         var callbacks = RDNCallbacks(
             abi_version: RDN_ABI_VERSION,
@@ -1254,7 +1343,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             on_file_transfer_event: fileTransferEventCallback,
             on_file_transfer_list: fileTransferListCallback,
             on_file_transfer_manifest: fileTransferManifestCallback,
-            on_file_transfer_receive_block: fileTransferReceiveBlockCallback
+            on_file_transfer_receive_block: fileTransferReceiveBlockCallback,
+            on_file_transfer_upload_read: fileTransferUploadReadCallback
         )
         let context = Unmanaged.passUnretained(callbackBox).toOpaque()
         guard let client = rdn_shim_client_create(library, &callbacks, context) else {
@@ -1535,12 +1625,125 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         return result
     }
 
+    /// Registers one exact path-free upload source. ABI v14 success means the
+    /// Rust semantic job and Swift descriptor owner are paired; wire dispatch
+    /// remains deliberately outside this contract step.
+    @discardableResult
+    package func startFileTransferUpload(
+        _ request: ViewerFileTransferUploadRequest,
+        sourceOwner: ViewerFileTransferUploadSourceOwner
+    ) -> Int32 {
+        guard
+            request.manifest.files.allSatisfy({ $0.modifiedTime >= 0 }),
+            request.manifest.files.count
+                + request.manifest.emptyDirectories.count <= Int(
+                    RDN_MAX_FILE_TRANSFER_LIST_ENTRIES
+                )
+        else { return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD) }
+
+        var allocations: [UnsafeMutablePointer<UInt8>] = []
+        var entries: [RDNFileTransferListEntry] = []
+        allocations.reserveCapacity(
+            request.manifest.files.count
+                + request.manifest.emptyDirectories.count
+        )
+        entries.reserveCapacity(allocations.capacity)
+
+        func appendEntry(
+            kind: UInt32,
+            path: String,
+            size: UInt64,
+            modifiedTime: UInt64
+        ) -> Bool {
+            let utf8 = Data(path.utf8)
+            guard !utf8.isEmpty else { return false }
+            let allocation = UnsafeMutablePointer<UInt8>.allocate(
+                capacity: utf8.count
+            )
+            utf8.copyBytes(to: allocation, count: utf8.count)
+            allocations.append(allocation)
+            entries.append(RDNFileTransferListEntry(
+                kind: kind,
+                relative_path_utf8: UnsafePointer(allocation),
+                relative_path_length: utf8.count,
+                size: size,
+                modified_time: modifiedTime
+            ))
+            return true
+        }
+
+        for file in request.manifest.files {
+            guard appendEntry(
+                kind: UInt32(RDN_FILE_TRANSFER_LIST_ENTRY_FILE.rawValue),
+                path: file.relativePath,
+                size: file.size,
+                modifiedTime: UInt64(file.modifiedTime)
+            ) else {
+                allocations.forEach { $0.deallocate() }
+                return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+            }
+        }
+        for directory in request.manifest.emptyDirectories {
+            guard appendEntry(
+                kind: UInt32(RDN_FILE_TRANSFER_LIST_ENTRY_DIRECTORY.rawValue),
+                path: directory,
+                size: 0,
+                modifiedTime: 0
+            ) else {
+                allocations.forEach { $0.deallocate() }
+                return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+            }
+        }
+        defer { allocations.forEach { $0.deallocate() } }
+
+        guard callbackBox.beginFileTransferUpload(
+            request,
+            sourceOwner: sourceOwner
+        ) else {
+            return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+        }
+        let result = entries.withUnsafeBufferPointer { entriesPointer in
+            var raw = RDNFileTransferUploadStart(
+                abi_version: RDN_ABI_VERSION,
+                session_epoch: request.sessionEpoch,
+                transfer_id: request.transferID,
+                source_token: request.source.token,
+                entries: entriesPointer.baseAddress,
+                entry_count: entriesPointer.count,
+                total_bytes: request.manifest.totalBytes
+            )
+            return rdn_shim_client_file_transfer_upload_start(
+                library,
+                client,
+                &raw
+            )
+        }
+        if result != 0 {
+            callbackBox.rollbackFileTransferUpload(
+                sessionEpoch: request.sessionEpoch,
+                transferID: request.transferID
+            )
+        }
+        return result
+    }
+
     @discardableResult
     package func discardFileTransferReceive(
         sessionEpoch: UInt64,
         transferID: Int32
     ) -> Bool {
         callbackBox.rollbackFileTransferReceive(
+            sessionEpoch: sessionEpoch,
+            transferID: transferID
+        )
+    }
+
+    @discardableResult
+    package func discardFileTransferUpload(
+        sessionEpoch: UInt64,
+        transferID: Int32
+    ) -> Bool {
+        callbackBox.rollbackFileTransferUpload(
             sessionEpoch: sessionEpoch,
             transferID: transferID
         )

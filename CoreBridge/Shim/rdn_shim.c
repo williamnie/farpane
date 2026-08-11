@@ -27,6 +27,8 @@ typedef int32_t (*client_file_transfer_manifest_root_fn)(RDNClient *, uint64_t,
                                                          int32_t);
 typedef int32_t (*client_file_transfer_download_start_fn)(
     RDNClient *, const RDNFileTransferDownloadStart *);
+typedef int32_t (*client_file_transfer_upload_start_fn)(
+    RDNClient *, const RDNFileTransferUploadStart *);
 typedef uint32_t (*abi_version_fn)(void);
 typedef const char *(*upstream_commit_fn)(void);
 
@@ -67,6 +69,7 @@ struct RDNCoreLibrary {
     client_file_transfer_list_root_fn client_file_transfer_list_root;
     client_file_transfer_manifest_root_fn client_file_transfer_manifest_root;
     client_file_transfer_download_start_fn client_file_transfer_download_start;
+    client_file_transfer_upload_start_fn client_file_transfer_upload_start;
     abi_version_fn abi_version;
     upstream_commit_fn upstream_commit;
     int host_available;
@@ -145,6 +148,9 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     library->client_file_transfer_download_start =
         (client_file_transfer_download_start_fn)dlsym(
             handle, "rdn_client_file_transfer_download_start");
+    library->client_file_transfer_upload_start =
+        (client_file_transfer_upload_start_fn)dlsym(
+            handle, "rdn_client_file_transfer_upload_start");
     library->abi_version = (abi_version_fn)dlsym(handle, "rdn_core_abi_version");
     library->upstream_commit = (upstream_commit_fn)dlsym(handle, "rdn_core_upstream_commit");
     if (library->client_create == NULL || library->client_destroy == NULL ||
@@ -159,6 +165,7 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
         library->client_file_transfer_list_root == NULL ||
         library->client_file_transfer_manifest_root == NULL ||
         library->client_file_transfer_download_start == NULL ||
+        library->client_file_transfer_upload_start == NULL ||
         library->abi_version == NULL || library->upstream_commit == NULL) {
         rdn_shim_close(library);
         write_error(error, error_size, "core library is missing required ABI symbols");
@@ -341,6 +348,14 @@ int32_t rdn_shim_client_file_transfer_download_start(
     return library == NULL
                ? RDN_CLIENT_ERR_INVALID_ARGUMENT
                : library->client_file_transfer_download_start(client, request);
+}
+
+int32_t rdn_shim_client_file_transfer_upload_start(
+    const RDNCoreLibrary *library, RDNClient *client,
+    const RDNFileTransferUploadStart *request) {
+    return library == NULL
+               ? RDN_CLIENT_ERR_INVALID_ARGUMENT
+               : library->client_file_transfer_upload_start(client, request);
 }
 
 int rdn_shim_host_available(const RDNCoreLibrary *library) {
