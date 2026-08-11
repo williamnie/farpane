@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class HostFileTransferViewerDownloadDigestConfirmationLifecycleAuditTests(unittest.TestCase):
-    def test_exact_digest_confirmation_preserves_destination_and_product_boundaries(self) -> None:
+class HostFileTransferViewerReceiveWriteAdapterLifecycleAuditTests(unittest.TestCase):
+    def test_receive_write_adapter_is_exact_durable_and_product_off(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-host-file-transfer-viewer-download-digest-confirmation-lifecycle.py",
+                "Scripts/audit-host-file-transfer-viewer-receive-write-adapter-lifecycle.py",
             ],
             cwd=repository,
             check=False,
@@ -22,11 +22,11 @@ class HostFileTransferViewerDownloadDigestConfirmationLifecycleAuditTests(unitte
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-host-file-transfer-viewer-download-digest-confirmation-lifecycle-audit",
+            "farpane-host-file-transfer-viewer-receive-write-adapter-lifecycle-audit",
         )
         self.assertEqual(
             document["status"],
-            "viewer-download-digest-confirmation-implemented-product-off",
+            "viewer-receive-write-adapter-implemented-product-off",
         )
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
@@ -35,12 +35,13 @@ class HostFileTransferViewerDownloadDigestConfirmationLifecycleAuditTests(unitte
         claims = document["claims"]
         self.assertTrue(claims["viewerDownloadWireRequestImplemented"])
         self.assertTrue(claims["viewerDigestConfirmationImplemented"])
-        self.assertTrue(claims["viewerDestinationWriteAdapterImplemented"])
+        self.assertTrue(claims["viewerReceiveWriteAdapterImplemented"])
+        self.assertFalse(claims["viewerSessionOrchestrationImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-receive-write-adapter-lifecycle",
+            "host-file-transfer-viewer-session-orchestration-lifecycle",
         )
 
 

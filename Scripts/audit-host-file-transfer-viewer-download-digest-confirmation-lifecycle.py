@@ -39,6 +39,8 @@ def main() -> int:
         "bootstrap": repository / "Scripts/bootstrap-rustdesk-core.sh",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
+        "receiveAdapter": repository
+            / "Sources/CoreBridge/ViewerFileTransferReceiveAdapter.swift",
     }
     try:
         sources = {name: read(path) for name, path in paths.items()}
@@ -172,6 +174,15 @@ def main() -> int:
             and "Digest confirmation now" in sources["readme"]
             and "digest confirmation" in sources["architecture"]
         ),
+        "downstreamReceiveWriteAdapterImplemented": all(
+            marker in sources["receiveAdapter"]
+            for marker in (
+                "package final class ViewerFileTransferReceiveAdapter",
+                "destinationOwner.reserveNewFile",
+                "destinationOwner.writePayload",
+                "destinationOwner.commitReservation",
+            )
+        ),
     }
     source_lines = {
         "designMilestone": line_number(
@@ -209,7 +220,7 @@ def main() -> int:
         "claims": {
             "viewerDownloadWireRequestImplemented": status == expected_status,
             "viewerDigestConfirmationImplemented": status == expected_status,
-            "viewerDestinationWriteAdapterImplemented": False,
+            "viewerDestinationWriteAdapterImplemented": status == expected_status,
             "productFileTransferEnabled": False,
             "twoMacAcceptanceComplete": False,
         },
