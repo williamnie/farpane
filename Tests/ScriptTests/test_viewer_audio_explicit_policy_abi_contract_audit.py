@@ -44,13 +44,13 @@ class ViewerAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertTrue(claims["viewerAudioProductEnabled"])
         self.assertTrue(claims["dedicatedFileSessionRejectsAudio"])
         self.assertTrue(claims["viewerRemoteAudioPermissionPresented"])
-        self.assertFalse(claims["virtualAudioInputSelectionImplemented"])
+        self.assertTrue(claims["virtualAudioInputSelectionImplemented"])
         self.assertFalse(claims["installedAudioAcceptanceComplete"])
         self.assertFalse(claims["rustDeskWireChanged"])
         self.assertFalse(claims["hermesChanged"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "virtual-audio-input-selection",
+            "host-audio-product-development-completion-audit",
         )
 
 

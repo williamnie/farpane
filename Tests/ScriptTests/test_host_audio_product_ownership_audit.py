@@ -35,7 +35,7 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "host-opt-in-implemented-development-incomplete",
+            "product-selector-implemented-development-audit-pending",
         )
         self.assertEqual(document["currentABI"], {"host": 19, "viewer": 18})
         self.assertEqual(document["targetContract"]["hostABI"], 19)
@@ -49,7 +49,7 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
             "explicit user-selected virtual input device only",
         )
         self.assertTrue(all(document["evidence"].values()))
-        self.assertTrue(all(document["gaps"].values()))
+        self.assertEqual(document["gaps"], {})
         self.assertTrue(all(document["sourceLines"].values()))
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingGaps"], [])
@@ -57,6 +57,7 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
         self.assertFalse(claims["hostAudioEnabled"])
         self.assertTrue(claims["viewerAudioEnabled"])
         self.assertFalse(claims["audioProductDevelopmentComplete"])
+        self.assertTrue(claims["virtualInputProductSelectorImplemented"])
         self.assertFalse(claims["hostABIChangeRequired"])
         self.assertFalse(claims["viewerABIChangeRequired"])
         self.assertFalse(claims["rustDeskWireChangeRequired"])
@@ -64,7 +65,7 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
         self.assertFalse(claims["rootDependencyChangeRequired"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-audio-bootstrap-virtual-input-selection-contract",
+            "host-audio-product-development-completion-audit",
         )
 
 

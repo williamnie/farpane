@@ -284,13 +284,13 @@ def main() -> int:
             "nextConnectionOptInIsEphemeral": True,
             "remotePermissionIsConnectionScoped": True,
             "revocationClosesRustPlaybackGate": True,
-            "virtualAudioInputSelectionImplemented": False,
+            "virtualAudioInputSelectionImplemented": True,
             "installedAudioAcceptanceComplete": False,
             "rustDeskWireChanged": False,
             "hermesChanged": False,
         },
         "nextImplementationBoundary": (
-            "host-audio-bootstrap-virtual-input-selection-contract"
+            "host-audio-product-development-completion-audit"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

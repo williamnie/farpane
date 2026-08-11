@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit H6.1 audio ownership and freeze the next default-off ABI checkpoints."""
+"""Audit current H6.1 audio ownership before the completion audit."""
 
 from __future__ import annotations
 
@@ -53,6 +53,12 @@ def main() -> int:
         / "Sources/RustDeskNative/HostMicrophoneAuthorizationAuthority.swift",
         "bootstrap": repository
         / "Sources/ConnectionCatalog/HostAgentBootstrapConfiguration.swift",
+        "projection": repository
+        / "Sources/ConnectionCatalog/HostAgentBootstrapProjectionBuilder.swift",
+        "input_catalog": repository
+        / "Sources/RustDeskNative/HostAudioInputDeviceCatalog.swift",
+        "viewer_audio_owner": repository
+        / "Sources/CoreBridge/ViewerAudioSessionOwner.swift",
         "home": repository / "Sources/RustDeskNative/HomeView.swift",
         "info": repository / "App/Info.plist",
         "build_core": repository / "Scripts/build-rust-core.sh",
@@ -225,21 +231,36 @@ def main() -> int:
                 "public let audioInputDeviceName: String?",
             )
         ),
-    }
-
-    gaps = {
-        "virtualInputSelectionHasNoFarPaneProductOwner": (
-            '"audio-input"' not in product
-            and "BlackHole" not in product
+        "virtualInputBootstrapAndProductSelectorAreImplemented": all(
+            marker in sources["bootstrap"] + sources["projection"]
+            + sources["input_catalog"] + sources["home"] + product
+            for marker in (
+                "public static let currentSchemaVersion = 7",
+                "public let inputDeviceName: String?",
+                "public struct HostAudioInputDeviceCatalog",
+                "kAudioHardwarePropertyDevices",
+                "kAudioDevicePropertyScopeInput",
+                "系统默认麦克风",
+                "onHostAudioInputSelection",
+                "farpane.host.audio.inputDeviceName",
+                "不会回退默认麦克风",
+                "audioInputDeviceName: audioPolicy.inputDeviceName",
+            )
         ),
-        "installedAudioAcceptanceHasNoEvidence": (
-            "现场检查继续如实记为“未验证”" in design
-            and not any(
-                path.is_file()
-                for path in (repository / "Evidence/HostMode").glob("**/*audio*acceptance*.md")
+        "viewerSessionOwnerProjectsPermissionAndTeardownStates": all(
+            marker in sources["viewer_audio_owner"]
+            for marker in (
+                "public final class ViewerAudioSessionOwner",
+                "case awaitingRemotePermission",
+                "case receiving",
+                "case deniedByRemote",
+                "case revokedByRemote",
+                "case ended",
             )
         ),
     }
+
+    gaps = {}
 
     source_lines = {
         "designAudioMilestone": line_number(design, "H6.1 音频：麦克风采集为原生主路"),
@@ -273,6 +294,18 @@ def main() -> int:
         "virtualInputFallbackGate": line_number(
             audio_service, "native_explicit_audio_input_is_available"
         ),
+        "audioBootstrapSchema": line_number(
+            sources["bootstrap"], "public static let currentSchemaVersion = 7"
+        ),
+        "coreAudioInputCatalog": line_number(
+            sources["input_catalog"], "kAudioHardwarePropertyDevices"
+        ),
+        "virtualInputHomeSelector": line_number(
+            sources["home"], "private let hostAudioInputPopup"
+        ),
+        "virtualInputProductProjection": line_number(
+            product, "audioInputDeviceName: audioPolicy.inputDeviceName"
+        ),
     }
 
     missing_evidence = [name for name, present in evidence.items() if not present]
@@ -297,7 +330,7 @@ def main() -> int:
         "permissionOwner": "FarPane App microphone TCC policy projected to HostAgent",
         "sessionCapability": "hearSystemAudio compatibility capability",
         "sourceSelection": (
-            "system-default microphone first; ABI-capable explicit input with product selector later"
+            "system-default microphone first; explicit unique CoreAudio input through the Home selector"
         ),
         "swiftAudioPayloadBoundary": "none; encoded and decoded audio remains in Rust",
         "lifecycle": (
@@ -309,7 +342,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "host-opt-in-implemented-development-incomplete"
+            "product-selector-implemented-development-audit-pending"
             if healthy
             else "audit-failed"
         ),
@@ -325,6 +358,7 @@ def main() -> int:
             "hostAudioEnabled": False,
             "viewerAudioEnabled": True,
             "audioProductDevelopmentComplete": False,
+            "virtualInputProductSelectorImplemented": True,
             "hostABIChangeRequired": False,
             "viewerABIChangeRequired": False,
             "rustDeskWireChangeRequired": False,
@@ -333,7 +367,7 @@ def main() -> int:
             "installedAudioAcceptanceStillRequired": True,
         },
         "nextImplementationBoundary": (
-            "host-audio-bootstrap-virtual-input-selection-contract"
+            "host-audio-product-development-completion-audit"
         ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))

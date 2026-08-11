@@ -239,12 +239,12 @@ def main() -> int:
             "viewerAudioProductEnabled": True,
             "dedicatedFileSessionRejectsAudio": True,
             "viewerRemoteAudioPermissionPresented": True,
-            "virtualAudioInputSelectionImplemented": False,
+            "virtualAudioInputSelectionImplemented": True,
             "installedAudioAcceptanceComplete": False,
             "rustDeskWireChanged": False,
             "hermesChanged": False,
         },
-        "nextImplementationBoundary": "virtual-audio-input-selection",
+        "nextImplementationBoundary": "host-audio-product-development-completion-audit",
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1
