@@ -1,0 +1,69 @@
+import json
+from pathlib import Path
+import subprocess
+import unittest
+
+
+REPOSITORY = Path(__file__).resolve().parents[2]
+AUDIT = REPOSITORY / "Scripts" / "audit-host-audio-product-ownership.py"
+
+
+class HostAudioProductOwnershipAuditTests(unittest.TestCase):
+    def test_h6_1_audio_ownership_and_next_abi_checkpoint_are_frozen(self) -> None:
+        self.assertTrue(
+            AUDIT.is_file(),
+            "Scripts/audit-host-audio-product-ownership.py must exist",
+        )
+        completed = subprocess.run(
+            ["python3", str(AUDIT)],
+            cwd=REPOSITORY,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(
+            completed.returncode,
+            0,
+            completed.stderr or completed.stdout,
+        )
+
+        document = json.loads(completed.stdout)
+        self.assertEqual(
+            document["schema"],
+            "farpane-host-audio-product-ownership-audit",
+        )
+        self.assertEqual(document["schemaVersion"], 1)
+        self.assertEqual(document["status"], "implementation-required")
+        self.assertEqual(document["currentABI"], {"host": 17, "viewer": 16})
+        self.assertEqual(document["targetContract"]["hostABI"], 18)
+        self.assertEqual(document["targetContract"]["viewerABI"], 17)
+        self.assertEqual(
+            document["targetContract"]["defaultCaptureSource"],
+            "native system-default microphone",
+        )
+        self.assertEqual(
+            document["targetContract"]["systemAudioRoute"],
+            "explicit user-selected virtual input device only",
+        )
+        self.assertTrue(all(document["evidence"].values()))
+        self.assertTrue(all(document["gaps"].values()))
+        self.assertTrue(all(document["sourceLines"].values()))
+        self.assertEqual(document["missingEvidence"], [])
+        self.assertEqual(document["missingGaps"], [])
+        claims = document["claims"]
+        self.assertFalse(claims["hostAudioEnabled"])
+        self.assertFalse(claims["viewerAudioEnabled"])
+        self.assertFalse(claims["audioProductDevelopmentComplete"])
+        self.assertTrue(claims["hostABIChangeRequired"])
+        self.assertTrue(claims["viewerABIChangeRequired"])
+        self.assertFalse(claims["rustDeskWireChangeRequired"])
+        self.assertFalse(claims["hermesChangeRequired"])
+        self.assertFalse(claims["rootDependencyChangeRequired"])
+        self.assertEqual(
+            document["nextImplementationBoundary"],
+            "host-audio-explicit-policy-abi-contract",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
