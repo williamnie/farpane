@@ -848,6 +848,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(disabled.clipboardRichTextWriteEnabled)
         XCTAssertFalse(disabled.clipboardImageReadEnabled)
         XCTAssertFalse(disabled.clipboardImageWriteEnabled)
+        XCTAssertFalse(disabled.audioEnabled)
         XCTAssertFalse(disabled.fileTransferEnabled)
         XCTAssertNil(disabled.fileTransferReceiveRoot)
 
@@ -936,10 +937,22 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(fileTransferOnly.clipboardImageReadEnabled)
         XCTAssertFalse(fileTransferOnly.clipboardImageWriteEnabled)
         XCTAssertTrue(fileTransferOnly.fileTransferEnabled)
+        XCTAssertFalse(fileTransferOnly.audioEnabled)
         XCTAssertEqual(
             fileTransferOnly.fileTransferReceiveRoot,
             "/private/var/folders/farpane-receive"
         )
+
+        let audioOnly = HostServerConfiguration(
+            rendezvousServer: "192.0.2.1",
+            serverPublicKey: "public-key",
+            audioEnabled: true
+        )
+        XCTAssertTrue(audioOnly.audioEnabled)
+        XCTAssertFalse(audioOnly.clipboardReadEnabled)
+        XCTAssertFalse(audioOnly.clipboardWriteEnabled)
+        XCTAssertFalse(audioOnly.fileTransferEnabled)
+        XCTAssertNil(audioOnly.fileTransferReceiveRoot)
     }
 
     func testViewerClipboardDirectionsAreExplicitAndIndependent() {

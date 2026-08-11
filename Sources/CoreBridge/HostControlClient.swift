@@ -352,6 +352,7 @@ public struct HostServerConfiguration: Sendable {
     public let clipboardRichTextWriteEnabled: Bool
     public let clipboardImageReadEnabled: Bool
     public let clipboardImageWriteEnabled: Bool
+    public let audioEnabled: Bool
     public let fileTransferEnabled: Bool
     public let fileTransferReceiveRoot: String?
 
@@ -365,6 +366,7 @@ public struct HostServerConfiguration: Sendable {
         clipboardRichTextWriteEnabled: Bool = false,
         clipboardImageReadEnabled: Bool = false,
         clipboardImageWriteEnabled: Bool = false,
+        audioEnabled: Bool = false,
         fileTransferEnabled: Bool = false,
         fileTransferReceiveRoot: String? = nil
     ) {
@@ -377,6 +379,7 @@ public struct HostServerConfiguration: Sendable {
         self.clipboardRichTextWriteEnabled = clipboardRichTextWriteEnabled
         self.clipboardImageReadEnabled = clipboardImageReadEnabled
         self.clipboardImageWriteEnabled = clipboardImageWriteEnabled
+        self.audioEnabled = audioEnabled
         self.fileTransferEnabled = fileTransferEnabled
         self.fileTransferReceiveRoot = fileTransferReceiveRoot
     }
@@ -1816,6 +1819,7 @@ public final class HostControlClient: @unchecked Sendable {
                             enable_clipboard_rich_text_write: configuration.clipboardRichTextWriteEnabled,
                             enable_clipboard_image_read: configuration.clipboardImageReadEnabled,
                             enable_clipboard_image_write: configuration.clipboardImageWriteEnabled,
+                            enable_audio: configuration.audioEnabled,
                             enable_file_transfer: configuration.fileTransferEnabled,
                             file_transfer_receive_root: fileTransferReceiveRoot
                         )

@@ -505,7 +505,7 @@ def main() -> int:
 
     target_contract = {
         "viewerABI": 16,
-        "hostABI": 17,
+        "hostABI": 18,
         "catalogIdentity": "connectionEpoch + catalogRevision + displayIndex",
         "catalogOwner": "Rust Bridge normalized PeerInfo displays",
         "selectionOwner": "one Rust Bridge pending command per connection epoch",
@@ -599,7 +599,7 @@ def main() -> int:
         and not missing_gaps
         and all(source_lines.values())
         and viewer_abi == 16
-        and host_abi == 17
+        and host_abi == 18
     ) else 1
 
 

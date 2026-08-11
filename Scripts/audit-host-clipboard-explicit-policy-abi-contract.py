@@ -116,16 +116,15 @@ def main() -> int:
             and "native_host_clipboard_option(clipboard_policy)" in bridge
             and "PersistenceMismatch" in bridge
         ),
-        "filePolicyIsIndependentAndAudioRemainsDisabled": all(
+        "fileAndAudioPoliciesRemainIndependentAndDefaultOff": all(
             marker in bridge
             for marker in (
                 "file_transfer_enabled: bool",
                 "native_host_file_transfer_option(file_transfer_enabled)",
-                "NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS",
-                "OPTION_ENABLE_AUDIO",
-                'Config::set_option(key.to_owned(), "N".to_owned())',
+                "audio_enabled: bool",
+                "native_host_audio_option(audio_enabled)",
             )
-        ),
+        ) and "audioEnabled: true" not in product_sources,
         "productCallersPassOneExplicitPolicy": (
             "clipboardPolicy: currentHostClipboardPolicy()" in sources["app"]
             and "clipboardReadEnabled: clipboardPolicy.allowRemoteRead"

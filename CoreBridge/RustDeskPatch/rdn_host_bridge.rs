@@ -51,7 +51,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-const HOST_ABI_VERSION: u32 = 17;
+const HOST_ABI_VERSION: u32 = 18;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
@@ -1734,6 +1734,7 @@ pub struct RdnHostCreateOptions {
     enable_clipboard_rich_text_write: bool,
     enable_clipboard_image_read: bool,
     enable_clipboard_image_write: bool,
+    enable_audio: bool,
     enable_file_transfer: bool,
     file_transfer_receive_root: *const c_char,
 }
@@ -1802,6 +1803,7 @@ pub struct RdnHost {
     relay_server: String,
     server_public_key: String,
     clipboard_transfer_policy: NativeClipboardTransferPolicy,
+    audio_enabled: bool,
     file_transfer_enabled: bool,
     #[cfg(target_os = "macos")]
     file_service_owner: Option<Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>>,
@@ -4936,6 +4938,7 @@ pub unsafe extern "C" fn rdn_host_create(
                 (*options).enable_clipboard_image_write,
             ),
         ),
+        audio_enabled: (*options).enable_audio,
         file_transfer_enabled: (*options).enable_file_transfer,
         #[cfg(target_os = "macos")]
         file_service_owner,
@@ -5053,11 +5056,10 @@ fn verify_host_start_storage(host: &RdnHost) -> Result<(), HostStoragePreflightE
         &host.relay_server,
         &host.server_public_key,
         host.clipboard_transfer_policy,
+        host.audio_enabled,
         host.file_transfer_enabled,
     )
 }
-
-const NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS: [&str; 1] = [config::keys::OPTION_ENABLE_AUDIO];
 
 fn native_host_clipboard_option(policy: NativeClipboardTransferPolicy) -> &'static str {
     if policy.any_enabled() {
@@ -5075,8 +5077,17 @@ fn native_host_file_transfer_option(enabled: bool) -> &'static str {
     }
 }
 
+fn native_host_audio_option(enabled: bool) -> &'static str {
+    if enabled {
+        "Y"
+    } else {
+        "N"
+    }
+}
+
 fn apply_native_host_optional_capability_policy(
     clipboard_policy: NativeClipboardTransferPolicy,
+    audio_enabled: bool,
     file_transfer_enabled: bool,
 ) {
     config::Config::set_option(
@@ -5087,9 +5098,10 @@ fn apply_native_host_optional_capability_policy(
         config::keys::OPTION_ENABLE_FILE_TRANSFER.to_owned(),
         native_host_file_transfer_option(file_transfer_enabled).to_owned(),
     );
-    for key in NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS {
-        config::Config::set_option(key.to_owned(), "N".to_owned());
-    }
+    config::Config::set_option(
+        config::keys::OPTION_ENABLE_AUDIO.to_owned(),
+        native_host_audio_option(audio_enabled).to_owned(),
+    );
 }
 
 fn verify_host_password_storage() -> Result<(), HostStoragePreflightError> {
@@ -5120,6 +5132,7 @@ fn verify_host_start_storage_paths(
     _relay_server: &str,
     _server_public_key: &str,
     _clipboard_policy: NativeClipboardTransferPolicy,
+    _audio_enabled: bool,
     _file_transfer_enabled: bool,
 ) -> Result<(), HostStoragePreflightError> {
     Err(HostStoragePreflightError::UnsupportedPlatform)
@@ -5151,6 +5164,7 @@ fn verify_host_start_storage_paths(
     relay_server: &str,
     server_public_key: &str,
     clipboard_policy: NativeClipboardTransferPolicy,
+    audio_enabled: bool,
     file_transfer_enabled: bool,
 ) -> Result<(), HostStoragePreflightError> {
     let (identity, options) = inspect_host_storage_paths(identity_path, options_path, None)?;
@@ -5180,7 +5194,10 @@ fn verify_host_start_storage_paths(
             config::keys::OPTION_ENABLE_FILE_TRANSFER,
             native_host_file_transfer_option(file_transfer_enabled),
         ),
-        (config::keys::OPTION_ENABLE_AUDIO, "N"),
+        (
+            config::keys::OPTION_ENABLE_AUDIO,
+            native_host_audio_option(audio_enabled),
+        ),
         ("stop-service", ""),
     ];
     if expected
@@ -5417,11 +5434,12 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     );
     config::Config::set_option("relay-server".to_owned(), host.relay_server.clone());
     config::Config::set_option("key".to_owned(), host.server_public_key.clone());
-    // Clipboard and file transfer are enabled only by their independent create
-    // policies. Audio remains disabled. Upstream treats a missing `enable-*`
-    // option as enabled, so absence is never accepted as product policy.
+    // Clipboard, audio and file transfer are enabled only by their independent
+    // create policies. Upstream treats a missing `enable-*` option as enabled,
+    // so absence is never accepted as product policy.
     apply_native_host_optional_capability_policy(
         host.clipboard_transfer_policy,
+        host.audio_enabled,
         host.file_transfer_enabled,
     );
     // FarPane Host owns an active authenticated screen route as a bounded
@@ -6370,6 +6388,7 @@ mod tests {
             rendezvous_server: &str,
             relay_server: &str,
             server_public_key: &str,
+            audio_enabled: bool,
             file_transfer_enabled: bool,
         ) -> (Vec<u8>, Vec<u8>) {
             let identity = b"enc_id = \"opaque-encrypted-id\"\n".to_vec();
@@ -6398,9 +6417,10 @@ mod tests {
                 config::keys::OPTION_ENABLE_FILE_TRANSFER.to_owned(),
                 native_host_file_transfer_option(file_transfer_enabled).to_owned(),
             );
-            for key in NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS {
-                config.options.insert(key.to_owned(), "N".to_owned());
-            }
+            config.options.insert(
+                config::keys::OPTION_ENABLE_AUDIO.to_owned(),
+                native_host_audio_option(audio_enabled).to_owned(),
+            );
             let options = toml::to_string(&config)
                 .expect("serialize startup options fixture")
                 .into_bytes();
@@ -6560,6 +6580,7 @@ mod tests {
             relay_server,
             server_public_key,
             false,
+            false,
         );
 
         assert_eq!(
@@ -6570,6 +6591,7 @@ mod tests {
                 relay_server,
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
+                false,
                 false,
             ),
             Ok(())
@@ -6589,6 +6611,7 @@ mod tests {
             rendezvous_server,
             relay_server,
             server_public_key,
+            false,
             false,
         );
         let mut config: config::Config2 =
@@ -6623,6 +6646,7 @@ mod tests {
                     server_public_key,
                     policy,
                     false,
+                    false,
                 ),
                 Ok(())
             );
@@ -6635,6 +6659,7 @@ mod tests {
                 relay_server,
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
+                false,
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -6655,6 +6680,7 @@ mod tests {
             relay_server,
             server_public_key,
             false,
+            false,
         );
 
         fs::remove_file(&fixture.identity).unwrap();
@@ -6666,6 +6692,7 @@ mod tests {
                 relay_server,
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
+                false,
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -6681,6 +6708,7 @@ mod tests {
                 relay_server,
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
+                false,
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -6704,6 +6732,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
         );
@@ -6711,16 +6740,6 @@ mod tests {
 
     #[test]
     fn native_host_optional_data_capabilities_require_explicit_policy() {
-        assert_eq!(
-            NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS,
-            [config::keys::OPTION_ENABLE_AUDIO]
-        );
-        assert!(NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS
-            .iter()
-            .all(|key| key.starts_with("enable-")));
-        assert!(NATIVE_HOST_ALWAYS_DISABLED_OPTION_KEYS
-            .iter()
-            .all(|key| !config::option2bool(key, "N")));
         assert_eq!(
             native_host_clipboard_option(NativeClipboardTransferPolicy::default()),
             "N"
@@ -6746,6 +6765,8 @@ mod tests {
             )),
             "Y"
         );
+        assert_eq!(native_host_audio_option(false), "N");
+        assert_eq!(native_host_audio_option(true), "Y");
         assert_eq!(native_host_file_transfer_option(false), "N");
         assert_eq!(native_host_file_transfer_option(true), "Y");
     }
@@ -7851,6 +7872,51 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn host_storage_readback_accepts_explicit_audio_opt_in_only() {
+        let fixture = HostStorageFixture::new();
+        let rendezvous_server = "127.0.0.1:21116";
+        let relay_server = "";
+        let server_public_key = "synthetic-public-key";
+        let (identity, options) = fixture.write_startup_documents(
+            rendezvous_server,
+            relay_server,
+            server_public_key,
+            true,
+            false,
+        );
+
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                rendezvous_server,
+                relay_server,
+                server_public_key,
+                NativeClipboardTransferPolicy::default(),
+                true,
+                false,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                rendezvous_server,
+                relay_server,
+                server_public_key,
+                NativeClipboardTransferPolicy::default(),
+                false,
+                false,
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
+        );
+        assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
+        assert_eq!(fs::read(&fixture.options).unwrap(), options);
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn host_storage_readback_accepts_explicit_file_transfer_opt_in_only() {
         let fixture = HostStorageFixture::new();
         let rendezvous_server = "127.0.0.1:21116";
@@ -7860,6 +7926,7 @@ mod tests {
             rendezvous_server,
             relay_server,
             server_public_key,
+            false,
             true,
         );
 
@@ -7871,6 +7938,7 @@ mod tests {
                 relay_server,
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
+                false,
                 true,
             ),
             Ok(())
@@ -7883,6 +7951,7 @@ mod tests {
                 relay_server,
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
+                false,
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -8145,6 +8214,7 @@ mod tests {
             relay_server: String::new(),
             server_public_key: String::new(),
             clipboard_transfer_policy: NativeClipboardTransferPolicy::default(),
+            audio_enabled: false,
             file_transfer_enabled: false,
             #[cfg(target_os = "macos")]
             file_service_owner: None,

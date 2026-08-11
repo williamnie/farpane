@@ -85,9 +85,9 @@ def main() -> int:
                 "host-file-transfer-connection-mutation-dispatch",
             )
         ),
-        "hostABIv17MatchesHeaderRustAndSwiftTest": (
-            header_abi == rust_abi == 17
-            and "private static let hostABIVersion: UInt32 = 17"
+        "hostABIv18MatchesHeaderRustAndSwiftTest": (
+            header_abi == rust_abi == 18
+            and "private static let hostABIVersion: UInt32 = 18"
             in sources["host_tests"]
         ),
         "cCreateOptionsCarryImmutableReceiveRoot": all(
@@ -174,7 +174,7 @@ def main() -> int:
         "designMilestone": line_number(
             design, "H6.3e2 Host immutable receive-root config contract"
         ),
-        "hostABIv17": line_number(header, "RDN_HOST_ABI_VERSION 17u"),
+        "hostABIv18": line_number(header, "RDN_HOST_ABI_VERSION 18u"),
         "cReceiveRoot": line_number(header, "file_transfer_receive_root;"),
         "swiftReceiveRoot": line_number(
             host_control, "public let fileTransferReceiveRoot: String?"
