@@ -35,7 +35,7 @@ class HostFileTransferViewerDownloadDigestConfirmationLifecycleAuditTests(unitte
         claims = document["claims"]
         self.assertTrue(claims["viewerDownloadWireRequestImplemented"])
         self.assertTrue(claims["viewerDigestConfirmationImplemented"])
-        self.assertFalse(claims["viewerDestinationWriteAdapterImplemented"])
+        self.assertTrue(claims["viewerDestinationWriteAdapterImplemented"])
         self.assertFalse(claims["productFileTransferEnabled"])
         self.assertFalse(claims["twoMacAcceptanceComplete"])
         self.assertEqual(

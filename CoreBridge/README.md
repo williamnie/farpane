@@ -236,9 +236,14 @@ the completed manifest's per-file size/mtime authority inside Rust, accepts only
 the next exact new-file digest, and sends `OffsetBlk(0)` through the existing
 peer; matching malformed, duplicate, resume, identical, or nonzero-offset
 digests fail closed, while foreign jobs keep upstream behavior. Inbound blocks
-are admitted only after that file's digest was confirmed. The callback-to-
-destination reservation/write/commit adapter is still not connected, so decoded
-payload is dropped at the semantic callback boundary and product file transfer
-remains off.
-No picker UI or product configuration exists, so it remains internal rather than
-file-transfer product capability.
+are admitted only after that file's digest was confirmed. The receive/write
+adapter now binds a package-scoped download start to the exact Swift destination
+owner before the wire request is sent, rolls that route back if Core rejects the
+start, and serializes accepted blocks through reservation, bounded write and
+durable no-replace commit. Zero-byte files and manifest empty directories are
+published before remote completion can be forwarded; premature completion,
+stale/order/size drift and local I/O fail closed, with durability-unconfirmed
+remaining a distinct terminal. Local block failure requests exact Core
+cancellation. No picker, session orchestrator, product route or product
+configuration calls this package API, so file transfer remains internal and
+off.

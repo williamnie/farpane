@@ -533,6 +533,35 @@ public struct CoreKeyEvent: Sendable {
     }
 }
 
+private final class FileTransferCancelRelay: @unchecked Sendable {
+    private let lock = NSLock()
+    private var target: (library: OpaquePointer, client: OpaquePointer)?
+
+    func bind(library: OpaquePointer, client: OpaquePointer) {
+        lock.withLock {
+            precondition(target == nil)
+            target = (library, client)
+        }
+    }
+
+    @discardableResult
+    func cancel(sessionEpoch: UInt64, transferID: Int32) -> Int32? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let target else { return nil }
+        return rdn_shim_client_file_transfer_cancel(
+            target.library,
+            target.client,
+            sessionEpoch,
+            transferID
+        )
+    }
+
+    func unbind() {
+        lock.withLock { target = nil }
+    }
+}
+
 private final class CallbackBox: @unchecked Sendable {
     let queue: DispatchQueue
     let onState: @Sendable (CoreStateEvent) -> Void
@@ -545,6 +574,8 @@ private final class CallbackBox: @unchecked Sendable {
     let onFileTransferList: @Sendable (CoreFileTransferListEvent) -> Void
     let onFileTransferManifest: @Sendable (CoreFileTransferManifestEvent) -> Void
     let onFileTransferReceiveBlock: @Sendable (CoreFileTransferReceiveBlock) -> Void
+    private let fileTransferCancelRelay: FileTransferCancelRelay
+    private let fileTransferReceiveAdapter: ViewerFileTransferReceiveAdapter
     private let clipboardLifecycleLock = NSLock()
     private var clipboardDeliveryEnabled = true
     private let fileTransferLifecycleLock = NSLock()
@@ -561,7 +592,9 @@ private final class CallbackBox: @unchecked Sendable {
         onFileTransferEvent: @escaping @Sendable (CoreFileTransferEvent) -> Void,
         onFileTransferList: @escaping @Sendable (CoreFileTransferListEvent) -> Void,
         onFileTransferManifest: @escaping @Sendable (CoreFileTransferManifestEvent) -> Void,
-        onFileTransferReceiveBlock: @escaping @Sendable (CoreFileTransferReceiveBlock) -> Void
+        onFileTransferReceiveBlock: @escaping @Sendable (CoreFileTransferReceiveBlock) -> Void,
+        fileTransferCancelRelay: FileTransferCancelRelay,
+        fileTransferReceiveAdapter: ViewerFileTransferReceiveAdapter
     ) {
         self.queue = queue
         self.onState = onState
@@ -574,6 +607,8 @@ private final class CallbackBox: @unchecked Sendable {
         self.onFileTransferList = onFileTransferList
         self.onFileTransferManifest = onFileTransferManifest
         self.onFileTransferReceiveBlock = onFileTransferReceiveBlock
+        self.fileTransferCancelRelay = fileTransferCancelRelay
+        self.fileTransferReceiveAdapter = fileTransferReceiveAdapter
     }
 
     func deliverClipboardText(_ text: String) {
@@ -608,7 +643,17 @@ private final class CallbackBox: @unchecked Sendable {
             guard fileTransferLifecycleLock.withLock({ fileTransferDeliveryEnabled }) else {
                 return
             }
-            onFileTransferEvent(event)
+            switch fileTransferReceiveAdapter.observe(event) {
+            case .unhandled, .forward:
+                onFileTransferEvent(event)
+            case .suppress:
+                return
+            case .cancelRequired:
+                _ = fileTransferCancelRelay.cancel(
+                    sessionEpoch: event.sessionEpoch,
+                    transferID: event.transferID
+                )
+            }
         }
     }
 
@@ -635,14 +680,43 @@ private final class CallbackBox: @unchecked Sendable {
             guard fileTransferLifecycleLock.withLock({ fileTransferDeliveryEnabled }) else {
                 return
             }
-            onFileTransferReceiveBlock(block)
+            switch fileTransferReceiveAdapter.receive(block) {
+            case .unhandled, .accepted:
+                onFileTransferReceiveBlock(block)
+            case .cancelRequired:
+                _ = fileTransferCancelRelay.cancel(
+                    sessionEpoch: block.sessionEpoch,
+                    transferID: block.transferID
+                )
+            }
         }
+    }
+
+    func beginFileTransferReceive(
+        _ request: ViewerFileTransferDownloadRequest,
+        destinationOwner: ViewerFileTransferDestinationOwner,
+        onEvent: @escaping @Sendable (ViewerFileTransferReceiveEvent) -> Void
+    ) -> Bool {
+        fileTransferReceiveAdapter.begin(
+            request,
+            destinationOwner: destinationOwner,
+            onEvent: onEvent
+        )
+    }
+
+    func rollbackFileTransferReceive(sessionEpoch: UInt64, transferID: Int32) {
+        fileTransferReceiveAdapter.rollback(
+            sessionEpoch: sessionEpoch,
+            transferID: transferID
+        )
     }
 
     func stopFileTransferDelivery() {
         fileTransferLifecycleLock.withLock {
             fileTransferDeliveryEnabled = false
         }
+        fileTransferReceiveAdapter.teardownAll()
+        fileTransferCancelRelay.unbind()
     }
 }
 
@@ -1151,6 +1225,8 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             throw CoreBridgeError.invalidUpstreamCommit(commit)
         }
 
+        let fileTransferCancelRelay = FileTransferCancelRelay()
+        let fileTransferReceiveAdapter = ViewerFileTransferReceiveAdapter()
         let callbackBox = CallbackBox(
             queue: callbackQueue,
             onState: onState,
@@ -1162,7 +1238,9 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             onFileTransferEvent: onFileTransferEvent,
             onFileTransferList: onFileTransferList,
             onFileTransferManifest: onFileTransferManifest,
-            onFileTransferReceiveBlock: onFileTransferReceiveBlock
+            onFileTransferReceiveBlock: onFileTransferReceiveBlock,
+            fileTransferCancelRelay: fileTransferCancelRelay,
+            fileTransferReceiveAdapter: fileTransferReceiveAdapter
         )
         var callbacks = RDNCallbacks(
             abi_version: RDN_ABI_VERSION,
@@ -1182,6 +1260,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             rdn_shim_close(library)
             throw CoreBridgeError.createClient
         }
+        fileTransferCancelRelay.bind(library: library, client: client)
         self.library = library
         self.client = client
         self.callbackBox = callbackBox
@@ -1415,16 +1494,25 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         )
     }
 
-    /// Registers a bounded queued download lifecycle only. The Rust ABI does
-    /// not receive or borrow the destination lease and does not start file I/O.
+    /// Registers the path-free Rust download and its exact Swift destination
+    /// route as one lifecycle. A rejected Core start rolls the route back.
     @discardableResult
     package func startFileTransferDownload(
         _ request: ViewerFileTransferDownloadRequest,
-        manifestRequestID: Int32
+        manifestRequestID: Int32,
+        destinationOwner: ViewerFileTransferDestinationOwner,
+        onReceiveEvent: @escaping @Sendable (ViewerFileTransferReceiveEvent) -> Void = { _ in }
     ) -> Int32 {
         guard let start = CoreFileTransferDownloadStart(
             request: request,
             manifestRequestID: manifestRequestID
+        ) else {
+            return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
+        }
+        guard callbackBox.beginFileTransferReceive(
+            request,
+            destinationOwner: destinationOwner,
+            onEvent: onReceiveEvent
         ) else {
             return Int32(RDN_CLIENT_ERR_INVALID_PAYLOAD)
         }
@@ -1436,7 +1524,14 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             total_files: start.totalFiles,
             total_bytes: start.totalBytes
         )
-        return rdn_shim_client_file_transfer_download_start(library, client, &raw)
+        let result = rdn_shim_client_file_transfer_download_start(library, client, &raw)
+        if result != 0 {
+            callbackBox.rollbackFileTransferReceive(
+                sessionEpoch: request.sessionEpoch,
+                transferID: request.transferID
+            )
+        }
+        return result
     }
 }
 

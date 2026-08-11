@@ -242,6 +242,91 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
         return handle
     }
 
+    /// Creates one manifest-declared empty directory relative to the pinned
+    /// destination. Existing final names are never reused or replaced.
+    package func createEmptyDirectory(
+        for request: ViewerFileTransferDownloadRequest,
+        directoryNumber: Int
+    ) -> ViewerFileTransferReceiveCommitResult {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard
+            request.sessionEpoch == sessionEpoch,
+            request.destination.sessionEpoch == sessionEpoch,
+            request.destination.token == leaseToken,
+            request.transferID > 0,
+            request.manifest.emptyDirectories.indices.contains(directoryNumber),
+            let directoryDescriptor,
+            Self.matchesPinnedDirectory(directoryDescriptor, identity: identity),
+            let parent = Self.openOrCreatePrivateParent(
+                rootDescriptor: directoryDescriptor,
+                relativePath: request.manifest.emptyDirectories[directoryNumber]
+            )
+        else { return .rejected }
+
+        let parentDescriptor = parent.descriptor
+        let finalName = parent.finalName
+        guard Self.destinationNameIsAbsent(
+            finalName,
+            parentDescriptor: parentDescriptor
+        ) else {
+            Darwin.close(parentDescriptor)
+            return .rejected
+        }
+        let created = finalName.withCString {
+            Darwin.mkdirat(parentDescriptor, $0, mode_t(0o700)) == 0
+        }
+        guard created else {
+            Darwin.close(parentDescriptor)
+            return .rejected
+        }
+
+        let childDescriptor = finalName.withCString {
+            Darwin.openat(
+                parentDescriptor,
+                $0,
+                O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
+            )
+        }
+        guard childDescriptor >= 0 else {
+            Darwin.close(parentDescriptor)
+            return .rejected
+        }
+        var status = stat()
+        guard
+            Darwin.fchmod(childDescriptor, mode_t(0o700)) == 0,
+            Darwin.fstat(childDescriptor, &status) == 0
+        else {
+            Darwin.close(childDescriptor)
+            Darwin.close(parentDescriptor)
+            return .rejected
+        }
+        let createdIdentity = DirectoryIdentity(device: status.st_dev, inode: status.st_ino)
+        guard
+            Self.isPrivateOwnedDirectory(status),
+            Self.createdDirectoryMatches(
+                finalName,
+                parentDescriptor: parentDescriptor,
+                childDescriptor: childDescriptor,
+                identity: createdIdentity
+            ),
+            Darwin.fsync(childDescriptor) == 0
+        else {
+            Self.discardCreatedDirectory(
+                parentDescriptor: parentDescriptor,
+                childDescriptor: childDescriptor,
+                name: finalName,
+                identity: createdIdentity
+            )
+            return .rejected
+        }
+
+        let parentSynced = Darwin.fsync(parentDescriptor) == 0
+        Darwin.close(childDescriptor)
+        Darwin.close(parentDescriptor)
+        return parentSynced ? .committed : .durabilityUnconfirmed
+    }
+
     /// Writes one bounded block at the reservation's exact current offset.
     /// Invalid bounds or filesystem drift terminate the reservation. Reaching
     /// the declared size does not commit or publish the final destination.
@@ -472,6 +557,48 @@ package final class ViewerFileTransferDestinationOwner: @unchecked Sendable {
         }
         Darwin.close(fileDescriptor)
         Darwin.close(parentDescriptor)
+    }
+
+    private static func discardCreatedDirectory(
+        parentDescriptor: Int32,
+        childDescriptor: Int32,
+        name: String,
+        identity: DirectoryIdentity
+    ) {
+        if createdDirectoryMatches(
+            name,
+            parentDescriptor: parentDescriptor,
+            childDescriptor: childDescriptor,
+            identity: identity
+        ) {
+            name.withCString {
+                _ = Darwin.unlinkat(parentDescriptor, $0, AT_REMOVEDIR)
+            }
+        }
+        Darwin.close(childDescriptor)
+        Darwin.close(parentDescriptor)
+    }
+
+    private static func createdDirectoryMatches(
+        _ name: String,
+        parentDescriptor: Int32,
+        childDescriptor: Int32,
+        identity: DirectoryIdentity
+    ) -> Bool {
+        var namedStatus = stat()
+        var descriptorStatus = stat()
+        let nameMatches = name.withCString {
+            Darwin.fstatat(parentDescriptor, $0, &namedStatus, AT_SYMLINK_NOFOLLOW) == 0
+        }
+        return nameMatches
+            && Darwin.fstat(childDescriptor, &descriptorStatus) == 0
+            && DirectoryIdentity(device: namedStatus.st_dev, inode: namedStatus.st_ino) == identity
+            && DirectoryIdentity(
+                device: descriptorStatus.st_dev,
+                inode: descriptorStatus.st_ino
+            ) == identity
+            && isPrivateOwnedDirectory(namedStatus)
+            && isPrivateOwnedDirectory(descriptorStatus)
     }
 
     @discardableResult

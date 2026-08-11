@@ -301,8 +301,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   mutex 临界区回滚 registration，duplicate/rejected start 不会重复发命令。digest confirmation 现由 Rust 内部保留的
   per-file manifest size/mtime authority 驱动，只按 file number 严格顺序接受 exact new-file digest，并通过既有 peer
   回复 `OffsetBlk(0)`；matching malformed/duplicate/resume/identical/nonzero-offset digest 被消费并 fail closed，foreign
-  job 保留 upstream fallback，且 receive block 只有在对应 file digest 已确认后才可进入 semantic callback。callback 到
-  descriptor owner 的 reservation/write/commit adapter 与产品 UI 仍未连接，因此 payload 仍在 callback 边界丢弃，
+  job 保留 upstream fallback，且 receive block 只有在对应 file digest 已确认后才可进入 semantic callback。Swift
+  receive/write adapter 现把 package-scoped download start 与 exact destination owner 在 wire request 前原子绑定，Core
+  start 拒绝会回滚 route；callback queue 依 manifest 顺序执行 descriptor-relative reserve、bounded `pwrite`、mtime/file
+  fsync、no-replace rename 与 parent fsync，零字节文件及 empty directories 也必须在 remote completed 向上发布前完成。
+  stale/order/size drift、premature completed 与 local I/O 均 fail closed，durability-unconfirmed 保持独立 terminal，block
+  失败还经 exact relay 请求 Core cancel。session orchestrator、picker 与产品 UI 仍未连接，
   多文件 upload resume、existing-target replace 也仍未实现。
   App/Agent 仍不传 file opt-in，产品能力必须继续保持关闭。
 - 输入法只把 AppKit 已提交的 UTF-8 文本经窄 ABI 交给 Rust Core；组合态和候选内容不得写入日志。

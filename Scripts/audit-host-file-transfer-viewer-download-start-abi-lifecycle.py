@@ -159,7 +159,7 @@ def main() -> int:
             marker not in function_body(
                 swift,
                 "package struct CoreFileTransferDownloadStart",
-                "private func optionalClipboardUTF8Data",
+                "public struct CoreConnectionConfig",
             )
             for marker in ("destination", ".token", ".descriptor", ".path")
         ),
