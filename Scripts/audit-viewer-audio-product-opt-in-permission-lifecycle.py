@@ -102,8 +102,8 @@ def main() -> int:
     app = sources["app"]
     viewer_ui = sources["viewer_ui"]
     evidence = {
-        "viewerABIIsV18AndHostRemainsV18": (
-            viewer_abi == bridge_abi == 18 and host_abi == 18
+        "viewerABIIsV18AndHostCarriesV19Extension": (
+            viewer_abi == bridge_abi == 18 and host_abi == 19
         ),
         "typedPermissionEventMatchesAcrossCABIAndRustAndSwift": all(
             marker in header + bridge + swift
@@ -237,7 +237,7 @@ def main() -> int:
     }
     source_lines = {
         "viewerABI": line_number(header, "RDN_ABI_VERSION 18u"),
-        "hostABI": line_number(header, "RDN_HOST_ABI_VERSION 18u"),
+        "hostABI": line_number(header, "RDN_HOST_ABI_VERSION 19u"),
         "cPermissionEvent": line_number(header, "RDNRemotePermissionEvent"),
         "rustPermissionEmit": line_number(bridge, "emit_remote_audio_permission"),
         "rustRemoteGate": line_number(client, "native_viewer_audio_is_active("),
@@ -289,7 +289,9 @@ def main() -> int:
             "rustDeskWireChanged": False,
             "hermesChanged": False,
         },
-        "nextImplementationBoundary": "virtual-audio-input-selection",
+        "nextImplementationBoundary": (
+            "host-audio-bootstrap-virtual-input-selection-contract"
+        ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1

@@ -543,7 +543,7 @@ const char *rdn_core_upstream_commit(void);
 /* channel; media flows through the separate Host Media ABI later (H1b).    */
 /* ------------------------------------------------------------------------ */
 
-#define RDN_HOST_ABI_VERSION 18u
+#define RDN_HOST_ABI_VERSION 19u
 
 /* Stable error codes; 0 is success, negatives are contract failures. */
 #define RDN_HOST_OK 0
@@ -635,6 +635,10 @@ typedef struct RdnHostCreateOptions {
     /* Native microphone audio is an independent, default-off capability.
      * System-audio loopback remains an explicit virtual-input product path. */
     bool enable_audio;
+    /* Optional exact UTF-8 CoreAudio/cpal input-device name, copied at create.
+     * Null/empty selects the system-default microphone. A non-empty value is
+     * valid only with enable_audio and must never fall back if unavailable. */
+    const char *audio_input_device;
     /* Dedicated file-service permission. This capability is independent from
      * clipboard payloads and defaults off in Swift. */
     bool enable_file_transfer;

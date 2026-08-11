@@ -215,6 +215,16 @@ def main() -> int:
                 "isAuthorizedWithoutPrompt()",
             )
         ),
+        "explicitVirtualInputABIAndFailClosedFallbackAreImplemented": all(
+            marker in header + host_bridge + audio_service + sources["host_swift"]
+            for marker in (
+                "const char *audio_input_device;",
+                "valid_native_host_audio_input_device(",
+                '("audio-input", audio_input_device)',
+                "native_explicit_audio_input_is_available",
+                "public let audioInputDeviceName: String?",
+            )
+        ),
     }
 
     gaps = {
@@ -257,6 +267,12 @@ def main() -> int:
         "infoPlist": line_number(
             sources["info"], "NSMicrophoneUsageDescription"
         ),
+        "virtualInputABI": line_number(
+            header, "const char *audio_input_device;"
+        ),
+        "virtualInputFallbackGate": line_number(
+            audio_service, "native_explicit_audio_input_is_available"
+        ),
     }
 
     missing_evidence = [name for name, present in evidence.items() if not present]
@@ -266,10 +282,10 @@ def main() -> int:
         and not missing_gaps
         and all(source_lines.values())
         and viewer_abi == 18
-        and host_abi == 18
+        and host_abi == 19
     )
     target_contract = {
-        "hostABI": 18,
+        "hostABI": 19,
         "viewerABI": 18,
         "hostPolicy": "explicit immutable enableAudio boolean, default false",
         "viewerPolicy": "explicit immutable receiveAudio boolean, default false",
@@ -281,7 +297,7 @@ def main() -> int:
         "permissionOwner": "FarPane App microphone TCC policy projected to HostAgent",
         "sessionCapability": "hearSystemAudio compatibility capability",
         "sourceSelection": (
-            "system-default microphone first; bounded explicit virtual input selection later"
+            "system-default microphone first; ABI-capable explicit input with product selector later"
         ),
         "swiftAudioPayloadBoundary": "none; encoded and decoded audio remains in Rust",
         "lifecycle": (
@@ -316,7 +332,9 @@ def main() -> int:
             "rootDependencyChangeRequired": False,
             "installedAudioAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "virtual-audio-input-selection",
+        "nextImplementationBoundary": (
+            "host-audio-bootstrap-virtual-input-selection-contract"
+        ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if healthy else 1

@@ -17,7 +17,10 @@ struct HostCreateOptionsRaw {
     var enableClipboardRichTextWrite: Bool
     var enableClipboardImageRead: Bool
     var enableClipboardImageWrite: Bool
+    var enableAudio: Bool
+    var audioInputDevice: UnsafePointer<CChar>?
     var enableFileTransfer: Bool
+    var fileTransferReceiveRoot: UnsafePointer<CChar>?
 }
 
 struct HostCallbacksRaw {
@@ -83,7 +86,7 @@ enum HostEventRecorder {
 /// coexist with the viewer ABI v14, export its full symbol surface, and fail
 /// closed on validation before any config-root switch has happened.
 final class HostBridgeContractTests: XCTestCase {
-    private static let hostABIVersion: UInt32 = 18
+    private static let hostABIVersion: UInt32 = 19
     private static let hostMediaABIVersion: UInt32 = 1
     private static let expectedUpstreamCommit = "6c578292e8ebbbec708b76986ba8c4bc7c509747"
 
@@ -115,6 +118,21 @@ final class HostBridgeContractTests: XCTestCase {
             throw SymbolMissing()
         }
         return raw
+    }
+
+    func testHostCreateOptionsRawLayoutMatchesImportedCABI() {
+        XCTAssertEqual(
+            MemoryLayout<HostCreateOptionsRaw>.size,
+            MemoryLayout<RdnHostCreateOptions>.size
+        )
+        XCTAssertEqual(
+            MemoryLayout<HostCreateOptionsRaw>.stride,
+            MemoryLayout<RdnHostCreateOptions>.stride
+        )
+        XCTAssertEqual(
+            MemoryLayout<HostCreateOptionsRaw>.alignment,
+            MemoryLayout<RdnHostCreateOptions>.alignment
+        )
     }
 
     func testHostABISurfaceIsExportedAlongsideViewerABI() throws {
@@ -239,11 +257,13 @@ final class HostBridgeContractTests: XCTestCase {
         let syntheticPublicKey = Data(repeating: 0xA5, count: 32).base64EncodedString()
         let serverPublicKey = strdup(liveKey ?? syntheticPublicKey)!
         let persistenceFailureServer = strdup("127.0.0.1:21118")!
+        let explicitAudioInput = strdup("BlackHole 2ch")!
         defer {
             free(rendezvousServer)
             free(relayServer)
             free(serverPublicKey)
             free(persistenceFailureServer)
+            free(explicitAudioInput)
         }
         let root = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(
@@ -365,7 +385,10 @@ final class HostBridgeContractTests: XCTestCase {
             enableClipboardRichTextWrite: false,
             enableClipboardImageRead: false,
             enableClipboardImageWrite: false,
-            enableFileTransfer: false)
+            enableAudio: false,
+            audioInputDevice: nil,
+            enableFileTransfer: false,
+            fileTransferReceiveRoot: nil)
         var callbacks = HostCallbacksRaw(
             abiVersion: Self.hostABIVersion,
             onEvent: nil,
@@ -383,6 +406,13 @@ final class HostBridgeContractTests: XCTestCase {
         options.serverPublicKey = nil
         XCTAssertEqual(create(&earlyHost), -1)
         options.serverPublicKey = validPublicKey
+        options.audioInputDevice = UnsafePointer(explicitAudioInput)
+        XCTAssertEqual(
+            create(&earlyHost),
+            -5,
+            "an explicit input must not be accepted while audio is disabled"
+        )
+        options.audioInputDevice = nil
 
         HostEventRecorder.events.removeAll()
         callbacks = HostCallbacksRaw(

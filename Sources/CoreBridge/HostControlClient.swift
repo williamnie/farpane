@@ -353,6 +353,7 @@ public struct HostServerConfiguration: Sendable {
     public let clipboardImageReadEnabled: Bool
     public let clipboardImageWriteEnabled: Bool
     public let audioEnabled: Bool
+    public let audioInputDeviceName: String?
     public let fileTransferEnabled: Bool
     public let fileTransferReceiveRoot: String?
 
@@ -367,6 +368,7 @@ public struct HostServerConfiguration: Sendable {
         clipboardImageReadEnabled: Bool = false,
         clipboardImageWriteEnabled: Bool = false,
         audioEnabled: Bool = false,
+        audioInputDeviceName: String? = nil,
         fileTransferEnabled: Bool = false,
         fileTransferReceiveRoot: String? = nil
     ) {
@@ -380,6 +382,7 @@ public struct HostServerConfiguration: Sendable {
         self.clipboardImageReadEnabled = clipboardImageReadEnabled
         self.clipboardImageWriteEnabled = clipboardImageWriteEnabled
         self.audioEnabled = audioEnabled
+        self.audioInputDeviceName = audioInputDeviceName
         self.fileTransferEnabled = fileTransferEnabled
         self.fileTransferReceiveRoot = fileTransferReceiveRoot
     }
@@ -1806,29 +1809,33 @@ public final class HostControlClient: @unchecked Sendable {
         let created = configuration.rendezvousServer.withCString { rendezvousServer in
             configuration.relayServer.withCString { relayServer in
                 configuration.serverPublicKey.withCString { serverPublicKey in
-                    (configuration.fileTransferReceiveRoot ?? "").withCString {
-                        fileTransferReceiveRoot in
-                        var options = RdnHostCreateOptions(
-                            abi_version: Self.hostABIVersion,
-                            rendezvous_server: rendezvousServer,
-                            relay_server: relayServer,
-                            server_public_key: serverPublicKey,
-                            enable_clipboard_read: configuration.clipboardReadEnabled,
-                            enable_clipboard_write: configuration.clipboardWriteEnabled,
-                            enable_clipboard_rich_text_read: configuration.clipboardRichTextReadEnabled,
-                            enable_clipboard_rich_text_write: configuration.clipboardRichTextWriteEnabled,
-                            enable_clipboard_image_read: configuration.clipboardImageReadEnabled,
-                            enable_clipboard_image_write: configuration.clipboardImageWriteEnabled,
-                            enable_audio: configuration.audioEnabled,
-                            enable_file_transfer: configuration.fileTransferEnabled,
-                            file_transfer_receive_root: fileTransferReceiveRoot
-                        )
-                        return rdn_shim_host_create(
-                            library,
-                            &options,
-                            &callbacks,
-                            &handle
-                        )
+                    (configuration.audioInputDeviceName ?? "").withCString {
+                        audioInputDevice in
+                        (configuration.fileTransferReceiveRoot ?? "").withCString {
+                            fileTransferReceiveRoot in
+                            var options = RdnHostCreateOptions(
+                                abi_version: Self.hostABIVersion,
+                                rendezvous_server: rendezvousServer,
+                                relay_server: relayServer,
+                                server_public_key: serverPublicKey,
+                                enable_clipboard_read: configuration.clipboardReadEnabled,
+                                enable_clipboard_write: configuration.clipboardWriteEnabled,
+                                enable_clipboard_rich_text_read: configuration.clipboardRichTextReadEnabled,
+                                enable_clipboard_rich_text_write: configuration.clipboardRichTextWriteEnabled,
+                                enable_clipboard_image_read: configuration.clipboardImageReadEnabled,
+                                enable_clipboard_image_write: configuration.clipboardImageWriteEnabled,
+                                enable_audio: configuration.audioEnabled,
+                                audio_input_device: audioInputDevice,
+                                enable_file_transfer: configuration.fileTransferEnabled,
+                                file_transfer_receive_root: fileTransferReceiveRoot
+                            )
+                            return rdn_shim_host_create(
+                                library,
+                                &options,
+                                &callbacks,
+                                &handle
+                            )
+                        }
                     }
                 }
             }

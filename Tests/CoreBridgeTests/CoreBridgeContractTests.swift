@@ -850,6 +850,7 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertFalse(disabled.clipboardImageReadEnabled)
         XCTAssertFalse(disabled.clipboardImageWriteEnabled)
         XCTAssertFalse(disabled.audioEnabled)
+        XCTAssertNil(disabled.audioInputDeviceName)
         XCTAssertFalse(disabled.fileTransferEnabled)
         XCTAssertNil(disabled.fileTransferReceiveRoot)
 
@@ -947,9 +948,11 @@ final class CoreBridgeContractTests: XCTestCase {
         let audioOnly = HostServerConfiguration(
             rendezvousServer: "192.0.2.1",
             serverPublicKey: "public-key",
-            audioEnabled: true
+            audioEnabled: true,
+            audioInputDeviceName: "BlackHole 2ch"
         )
         XCTAssertTrue(audioOnly.audioEnabled)
+        XCTAssertEqual(audioOnly.audioInputDeviceName, "BlackHole 2ch")
         XCTAssertFalse(audioOnly.clipboardReadEnabled)
         XCTAssertFalse(audioOnly.clipboardWriteEnabled)
         XCTAssertFalse(audioOnly.fileTransferEnabled)

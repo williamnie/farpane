@@ -108,8 +108,8 @@ def main() -> int:
                 "viewer-audio-product-opt-in-permission-lifecycle",
             )
         ),
-        "viewerABIStillCarriesV17PolicyAndHostRemainsV18": (
-            viewer_abi == bridge_abi == 18 and host_abi == 18
+        "currentABIsStillCarryViewerV17AndHostV18Policies": (
+            viewer_abi == bridge_abi == 18 and host_abi == 19
         ),
         "cSwiftAndRustCarryOneImmutableReceivePolicy": all(
             marker in header + swift + bridge
@@ -194,7 +194,7 @@ def main() -> int:
             sources["design"], "H6.1d Viewer audio explicit-policy ABI contract"
         ),
         "viewerABICurrent": line_number(header, "RDN_ABI_VERSION 18u"),
-        "hostABIv18": line_number(header, "RDN_HOST_ABI_VERSION 18u"),
+        "hostABIv19": line_number(header, "RDN_HOST_ABI_VERSION 19u"),
         "cPolicy": line_number(header, "bool receive_audio;"),
         "swiftDefault": line_number(swift, "receiveAudio: Bool = false"),
         "swiftProjection": line_number(swift, "receive_audio: config.receiveAudio"),

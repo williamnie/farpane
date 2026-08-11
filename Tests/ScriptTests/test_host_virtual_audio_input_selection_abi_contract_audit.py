@@ -4,13 +4,13 @@ import subprocess
 import unittest
 
 
-class ViewerAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
-    def test_viewer_audio_is_abi_capable_and_product_default_off(self) -> None:
+class HostVirtualAudioInputSelectionABIContractAuditTests(unittest.TestCase):
+    def test_explicit_input_is_immutable_bounded_and_fails_closed(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
                 "python3",
-                "Scripts/audit-viewer-audio-explicit-policy-abi-contract.py",
+                "Scripts/audit-host-virtual-audio-input-selection-abi-contract.py",
             ],
             cwd=repository,
             check=False,
@@ -26,31 +26,26 @@ class ViewerAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["schema"],
-            "farpane-viewer-audio-explicit-policy-abi-contract-audit",
+            "farpane-host-virtual-audio-input-selection-abi-contract-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
         self.assertEqual(
             document["status"],
-            "viewer-audio-abi-capable-product-default-off",
+            "host-virtual-audio-input-abi-capable-product-default-microphone",
         )
         self.assertEqual(document["currentABI"], {"host": 19, "viewer": 18})
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
-        self.assertTrue(all(document["sourceLines"].values()))
         claims = document["claims"]
-        self.assertTrue(claims["viewerReceiveAudioABICapable"])
-        self.assertFalse(claims["viewerAudioEnabledByDefault"])
-        self.assertTrue(claims["viewerAudioProductEnabled"])
-        self.assertTrue(claims["dedicatedFileSessionRejectsAudio"])
-        self.assertTrue(claims["viewerRemoteAudioPermissionPresented"])
-        self.assertFalse(claims["virtualAudioInputSelectionImplemented"])
-        self.assertFalse(claims["installedAudioAcceptanceComplete"])
+        self.assertFalse(claims["virtualInputSelectedByDefault"])
+        self.assertFalse(claims["virtualInputProductSelectorImplemented"])
+        self.assertTrue(claims["missingExplicitInputFallsClosed"])
         self.assertFalse(claims["rustDeskWireChanged"])
         self.assertFalse(claims["hermesChanged"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "virtual-audio-input-selection",
+            "host-audio-bootstrap-virtual-input-selection-contract",
         )
 
 

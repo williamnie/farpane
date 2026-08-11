@@ -36,9 +36,9 @@ class HostMultiDisplaySelectionOwnershipAuditTests(unittest.TestCase):
         self.assertEqual(
             document["status"], "selector-implemented-development-audit-pending"
         )
-        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 18})
+        self.assertEqual(document["currentABI"], {"host": 19, "viewer": 18})
         self.assertEqual(document["targetContract"]["viewerABI"], 16)
-        self.assertEqual(document["targetContract"]["hostABI"], 18)
+        self.assertEqual(document["targetContract"]["hostABI"], 19)
         self.assertEqual(
             document["targetContract"]["catalogIdentity"],
             "connectionEpoch + catalogRevision + displayIndex",

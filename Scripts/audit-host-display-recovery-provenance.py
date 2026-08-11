@@ -250,7 +250,7 @@ def main() -> int:
             "recoveryEvidenceOwner.cancelAndWait()",
         ),
         "currentABIVersionsAreSynchronized": (
-            rust_host_abi == header_host_abi == 18
+            rust_host_abi == header_host_abi == 19
             and rust_media_abi == header_media_abi == 1
         ),
     }
@@ -290,7 +290,7 @@ def main() -> int:
 
     target_contract = {
         "versioning": {
-            "hostControlABI": 18,
+            "hostControlABI": 19,
             "hostEventEnvelopeSchema": 1,
             "hostMediaABI": 1,
             "rule": (

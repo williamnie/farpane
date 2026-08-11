@@ -1,0 +1,58 @@
+diff --git a/src/server/audio_service.rs b/src/server/audio_service.rs
+index d1bb2d8..0d32b75 100644
+--- a/src/server/audio_service.rs
++++ b/src/server/audio_service.rs
+@@ -311,0 +312,2 @@ mod cpal_impl {
++        #[cfg(feature = "rdn-native-host")]
++        let mut matched_device_count = 0_usize;
+@@ -320,2 +322,7 @@ mod cpal_impl {
+-                    device = Some(d);
+-                    break;
++                    #[cfg(feature = "rdn-native-host")]
++                    {
++                        matched_device_count = matched_device_count.saturating_add(1);
++                    }
++                    if device.is_none() {
++                        device = Some(d);
++                    }
+@@ -331,2 +338,7 @@ mod cpal_impl {
+-                    device = Some(d);
+-                    break;
++                    #[cfg(feature = "rdn-native-host")]
++                    {
++                        matched_device_count = matched_device_count.saturating_add(1);
++                    }
++                    if device.is_none() {
++                        device = Some(d);
++                    }
+@@ -335,0 +348,4 @@ mod cpal_impl {
++        #[cfg(feature = "rdn-native-host")]
++        if !native_explicit_audio_input_is_available(audio_input, matched_device_count) {
++            return Err(anyhow!("Selected audio input is unavailable"));
++        }
+@@ -448,0 +465,25 @@ mod cpal_impl {
++#[cfg(feature = "rdn-native-host")]
++fn native_explicit_audio_input_is_available(requested: &str, match_count: usize) -> bool {
++    requested.is_empty() || match_count == 1
++}
++
++#[cfg(all(test, feature = "rdn-native-host"))]
++mod native_host_tests {
++    use super::native_explicit_audio_input_is_available;
++
++    #[test]
++    fn explicit_audio_input_never_falls_back_to_default() {
++        assert!(native_explicit_audio_input_is_available("", 0));
++        assert!(native_explicit_audio_input_is_available("", 2));
++        assert!(native_explicit_audio_input_is_available("BlackHole 2ch", 1));
++        assert!(!native_explicit_audio_input_is_available(
++            "BlackHole 2ch",
++            0,
++        ));
++        assert!(!native_explicit_audio_input_is_available(
++            "BlackHole 2ch",
++            2,
++        ));
++    }
++}
++
