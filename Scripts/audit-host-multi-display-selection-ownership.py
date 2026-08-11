@@ -73,7 +73,14 @@ def main() -> int:
         "server_connection": repository / "Vendor/rustdesk/src/server/connection.rs",
         "viewer_ui": repository / "Sources/RustDeskNative/ViewerUI.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
+        "viewer_input_view": repository / "Sources/RustDeskNative/ViewerMetalView.swift",
+        "exclusive_keyboard": repository
+        / "Sources/RustDeskNative/ExclusiveKeyboardController.swift",
         "swift_bridge": repository / "Sources/CoreBridge/CoreBridge.swift",
+        "selection_input_owner": repository
+        / "Sources/CoreBridge/ViewerDisplaySelectionInputOwner.swift",
+        "selection_input_tests": repository
+        / "Tests/CoreBridgeTests/ViewerDisplaySelectionInputOwnerTests.swift",
         "host_switch_patch": repository
         / "CoreBridge/RustDeskPatch/h6-host-display-switch-validation.patch",
         "bootstrap": repository / "Scripts/bootstrap-rustdesk-core.sh",
@@ -328,17 +335,65 @@ def main() -> int:
             and "pending_display_reconfigures" in sources["host_bridge"]
             and "该内部 generation 不复用 media `displayRevision`" in sources["design"]
         ),
+        "viewerSelectionQuiescesAllInputUntilExactSuccess": (
+            all(
+                marker in sources["selection_input_owner"]
+                for marker in (
+                    "package final class ViewerDisplaySelectionInputOwner",
+                    "private var pendingRequest: CoreDisplaySelectionRequest?",
+                    "private var inputQuiesced = false",
+                    "pendingSuccessMatchesCurrentCatalogLocked()",
+                    "case .failed:",
+                    "if !quiescedBeforeAttempt { quiesceInput() }",
+                    "if shouldResume { resumeInput() }",
+                )
+            )
+            and all(
+                marker in sources["app"]
+                for marker in (
+                    "ViewerDisplaySelectionInputOwner(",
+                    "onDisplayCatalog: {",
+                    "onDisplaySelection: {",
+                    "releaseAllInputForDisplaySelection()",
+                    "setDisplaySelectionInputQuiesced(true)",
+                    "resumeInputAfterDisplaySelection()",
+                    "setDisplaySelectionInputQuiesced(false)",
+                )
+            )
+            and all(
+                marker in sources["viewer_input_view"]
+                for marker in (
+                    "private var displaySelectionInputQuiesced = false",
+                    "func releaseAllInputForDisplaySelection()",
+                    "pendingMove = nil",
+                    "func resumeInputAfterDisplaySelection()",
+                )
+            )
+            and all(
+                marker in sources["exclusive_keyboard"]
+                for marker in (
+                    "private var displaySelectionInputQuiesced = false",
+                    "!displaySelectionInputQuiesced",
+                    "func setDisplaySelectionInputQuiesced(_ quiesced: Bool)",
+                    "preserveIntent: true",
+                )
+            )
+            and all(
+                marker in sources["selection_input_tests"]
+                for marker in (
+                    "testOnlyExactSuccessfulTerminalUnderCurrentCatalogResumesInput",
+                    "testFailureKeepsInputQuiescedUntilRetryGetsExactSuccess",
+                    "testProductCompositionRoutesCallbacksAndAllViewerInputThroughOneGate",
+                )
+            )
+        ),
     }
 
     gaps = {
         "viewerProductDisplaySelectorMissing": (
             "onSelectDisplay" not in sources["viewer_ui"]
             and "displaySelector" not in sources["viewer_ui"]
-            and "selectDisplay(" not in sources["app"]
-        ),
-        "viewerDoesNotQuiesceInputDuringSelection": (
-            "displaySelectionPending" not in sources["app"]
-            and "releaseAllInputForDisplaySelection" not in sources["app"]
+            and "onSelectDisplay" not in sources["app"]
         ),
     }
     missing_evidence = [name for name, present in evidence.items() if not present]
@@ -389,6 +444,14 @@ def main() -> int:
         "swiftSelectionProjection": line_number(
             sources["swift_bridge"],
             "public struct CoreDisplaySelectionRequest",
+        ),
+        "viewerSelectionInputOwner": line_number(
+            sources["selection_input_owner"],
+            "package final class ViewerDisplaySelectionInputOwner",
+        ),
+        "viewerSelectionProductQuiescence": line_number(
+            sources["app"],
+            "releaseAllInputForDisplaySelection()",
         ),
     }
 
@@ -454,7 +517,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "host-validation-implemented-product-pending"
+            "input-quiescence-implemented-selector-pending"
             if not missing_evidence and not missing_gaps
             else "audit-drift"
         ),
@@ -480,7 +543,7 @@ def main() -> int:
             "hermesChangeRequired": False,
             "installedTwoMacAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "viewer-display-selection-input-quiescence-lifecycle",
+        "nextImplementationBoundary": "viewer-display-selector-product-lifecycle",
     }
     print(json.dumps(document, sort_keys=True))
     return 0 if (

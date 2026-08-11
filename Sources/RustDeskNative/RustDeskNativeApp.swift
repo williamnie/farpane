@@ -233,6 +233,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private var viewerRecoveryCommittedEpoch: UInt64 = 0
     private var viewerRecoverySessionEpoch: UInt64?
     private var viewerCoreGeneration: UInt64 = 0
+    private var viewerDisplaySelectionInputOwner:
+        ViewerDisplaySelectionInputOwner?
     private var hostClient: HostControlClient?
     private var hostRuntimeActive = false
     private var hostRuntimeQuiescenceConfirmed = true
@@ -632,6 +634,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         stopViewerAutomaticRecovery()
         stopViewerClipboard()
         stopViewerFileTransfer()
+        stopViewerDisplaySelectionInput()
         let viewerLifecycleStopped = stopViewerLifecycleEvidence()
         if viewerLifecycleStopped {
             reaffirmHostAgentApplicationConcurrencyEvidence()
@@ -4037,6 +4040,31 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         let clipboardSessionEpoch = viewerClipboardSessionEpoch
         let fallbackFPS = options.fps
         let keyboardController = self.keyboardController
+        let selectionWasQuiesced = viewerDisplaySelectionInputOwner?
+            .snapshot().inputQuiesced ?? false
+        viewerDisplaySelectionInputOwner?.stop()
+        let displaySelectionInputOwner = ViewerDisplaySelectionInputOwner(
+            initiallyQuiesced: selectionWasQuiesced,
+            sendSelection: { [weak self] request in
+                guard let self, self.viewerCoreGeneration == coreGeneration else {
+                    return -3
+                }
+                return self.coreClient?.selectDisplay(request) ?? -3
+            },
+            quiesceInput: { [weak viewer, weak keyboardController] in
+                MainActor.assumeIsolated {
+                    viewer?.releaseAllInputForDisplaySelection()
+                    keyboardController?.setDisplaySelectionInputQuiesced(true)
+                }
+            },
+            resumeInput: { [weak viewer, weak keyboardController] in
+                MainActor.assumeIsolated {
+                    viewer?.resumeInputAfterDisplaySelection()
+                    keyboardController?.setDisplaySelectionInputQuiesced(false)
+                }
+            }
+        )
+        viewerDisplaySelectionInputOwner = displaySelectionInputOwner
         let client = try RustDeskCoreClient(
             libraryURL: coreURL,
             onState: {
@@ -4078,6 +4106,24 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     targetBitrate: value.targetBitrate
                 )
             },
+            onDisplayCatalog: { [weak self] event in
+                DispatchQueue.main.async {
+                    self?.handleViewerDisplayCatalog(
+                        event,
+                        coreGeneration: coreGeneration,
+                        attemptID: attemptID
+                    )
+                }
+            },
+            onDisplaySelection: { [weak self] event in
+                DispatchQueue.main.async {
+                    self?.handleViewerDisplaySelection(
+                        event,
+                        coreGeneration: coreGeneration,
+                        attemptID: attemptID
+                    )
+                }
+            },
             onClipboardText: { [weak self] text in
                 DispatchQueue.main.async {
                     self?.handleViewerClipboardText(
@@ -4115,6 +4161,34 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         recovery.attach(client)
         previousClient?.disconnect()
         print("CORE_LOADED abi=\(RustDeskCoreClient.abiVersion) upstream=\(client.upstreamCommit) password_source=environment-or-interactive")
+    }
+
+    private func handleViewerDisplayCatalog(
+        _ event: CoreDisplayCatalogEvent,
+        coreGeneration: UInt64,
+        attemptID: UUID?
+    ) {
+        guard coreGeneration == viewerCoreGeneration else { return }
+        if let attemptID, activeAttemptID != attemptID { return }
+        _ = viewerDisplaySelectionInputOwner?.observeCatalog(event)
+    }
+
+    private func handleViewerDisplaySelection(
+        _ event: CoreDisplaySelectionEvent,
+        coreGeneration: UInt64,
+        attemptID: UUID?
+    ) {
+        guard coreGeneration == viewerCoreGeneration else { return }
+        if let attemptID, activeAttemptID != attemptID { return }
+        _ = viewerDisplaySelectionInputOwner?.observeSelection(event)
+    }
+
+    @discardableResult
+    private func selectViewerDisplay(
+        displayIndex: UInt32
+    ) -> ViewerDisplaySelectionInputResult {
+        viewerDisplaySelectionInputOwner?.select(displayIndex: displayIndex)
+            ?? .catalogUnavailable
     }
 
     private func handleViewerCoreState(
@@ -4514,6 +4588,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         stopViewerAutomaticRecovery()
         stopViewerClipboard()
         stopViewerFileTransfer()
+        stopViewerDisplaySelectionInput()
         _ = stopViewerLifecycleEvidence()
         guard let metrics else { return }
         player?.stop()
@@ -4540,6 +4615,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         viewerAutomaticRecoveryOwner?.cancelAndWait()
         viewerAutomaticRecoveryOwner = nil
         viewerRecoverySessionEpoch = nil
+    }
+
+    private func stopViewerDisplaySelectionInput() {
+        viewerDisplaySelectionInputOwner?.stop()
+        viewerDisplaySelectionInputOwner = nil
     }
 
     private func nextViewerClipboardSessionEpoch() -> UInt64? {

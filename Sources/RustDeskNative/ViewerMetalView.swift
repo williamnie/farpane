@@ -24,6 +24,7 @@ final class ViewerMetalView: MTKView {
     private var markedTextStorage = ""
     private var markedSelection = NSRange(location: 0, length: 0)
     private var keyboardInputEnabled = true
+    private var displaySelectionInputQuiesced = false
 
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
@@ -88,6 +89,7 @@ final class ViewerMetalView: MTKView {
     override func otherMouseUp(with event: NSEvent) { sendButton(.middle, down: false, event: event) }
 
     override func scrollWheel(with event: NSEvent) {
+        guard !displaySelectionInputQuiesced else { return }
         guard map(event, clamp: false) != nil else { return }
         guard let delta = ScrollDeltaMapper.map(
             deltaX: event.scrollingDeltaX,
@@ -107,7 +109,7 @@ final class ViewerMetalView: MTKView {
     }
 
     override func keyDown(with event: NSEvent) {
-        guard keyboardInputEnabled else { return }
+        guard keyboardInputEnabled, !displaySelectionInputQuiesced else { return }
         let modifiers = MacKeyMapper.modifiers(from: event.modifierFlags)
         if modifiers.contains(.command) || modifiers.contains(.control) {
             if event.isARepeat {
@@ -122,13 +124,13 @@ final class ViewerMetalView: MTKView {
         interpretingEvent = nil
     }
     override func keyUp(with event: NSEvent) {
-        guard keyboardInputEnabled else { return }
+        guard keyboardInputEnabled, !displaySelectionInputQuiesced else { return }
         guard heldKeys[event.keyCode] != nil else { return }
         sendKeyboard(event, isDown: false)
     }
 
     override func flagsChanged(with event: NSEvent) {
-        guard keyboardInputEnabled else { return }
+        guard keyboardInputEnabled, !displaySelectionInputQuiesced else { return }
         guard let isDown = MacKeyMapper.modifierIsDown(keyCode: event.keyCode, flags: event.modifierFlags),
               let key = MacKeyMapper.key(
                 keyCode: event.keyCode,
@@ -146,6 +148,7 @@ final class ViewerMetalView: MTKView {
     }
 
     private func sendMove(_ event: NSEvent, clamp: Bool) {
+        guard !displaySelectionInputQuiesced else { return }
         guard let point = map(event, clamp: clamp) else { return }
         lastRemotePoint = point
         pendingMove = CorePointerEvent(
@@ -163,6 +166,7 @@ final class ViewerMetalView: MTKView {
     }
 
     private func sendButton(_ button: CorePointerButtons, down: Bool, event: NSEvent) {
+        guard !displaySelectionInputQuiesced else { return }
         window?.makeFirstResponder(self)
         guard let point = map(event, clamp: down || !heldButtons.isEmpty) else { return }
         flushPendingMove()
@@ -227,6 +231,10 @@ final class ViewerMetalView: MTKView {
 
     private func flushPendingMove() {
         moveFlushScheduled = false
+        guard !displaySelectionInputQuiesced else {
+            pendingMove = nil
+            return
+        }
         guard let event = pendingMove else { return }
         pendingMove = nil
         send(event, category: "pointer-move")
@@ -260,6 +268,22 @@ final class ViewerMetalView: MTKView {
 
     func releaseAllInput() {
         flushPendingMove()
+        releaseHeldInput()
+    }
+
+    func releaseAllInputForDisplaySelection() {
+        guard !displaySelectionInputQuiesced else { return }
+        pendingMove = nil
+        moveFlushScheduled = false
+        releaseHeldInput()
+        displaySelectionInputQuiesced = true
+    }
+
+    func resumeInputAfterDisplaySelection() {
+        displaySelectionInputQuiesced = false
+    }
+
+    private func releaseHeldInput() {
         releaseAllKeyboardInput()
         if let point = lastRemotePoint {
             for button: CorePointerButtons in [.left, .right, .middle] where heldButtons.contains(button) {
@@ -275,7 +299,7 @@ final class ViewerMetalView: MTKView {
 
 extension ViewerMetalView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
-        guard keyboardInputEnabled else { return }
+        guard keyboardInputEnabled, !displaySelectionInputQuiesced else { return }
         guard let text = plainText(string), !text.isEmpty else { return }
         markedTextStorage = ""
         markedSelection = NSRange(location: 0, length: 0)
@@ -287,7 +311,7 @@ extension ViewerMetalView: NSTextInputClient {
     }
 
     override func doCommand(by selector: Selector) {
-        guard keyboardInputEnabled else { return }
+        guard keyboardInputEnabled, !displaySelectionInputQuiesced else { return }
         let special: CoreSpecialKey?
         switch NSStringFromSelector(selector) {
         case "cancelOperation:": special = .escape
@@ -313,6 +337,7 @@ extension ViewerMetalView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        guard keyboardInputEnabled, !displaySelectionInputQuiesced else { return }
         markedTextStorage = plainText(string) ?? ""
         markedSelection = selectedRange
     }

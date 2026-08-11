@@ -36,6 +36,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
     private var tap: CFMachPort?
     private var tapSource: CFRunLoopSource?
     private var tapRunLoop: CFRunLoop?
+    private var displaySelectionInputQuiesced = false
 
     init(
         sendKey: @escaping (CoreKeyEvent) -> Int32,
@@ -77,7 +78,11 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
     }
 
     func resumeIfRequested() {
-        guard lock.withLock({ focusIntent.shouldResume && stateMachine.state == .inactive }) else {
+        guard lock.withLock({
+            !displaySelectionInputQuiesced
+                && focusIntent.shouldResume
+                && stateMachine.state == .inactive
+        }) else {
             return
         }
         guard hasRequiredPermissions(prompt: true) else {
@@ -169,6 +174,27 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
         if let runLoop = resources.3 { CFRunLoopStop(runLoop) }
         if notify {
             notifyStatus(active: false, message: message, isError: isError, didActivate: false)
+        }
+    }
+
+    func setDisplaySelectionInputQuiesced(_ quiesced: Bool) {
+        let transition = lock.withLock { () -> Bool? in
+            guard displaySelectionInputQuiesced != quiesced else { return nil }
+            displaySelectionInputQuiesced = quiesced
+            if quiesced {
+                focusIntent.prepareForFocusLoss(state: stateMachine.state)
+            }
+            return quiesced
+        }
+        guard let transition else { return }
+        if transition {
+            disable(
+                message: "正在切换显示器，已暂时释放键盘独占",
+                isError: false,
+                preserveIntent: true
+            )
+        } else {
+            resumeIfRequested()
         }
     }
 
