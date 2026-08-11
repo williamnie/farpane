@@ -1,0 +1,115 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -877,0 +878,19 @@
++fn validate_monitor_display_switch_target(
++    requested_display: i32,
++    get_display: impl FnOnce(usize) -> Option<DisplayInfo>,
++) -> Option<usize> {
++    let display_idx = usize::try_from(requested_display).ok()?;
++    let display = get_display(display_idx)?;
++    if !display.online
++        || display.width <= 0
++        || display.height <= 0
++        || !display.scale.is_finite()
++        || display.scale <= 0.0
++    {
++        return None;
++    }
++    display.x.checked_add(display.width)?;
++    display.y.checked_add(display.height)?;
++    Some(display_idx)
++}
++
+@@ -6424 +6443,10 @@
+-        let display_idx = s.display as usize;
++        let display_idx = match self.video_source() {
++            VideoSource::Monitor => {
++                validate_monitor_display_switch_target(s.display, display_service::get_display_info)
++            }
++            VideoSource::Camera => usize::try_from(s.display).ok(),
++        };
++        let Some(display_idx) = display_idx else {
++            self.send_current_display_changed().await;
++            return;
++        };
+@@ -6442,9 +6470,11 @@
+-            // Send display changed message.
+-            // 1. For compatibility with old versions ( < 1.2.4 ).
+-            // 2. Sciter version.
+-            // 3. Update `SupportedResolutions`.
+-            if let Some(msg_out) =
+-                video_service::make_display_changed_msg(self.display_idx, None, self.video_source())
+-            {
+-                self.send(msg_out).await;
+-            }
++            self.send_current_display_changed().await;
++        }
++    }
++
++    async fn send_current_display_changed(&mut self) {
++        // Reasserting the current display also gives native Viewer selection
++        // commands a canonical mismatched echo when a target is rejected.
++        if let Some(msg_out) =
++            video_service::make_display_changed_msg(self.display_idx, None, self.video_source())
++        {
++            self.send(msg_out).await;
+@@ -9255,0 +9286,59 @@
++    #[test]
++    fn monitor_display_switch_target_is_live_bounded_and_fail_closed() {
++        let valid = DisplayInfo {
++            x: -1920,
++            y: 0,
++            width: 1920,
++            height: 1080,
++            online: true,
++            scale: 2.0,
++            ..Default::default()
++        };
++        assert_eq!(
++            validate_monitor_display_switch_target(1, |_| Some(valid.clone())),
++            Some(1)
++        );
++        assert_eq!(
++            validate_monitor_display_switch_target(-1, |_| Some(valid.clone())),
++            None
++        );
++        assert_eq!(validate_monitor_display_switch_target(2, |_| None), None);
++
++        let invalid = [
++            DisplayInfo {
++                online: false,
++                ..valid.clone()
++            },
++            DisplayInfo {
++                width: 0,
++                ..valid.clone()
++            },
++            DisplayInfo {
++                height: -1,
++                ..valid.clone()
++            },
++            DisplayInfo {
++                scale: 0.0,
++                ..valid.clone()
++            },
++            DisplayInfo {
++                scale: f64::NAN,
++                ..valid.clone()
++            },
++            DisplayInfo {
++                x: i32::MAX,
++                ..valid.clone()
++            },
++            DisplayInfo {
++                y: i32::MAX,
++                ..valid.clone()
++            },
++        ];
++        for display in invalid {
++            assert_eq!(
++                validate_monitor_display_switch_target(1, |_| Some(display)),
++                None
++            );
++        }
++    }
++

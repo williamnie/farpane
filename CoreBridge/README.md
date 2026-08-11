@@ -167,6 +167,15 @@ The function return is admission only; Swift projects the terminal callback
 strictly. Product selector/input quiescence and Host range validation remain
 separate boundaries.
 
+The Host display-switch path now validates monitor targets against its live
+display-service inventory before changing subscriptions: negative or absent
+indices, offline entries, non-positive dimensions, non-finite/non-positive
+scale, and overflowing bounds fail closed. A rejection reasserts the current
+display through the existing canonical `SwitchDisplay` response so a native
+Viewer pending command terminates as typed drift without mutating the media
+route or input-mapping generation. This validation does not change either ABI
+or the protobuf wire.
+
 Viewer ABI v14 retains all ABI v8 clipboard behavior and the v9 separate,
 default-off file-transfer seam. The connection configuration accepts exact
 `false/0` desktop mode or exact `true/nonzero` dedicated file mode; file mode

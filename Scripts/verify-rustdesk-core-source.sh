@@ -10,6 +10,7 @@ viewer_file_receive_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-file-rec
 viewer_file_digest_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-file-digest-confirmation.patch"
 viewer_file_upload_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-file-upload-wire.patch"
 native_read_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-read-list-download.patch"
+host_display_switch_validation_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-host-display-switch-validation.patch"
 hbb_secret_wipe_patch="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 hbb_bounded_block_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
 
@@ -33,7 +34,7 @@ if ! git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_patch" 2>
   git -C "$vendor_dir" apply --check --reverse "$viewer_file_receive_patch"
   git -C "$vendor_dir" apply --check --reverse "$viewer_file_digest_patch"
 fi
-git -C "$vendor_dir" apply --check --reverse "$native_read_patch"
+git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_display_switch_validation_patch"
 
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_secret_wipe_patch"
