@@ -33,8 +33,10 @@ class HostMultiDisplaySelectionOwnershipAuditTests(unittest.TestCase):
             "farpane-host-multi-display-selection-ownership-audit",
         )
         self.assertEqual(document["schemaVersion"], 1)
-        self.assertEqual(document["status"], "abi-checkpoint-required")
-        self.assertEqual(document["currentABI"], {"host": 17, "viewer": 14})
+        self.assertEqual(
+            document["status"], "catalog-abi-implemented-selection-pending"
+        )
+        self.assertEqual(document["currentABI"], {"host": 17, "viewer": 15})
         self.assertEqual(document["targetContract"]["viewerABI"], 15)
         self.assertEqual(document["targetContract"]["hostABI"], 17)
         self.assertEqual(
@@ -43,14 +45,14 @@ class HostMultiDisplaySelectionOwnershipAuditTests(unittest.TestCase):
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "viewer-display-catalog-abi-contract",
+            "viewer-select-display-command-lifecycle",
         )
         self.assertTrue(all(document["evidence"].values()))
         self.assertTrue(all(document["gaps"].values()))
         self.assertTrue(all(document["sourceLines"].values()))
         self.assertFalse(document["claims"]["currentMultiDisplayProductComplete"])
         self.assertFalse(document["claims"]["hostABIChangeRequired"])
-        self.assertTrue(document["claims"]["viewerABIChangeRequired"])
+        self.assertFalse(document["claims"]["viewerABIChangeRequired"])
         self.assertTrue(document["claims"]["installedTwoMacAcceptanceStillRequired"])
 
 

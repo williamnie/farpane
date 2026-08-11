@@ -210,19 +210,30 @@ def main() -> int:
                 "thread.video_sender.send(MediaData::Reset)",
             )
         ),
-        "nativeViewerFramesExposeOnlyBareDisplayIndex": (
+        "nativeViewerFramesBindConnectionCatalogAndDisplay": (
             "uint32_t display;" in display_frame
-            and "catalog_revision" not in display_frame
-            and "connection_epoch" not in display_frame
+            and "display_catalog_revision" in display_frame
+            and "connection_epoch" in display_frame
         ),
-        "nativeViewerCurrentlyDiscardsCatalogAndSelectedDisplay": all(
+        "nativeViewerNormalizesCatalogAndSelectedDisplay": all(
             marker in viewer_impl
             for marker in (
-                "fn set_peer_info(&self, _peer_info: &PeerInfo) {}",
-                "fn set_displays(&self, _displays: &Vec<DisplayInfo>) {}",
-                "fn set_current_display(&self, _display: i32) {}",
+                "fn set_peer_info(&self, peer_info: &PeerInfo)",
+                "publish_display_catalog(&peer_info.displays, Some(selected))",
+                "fn set_displays(&self, displays: &Vec<DisplayInfo>)",
+                "fn set_current_display(&self, display: i32)",
                 "fn switch_display(&self, display: &SwitchDisplay)",
-                "(display.width.max(0) as u32, display.height.max(0) as u32)",
+                "publish_selected_display(display.display)",
+            )
+        ),
+        "viewerCatalogABIIsStrictAndConnectionScoped": all(
+            marker in sources["header"]
+            for marker in (
+                "typedef struct RDNDisplayCatalogEntry",
+                "typedef struct RDNDisplayCatalogEvent",
+                "RDNDisplayCatalogCallback on_display_catalog;",
+                "uint64_t connection_epoch;",
+                "uint64_t display_catalog_revision;",
             )
         ),
         "hostMediaDisplayRevisionIsSeparateRouteLocalAuthority": (
@@ -233,10 +244,6 @@ def main() -> int:
     }
 
     gaps = {
-        "viewerDisplayCatalogCallbackMissing": (
-            "RDNDisplayCatalog" not in sources["header"]
-            and "on_display_catalog" not in sources["viewer_bridge"]
-        ),
         "viewerSelectDisplayCommandMissing": (
             "rdn_client_select_display" not in sources["header"]
             and "rdn_client_select_display" not in sources["viewer_bridge"]
@@ -245,14 +252,6 @@ def main() -> int:
         "selectionCommandTerminalEventMissing": (
             "RDNDisplaySelectionEvent" not in sources["header"]
             and "on_display_selection" not in sources["viewer_bridge"]
-        ),
-        "connectionScopedCatalogRevisionMissing": (
-            "display_catalog_revision" not in sources["header"]
-            and "display_catalog_revision" not in sources["viewer_bridge"]
-        ),
-        "videoFrameCatalogBindingMissing": (
-            "catalog_revision" not in display_frame
-            and "connection_epoch" not in display_frame
         ),
         "hostRejectsNoNegativeOrOutOfRangeDisplayBeforeSwitch": (
             "let display_idx = s.display as usize;" in host_switch
@@ -290,9 +289,9 @@ def main() -> int:
             sources["server_connection"],
             "    async fn handle_switch_display(&mut self, s: SwitchDisplay)",
         ),
-        "viewerCatalogNoop": line_number(
+        "viewerCatalogOwner": line_number(
             sources["viewer_bridge"],
-            "fn set_displays(&self, _displays: &Vec<DisplayInfo>) {}",
+            "fn publish_display_catalog(&self, displays: &[DisplayInfo]",
         ),
         "viewerFrameDisplayIndex": line_number(
             sources["header"],
@@ -366,7 +365,7 @@ def main() -> int:
         "schema": SCHEMA,
         "schemaVersion": 1,
         "status": (
-            "abi-checkpoint-required"
+            "catalog-abi-implemented-selection-pending"
             if not missing_evidence and not missing_gaps
             else "audit-drift"
         ),
@@ -386,20 +385,20 @@ def main() -> int:
         "targetContract": target_contract,
         "claims": {
             "currentMultiDisplayProductComplete": False,
-            "viewerABIChangeRequired": True,
+            "viewerABIChangeRequired": False,
             "hostABIChangeRequired": False,
             "hostWireSchemaChangeRequired": False,
             "hermesChangeRequired": False,
             "installedTwoMacAcceptanceStillRequired": True,
         },
-        "nextImplementationBoundary": "viewer-display-catalog-abi-contract",
+        "nextImplementationBoundary": "viewer-select-display-command-lifecycle",
     }
     print(json.dumps(document, sort_keys=True))
     return 0 if (
         not missing_evidence
         and not missing_gaps
         and all(source_lines.values())
-        and viewer_abi == 14
+        and viewer_abi == 15
         and host_abi == 17
     ) else 1
 

@@ -253,6 +253,12 @@ int32_t rdn_client_send_clipboard_text(RDNClient *client, const uint8_t *utf8,
   规范化别名、祖先冲突与 private staging，并限制 1,024 entries、1 MiB metadata；connection-local
   progress authority 最多 8 个 job，只接受同 session、严格递增 sequence、单调有界 file/byte progress、
   explicit conflict、typed terminal failure、cancel 与 teardown。该合同不含本地 path/descriptor/raw error。
+  Viewer ABI v15 在 v14 文件传输 seam 之上增加 connection-scoped display catalog callback：目录 identity
+  固定为 `connectionEpoch + catalogRevision + displayIndex`，semantic duplicate 不推进 revision，畸形目录
+  整体 typed unavailable；视频帧携带同一 epoch/revision/display tuple，Rust 与 Swift 都只允许当前 selected
+  tuple 进入解码队列。dedicated file session 不发布目录，disconnect 清 authority。v15 尚不包含选择命令、
+  terminal event 或产品 selector；Host ABI 仍为 v17，Host media displayRevision 与 input mapping generation
+  不得复用为 Viewer catalog revision。
   Viewer ABI v14 保留 v9 default-off 的 exact policy/epoch pair、path-free scalar event callback 与
   epoch-scoped cancel command；true/nonzero 只建立 dedicated `FILE_TRANSFER` session，拒绝同时开启任何
   desktop clipboard direction，不启动视频 housekeeping，也不开放 input。cancel 只有在 exact epoch、

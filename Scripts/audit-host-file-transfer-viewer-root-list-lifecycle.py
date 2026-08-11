@@ -66,7 +66,7 @@ def main() -> int:
         "abiV12RetainsBoundedCallbackScopedListShape": all(
             marker in header
             for marker in (
-                "#define RDN_ABI_VERSION 14u",
+                "#define RDN_ABI_VERSION 15u",
                 "#define RDN_MAX_FILE_TRANSFER_LIST_ENTRIES 1024u",
                 "typedef struct RDNFileTransferListEntry {",
                 "const uint8_t *relative_path_utf8;",
@@ -167,7 +167,7 @@ def main() -> int:
             sources["design"],
             "H6.3f2b2b Viewer root-list command/callback ABI lifecycle",
         ),
-        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 14u"),
+        "abiVersion": line_number(header, "#define RDN_ABI_VERSION 15u"),
         "listEvent": line_number(header, "typedef struct RDNFileTransferListEvent {"),
         "listCommand": line_number(header, "rdn_client_file_transfer_list_root"),
         "rustCommand": line_number(bridge, "fn rdn_client_file_transfer_list_root("),

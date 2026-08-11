@@ -59,11 +59,139 @@ public struct CoreVideoPacket: Sendable {
     public let width: UInt32
     public let height: UInt32
     public let display: UInt32
+    public let connectionEpoch: UInt64
+    public let displayCatalogRevision: UInt64
 
     public var isKeyframe: Bool { flags & UInt32(RDN_VIDEO_FLAG_KEYFRAME.rawValue) != 0 }
     public var containsVPS: Bool { flags & UInt32(RDN_VIDEO_FLAG_VPS.rawValue) != 0 }
     public var containsSPS: Bool { flags & UInt32(RDN_VIDEO_FLAG_SPS.rawValue) != 0 }
     public var containsPPS: Bool { flags & UInt32(RDN_VIDEO_FLAG_PPS.rawValue) != 0 }
+}
+
+public enum CoreDisplayCatalogStatus: UInt32, Equatable, Sendable {
+    case available = 1
+    case unavailable = 2
+}
+
+public struct CoreDisplayCatalogEntry: Equatable, Sendable {
+    public let displayIndex: UInt32
+    public let x: Int32
+    public let y: Int32
+    public let width: Int32
+    public let height: Int32
+    public let online: Bool
+    public let scale: Double
+    public let name: String
+
+    public init?(
+        displayIndex: UInt32,
+        x: Int32,
+        y: Int32,
+        width: Int32,
+        height: Int32,
+        online: Bool,
+        scale: Double,
+        name: String
+    ) {
+        let validGeometry = online ? (width > 0 && height > 0) : (width >= 0 && height >= 0)
+        guard
+            validGeometry,
+            scale.isFinite,
+            scale > 0,
+            scale <= 16,
+            name.utf8.count <= Int(RDN_MAX_DISPLAY_NAME_UTF8_BYTES),
+            !name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+        else { return nil }
+        self.displayIndex = displayIndex
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.online = online
+        self.scale = scale
+        self.name = name
+    }
+}
+
+public struct CoreDisplayCatalogEvent: Equatable, Sendable {
+    public let connectionEpoch: UInt64
+    public let catalogRevision: UInt64
+    public let status: CoreDisplayCatalogStatus
+    public let selectedDisplayIndex: UInt32?
+    public let entries: [CoreDisplayCatalogEntry]
+
+    public init?(
+        connectionEpoch: UInt64,
+        catalogRevision: UInt64,
+        status: CoreDisplayCatalogStatus,
+        selectedDisplayIndex: UInt32?,
+        entries: [CoreDisplayCatalogEntry]
+    ) {
+        guard connectionEpoch > 0, catalogRevision > 0,
+              entries.count <= Int(RDN_MAX_DISPLAY_CATALOG_ENTRIES) else { return nil }
+        switch status {
+        case .available:
+            guard entries.enumerated().allSatisfy({ offset, entry in
+                entry.displayIndex == UInt32(offset)
+            }) else { return nil }
+            if let selectedDisplayIndex {
+                guard entries.indices.contains(Int(selectedDisplayIndex)),
+                      entries[Int(selectedDisplayIndex)].online else { return nil }
+            }
+        case .unavailable:
+            guard entries.isEmpty, selectedDisplayIndex == nil else { return nil }
+        }
+        self.connectionEpoch = connectionEpoch
+        self.catalogRevision = catalogRevision
+        self.status = status
+        self.selectedDisplayIndex = selectedDisplayIndex
+        self.entries = entries
+    }
+}
+
+public struct CoreDisplayCatalogProjectionState: Sendable {
+    private var current: CoreDisplayCatalogEvent?
+    private var deliveryEnabled = true
+
+    public init() {}
+
+    @discardableResult
+    public mutating func observe(_ event: CoreDisplayCatalogEvent) -> Bool {
+        guard deliveryEnabled else { return false }
+        if let current {
+            guard event.connectionEpoch >= current.connectionEpoch else { return false }
+            if event.connectionEpoch == current.connectionEpoch {
+                guard event.catalogRevision >= current.catalogRevision else { return false }
+                if event.catalogRevision == current.catalogRevision {
+                    guard event.status == current.status, event.entries == current.entries else {
+                        return false
+                    }
+                }
+            }
+        }
+        current = event
+        return true
+    }
+
+    public func acceptsFrame(
+        connectionEpoch: UInt64,
+        catalogRevision: UInt64,
+        displayIndex: UInt32
+    ) -> Bool {
+        guard deliveryEnabled, let current, current.status == .available else { return false }
+        return current.connectionEpoch == connectionEpoch
+            && current.catalogRevision == catalogRevision
+            && current.selectedDisplayIndex == displayIndex
+    }
+
+    func isCurrent(_ event: CoreDisplayCatalogEvent) -> Bool {
+        deliveryEnabled && current == event
+    }
+
+    public mutating func stop() {
+        deliveryEnabled = false
+        current = nil
+    }
 }
 
 public struct CoreRuntimeMetrics: Sendable {
@@ -566,6 +694,7 @@ private final class CallbackBox: @unchecked Sendable {
     let queue: DispatchQueue
     let onState: @Sendable (CoreStateEvent) -> Void
     let onVideo: @Sendable (CoreVideoPacket) -> Void
+    let onDisplayCatalog: @Sendable (CoreDisplayCatalogEvent) -> Void
     let onMetrics: @Sendable (CoreRuntimeMetrics) -> Void
     let onClipboardText: @Sendable (String) -> Void
     let onClipboardRichText: @Sendable (CoreClipboardRichTextPayload) -> Void
@@ -581,11 +710,14 @@ private final class CallbackBox: @unchecked Sendable {
     private var clipboardDeliveryEnabled = true
     private let fileTransferLifecycleLock = NSLock()
     private var fileTransferDeliveryEnabled = true
+    private let displayLifecycleLock = NSLock()
+    private var displayProjection = CoreDisplayCatalogProjectionState()
 
     init(
         queue: DispatchQueue,
         onState: @escaping @Sendable (CoreStateEvent) -> Void,
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
+        onDisplayCatalog: @escaping @Sendable (CoreDisplayCatalogEvent) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
         onClipboardText: @escaping @Sendable (String) -> Void,
         onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void,
@@ -601,6 +733,7 @@ private final class CallbackBox: @unchecked Sendable {
         self.queue = queue
         self.onState = onState
         self.onVideo = onVideo
+        self.onDisplayCatalog = onDisplayCatalog
         self.onMetrics = onMetrics
         self.onClipboardText = onClipboardText
         self.onClipboardRichText = onClipboardRichText
@@ -612,6 +745,39 @@ private final class CallbackBox: @unchecked Sendable {
         self.fileTransferCancelRelay = fileTransferCancelRelay
         self.fileTransferReceiveAdapter = fileTransferReceiveAdapter
         self.fileTransferUploadReadAdapter = fileTransferUploadReadAdapter
+    }
+
+    func observeDisplayCatalog(_ event: CoreDisplayCatalogEvent) {
+        guard displayLifecycleLock.withLock({ displayProjection.observe(event) }) else { return }
+        queue.async { [self] in
+            guard displayLifecycleLock.withLock({ displayProjection.isCurrent(event) }) else { return }
+            onDisplayCatalog(event)
+        }
+    }
+
+    func acceptsVideoFrame(connectionEpoch: UInt64, catalogRevision: UInt64, displayIndex: UInt32) -> Bool {
+        displayLifecycleLock.withLock {
+            displayProjection.acceptsFrame(
+                connectionEpoch: connectionEpoch,
+                catalogRevision: catalogRevision,
+                displayIndex: displayIndex
+            )
+        }
+    }
+
+    func deliverVideo(_ packet: CoreVideoPacket) {
+        queue.async { [self] in
+            guard acceptsVideoFrame(
+                connectionEpoch: packet.connectionEpoch,
+                catalogRevision: packet.displayCatalogRevision,
+                displayIndex: packet.display
+            ) else { return }
+            onVideo(packet)
+        }
+    }
+
+    func stopDisplayDelivery() {
+        displayLifecycleLock.withLock { displayProjection.stop() }
     }
 
     func deliverClipboardText(_ text: String) {
@@ -779,11 +945,72 @@ private let stateCallback: RDNStateCallback = { context, state, code, message in
     box.queue.async { box.onState(event) }
 }
 
+private let displayCatalogCallback: RDNDisplayCatalogCallback = { context, eventPointer in
+    guard let context, let eventPointer else { return }
+    let raw = eventPointer.pointee
+    guard
+        raw.abi_version == RDN_ABI_VERSION,
+        let status = CoreDisplayCatalogStatus(rawValue: raw.status),
+        raw.entry_count <= Int(RDN_MAX_DISPLAY_CATALOG_ENTRIES),
+        (raw.entry_count == 0) == (raw.entries == nil),
+        raw.selected_display_known
+            ? raw.selected_display_index != UInt32(RDN_DISPLAY_INDEX_UNKNOWN)
+            : raw.selected_display_index == UInt32(RDN_DISPLAY_INDEX_UNKNOWN)
+    else { return }
+    var entries: [CoreDisplayCatalogEntry] = []
+    entries.reserveCapacity(raw.entry_count)
+    if let rawEntries = raw.entries {
+        for offset in 0..<raw.entry_count {
+            let entry = rawEntries[offset]
+            guard
+                entry.name_length <= Int(RDN_MAX_DISPLAY_NAME_UTF8_BYTES),
+                (entry.name_length == 0) == (entry.name_utf8 == nil)
+            else { return }
+            let name: String
+            if let bytes = entry.name_utf8 {
+                let data = Data(bytes: bytes, count: entry.name_length)
+                guard let copied = String(data: data, encoding: .utf8) else { return }
+                name = copied
+            } else {
+                name = ""
+            }
+            guard let projected = CoreDisplayCatalogEntry(
+                displayIndex: entry.display_index,
+                x: entry.x,
+                y: entry.y,
+                width: entry.width,
+                height: entry.height,
+                online: entry.online,
+                scale: entry.scale,
+                name: name
+            ) else { return }
+            entries.append(projected)
+        }
+    }
+    guard let event = CoreDisplayCatalogEvent(
+        connectionEpoch: raw.connection_epoch,
+        catalogRevision: raw.catalog_revision,
+        status: status,
+        selectedDisplayIndex: raw.selected_display_known ? raw.selected_display_index : nil,
+        entries: entries
+    ) else { return }
+    let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
+    box.observeDisplayCatalog(event)
+}
+
 private let videoCallback: RDNVideoCallback = { context, framePointer in
     guard let context, let framePointer else { return }
     let box = Unmanaged<CallbackBox>.fromOpaque(context).takeUnretainedValue()
     let frame = framePointer.pointee
-    guard frame.abi_version == RDN_ABI_VERSION, let bytes = frame.data else { return }
+    guard
+        frame.abi_version == RDN_ABI_VERSION,
+        let bytes = frame.data,
+        box.acceptsVideoFrame(
+            connectionEpoch: frame.connection_epoch,
+            catalogRevision: frame.display_catalog_revision,
+            displayIndex: frame.display
+        )
+    else { return }
     // The Rust pointer is callback-scoped. Copy only compressed packet bytes.
     let data = Data(bytes: bytes, count: frame.length)
     let packet = CoreVideoPacket(
@@ -795,9 +1022,11 @@ private let videoCallback: RDNVideoCallback = { context, framePointer in
         flags: frame.flags,
         width: frame.width,
         height: frame.height,
-        display: frame.display
+        display: frame.display,
+        connectionEpoch: frame.connection_epoch,
+        displayCatalogRevision: frame.display_catalog_revision
     )
-    box.queue.async { box.onVideo(packet) }
+    box.deliverVideo(packet)
 }
 
 private let metricsCallback: RDNMetricsCallback = { context, metricsPointer in
@@ -1289,6 +1518,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
         onState: @escaping @Sendable (CoreStateEvent) -> Void,
         onVideo: @escaping @Sendable (CoreVideoPacket) -> Void,
         onMetrics: @escaping @Sendable (CoreRuntimeMetrics) -> Void,
+        onDisplayCatalog: @escaping @Sendable (CoreDisplayCatalogEvent) -> Void = { _ in },
         onClipboardText: @escaping @Sendable (String) -> Void = { _ in },
         onClipboardRichText: @escaping @Sendable (CoreClipboardRichTextPayload) -> Void = { _ in },
         onClipboardImage: @escaping @Sendable (CoreClipboardImagePayload) -> Void = { _ in },
@@ -1320,6 +1550,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             queue: callbackQueue,
             onState: onState,
             onVideo: onVideo,
+            onDisplayCatalog: onDisplayCatalog,
             onMetrics: onMetrics,
             onClipboardText: onClipboardText,
             onClipboardRichText: onClipboardRichText,
@@ -1336,6 +1567,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             abi_version: RDN_ABI_VERSION,
             on_state: stateCallback,
             on_video: videoCallback,
+            on_display_catalog: displayCatalogCallback,
             on_metrics: metricsCallback,
             on_clipboard_text: clipboardTextCallback,
             on_clipboard_rich_text: clipboardRichTextCallback,
@@ -1401,6 +1633,7 @@ public final class RustDeskCoreClient: @unchecked Sendable {
             return true
         }
         if shouldDisconnect {
+            callbackBox.stopDisplayDelivery()
             callbackBox.stopClipboardDelivery()
             callbackBox.stopFileTransferDelivery()
             rdn_shim_client_disconnect(library, client)

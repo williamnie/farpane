@@ -111,7 +111,7 @@ def main() -> int:
             )
         ),
         "receiveABIWireDispatchAndProductRemainOff": (
-            "#define RDN_ABI_VERSION 14u" in sources["header"]
+            "#define RDN_ABI_VERSION 15u" in sources["header"]
             and "RDNFileTransferReceiveBlockCallback" in sources["header"]
             and "Data::SendFiles" not in receive
             and "farpane.host.fileTransfer.enabled" in product and "return .disabled" in product
