@@ -10,6 +10,8 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
         XCTAssertEqual(recorder.actions, [])
 
         XCTAssertTrue(owner.observeCatalog(try catalog(selected: 0)))
+        XCTAssertEqual(owner.select(displayIndex: 1), .controlUnavailable)
+        owner.setControlAvailable(true)
         recorder.admissionStatus = 0
         let result = owner.select(displayIndex: 1)
         let request = try XCTUnwrap(result.request)
@@ -29,6 +31,7 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
         recorder.admissionStatus = -4
         let owner = recorder.makeOwner()
         XCTAssertTrue(owner.observeCatalog(try catalog(selected: 0)))
+        owner.setControlAvailable(true)
 
         XCTAssertEqual(owner.select(displayIndex: 1), .coreRejected(-4))
         XCTAssertEqual(recorder.actions.count, 3)
@@ -42,6 +45,7 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
         let recorder = ViewerDisplaySelectionInputRecorder()
         let owner = recorder.makeOwner()
         XCTAssertTrue(owner.observeCatalog(try catalog(selected: 0)))
+        owner.setControlAvailable(true)
         let request = try XCTUnwrap(owner.select(displayIndex: 1).request)
 
         let stale = try selectionEvent(
@@ -71,6 +75,7 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
         let recorder = ViewerDisplaySelectionInputRecorder()
         let owner = recorder.makeOwner()
         XCTAssertTrue(owner.observeCatalog(try catalog(selected: 0)))
+        owner.setControlAvailable(true)
         let first = try XCTUnwrap(owner.select(displayIndex: 1).request)
 
         let failed = try selectionEvent(
@@ -102,6 +107,7 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
         let recorder = ViewerDisplaySelectionInputRecorder()
         let owner = recorder.makeOwner()
         XCTAssertTrue(owner.observeCatalog(try catalog(selected: 0)))
+        owner.setControlAvailable(true)
         let request = try XCTUnwrap(owner.select(displayIndex: 1).request)
 
         owner.stop()
@@ -144,6 +150,8 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
             "resumeInputAfterDisplaySelection()",
             "private func selectViewerDisplay(",
             "private func stopViewerDisplaySelectionInput()",
+            "chrome.onSelectDisplay =",
+            "updateDisplaySelection(",
         ] {
             XCTAssertTrue(app.contains(marker), "missing App marker: \(marker)")
         }
@@ -173,8 +181,69 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
         }
     }
 
+    func testPresentationProjectsReadyPendingAndFailureWithoutUsingNameAsIdentity() throws {
+        let recorder = ViewerDisplaySelectionInputRecorder()
+        let owner = recorder.makeOwner()
+        XCTAssertTrue(owner.observeCatalog(try catalog(selected: 0)))
+
+        var presentation = ViewerDisplaySelectionPresentationPolicy.project(
+            owner.snapshot()
+        )
+        XCTAssertFalse(presentation.selectorEnabled)
+        XCTAssertEqual(presentation.statusText, "正在等待远端控制权限…")
+        XCTAssertEqual(presentation.items.map(\.displayIndex), [0, 1])
+        XCTAssertEqual(presentation.items.map(\.selected), [true, false])
+
+        owner.setControlAvailable(true)
+        presentation = ViewerDisplaySelectionPresentationPolicy.project(owner.snapshot())
+        XCTAssertTrue(presentation.selectorEnabled)
+        XCTAssertNil(presentation.statusText)
+        XCTAssertTrue(presentation.items[0].title.contains("Built-in"))
+        XCTAssertTrue(presentation.items[0].title.contains("1920×1080"))
+
+        let request = try XCTUnwrap(owner.select(displayIndex: 1).request)
+        presentation = ViewerDisplaySelectionPresentationPolicy.project(owner.snapshot())
+        XCTAssertFalse(presentation.selectorEnabled)
+        XCTAssertEqual(presentation.statusText, "正在切换显示器…")
+        XCTAssertFalse(presentation.statusIsError)
+
+        XCTAssertEqual(owner.observeSelection(try selectionEvent(
+            request: request,
+            result: .failed,
+            failure: .remoteSelectionDrift
+        )), .failed(.remoteSelectionDrift))
+        presentation = ViewerDisplaySelectionPresentationPolicy.project(owner.snapshot())
+        XCTAssertTrue(presentation.selectorEnabled)
+        XCTAssertEqual(presentation.statusText, "远端未切换到所选显示器，请重试")
+        XCTAssertTrue(presentation.statusIsError)
+        XCTAssertEqual(presentation.items.map(\.displayIndex), [0, 1])
+    }
+
+    func testReplacementCarriesFailClosedPauseAndPromptsExplicitRetry() throws {
+        let recorder = ViewerDisplaySelectionInputRecorder()
+        let owner = ViewerDisplaySelectionInputOwner(
+            initiallyQuiesced: true,
+            sendSelection: { _ in 0 },
+            quiesceInput: {},
+            resumeInput: {}
+        )
+        XCTAssertTrue(owner.observeCatalog(try catalog(selected: 0)))
+        owner.setControlAvailable(true)
+
+        let presentation = ViewerDisplaySelectionPresentationPolicy.project(
+            owner.snapshot()
+        )
+        XCTAssertTrue(presentation.selectorEnabled)
+        XCTAssertTrue(presentation.statusIsError)
+        XCTAssertEqual(
+            presentation.statusText,
+            "请重新选择显示器以恢复远程控制"
+        )
+        XCTAssertTrue(recorder.actions.isEmpty)
+    }
+
     private func catalog(selected: UInt32) throws -> CoreDisplayCatalogEvent {
-        try XCTUnwrap(CoreDisplayCatalogEvent(
+        return try XCTUnwrap(CoreDisplayCatalogEvent(
             connectionEpoch: 7,
             catalogRevision: 3,
             status: .available,

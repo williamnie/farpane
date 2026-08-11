@@ -1,4 +1,5 @@
 import AppKit
+import CoreBridge
 import VideoPipeline
 
 enum ViewerFileTransferActionDirection {
@@ -15,6 +16,7 @@ final class ViewerChromeView: NSView {
     var onToggleKeyboardGrab: (() -> Void)?
     var onFileTransferAction: (() -> Void)?
     var onFileTransferUploadAction: (() -> Void)?
+    var onSelectDisplay: ((UInt32) -> Void)?
     var onOpenKeyboardPermissions: (() -> Void)?
     var onControlOverlayVisibilityChanged: ((Bool) -> Void)?
 
@@ -29,10 +31,12 @@ final class ViewerChromeView: NSView {
     private let keyboardPermissionButton = NSButton(title: "权限设置", target: nil, action: nil)
     private let fileTransferButton = NSButton(title: "接收文件", target: nil, action: nil)
     private let fileTransferUploadButton = NSButton(title: "发送文件", target: nil, action: nil)
+    private let displaySelector = NSPopUpButton(frame: .zero, pullsDown: false)
     private let hudButton = NSButton(title: "显示 HUD", target: nil, action: nil)
     private let fullscreenButton = NSButton(title: "全屏", target: nil, action: nil)
     private let showsAcceptanceControls: Bool
     private let showsFileTransferControls: Bool
+    private let showsDisplayControls: Bool
     private var hudVisible: Bool
     private var keyboardGrabActive = false
     private var keyboardGrabAvailable = false
@@ -51,12 +55,14 @@ final class ViewerChromeView: NSView {
         videoView: ViewerMetalView,
         metrics: PipelineMetrics,
         showsAcceptanceControls: Bool,
-        showsFileTransferControls: Bool
+        showsFileTransferControls: Bool,
+        showsDisplayControls: Bool
     ) {
         self.videoView = videoView
         self.metrics = metrics
         self.showsAcceptanceControls = showsAcceptanceControls
         self.showsFileTransferControls = showsFileTransferControls
+        self.showsDisplayControls = showsDisplayControls
         hudVisible = showsAcceptanceControls
             || UserDefaults.standard.bool(forKey: Self.hudPreferenceKey)
         super.init(frame: .zero)
@@ -188,6 +194,40 @@ final class ViewerChromeView: NSView {
         )
     }
 
+    func updateDisplaySelection(
+        _ presentation: ViewerDisplaySelectionPresentation
+    ) {
+        displaySelector.removeAllItems()
+        if let status = presentation.statusText {
+            let statusItem = NSMenuItem(title: status, action: nil, keyEquivalent: "")
+            statusItem.tag = -1
+            statusItem.isEnabled = false
+            displaySelector.menu?.addItem(statusItem)
+        }
+        for item in presentation.items {
+            let menuItem = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
+            menuItem.tag = Int(item.displayIndex)
+            menuItem.isEnabled = item.enabled
+            menuItem.state = item.selected ? .on : .off
+            displaySelector.menu?.addItem(menuItem)
+        }
+        if presentation.statusText != nil {
+            displaySelector.selectItem(withTag: -1)
+        } else if let selected = presentation.selectedDisplayIndex {
+            displaySelector.selectItem(withTag: Int(selected))
+        } else if let firstEnabled = presentation.items.first(where: \.enabled) {
+            displaySelector.selectItem(withTag: Int(firstEnabled.displayIndex))
+        }
+        displaySelector.isEnabled = presentation.selectorEnabled
+        displaySelector.toolTip = presentation.statusText
+            ?? "选择要查看和控制的远端显示器"
+        displaySelector.setAccessibilityHelp(displaySelector.toolTip ?? "")
+        if presentation.statusIsError {
+            controlsPinned = true
+            setControlsExpanded(true)
+        }
+    }
+
     func updateHUD(_ value: PipelineHUDSnapshot) {
         hudLabel.stringValue = String(
             format: "远端 %dx%d  →  本地 %dx%d\n编码 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  丢帧 %d\n队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
@@ -256,6 +296,17 @@ final class ViewerChromeView: NSView {
         fileTransferUploadButton.isEnabled = false
         fileTransferUploadButton.toolTip = "选择本机文件或文件夹并发送到远端"
         fileTransferUploadButton.setAccessibilityLabel("发送文件到远端")
+        displaySelector.target = self
+        displaySelector.action = #selector(selectDisplay)
+        displaySelector.isEnabled = false
+        displaySelector.toolTip = "正在读取远端显示器"
+        displaySelector.setAccessibilityLabel("远端显示器")
+        displaySelector.widthAnchor.constraint(
+            greaterThanOrEqualToConstant: 150
+        ).isActive = true
+        displaySelector.widthAnchor.constraint(
+            lessThanOrEqualToConstant: 260
+        ).isActive = true
         hudButton.bezelStyle = .rounded
         hudButton.target = self
         hudButton.action = #selector(toggleHUD)
@@ -269,6 +320,7 @@ final class ViewerChromeView: NSView {
         let acceptanceButton = actionButton("验收记录", #selector(showChecklist))
 
         var views: [NSView] = [stateLabel, keyboardStatusLabel, keyboardPermissionButton, NSView(), keyboardGrabButton]
+        if showsDisplayControls { views.append(displaySelector) }
         if showsFileTransferControls {
             views.append(fileTransferButton)
             views.append(fileTransferUploadButton)
@@ -418,6 +470,13 @@ final class ViewerChromeView: NSView {
 
     @objc private func fileTransferUploadAction() {
         onFileTransferUploadAction?()
+        scheduleCollapse()
+    }
+
+    @objc private func selectDisplay() {
+        let tag = displaySelector.selectedTag()
+        guard tag >= 0, let displayIndex = UInt32(exactly: tag) else { return }
+        onSelectDisplay?(displayIndex)
         scheduleCollapse()
     }
 
