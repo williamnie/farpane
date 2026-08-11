@@ -76,10 +76,10 @@ def main() -> int:
                 "host-rich-text-clipboard-installed-two-mac-acceptance",
             )
         ),
-        "bootstrapV4RetainsRichTextDirections": all(
+        "bootstrapV5RetainsRichTextDirections": all(
             marker in bootstrap
             for marker in (
-                "public static let currentSchemaVersion = 4",
+                "public static let currentSchemaVersion = 5",
                 "public let clipboardPolicy: HostAgentClipboardPolicy",
                 "public let allowRemoteRichTextRead: Bool",
                 "public let allowRemoteRichTextWrite: Bool",
@@ -201,7 +201,7 @@ def main() -> int:
             "H6.2j6 Host rich-text bootstrap and Home opt-in contract",
         ),
         "bootstrapSchema": line_number(
-            bootstrap, "public static let currentSchemaVersion = 4"
+            bootstrap, "public static let currentSchemaVersion = 5"
         ),
         "richPolicyField": line_number(
             bootstrap, "public let allowRemoteRichTextRead: Bool"
