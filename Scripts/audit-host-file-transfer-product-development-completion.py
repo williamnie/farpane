@@ -9,7 +9,7 @@ import subprocess
 
 
 SCHEMA = "farpane-host-file-transfer-product-development-completion-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-upload-wire-abi-ownership-audit"
+NEXT_BOUNDARY = "host-file-transfer-viewer-upload-semantic-read-abi-contract"
 MINIMUM_REQUIRED_AUDITS = 38
 
 
