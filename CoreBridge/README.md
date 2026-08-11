@@ -266,7 +266,7 @@ Host App/Agent receive-root opt-in remains default off; explicitly enabling it
 opens the Host file service for the existing Viewer download action. The
 opposite Viewer upload product direction remains unavailable.
 
-ABI v14 also adds the default-unwired Viewer upload semantic seam. Swift keeps
+ABI v14 also adds the Viewer upload semantic seam. Swift keeps
 all source descriptors inside a session-bound owner and registers only an
 opaque source token plus a bounded, normalized manifest. Rust owns at most
 eight semantic upload jobs and invokes one synchronous read callback with an
@@ -274,6 +274,11 @@ exact file number, offset, and Rust-owned buffer of at most 128 KiB. Swift fills
 that buffer before returning and both sides recheck the exact epoch, transfer,
 token, file authority, and descriptor identity; paths and descriptors never
 cross the ABI, and short or stale reads fail closed. Cancel, terminal events,
-disconnect, and worker exit remove the matching ownership. This step does not
-project `FileAction::Receive`/`Create`, send blocks, or expose an upload product
-action; those remain separate lifecycle boundaries.
+disconnect, and worker exit remove the matching ownership. Rust now projects
+that authority into parent-first empty-directory creates, one receive-root job,
+exact digest/offset-zero or no-replace skip confirmation, bounded blocks and
+Done/Cancel. The feature-gated io loop fairly polls at most one block per tick
+and fails closed on protocol drift, local read failure or a 30-second stage
+timeout. The Native Host accepts an empty wire base only as its already-pinned
+receive root and durably materializes confirmed zero-byte files. The upload
+product action remains a separate, default-off lifecycle boundary.

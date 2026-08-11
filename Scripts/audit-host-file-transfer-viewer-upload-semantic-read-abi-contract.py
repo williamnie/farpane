@@ -112,10 +112,10 @@ def main() -> int:
                 "viewer_upload_start_registers_semantic_job_and_reads_exact_callback_range",
             )
         ),
-        "semanticStepExplicitlyDispatchesNoWire": (
-            "FileAction::Receive/Create wire projection is a separate next boundary"
-            in bridge
-            and "no wire message is dispatched by the v14 contract step" in header
+        "semanticSeamRemainsPathFreeAfterWireLayer": (
+            "native_viewer_upload_receive_message(" in bridge
+            and "read_file_transfer_upload_source(" in bridge
+            and "must not retain the request or buffer" in header
         ),
         "productUploadActionRemainsDefaultUnwired": (
             "requestFileTransferUpload" not in sources["app"]
@@ -169,11 +169,15 @@ def main() -> int:
             "pathOrDescriptorCrossesABI": False,
             "swiftDescriptorReadAuthorityImplemented": passed,
             "rustSemanticUploadJobImplemented": passed,
-            "viewerUploadWireImplemented": False,
+            "viewerUploadWireImplemented": passed,
             "viewerUploadProductActionImplemented": False,
             "twoMacAcceptanceComplete": False,
         },
-        "nextImplementationBoundary": NEXT_BOUNDARY,
+        "nextImplementationBoundary": (
+            "host-file-transfer-viewer-upload-product-action-lifecycle"
+            if passed
+            else NEXT_BOUNDARY
+        ),
     }
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if passed else 1

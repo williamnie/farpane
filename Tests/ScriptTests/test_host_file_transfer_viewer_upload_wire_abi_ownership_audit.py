@@ -40,7 +40,7 @@ class HostFileTransferViewerUploadWireABIOwnershipAuditTests(
         self.assertTrue(claims["viewerABIV14Required"])
         self.assertFalse(claims["viewerABIChangedByThisAudit"])
         self.assertTrue(claims["viewerABIV14SemanticReadImplemented"])
-        self.assertFalse(claims["viewerUploadWireImplemented"])
+        self.assertTrue(claims["viewerUploadWireImplemented"])
         seam = document["frozenSeam"]
         self.assertEqual(seam["maximumReadBytes"], 128 * 1024)
         self.assertFalse(seam["pathOrDescriptorCrossesABI"])
@@ -48,7 +48,7 @@ class HostFileTransferViewerUploadWireABIOwnershipAuditTests(
         self.assertFalse(seam["resumeAllowed"])
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-upload-semantic-read-abi-contract",
+            "host-file-transfer-viewer-upload-product-action-lifecycle",
         )
 
 
