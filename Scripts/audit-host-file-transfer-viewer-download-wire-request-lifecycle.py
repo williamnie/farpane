@@ -99,7 +99,7 @@ def main() -> int:
                 "file_transfer_session_epoch",
                 "authenticated.load(Ordering::Acquire)",
                 "completed_file_manifest_request",
-                "NativeViewerCompletedManifest",
+                "completed_manifest.files.len()",
                 "server_file_transfer_enabled",
                 "MAX_VIEWER_DOWNLOAD_JOBS",
                 "jobs.contains_key(&request.transfer_id)",
@@ -135,8 +135,8 @@ def main() -> int:
             and "commitReservation" not in start + message
             and "startFileTransferDownload(" not in product
             and "onFileTransferReceiveBlock:" not in product
-            and "Overwrite-digest confirmation" in sources["readme"]
-            and "overwrite digest confirmation" in sources["architecture"]
+            and "Digest confirmation now" in sources["readme"]
+            and "digest confirmation" in sources["architecture"]
         ),
     }
     source_lines = {

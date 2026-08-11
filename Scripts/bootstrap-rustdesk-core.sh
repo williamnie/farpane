@@ -8,6 +8,7 @@ patch_file="$repo_dir/CoreBridge/RustDeskPatch/upstream-1.4.9.patch"
 rich_text_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-rich-text-transfer.patch"
 viewer_image_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-image-api.patch"
 viewer_file_receive_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-file-receive-interception.patch"
+viewer_file_digest_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-file-digest-confirmation.patch"
 hbb_common_patch_file="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 file_transfer_block_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
 file_transfer_mutation_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-mutation-dispatch.patch"
@@ -73,6 +74,14 @@ if git -C "$vendor_dir" apply --check "$viewer_file_receive_patch_file" 2>/dev/n
   git -C "$vendor_dir" apply "$viewer_file_receive_patch_file"
 elif ! git -C "$vendor_dir" apply --check --reverse "$viewer_file_receive_patch_file" 2>/dev/null; then
   print -u2 "RustDesk checkout has changes that do not match the H6 Viewer file receive patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
+if git -C "$vendor_dir" apply --check "$viewer_file_digest_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$viewer_file_digest_patch_file"
+elif ! git -C "$vendor_dir" apply --check --reverse "$viewer_file_digest_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the H6 Viewer file digest patch"
   git -C "$vendor_dir" status --short >&2
   exit 1
 fi
@@ -177,6 +186,7 @@ cp "$host_file_transfer_source" "$vendor_dir/src/rdn_host_file_transfer.rs"
 
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --check --reverse "$viewer_file_receive_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$viewer_file_digest_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$file_transfer_native_read_patch_file"
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
