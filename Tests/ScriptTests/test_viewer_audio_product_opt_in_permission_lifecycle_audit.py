@@ -27,14 +27,17 @@ class ViewerAudioProductOptInPermissionLifecycleAuditTests(unittest.TestCase):
             payload["status"],
             "viewer-audio-product-opt-in-permission-lifecycle-ready",
         )
-        self.assertEqual(payload["currentABI"], {"viewer": 18, "host": 18})
+        self.assertEqual(payload["currentABI"], {"viewer": 18, "host": 19})
         self.assertTrue(payload["claims"]["nextConnectionOptInIsEphemeral"])
         self.assertTrue(payload["claims"]["remotePermissionIsConnectionScoped"])
         self.assertTrue(payload["claims"]["revocationClosesRustPlaybackGate"])
         self.assertFalse(payload["claims"]["viewerAudioEnabledByDefault"])
         self.assertFalse(payload["claims"]["virtualAudioInputSelectionImplemented"])
         self.assertFalse(payload["claims"]["installedAudioAcceptanceComplete"])
-        self.assertEqual(payload["nextImplementationBoundary"], "virtual-audio-input-selection")
+        self.assertEqual(
+            payload["nextImplementationBoundary"],
+            "host-audio-bootstrap-virtual-input-selection-contract",
+        )
         self.assertEqual(payload["missingEvidence"], [])
         self.assertEqual(payload["missingSourceLines"], [])
 

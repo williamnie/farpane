@@ -51,7 +51,8 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-const HOST_ABI_VERSION: u32 = 18;
+const HOST_ABI_VERSION: u32 = 19;
+const AUDIO_INPUT_DEVICE_MAX_UTF8_BYTES: usize = 512;
 const HOST_MEDIA_ABI_VERSION: u32 = 1;
 const EVENT_SCHEMA_VERSION: u32 = 1;
 const SNAPSHOT_SCHEMA_VERSION: u32 = 8;
@@ -1735,6 +1736,7 @@ pub struct RdnHostCreateOptions {
     enable_clipboard_image_read: bool,
     enable_clipboard_image_write: bool,
     enable_audio: bool,
+    audio_input_device: *const c_char,
     enable_file_transfer: bool,
     file_transfer_receive_root: *const c_char,
 }
@@ -1804,6 +1806,7 @@ pub struct RdnHost {
     server_public_key: String,
     clipboard_transfer_policy: NativeClipboardTransferPolicy,
     audio_enabled: bool,
+    audio_input_device: String,
     file_transfer_enabled: bool,
     #[cfg(target_os = "macos")]
     file_service_owner: Option<Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>>,
@@ -4867,6 +4870,10 @@ pub unsafe extern "C" fn rdn_host_create(
         Ok(value) => value,
         Err(code) => return code,
     };
+    let audio_input_device = match optional_string((*options).audio_input_device) {
+        Ok(value) => value,
+        Err(code) => return code,
+    };
     let file_transfer_receive_root = match optional_string((*options).file_transfer_receive_root) {
         Ok(value) => value,
         Err(code) => return code,
@@ -4874,6 +4881,10 @@ pub unsafe extern "C" fn rdn_host_create(
     if !valid_server(&rendezvous_server, false)
         || !valid_server(&relay_server, true)
         || !valid_server_public_key(&server_public_key)
+        || !valid_native_host_audio_input_device(
+            (*options).enable_audio,
+            &audio_input_device,
+        )
         || (*options).enable_file_transfer != !file_transfer_receive_root.is_empty()
     {
         return RDN_HOST_ERR_VALIDATION;
@@ -4939,6 +4950,7 @@ pub unsafe extern "C" fn rdn_host_create(
             ),
         ),
         audio_enabled: (*options).enable_audio,
+        audio_input_device,
         file_transfer_enabled: (*options).enable_file_transfer,
         #[cfg(target_os = "macos")]
         file_service_owner,
@@ -5057,6 +5069,7 @@ fn verify_host_start_storage(host: &RdnHost) -> Result<(), HostStoragePreflightE
         &host.server_public_key,
         host.clipboard_transfer_policy,
         host.audio_enabled,
+        &host.audio_input_device,
         host.file_transfer_enabled,
     )
 }
@@ -5085,9 +5098,20 @@ fn native_host_audio_option(enabled: bool) -> &'static str {
     }
 }
 
+fn valid_native_host_audio_input_device(enabled: bool, device: &str) -> bool {
+    if device.is_empty() {
+        return true;
+    }
+    enabled
+        && device.len() <= AUDIO_INPUT_DEVICE_MAX_UTF8_BYTES
+        && device.trim() == device
+        && !device.chars().any(char::is_control)
+}
+
 fn apply_native_host_optional_capability_policy(
     clipboard_policy: NativeClipboardTransferPolicy,
     audio_enabled: bool,
+    audio_input_device: &str,
     file_transfer_enabled: bool,
 ) {
     config::Config::set_option(
@@ -5101,6 +5125,10 @@ fn apply_native_host_optional_capability_policy(
     config::Config::set_option(
         config::keys::OPTION_ENABLE_AUDIO.to_owned(),
         native_host_audio_option(audio_enabled).to_owned(),
+    );
+    config::Config::set_option(
+        "audio-input".to_owned(),
+        audio_input_device.to_owned(),
     );
 }
 
@@ -5133,6 +5161,7 @@ fn verify_host_start_storage_paths(
     _server_public_key: &str,
     _clipboard_policy: NativeClipboardTransferPolicy,
     _audio_enabled: bool,
+    _audio_input_device: &str,
     _file_transfer_enabled: bool,
 ) -> Result<(), HostStoragePreflightError> {
     Err(HostStoragePreflightError::UnsupportedPlatform)
@@ -5165,6 +5194,7 @@ fn verify_host_start_storage_paths(
     server_public_key: &str,
     clipboard_policy: NativeClipboardTransferPolicy,
     audio_enabled: bool,
+    audio_input_device: &str,
     file_transfer_enabled: bool,
 ) -> Result<(), HostStoragePreflightError> {
     let (identity, options) = inspect_host_storage_paths(identity_path, options_path, None)?;
@@ -5198,6 +5228,7 @@ fn verify_host_start_storage_paths(
             config::keys::OPTION_ENABLE_AUDIO,
             native_host_audio_option(audio_enabled),
         ),
+        ("audio-input", audio_input_device),
         ("stop-service", ""),
     ];
     if expected
@@ -5440,6 +5471,7 @@ pub unsafe extern "C" fn rdn_host_start(host: *mut RdnHost) -> i32 {
     apply_native_host_optional_capability_policy(
         host.clipboard_transfer_policy,
         host.audio_enabled,
+        &host.audio_input_device,
         host.file_transfer_enabled,
     );
     // FarPane Host owns an active authenticated screen route as a bounded
@@ -6592,12 +6624,55 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                "",
                 false,
             ),
             Ok(())
         );
         assert_eq!(fs::read(&fixture.identity).unwrap(), identity);
         assert_eq!(fs::read(&fixture.options).unwrap(), options);
+
+        let mut explicit_config: config::Config2 =
+            toml::from_str(std::str::from_utf8(&options).unwrap()).unwrap();
+        explicit_config.options.insert(
+            "audio-input".to_owned(),
+            "BlackHole 2ch".to_owned(),
+        );
+        explicit_config.options.insert(
+            config::keys::OPTION_ENABLE_AUDIO.to_owned(),
+            "Y".to_owned(),
+        );
+        let explicit_options = toml::to_string(&explicit_config).unwrap().into_bytes();
+        HostStorageFixture::write_private(&fixture.options, &explicit_options);
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                rendezvous_server,
+                relay_server,
+                server_public_key,
+                NativeClipboardTransferPolicy::default(),
+                true,
+                "BlackHole 2ch",
+                false,
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            verify_host_start_storage_paths(
+                &fixture.identity,
+                &fixture.options,
+                rendezvous_server,
+                relay_server,
+                server_public_key,
+                NativeClipboardTransferPolicy::default(),
+                true,
+                "",
+                false,
+            ),
+            Err(HostStoragePreflightError::PersistenceMismatch)
+        );
+        assert_eq!(fs::read(&fixture.options).unwrap(), explicit_options);
     }
 
     #[cfg(unix)]
@@ -6646,6 +6721,7 @@ mod tests {
                     server_public_key,
                     policy,
                     false,
+                    "",
                     false,
                 ),
                 Ok(())
@@ -6660,6 +6736,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                "",
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -6693,6 +6770,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                "",
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -6709,6 +6787,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                "",
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -6732,6 +6811,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                "",
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -6769,6 +6849,20 @@ mod tests {
         assert_eq!(native_host_audio_option(true), "Y");
         assert_eq!(native_host_file_transfer_option(false), "N");
         assert_eq!(native_host_file_transfer_option(true), "Y");
+    }
+
+    #[test]
+    fn native_host_audio_input_device_is_bounded_explicit_and_default_safe() {
+        assert!(valid_native_host_audio_input_device(false, ""));
+        assert!(valid_native_host_audio_input_device(true, ""));
+        assert!(valid_native_host_audio_input_device(true, "BlackHole 2ch"));
+        assert!(!valid_native_host_audio_input_device(false, "BlackHole 2ch"));
+        assert!(!valid_native_host_audio_input_device(true, " BlackHole 2ch"));
+        assert!(!valid_native_host_audio_input_device(true, "BlackHole\n2ch"));
+        assert!(!valid_native_host_audio_input_device(
+            true,
+            &"x".repeat(AUDIO_INPUT_DEVICE_MAX_UTF8_BYTES + 1),
+        ));
     }
 
     #[cfg(target_os = "macos")]
@@ -7894,6 +7988,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 true,
+                "",
                 false,
             ),
             Ok(())
@@ -7907,6 +8002,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                "",
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -7939,6 +8035,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                "",
                 true,
             ),
             Ok(())
@@ -7952,6 +8049,7 @@ mod tests {
                 server_public_key,
                 NativeClipboardTransferPolicy::default(),
                 false,
+                "",
                 false,
             ),
             Err(HostStoragePreflightError::PersistenceMismatch)
@@ -8215,6 +8313,7 @@ mod tests {
             server_public_key: String::new(),
             clipboard_transfer_policy: NativeClipboardTransferPolicy::default(),
             audio_enabled: false,
+            audio_input_device: String::new(),
             file_transfer_enabled: false,
             #[cfg(target_os = "macos")]
             file_service_owner: None,

@@ -133,8 +133,8 @@ def main() -> int:
     )
 
     evidence = {
-        "hostABIV18AndSnapshotV8PreserveNetworkRecovery": (
-            rust_abi == 18 and header_abi == 18 and snapshot_schema == 8
+        "currentHostABIAndSnapshotV8PreserveNetworkRecovery": (
+            rust_abi == 19 and header_abi == 19 and snapshot_schema == 8
         ),
         "runtimeOwnsOnlyBoundedRegistrationRestartPrimitives": (
             ordered(
@@ -358,7 +358,7 @@ def main() -> int:
     missing = [name for name, present in evidence.items() if not present]
 
     target_contract = {
-        "hostABIVersion": 18,
+        "hostABIVersion": 19,
         "snapshotSchemaVersion": 8,
         "symbol": target_symbol,
         "signature": "int32_t(RdnHost *, uint64_t path_generation)",

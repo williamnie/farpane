@@ -115,7 +115,7 @@ def main() -> int:
                 "host-audio-bootstrap-microphone-opt-in-contract",
             )
         ),
-        "hostABIIsExactlyV18": header_abi == rust_abi == 18,
+        "currentHostABIPreservesV18AudioPolicy": header_abi == rust_abi == 19,
         "cCreateOptionsCarryDedicatedAudioPolicy": "bool enable_audio;" in header,
         "swiftPolicyDefaultsOffAndProjectsToC": all(
             marker in host_control
@@ -178,10 +178,10 @@ def main() -> int:
             in sources["client"]
             and "!receive_audio" in sources["client"]
         ),
-        "laterMicrophoneTCCExtensionDoesNotAlterHostABI": (
+        "laterExtensionsPreserveV18AudioPolicy": (
             "NSMicrophoneUsageDescription" in sources["info"]
             and "AVCaptureDevice.requestAccess(" in sources["microphone"]
-            and header_abi == rust_abi == 18
+            and header_abi == rust_abi == 19
         ),
         "releaseBuildStillExcludesScreenCaptureKit": (
             "rdn-native-core,rdn-native-host" in sources["build"]
@@ -206,7 +206,7 @@ def main() -> int:
         "designMilestone": line_number(
             sources["design"], "H6.1b Host audio explicit-policy ABI seam"
         ),
-        "hostABIv18": line_number(header, "RDN_HOST_ABI_VERSION 18u"),
+        "hostABIv19": line_number(header, "RDN_HOST_ABI_VERSION 19u"),
         "cAudioPolicy": line_number(header, "bool enable_audio;"),
         "swiftDefault": line_number(host_control, "audioEnabled: Bool = false"),
         "rustPolicyCopy": line_number(

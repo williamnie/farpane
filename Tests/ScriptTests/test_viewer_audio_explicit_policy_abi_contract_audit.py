@@ -33,7 +33,7 @@ class ViewerAudioExplicitPolicyABIContractAuditTests(unittest.TestCase):
             document["status"],
             "viewer-audio-abi-capable-product-default-off",
         )
-        self.assertEqual(document["currentABI"], {"host": 18, "viewer": 18})
+        self.assertEqual(document["currentABI"], {"host": 19, "viewer": 18})
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))

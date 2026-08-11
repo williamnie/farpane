@@ -34,7 +34,7 @@ class HostClipboardExplicitPolicyABIContractAuditTests(unittest.TestCase):
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         implementation = document["implementation"]
-        self.assertEqual(implementation["hostABIVersion"], 18)
+        self.assertEqual(implementation["hostABIVersion"], 19)
         self.assertTrue(all(implementation["evidence"].values()))
         self.assertTrue(all(implementation["sourceLines"].values()))
         self.assertTrue(document["claims"]["hostDirectionsRepresentable"])
