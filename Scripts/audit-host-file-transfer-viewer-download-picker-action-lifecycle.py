@@ -97,8 +97,8 @@ def main() -> int:
             for marker in (
                 "case accepted(transferID: Int32)",
                 "case destinationRejected",
-                "private func beginQueuedDownloadIfNeeded()",
-                "beginQueuedDownloadIfNeeded()",
+                "private func beginQueuedActionIfNeeded()",
+                "beginQueuedActionIfNeeded()",
             )
         ),
         "queuedActionCancelAndFailureCloseAuthority": all(
@@ -163,9 +163,9 @@ def main() -> int:
             for marker in (
                 "var onFileTransferAction: (() -> Void)?",
                 "NSButton(title: \"接收文件\"",
-                "if showsFileTransferControls { views.append(fileTransferButton) }",
+                "views.append(fileTransferButton)",
                 "func setFileTransferAvailable(_ available: Bool)",
-                "func updateFileTransferAction(active: Bool, cancellable: Bool = false)",
+                "func updateFileTransferAction(",
                 "onFileTransferAction?()",
             )
         ) and all(

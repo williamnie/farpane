@@ -117,6 +117,7 @@ for core in "${core_libraries[@]}"; do
   nm -gU "$core" | grep -q _rdn_client_file_transfer_list_root
   nm -gU "$core" | grep -q _rdn_client_file_transfer_manifest_root
   nm -gU "$core" | grep -q _rdn_client_file_transfer_download_start
+  nm -gU "$core" | grep -q _rdn_client_file_transfer_upload_start
 done
 if (( ${#core_libraries} == 1 )); then
   cp "${core_libraries[1]}" \

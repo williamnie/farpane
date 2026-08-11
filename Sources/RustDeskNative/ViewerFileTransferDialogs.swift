@@ -43,7 +43,7 @@ final class ViewerFileTransferDestinationPickerController {
 
 /// Owns one explicit upload-source selection. The returned URLs must be
 /// consumed immediately by the descriptor-backed CoreBridge owner; this
-/// controller is intentionally not wired to Viewer product UI yet.
+/// controller hands the selection directly to the descriptor-backed owner.
 final class ViewerFileTransferUploadSourcePickerController {
     private var panel: NSOpenPanel?
 
@@ -107,7 +107,7 @@ final class ViewerFileTransferPasswordPromptController {
         passwordField.frame = NSRect(x: 0, y: 0, width: 380, height: 24)
 
         let alert = NSAlert()
-        alert.messageText = "验证远端文件接收"
+        alert.messageText = "验证远端文件传输"
         alert.informativeText = "文件传输使用与当前远端相同的访问密码；该密码不会因本次操作保存。"
         alert.accessoryView = passwordField
         alert.addButton(withTitle: "继续")

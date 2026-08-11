@@ -232,8 +232,8 @@ def main() -> int:
             and "audit-host-file-transfer-native-resume-digest-lifecycle.py"
                 in passed_audits
         ),
-        "viewerUploadGapIsProvenByCurrentProductSources": (
-            viewer_upload_gap_proven
+        "viewerUploadStateMatchesCurrentProductSources": (
+            viewer_upload or viewer_upload_gap_proven
         ),
         "viewerUploadSelectionManifestIsReadyForWireReview": upload_selection,
     }

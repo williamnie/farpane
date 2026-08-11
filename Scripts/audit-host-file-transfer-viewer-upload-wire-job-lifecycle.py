@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCHEMA = "farpane-host-file-transfer-viewer-upload-wire-job-lifecycle-audit"
-NEXT_BOUNDARY = "host-file-transfer-viewer-upload-product-action-lifecycle"
+NEXT_BOUNDARY = "host-file-transfer-installed-single-mac-smoke"
 
 
 def read(path: Path) -> str:
@@ -89,9 +89,9 @@ def main() -> int:
             "confirmed upload must emit one bounded block",
             "completed payload must emit Done",
         )),
-        "productUploadActionRemainsDefaultOff": (
-            "requestFileTransferUpload" not in sources["app"]
-            and "onFileTransferUploadAction" not in sources["viewer"]
+        "productActionConsumesOwnedWireLifecycle": (
+            "requestFileTransferUpload" in sources["app"]
+            and "onFileTransferUploadAction" in sources["viewer"]
         ),
         "designRecordsWireScopeAndNonBlockingTwoMacGap": all(
             marker in sources["design"] for marker in (
@@ -116,7 +116,7 @@ def main() -> int:
     result = {
         "schema": SCHEMA,
         "schemaVersion": 1,
-        "status": "viewer-upload-wire-job-implemented-product-off" if passed else "audit-failed",
+        "status": "viewer-upload-wire-job-implemented" if passed else "audit-failed",
         "coverageScope": "h6-host-file-transfer-viewer-upload-wire-job-lifecycle",
         "evidence": evidence,
         "sourceLines": source_lines,
@@ -126,7 +126,7 @@ def main() -> int:
             "viewerUploadWireImplemented": passed,
             "swiftRetainsSourceDescriptorOwnership": passed,
             "existingTargetReplacementImplemented": False,
-            "viewerUploadProductActionImplemented": False,
+            "viewerUploadProductActionImplemented": passed,
             "twoMacAcceptanceComplete": False,
         },
         "nextImplementationBoundary": NEXT_BOUNDARY,

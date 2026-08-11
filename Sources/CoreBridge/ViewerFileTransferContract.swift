@@ -267,7 +267,6 @@ package struct ViewerFileTransferProgressAuthority: Sendable {
     package static let maximumConcurrentTransfers = 8
 
     private struct ActiveTransfer: Sendable {
-        let request: ViewerFileTransferDownloadRequest
         var snapshot: ViewerFileTransferProgressSnapshot
     }
 
@@ -280,27 +279,49 @@ package struct ViewerFileTransferProgressAuthority: Sendable {
     package mutating func begin(
         _ request: ViewerFileTransferDownloadRequest
     ) -> ViewerFileTransferProgressSnapshot? {
-        guard
-            activeTransfers.count < Self.maximumConcurrentTransfers,
-            activeTransfers[request.transferID] == nil
-        else { return nil }
-        let snapshot = ViewerFileTransferProgressSnapshot(
+        begin(
             sessionEpoch: request.sessionEpoch,
             transferID: request.transferID,
             direction: .download,
+            manifest: request.manifest
+        )
+    }
+
+    package mutating func begin(
+        _ request: ViewerFileTransferUploadRequest
+    ) -> ViewerFileTransferProgressSnapshot? {
+        begin(
+            sessionEpoch: request.sessionEpoch,
+            transferID: request.transferID,
+            direction: .upload,
+            manifest: request.manifest
+        )
+    }
+
+    private mutating func begin(
+        sessionEpoch: UInt64,
+        transferID: Int32,
+        direction: ViewerFileTransferDirection,
+        manifest: ViewerFileTransferManifest
+    ) -> ViewerFileTransferProgressSnapshot? {
+        guard
+            activeTransfers.count < Self.maximumConcurrentTransfers,
+            activeTransfers[transferID] == nil
+        else { return nil }
+        let snapshot = ViewerFileTransferProgressSnapshot(
+            sessionEpoch: sessionEpoch,
+            transferID: transferID,
+            direction: direction,
             sequence: 0,
             phase: .queued,
             currentFileNumber: nil,
             filesCompleted: 0,
-            totalFiles: request.manifest.files.count,
+            totalFiles: manifest.files.count,
             bytesCompleted: 0,
-            totalBytes: request.manifest.totalBytes,
+            totalBytes: manifest.totalBytes,
             bytesPerSecond: 0
         )
-        activeTransfers[request.transferID] = ActiveTransfer(
-            request: request,
-            snapshot: snapshot
-        )
+        activeTransfers[transferID] = ActiveTransfer(snapshot: snapshot)
         return snapshot
     }
 

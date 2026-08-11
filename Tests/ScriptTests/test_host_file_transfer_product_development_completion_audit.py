@@ -7,7 +7,7 @@ import unittest
 class HostFileTransferProductDevelopmentCompletionAuditTests(
     unittest.TestCase
 ):
-    def test_current_repository_reports_only_the_viewer_upload_gap(self) -> None:
+    def test_current_repository_reports_product_development_complete(self) -> None:
         repository = Path(__file__).resolve().parents[2]
         completed = subprocess.run(
             [
@@ -26,7 +26,7 @@ class HostFileTransferProductDevelopmentCompletionAuditTests(
         document = json.loads(completed.stdout)
         self.assertEqual(
             document["status"],
-            "product-development-incomplete-viewer-upload",
+            "product-development-complete",
         )
         self.assertEqual(document["failedRequiredAudits"], [])
         self.assertGreaterEqual(document["requiredAuditCount"], 40)
@@ -37,17 +37,17 @@ class HostFileTransferProductDevelopmentCompletionAuditTests(
         self.assertTrue(claims["hostSendDataPlaneImplemented"])
         self.assertTrue(claims["viewerDownloadProductActionImplemented"])
         self.assertTrue(claims["viewerUploadSelectionManifestImplemented"])
-        self.assertFalse(claims["viewerUploadProductActionImplemented"])
-        self.assertFalse(claims["fileTransferProductDevelopmentComplete"])
+        self.assertTrue(claims["viewerUploadProductActionImplemented"])
+        self.assertTrue(claims["fileTransferProductDevelopmentComplete"])
         self.assertFalse(claims["installedSingleMacSmokeComplete"])
         self.assertFalse(claims["twoMacBidirectionalAcceptanceComplete"])
         self.assertEqual(
             document["remainingDevelopmentGaps"],
-            ["viewerUploadProductAction"],
+            [],
         )
         self.assertEqual(
             document["nextImplementationBoundary"],
-            "host-file-transfer-viewer-upload-product-action-lifecycle",
+            "host-file-transfer-installed-single-mac-smoke",
         )
 
 
