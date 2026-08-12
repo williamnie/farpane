@@ -245,7 +245,7 @@ final class ViewerChromeView: NSView {
 
     func updateHUD(_ value: PipelineHUDSnapshot) {
         hudLabel.stringValue = String(
-            format: "远端 %dx%d  →  本地 %dx%d\n编码 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  丢帧 %d\n队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
+            format: "远端 %dx%d  →  本地 %dx%d\n编码 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  累计丢帧 %d\n当前队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
             value.remoteWidth, value.remoteHeight, value.drawableWidth, value.drawableHeight,
             value.encodedFPS, value.presentedFPS, value.networkDelayMS,
             value.decodeMS, value.renderMS, value.droppedFrames,

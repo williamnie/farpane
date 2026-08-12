@@ -115,7 +115,12 @@ public final class VideoToolboxDecoder: @unchecked Sendable {
             }
         )
         if status != noErr {
-            stateLock.withLock { submitTimes.removeValue(forKey: sequence); _pendingFrames = max(0, _pendingFrames - 1) }
+            let queueDepth = stateLock.withLock {
+                submitTimes.removeValue(forKey: sequence)
+                _pendingFrames = max(0, _pendingFrames - 1)
+                return _pendingFrames
+            }
+            metrics.recordDecoderQueueDepth(queueDepth)
             throw VideoDecoderError.decode(status)
         }
     }
@@ -180,10 +185,11 @@ public final class VideoToolboxDecoder: @unchecked Sendable {
     }
 
     private func didDecode(status: OSStatus, imageBuffer: CVImageBuffer?, sequence: Int64) {
-        let started: UInt64? = stateLock.withLock {
+        let (started, queueDepth): (UInt64?, Int) = stateLock.withLock {
             _pendingFrames = max(0, _pendingFrames - 1)
-            return submitTimes.removeValue(forKey: sequence)
+            return (submitTimes.removeValue(forKey: sequence), _pendingFrames)
         }
+        metrics.recordDecoderQueueDepth(queueDepth)
         guard status == noErr, let pixelBuffer = imageBuffer else {
             stateLock.withLock { asyncDecodeError = status }
             metrics.recordDecodeError(status: status)

@@ -109,8 +109,9 @@ public final class MetalVideoRenderer: NSObject, MTKViewDelegate, @unchecked Sen
             metrics.recordDrop()
         }
         pendingFrames.append(pixelBuffer)
-        metrics.recordRendererQueueDepth(pendingFrames.count)
+        let queueDepth = pendingFrames.count
         frameLock.unlock()
+        metrics.recordRendererQueueDepth(queueDepth)
     }
 
     public func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
@@ -126,7 +127,9 @@ public final class MetalVideoRenderer: NSObject, MTKViewDelegate, @unchecked Sen
 
         frameLock.lock()
         let pixelBuffer = pendingFrames.isEmpty ? nil : pendingFrames.removeFirst()
+        let queueDepth = pendingFrames.count
         frameLock.unlock()
+        metrics.recordRendererQueueDepth(queueDepth)
 
         guard let pixelBuffer else { return }
 

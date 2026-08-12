@@ -177,6 +177,15 @@ pub(crate) fn native_host_session_is_available() -> bool {
     }
 }
 
+/// Returns the exact frame-rate ceiling proven by the native hardware probe.
+/// The video service uses this stable route contract while RustDesk QoS changes
+/// only writer pacing in place.
+pub(crate) fn native_media_max_fps() -> Option<u32> {
+    let broker = MEDIA_BROKER.lock().unwrap();
+    (broker.binding.is_some() && broker.capabilities.max_fps > 0)
+        .then_some(broker.capabilities.max_fps)
+}
+
 #[cfg(target_os = "macos")]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeHostFileMutation<'a> {

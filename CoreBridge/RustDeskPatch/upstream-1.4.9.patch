@@ -5501,6 +5501,15 @@ index b02f6ad..e5c27d3 100644
  }
 
  // User session management
+@@ -378,7 +429,7 @@ impl VideoQoS {
+     }
+
+     #[inline]
+-    fn highest_fps(&self) -> u32 {
++    pub(crate) fn highest_fps(&self) -> u32 {
+         let user_fps = |u: &UserData| {
+             let mut fps = u.custom_fps.unwrap_or(FPS);
+             if let Some(auto_adjust_fps) = u.auto_adjust_fps {
 @@ -593,3 +644,41 @@ impl RttCalculator {
          None
      }
@@ -5547,7 +5556,7 @@ diff --git a/src/server/video_service.rs b/src/server/video_service.rs
 index 9d97b1c..316fb67 100644
 --- a/src/server/video_service.rs
 +++ b/src/server/video_service.rs
-@@ -254,10 +254,317 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
+@@ -254,10 +254,370 @@ pub fn new(source: VideoSource, idx: usize) -> GenericService {
          idx,
          source,
      };
@@ -5578,11 +5587,10 @@ index 9d97b1c..316fb67 100644
 +        .saturating_mul(u64::from(height))
 +        .saturating_mul(u64::from(fps))
 +        / 10;
-+    fallback
-+        .clamp(
-+            u64::from(MIN_BITRATE_BPS.max(1_000_000)),
-+            u64::from(FALLBACK_MAX_BITRATE_BPS),
-+        ) as u32
++    fallback.clamp(
++        u64::from(MIN_BITRATE_BPS.max(1_000_000)),
++        u64::from(FALLBACK_MAX_BITRATE_BPS),
++    ) as u32
 +}
 +
 +#[cfg(feature = "rdn-native-host")]
@@ -5646,11 +5654,12 @@ index 9d97b1c..316fb67 100644
 +        CodecFormat::H265 => crate::rdn_host_bridge::MEDIA_CODEC_H265,
 +        _ => bail!("native host codec is not negotiated"),
 +    };
-+    let (spf, bitrate_kbps) = {
++    let host_max_fps = crate::rdn_host_bridge::native_media_max_fps()
++        .ok_or_else(|| anyhow!("native media capabilities are unavailable"))?;
++    let (capture_fps, bitrate_kbps) = {
 +        let qos = VIDEO_QOS.lock().unwrap();
-+        (qos.spf(), qos.bitrate())
++        (qos.highest_fps().min(host_max_fps), qos.bitrate())
 +    };
-+    let fps = (1.0 / spf.as_secs_f64()).round().clamp(1.0, 240.0) as u32;
 +    // RustDesk encoder/QoS bitrate values are kbps; the native media control
 +    // contract and VideoToolbox AverageBitRate use bits per second. Before the
 +    // first upstream encoder exists, bitrate_store is zero, so derive the same
@@ -5659,7 +5668,7 @@ index 9d97b1c..316fb67 100644
 +        bitrate_kbps,
 +        display.width.max(0) as u32,
 +        display.height.max(0) as u32,
-+        fps,
++        capture_fps,
 +    );
 +    VIDEO_QOS
 +        .lock()
@@ -5673,7 +5682,7 @@ index 9d97b1c..316fb67 100644
 +        codec,
 +        display.width.max(0) as u32,
 +        display.height.max(0) as u32,
-+        fps,
++        capture_fps,
 +        bitrate_bps,
 +    )
 +    .map_err(|error| anyhow!(error))?;
@@ -5685,6 +5694,12 @@ index 9d97b1c..316fb67 100644
 +    let mut refresh_pending = false;
 +
 +    while sp.ok() {
++        // ScreenCaptureKit already paces native packets at the Swift-owned
++        // cadence. Do not add the upstream encoder's QoS sleep here: doing so
++        // makes the Rust queue reject the excess packets, and that rejection
++        // feeds back into Swift as local pressure until both sides lock near
++        // the QoS minimum. Network pressure is reported below and applied by
++        // the same Swift cadence owner instead.
 +        if !crate::rdn_host_bridge::native_host_session_is_available() {
 +            bail!("native host session is unavailable");
 +        }
@@ -5823,16 +5838,12 @@ index 9d97b1c..316fb67 100644
 +                transport.relay_subscribers,
 +                transport.unknown_subscribers,
 +            );
-+            VIDEO_QOS
-+                .lock()
-+                .unwrap()
-+                .update_display_data(&sp.name(), send_counter);
++            {
++                let mut qos = VIDEO_QOS.lock().unwrap();
++                qos.update_display_data(&sp.name(), send_counter);
++            }
 +            second_instant = Instant::now();
 +            send_counter = 0;
-+        }
-+        let elapsed = now.elapsed();
-+        if elapsed < spf {
-+            std::thread::sleep(spf - elapsed);
 +        }
 +    }
 +    Ok(())
@@ -5853,7 +5864,10 @@ index 9d97b1c..316fb67 100644
 +    fn configured_qos_bitrate_is_converted_and_clamped() {
 +        assert_eq!(native_media_bitrate_bps(2_500, 1_920, 1_080, 30), 2_500_000);
 +        assert_eq!(native_media_bitrate_bps(1, 1_920, 1_080, 30), 100_000);
-+        assert_eq!(native_media_bitrate_bps(u32::MAX, 1_920, 1_080, 30), 100_000_000);
++        assert_eq!(
++            native_media_bitrate_bps(u32::MAX, 1_920, 1_080, 30),
++            100_000_000
++        );
 +    }
 +}
 +

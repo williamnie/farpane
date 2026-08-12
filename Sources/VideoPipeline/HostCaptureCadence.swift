@@ -13,7 +13,7 @@ public enum HostCapturePressureLevel: String, Equatable, Sendable {
   case severe
 }
 
-public enum HostCapturePressureCause: String, Equatable, Sendable {
+public enum HostCapturePressureCause: String, Equatable, Hashable, Sendable {
   case thermalState
   case lowPowerMode
   case encodeInFlight
@@ -230,6 +230,7 @@ public struct HostCaptureCadenceController: Sendable {
   private var dirtyRatios: [Double] = []
   private var lastTransitionNanoseconds: UInt64
   private var pressureLevel = HostCapturePressureLevel.none
+  private var pressureCauses: Set<HostCapturePressureCause> = []
   private var pressureRecoverySamples = 0
   private var lastPressureTransitionNanoseconds: UInt64
 
@@ -355,18 +356,21 @@ public struct HostCaptureCadenceController: Sendable {
     _ backpressure: HostCaptureBackpressure,
     nowNanoseconds: UInt64
   ) {
-    let observed = backpressure.level(
+    let assessment = backpressure.assessment(
       maximumFramesPerSecond: maximumFramesPerSecond
     )
+    let observed = assessment.level
     let observedRank = Self.rank(of: observed)
     let currentRank = Self.rank(of: pressureLevel)
     if observedRank > currentRank {
       pressureLevel = observed
+      pressureCauses = Set(assessment.causes)
       pressureRecoverySamples = 0
       lastPressureTransitionNanoseconds = nowNanoseconds
       return
     }
     if observedRank == currentRank {
+      pressureCauses = Set(assessment.causes)
       pressureRecoverySamples = 0
       return
     }
@@ -374,7 +378,16 @@ public struct HostCaptureCadenceController: Sendable {
     let dwellElapsed = nowNanoseconds >= lastPressureTransitionNanoseconds
       && nowNanoseconds - lastPressureTransitionNanoseconds >= minimumDwellNanoseconds
     if pressureRecoverySamples >= windowSize, dwellElapsed {
-      pressureLevel = observed
+      if currentRank - observedRank > 1 {
+        pressureLevel = Self.pressureLevel(rank: currentRank - 1)
+      } else {
+        pressureLevel = observed
+      }
+      if !assessment.causes.isEmpty {
+        pressureCauses = Set(assessment.causes)
+      } else if pressureLevel == .none {
+        pressureCauses.removeAll(keepingCapacity: true)
+      }
       pressureRecoverySamples = 0
       lastPressureTransitionNanoseconds = nowNanoseconds
     }
@@ -452,10 +465,27 @@ public struct HostCaptureCadenceController: Sendable {
   }
 
   private var pressureFramesPerSecondCap: Int {
+    let conservative = !pressureCauses.isDisjoint(with: [
+      .thermalState,
+      .lowPowerMode,
+      .networkDelay,
+      .roundTripTime,
+      .responseDelayed,
+    ])
     switch pressureLevel {
     case .none: return maximumFramesPerSecond
-    case .moderate: return min(maximumFramesPerSecond, 15)
-    case .severe: return min(maximumFramesPerSecond, 5)
+    case .moderate:
+      if conservative { return min(maximumFramesPerSecond, 15) }
+      return min(
+        maximumFramesPerSecond,
+        max(12, (maximumFramesPerSecond * 3 + 3) / 4)
+      )
+    case .severe:
+      if conservative { return min(maximumFramesPerSecond, 5) }
+      return min(
+        maximumFramesPerSecond,
+        max(10, (maximumFramesPerSecond + 1) / 2)
+      )
     }
   }
 
@@ -484,6 +514,14 @@ public struct HostCaptureCadenceController: Sendable {
     case .none: return 0
     case .moderate: return 1
     case .severe: return 2
+    }
+  }
+
+  private static func pressureLevel(rank: Int) -> HostCapturePressureLevel {
+    switch rank {
+    case 0: return .none
+    case 1: return .moderate
+    default: return .severe
     }
   }
 }
