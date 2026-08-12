@@ -45,6 +45,40 @@ final class ViewerPasteboardOwner {
         self.pasteboard = pasteboard
     }
 
+    /// Explicit Home actions still pass through the single pasteboard owner.
+    /// Product-owned writes are suppressed from an active Viewer poller so a
+    /// copied local ID or password is never echoed to the remote session.
+    func readLocalProductText() -> String? {
+        guard Thread.isMainThread,
+              pasteboard.pasteboardItems?.count == 1,
+              let text = pasteboard.string(forType: .string),
+              ViewerClipboardTextPolicy.accepts(text)
+        else { return nil }
+        return text
+    }
+
+    func writeLocalProductText(_ text: String) -> Bool {
+        guard Thread.isMainThread,
+              ViewerClipboardTextPolicy.accepts(text)
+        else { return false }
+        let item = NSPasteboardItem()
+        guard item.setString(text, forType: .string) else { return false }
+        pasteboard.clearContents()
+        guard pasteboard.writeObjects([item]) else { return false }
+
+        if active,
+           sendsAnyFormat,
+           let sessionEpoch,
+           let delay = pollingState.observeOwnedWrite(
+               sessionEpoch: sessionEpoch,
+               resultingChangeCount: pasteboard.changeCount
+           ) {
+            timer?.invalidate()
+            schedule(afterMilliseconds: delay, sessionEpoch: sessionEpoch)
+        }
+        return true
+    }
+
     func begin(
         sessionEpoch: UInt64,
         receiveTextEnabled: Bool,

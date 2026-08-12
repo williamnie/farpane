@@ -30,6 +30,10 @@ final class ViewerPasteboardProductCompositionContractTests: XCTestCase {
         XCTAssertTrue(owner.contains("pasteboard.writeObjects([item])"))
         XCTAssertTrue(owner.contains("resultingChangeCount: pasteboard.changeCount"))
         XCTAssertTrue(owner.contains("RunLoop.main.add(timer, forMode: .common)"))
+        XCTAssertTrue(owner.contains("func readLocalProductText() -> String?"))
+        XCTAssertTrue(owner.contains("func writeLocalProductText(_ text: String) -> Bool"))
+        XCTAssertTrue(owner.contains("ViewerClipboardTextPolicy.accepts(text)"))
+        XCTAssertTrue(owner.contains("pollingState.observeOwnedWrite("))
         XCTAssertFalse(owner.contains("print("))
 
         let swiftFiles = try FileManager.default.subpathsOfDirectory(

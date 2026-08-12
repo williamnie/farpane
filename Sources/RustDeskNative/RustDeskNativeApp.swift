@@ -1,6 +1,8 @@
 import AppKit
+import ApplicationServices
 import ConnectionCatalog
 import CoreBridge
+import CoreGraphics
 import Darwin
 import Foundation
 import MetalKit
@@ -776,7 +778,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         viewerView = nil
         pendingProductConnection?.password = ""
         pendingProductConnection = nil
-        let frame = NSRect(x: 0, y: 0, width: 860, height: 680)
+        let frame = NSRect(x: 0, y: 0, width: 1060, height: 720)
         let window = self.window ?? NSWindow(
             contentRect: frame,
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -785,7 +787,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         )
         window.isReleasedWhenClosed = false
         window.title = "FarPane"
-        window.minSize = NSSize(width: 720, height: 560)
+        window.minSize = NSSize(width: 860, height: 620)
+        window.appearance = NSAppearance(named: .darkAqua)
         let view = HomeView()
         view.onQuickConnect = { [weak self] peerID in self?.handleQuickConnect(peerID: peerID) }
         view.onViewerAudioOptInToggle = { [weak self] enabled in
@@ -893,6 +896,18 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 connectionID: connectionID
             ))
         }
+        view.onRefreshSystemPermissions = { [weak self] in
+            self?.refreshHomeUI()
+        }
+        view.onOpenSystemPermissionSettings = { kind in
+            Self.openSystemPermissionSettings(kind)
+        }
+        view.onReadLocalClipboardText = { [weak self] in
+            self?.viewerPasteboardOwner.readLocalProductText()
+        }
+        view.onWriteLocalClipboardText = { [weak self] text in
+            self?.viewerPasteboardOwner.writeLocalProductText(text) ?? false
+        }
         window.contentView = view
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -995,6 +1010,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             errorText: error,
             connectingPeerID: pendingProductConnection?.peerID,
             viewerAudioOptIn: viewerAudioOptInForNextConnection,
+            permissions: currentHomeSystemPermissions(),
             host: HostHomeSnapshot(
                 isEnabled: hostControl.isOn,
                 isControlEnabled:
@@ -1192,6 +1208,37 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             allowRemoteImageWrite: UserDefaults.standard.bool(
                 forKey: Self.hostClipboardImageWriteEnabledDefaultsKey
             )
+        )
+    }
+
+    private func currentHomeSystemPermissions()
+        -> HomeSystemPermissionSnapshot
+    {
+        let accessibilityOptions = [
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false,
+        ] as CFDictionary
+        let microphone: HomeSystemPermissionState
+        switch hostMicrophoneAuthorizationAuthority.authorizationStatus() {
+        case .authorized:
+            microphone = .granted
+        case .notDetermined:
+            microphone = .notDetermined
+        case .denied:
+            microphone = .denied
+        case .restricted:
+            microphone = .restricted
+        }
+        return HomeSystemPermissionSnapshot(
+            screenRecording: CGPreflightScreenCaptureAccess()
+                ? .granted
+                : .denied,
+            accessibility: AXIsProcessTrustedWithOptions(
+                accessibilityOptions
+            ) ? .granted : .denied,
+            inputMonitoring: CGPreflightListenEventAccess()
+                ? .granted
+                : .denied,
+            microphone: microphone
         )
     }
 
@@ -4919,6 +4966,26 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             destination = "Privacy_ListenEvent"
         default:
             return
+        }
+        guard let url = URL(
+            string: "x-apple.systempreferences:com.apple.preference.security?\(destination)"
+        ) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private static func openSystemPermissionSettings(
+        _ kind: HomeSystemPermissionKind
+    ) {
+        let destination: String
+        switch kind {
+        case .screenRecording:
+            destination = "Privacy_ScreenCapture"
+        case .accessibility:
+            destination = "Privacy_Accessibility"
+        case .inputMonitoring:
+            destination = "Privacy_ListenEvent"
+        case .microphone:
+            destination = "Privacy_Microphone"
         }
         guard let url = URL(
             string: "x-apple.systempreferences:com.apple.preference.security?\(destination)"
