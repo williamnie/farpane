@@ -3,12 +3,23 @@ import CoreGraphics
 import Foundation
 
 public enum HostApplicationLifecyclePolicy {
-    /// Closing the product window must not tear down an active in-process Host.
-    /// Explicit application termination still runs the normal Host shutdown path.
+    /// Closing the product window only hides the UI. Explicit application
+    /// termination (for example Command-Q) still runs the normal shutdown path.
     public static func shouldTerminateAfterLastWindowClosed(
-        hostRuntimeActive: Bool
+        hostRuntimeActive _: Bool
     ) -> Bool {
-        !hostRuntimeActive
+        false
+    }
+}
+
+public enum ProductWindowTransitionPolicy {
+    /// Replacing a full-screen window's content must preserve its current
+    /// content size. Calling `setContentSize` during the transition leaves the
+    /// replacement viewer at its old windowed dimensions inside full screen.
+    public static func shouldResetWindowedContentSize(
+        isFullScreen: Bool
+    ) -> Bool {
+        !isFullScreen
     }
 }
 
