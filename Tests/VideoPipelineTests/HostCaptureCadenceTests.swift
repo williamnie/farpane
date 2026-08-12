@@ -103,7 +103,7 @@ final class HostCaptureCadenceTests: XCTestCase {
     )
     XCTAssertEqual(capped.contentState, .highMotion)
     XCTAssertEqual(capped.pressureLevel, .moderate)
-    XCTAssertEqual(capped.framesPerSecond, 15)
+    XCTAssertEqual(capped.framesPerSecond, 45)
 
     for time in [1.5, 2.0, 2.5] {
       let held = controller.observe(
@@ -112,7 +112,7 @@ final class HostCaptureCadenceTests: XCTestCase {
         nowNanoseconds: nanoseconds(time)
       )
       XCTAssertEqual(held.pressureLevel, .moderate)
-      XCTAssertEqual(held.framesPerSecond, 15)
+      XCTAssertEqual(held.framesPerSecond, 45)
     }
     let recovered = controller.observe(
       dirtyAreaRatio: 0.5,
@@ -146,7 +146,104 @@ final class HostCaptureCadenceTests: XCTestCase {
     XCTAssertEqual(decision.contentState, .highMotion)
     XCTAssertFalse(decision.dirtyMetadataTrusted)
     XCTAssertEqual(decision.pressureLevel, .severe)
-    XCTAssertEqual(decision.framesPerSecond, 5)
+    XCTAssertEqual(decision.framesPerSecond, 30)
+  }
+
+  func testLocalSeverePressureRecoversOneLevelAtATime() {
+    var controller = HostCaptureCadenceController(
+      maximumFramesPerSecond: 60,
+      windowSize: 2,
+      minimumDwellTime: 0,
+      startedAtNanoseconds: 0
+    )
+    let severe = HostCaptureBackpressure(
+      encodeInFlight: 0,
+      latestEncodeLatencyMS: nil,
+      recentSendOutcomeCount: 8,
+      recentSendDropRate: 0.25,
+      consecutiveSendDrops: 0
+    )
+
+    XCTAssertEqual(controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: severe,
+      nowNanoseconds: nanoseconds(1)
+    ).framesPerSecond, 30)
+    _ = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(2)
+    )
+    let moderate = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(3)
+    )
+    XCTAssertEqual(moderate.pressureLevel, .moderate)
+    XCTAssertEqual(moderate.framesPerSecond, 45)
+
+    _ = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(4)
+    )
+    let recovered = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(5)
+    )
+    XCTAssertEqual(recovered.pressureLevel, .none)
+    XCTAssertEqual(recovered.framesPerSecond, 60)
+  }
+
+  func testObservedThirtyFPSRouteNeverCollapsesToFiveAndConvergesBackToThirty() {
+    var controller = HostCaptureCadenceController(
+      maximumFramesPerSecond: 30,
+      windowSize: 2,
+      minimumDwellTime: 0,
+      startedAtNanoseconds: 0
+    )
+    let localQueuePressure = HostCaptureBackpressure(
+      encodeInFlight: 0,
+      latestEncodeLatencyMS: nil,
+      recentSendOutcomeCount: 30,
+      recentSendDropRate: 0.25,
+      consecutiveSendDrops: 0
+    )
+
+    let pressured = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: localQueuePressure,
+      nowNanoseconds: nanoseconds(1)
+    )
+    XCTAssertEqual(pressured.pressureLevel, .severe)
+    XCTAssertEqual(pressured.framesPerSecond, 15)
+
+    _ = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(2)
+    )
+    let recovering = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(3)
+    )
+    XCTAssertEqual(recovering.pressureLevel, .moderate)
+    XCTAssertEqual(recovering.framesPerSecond, 23)
+
+    _ = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(4)
+    )
+    let recovered = controller.observe(
+      dirtyAreaRatio: 0.5,
+      backpressure: .clear,
+      nowNanoseconds: nanoseconds(5)
+    )
+    XCTAssertEqual(recovered.pressureLevel, .none)
+    XCTAssertEqual(recovered.framesPerSecond, 30)
   }
 
   func testPressureThresholdsUseNegotiatedFrameBudget() {

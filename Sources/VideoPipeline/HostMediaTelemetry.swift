@@ -163,9 +163,13 @@ public struct HostMediaTelemetrySnapshot: Equatable, Sendable {
 /// production signpost recorder (or a test recorder), keeping measurement and
 /// Instruments correlation on the same event boundary.
 public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Sendable {
+  private struct SendOutcomeSample {
+    let dropped: Bool
+    let recordedAtNS: UInt64
+  }
+
   private static let maximumLatencySamples = 2_048
   private static let maximumTrackedEncodeLatencies = 512
-  private static let maximumSendOutcomeSamples = 32
   private static let recentEventWindowNS: UInt64 = 5_000_000_000
   private static let maximumRecentEventSamples = 1_202
 
@@ -229,9 +233,10 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
   private var recentSendAcceptedTimestampsNS: [UInt64] = []
   private var nextRecentSendAcceptedTimestampIndex = 0
   private var sendDropped = 0
-  private var sendOutcomeSamples: [Bool] = []
+  private var sendOutcomeSamples: [SendOutcomeSample] = []
   private var nextSendOutcomeSampleIndex = 0
   private var consecutiveSendDrops = 0
+  private var lastSendOutcomeTimestampNS: UInt64?
   private var encodedQueueSamples = 0
   private var encodedQueueDepth: Int?
   private var maximumEncodedQueueDepth: Int?
@@ -536,27 +541,34 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
           timestampsNS: &recentSendAcceptedTimestampsNS,
           nextIndex: &nextRecentSendAcceptedTimestampIndex
         )
-        appendSendOutcome(dropped: false)
+        appendSendOutcome(dropped: false, nowNS: nowNS)
         consecutiveSendDrops = 0
+        lastSendOutcomeTimestampNS = nowNS
       case .sendDropped:
         sendDropped += 1
-        appendSendOutcome(dropped: true)
+        appendSendOutcome(dropped: true, nowNS: nowNS)
         if consecutiveSendDrops < Int.max { consecutiveSendDrops += 1 }
+        lastSendOutcomeTimestampNS = nowNS
       }
     }
   }
 
   func captureBackpressure() -> HostCaptureBackpressure {
-    locked { captureBackpressureLocked }
+    captureBackpressure(nowNS: DispatchTime.now().uptimeNanoseconds)
   }
 
-  private var captureBackpressureLocked: HostCaptureBackpressure {
-    HostCaptureBackpressure(
+  func captureBackpressure(nowNS: UInt64) -> HostCaptureBackpressure {
+    locked { captureBackpressureLocked(nowNS: nowNS) }
+  }
+
+  private func captureBackpressureLocked(nowNS: UInt64) -> HostCaptureBackpressure {
+    let recentOutcomes = recentSendOutcomes(nowNS: nowNS)
+    return HostCaptureBackpressure(
       encodeInFlight: encodeInFlight,
       latestEncodeLatencyMS: latestEncodeLatencyMS,
-      recentSendOutcomeCount: sendOutcomeSamples.count,
-      recentSendDropRate: recentSendDropRate,
-      consecutiveSendDrops: consecutiveSendDrops,
+      recentSendOutcomeCount: recentOutcomes.count,
+      recentSendDropRate: Self.sendDropRate(recentOutcomes),
+      consecutiveSendDrops: recentConsecutiveSendDrops(nowNS: nowNS),
       encodedQueueDepth: encodedQueueDepth,
       encodedQueueCapacity: encodedQueueCapacity,
       consecutiveEncodedQueueNearFullSamples: consecutiveEncodedQueueNearFullSamples,
@@ -777,7 +789,9 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
         timestampsNS: recentSendAcceptedTimestampsNS,
         nowNS: nowNS
       )
-      let pressureAssessment = captureBackpressureLocked.assessment(
+      let recentSendOutcomes = recentSendOutcomes(nowNS: nowNS)
+      let recentSendDropRate = Self.sendDropRate(recentSendOutcomes)
+      let pressureAssessment = captureBackpressureLocked(nowNS: nowNS).assessment(
         maximumFramesPerSecond: configuration.framesPerSecond
       )
       let sortedLatencies = encodeLatencySamplesMS.sorted()
@@ -855,9 +869,9 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
         sendSubmissions: sendSubmissions,
         sendAccepted: sendAccepted,
         sendDropped: sendDropped,
-        recentSendOutcomeCount: sendOutcomeSamples.count,
+        recentSendOutcomeCount: recentSendOutcomes.count,
         recentSendDropRate: recentSendDropRate,
-        consecutiveSendDrops: consecutiveSendDrops,
+        consecutiveSendDrops: recentConsecutiveSendDrops(nowNS: nowNS),
         encodedQueueSamples: encodedQueueSamples,
         encodedQueueDepth: encodedQueueDepth,
         maximumEncodedQueueDepth: maximumEncodedQueueDepth,
@@ -969,22 +983,40 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
       / Self.seconds(from: oldestTimestampNS, to: nowNS)
   }
 
-  private func appendSendOutcome(dropped: Bool) {
-    if sendOutcomeSamples.count < Self.maximumSendOutcomeSamples {
-      sendOutcomeSamples.append(dropped)
+  private func appendSendOutcome(dropped: Bool, nowNS: UInt64) {
+    let sample = SendOutcomeSample(dropped: dropped, recordedAtNS: nowNS)
+    if sendOutcomeSamples.count < Self.maximumRecentEventSamples {
+      sendOutcomeSamples.append(sample)
       return
     }
-    sendOutcomeSamples[nextSendOutcomeSampleIndex] = dropped
+    sendOutcomeSamples[nextSendOutcomeSampleIndex] = sample
     nextSendOutcomeSampleIndex =
-      (nextSendOutcomeSampleIndex + 1) % Self.maximumSendOutcomeSamples
+      (nextSendOutcomeSampleIndex + 1) % Self.maximumRecentEventSamples
   }
 
-  private var recentSendDropRate: Double {
-    guard !sendOutcomeSamples.isEmpty else { return 0 }
-    let drops = sendOutcomeSamples.reduce(0) { count, dropped in
-      count + (dropped ? 1 : 0)
+  private func recentSendOutcomes(nowNS: UInt64) -> [SendOutcomeSample] {
+    let cutoff = nowNS > Self.recentEventWindowNS
+      ? nowNS - Self.recentEventWindowNS
+      : 0
+    return sendOutcomeSamples.filter {
+      $0.recordedAtNS >= cutoff && $0.recordedAtNS <= nowNS
     }
-    return Double(drops) / Double(sendOutcomeSamples.count)
+  }
+
+  private static func sendDropRate(_ samples: [SendOutcomeSample]) -> Double {
+    guard !samples.isEmpty else { return 0 }
+    let drops = samples.reduce(0) { count, sample in
+      count + (sample.dropped ? 1 : 0)
+    }
+    return Double(drops) / Double(samples.count)
+  }
+
+  private func recentConsecutiveSendDrops(nowNS: UInt64) -> Int {
+    guard let lastSendOutcomeTimestampNS,
+          nowNS >= lastSendOutcomeTimestampNS,
+          nowNS - lastSendOutcomeTimestampNS <= Self.recentEventWindowNS
+    else { return 0 }
+    return consecutiveSendDrops
   }
 
   private func instrumentedCount(for reason: HostMediaDropReason) -> Int? {

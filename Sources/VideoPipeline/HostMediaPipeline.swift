@@ -256,20 +256,16 @@ public final class HostMediaPipeline: @unchecked Sendable {
     lock.withLock { encoder?.requestKeyframe() }
   }
 
-  /// Drops the current encoder generation after an encoded packet could not
-  /// enter the ordered Rust queue. Old callbacks are ignored at the submit
-  /// boundary, while a fresh encoder starts with an IDR and parameter sets.
-  /// CompleteFrames/invalidate runs away from the VideoToolbox callback to
-  /// avoid reentrant waiting on the callback that requested recovery.
+  /// Preserves the current VideoToolbox session after an encoded packet could
+  /// not enter the ordered Rust queue and asks the next encoded frame to be an
+  /// IDR with parameter sets. Recreating the encoder for every transient queue
+  /// drop turns bounded backpressure into an encoder-reset loop and can starve
+  /// the video route while the input/control channel remains healthy.
   public func recoverFromEncodedPacketDrop() {
-    let encoder = lock.withLock { () -> HostMediaActiveEncoder? in
-      guard active, let encoder = self.encoder else { return nil }
-      encoderGeneration.invalidateCurrent()
-      self.encoder = nil
-      return encoder
+    lock.withLock {
+      guard active else { return }
+      encoder?.requestKeyframe()
     }
-    guard let encoder else { return }
-    encoderResetQueue.async { encoder.invalidate() }
   }
 
   /// Synchronously prevents any further encoded submission. Stream shutdown

@@ -2,9 +2,11 @@ import Foundation
 import Darwin
 
 public final class PipelineMetrics: @unchecked Sendable {
+    private static let hudFrameRateWindowNanoseconds: UInt64 = 5_000_000_000
     private let lock = NSLock()
     private let startedAt = Date()
-    private let startedUptimeNanoseconds = DispatchTime.now().uptimeNanoseconds
+    private let startedUptimeNanoseconds: UInt64
+    private let monotonicNow: @Sendable () -> UInt64
     private let processID = ProcessInfo.processInfo.processIdentifier
     private let bundleIdentifier = Bundle.main.bundleIdentifier ?? "unavailable"
     private let buildIdentifier =
@@ -14,6 +16,7 @@ public final class PipelineMetrics: @unchecked Sendable {
     private let initialResidentBytes: UInt64
     private var decodedFrames = 0
     private var presentedFrames = 0
+    private var recentPresentationUptimes: [UInt64] = []
     private var firstPresentationUptimeNanoseconds: UInt64?
     private var lastPresentationUptimeNanoseconds: UInt64?
     private var maxPresentationGapMilliseconds = 0.0
@@ -34,6 +37,8 @@ public final class PipelineMetrics: @unchecked Sendable {
     private var missingIOSurfaceFrames = 0
     private var maxQueueDepth = 0
     private var maxRendererQueueDepth = 0
+    private var currentQueueDepth = 0
+    private var currentRendererQueueDepth = 0
     private var decodeMilliseconds: [Double] = []
     private var renderMilliseconds: [Double] = []
     private var peakResidentBytes: UInt64 = 0
@@ -47,6 +52,7 @@ public final class PipelineMetrics: @unchecked Sendable {
     private var remoteEncodedHeight = 0
     private var encodedPackets = 0
     private var encodedFrames = 0
+    private var recentEncodedFrameUptimes: [UInt64] = []
     private var encodedBytes: UInt64 = 0
     private var firstEncodedUptimeNanoseconds: UInt64?
     private var lastEncodedTimestampUS: UInt64?
@@ -86,28 +92,57 @@ public final class PipelineMetrics: @unchecked Sendable {
     public let selectedGPU: String
     public let source: String
 
-    public init(
+    public convenience init(
         inputWidth: Int,
         inputHeight: Int,
         inputFPS: Double,
         selectedGPU: String,
         source: String = "fixture"
     ) {
+        self.init(
+            inputWidth: inputWidth,
+            inputHeight: inputHeight,
+            inputFPS: inputFPS,
+            selectedGPU: selectedGPU,
+            source: source,
+            monotonicNow: { DispatchTime.now().uptimeNanoseconds }
+        )
+    }
+
+    init(
+        inputWidth: Int,
+        inputHeight: Int,
+        inputFPS: Double,
+        selectedGPU: String,
+        source: String = "fixture",
+        monotonicNow: @escaping @Sendable () -> UInt64
+    ) {
         self.inputWidth = inputWidth
         self.inputHeight = inputHeight
         self.inputFPS = inputFPS
         self.selectedGPU = selectedGPU
         self.source = source
+        self.monotonicNow = monotonicNow
+        startedUptimeNanoseconds = monotonicNow()
         initialCPUSeconds = Self.currentCPUSeconds()
         initialResidentBytes = Self.currentResidentBytes()
         peakResidentBytes = initialResidentBytes
         sampleMemory()
     }
 
-    public func recordSubmitted(queueDepth: Int) { locked { submittedFrames += 1; maxQueueDepth = max(maxQueueDepth, queueDepth) } }
+    public func recordSubmitted(queueDepth: Int) {
+        locked {
+            submittedFrames += 1
+            currentQueueDepth = max(0, queueDepth)
+            maxQueueDepth = max(maxQueueDepth, currentQueueDepth)
+        }
+    }
+    public func recordDecoderQueueDepth(_ depth: Int) {
+        locked { currentQueueDepth = max(0, depth) }
+    }
     public func recordDecoded(milliseconds: Double) { locked { decodedFrames += 1; decodeMilliseconds.append(milliseconds) } }
     public func recordPresented(milliseconds: Double) {
-        let now = DispatchTime.now().uptimeNanoseconds
+        let now = monotonicNow()
         locked {
             if firstPresentationUptimeNanoseconds == nil {
                 firstPresentationUptimeNanoseconds = now
@@ -121,6 +156,7 @@ public final class PipelineMetrics: @unchecked Sendable {
             lastPresentationUptimeNanoseconds = now
             firstUnpresentedEncodedUptimeNanoseconds = nil
             presentedFrames += 1
+            Self.appendRecentFrame(now, to: &recentPresentationUptimes)
             renderMilliseconds.append(milliseconds)
         }
     }
@@ -168,7 +204,10 @@ public final class PipelineMetrics: @unchecked Sendable {
     public func recordNonNV12() { locked { nonNV12Frames += 1 } }
     public func recordMissingIOSurface() { locked { missingIOSurfaceFrames += 1 } }
     public func recordRendererQueueDepth(_ depth: Int) {
-        locked { maxRendererQueueDepth = max(maxRendererQueueDepth, depth) }
+        locked {
+            currentRendererQueueDepth = max(0, depth)
+            maxRendererQueueDepth = max(maxRendererQueueDepth, currentRendererQueueDepth)
+        }
     }
     public func recordEncodedPacket(
         codec: String,
@@ -183,7 +222,7 @@ public final class PipelineMetrics: @unchecked Sendable {
         width: Int,
         height: Int
     ) {
-        let now = DispatchTime.now().uptimeNanoseconds
+        let now = monotonicNow()
         locked {
             if firstUnpresentedEncodedUptimeNanoseconds == nil {
                 firstUnpresentedEncodedUptimeNanoseconds = now
@@ -202,6 +241,7 @@ public final class PipelineMetrics: @unchecked Sendable {
                 }
                 lastEncodedUptimeNanoseconds = now
                 encodedFrames += 1
+                Self.appendRecentFrame(now, to: &recentEncodedFrameUptimes)
             }
             lastEncodedTimestampUS = timestampUS
             encodedBytes += UInt64(max(0, byteCount))
@@ -266,20 +306,11 @@ public final class PipelineMetrics: @unchecked Sendable {
         let elapsed = max(0.001, Date().timeIntervalSince(startedAt))
         let cpuSeconds = Self.currentCPUSeconds() - initialCPUSeconds
         let residentMB = Double(Self.currentResidentBytes()) / 1_048_576
+        let now = monotonicNow()
         return locked {
             PipelineHUDSnapshot(
-                encodedFPS: Self.activeFrameRate(
-                    count: encodedFrames,
-                    first: firstEncodedUptimeNanoseconds,
-                    last: lastEncodedUptimeNanoseconds,
-                    fallback: Double(encodedFrames) / elapsed
-                ),
-                presentedFPS: Self.activeFrameRate(
-                    count: presentedFrames,
-                    first: firstPresentationUptimeNanoseconds,
-                    last: lastPresentationUptimeNanoseconds,
-                    fallback: Double(presentedFrames) / elapsed
-                ),
+                encodedFPS: Self.recentFrameRate(recentEncodedFrameUptimes, now: now),
+                presentedFPS: Self.recentFrameRate(recentPresentationUptimes, now: now),
                 remoteWidth: remoteEncodedWidth,
                 remoteHeight: remoteEncodedHeight,
                 drawableWidth: drawableWidth,
@@ -287,8 +318,8 @@ public final class PipelineMetrics: @unchecked Sendable {
                 decodeMS: Self.average(decodeMilliseconds),
                 renderMS: Self.average(renderMilliseconds),
                 droppedFrames: droppedFrames,
-                decoderQueueDepth: maxQueueDepth,
-                rendererQueueDepth: maxRendererQueueDepth,
+                decoderQueueDepth: currentQueueDepth,
+                rendererQueueDepth: currentRendererQueueDepth,
                 networkDelayMS: coreNetworkDelayMS,
                 cpuPercent: cpuSeconds / elapsed * 100,
                 residentMB: residentMB,
@@ -314,7 +345,7 @@ public final class PipelineMetrics: @unchecked Sendable {
         let elapsed = durationOverride ?? snapshotDate.timeIntervalSince(startedAt)
         let cpuSeconds = Self.currentCPUSeconds() - initialCPUSeconds
         let finalResidentBytes = Self.currentResidentBytes()
-        let snapshotUptimeNanoseconds = DispatchTime.now().uptimeNanoseconds
+        let snapshotUptimeNanoseconds = monotonicNow()
         return locked {
             let endToEndPresentedFPS = elapsed > 0 ? Double(presentedFrames) / elapsed : 0
             let activePresentedFPS = Self.activeFrameRate(
@@ -460,6 +491,29 @@ public final class PipelineMetrics: @unchecked Sendable {
         guard count > 1, let first, let last, last > first else { return fallback }
         let seconds = Double(last - first) / 1_000_000_000
         return Double(count - 1) / seconds
+    }
+
+    private static func appendRecentFrame(_ timestamp: UInt64, to values: inout [UInt64]) {
+        values.append(timestamp)
+        let cutoff = timestamp > hudFrameRateWindowNanoseconds
+            ? timestamp - hudFrameRateWindowNanoseconds
+            : 0
+        if let firstCurrent = values.firstIndex(where: { $0 >= cutoff }), firstCurrent > 0 {
+            values.removeFirst(firstCurrent)
+        }
+    }
+
+    private static func recentFrameRate(_ values: [UInt64], now: UInt64) -> Double {
+        let cutoff = now > hudFrameRateWindowNanoseconds
+            ? now - hudFrameRateWindowNanoseconds
+            : 0
+        guard let first = values.firstIndex(where: { $0 >= cutoff }) else { return 0 }
+        let current = values[first...]
+        guard current.count > 1,
+              let oldest = current.first,
+              let newest = current.last,
+              newest > oldest else { return 0 }
+        return Double(current.count - 1) / (Double(newest - oldest) / 1_000_000_000)
     }
 
     private static func currentCPUSeconds() -> Double {

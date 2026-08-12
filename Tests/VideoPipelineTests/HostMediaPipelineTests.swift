@@ -205,14 +205,14 @@ final class HostMediaPipelineTests: XCTestCase {
     XCTAssertTrue(gate.accepts(replacement))
   }
 
-  func testBackpressureResetStartsFreshH264GenerationWithIDR() async throws {
+  func testBackpressureRecoveryKeepsH264EncoderAndRequestsIDR() async throws {
     guard HostH264Encoder.hardwareEncodingSupported else {
       throw XCTSkip("H.264 hardware encode is unavailable on this machine")
     }
     _ = try await captureBackpressureResetAccessUnits(codec: .h264)
   }
 
-  func testBackpressureResetStartsFreshHEVCGenerationWithIDR() async throws {
+  func testBackpressureRecoveryKeepsHEVCEncoderAndRequestsIDR() async throws {
     guard HostHEVCEncoder.hardwareEncodingSupported else {
       throw XCTSkip("HEVC hardware encode is unavailable on this machine")
     }

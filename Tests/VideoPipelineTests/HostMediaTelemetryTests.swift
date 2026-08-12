@@ -194,7 +194,7 @@ final class HostMediaTelemetryTests: XCTestCase {
     XCTAssertEqual(snapshot.maximumRawFrameQueueDepth, 2)
   }
 
-  func testBoundsRecentSendOutcomeWindowForCaptureBackpressure() {
+  func testTracksEverySendOutcomeInsideTheFiveSecondWindow() {
     let telemetry = HostMediaTelemetry(
       configuration: HostMediaPipelineConfiguration(
         codec: .h264,
@@ -217,14 +217,74 @@ final class HostMediaTelemetryTests: XCTestCase {
     }
 
     let snapshot = telemetry.snapshot()
-    XCTAssertEqual(snapshot.recentSendOutcomeCount, 32)
+    XCTAssertEqual(snapshot.recentSendOutcomeCount, 40)
     XCTAssertEqual(snapshot.recentSendDropRate, 0.25, accuracy: 0.000_001)
     XCTAssertEqual(snapshot.consecutiveSendDrops, 0)
-    XCTAssertEqual(telemetry.captureBackpressure().recentSendOutcomeCount, 32)
+    XCTAssertEqual(telemetry.captureBackpressure().recentSendOutcomeCount, 40)
     XCTAssertEqual(
       telemetry.captureBackpressure().level(maximumFramesPerSecond: 30),
       .severe
     )
+  }
+
+  func testBoundsRecentSendOutcomeStorageAtMaximumFiveSecondRate() {
+    let telemetry = HostMediaTelemetry(
+      configuration: HostMediaPipelineConfiguration(
+        codec: .h264,
+        displayIndex: 0,
+        width: 1_920,
+        height: 1_080,
+        framesPerSecond: 240,
+        bitRate: 4_000_000
+      ),
+      stageRecorder: HostMediaNoopStageRecorder()
+    )
+
+    for index in 0..<1_300 {
+      telemetry.record(
+        index.isMultiple(of: 2) ? .sendDropped : .sendAccepted,
+        presentationTimeUS: UInt64(index),
+        byteCount: 1,
+        nowNS: 1_000_000_000
+      )
+    }
+
+    let pressure = telemetry.captureBackpressure(nowNS: 1_000_000_000)
+    XCTAssertEqual(pressure.recentSendOutcomeCount, 1_202)
+    XCTAssertEqual(pressure.recentSendDropRate, 0.5, accuracy: 0.000_001)
+  }
+
+  func testSendDropPressureExpiresOutsideTheFiveSecondWindow() {
+    let telemetry = HostMediaTelemetry(
+      configuration: HostMediaPipelineConfiguration(
+        codec: .h264,
+        displayIndex: 0,
+        width: 1_920,
+        height: 1_080,
+        framesPerSecond: 30,
+        bitRate: 4_000_000
+      ),
+      stageRecorder: HostMediaNoopStageRecorder()
+    )
+
+    for index in 0..<8 {
+      telemetry.record(
+        .sendDropped,
+        presentationTimeUS: UInt64(index),
+        byteCount: 1,
+        nowNS: UInt64(index + 1) * 100_000_000
+      )
+    }
+    XCTAssertEqual(
+      telemetry.captureBackpressure(nowNS: 1_000_000_000).recentSendOutcomeCount,
+      8
+    )
+
+    let expired = telemetry.captureBackpressure(nowNS: 6_000_000_001)
+    XCTAssertEqual(expired.recentSendOutcomeCount, 0)
+    XCTAssertEqual(expired.recentSendDropRate, 0)
+    XCTAssertEqual(expired.consecutiveSendDrops, 0)
+    XCTAssertEqual(expired.level(maximumFramesPerSecond: 30), .none)
   }
 
   func testTracksCadenceDecisionApplyFailureAndCancellationWithoutRawData() {

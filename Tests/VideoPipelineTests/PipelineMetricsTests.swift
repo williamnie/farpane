@@ -1,7 +1,70 @@
 import XCTest
-import VideoPipeline
+@testable import VideoPipeline
+
+private final class TestMonotonicClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: UInt64 = 0
+
+    func now() -> UInt64 {
+        lock.lock(); defer { lock.unlock() }
+        return value
+    }
+
+    func advance(seconds: Double) {
+        lock.lock(); defer { lock.unlock() }
+        value += UInt64(seconds * 1_000_000_000)
+    }
+}
 
 final class PipelineMetricsTests: XCTestCase {
+    func testHUDUsesRecentFrameRatesAndCurrentQueueDepths() {
+        let clock = TestMonotonicClock()
+        let metrics = PipelineMetrics(
+            inputWidth: 0,
+            inputHeight: 0,
+            inputFPS: 30,
+            selectedGPU: "test-gpu",
+            monotonicNow: { clock.now() }
+        )
+
+        for index in 0..<3 {
+            metrics.recordEncodedPacket(
+                codec: "h265",
+                format: "annex-b",
+                byteCount: 128,
+                sequence: UInt64(index),
+                timestampUS: UInt64(index + 1),
+                isKeyframe: index == 0,
+                containsVPS: index == 0,
+                containsSPS: index == 0,
+                containsPPS: index == 0,
+                width: 3840,
+                height: 2160
+            )
+            metrics.recordPresented(milliseconds: 1)
+            if index < 2 { clock.advance(seconds: 0.5) }
+        }
+        metrics.recordSubmitted(queueDepth: 2)
+        metrics.recordDecoderQueueDepth(0)
+        metrics.recordRendererQueueDepth(2)
+        metrics.recordRendererQueueDepth(0)
+
+        var hud = metrics.hudSnapshot()
+        XCTAssertEqual(hud.encodedFPS, 2, accuracy: 0.001)
+        XCTAssertEqual(hud.presentedFPS, 2, accuracy: 0.001)
+        XCTAssertEqual(hud.decoderQueueDepth, 0)
+        XCTAssertEqual(hud.rendererQueueDepth, 0)
+
+        clock.advance(seconds: 6)
+        hud = metrics.hudSnapshot()
+        XCTAssertEqual(hud.encodedFPS, 0)
+        XCTAssertEqual(hud.presentedFPS, 0)
+
+        let report = metrics.snapshot(durationOverride: 1)
+        XCTAssertEqual(report.maxQueueDepth, 2)
+        XCTAssertEqual(report.maxRendererQueueDepth, 2)
+    }
+
     func testRecordsDistinctEncodedFrameRateAndRemoteDimensions() {
         let metrics = PipelineMetrics(
             inputWidth: 0,
