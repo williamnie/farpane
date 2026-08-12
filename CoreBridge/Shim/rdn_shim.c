@@ -1,5 +1,6 @@
 #include "rustdesk_native.h"
 
+#include <ApplicationServices/ApplicationServices.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,6 +101,27 @@ struct RDNCoreLibrary {
 static void write_error(char *error, size_t size, const char *message) {
     if (error == NULL || size == 0) return;
     snprintf(error, size, "%s", message == NULL ? "unknown loader error" : message);
+}
+
+int rdn_shim_transform_current_process_to_ui_element(void) {
+    typedef OSStatus (*transform_process_type_fn)(
+        const ProcessSerialNumber *, ProcessApplicationTransformState);
+    void *framework = dlopen(
+        "/System/Library/Frameworks/ApplicationServices.framework/Frameworks/"
+        "HIServices.framework/Versions/A/HIServices",
+        RTLD_LAZY | RTLD_LOCAL);
+    if (framework == NULL) return 0;
+    transform_process_type_fn transform =
+        (transform_process_type_fn)dlsym(framework, "TransformProcessType");
+    if (transform == NULL) {
+        dlclose(framework);
+        return 0;
+    }
+    ProcessSerialNumber process = {0, kCurrentProcess};
+    OSStatus status = transform(
+        &process, kProcessTransformToUIElementApplication);
+    dlclose(framework);
+    return status == noErr;
 }
 
 RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) {

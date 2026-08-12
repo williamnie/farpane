@@ -384,6 +384,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     static func main() {
         if RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments)
             == .hostAgent {
+            guard HostAgentProcessPresentation
+                .transformCurrentProcessToUIElement() else {
+                exit(EXIT_FAILURE)
+            }
             exit(HostAgentProcessBootstrap.run())
         }
         let application = NSApplication.shared
@@ -545,7 +549,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 disableHostAgentBackgroundObservation()
             case .serviceUnavailable:
                 hostAgentBackgroundOwnershipErrorText =
-                    "无法确认后台组件注册状态；已暂停开关。"
+                    "后台组件需要重新注册；请重新开启“允许连接此 Mac”完成恢复。"
             case .enabled, .requiresApproval:
                 hostAgentBackgroundOwnershipErrorText = ""
             }
@@ -1875,12 +1879,20 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func updateHeldHostProductError(
         legacy: HostAgentLegacyHostMigrationAssessment
     ) {
-        if hostAgentBackgroundRegistrationStatus == .serviceUnavailable {
-            hostAgentBackgroundOwnershipErrorText =
-                "无法确认后台组件注册状态；为避免同时启动两个 Host，已暂停开关。"
-        } else if case .failed = legacy {
+        if case .failed = legacy {
             hostAgentBackgroundOwnershipErrorText =
                 "无法确认旧版 Host 是否已停止；已暂停开关。"
+        } else if hostAgentBackgroundRegistrationStatus
+            == .serviceUnavailable
+        {
+            let control = HostAgentBackgroundHomeRoutingPolicy.controlState(
+                registration: hostAgentBackgroundRegistrationStatus,
+                legacy: legacy,
+                flow: nil
+            )
+            hostAgentBackgroundOwnershipErrorText = control.isOn
+                ? "后台组件需要重新注册；请先关闭当前 Host，再重新开启以完成恢复。"
+                : "后台组件需要重新注册；请重新开启“允许连接此 Mac”完成恢复。"
         } else {
             hostAgentBackgroundOwnershipErrorText = ""
         }

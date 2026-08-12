@@ -97,6 +97,17 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
         }
     }
 
+    /// Returns the terminal outcome without blocking. Product entries that
+    /// must keep their main run loop alive can use this to wait cooperatively.
+    public func terminationOutcomeSnapshot()
+        -> HostAgentProcessTerminationOutcome?
+    {
+        condition.lock()
+        defer { condition.unlock() }
+        guard case .terminated(let outcome) = state else { return nil }
+        return outcome
+    }
+
     /// Provides a strong reference only while the gate is still running.
     /// Runtime-specific serialization remains owned by the runtime itself.
     public func withRunningRuntime<Value>(

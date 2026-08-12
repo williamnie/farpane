@@ -35,17 +35,7 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         }
     }
 
-    func testUnknownConflictAndInFlightStatesAreNotInteractive() {
-        XCTAssertEqual(
-            controlState(
-                .serviceUnavailable,
-                .blocked([.preferenceEnabled])
-            ),
-            HostAgentBackgroundHomeControlState(
-                isOn: true,
-                isInteractive: false
-            )
-        )
+    func testConflictingOwnershipAndInFlightStatesAreNotInteractive() {
         XCTAssertEqual(
             controlState(
                 .enabled,
@@ -99,6 +89,41 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         XCTAssertEqual(
             toggleRoute(false, .requiresApproval, .eligible),
             .beginUnregistration
+        )
+    }
+
+    func testReplacedAppCanExplicitlyRestoreMissingServiceRegistration() {
+        let residualPreference =
+            HostAgentLegacyHostMigrationAssessment.blocked([
+                .preferenceEnabled,
+            ])
+        XCTAssertEqual(
+            controlState(.serviceUnavailable, residualPreference),
+            HostAgentBackgroundHomeControlState(
+                isOn: false,
+                isInteractive: true
+            )
+        )
+        XCTAssertEqual(
+            toggleRoute(true, .serviceUnavailable, residualPreference),
+            .beginRegistration
+        )
+
+        let activeLegacyHost =
+            HostAgentLegacyHostMigrationAssessment.blocked([
+                .preferenceEnabled,
+                .runtimeActive,
+            ])
+        XCTAssertEqual(
+            controlState(.serviceUnavailable, activeLegacyHost),
+            HostAgentBackgroundHomeControlState(
+                isOn: true,
+                isInteractive: true
+            )
+        )
+        XCTAssertEqual(
+            toggleRoute(false, .serviceUnavailable, activeLegacyHost),
+            .stopLegacyHost
         )
     }
 
@@ -262,11 +287,6 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
             toggleRoute(false, .notRegistered, .eligible),
             toggleRoute(true, .enabled, .eligible),
             toggleRoute(
-                true,
-                .serviceUnavailable,
-                .eligible
-            ),
-            toggleRoute(
                 false,
                 .enabled,
                 .blocked([.runtimeActive])
@@ -278,7 +298,7 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
                 flow: .registration
             ),
         ]
-        XCTAssertEqual(routes, Array(repeating: .noAction, count: 5))
+        XCTAssertEqual(routes, Array(repeating: .noAction, count: 4))
     }
 
     func testResidualLegacyOwnershipCanEnterConfirmedMigrationFlow() {

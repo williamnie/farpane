@@ -274,8 +274,8 @@ final class HostAgentLaunchAgentAssetReaderTests: XCTestCase {
         try PropertyListSerialization.data(
             fromPropertyList: [
                 "Label": "io.rustdesknative.viewer.host-agent",
-                "BundleProgram": "Contents/MacOS/RustDeskNative",
-                "ProgramArguments": ["RustDeskNative", "--host-agent"],
+                "BundleProgram": "Contents/MacOS/FarPaneHostAgent",
+                "ProgramArguments": ["FarPaneHostAgent", "--host-agent"],
                 "MachServices": [
                     "io.rustdesknative.viewer.host-agent": true,
                 ],

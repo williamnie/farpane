@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 
 final class HostAgentProcessRealDispatchTests: XCTestCase {
-    func testHostAgentDispatchRunsBootstrapAndExitsBeforeAppKit() throws {
+    func testHostAgentDispatchTransformsPresentationBeforeBootstrap() throws {
         let appSource = try productSource("RustDeskNativeApp.swift")
         let roleDispatch = try XCTUnwrap(appSource.range(
             of: "RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments)"
@@ -10,15 +10,29 @@ final class HostAgentProcessRealDispatchTests: XCTestCase {
         let bootstrap = try XCTUnwrap(appSource.range(
             of: "exit(HostAgentProcessBootstrap.run())"
         ))
+        let transform = try XCTUnwrap(appSource.range(
+            of: "HostAgentProcessPresentation"
+        ))
         let appKit = try XCTUnwrap(appSource.range(of: "NSApplication.shared"))
         let delegate = try XCTUnwrap(appSource.range(of: "let delegate = AppDelegate()"))
 
         XCTAssertLessThan(roleDispatch.lowerBound, bootstrap.lowerBound)
+        XCTAssertLessThan(roleDispatch.lowerBound, transform.lowerBound)
+        XCTAssertLessThan(transform.lowerBound, bootstrap.lowerBound)
         XCTAssertLessThan(bootstrap.lowerBound, appKit.lowerBound)
         XCTAssertLessThan(bootstrap.lowerBound, delegate.lowerBound)
         XCTAssertFalse(appSource.contains("HostAgentBootstrap.failClosed()"))
         XCTAssertFalse(appSource.contains(
             "HostAgentProcessTerminalReporter.report(.unavailable)"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "guard HostAgentProcessPresentation"
+        ))
+        let presentationSource = try productSource(
+            "../CoreBridge/HostAgentProcessPresentation.swift"
+        )
+        XCTAssertTrue(presentationSource.contains(
+            "rdn_shim_transform_current_process_to_ui_element() != 0"
         ))
     }
 

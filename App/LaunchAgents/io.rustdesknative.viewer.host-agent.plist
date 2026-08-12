@@ -5,10 +5,10 @@
     <key>Label</key>
     <string>io.rustdesknative.viewer.host-agent</string>
     <key>BundleProgram</key>
-    <string>Contents/MacOS/RustDeskNative</string>
+    <string>Contents/MacOS/FarPaneHostAgent</string>
     <key>ProgramArguments</key>
     <array>
-        <string>RustDeskNative</string>
+        <string>FarPaneHostAgent</string>
         <string>--host-agent</string>
     </array>
     <key>MachServices</key>

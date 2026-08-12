@@ -4,6 +4,7 @@ set -euo pipefail
 repo_dir=${0:A:h:h}
 build_dir="$repo_dir/Build"
 app_dir="$build_dir/FarPane.app"
+host_agent_executable="$app_dir/Contents/MacOS/FarPaneHostAgent"
 launch_agent_source="$repo_dir/App/LaunchAgents/io.rustdesknative.viewer.host-agent.plist"
 launch_agent_dir="$app_dir/Contents/Library/LaunchAgents"
 launch_agent_target="$app_dir/Contents/Library/LaunchAgents/io.rustdesknative.viewer.host-agent.plist"
@@ -46,6 +47,7 @@ mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources" \
 rm -f "$app_dir/Contents/Resources/SlopDesk-MIT.txt"
 rm -f "$app_dir/Contents/Resources/RustDesk-AGPL-3.0.txt"
 app_executables=()
+host_agent_executables=()
 for build_architecture in "${build_architectures[@]}"; do
   app_executable="$repo_dir/.build/$build_architecture-apple-macosx/release/RustDeskNative"
   if [[ "$(lipo -archs "$app_executable")" != "$build_architecture" ]]; then
@@ -53,12 +55,47 @@ for build_architecture in "${build_architectures[@]}"; do
     exit 1
   fi
   app_executables+=("$app_executable")
+
+  link_dir="$repo_dir/.build/$build_architecture-apple-macosx/release"
+  host_agent_link_dir="$build_dir/HostAgent/$build_architecture"
+  host_agent_arch_executable="$host_agent_link_dir/FarPaneHostAgent"
+  mkdir -p "$host_agent_link_dir"
+  RC_UUID_SALT="FarPaneHostAgent-$build_architecture" xcrun swiftc \
+    -L "$link_dir" \
+    -o "$host_agent_arch_executable" \
+    -module-name RustDeskNative \
+    -Xlinker -no_warn_duplicate_libraries \
+    -emit-executable \
+    -Xlinker -dead_strip \
+    -Xlinker -alias -Xlinker _RustDeskNative_main -Xlinker _main \
+    -Xlinker -rpath -Xlinker @loader_path \
+    @"$link_dir/RustDeskNative.product/Objects.LinkFileList" \
+    -target "$build_architecture-apple-macosx13.0" \
+    -ldl -framework Security \
+    -sdk "$(xcrun --sdk macosx --show-sdk-path)" \
+    -g
+  if [[ "$(lipo -archs "$host_agent_arch_executable")" != "$build_architecture" ]]; then
+    print -u2 "HostAgent executable architecture does not match: $build_architecture"
+    exit 1
+  fi
+  if [[ "$(dwarfdump --uuid "$host_agent_arch_executable" | awk '{print $2}')" \
+        == "$(dwarfdump --uuid "$app_executable" | awk '{print $2}')" ]]; then
+    print -u2 "HostAgent executable must have a distinct Mach-O UUID: $build_architecture"
+    exit 1
+  fi
+  host_agent_executables+=("$host_agent_arch_executable")
 done
 if (( ${#app_executables} == 1 )); then
   cp "${app_executables[1]}" "$app_dir/Contents/MacOS/RustDeskNative"
 else
   lipo -create "${app_executables[@]}" \
     -output "$app_dir/Contents/MacOS/RustDeskNative"
+fi
+if (( ${#host_agent_executables} == 1 )); then
+  cp "${host_agent_executables[1]}" "$host_agent_executable"
+else
+  lipo -create "${host_agent_executables[@]}" \
+    -output "$host_agent_executable"
 fi
 cp "$repo_dir/App/Info.plist" "$app_dir/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$app_dir/Contents/Info.plist"
@@ -129,6 +166,9 @@ else
 fi
 codesign --force --sign "$signing_identity" --timestamp=none \
   "$app_dir/Contents/Frameworks/liblibrustdesk.dylib"
+codesign --force --sign "$signing_identity" --timestamp=none \
+  --identifier io.rustdesknative.viewer \
+  "$host_agent_executable"
 codesign --force --sign "$signing_identity" --timestamp=none "$app_dir"
 codesign --verify --deep --strict "$app_dir"
 
@@ -139,6 +179,7 @@ if [[ "$signing_mode" == stable-identity && "$requirement" == *"cdhash"* ]]; the
 fi
 
 lipo -archs "$app_dir/Contents/MacOS/RustDeskNative"
+lipo -archs "$host_agent_executable"
 print "BUILD_NUMBER=$build_number"
 print "SIGNING_MODE=$signing_mode"
 print "BUILD_ARCHITECTURES=$architecture_spec"

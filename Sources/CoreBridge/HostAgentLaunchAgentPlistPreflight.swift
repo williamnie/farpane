@@ -17,8 +17,8 @@ package enum HostAgentLaunchAgentPlistPreflightError: Error, Equatable {
 /// Mach-service demand after a clean stop.
 package enum HostAgentLaunchAgentPlistPreflight {
     package static let label = "io.rustdesknative.viewer.host-agent"
-    package static let bundleProgram = "Contents/MacOS/RustDeskNative"
-    package static let programArguments = ["RustDeskNative", "--host-agent"]
+    package static let bundleProgram = "Contents/MacOS/FarPaneHostAgent"
+    package static let programArguments = ["FarPaneHostAgent", "--host-agent"]
     package static let maximumPayloadBytes = 64 * 1_024
     package static let sessionType = "Aqua"
     package static let throttleInterval = 10

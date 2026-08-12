@@ -38,6 +38,31 @@ class ReleaseMetadataTests(unittest.TestCase):
             script.index('codesign --force --sign "$signing_identity" --timestamp=none "$app_dir"'),
         )
 
+    def test_host_agent_uses_a_separately_signed_non_app_executable(self) -> None:
+        script = (REPO_ROOT / "Scripts" / "build-universal.sh").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            'host_agent_executable="$app_dir/Contents/MacOS/FarPaneHostAgent"',
+            script,
+        )
+        self.assertIn(
+            'RC_UUID_SALT="FarPaneHostAgent-$build_architecture" xcrun swiftc',
+            script,
+        )
+        self.assertIn(
+            'HostAgent executable must have a distinct Mach-O UUID',
+            script,
+        )
+        helper_signing = script.index(
+            '--identifier io.rustdesknative.viewer'
+        )
+        app_signing = script.index(
+            'codesign --force --sign "$signing_identity" --timestamp=none "$app_dir"'
+        )
+        self.assertLess(helper_signing, app_signing)
+
     def test_build_architecture_override_is_explicit_and_bounded(self) -> None:
         script = (REPO_ROOT / "Scripts" / "build-universal.sh").read_text(
             encoding="utf-8"
