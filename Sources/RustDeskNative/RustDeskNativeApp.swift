@@ -783,6 +783,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             backing: .buffered,
             defer: false
         )
+        window.isReleasedWhenClosed = false
         window.title = "FarPane"
         window.minSize = NSSize(width: 720, height: 560)
         let view = HomeView()
@@ -4172,6 +4173,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             backing: .buffered,
             defer: false
         )
+        window.isReleasedWhenClosed = false
         window.title = fixture == nil ? "FarPane" : "FarPane — Fixture"
         window.minSize = NSSize(width: 720, height: 480)
         let isFullScreen = window.styleMask.contains(.fullScreen)
