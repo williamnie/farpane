@@ -382,13 +382,21 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         )
 
     static func main() {
-        if RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments)
-            == .hostAgent {
+        switch RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments) {
+        case .hostAgent:
             guard HostAgentProcessPresentation
                 .transformCurrentProcessToUIElement() else {
                 exit(EXIT_FAILURE)
             }
             exit(HostAgentProcessBootstrap.run())
+        case .unsupportedConnectionManager:
+            fputs(
+                RustDeskNativeConnectionManagerRejectionPolicy.diagnostic,
+                stderr
+            )
+            exit(RustDeskNativeConnectionManagerRejectionPolicy.exitCode)
+        case .application:
+            break
         }
         let application = NSApplication.shared
         let delegate = AppDelegate()

@@ -211,10 +211,20 @@ final class CoreBridgeContractTests: XCTestCase {
         let dispatch = try XCTUnwrap(source.range(
             of: "RustDeskNativeProcessModePolicy.resolve(arguments: CommandLine.arguments)"
         ))
+        let unsupportedConnectionManager = try XCTUnwrap(source.range(
+            of: "case .unsupportedConnectionManager:"
+        ))
         let appKitBootstrap = try XCTUnwrap(source.range(of: "NSApplication.shared"))
 
         XCTAssertLessThan(dispatch.lowerBound, appKitBootstrap.lowerBound)
+        XCTAssertLessThan(
+            unsupportedConnectionManager.lowerBound,
+            appKitBootstrap.lowerBound
+        )
         XCTAssertTrue(source.contains("exit(HostAgentProcessBootstrap.run())"))
+        XCTAssertTrue(source.contains(
+            "RustDeskNativeConnectionManagerRejectionPolicy.diagnostic"
+        ))
         XCTAssertFalse(source.contains(
             "HostAgentProcessTerminalReporter.report(.unavailable)"
         ))

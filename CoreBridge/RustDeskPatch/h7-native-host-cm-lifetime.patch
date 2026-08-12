@@ -1,0 +1,26 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -8386,4 +8386,4 @@ async fn start_ipc(
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+-fn connection_manager_required_for_native_host(native_host_bound: bool) -> bool {
+-    !native_host_bound
++fn connection_manager_required_for_native_host(native_host_owns_cm: bool) -> bool {
++    !native_host_owns_cm
+ }
+@@ -8392,7 +8392,7 @@ fn connection_manager_required() -> bool {
+ fn connection_manager_required() -> bool {
+     #[cfg(feature = "rdn-native-host")]
+     {
+         return connection_manager_required_for_native_host(
+-            crate::rdn_host_bridge::native_host_is_bound(),
++            crate::rdn_host_bridge::native_host_owns_connection_manager(),
+         );
+     }
+@@ -10578,4 +10578,6 @@ mod test {
+     #[test]
+-    fn native_host_does_not_require_external_connection_manager() {
++    fn native_host_process_never_requires_external_connection_manager() {
++        // Process ownership remains true across start failure, active binding,
++        // media unbind, stop-drain, destroy, and a later Host restart.
+         assert!(!connection_manager_required_for_native_host(true));
+         assert!(connection_manager_required_for_native_host(false));
