@@ -404,7 +404,86 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             .configureApplication()
         application.delegate = delegate
         application.setActivationPolicy(.regular)
+        delegate.configureMainMenu(for: application)
         application.run()
+    }
+
+    private func configureMainMenu(for application: NSApplication) {
+        let mainMenu = NSMenu()
+
+        let applicationMenuItem = NSMenuItem()
+        mainMenu.addItem(applicationMenuItem)
+        let applicationMenu = NSMenu(title: "FarPane")
+        applicationMenuItem.submenu = applicationMenu
+
+        let aboutItem = NSMenuItem(
+            title: "关于 FarPane",
+            action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+            keyEquivalent: ""
+        )
+        aboutItem.target = application
+        applicationMenu.addItem(aboutItem)
+        applicationMenu.addItem(.separator())
+
+        let hideItem = NSMenuItem(
+            title: "隐藏 FarPane",
+            action: #selector(NSApplication.hide(_:)),
+            keyEquivalent: "h"
+        )
+        hideItem.target = application
+        applicationMenu.addItem(hideItem)
+
+        let hideOthersItem = NSMenuItem(
+            title: "隐藏其他应用",
+            action: #selector(NSApplication.hideOtherApplications(_:)),
+            keyEquivalent: "h"
+        )
+        hideOthersItem.keyEquivalentModifierMask = [.command, .option]
+        hideOthersItem.target = application
+        applicationMenu.addItem(hideOthersItem)
+
+        let showAllItem = NSMenuItem(
+            title: "全部显示",
+            action: #selector(NSApplication.unhideAllApplications(_:)),
+            keyEquivalent: ""
+        )
+        showAllItem.target = application
+        applicationMenu.addItem(showAllItem)
+        applicationMenu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: "退出 FarPane",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        quitItem.target = application
+        applicationMenu.addItem(quitItem)
+
+        let windowMenuItem = NSMenuItem()
+        mainMenu.addItem(windowMenuItem)
+        let windowMenu = NSMenu(title: "窗口")
+        windowMenuItem.submenu = windowMenu
+
+        let closeItem = NSMenuItem(
+            title: "关闭窗口",
+            action: #selector(NSWindow.performClose(_:)),
+            keyEquivalent: "w"
+        )
+        windowMenu.addItem(closeItem)
+        windowMenu.addItem(.separator())
+        windowMenu.addItem(NSMenuItem(
+            title: "最小化",
+            action: #selector(NSWindow.performMiniaturize(_:)),
+            keyEquivalent: "m"
+        ))
+        windowMenu.addItem(NSMenuItem(
+            title: "缩放",
+            action: #selector(NSWindow.performZoom(_:)),
+            keyEquivalent: ""
+        ))
+
+        application.mainMenu = mainMenu
+        application.windowsMenu = windowMenu
     }
 
     private static func catalogURL() -> URL {
@@ -4095,8 +4174,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         )
         window.title = fixture == nil ? "FarPane" : "FarPane — Fixture"
         window.minSize = NSSize(width: 720, height: 480)
+        let isFullScreen = window.styleMask.contains(.fullScreen)
         window.contentView = chrome
-        if !options.fullscreen || !automatedRun { window.setContentSize(windowFrame.size); window.center() }
+        if ProductWindowTransitionPolicy.shouldResetWindowedContentSize(
+            isFullScreen: isFullScreen
+        ) {
+            window.setContentSize(windowFrame.size)
+            window.center()
+        }
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
 

@@ -61,10 +61,23 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
         )
     }
 
-    func testLastWindowCloseStillTerminatesOrdinaryAppSession() {
-        XCTAssertTrue(
+    func testLastWindowCloseKeepsOrdinaryAppSessionAlive() {
+        XCTAssertFalse(
             HostApplicationLifecyclePolicy.shouldTerminateAfterLastWindowClosed(
                 hostRuntimeActive: false
+            )
+        )
+    }
+
+    func testViewerContentSizeResetOnlyAppliesToWindowedMode() {
+        XCTAssertTrue(
+            ProductWindowTransitionPolicy.shouldResetWindowedContentSize(
+                isFullScreen: false
+            )
+        )
+        XCTAssertFalse(
+            ProductWindowTransitionPolicy.shouldResetWindowedContentSize(
+                isFullScreen: true
             )
         )
     }
