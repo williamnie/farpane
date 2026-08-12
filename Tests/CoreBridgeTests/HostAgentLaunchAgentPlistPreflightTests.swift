@@ -149,12 +149,12 @@ final class HostAgentLaunchAgentPlistPreflightTests: XCTestCase {
         )
         try assertRejected(
             replacing: "ProgramArguments",
-            with: ["RustDeskNative", "--host-agent", "--unsafe-override"],
+            with: ["FarPaneHostAgent", "--host-agent", "--unsafe-override"],
             as: .invalidProgramArguments
         )
         try assertRejected(
             replacing: "ProgramArguments",
-            with: ["RustDeskNative", "--host-agent\u{0}"],
+            with: ["FarPaneHostAgent", "--host-agent\u{0}"],
             as: .invalidProgramArguments
         )
     }
@@ -219,8 +219,8 @@ final class HostAgentLaunchAgentPlistPreflightTests: XCTestCase {
     private func validPropertyList() -> [String: Any] {
         [
             "Label": "io.rustdesknative.viewer.host-agent",
-            "BundleProgram": "Contents/MacOS/RustDeskNative",
-            "ProgramArguments": ["RustDeskNative", "--host-agent"],
+            "BundleProgram": "Contents/MacOS/FarPaneHostAgent",
+            "ProgramArguments": ["FarPaneHostAgent", "--host-agent"],
             "MachServices": ["io.rustdesknative.viewer.host-agent": true],
             "LimitLoadToSessionType": "Aqua",
             "KeepAlive": ["Crashed": true],

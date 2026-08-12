@@ -35,9 +35,9 @@ package enum HostAgentProcessEntryAssessment: Equatable, Sendable {
 /// Apple-issued signing evidence. It cannot start a runtime or mutate service
 /// registration, and Developer ID remains closed until notarization is proven.
 package enum HostAgentProcessEntryPreflight {
-    private static let executableName = "RustDeskNative"
+    private static let executableName = "FarPaneHostAgent"
     private static let installedExecutable =
-        "/Applications/FarPane.app/Contents/MacOS/RustDeskNative"
+        "/Applications/FarPane.app/Contents/MacOS/FarPaneHostAgent"
     private static let agentFlag = "--host-agent"
 
     package static func assessMainProcess()

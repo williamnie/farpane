@@ -750,6 +750,9 @@ int32_t rdn_host_media_report_encoder_state(
 /* Runtime loader used by the Swift package so fixture-only builds do not need
  * the Rust core present. The returned error strings never contain credentials. */
 typedef struct RDNCoreLibrary RDNCoreLibrary;
+/* Converts the dedicated HostAgent process to a UIElement before any AppKit
+ * singleton or display API can register it as a foreground Dock application. */
+int rdn_shim_transform_current_process_to_ui_element(void);
 RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size);
 void rdn_shim_close(RDNCoreLibrary *library);
 uint32_t rdn_shim_abi_version(const RDNCoreLibrary *library);

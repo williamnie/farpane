@@ -5,8 +5,8 @@ import XCTest
 final class HostAgentProcessEntryPreflightTests: XCTestCase {
     func testAcceptsOnlyExactLaunchAgentOrInstalledExecutableInvocation() {
         for executable in [
-            "RustDeskNative",
-            "/Applications/FarPane.app/Contents/MacOS/RustDeskNative",
+            "FarPaneHostAgent",
+            "/Applications/FarPane.app/Contents/MacOS/FarPaneHostAgent",
         ] {
             let identityReads = EntryIdentityReadCounter()
 
@@ -31,12 +31,12 @@ final class HostAgentProcessEntryPreflightTests: XCTestCase {
 
     func testRejectsMissingExtraAndLookalikeArgumentsBeforeIdentityRead() {
         let invalidArguments = [
-            ["RustDeskNative"],
-            ["RustDeskNative", "--host-agent=false"],
-            ["RustDeskNative", "--host-agent", "--fixture"],
-            ["RustDeskNative", "--fixture", "sample", "--host-agent"],
-            ["RustDeskNative", "--host-agent", "--host-agent"],
-            ["RustDeskNative", "--host-agent\u{0}"],
+            ["FarPaneHostAgent"],
+            ["FarPaneHostAgent", "--host-agent=false"],
+            ["FarPaneHostAgent", "--host-agent", "--fixture"],
+            ["FarPaneHostAgent", "--fixture", "sample", "--host-agent"],
+            ["FarPaneHostAgent", "--host-agent", "--host-agent"],
+            ["FarPaneHostAgent", "--host-agent\u{0}"],
         ]
 
         for arguments in invalidArguments {
@@ -60,11 +60,12 @@ final class HostAgentProcessEntryPreflightTests: XCTestCase {
     func testRejectsRelocatedRelativeAndLookalikeExecutableArguments() {
         let invalidExecutables = [
             "FarPane",
-            "./RustDeskNative",
-            "/tmp/RustDeskNative",
-            "/Applications/FarPane.app/Contents/MacOS/RustDeskNative-copy",
-            "/Applications/FarPane.app/Contents/MacOS/../MacOS/RustDeskNative",
-            "/Users/test/Applications/FarPane.app/Contents/MacOS/RustDeskNative",
+            "RustDeskNative",
+            "./FarPaneHostAgent",
+            "/tmp/FarPaneHostAgent",
+            "/Applications/FarPane.app/Contents/MacOS/FarPaneHostAgent-copy",
+            "/Applications/FarPane.app/Contents/MacOS/../MacOS/FarPaneHostAgent",
+            "/Users/test/Applications/FarPane.app/Contents/MacOS/FarPaneHostAgent",
         ]
 
         for executable in invalidExecutables {
@@ -93,7 +94,7 @@ final class HostAgentProcessEntryPreflightTests: XCTestCase {
         for (identity, failure) in cases {
             XCTAssertEqual(
                 HostAgentProcessEntryPreflight.assess(
-                    arguments: ["RustDeskNative", "--host-agent"],
+                    arguments: ["FarPaneHostAgent", "--host-agent"],
                     assessIdentity: { identity }
                 ),
                 .rejected(failure)
@@ -104,7 +105,7 @@ final class HostAgentProcessEntryPreflightTests: XCTestCase {
     func testDeveloperIDCannotStartUntilNotarizationEvidenceExists() {
         XCTAssertEqual(
             HostAgentProcessEntryPreflight.assess(
-                arguments: ["RustDeskNative", "--host-agent"],
+                arguments: ["FarPaneHostAgent", "--host-agent"],
                 assessIdentity: {
                     .distributionNotarizationRequired(
                         buildIdentifier: "release-1"
@@ -125,7 +126,7 @@ final class HostAgentProcessEntryPreflightTests: XCTestCase {
         ] {
             XCTAssertEqual(
                 HostAgentProcessEntryPreflight.assess(
-                    arguments: ["RustDeskNative", "--host-agent"],
+                    arguments: ["FarPaneHostAgent", "--host-agent"],
                     assessIdentity: { identity }
                 ),
                 .rejected(.invalidApplication)

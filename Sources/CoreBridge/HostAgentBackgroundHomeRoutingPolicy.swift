@@ -44,13 +44,17 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
         switch registration {
         case .enabled, .requiresApproval:
             isOn = true
-        case .notRegistered, .serviceUnavailable:
+        case .notRegistered:
             isOn = legacyIntentOn
+        case .serviceUnavailable:
+            // A replaced App can lose its ServiceManagement record while the
+            // durable legacy preference remains enabled. Do not present that
+            // stale preference as a running Host; an actually active legacy
+            // runtime must still be stopped before registration is retried.
+            isOn = legacyRuntimeIsOn(legacy)
         }
 
-        guard flow == nil,
-              registration != .serviceUnavailable
-        else {
+        guard flow == nil else {
             return HostAgentBackgroundHomeControlState(
                 isOn: isOn,
                 isInteractive: false
@@ -65,9 +69,9 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
             isInteractive = true
         case .blocked:
             switch registration {
-            case .notRegistered:
+            case .notRegistered, .serviceUnavailable:
                 isInteractive = true
-            case .enabled, .requiresApproval, .serviceUnavailable:
+            case .enabled, .requiresApproval:
                 isInteractive = false
             }
         }
@@ -93,14 +97,16 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
         else { return .noAction }
 
         switch (requestedEnabled, registration) {
-        case (true, .notRegistered):
+        case (true, .notRegistered), (true, .serviceUnavailable):
             return .beginRegistration
         case (false, .notRegistered) where legacyIntentIsOn(legacy):
+            return .stopLegacyHost
+        case (false, .serviceUnavailable) where legacyRuntimeIsOn(legacy):
             return .stopLegacyHost
         case (false, .enabled), (false, .requiresApproval):
             return .beginUnregistration
         case (true, .enabled), (true, .requiresApproval),
-             (_, .serviceUnavailable), (false, .notRegistered):
+             (false, .serviceUnavailable), (false, .notRegistered):
             return .noAction
         }
     }
@@ -174,5 +180,14 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
         }
         return blockers.contains(.preferenceEnabled)
             || blockers.contains(.runtimeActive)
+    }
+
+    private static func legacyRuntimeIsOn(
+        _ assessment: HostAgentLegacyHostMigrationAssessment
+    ) -> Bool {
+        guard case .blocked(let blockers) = assessment else {
+            return false
+        }
+        return blockers.contains(.runtimeActive)
     }
 }

@@ -5564,6 +5564,28 @@ index 9d97b1c..316fb67 100644
 +struct NativeRouteGuard(crate::rdn_host_bridge::NativeMediaRoute);
 +
 +#[cfg(feature = "rdn-native-host")]
++fn native_media_bitrate_bps(bitrate_kbps: u32, width: u32, height: u32, fps: u32) -> u32 {
++    const MIN_BITRATE_BPS: u32 = 100_000;
++    const MAX_BITRATE_BPS: u32 = 100_000_000;
++    const FALLBACK_MAX_BITRATE_BPS: u32 = 40_000_000;
++
++    let requested = bitrate_kbps.saturating_mul(1_000);
++    if requested > 0 {
++        return requested.clamp(MIN_BITRATE_BPS, MAX_BITRATE_BPS);
++    }
++
++    let fallback = u64::from(width)
++        .saturating_mul(u64::from(height))
++        .saturating_mul(u64::from(fps))
++        / 10;
++    fallback
++        .clamp(
++            u64::from(MIN_BITRATE_BPS.max(1_000_000)),
++            u64::from(FALLBACK_MAX_BITRATE_BPS),
++        ) as u32
++}
++
++#[cfg(feature = "rdn-native-host")]
 +impl Drop for NativeRouteGuard {
 +    fn drop(&mut self) {
 +        crate::rdn_host_bridge::native_media_end_route(&self.0);
@@ -5628,10 +5650,17 @@ index 9d97b1c..316fb67 100644
 +        let qos = VIDEO_QOS.lock().unwrap();
 +        (qos.spf(), qos.bitrate())
 +    };
-+    // RustDesk encoder/QoS bitrate values are kbps; the native media control
-+    // contract and VideoToolbox AverageBitRate use bits per second.
-+    let bitrate_bps = bitrate_kbps.saturating_mul(1_000);
 +    let fps = (1.0 / spf.as_secs_f64()).round().clamp(1.0, 240.0) as u32;
++    // RustDesk encoder/QoS bitrate values are kbps; the native media control
++    // contract and VideoToolbox AverageBitRate use bits per second. Before the
++    // first upstream encoder exists, bitrate_store is zero, so derive the same
++    // bounded pixel-rate fallback accepted by the Swift route contract.
++    let bitrate_bps = native_media_bitrate_bps(
++        bitrate_kbps,
++        display.width.max(0) as u32,
++        display.height.max(0) as u32,
++        fps,
++    );
 +    VIDEO_QOS
 +        .lock()
 +        .unwrap()
@@ -5807,6 +5836,25 @@ index 9d97b1c..316fb67 100644
 +        }
 +    }
 +    Ok(())
++}
++
++#[cfg(all(test, feature = "rdn-native-host"))]
++mod native_media_bitrate_tests {
++    use super::native_media_bitrate_bps;
++
++    #[test]
++    fn zero_qos_bitrate_uses_bounded_pixel_rate_fallback() {
++        assert_eq!(native_media_bitrate_bps(0, 1_920, 1_080, 30), 6_220_800);
++        assert_eq!(native_media_bitrate_bps(0, 16, 16, 1), 1_000_000);
++        assert_eq!(native_media_bitrate_bps(0, 16_384, 16_384, 240), 40_000_000);
++    }
++
++    #[test]
++    fn configured_qos_bitrate_is_converted_and_clamped() {
++        assert_eq!(native_media_bitrate_bps(2_500, 1_920, 1_080, 30), 2_500_000);
++        assert_eq!(native_media_bitrate_bps(1, 1_920, 1_080, 30), 100_000);
++        assert_eq!(native_media_bitrate_bps(u32::MAX, 1_920, 1_080, 30), 100_000_000);
++    }
 +}
 +
 +#[cfg(all(test, feature = "rdn-native-host"))]

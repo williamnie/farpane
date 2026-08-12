@@ -3,6 +3,29 @@ import Foundation
 import XCTest
 
 final class HostAgentProcessLifetimeGateTests: XCTestCase {
+    func testMainRunLoopWaiterServicesQueuedInputWorkBeforeTermination() {
+        final class Runtime: NSObject {}
+        let gate = HostAgentProcessLifetimeGate(
+            runtime: Runtime(),
+            stopRuntime: { _, _ in }
+        )
+        var mainQueueWorkExecuted = false
+        DispatchQueue.main.async {
+            mainQueueWorkExecuted = true
+            _ = gate.requestTermination(reason: .appExit)
+        }
+
+        let outcome = HostAgentMainRunLoopTerminationWaiter.wait(
+            pollInterval: 0.01
+        ) {
+            gate.terminationOutcomeSnapshot()
+        }
+
+        XCTAssertTrue(mainQueueWorkExecuted)
+        XCTAssertEqual(outcome.reason, .appExit)
+        XCTAssertEqual(outcome.status, .stopped)
+    }
+
     func testRetainsRuntimeUntilFirstTerminationAndStopsExactlyOnce() throws {
         let recorder = LifetimeEventRecorder()
         var runtime: LifetimeTestRuntime? = .init(recorder: recorder)
