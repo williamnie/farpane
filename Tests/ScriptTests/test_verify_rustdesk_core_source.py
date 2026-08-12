@@ -56,6 +56,20 @@ class VerifyRustDeskCoreSourceTests(unittest.TestCase):
             preflight,
         )
 
+    def test_bootstrap_and_verifier_preserve_cm_lifetime_layer(self) -> None:
+        patch_name = "h7-native-host-cm-lifetime.patch"
+        bootstrap = (
+            REPO_ROOT / "Scripts" / "bootstrap-rustdesk-core.sh"
+        ).read_text(encoding="utf-8")
+        verifier = VERIFY_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn(patch_name, bootstrap)
+        self.assertIn(patch_name, verifier)
+        self.assertIn(
+            'apply --check --reverse "$native_host_cm_lifetime_patch"',
+            verifier,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

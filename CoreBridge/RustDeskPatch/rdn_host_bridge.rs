@@ -3831,6 +3831,13 @@ pub(crate) fn native_host_is_bound() -> bool {
     MEDIA_BROKER.lock().unwrap().binding.is_some()
 }
 
+/// Process-lifetime connection-manager ownership is established by the
+/// successful config-root-first Host entry and never falls back during
+/// start failure, media unbind, stop-drain, destroy, or a later Host restart.
+pub(crate) fn native_host_owns_connection_manager() -> bool {
+    CONFIG_ROOT_SET.load(Ordering::Acquire)
+}
+
 /// Stable for the full native Host instance lifetime, including the interval
 /// where stop has unbound media but server connections are still draining.
 pub(crate) fn native_host_instance_is_live() -> bool {

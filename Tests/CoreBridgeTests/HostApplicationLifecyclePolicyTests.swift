@@ -19,6 +19,38 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
             ]),
             .application
         )
+        XCTAssertEqual(
+            RustDeskNativeProcessModePolicy.resolve(arguments: [
+                "FarPaneHostAgent", "--cm",
+            ]),
+            .unsupportedConnectionManager
+        )
+        XCTAssertEqual(
+            RustDeskNativeProcessModePolicy.resolve(arguments: [
+                "FarPaneHostAgent", "--cm-no-ui",
+            ]),
+            .unsupportedConnectionManager
+        )
+        XCTAssertEqual(
+            RustDeskNativeProcessModePolicy.resolve(arguments: [
+                "FarPaneHostAgent", "--host-agent", "--cm",
+            ]),
+            .unsupportedConnectionManager
+        )
+        XCTAssertEqual(
+            RustDeskNativeProcessModePolicy.resolve(arguments: [
+                "FarPane", "--cm=false",
+            ]),
+            .application
+        )
+        XCTAssertEqual(
+            RustDeskNativeConnectionManagerRejectionPolicy.exitCode,
+            64
+        )
+        XCTAssertEqual(
+            RustDeskNativeConnectionManagerRejectionPolicy.diagnostic,
+            "FarPane connection-manager mode is unsupported.\n"
+        )
     }
 
     func testLastWindowCloseKeepsActiveHostAlive() {
