@@ -1834,10 +1834,34 @@ const HOST_RUNTIME_RECONNECT_BASE_DELAY_MS: u64 = 250;
 const HOST_RUNTIME_RECONNECT_MAX_DELAY_MS: u64 = 5_000;
 const HOST_RUNTIME_RECONNECT_STABLE_CONNECTION_MS: u64 = 30_000;
 const HOST_RUNTIME_RECONNECT_STOP_POLL_MS: u64 = 50;
+const HOST_RUNTIME_REGISTRATION_STALL_TIMEOUT_MS: u64 = 15_000;
 
 #[derive(Default)]
 struct HostRuntimeReconnectBackoff {
     consecutive_failures: u32,
+}
+
+#[derive(Default)]
+struct HostRuntimeRegistrationWatchdog {
+    unhealthy_since: Option<Instant>,
+}
+
+impl HostRuntimeRegistrationWatchdog {
+    fn should_restart(&mut self, now: Instant, registration_healthy: bool) -> bool {
+        if registration_healthy {
+            self.unhealthy_since = None;
+            return false;
+        }
+        let unhealthy_since = self.unhealthy_since.get_or_insert(now);
+        now.saturating_duration_since(*unhealthy_since)
+            >= Duration::from_millis(HOST_RUNTIME_REGISTRATION_STALL_TIMEOUT_MS)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum HostRuntimeRegistrationWatchdogOutcome {
+    RegistrationStalled,
+    StopRequested,
 }
 
 impl HostRuntimeReconnectBackoff {
@@ -4533,13 +4557,30 @@ async fn wait_for_host_runtime_retry(stop_requested: &AtomicBool, delay: Duratio
     }
 }
 
+async fn wait_for_host_runtime_registration_watchdog(
+    stop_requested: &AtomicBool,
+) -> HostRuntimeRegistrationWatchdogOutcome {
+    let mut watchdog = HostRuntimeRegistrationWatchdog::default();
+    loop {
+        if stop_requested.load(Ordering::Acquire) {
+            return HostRuntimeRegistrationWatchdogOutcome::StopRequested;
+        }
+        let registration_healthy =
+            config::Config::get_key_confirmed() && config::get_online_state() > 0;
+        if watchdog.should_restart(Instant::now(), registration_healthy) {
+            return HostRuntimeRegistrationWatchdogOutcome::RegistrationStalled;
+        }
+        hbb_common::tokio::time::sleep(Duration::from_millis(HOST_RUNTIME_RECONNECT_STOP_POLL_MS))
+            .await;
+    }
+}
+
 impl HostRuntime {
     fn start(rendezvous_server: String) -> Result<Self, ()> {
         let stop_requested = Arc::new(AtomicBool::new(false));
         let finished = Arc::new(AtomicBool::new(false));
         let thread_stop = stop_requested.clone();
         let thread_finished = finished.clone();
-        crate::RendezvousMediator::prepare_native_host_runtime();
         let thread = std::thread::Builder::new()
             .name("farpane-host-rendezvous".to_owned())
             .spawn(move || {
@@ -4554,13 +4595,23 @@ impl HostRuntime {
                     let server = crate::server::new();
                     let mut reconnect_backoff = HostRuntimeReconnectBackoff::default();
                     while !thread_stop.load(Ordering::Acquire) {
+                        crate::RendezvousMediator::prepare_native_host_runtime();
                         let connection_started = Instant::now();
-                        let _ = crate::RendezvousMediator::start(
+                        let rendezvous = crate::RendezvousMediator::start(
                             server.clone(),
                             rendezvous_server.clone(),
-                        )
-                        .await;
-                        if thread_stop.load(Ordering::Acquire) {
+                        );
+                        hbb_common::tokio::pin!(rendezvous);
+                        let watchdog_outcome = hbb_common::tokio::select! {
+                            _ = &mut rendezvous => None,
+                            outcome = wait_for_host_runtime_registration_watchdog(&thread_stop) => {
+                                Some(outcome)
+                            }
+                        };
+                        if watchdog_outcome
+                            == Some(HostRuntimeRegistrationWatchdogOutcome::StopRequested)
+                            || thread_stop.load(Ordering::Acquire)
+                        {
                             break;
                         }
                         config::Config::reset_online();
@@ -6553,6 +6604,21 @@ mod tests {
             stop_requested.store(false, Ordering::Release);
             assert!(wait_for_host_runtime_retry(&stop_requested, Duration::ZERO).await);
         });
+    }
+
+    #[test]
+    fn host_runtime_registration_watchdog_restarts_only_after_a_bounded_stall() {
+        let started = Instant::now();
+        let timeout = Duration::from_millis(HOST_RUNTIME_REGISTRATION_STALL_TIMEOUT_MS);
+        let mut watchdog = HostRuntimeRegistrationWatchdog::default();
+
+        assert!(!watchdog.should_restart(started, false));
+        assert!(!watchdog.should_restart(started + timeout - Duration::from_millis(1), false));
+        assert!(watchdog.should_restart(started + timeout, false));
+
+        assert!(!watchdog.should_restart(started + timeout, true));
+        assert!(!watchdog.should_restart(started + timeout + Duration::from_secs(30), true));
+        assert!(!watchdog.should_restart(started + timeout + Duration::from_secs(31), false));
     }
 
     #[test]
