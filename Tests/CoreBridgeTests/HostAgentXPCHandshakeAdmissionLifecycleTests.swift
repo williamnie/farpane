@@ -61,7 +61,7 @@ final class HostAgentXPCHandshakeAdmissionLifecycleTests: XCTestCase {
         XCTAssertEqual(recorder.resumeCount, 1)
         XCTAssertEqual(
             recorder.interfaceProtocolName,
-            "RDNHostAgentXPCCommandService"
+            "RDNHostAgentXPCPasswordService"
         )
         XCTAssertNil(try recorder.performValidSnapshot())
         let response = try recorder.performValidHandshake()

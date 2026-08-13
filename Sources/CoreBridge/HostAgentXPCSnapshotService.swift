@@ -56,8 +56,18 @@ package enum HostAgentXPCSnapshotInterfaceFactory {
         )
     }
 
+    package static var passwordSelectorName: String {
+        NSStringFromSelector(
+            #selector(
+                RDNHostAgentXPCPasswordService.performPasswordOperation(
+                    requestData:secretData:reply:
+                )
+            )
+        )
+    }
+
     package static func makeInterface() -> NSXPCInterface {
-        NSXPCInterface(with: RDNHostAgentXPCCommandService.self)
+        NSXPCInterface(with: RDNHostAgentXPCPasswordService.self)
     }
 }
 
@@ -67,7 +77,7 @@ package enum HostAgentXPCSnapshotInterfaceFactory {
 /// it the selector remains fail closed.
 package final class HostAgentXPCSnapshotSessionHandler:
     NSObject,
-    RDNHostAgentXPCCommandService,
+    RDNHostAgentXPCPasswordService,
     @unchecked Sendable
 {
     package typealias MonotonicClock = @Sendable () -> UInt64
@@ -80,18 +90,21 @@ package final class HostAgentXPCSnapshotSessionHandler:
     private let snapshotState: HostAgentSnapshotState
     private let eventState: HostAgentEventState
     private let commandService: HostAgentXPCCommandService?
+    private let passwordService: HostAgentXPCPasswordService?
     private let nowUnixMilliseconds: HostAgentXPCHandshakeHandler.Clock
     private let monotonicMilliseconds: MonotonicClock
     private var state: HostAgentXPCSnapshotSessionState = .awaitingHandshake
     private var lastSnapshotAttemptAt: UInt64?
     private var lastEventAttemptAt: UInt64?
     private var lastCommandAttemptAt: UInt64?
+    private var lastPasswordAttemptAt: UInt64?
 
     package init(
         identity: HostAgentXPCWireAgentIdentity,
         snapshotState: HostAgentSnapshotState,
         eventState: HostAgentEventState,
         commandService: HostAgentXPCCommandService?,
+        passwordService: HostAgentXPCPasswordService? = nil,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
         monotonicMilliseconds: @escaping MonotonicClock
     ) {
@@ -99,6 +112,7 @@ package final class HostAgentXPCSnapshotSessionHandler:
         self.snapshotState = snapshotState
         self.eventState = eventState
         self.commandService = commandService
+        self.passwordService = passwordService
         self.nowUnixMilliseconds = nowUnixMilliseconds
         self.monotonicMilliseconds = monotonicMilliseconds
     }
@@ -274,6 +288,65 @@ package final class HostAgentXPCSnapshotSessionHandler:
         reply(prepared.data)
         _ = prepared.performAfterReply()
         restoreCommand(reservation)
+    }
+
+    package func performPasswordOperation(
+        requestData: Data,
+        secretData: Data?,
+        reply: @escaping (Data?, Data?) -> Void
+    ) {
+        guard let passwordService,
+              let request = try? HostAgentXPCWirePasswordRequest.decode(
+                requestData
+              ),
+              canAttemptPassword(request: request)
+        else {
+            reply(nil, nil)
+            return
+        }
+        let monotonic = monotonicMilliseconds()
+        lock.lock()
+        guard monotonic > 0 else {
+            lock.unlock()
+            reply(nil, nil)
+            return
+        }
+        if let lastPasswordAttemptAt,
+           monotonic < lastPasswordAttemptAt
+            || monotonic - lastPasswordAttemptAt
+                < Self.minimumCommandIntervalMilliseconds {
+            lock.unlock()
+            reply(nil, nil)
+            return
+        }
+        self.lastPasswordAttemptAt = monotonic
+        lock.unlock()
+        let relay = HostAgentXPCPasswordServiceReplyRelay(reply: reply)
+        passwordService.perform(
+            requestData: requestData,
+            secretData: secretData,
+            reply: { response, secret in
+                relay.finish(response, secret)
+            }
+        )
+    }
+
+    private func canAttemptPassword(
+        request: HostAgentXPCWirePasswordRequest
+    ) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard request.hostInstanceID == identity.hostInstanceID,
+              request.agentBootID == identity.agentBootID
+        else { return false }
+        switch state {
+        case .snapshotReady(let wireVersion, _),
+             .fetchingEvents(let wireVersion, _),
+             .submittingCommand(let wireVersion, _):
+            return request.wireVersion == wireVersion
+        default:
+            return false
+        }
     }
 
     private func finishNegotiation(
@@ -533,5 +606,24 @@ package final class HostAgentXPCSnapshotSessionHandler:
             )
         }
         lock.unlock()
+    }
+}
+
+private final class HostAgentXPCPasswordServiceReplyRelay:
+    @unchecked Sendable
+{
+    private let lock = NSLock()
+    private var reply: ((Data?, Data?) -> Void)?
+
+    init(reply: @escaping (Data?, Data?) -> Void) {
+        self.reply = reply
+    }
+
+    func finish(_ response: Data?, _ secret: Data?) {
+        lock.lock()
+        let reply = self.reply
+        self.reply = nil
+        lock.unlock()
+        reply?(response, secret)
     }
 }

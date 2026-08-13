@@ -35,6 +35,16 @@ NS_ASSUME_NONNULL_BEGIN
     NS_SWIFT_NAME(submitCommand(requestData:reply:));
 @end
 
+/// Dedicated credential operation extension. Secrets never enter the JSON
+/// command envelope: they travel only in the separate bounded NSData slot.
+@protocol RDNHostAgentXPCPasswordService <RDNHostAgentXPCCommandService>
+- (void)performPasswordOperationWithRequestData:(NSData *)requestData
+                                     secretData:(NSData * _Nullable)secretData
+                                          reply:(void (^)(NSData * _Nullable responseData,
+                                                          NSData * _Nullable secretData))reply
+    NS_SWIFT_NAME(performPasswordOperation(requestData:secretData:reply:));
+@end
+
 NS_ASSUME_NONNULL_END
 
 #endif

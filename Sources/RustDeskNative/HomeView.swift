@@ -251,6 +251,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onHostAudioInputSelection: ((String?) -> Void)?
     var onRefreshHostAudioInputs: (() -> Void)?
     var onRevealHostPassword: (() -> Void)?
+    var onCopyHostTemporaryPassword: (() -> Void)?
     var onRegenerateHostPassword: (() -> Void)?
     var onSetHostPermanentPassword: (() -> Void)?
     var onClearHostPermanentPassword: (() -> Void)?
@@ -2064,10 +2065,17 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     }
 
     @objc private func pastePeerID() {
-        guard snapshot.connectingPeerID == nil,
-              let readClipboard = onReadLocalClipboardText,
-              let rawValue = readClipboard()
-        else { return }
+        guard snapshot.connectingPeerID == nil else { return }
+        if window?.makeFirstResponder(peerField) == true,
+           NSApp.sendAction(
+               #selector(NSText.paste(_:)),
+               to: nil,
+               from: peerPasteButton
+           ) {
+            return
+        }
+        guard let readClipboard = onReadLocalClipboardText,
+              let rawValue = readClipboard() else { return }
         let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return }
         peerField.stringValue = value
@@ -2193,10 +2201,18 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     }
 
     @objc private func copyHostTemporaryPassword() {
-        if snapshot.host.temporaryPassword.isEmpty {
-            onRevealHostPassword?()
+        if let onCopyHostTemporaryPassword {
+            onCopyHostTemporaryPassword()
+            return
         }
         copyToPasteboard(snapshot.host.temporaryPassword, label: "临时密码")
+    }
+
+    func reportHostTemporaryPasswordCopy(_ succeeded: Bool) {
+        showCopyFeedback(
+            succeeded ? "已复制临时密码" : "复制失败，请重试",
+            isError: !succeeded
+        )
     }
 
     private func copyToPasteboard(_ value: String, label: String) {

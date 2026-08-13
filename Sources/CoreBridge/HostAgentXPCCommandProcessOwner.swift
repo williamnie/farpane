@@ -25,6 +25,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     package typealias RuntimeSubmission = @Sendable (
         HostAgentCoreCommandSubmission
     ) -> HostAgentXPCCommandSubmissionOutcome
+    package typealias PasswordSubmission = HostAgentXPCPasswordService.Executor
     package typealias Clock = @Sendable () -> UInt64
     package typealias EventConsumer = @Sendable (HostCoreEvent) -> Void
     package typealias InvalidationCallback = @Sendable () -> Void
@@ -38,10 +39,12 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     private var state: HostAgentXPCCommandProcessOwnerState =
         .waitingForRuntime
     private var runtimeSubmission: RuntimeSubmission?
+    private var passwordSubmission: PasswordSubmission?
     private var identity: HostAgentXPCWireAgentIdentity?
     private var admissionAuthority: HostAgentXPCCommandAdmissionAuthority?
     private var executionAdapter: HostAgentXPCCommandExecutionAdapter?
     private var commandService: HostAgentXPCCommandService?
+    private var passwordService: HostAgentXPCPasswordService?
     private var invalidationDelivered = false
 
     package init(
@@ -87,6 +90,24 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         }
         runtimeSubmission = submission
         state = .waitingForIdentity
+        lock.unlock()
+        return true
+    }
+
+    @discardableResult
+    package func bindPasswordSubmission(
+        _ submission: @escaping PasswordSubmission
+    ) -> Bool {
+        lock.lock()
+        guard state == .waitingForIdentity,
+              passwordSubmission == nil
+        else {
+            let shouldInvalidate = state == .active
+            lock.unlock()
+            if shouldInvalidate { invalidate() }
+            return false
+        }
+        passwordSubmission = submission
         lock.unlock()
         return true
     }
@@ -155,10 +176,17 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
             },
             nowUnixMilliseconds: nowUnixMilliseconds
         )
+        let newPasswordService = passwordSubmission.map {
+            HostAgentXPCPasswordService(
+                identity: newIdentity,
+                execute: $0
+            )
+        }
         identity = newIdentity
         admissionAuthority = newAuthority
         executionAdapter = newAdapter
         commandService = newService
+        passwordService = newPasswordService
         state = .active
         lock.unlock()
         return .bound
@@ -169,6 +197,13 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         defer { lock.unlock() }
         guard state == .active else { return nil }
         return commandService
+    }
+
+    package func passwordServiceSnapshot() -> HostAgentXPCPasswordService? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard state == .active else { return nil }
+        return passwordService
     }
 
     /// Command results are consumed before the generic event journal. Ordinary
@@ -222,13 +257,19 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         state = .cancelled
         let authority = admissionAuthority
         let adapter = executionAdapter
+        let passwordService = self.passwordService
         commandService = nil
+        self.passwordService = nil
         lock.unlock()
 
         authority?.invalidate()
+        passwordService?.invalidate()
         let drained = adapter?.cancelAndWait(timeout: timeout) ?? true
         lock.lock()
-        if state == .cancelled { runtimeSubmission = nil }
+        if state == .cancelled {
+            runtimeSubmission = nil
+            passwordSubmission = nil
+        }
         lock.unlock()
         return drained
     }
@@ -245,7 +286,9 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         runtimeSubmission = nil
         let authority = admissionAuthority
         let adapter = executionAdapter
+        let passwordService = self.passwordService
         commandService = nil
+        self.passwordService = nil
         let callback: InvalidationCallback?
         if invalidationDelivered {
             callback = nil
@@ -256,6 +299,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         lock.unlock()
 
         authority?.invalidate()
+        passwordService?.invalidate()
         _ = adapter?.cancelAndWait(timeout: .now())
         callback?()
     }

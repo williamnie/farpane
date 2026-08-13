@@ -382,6 +382,58 @@ final class HostAgentCoreRuntimeTests: XCTestCase {
         )
     }
 
+    func testPasswordOperationsUseSameOwnerAndFailAfterStop() throws {
+        let client = RecordingHostAgentCoreClient()
+        let runtime = try HostAgentCoreRuntime.start(
+            client: client,
+            configAppName: "FarPaneHost",
+            configOrganization: "io.rustdesknative",
+            serverConfiguration: serverConfiguration()
+        )
+        var empty = Data()
+        let revealed = try runtime.performPasswordOperation(
+            .revealTemporaryPassword,
+            secret: &empty,
+            requestID: "password-1"
+        )
+        XCTAssertEqual(revealed, Data("135792468".utf8))
+
+        var permanent = Data("strong-password-123".utf8)
+        XCTAssertNil(try runtime.performPasswordOperation(
+            .setPermanentPassword,
+            secret: &permanent,
+            requestID: "password-2"
+        ))
+        XCTAssertNil(try runtime.performPasswordOperation(
+            .regenerateTemporaryPassword,
+            secret: &empty,
+            requestID: "password-3"
+        ))
+        XCTAssertNil(try runtime.performPasswordOperation(
+            .clearPermanentPassword,
+            secret: &empty,
+            requestID: "password-4"
+        ))
+        XCTAssertEqual(
+            Array(client.operations.suffix(4)),
+            [
+                .revealTemporaryPassword("password-1"),
+                .setPermanentPassword("strong-password-123", "password-2"),
+                .regenerateTemporaryPassword("password-3"),
+                .clearPermanentPassword("password-4"),
+            ]
+        )
+
+        try runtime.stop(reason: .appExit)
+        XCTAssertThrowsError(try runtime.performPasswordOperation(
+            .revealTemporaryPassword,
+            secret: &empty,
+            requestID: "password-5"
+        )) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
+        }
+    }
+
     private func serverConfiguration() -> HostServerConfiguration {
         HostServerConfiguration(
             rendezvousServer: "one.example.invalid:21116",
@@ -414,6 +466,10 @@ private enum RecordedOperation: Equatable {
         String
     )
     case disconnectSession(String, String)
+    case revealTemporaryPassword(String)
+    case regenerateTemporaryPassword(String)
+    case setPermanentPassword(String, String)
+    case clearPermanentPassword(String)
     case stop(HostStopReason)
 }
 
@@ -570,5 +626,28 @@ private final class RecordingHostAgentCoreClient: HostAgentCoreControlSurface {
         commandId: String
     ) throws {
         operations.append(.disconnectSession(connectionID, commandId))
+    }
+
+    func revealTemporaryPassword(commandId: String) throws -> String {
+        operations.append(.revealTemporaryPassword(commandId))
+        return "135792468"
+    }
+
+    func regenerateTemporaryPassword(commandId: String) throws {
+        operations.append(.regenerateTemporaryPassword(commandId))
+    }
+
+    func setPermanentPassword(
+        _ passwordUTF8: inout Data,
+        commandId: String
+    ) throws {
+        operations.append(.setPermanentPassword(
+            String(data: passwordUTF8, encoding: .utf8) ?? "",
+            commandId
+        ))
+    }
+
+    func clearPermanentPassword(commandId: String) throws {
+        operations.append(.clearPermanentPassword(commandId))
     }
 }

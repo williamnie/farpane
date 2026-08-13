@@ -112,6 +112,19 @@ package enum HostAgentXPCSnapshotClientCommandState: Equatable, Sendable {
     case awaitingResult(commandID: String)
 }
 
+package enum HostAgentXPCSnapshotClientPasswordResult: Equatable, Sendable {
+    case completed(
+        HostAgentXPCWirePasswordResponse,
+        secret: Data?
+    )
+    case invalidRequest
+    case invalidResponse
+    case disconnected
+    case timedOut
+    case cancelled
+    case invalidState
+}
+
 package enum HostAgentXPCSnapshotClientState: Equatable, Sendable {
     case idle
     case handshaking
@@ -136,6 +149,11 @@ package enum HostAgentXPCSnapshotClientState: Equatable, Sendable {
         HostAgentXPCSnapshotClientPeerIdentity,
         lastEventID: UInt64,
         commandID: String
+    )
+    case performingPasswordOperation(
+        HostAgentXPCSnapshotClientPeerIdentity,
+        lastEventID: UInt64,
+        requestID: String
     )
     case incompatible
     case failed
@@ -164,7 +182,22 @@ package protocol HostAgentXPCSnapshotClientTransport: AnyObject, Sendable {
         requestData: Data,
         reply: @escaping @Sendable (Data?) -> Void
     )
+    func performPasswordOperation(
+        requestData: Data,
+        secretData: Data?,
+        reply: @escaping @Sendable (Data?, Data?) -> Void
+    )
     func invalidate()
+}
+
+extension HostAgentXPCSnapshotClientTransport {
+    package func performPasswordOperation(
+        requestData: Data,
+        secretData: Data?,
+        reply: @escaping @Sendable (Data?, Data?) -> Void
+    ) {
+        reply(nil, nil)
+    }
 }
 
 package final class HostAgentXPCSnapshotClientConnectionTransport:
@@ -249,6 +282,26 @@ package final class HostAgentXPCSnapshotClientConnectionTransport:
         }
     }
 
+    package func performPasswordOperation(
+        requestData: Data,
+        secretData: Data?,
+        reply: @escaping @Sendable (Data?, Data?) -> Void
+    ) {
+        let relay = HostAgentXPCPasswordReplyRelay(reply: reply)
+        guard let service = connection.remoteObjectProxyWithErrorHandler(
+            { _ in relay.finish(nil, nil) }
+        ) as? RDNHostAgentXPCPasswordService else {
+            relay.finish(nil, nil)
+            return
+        }
+        service.performPasswordOperation(
+            requestData: requestData,
+            secretData: secretData
+        ) { response, secret in
+            relay.finish(response, secret)
+        }
+    }
+
     package func invalidate() {
         connection.invalidate()
     }
@@ -268,6 +321,23 @@ package final class HostAgentXPCSnapshotClientConnectionTransport:
             return
         }
         body(service) { data in relay.finish(data) }
+    }
+}
+
+private final class HostAgentXPCPasswordReplyRelay: @unchecked Sendable {
+    private let lock = NSLock()
+    private var reply: (@Sendable (Data?, Data?) -> Void)?
+
+    init(reply: @escaping @Sendable (Data?, Data?) -> Void) {
+        self.reply = reply
+    }
+
+    func finish(_ response: Data?, _ secret: Data?) {
+        lock.lock()
+        let reply = self.reply
+        self.reply = nil
+        lock.unlock()
+        reply?(response, secret)
     }
 }
 
@@ -298,6 +368,8 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         (HostAgentXPCSnapshotClientEventResult) -> Void
     package typealias CommandObserver = @Sendable
         (HostAgentXPCSnapshotClientCommandResult) -> Void
+    package typealias PasswordCompletion = @Sendable
+        (HostAgentXPCSnapshotClientPasswordResult) -> Void
     package typealias Clock = @Sendable () -> UInt64
     package typealias TimeoutScheduler = @Sendable (
         _ milliseconds: UInt64,
@@ -348,12 +420,14 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
     private var completion: Completion?
     private var eventCompletion: EventCompletion?
     private var commandObserver: CommandObserver?
+    private var passwordCompletion: PasswordCompletion?
     private var negotiatedWireVersion: UInt64?
     private var handshakeRequest: HostAgentXPCWireHandshakeRequest?
     private var snapshotRequest: HostAgentXPCWireSnapshotRequest?
     private var eventRequest: HostAgentXPCWireEventCursorRequest?
     private var refreshTrigger: HostAgentXPCWireEventCursorResponse?
     private var pendingCommand: PendingCommand?
+    private var passwordRequest: HostAgentXPCWirePasswordRequest?
     private var refreshCommandResult: HostAgentXPCWireCommandResult?
 
     package static func makeProduct(
@@ -653,10 +727,93 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         }
     }
 
+    package func performPasswordOperation(
+        action: HostAgentXPCPasswordAction,
+        secretData: Data?,
+        completion: @escaping PasswordCompletion
+    ) {
+        let peerIdentity: HostAgentXPCSnapshotClientPeerIdentity
+        let lastEventID: UInt64
+        let wireVersion: UInt64
+        lock.lock()
+        guard case .ready(let peer, let cursor) = state,
+              let negotiatedWireVersion,
+              passwordRequest == nil
+        else {
+            lock.unlock()
+            completion(.invalidState)
+            return
+        }
+        peerIdentity = peer
+        lastEventID = cursor
+        wireVersion = negotiatedWireVersion
+        lock.unlock()
+
+        let request: HostAgentXPCWirePasswordRequest
+        do {
+            request = try HostAgentXPCWirePasswordRequest(
+                wireVersion: wireVersion,
+                requestID: makeRequestID(),
+                hostInstanceID: peerIdentity.hostInstanceID,
+                agentBootID: peerIdentity.agentBootID,
+                sentAtUnixMilliseconds: nowUnixMilliseconds(),
+                action: action,
+                secretLength: UInt64(secretData?.count ?? 0)
+            )
+        } catch {
+            completion(.invalidRequest)
+            return
+        }
+
+        lock.lock()
+        guard state == .ready(peerIdentity, lastEventID: lastEventID),
+              negotiatedWireVersion == wireVersion,
+              passwordRequest == nil
+        else {
+            lock.unlock()
+            completion(.invalidState)
+            return
+        }
+        state = .performingPasswordOperation(
+            peerIdentity,
+            lastEventID: lastEventID,
+            requestID: request.requestID
+        )
+        passwordRequest = request
+        passwordCompletion = completion
+        lock.unlock()
+
+        do {
+            transport.performPasswordOperation(
+                requestData: try request.encoded(),
+                secretData: secretData
+            ) { [weak self] response, secret in
+                self?.receivePasswordOperation(
+                    response,
+                    secret: secret,
+                    request: request,
+                    peerIdentity: peerIdentity,
+                    lastEventID: lastEventID
+                )
+            }
+            scheduleTimeout(Self.requestTimeoutMilliseconds) { [weak self] in
+                self?.passwordOperationDidTimeOut(
+                    requestID: request.requestID
+                )
+            }
+        } catch {
+            finishPasswordOperation(
+                result: .invalidResponse,
+                invalidateTransport: true
+            )
+        }
+    }
+
     package func cancel() {
         var initialCompletion: Completion?
         var eventCompletion: EventCompletion?
         var commandObserver: CommandObserver?
+        var passwordCompletion: PasswordCompletion?
         var shouldInvalidate = false
         lock.lock()
         switch state {
@@ -671,6 +828,11 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
             state = .cancelled
             eventCompletion = self.eventCompletion
             self.eventCompletion = nil
+            shouldInvalidate = true
+        case .performingPasswordOperation:
+            state = .cancelled
+            passwordCompletion = self.passwordCompletion
+            self.passwordCompletion = nil
             shouldInvalidate = true
         case .submittingCommand, .ready:
             state = .cancelled
@@ -687,6 +849,7 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         refreshTrigger = nil
         refreshCommandResult = nil
         pendingCommand = nil
+        passwordRequest = nil
         negotiatedWireVersion = nil
         lock.unlock()
 
@@ -694,6 +857,46 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         initialCompletion?(.cancelled)
         eventCompletion?(.cancelled)
         commandObserver?(.cancelled)
+        passwordCompletion?(.cancelled)
+    }
+
+    private func receivePasswordOperation(
+        _ data: Data?,
+        secret: Data?,
+        request: HostAgentXPCWirePasswordRequest,
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
+        lastEventID: UInt64
+    ) {
+        guard let data,
+              let response = try? HostAgentXPCWirePasswordResponse.decode(data),
+              response.isCorrelated(to: request),
+              UInt64(secret?.count ?? 0) == response.secretLength
+        else {
+            if isAwaitingPasswordOperation(requestID: request.requestID) {
+                finishPasswordOperation(
+                    result: .invalidResponse,
+                    invalidateTransport: true
+                )
+            }
+            return
+        }
+        lock.lock()
+        guard state == .performingPasswordOperation(
+                peerIdentity,
+                lastEventID: lastEventID,
+                requestID: request.requestID
+              ),
+              passwordRequest?.requestID == request.requestID,
+              let completion = passwordCompletion
+        else {
+            lock.unlock()
+            return
+        }
+        state = .ready(peerIdentity, lastEventID: lastEventID)
+        passwordRequest = nil
+        passwordCompletion = nil
+        lock.unlock()
+        completion(.completed(response, secret: secret))
     }
 
     private func receiveCommandAcceptance(
@@ -1206,8 +1409,14 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         let isEventRequest = eventCompletion != nil
             && (eventRequest?.requestID == requestID
                 || snapshotRequest?.requestID == requestID)
+        let isPasswordRequest = passwordRequest?.requestID == requestID
         lock.unlock()
-        if isEventRequest {
+        if isPasswordRequest {
+            finishPasswordOperation(
+                result: .timedOut,
+                invalidateTransport: true
+            )
+        } else if isEventRequest {
             finishEventPending(
                 state: .failed,
                 result: .timedOut,
@@ -1253,6 +1462,7 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         var eventCompletion: EventCompletion?
         var commandObserver: CommandObserver?
         var commandResult: HostAgentXPCSnapshotClientCommandResult?
+        var passwordCompletion: PasswordCompletion?
         var notifyConnectionEnded = false
         lock.lock()
         switch state {
@@ -1267,6 +1477,11 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
             notifyConnectionEnded = true
         case .submittingCommand:
             state = .disconnected
+            notifyConnectionEnded = true
+        case .performingPasswordOperation:
+            state = .disconnected
+            passwordCompletion = self.passwordCompletion
+            self.passwordCompletion = nil
             notifyConnectionEnded = true
         case .ready:
             state = .disconnected
@@ -1292,6 +1507,7 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         refreshTrigger = nil
         refreshCommandResult = nil
         pendingCommand = nil
+        passwordRequest = nil
         self.commandObserver = nil
         negotiatedWireVersion = nil
         lock.unlock()
@@ -1299,6 +1515,7 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
         initialCompletion?(.disconnected)
         eventCompletion?(.disconnected)
         if let commandResult { commandObserver?(commandResult) }
+        passwordCompletion?(.disconnected)
         if notifyConnectionEnded { onConnectionEnded() }
     }
 
@@ -1365,6 +1582,41 @@ package final class HostAgentXPCSnapshotClient: @unchecked Sendable {
                 lastEventID: cursor,
                 commandID: request.commandID
             )
+    }
+
+    private func isAwaitingPasswordOperation(requestID: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard case .performingPasswordOperation(_, _, let expectedID) = state
+        else { return false }
+        return expectedID == requestID
+            && passwordRequest?.requestID == requestID
+    }
+
+    private func passwordOperationDidTimeOut(requestID: String) {
+        guard isAwaitingPasswordOperation(requestID: requestID) else { return }
+        finishPasswordOperation(
+            result: .timedOut,
+            invalidateTransport: true
+        )
+    }
+
+    private func finishPasswordOperation(
+        result: HostAgentXPCSnapshotClientPasswordResult,
+        invalidateTransport: Bool
+    ) {
+        lock.lock()
+        guard passwordRequest != nil, let completion = passwordCompletion else {
+            lock.unlock()
+            return
+        }
+        state = .failed
+        passwordRequest = nil
+        passwordCompletion = nil
+        negotiatedWireVersion = nil
+        lock.unlock()
+        if invalidateTransport { transport.invalidate() }
+        completion(result)
     }
 
     private func failReadyEventStart(
