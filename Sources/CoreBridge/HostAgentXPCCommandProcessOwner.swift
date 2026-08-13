@@ -14,6 +14,7 @@ package enum HostAgentXPCCommandCoreEventRoutingOutcome:
 {
     case forwarded
     case consumed(HostAgentXPCCommandResultDeliveryOutcome)
+    case consumedPasswordOperation
     case dropped
     case invalidated
 }
@@ -45,6 +46,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     private var executionAdapter: HostAgentXPCCommandExecutionAdapter?
     private var commandService: HostAgentXPCCommandService?
     private var passwordService: HostAgentXPCPasswordService?
+    private var pendingPasswordRequestIDs: Set<String> = []
     private var invalidationDelivered = false
 
     package init(
@@ -176,10 +178,19 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
             },
             nowUnixMilliseconds: nowUnixMilliseconds
         )
-        let newPasswordService = passwordSubmission.map {
+        let newPasswordService = passwordSubmission.map { _ in
             HostAgentXPCPasswordService(
                 identity: newIdentity,
-                execute: $0
+                execute: { [weak self] action, secret, requestID in
+                    guard let self else {
+                        throw HostAgentCoreRuntimeAccessError.notRunning
+                    }
+                    return try self.submitPasswordOperation(
+                        action,
+                        secret: &secret,
+                        requestID: requestID
+                    )
+                }
             )
         }
         identity = newIdentity
@@ -222,6 +233,30 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
             return .forwarded
         }
 
+        let decoded: HostAgentCoreCommandResultDecodeOutcome
+        lock.lock()
+        let expectedHostInstanceID = identity?.hostInstanceID
+        lock.unlock()
+        guard let expectedHostInstanceID else {
+            invalidate()
+            return .invalidated
+        }
+        decoded = HostAgentCoreCommandResultDecoder.decode(
+            event,
+            expectedHostInstanceID: expectedHostInstanceID
+        )
+        switch decoded {
+        case .decoded(let result):
+            if consumePasswordResult(commandID: result.commandID) {
+                return .consumedPasswordOperation
+            }
+        case .notCommandResult:
+            return .forwarded
+        case .malformed, .foreignIdentity:
+            invalidate()
+            return .invalidated
+        }
+
         guard let service = commandServiceSnapshot() else {
             lock.lock()
             let terminal = state == .cancelled || state == .invalidated
@@ -244,6 +279,33 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         }
     }
 
+    private func submitPasswordOperation(
+        _ action: HostAgentXPCPasswordAction,
+        secret: inout Data,
+        requestID: String
+    ) throws -> Data? {
+        let submission: PasswordSubmission
+        lock.lock()
+        guard state == .active,
+              let passwordSubmission,
+              !pendingPasswordRequestIDs.contains(requestID),
+              pendingPasswordRequestIDs.count < 256
+        else {
+            lock.unlock()
+            throw HostAgentCoreRuntimeAccessError.notRunning
+        }
+        pendingPasswordRequestIDs.insert(requestID)
+        submission = passwordSubmission
+        lock.unlock()
+        return try submission(action, &secret, requestID)
+    }
+
+    private func consumePasswordResult(commandID: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return pendingPasswordRequestIDs.remove(commandID) != nil
+    }
+
     /// Terminally closes command admission without requesting process/XPC
     /// invalidation. Existing queued Core work is boundedly drained.
     @discardableResult
@@ -260,6 +322,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         let passwordService = self.passwordService
         commandService = nil
         self.passwordService = nil
+        pendingPasswordRequestIDs.removeAll(keepingCapacity: false)
         lock.unlock()
 
         authority?.invalidate()
@@ -289,6 +352,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         let passwordService = self.passwordService
         commandService = nil
         self.passwordService = nil
+        pendingPasswordRequestIDs.removeAll(keepingCapacity: false)
         let callback: InvalidationCallback?
         if invalidationDelivered {
             callback = nil

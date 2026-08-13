@@ -161,6 +161,57 @@ final class HostAgentXPCCommandProcessOwnerTests: XCTestCase {
         XCTAssertEqual(unknownInvalidations.value, 1)
     }
 
+    func testPasswordCommandResultIsConsumedWithoutInvalidatingXPCIdentity() throws {
+        let invalidations = LockedCounter()
+        let owner = try makeOwner(onInvalidation: {
+            invalidations.increment()
+        })
+        XCTAssertTrue(owner.bindRuntimeSubmission { _ in
+            .awaitingCoreResult
+        })
+        let requestID = "151db9a9-7dd3-4fea-93af-1b6c10840676"
+        XCTAssertTrue(owner.bindPasswordSubmission {
+            [weak owner] action, _, commandID in
+            XCTAssertEqual(action, .revealTemporaryPassword)
+            XCTAssertEqual(commandID, requestID)
+            guard let owner else {
+                throw HostAgentCoreRuntimeAccessError.notRunning
+            }
+            XCTAssertEqual(
+                owner.consumeCoreEvent(
+                    try self.coreCommandResultEvent(commandID: commandID)
+                ),
+                .consumedPasswordOperation
+            )
+            return Data("temporary-password".utf8)
+        })
+        XCTAssertEqual(owner.bindIdentity(hostInstanceID: "host-a"), .bound)
+        let service = try XCTUnwrap(owner.passwordServiceSnapshot())
+        let request = try HostAgentXPCWirePasswordRequest(
+            wireVersion: 2,
+            requestID: requestID,
+            hostInstanceID: "host-a",
+            agentBootID: bootID,
+            sentAtUnixMilliseconds: sentAt,
+            action: .revealTemporaryPassword,
+            secretLength: 0
+        )
+        let replied = expectation(description: "password replied")
+
+        service.perform(requestData: try request.encoded(), secretData: nil) {
+            responseData, secretData in
+            XCTAssertNotNil(responseData)
+            XCTAssertEqual(secretData, Data("temporary-password".utf8))
+            replied.fulfill()
+        }
+
+        wait(for: [replied], timeout: 2)
+        XCTAssertEqual(owner.stateSnapshot(), .active)
+        XCTAssertNotNil(owner.commandServiceSnapshot())
+        XCTAssertNotNil(owner.passwordServiceSnapshot())
+        XCTAssertEqual(invalidations.value, 0)
+    }
+
     func testCancelWaitsForQueuedSubmissionAndCannotReactivate() throws {
         let entered = DispatchSemaphore(value: 0)
         let release = DispatchSemaphore(value: 0)
