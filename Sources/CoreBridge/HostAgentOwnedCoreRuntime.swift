@@ -148,6 +148,20 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
         try runtime.submit(command: command)
     }
 
+    package func performPasswordOperation(
+        _ action: HostAgentXPCPasswordAction,
+        secret: inout Data,
+        requestID: String
+    ) throws -> Data? {
+        try withRunningRuntime { runtime in
+            try runtime.performPasswordOperation(
+                action,
+                secret: &secret,
+                requestID: requestID
+            )
+        }
+    }
+
     private func withRunningRuntime<Value>(
         _ body: (HostAgentCoreRuntime) throws -> Value
     ) throws -> Value {

@@ -1029,6 +1029,30 @@ public struct HostPermanentPasswordPolicy: Sendable {
     public let maximumUTF8Bytes: Int
     public let rejectsControlCharacters: Bool
     public let rejectsOuterWhitespace: Bool
+
+    package init(
+        localPasswordSet: Bool,
+        effectivePasswordSet: Bool,
+        usingPresetPassword: Bool,
+        changeAllowed: Bool,
+        strengthPolicyVersion: Int,
+        minimumCharacters: Int,
+        maximumCharacters: Int,
+        maximumUTF8Bytes: Int,
+        rejectsControlCharacters: Bool,
+        rejectsOuterWhitespace: Bool
+    ) {
+        self.localPasswordSet = localPasswordSet
+        self.effectivePasswordSet = effectivePasswordSet
+        self.usingPresetPassword = usingPresetPassword
+        self.changeAllowed = changeAllowed
+        self.strengthPolicyVersion = strengthPolicyVersion
+        self.minimumCharacters = minimumCharacters
+        self.maximumCharacters = maximumCharacters
+        self.maximumUTF8Bytes = maximumUTF8Bytes
+        self.rejectsControlCharacters = rejectsControlCharacters
+        self.rejectsOuterWhitespace = rejectsOuterWhitespace
+    }
 }
 
 /// Versioned event envelope delivered on the host event channel (§8.5).
@@ -1995,6 +2019,22 @@ public final class HostControlClient: @unchecked Sendable {
             commandId: commandId,
             payload: ["connectionId": connectionID]
         )
+    }
+
+    public func revealTemporaryPassword(commandId: String) throws -> String {
+        try command("revealTemporaryPassword", commandId: commandId)
+        guard let password = try copySnapshot().revealedTemporaryPassword,
+              !password.isEmpty
+        else { throw HostControlError.snapshotDecode("temporary password unavailable") }
+        return password
+    }
+
+    public func regenerateTemporaryPassword(commandId: String) throws {
+        try command("regenerateTemporaryPassword", commandId: commandId)
+    }
+
+    public func clearPermanentPassword(commandId: String) throws {
+        try command("clearPermanentPassword", commandId: commandId)
     }
 
     /// Sends a permanent password only through the mutable secret-buffer ABI.

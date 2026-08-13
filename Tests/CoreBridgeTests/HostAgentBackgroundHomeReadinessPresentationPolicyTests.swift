@@ -199,7 +199,13 @@ final class HostAgentBackgroundHomeReadinessPresentationPolicyTests:
             ": hostReadiness.isReady"
         ))
         XCTAssertTrue(appSource.contains(
-            "allowsHostCommands: usesLegacyHost && hostRuntimeActive"
+            "allowsHostCommands: usesLegacyHost"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "backgroundHostPasswordPeerIdentity() != nil"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "hostAgentPasswordActionInFlight == nil"
         ))
         XCTAssertTrue(homeSource.contains("var isReady: Bool"))
         XCTAssertTrue(homeSource.contains("var allowsHostCommands: Bool"))

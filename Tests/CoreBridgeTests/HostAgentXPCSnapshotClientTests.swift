@@ -127,6 +127,54 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         XCTAssertEqual(transport.invalidateCount, 0)
     }
 
+    func testPasswordOperationUsesDedicatedSecretSlotAndReturnsToReady() throws {
+        let transport = SnapshotClientTestTransport()
+        let source = SnapshotClientTestSource()
+        let results = SnapshotClientTestRecorder<
+            HostAgentXPCSnapshotClientPasswordResult
+        >()
+        let client = try makeClient(transport: transport, source: source)
+        client.start { _ in }
+        try completeReady(transport: transport, eventSequence: 3)
+
+        client.performPasswordOperation(
+            action: .revealTemporaryPassword,
+            secretData: nil
+        ) { results.append($0) }
+
+        let requestData = try XCTUnwrap(transport.lastPasswordRequest)
+        let request = try HostAgentXPCWirePasswordRequest.decode(requestData)
+        XCTAssertEqual(request.action, .revealTemporaryPassword)
+        XCTAssertEqual(request.secretLength, 0)
+        XCTAssertNil(transport.lastPasswordSecret)
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .performingPasswordOperation(
+                try peerIdentity(),
+                lastEventID: 3,
+                requestID: request.requestID
+            )
+        )
+
+        let password = Data("987654321".utf8)
+        let response = try HostAgentXPCWirePasswordResponse(
+            request: request,
+            status: .ok,
+            detail: .none,
+            secretLength: UInt64(password.count)
+        )
+        transport.replyToPassword(try response.encoded(), secret: password)
+
+        XCTAssertEqual(
+            results.values,
+            [.completed(response, secret: password)]
+        )
+        XCTAssertEqual(
+            client.stateSnapshot(),
+            .ready(try peerIdentity(), lastEventID: 3)
+        )
+    }
+
     func testCommandQueuesThenCompletesFromCorrelatedEventWithoutBlockingPoll()
         throws
     {
@@ -1335,12 +1383,14 @@ private final class SnapshotClientTestTransport:
     private var snapshotReply: (@Sendable (Data?) -> Void)?
     private var eventReply: (@Sendable (Data?) -> Void)?
     private var commandReply: (@Sendable (Data?) -> Void)?
+    private var passwordReply: (@Sendable (Data?, Data?) -> Void)?
     private var starts = 0
     private var invalidations = 0
     private var handshakeRequests: [Data] = []
     private var snapshotRequests: [Data] = []
     private var eventRequests: [Data] = []
     private var commandRequests: [Data] = []
+    private var passwordRequests: [(Data, Data?)] = []
 
     var startCount: Int { locked { starts } }
     var invalidateCount: Int { locked { invalidations } }
@@ -1352,6 +1402,8 @@ private final class SnapshotClientTestTransport:
     var lastSnapshotRequest: Data? { locked { snapshotRequests.last } }
     var lastEventRequest: Data? { locked { eventRequests.last } }
     var lastCommandRequest: Data? { locked { commandRequests.last } }
+    var lastPasswordRequest: Data? { locked { passwordRequests.last?.0 } }
+    var lastPasswordSecret: Data? { locked { passwordRequests.last?.1 } }
 
     func start(
         onInterruption: @escaping @Sendable () -> Void,
@@ -1404,6 +1456,17 @@ private final class SnapshotClientTestTransport:
         lock.unlock()
     }
 
+    func performPasswordOperation(
+        requestData: Data,
+        secretData: Data?,
+        reply: @escaping @Sendable (Data?, Data?) -> Void
+    ) {
+        lock.lock()
+        passwordRequests.append((requestData, secretData))
+        passwordReply = reply
+        lock.unlock()
+    }
+
     func invalidate() {
         lock.lock()
         invalidations += 1
@@ -1424,6 +1487,10 @@ private final class SnapshotClientTestTransport:
 
     func replyToCommand(_ data: Data?) {
         locked { commandReply }?(data)
+    }
+
+    func replyToPassword(_ data: Data?, secret: Data?) {
+        locked { passwordReply }?(data, secret)
     }
 
     func triggerInterruption() {

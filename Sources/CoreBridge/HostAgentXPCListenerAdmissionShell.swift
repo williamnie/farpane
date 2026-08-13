@@ -62,6 +62,8 @@ package final class HostAgentXPCListenerAdmissionShell:
     typealias ListenerAction = (NSXPCListener) -> Void
     package typealias CommandServiceProvider = @Sendable ()
         -> HostAgentXPCCommandService?
+    package typealias PasswordServiceProvider = @Sendable ()
+        -> HostAgentXPCPasswordService?
 
     private enum ConnectionEndReason: Equatable, Sendable {
         case interrupted
@@ -81,7 +83,9 @@ package final class HostAgentXPCListenerAdmissionShell:
     private let snapshotState: HostAgentSnapshotState
     private let eventState: HostAgentEventState
     private let commandServiceProvider: CommandServiceProvider
+    private let passwordServiceProvider: PasswordServiceProvider
     private let requiresCommandService: Bool
+    private let requiresPasswordService: Bool
     private let assessConnection: ConnectionAssessor
     private let nowUnixMilliseconds: HostAgentXPCHandshakeHandler.Clock
     private let monotonicMilliseconds:
@@ -104,7 +108,8 @@ package final class HostAgentXPCListenerAdmissionShell:
         identityAuthority: HostAgentXPCProcessIdentityAuthority,
         snapshotState: HostAgentSnapshotState,
         eventState: HostAgentEventState,
-        commandServiceProvider: @escaping CommandServiceProvider
+        commandServiceProvider: @escaping CommandServiceProvider,
+        passwordServiceProvider: @escaping PasswordServiceProvider = { nil }
     )
         -> HostAgentXPCListenerAdmissionShell
     {
@@ -115,7 +120,9 @@ package final class HostAgentXPCListenerAdmissionShell:
             snapshotState: snapshotState,
             eventState: eventState,
             commandServiceProvider: commandServiceProvider,
+            passwordServiceProvider: passwordServiceProvider,
             requiresCommandService: true,
+            requiresPasswordService: true,
             assessConnection: HostAgentXPCPeerAdmissionGate.assess,
             nowUnixMilliseconds: productClock,
             monotonicMilliseconds: productMonotonicClock,
@@ -133,7 +140,9 @@ package final class HostAgentXPCListenerAdmissionShell:
         snapshotState: HostAgentSnapshotState,
         eventState: HostAgentEventState,
         commandServiceProvider: @escaping CommandServiceProvider = { nil },
+        passwordServiceProvider: @escaping PasswordServiceProvider = { nil },
         requiresCommandService: Bool = false,
+        requiresPasswordService: Bool = false,
         assessConnection: @escaping ConnectionAssessor,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
         monotonicMilliseconds: @escaping
@@ -149,7 +158,9 @@ package final class HostAgentXPCListenerAdmissionShell:
         self.snapshotState = snapshotState
         self.eventState = eventState
         self.commandServiceProvider = commandServiceProvider
+        self.passwordServiceProvider = passwordServiceProvider
         self.requiresCommandService = requiresCommandService
+        self.requiresPasswordService = requiresPasswordService
         self.assessConnection = assessConnection
         self.nowUnixMilliseconds = nowUnixMilliseconds
         self.monotonicMilliseconds = monotonicMilliseconds
@@ -293,7 +304,9 @@ package final class HostAgentXPCListenerAdmissionShell:
         lock.unlock()
 
         let commandService = commandServiceProvider()
-        if requiresCommandService, commandService == nil {
+        let passwordService = passwordServiceProvider()
+        if (requiresCommandService && commandService == nil)
+            || (requiresPasswordService && passwordService == nil) {
             lock.lock()
             activeConnections.removeValue(forKey: identifier)
             lock.unlock()
@@ -306,6 +319,7 @@ package final class HostAgentXPCListenerAdmissionShell:
             snapshotState: snapshotState,
             eventState: eventState,
             commandService: commandService,
+            passwordService: passwordService,
             nowUnixMilliseconds: nowUnixMilliseconds,
             monotonicMilliseconds: monotonicMilliseconds
         )

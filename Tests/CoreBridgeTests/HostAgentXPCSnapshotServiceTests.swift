@@ -7,12 +7,12 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     private let hostID = "host-a"
     private let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
 
-    func testFactoryConstructsHandshakeSnapshotEventAndCommandInterface() throws {
+    func testFactoryConstructsHandshakeSnapshotEventCommandAndPasswordInterface() throws {
         let interface = HostAgentXPCSnapshotInterfaceFactory.makeInterface()
 
         XCTAssertEqual(
             NSStringFromProtocol(interface.protocol),
-            "RDNHostAgentXPCCommandService"
+            "RDNHostAgentXPCPasswordService"
         )
         XCTAssertEqual(
             HostAgentXPCSnapshotInterfaceFactory.handshakeSelectorName,
@@ -30,6 +30,10 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             HostAgentXPCSnapshotInterfaceFactory.commandSelectorName,
             "submitCommandWithRequestData:reply:"
         )
+        XCTAssertEqual(
+            HostAgentXPCSnapshotInterfaceFactory.passwordSelectorName,
+            "performPasswordOperationWithRequestData:secretData:reply:"
+        )
 
         let header = try String(
             contentsOf: repositoryRoot.appendingPathComponent(
@@ -46,7 +50,10 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         XCTAssertTrue(header.contains(
             "RDNHostAgentXPCCommandService <RDNHostAgentXPCEventService>"
         ))
-        XCTAssertEqual(header.components(separatedBy: "- (void)").count - 1, 4)
+        XCTAssertTrue(header.contains(
+            "RDNHostAgentXPCPasswordService <RDNHostAgentXPCCommandService>"
+        ))
+        XCTAssertEqual(header.components(separatedBy: "- (void)").count - 1, 5)
         XCTAssertTrue(header.contains("NSData *)requestData"))
         XCTAssertTrue(header.contains("NSData * _Nullable responseData"))
         XCTAssertFalse(header.contains("NSArray"))
@@ -336,6 +343,71 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         )
     }
 
+    func testPasswordOperationRequiresSnapshotAndUsesDedicatedSecretReply()
+        throws
+    {
+        let identity = try HostAgentXPCWireAgentIdentity.test(
+            agentBuildID: "agent-build",
+            hostInstanceID: hostID,
+            agentBootID: bootID
+        )
+        let password = Data("246813579".utf8)
+        let service = HostAgentXPCPasswordService(
+            identity: identity,
+            execute: { action, secret, _ in
+                XCTAssertEqual(action, .revealTemporaryPassword)
+                XCTAssertTrue(secret.isEmpty)
+                return password
+            }
+        )
+        let handler = try makeHandler(
+            availableSnapshot: true,
+            passwordService: service
+        )
+        let request = try HostAgentXPCWirePasswordRequest(
+            wireVersion: 2,
+            requestID: "f3b55fb3-bc9f-443a-9a73-7769eb35875d",
+            hostInstanceID: hostID,
+            agentBootID: bootID,
+            sentAtUnixMilliseconds: 13,
+            action: .revealTemporaryPassword,
+            secretLength: 0
+        )
+        var prematureReply = false
+        handler.performPasswordOperation(
+            requestData: try request.encoded(),
+            secretData: nil
+        ) { response, secret in
+            prematureReply = response != nil || secret != nil
+        }
+        XCTAssertFalse(prematureReply)
+
+        XCTAssertNotNil(handler.handshakeResponse(
+            for: try handshakeRequest(versions: [2]).encoded()
+        ))
+        XCTAssertNotNil(handler.snapshotResponse(
+            for: try snapshotRequest().encoded()
+        ))
+
+        let replied = expectation(description: "password operation replied")
+        handler.performPasswordOperation(
+            requestData: try request.encoded(),
+            secretData: nil
+        ) { data, secret in
+            guard let data,
+                  let response = try? HostAgentXPCWirePasswordResponse.decode(data)
+            else {
+                XCTFail("missing password response")
+                replied.fulfill()
+                return
+            }
+            XCTAssertTrue(response.isCorrelated(to: request))
+            XCTAssertEqual(secret, password)
+            replied.fulfill()
+        }
+        wait(for: [replied], timeout: 2)
+    }
+
     func testCommandRepliesBeforeOneShotExecutionAndRejectsReentry() throws {
         let recorder = SnapshotCommandServiceRecorder()
         let service = try makeCommandService(recorder: recorder)
@@ -558,6 +630,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         eventSequence: UInt64 = 1,
         eventState: HostAgentEventState? = nil,
         commandService: HostAgentXPCCommandService? = nil,
+        passwordService: HostAgentXPCPasswordService? = nil,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock = {
             20
         },
@@ -583,6 +656,7 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
             snapshotState: state,
             eventState: eventState ?? HostAgentEventState(),
             commandService: commandService,
+            passwordService: passwordService,
             nowUnixMilliseconds: nowUnixMilliseconds,
             monotonicMilliseconds: monotonicMilliseconds
         )

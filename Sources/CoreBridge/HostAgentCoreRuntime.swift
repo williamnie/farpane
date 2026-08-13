@@ -38,10 +38,35 @@ public protocol HostAgentCoreControlSurface: AnyObject {
         connectionID: String,
         commandId: String
     ) throws
+    func revealTemporaryPassword(commandId: String) throws -> String
+    func regenerateTemporaryPassword(commandId: String) throws
+    func setPermanentPassword(_ passwordUTF8: inout Data, commandId: String) throws
+    func clearPermanentPassword(commandId: String) throws
     func stop(reason: HostStopReason) throws
 }
 
 extension HostControlClient: HostAgentCoreControlSurface {}
+
+public extension HostAgentCoreControlSurface {
+    func revealTemporaryPassword(commandId: String) throws -> String {
+        throw HostAgentCoreRuntimeAccessError.notRunning
+    }
+
+    func regenerateTemporaryPassword(commandId: String) throws {
+        throw HostAgentCoreRuntimeAccessError.notRunning
+    }
+
+    func setPermanentPassword(
+        _ passwordUTF8: inout Data,
+        commandId: String
+    ) throws {
+        throw HostAgentCoreRuntimeAccessError.notRunning
+    }
+
+    func clearPermanentPassword(commandId: String) throws {
+        throw HostAgentCoreRuntimeAccessError.notRunning
+    }
+}
 
 public enum HostAgentCoreRuntimeAccessError: Error, Equatable {
     case notRunning
@@ -194,6 +219,31 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
                 connectionID: command.connectionID,
                 commandId: command.commandID
             )
+        }
+    }
+
+    package func performPasswordOperation(
+        _ action: HostAgentXPCPasswordAction,
+        secret: inout Data,
+        requestID: String
+    ) throws -> Data? {
+        try withRunningClient { client in
+            switch action {
+            case .revealTemporaryPassword:
+                let password = try client.revealTemporaryPassword(
+                    commandId: requestID
+                )
+                return Data(password.utf8)
+            case .regenerateTemporaryPassword:
+                try client.regenerateTemporaryPassword(commandId: requestID)
+                return nil
+            case .setPermanentPassword:
+                try client.setPermanentPassword(&secret, commandId: requestID)
+                return nil
+            case .clearPermanentPassword:
+                try client.clearPermanentPassword(commandId: requestID)
+                return nil
+            }
         }
     }
 

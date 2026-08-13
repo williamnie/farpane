@@ -79,10 +79,13 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
             "hostPasswordCopyButton.action = #selector(copyHostTemporaryPassword)",
             "peerPasteButton.action = #selector(pastePeerID)",
             "peerPasteButton.setAccessibilityLabel(\"从剪贴板粘贴设备 ID\")",
+            "#selector(NSText.paste(_:))",
+            "NSApp.sendAction(",
             "let readClipboard = onReadLocalClipboardText",
             "onWriteLocalClipboardText?(value) == true",
             "showCopyFeedback(\"已复制\\(label)\", isError: false)",
-            "onRevealHostPassword?()",
+            "onCopyHostTemporaryPassword()",
+            "reportHostTemporaryPasswordCopy",
         ] {
             XCTAssertTrue(home.contains(marker), marker)
         }
@@ -92,6 +95,17 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
         XCTAssertTrue(app.contains(
             "viewerPasteboardOwner.writeLocalProductText(text)"
         ))
+        XCTAssertTrue(app.contains(
+            "startBackgroundPasswordOperation(.revealTemporaryPassword)"
+        ))
+        for marker in [
+            "let editMenu = NSMenu(title: \"编辑\")",
+            "action: #selector(NSText.paste(_:))",
+            "keyEquivalent: \"v\"",
+            "action: #selector(NSText.selectAll(_:))",
+        ] {
+            XCTAssertTrue(app.contains(marker), marker)
+        }
     }
 
     private func sourceFiles() throws -> (home: String, app: String) {

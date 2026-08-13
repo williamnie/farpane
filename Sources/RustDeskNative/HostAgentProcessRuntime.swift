@@ -142,6 +142,16 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
             try? ownedRuntime.stop(reason: .error)
             throw CompositionError.commandOwnerBindingFailed
         }
+        guard commandOwner.bindPasswordSubmission({ action, secret, requestID in
+            try ownedRuntime.performPasswordOperation(
+                action,
+                secret: &secret,
+                requestID: requestID
+            )
+        }) else {
+            try? ownedRuntime.stop(reason: .error)
+            throw CompositionError.commandOwnerBindingFailed
+        }
         let xpcAdmissionOwner =
             HostAgentXPCListenerAdmissionShell.makeProductShell(
                 identityAuthority: xpcIdentityAuthority,
@@ -149,6 +159,9 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                 eventState: eventState,
                 commandServiceProvider: { [weak commandOwner] in
                     commandOwner?.commandServiceSnapshot()
+                },
+                passwordServiceProvider: { [weak commandOwner] in
+                    commandOwner?.passwordServiceSnapshot()
                 }
             )
         return HostAgentProcessRuntime(
