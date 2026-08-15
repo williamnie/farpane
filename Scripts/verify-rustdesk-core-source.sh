@@ -16,6 +16,7 @@ viewer_audio_policy_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-ex
 viewer_audio_permission_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-permission-lifecycle.patch"
 host_audio_input_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-host-audio-explicit-input-fail-closed.patch"
 native_host_cm_lifetime_patch="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-cm-lifetime.patch"
+native_host_physical_display_pixels_patch="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-physical-display-pixels.patch"
 hbb_secret_wipe_patch="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 hbb_bounded_block_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
 
@@ -36,6 +37,7 @@ actual_commit=$(git -C "$vendor_dir" rev-parse HEAD)
 
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch"
+git -C "$vendor_dir" apply --check --reverse "$native_host_physical_display_pixels_patch"
 if ! git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_patch" 2>/dev/null; then
   git -C "$vendor_dir" apply --check --reverse "$viewer_file_receive_patch"
   git -C "$vendor_dir" apply --check --reverse "$viewer_file_digest_patch"

@@ -1,0 +1,43 @@
+--- a/src/server.rs
++++ b/src/server.rs
+@@ -597,10 +597,20 @@ impl Server {
+                 video_service_count += 1;
+             }
+         }
+-        *scrap::quartz::ENABLE_RETINA.lock().unwrap() = video_service_count < 2;
++        #[cfg(feature = "rdn-native-host")]
++        let native_host_bound = crate::rdn_host_bridge::native_host_is_bound();
++        #[cfg(not(feature = "rdn-native-host"))]
++        let native_host_bound = false;
++        *scrap::quartz::ENABLE_RETINA.lock().unwrap() =
++            enable_retina_for_server(native_host_bound, video_service_count);
+     }
+ }
+
++#[cfg(target_os = "macos")]
++fn enable_retina_for_server(native_host_bound: bool, video_service_count: usize) -> bool {
++    !native_host_bound && video_service_count < 2
++}
++
+ impl Drop for Server {
+     fn drop(&mut self) {
+         for s in self.services.values() {
+@@ -955,3 +966,18 @@ mod route_transport_tests {
+         assert_eq!(route_transport_snapshot(&route).unknown_subscribers, 3);
+     }
+ }
++
++#[cfg(all(test, target_os = "macos"))]
++mod retina_policy_tests {
++    use super::enable_retina_for_server;
++
++    #[test]
++    fn native_host_keeps_display_inventory_in_physical_pixel_units() {
++        assert!(!enable_retina_for_server(true, 0));
++        assert!(!enable_retina_for_server(true, 1));
++        assert!(!enable_retina_for_server(true, 2));
++        assert!(enable_retina_for_server(false, 0));
++        assert!(enable_retina_for_server(false, 1));
++        assert!(!enable_retina_for_server(false, 2));
++    }
++}

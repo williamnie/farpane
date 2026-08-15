@@ -70,6 +70,20 @@ class VerifyRustDeskCoreSourceTests(unittest.TestCase):
             verifier,
         )
 
+    def test_bootstrap_and_verifier_preserve_physical_display_pixel_layer(self) -> None:
+        patch_name = "h7-native-host-physical-display-pixels.patch"
+        bootstrap = (
+            REPO_ROOT / "Scripts" / "bootstrap-rustdesk-core.sh"
+        ).read_text(encoding="utf-8")
+        verifier = VERIFY_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn(patch_name, bootstrap)
+        self.assertIn(patch_name, verifier)
+        self.assertIn(
+            'apply --check --reverse "$native_host_physical_display_pixels_patch"',
+            verifier,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

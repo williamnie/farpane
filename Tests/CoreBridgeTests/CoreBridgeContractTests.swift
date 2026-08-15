@@ -639,6 +639,23 @@ final class CoreBridgeContractTests: XCTestCase {
         XCTAssertTrue(ownerSource.contains("HostHardwareEncoderCapabilityDiscovery.discover("))
         XCTAssertTrue(ownerSource.contains("CGGetActiveDisplayList("))
         XCTAssertTrue(ownerSource.contains("lifetime.setMediaCapabilities("))
+        XCTAssertTrue(ownerSource.contains(
+            "requestCapabilityRefreshForDisplayReconfigure()"
+        ))
+        XCTAssertTrue(ownerSource.contains(
+            "capabilityRefreshPending && !cancelled"
+        ))
+        let displayReconfigureEvent = try XCTUnwrap(ownerSource.range(
+            of: "case \"mediaDisplayReconfigureStarted\":"
+        ))
+        let displayCapabilityRefresh = try XCTUnwrap(ownerSource.range(
+            of: "requestCapabilityRefreshForDisplayReconfigure()",
+            range: displayReconfigureEvent.lowerBound..<ownerSource.endIndex
+        ))
+        XCTAssertLessThan(
+            displayReconfigureEvent.lowerBound,
+            displayCapabilityRefresh.lowerBound
+        )
         XCTAssertTrue(ownerSource.contains("lifetime.submit(accessUnit:"))
         XCTAssertTrue(ownerSource.contains("lifetime.reportEncoderState("))
         XCTAssertTrue(ownerSource.contains("framing: .avcc"))

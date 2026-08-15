@@ -66,6 +66,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
     private var state: State = .idle
     private var capabilityTask: Task<Void, Never>?
     private var capabilityInFlight = false
+    private var capabilityRefreshPending = false
     private var diagnosticsInFlight = 0
 
     init(
@@ -162,21 +163,13 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
             return false
         }
         capabilityInFlight = true
-        condition.unlock()
-        _ = liveLogPollingOwner.start()
-        status.recordCapabilityProbeStarted()
-
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.discoverAndPublishCapabilities()
+            await self.runCapabilityWork()
         }
-        condition.lock()
-        if capabilityInFlight {
-            capabilityTask = task
-        } else {
-            task.cancel()
-        }
+        capabilityTask = task
         condition.unlock()
+        _ = liveLogPollingOwner.start()
         return true
     }
 
@@ -303,6 +296,7 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
                     previousCodecEpoch: started.previousCodecEpoch
                 )
             )
+            requestCapabilityRefreshForDisplayReconfigure()
         case "mediaDiagnostic":
             guard let diagnostic = event.mediaDiagnostic else {
                 status.recordDiagnosticRejection()
@@ -405,8 +399,61 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         condition.unlock()
     }
 
+    /// A display-mode switch can raise the physical-pixel envelope above the
+    /// one advertised at process startup. Rust keeps retrying the replacement
+    /// route while its reconfigure provenance is pending, so refresh the
+    /// native adapter envelope as soon as that authoritative marker arrives.
+    /// Multiple switches during a probe are coalesced into one more pass so
+    /// the last observed display mode cannot be stranded behind stale limits.
+    private func requestCapabilityRefreshForDisplayReconfigure() {
+        condition.lock()
+        guard case .active = state else {
+            condition.unlock()
+            return
+        }
+        if capabilityInFlight {
+            capabilityRefreshPending = true
+            condition.unlock()
+            return
+        }
+        capabilityInFlight = true
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.runCapabilityWork()
+        }
+        capabilityTask = task
+        condition.unlock()
+    }
+
+    private func runCapabilityWork() async {
+        while true {
+            await discoverAndPublishCapabilities()
+            let repeatForNewDisplay = finishCapabilityPass(
+                cancelled: Task.isCancelled
+            )
+            guard repeatForNewDisplay else { return }
+        }
+    }
+
+    private func finishCapabilityPass(cancelled: Bool) -> Bool {
+        condition.lock()
+        defer { condition.unlock() }
+        let repeatForNewDisplay = if case .active = state {
+            capabilityRefreshPending && !cancelled
+        } else {
+            false
+        }
+        capabilityRefreshPending = false
+        if !repeatForNewDisplay {
+            capabilityInFlight = false
+            capabilityTask = nil
+            condition.broadcast()
+        }
+        return repeatForNewDisplay
+    }
+
     private func discoverAndPublishCapabilities() async {
-        defer { finishCapabilityWork() }
+        status.recordCapabilityProbeStarted()
         guard let target = HostAgentDisplayCapabilityTarget.current() else {
             status.recordCapabilityFailure()
             return
@@ -436,14 +483,6 @@ final class HostAgentMediaPipelineOwner: @unchecked Sendable {
         } catch {
             status.recordCapabilityFailure()
         }
-    }
-
-    private func finishCapabilityWork() {
-        condition.lock()
-        capabilityInFlight = false
-        capabilityTask = nil
-        condition.broadcast()
-        condition.unlock()
     }
 
     private func matchingRoute(
