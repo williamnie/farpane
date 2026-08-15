@@ -2267,6 +2267,28 @@ private final class FlippedStackView: NSStackView {
     override var isFlipped: Bool { true }
 }
 
+private final class HomeSidebarButtonCell: NSButtonCell {
+    private let horizontalPadding: CGFloat
+
+    init(horizontalPadding: CGFloat) {
+        self.horizontalPadding = horizontalPadding
+        super.init(textCell: "")
+    }
+
+    required init(coder: NSCoder) {
+        horizontalPadding = 0
+        super.init(coder: coder)
+    }
+
+    override func imageRect(forBounds rect: NSRect) -> NSRect {
+        super.imageRect(forBounds: rect.insetBy(dx: horizontalPadding, dy: 0))
+    }
+
+    override func titleRect(forBounds rect: NSRect) -> NSRect {
+        super.titleRect(forBounds: rect.insetBy(dx: horizontalPadding, dy: 0))
+    }
+}
+
 private final class HomeSidebarButton: NSButton {
     let page: HomePage
 
@@ -2277,6 +2299,7 @@ private final class HomeSidebarButton: NSButton {
     init(page: HomePage) {
         self.page = page
         super.init(frame: .zero)
+        cell = HomeSidebarButtonCell(horizontalPadding: 10)
         title = page.title
         image = NSImage(
             systemSymbolName: page.symbolName,
