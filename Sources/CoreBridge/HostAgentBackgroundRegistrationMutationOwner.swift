@@ -73,6 +73,7 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
     package typealias Mutation = @Sendable () throws -> Void
     package typealias RegistrationObservation = @Sendable ()
         -> HostAgentBackgroundRegistrationStatus
+    package typealias ObservationRetryDelay = @Sendable () -> Void
 
     private let stateLock = NSLock()
     private let deliveryLock = NSRecursiveLock()
@@ -80,6 +81,8 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
     private let registerService: Mutation
     private let unregisterService: Mutation
     private let observeRegistration: RegistrationObservation
+    private let unregistrationObservationRetryLimit: Int
+    private let observationRetryDelay: ObservationRetryDelay
     private let observer: Observer
     private var mutationInFlight = false
     private var view = HostAgentBackgroundRegistrationMutationView(
@@ -113,6 +116,10 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
                 )
                 return HostAgentSMAppServiceStatusAdapter.map(service.status)
             },
+            unregistrationObservationRetryLimit: 40,
+            observationRetryDelay: {
+                Thread.sleep(forTimeInterval: 0.05)
+            },
             observer: observer
         )
     }
@@ -122,12 +129,19 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
         register: @escaping Mutation,
         unregister: @escaping Mutation,
         observeRegistration: @escaping RegistrationObservation,
+        unregistrationObservationRetryLimit: Int = 0,
+        observationRetryDelay: @escaping ObservationRetryDelay = {},
         observer: @escaping Observer = { _ in }
     ) {
         self.assessIdentity = assessIdentity
         registerService = register
         unregisterService = unregister
         self.observeRegistration = observeRegistration
+        self.unregistrationObservationRetryLimit = max(
+            0,
+            unregistrationObservationRetryLimit
+        )
+        self.observationRetryDelay = observationRetryDelay
         self.observer = observer
     }
 
@@ -162,7 +176,7 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
             _ = try? unregisterService()
         }
 
-        let registration = observeRegistration()
+        let registration = observeSettledRegistration(after: intent)
         let resolution = resolve(intent, registration: registration)
         return finish(
             intent: intent,
@@ -170,6 +184,29 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
             registration: registration,
             succeeded: resolution.succeeded
         )
+    }
+
+    private func observeSettledRegistration(
+        after intent: HostAgentBackgroundRegistrationMutationIntent
+    ) -> HostAgentBackgroundRegistrationStatus {
+        var registration = observeRegistration()
+        guard intent == .unregisterBackgroundAgent else {
+            return registration
+        }
+
+        // ServiceManagement may briefly retain the pre-unregistration status
+        // after unregister() returns. Require bounded convergence instead of
+        // making the user issue the same explicit mutation a second time.
+        for _ in 0..<unregistrationObservationRetryLimit {
+            switch registration {
+            case .notRegistered, .serviceUnavailable:
+                return registration
+            case .enabled, .requiresApproval:
+                observationRetryDelay()
+                registration = observeRegistration()
+            }
+        }
+        return registration
     }
 
     private func begin(

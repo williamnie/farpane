@@ -10,6 +10,10 @@ final class HostAgentBackgroundUnregistrationSheetDriver {
 
     private let owner: HostAgentBackgroundUnregistrationUXOwner
     private let onUpdate: Update
+    private let mutationQueue = DispatchQueue(
+        label: "io.farpane.background-unregistration",
+        qos: .userInitiated
+    )
     private var alert: NSAlert?
     private var completion: Completion?
     private var activePresentationToken: UInt64 = 0
@@ -120,8 +124,25 @@ final class HostAgentBackgroundUnregistrationSheetDriver {
             HostAgentBackgroundUnregistrationSheetResponsePolicy.intent(
                 confirmed: response == .alertFirstButtonReturn
             )
-        _ = owner.apply(intent)
-        finish(owner.snapshot())
+        guard intent == .confirmBackgroundUnregistration else {
+            _ = owner.apply(intent)
+            finish(owner.snapshot())
+            return
+        }
+
+        mutationQueue.async { [weak self] in
+            guard let self else { return }
+            _ = self.owner.apply(intent)
+            let updated = self.owner.snapshot()
+            DispatchQueue.main.async { [weak self] in
+                guard let self,
+                      self.isRunning,
+                      self.activePresentationToken == token,
+                      self.alert == nil
+                else { return }
+                self.finish(updated)
+            }
+        }
     }
 
     private func finish(

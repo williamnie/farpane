@@ -52,7 +52,10 @@ final class HostAgentBackgroundRegistrationMutationOwnerTests: XCTestCase {
         let dependencies = RegistrationMutationDependencies()
         dependencies.observedStatus = .enabled
         let publications = RegistrationMutationViewRecorder()
-        let owner = makeOwner(dependencies) { publications.append($0) }
+        let owner = makeOwner(
+            dependencies,
+            observer: { publications.append($0) }
+        )
 
         XCTAssertTrue(owner.apply(.registerBackgroundAgent))
 
@@ -144,6 +147,50 @@ final class HostAgentBackgroundRegistrationMutationOwnerTests: XCTestCase {
         XCTAssertEqual(owner.snapshot().registration, .enabled)
     }
 
+    func testUnregisterWaitsForDelayedStatusConvergence() {
+        let dependencies = RegistrationMutationDependencies()
+        dependencies.observedStatuses = [.enabled, .enabled, .notRegistered]
+        let owner = makeOwner(
+            dependencies,
+            unregistrationObservationRetryLimit: 4,
+            observationRetryDelay: { dependencies.waitForObservationRetry() }
+        )
+
+        XCTAssertTrue(owner.apply(.unregisterBackgroundAgent))
+
+        XCTAssertEqual(
+            dependencies.events,
+            [.unregister, .observe, .wait, .observe, .wait, .observe]
+        )
+        XCTAssertEqual(owner.snapshot().phase, .unregistered)
+        XCTAssertEqual(owner.snapshot().registration, .notRegistered)
+    }
+
+    func testUnregisterStillFailsAfterBoundedStatusRetries() {
+        let dependencies = RegistrationMutationDependencies()
+        dependencies.observedStatuses = [.enabled, .enabled, .enabled]
+        let owner = makeOwner(
+            dependencies,
+            unregistrationObservationRetryLimit: 2,
+            observationRetryDelay: { dependencies.waitForObservationRetry() }
+        )
+
+        XCTAssertFalse(owner.apply(.unregisterBackgroundAgent))
+
+        XCTAssertEqual(
+            dependencies.events,
+            [.unregister, .observe, .wait, .observe, .wait, .observe]
+        )
+        XCTAssertEqual(
+            owner.snapshot().phase,
+            .failed(
+                intent: .unregisterBackgroundAgent,
+                failure: .unregistrationNotEffective
+            )
+        )
+        XCTAssertEqual(owner.snapshot().registration, .enabled)
+    }
+
     func testConcurrentIntentIsRejectedWhileMutationIsInFlight() {
         let registerEntered = DispatchSemaphore(value: 0)
         let releaseRegister = DispatchSemaphore(value: 0)
@@ -180,13 +227,13 @@ final class HostAgentBackgroundRegistrationMutationOwnerTests: XCTestCase {
             HostAgentBackgroundRegistrationMutationOwner?
         >(nil)
         let chainedResult = RegistrationMutationLockedValue<Bool?>(nil)
-        let owner = makeOwner(dependencies) { view in
+        let owner = makeOwner(dependencies, observer: { view in
             if view.phase == .registered {
                 chainedResult.set(
                     ownerHolder.value?.apply(.unregisterBackgroundAgent)
                 )
             }
-        }
+        })
         ownerHolder.set(owner)
 
         XCTAssertTrue(owner.apply(.registerBackgroundAgent))
@@ -236,6 +283,10 @@ final class HostAgentBackgroundRegistrationMutationOwnerTests: XCTestCase {
 
     private func makeOwner(
         _ dependencies: RegistrationMutationDependencies,
+        unregistrationObservationRetryLimit: Int = 0,
+        observationRetryDelay:
+            @escaping HostAgentBackgroundRegistrationMutationOwner
+                .ObservationRetryDelay = {},
         observer: @escaping HostAgentBackgroundRegistrationMutationOwner.Observer = { _ in }
     ) -> HostAgentBackgroundRegistrationMutationOwner {
         HostAgentBackgroundRegistrationMutationOwner(
@@ -243,6 +294,9 @@ final class HostAgentBackgroundRegistrationMutationOwnerTests: XCTestCase {
             register: { try dependencies.register() },
             unregister: { try dependencies.unregister() },
             observeRegistration: { dependencies.observe() },
+            unregistrationObservationRetryLimit:
+                unregistrationObservationRetryLimit,
+            observationRetryDelay: observationRetryDelay,
             observer: observer
         )
     }
@@ -257,6 +311,7 @@ private enum RegistrationMutationEvent: Equatable {
     case register
     case unregister
     case observe
+    case wait
 }
 
 private final class RegistrationMutationDependencies: @unchecked Sendable {
@@ -265,6 +320,7 @@ private final class RegistrationMutationDependencies: @unchecked Sendable {
     var identity: HostAgentRegistrationIdentityStatus =
         .localDevelopmentEligible(buildIdentifier: "42")
     var observedStatus: HostAgentBackgroundRegistrationStatus = .notRegistered
+    var observedStatuses: [HostAgentBackgroundRegistrationStatus] = []
     var registerError: Error?
     var unregisterError: Error?
     var registerAction: (() -> Void)?
@@ -292,8 +348,17 @@ private final class RegistrationMutationDependencies: @unchecked Sendable {
     }
 
     func observe() -> HostAgentBackgroundRegistrationStatus {
-        append(.observe)
-        return observedStatus
+        lock.lock()
+        eventStorage.append(.observe)
+        let result = observedStatuses.isEmpty
+            ? observedStatus
+            : observedStatuses.removeFirst()
+        lock.unlock()
+        return result
+    }
+
+    func waitForObservationRetry() {
+        append(.wait)
     }
 
     private func append(_ event: RegistrationMutationEvent) {
