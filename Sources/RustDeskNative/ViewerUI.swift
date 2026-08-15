@@ -21,7 +21,7 @@ final class ViewerChromeView: NSView {
     var onControlOverlayVisibilityChanged: ((Bool) -> Void)?
 
     private let collapsedControl = NSVisualEffectView()
-    private let collapsedButton = NSButton(title: "●  ⌄", target: nil, action: nil)
+    private let collapsedButton = NSButton(title: "●", target: nil, action: nil)
     private let controlsPanel = NSVisualEffectView()
     private let hudPanel = NSVisualEffectView()
     private let hudLabel = NSTextField(labelWithString: "正在等待视频…")
@@ -148,7 +148,7 @@ final class ViewerChromeView: NSView {
 
     func updateKeyboardGrab(active: Bool, message: String?, isError: Bool) {
         keyboardGrabActive = active
-        collapsedButton.title = active ? "⌨︎  ⌄" : "●  ⌄"
+        collapsedButton.title = active ? "⌨︎" : "●"
         collapsedButton.toolTip = active
             ? "键盘独占已开启；点击打开本地控制"
             : "打开会话控制"
@@ -267,6 +267,16 @@ final class ViewerChromeView: NSView {
         configureMaterial(collapsedControl, radius: 12)
         collapsedButton.bezelStyle = .inline
         collapsedButton.font = .systemFont(ofSize: 12, weight: .semibold)
+        let collapsedChevronConfiguration = NSImage.SymbolConfiguration(
+            pointSize: 9,
+            weight: .semibold
+        )
+        collapsedButton.image = NSImage(
+            systemSymbolName: "chevron.down",
+            accessibilityDescription: nil
+        )?.withSymbolConfiguration(collapsedChevronConfiguration)
+        collapsedButton.imagePosition = .imageTrailing
+        collapsedButton.imageHugsTitle = true
         collapsedButton.target = self
         collapsedButton.action = #selector(expandControls)
         collapsedButton.toolTip = "打开会话控制"
