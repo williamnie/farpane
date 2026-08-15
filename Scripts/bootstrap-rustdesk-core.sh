@@ -23,6 +23,7 @@ viewer_audio_policy_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-aud
 viewer_audio_permission_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-permission-lifecycle.patch"
 host_audio_input_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-host-audio-explicit-input-fail-closed.patch"
 native_host_cm_lifetime_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-cm-lifetime.patch"
+native_host_physical_display_pixels_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-physical-display-pixels.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 host_file_transfer_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs"
@@ -259,6 +260,14 @@ elif ! git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_pa
   exit 1
 fi
 
+if git -C "$vendor_dir" apply --check "$native_host_physical_display_pixels_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$native_host_physical_display_pixels_patch_file"
+elif ! git -C "$vendor_dir" apply --check --reverse "$native_host_physical_display_pixels_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout does not match the native Host physical-display-pixel patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
 hbb_common_dir="$vendor_dir/libs/hbb_common"
 if git -C "$hbb_common_dir" apply --check "$hbb_common_patch_file" 2>/dev/null; then
   git -C "$hbb_common_dir" apply "$hbb_common_patch_file"
@@ -284,6 +293,7 @@ cp "$host_file_transfer_source" "$vendor_dir/src/rdn_host_file_transfer.rs"
 
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$native_host_physical_display_pixels_patch_file"
 if git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_wire_patch_file" 2>/dev/null; then
   :
 else
