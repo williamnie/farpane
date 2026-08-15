@@ -197,10 +197,7 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         guard lock.withLock({ !terminallyCancelled }) else {
             throw HostScreenCaptureError.streamStopped("cancelled")
         }
-        let content = try await SCShareableContent.excludingDesktopWindows(
-            false,
-            onScreenWindowsOnly: true
-        )
+        let content = try await Self.fastShareableContent()
         guard lock.withLock({ !terminallyCancelled }) else {
             throw HostScreenCaptureError.streamStopped("cancelled")
         }
@@ -251,6 +248,28 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
             }
             if cancelled { onCadence(.configurationCancelled) }
             throw error
+        }
+    }
+
+    /// The async Swift overlay resolves to the unfiltered
+    /// `getShareableContentWithCompletionHandler:` selector on macOS 13,
+    /// which can spend many seconds enumerating every window. Host capture
+    /// only needs the display inventory, so call the bounded selector
+    /// explicitly and bridge its completion into async/await ourselves.
+    private static func fastShareableContent() async throws -> SCShareableContent {
+        try await withCheckedThrowingContinuation { continuation in
+            SCShareableContent.getExcludingDesktopWindows(
+                false,
+                onScreenWindowsOnly: true
+            ) { content, error in
+                if let content {
+                    continuation.resume(returning: content)
+                } else {
+                    continuation.resume(
+                        throwing: error ?? HostScreenCaptureError.displayUnavailable
+                    )
+                }
+            }
         }
     }
 

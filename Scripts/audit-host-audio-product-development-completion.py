@@ -111,6 +111,7 @@ def main() -> int:
         "home": repository / "Sources/RustDeskNative/HomeView.swift",
         "app": repository / "Sources/RustDeskNative/RustDeskNativeApp.swift",
         "agent": repository / "Sources/RustDeskNative/HostAgentProcessRuntime.swift",
+        "info": repository / "App/Info.plist",
         "bootstrap_tests": repository
         / "Tests/ConnectionCatalogTests/HostAgentBootstrapConfigurationTests.swift",
         "microphone_tests": repository
@@ -178,15 +179,18 @@ def main() -> int:
             "NativeSessionCommand::DisableAudio",
         )
     )
-    microphone = all(
+    capture_source_policy = all(
         marker in sources["bootstrap"] + sources["projection"]
         + sources["home"] + sources["app"] + sources["agent"]
+        + sources["info"]
         for marker in (
             "public static let currentSchemaVersion = 7",
             "public let audioPolicy: HostAgentAudioPolicy",
             '"enabled": audioPolicy.enabled',
             "远程音频（默认关闭）",
             "farpane.host.audio.enabled",
+            "NSAudioCaptureUsageDescription",
+            "requiresMicrophoneAuthorization",
             "isAuthorizedWithoutPrompt()",
         )
     )
@@ -223,9 +227,9 @@ def main() -> int:
             "native_explicit_audio_input_is_available",
             "kAudioHardwarePropertyDevices",
             "kAudioDevicePropertyScopeInput",
-            "系统默认麦克风",
+            "系统音频（原生）",
             "onHostAudioInputSelection",
-            "不会回退默认麦克风",
+            "不会回退系统音频",
             "audioInputDeviceName: audioPolicy.inputDeviceName",
             "configuration.audioPolicy.inputDeviceName",
         )
@@ -242,7 +246,7 @@ def main() -> int:
         + sources["viewer_audio_tests"] + sources["home_tests"]
         + sources["bridge_tests"]
         for marker in (
-            "testSchemaSixPreservesAudioAndMigratesToDefaultInput",
+            "testSchemaSixPreservesAudioAndMigratesToNativeSystemAudio",
             "testAudioInputPolicyIsStrictAndFailClosed",
             "testAudioInputCatalogOnlyExposesValidUniqueExactNames",
             "testOnlyNotDeterminedStatusAdmitsOneRequest",
@@ -257,15 +261,17 @@ def main() -> int:
             marker in sources["design"]
             for marker in (
                 "音频、剪贴板和文件传输采用独立功能开关和阶段门禁",
-                "H6.1 音频：麦克风采集为原生主路",
-                "第三方虚拟设备（如 BlackHole）可选路径",
+                "H6.1i native system-audio loopback product upgrade",
+                "ScreenCaptureKit 原生系统音频为默认来源",
+                "麦克风或第三方虚拟设备（如 BlackHole）保留为显式可选输入",
                 "H6.1h Host audio product development completion audit",
             )
         ),
         "allStagedAudioAuditsPass": len(audits) == len(REQUIRED_AUDITS),
         "ownershipAuditPassesWithoutDevelopmentGaps": ownership_passes,
         "hostDefaultOffPolicyApprovalAndRevocationImplemented": host_policy,
-        "microphoneTCCBootstrapAndHomeOptInImplemented": microphone,
+        "nativeSystemAudioAndExplicitInputTCCPolicyImplemented":
+            capture_source_policy,
         "viewerDefaultOffOptInAndPermissionOwnerImplemented": viewer_policy,
         "viewerPlaybackIntersectsLocalAndRemotePermission": playback_gate,
         "virtualInputSelectionAndDriftFailClosedImplemented": virtual_input,
@@ -276,7 +282,8 @@ def main() -> int:
     }
     source_lines = {
         "designRequirement": line_number(
-            sources["design"], "H6.1 音频：麦克风采集为原生主路"
+            sources["design"],
+            "H6.1i native system-audio loopback product upgrade",
         ),
         "designCompletion": line_number(
             sources["design"],
@@ -335,7 +342,8 @@ def main() -> int:
         "evidence": evidence,
         "sourceLines": source_lines,
         "claims": {
-            "hostAudioProductImplemented": host_policy and microphone,
+            "hostAudioProductImplemented": host_policy
+                and capture_source_policy,
             "viewerAudioProductImplemented": viewer_policy and playback_gate,
             "virtualInputProductSelectorImplemented": virtual_input,
             "audioProductDevelopmentComplete": complete,
@@ -345,9 +353,10 @@ def main() -> int:
         },
         "remainingDevelopmentGaps": remaining_gaps,
         "nonBlockingAcceptanceGaps": [
-            "installedCurrentBuildSingleMacDeviceEnumerationAndTCC",
-            "defaultMicrophoneCaptureAndPlayback",
-            "virtualInputSystemAudioCaptureAndPlayback",
+            "installedCurrentBuildNativeSystemAudioTCC",
+            "arm64NativeSystemAudioCaptureAndPlayback",
+            "x86_64NativeSystemAudioCaptureAndPlayback",
+            "explicitMicrophoneOrVirtualInputCaptureAndPlayback",
             "remotePermissionDenialAndRevocation",
             "deviceDisappearanceDuringLiveSession",
             "dualMacLatencyCPUAndInteroperability",

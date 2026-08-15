@@ -4,6 +4,7 @@ import ConnectionCatalog
 import CoreBridge
 import CoreGraphics
 import Darwin
+import Dispatch
 import Foundation
 import MetalKit
 import VideoPipeline
@@ -23,6 +24,23 @@ private final class CoreRecoveryCoordinator: @unchecked Sendable {
         let client = self.client
         lock.unlock()
         return client?.requestKeyframe(display: display) == true
+    }
+}
+
+/// Back-deploys `MainActor.assumeIsolated` to the macOS 13 toolchain while
+/// retaining its fail-fast main-queue precondition.
+private enum MainActorBackport {
+    @inline(__always)
+    static func assumeIsolated<T>(
+        _ operation: @MainActor () throws -> T
+    ) rethrows -> T {
+        dispatchPrecondition(condition: .onQueue(.main))
+        return try withoutActuallyEscaping(operation) { operation in
+            try unsafeBitCast(
+                operation,
+                to: (() throws -> T).self
+            )()
+        }
     }
 }
 
@@ -308,7 +326,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     return HostAgentLegacyHostProductEvidencePolicy
                         .unavailableEvidence
                 }
-                return MainActor.assumeIsolated {
+                return MainActorBackport.assumeIsolated {
                     self?.captureLegacyHostMigrationEvidence()
                         ?? HostAgentLegacyHostProductEvidencePolicy
                         .unavailableEvidence
@@ -316,7 +334,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             },
             requestQuiescence: { [weak self] in
                 guard Thread.isMainThread else { return .failed }
-                return MainActor.assumeIsolated {
+                return MainActorBackport.assumeIsolated {
                     self?.requestLegacyHostQuiescence() ?? .failed
                 }
             }
@@ -354,7 +372,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                         )
                     )
                 }
-                return MainActor.assumeIsolated {
+                return MainActorBackport.assumeIsolated {
                     self?.prepareLegacyHostForBackgroundRegistration()
                         ?? (
                             false,
@@ -368,7 +386,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             },
             onUpdate: { [weak self] view in
                 guard Thread.isMainThread else { return }
-                MainActor.assumeIsolated {
+                MainActorBackport.assumeIsolated {
                     self?.applyHostAgentBackgroundRegistrationPresentation(
                         view
                     )
@@ -380,7 +398,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             mutationOwner: hostAgentBackgroundRegistrationMutationOwner,
             onUpdate: { [weak self] view in
                 guard Thread.isMainThread else { return }
-                MainActor.assumeIsolated {
+                MainActorBackport.assumeIsolated {
                     self?.applyHostAgentBackgroundUnregistrationPresentation(
                         view
                     )
@@ -734,7 +752,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     func applicationDidBecomeActive(_ notification: Notification) {
         keyboardController?.resumeIfRequested()
         reconcileHostProductOwnership()
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             if hostAudioPolicyChangeAllowed() {
                 reconcileHostAgentBootstrap()
             }
@@ -1003,7 +1021,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         if credentialError, error.isEmpty {
             error = "部分钥匙串密码暂时无法读取；连接时将要求手动输入。"
         }
-        let legacyAssessment = MainActor.assumeIsolated {
+        let legacyAssessment = MainActorBackport.assumeIsolated {
             HostAgentLegacyHostMigrationGate.assess(
                 captureLegacyHostMigrationEvidence()
             )
@@ -1323,9 +1341,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func currentHostAudioPolicy() -> HostAgentAudioPolicy {
         guard UserDefaults.standard.bool(
             forKey: Self.hostAudioEnabledDefaultsKey
-        ), hostMicrophoneAuthorizationAuthority.authorizationStatus()
-            == .authorized
-        else { return .disabled }
+        ) else { return .disabled }
         let selectedName = UserDefaults.standard.string(
             forKey: Self.hostAudioInputDeviceNameDefaultsKey
         )
@@ -1337,6 +1353,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         ) else {
             return .disabled
         }
+        guard !policy.requiresMicrophoneAuthorization
+                || hostMicrophoneAuthorizationAuthority
+                    .authorizationStatus() == .authorized
+        else { return .disabled }
         return policy
     }
 
@@ -1580,7 +1600,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func handleHostProductToggle(_ enabled: Bool) {
         guard Thread.isMainThread else { return }
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             handleHostProductToggleOnMain(enabled)
         }
     }
@@ -1594,7 +1614,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         allowRemoteImageWrite: Bool? = nil
     ) {
         guard Thread.isMainThread else { return }
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             let legacy = HostAgentLegacyHostMigrationGate.assess(
                 captureLegacyHostMigrationEvidence()
             )
@@ -1661,7 +1681,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func handleHostFileTransferPolicyToggle(_ enabled: Bool) {
         guard Thread.isMainThread else { return }
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             guard hostFileTransferPolicyChangeAllowed() else {
                 refreshHomeUI()
                 return
@@ -1690,7 +1710,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func handleHostAudioPolicyToggle(_ enabled: Bool) {
         guard Thread.isMainThread else { return }
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             guard hostAudioPolicyChangeAllowed() else {
                 refreshHomeUI()
                 return
@@ -1723,49 +1743,62 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 return
             }
 
-            switch hostMicrophoneAuthorizationAuthority
-                .authorizationStatus()
-            {
-            case .authorized:
-                enableHostAudioAfterAuthorization()
-            case .denied, .restricted:
-                UserDefaults.standard.set(
-                    false,
-                    forKey: Self.hostAudioEnabledDefaultsKey
-                )
-                hostAudioPolicyErrorText =
-                    "麦克风权限未授权；请在系统设置的“隐私与安全性”中允许 FarPane 使用麦克风。"
-                reconcileHostAgentBootstrap()
-                refreshHomeUI()
-            case .notDetermined:
-                let result = hostMicrophoneAuthorizationAuthority
-                    .requestAuthorization { [weak self] status in
-                        DispatchQueue.main.async { [weak self] in
-                            self?.completeHostMicrophoneAuthorization(status)
-                        }
+            enableHostAudioForCurrentSource()
+        }
+    }
+
+    @MainActor
+    private func enableHostAudioForCurrentSource() {
+        let selectedName = UserDefaults.standard.string(
+            forKey: Self.hostAudioInputDeviceNameDefaultsKey
+        )
+        if selectedName == nil {
+            commitHostAudioEnabled()
+            return
+        }
+        switch hostMicrophoneAuthorizationAuthority.authorizationStatus() {
+        case .authorized:
+            commitHostAudioEnabled()
+        case .denied, .restricted:
+            UserDefaults.standard.set(
+                false,
+                forKey: Self.hostAudioEnabledDefaultsKey
+            )
+            hostAudioPolicyErrorText =
+                "麦克风权限未授权；请在系统设置的“隐私与安全性”中允许 FarPane 使用麦克风。"
+            reconcileHostAgentBootstrap()
+            refreshHomeUI()
+        case .notDetermined:
+            let result = hostMicrophoneAuthorizationAuthority
+                .requestAuthorization { [weak self] status in
+                    DispatchQueue.main.async { [weak self] in
+                        self?.completeHostMicrophoneAuthorization(status)
                     }
-                switch result {
-                case .admitted, .busy:
-                    refreshHomeUI()
-                case .alreadyAuthorized:
-                    enableHostAudioAfterAuthorization()
-                case .unavailable:
-                    hostAudioPolicyErrorText =
-                        "麦克风权限不可用，远程音频仍保持关闭。"
-                    refreshHomeUI()
                 }
+            switch result {
+            case .admitted, .busy:
+                refreshHomeUI()
+            case .alreadyAuthorized:
+                commitHostAudioEnabled()
+            case .unavailable:
+                hostAudioPolicyErrorText =
+                    "麦克风权限不可用，远程音频仍保持关闭。"
+                refreshHomeUI()
             }
         }
     }
 
     private func handleHostAudioInputSelection(_ name: String?) {
         guard Thread.isMainThread else { return }
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             guard hostAudioPolicyChangeAllowed() else {
                 refreshHomeUI()
                 return
             }
             _ = hostAudioInputDeviceCatalogOwner.refresh()
+            let wasEnabled = UserDefaults.standard.bool(
+                forKey: Self.hostAudioEnabledDefaultsKey
+            )
             if let name {
                 guard hostAudioInputDeviceCatalogOwner.catalog.containsUnique(
                     name
@@ -1790,6 +1823,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 )
             }
             hostAudioPolicyErrorText = ""
+            if wasEnabled {
+                enableHostAudioForCurrentSource()
+                return
+            }
             reconcileHostAgentBootstrap()
             refreshHomeUI()
         }
@@ -1797,7 +1834,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func refreshHostAudioInputs() {
         guard Thread.isMainThread else { return }
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             guard hostAudioPolicyChangeAllowed() else {
                 refreshHomeUI()
                 return
@@ -1812,7 +1849,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 selectedName
             ) {
                 hostAudioPolicyErrorText =
-                    "已选音频输入不可用或名称不唯一；不会回退默认麦克风。"
+                    "已选音频输入不可用或名称不唯一；不会回退系统音频。"
             } else {
                 hostAudioPolicyErrorText = ""
             }
@@ -1839,11 +1876,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             refreshHomeUI()
             return
         }
-        enableHostAudioAfterAuthorization()
+        commitHostAudioEnabled()
     }
 
     @MainActor
-    private func enableHostAudioAfterAuthorization() {
+    private func commitHostAudioEnabled() {
         UserDefaults.standard.set(
             true,
             forKey: Self.hostAudioEnabledDefaultsKey
@@ -1873,6 +1910,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     private func hostMicrophoneAuthorizationText() -> String {
+        guard UserDefaults.standard.string(
+            forKey: Self.hostAudioInputDeviceNameDefaultsKey
+        ) != nil else {
+            return "系统音频使用屏幕录制权限；不需要麦克风权限"
+        }
         if hostMicrophoneAuthorizationAuthority.isRequestPending() {
             return "麦克风权限：等待确认"
         }
@@ -1890,7 +1932,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func beginHostFileTransferReceiveRootSelection() {
         guard Thread.isMainThread else { return }
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             guard hostFileTransferPolicyChangeAllowed(),
                   hostFileTransferReceiveRootPicker == nil,
                   let window
@@ -2008,7 +2050,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     private func reconcileHostProductOwnership() {
         guard Thread.isMainThread else { return }
-        MainActor.assumeIsolated {
+        MainActorBackport.assumeIsolated {
             reconcileHostProductOwnershipOnMain()
         }
     }
@@ -2792,7 +2834,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         _ request: HostAgentHomeCommandRequest
     ) -> Bool {
         guard Thread.isMainThread else { return false }
-        return MainActor.assumeIsolated {
+        return MainActorBackport.assumeIsolated {
             dispatchHostHomeCommandOnMain(request)
         }
     }
@@ -4804,13 +4846,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 return self.coreClient?.selectDisplay(request) ?? -3
             },
             quiesceInput: { [weak viewer, weak keyboardController] in
-                MainActor.assumeIsolated {
+                MainActorBackport.assumeIsolated {
                     viewer?.releaseAllInputForDisplaySelection()
                     keyboardController?.setDisplaySelectionInputQuiesced(true)
                 }
             },
             resumeInput: { [weak viewer, weak keyboardController] in
-                MainActor.assumeIsolated {
+                MainActorBackport.assumeIsolated {
                     viewer?.resumeInputAfterDisplaySelection()
                     keyboardController?.setDisplaySelectionInputQuiesced(false)
                 }
@@ -4879,7 +4921,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                     self?.handleViewerDisplayCatalog(
                         event,
                         coreGeneration: coreGeneration,
-                        attemptID: attemptID
+                        attemptID: attemptID,
+                        metrics: metrics,
+                        recovery: recovery
                     )
                 }
             },
@@ -4934,12 +4978,30 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     private func handleViewerDisplayCatalog(
         _ event: CoreDisplayCatalogEvent,
         coreGeneration: UInt64,
-        attemptID: UUID?
+        attemptID: UUID?,
+        metrics: PipelineMetrics,
+        recovery: CoreRecoveryCoordinator
     ) {
         guard coreGeneration == viewerCoreGeneration else { return }
         if let attemptID, activeAttemptID != attemptID { return }
-        _ = viewerDisplaySelectionInputOwner?.observeCatalog(event)
+        let accepted = viewerDisplaySelectionInputOwner?.observeCatalog(event) == true
         refreshViewerDisplaySelection(chrome: viewerChrome)
+        guard accepted,
+              event.status == .available,
+              let selectedDisplay = event.selectedDisplayIndex
+        else { return }
+
+        // Core deliberately withholds video until the revisioned display
+        // catalog is authoritative. The Host's transport-opening IDR may have
+        // arrived during that short fail-closed interval, so request one fresh
+        // IDR for each accepted catalog transition instead of waiting for the
+        // encoder's periodic keyframe interval.
+        Self.requestRecoveryKeyframe(
+            display: selectedDisplay,
+            reason: "display-catalog-ready-\(event.catalogRevision)",
+            metrics: metrics,
+            recovery: recovery
+        )
     }
 
     private func handleViewerRemotePermission(

@@ -1,5 +1,5 @@
 diff --git a/src/fs.rs b/src/fs.rs
-index 53a8299..cdc9c84 100644
+index 53a8299..1f638f2 100644
 --- a/src/fs.rs
 +++ b/src/fs.rs
 @@ -1,6 +1,7 @@
@@ -24,13 +24,11 @@ index 53a8299..cdc9c84 100644
  
  pub fn get_next_job_id() -> i32 {
      NEXT_JOB_ID.fetch_add(1, Ordering::SeqCst)
-@@ -559,6 +561,30 @@ fn join_validated_path(base: &PathBuf, name: &str) -> ResultType<PathBuf> {
+@@ -559,6 +561,27 @@ fn join_validated_path(base: &PathBuf, name: &str) -> ResultType<PathBuf> {
      Ok(TransferJob::join(base, name))
  }
  
-+fn validated_file_transfer_block_payload(
-+    block: &FileTransferBlock,
-+) -> ResultType<Cow<'_, [u8]>> {
++fn validated_file_transfer_block_payload(block: &FileTransferBlock) -> ResultType<Cow<'_, [u8]>> {
 +    if block.data.len() > MAX_FILE_TRANSFER_BLOCK_BYTES {
 +        bail!(
 +            "file transfer wire payload exceeds {} bytes",
@@ -38,14 +36,13 @@ index 53a8299..cdc9c84 100644
 +        );
 +    }
 +    if block.compressed {
-+        let decoded = decompress_with_limit(&block.data, MAX_FILE_TRANSFER_BLOCK_BYTES).map_err(
-+            |_| {
++        let decoded =
++            decompress_with_limit(&block.data, MAX_FILE_TRANSFER_BLOCK_BYTES).map_err(|_| {
 +                anyhow!(
 +                    "invalid compressed payload or decoded payload exceeds {} bytes",
 +                    MAX_FILE_TRANSFER_BLOCK_BYTES
 +                )
-+            },
-+        )?;
++            })?;
 +        Ok(Cow::Owned(decoded))
 +    } else {
 +        Ok(Cow::Borrowed(block.data.as_ref()))
@@ -55,7 +52,7 @@ index 53a8299..cdc9c84 100644
  impl TransferJob {
      #[allow(clippy::too_many_arguments)]
      pub fn new_write(
-@@ -760,6 +786,7 @@ impl TransferJob {
+@@ -760,6 +783,7 @@ impl TransferJob {
          if block.id != self.id {
              bail!("Wrong id");
          }
@@ -63,7 +60,7 @@ index 53a8299..cdc9c84 100644
          match &self.data_source {
              DataSource::FilePath(p) => {
                  let file_num = block.file_num as usize;
-@@ -807,22 +834,12 @@ impl TransferJob {
+@@ -807,22 +831,12 @@ impl TransferJob {
                  }
              }
          }
@@ -92,7 +89,7 @@ index 53a8299..cdc9c84 100644
          self.transferred += block.data.len() as u64;
          Ok(())
      }
-@@ -949,8 +966,7 @@ impl TransferJob {
+@@ -949,8 +963,7 @@ impl TransferJob {
              }
              DataSource::MemoryCursor(..) => "",
          };
@@ -102,7 +99,7 @@ index 53a8299..cdc9c84 100644
          let mut compressed = false;
          let mut offset: usize = 0;
          loop {
-@@ -970,7 +986,7 @@ impl TransferJob {
+@@ -970,7 +983,7 @@ impl TransferJob {
                  }
                  Ok(n) => {
                      offset += n;
@@ -111,7 +108,7 @@ index 53a8299..cdc9c84 100644
                          break;
                      }
                  }
-@@ -1803,4 +1819,61 @@ mod tests {
+@@ -1803,4 +1816,63 @@ mod tests {
              .expect_err("verbatim drive absolute path must be rejected");
          assert_err_contains(err, "absolute path");
      }
@@ -129,7 +126,9 @@ index 53a8299..cdc9c84 100644
 +        let plain = vec![b'a'; MAX_FILE_TRANSFER_BLOCK_BYTES];
 +        let raw = transfer_block(plain.clone(), false);
 +        assert_eq!(
-+            validated_file_transfer_block_payload(&raw).unwrap().as_ref(),
++            validated_file_transfer_block_payload(&raw)
++                .unwrap()
++                .as_ref(),
 +            plain.as_slice()
 +        );
 +

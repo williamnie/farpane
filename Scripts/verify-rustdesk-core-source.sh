@@ -15,6 +15,7 @@ audio_local_policy_approval_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-audio-l
 viewer_audio_policy_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-explicit-policy.patch"
 viewer_audio_permission_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-permission-lifecycle.patch"
 host_audio_input_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-host-audio-explicit-input-fail-closed.patch"
+host_audio_sck_stop_patch="$repo_dir/CoreBridge/RustDeskPatch/h7-host-audio-sck-stop.patch"
 native_host_cm_lifetime_patch="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-cm-lifetime.patch"
 native_host_physical_display_pixels_patch="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-physical-display-pixels.patch"
 hbb_secret_wipe_patch="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
@@ -47,6 +48,7 @@ git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$audio_local_policy
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_policy_patch"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_permission_patch"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_audio_input_patch"
+git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_audio_sck_stop_patch"
 
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_secret_wipe_patch"
@@ -67,3 +69,4 @@ for source_name in $canonical_sources; do
 done
 
 print "RUSTDESK_CORE_SOURCE_VERIFIED commit=$actual_commit"
+"$repo_dir/Scripts/prepare-cpal-screencapturekit.sh" --verify-only >/dev/null

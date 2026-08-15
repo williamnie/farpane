@@ -110,13 +110,13 @@ def main() -> int:
             "音频、剪贴板和文件传输采用独立功能开关和阶段门禁",
             "Microphone/System Audio | 远程音频 | 仅禁用音频，不阻塞屏幕 MVP",
             "hearSystemAudio",
-            "V1 不包含 system audio",
-            "H6.1 音频：麦克风采集为原生主路",
-            "第三方虚拟设备（如 BlackHole）可选路径",
+            "H6.1i native system-audio loopback product upgrade",
+            "ScreenCaptureKit 原生系统音频为默认来源",
+            "麦克风或第三方虚拟设备（如 BlackHole）保留为显式可选输入",
         )),
-        "releaseBuildExcludesScreenCaptureKitLoopbackFeature": (
-            "rdn-native-core,rdn-native-host" in sources["build_core"]
-            and "screencapturekit" not in sources["build_core"]
+        "releaseBuildEnablesScreenCaptureKitLoopbackFeature": (
+            "rdn-native-core,rdn-native-host,screencapturekit"
+            in sources["build_core"]
             and 'screencapturekit = ["cpal/screencapturekit"]' in sources["cargo"]
         ),
         "upstreamHostConnectionOwnsAudioPermissionAndSubscription": all(
@@ -219,6 +219,7 @@ def main() -> int:
                 "远程音频（默认关闭）",
                 "farpane.host.audio.enabled",
                 "isAuthorizedWithoutPrompt()",
+                "requiresMicrophoneAuthorization",
             )
         ),
         "explicitVirtualInputABIAndFailClosedFallbackAreImplemented": all(
@@ -240,10 +241,10 @@ def main() -> int:
                 "public struct HostAudioInputDeviceCatalog",
                 "kAudioHardwarePropertyDevices",
                 "kAudioDevicePropertyScopeInput",
-                "系统默认麦克风",
+                "系统音频（原生）",
                 "onHostAudioInputSelection",
                 "farpane.host.audio.inputDeviceName",
-                "不会回退默认麦克风",
+                "不会回退系统音频",
                 "audioInputDeviceName: audioPolicy.inputDeviceName",
             )
         ),
@@ -263,7 +264,9 @@ def main() -> int:
     gaps = {}
 
     source_lines = {
-        "designAudioMilestone": line_number(design, "H6.1 音频：麦克风采集为原生主路"),
+        "designAudioMilestone": line_number(
+            design, "H6.1i native system-audio loopback product upgrade"
+        ),
         "designPermissionDegrade": line_number(design, "Microphone/System Audio | 远程音频"),
         "designCapability": line_number(design, "hearSystemAudio"),
         "buildFeatureSet": line_number(sources["build_core"], "rdn-native-core,rdn-native-host"),
@@ -322,15 +325,18 @@ def main() -> int:
         "viewerABI": 18,
         "hostPolicy": "explicit immutable enableAudio boolean, default false",
         "viewerPolicy": "explicit immutable receiveAudio boolean, default false",
-        "defaultCaptureSource": "native system-default microphone",
-        "systemAudioRoute": "explicit user-selected virtual input device only",
+        "defaultCaptureSource": "native ScreenCaptureKit system-audio loopback",
+        "systemAudioRoute": "native by default; explicit CoreAudio input remains available",
         "captureOwner": "pinned RustDesk audio service cpal input and Opus encoder",
         "playbackOwner": "pinned RustDesk Viewer AudioHandler and cpal output",
         "wireOwner": "existing RustDesk AudioFormat and AudioFrame messages",
-        "permissionOwner": "FarPane App microphone TCC policy projected to HostAgent",
+        "permissionOwner": (
+            "screen recording for native system audio; FarPane App microphone TCC "
+            "only for explicit CoreAudio input"
+        ),
         "sessionCapability": "hearSystemAudio compatibility capability",
         "sourceSelection": (
-            "system-default microphone first; explicit unique CoreAudio input through the Home selector"
+            "native system audio first; explicit unique CoreAudio input through the Home selector"
         ),
         "swiftAudioPayloadBoundary": "none; encoded and decoded audio remains in Rust",
         "lifecycle": (

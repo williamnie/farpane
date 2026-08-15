@@ -137,7 +137,7 @@ final class HostAgentLegacyHostProductEvidencePolicyTests: XCTestCase {
             "session: hostSnapshot.map"
         ))
         XCTAssertTrue(appSource.contains("guard Thread.isMainThread else"))
-        XCTAssertTrue(appSource.contains("MainActor.assumeIsolated"))
+        XCTAssertTrue(appSource.contains("MainActorBackport.assumeIsolated"))
         XCTAssertTrue(appSource.contains(
             "private func requestLegacyHostQuiescence()"
         ))

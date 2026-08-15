@@ -1,0 +1,63 @@
+diff --git a/src/host/screencapturekit/enumerate.rs b/src/host/screencapturekit/enumerate.rs
+index 0b7de89..cb4dfb3 100644
+--- a/src/host/screencapturekit/enumerate.rs
++++ b/src/host/screencapturekit/enumerate.rs
+@@ -3 +3 @@ use std::vec::IntoIter as VecIntoIter;
+-use cidre::sc;
++use cidre::{blocks, sc};
+@@ -8,0 +9,17 @@ use super::Device;
++trait FastShareableContent {
++    fn cls_ptr() -> *const std::ffi::c_void;
++
++    #[cidre::objc::msg_send(getShareableContentExcludingDesktopWindows:onScreenWindowsOnly:completionHandler:)]
++    fn current_excluding_desktop_windows_with_ch_block(
++        exclude_desktop_windows: bool,
++        on_screen_windows_only: bool,
++        block: &mut blocks::ResultCompletionHandler<sc::ShareableContent>,
++    );
++}
++
++impl FastShareableContent for sc::ShareableContent {
++    fn cls_ptr() -> *const std::ffi::c_void {
++        sc::ShareableContent::cls_ptr()
++    }
++}
++
+@@ -14,15 +31,22 @@ impl Devices {
+-        sc::ShareableContent::current_with_ch(move |sc, e| {
+-            let res = if let Some(err) = e {
+-                Result::Err(BackendSpecificError {
+-                    description: format!("{err}"),
+-                })
+-            } else if let Some(sc) = sc {
+-                Result::Ok(sc.retained())
+-            } else {
+-                Result::Err(BackendSpecificError {
+-                    description: "Failed to get current shareable content".to_string(),
+-                })
+-            };
+-            // Can't be failed
+-            tx.send(res).ok();
+-        });
++        let mut block = blocks::ResultCompletionHandler::new2(
++            move |sc: Option<&sc::ShareableContent>, e: Option<&cidre::ns::Error>| {
++                let res = if let Some(err) = e {
++                    Result::Err(BackendSpecificError {
++                        description: format!("{err}"),
++                    })
++                } else if let Some(sc) = sc {
++                    Result::Ok(sc.retained())
++                } else {
++                    Result::Err(BackendSpecificError {
++                        description: "Failed to get current shareable content".to_string(),
++                    })
++                };
++                // Can't be failed
++                tx.send(res).ok();
++            },
++        );
++        <sc::ShareableContent as FastShareableContent>::current_excluding_desktop_windows_with_ch_block(
++            true,
++            true,
++            &mut block,
++        );

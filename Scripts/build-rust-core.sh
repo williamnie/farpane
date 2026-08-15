@@ -30,7 +30,9 @@ mkdir -p "$output_dir"
   VCPKG_ROOT="$repo_dir/Build/vcpkg" \
   MACOSX_DEPLOYMENT_TARGET=13.0 \
   CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}" \
-    cargo build --release --features rdn-native-core,rdn-native-host --lib
+    cargo build --release \
+      --features rdn-native-core,rdn-native-host,screencapturekit \
+      --lib
 )
 staged_core=$(mktemp "$output_dir/.liblibrustdesk.dylib.XXXXXX")
 cp -p "$source_core" "$staged_core"

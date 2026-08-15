@@ -22,6 +22,7 @@ audio_local_policy_approval_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-au
 viewer_audio_policy_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-explicit-policy.patch"
 viewer_audio_permission_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-permission-lifecycle.patch"
 host_audio_input_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-host-audio-explicit-input-fail-closed.patch"
+host_audio_sck_stop_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h7-host-audio-sck-stop.patch"
 native_host_cm_lifetime_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-cm-lifetime.patch"
 native_host_physical_display_pixels_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-physical-display-pixels.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
@@ -252,6 +253,14 @@ elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_audio_
   exit 1
 fi
 
+if git -C "$vendor_dir" apply --unidiff-zero --check "$host_audio_sck_stop_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply --unidiff-zero "$host_audio_sck_stop_patch_file"
+elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_audio_sck_stop_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the Host audio stop patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
 if git -C "$vendor_dir" apply --check "$native_host_cm_lifetime_patch_file" 2>/dev/null; then
   git -C "$vendor_dir" apply "$native_host_cm_lifetime_patch_file"
 elif ! git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch_file" 2>/dev/null; then
@@ -304,6 +313,7 @@ git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_display_switc
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$audio_local_policy_approval_patch_file"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_policy_patch_file"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_permission_patch_file"
+git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_audio_sck_stop_patch_file"
 git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_common_patch_file"
 git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_patch_file"
@@ -312,3 +322,4 @@ if ! cmp -s "$vendor_dir/src/rdn_host_file_transfer.rs" "$host_file_transfer_sou
   exit 1
 fi
 print "RUSTDESK_CORE_SOURCE_READY commit=$actual_commit"
+"$repo_dir/Scripts/prepare-cpal-screencapturekit.sh"

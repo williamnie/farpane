@@ -111,7 +111,7 @@ package enum HostAgentXPCPeerAdmissionGate {
         )
         guard byteCount > 0,
               byteCount < buffer.count,
-              let path = String(validatingCString: buffer),
+              let path = String(validatingUTF8: buffer),
               !path.isEmpty,
               path.hasPrefix("/")
         else {

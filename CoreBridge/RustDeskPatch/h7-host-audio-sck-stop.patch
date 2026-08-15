@@ -1,0 +1,11 @@
+diff --git a/src/server/audio_service.rs b/src/server/audio_service.rs
+index 0d32b75..903c67c 100644
+--- a/src/server/audio_service.rs
++++ b/src/server/audio_service.rs
+@@ -191 +191,5 @@ mod cpal_impl {
+-            self.stream.take();
++            if let Some((stream, _)) = self.stream.take() {
++                if let Err(error) = stream.pause() {
++                    log::warn!("Failed to stop the macOS audio capture stream: {error}");
++                }
++            }
