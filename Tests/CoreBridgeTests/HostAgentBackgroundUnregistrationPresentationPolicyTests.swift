@@ -121,6 +121,8 @@ final class HostAgentBackgroundUnregistrationPresentationPolicyTests:
         XCTAssertTrue(source.contains("private var isRunning = false"))
         XCTAssertTrue(source.contains("isRunning = true"))
         XCTAssertTrue(source.contains("isRunning = false"))
+        XCTAssertTrue(source.contains("mutationQueue.async"))
+        XCTAssertTrue(source.contains("DispatchQueue.main.async"))
         XCTAssertFalse(source.contains("hasStarted"))
         XCTAssertFalse(source.contains("hasFinished"))
         XCTAssertFalse(source.contains("runModal"))
