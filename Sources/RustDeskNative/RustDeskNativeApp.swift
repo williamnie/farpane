@@ -4480,7 +4480,13 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             ? screenFrame
             : NSRect(x: 0, y: 0, width: 1280, height: 720)
         let view = ViewerMetalView(frame: windowFrame)
-        let provisionalDevice = MetalVideoRenderer.selectDevice(options.gpu)
+        let displayID = (NSScreen.main?.deviceDescription[
+            NSDeviceDescriptionKey("NSScreenNumber")
+        ] as? NSNumber)?.uint32Value
+        let provisionalDevice = MetalVideoRenderer.selectDevice(
+            options.gpu,
+            displayID: displayID
+        )
         guard let deviceName = provisionalDevice?.name else { throw MetalRendererError.noDevice }
         let metrics = PipelineMetrics(
             inputWidth: options.width,
@@ -4489,7 +4495,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             selectedGPU: deviceName,
             source: fixture == nil ? "rustdesk-live" : "fixture"
         )
-        let renderer = try MetalVideoRenderer(view: view, preference: options.gpu, metrics: metrics)
+        let renderer = try MetalVideoRenderer(
+            view: view,
+            preference: options.gpu,
+            displayID: displayID,
+            metrics: metrics
+        )
         let chrome = ViewerChromeView(
             videoView: view,
             metrics: metrics,

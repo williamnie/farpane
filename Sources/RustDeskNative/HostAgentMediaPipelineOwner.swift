@@ -853,8 +853,24 @@ private enum HostAgentDisplayCapabilityTarget {
             return nil
         }
         let active = displays.prefix(Int(count))
-        let width = active.map { CGDisplayPixelsWide($0) }.max() ?? 0
-        let height = active.map { CGDisplayPixelsHigh($0) }.max() ?? 0
+        // Keep the encoder capability envelope in the same physical-pixel
+        // units as Rust's display inventory. `CGDisplayPixelsWide/High` expose
+        // the logical 2048x1152 size for a 4096x2304 Retina mode, which makes
+        // the native route fail closed before `startCapture` is emitted.
+        let pixelSizes = active.map { display -> (width: Int, height: Int) in
+            guard let mode = CGDisplayCopyDisplayMode(display),
+                  mode.pixelWidth > 0,
+                  mode.pixelHeight > 0
+            else {
+                return (
+                    width: CGDisplayPixelsWide(display),
+                    height: CGDisplayPixelsHigh(display)
+                )
+            }
+            return (width: mode.pixelWidth, height: mode.pixelHeight)
+        }
+        let width = pixelSizes.map(\.width).max() ?? 0
+        let height = pixelSizes.map(\.height).max() ?? 0
         let maximumFPS = active.map { display -> Int in
             let refresh = CGDisplayCopyDisplayMode(display)?.refreshRate ?? 0
             return refresh > 0 ? Int(refresh.rounded(.down)) : 60
