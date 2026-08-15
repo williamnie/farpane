@@ -15,6 +15,7 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
             "pageTabView.tabViewType = .noTabsNoBorder",
             "pageTabView.selectTabViewItem(withIdentifier: page.rawValue)",
             "private func selectPage(_ page: HomePage)",
+            "HomeSidebarButtonCell(horizontalPadding: 10)",
             "title: \"设备\"",
             "title: \"授权与安全\"",
             "title: \"共享设置\"",
