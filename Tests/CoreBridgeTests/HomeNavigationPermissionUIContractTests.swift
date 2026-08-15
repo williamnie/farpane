@@ -8,7 +8,6 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
 
         for marker in [
             "private enum HomePage: String, CaseIterable",
-            "case overview",
             "case connections",
             "case permissions",
             "case sharing",
@@ -16,19 +15,29 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
             "pageTabView.tabViewType = .noTabsNoBorder",
             "pageTabView.selectTabViewItem(withIdentifier: page.rawValue)",
             "private func selectPage(_ page: HomePage)",
-            "title: \"连接设备\"",
-            "title: \"此 Mac\"",
+            "title: \"设备\"",
             "title: \"授权与安全\"",
             "title: \"共享设置\"",
             "onHostToggle",
             "onQuickConnect",
             "onOpenSystemPermissionSettings",
-            "makeOverviewPage(hostContainer: hostContainer)",
-            "本机 ID、访问密码和当前入站会话都集中在这里。",
+            "makeHostMiniCard(title: \"本机 ID\"",
+            "makeHostMiniCard(title: \"临时密码\"",
+            "makeHostMiniCard(title: \"永久密码\"",
+            "let hostToggleTitle = NSTextField(labelWithString: \"被控 Host\")",
+            "let connectionColumn = NSStackView(views: [connectionRow, viewerAudioRow])",
+            "equalTo: connectionColumn.widthAnchor",
+            "let quickDivider = NSView()",
+            "multiplier: 0.62",
+            "hostPasswordLabel.setContentCompressionResistancePriority(.required, for: .horizontal)",
+            "permissionChipsLabel.attributedStringValue = permissionChipsText(permissions)",
+            "输入远端 ID 发起连接，或从最近连接快速返回。",
             "quickContainer = makePanel(content: quickCard)",
         ] {
             XCTAssertTrue(home.contains(marker), marker)
         }
+        XCTAssertFalse(home.contains("case overview"))
+        XCTAssertFalse(home.contains("makeOverviewPage"))
         XCTAssertFalse(home.contains("scrollToVisible"))
         XCTAssertFalse(home.contains("case localMac"))
         XCTAssertFalse(home.contains("LOCAL CONSOLE"))
@@ -69,7 +78,7 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
         }
     }
 
-    func testLocalIdentitySupportsExplicitCopyAndConnectionPaste() throws {
+    func testLocalIdentitySupportsExplicitCopyAndStandardConnectionPaste() throws {
         let sources = try sourceFiles()
         let home = sources.home
         let app = sources.app
@@ -77,11 +86,6 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
         for marker in [
             "hostIDCopyButton.action = #selector(copyHostID)",
             "hostPasswordCopyButton.action = #selector(copyHostTemporaryPassword)",
-            "peerPasteButton.action = #selector(pastePeerID)",
-            "peerPasteButton.setAccessibilityLabel(\"从剪贴板粘贴设备 ID\")",
-            "#selector(NSText.paste(_:))",
-            "NSApp.sendAction(",
-            "let readClipboard = onReadLocalClipboardText",
             "onWriteLocalClipboardText?(value) == true",
             "showCopyFeedback(\"已复制\\(label)\", isError: false)",
             "onCopyHostTemporaryPassword()",
@@ -89,6 +93,8 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
         ] {
             XCTAssertTrue(home.contains(marker), marker)
         }
+        XCTAssertFalse(home.contains("peerPasteButton"))
+        XCTAssertFalse(home.contains("⏎ connect"))
         XCTAssertTrue(app.contains(
             "viewerPasteboardOwner.readLocalProductText()"
         ))
