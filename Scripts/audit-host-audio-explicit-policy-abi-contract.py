@@ -183,9 +183,9 @@ def main() -> int:
             and "AVCaptureDevice.requestAccess(" in sources["microphone"]
             and header_abi == rust_abi == 19
         ),
-        "releaseBuildStillExcludesScreenCaptureKit": (
-            "rdn-native-core,rdn-native-host" in sources["build"]
-            and "screencapturekit" not in sources["build"]
+        "releaseBuildEnablesScreenCaptureKit": (
+            "rdn-native-core,rdn-native-host,screencapturekit"
+            in sources["build"]
         ),
         "patchStackTracksApprovalIntersection": all(
             "h6-audio-local-policy-approval.patch" in sources[name]

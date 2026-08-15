@@ -1,6 +1,9 @@
 --- a/src/server/connection.rs
 +++ b/src/server/connection.rs
-@@ -877,0 +878,19 @@
+@@ -886,6 +886,25 @@
+             .any(|conn_type| conn_type == AuthConnType::Remote)
+ }
+
 +fn validate_monitor_display_switch_target(
 +    requested_display: i32,
 +    get_display: impl FnOnce(usize) -> Option<DisplayInfo>,
@@ -20,7 +23,13 @@
 +    Some(display_idx)
 +}
 +
-@@ -6424 +6443,10 @@
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ #[repr(i64)]
+ enum ConnAuditPrimaryAuth {
+@@ -6435,7 +6454,16 @@
+     }
+
+     async fn handle_switch_display(&mut self, s: SwitchDisplay) {
 -        let display_idx = s.display as usize;
 +        let display_idx = match self.video_source() {
 +            VideoSource::Monitor => {
@@ -32,7 +41,13 @@
 +            self.send_current_display_changed().await;
 +            return;
 +        };
-@@ -6442,9 +6470,11 @@
+         if self.display_idx != display_idx {
+             if let Some(server) = self.server.upgrade() {
+                 self.switch_display_to(display_idx, server.clone());
+@@ -6453,15 +6481,17 @@
+                 }
+             }
+
 -            // Send display changed message.
 -            // 1. For compatibility with old versions ( < 1.2.4 ).
 -            // 2. Sciter version.
@@ -53,7 +68,13 @@
 +            video_service::make_display_changed_msg(self.display_idx, None, self.video_source())
 +        {
 +            self.send(msg_out).await;
-@@ -9255,0 +9286,59 @@
+         }
+     }
+
+@@ -9267,6 +9297,65 @@
+     #[allow(unused)]
+     use super::*;
+
 +    #[test]
 +    fn monitor_display_switch_target_is_live_bounded_and_fail_closed() {
 +        let valid = DisplayInfo {
@@ -113,3 +134,6 @@
 +        }
 +    }
 +
+     #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
+     #[test]
+     fn native_host_read_confirmation_maps_wire_decisions_fail_closed() {

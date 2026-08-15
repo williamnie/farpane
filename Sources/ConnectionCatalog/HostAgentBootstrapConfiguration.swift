@@ -86,6 +86,12 @@ public struct HostAgentAudioPolicy: Equatable, Sendable {
         self.inputDeviceName = inputDeviceName
     }
 
+    /// A nil input selects ScreenCaptureKit system-audio loopback. Only an
+    /// explicitly selected CoreAudio input needs microphone authorization.
+    public var requiresMicrophoneAuthorization: Bool {
+        enabled && inputDeviceName != nil
+    }
+
     public static func validatedEnabled(
         inputDeviceName: String?
     ) -> Self? {

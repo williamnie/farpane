@@ -116,7 +116,7 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.audioPolicy, .disabled)
     }
 
-    func testSchemaSixPreservesAudioAndMigratesToDefaultInput() throws {
+    func testSchemaSixPreservesAudioAndMigratesToNativeSystemAudio() throws {
         let configuration = try HostAgentBootstrapConfiguration.decode(
             schemaSixDocument()
         )
@@ -125,6 +125,25 @@ final class HostAgentBootstrapConfigurationTests: XCTestCase {
         XCTAssertEqual(
             configuration.audioPolicy,
             HostAgentAudioPolicy(enabled: true, inputDeviceName: nil)
+        )
+        XCTAssertFalse(
+            configuration.audioPolicy.requiresMicrophoneAuthorization
+        )
+    }
+
+    func testOnlyExplicitAudioInputRequiresMicrophoneAuthorization() {
+        XCTAssertFalse(
+            HostAgentAudioPolicy.disabled.requiresMicrophoneAuthorization
+        )
+        XCTAssertFalse(
+            HostAgentAudioPolicy(enabled: true)
+                .requiresMicrophoneAuthorization
+        )
+        XCTAssertTrue(
+            HostAgentAudioPolicy(
+                enabled: true,
+                inputDeviceName: "BlackHole 2ch"
+            ).requiresMicrophoneAuthorization
         )
     }
 

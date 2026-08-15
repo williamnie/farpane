@@ -113,8 +113,12 @@ final class HostAgentProcessRuntime: @unchecked Sendable {
                             .allowRemoteImageWrite,
                     audioEnabled:
                         configuration.audioPolicy.enabled
-                            && HostMicrophoneAuthorizationAuthority
-                                .isAuthorizedWithoutPrompt(),
+                            && (
+                                !configuration.audioPolicy
+                                    .requiresMicrophoneAuthorization
+                                    || HostMicrophoneAuthorizationAuthority
+                                        .isAuthorizedWithoutPrompt()
+                            ),
                     audioInputDeviceName:
                         configuration.audioPolicy.inputDeviceName,
                     fileTransferEnabled:

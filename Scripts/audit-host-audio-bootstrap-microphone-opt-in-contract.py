@@ -131,14 +131,16 @@ def main() -> int:
                 "snapshot.host.allowsAudioPolicyChange",
             )
         ),
-        "mainAppOwnsPromptAndEnablesOnlyAfterObservedAuthorization": all(
+        "mainAppPromptsOnlyForExplicitInputAndEnablesAfterObservedAuthorization": all(
             marker in app
             for marker in (
                 "farpane.host.audio.enabled",
                 "handleHostAudioPolicyToggle",
+                "enableHostAudioForCurrentSource",
+                "requiresMicrophoneAuthorization",
                 ".requestAuthorization",
                 "guard status == .authorized,",
-                "enableHostAudioAfterAuthorization()",
+                "commitHostAudioEnabled()",
                 "audioPolicy: currentHostAudioPolicy()",
             )
         ),
@@ -163,6 +165,7 @@ def main() -> int:
         ),
         "hostAgentNeverPromptsAndRechecksAuthorization": (
             "configuration.audioPolicy.enabled" in agent
+            and "requiresMicrophoneAuthorization" in agent
             and "isAuthorizedWithoutPrompt()" in agent
             and "requestAuthorization" not in agent
             and "AVCaptureDevice.requestAccess" not in agent
@@ -181,6 +184,7 @@ def main() -> int:
             and "let audioPolicy = currentHostAudioPolicy()" in app
             and "audioEnabled: audioPolicy.enabled" in app
             and "configuration.audioPolicy.enabled" in agent
+            and "requiresMicrophoneAuthorization" in agent
         ),
         "coreHostAndViewerPoliciesRemainDefaultOff": (
             "audioEnabled: Bool = false" in sources["host_control"]
@@ -195,6 +199,7 @@ def main() -> int:
                 "testAudioPolicyChangesAdvanceRevisionAndRemainExact",
                 "testReconcilesExplicitAudioPolicyIntoCanonicalProjection",
                 "testOnlyNotDeterminedStatusAdmitsOneRequest",
+                "testOnlyExplicitAudioInputRequiresMicrophoneAuthorization",
                 "testBackendBooleanCannotOverrideObservedDeniedStatus",
                 "testAudioPolicyChangesRequireHostOffNoViewerAndNoAuthorizationRequest",
                 "testMicrophoneOptInPromptsOnlyFromHomeAndBothHostOwnersFailClosed",

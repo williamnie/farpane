@@ -1,14 +1,77 @@
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -1940,7 +1940,18 @@
+                 }
+                 Some(message::Union::Misc(misc)) => match misc.union {
+                     Some(misc::Union::AudioFormat(f)) => {
+-                        self.audio_sender.send(MediaData::AudioFormat(f)).ok();
++                        #[cfg(feature = "rdn-native-core")]
++                        let audio_active = self
++                            .handler
++                            .lc
++                            .read()
++                            .unwrap()
++                            .native_viewer_audio_active();
++                        #[cfg(not(feature = "rdn-native-core"))]
++                        let audio_active = true;
++                        if audio_active {
++                            self.audio_sender.send(MediaData::AudioFormat(f)).ok();
++                        }
+                     }
+                     Some(misc::Union::ChatMessage(c)) => {
+                         self.handler.new_message(c.text);
+@@ -1966,6 +1977,18 @@
+                                 self.handler.set_permission("clipboard", p.enabled);
+                             }
+                             Ok(Permission::Audio) => {
++                                #[cfg(feature = "rdn-native-core")]
++                                {
++                                    let audio_active = self
++                                        .handler
++                                        .lc
++                                        .write()
++                                        .unwrap()
++                                        .native_viewer_set_remote_audio_permission(p.enabled);
++                                    if !audio_active {
++                                        self.audio_sender.send(MediaData::Reset).ok();
++                                    }
++                                }
+                                 self.handler.set_permission("audio", p.enabled);
+                             }
+                             Ok(Permission::File) => {
+@@ -2173,7 +2196,12 @@
+                     self.handler.handle_test_delay(t, peer).await;
+                 }
+                 Some(message::Union::AudioFrame(frame)) => {
+-                    if !self.handler.lc.read().unwrap().disable_audio.v {
++                    let lc = self.handler.lc.read().unwrap();
++                    #[cfg(feature = "rdn-native-core")]
++                    let audio_active = lc.native_viewer_audio_active();
++                    #[cfg(not(feature = "rdn-native-core"))]
++                    let audio_active = true;
++                    if !lc.disable_audio.v && audio_active {
+                         self.audio_sender
+                             .send(MediaData::AudioFrame(Box::new(frame)))
+                             .ok();
 --- a/src/client.rs
 +++ b/src/client.rs
-@@ -1771,0 +1772,6 @@
+@@ -1768,6 +1768,12 @@
+     pub enable_trusted_devices: bool,
+     pub record_state: bool,
+     pub record_permission: bool,
 +    #[cfg(feature = "rdn-native-core")]
 +    native_viewer_receive_audio: bool,
 +    #[cfg(feature = "rdn-native-core")]
 +    native_viewer_remote_audio_enabled: bool,
 +    #[cfg(feature = "rdn-native-core")]
 +    native_viewer_authenticated: bool,
-@@ -1785,0 +1792,9 @@
-+
+ }
+
+ impl Deref for LoginConfigHandler {
+@@ -1783,6 +1789,15 @@
+     !receive_audio
+ }
+
 +#[cfg(feature = "rdn-native-core")]
 +pub(crate) fn native_viewer_audio_is_active(
 +    receive_audio: bool,
@@ -17,12 +80,23 @@
 +) -> bool {
 +    receive_audio && remote_audio_enabled && authenticated
 +}
-@@ -1803,0 +1818,3 @@
++
+ impl LoginConfigHandler {
+     #[cfg(feature = "rdn-native-core")]
+     pub fn configure_native_viewer(
+@@ -1800,12 +1815,39 @@
+         self.remember = false;
+         self.config.password.clear();
+         self.config.view_only.v = false;
 +        self.native_viewer_receive_audio = receive_audio;
 +        self.native_viewer_remote_audio_enabled = true;
 +        self.native_viewer_authenticated = false;
-@@ -1807,0 +1827,24 @@
-+
+         self.config.disable_audio.v = native_viewer_audio_disabled(
+             receive_audio,
+         );
+         self.config.disable_clipboard.v = !clipboard_enabled;
+     }
+
 +    #[cfg(feature = "rdn-native-core")]
 +    pub(crate) fn native_viewer_audio_active(&self) -> bool {
 +        native_viewer_audio_is_active(
@@ -46,53 +120,32 @@
 +        self.native_viewer_remote_audio_enabled = enabled;
 +        self.native_viewer_audio_active()
 +    }
-@@ -3067,0 +3110,4 @@
++
+     /// Initialize the login config handler.
+     ///
+     /// # Arguments
+@@ -3064,6 +3106,10 @@
+                     MediaData::AudioFormat(f) => {
+                         log::debug!("recved audio format, sample rate={}", f.sample_rate);
+                         audio_handler.handle_format(f);
++                    }
 +                    #[cfg(feature = "rdn-native-core")]
 +                    MediaData::Reset => {
 +                        audio_handler = AudioHandler::default();
-+                    }
---- a/src/client/io_loop.rs
-+++ b/src/client/io_loop.rs
-@@ -1943 +1943,12 @@
--                        self.audio_sender.send(MediaData::AudioFormat(f)).ok();
-+                        #[cfg(feature = "rdn-native-core")]
-+                        let audio_active = self
-+                            .handler
-+                            .lc
-+                            .read()
-+                            .unwrap()
-+                            .native_viewer_audio_active();
-+                        #[cfg(not(feature = "rdn-native-core"))]
-+                        let audio_active = true;
-+                        if audio_active {
-+                            self.audio_sender.send(MediaData::AudioFormat(f)).ok();
-+                        }
-@@ -1969,0 +1980,12 @@
-+                                #[cfg(feature = "rdn-native-core")]
-+                                {
-+                                    let audio_active = self
-+                                        .handler
-+                                        .lc
-+                                        .write()
-+                                        .unwrap()
-+                                        .native_viewer_set_remote_audio_permission(p.enabled);
-+                                    if !audio_active {
-+                                        self.audio_sender.send(MediaData::Reset).ok();
-+                                    }
-+                                }
-@@ -2176 +2199,6 @@
--                    if !self.handler.lc.read().unwrap().disable_audio.v {
-+                    let lc = self.handler.lc.read().unwrap();
-+                    #[cfg(feature = "rdn-native-core")]
-+                    let audio_active = lc.native_viewer_audio_active();
-+                    #[cfg(not(feature = "rdn-native-core"))]
-+                    let audio_active = true;
-+                    if !lc.disable_audio.v && audio_active {
+                     }
+                     _ => {}
+                 }
 --- a/src/ui_session_interface.rs
 +++ b/src/ui_session_interface.rs
-@@ -1926,0 +1927,5 @@
+@@ -1923,6 +1923,11 @@
+                 "",
+             );
+         }
 +        #[cfg(feature = "rdn-native-core")]
 +        self.lc
 +            .write()
 +            .unwrap()
 +            .native_viewer_set_authenticated();
+         self.on_connected(self.lc.read().unwrap().conn_type);
+         #[cfg(windows)]
+         {

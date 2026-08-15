@@ -157,7 +157,8 @@ struct HostHomeSnapshot: Equatable {
     var audioInputDeviceNames: [String] = []
     var audioInputDeviceName: String?
     var audioInputDeviceAvailable: Bool = true
-    var microphoneAuthorizationText: String = "麦克风权限：开启时询问"
+    var microphoneAuthorizationText: String =
+        "系统音频使用屏幕录制权限；不需要麦克风权限"
     var allowsAudioPolicyChange: Bool = false
     var statusText: String
     var localID: String
@@ -320,10 +321,10 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostAudioInputPopup = NSPopUpButton()
     private let hostAudioInputRefreshButton = NSButton()
     private let hostAudioInputStatusLabel = NSTextField(
-        labelWithString: "音频输入：系统默认麦克风"
+        labelWithString: "音频来源：系统音频（原生）"
     )
     private let hostMicrophoneAuthorizationLabel = NSTextField(
-        labelWithString: "麦克风权限：开启时询问"
+        labelWithString: "系统音频使用屏幕录制权限；不需要麦克风权限"
     )
     private let hostApprovalContainer = NSView()
     private let hostApprovalTitleLabel = NSTextField(labelWithString: "新的远程连接请求")
@@ -1431,7 +1432,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         let audioSection = makeSettingsSection(
             symbolName: "waveform",
             title: "远程音频",
-            detail: "默认关闭，使用真实输入设备",
+            detail: "默认关闭，原生捕获系统音频",
             content: hostAudioSettings
         )
         let fileSection = makeSettingsSection(
@@ -2099,7 +2100,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
 
     private func applyHostAudioInputSelection(_ host: HostHomeSnapshot) {
         hostAudioInputPopup.removeAllItems()
-        hostAudioInputPopup.addItem(withTitle: "系统默认麦克风")
+        hostAudioInputPopup.addItem(withTitle: "系统音频（原生）")
         hostAudioInputPopup.lastItem?.representedObject = ""
         for name in host.audioInputDeviceNames {
             hostAudioInputPopup.addItem(withTitle: name)
@@ -2123,12 +2124,12 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         if let selected = host.audioInputDeviceName {
             hostAudioInputStatusLabel.stringValue = host.audioInputDeviceAvailable
                 ? "音频输入：\(selected)"
-                : "已选设备不可用或名称不唯一；不会回退默认麦克风"
+                : "已选设备不可用或名称不唯一；不会回退系统音频"
             hostAudioInputStatusLabel.textColor = host.audioInputDeviceAvailable
                 ? .tertiaryLabelColor
                 : .systemOrange
         } else {
-            hostAudioInputStatusLabel.stringValue = "音频输入：系统默认麦克风"
+            hostAudioInputStatusLabel.stringValue = "音频来源：系统音频（原生）"
             hostAudioInputStatusLabel.textColor = .tertiaryLabelColor
         }
     }

@@ -70,7 +70,7 @@ def main() -> int:
                 "inputDeviceName as Any? ?? NSNull()",
             )
         ),
-        "schemaV6MigratesToDefaultMicrophone": all(
+        "schemaV6MigratesToNativeSystemAudio": all(
             marker in configuration
             for marker in (
                 "if schemaVersion == 6",
@@ -100,11 +100,11 @@ def main() -> int:
         "homeExposesDefaultExactAndRefreshSelection": all(
             marker in sources["home"]
             for marker in (
-                "系统默认麦克风",
+                "系统音频（原生）",
                 "onHostAudioInputSelection",
                 "onRefreshHostAudioInputs",
                 "不可用：\\(selected)",
-                "不会回退默认麦克风",
+                "不会回退系统音频",
             )
         ),
         "selectionIsMutableOnlyThroughExistingHostOffGate": all(
@@ -122,7 +122,7 @@ def main() -> int:
                 "catalog.containsUnique",
                 "return .disabled",
                 "远程音频保持关闭",
-                "不会回退默认麦克风",
+                "不会回退系统音频",
             )
         ),
         "backgroundAndLegacyOwnersReceiveSameImmutableSelection": (
@@ -134,7 +134,7 @@ def main() -> int:
         "regressionsCoverSchemaMigrationValidationCatalogAndProductWiring": all(
             marker in sources["configuration_tests"] + sources["routing_tests"]
             for marker in (
-                "testSchemaSixPreservesAudioAndMigratesToDefaultInput",
+                "testSchemaSixPreservesAudioAndMigratesToNativeSystemAudio",
                 "testAudioInputPolicyIsStrictAndFailClosed",
                 "testAudioInputCatalogOnlyExposesValidUniqueExactNames",
                 "farpane.host.audio.inputDeviceName",
@@ -187,7 +187,7 @@ def main() -> int:
         "sourceLines": source_lines,
         "missingSourceLines": missing_source_lines,
         "claims": {
-            "defaultMicrophoneRemainsDefault": True,
+            "nativeSystemAudioIsDefaultSource": True,
             "virtualInputAutoInstalled": False,
             "missingExplicitInputFallsClosed": True,
             "dualMacAudioAcceptanceComplete": False,

@@ -36,7 +36,9 @@ class HostAudioBootstrapVirtualInputSelectionContractAuditTests(unittest.TestCas
         self.assertEqual(document["missingEvidence"], [])
         self.assertEqual(document["missingSourceLines"], [])
         self.assertTrue(all(document["evidence"].values()))
-        self.assertTrue(document["claims"]["defaultMicrophoneRemainsDefault"])
+        self.assertTrue(
+            document["claims"]["nativeSystemAudioIsDefaultSource"]
+        )
         self.assertFalse(document["claims"]["virtualInputAutoInstalled"])
         self.assertTrue(document["claims"]["missingExplicitInputFallsClosed"])
         self.assertFalse(document["claims"]["dualMacAudioAcceptanceComplete"])

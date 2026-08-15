@@ -596,7 +596,7 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         for marker in [
             "远程音频（默认关闭）",
             "允许远端接收本机音频",
-            "系统默认麦克风",
+            "系统音频（原生）",
             "onHostAudioInputSelection",
             "onHostAudioToggle",
             "snapshot.host.allowsAudioPolicyChange",
@@ -608,6 +608,9 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         ))
         XCTAssertTrue(agentSource.contains(
             "configuration.audioPolicy.inputDeviceName"
+        ))
+        XCTAssertTrue(agentSource.contains(
+            "requiresMicrophoneAuthorization"
         ))
         XCTAssertTrue(agentSource.contains("isAuthorizedWithoutPrompt()"))
         XCTAssertFalse(agentSource.contains("requestAuthorization"))

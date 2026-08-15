@@ -42,11 +42,11 @@ class HostAudioProductOwnershipAuditTests(unittest.TestCase):
         self.assertEqual(document["targetContract"]["viewerABI"], 18)
         self.assertEqual(
             document["targetContract"]["defaultCaptureSource"],
-            "native system-default microphone",
+            "native ScreenCaptureKit system-audio loopback",
         )
         self.assertEqual(
             document["targetContract"]["systemAudioRoute"],
-            "explicit user-selected virtual input device only",
+            "native by default; explicit CoreAudio input remains available",
         )
         self.assertTrue(all(document["evidence"].values()))
         self.assertEqual(document["gaps"], {})
