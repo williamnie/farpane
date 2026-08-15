@@ -194,15 +194,13 @@ enum HomeDeviceAction {
 }
 
 private enum HomePage: String, CaseIterable {
-    case overview
     case connections
     case permissions
     case sharing
 
     var title: String {
         switch self {
-        case .overview: return "概览"
-        case .connections: return "连接设备"
+        case .connections: return "设备"
         case .permissions: return "授权与安全"
         case .sharing: return "共享设置"
         }
@@ -210,7 +208,6 @@ private enum HomePage: String, CaseIterable {
 
     var symbolName: String {
         switch self {
-        case .overview: return "square.grid.2x2"
         case .connections: return "display.2"
         case .permissions: return "checkmark.shield"
         case .sharing: return "slider.horizontal.3"
@@ -226,10 +223,23 @@ private enum HomePalette {
         alpha: 1
     )
     static let panel = NSColor(
-        calibratedRed: 0.073,
-        green: 0.088,
+        calibratedRed: 0.082,
+        green: 0.102,
+        blue: 0.129,
+        alpha: 1
+    )
+    static let panelHover = NSColor(
+        calibratedRed: 0.102,
+        green: 0.129,
+        blue: 0.165,
+        alpha: 1
+    )
+    /// accent 上的深色文字
+    static let inkOnAccent = NSColor(
+        calibratedRed: 0.024,
+        green: 0.137,
         blue: 0.102,
-        alpha: 0.98
+        alpha: 1
     )
 }
 
@@ -268,7 +278,6 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let serverStatusDot = NSView()
     private let peerField = NSTextField()
     private let peerContainer = NSView()
-    private let peerPasteButton = NSButton()
     private let connectButton = AccentButton(title: "连接", target: nil, action: nil)
     private let viewerAudioOptInSwitch = NSSwitch()
     private let filterControl = NSSegmentedControl(
@@ -339,9 +348,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let hostErrorLabel = NSTextField(wrappingLabelWithString: "")
     private let pageTabView = NSTabView()
     private var sidebarButtons: [HomePage: HomeSidebarButton] = [:]
-    private var selectedPage: HomePage = .overview
-    private let overviewPermissionScoreLabel = NSTextField(labelWithString: "0 / 3")
-    private let overviewPermissionDetailLabel = NSTextField(labelWithString: "正在检测系统授权")
+    private var selectedPage: HomePage = .connections
+    private let permissionChipsLabel = NSTextField(labelWithString: "")
     private let permissionSummaryLabel = NSTextField(labelWithString: "正在检测…")
     private let permissionSummaryDetailLabel = NSTextField(labelWithString: "")
     private var permissionRows: [HomeSystemPermissionKind: HomePermissionRowView] = [:]
@@ -399,7 +407,6 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             && !peerField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         connectButton.isEnabled = canConnect
         peerField.isEnabled = snapshot.connectingPeerID == nil
-        peerPasteButton.isEnabled = snapshot.connectingPeerID == nil
         connectButton.title = snapshot.connectingPeerID == nil ? "连接" : "连接中…"
         serverButton.isEnabled = snapshot.connectingPeerID == nil
         viewerAudioOptInSwitch.state = snapshot.viewerAudioOptIn ? .on : .off
@@ -446,9 +453,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             .microphoneAuthorizationText
         hostStatusLabel.stringValue = snapshot.host.statusText
         hostStatusDot.layer?.backgroundColor = hostStatusColor(snapshot.host).cgColor
-        hostIDLabel.stringValue = "本机 ID：\(snapshot.host.localID.nonEmpty ?? "—")"
+        hostIDLabel.stringValue = snapshot.host.localID.nonEmpty ?? "—"
         hostIDCopyButton.isEnabled = !snapshot.host.localID.isEmpty
-        hostPasswordLabel.stringValue = "临时密码：\(snapshot.host.temporaryPassword.nonEmpty ?? "未显示")"
+        hostPasswordLabel.stringValue = snapshot.host.temporaryPassword.nonEmpty ?? "未显示"
         hostRevealButton.title = snapshot.host.temporaryPassword.isEmpty ? "显示" : "隐藏"
         hostRevealButton.isEnabled = snapshot.host.allowsHostCommands
         hostPasswordCopyButton.isEnabled = hostRevealButton.isEnabled
@@ -559,21 +566,42 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     ) {
         let granted = permissions.requiredGrantedCount
         let required = permissions.requiredCount
-        overviewPermissionScoreLabel.stringValue = "\(granted) / \(required)"
+        permissionChipsLabel.attributedStringValue = permissionChipsText(permissions)
         permissionSummaryLabel.stringValue = granted == required
             ? "关键权限均已就绪"
             : "还需要 \(required - granted) 项系统授权"
         permissionSummaryLabel.textColor = granted == required
             ? .systemGreen
             : .systemOrange
-        overviewPermissionDetailLabel.stringValue = granted == required
-            ? "屏幕与输入控制可用"
-            : "打开授权与安全完成设置"
         permissionSummaryDetailLabel.stringValue =
             "FarPane 只读取系统返回的授权状态，不能自行授予权限。"
         for kind in HomeSystemPermissionKind.allCases {
             permissionRows[kind]?.apply(permissions[kind])
         }
+    }
+
+    /// 授权 chip 条：✓/✗ + 权限名，按状态着色
+    private func permissionChipsText(
+        _ permissions: HomeSystemPermissionSnapshot
+    ) -> NSAttributedString {
+        let text = NSMutableAttributedString()
+        let font = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .medium)
+        let all = HomeSystemPermissionKind.allCases
+        for (index, kind) in all.enumerated() {
+            let granted = permissions[kind].isGranted
+            let color: NSColor = granted ? HomePalette.accent : .systemOrange
+            text.append(NSAttributedString(
+                string: (granted ? "✓ " : "✗ ") + kind.title,
+                attributes: [.font: font, .foregroundColor: color]
+            ))
+            if index < all.count - 1 {
+                text.append(NSAttributedString(
+                    string: "   ",
+                    attributes: [.font: font]
+                ))
+            }
+        }
+        return text
     }
 
     private func hostStatusColor(_ host: HostHomeSnapshot) -> NSColor {
@@ -587,16 +615,16 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private func permanentPasswordStatus(_ host: HostHomeSnapshot) -> String {
         if !host.permanentPasswordChangeAllowed {
             return host.effectivePermanentPasswordSet
-                ? "永久密码：由管理员管理"
-                : "永久密码：不允许更改"
+                ? "由管理员管理"
+                : "不允许更改"
         }
         if host.localPermanentPasswordSet {
-            return "永久密码：已设置"
+            return "已设置"
         }
         if host.usingPresetPassword || host.effectivePermanentPasswordSet {
-            return "永久密码：预设密码生效"
+            return "预设密码生效"
         }
-        return "永久密码：未设置"
+        return "未设置"
     }
 
     private func configureSessionButton(
@@ -622,9 +650,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         wantsLayer = true
         appearance = NSAppearance(named: .darkAqua)
         layer?.backgroundColor = NSColor(
-            calibratedRed: 0.050,
-            green: 0.061,
-            blue: 0.071,
+            calibratedRed: 0.043,
+            green: 0.051,
+            blue: 0.063,
             alpha: 1
         ).cgColor
 
@@ -647,8 +675,8 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         serverButton.toolTip = "服务器设置"
 
         // ---------- 快速连接卡片 ----------
-        peerField.placeholderString = "输入对方设备 ID，例如 123 456 789"
-        peerField.font = .systemFont(ofSize: 14.5)
+        peerField.placeholderString = "输入远端 ID"
+        peerField.font = .monospacedSystemFont(ofSize: 13.5, weight: .regular)
         peerField.isBordered = false
         peerField.drawsBackground = false
         peerField.focusRingType = .none
@@ -658,49 +686,14 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         peerField.setAccessibilityLabel("远端设备 ID")
         peerField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let peerIcon = NSImageView(image: NSImage(
-            systemSymbolName: "display",
-            accessibilityDescription: "设备"
-        ) ?? NSImage())
-        peerIcon.contentTintColor = .tertiaryLabelColor
-        peerIcon.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            peerIcon.widthAnchor.constraint(equalToConstant: 15),
-            peerIcon.heightAnchor.constraint(equalToConstant: 15),
-        ])
-
-        let hintView = NSView()
-        hintView.wantsLayer = true
-        hintView.layer?.cornerRadius = 9
-        hintView.layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.16).cgColor
-        let hintLabel = NSTextField(labelWithString: "回车连接")
-        hintLabel.font = .systemFont(ofSize: 11, weight: .medium)
-        hintLabel.textColor = .tertiaryLabelColor
-        hintView.addSubview(hintLabel)
-        hintLabel.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hintLabel.leadingAnchor.constraint(equalTo: hintView.leadingAnchor, constant: 9),
-            hintLabel.trailingAnchor.constraint(equalTo: hintView.trailingAnchor, constant: -9),
-            hintLabel.centerYAnchor.constraint(equalTo: hintView.centerYAnchor),
-            hintView.heightAnchor.constraint(equalToConstant: 20),
-        ])
-
-        peerPasteButton.title = "粘贴"
-        peerPasteButton.bezelStyle = .inline
-        peerPasteButton.image = NSImage(
-            systemSymbolName: "doc.on.clipboard",
-            accessibilityDescription: nil
-        )
-        peerPasteButton.imagePosition = .imageLeading
-        peerPasteButton.target = self
-        peerPasteButton.action = #selector(pastePeerID)
-        peerPasteButton.setAccessibilityLabel("从剪贴板粘贴设备 ID")
+        // 终端提示符 ❯
+        let peerIcon = NSTextField(labelWithString: "❯")
+        peerIcon.font = .monospacedSystemFont(ofSize: 14, weight: .bold)
+        peerIcon.textColor = HomePalette.accent
 
         let fieldRow = NSStackView(views: [
             peerIcon,
             peerField,
-            peerPasteButton,
-            hintView,
         ])
         fieldRow.orientation = .horizontal
         fieldRow.alignment = .centerY
@@ -712,7 +705,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         peerContainer.layer?.backgroundColor = NSColor.black
             .withAlphaComponent(0.18).cgColor
         peerContainer.layer?.borderColor = NSColor.white
-            .withAlphaComponent(0.09).cgColor
+            .withAlphaComponent(0.14).cgColor
         peerContainer.layer?.borderWidth = 1
         peerContainer.addSubview(fieldRow)
         NSLayoutConstraint.activate([
@@ -727,20 +720,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         connectButton.target = self
         connectButton.action = #selector(connectQuickly)
 
-        let quickRow = NSStackView(views: [peerContainer, connectButton])
-        quickRow.orientation = .horizontal
-        quickRow.alignment = .centerY
-        quickRow.spacing = 12
-        quickRow.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             peerContainer.heightAnchor.constraint(equalToConstant: 34),
             connectButton.widthAnchor.constraint(equalToConstant: 82),
             connectButton.heightAnchor.constraint(equalToConstant: 34),
         ])
-
-        let quickLabel = NSTextField(labelWithString: "快速连接")
-        quickLabel.font = .systemFont(ofSize: 11, weight: .semibold)
-        quickLabel.textColor = .tertiaryLabelColor
 
         viewerAudioOptInSwitch.target = self
         viewerAudioOptInSwitch.action = #selector(viewerAudioOptInChanged)
@@ -758,20 +742,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         viewerAudioRow.orientation = .horizontal
         viewerAudioRow.alignment = .centerY
 
-        let quickCard = NSStackView(views: [quickLabel, quickRow, viewerAudioRow])
-        quickCard.orientation = .vertical
-        quickCard.alignment = .leading
-        quickCard.spacing = 8
-        viewerAudioRow.widthAnchor.constraint(
-            equalTo: quickCard.widthAnchor
-        ).isActive = true
-
-        let quickContainer = makePanel(content: quickCard)
-
         // ---------- 本机 Host ----------
-        let hostTitle = NSTextField(labelWithString: "允许连接此 Mac")
-        hostTitle.font = .systemFont(ofSize: 14, weight: .semibold)
-
         hostStatusDot.wantsLayer = true
         hostStatusDot.layer?.cornerRadius = 3.5
         hostStatusDot.translatesAutoresizingMaskIntoConstraints = false
@@ -786,22 +757,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostSwitch.action = #selector(hostToggleChanged)
         hostSwitch.setAccessibilityLabel("允许连接此 Mac")
 
-        let hostHeader = NSStackView(views: [
-            hostTitle,
-            hostStatusDot,
-            hostStatusLabel,
-            NSView(),
-            hostSwitch,
-        ])
-        hostHeader.orientation = .horizontal
-        hostHeader.alignment = .centerY
-        hostHeader.spacing = 7
-
-        hostIDLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-        hostIDLabel.textColor = .secondaryLabelColor
+        hostIDLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+        hostIDLabel.textColor = HomePalette.accent
         hostIDLabel.lineBreakMode = .byTruncatingMiddle
-        hostPasswordLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-        hostPasswordLabel.textColor = .secondaryLabelColor
+        hostPasswordLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        hostPasswordLabel.textColor = .labelColor
 
         hostIDCopyButton.title = "复制"
         hostIDCopyButton.bezelStyle = .inline
@@ -830,7 +790,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         ])
         hostIDDetails.orientation = .horizontal
         hostIDDetails.alignment = .centerY
-        hostIDDetails.spacing = 12
+        hostIDDetails.spacing = 8
         let hostPasswordDetails = NSStackView(views: [
             hostPasswordLabel,
             NSView(),
@@ -840,18 +800,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         ])
         hostPasswordDetails.orientation = .horizontal
         hostPasswordDetails.alignment = .centerY
-        hostPasswordDetails.spacing = 12
-        let hostDetails = NSStackView(views: [
-            hostIDDetails,
-            hostPasswordDetails,
-        ])
-        hostDetails.orientation = .vertical
-        hostDetails.alignment = .leading
-        hostDetails.spacing = 6
-        hostIDDetails.widthAnchor.constraint(equalTo: hostDetails.widthAnchor).isActive = true
-        hostPasswordDetails.widthAnchor.constraint(equalTo: hostDetails.widthAnchor).isActive = true
+        hostPasswordDetails.spacing = 8
         hostIDLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        hostPasswordLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        hostPasswordLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         hostCopyFeedbackLabel.font = .systemFont(ofSize: 11, weight: .medium)
         hostCopyFeedbackLabel.textColor = HomePalette.accent
@@ -1344,10 +1295,119 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         hostCommandRetryButton.action = #selector(retryHostCommand)
         hostCommandRetryButton.isHidden = true
 
-        let hostIdentityCard = NSStackView(views: [
-            hostHeader,
-            hostDetails,
-            hostPermanentPasswordDetails,
+        // ---------- 快速连接与被控 Host ----------
+        let hostToggleTitle = NSTextField(labelWithString: "被控 Host")
+        hostToggleTitle.font = .monospacedSystemFont(ofSize: 9, weight: .medium)
+        hostToggleTitle.textColor = .tertiaryLabelColor
+        hostStatusLabel.lineBreakMode = .byTruncatingTail
+        hostStatusLabel.setContentCompressionResistancePriority(
+            .defaultLow,
+            for: .horizontal
+        )
+        let connectionRow = NSStackView(views: [peerContainer, connectButton])
+        connectionRow.orientation = .horizontal
+        connectionRow.alignment = .centerY
+        connectionRow.spacing = 8
+
+        let connectionColumn = NSStackView(views: [connectionRow, viewerAudioRow])
+        connectionColumn.orientation = .vertical
+        connectionColumn.alignment = .leading
+        connectionColumn.spacing = 8
+        connectionRow.widthAnchor.constraint(
+            equalTo: connectionColumn.widthAnchor
+        ).isActive = true
+        viewerAudioRow.widthAnchor.constraint(
+            equalTo: connectionColumn.widthAnchor
+        ).isActive = true
+
+        let quickDivider = NSView()
+        quickDivider.wantsLayer = true
+        quickDivider.layer?.backgroundColor = NSColor.white
+            .withAlphaComponent(0.10).cgColor
+        NSLayoutConstraint.activate([
+            quickDivider.widthAnchor.constraint(equalToConstant: 1),
+            quickDivider.heightAnchor.constraint(equalToConstant: 46),
+        ])
+
+        let hostToggleRow = NSStackView(views: [
+            hostToggleTitle,
+            hostStatusDot,
+            hostStatusLabel,
+            NSView(),
+            hostSwitch,
+        ])
+        hostToggleRow.orientation = .horizontal
+        hostToggleRow.alignment = .centerY
+        hostToggleRow.spacing = 8
+
+        let quickCard = NSStackView(views: [
+            connectionColumn,
+            quickDivider,
+            hostToggleRow,
+        ])
+        quickCard.orientation = .horizontal
+        quickCard.alignment = .centerY
+        quickCard.spacing = 14
+        connectionColumn.widthAnchor.constraint(
+            equalTo: quickCard.widthAnchor,
+            multiplier: 0.62
+        ).isActive = true
+        hostToggleRow.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let quickContainer = makePanel(content: quickCard)
+
+        // ---------- 本机概览：三张迷你卡 ----------
+        let hostIDCard = makeHostMiniCard(title: "本机 ID", content: hostIDDetails)
+        let hostPasswordCard = makeHostMiniCard(title: "临时密码", content: hostPasswordDetails)
+        let hostPermanentCard = makeHostMiniCard(title: "永久密码", content: hostPermanentPasswordDetails)
+
+        let hostStrip = NSStackView(views: [
+            hostIDCard,
+            hostPasswordCard,
+            hostPermanentCard,
+        ])
+        hostStrip.orientation = .horizontal
+        hostStrip.alignment = .top
+        hostStrip.distribution = .fillEqually
+        hostStrip.spacing = 8
+
+        // ---------- 系统授权 chip 条 ----------
+        let permissionBarTitle = NSTextField(labelWithString: "系统授权")
+        permissionBarTitle.font = .monospacedSystemFont(ofSize: 9, weight: .medium)
+        permissionBarTitle.textColor = .tertiaryLabelColor
+        permissionChipsLabel.font = .monospacedSystemFont(ofSize: 10.5, weight: .medium)
+        permissionChipsLabel.stringValue = "正在检测…"
+        let permissionRefreshButton = NSButton(
+            title: "重新检测",
+            target: self,
+            action: #selector(refreshSystemPermissions)
+        )
+        permissionRefreshButton.bezelStyle = .inline
+        permissionRefreshButton.setAccessibilityLabel("重新检测系统授权状态")
+        let permissionManageButton = NSButton(
+            title: "管理",
+            target: self,
+            action: #selector(openPermissionsPage)
+        )
+        permissionManageButton.bezelStyle = .inline
+        permissionManageButton.setAccessibilityLabel("打开授权与安全页面")
+        let permissionBarRow = NSStackView(views: [
+            permissionBarTitle,
+            permissionChipsLabel,
+            NSView(),
+            permissionRefreshButton,
+            permissionManageButton,
+        ])
+        permissionBarRow.orientation = .horizontal
+        permissionBarRow.alignment = .centerY
+        permissionBarRow.spacing = 10
+        let permissionBar = makePanel(
+            content: permissionBarRow,
+            insets: NSEdgeInsets(top: 7, left: 12, bottom: 7, right: 12)
+        )
+
+        // ---------- Host 动态横幅（会话 / 审批 / 错误，默认隐藏） ----------
+        let hostBanner = NSStackView(views: [
             hostCopyFeedbackLabel,
             hostSessionContainer,
             hostApprovalContainer,
@@ -1355,27 +1415,12 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             hostErrorLabel,
             hostCommandRetryButton,
         ])
-        hostIdentityCard.orientation = .vertical
-        hostIdentityCard.alignment = .leading
-        hostIdentityCard.spacing = 10
-        for view in [
-            hostHeader,
-            hostDetails,
-            hostPermanentPasswordDetails,
-            hostCopyFeedbackLabel,
-            hostSessionContainer,
-            hostApprovalContainer,
-            hostMediaDiagnosticLabel,
-            hostErrorLabel,
-            hostCommandRetryButton,
-        ] {
-            view.widthAnchor.constraint(equalTo: hostIdentityCard.widthAnchor).isActive = true
+        hostBanner.orientation = .vertical
+        hostBanner.alignment = .leading
+        hostBanner.spacing = 8
+        for view in hostBanner.arrangedSubviews {
+            view.widthAnchor.constraint(equalTo: hostBanner.widthAnchor).isActive = true
         }
-
-        let hostContainer = makePanel(
-            content: hostIdentityCard,
-            emphasized: true
-        )
 
         let clipboardSection = makeSettingsSection(
             symbolName: "doc.on.clipboard",
@@ -1412,7 +1457,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
 
         // ---------- 列表工具栏 ----------
         let recentTitle = NSTextField(labelWithString: "最近连接")
-        recentTitle.font = .systemFont(ofSize: 17, weight: .semibold)
+        recentTitle.font = .systemFont(ofSize: 13, weight: .semibold)
 
         countBadge.font = .systemFont(ofSize: 12, weight: .semibold)
         countBadge.textColor = .tertiaryLabelColor
@@ -1446,7 +1491,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         // ---------- 设备列表 ----------
         listStack.orientation = .vertical
         listStack.alignment = .leading
-        listStack.spacing = 0
+        listStack.spacing = 6
         listStack.translatesAutoresizingMaskIntoConstraints = false
         let scrollView = NSScrollView()
         scrollView.drawsBackground = false
@@ -1486,22 +1531,23 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         versionLabel.textColor = .tertiaryLabelColor
 
         // ---------- 真正的页面切换 ----------
-        let overviewPage = makeOverviewPage(hostContainer: hostContainer)
-
         let connectionsContent = NSStackView(views: [
             makePageHeader(
-                title: "连接设备",
-                subtitle: "发起新的远程连接，或从本机历史记录快速返回。"
+                title: "设备",
+                subtitle: "输入远端 ID 发起连接，或从最近连接快速返回。"
             ),
             quickContainer,
+            hostStrip,
+            permissionBar,
+            hostBanner,
             listToolbar,
             errorLabel,
             scrollView,
         ])
         connectionsContent.orientation = .vertical
         connectionsContent.alignment = .leading
-        connectionsContent.spacing = 16
-        connectionsContent.setCustomSpacing(24, after: connectionsContent.arrangedSubviews[0])
+        connectionsContent.spacing = 12
+        connectionsContent.setCustomSpacing(16, after: connectionsContent.arrangedSubviews[0])
         connectionsContent.setCustomSpacing(8, after: listToolbar)
         for view in connectionsContent.arrangedSubviews {
             view.widthAnchor.constraint(equalTo: connectionsContent.widthAnchor).isActive = true
@@ -1529,8 +1575,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         pageTabView.tabViewType = .noTabsNoBorder
         pageTabView.drawsBackground = false
         for (page, view) in [
-            (HomePage.overview, overviewPage),
-            (.connections, connectionsPage),
+            (HomePage.connections, connectionsPage),
             (.permissions, permissionsPage),
             (.sharing, settingsPage),
         ] {
@@ -1560,7 +1605,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             ),
             pageTabView.heightAnchor.constraint(equalTo: root.heightAnchor),
         ])
-        selectPage(.overview)
+        selectPage(.connections)
     }
 
     private func makeSidebar(versionLabel: NSTextField) -> NSView {
@@ -1647,14 +1692,14 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         subtitle: String
     ) -> NSView {
         let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 28, weight: .semibold)
+        titleLabel.font = .systemFont(ofSize: 20, weight: .semibold)
         let subtitleLabel = NSTextField(wrappingLabelWithString: subtitle)
-        subtitleLabel.font = .systemFont(ofSize: 12.5)
+        subtitleLabel.font = .systemFont(ofSize: 12)
         subtitleLabel.textColor = .secondaryLabelColor
         let stack = NSStackView(views: [titleLabel, subtitleLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 6
+        stack.spacing = 4
         return stack
     }
 
@@ -1714,24 +1759,45 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         return page
     }
 
-    private func makePanel(content: NSView, emphasized: Bool = false) -> NSView {
+    private func makePanel(
+        content: NSView,
+        emphasized: Bool = false,
+        cornerRadius: CGFloat = 10,
+        insets: NSEdgeInsets = NSEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
+    ) -> NSView {
         let panel = NSView()
         panel.wantsLayer = true
-        panel.layer?.cornerRadius = 16
+        panel.layer?.cornerRadius = cornerRadius
         panel.layer?.backgroundColor = HomePalette.panel.cgColor
         panel.layer?.borderWidth = 1
         panel.layer?.borderColor = (emphasized
             ? HomePalette.accent.withAlphaComponent(0.24)
-            : NSColor.white.withAlphaComponent(0.075)).cgColor
+            : NSColor.white.withAlphaComponent(0.12)).cgColor
         panel.addSubview(content)
         content.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            content.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 18),
-            content.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -18),
-            content.topAnchor.constraint(equalTo: panel.topAnchor, constant: 17),
-            content.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -17),
+            content.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: insets.left),
+            content.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -insets.right),
+            content.topAnchor.constraint(equalTo: panel.topAnchor, constant: insets.top),
+            content.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -insets.bottom),
         ])
         return panel
+    }
+
+    /// 概览迷你卡：mono 小标题 + 内容行
+    private func makeHostMiniCard(title: String, content: NSView) -> NSView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = .monospacedSystemFont(ofSize: 9, weight: .medium)
+        titleLabel.textColor = .tertiaryLabelColor
+        let stack = NSStackView(views: [titleLabel, content])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
+        content.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        return makePanel(
+            content: stack,
+            insets: NSEdgeInsets(top: 9, left: 12, bottom: 10, right: 12)
+        )
     }
 
     private func makeSettingsSection(
@@ -1823,98 +1889,6 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         return makePanel(content: stack)
     }
 
-    private func makeOverviewPage(hostContainer: NSView) -> NSView {
-        overviewPermissionScoreLabel.font = .monospacedDigitSystemFont(
-            ofSize: 23,
-            weight: .semibold
-        )
-        overviewPermissionScoreLabel.textColor = HomePalette.accent
-        overviewPermissionDetailLabel.font = .systemFont(ofSize: 10.5)
-        overviewPermissionDetailLabel.textColor = .secondaryLabelColor
-        let permissionTitle = NSTextField(labelWithString: "系统授权")
-        permissionTitle.font = .systemFont(ofSize: 12, weight: .semibold)
-        let permissionCopy = NSStackView(views: [
-            permissionTitle,
-            overviewPermissionScoreLabel,
-            overviewPermissionDetailLabel,
-        ])
-        permissionCopy.orientation = .vertical
-        permissionCopy.alignment = .leading
-        permissionCopy.spacing = 5
-        let permissionButton = NSButton(
-            title: "检查权限",
-            target: self,
-            action: #selector(openPermissionsPage)
-        )
-        permissionButton.bezelStyle = .rounded
-        let permissionCardStack = NSStackView(views: [
-            permissionCopy,
-            NSView(),
-            permissionButton,
-        ])
-        permissionCardStack.orientation = .vertical
-        permissionCardStack.alignment = .leading
-        permissionCardStack.spacing = 12
-        permissionButton.alignment = .center
-        permissionButton.widthAnchor.constraint(equalTo: permissionCardStack.widthAnchor).isActive = true
-        let permissionCard = makePanel(content: permissionCardStack)
-
-        let connectionIcon = NSImageView(image: NSImage(
-            systemSymbolName: "display.2",
-            accessibilityDescription: nil
-        ) ?? NSImage())
-        connectionIcon.contentTintColor = HomePalette.accent
-        connectionIcon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 25, weight: .medium)
-        let connectionTitle = NSTextField(labelWithString: "连接另一台设备")
-        connectionTitle.font = .systemFont(ofSize: 12, weight: .semibold)
-        let connectionDetail = NSTextField(labelWithString: "快捷连接、收藏与历史记录")
-        connectionDetail.font = .systemFont(ofSize: 10.5)
-        connectionDetail.textColor = .secondaryLabelColor
-        let connectionButton = NSButton(
-            title: "打开连接设备",
-            target: self,
-            action: #selector(openConnectionsPage)
-        )
-        connectionButton.bezelStyle = .rounded
-        let connectionCardStack = NSStackView(views: [
-            connectionIcon,
-            connectionTitle,
-            connectionDetail,
-            NSView(),
-            connectionButton,
-        ])
-        connectionCardStack.orientation = .vertical
-        connectionCardStack.alignment = .leading
-        connectionCardStack.spacing = 7
-        connectionButton.widthAnchor.constraint(equalTo: connectionCardStack.widthAnchor).isActive = true
-        let connectionCard = makePanel(content: connectionCardStack)
-
-        let summaryRow = NSStackView(views: [permissionCard, connectionCard])
-        summaryRow.orientation = .horizontal
-        summaryRow.alignment = .top
-        summaryRow.distribution = .fillEqually
-        summaryRow.spacing = 14
-        summaryRow.heightAnchor.constraint(equalToConstant: 210).isActive = true
-        permissionCard.heightAnchor.constraint(equalTo: connectionCard.heightAnchor).isActive = true
-
-        let content = NSStackView(views: [
-            makePageHeader(
-                title: "此 Mac",
-                subtitle: "本机 ID、访问密码和当前入站会话都集中在这里。"
-            ),
-            hostContainer,
-            summaryRow,
-        ])
-        content.orientation = .vertical
-        content.alignment = .leading
-        content.spacing = 18
-        content.setCustomSpacing(26, after: content.arrangedSubviews[0])
-        for view in content.arrangedSubviews {
-            view.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
-        }
-        return makePage(content: content, scrolls: true)
-    }
-
     private func makeSeparator() -> NSView {
         let separator = NSView()
         separator.wantsLayer = true
@@ -1941,8 +1915,6 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     @objc private func sidebarPageChanged(_ sender: HomeSidebarButton) {
         selectPage(sender.page)
     }
-
-    @objc private func openConnectionsPage() { selectPage(.connections) }
 
     @objc private func openPermissionsPage() { selectPage(.permissions) }
 
@@ -1982,10 +1954,12 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
 
     private func updatePeerFocus(_ focused: Bool) {
         guard let layer = peerContainer.layer else { return }
-        layer.borderColor = (focused ? NSColor.controlAccentColor : NSColor.separatorColor).cgColor
-        layer.shadowColor = NSColor.controlAccentColor.cgColor
-        layer.shadowOpacity = focused ? 0.22 : 0
-        layer.shadowRadius = 4
+        layer.borderColor = (focused
+            ? HomePalette.accent.withAlphaComponent(0.55)
+            : NSColor.white.withAlphaComponent(0.14)).cgColor
+        layer.shadowColor = HomePalette.accent.cgColor
+        layer.shadowOpacity = focused ? 0.25 : 0
+        layer.shadowRadius = 5
         layer.shadowOffset = .zero
     }
 
@@ -2037,7 +2011,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             return
         }
 
-        for (index, item) in items.enumerated() {
+        for item in items {
             let row = DeviceRowView(
                 item: item,
                 isConnecting: snapshot.connectingPeerID == item.device.peerID
@@ -2047,12 +2021,6 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             }
             listStack.addArrangedSubview(row)
             row.widthAnchor.constraint(equalTo: listStack.widthAnchor).isActive = true
-            if index < items.count - 1 {
-                let separator = NSBox()
-                separator.boxType = .separator
-                listStack.addArrangedSubview(separator)
-                separator.widthAnchor.constraint(equalTo: listStack.widthAnchor).isActive = true
-            }
         }
     }
 
@@ -2062,25 +2030,6 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
               snapshot.server?.isComplete == true,
               snapshot.connectingPeerID == nil else { return }
         onQuickConnect?(peerID)
-    }
-
-    @objc private func pastePeerID() {
-        guard snapshot.connectingPeerID == nil else { return }
-        if window?.makeFirstResponder(peerField) == true,
-           NSApp.sendAction(
-               #selector(NSText.paste(_:)),
-               to: nil,
-               from: peerPasteButton
-           ) {
-            return
-        }
-        guard let readClipboard = onReadLocalClipboardText,
-              let rawValue = readClipboard() else { return }
-        let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty else { return }
-        peerField.stringValue = value
-        connectButton.isEnabled = snapshot.server?.isComplete == true
-        window?.makeFirstResponder(peerField)
     }
 
     @objc private func openServerSettings() { onOpenServerSettings?() }
@@ -2349,9 +2298,9 @@ private final class HomeSidebarButton: NSButton {
 
     private func updateAppearance() {
         layer?.backgroundColor = isSelected
-            ? HomePalette.accent.withAlphaComponent(0.10).cgColor
+            ? HomePalette.accent.withAlphaComponent(0.13).cgColor
             : NSColor.clear.cgColor
-        contentTintColor = isSelected ? .labelColor : .secondaryLabelColor
+        contentTintColor = isSelected ? HomePalette.accent : .secondaryLabelColor
         attributedTitle = NSAttributedString(
             string: page.title,
             attributes: [
@@ -2360,7 +2309,7 @@ private final class HomeSidebarButton: NSButton {
                     weight: isSelected ? .semibold : .medium
                 ),
                 .foregroundColor: isSelected
-                    ? NSColor.labelColor
+                    ? HomePalette.accent
                     : NSColor.secondaryLabelColor,
             ]
         )
@@ -2583,7 +2532,9 @@ private final class AccentButton: NSButton {
     }
 
     private func applyTitleStyle() {
-        let color: NSColor = isEnabled ? .white : .white.withAlphaComponent(0.55)
+        let color: NSColor = isEnabled
+            ? HomePalette.inkOnAccent
+            : .secondaryLabelColor
         attributedTitle = NSAttributedString(string: title, attributes: [
             .foregroundColor: color,
             .font: NSFont.systemFont(ofSize: 13.5, weight: .semibold),
@@ -2592,7 +2543,7 @@ private final class AccentButton: NSButton {
 
     private func updateBackground() {
         guard let layer else { return }
-        let accent = NSColor.controlAccentColor
+        let accent = HomePalette.accent
         if !isEnabled {
             layer.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.4).cgColor
         } else if isPressing {
@@ -2656,7 +2607,10 @@ private final class DeviceRowView: NSView {
 
     private func configure(isConnecting: Bool) {
         wantsLayer = true
-        layer?.cornerRadius = 10
+        layer?.cornerRadius = 8
+        layer?.backgroundColor = HomePalette.panel.cgColor
+        layer?.borderWidth = 1
+        layer?.borderColor = NSColor.white.withAlphaComponent(0.09).cgColor
 
         favoriteButton.bezelStyle = .inline
         favoriteButton.image = NSImage(
@@ -2670,7 +2624,7 @@ private final class DeviceRowView: NSView {
         // 设备类型图标
         let avatarView = NSView()
         avatarView.wantsLayer = true
-        avatarView.layer?.cornerRadius = 8
+        avatarView.layer?.cornerRadius = 6
         avatarView.layer?.backgroundColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.14).cgColor
         let avatarIcon = NSImageView(image: NSImage(
             systemSymbolName: "desktopcomputer",
@@ -2680,21 +2634,21 @@ private final class DeviceRowView: NSView {
         avatarView.addSubview(avatarIcon)
         avatarIcon.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            avatarView.widthAnchor.constraint(equalToConstant: 34),
-            avatarView.heightAnchor.constraint(equalToConstant: 34),
-            avatarIcon.widthAnchor.constraint(equalToConstant: 17),
-            avatarIcon.heightAnchor.constraint(equalToConstant: 17),
+            avatarView.widthAnchor.constraint(equalToConstant: 30),
+            avatarView.heightAnchor.constraint(equalToConstant: 30),
+            avatarIcon.widthAnchor.constraint(equalToConstant: 15),
+            avatarIcon.heightAnchor.constraint(equalToConstant: 15),
             avatarIcon.centerXAnchor.constraint(equalTo: avatarView.centerXAnchor),
             avatarIcon.centerYAnchor.constraint(equalTo: avatarView.centerYAnchor),
         ])
 
         let name = NSTextField(labelWithString: item.device.resolvedDisplayName)
-        name.font = .systemFont(ofSize: 14, weight: .semibold)
+        name.font = .systemFont(ofSize: 13, weight: .semibold)
         name.lineBreakMode = .byTruncatingTail
 
         // meta：ID（等宽数字）· 相对时间 · 已验证徽标
         let idLabel = NSTextField(labelWithString: formatPeerID(item.device.peerID))
-        idLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        idLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
         idLabel.textColor = .secondaryLabelColor
         idLabel.lineBreakMode = .byTruncatingTail
 
@@ -2730,8 +2684,8 @@ private final class DeviceRowView: NSView {
 
         let connect = NSButton(title: isConnecting ? "连接中…" : "连接", target: self, action: #selector(connect))
         connect.bezelStyle = .rounded
-        connect.contentTintColor = isConnecting ? .tertiaryLabelColor : .controlAccentColor
-        connect.font = .systemFont(ofSize: 13, weight: .semibold)
+        connect.contentTintColor = isConnecting ? .tertiaryLabelColor : HomePalette.accent
+        connect.font = .systemFont(ofSize: 12, weight: .semibold)
         connect.isEnabled = !isConnecting
 
         let more = NSButton(
@@ -2745,16 +2699,16 @@ private final class DeviceRowView: NSView {
         let row = NSStackView(views: [avatarView, favoriteButton, identity, NSView(), credential, connect, more])
         row.orientation = .horizontal
         row.alignment = .centerY
-        row.spacing = 12
+        row.spacing = 10
         row.translatesAutoresizingMaskIntoConstraints = false
         addSubview(row)
         NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
             row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            row.topAnchor.constraint(equalTo: topAnchor, constant: 9),
-            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -9),
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 60),
-            connect.widthAnchor.constraint(equalToConstant: 76),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 7),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -7),
+            heightAnchor.constraint(greaterThanOrEqualToConstant: 48),
+            connect.widthAnchor.constraint(equalToConstant: 64),
             credential.widthAnchor.constraint(equalToConstant: 18),
         ])
     }
@@ -2789,11 +2743,13 @@ private final class DeviceRowView: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
-        layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.06).cgColor
+        layer?.backgroundColor = HomePalette.panelHover.cgColor
+        layer?.borderColor = HomePalette.accent.withAlphaComponent(0.35).cgColor
     }
 
     override func mouseExited(with event: NSEvent) {
-        layer?.backgroundColor = NSColor.clear.cgColor
+        layer?.backgroundColor = HomePalette.panel.cgColor
+        layer?.borderColor = NSColor.white.withAlphaComponent(0.09).cgColor
     }
 
     private func formatPeerID(_ value: String) -> String {
