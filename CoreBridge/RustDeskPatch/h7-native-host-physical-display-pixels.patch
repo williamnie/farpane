@@ -1,3 +1,65 @@
+--- a/libs/scrap/src/quartz/display.rs
++++ b/libs/scrap/src/quartz/display.rs
+@@ -38,7 +38,9 @@ impl Display {
+         let w = unsafe { CGDisplayPixelsWide(self.0) };
+         let s = self.scale();
+         if s > 1.0 {
+-            ((w as f64) * s).round() as usize
++            self.current_mode_pixel_size()
++                .map(|size| size.0)
++                .unwrap_or_else(|| ((w as f64) * s).round() as usize)
+         } else {
+             w
+         }
+@@ -48,12 +50,27 @@ impl Display {
+         let h = unsafe { CGDisplayPixelsHigh(self.0) };
+         let s = self.scale();
+         if s > 1.0 {
+-            ((h as f64) * s).round() as usize
++            self.current_mode_pixel_size()
++                .map(|size| size.1)
++                .unwrap_or_else(|| ((h as f64) * s).round() as usize)
+         } else {
+             h
+         }
+     }
+
++    fn current_mode_pixel_size(self) -> Option<(usize, usize)> {
++        unsafe {
++            let mode = CGDisplayCopyDisplayMode(self.0);
++            if mode.is_null() {
++                return None;
++            }
++            let width = CGDisplayModeGetPixelWidth(mode);
++            let height = CGDisplayModeGetPixelHeight(mode);
++            CFRelease(mode);
++            (width > 0 && height > 0).then_some((width, height))
++        }
++    }
++
+     pub fn is_builtin(self) -> bool {
+         unsafe { CGDisplayIsBuiltin(self.0) != 0 }
+     }
+--- a/libs/scrap/src/quartz/ffi.rs
++++ b/libs/scrap/src/quartz/ffi.rs
+@@ -13,6 +13,7 @@ pub type IOSurfaceRef = *mut c_void;
+ pub type DispatchQueue = *mut c_void;
+ pub type DispatchQueueAttr = *mut c_void;
+ pub type CFAllocatorRef = *mut c_void;
++pub type CGDisplayModeRef = *mut c_void;
+
+ #[repr(C)]
+ pub struct CFDictionaryKeyCallBacks {
+@@ -180,6 +181,9 @@ extern "C" {
+     pub fn CGMainDisplayID() -> u32;
+     pub fn CGDisplayPixelsWide(display: u32) -> usize;
+     pub fn CGDisplayPixelsHigh(display: u32) -> usize;
++    pub fn CGDisplayCopyDisplayMode(display: u32) -> CGDisplayModeRef;
++    pub fn CGDisplayModeGetPixelWidth(mode: CGDisplayModeRef) -> usize;
++    pub fn CGDisplayModeGetPixelHeight(mode: CGDisplayModeRef) -> usize;
+
+     pub fn CGGetOnlineDisplayList(
+         max_displays: u32,
 --- a/src/server.rs
 +++ b/src/server.rs
 @@ -597,10 +597,20 @@ impl Server {
@@ -16,13 +78,13 @@
 
 +#[cfg(target_os = "macos")]
 +fn enable_retina_for_server(native_host_bound: bool, video_service_count: usize) -> bool {
-+    !native_host_bound && video_service_count < 2
++    native_host_bound || video_service_count < 2
 +}
 +
  impl Drop for Server {
      fn drop(&mut self) {
          for s in self.services.values() {
-@@ -955,3 +966,18 @@ mod route_transport_tests {
+@@ -955,3 +965,18 @@ mod route_transport_tests {
          assert_eq!(route_transport_snapshot(&route).unknown_subscribers, 3);
      }
  }
@@ -33,9 +95,9 @@
 +
 +    #[test]
 +    fn native_host_keeps_display_inventory_in_physical_pixel_units() {
-+        assert!(!enable_retina_for_server(true, 0));
-+        assert!(!enable_retina_for_server(true, 1));
-+        assert!(!enable_retina_for_server(true, 2));
++        assert!(enable_retina_for_server(true, 0));
++        assert!(enable_retina_for_server(true, 1));
++        assert!(enable_retina_for_server(true, 2));
 +        assert!(enable_retina_for_server(false, 0));
 +        assert!(enable_retina_for_server(false, 1));
 +        assert!(!enable_retina_for_server(false, 2));

@@ -3838,16 +3838,14 @@ fn reset_native_session_broker(reason: &str) {
 fn bind_media_host(host: &RdnHost) {
     reset_native_approval_broker();
     reset_native_session_broker("hostRebound");
-    // `CGDisplayPixelsWide/High` already return pixel units. The upstream
-    // Retina path multiplies those values by `NSScreen.backingScaleFactor`,
-    // which can turn a 3840x2160 scaled mode into a synthetic 7680x4320
-    // display. That disagrees with the Swift hardware-capability envelope and
-    // makes the native route fail closed after a live resolution change.
-    // Native Host capture therefore pins one physical-pixel authority for the
-    // display catalog, ScreenCaptureKit configuration, and encoder contract.
+    // Native Host capture needs Retina enabled so the display catalog and
+    // capture contract use physical pixels. The patched Quartz display layer
+    // reads the current CGDisplayMode pixel size instead of blindly
+    // multiplying the logical size by the backing scale, which keeps both
+    // 2048x1152@2x and scaled external-display modes truthful.
     #[cfg(target_os = "macos")]
     {
-        *scrap::quartz::ENABLE_RETINA.lock().unwrap() = false;
+        *scrap::quartz::ENABLE_RETINA.lock().unwrap() = true;
     }
     let mut broker = MEDIA_BROKER.lock().unwrap();
     broker.routes.clear();

@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import CoreVideo
 import IOSurface
 import Metal
@@ -35,10 +36,14 @@ public final class MetalVideoRenderer: NSObject, MTKViewDelegate, @unchecked Sen
     private var pendingFrames: [CVPixelBuffer] = []
     private static let maximumPendingFrames = 2
     private let metrics: PipelineMetrics
+    private var frameInFlight = false
 
     public let deviceName: String
 
-    public static func selectDevice(_ preference: GPUPreference) -> MTLDevice? {
+    public static func selectDevice(
+        _ preference: GPUPreference,
+        displayID: CGDirectDisplayID? = nil
+    ) -> MTLDevice? {
         let devices = MTLCopyAllDevices()
         switch preference {
         case .lowPower:
@@ -46,12 +51,23 @@ public final class MetalVideoRenderer: NSObject, MTKViewDelegate, @unchecked Sen
         case .highPerformance:
             return devices.first(where: { !$0.isLowPower })
         case .automatic:
-            return devices.first(where: { $0.isLowPower }) ?? MTLCreateSystemDefaultDevice()
+            if let displayID,
+               let displayDevice = CGDirectDisplayCopyCurrentMetalDevice(displayID) {
+                return displayDevice
+            }
+            return MTLCreateSystemDefaultDevice() ?? devices.first
         }
     }
 
-    public init(view: MTKView, preference: GPUPreference, metrics: PipelineMetrics) throws {
-        guard let device = Self.selectDevice(preference) else { throw MetalRendererError.noDevice }
+    public init(
+        view: MTKView,
+        preference: GPUPreference,
+        displayID: CGDirectDisplayID? = nil,
+        metrics: PipelineMetrics
+    ) throws {
+        guard let device = Self.selectDevice(preference, displayID: displayID) else {
+            throw MetalRendererError.noDevice
+        }
         guard let queue = device.makeCommandQueue() else { throw MetalRendererError.commandQueue }
         self.device = device
         self.commandQueue = queue
@@ -118,20 +134,27 @@ public final class MetalVideoRenderer: NSObject, MTKViewDelegate, @unchecked Sen
 
     public func draw(in view: MTKView) {
         frameLock.lock()
-        let hasPendingFrame = !pendingFrames.isEmpty
+        guard !frameInFlight, !pendingFrames.isEmpty else {
+            frameLock.unlock()
+            return
+        }
+        let staleFrameCount = max(0, pendingFrames.count - 1)
+        let pixelBuffer = pendingFrames.removeLast()
+        pendingFrames.removeAll(keepingCapacity: true)
+        frameInFlight = true
         frameLock.unlock()
-        guard hasPendingFrame,
-              let cache = textureCache,
+        if staleFrameCount > 0 {
+            for _ in 0..<staleFrameCount { metrics.recordDrop() }
+        }
+        metrics.recordRendererQueueDepth(0)
+
+        guard let cache = textureCache,
               let descriptor = view.currentRenderPassDescriptor,
-              let drawable = view.currentDrawable else { return }
-
-        frameLock.lock()
-        let pixelBuffer = pendingFrames.isEmpty ? nil : pendingFrames.removeFirst()
-        let queueDepth = pendingFrames.count
-        frameLock.unlock()
-        metrics.recordRendererQueueDepth(queueDepth)
-
-        guard let pixelBuffer else { return }
+              let drawable = view.currentDrawable else {
+            finishFrame()
+            metrics.recordDrop()
+            return
+        }
 
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
@@ -152,7 +175,9 @@ public final class MetalVideoRenderer: NSObject, MTKViewDelegate, @unchecked Sen
               let uvTexture = CVMetalTextureGetTexture(uvRef),
               let commandBuffer = commandQueue.makeCommandBuffer(),
               let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
-            metrics.recordDrop(); return
+            finishFrame()
+            metrics.recordDrop()
+            return
         }
 
         let videoAspect = Float(width) / Float(height)
@@ -178,14 +203,21 @@ public final class MetalVideoRenderer: NSObject, MTKViewDelegate, @unchecked Sen
         commandBuffer.present(drawable)
 
         let submitted = DispatchTime.now().uptimeNanoseconds
-        commandBuffer.addCompletedHandler { [metrics] _ in
+        commandBuffer.addCompletedHandler { [self, metrics] _ in
             // Capturing these objects retains the IOSurface-backed frame until GPU completion.
             withExtendedLifetime((pixelBuffer, yRef, uvRef)) {}
             let milliseconds = Double(DispatchTime.now().uptimeNanoseconds - submitted) / 1_000_000
             metrics.recordPresented(milliseconds: milliseconds)
+            finishFrame()
         }
         commandBuffer.commit()
         CVMetalTextureCacheFlush(cache, 0)
+    }
+
+    private func finishFrame() {
+        frameLock.lock()
+        frameInFlight = false
+        frameLock.unlock()
     }
 
     private static let shaderSource = """
