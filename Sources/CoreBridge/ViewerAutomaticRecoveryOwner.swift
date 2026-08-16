@@ -27,6 +27,20 @@ package enum ViewerAutomaticRecoveryState: Equatable, Sendable {
     case cancelled
 }
 
+/// Preserves RustDesk's retry authority across the Core callback boundary.
+/// Code 15 is emitted for an explicit peer-side close or another terminal
+/// error that upstream classified as non-retryable.
+package enum ViewerAutomaticRecoveryPolicy {
+    package static let noRetryTerminalCode: Int32 = 15
+
+    package static func permitsRecovery(after event: CoreStateEvent) -> Bool {
+        guard event.state == .error || event.state == .disconnected else {
+            return false
+        }
+        return event.code != noRetryTerminalCode
+    }
+}
+
 /// Owns one logical Viewer session across bounded replacement Core clients.
 /// A recovery succeeds only when the replacement client reports streaming;
 /// merely starting a Core connection never advances the logical session.

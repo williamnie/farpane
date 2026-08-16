@@ -26,6 +26,7 @@ use std::{
 };
 
 const ABI_VERSION: u32 = 18;
+const TERMINAL_NO_RETRY_CODE: i32 = 15;
 const MAX_TEXT_BYTES: usize = 4_096;
 const MAX_CLIPBOARD_TEXT_UTF8_BYTES: usize = 64 * 1024;
 const MAX_CLIPBOARD_RICH_TEXT_UTF8_BYTES: usize = 1024 * 1024;
@@ -1055,6 +1056,7 @@ struct BridgeShared {
     callbacks: RDNCallbacks,
     context: usize,
     active: AtomicBool,
+    terminal_retry_allowed: AtomicBool,
     sequence: AtomicU64,
     dimensions: RwLock<(u32, u32)>,
     connection_epoch: AtomicU64,
@@ -2086,6 +2088,7 @@ impl Default for BridgeUi {
                 },
                 context: 0,
                 active: AtomicBool::new(false),
+                terminal_retry_allowed: AtomicBool::new(true),
                 sequence: AtomicU64::new(0),
                 dimensions: RwLock::new((0, 0)),
                 connection_epoch: AtomicU64::new(0),
@@ -2113,6 +2116,26 @@ impl Default for BridgeUi {
                 file_upload_poll_cursor: AtomicU64::new(0),
             }),
         }
+    }
+}
+
+fn viewer_terminal_error_state(text: &str, retry: bool) -> (i32, &'static str) {
+    if !retry {
+        return (TERMINAL_NO_RETRY_CODE, "connection-no-retry");
+    }
+    let lower = text.to_ascii_lowercase();
+    if lower == "timeout" {
+        (10, "connection-timeout")
+    } else if lower.contains("reset by the peer") || lower.contains("connection reset") {
+        (11, "connection-reset")
+    } else if lower.contains("deadline") {
+        (12, "connection-deadline")
+    } else if lower.contains("broken pipe") {
+        (13, "connection-broken-pipe")
+    } else if lower.contains("closed") || lower.contains("eof") {
+        (14, "connection-closed")
+    } else {
+        (3, "rustdesk-session-error")
     }
 }
 
@@ -2533,7 +2556,7 @@ impl InvokeUiSession for BridgeUi {
     fn adapt_size(&self) {}
     fn on_rgba(&self, _display: usize, _rgba: &mut scrap::ImageRgb) {}
 
-    fn msgbox(&self, message_type: &str, _title: &str, text: &str, _link: &str, _retry: bool) {
+    fn msgbox(&self, message_type: &str, _title: &str, text: &str, _link: &str, retry: bool) {
         match message_type {
             "input-password" => {
                 self.shared
@@ -2545,21 +2568,12 @@ impl InvokeUiSession for BridgeUi {
             }
             "success" => {}
             _ => {
-                let lower = text.to_ascii_lowercase();
-                let (code, message) = if lower == "timeout" {
-                    (10, "connection-timeout")
-                } else if lower.contains("reset by the peer") || lower.contains("connection reset")
-                {
-                    (11, "connection-reset")
-                } else if lower.contains("deadline") {
-                    (12, "connection-deadline")
-                } else if lower.contains("broken pipe") {
-                    (13, "connection-broken-pipe")
-                } else if lower.contains("closed") || lower.contains("eof") {
-                    (14, "connection-closed")
-                } else {
-                    (3, "rustdesk-session-error")
-                };
+                if !retry {
+                    self.shared
+                        .terminal_retry_allowed
+                        .store(false, Ordering::Release);
+                }
+                let (code, message) = viewer_terminal_error_state(text, retry);
                 self.shared.emit_state(RDNState::Error, code, message)
             }
         }
@@ -3570,6 +3584,7 @@ pub unsafe extern "C" fn rdn_client_create(
         callbacks: *callbacks,
         context: context as usize,
         active: AtomicBool::new(true),
+        terminal_retry_allowed: AtomicBool::new(true),
         sequence: AtomicU64::new(0),
         dimensions: RwLock::new((0, 0)),
         connection_epoch: AtomicU64::new(0),
@@ -3840,7 +3855,20 @@ pub unsafe extern "C" fn rdn_client_connect(
             .lock()
             .unwrap()
             .clear();
-        worker_shared.emit_state(RDNState::Disconnected, 0, "disconnected");
+        let retry_allowed = worker_shared.terminal_retry_allowed.load(Ordering::Acquire);
+        worker_shared.emit_state(
+            RDNState::Disconnected,
+            if retry_allowed {
+                0
+            } else {
+                TERMINAL_NO_RETRY_CODE
+            },
+            if retry_allowed {
+                "disconnected"
+            } else {
+                "disconnected-no-retry"
+            },
+        );
     });
     let housekeeping = if file_transfer_mode {
         None
@@ -4913,6 +4941,38 @@ fn avcc_nal_types(data: &[u8]) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn viewer_terminal_error_state_preserves_retry_authority() {
+        assert_eq!(
+            viewer_terminal_error_state("Closed manually by the peer", false),
+            (TERMINAL_NO_RETRY_CODE, "connection-no-retry")
+        );
+        assert_eq!(
+            viewer_terminal_error_state("Timeout", true),
+            (10, "connection-timeout")
+        );
+        assert_eq!(
+            viewer_terminal_error_state("Connection reset", true),
+            (11, "connection-reset")
+        );
+    }
+
+    #[test]
+    fn viewer_no_retry_error_latches_terminal_disconnect() {
+        let ui = BridgeUi::default();
+        assert!(ui.shared.terminal_retry_allowed.load(Ordering::Acquire));
+        ui.msgbox(
+            "error",
+            "Connection Error",
+            "Closed manually by the peer",
+            "",
+            false,
+        );
+        assert!(!ui.shared.terminal_retry_allowed.load(Ordering::Acquire));
+        ui.msgbox("error", "Connection Error", "Timeout", "", true);
+        assert!(!ui.shared.terminal_retry_allowed.load(Ordering::Acquire));
+    }
 
     #[derive(Debug, Eq, PartialEq)]
     struct CapturedFileListEvent {

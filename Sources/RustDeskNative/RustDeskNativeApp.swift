@@ -5144,6 +5144,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             return
         }
 
+        if !ViewerAutomaticRecoveryPolicy.permitsRecovery(after: event) {
+            stopViewerAutomaticRecovery()
+            handleTerminalState(event, attemptID: attemptID)
+            return
+        }
+
         let decision = viewerRecoverySessionEpoch.map {
             viewerAutomaticRecoveryOwner?.observeTerminal(sessionEpoch: $0)
                 ?? .finish
@@ -5369,8 +5375,14 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         case .controlReady: return "远端控制已授权"
         case .passwordRequired: return "需要密码，请重新连接"
         case .authenticationFailed: return "认证失败，请检查密码"
-        case .disconnected: return "连接已断开"
-        case .error: return "连接发生错误，请检查网络与远端状态"
+        case .disconnected:
+            return event.code == ViewerAutomaticRecoveryPolicy.noRetryTerminalCode
+                ? "连接已结束，未自动重连"
+                : "连接已断开"
+        case .error:
+            return event.code == ViewerAutomaticRecoveryPolicy.noRetryTerminalCode
+                ? "连接已结束，未自动重连"
+                : "连接发生错误，请检查网络与远端状态"
         }
     }
 
