@@ -1,0 +1,320 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -200,6 +200,11 @@
+         not(any(target_os = "android", target_os = "ios"))
+     ))]
+     native_video_annex_b: Arc<AtomicU8>,
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    native_video_h264_startup_grace: Arc<AtomicU8>,
+ }
+
+ #[cfg(all(
+@@ -1097,6 +1102,34 @@
+ ))]
+ pub(crate) fn native_video_prefers_annex_b_for_platform(platform: &str) -> bool {
+     platform.eq_ignore_ascii_case("android")
++}
++
++#[cfg(all(
++    feature = "rdn-native-host",
++    not(any(target_os = "android", target_os = "ios"))
++))]
++pub(crate) fn native_video_compatible_decoding(
++    platform: &str,
++    preserve_initial_h264_support: bool,
++    mut decoding: SupportedDecoding,
++) -> SupportedDecoding {
++    use supported_decoding::PreferCodec;
++
++    let preference = decoding.prefer.enum_value_or(PreferCodec::Auto);
++    let h264_available = decoding.ability_h264 > 0 || preserve_initial_h264_support;
++    let should_prefer_h264 = match preference {
++        PreferCodec::Auto | PreferCodec::H264 => h264_available,
++        PreferCodec::H265 => decoding.ability_h265 <= 0 && h264_available,
++        _ => false,
++    };
++    if native_video_prefers_annex_b_for_platform(platform) && should_prefer_h264 {
++        // RustDesk Android treats a first MediaCodec dequeue timeout as a hard
++        // decode failure. H.264 has the safest startup path there, while an
++        // available explicit H.265 preference remains authoritative.
++        decoding.ability_h264 = decoding.ability_h264.max(1);
++        decoding.prefer = PreferCodec::H264.into();
++    }
++    decoding
+ }
+
+ impl ConnInner {
+@@ -1119,6 +1152,30 @@
+             Ordering::Release,
+         );
+     }
++
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    fn remember_native_video_h264_support(&self, supported: bool) {
++        self.native_video_h264_startup_grace.store(
++            u8::from(self.native_video_annex_b.load(Ordering::Acquire) != 0 && supported),
++            Ordering::Release,
++        );
++    }
++
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    fn consume_native_video_h264_startup_grace(&self, h264_still_supported: bool) -> bool {
++        if h264_still_supported {
++            return false;
++        }
++        self.native_video_h264_startup_grace
++            .swap(0, Ordering::AcqRel)
++            != 0
++    }
+ }
+
+ impl Subscriber for ConnInner {
+@@ -1304,6 +1361,11 @@
+                     not(any(target_os = "android", target_os = "ios"))
+                 ))]
+                 native_video_annex_b: Arc::new(AtomicU8::new(0)),
++                #[cfg(all(
++                    feature = "rdn-native-host",
++                    not(any(target_os = "android", target_os = "ios"))
++                ))]
++                native_video_h264_startup_grace: Arc::new(AtomicU8::new(0)),
+             },
+             require_2fa: crate::auth_2fa::get_2fa(None),
+             display_idx: *display_service::PRIMARY_DISPLAY_IDX,
+@@ -4417,6 +4479,15 @@
+         use scrap::codec::{Encoder, EncodingUpdate::*};
+         if let Some(o) = self.lr.clone().option.as_ref() {
+             if let Some(q) = o.supported_decoding.clone().take() {
++                #[cfg(all(
++                    feature = "rdn-native-host",
++                    not(any(target_os = "android", target_os = "ios"))
++                ))]
++                let q = {
++                    self.inner
++                        .remember_native_video_h264_support(q.ability_h264 > 0);
++                    native_video_compatible_decoding(&self.lr.my_platform, false, q)
++                };
+                 Encoder::update(Update(self.inner.id(), q));
+             } else {
+                 Encoder::update(NewOnlyVP9(self.inner.id()));
+@@ -6813,6 +6884,20 @@
+                 .user_custom_fps(self.inner.id(), o.custom_fps as _);
+         }
+         if let Some(q) = o.supported_decoding.clone().take() {
++            #[cfg(all(
++                feature = "rdn-native-host",
++                not(any(target_os = "android", target_os = "ios"))
++            ))]
++            let q = {
++                let preserve_initial_h264_support = self
++                    .inner
++                    .consume_native_video_h264_startup_grace(q.ability_h264 > 0);
++                native_video_compatible_decoding(
++                    &self.lr.my_platform,
++                    preserve_initial_h264_support,
++                    q,
++                )
++            };
+             scrap::codec::Encoder::update(scrap::codec::EncodingUpdate::Update(self.inner.id(), q));
+         }
+         if let Ok(q) = o.lock_after_session_end.enum_value() {
+--- a/src/server/service.rs
++++ b/src/server/service.rs
+@@ -25,6 +25,11 @@
+     fn prefers_native_video_annex_b(&self) -> bool {
+         false
+     }
++
++    #[cfg(feature = "rdn-native-host")]
++    fn uses_native_android_video_compatibility(&self) -> bool {
++        self.prefers_native_video_annex_b()
++    }
+ }
+
+ #[derive(Default)]
+@@ -191,6 +196,17 @@
+     #[inline]
+     pub fn has_subscribes(&self) -> bool {
+         self.0.read().unwrap().has_subscribes()
++    }
++
++    #[cfg(feature = "rdn-native-host")]
++    pub fn native_video_android_compatibility_mode(&self) -> bool {
++        let lock = self.0.read().unwrap();
++        let mut subscribers = lock.subscribes.values().chain(lock.new_subscribes.values());
++        let Some(first) = subscribers.next() else {
++            return false;
++        };
++        first.uses_native_android_video_compatibility()
++            && subscribers.all(Subscriber::uses_native_android_video_compatibility)
+     }
+
+     pub fn snapshot<F>(&self, callback: F) -> ResultType<()>
+--- a/src/server/video_service.rs
++++ b/src/server/video_service.rs
+@@ -288,6 +288,36 @@
+ }
+
+ #[cfg(feature = "rdn-native-host")]
++fn native_android_compatibility_dimensions(width: u32, height: u32) -> (u32, u32) {
++    const MAX_WIDTH: u32 = 1_920;
++    const MAX_HEIGHT: u32 = 1_080;
++    const MIN_DIMENSION: u32 = 16;
++
++    let width = width.max(MIN_DIMENSION);
++    let height = height.max(MIN_DIMENSION);
++    if width <= MAX_WIDTH && height <= MAX_HEIGHT {
++        return (width & !1, height & !1);
++    }
++
++    let (scaled_width, scaled_height) =
++        if u64::from(width) * u64::from(MAX_HEIGHT) >= u64::from(height) * u64::from(MAX_WIDTH) {
++            (
++                MAX_WIDTH,
++                (u64::from(height) * u64::from(MAX_WIDTH) / u64::from(width)) as u32,
++            )
++        } else {
++            (
++                (u64::from(width) * u64::from(MAX_HEIGHT) / u64::from(height)) as u32,
++                MAX_HEIGHT,
++            )
++        };
++    (
++        (scaled_width.max(MIN_DIMENSION)) & !1,
++        (scaled_height.max(MIN_DIMENSION)) & !1,
++    )
++}
++
++#[cfg(feature = "rdn-native-host")]
+ impl Drop for NativeRouteGuard {
+     fn drop(&mut self) {
+         crate::rdn_host_bridge::native_media_end_route(&self.0);
+@@ -408,6 +438,14 @@
+     }
+     let display = display_service::get_display_info(display_idx)
+         .ok_or_else(|| anyhow!("native host display is unavailable"))?;
++    let (stream_width, stream_height) = if sp.native_video_android_compatibility_mode() {
++        native_android_compatibility_dimensions(
++            display.width.max(0) as u32,
++            display.height.max(0) as u32,
++        )
++    } else {
++        (display.width.max(0) as u32, display.height.max(0) as u32)
++    };
+     let codec_format = Encoder::negotiated_codec();
+     let codec = match codec_format {
+         CodecFormat::H264 => crate::rdn_host_bridge::MEDIA_CODEC_H264,
+@@ -424,12 +462,8 @@
+     // contract and VideoToolbox AverageBitRate use bits per second. Before the
+     // first upstream encoder exists, bitrate_store is zero, so derive the same
+     // bounded pixel-rate fallback accepted by the Swift route contract.
+-    let bitrate_bps = native_media_bitrate_bps(
+-        bitrate_kbps,
+-        display.width.max(0) as u32,
+-        display.height.max(0) as u32,
+-        capture_fps,
+-    );
++    let bitrate_bps =
++        native_media_bitrate_bps(bitrate_kbps, stream_width, stream_height, capture_fps);
+     VIDEO_QOS
+         .lock()
+         .unwrap()
+@@ -440,8 +474,8 @@
+     let route = crate::rdn_host_bridge::native_media_begin_route(
+         display_idx as u64,
+         codec,
+-        display.width.max(0) as u32,
+-        display.height.max(0) as u32,
++        stream_width,
++        stream_height,
+         capture_fps,
+         bitrate_bps,
+     )
+@@ -636,6 +670,7 @@
+ #[cfg(all(test, feature = "rdn-native-host"))]
+ mod native_host_tests {
+     use super::*;
++    use hbb_common::message_proto::supported_decoding::PreferCodec;
+
+     fn encoded_payload(message: Message, codec: CodecFormat) -> Vec<u8> {
+         let video_frame = match message.union {
+@@ -664,6 +699,70 @@
+     }
+
+     #[test]
++    fn android_auto_codec_prefers_h264_without_overriding_explicit_choices() {
++        let mut automatic = SupportedDecoding::new();
++        automatic.ability_h264 = 1;
++        automatic.ability_h265 = 1;
++        let automatic =
++            crate::server::native_video_compatible_decoding("Android", false, automatic);
++        assert_eq!(
++            automatic.prefer.enum_value_or(PreferCodec::Auto),
++            PreferCodec::H264
++        );
++
++        let mut explicit_h265 = SupportedDecoding::new();
++        explicit_h265.ability_h264 = 1;
++        explicit_h265.ability_h265 = 1;
++        explicit_h265.prefer = PreferCodec::H265.into();
++        let explicit_h265 =
++            crate::server::native_video_compatible_decoding("Android", false, explicit_h265);
++        assert_eq!(
++            explicit_h265.prefer.enum_value_or(PreferCodec::Auto),
++            PreferCodec::H265
++        );
++
++        let mut mac_automatic = SupportedDecoding::new();
++        mac_automatic.ability_h264 = 1;
++        mac_automatic.ability_h265 = 1;
++        let mac_automatic =
++            crate::server::native_video_compatible_decoding("Mac OS", false, mac_automatic);
++        assert_eq!(
++            mac_automatic.prefer.enum_value_or(PreferCodec::Auto),
++            PreferCodec::Auto
++        );
++
++        let mut first_timeout = SupportedDecoding::new();
++        first_timeout.ability_h265 = 1;
++        let first_timeout =
++            crate::server::native_video_compatible_decoding("Android", true, first_timeout);
++        assert_eq!(first_timeout.ability_h264, 1);
++        assert_eq!(
++            first_timeout.prefer.enum_value_or(PreferCodec::Auto),
++            PreferCodec::H264
++        );
++    }
++
++    #[test]
++    fn android_compatibility_dimensions_cap_4k_without_upscaling() {
++        assert_eq!(
++            native_android_compatibility_dimensions(3_840, 2_160),
++            (1_920, 1_080)
++        );
++        assert_eq!(
++            native_android_compatibility_dimensions(2_560, 1_600),
++            (1_728, 1_080)
++        );
++        assert_eq!(
++            native_android_compatibility_dimensions(2_160, 3_840),
++            (606, 1_080)
++        );
++        assert_eq!(
++            native_android_compatibility_dimensions(1_280, 720),
++            (1_280, 720)
++        );
++    }
++
++    #[test]
+     fn native_media_messages_preserve_avcc_and_convert_android_payload_to_annex_b() {
+         let payload = vec![0, 0, 0, 2, 0x65, 0x88];
+         let (avcc_message, annex_b_message) = native_media_messages(

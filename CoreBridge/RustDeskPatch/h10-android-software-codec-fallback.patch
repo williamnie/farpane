@@ -1,0 +1,96 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -1107,23 +1107,16 @@ pub(crate) fn native_video_prefers_annex_b_for_platform(platform: &str) -> bool {
+ pub(crate) fn native_video_compatible_decoding(
+     platform: &str,
+-    preserve_initial_h264_support: bool,
++    _preserve_initial_h264_support: bool,
+     mut decoding: SupportedDecoding,
+ ) -> SupportedDecoding {
+     use supported_decoding::PreferCodec;
+
+-    let preference = decoding.prefer.enum_value_or(PreferCodec::Auto);
+-    let h264_available = decoding.ability_h264 > 0 || preserve_initial_h264_support;
+-    let should_prefer_h264 = match preference {
+-        PreferCodec::Auto | PreferCodec::H264 => h264_available,
+-        PreferCodec::H265 => decoding.ability_h265 <= 0 && h264_available,
+-        _ => false,
+-    };
+-    if native_video_prefers_annex_b_for_platform(platform) && should_prefer_h264 {
+-        // RustDesk Android treats a first MediaCodec dequeue timeout as a hard
+-        // decode failure. H.264 has the safest startup path there, while an
+-        // available explicit H.265 preference remains authoritative.
+-        decoding.ability_h264 = decoding.ability_h264.max(1);
+-        decoding.prefer = PreferCodec::H264.into();
++    if native_video_prefers_annex_b_for_platform(platform) {
++        // Some Android vendor MediaCodec implementations start successfully
++        // but never accept the first H.264/H.265 access unit. RustDesk's VP9
++        // decoder is software-backed and bypasses that device-specific path.
++        decoding.ability_vp9 = decoding.ability_vp9.max(1);
++        decoding.prefer = PreferCodec::VP9.into();
+     }
+     decoding
+ }
+--- a/src/server/video_service.rs
++++ b/src/server/video_service.rs
+@@ -430,6 +430,14 @@ fn native_media_messages(
+
+ #[cfg(feature = "rdn-native-host")]
+ fn run_native(vs: VideoService) -> ResultType<()> {
++    let codec_format = Encoder::negotiated_codec();
++    if !matches!(codec_format, CodecFormat::H264 | CodecFormat::H265) {
++        log::info!(
++            "native media does not encode {:?}; use RustDesk software video path",
++            codec_format
++        );
++        return run(vs);
++    }
+     let mut _raii = Raii::new(vs.idx, vs.sp.name());
+     let display_idx = vs.idx;
+     let sp = vs.sp;
+@@ -446,7 +454,6 @@ fn run_native(vs: VideoService) -> ResultType<()> {
+     } else {
+         (display.width.max(0) as u32, display.height.max(0) as u32)
+     };
+-    let codec_format = Encoder::negotiated_codec();
+     let codec = match codec_format {
+         CodecFormat::H264 => crate::rdn_host_bridge::MEDIA_CODEC_H264,
+         CodecFormat::H265 => crate::rdn_host_bridge::MEDIA_CODEC_H265,
+@@ -696,7 +703,7 @@ mod native_host_tests {
+     }
+
+     #[test]
+-    fn android_auto_codec_prefers_h264_without_overriding_explicit_choices() {
++    fn android_codec_uses_vp9_software_fallback() {
+         let mut automatic = SupportedDecoding::new();
+         automatic.ability_h264 = 1;
+         automatic.ability_h265 = 1;
+@@ -704,7 +711,8 @@ mod native_host_tests {
+         assert_eq!(
+             automatic.prefer.enum_value_or(PreferCodec::Auto),
+-            PreferCodec::H264
++            PreferCodec::VP9
+         );
++        assert_eq!(automatic.ability_vp9, 1);
+
+         let mut explicit_h265 = SupportedDecoding::new();
+         explicit_h265.ability_h264 = 1;
+@@ -716,6 +724,6 @@ mod native_host_tests {
+         assert_eq!(
+             explicit_h265.prefer.enum_value_or(PreferCodec::Auto),
+-            PreferCodec::H265
++            PreferCodec::VP9
+         );
+
+         let mut mac_automatic = SupportedDecoding::new();
+@@ -735,8 +743,8 @@ mod native_host_tests {
+         let first_timeout =
+             crate::server::native_video_compatible_decoding("Android", true, first_timeout);
+-        assert_eq!(first_timeout.ability_h264, 1);
++        assert_eq!(first_timeout.ability_vp9, 1);
+         assert_eq!(
+             first_timeout.prefer.enum_value_or(PreferCodec::Auto),
+-            PreferCodec::H264
++            PreferCodec::VP9
+         );
+     }

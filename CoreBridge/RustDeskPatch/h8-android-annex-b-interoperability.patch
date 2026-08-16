@@ -1,0 +1,382 @@
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -195,6 +195,11 @@
+         not(any(target_os = "android", target_os = "ios"))
+     ))]
+     native_clipboard_permissions: Option<Arc<NativeClipboardPermissionState>>,
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    native_video_annex_b: Arc<AtomicU8>,
+ }
+
+ #[cfg(all(
+@@ -1084,6 +1089,14 @@
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+     terminal_user_token: Option<TerminalUserToken>,
+     terminal_generic_service: Option<Box<GenericService>>,
++}
++
++#[cfg(all(
++    feature = "rdn-native-host",
++    not(any(target_os = "android", target_os = "ios"))
++))]
++pub(crate) fn native_video_prefers_annex_b_for_platform(platform: &str) -> bool {
++    platform.eq_ignore_ascii_case("android")
+ }
+
+ impl ConnInner {
+@@ -1094,6 +1107,17 @@
+             tx_video,
+             ..Default::default()
+         }
++    }
++
++    #[cfg(all(
++        feature = "rdn-native-host",
++        not(any(target_os = "android", target_os = "ios"))
++    ))]
++    fn set_native_video_platform(&self, platform: &str) {
++        self.native_video_annex_b.store(
++            u8::from(native_video_prefers_annex_b_for_platform(platform)),
++            Ordering::Release,
++        );
+     }
+ }
+
+@@ -1103,6 +1127,16 @@
+         self.id
+     }
+
++    #[cfg(feature = "rdn-native-host")]
++    fn prefers_native_video_annex_b(&self) -> bool {
++        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++        {
++            return self.native_video_annex_b.load(Ordering::Acquire) != 0;
++        }
++        #[cfg(any(target_os = "android", target_os = "ios"))]
++        false
++    }
++
+     #[inline]
+     fn send(&mut self, msg: Arc<Message>) {
+         #[cfg(all(
+@@ -1265,6 +1299,11 @@
+                     not(any(target_os = "android", target_os = "ios"))
+                 ))]
+                 native_clipboard_permissions: native_clipboard_permissions.clone(),
++                #[cfg(all(
++                    feature = "rdn-native-host",
++                    not(any(target_os = "android", target_os = "ios"))
++                ))]
++                native_video_annex_b: Arc::new(AtomicU8::new(0)),
+             },
+             require_2fa: crate::auth_2fa::get_2fa(None),
+             display_idx: *display_service::PRIMARY_DISPLAY_IDX,
+@@ -4405,6 +4444,11 @@
+
+     async fn handle_login_request_without_validation(&mut self, lr: &LoginRequest) {
+         self.lr = lr.clone();
++        #[cfg(all(
++            feature = "rdn-native-host",
++            not(any(target_os = "android", target_os = "ios"))
++        ))]
++        self.inner.set_native_video_platform(&lr.my_platform);
+         self.peer_argb = crate::str2color(&format!("{}{}", &lr.my_id, &lr.my_platform), 0xff);
+         if let Some(o) = lr.option.as_ref() {
+             self.options_in_login = Some(o.clone());
+diff --git a/src/server/service.rs b/src/server/service.rs
+--- a/src/server/service.rs
++++ b/src/server/service.rs
+@@ -20,6 +20,11 @@
+ pub trait Subscriber: Default + Send + Sync + 'static {
+     fn id(&self) -> i32;
+     fn send(&mut self, msg: Arc<Message>);
++
++    #[cfg(feature = "rdn-native-host")]
++    fn prefers_native_video_annex_b(&self) -> bool {
++        false
++    }
+ }
+
+ #[derive(Default)]
+@@ -242,6 +247,28 @@
+         conn_ids
+     }
+
++    #[cfg(feature = "rdn-native-host")]
++    pub fn send_native_video_frame_variants(
++        &self,
++        avcc: Message,
++        annex_b: Message,
++    ) -> HashSet<i32> {
++        let avcc = Arc::new(avcc);
++        let annex_b = Arc::new(annex_b);
++        let mut conn_ids = HashSet::new();
++        let mut lock = self.0.write().unwrap();
++        for s in lock.subscribes.values_mut() {
++            let msg = if s.prefers_native_video_annex_b() {
++                annex_b.clone()
++            } else {
++                avcc.clone()
++            };
++            s.send(msg);
++            conn_ids.insert(s.id());
++        }
++        conn_ids
++    }
++
+     pub fn send_without(&self, msg: Message, sub: i32) {
+         let mut lock = self.0.write().unwrap();
+         let msg = Arc::new(msg);
+diff --git a/src/server/video_service.rs b/src/server/video_service.rs
+--- a/src/server/video_service.rs
++++ b/src/server/video_service.rs
+@@ -295,25 +295,55 @@
+ }
+
+ #[cfg(feature = "rdn-native-host")]
+-fn native_media_message(
+-    packet: crate::rdn_host_bridge::NativeMediaAccessUnit,
+-    negotiated_codec: CodecFormat,
+-    display_idx: usize,
+-) -> ResultType<Message> {
+-    let expected_codec = match negotiated_codec {
+-        CodecFormat::H264 => crate::rdn_host_bridge::MEDIA_CODEC_H264,
+-        CodecFormat::H265 => crate::rdn_host_bridge::MEDIA_CODEC_H265,
+-        _ => bail!("native host codec is not negotiated"),
+-    };
+-    if packet.codec != expected_codec {
+-        bail!("native media packet codec does not match negotiated codec");
++const NATIVE_MEDIA_FRAMING_AVCC: u32 = 2;
++
++#[cfg(feature = "rdn-native-host")]
++fn avcc_to_annex_b(data: &[u8]) -> ResultType<Vec<u8>> {
++    let mut annex_b = Vec::with_capacity(data.len());
++    let mut offset = 0usize;
++    while offset < data.len() {
++        let length_end = offset
++            .checked_add(4)
++            .ok_or_else(|| anyhow!("native AVCC NAL length overflow"))?;
++        if length_end > data.len() {
++            bail!("native AVCC access unit has a truncated NAL length");
++        }
++        let nal_length = u32::from_be_bytes(
++            data[offset..length_end]
++                .try_into()
++                .map_err(|_| anyhow!("native AVCC NAL length is invalid"))?,
++        ) as usize;
++        if nal_length == 0 {
++            bail!("native AVCC access unit contains an empty NAL");
++        }
++        let nal_end = length_end
++            .checked_add(nal_length)
++            .ok_or_else(|| anyhow!("native AVCC NAL payload overflow"))?;
++        if nal_end > data.len() {
++            bail!("native AVCC access unit has a truncated NAL payload");
++        }
++        annex_b.extend_from_slice(&[0, 0, 0, 1]);
++        annex_b.extend_from_slice(&data[length_end..nal_end]);
++        offset = nal_end;
+     }
+-    let _validated_framing = packet.framing;
+-    let _validated_parameter_sets = packet.has_parameter_sets;
++    if annex_b.is_empty() {
++        bail!("native AVCC access unit is empty");
++    }
++    Ok(annex_b)
++}
++
++#[cfg(feature = "rdn-native-host")]
++fn native_media_message_with_payload(
++    data: Vec<u8>,
++    keyframe: bool,
++    pts_us: u64,
++    negotiated_codec: CodecFormat,
++    display_idx: usize,
++) -> Message {
+     let encoded = EncodedVideoFrame {
+-        data: Bytes::from(packet.data),
+-        key: packet.keyframe,
+-        pts: (packet.pts_us / 1_000).min(i64::MAX as u64) as i64,
++        data: Bytes::from(data),
++        key: keyframe,
++        pts: (pts_us / 1_000).min(i64::MAX as u64) as i64,
+         ..Default::default()
+     };
+     let frames = EncodedVideoFrames {
+@@ -329,7 +359,43 @@
+     video_frame.display = display_idx as _;
+     let mut message = Message::new();
+     message.set_video_frame(video_frame);
+-    Ok(message)
++    message
++}
++
++#[cfg(feature = "rdn-native-host")]
++fn native_media_messages(
++    packet: crate::rdn_host_bridge::NativeMediaAccessUnit,
++    negotiated_codec: CodecFormat,
++    display_idx: usize,
++) -> ResultType<(Message, Message)> {
++    let expected_codec = match negotiated_codec {
++        CodecFormat::H264 => crate::rdn_host_bridge::MEDIA_CODEC_H264,
++        CodecFormat::H265 => crate::rdn_host_bridge::MEDIA_CODEC_H265,
++        _ => bail!("native host codec is not negotiated"),
++    };
++    if packet.codec != expected_codec {
++        bail!("native media packet codec does not match negotiated codec");
++    }
++    if packet.framing != NATIVE_MEDIA_FRAMING_AVCC {
++        bail!("native media packet must use 4-byte AVCC framing");
++    }
++    let _validated_parameter_sets = packet.has_parameter_sets;
++    let annex_b = avcc_to_annex_b(&packet.data)?;
++    let avcc_message = native_media_message_with_payload(
++        packet.data,
++        packet.keyframe,
++        packet.pts_us,
++        negotiated_codec,
++        display_idx,
++    );
++    let annex_b_message = native_media_message_with_payload(
++        annex_b,
++        packet.keyframe,
++        packet.pts_us,
++        negotiated_codec,
++        display_idx,
++    );
++    Ok((avcc_message, annex_b_message))
+ }
+
+ #[cfg(feature = "rdn-native-host")]
+@@ -447,11 +513,13 @@
+         };
+         debug_assert_eq!(packet.codec, route.0.codec);
+         let packet_metadata = packet.metadata();
+-        let message = native_media_message(packet, codec_format, display_idx)?;
++        let (avcc_message, annex_b_message) =
++            native_media_messages(packet, codec_format, display_idx)?;
+         let now = Instant::now();
+         frame_controller.reset();
+         let dispatch_begin = Instant::now();
+-        let send_conn_ids = sp.send_video_frame(message);
++        let send_conn_ids =
++            sp.send_native_video_frame_variants(avcc_message, annex_b_message);
+         let dispatch_wall = dispatch_begin.elapsed();
+         let route_connection_ids = send_conn_ids.clone();
+         let subscriber_count = send_conn_ids.len();
+@@ -569,13 +637,39 @@
+ mod native_host_tests {
+     use super::*;
+
+-    #[test]
+-    fn native_media_message_preserves_h264_payload_metadata_and_display() {
++    fn encoded_payload(message: Message, codec: CodecFormat) -> Vec<u8> {
++        let video_frame = match message.union {
++            Some(message::Union::VideoFrame(frame)) => frame,
++            _ => panic!("native media message must contain a video frame"),
++        };
++        let frames = match (codec, video_frame.union) {
++            (CodecFormat::H264, Some(video_frame::Union::H264s(frames))) => frames,
++            (CodecFormat::H265, Some(video_frame::Union::H265s(frames))) => frames,
++            _ => panic!("native media message must use the negotiated codec field"),
++        };
++        frames.frames[0].data.to_vec()
++    }
++
++    #[test]
++    fn native_video_framing_uses_annex_b_only_for_android_peers() {
++        assert!(crate::server::native_video_prefers_annex_b_for_platform(
++            "Android"
++        ));
++        assert!(crate::server::native_video_prefers_annex_b_for_platform(
++            "android"
++        ));
++        assert!(!crate::server::native_video_prefers_annex_b_for_platform(
++            "Mac OS"
++        ));
++    }
++
++    #[test]
++    fn native_media_messages_preserve_avcc_and_convert_android_payload_to_annex_b() {
+         let payload = vec![0, 0, 0, 2, 0x65, 0x88];
+-        let message = native_media_message(
++        let (avcc_message, annex_b_message) = native_media_messages(
+             crate::rdn_host_bridge::NativeMediaAccessUnit {
+                 codec: crate::rdn_host_bridge::MEDIA_CODEC_H264,
+-                framing: 2,
++                framing: NATIVE_MEDIA_FRAMING_AVCC,
+                 pts_us: 42_999,
+                 keyframe: true,
+                 has_parameter_sets: true,
+@@ -585,7 +679,7 @@
+             3,
+         )
+         .unwrap();
+-        let video_frame = match message.union {
++        let video_frame = match avcc_message.clone().union {
+             Some(message::Union::VideoFrame(frame)) => frame,
+             _ => panic!("native media message must contain a video frame"),
+         };
+@@ -598,18 +692,54 @@
+         assert_eq!(frames.frames[0].data.as_ref(), payload.as_slice());
+         assert!(frames.frames[0].key);
+         assert_eq!(frames.frames[0].pts, 42);
++        assert_eq!(encoded_payload(avcc_message, CodecFormat::H264), payload);
++        assert_eq!(
++            encoded_payload(annex_b_message, CodecFormat::H264),
++            vec![0, 0, 0, 1, 0x65, 0x88]
++        );
+     }
+
+     #[test]
+-    fn native_media_message_rejects_codec_mismatch() {
+-        let result = native_media_message(
++    fn avcc_to_annex_b_converts_each_h264_or_h265_nal_without_changing_payload() {
++        let avcc = vec![0, 0, 0, 2, 0x67, 0x01, 0, 0, 0, 3, 0x68, 0x02, 0x03];
++        assert_eq!(
++            avcc_to_annex_b(&avcc).unwrap(),
++            vec![0, 0, 0, 1, 0x67, 0x01, 0, 0, 0, 1, 0x68, 0x02, 0x03]
++        );
++    }
++
++    #[test]
++    fn avcc_to_annex_b_rejects_truncated_or_empty_nals() {
++        assert!(avcc_to_annex_b(&[]).is_err());
++        assert!(avcc_to_annex_b(&[0, 0, 0]).is_err());
++        assert!(avcc_to_annex_b(&[0, 0, 0, 0]).is_err());
++        assert!(avcc_to_annex_b(&[0, 0, 0, 2, 0x65]).is_err());
++    }
++
++    #[test]
++    fn native_media_messages_reject_codec_or_framing_mismatch() {
++        let result = native_media_messages(
+             crate::rdn_host_bridge::NativeMediaAccessUnit {
+                 codec: crate::rdn_host_bridge::MEDIA_CODEC_H265,
+-                framing: 2,
++                framing: NATIVE_MEDIA_FRAMING_AVCC,
+                 pts_us: 1,
+                 keyframe: true,
+                 has_parameter_sets: true,
+-                data: vec![1],
++                data: vec![0, 0, 0, 1, 1],
++            },
++            CodecFormat::H264,
++            0,
++        );
++        assert!(result.is_err());
++
++        let result = native_media_messages(
++            crate::rdn_host_bridge::NativeMediaAccessUnit {
++                codec: crate::rdn_host_bridge::MEDIA_CODEC_H264,
++                framing: 1,
++                pts_us: 1,
++                keyframe: true,
++                has_parameter_sets: true,
++                data: vec![0, 0, 0, 1, 0x65],
+             },
+             CodecFormat::H264,
+             0,
