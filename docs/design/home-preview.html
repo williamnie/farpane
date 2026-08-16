@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarPane — UI Preview</title>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --bg-soft: #10141a;
+    --panel: #151a21;
+    --panel-hover: #1a212a;
+    --border: #2e3742;
+    --border-soft: #232b35;
+    --text: #f0f4f8;
+    --text-dim: #aeb9c5;
+    --text-faint: #7d8896;
+    --accent: #6ff5c0;
+    --accent-dim: rgba(111, 245, 192, 0.13);
+    --warn: #f5c86e;
+    --danger: #f77070;
+    --mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    --sans: -apple-system, "SF Pro Text", "PingFang SC", sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  .window {
+    display: flex;
+    height: 100vh;
+    background:
+      radial-gradient(1000px 500px at 85% -10%, rgba(111,245,192,0.05), transparent 60%),
+      var(--bg);
+  }
+
+  /* ===== 侧边栏 ===== */
+  .sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-soft);
+    background: rgba(16, 20, 26, 0.75);
+    padding: 12px 8px 10px;
+  }
+
+  .traffic-lights { display: flex; gap: 8px; padding: 2px 6px 14px; }
+  .tl { width: 12px; height: 12px; border-radius: 50%; }
+  .tl.r { background: #ff5f57; } .tl.y { background: #febc2e; } .tl.g { background: #28c840; }
+
+  .brand {
+    display: flex; align-items: center; gap: 9px;
+    padding: 2px 10px 14px;
+  }
+  .brand-mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), #3ec98f);
+    display: grid; place-items: center;
+    color: #06231a; font-family: var(--mono); font-weight: 700; font-size: 13px;
+    box-shadow: 0 0 16px rgba(111,245,192,0.3);
+  }
+  .brand-name { font-weight: 600; font-size: 13.5px; }
+  .brand-tag { font-family: var(--mono); font-size: 9.5px; color: var(--text-faint); }
+
+  .nav { display: flex; flex-direction: column; gap: 1px; }
+  .nav-label {
+    font-family: var(--mono); font-size: 9.5px; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--text-faint);
+    padding: 8px 10px 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 6px;
+    color: var(--text-dim); cursor: pointer;
+    font-size: 12.5px; border: 1px solid transparent;
+    transition: all .12s ease;
+  }
+  .nav-item:hover { color: var(--text); background: var(--panel); }
+  .nav-item.active {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-color: rgba(111,245,192,0.25);
+  }
+  .nav-item .icon { width: 14px; text-align: center; font-family: var(--mono); font-size: 11px; }
+  .nav-item .kbd { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--text-faint); }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 8px 10px 2px;
+    border-top: 1px solid var(--border-soft);
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot.ok { background: var(--accent); box-shadow: 0 0 7px rgba(111,245,192,0.7); }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 7px rgba(245,200,110,0.6); }
+  .dot.off { background: #4a545f; }
+
+  /* ===== 主区域 ===== */
+  .main { flex: 1; overflow-y: auto; padding: 20px 24px 32px; }
+  .main::-webkit-scrollbar { width: 8px; }
+  .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .page-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .page-title { font-size: 17px; font-weight: 600; }
+  .page-title .cursor {
+    display: inline-block; width: 8px; height: 15px; margin-left: 5px;
+    background: var(--accent); vertical-align: -2px;
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .page-meta { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .page-meta b { color: var(--accent); font-weight: 600; }
+
+  /* ===== 快速连接 ===== */
+  .connect-bar {
+    display: flex; align-items: center;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 3px 3px 13px;
+    margin-bottom: 14px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .connect-bar:focus-within {
+    border-color: rgba(111,245,192,0.55);
+    box-shadow: 0 0 0 3px rgba(111,245,192,0.1);
+  }
+  .prompt { font-family: var(--mono); color: var(--accent); font-size: 13px; font-weight: 700; user-select: none; }
+  .connect-input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    padding: 8px 10px; letter-spacing: 1px;
+  }
+  .connect-input::placeholder { color: var(--text-faint); }
+  .connect-hint {
+    font-family: var(--mono); font-size: 9.5px; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 6px; margin-right: 6px; white-space: nowrap;
+  }
+  .btn-connect {
+    background: var(--accent); color: #06231a;
+    border: none; border-radius: 6px;
+    font-family: var(--mono); font-size: 11.5px; font-weight: 700;
+    padding: 7px 15px; cursor: pointer;
+    transition: all .12s;
+  }
+  .btn-connect:hover { box-shadow: 0 0 14px rgba(111,245,192,0.45); }
+  .btn-connect:active { transform: scale(0.97); }
+
+  /* ===== 本机信息行（概览合并进来） ===== */
+  .host-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.6fr 1fr;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .host-card {
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    padding: 9px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    min-width: 0;
+  }
+  .host-card .k {
+    font-family: var(--mono); font-size: 9.5px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-faint);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .host-card .k a { color: var(--text-dim); text-decoration: none; cursor: pointer; font-size: 10px; }
+  .host-card .k a:hover { color: var(--accent); }
+  .host-card .v {
+    font-family: var(--mono); font-size: 14px; color: var(--text);
+    letter-spacing: 1px; display: flex; align-items: center; gap: 8px;
+  }
+  .host-card .v.accent { color: var(--accent); }
+  .host-card .v small { font-size: 10.5px; color: var(--text-dim); letter-spacing: 0; }
+  .perm-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 9.5px;
+    border-radius: 4px; padding: 2px 6px;
+    border: 1px solid var(--border); color: var(--text-dim);
+  }
+  .chip.ok { color: var(--accent); border-color: rgba(111,245,192,0.35); background: var(--accent-dim); }
+
+  /* ===== 区块标题 ===== */
+  .section-head {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 2px 8px;
+  }
+  .section-title {
+    font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim);
+  }
+  .section-count {
+    font-family: var(--mono); font-size: 9.5px; color: var(--accent);
+    background: var(--accent-dim); border-radius: 4px; padding: 1px 6px;
+  }
+  .section-line { flex: 1; height: 1px; background: var(--border-soft); }
+  .segment { display: flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+  .segment button {
+    background: none; border: none; color: var(--text-faint);
+    font-family: var(--mono); font-size: 10px; padding: 3px 10px; cursor: pointer;
+  }
+  .segment button.on { background: var(--panel-hover); color: var(--text); }
+
+  /* ===== 设备列表（紧凑双列） ===== */
+  .device-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  @media (max-width: 900px) { .device-grid { grid-template-columns: 1fr; } }
+
+  .device {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all .12s ease;
+    min-width: 0;
+  }
+  .device:hover { background: var(--panel-hover); border-color: var(--border); }
+  .device:hover .dev-connect { opacity: 1; }
+
+  .dev-avatar {
+    width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    background: #1b232d; color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .dev-avatar.online { color: var(--accent); border-color: rgba(111,245,192,0.35); background: var(--accent-dim); }
+
+  .dev-info { min-width: 0; flex: 1; }
+  .dev-name {
+    font-size: 12.5px; font-weight: 550;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dev-name .star { color: var(--warn); font-size: 11px; }
+  .dev-sub {
+    font-family: var(--mono); font-size: 10px; color: var(--text-faint);
+    letter-spacing: 0.5px; margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dev-sub .dot { width: 5px; height: 5px; }
+  .dev-sub .st-online { color: var(--accent); }
+  .dev-sub .st-warn { color: var(--warn); }
+
+  .dev-metrics {
+    font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+    text-align: right; flex-shrink: 0; line-height: 1.5;
+  }
+  .dev-metrics b { color: var(--text); font-weight: 600; }
+
+  .dev-connect {
+    font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+    color: var(--accent); background: none; flex-shrink: 0;
+    border: 1px solid rgba(111,245,192,0.4); border-radius: 5px;
+    padding: 4px 11px; cursor: pointer;
+    opacity: 0; transition: all .12s;
+  }
+  .dev-connect:hover { background: var(--accent-dim); box-shadow: 0 0 10px rgba(111,245,192,0.2); }
+
+  .badge-verified {
+    font-family: var(--mono); font-size: 8.5px; color: var(--accent);
+    border: 1px solid rgba(111,245,192,0.35); border-radius: 3px;
+    padding: 0 4px; letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .badge-lock { color: var(--text-faint); font-size: 10px; }
+
+  /* ===== 底部状态条 ===== */
+  .statusbar {
+    margin-top: 16px;
+    display: flex; gap: 20px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 10.5px;
+    border: 1px solid var(--border-soft); border-radius: 7px;
+    background: var(--bg-soft);
+    padding: 7px 14px;
+  }
+  .statusbar .k { color: var(--text-faint); }
+  .statusbar .v { color: var(--text-dim); }
+  .statusbar .v.ok { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="window">
+  <!-- ============ 侧边栏 ============ -->
+  <aside class="sidebar">
+    <div class="traffic-lights"><div class="tl r"></div><div class="tl y"></div><div class="tl g"></div></div>
+
+    <div class="brand">
+      <div class="brand-mark">⌥</div>
+      <div>
+        <div class="brand-name">FarPane</div>
+        <div class="brand-tag">remote viewer</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-label">Navigate</div>
+      <div class="nav-item active"><span class="icon">▸</span>设备<span class="kbd">⌘1</span></div>
+      <div class="nav-item"><span class="icon">▸</span>授权与安全<span class="kbd">⌘2</span></div>
+      <div class="nav-item"><span class="icon">▸</span>共享设置<span class="kbd">⌘3</span></div>
+      <div class="nav-label">System</div>
+      <div class="nav-item"><span class="icon">▸</span>服务器<span class="kbd">⌘,</span></div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="dot ok"></span>
+      <span>relay · hermes</span>
+      <span style="margin-left:auto">v1.4.2</span>
+    </div>
+  </aside>
+
+  <!-- ============ 主区域（设备 + 概览合并） ============ -->
+  <main class="main">
+    <div class="page-head">
+      <div class="page-title">设备<span class="cursor"></span></div>
+      <div class="page-meta"><b>3</b> online / 8 total</div>
+    </div>
+
+    <!-- 快速连接 -->
+    <div class="connect-bar">
+      <span class="prompt">❯</span>
+      <input class="connect-input" placeholder="输入远端 ID，回车连接…" value="482 991 037">
+      <span class="connect-hint">⏎ connect</span>
+      <button class="btn-connect">连接 →</button>
+    </div>
+
+    <!-- 本机概览（原概览页核心信息，压缩为一行三卡） -->
+    <div class="host-row">
+      <div class="host-card">
+        <div class="k">本机 ID <a>复制</a></div>
+        <div class="v accent">918 442 067</div>
+      </div>
+      <div class="host-card">
+        <div class="k">系统授权 <a>重新检测</a></div>
+        <div class="perm-chips" style="margin-top:2px">
+          <span class="chip ok">✓ 屏幕录制</span>
+          <span class="chip ok">✓ 辅助功能</span>
+          <span class="chip ok">✓ 输入监控</span>
+        </div>
+      </div>
+      <div class="host-card">
+        <div class="k">被控 Host</div>
+        <div class="v"><span class="dot off"></span><small>未开启 · 即将支持</small></div>
+      </div>
+    </div>
+
+    <!-- 最近连接 -->
+    <div class="section-head">
+      <span class="section-title">最近连接</span>
+      <span class="section-count">8</span>
+      <span class="section-line"></span>
+      <div class="segment">
+        <button class="on">全部</button>
+        <button>★ 收藏</button>
+      </div>
+    </div>
+
+    <div class="device-grid">
+      <div class="device">
+        <div class="dev-avatar online">MB</div>
+        <div class="dev-info">
+          <div class="dev-name"><span class="star">★</span>MacBook Pro · 工作室 <span class="badge-verified">已验证</span></div>
+          <div class="dev-sub"><span class="dot ok"></span><span class="st-online">在线</span> · 482 991 037</div>
+        </div>
+        <div class="dev-metrics"><b>60fps</b> 12ms<br>H265 · Metal</div>
+        <button class="dev-connect">连接 →</button>
+      </div>
+
+      <div class="device">
+        <div class="dev-avatar online">WS</div>
+        <div class="dev-info">
+          <div class="dev-name">Windows · 渲染机 <span class="badge-lock">🔒</span></div>
+          <div class="dev-sub"><span class="dot ok"></span><span class="st-online">在线</span> · 109 442 815</div>
+        </div>
+        <div class="dev-metrics">2 小时前<br>直连</div>
+        <button class="dev-connect">连接 →</button>
+      </div>
+
+      <div class="device">
+        <div class="dev-avatar online">LX</div>
+        <div class="dev-info">
+          <div class="dev-name"><span class="star">★</span>Linux · 构建服务器</div>
+          <div class="dev-sub"><span class="dot warn"></span><span class="st-warn">高延迟</span> · 730 118 964</div>
+        </div>
+        <div class="dev-metrics"><b>148ms</b><br>relay</div>
+        <button class="dev-connect">连接 →</button>
+      </div>
+
+      <div class="device">
+        <div class="dev-avatar">MN</div>
+        <div class="dev-info">
+          <div class="dev-name">Mac mini · 客厅</div>
+          <div class="dev-sub"><span class="dot off"></span>离线 · 655 203 478</div>
+        </div>
+        <div class="dev-metrics">3 天前</div>
+        <button class="dev-connect">连接 →</button>
+      </div>
+
+      <div class="device">
+        <div class="dev-avatar">IM</div>
+        <div class="dev-info">
+          <div class="dev-name">iMac · 旧款 Intel <span class="badge-lock">🔒</span></div>
+          <div class="dev-sub"><span class="dot off"></span>离线 · 218 760 549</div>
+        </div>
+        <div class="dev-metrics">2 周前</div>
+        <button class="dev-connect">连接 →</button>
+      </div>
+
+      <div class="device">
+        <div class="dev-avatar">RP</div>
+        <div class="dev-info">
+          <div class="dev-name">Raspberry Pi · NAS</div>
+          <div class="dev-sub"><span class="dot off"></span>离线 · 392 617 084</div>
+        </div>
+        <div class="dev-metrics">1 月前</div>
+        <button class="dev-connect">连接 →</button>
+      </div>
+    </div>
+
+    <!-- 状态条 -->
+    <div class="statusbar">
+      <span><span class="k">relay</span> <span class="v ok">hermes · connected</span></span>
+      <span><span class="k">id-server</span> <span class="v ok">ok</span></span>
+      <span><span class="k">decode</span> <span class="v">VideoToolbox H265</span></span>
+      <span><span class="k">render</span> <span class="v">Metal · NV12</span></span>
+      <span style="margin-left:auto"><span class="k">perm</span> <span class="v ok">3/3</span></span>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
