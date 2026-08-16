@@ -199,6 +199,35 @@ final class AppViewerConcurrencyEvidenceProcessCompositionContractTests:
         XCTAssertLessThan(stopRecovery.lowerBound, stopEvidence.lowerBound)
     }
 
+    func testViewerExplicitPeerCloseFinishesBeforeAutomaticRecovery() throws {
+        let app = try repositorySource(
+            "Sources/RustDeskNative/RustDeskNativeApp.swift"
+        )
+        let handler = try XCTUnwrap(app.range(
+            of: "private func handleViewerCoreState("
+        ))
+        let noRetry = try XCTUnwrap(app.range(
+            of: "!ViewerAutomaticRecoveryPolicy.permitsRecovery(after: event)",
+            range: handler.lowerBound..<app.endIndex
+        ))
+        let stop = try XCTUnwrap(app.range(
+            of: "stopViewerAutomaticRecovery()",
+            range: noRetry.upperBound..<app.endIndex
+        ))
+        let finish = try XCTUnwrap(app.range(
+            of: "handleTerminalState(event, attemptID: attemptID)",
+            range: stop.upperBound..<app.endIndex
+        ))
+        let recovery = try XCTUnwrap(app.range(
+            of: "viewerAutomaticRecoveryOwner?.observeTerminal",
+            range: finish.upperBound..<app.endIndex
+        ))
+
+        XCTAssertLessThan(noRetry.lowerBound, stop.lowerBound)
+        XCTAssertLessThan(stop.lowerBound, finish.lowerBound)
+        XCTAssertLessThan(finish.lowerBound, recovery.lowerBound)
+    }
+
     func testApplicationHostObservationUsesCoherentProjectionAndXPCIdentity()
         throws
     {

@@ -3,6 +3,37 @@ import Foundation
 import XCTest
 
 final class ViewerAutomaticRecoveryOwnerTests: XCTestCase {
+    func testRecoveryPolicyRejectsExplicitPeerClose() {
+        XCTAssertFalse(ViewerAutomaticRecoveryPolicy.permitsRecovery(after: .init(
+            state: .error,
+            code: ViewerAutomaticRecoveryPolicy.noRetryTerminalCode,
+            message: "connection-no-retry"
+        )))
+        XCTAssertFalse(ViewerAutomaticRecoveryPolicy.permitsRecovery(after: .init(
+            state: .disconnected,
+            code: ViewerAutomaticRecoveryPolicy.noRetryTerminalCode,
+            message: "disconnected-no-retry"
+        )))
+    }
+
+    func testRecoveryPolicyKeepsTransientRecovery() {
+        XCTAssertTrue(ViewerAutomaticRecoveryPolicy.permitsRecovery(after: .init(
+            state: .error,
+            code: 10,
+            message: "connection-timeout"
+        )))
+        XCTAssertTrue(ViewerAutomaticRecoveryPolicy.permitsRecovery(after: .init(
+            state: .disconnected,
+            code: 0,
+            message: "disconnected"
+        )))
+        XCTAssertFalse(ViewerAutomaticRecoveryPolicy.permitsRecovery(after: .init(
+            state: .streaming,
+            code: 0,
+            message: "streaming"
+        )))
+    }
+
     func testProductBackoffIsBounded() {
         XCTAssertEqual(
             ViewerAutomaticRecoveryOwner.productDelaysMilliseconds,
