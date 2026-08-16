@@ -309,6 +309,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         HostAgentBackgroundHomeCommandReadOnlyPresentation.unavailable
     private var hostAgentBackgroundFlow: HostAgentBackgroundHomeFlow?
     private var hostAgentBackgroundOwnershipErrorText = ""
+    private var hostAgentAutomaticRegistrationAttempted = false
     private var hostPollTimer: Timer?
     private var hostPasswordHideTimer: Timer?
     private var keyboardController: ExclusiveKeyboardController?
@@ -581,6 +582,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
 
     func applicationWillTerminate(_ notification: Notification) {
         cancelBackgroundPasswordOperation()
+        _ = hostAgentBackgroundRegistrationMutationOwner.apply(
+            .unregisterBackgroundAgent
+        )
         _ = hostAgentBackgroundActivationOwner.apply(
             .applicationWillTerminate
         )
@@ -2029,6 +2033,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         case .noAction:
             break
         case .stopLegacyHost:
+            hostAgentAutomaticRegistrationAttempted = true
             _ = stopHostMode(
                 preservePreference: false,
                 reason: .userRequest,
@@ -2040,6 +2045,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
                 hostAgentBackgroundFlow = nil
             }
         case .beginUnregistration:
+            hostAgentAutomaticRegistrationAttempted = true
             hostAgentBackgroundFlow = .unregistration
             if !beginHostAgentBackgroundUnregistration() {
                 hostAgentBackgroundFlow = nil
@@ -2060,9 +2066,27 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
         guard hostAgentBackgroundFlow == nil else { return }
         hostAgentBackgroundRegistrationStatus =
             HostAgentBackgroundServiceObserver.observeRegistrationStatus()
+        if hostAgentBackgroundRegistrationStatus == .enabled {
+            hostAgentBackgroundRegistrationPresentation = nil
+        }
         let legacy = HostAgentLegacyHostMigrationGate.assess(
             captureLegacyHostMigrationEvidence()
         )
+        let bootstrapReady: Bool
+        if case .ready = hostAgentBootstrapState {
+            bootstrapReady = true
+        } else {
+            bootstrapReady = false
+        }
+        if HostAgentBackgroundHomeRoutingPolicy.shouldAutomaticallyRegister(
+            registration: hostAgentBackgroundRegistrationStatus,
+            legacy: legacy,
+            bootstrapReady: bootstrapReady,
+            alreadyAttempted: hostAgentAutomaticRegistrationAttempted
+        ) {
+            registerHostAgentBackgroundAutomatically()
+            return
+        }
         let route = HostAgentBackgroundHomeRoutingPolicy.launchRoute(
             registration: hostAgentBackgroundRegistrationStatus,
             legacy: legacy
@@ -2086,6 +2110,79 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             disableHostAgentBackgroundObservation()
             updateHeldHostProductError(legacy: legacy)
         }
+    }
+
+    @MainActor
+    private func registerHostAgentBackgroundAutomatically() {
+        guard hostAgentBackgroundFlow == nil,
+              !hostAgentAutomaticRegistrationAttempted
+        else { return }
+        hostAgentAutomaticRegistrationAttempted = true
+        hostAgentBackgroundFlow = .registration
+        hostAgentBackgroundRegistrationPresentation =
+            HostAgentBackgroundRegistrationPresentation(
+                statusText: "正在启用被控端…",
+                errorText: "",
+                tone: .progress,
+                isBusy: true,
+                canRetry: false
+            )
+        refreshHomeUI()
+
+        let (migrationAccepted, migration) =
+            prepareLegacyHostForBackgroundRegistration()
+        guard migrationAccepted, migration.phase == .readyForRegistration else {
+            hostAgentBackgroundFlow = nil
+            hostAgentBackgroundRegistrationPresentation =
+                HostAgentBackgroundRegistrationPresentation(
+                    statusText: "被控端自动启用失败",
+                    errorText: "无法确认旧版 Host 已安全停止；可使用开关重试。",
+                    tone: .failure,
+                    isBusy: false,
+                    canRetry: true
+                )
+            refreshHomeUI()
+            return
+        }
+
+        _ = hostAgentBackgroundRegistrationMutationOwner.apply(
+            .registerBackgroundAgent
+        )
+        let mutation = hostAgentBackgroundRegistrationMutationOwner.snapshot()
+        hostAgentBackgroundFlow = nil
+        hostAgentBackgroundRegistrationStatus = mutation.registration
+            ?? HostAgentBackgroundServiceObserver.observeRegistrationStatus()
+
+        switch hostAgentBackgroundRegistrationStatus {
+        case .enabled:
+            hostAgentBackgroundRegistrationPresentation = nil
+            hostAgentBackgroundOwnershipErrorText = ""
+            _ = hostAgentBackgroundActivationOwner.apply(.hostEnabled)
+            hostAgentBackgroundActivationOwner.refreshRegistration()
+        case .requiresApproval:
+            hostAgentBackgroundRegistrationPresentation =
+                HostAgentBackgroundRegistrationPresentation(
+                    statusText: "等待系统允许后台组件",
+                    errorText: "首次使用请在“系统设置 > 通用 > 登录项与扩展”中允许 FarPane。",
+                    tone: .attention,
+                    isBusy: false,
+                    canRetry: true
+                )
+            hostAgentBackgroundOwnershipErrorText = ""
+            _ = hostAgentBackgroundActivationOwner.apply(.hostEnabled)
+            hostAgentBackgroundActivationOwner.refreshRegistration()
+        case .notRegistered, .serviceUnavailable:
+            hostAgentBackgroundRegistrationPresentation =
+                HostAgentBackgroundRegistrationPresentation(
+                    statusText: "被控端自动启用失败",
+                    errorText: "后台组件未能自动注册；可使用开关重试。",
+                    tone: .failure,
+                    isBusy: false,
+                    canRetry: true
+                )
+            disableHostAgentBackgroundObservation()
+        }
+        refreshHomeUI()
     }
 
     @MainActor
@@ -4476,6 +4573,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             try catalogStore.save(updated)
             catalog = updated
             reconcileHostAgentBootstrap()
+            reconcileHostProductOwnership()
             homeErrorText = ""
             if serverChanged,
                UserDefaults.standard.bool(forKey: Self.hostEnabledDefaultsKey) {

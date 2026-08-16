@@ -148,6 +148,28 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
         control.isInteractive && (control.isOn || bootstrapReady)
     }
 
+    /// A configured product should enter its useful default state without
+    /// requiring the user to toggle Host on after every explicit App quit.
+    /// Registration remains a once-per-process attempt so a persistent
+    /// system or signing failure cannot create an activation loop.
+    package static func shouldAutomaticallyRegister(
+        registration: HostAgentBackgroundRegistrationStatus,
+        legacy: HostAgentLegacyHostMigrationAssessment,
+        bootstrapReady: Bool,
+        alreadyAttempted: Bool
+    ) -> Bool {
+        guard bootstrapReady,
+              !alreadyAttempted,
+              legacy == .eligible
+        else { return false }
+        switch registration {
+        case .notRegistered, .serviceUnavailable:
+            return true
+        case .enabled, .requiresApproval:
+            return false
+        }
+    }
+
     package static func launchRoute(
         registration: HostAgentBackgroundRegistrationStatus,
         legacy: HostAgentLegacyHostMigrationAssessment

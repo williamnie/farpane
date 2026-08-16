@@ -282,6 +282,56 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         )
     }
 
+    func testConfiguredEligibleProductAutomaticallyRegistersOncePerLaunch() {
+        XCTAssertTrue(
+            HostAgentBackgroundHomeRoutingPolicy.shouldAutomaticallyRegister(
+                registration: .notRegistered,
+                legacy: .eligible,
+                bootstrapReady: true,
+                alreadyAttempted: false
+            )
+        )
+        XCTAssertTrue(
+            HostAgentBackgroundHomeRoutingPolicy.shouldAutomaticallyRegister(
+                registration: .serviceUnavailable,
+                legacy: .eligible,
+                bootstrapReady: true,
+                alreadyAttempted: false
+            )
+        )
+    }
+
+    func testAutomaticRegistrationDoesNotLoopOrOverrideUnsafeOwnership() {
+        let blockedCases: [(
+            HostAgentBackgroundRegistrationStatus,
+            HostAgentLegacyHostMigrationAssessment,
+            Bool,
+            Bool
+        )] = [
+            (.enabled, .eligible, true, false),
+            (.requiresApproval, .eligible, true, false),
+            (.notRegistered, .eligible, false, false),
+            (.notRegistered, .eligible, true, true),
+            (.notRegistered, .blocked([.runtimeActive]), true, false),
+            (.notRegistered, .failed(.evidenceUnavailable), true, false),
+        ]
+        for (
+            registration,
+            legacy,
+            bootstrapReady,
+            alreadyAttempted
+        ) in blockedCases {
+            XCTAssertFalse(
+                HostAgentBackgroundHomeRoutingPolicy.shouldAutomaticallyRegister(
+                    registration: registration,
+                    legacy: legacy,
+                    bootstrapReady: bootstrapReady,
+                    alreadyAttempted: alreadyAttempted
+                )
+            )
+        }
+    }
+
     func testToggleRoutesIgnoreNoopUnknownConflictAndInFlightRequests() {
         let routes: [HostAgentBackgroundHomeToggleRoute] = [
             toggleRoute(false, .notRegistered, .eligible),
@@ -388,6 +438,20 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
         ))
         XCTAssertTrue(appSource.contains(
             "HostAgentBackgroundHomeRoutingPolicy.launchRoute("
+        ))
+        XCTAssertTrue(appSource.contains(
+            "HostAgentBackgroundHomeRoutingPolicy.shouldAutomaticallyRegister("
+        ))
+        XCTAssertTrue(appSource.contains(
+            "private func registerHostAgentBackgroundAutomatically()"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "if hostAgentBackgroundRegistrationStatus == .enabled {\n"
+                + "            hostAgentBackgroundRegistrationPresentation = nil"
+        ))
+        XCTAssertTrue(appSource.contains(
+            "hostAgentBackgroundRegistrationMutationOwner.apply(\n"
+                + "            .registerBackgroundAgent"
         ))
         XCTAssertTrue(appSource.contains(
             "HostAgentBackgroundHomeRoutingPolicy.toggleRoute("
