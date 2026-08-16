@@ -25,6 +25,9 @@ host_audio_input_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-host-audio-ex
 host_audio_sck_stop_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h7-host-audio-sck-stop.patch"
 native_host_cm_lifetime_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-cm-lifetime.patch"
 native_host_physical_display_pixels_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-physical-display-pixels.patch"
+android_annex_b_interoperability_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h8-android-annex-b-interoperability.patch"
+android_first_frame_compatibility_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h9-android-first-frame-compatibility.patch"
+android_software_codec_fallback_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h10-android-software-codec-fallback.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 host_file_transfer_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs"
@@ -277,6 +280,40 @@ elif ! git -C "$vendor_dir" apply --check --reverse "$native_host_physical_displ
   exit 1
 fi
 
+if git -C "$vendor_dir" apply --check "$android_annex_b_interoperability_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$android_annex_b_interoperability_patch_file"
+elif git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_patch_file" 2>/dev/null; then
+  # The software-codec layer proves both Android compatibility layers exist.
+  :
+elif git -C "$vendor_dir" apply --check --reverse "$android_first_frame_compatibility_patch_file" 2>/dev/null; then
+  # The first-frame compatibility layer is applied on top of Annex-B routing
+  # and proves that the lower Android interoperability layer is present.
+  :
+elif ! git -C "$vendor_dir" apply --check --reverse "$android_annex_b_interoperability_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the Android Annex-B interoperability patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
+if git -C "$vendor_dir" apply --check "$android_first_frame_compatibility_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$android_first_frame_compatibility_patch_file"
+elif git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_patch_file" 2>/dev/null; then
+  # The software-codec layer is applied on top of first-frame compatibility.
+  :
+elif ! git -C "$vendor_dir" apply --check --reverse "$android_first_frame_compatibility_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the Android first-frame compatibility patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
+if git -C "$vendor_dir" apply --check "$android_software_codec_fallback_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$android_software_codec_fallback_patch_file"
+elif ! git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the Android software-codec fallback patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
 hbb_common_dir="$vendor_dir/libs/hbb_common"
 if git -C "$hbb_common_dir" apply --check "$hbb_common_patch_file" 2>/dev/null; then
   git -C "$hbb_common_dir" apply "$hbb_common_patch_file"
@@ -301,8 +338,9 @@ cp "$host_bridge_source" "$vendor_dir/src/rdn_host_bridge.rs"
 cp "$host_file_transfer_source" "$vendor_dir/src/rdn_host_file_transfer.rs"
 
 git -C "$vendor_dir" diff --check
-git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$native_host_physical_display_pixels_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch_file"
 if git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_wire_patch_file" 2>/dev/null; then
   :
 else

@@ -18,6 +18,9 @@ host_audio_input_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-host-audio-explici
 host_audio_sck_stop_patch="$repo_dir/CoreBridge/RustDeskPatch/h7-host-audio-sck-stop.patch"
 native_host_cm_lifetime_patch="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-cm-lifetime.patch"
 native_host_physical_display_pixels_patch="$repo_dir/CoreBridge/RustDeskPatch/h7-native-host-physical-display-pixels.patch"
+android_annex_b_interoperability_patch="$repo_dir/CoreBridge/RustDeskPatch/h8-android-annex-b-interoperability.patch"
+android_first_frame_compatibility_patch="$repo_dir/CoreBridge/RustDeskPatch/h9-android-first-frame-compatibility.patch"
+android_software_codec_fallback_patch="$repo_dir/CoreBridge/RustDeskPatch/h10-android-software-codec-fallback.patch"
 hbb_secret_wipe_patch="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 hbb_bounded_block_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
 
@@ -37,8 +40,34 @@ actual_commit=$(git -C "$vendor_dir" rev-parse HEAD)
 }
 
 git -C "$vendor_dir" diff --check
-git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch"
+git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_patch"
+
+# H10 overlaps H9 and H8 context, so verify the layered chain against temporary
+# copies rather than modifying the generated checkout during verification.
+patch_check_dir=$(mktemp -d "$vendor_dir/.android-patch-check.XXXXXX")
+trap 'rm -r -- "$patch_check_dir"' EXIT
+mkdir -p "$patch_check_dir/src/server"
+cp "$vendor_dir/src/server/connection.rs" "$patch_check_dir/src/server/connection.rs"
+cp "$vendor_dir/src/server/service.rs" "$patch_check_dir/src/server/service.rs"
+cp "$vendor_dir/src/server/video_service.rs" "$patch_check_dir/src/server/video_service.rs"
+patch_check_relative=${patch_check_dir#"$vendor_dir"/}
+git -C "$vendor_dir" apply \
+  --directory="$patch_check_relative" \
+  --reverse \
+  "$android_software_codec_fallback_patch"
+git -C "$vendor_dir" apply \
+  --directory="$patch_check_relative" \
+  --reverse \
+  "$android_first_frame_compatibility_patch"
+git -C "$vendor_dir" apply \
+  --directory="$patch_check_relative" \
+  --check \
+  --reverse \
+  "$android_annex_b_interoperability_patch"
+rm -r -- "$patch_check_dir"
+trap - EXIT
 git -C "$vendor_dir" apply --check --reverse "$native_host_physical_display_pixels_patch"
+git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch"
 if ! git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_patch" 2>/dev/null; then
   git -C "$vendor_dir" apply --check --reverse "$viewer_file_receive_patch"
   git -C "$vendor_dir" apply --check --reverse "$viewer_file_digest_patch"
