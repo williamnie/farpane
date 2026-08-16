@@ -218,7 +218,11 @@ final class HostAgentBackgroundProductRoutingPolicyTests: XCTestCase {
             "hostAgentBackgroundActivationOwner.refreshRegistration()"
         ))
         XCTAssertTrue(appSource.contains(
-            "hostAgentBackgroundActivationOwner.apply(\n"
+            "cancelBackgroundPasswordOperation()\n"
+                + "        _ = hostAgentBackgroundRegistrationMutationOwner.apply(\n"
+                + "            .unregisterBackgroundAgent\n"
+                + "        )\n"
+                + "        _ = hostAgentBackgroundActivationOwner.apply(\n"
                 + "            .applicationWillTerminate"
         ))
         XCTAssertTrue(appSource.contains(
