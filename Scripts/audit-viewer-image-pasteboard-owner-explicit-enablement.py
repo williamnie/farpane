@@ -89,14 +89,20 @@ def main() -> int:
                 "if observedChangeCount == changeCount",
             )
         ),
-        "localImageReadIsSingleItemStrictBoundedAndCanonical": all(
-            marker in owner
+        "localImageReadIgnoresMetadataOnlyItemsButRejectsMultipleImages": all(
+            marker in owner + polling
             for marker in (
                 "NSPasteboard.PasteboardType(\"public.svg-image\")",
                 "types.contains(Self.svgPasteboardType)",
                 "types.contains(.png)",
                 "types.contains(.tiff)",
-                "pasteboard.pasteboardItems?.count == 1",
+                "package enum ViewerClipboardContentItemSelection",
+                "case selected(Int)",
+                "case ambiguous",
+                "ViewerClipboardContentItemSelection.select(",
+                "acceptedTypeIdentifiers: Self.imagePasteboardTypes",
+                "from item: NSPasteboardItem",
+                "item.data(forType: type)",
                 "ViewerClipboardImagePolicy.maximumSVGUTF8Bytes",
                 "ViewerClipboardImagePolicy.maximumImageBytes",
                 "CGImageSourceCreateWithData(data as CFData, options)",
@@ -173,6 +179,7 @@ def main() -> int:
             marker in tests
             for marker in (
                 "testImagePolicyRequiresCanonicalBoundedSemanticPayload",
+                "testImageItemSelectionIgnoresMetadataOnlyItemsAndRejectsMultipleImages",
                 "structurallyValidOnePixelPNG",
                 "ViewerClipboardImagePolicy.acceptsDimensions(",
                 "testAppKitOwnerIsTheOnlySwiftPasteboardBoundary",
@@ -202,6 +209,9 @@ def main() -> int:
         "changeDecision": line_number(polling, "package mutating func observeChange("),
         "pasteboardOwner": line_number(owner, "final class ViewerPasteboardOwner"),
         "imageRead": line_number(owner, "private func readLocalImage()"),
+        "imageItemSelection": line_number(
+            polling, "package enum ViewerClipboardContentItemSelection"
+        ),
         "imageWrite": line_number(owner, "func receiveRemoteImage("),
         "rgbaConversion": line_number(owner, "private static func pngData("),
         "productEnablement": line_number(app, "receiveClipboardImage: true"),

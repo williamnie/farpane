@@ -53,6 +53,28 @@ package enum ViewerClipboardImagePolicy {
     }
 }
 
+package enum ViewerClipboardContentItemSelection: Equatable, Sendable {
+    case absent
+    case selected(Int)
+    case ambiguous
+
+    package static func select(
+        itemTypeIdentifiers: [[String]],
+        acceptedTypeIdentifiers: Set<String>
+    ) -> Self {
+        let matchingIndices = itemTypeIdentifiers.indices.filter { index in
+            itemTypeIdentifiers[index].contains {
+                acceptedTypeIdentifiers.contains($0)
+            }
+        }
+        switch matchingIndices.count {
+        case 0: return .absent
+        case 1: return .selected(matchingIndices[0])
+        default: return .ambiguous
+        }
+    }
+}
+
 package struct ViewerClipboardChangeDecision: Equatable, Sendable {
     package let didChange: Bool
     package let nextDelayMilliseconds: UInt64?

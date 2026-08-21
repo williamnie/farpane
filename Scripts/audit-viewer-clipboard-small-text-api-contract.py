@@ -32,6 +32,7 @@ def main() -> int:
         "bridge": repository / "CoreBridge/RustDeskPatch/rdn_bridge.rs",
         "client": repository / "Vendor/rustdesk/src/client.rs",
         "io_loop": repository / "Vendor/rustdesk/src/client/io_loop.rs",
+        "server": repository / "Vendor/rustdesk/src/server/connection.rs",
         "ui_session": repository / "Vendor/rustdesk/src/ui_session_interface.rs",
         "patch": repository / "CoreBridge/RustDeskPatch/upstream-1.4.9.patch",
         "build_core": repository / "Scripts/build-rust-core.sh",
@@ -133,6 +134,22 @@ def main() -> int:
             and "self.config.disable_clipboard.v = !clipboard_enabled;"
             in sources["client"]
         ),
+        "wirePermissionOmissionDefaultsEnabledAndExplicitRevokeWins": all(
+            marker in bridge
+            for marker in (
+                "const REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT: bool = true;",
+                "AtomicBool::new(REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT)",
+                ".store(REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT, Ordering::Release);",
+                "native_viewer_clipboard_permission_defaults_enabled_and_honors_explicit_revoke",
+                'ui.set_permission("clipboard", false);',
+            )
+        ) and all(
+            marker in sources["server"]
+            for marker in (
+                "if !conn.clipboard {",
+                "conn.send_permission(Permission::Clipboard, false).await;",
+            )
+        ),
         "callbackSurfaceIsNativeOnly": (
             '#[cfg(feature = "rdn-native-core")]\n    fn native_clipboard_text'
             in sources["ui_session"]
@@ -199,6 +216,9 @@ def main() -> int:
         "strictIncoming": line_number(bridge, "pub(crate) fn native_viewer_clipboard_text("),
         "canonicalOutgoing": line_number(bridge, "fn native_viewer_clipboard_message("),
         "sendGate": line_number(bridge, "pub unsafe extern \"C\" fn rdn_client_send_clipboard_text("),
+        "wirePermissionDefault": line_number(
+            bridge, "const REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT: bool = true;"
+        ),
         "noPolling": line_number(io_loop, "let rx: Option<"),
         "incomingCallback": line_number(io_loop, "self.handler.native_clipboard_text(text);"),
         "swiftDefaults": line_number(swift, "receiveClipboardText: Bool = false"),

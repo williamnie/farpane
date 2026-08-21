@@ -13,6 +13,11 @@ final class ViewerPasteboardOwner {
 
     private static let svgPasteboardType =
         NSPasteboard.PasteboardType("public.svg-image")
+    private static let imagePasteboardTypes: Set<String> = [
+        svgPasteboardType.rawValue,
+        NSPasteboard.PasteboardType.png.rawValue,
+        NSPasteboard.PasteboardType.tiff.rawValue,
+    ]
 
     private enum LocalRichTextRead {
         case absent
@@ -321,16 +326,29 @@ final class ViewerPasteboardOwner {
     }
 
     private func readLocalImage() -> LocalImageRead {
-        let types = pasteboard.types ?? []
+        let items = pasteboard.pasteboardItems ?? []
+        let selection = ViewerClipboardContentItemSelection.select(
+            itemTypeIdentifiers: items.map { $0.types.map(\.rawValue) },
+            acceptedTypeIdentifiers: Self.imagePasteboardTypes
+        )
+        let item: NSPasteboardItem
+        switch selection {
+        case .absent:
+            return .absent
+        case let .selected(index):
+            item = items[index]
+        case .ambiguous:
+            return .invalid
+        }
+        let types = item.types
         let hasSVG = types.contains(Self.svgPasteboardType)
         let hasPNG = types.contains(.png)
         let hasTIFF = types.contains(.tiff)
-        guard hasSVG || hasPNG || hasTIFF else { return .absent }
-        guard pasteboard.pasteboardItems?.count == 1 else { return .invalid }
 
         if hasSVG {
             guard
                 let data = boundedData(
+                    from: item,
                     forType: Self.svgPasteboardType,
                     maximumBytes: ViewerClipboardImagePolicy.maximumSVGUTF8Bytes
                 ),
@@ -344,6 +362,7 @@ final class ViewerPasteboardOwner {
 
         if hasPNG {
             guard let data = boundedData(
+                from: item,
                 forType: .png,
                 maximumBytes: ViewerClipboardImagePolicy.maximumImageBytes
             ) else { return .invalid }
@@ -353,8 +372,10 @@ final class ViewerPasteboardOwner {
                 : .invalid
         }
 
+        guard hasTIFF else { return .invalid }
         guard
             let tiff = boundedData(
+                from: item,
                 forType: .tiff,
                 maximumBytes: ViewerClipboardImagePolicy.maximumImageBytes
             ),
@@ -433,11 +454,12 @@ final class ViewerPasteboardOwner {
     }
 
     private func boundedData(
+        from item: NSPasteboardItem,
         forType type: NSPasteboard.PasteboardType,
         maximumBytes: Int
     ) -> Data? {
         guard
-            let data = pasteboard.data(forType: type),
+            let data = item.data(forType: type),
             !data.isEmpty,
             data.count <= maximumBytes
         else { return nil }

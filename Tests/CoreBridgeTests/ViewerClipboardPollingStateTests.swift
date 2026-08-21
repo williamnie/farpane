@@ -202,6 +202,37 @@ final class ViewerClipboardPollingStateTests: XCTestCase {
         ))
     }
 
+    func testImageItemSelectionIgnoresMetadataOnlyItemsAndRejectsMultipleImages() {
+        let accepted = Set(["public.png", "public.tiff", "public.svg-image"])
+        XCTAssertEqual(
+            ViewerClipboardContentItemSelection.select(
+                itemTypeIdentifiers: [
+                    ["public.png", "com.hapigo.combineSignature"],
+                    ["com.hapigo.pastedByHapiGo"],
+                ],
+                acceptedTypeIdentifiers: accepted
+            ),
+            .selected(0)
+        )
+        XCTAssertEqual(
+            ViewerClipboardContentItemSelection.select(
+                itemTypeIdentifiers: [
+                    ["public.png", "public.tiff"],
+                    ["public.svg-image"],
+                ],
+                acceptedTypeIdentifiers: accepted
+            ),
+            .ambiguous
+        )
+        XCTAssertEqual(
+            ViewerClipboardContentItemSelection.select(
+                itemTypeIdentifiers: [["com.hapigo.pastedByHapiGo"]],
+                acceptedTypeIdentifiers: accepted
+            ),
+            .absent
+        )
+    }
+
     func testStaleEpochCannotSendOrMutateCurrentSession() {
         var state = ViewerClipboardPollingState()
         XCTAssertNotNil(state.begin(sessionEpoch: 9, currentChangeCount: 1))
