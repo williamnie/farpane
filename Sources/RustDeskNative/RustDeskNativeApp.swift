@@ -176,7 +176,7 @@ private extension HostMediaSubmissionDropReason {
 }
 
 @main
-private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sendable {
+private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unchecked Sendable {
     private static let hostEnabledDefaultsKey = "farpane.host.enabled"
     private static let hostClipboardReadEnabledDefaultsKey =
         "farpane.host.clipboard.allowRemoteRead"
@@ -748,13 +748,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     }
 
     func applicationDidResignActive(_ notification: Notification) {
-        keyboardController?.suspend(
-            message: "应用失去焦点，已暂时释放键盘；返回后自动恢复独占"
-        )
+        keyboardController?.setApplicationActive(false)
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        keyboardController?.resumeIfRequested()
+        keyboardController?.setApplicationActive(true)
         reconcileHostProductOwnership()
         MainActorBackport.assumeIsolated {
             if hostAudioPolicyChangeAllowed() {
@@ -768,6 +766,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         HostApplicationLifecyclePolicy.shouldTerminateAfterLastWindowClosed(
             hostRuntimeActive: hostRuntimeActive
+        )
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        ProductWindowClosePolicy.shouldAllowClose(
+            viewerSessionActive: viewerChrome != nil
         )
     }
 
@@ -864,6 +868,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             defer: false
         )
         window.isReleasedWhenClosed = false
+        window.delegate = self
         window.title = "FarPane"
         window.minSize = NSSize(width: 860, height: 620)
         window.appearance = NSAppearance(named: .darkAqua)
@@ -4656,6 +4661,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             defer: false
         )
         window.isReleasedWhenClosed = false
+        window.delegate = self
         window.title = fixture == nil ? "FarPane" : "FarPane — Fixture"
         window.minSize = NSSize(width: 720, height: 480)
         let isFullScreen = window.styleMask.contains(.fullScreen)
@@ -4710,20 +4716,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, @unchecked Sen
             chrome.onToggleKeyboardGrab = { [weak keyboardController] in keyboardController?.toggle() }
             chrome.onOpenKeyboardPermissions = { Self.openKeyboardPrivacySettings() }
             chrome.onControlOverlayVisibilityChanged = { [weak keyboardController] expanded in
-                if expanded {
-                    keyboardController?.suspend(message: "本地控制菜单已打开，键盘独占已暂时释放")
-                } else {
-                    keyboardController?.resumeIfRequested()
-                }
+                keyboardController?.setControlOverlayVisible(expanded)
             }
             view.onWindowResignKey = { [weak keyboardController] in
-                keyboardController?.suspend(
-                    message: "窗口失去焦点，已暂时释放键盘；返回后自动恢复独占"
-                )
+                keyboardController?.setWindowKey(false)
             }
             view.onWindowBecomeKey = { [weak keyboardController] in
-                keyboardController?.resumeIfRequested()
+                keyboardController?.setWindowKey(true)
             }
+            keyboardController.setApplicationActive(NSApplication.shared.isActive)
+            keyboardController.setWindowKey(window.isKeyWindow)
             self.keyboardController = keyboardController
         } else {
             keyboardController = nil
