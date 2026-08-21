@@ -94,7 +94,7 @@ final class ExclusiveKeyboardStateMachineTests: XCTestCase {
     func testFocusIntentResumesOnlyAfterTemporaryFocusLoss() {
         var intent = ExclusiveKeyboardFocusIntent()
         intent.request()
-        intent.prepareForFocusLoss(state: .active)
+        intent.setSuspended(true, for: .windowNotKey, state: .active)
         XCTAssertTrue(intent.shouldResume)
 
         intent.cancel()
@@ -104,7 +104,55 @@ final class ExclusiveKeyboardStateMachineTests: XCTestCase {
     func testFocusIntentCancelsDuringExitChord() {
         var intent = ExclusiveKeyboardFocusIntent()
         intent.request()
-        intent.prepareForFocusLoss(state: .releasingExitChord)
+        intent.setSuspended(
+            true,
+            for: .windowNotKey,
+            state: .releasingExitChord
+        )
         XCTAssertFalse(intent.shouldResume)
+        intent.setSuspended(false, for: .windowNotKey, state: .inactive)
+        XCTAssertFalse(intent.canResume)
+    }
+
+    func testFocusIntentWaitsForEveryIndependentSuspensionToClear() {
+        var intent = ExclusiveKeyboardFocusIntent()
+        intent.request()
+
+        XCTAssertTrue(intent.setSuspended(
+            true,
+            for: .applicationInactive,
+            state: .active
+        ))
+        XCTAssertTrue(intent.setSuspended(
+            true,
+            for: .windowNotKey,
+            state: .inactive
+        ))
+        XCTAssertFalse(intent.canResume)
+
+        XCTAssertTrue(intent.setSuspended(
+            false,
+            for: .applicationInactive,
+            state: .inactive
+        ))
+        XCTAssertFalse(intent.canResume)
+        XCTAssertTrue(intent.setSuspended(
+            false,
+            for: .windowNotKey,
+            state: .inactive
+        ))
+        XCTAssertTrue(intent.canResume)
+    }
+
+    func testFocusIntentPreservesUserRequestAcrossDisplayAndOverlaySuspension() {
+        var intent = ExclusiveKeyboardFocusIntent()
+        intent.request()
+        intent.setSuspended(true, for: .controlOverlayVisible, state: .active)
+        intent.setSuspended(true, for: .displaySelection, state: .inactive)
+
+        intent.setSuspended(false, for: .controlOverlayVisible, state: .inactive)
+        XCTAssertFalse(intent.canResume)
+        intent.setSuspended(false, for: .displaySelection, state: .inactive)
+        XCTAssertTrue(intent.canResume)
     }
 }

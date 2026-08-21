@@ -70,17 +70,34 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
         }
     }
 
-    func suspend(message: String) {
-        lock.withLock {
-            focusIntent.prepareForFocusLoss(state: stateMachine.state)
-        }
-        disable(message: message, isError: false, preserveIntent: true)
+    func setApplicationActive(_ active: Bool) {
+        setSuspended(
+            !active,
+            for: .applicationInactive,
+            message: "应用失去焦点，已暂时释放键盘；返回后自动恢复独占"
+        )
+    }
+
+    func setWindowKey(_ isKey: Bool) {
+        setSuspended(
+            !isKey,
+            for: .windowNotKey,
+            message: "窗口失去焦点，已暂时释放键盘；返回后自动恢复独占"
+        )
+    }
+
+    func setControlOverlayVisible(_ visible: Bool) {
+        setSuspended(
+            visible,
+            for: .controlOverlayVisible,
+            message: "本地控制菜单已打开，键盘独占已暂时释放"
+        )
     }
 
     func resumeIfRequested() {
         guard lock.withLock({
             !displaySelectionInputQuiesced
-                && focusIntent.shouldResume
+                && focusIntent.canResume
                 && stateMachine.state == .inactive
         }) else {
             return
@@ -178,18 +195,35 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
     }
 
     func setDisplaySelectionInputQuiesced(_ quiesced: Bool) {
-        let transition = lock.withLock { () -> Bool? in
-            guard displaySelectionInputQuiesced != quiesced else { return nil }
+        let changed = lock.withLock { () -> Bool in
+            guard displaySelectionInputQuiesced != quiesced else { return false }
             displaySelectionInputQuiesced = quiesced
-            if quiesced {
-                focusIntent.prepareForFocusLoss(state: stateMachine.state)
-            }
-            return quiesced
+            return true
         }
-        guard let transition else { return }
-        if transition {
+        guard changed else { return }
+        setSuspended(
+            quiesced,
+            for: .displaySelection,
+            message: "正在切换显示器，已暂时释放键盘独占"
+        )
+    }
+
+    private func setSuspended(
+        _ suspended: Bool,
+        for reason: ExclusiveKeyboardSuspensionReason,
+        message: String
+    ) {
+        let changed = lock.withLock {
+            focusIntent.setSuspended(
+                suspended,
+                for: reason,
+                state: stateMachine.state
+            )
+        }
+        guard changed else { return }
+        if suspended {
             disable(
-                message: "正在切换显示器，已暂时释放键盘独占",
+                message: message,
                 isError: false,
                 preserveIntent: true
             )

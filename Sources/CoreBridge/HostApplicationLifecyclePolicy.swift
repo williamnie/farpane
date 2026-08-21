@@ -23,6 +23,14 @@ public enum ProductWindowTransitionPolicy {
     }
 }
 
+public enum ProductWindowClosePolicy {
+    /// A live Viewer owns the only visible session surface. Accidental window
+    /// close shortcuts must not hide it or make the session appear disconnected.
+    public static func shouldAllowClose(viewerSessionActive: Bool) -> Bool {
+        !viewerSessionActive
+    }
+}
+
 public struct HostSessionIndicatorPresentation: Equatable, Sendable {
     public let connectionID: String
     public let title: String

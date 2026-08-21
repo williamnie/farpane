@@ -104,8 +104,20 @@ public struct ExclusiveKeyboardStateMachine {
 /// Remembers an explicit user request while focus is temporarily elsewhere.
 /// Manual exit, an exit chord in progress, permission failure or connection
 /// loss must cancel the request instead of unexpectedly grabbing the keyboard.
+public enum ExclusiveKeyboardSuspensionReason: Hashable, Sendable {
+    case applicationInactive
+    case windowNotKey
+    case controlOverlayVisible
+    case displaySelection
+}
+
 public struct ExclusiveKeyboardFocusIntent {
     public private(set) var shouldResume = false
+    public private(set) var suspensionReasons: Set<ExclusiveKeyboardSuspensionReason> = []
+
+    public var canResume: Bool {
+        shouldResume && suspensionReasons.isEmpty
+    }
 
     public init() {}
 
@@ -117,7 +129,18 @@ public struct ExclusiveKeyboardFocusIntent {
         shouldResume = false
     }
 
-    public mutating func prepareForFocusLoss(state: ExclusiveKeyboardState) {
-        if state == .releasingExitChord { cancel() }
+    @discardableResult
+    public mutating func setSuspended(
+        _ suspended: Bool,
+        for reason: ExclusiveKeyboardSuspensionReason,
+        state: ExclusiveKeyboardState
+    ) -> Bool {
+        if suspended, state == .releasingExitChord {
+            cancel()
+        }
+        if suspended {
+            return suspensionReasons.insert(reason).inserted
+        }
+        return suspensionReasons.remove(reason) != nil
     }
 }

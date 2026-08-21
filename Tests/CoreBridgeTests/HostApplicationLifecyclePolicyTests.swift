@@ -82,6 +82,19 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
         )
     }
 
+    func testWindowCloseIsBlockedOnlyWhileViewerSessionIsActive() {
+        XCTAssertFalse(
+            ProductWindowClosePolicy.shouldAllowClose(
+                viewerSessionActive: true
+            )
+        )
+        XCTAssertTrue(
+            ProductWindowClosePolicy.shouldAllowClose(
+                viewerSessionActive: false
+            )
+        )
+    }
+
     func testActiveSessionIndicatorRequiresExactValidatedSession() {
         XCTAssertNil(
             HostSessionIndicatorPolicy.presentation(
