@@ -117,6 +117,18 @@ def main() -> int:
                 "vec![image.into_canonical_clipboard()]",
             )
         ),
+        "localOutgoingImageRepresentationsCollapseButRemoteWriteStaysStrict": all(
+            marker in host
+            for marker in (
+                "fn native_host_preferred_outgoing_image(",
+                "fn outgoing_preference(&self) -> u8",
+                "if direction == NativeClipboardDirection::RemoteRead",
+                "native_host_outgoing_image_prefers_one_format_without_relaxing_remote_write",
+                "NativeClipboardDirection::RemoteWrite",
+                "Ok(ClipboardFormat::ImageSvg)",
+                "Ok(ClipboardFormat::ImagePng)",
+            )
+        ),
         "outgoingCanonicalizesBeforeConnectionWriter": all(
             marker in (host + connection)
             for marker in (
@@ -155,6 +167,7 @@ def main() -> int:
             marker in tests
             for marker in (
                 "native_host_image_transport_requires_explicit_format_and_direction_policy",
+                "native_host_outgoing_image_prefers_one_format_without_relaxing_remote_write",
                 "NativeClipboardTransferPolicy::with_image_policy(",
                 "testHostClipboardDirectionsDefaultOffAndRemainIndependent",
                 "clipboardImageReadEnabled: true",
@@ -198,6 +211,9 @@ def main() -> int:
         "transferPolicy": line_number(host, "pub(crate) struct NativeClipboardTransferPolicy"),
         "imageCanonicalizer": line_number(host, "fn into_canonical_clipboard(self) -> Clipboard"),
         "imageAdmission": line_number(host, "if let [clipboard] = clipboards"),
+        "outgoingImageSelection": line_number(
+            host, "fn native_host_preferred_outgoing_image("
+        ),
         "outgoingGate": line_number(host, "pub(crate) fn native_host_prepare_outgoing_clipboard_message("),
         "incomingGate": line_number(host, "pub(crate) fn native_host_prepare_incoming_clipboard_entries("),
         "connectionWriteGate": line_number(connection, "fn native_host_prepare_remote_clipboard_write("),

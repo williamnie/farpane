@@ -83,6 +83,10 @@ const VIEWER_UPLOAD_WIRE_TIMEOUT: Duration = Duration::from_secs(30);
 const CLIPBOARD_IMAGE_FORMAT_RGBA: u32 = 1;
 const CLIPBOARD_IMAGE_FORMAT_PNG: u32 = 2;
 const CLIPBOARD_IMAGE_FORMAT_SVG: u32 = 3;
+// Pinned RustDesk advertises a disabled clipboard with PermissionInfo(false),
+// but omits PermissionInfo entirely when clipboard access is allowed. Match
+// that wire default and let an explicit false revoke it for the session.
+const REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT: bool = true;
 const UPSTREAM_COMMIT: &[u8] = b"6c578292e8ebbbec708b76986ba8c4bc7c509747\0";
 
 #[repr(C)]
@@ -2104,7 +2108,7 @@ impl Default for BridgeUi {
                 send_clipboard_rich_text: AtomicBool::new(false),
                 receive_clipboard_image: AtomicBool::new(false),
                 send_clipboard_image: AtomicBool::new(false),
-                remote_clipboard_enabled: AtomicBool::new(false),
+                remote_clipboard_enabled: AtomicBool::new(REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT),
                 file_transfer_enabled: AtomicBool::new(false),
                 file_transfer_session_epoch: AtomicU64::new(0),
                 pending_file_list_request: Mutex::new(None),
@@ -3600,7 +3604,7 @@ pub unsafe extern "C" fn rdn_client_create(
         send_clipboard_rich_text: AtomicBool::new(false),
         receive_clipboard_image: AtomicBool::new(false),
         send_clipboard_image: AtomicBool::new(false),
-        remote_clipboard_enabled: AtomicBool::new(false),
+        remote_clipboard_enabled: AtomicBool::new(REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT),
         file_transfer_enabled: AtomicBool::new(false),
         file_transfer_session_epoch: AtomicU64::new(0),
         pending_file_list_request: Mutex::new(None),
@@ -3726,7 +3730,7 @@ pub unsafe extern "C" fn rdn_client_connect(
     client
         .shared
         .remote_clipboard_enabled
-        .store(false, Ordering::Release);
+        .store(REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT, Ordering::Release);
     client
         .shared
         .file_transfer_enabled
@@ -6019,6 +6023,18 @@ mod tests {
     }
 
     #[test]
+    fn native_viewer_clipboard_permission_defaults_enabled_and_honors_explicit_revoke() {
+        let ui = BridgeUi::default();
+        assert!(ui.shared.remote_clipboard_enabled.load(Ordering::Acquire));
+
+        ui.set_permission("clipboard", false);
+        assert!(!ui.shared.remote_clipboard_enabled.load(Ordering::Acquire));
+
+        ui.set_permission("clipboard", true);
+        assert!(ui.shared.remote_clipboard_enabled.load(Ordering::Acquire));
+    }
+
+    #[test]
     fn native_viewer_rich_receive_preparse_gate_requires_every_authority() {
         let ui = BridgeUi::default();
         assert!(!ui.native_clipboard_rich_text_enabled());
@@ -6428,6 +6444,9 @@ mod tests {
         ui.shared
             .send_clipboard_image
             .store(true, Ordering::Release);
+        ui.shared
+            .remote_clipboard_enabled
+            .store(false, Ordering::Release);
         assert_eq!(
             unsafe { rdn_client_send_clipboard_image(client_pointer, &payload) },
             -8

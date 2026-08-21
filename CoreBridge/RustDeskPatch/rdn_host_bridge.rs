@@ -2520,6 +2520,31 @@ impl NativeImageTransferEnvelope {
             ..Default::default()
         }
     }
+
+    fn outgoing_preference(&self) -> u8 {
+        match self.format {
+            NativeImageFormat::Svg => 3,
+            NativeImageFormat::Png { .. } => 2,
+            NativeImageFormat::Rgba { .. } => 1,
+        }
+    }
+}
+
+fn native_host_preferred_outgoing_image(
+    clipboards: &[Clipboard],
+) -> Option<NativeImageTransferEnvelope> {
+    let mut preferred: Option<NativeImageTransferEnvelope> = None;
+    for clipboard in clipboards {
+        let candidate = NativeImageTransferEnvelope::from_clipboard(clipboard)?;
+        if preferred
+            .as_ref()
+            .map(|current| candidate.outgoing_preference() > current.outgoing_preference())
+            .unwrap_or(true)
+        {
+            preferred = Some(candidate);
+        }
+    }
+    preferred
 }
 
 fn native_image_payload_bytes(
@@ -2817,6 +2842,12 @@ fn native_host_prepare_clipboard_entries(
 ) -> Option<Vec<Clipboard>> {
     if !native_host_clipboard_policy_allows(active_directions, direction) {
         return None;
+    }
+    if direction == NativeClipboardDirection::RemoteRead {
+        if let Some(image) = native_host_preferred_outgoing_image(clipboards) {
+            return native_host_clipboard_policy_allows(transfer_policy.image(), direction)
+                .then(|| vec![image.into_canonical_clipboard()]);
+        }
     }
     if let [clipboard] = clipboards {
         if let Some(image) = NativeImageTransferEnvelope::from_clipboard(clipboard) {
@@ -9151,6 +9182,71 @@ mod tests {
         let mut unknown = clipboard_fixture(vec![1], false, ClipboardFormat::ImagePng);
         unknown.format = hbb_common::protobuf::EnumOrUnknown::from_i32(999);
         assert!(NativeImageTransferEnvelope::from_clipboard(&unknown).is_none());
+    }
+
+    #[test]
+    fn native_host_outgoing_image_prefers_one_format_without_relaxing_remote_write() {
+        let mut rgba = clipboard_fixture(vec![1, 2, 3, 255], false, ClipboardFormat::ImageRgba);
+        rgba.width = 1;
+        rgba.height = 1;
+        let mut png = Vec::new();
+        repng::encode(&mut png, 1, 1, &[1, 2, 3, 255]).unwrap();
+        let png = clipboard_fixture(png, false, ClipboardFormat::ImagePng);
+        let svg = clipboard_fixture(
+            b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>".to_vec(),
+            false,
+            ClipboardFormat::ImageSvg,
+        );
+        let transfer_policy = NativeClipboardTransferPolicy::with_image_policy(
+            NativeClipboardPolicy::default(),
+            NativeClipboardPolicy::default(),
+            NativeClipboardPolicy::new(true, true),
+        );
+        let active = NativeClipboardPolicy::new(true, true);
+
+        let outgoing = native_host_prepare_clipboard_entries(
+            transfer_policy,
+            active,
+            NativeClipboardDirection::RemoteRead,
+            &[rgba.clone(), png.clone(), svg.clone()],
+        )
+        .unwrap();
+        assert_eq!(outgoing.len(), 1);
+        assert_eq!(
+            outgoing[0].format.enum_value(),
+            Ok(ClipboardFormat::ImageSvg)
+        );
+
+        let png_outgoing = native_host_prepare_clipboard_entries(
+            transfer_policy,
+            active,
+            NativeClipboardDirection::RemoteRead,
+            &[rgba.clone(), png.clone()],
+        )
+        .unwrap();
+        assert_eq!(png_outgoing.len(), 1);
+        assert_eq!(
+            png_outgoing[0].format.enum_value(),
+            Ok(ClipboardFormat::ImagePng)
+        );
+
+        assert!(native_host_prepare_clipboard_entries(
+            transfer_policy,
+            active,
+            NativeClipboardDirection::RemoteWrite,
+            &[rgba, png],
+        )
+        .is_none());
+        assert!(native_host_prepare_clipboard_entries(
+            transfer_policy,
+            active,
+            NativeClipboardDirection::RemoteRead,
+            &[
+                svg,
+                clipboard_fixture(b"not-image".to_vec(), false, ClipboardFormat::Text),
+            ],
+        )
+        .is_none());
     }
 
     #[test]

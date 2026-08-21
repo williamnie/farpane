@@ -45,9 +45,16 @@ and delivers callback-scoped bytes to Swift without touching the Viewer
 pasteboard. Swift may send the same bounded semantic text through a dedicated
 call only after local send policy, authentication, and the remote clipboard
 permission all agree. The pinned wire exposes one clipboard negotiation bit;
-the native bridge still enforces receive and send independently. FarPane's
+an allowed Host omits `PermissionInfo`, while an explicit `false` revokes the
+capability. The native bridge therefore starts each connection with the wire
+default enabled, keeps local directions default-off, and still enforces receive
+and send independently. FarPane's
 Viewer product composition explicitly enables the small-text, rich-text, and
 image directions and routes all six through one AppKit-owned pasteboard adapter.
+The Viewer ignores metadata-only pasteboard items while still rejecting multiple
+image-bearing items. The native Host collapses local SVG/PNG/TIFF alternative
+representations to one bounded canonical image before sending, but remote writes
+remain single-image strict.
 That adapter starts only after authentication, snapshots rather than uploads
 the pre-session local clipboard, suppresses its own writes, dynamically backs
 polling off to four seconds, and stops before Core disconnect. Host Control ABI v15 retains the
