@@ -21,6 +21,8 @@ final class HomeNavigationPermissionUIContractTests: XCTestCase {
             "title: \"共享设置\"",
             "onHostToggle",
             "onQuickConnect",
+            "onQuickSendFiles",
+            "quickSendFilesButton",
             "onOpenSystemPermissionSettings",
             "makeHostMiniCard(title: \"本机 ID\"",
             "makeHostMiniCard(title: \"临时密码\"",

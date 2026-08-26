@@ -589,6 +589,7 @@ final class HostAgentBackgroundHomeRoutingPolicyTests: XCTestCase {
             "fileTransferPolicy: currentHostFileTransferPolicy()",
             "fileTransferEnabled: fileTransferPolicy.enabled",
             "fileTransferReceiveRoot: fileTransferPolicy.receiveRoot",
+            "restoreConfiguredRoot(",
             "allowsFileTransferPolicyChange(",
             "HostFileTransferReceiveRootPickerController",
         ] {

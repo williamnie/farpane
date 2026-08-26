@@ -69,6 +69,37 @@ final class HostFileTransferReceiveRootProvisionerTests: XCTestCase {
         )
     }
 
+    func testRestoresOnlyExactConfiguredFixedChild() throws {
+        let fixture = try makeParent()
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let configured = fixture.parent.appendingPathComponent(
+            HostFileTransferReceiveRootProvisioner.receiveDirectoryName,
+            isDirectory: true
+        )
+
+        let restored = try XCTUnwrap(
+            HostFileTransferReceiveRootProvisioner.restoreConfiguredRoot(
+                at: configured
+            )
+        )
+        XCTAssertEqual(restored, configured)
+        XCTAssertEqual(
+            (try FileManager.default.attributesOfItem(
+                atPath: restored.path
+            )[.posixPermissions] as? NSNumber)?.intValue,
+            0o700
+        )
+
+        XCTAssertNil(
+            HostFileTransferReceiveRootProvisioner.restoreConfiguredRoot(
+                at: fixture.parent.appendingPathComponent(
+                    "Different Receive Root",
+                    isDirectory: true
+                )
+            )
+        )
+    }
+
     private func makeParent(
         mode: Int = 0o700
     ) throws -> (root: URL, parent: URL) {

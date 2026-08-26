@@ -187,6 +187,7 @@ struct HomeSnapshot: Equatable {
 
 enum HomeDeviceAction {
     case connect
+    case sendFiles
     case toggleFavorite
     case rename
     case updatePassword
@@ -246,6 +247,7 @@ private enum HomePalette {
 
 final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onQuickConnect: ((String) -> Void)?
+    var onQuickSendFiles: ((String) -> Void)?
     var onViewerAudioOptInToggle: ((Bool) -> Void)?
     var onOpenServerSettings: (() -> Void)?
     var onDeviceAction: ((UUID, HomeDeviceAction) -> Void)?
@@ -280,6 +282,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     private let peerField = NSTextField()
     private let peerContainer = NSView()
     private let connectButton = AccentButton(title: "连接", target: nil, action: nil)
+    private let quickSendFilesButton = NSButton(
+        title: "发文件",
+        target: nil,
+        action: nil
+    )
     private let viewerAudioOptInSwitch = NSSwitch()
     private let filterControl = NSSegmentedControl(
         labels: ["全部", "收藏"],
@@ -407,6 +414,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             && snapshot.connectingPeerID == nil
             && !peerField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         connectButton.isEnabled = canConnect
+        quickSendFilesButton.isEnabled = canConnect
         peerField.isEnabled = snapshot.connectingPeerID == nil
         connectButton.title = snapshot.connectingPeerID == nil ? "连接" : "连接中…"
         serverButton.isEnabled = snapshot.connectingPeerID == nil
@@ -721,10 +729,18 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
         connectButton.target = self
         connectButton.action = #selector(connectQuickly)
 
+        quickSendFilesButton.bezelStyle = .rounded
+        quickSendFilesButton.target = self
+        quickSendFilesButton.action = #selector(sendFilesQuickly)
+        quickSendFilesButton.toolTip = "连接后立即选择文件或文件夹发送到远端"
+        quickSendFilesButton.setAccessibilityLabel("向远端设备发送文件")
+
         NSLayoutConstraint.activate([
             peerContainer.heightAnchor.constraint(equalToConstant: 34),
             connectButton.widthAnchor.constraint(equalToConstant: 82),
             connectButton.heightAnchor.constraint(equalToConstant: 34),
+            quickSendFilesButton.widthAnchor.constraint(equalToConstant: 82),
+            quickSendFilesButton.heightAnchor.constraint(equalToConstant: 34),
         ])
 
         viewerAudioOptInSwitch.target = self
@@ -1305,7 +1321,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
             .defaultLow,
             for: .horizontal
         )
-        let connectionRow = NSStackView(views: [peerContainer, connectButton])
+        let connectionRow = NSStackView(views: [
+            peerContainer,
+            connectButton,
+            quickSendFilesButton,
+        ])
         connectionRow.orientation = .horizontal
         connectionRow.alignment = .centerY
         connectionRow.spacing = 8
@@ -2026,11 +2046,19 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     }
 
     @objc private func connectQuickly() {
+        performQuickAction(onQuickConnect)
+    }
+
+    @objc private func sendFilesQuickly() {
+        performQuickAction(onQuickSendFiles)
+    }
+
+    private func performQuickAction(_ action: ((String) -> Void)?) {
         let peerID = peerField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !peerID.isEmpty,
               snapshot.server?.isComplete == true,
               snapshot.connectingPeerID == nil else { return }
-        onQuickConnect?(peerID)
+        action?(peerID)
     }
 
     @objc private func openServerSettings() { onOpenServerSettings?() }
@@ -2706,6 +2734,16 @@ private final class DeviceRowView: NSView {
         credential.contentTintColor = item.hasSavedPassword ? .secondaryLabelColor : .tertiaryLabelColor
         credential.toolTip = item.hasSavedPassword ? "密码已保存在此 Mac 的钥匙串" : "连接时需要输入密码"
 
+        let sendFiles = NSButton(
+            title: "发文件",
+            target: self,
+            action: #selector(sendFiles)
+        )
+        sendFiles.bezelStyle = .rounded
+        sendFiles.toolTip = "连接后立即选择文件或文件夹发送到远端"
+        sendFiles.setAccessibilityLabel("发送文件到此设备")
+        sendFiles.isEnabled = !isConnecting
+
         let connect = NSButton(title: isConnecting ? "连接中…" : "连接", target: self, action: #selector(connect))
         connect.bezelStyle = .rounded
         connect.contentTintColor = isConnecting ? .tertiaryLabelColor : HomePalette.accent
@@ -2720,7 +2758,16 @@ private final class DeviceRowView: NSView {
         more.bezelStyle = .inline
         more.toolTip = "更多操作"
 
-        let row = NSStackView(views: [avatarView, favoriteButton, identity, NSView(), credential, connect, more])
+        let row = NSStackView(views: [
+            avatarView,
+            favoriteButton,
+            identity,
+            NSView(),
+            credential,
+            sendFiles,
+            connect,
+            more,
+        ])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 10
@@ -2733,6 +2780,7 @@ private final class DeviceRowView: NSView {
             row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -7),
             heightAnchor.constraint(greaterThanOrEqualToConstant: 48),
             connect.widthAnchor.constraint(equalToConstant: 64),
+            sendFiles.widthAnchor.constraint(equalToConstant: 68),
             credential.widthAnchor.constraint(equalToConstant: 18),
         ])
     }
@@ -2793,6 +2841,8 @@ private final class DeviceRowView: NSView {
     }
 
     @objc private func connect() { onAction?(.connect) }
+
+    @objc private func sendFiles() { onAction?(.sendFiles) }
 
     @objc private func toggleFavorite() { onAction?(.toggleFavorite) }
 

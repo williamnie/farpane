@@ -1,0 +1,17 @@
+diff --git a/src/server/connection.rs b/src/server/connection.rs
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -1498,6 +1498,13 @@ impl Connection {
+         if !conn.audio {
+             conn.send_permission(Permission::Audio, false).await;
+         }
++        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++        if conn.file {
++            // The stock protocol omits the allowed state, but the native
++            // viewer waits for positive capability authority before admitting
++            // its queued file command.
++            conn.send_permission(Permission::File, true).await;
++        }
+         if !conn.file {
+             conn.send_permission(Permission::File, false).await;
+         }
