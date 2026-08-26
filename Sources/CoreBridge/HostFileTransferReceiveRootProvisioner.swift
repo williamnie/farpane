@@ -7,6 +7,21 @@ import Foundation
 package enum HostFileTransferReceiveRootProvisioner {
     package static let receiveDirectoryName = "FarPane Receive"
 
+    /// Recreates a previously provisioned fixed receive root after external
+    /// removal. The stored path remains authority only when it is exactly the
+    /// product-owned child below the same safe parent.
+    package static func restoreConfiguredRoot(at receiveRootURL: URL) -> URL? {
+        guard NSString(string: receiveRootURL.path).isAbsolutePath,
+              receiveRootURL.standardizedFileURL.path == receiveRootURL.path,
+              receiveRootURL.lastPathComponent == receiveDirectoryName
+        else { return nil }
+        let restored = provision(
+            inside: receiveRootURL.deletingLastPathComponent()
+        )
+        guard restored?.path == receiveRootURL.path else { return nil }
+        return restored
+    }
+
     package static func provision(inside parentURL: URL) -> URL? {
         guard NSString(string: parentURL.path).isAbsolutePath,
               parentURL.standardizedFileURL.path == parentURL.path

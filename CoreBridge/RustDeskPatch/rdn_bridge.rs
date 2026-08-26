@@ -1077,6 +1077,7 @@ struct BridgeShared {
     receive_clipboard_image: AtomicBool,
     send_clipboard_image: AtomicBool,
     remote_clipboard_enabled: AtomicBool,
+    remote_file_transfer_enabled: AtomicBool,
     file_transfer_enabled: AtomicBool,
     file_transfer_session_epoch: AtomicU64,
     pending_file_list_request: Mutex<Option<NativeViewerListRequest>>,
@@ -1089,6 +1090,16 @@ struct BridgeShared {
 }
 
 impl BridgeShared {
+    fn emit_file_transfer_ready_if_available(&self) {
+        if self.active.load(Ordering::Acquire)
+            && self.authenticated.load(Ordering::Acquire)
+            && self.file_transfer_enabled.load(Ordering::Acquire)
+            && self.remote_file_transfer_enabled.load(Ordering::Acquire)
+        {
+            self.emit_state(RDNState::Streaming, 0, "file-transfer-ready");
+        }
+    }
+
     fn read_file_transfer_upload_source(
         &self,
         transfer_id: i32,
@@ -2109,6 +2120,7 @@ impl Default for BridgeUi {
                 receive_clipboard_image: AtomicBool::new(false),
                 send_clipboard_image: AtomicBool::new(false),
                 remote_clipboard_enabled: AtomicBool::new(REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT),
+                remote_file_transfer_enabled: AtomicBool::new(false),
                 file_transfer_enabled: AtomicBool::new(false),
                 file_transfer_session_epoch: AtomicU64::new(0),
                 pending_file_list_request: Mutex::new(None),
@@ -2192,8 +2204,7 @@ impl InvokeUiSession for BridgeUi {
         self.shared
             .emit_state(RDNState::Authenticated, 0, "authenticated");
         if file_transfer {
-            self.shared
-                .emit_state(RDNState::Streaming, 0, "file-transfer-ready");
+            self.shared.emit_file_transfer_ready_if_available();
         } else if allowed {
             self.shared
                 .emit_state(RDNState::ControlReady, 0, "control-ready");
@@ -2222,6 +2233,15 @@ impl InvokeUiSession for BridgeUi {
                 .remote_audio_enabled
                 .store(value, Ordering::Release);
             self.shared.emit_remote_audio_permission();
+        } else if name == "file" {
+            let changed = self
+                .shared
+                .remote_file_transfer_enabled
+                .swap(value, Ordering::AcqRel)
+                != value;
+            if value && changed {
+                self.shared.emit_file_transfer_ready_if_available();
+            }
         }
     }
 
@@ -2740,6 +2760,9 @@ impl RDNClient {
             .store(false, Ordering::Release);
         self.shared
             .remote_clipboard_enabled
+            .store(false, Ordering::Release);
+        self.shared
+            .remote_file_transfer_enabled
             .store(false, Ordering::Release);
         self.shared
             .file_transfer_enabled
@@ -3605,6 +3628,7 @@ pub unsafe extern "C" fn rdn_client_create(
         receive_clipboard_image: AtomicBool::new(false),
         send_clipboard_image: AtomicBool::new(false),
         remote_clipboard_enabled: AtomicBool::new(REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT),
+        remote_file_transfer_enabled: AtomicBool::new(false),
         file_transfer_enabled: AtomicBool::new(false),
         file_transfer_session_epoch: AtomicU64::new(0),
         pending_file_list_request: Mutex::new(None),
@@ -3731,6 +3755,10 @@ pub unsafe extern "C" fn rdn_client_connect(
         .shared
         .remote_clipboard_enabled
         .store(REMOTE_CLIPBOARD_ENABLED_BY_DEFAULT, Ordering::Release);
+    client
+        .shared
+        .remote_file_transfer_enabled
+        .store(false, Ordering::Release);
     client
         .shared
         .file_transfer_enabled
@@ -4945,6 +4973,23 @@ fn avcc_nal_types(data: &[u8]) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    unsafe extern "C" fn capture_state(
+        context: *mut c_void,
+        state: RDNState,
+        code: i32,
+        message: *const c_char,
+    ) {
+        if context.is_null() || message.is_null() {
+            return;
+        }
+        let capture = &*(context as *const Mutex<Vec<(u32, i32, String)>>);
+        capture.lock().unwrap().push((
+            state as u32,
+            code,
+            CStr::from_ptr(message).to_string_lossy().into_owned(),
+        ));
+    }
 
     #[test]
     fn viewer_terminal_error_state_preserves_retry_authority() {
@@ -6570,6 +6615,49 @@ mod tests {
             0
         );
         assert!(matches!(receiver.try_recv(), Ok(Data::CancelJob(23))));
+    }
+
+    #[test]
+    fn viewer_file_transfer_waits_for_remote_permission_before_ready() {
+        let captured = Mutex::new(Vec::<(u32, i32, String)>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_state = Some(capture_state);
+        shared.context = &captured as *const _ as usize;
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+
+        ui.on_connected(ConnType::FILE_TRANSFER);
+        assert_eq!(
+            *captured.lock().unwrap(),
+            vec![(
+                RDNState::Authenticated as u32,
+                0,
+                "authenticated".to_owned()
+            )],
+            "authentication alone must not admit file commands"
+        );
+
+        ui.set_permission("file", true);
+        assert_eq!(
+            *captured.lock().unwrap(),
+            vec![
+                (
+                    RDNState::Authenticated as u32,
+                    0,
+                    "authenticated".to_owned()
+                ),
+                (
+                    RDNState::Streaming as u32,
+                    0,
+                    "file-transfer-ready".to_owned()
+                )
+            ]
+        );
+        ui.set_permission("file", true);
+        assert_eq!(captured.lock().unwrap().len(), 2);
     }
 
     #[test]

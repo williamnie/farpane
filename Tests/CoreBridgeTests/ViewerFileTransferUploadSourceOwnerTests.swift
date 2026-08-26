@@ -335,6 +335,12 @@ final class ViewerFileTransferUploadSourceOwnerTests: XCTestCase {
             ),
             encoding: .utf8
         )
+        let home = try String(
+            contentsOf: repository.appendingPathComponent(
+                "Sources/RustDeskNative/HomeView.swift"
+            ),
+            encoding: .utf8
+        )
 
         for marker in [
             "ViewerFileTransferUploadSourcePickerController",
@@ -351,6 +357,24 @@ final class ViewerFileTransferUploadSourceOwnerTests: XCTestCase {
         ))
         XCTAssertTrue(viewerUI.contains("onFileTransferUploadAction"))
         XCTAssertTrue(viewerUI.contains("发送文件"))
+        for marker in [
+            "var onQuickSendFiles: ((String) -> Void)?",
+            "title: \"发文件\"",
+            "case sendFiles",
+            "action?(peerID)",
+        ] {
+            XCTAssertTrue(home.contains(marker), marker)
+        }
+        for marker in [
+            "opensFileTransferUpload: true",
+            "viewerOpenFileTransferUploadWhenStreaming",
+            "rearmViewerFileTransferComposition()",
+        ] {
+            XCTAssertTrue(app.contains(marker), marker)
+        }
+        XCTAssertFalse(app.contains(
+            "another action requires a new Viewer attempt"
+        ))
     }
 
     private func makePrivateDirectory() throws -> URL {

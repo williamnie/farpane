@@ -11,6 +11,7 @@ viewer_file_digest_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-file-dige
 viewer_file_upload_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-file-upload-wire.patch"
 native_read_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-read-list-download.patch"
 host_display_switch_validation_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-host-display-switch-validation.patch"
+native_host_file_permission_readiness_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-native-host-file-permission-readiness.patch"
 audio_local_policy_approval_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-audio-local-policy-approval.patch"
 viewer_audio_policy_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-explicit-policy.patch"
 viewer_audio_permission_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-permission-lifecycle.patch"
@@ -73,6 +74,7 @@ if ! git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_patch" 2>
   git -C "$vendor_dir" apply --check --reverse "$viewer_file_digest_patch"
 fi
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_display_switch_validation_patch"
+git -C "$vendor_dir" apply --check --reverse "$native_host_file_permission_readiness_patch"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$audio_local_policy_approval_patch"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_policy_patch"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_permission_patch"

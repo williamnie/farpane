@@ -18,6 +18,7 @@ file_transfer_native_resume_digest_patch_file="$repo_dir/CoreBridge/RustDeskPatc
 file_transfer_native_existing_target_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-existing-target.patch"
 file_transfer_native_read_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-native-read-list-download.patch"
 host_display_switch_validation_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-host-display-switch-validation.patch"
+native_host_file_permission_readiness_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-native-host-file-permission-readiness.patch"
 audio_local_policy_approval_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-audio-local-policy-approval.patch"
 viewer_audio_policy_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-explicit-policy.patch"
 viewer_audio_permission_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h6-viewer-audio-permission-lifecycle.patch"
@@ -224,6 +225,14 @@ elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_displa
   exit 1
 fi
 
+if git -C "$vendor_dir" apply --check "$native_host_file_permission_readiness_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$native_host_file_permission_readiness_patch_file"
+elif ! git -C "$vendor_dir" apply --check --reverse "$native_host_file_permission_readiness_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout does not match the native Host file-permission readiness patch"
+  git -C "$vendor_dir" status --short >&2
+  exit 1
+fi
+
 if git -C "$vendor_dir" apply --unidiff-zero --check "$audio_local_policy_approval_patch_file" 2>/dev/null; then
   git -C "$vendor_dir" apply --unidiff-zero "$audio_local_policy_approval_patch_file"
 elif ! git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$audio_local_policy_approval_patch_file" 2>/dev/null; then
@@ -348,6 +357,7 @@ else
   git -C "$vendor_dir" apply --check --reverse "$viewer_file_digest_patch_file"
 fi
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$host_display_switch_validation_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$native_host_file_permission_readiness_patch_file"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$audio_local_policy_approval_patch_file"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_policy_patch_file"
 git -C "$vendor_dir" apply --unidiff-zero --check --reverse "$viewer_audio_permission_patch_file"

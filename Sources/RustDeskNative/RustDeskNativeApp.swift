@@ -178,6 +178,8 @@ private extension HostMediaSubmissionDropReason {
 @main
 private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unchecked Sendable {
     private static let hostEnabledDefaultsKey = "farpane.host.enabled"
+    private static let hostAgentRegisteredBuildDefaultsKey =
+        "farpane.host.agentRegistrationBuildID"
     private static let hostClipboardReadEnabledDefaultsKey =
         "farpane.host.clipboard.allowRemoteRead"
     private static let hostClipboardWriteEnabledDefaultsKey =
@@ -245,10 +247,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     private var viewerFileTransferCommittedEpoch: UInt64 = 0
     private var viewerFileTransferConnectionContext:
         ViewerFileTransferConnectionContext?
+    private var viewerFileTransferCoreURL: URL?
     private var viewerFileTransferActiveTransferID: Int32?
     private var viewerFileTransferActiveDirection:
         ViewerFileTransferActionDirection?
     private var viewerFileTransferActionConsumed = false
+    private var viewerOpenFileTransferUploadWhenStreaming = false
     private var viewerFileTransferDestinationPicker:
         ViewerFileTransferDestinationPickerController?
     private var viewerFileTransferUploadSourcePicker:
@@ -310,6 +314,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     private var hostAgentBackgroundFlow: HostAgentBackgroundHomeFlow?
     private var hostAgentBackgroundOwnershipErrorText = ""
     private var hostAgentAutomaticRegistrationAttempted = false
+    private var hostAgentRegistrationRefreshAttempted = false
     private var hostPollTimer: Timer?
     private var hostPasswordHideTimer: Timer?
     private var keyboardController: ExclusiveKeyboardController?
@@ -672,6 +677,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         } else if let registration {
             hostAgentBackgroundRegistrationStatus = registration
             hostAgentBackgroundOwnershipErrorText = ""
+            recordCurrentHostAgentRegistrationBuildIfEnabled()
         }
     }
 
@@ -829,6 +835,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         stopViewerAutomaticRecovery()
         stopViewerClipboard()
         stopViewerFileTransfer()
+        viewerOpenFileTransferUploadWhenStreaming = false
         stopViewerDisplaySelectionInput()
         viewerAudioSessionOwner?.stop()
         viewerAudioSessionOwner = nil
@@ -873,7 +880,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         window.minSize = NSSize(width: 860, height: 620)
         window.appearance = NSAppearance(named: .darkAqua)
         let view = HomeView()
-        view.onQuickConnect = { [weak self] peerID in self?.handleQuickConnect(peerID: peerID) }
+        view.onQuickConnect = { [weak self] peerID in
+            self?.handleQuickConnect(peerID: peerID)
+        }
+        view.onQuickSendFiles = { [weak self] peerID in
+            self?.handleQuickConnect(
+                peerID: peerID,
+                opensFileTransferUpload: true
+            )
+        }
         view.onViewerAudioOptInToggle = { [weak self] enabled in
             guard let self, self.activeAttemptID == nil else { return }
             self.viewerAudioOptInForNextConnection = enabled
@@ -1338,13 +1353,24 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         ),
         let receiveRoot = UserDefaults.standard.string(
             forKey: Self.hostFileTransferReceiveRootDefaultsKey
-        ),
-        let policy = HostAgentFileTransferPolicy.validatedEnabled(
-            receiveRoot: receiveRoot
         ) else {
             return .disabled
         }
-        return policy
+        guard let restoredReceiveRoot =
+                HostFileTransferReceiveRootProvisioner
+                    .restoreConfiguredRoot(
+                        at: URL(fileURLWithPath: receiveRoot)
+                    ),
+              let restoredPolicy = HostAgentFileTransferPolicy.validatedEnabled(
+                  receiveRoot: restoredReceiveRoot.path
+              )
+        else {
+            hostFileTransferPolicyErrorText =
+                "文件接收目录无法安全恢复；请在共享设置中重新选择保存位置。"
+            return .disabled
+        }
+        hostFileTransferPolicyErrorText = ""
+        return restoredPolicy
     }
 
     private func currentHostAudioPolicy() -> HostAgentAudioPolicy {
@@ -2071,6 +2097,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         guard hostAgentBackgroundFlow == nil else { return }
         hostAgentBackgroundRegistrationStatus =
             HostAgentBackgroundServiceObserver.observeRegistrationStatus()
+        guard refreshRegisteredHostAgentForCurrentBuildIfNeeded() else {
+            refreshHomeUI()
+            return
+        }
         if hostAgentBackgroundRegistrationStatus == .enabled {
             hostAgentBackgroundRegistrationPresentation = nil
         }
@@ -2118,6 +2148,74 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     @MainActor
+    private func refreshRegisteredHostAgentForCurrentBuildIfNeeded() -> Bool {
+        let currentBuildIdentifier = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleVersion"
+        ) as? String
+        let registeredBuildIdentifier = UserDefaults.standard.string(
+            forKey: Self.hostAgentRegisteredBuildDefaultsKey
+        )
+        let decision = HostAgentBackgroundRegistrationRefreshPolicy.decision(
+            registration: hostAgentBackgroundRegistrationStatus,
+            currentBuildIdentifier: currentBuildIdentifier,
+            registeredBuildIdentifier: registeredBuildIdentifier,
+            alreadyAttempted: hostAgentRegistrationRefreshAttempted
+        )
+        guard case .refresh(let buildIdentifier) = decision else { return true }
+
+        hostAgentRegistrationRefreshAttempted = true
+        disableHostAgentBackgroundObservation()
+        guard hostAgentBackgroundRegistrationMutationOwner.apply(
+            .unregisterBackgroundAgent
+        ), hostAgentBackgroundRegistrationMutationOwner.snapshot()
+            .registration == .notRegistered
+        else {
+            hostAgentBackgroundRegistrationStatus =
+                HostAgentBackgroundServiceObserver.observeRegistrationStatus()
+            hostAgentBackgroundOwnershipErrorText =
+                "后台组件升级刷新失败；请关闭并重新开启“允许连接此 Mac”。"
+            return false
+        }
+
+        let registered = hostAgentBackgroundRegistrationMutationOwner.apply(
+            .registerBackgroundAgent
+        )
+        hostAgentBackgroundRegistrationStatus =
+            hostAgentBackgroundRegistrationMutationOwner.snapshot()
+                .registration
+                ?? HostAgentBackgroundServiceObserver
+                    .observeRegistrationStatus()
+        guard registered,
+              hostAgentBackgroundRegistrationStatus == .enabled
+        else {
+            hostAgentBackgroundOwnershipErrorText =
+                "新版后台组件未能重新注册；请重新开启“允许连接此 Mac”。"
+            return false
+        }
+        UserDefaults.standard.set(
+            buildIdentifier,
+            forKey: Self.hostAgentRegisteredBuildDefaultsKey
+        )
+        hostAgentBackgroundOwnershipErrorText = ""
+        return true
+    }
+
+    private func recordCurrentHostAgentRegistrationBuildIfEnabled() {
+        guard hostAgentBackgroundRegistrationStatus == .enabled,
+              let buildIdentifier = Bundle.main.object(
+                  forInfoDictionaryKey: "CFBundleVersion"
+              ) as? String,
+              HostAgentRegistrationBundlePreflight.validBuildIdentifier(
+                  buildIdentifier
+              )
+        else { return }
+        UserDefaults.standard.set(
+            buildIdentifier,
+            forKey: Self.hostAgentRegisteredBuildDefaultsKey
+        )
+    }
+
+    @MainActor
     private func registerHostAgentBackgroundAutomatically() {
         guard hostAgentBackgroundFlow == nil,
               !hostAgentAutomaticRegistrationAttempted
@@ -2160,6 +2258,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
 
         switch hostAgentBackgroundRegistrationStatus {
         case .enabled:
+            recordCurrentHostAgentRegistrationBuildIfEnabled()
             hostAgentBackgroundRegistrationPresentation = nil
             hostAgentBackgroundOwnershipErrorText = ""
             _ = hostAgentBackgroundActivationOwner.apply(.hostEnabled)
@@ -4241,7 +4340,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         }
     }
 
-    private func handleQuickConnect(peerID: String) {
+    private func handleQuickConnect(
+        peerID: String,
+        opensFileTransferUpload: Bool = false
+    ) {
         guard activeAttemptID == nil else { return }
         guard catalog.server?.isComplete == true else {
             homeErrorText = "请先配置 RustDesk ID 服务器和服务器公钥。"
@@ -4250,18 +4352,25 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             return
         }
         if let device = catalog.device(peerID: peerID) {
-            connectSavedDevice(device)
+            connectSavedDevice(
+                device,
+                opensFileTransferUpload: opensFileTransferUpload
+            )
         } else {
             promptForPassword(
                 deviceID: nil,
                 peerID: DeviceCatalogDocument.normalize(peerID),
                 saveByDefault: false,
-                message: "输入远端设备的访问密码。认证成功后会加入最近连接。"
+                message: "输入远端设备的访问密码。认证成功后会加入最近连接。",
+                opensFileTransferUpload: opensFileTransferUpload
             )
         }
     }
 
-    private func connectSavedDevice(_ device: SavedDevice) {
+    private func connectSavedDevice(
+        _ device: SavedDevice,
+        opensFileTransferUpload: Bool = false
+    ) {
         do {
             if let password = try credentialStore.read(deviceID: device.id), !password.isEmpty {
                 startProductConnection(
@@ -4270,14 +4379,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                     peerID: device.peerID,
                     password: password,
                     savePassword: false,
-                    usedStoredCredential: true
+                    usedStoredCredential: true,
+                    opensFileTransferUpload: opensFileTransferUpload
                 )
             } else {
                 promptForPassword(
                     deviceID: device.id,
                     peerID: device.peerID,
                     saveByDefault: false,
-                    message: "这台设备没有保存密码，请输入本次连接使用的密码。"
+                    message: "这台设备没有保存密码，请输入本次连接使用的密码。",
+                    opensFileTransferUpload: opensFileTransferUpload
                 )
             }
         } catch {
@@ -4285,7 +4396,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                 deviceID: device.id,
                 peerID: device.peerID,
                 saveByDefault: false,
-                message: "无法读取已保存密码，请手动输入。"
+                message: "无法读取已保存密码，请手动输入。",
+                opensFileTransferUpload: opensFileTransferUpload
             )
         }
     }
@@ -4295,7 +4407,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         peerID: String,
         saveByDefault: Bool,
         message: String,
-        receiveAudio: Bool? = nil
+        receiveAudio: Bool? = nil,
+        opensFileTransferUpload: Bool = false
     ) {
         guard activeAttemptID == nil, let window else { return }
         let prompt = PasswordPromptController()
@@ -4316,7 +4429,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                 password: result.password,
                 savePassword: result.saveToKeychain,
                 usedStoredCredential: false,
-                receiveAudio: receiveAudio
+                receiveAudio: receiveAudio,
+                opensFileTransferUpload: opensFileTransferUpload
             )
         }
     }
@@ -4328,7 +4442,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         password: String,
         savePassword: Bool,
         usedStoredCredential: Bool,
-        receiveAudio requestedReceiveAudio: Bool? = nil
+        receiveAudio requestedReceiveAudio: Bool? = nil,
+        opensFileTransferUpload: Bool = false
     ) {
         guard activeAttemptID == nil, let server = catalog.server, server.isComplete else { return }
         let receiveAudio = requestedReceiveAudio
@@ -4348,6 +4463,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         let attemptID = UUID()
         viewerAudioOptInForNextConnection = false
         viewerSessionReceiveAudio = receiveAudio
+        viewerOpenFileTransferUploadWhenStreaming = opensFileTransferUpload
         activeAttemptID = attemptID
         viewerRecoveryDeviceID = deviceID
         pendingProductConnection = PendingProductConnection(
@@ -4434,6 +4550,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             $0.savePassword || $0.usedStoredCredential
         } ?? false
         let retryReceiveAudio = pendingProductConnection?.receiveAudio ?? false
+        let retryOpenFileTransferUpload =
+            viewerOpenFileTransferUploadWhenStreaming
         let shouldRetryPassword = event.state == .passwordRequired || event.state == .authenticationFailed
         activeAttemptID = nil
         showHomeUI(error: Self.connectionStateText(event))
@@ -4444,7 +4562,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                 peerID: retryPeerID,
                 saveByDefault: retrySaveByDefault,
                 message: "已保存或刚输入的密码不可用，请重新输入。认证成功后才会更新钥匙串。",
-                receiveAudio: retryReceiveAudio
+                receiveAudio: retryReceiveAudio,
+                opensFileTransferUpload: retryOpenFileTransferUpload
             )
         }
     }
@@ -4454,6 +4573,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         switch action {
         case .connect:
             connectSavedDevice(device)
+        case .sendFiles:
+            connectSavedDevice(device, opensFileTransferUpload: true)
         case .toggleFavorite:
             var updated = catalog
             _ = updated.updateDevice(id: deviceID, isFavorite: !device.isFavorite)
@@ -5191,6 +5312,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             chrome?.setFileTransferAvailable(
                 !viewerFileTransferActionConsumed
             )
+            if viewerOpenFileTransferUploadWhenStreaming {
+                viewerOpenFileTransferUploadWhenStreaming = false
+                DispatchQueue.main.async { [weak self] in
+                    self?.handleViewerFileTransferUploadAction()
+                }
+            }
         } else if Self.isTerminalState(event.state) {
             chrome?.setFileTransferAvailable(false)
         }
@@ -5631,6 +5758,23 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         baseConfiguration: CoreConnectionConfig
     ) -> Bool {
         stopViewerFileTransfer()
+        let verifiedCredentialDeviceID = pendingProductConnection.flatMap {
+            $0.usedStoredCredential || $0.savePassword ? $0.deviceID : nil
+        }
+        let context = ViewerFileTransferConnectionContext(
+            baseConfiguration: baseConfiguration,
+            credentialDeviceID: verifiedCredentialDeviceID
+        )
+        return installViewerFileTransferComposition(
+            coreURL: coreURL,
+            context: context
+        )
+    }
+
+    private func installViewerFileTransferComposition(
+        coreURL: URL,
+        context: ViewerFileTransferConnectionContext
+    ) -> Bool {
         guard let sessionEpoch = nextViewerFileTransferSessionEpoch(),
               let composition = ViewerFileTransferProductComposition(
                   sessionEpoch: sessionEpoch,
@@ -5656,15 +5800,25 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         else { return false }
         viewerFileTransferComposition = composition
         viewerFileTransferActionConsumed = false
-        let verifiedCredentialDeviceID = pendingProductConnection.flatMap {
-            $0.usedStoredCredential || $0.savePassword ? $0.deviceID : nil
-        }
-        viewerFileTransferConnectionContext =
-            ViewerFileTransferConnectionContext(
-                baseConfiguration: baseConfiguration,
-                credentialDeviceID: verifiedCredentialDeviceID
-            )
+        viewerFileTransferConnectionContext = context
+        viewerFileTransferCoreURL = coreURL
         return true
+    }
+
+    private func rearmViewerFileTransferComposition() -> Bool {
+        guard let coreURL = viewerFileTransferCoreURL,
+              let context = viewerFileTransferConnectionContext
+        else { return false }
+        let previous = viewerFileTransferComposition
+        viewerFileTransferComposition = nil
+        viewerFileTransferActiveTransferID = nil
+        viewerFileTransferActiveDirection = nil
+        viewerFileTransferActionConsumed = false
+        _ = previous?.teardown()
+        return installViewerFileTransferComposition(
+            coreURL: coreURL,
+            context: context
+        )
     }
 
     private func stopViewerFileTransfer() {
@@ -5680,6 +5834,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         viewerFileTransferActiveDirection = nil
         viewerFileTransferActionConsumed = false
         viewerFileTransferConnectionContext = nil
+        viewerFileTransferCoreURL = nil
         viewerChrome?.updateFileTransferAction(active: false)
         viewerChrome?.setFileTransferAvailable(false)
         destinationPicker?.cancel()
@@ -5695,6 +5850,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     private func handleViewerFileTransferAction() {
+        // Recursive manifest authority is intentionally one-shot per
+        // composition; terminal completion rearms a fresh composition.
         guard let composition = viewerFileTransferComposition else { return }
         if let transferID = viewerFileTransferActiveTransferID {
             guard viewerFileTransferActiveDirection == .download else { return }
@@ -5849,7 +6006,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             case .unavailable:
                 viewerFileTransferActionConsumed = true
                 viewerChrome?.updateState("文件接收启动失败", isError: true)
-                viewerChrome?.setFileTransferAvailable(false)
+                viewerChrome?.setFileTransferAvailable(
+                    rearmViewerFileTransferComposition()
+                )
                 outcome = (nil, .download)
             }
         case .upload(let selectedURLs):
@@ -5869,7 +6028,9 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             case .unavailable:
                 viewerFileTransferActionConsumed = true
                 viewerChrome?.updateState("文件发送启动失败", isError: true)
-                viewerChrome?.setFileTransferAvailable(false)
+                viewerChrome?.setFileTransferAvailable(
+                    rearmViewerFileTransferComposition()
+                )
                 outcome = (nil, .upload)
             }
         }
@@ -5902,12 +6063,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         switch event {
         case .connectionReady:
             viewerChrome?.updateState("文件传输通道已就绪", isError: false)
-        case .connectionFailed:
+        case .connectionFailed(_, let failure):
             viewerFileTransferActiveTransferID = nil
             viewerFileTransferActiveDirection = nil
             viewerChrome?.updateFileTransferAction(active: false)
             viewerChrome?.setFileTransferAvailable(false)
-            viewerChrome?.updateState("文件传输通道不可用", isError: true)
+            viewerChrome?.updateState(
+                viewerFileTransferProductFailureText(failure),
+                isError: true
+            )
         case .transfer(let transferEvent):
             handleViewerFileTransferSessionEvent(transferEvent)
         }
@@ -5953,17 +6117,99 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                 active: false,
                 direction: direction
             )
-            // Recursive manifest authority is intentionally one-shot per
-            // dedicated epoch, so another action requires a new Viewer attempt.
-            viewerChrome?.setFileTransferAvailable(false)
             switch outcome {
             case .completed:
                 viewerChrome?.updateState("文件\(verb)完成", isError: false)
             case .cancelled:
                 viewerChrome?.updateState("文件\(verb)已取消", isError: false)
-            case .failed:
-                viewerChrome?.updateState("文件\(verb)失败", isError: true)
+            case .failed(let failure):
+                viewerChrome?.updateState(
+                    "文件\(verb)失败：\(viewerFileTransferSessionFailureText(failure))",
+                    isError: true
+                )
             }
+            viewerChrome?.setFileTransferAvailable(
+                rearmViewerFileTransferComposition()
+            )
+        }
+    }
+
+    private func viewerFileTransferProductFailureText(
+        _ failure: ViewerFileTransferProductFailure
+    ) -> String {
+        switch failure {
+        case .coreUnavailable:
+            "文件传输组件不可用"
+        case .authenticationRejected:
+            "文件传输认证失败"
+        case .connectionClosed:
+            "文件传输连接已断开"
+        case .protocolViolation:
+            "文件传输通道协议异常"
+        }
+    }
+
+    private func viewerFileTransferSessionFailureText(
+        _ failure: ViewerFileTransferSessionFailure
+    ) -> String {
+        switch failure {
+        case .manifest(let failure):
+            "远端文件清单\(viewerFileTransferFailureText(failure))"
+        case .receive(let failure):
+            switch failure {
+            case .protocolViolation:
+                "接收协议异常"
+            case .localIO:
+                "本地写入失败"
+            case .durabilityUnconfirmed:
+                "本地落盘未确认"
+            case .connectionClosed:
+                "连接已断开"
+            case .remote(let failure):
+                "远端\(coreFileTransferFailureText(failure))"
+            }
+        case .coreCommandRejected:
+            "传输命令未被接受"
+        case .protocolViolation:
+            "传输协议异常"
+        case .connectionClosed:
+            "连接已断开"
+        }
+    }
+
+    private func viewerFileTransferFailureText(
+        _ failure: ViewerFileTransferFailure
+    ) -> String {
+        switch failure {
+        case .rejected:
+            "被拒绝"
+        case .unavailable:
+            "不可用"
+        case .protocolViolation:
+            "协议异常"
+        case .localIO:
+            "本地读写失败"
+        case .connectionClosed:
+            "连接已断开"
+        }
+    }
+
+    private func coreFileTransferFailureText(
+        _ failure: CoreFileTransferFailure
+    ) -> String {
+        switch failure {
+        case .none:
+            "返回了无效失败状态"
+        case .rejected:
+            "拒绝接收"
+        case .unavailable:
+            "接收服务不可用"
+        case .protocolViolation:
+            "报告协议异常"
+        case .localIO:
+            "报告读写失败"
+        case .connectionClosed:
+            "已断开连接"
         }
     }
 
