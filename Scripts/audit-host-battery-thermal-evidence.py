@@ -115,8 +115,8 @@ def main() -> int:
             for marker in (
                 'normalizedThermalState == "critical"',
                 'normalizedThermalState == "fair" || normalizedThermalState == "serious"',
-                "case .moderate: return min(maximumFramesPerSecond, 15)",
-                "case .severe: return min(maximumFramesPerSecond, 5)",
+                "if conservative { return min(maximumFramesPerSecond, 15) }",
+                "if conservative { return min(maximumFramesPerSecond, 5) }",
             )
         ),
         "baseMatrixExplicitlyLeavesItemNineOpen": (
@@ -164,7 +164,8 @@ def main() -> int:
             cadence, 'normalizedThermalState == "critical"'
         ),
         "thermalCadenceCeiling": line_number(
-            cadence, "case .severe: return min(maximumFramesPerSecond, 5)"
+            cadence,
+            "if conservative { return min(maximumFramesPerSecond, 5) }",
         ),
         "matrixUncoveredItems": line_number(
             matrix, '"uncoveredSection15_2Items": [7, 9, 10]'
