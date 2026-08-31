@@ -264,7 +264,8 @@ def main() -> int:
     ))
     h4 = all(marker in sources["app"] + sources["mode"] + sources["agent_bootstrap"] + sources["agent"] + sources["registration"] + sources["readiness"] + sources["xpc_gate"] + sources["xpc_session"] + sources["bootstrap_reader"] + sources["single_writer"] + sources["launch_agent"] + sources["host_bridge"] for marker in (
         "exit(HostAgentProcessBootstrap.run())",
-        "arguments.dropFirst().contains(\"--host-agent\")",
+        "let roleArguments = Array(arguments.dropFirst())",
+        "roleArguments.contains(\"--host-agent\")",
         "HostAgentProcessProductEntry.run",
         "HostAgentProcessRunner.run",
         "SMAppService.agent(",

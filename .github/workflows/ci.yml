@@ -32,6 +32,9 @@ jobs:
       - name: Validate shell scripts
         run: find Scripts -type f -name '*.sh' -print0 | xargs -0 -n 1 zsh -n
 
+      - name: Bootstrap pinned RustDesk source
+        run: Scripts/bootstrap-rustdesk-core.sh
+
       - name: Run Python script tests
         run: python3 -m unittest discover -s Tests/ScriptTests -p 'test_*.py'
 

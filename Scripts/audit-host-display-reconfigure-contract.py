@@ -215,12 +215,15 @@ def main() -> int:
             )
             and "configuration.displayIndex >= 0" in sources["route_owner"]
         ),
-        "screenCaptureReenumeratesAndBoundsChecksFreshIndex": ordered(
-            sources["capture"],
-            "SCShareableContent.excludingDesktopWindows(",
-            "content.displays.indices.contains(configuration.displayIndex)",
-            "let display = content.displays[configuration.displayIndex]",
-            "SCContentFilter(",
+        "screenCaptureReenumeratesAndBoundsChecksFreshIndex": (
+            "SCShareableContent.getExcludingDesktopWindows(" in sources["capture"]
+            and ordered(
+                sources["capture"],
+                "let content = try await Self.fastShareableContent()",
+                "content.displays.indices.contains(configuration.displayIndex)",
+                "let display = content.displays[configuration.displayIndex]",
+                "SCContentFilter(",
+            )
         ),
         "routeOwnerRejectsLateGenerationCallbacks": all(
             marker in sources["route_owner"]
@@ -267,7 +270,7 @@ def main() -> int:
         ),
         "captureReenumeration": line_number(
             sources["capture"],
-            "SCShareableContent.excludingDesktopWindows(",
+            "let content = try await Self.fastShareableContent()",
         ),
     }
 
