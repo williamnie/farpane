@@ -754,11 +754,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     func applicationDidResignActive(_ notification: Notification) {
-        keyboardController?.setApplicationActive(false)
+        reconcileViewerKeyboardFocus(applicationActive: false)
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        keyboardController?.setApplicationActive(true)
+        reconcileViewerKeyboardFocus(applicationActive: true)
         reconcileHostProductOwnership()
         MainActorBackport.assumeIsolated {
             if hostAudioPolicyChangeAllowed() {
@@ -767,6 +767,25 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             refreshHomeUI()
         }
         hostAgentBackgroundActivationOwner.refreshRegistration()
+    }
+
+    func applicationDidChangeScreenParameters(_ notification: Notification) {
+        reconcileViewerKeyboardFocus()
+    }
+
+    func windowDidChangeScreen(_ notification: Notification) {
+        guard notification.object as? NSWindow === window else { return }
+        reconcileViewerKeyboardFocus()
+    }
+
+    private func reconcileViewerKeyboardFocus(
+        applicationActive: Bool? = nil
+    ) {
+        guard viewerChrome != nil, let window else { return }
+        keyboardController?.reconcileFocus(
+            applicationActive: applicationActive ?? NSApplication.shared.isActive,
+            windowKey: window.isKeyWindow
+        )
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -4804,10 +4823,10 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         homeView = nil
         startedAt = Date()
 
-        let sendKey: (CoreKeyEvent) -> Int32 = { [weak self] event in
+        let sendKey: @Sendable (CoreKeyEvent) -> Int32 = { [weak self] event in
             self?.coreClient?.sendKey(event) ?? -3
         }
-        let recordInputResult: (String, Int32) -> Void = { [weak chrome, weak metrics] category, status in
+        let recordInputResult: @Sendable (String, Int32) -> Void = { [weak chrome, weak metrics] category, status in
             if status == 0 {
                 metrics?.recordInput(category: category, accepted: true)
             } else if status == -6 {
@@ -4828,9 +4847,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                 sendKey: sendKey,
                 recordInputResult: recordInputResult
             )
-            keyboardController.onStatusChange = { [weak chrome, weak view] active, message, isError, didActivate in
+            keyboardController.onStatusChange = {
+                [weak chrome, weak view] active, resumePending, message, isError, didActivate in
                 view?.setKeyboardInputEnabled(!active)
-                chrome?.updateKeyboardGrab(active: active, message: message, isError: isError)
+                chrome?.updateKeyboardGrab(
+                    active: active,
+                    resumePending: resumePending,
+                    message: message,
+                    isError: isError
+                )
                 if didActivate { metrics.recordExclusiveKeyboardActivation() }
                 if isError { metrics.recordExclusiveKeyboardFailure() }
             }

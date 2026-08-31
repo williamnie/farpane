@@ -20,6 +20,7 @@ private enum ExclusiveTapOutcome {
 final class ExclusiveKeyboardController: @unchecked Sendable {
     typealias StatusHandler = (
         _ active: Bool,
+        _ resumePending: Bool,
         _ message: String?,
         _ isError: Bool,
         _ didActivate: Bool
@@ -27,8 +28,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
 
     var onStatusChange: StatusHandler?
 
-    private let sendKey: (CoreKeyEvent) -> Int32
-    private let recordInputResult: (String, Int32) -> Void
+    private let eventDispatcher: ExclusiveKeyboardEventDispatcher
     private let lock = NSLock()
     private var stateMachine = ExclusiveKeyboardStateMachine()
     private var focusIntent = ExclusiveKeyboardFocusIntent()
@@ -39,11 +39,13 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
     private var displaySelectionInputQuiesced = false
 
     init(
-        sendKey: @escaping (CoreKeyEvent) -> Int32,
-        recordInputResult: @escaping (String, Int32) -> Void
+        sendKey: @escaping @Sendable (CoreKeyEvent) -> Int32,
+        recordInputResult: @escaping @Sendable (String, Int32) -> Void
     ) {
-        self.sendKey = sendKey
-        self.recordInputResult = recordInputResult
+        eventDispatcher = ExclusiveKeyboardEventDispatcher(
+            send: sendKey,
+            recordResult: recordInputResult
+        )
     }
 
     deinit {
@@ -55,18 +57,48 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
     }
 
     func toggle() {
-        let shouldDisable = lock.withLock { () -> Bool in
+        enum Action {
+            case disableActive
+            case cancelPending
+            case request
+        }
+        let action = lock.withLock { () -> Action in
             if stateMachine.state != .inactive {
+                return .disableActive
+            }
+            if focusIntent.shouldResume {
                 focusIntent.cancel()
-                return true
+                return .cancelPending
             }
             focusIntent.request()
-            return false
+            return .request
         }
-        if shouldDisable {
+        switch action {
+        case .disableActive:
             disable(message: nil, isError: false)
-        } else {
+        case .cancelPending:
+            notifyStatus(
+                active: false,
+                resumePending: false,
+                message: "已取消键盘独占自动恢复",
+                isError: false,
+                didActivate: false
+            )
+        case .request:
             resumeIfRequested()
+        }
+    }
+
+    func reconcileFocus(applicationActive: Bool, windowKey: Bool) {
+        if !applicationActive {
+            setApplicationActive(false)
+            setWindowKey(windowKey)
+        } else if !windowKey {
+            setWindowKey(false)
+            setApplicationActive(true)
+        } else {
+            setApplicationActive(true)
+            setWindowKey(true)
         }
     }
 
@@ -106,6 +138,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
             lock.withLock { focusIntent.cancel() }
             notifyStatus(
                 active: false,
+                resumePending: false,
                 message: "请在系统设置授予辅助功能和输入监控权限，然后重新点击“独占键盘”",
                 isError: true,
                 didActivate: false
@@ -128,6 +161,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
             lock.withLock { focusIntent.cancel() }
             notifyStatus(
                 active: false,
+                resumePending: false,
                 message: "无法建立键盘独占，请检查系统权限后重试",
                 isError: true,
                 didActivate: false
@@ -158,6 +192,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
         thread.start()
         notifyStatus(
             active: true,
+            resumePending: false,
             message: "键盘独占中 · ⌃⌥⇧Esc 退出",
             isError: false,
             didActivate: true
@@ -170,10 +205,25 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
         notify: Bool = true,
         preserveIntent: Bool = false
     ) {
-        let resources = lock.withLock { () -> (Bool, CFMachPort?, CFRunLoopSource?, CFRunLoop?, [CoreKey]) in
+        let resources = lock.withLock { () -> (
+            resumePending: Bool,
+            shouldNotify: Bool,
+            tap: CFMachPort?,
+            source: CFRunLoopSource?,
+            runLoop: CFRunLoop?,
+            keys: [CoreKey]
+        ) in
+            let intentWasRequested = focusIntent.shouldResume
             if !preserveIntent { focusIntent.cancel() }
             let active = stateMachine.state != .inactive || tap != nil
-            let resources = (active, tap, tapSource, tapRunLoop, Array(remoteHeldKeys.values))
+            let resources = (
+                resumePending: focusIntent.shouldResume,
+                shouldNotify: active || (!preserveIntent && intentWasRequested),
+                tap: tap,
+                source: tapSource,
+                runLoop: tapRunLoop,
+                keys: Array(remoteHeldKeys.values)
+            )
             tap = nil
             tapSource = nil
             tapRunLoop = nil
@@ -181,16 +231,21 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
             stateMachine.deactivate()
             return resources
         }
-        guard resources.0 else { return }
-        releaseRemoteKeys(resources.4)
-        if let tap = resources.1 {
+        releaseRemoteKeys(resources.keys)
+        if let tap = resources.tap {
             CGEvent.tapEnable(tap: tap, enable: false)
             CFMachPortInvalidate(tap)
         }
-        if let source = resources.2 { CFRunLoopSourceInvalidate(source) }
-        if let runLoop = resources.3 { CFRunLoopStop(runLoop) }
-        if notify {
-            notifyStatus(active: false, message: message, isError: isError, didActivate: false)
+        if let source = resources.source { CFRunLoopSourceInvalidate(source) }
+        if let runLoop = resources.runLoop { CFRunLoopStop(runLoop) }
+        if notify, resources.shouldNotify {
+            notifyStatus(
+                active: false,
+                resumePending: resources.resumePending,
+                message: message,
+                isError: isError,
+                didActivate: false
+            )
         }
     }
 
@@ -300,6 +355,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
         case .beganExit:
             notifyStatus(
                 active: true,
+                resumePending: false,
                 message: "松开 ⌃⌥⇧Esc 以退出键盘独占",
                 isError: false,
                 didActivate: false
@@ -326,8 +382,7 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
     }
 
     private func sendAndRecord(_ event: CoreKeyEvent) {
-        let status = sendKey(event)
-        recordInputResult(event.isDown ? "key-down" : "key-up", status)
+        eventDispatcher.enqueue(event)
     }
 
     private func releaseAllCapturedKeys() {
@@ -357,12 +412,13 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
 
     private func notifyStatus(
         active: Bool,
+        resumePending: Bool,
         message: String?,
         isError: Bool,
         didActivate: Bool
     ) {
         DispatchQueue.main.async { [weak self] in
-            self?.onStatusChange?(active, message, isError, didActivate)
+            self?.onStatusChange?(active, resumePending, message, isError, didActivate)
         }
     }
 }

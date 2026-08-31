@@ -139,6 +139,9 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
         let exclusive = try String(contentsOf: repository.appendingPathComponent(
             "Sources/RustDeskNative/ExclusiveKeyboardController.swift"
         ))
+        let viewerUI = try String(contentsOf: repository.appendingPathComponent(
+            "Sources/RustDeskNative/ViewerUI.swift"
+        ))
 
         for marker in [
             "ViewerDisplaySelectionInputOwner(",
@@ -152,6 +155,9 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
             "private func stopViewerDisplaySelectionInput()",
             "chrome.onSelectDisplay =",
             "updateDisplaySelection(",
+            "applicationDidChangeScreenParameters(",
+            "windowDidChangeScreen(",
+            "reconcileViewerKeyboardFocus(",
         ] {
             XCTAssertTrue(app.contains(marker), "missing App marker: \(marker)")
         }
@@ -176,9 +182,22 @@ final class ViewerDisplaySelectionInputOwnerTests: XCTestCase {
             "!displaySelectionInputQuiesced",
             "func setDisplaySelectionInputQuiesced(_ quiesced: Bool)",
             "preserveIntent: true",
+            "func reconcileFocus(applicationActive: Bool, windowKey: Bool)",
         ] {
             XCTAssertTrue(exclusive.contains(marker), "missing exclusive marker: \(marker)")
         }
+        for marker in [
+            "private var keyboardGrabResumePending = false",
+            "let requested = active || resumePending",
+            "键盘独占已暂时暂停；返回会话后自动恢复",
+        ] {
+            XCTAssertTrue(viewerUI.contains(marker), "missing Viewer UI marker: \(marker)")
+        }
+        XCTAssertGreaterThanOrEqual(
+            viewerUI.components(separatedBy: "setControlsExpanded(false)").count - 1,
+            4,
+            "keyboard and display actions must close the local control overlay"
+        )
     }
 
     func testPresentationProjectsReadyPendingAndFailureWithoutUsingNameAsIdentity() throws {

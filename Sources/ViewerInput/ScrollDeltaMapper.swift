@@ -14,11 +14,23 @@ public struct RemoteScrollDelta: Equatable, Sendable {
 }
 
 public enum ScrollDeltaMapper {
+    private static let magnificationToPixelScale = 1_000.0
+
     public static func map(deltaX: Double, deltaY: Double, precise: Bool) -> RemoteScrollDelta? {
         let x = quantize(deltaX, precise: precise)
         let y = quantize(deltaY, precise: precise)
         guard x != 0 || y != 0 else { return nil }
         return RemoteScrollDelta(kind: precise ? .preciseScroll : .scroll, x: x, y: y)
+    }
+
+    /// Maps AppKit's fractional magnification delta to the pixel-scale scroll
+    /// convention used by RustDesk's touch gesture implementation.
+    public static func map(magnification: Double) -> RemoteScrollDelta? {
+        map(
+            deltaX: 0,
+            deltaY: magnification * magnificationToPixelScale,
+            precise: true
+        )
     }
 
     private static func quantize(_ value: Double, precise: Bool) -> Int32 {

@@ -25,6 +25,7 @@ final class ViewerMetalView: MTKView {
     private var markedSelection = NSRange(location: 0, length: 0)
     private var keyboardInputEnabled = true
     private var displaySelectionInputQuiesced = false
+    private var syntheticMagnificationCommandHeld = false
 
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
@@ -106,6 +107,37 @@ final class ViewerMetalView: MTKView {
             ),
             category: "scroll"
         )
+    }
+
+    override func magnify(with event: NSEvent) {
+        guard !displaySelectionInputQuiesced else {
+            releaseSyntheticMagnificationCommand()
+            return
+        }
+        guard map(event, clamp: false) != nil else {
+            releaseSyntheticMagnificationCommand()
+            return
+        }
+
+        if let delta = ScrollDeltaMapper.map(magnification: event.magnification) {
+            holdSyntheticMagnificationCommandIfNeeded()
+            flushPendingMove()
+            var modifiers = MacKeyMapper.modifiers(from: event.modifierFlags)
+            modifiers.insert(.command)
+            send(
+                CorePointerEvent(
+                    kind: delta.kind,
+                    scrollX: delta.x,
+                    scrollY: delta.y,
+                    modifiers: modifiers
+                ),
+                category: "scroll"
+            )
+        }
+
+        if event.phase.contains(.ended) || event.phase.contains(.cancelled) {
+            releaseSyntheticMagnificationCommand()
+        }
     }
 
     override func keyDown(with event: NSEvent) {
@@ -264,6 +296,7 @@ final class ViewerMetalView: MTKView {
             let status = sendKey?(CoreKeyEvent(key: key, isDown: false)) ?? -3
             recordInputResult?("key-up", status)
         }
+        releaseSyntheticMagnificationCommand()
     }
 
     func releaseAllInput() {
@@ -294,6 +327,29 @@ final class ViewerMetalView: MTKView {
             }
         }
         heldButtons = []
+    }
+
+    private func holdSyntheticMagnificationCommandIfNeeded() {
+        guard !syntheticMagnificationCommandHeld, !physicalCommandIsHeld else { return }
+        syntheticMagnificationCommandHeld = true
+        let status = sendKey?(
+            CoreKeyEvent(key: .special(.command), isDown: true)
+        ) ?? -3
+        recordInputResult?("key-down", status)
+    }
+
+    private func releaseSyntheticMagnificationCommand() {
+        guard syntheticMagnificationCommandHeld else { return }
+        syntheticMagnificationCommandHeld = false
+        guard !physicalCommandIsHeld else { return }
+        let status = sendKey?(
+            CoreKeyEvent(key: .special(.command), isDown: false)
+        ) ?? -3
+        recordInputResult?("key-up", status)
+    }
+
+    private var physicalCommandIsHeld: Bool {
+        heldKeys.values.contains(.special(.command))
     }
 }
 
