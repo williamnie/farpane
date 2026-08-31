@@ -41,6 +41,7 @@ final class ViewerChromeView: NSView {
     private let showsAudioStatus: Bool
     private var hudVisible: Bool
     private var keyboardGrabActive = false
+    private var keyboardGrabResumePending = false
     private var keyboardGrabAvailable = false
     private var fileTransferAvailable = false
     private var fileTransferActive = false
@@ -143,17 +144,30 @@ final class ViewerChromeView: NSView {
 
     func setKeyboardGrabAvailable(_ available: Bool) {
         keyboardGrabAvailable = available
-        keyboardGrabButton.isEnabled = available || keyboardGrabActive
+        keyboardGrabButton.isEnabled = available
+            || keyboardGrabActive
+            || keyboardGrabResumePending
     }
 
-    func updateKeyboardGrab(active: Bool, message: String?, isError: Bool) {
+    func updateKeyboardGrab(
+        active: Bool,
+        resumePending: Bool,
+        message: String?,
+        isError: Bool
+    ) {
         keyboardGrabActive = active
-        collapsedButton.title = active ? "⌨︎" : "●"
-        collapsedButton.toolTip = active
-            ? "键盘独占已开启；点击打开本地控制"
-            : "打开会话控制"
-        keyboardGrabButton.title = active ? "退出独占" : "独占键盘"
-        keyboardGrabButton.isEnabled = active || keyboardGrabAvailable
+        keyboardGrabResumePending = resumePending
+        let requested = active || resumePending
+        collapsedButton.title = requested ? "⌨︎" : "●"
+        if active {
+            collapsedButton.toolTip = "键盘独占已开启；点击打开本地控制"
+        } else if resumePending {
+            collapsedButton.toolTip = "键盘独占已暂时暂停；返回会话后自动恢复"
+        } else {
+            collapsedButton.toolTip = "打开会话控制"
+        }
+        keyboardGrabButton.title = requested ? "退出独占" : "独占键盘"
+        keyboardGrabButton.isEnabled = requested || keyboardGrabAvailable
         keyboardStatusLabel.stringValue = message ?? ""
         keyboardStatusLabel.textColor = isError ? .systemRed : .systemOrange
         keyboardStatusLabel.isHidden = message?.isEmpty != false
@@ -484,7 +498,7 @@ final class ViewerChromeView: NSView {
 
     @objc private func toggleKeyboardGrab() {
         onToggleKeyboardGrab?()
-        scheduleCollapse()
+        setControlsExpanded(false)
     }
 
     @objc private func openKeyboardPermissions() {
@@ -506,7 +520,7 @@ final class ViewerChromeView: NSView {
         let tag = displaySelector.selectedTag()
         guard tag >= 0, let displayIndex = UInt32(exactly: tag) else { return }
         onSelectDisplay?(displayIndex)
-        scheduleCollapse()
+        setControlsExpanded(false)
     }
 
     @objc private func disconnect() { onDisconnect?() }
