@@ -47,7 +47,7 @@ final class HostAgentTerminationRequestLatchTests: XCTestCase {
     func testDeliveredHandlerCaptureIsReleased() {
         let latch = HostAgentTerminationRequestLatch()
         var capture: LatchTestCapture? = LatchTestCapture()
-        weak let weakCapture = capture
+        weak var weakCapture = capture
         var deliveries = 0
 
         XCTAssertTrue(latch.bind { [capture] in

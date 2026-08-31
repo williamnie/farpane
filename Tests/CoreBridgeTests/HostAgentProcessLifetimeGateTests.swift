@@ -29,7 +29,7 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
     func testRetainsRuntimeUntilFirstTerminationAndStopsExactlyOnce() throws {
         let recorder = LifetimeEventRecorder()
         var runtime: LifetimeTestRuntime? = .init(recorder: recorder)
-        weak let weakRuntime = runtime
+        weak var weakRuntime = runtime
         let gate = HostAgentProcessLifetimeGate(
             runtime: try XCTUnwrap(runtime),
             stopRuntime: { runtime, reason in
@@ -58,7 +58,7 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
             recorder: recorder,
             stopFails: true
         )
-        weak let weakRuntime = runtime
+        weak var weakRuntime = runtime
         let gate = HostAgentProcessLifetimeGate(
             runtime: try XCTUnwrap(runtime),
             stopRuntime: { runtime, reason in
@@ -85,7 +85,7 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
         let stopEntered = DispatchSemaphore(value: 0)
         let releaseStop = DispatchSemaphore(value: 0)
         var runtime: NSObject? = NSObject()
-        weak let weakRuntime = runtime
+        weak var weakRuntime = runtime
         let gate = HostAgentProcessLifetimeGate(
             runtime: runtime!,
             stopRuntime: { _, reason in
