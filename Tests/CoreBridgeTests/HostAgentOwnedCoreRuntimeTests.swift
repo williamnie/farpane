@@ -7,7 +7,7 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         let recorder = HostAgentLifecycleRecorder()
         let client = OwnedRuntimeRecordingClient(recorder: recorder)
         var bootstrapOwner: HostAgentTestBootstrapOwner? = .init(recorder: recorder)
-        weak let weakBootstrapOwner = bootstrapOwner
+        weak var weakBootstrapOwner = bootstrapOwner
 
         let runtime = try HostAgentOwnedCoreRuntime.start(
             bootstrapOwner: try XCTUnwrap(bootstrapOwner)
@@ -37,7 +37,7 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         let recorder = HostAgentLifecycleRecorder()
         let client = OwnedRuntimeRecordingClient(recorder: recorder)
         var bootstrapOwner: HostAgentTestBootstrapOwner? = .init(recorder: recorder)
-        weak let weakBootstrapOwner = bootstrapOwner
+        weak var weakBootstrapOwner = bootstrapOwner
 
         do {
             let runtime = try HostAgentOwnedCoreRuntime.start(
@@ -61,7 +61,7 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
     func testRuntimeFactoryFailureReleasesBootstrapOwnerWithoutCoreStop() throws {
         let recorder = HostAgentLifecycleRecorder()
         var bootstrapOwner: HostAgentTestBootstrapOwner? = .init(recorder: recorder)
-        weak let weakBootstrapOwner = bootstrapOwner
+        weak var weakBootstrapOwner = bootstrapOwner
 
         XCTAssertThrowsError(
             try HostAgentOwnedCoreRuntime.start(
@@ -87,7 +87,7 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         let recorder = HostAgentLifecycleRecorder()
         let client = OwnedRuntimeRecordingClient(recorder: recorder, failStop: true)
         var bootstrapOwner: HostAgentTestBootstrapOwner? = .init(recorder: recorder)
-        weak let weakBootstrapOwner = bootstrapOwner
+        weak var weakBootstrapOwner = bootstrapOwner
         let runtime = try HostAgentOwnedCoreRuntime.start(
             bootstrapOwner: try XCTUnwrap(bootstrapOwner)
         ) { _ in
@@ -112,7 +112,7 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         let recorder = HostAgentLifecycleRecorder()
         let client = OwnedRuntimeRecordingClient(recorder: recorder)
         var bootstrapOwner: HostAgentTestBootstrapOwner? = .init(recorder: recorder)
-        weak let weakBootstrapOwner = bootstrapOwner
+        weak var weakBootstrapOwner = bootstrapOwner
         let runtime = try HostAgentOwnedCoreRuntime.start(
             bootstrapOwner: try XCTUnwrap(bootstrapOwner)
         ) { _ in
