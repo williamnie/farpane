@@ -77,8 +77,8 @@ def main() -> int:
             )
         ),
         "productClaimsOptionalDataCapabilitiesDisabled": (
-            "音频和文件传输产品能力默认关闭" in readme
-            and "Audio and file transfer remain product-default-off" in readme
+            "音频、剪贴板和文件传输默认关闭" in readme
+            and "Audio, clipboard, and file transfer are default-off" in readme
         ),
         "upstreamMissingEnableOptionDefaultsOn": all(
             marker in config
