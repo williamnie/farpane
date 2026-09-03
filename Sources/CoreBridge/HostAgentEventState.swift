@@ -251,9 +251,8 @@ package final class HostAgentEventState: @unchecked Sendable {
         return .accepted(sequence: sequence)
     }
 
-    /// Appends an Agent-local, payload-free resnapshot marker when a periodic
-    /// authoritative Core snapshot changes semantic session availability
-    /// without emitting a Core event of its own.
+    /// 当 Core 轮询发现注册状态或会话可用性变化、但未发出 Core 事件时，
+    /// 追加不含业务数据的快照刷新通知。
     @discardableResult
     package func ingestSnapshotChanged(
         hostInstanceID candidateHostInstanceID: String,

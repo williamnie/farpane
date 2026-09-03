@@ -534,8 +534,10 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         to snapshot: HostCoreSnapshot,
         request: RefreshRequest
     ) -> Bool {
+        // 注册状态也可能仅通过轮询变化，必须通知前台重新读取就绪状态。
         guard let previous,
-              previous.sessionAvailability != snapshot.sessionAvailability
+              previous.registrationStatus != snapshot.registrationStatus
+                || previous.sessionAvailability != snapshot.sessionAvailability
                 || previous.sessionUnavailableReason
                     != snapshot.sessionUnavailableReason,
               let eventState

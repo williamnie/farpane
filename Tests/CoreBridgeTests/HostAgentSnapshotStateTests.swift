@@ -499,6 +499,60 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(eventState.snapshot().latestSequence, 1)
     }
 
+    func testCoordinatorNotifiesRegistrationChangesWithoutRepeatingStablePolls()
+        throws
+    {
+        for (initial, updated) in [("pending", "ready"), ("ready", "pending")] {
+            let state = HostAgentSnapshotState()
+            let eventState = try HostAgentEventState()
+            let coordinator = HostAgentSnapshotRefreshCoordinator(
+                state: state,
+                eventState: eventState
+            )
+            let initialSnapshot = try coreSnapshot(
+                host: "host-a",
+                observedAt: 100,
+                registrationStatus: initial
+            )
+            let updatedSnapshot = try coreSnapshot(
+                host: "host-a",
+                observedAt: 101,
+                registrationStatus: updated
+            )
+            var current = initialSnapshot
+            XCTAssertTrue(coordinator.bind(
+                copySnapshot: { current },
+                onIdentityInvalidationRequired: { _ in
+                    XCTFail("注册状态变化不应使后台身份失效")
+                }
+            ))
+            let initialCursor = state.snapshot().eventSequence
+            XCTAssertEqual(eventState.snapshot().latestSequence, initialCursor)
+
+            current = updatedSnapshot
+            coordinator.requestPoll()
+
+            XCTAssertEqual(state.snapshot().projection?.registrationStatus, updated)
+            XCTAssertEqual(state.snapshot().eventSequence, initialCursor + 1)
+            guard case .batch(let records, let latestSequence, false) =
+                try eventState.replay(afterSequence: initialCursor)
+            else { return XCTFail("前台必须收到重新读取快照的通知") }
+            XCTAssertEqual(latestSequence, initialCursor + 1)
+            XCTAssertEqual(records.count, 1)
+            guard case .snapshotChanged(let sentAt) = records.first?.payload
+            else { return XCTFail("expected snapshot change marker") }
+            XCTAssertEqual(sentAt, 101)
+
+            coordinator.requestPoll()
+            XCTAssertEqual(state.snapshot().eventSequence, latestSequence)
+            guard case .upToDate(let unchangedSequence) =
+                try eventState.replay(afterSequence: latestSequence)
+            else { return XCTFail("稳定状态不应反复通知前台") }
+            XCTAssertEqual(unchangedSequence, latestSequence)
+            coordinator.cancelAndWait()
+        }
+    }
+
     func testCoordinatorDrainsRequestArrivingDuringRefresh() throws {
         let state = HostAgentSnapshotState()
         let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
@@ -661,7 +715,8 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let document: [String: Any] = [
             "schemaVersion": 8,
             "hostInstanceId": host,
-            "hostState": recoveryStatus == .running ? "ready" : "starting",
+            "hostState": recoveryStatus == .running && registrationStatus != "pending"
+                ? "ready" : "starting",
             "localId": "123456789",
             "authenticatedConnectionCount": 1,
             "sessionAvailability": sessionAvailability.rawValue,
