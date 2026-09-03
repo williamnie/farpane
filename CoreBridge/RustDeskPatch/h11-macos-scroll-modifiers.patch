@@ -1,0 +1,224 @@
+--- a/libs/enigo/src/macos/macos_impl.rs
++++ b/libs/enigo/src/macos/macos_impl.rs
+@@ -75,6 +75,9 @@
+     ) -> Boolean;
+
+     fn CGEventPost(tapLocation: CGEventTapLocation, event: *mut MyCGEvent);
++    fn CGEventSetFlags(event: *mut MyCGEvent, flags: u64);
++    #[cfg(test)]
++    fn CGEventGetFlags(event: *mut MyCGEvent) -> u64;
+     // Actually return CFDataRef which is const here, but for coding convenience, return *mut c_void
+     fn TISGetInputSourceProperty(source: TISInputSourceRef, property: *const c_void)
+         -> *mut c_void;
+@@ -709,7 +712,13 @@
+     }
+
+     #[inline]
+-    fn mouse_scroll_impl(&mut self, length: i32, is_track_pad: bool, is_horizontal: bool) {
++    fn mouse_scroll_impl(
++        &mut self,
++        length: i32,
++        is_track_pad: bool,
++        is_horizontal: bool,
++        modifiers: &[Key],
++    ) {
+         let mut scroll_direction = -1; // 1 left -1 right;
+         let mut length = length;
+
+@@ -721,28 +730,17 @@
+         if let Some(src) = self.event_source.as_ref() {
+             for _ in 0..length {
+                 unsafe {
+-                    let units = if is_track_pad {
+-                        ScrollUnit::Pixel
+-                    } else {
+-                        ScrollUnit::Line
+-                    };
+-                    let mouse_ev = if is_horizontal {
+-                        CGEventCreateScrollWheelEvent(
+-                            &src,
+-                            units,
+-                            2, // CGWheelCount 1 = y 2 = xy 3 = xyz
+-                            0,
+-                            scroll_direction,
+-                        )
+-                    } else {
+-                        CGEventCreateScrollWheelEvent(
+-                            &src,
+-                            units,
+-                            1, // CGWheelCount 1 = y 2 = xy 3 = xyz
+-                            scroll_direction,
+-                        )
+-                    };
+-
++                    let mouse_ev = create_scroll_event(
++                        src,
++                        scroll_direction,
++                        is_track_pad,
++                        is_horizontal,
++                        modifiers,
++                    );
++                    if mouse_ev.is_null() {
++                        log::error!("Failed to create macOS scroll event");
++                        return;
++                    }
+                     CGEventPost(CGEventTapLocation::HID, mouse_ev);
+                     CFRelease(mouse_ev as *const std::ffi::c_void);
+                 }
+@@ -751,13 +749,97 @@
+     }
+
+     /// handle scroll vertically
+-    pub fn mouse_scroll_y(&mut self, length: i32, is_track_pad: bool) {
+-        self.mouse_scroll_impl(length, is_track_pad, false)
++    pub fn mouse_scroll_y(&mut self, length: i32, is_track_pad: bool, modifiers: &[Key]) {
++        self.mouse_scroll_impl(length, is_track_pad, false, modifiers)
+     }
+
+     /// handle scroll horizontally
+-    pub fn mouse_scroll_x(&mut self, length: i32, is_track_pad: bool) {
+-        self.mouse_scroll_impl(length, is_track_pad, true)
++    pub fn mouse_scroll_x(&mut self, length: i32, is_track_pad: bool, modifiers: &[Key]) {
++        self.mouse_scroll_impl(length, is_track_pad, true, modifiers)
++    }
++}
++
++fn create_scroll_event(
++    source: &CGEventSource,
++    direction: i32,
++    is_track_pad: bool,
++    is_horizontal: bool,
++    modifiers: &[Key],
++) -> *mut MyCGEvent {
++    let units = if is_track_pad {
++        ScrollUnit::Pixel
++    } else {
++        ScrollUnit::Line
++    };
++    let flags = modifiers
++        .iter()
++        .fold(CGEventFlags::CGEventFlagNull, |flags, key| {
++            flags
++                | match key {
++                    Key::Meta | Key::RWin => CGEventFlags::CGEventFlagCommand,
++                    Key::Control | Key::RightControl => CGEventFlags::CGEventFlagControl,
++                    Key::Shift | Key::RightShift => CGEventFlags::CGEventFlagShift,
++                    Key::Alt | Key::RightAlt => CGEventFlags::CGEventFlagAlternate,
++                    Key::CapsLock => CGEventFlags::CGEventFlagAlphaShift,
++                    _ => CGEventFlags::CGEventFlagNull,
++                }
++        });
++    unsafe {
++        let event = if is_horizontal {
++            CGEventCreateScrollWheelEvent(source, units, 2, 0, direction)
++        } else {
++            CGEventCreateScrollWheelEvent(source, units, 1, direction)
++        };
++        if !event.is_null() {
++            // 每个滚动事件使用自己的修饰键，不依赖键盘模式或异步按键状态。
++            // 普通滚动也必须显式清零，避免继承上一次缩放的 Command。
++            CGEventSetFlags(event, flags.bits());
++        }
++        event
++    }
++}
++
++#[cfg(test)]
++mod scroll_modifier_tests {
++    use super::*;
++
++    fn event_flags(source: &CGEventSource, precise: bool, horizontal: bool, keys: &[Key]) -> u64 {
++        let event = create_scroll_event(source, 1, precise, horizontal, keys);
++        assert!(!event.is_null());
++        unsafe {
++            let flags = CGEventGetFlags(event);
++            CFRelease(event as *const c_void);
++            flags
++        }
++    }
++
++    #[test]
++    fn scroll_events_carry_command_and_clear_it_for_plain_pan() {
++        let source = CGEventSource::new(CGEventSourceStateID::CombinedSessionState).unwrap();
++        for precise in [true, false] {
++            for horizontal in [true, false] {
++                assert_eq!(
++                    event_flags(&source, precise, horizontal, &[Key::Meta]),
++                    CGEventFlags::CGEventFlagCommand.bits()
++                );
++                assert_eq!(event_flags(&source, precise, horizontal, &[]), 0);
++            }
++        }
++    }
++
++    #[test]
++    fn scroll_events_preserve_combined_and_right_hand_modifiers() {
++        let source = CGEventSource::new(CGEventSourceStateID::CombinedSessionState).unwrap();
++        let expected = CGEventFlags::CGEventFlagCommand
++            | CGEventFlags::CGEventFlagControl
++            | CGEventFlags::CGEventFlagShift
++            | CGEventFlags::CGEventFlagAlternate;
++        for keys in [
++            vec![Key::Meta, Key::Control, Key::Shift, Key::Alt],
++            vec![Key::RWin, Key::RightControl, Key::RightShift, Key::RightAlt],
++        ] {
++            assert_eq!(event_flags(&source, true, false, &keys), expected.bits());
++        }
+     }
+ }
+
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -1777,11 +1777,12 @@
+                     y = 0;
+                 }
+
++                let modifiers = macos_scroll_modifiers(evt);
+                 if x != 0 {
+-                    en.mouse_scroll_x(x, is_track_pad);
++                    en.mouse_scroll_x(x, is_track_pad, &modifiers);
+                 }
+                 if y != 0 {
+-                    en.mouse_scroll_y(y, is_track_pad);
++                    en.mouse_scroll_y(y, is_track_pad, &modifiers);
+                 }
+             }
+
+@@ -1807,6 +1808,14 @@
+     for key in to_release {
+         en.key_up(key.clone());
+     }
++}
++
++#[cfg(target_os = "macos")]
++fn macos_scroll_modifiers(evt: &MouseEvent) -> Vec<Key> {
++    evt.modifiers
++        .iter()
++        .filter_map(|key| KEY_MAP.get(&key.value()).cloned())
++        .collect()
+ }
+
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+@@ -3123,6 +3132,22 @@
+     use super::*;
+
+     #[test]
++    #[cfg(target_os = "macos")]
++    fn macos_scroll_modifiers_follow_each_wire_event() {
++        for mask in [MOUSE_TYPE_TRACKPAD, MOUSE_TYPE_WHEEL] {
++            let mut event = MouseEvent {
++                mask,
++                y: 12,
++                modifiers: vec![ControlKey::Meta.into(), ControlKey::Shift.into()],
++                ..Default::default()
++            };
++            assert_eq!(macos_scroll_modifiers(&event), vec![Key::Meta, Key::Shift]);
++            event.modifiers.clear();
++            assert!(macos_scroll_modifiers(&event).is_empty());
++        }
++    }
++
++    #[test]
+     fn native_host_accessibility_permission_fails_closed_when_untrusted() {
+         assert!(!native_host_accessibility_permission_enabled(
+             true, true, false
