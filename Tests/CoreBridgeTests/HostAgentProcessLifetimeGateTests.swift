@@ -5,19 +5,14 @@ import XCTest
 final class HostAgentProcessLifetimeGateTests: XCTestCase {
     func testMainRunLoopWaiterServicesQueuedInputWorkBeforeTermination() {
         final class Runtime: NSObject {}
-        let gate = HostAgentProcessLifetimeGate(
-            runtime: Runtime(),
-            stopRuntime: { _, _ in }
-        )
+        let gate = HostAgentProcessLifetimeGate(runtime: Runtime(), stopRuntime: { _, _ in })
         var mainQueueWorkExecuted = false
         DispatchQueue.main.async {
             mainQueueWorkExecuted = true
             _ = gate.requestTermination(reason: .appExit)
         }
 
-        let outcome = HostAgentMainRunLoopTerminationWaiter.wait(
-            pollInterval: 0.01
-        ) {
+        let outcome = HostAgentMainRunLoopTerminationWaiter.wait(pollInterval: 0.01) {
             gate.terminationOutcomeSnapshot()
         }
 
@@ -32,52 +27,39 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
         weak var weakRuntime = runtime
         let gate = HostAgentProcessLifetimeGate(
             runtime: try XCTUnwrap(runtime),
-            stopRuntime: { runtime, reason in
-                try runtime.stop(reason: reason)
-            }
-        )
+            stopRuntime: { runtime, reason in try runtime.stop(reason: reason) })
         runtime = nil
 
         XCTAssertNotNil(weakRuntime)
         XCTAssertTrue(gate.requestTermination(reason: .userRequest))
         XCTAssertNil(weakRuntime)
         XCTAssertFalse(gate.requestTermination(reason: .error))
-        XCTAssertEqual(gate.waitUntilTerminated(), HostAgentProcessTerminationOutcome(
-            reason: .userRequest,
-            status: .stopped
-        ))
-        XCTAssertEqual(recorder.events, [
-            .stop(.userRequest),
-            .runtimeReleased,
-        ])
+        XCTAssertEqual(
+            gate.waitUntilTerminated(),
+            HostAgentProcessTerminationOutcome(reason: .userRequest, status: .stopped))
+        XCTAssertEqual(recorder.events, [.stop(.userRequest), .runtimeReleased])
     }
 
     func testStopFailureProducesSanitizedOutcomeAndCannotRetry() throws {
         let recorder = LifetimeEventRecorder()
-        var runtime: LifetimeTestRuntime? = .init(
-            recorder: recorder,
-            stopFails: true
-        )
+        var runtime: LifetimeTestRuntime? = .init(recorder: recorder, stopFails: true)
         weak var weakRuntime = runtime
         let gate = HostAgentProcessLifetimeGate(
             runtime: try XCTUnwrap(runtime),
-            stopRuntime: { runtime, reason in
-                try runtime.stop(reason: reason)
-            }
-        )
+            stopRuntime: { runtime, reason in try runtime.stop(reason: reason) })
         runtime = nil
 
         XCTAssertTrue(gate.requestTermination(reason: .error))
         XCTAssertNil(weakRuntime)
-        XCTAssertEqual(gate.waitUntilTerminated(), HostAgentProcessTerminationOutcome(
-            reason: .error,
-            status: .stopFailed
-        ))
+        XCTAssertEqual(
+            gate.waitUntilTerminated(),
+            HostAgentProcessTerminationOutcome(reason: .error, status: .stopFailed))
         XCTAssertFalse(gate.requestTermination(reason: .appExit))
-        XCTAssertEqual(recorder.events.filter {
-            if case .stop = $0 { return true }
-            return false
-        }, [.stop(.error)])
+        XCTAssertEqual(
+            recorder.events.filter {
+                if case .stop = $0 { return true }
+                return false
+            }, [.stop(.error)])
     }
 
     func testConcurrentDuplicateReturnsWithoutWaitingAndWaitCompletesAfterStop() {
@@ -93,8 +75,7 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
                 stopEntered.signal()
                 releaseStop.wait()
                 recorder.append(.stopFinished(reason))
-            }
-        )
+            })
         runtime = nil
 
         let requestFinished = expectation(description: "first request finished")
@@ -116,11 +97,12 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
         wait(for: [requestFinished, waitFinished], timeout: 2)
 
         XCTAssertNil(weakRuntime)
-        XCTAssertEqual(recorder.events, [
-            .stopEntered(.userRequest),
-            .stopFinished(.userRequest),
-            .waitReturned(.userRequest, .stopped),
-        ])
+        XCTAssertEqual(
+            recorder.events,
+            [
+                .stopEntered(.userRequest), .stopFinished(.userRequest),
+                .waitReturned(.userRequest, .stopped),
+            ])
     }
 
     func testDeinitStopsRetainedRuntimeWithAppExit() {
@@ -132,37 +114,25 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
             weakRuntime = runtime
             let gate = HostAgentProcessLifetimeGate(
                 runtime: runtime!,
-                stopRuntime: { runtime, reason in
-                    try runtime.stop(reason: reason)
-                }
-            )
+                stopRuntime: { runtime, reason in try runtime.stop(reason: reason) })
             runtime = nil
             XCTAssertNotNil(weakRuntime)
             withExtendedLifetime(gate) {}
         }
 
         XCTAssertNil(weakRuntime)
-        XCTAssertEqual(recorder.events, [
-            .stop(.appExit),
-            .runtimeReleased,
-        ])
+        XCTAssertEqual(recorder.events, [.stop(.appExit), .runtimeReleased])
     }
 
     func testAccessesRuntimeOnlyBeforeTerminationIsClaimed() throws {
         let runtime = NSObject()
-        let gate = HostAgentProcessLifetimeGate(
-            runtime: runtime,
-            stopRuntime: { _, _ in }
-        )
+        let gate = HostAgentProcessLifetimeGate(runtime: runtime, stopRuntime: { _, _ in })
 
         let accessed = try gate.withRunningRuntime { $0 }
         XCTAssertTrue(accessed === runtime)
         XCTAssertTrue(gate.requestTermination(reason: .appExit))
         XCTAssertThrowsError(try gate.withRunningRuntime { $0 }) { error in
-            XCTAssertEqual(
-                error as? HostAgentProcessLifetimeAccessError,
-                .notRunning
-            )
+            XCTAssertEqual(error as? HostAgentProcessLifetimeAccessError, .notRunning)
         }
     }
 
@@ -175,34 +145,22 @@ final class HostAgentProcessLifetimeGateTests: XCTestCase {
             prepareTermination: {
                 recorder.append(.terminationPrepared)
                 XCTAssertFalse(gate.requestTermination(reason: .error))
-            },
-            stopRuntime: { _, reason in
-                recorder.append(.stop(reason))
-            }
-        )
+            }, stopRuntime: { _, reason in recorder.append(.stop(reason)) })
 
         XCTAssertTrue(gate.requestTermination(reason: .appExit))
         XCTAssertFalse(gate.requestTermination(reason: .userRequest))
-        XCTAssertEqual(recorder.events, [
-            .terminationPrepared,
-            .stop(.appExit),
-        ])
+        XCTAssertEqual(recorder.events, [.terminationPrepared, .stop(.appExit)])
     }
 }
 
-private enum LifetimeTestFailure: Error {
-    case stop
-}
+private enum LifetimeTestFailure: Error { case stop }
 
 private enum LifetimeEvent: Equatable {
     case terminationPrepared
     case stop(HostStopReason)
     case stopEntered(HostStopReason)
     case stopFinished(HostStopReason)
-    case waitReturned(
-        HostStopReason,
-        HostAgentProcessTerminationOutcome.Status
-    )
+    case waitReturned(HostStopReason, HostAgentProcessTerminationOutcome.Status)
     case runtimeReleased
 }
 
@@ -211,12 +169,14 @@ private final class LifetimeEventRecorder: @unchecked Sendable {
     private var storage: [LifetimeEvent] = []
 
     var events: [LifetimeEvent] {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         return storage
     }
 
     func append(_ event: LifetimeEvent) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         storage.append(event)
     }
 }
@@ -235,7 +195,5 @@ private final class LifetimeTestRuntime {
         if stopFails { throw LifetimeTestFailure.stop }
     }
 
-    deinit {
-        recorder.append(.runtimeReleased)
-    }
+    deinit { recorder.append(.runtimeReleased) }
 }

@@ -87,19 +87,7 @@ git -C "$hbb_common_dir" diff --check
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_secret_wipe_patch"
 git -C "$hbb_common_dir" apply --check --reverse "$hbb_bounded_block_patch"
 
-canonical_sources=(
-  rdn_bridge.rs
-  rdn_host_bridge.rs
-  rdn_host_file_transfer.rs
-)
-for source_name in $canonical_sources; do
-  cmp -s \
-    "$repo_dir/CoreBridge/RustDeskPatch/$source_name" \
-    "$vendor_dir/src/$source_name" || {
-      print -u2 "RustDesk generated bridge source differs from its canonical source: $source_name"
-      exit 1
-    }
-done
+python3 "$repo_dir/Scripts/sync-rustdesk-bridge.py" --check
 
 print "RUSTDESK_CORE_SOURCE_VERIFIED commit=$actual_commit"
 "$repo_dir/Scripts/prepare-cpal-screencapturekit.sh" --verify-only >/dev/null

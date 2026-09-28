@@ -11,46 +11,28 @@ public struct HostAgentRuntimeConfigurationObservation: Equatable, Sendable {
     public let bootstrap: HostAgentBootstrapConfiguration
     public let lease: HostAgentSingleWriterLeaseRecord
 
-    init(
-        bootstrap: HostAgentBootstrapConfiguration,
-        lease: HostAgentSingleWriterLeaseRecord
-    ) {
-        self.bootstrap = bootstrap
-        self.lease = lease
-    }
 }
 
 /// Reads the two fixed, non-secret HostAgent runtime identity documents.
 /// A higher layer must still correlate this evidence with an authenticated
 /// live XPC peer; file presence by itself never proves process liveness.
-public final class HostAgentRuntimeConfigurationObservationReader:
-    @unchecked Sendable
-{
+public final class HostAgentRuntimeConfigurationObservationReader: @unchecked Sendable {
     private let directoryURL: URL
 
     public convenience init(fileManager: FileManager = .default) throws {
         try self.init(
-            directoryURL: HostAgentBootstrapProductLayout.directoryURL(
-                fileManager: fileManager
-            )
-        )
+            directoryURL: HostAgentBootstrapProductLayout.directoryURL(fileManager: fileManager))
     }
 
-    init(directoryURL: URL) {
-        self.directoryURL = directoryURL
-    }
+    init(directoryURL: URL) { self.directoryURL = directoryURL }
 
     public func load() throws -> HostAgentRuntimeConfigurationObservation {
         guard NSString(string: directoryURL.path).isAbsolutePath,
-              directoryURL.standardizedFileURL.path == directoryURL.path
-        else {
-            throw HostAgentBootstrapConfigurationReaderError.insecureDirectory
-        }
+            directoryURL.standardizedFileURL.path == directoryURL.path
+        else { throw HostAgentBootstrapConfigurationReaderError.insecureDirectory }
 
         let directoryDescriptor = Darwin.open(
-            directoryURL.path,
-            O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
-        )
+            directoryURL.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard directoryDescriptor >= 0 else {
             if errno == ELOOP || errno == ENOTDIR {
                 throw HostAgentBootstrapConfigurationReaderError.insecureDirectory
@@ -63,46 +45,31 @@ public final class HostAgentRuntimeConfigurationObservationReader:
         guard fstat(directoryDescriptor, &directoryStatus) == 0 else {
             throw HostAgentBootstrapConfigurationReaderError.directoryUnavailable
         }
-        guard directoryStatus.st_mode & S_IFMT == S_IFDIR,
-              directoryStatus.st_uid == geteuid(),
-              directoryStatus.st_mode & 0o777 == 0o700
-        else {
-            throw HostAgentBootstrapConfigurationReaderError.insecureDirectory
-        }
+        guard directoryStatus.st_mode & S_IFMT == S_IFDIR, directoryStatus.st_uid == geteuid(),
+            directoryStatus.st_mode & 0o777 == 0o700
+        else { throw HostAgentBootstrapConfigurationReaderError.insecureDirectory }
 
         let bootstrap = try HostAgentBootstrapConfiguration.decode(
             HostAgentBootstrapConfigurationReader.readDocument(
-                fromDirectoryDescriptor: directoryDescriptor
-            )
-        )
-        let lease = try readLeaseRecord(
-            fromDirectoryDescriptor: directoryDescriptor
-        )
-        return HostAgentRuntimeConfigurationObservation(
-            bootstrap: bootstrap,
-            lease: lease
-        )
+                fromDirectoryDescriptor: directoryDescriptor))
+        let lease = try readLeaseRecord(fromDirectoryDescriptor: directoryDescriptor)
+        return HostAgentRuntimeConfigurationObservation(bootstrap: bootstrap, lease: lease)
     }
 
-    private func readLeaseRecord(
-        fromDirectoryDescriptor directoryDescriptor: Int32
-    ) throws -> HostAgentSingleWriterLeaseRecord {
+    private func readLeaseRecord(fromDirectoryDescriptor directoryDescriptor: Int32) throws
+        -> HostAgentSingleWriterLeaseRecord
+    {
         let descriptor = Darwin.openat(
-            directoryDescriptor,
-            HostAgentSingleWriterLease.leaseFileName,
-            O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC
-        )
+            directoryDescriptor, HostAgentSingleWriterLease.leaseFileName,
+            O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC)
         guard descriptor >= 0 else {
             if errno == ENOENT {
-                throw HostAgentRuntimeConfigurationObservationError
-                    .leaseUnavailable
+                throw HostAgentRuntimeConfigurationObservationError.leaseUnavailable
             }
             if errno == ELOOP {
-                throw HostAgentRuntimeConfigurationObservationError
-                    .insecureLeaseFile
+                throw HostAgentRuntimeConfigurationObservationError.insecureLeaseFile
             }
-            throw HostAgentRuntimeConfigurationObservationError
-                .leaseReadFailed
+            throw HostAgentRuntimeConfigurationObservationError.leaseReadFailed
         }
         defer { Darwin.close(descriptor) }
 
@@ -110,24 +77,14 @@ public final class HostAgentRuntimeConfigurationObservationReader:
         guard fstat(descriptor, &leaseStatus) == 0 else {
             throw HostAgentRuntimeConfigurationObservationError.leaseReadFailed
         }
-        guard leaseStatus.st_mode & S_IFMT == S_IFREG,
-              leaseStatus.st_uid == geteuid(),
-              leaseStatus.st_mode & 0o777 == 0o600,
-              leaseStatus.st_nlink == 1
-        else {
-            throw HostAgentRuntimeConfigurationObservationError
-                .insecureLeaseFile
-        }
+        guard leaseStatus.st_mode & S_IFMT == S_IFREG, leaseStatus.st_uid == geteuid(),
+            leaseStatus.st_mode & 0o777 == 0o600, leaseStatus.st_nlink == 1
+        else { throw HostAgentRuntimeConfigurationObservationError.insecureLeaseFile }
         guard leaseStatus.st_size >= 0,
-              leaseStatus.st_size
-                <= HostAgentSingleWriterLeaseRecord.maximumDocumentBytes
-        else {
-            throw HostAgentSingleWriterLeaseRecordError.documentTooLarge
-        }
+            leaseStatus.st_size <= HostAgentSingleWriterLeaseRecord.maximumDocumentBytes
+        else { throw HostAgentSingleWriterLeaseRecordError.documentTooLarge }
 
-        return try HostAgentSingleWriterLeaseRecord.decode(
-            readBounded(from: descriptor)
-        )
+        return try HostAgentSingleWriterLeaseRecord.decode(readBounded(from: descriptor))
     }
 
     private func readBounded(from descriptor: Int32) throws -> Data {
@@ -156,10 +113,7 @@ public enum HostAgentRuntimeConfigurationCoherence: Equatable, Sendable {
     case waitingForLivePeer
     case evidenceUnavailable
     case coherent(configRevision: UInt64)
-    case staleConfiguration(
-        expectedRevision: UInt64,
-        runningRevision: UInt64
-    )
+    case staleConfiguration(expectedRevision: UInt64, runningRevision: UInt64)
     case identityMismatch
 
     public var permitsRuntimeProjection: Bool {
@@ -170,8 +124,7 @@ public enum HostAgentRuntimeConfigurationCoherence: Equatable, Sendable {
 
 public enum HostAgentRuntimeConfigurationCoherencePolicy {
     public static func evaluate(
-        observation: HostAgentRuntimeConfigurationObservation,
-        liveAgentBuildID: String,
+        observation: HostAgentRuntimeConfigurationObservation, liveAgentBuildID: String,
         liveAgentBootID: String
     ) -> HostAgentRuntimeConfigurationCoherence {
         let bootstrap = observation.bootstrap
@@ -179,18 +132,12 @@ public enum HostAgentRuntimeConfigurationCoherencePolicy {
 
         guard bootstrap.configRevision == lease.configRevision else {
             return .staleConfiguration(
-                expectedRevision: bootstrap.configRevision,
-                runningRevision: lease.configRevision
-            )
+                expectedRevision: bootstrap.configRevision, runningRevision: lease.configRevision)
         }
-        guard bootstrap.agentBuildID == lease.agentBuildID,
-              lease.agentBuildID == liveAgentBuildID,
-              let liveBootID = UUID(uuidString: liveAgentBootID),
-              liveBootID.uuidString.lowercased() == liveAgentBootID,
-              liveBootID == lease.agentBootID
-        else {
-            return .identityMismatch
-        }
+        guard bootstrap.agentBuildID == lease.agentBuildID, lease.agentBuildID == liveAgentBuildID,
+            let liveBootID = UUID(uuidString: liveAgentBootID),
+            liveBootID.uuidString.lowercased() == liveAgentBootID, liveBootID == lease.agentBootID
+        else { return .identityMismatch }
         return .coherent(configRevision: bootstrap.configRevision)
     }
 }

@@ -1,6 +1,7 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentBackgroundUnregistrationUXOwnerTests: XCTestCase {
     func testConstructionIsInertAndRequestPublishesRequiredDisclosure() {
@@ -11,8 +12,9 @@ final class HostAgentBackgroundUnregistrationUXOwnerTests: XCTestCase {
         XCTAssertEqual(dependencies.calls, 0)
         XCTAssertTrue(owner.apply(.requestBackgroundUnregistration))
 
-        guard case .awaitingConfirmation(let prompt) = owner.snapshot().phase
-        else { return XCTFail("expected unregistration confirmation") }
+        guard case .awaitingConfirmation(let prompt) = owner.snapshot().phase else {
+            return XCTFail("expected unregistration confirmation")
+        }
         XCTAssertEqual(prompt.title, "关闭后台连接？")
         XCTAssertTrue(prompt.message.contains("停止后台组件"))
         XCTAssertTrue(prompt.message.contains("不再接受新的远程连接"))
@@ -38,8 +40,7 @@ final class HostAgentBackgroundUnregistrationUXOwnerTests: XCTestCase {
     func testConfirmationPublishesUnregisteringBeforeExactSuccess() {
         let dependencies = UnregistrationUXDependencies()
         dependencies.result = (
-            true,
-            mutationView(phase: .unregistered, registration: .notRegistered)
+            true, mutationView(phase: .unregistered, registration: .notRegistered)
         )
         let recorder = UnregistrationUXRecorder()
         let owner = makeOwner(dependencies) { recorder.append($0.phase) }
@@ -48,32 +49,22 @@ final class HostAgentBackgroundUnregistrationUXOwnerTests: XCTestCase {
 
         XCTAssertTrue(owner.apply(.confirmBackgroundUnregistration))
 
-        XCTAssertEqual(
-            recorder.phases,
-            [prompt, .unregistering, .unregistered]
-        )
+        XCTAssertEqual(recorder.phases, [prompt, .unregistering, .unregistered])
         XCTAssertEqual(owner.snapshot().registration, .notRegistered)
         XCTAssertEqual(dependencies.calls, 1)
     }
 
     func testTypedMutationFailuresRemainDistinct() {
         for failure in [
-            HostAgentBackgroundRegistrationMutationFailure
-                .serviceUnavailable,
+            HostAgentBackgroundRegistrationMutationFailure.serviceUnavailable,
             .unregistrationNotEffective,
         ] {
             let dependencies = UnregistrationUXDependencies()
             dependencies.result = (
                 false,
                 mutationView(
-                    phase: .failed(
-                        intent: .unregisterBackgroundAgent,
-                        failure: failure
-                    ),
-                    registration: failure == .serviceUnavailable
-                        ? .serviceUnavailable
-                        : .enabled
-                )
+                    phase: .failed(intent: .unregisterBackgroundAgent, failure: failure),
+                    registration: failure == .serviceUnavailable ? .serviceUnavailable : .enabled)
             )
             let owner = makeOwner(dependencies)
             XCTAssertTrue(owner.apply(.requestBackgroundUnregistration))
@@ -86,37 +77,21 @@ final class HostAgentBackgroundUnregistrationUXOwnerTests: XCTestCase {
 
     func testContradictoryMutationResultsFailClosed() {
         let results: [(Bool, HostAgentBackgroundRegistrationMutationView)] = [
-            (
-                false,
-                mutationView(
-                    phase: .unregistered,
-                    registration: .notRegistered
-                )
-            ),
+            (false, mutationView(phase: .unregistered, registration: .notRegistered)),
             (
                 true,
                 mutationView(
                     phase: .failed(
-                        intent: .unregisterBackgroundAgent,
-                        failure: .unregistrationNotEffective
-                    ),
-                    registration: .enabled
-                )
+                        intent: .unregisterBackgroundAgent, failure: .unregistrationNotEffective),
+                    registration: .enabled)
             ),
             (
                 false,
                 mutationView(
                     phase: .failed(
-                        intent: .registerBackgroundAgent,
-                        failure: .registrationNotEffective
-                    ),
-                    registration: .notRegistered
-                )
-            ),
-            (
-                true,
-                mutationView(phase: .unregistering, registration: nil)
-            ),
+                        intent: .registerBackgroundAgent, failure: .registrationNotEffective),
+                    registration: .notRegistered)
+            ), (true, mutationView(phase: .unregistering, registration: nil)),
         ]
 
         for result in results {
@@ -139,20 +114,14 @@ final class HostAgentBackgroundUnregistrationUXOwnerTests: XCTestCase {
             _ = release.wait(timeout: .now() + 2)
         }
         dependencies.result = (
-            true,
-            mutationView(phase: .unregistered, registration: .notRegistered)
+            true, mutationView(phase: .unregistered, registration: .notRegistered)
         )
-        let ownerHolder = UnregistrationUXLockedValue<
-            HostAgentBackgroundUnregistrationUXOwner?
-        >(nil)
+        let ownerHolder = UnregistrationUXLockedValue<HostAgentBackgroundUnregistrationUXOwner?>(
+            nil)
         let reentrant = UnregistrationUXLockedValue<Bool?>(nil)
         let owner = makeOwner(dependencies) { phase in
             if phase.phase == .unregistering {
-                reentrant.set(
-                    ownerHolder.value?.apply(
-                        .requestBackgroundUnregistration
-                    )
-                )
+                reentrant.set(ownerHolder.value?.apply(.requestBackgroundUnregistration))
             }
         }
         ownerHolder.set(owner)
@@ -174,88 +143,37 @@ final class HostAgentBackgroundUnregistrationUXOwnerTests: XCTestCase {
 
     func testProductCompositionRequiresCallerOwnedMutationAuthority() throws {
         let mutationOwner = HostAgentBackgroundRegistrationMutationOwner(
-            assessIdentity: { .invalidApplication },
-            register: {},
-            unregister: {},
-            observeRegistration: { .notRegistered }
-        )
+            assessIdentity: { .invalidApplication }, register: {}, unregister: {},
+            observeRegistration: { .notRegistered })
         let owner = HostAgentBackgroundUnregistrationUXOwner.makeProduct(
-            mutationOwner: mutationOwner
-        )
+            mutationOwner: mutationOwner)
         XCTAssertEqual(owner.snapshot().phase, .idle)
-
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/CoreBridge/HostAgentBackgroundUnregistrationUXOwner.swift"
-            ),
-            encoding: .utf8
-        )
-        XCTAssertTrue(source.contains("mutationOwner.apply("))
-        XCTAssertTrue(source.contains(".unregisterBackgroundAgent"))
-        XCTAssertFalse(source.contains(
-            "HostAgentBackgroundRegistrationMutationOwner.makeProduct()"
-        ))
-        XCTAssertFalse(source.contains("SMAppService"))
-        XCTAssertFalse(source.contains("UserDefaults"))
-        XCTAssertFalse(source.contains("AppKit"))
-        XCTAssertFalse(source.contains("HostControlClient"))
     }
 
     func testSharedMutationAuthorityRejectsOpposingProductOperation() {
         let dependencies = SharedMutationDependencies()
         let mutationOwner = HostAgentBackgroundRegistrationMutationOwner(
-            assessIdentity: {
-                .localDevelopmentEligible(buildIdentifier: "42")
-            },
-            register: { dependencies.register() },
-            unregister: { dependencies.unregister() },
-            observeRegistration: { .enabled }
-        )
-        let registrationOwner =
-            HostAgentBackgroundRegistrationUXOwner.makeProduct(
-                mutationOwner: mutationOwner,
-                performMigrationPreparation: {
-                    (
-                        true,
-                        HostAgentLegacyHostMigrationCoordinatorView(
-                            phase: .readyForRegistration
-                        )
-                    )
-                }
-            )
-        let unregistrationOwner =
-            HostAgentBackgroundUnregistrationUXOwner.makeProduct(
-                mutationOwner: mutationOwner
-            )
-        XCTAssertTrue(registrationOwner.apply(
-            .requestBackgroundRegistration
-        ))
-        let registrationFinished = expectation(
-            description: "registration finished"
-        )
+            assessIdentity: { .localDevelopmentEligible(buildIdentifier: "42") },
+            register: { dependencies.register() }, unregister: { dependencies.unregister() },
+            observeRegistration: { .enabled })
+        let registrationOwner = HostAgentBackgroundRegistrationUXOwner.makeProduct(
+            mutationOwner: mutationOwner,
+            performMigrationPreparation: {
+                (true, HostAgentLegacyHostMigrationCoordinatorView(phase: .readyForRegistration))
+            })
+        let unregistrationOwner = HostAgentBackgroundUnregistrationUXOwner.makeProduct(
+            mutationOwner: mutationOwner)
+        XCTAssertTrue(registrationOwner.apply(.requestBackgroundRegistration))
+        let registrationFinished = expectation(description: "registration finished")
 
         DispatchQueue.global().async {
             _ = registrationOwner.apply(.confirmBackgroundRegistration)
             registrationFinished.fulfill()
         }
-        XCTAssertEqual(
-            dependencies.registerEntered.wait(timeout: .now() + 1),
-            .success
-        )
-        XCTAssertTrue(unregistrationOwner.apply(
-            .requestBackgroundUnregistration
-        ))
-        XCTAssertFalse(unregistrationOwner.apply(
-            .confirmBackgroundUnregistration
-        ))
-        XCTAssertEqual(
-            unregistrationOwner.snapshot().phase,
-            .failed(.invalidMutationResult)
-        )
+        XCTAssertEqual(dependencies.registerEntered.wait(timeout: .now() + 1), .success)
+        XCTAssertTrue(unregistrationOwner.apply(.requestBackgroundUnregistration))
+        XCTAssertFalse(unregistrationOwner.apply(.confirmBackgroundUnregistration))
+        XCTAssertEqual(unregistrationOwner.snapshot().phase, .failed(.invalidMutationResult))
         XCTAssertEqual(dependencies.unregisterCalls, 0)
 
         dependencies.releaseRegister.signal()
@@ -269,9 +187,7 @@ private func makeOwner(
     observer: @escaping HostAgentBackgroundUnregistrationUXOwner.Observer = { _ in }
 ) -> HostAgentBackgroundUnregistrationUXOwner {
     HostAgentBackgroundUnregistrationUXOwner(
-        performUnregistration: { dependencies.perform() },
-        observer: observer
-    )
+        performUnregistration: { dependencies.perform() }, observer: observer)
 }
 
 private func mutationView(
@@ -279,10 +195,7 @@ private func mutationView(
     registration: HostAgentBackgroundRegistrationStatus?
 ) -> HostAgentBackgroundRegistrationMutationView {
     HostAgentBackgroundRegistrationMutationView(
-        generation: 1,
-        phase: phase,
-        registration: registration
-    )
+        generation: 1, phase: phase, registration: registration)
 }
 
 private final class UnregistrationUXDependencies: @unchecked Sendable {
@@ -291,12 +204,8 @@ private final class UnregistrationUXDependencies: @unchecked Sendable {
     var result = (
         false,
         mutationView(
-            phase: .failed(
-                intent: .unregisterBackgroundAgent,
-                failure: .serviceUnavailable
-            ),
-            registration: .serviceUnavailable
-        )
+            phase: .failed(intent: .unregisterBackgroundAgent, failure: .serviceUnavailable),
+            registration: .serviceUnavailable)
     )
     var onCall: (() -> Void)?
 

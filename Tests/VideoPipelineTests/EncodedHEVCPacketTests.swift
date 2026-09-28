@@ -1,5 +1,5 @@
-import XCTest
 import VideoPipeline
+import XCTest
 
 final class EncodedHEVCPacketTests: XCTestCase {
     func testParsesAnnexBAndFindsParameterSets() throws {

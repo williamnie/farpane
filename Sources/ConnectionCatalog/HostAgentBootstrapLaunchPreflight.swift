@@ -12,38 +12,31 @@ public final class HostAgentBootstrapLaunchPreflight: @unchecked Sendable {
     private let applicationSupportURL: URL
 
     public init() throws {
-        guard let applicationSupportURL = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first else {
-            throw HostAgentBootstrapProductLayoutError.applicationSupportUnavailable
-        }
+        guard
+            let applicationSupportURL = FileManager.default.urls(
+                for: .applicationSupportDirectory, in: .userDomainMask
+            ).first
+        else { throw HostAgentBootstrapProductLayoutError.applicationSupportUnavailable }
         self.applicationSupportURL = applicationSupportURL
     }
 
-    init(applicationSupportURL: URL) {
-        self.applicationSupportURL = applicationSupportURL
-    }
+    init(applicationSupportURL: URL) { self.applicationSupportURL = applicationSupportURL }
 
     public func prepare() throws -> HostAgentBootstrapConfiguration {
-        guard let expectedAgentBuildID = HostAgentBootstrapBuildIdentifier.resolve(
-            from: Bundle.main.infoDictionary
-        ) else {
-            throw HostAgentBootstrapLaunchPreflightError.buildIdentifierUnavailable
-        }
+        guard
+            let expectedAgentBuildID = HostAgentBootstrapBuildIdentifier.resolve(
+                from: Bundle.main.infoDictionary)
+        else { throw HostAgentBootstrapLaunchPreflightError.buildIdentifierUnavailable }
         return try prepare(expectedAgentBuildID: expectedAgentBuildID)
     }
 
-    package func prepare(
-        expectedAgentBuildID: String
-    ) throws -> HostAgentBootstrapConfiguration {
+    package func prepare(expectedAgentBuildID: String) throws -> HostAgentBootstrapConfiguration {
         guard HostAgentBootstrapConfiguration.validAgentBuildID(expectedAgentBuildID) else {
             throw HostAgentBootstrapLaunchPreflightError.buildIdentifierUnavailable
         }
         let configuration = try HostAgentBootstrapConfigurationReader(
             directoryURL: HostAgentBootstrapProductLayout.directoryURL(
-                applicationSupportURL: applicationSupportURL
-            )
+                applicationSupportURL: applicationSupportURL)
         ).load()
         guard configuration.agentBuildID == expectedAgentBuildID else {
             throw HostAgentBootstrapLaunchPreflightError.buildIdentifierMismatch

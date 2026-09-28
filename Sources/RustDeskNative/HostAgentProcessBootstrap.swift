@@ -6,15 +6,8 @@ import CoreBridge
 enum HostAgentProcessBootstrap {
     static func run() -> Int32 {
         HostAgentProcessBootstrapOrchestrator.run(
-            assess: {
-                HostAgentProcessEntryPreflight.assessMainProcess()
-            },
-            run: { eligibility in
-                HostAgentProcessProductEntry.run(eligibility: eligibility)
-            },
-            report: { result in
-                HostAgentProcessTerminalReporter.report(result)
-            }
-        )
+            assess: { HostAgentProcessEntryPreflight.assessMainProcess() },
+            run: { eligibility in HostAgentProcessProductEntry.run(eligibility: eligibility) },
+            report: { result in HostAgentProcessTerminalReporter.report(result) })
     }
 }

@@ -25,21 +25,11 @@ package enum HostAgentLaunchAgentPlistPreflight {
     package static let exitTimeOut = 10
 
     private static let allowedKeys: Set<String> = [
-        "Label",
-        "BundleProgram",
-        "ProgramArguments",
-        "MachServices",
-        "LimitLoadToSessionType",
-        "KeepAlive",
-        "ThrottleInterval",
-        "ExitTimeOut",
+        "Label", "BundleProgram", "ProgramArguments", "MachServices", "LimitLoadToSessionType",
+        "KeepAlive", "ThrottleInterval", "ExitTimeOut",
     ]
 
-    private static let forbiddenKeys: Set<String> = [
-        "Program",
-        "UserName",
-        "GroupName",
-    ]
+    private static let forbiddenKeys: Set<String> = ["Program", "UserName", "GroupName"]
 
     package static func validate(_ data: Data) throws {
         guard data.count <= maximumPayloadBytes else {
@@ -49,13 +39,8 @@ package enum HostAgentLaunchAgentPlistPreflight {
         let decoded: Any
         do {
             decoded = try PropertyListSerialization.propertyList(
-                from: data,
-                options: [],
-                format: nil
-            )
-        } catch {
-            throw HostAgentLaunchAgentPlistPreflightError.malformedPropertyList
-        }
+                from: data, options: [], format: nil)
+        } catch { throw HostAgentLaunchAgentPlistPreflightError.malformedPropertyList }
 
         guard let propertyList = decoded as? [String: Any] else {
             throw HostAgentLaunchAgentPlistPreflightError.malformedPropertyList
@@ -79,35 +64,26 @@ package enum HostAgentLaunchAgentPlistPreflight {
             throw HostAgentLaunchAgentPlistPreflightError.invalidMachServices
         }
         guard Set(propertyList.keys) == allowedKeys,
-              propertyList["LimitLoadToSessionType"] as? String == sessionType,
-              hasExactKeepAlive(propertyList["KeepAlive"]),
-              propertyList["ThrottleInterval"] as? Int == throttleInterval,
-              propertyList["ExitTimeOut"] as? Int == exitTimeOut
-        else {
-            throw HostAgentLaunchAgentPlistPreflightError.invalidLifecyclePolicy
-        }
+            propertyList["LimitLoadToSessionType"] as? String == sessionType,
+            hasExactKeepAlive(propertyList["KeepAlive"]),
+            propertyList["ThrottleInterval"] as? Int == throttleInterval,
+            propertyList["ExitTimeOut"] as? Int == exitTimeOut
+        else { throw HostAgentLaunchAgentPlistPreflightError.invalidLifecyclePolicy }
     }
 
     private static func hasExactMachService(_ value: Any?) -> Bool {
-        guard
-            let services = value as? [String: Any],
-            services.count == 1,
+        guard let services = value as? [String: Any], services.count == 1,
             let enabled = services[label]
-        else {
-            return false
-        }
+        else { return false }
 
         return CFGetTypeID(enabled as CFTypeRef) == CFBooleanGetTypeID()
             && (enabled as? Bool) == true
     }
 
     private static func hasExactKeepAlive(_ value: Any?) -> Bool {
-        guard let policy = value as? [String: Any],
-              policy.count == 1,
-              let crashed = policy["Crashed"]
-        else {
-            return false
-        }
+        guard let policy = value as? [String: Any], policy.count == 1,
+            let crashed = policy["Crashed"]
+        else { return false }
         return CFGetTypeID(crashed as CFTypeRef) == CFBooleanGetTypeID()
             && (crashed as? Bool) == true
     }

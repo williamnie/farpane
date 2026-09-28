@@ -7,26 +7,21 @@ final class HostAgentProcessTerminalReporterTests: XCTestCase {
         let pipe = Pipe()
 
         let exitCode = HostAgentProcessTerminalReporter.report(
-            .unavailable,
-            to: pipe.fileHandleForWriting
-        )
+            .unavailable, to: pipe.fileHandleForWriting)
         try pipe.fileHandleForWriting.close()
         let output = try pipe.fileHandleForReading.readToEnd() ?? Data()
 
         XCTAssertEqual(exitCode, 69)
         XCTAssertEqual(
             String(decoding: output, as: UTF8.self),
-            "FarPane HostAgent runtime is not available in this build.\n"
-        )
+            "FarPane HostAgent runtime is not available in this build.\n")
     }
 
     func testStoppedResultWritesNothingAndReturnsSuccess() throws {
         let pipe = Pipe()
 
         let exitCode = HostAgentProcessTerminalReporter.report(
-            .process(.stopped),
-            to: pipe.fileHandleForWriting
-        )
+            .process(.stopped), to: pipe.fileHandleForWriting)
         try pipe.fileHandleForWriting.close()
         let output = try pipe.fileHandleForReading.readToEnd() ?? Data()
 
@@ -39,11 +34,8 @@ final class HostAgentProcessTerminalReporterTests: XCTestCase {
         try pipe.fileHandleForWriting.close()
 
         let exitCode = HostAgentProcessTerminalReporter.report(
-            .process(.startupFailed(HostAgentStartupFailure(
-                kind: .configurationUnavailable
-            ))),
-            to: pipe.fileHandleForWriting
-        )
+            .process(.startupFailed(HostAgentStartupFailure(kind: .configurationUnavailable))),
+            to: pipe.fileHandleForWriting)
 
         XCTAssertEqual(exitCode, 78)
     }

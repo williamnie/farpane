@@ -9,18 +9,11 @@ struct PasswordPromptResult {
 
 final class PasswordPromptController {
     private let passwordField = NSSecureTextField()
-    private let saveButton = NSButton(
-        checkboxWithTitle: "保存到此 Mac 的钥匙串",
-        target: nil,
-        action: nil
-    )
+    private let saveButton = NSButton(checkboxWithTitle: "保存到此 Mac 的钥匙串", target: nil, action: nil)
     private var alert: NSAlert?
 
     func begin(
-        on window: NSWindow,
-        title: String,
-        message: String,
-        saveByDefault: Bool,
+        on window: NSWindow, title: String, message: String, saveByDefault: Bool,
         completion: @escaping (PasswordPromptResult?) -> Void
     ) {
         passwordField.stringValue = ""
@@ -28,15 +21,12 @@ final class PasswordPromptController {
         passwordField.setAccessibilityLabel("访问密码")
         saveButton.state = saveByDefault ? .on : .off
 
-        let help = NSTextField(
-            wrappingLabelWithString: "仅建议保存固定密码；一次性密码请保持关闭。"
-        )
+        let help = NSTextField(wrappingLabelWithString: "仅建议保存固定密码；一次性密码请保持关闭。")
         help.font = .systemFont(ofSize: 11)
         help.textColor = .secondaryLabelColor
-        let stack = NSStackView(views: [passwordField, saveButton, help])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 10
+        let stack = NSStackView(
+            views: [passwordField, saveButton, help], axis: .vertical, alignment: .leading,
+            spacing: 10)
         stack.frame = NSRect(x: 0, y: 0, width: 380, height: 92)
         passwordField.widthAnchor.constraint(equalToConstant: 380).isActive = true
 
@@ -70,11 +60,7 @@ final class PasswordPromptController {
 final class HostPermanentPasswordSecret {
     var data = Data()
 
-    func wipe() {
-        if !data.isEmpty {
-            data.resetBytes(in: 0..<data.count)
-        }
-    }
+    func wipe() { if !data.isEmpty { data.resetBytes(in: 0..<data.count) } }
 
     deinit { wipe() }
 }
@@ -85,8 +71,7 @@ final class HostPermanentPasswordPromptController {
     private var alert: NSAlert?
 
     func begin(
-        on window: NSWindow,
-        policy: HostPermanentPasswordPolicy,
+        on window: NSWindow, policy: HostPermanentPasswordPolicy,
         completion: @escaping (HostPermanentPasswordSecret?) -> Void
     ) {
         passwordField.stringValue = ""
@@ -105,16 +90,14 @@ final class HostPermanentPasswordPromptController {
         form.column(at: 0).xPlacement = .trailing
         form.column(at: 1).width = 360
 
-        let hint = NSTextField(wrappingLabelWithString:
-            "使用 \(policy.minimumCharacters)–\(policy.maximumCharacters) 个字符，最多 "
-                + "\(policy.maximumUTF8Bytes) 个 UTF-8 字节；首尾不能是空白字符。"
-        )
+        let hint = NSTextField(
+            wrappingLabelWithString:
+                "使用 \(policy.minimumCharacters)–\(policy.maximumCharacters) 个字符，最多 "
+                + "\(policy.maximumUTF8Bytes) 个 UTF-8 字节；首尾不能是空白字符。")
         hint.font = .systemFont(ofSize: 11)
         hint.textColor = .secondaryLabelColor
-        let stack = NSStackView(views: [form, hint])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 11
+        let stack = NSStackView(
+            views: [form, hint], axis: .vertical, alignment: .leading, spacing: 11)
         stack.frame = NSRect(x: 0, y: 0, width: 470, height: 84)
 
         let alert = NSAlert()
@@ -133,9 +116,7 @@ final class HostPermanentPasswordPromptController {
             self.confirmationField.stringValue = ""
             self.alert = nil
             defer {
-                if !confirmation.isEmpty {
-                    confirmation.resetBytes(in: 0..<confirmation.count)
-                }
+                if !confirmation.isEmpty { confirmation.resetBytes(in: 0..<confirmation.count) }
             }
             guard response == .alertFirstButtonReturn else {
                 secret.wipe()
@@ -153,8 +134,7 @@ final class HostPermanentPasswordPromptController {
     }
 
     private func showValidationError(
-        on window: NSWindow,
-        policy: HostPermanentPasswordPolicy,
+        on window: NSWindow, policy: HostPermanentPasswordPolicy,
         completion: @escaping (HostPermanentPasswordSecret?) -> Void
     ) {
         let error = NSAlert()
@@ -172,17 +152,11 @@ final class ServerSettingsPromptController {
     private let nameField = NSTextField()
     private let serverField = NSTextField()
     private let keyField = NSTextField()
-    private let relayButton = NSButton(
-        checkboxWithTitle: "始终通过中继连接",
-        target: nil,
-        action: nil
-    )
+    private let relayButton = NSButton(checkboxWithTitle: "始终通过中继连接", target: nil, action: nil)
     private var alert: NSAlert?
 
     func begin(
-        on window: NSWindow,
-        current: ServerConfiguration?,
-        affectedDevices: Int,
+        on window: NSWindow, current: ServerConfiguration?, affectedDevices: Int,
         completion: @escaping (ServerConfiguration?) -> Void
     ) {
         nameField.stringValue = current?.displayName ?? "自建服务器"
@@ -205,14 +179,11 @@ final class ServerSettingsPromptController {
         let impact = NSTextField(
             wrappingLabelWithString: affectedDevices > 0
                 ? "修改后会用于列表中的 \(affectedDevices) 台设备。中继地址由 RustDesk Core 自动发现。"
-                : "中继地址由 RustDesk Core 自动发现。"
-        )
+                : "中继地址由 RustDesk Core 自动发现。")
         impact.font = .systemFont(ofSize: 11)
         impact.textColor = .secondaryLabelColor
-        let stack = NSStackView(views: [form, relayButton, impact])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 12
+        let stack = NSStackView(
+            views: [form, relayButton, impact], axis: .vertical, alignment: .leading, spacing: 12)
         stack.frame = NSRect(x: 0, y: 0, width: 500, height: 138)
 
         let alert = NSAlert()
@@ -229,15 +200,18 @@ final class ServerSettingsPromptController {
                 completion(nil)
                 return
             }
-            let trimmedName = self.nameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedName = self.nameField.stringValue.trimmingCharacters(
+                in: .whitespacesAndNewlines)
             let configuration = ServerConfiguration(
                 displayName: trimmedName.isEmpty ? "自建服务器" : trimmedName,
-                rendezvousServer: self.serverField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
-                serverPublicKey: self.keyField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines),
-                forceRelay: self.relayButton.state == .on
-            )
+                rendezvousServer: self.serverField.stringValue.trimmingCharacters(
+                    in: .whitespacesAndNewlines),
+                serverPublicKey: self.keyField.stringValue.trimmingCharacters(
+                    in: .whitespacesAndNewlines), forceRelay: self.relayButton.state == .on)
             guard configuration.isComplete else {
-                self.showValidationError(on: window, current: current, affectedDevices: affectedDevices, completion: completion)
+                self.showValidationError(
+                    on: window, current: current, affectedDevices: affectedDevices,
+                    completion: completion)
                 return
             }
             completion(configuration)
@@ -246,9 +220,7 @@ final class ServerSettingsPromptController {
     }
 
     private func showValidationError(
-        on window: NSWindow,
-        current: ServerConfiguration?,
-        affectedDevices: Int,
+        on window: NSWindow, current: ServerConfiguration?, affectedDevices: Int,
         completion: @escaping (ServerConfiguration?) -> Void
     ) {
         let error = NSAlert()
@@ -257,7 +229,9 @@ final class ServerSettingsPromptController {
         error.informativeText = "请填写 RustDesk ID 服务器和服务器公钥。"
         error.addButton(withTitle: "返回")
         error.beginSheetModal(for: window) { [weak self] _ in
-            self?.begin(on: window, current: current, affectedDevices: affectedDevices, completion: completion)
+            self?.begin(
+                on: window, current: current, affectedDevices: affectedDevices,
+                completion: completion)
         }
     }
 }

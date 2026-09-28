@@ -20,6 +20,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    has_control_character,
+    is_positive_decimal,
+    utc_now,
+)
+
 
 SCHEMA = "farpane-host-powermetrics-raw-capture"
 SCHEMA_VERSION = 1
@@ -75,18 +83,6 @@ def usage() -> None:
         "SCENARIO DURATION OUTPUT_PREFIX HOST_PID",
         file=sys.stderr,
     )
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def is_positive_decimal(value: str) -> bool:
-    return bool(re.fullmatch(r"[1-9][0-9]*", value))
-
-
-def has_control_character(value: str) -> bool:
-    return any(ord(character) < 0x20 or ord(character) == 0x7F for character in value)
 
 
 def has_symlink_component(path: Path) -> bool:

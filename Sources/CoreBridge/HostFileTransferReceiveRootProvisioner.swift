@@ -12,36 +12,29 @@ package enum HostFileTransferReceiveRootProvisioner {
     /// product-owned child below the same safe parent.
     package static func restoreConfiguredRoot(at receiveRootURL: URL) -> URL? {
         guard NSString(string: receiveRootURL.path).isAbsolutePath,
-              receiveRootURL.standardizedFileURL.path == receiveRootURL.path,
-              receiveRootURL.lastPathComponent == receiveDirectoryName
+            receiveRootURL.standardizedFileURL.path == receiveRootURL.path,
+            receiveRootURL.lastPathComponent == receiveDirectoryName
         else { return nil }
-        let restored = provision(
-            inside: receiveRootURL.deletingLastPathComponent()
-        )
+        let restored = provision(inside: receiveRootURL.deletingLastPathComponent())
         guard restored?.path == receiveRootURL.path else { return nil }
         return restored
     }
 
     package static func provision(inside parentURL: URL) -> URL? {
         guard NSString(string: parentURL.path).isAbsolutePath,
-              parentURL.standardizedFileURL.path == parentURL.path
+            parentURL.standardizedFileURL.path == parentURL.path
         else { return nil }
 
-        let parentDescriptor = parentURL.withUnsafeFileSystemRepresentation {
-            path in
+        let parentDescriptor = parentURL.withUnsafeFileSystemRepresentation { path in
             guard let path else { return Int32(-1) }
-            return Darwin.open(
-                path,
-                O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
-            )
+            return Darwin.open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         }
         guard parentDescriptor >= 0 else { return nil }
         defer { Darwin.close(parentDescriptor) }
 
         var parentStatus = stat()
-        guard Darwin.fstat(parentDescriptor, &parentStatus) == 0,
-              isOwnedDirectory(parentStatus),
-              parentStatus.st_mode & mode_t(0o022) == 0
+        guard Darwin.fstat(parentDescriptor, &parentStatus) == 0, isOwnedDirectory(parentStatus),
+            parentStatus.st_mode & mode_t(0o022) == 0
         else { return nil }
 
         let created = receiveDirectoryName.withCString { name in
@@ -50,36 +43,23 @@ package enum HostFileTransferReceiveRootProvisioner {
         if !created, errno != EEXIST { return nil }
 
         let childDescriptor = receiveDirectoryName.withCString { name in
-            Darwin.openat(
-                parentDescriptor,
-                name,
-                O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
-            )
+            Darwin.openat(parentDescriptor, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         }
         guard childDescriptor >= 0 else { return nil }
         defer { Darwin.close(childDescriptor) }
 
-        if created, Darwin.fchmod(childDescriptor, mode_t(0o700)) != 0 {
-            return nil
-        }
+        if created, Darwin.fchmod(childDescriptor, mode_t(0o700)) != 0 { return nil }
         var childStatus = stat()
-        guard Darwin.fstat(childDescriptor, &childStatus) == 0,
-              isOwnedDirectory(childStatus),
-              childStatus.st_mode & mode_t(0o777) == mode_t(0o700)
+        guard Darwin.fstat(childDescriptor, &childStatus) == 0, isOwnedDirectory(childStatus),
+            childStatus.st_mode & mode_t(0o777) == mode_t(0o700)
         else { return nil }
 
-        let childURL = parentURL.appendingPathComponent(
-            receiveDirectoryName,
-            isDirectory: true
-        )
-        guard childURL.standardizedFileURL.path == childURL.path else {
-            return nil
-        }
+        let childURL = parentURL.appendingPathComponent(receiveDirectoryName, isDirectory: true)
+        guard childURL.standardizedFileURL.path == childURL.path else { return nil }
         return childURL
     }
 
     private static func isOwnedDirectory(_ status: stat) -> Bool {
-        status.st_uid == geteuid()
-            && status.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR)
+        status.st_uid == geteuid() && status.st_mode & mode_t(S_IFMT) == mode_t(S_IFDIR)
     }
 }

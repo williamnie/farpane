@@ -1,21 +1,13 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
 
+@testable import CoreBridge
+
 final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
     func testProductWindowIsExactlyBoundedAtFiveSeconds() {
-        XCTAssertEqual(
-            HostAgentRegistrationRecoveryPollingOwner.productIntervalMilliseconds,
-            50
-        )
-        XCTAssertEqual(
-            HostAgentRegistrationRecoveryPollingOwner.productMaximumAttempts,
-            100
-        )
-        XCTAssertEqual(
-            HostAgentRegistrationRecoveryPollingOwner.productTimeoutMilliseconds,
-            5_000
-        )
+        XCTAssertEqual(HostAgentRegistrationRecoveryPollingOwner.productIntervalMilliseconds, 50)
+        XCTAssertEqual(HostAgentRegistrationRecoveryPollingOwner.productMaximumAttempts, 100)
+        XCTAssertEqual(HostAgentRegistrationRecoveryPollingOwner.productTimeoutMilliseconds, 5_000)
     }
 
     func testStaleAndResumingSnapshotsWaitForExactRunningReady() throws {
@@ -28,10 +20,7 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
         ])
         let completions = RegistrationRecoveryCompletionRecorder()
         let owner = makeOwner(
-            scheduler: scheduler,
-            resume: resume.handler,
-            observe: observations.handler
-        )
+            scheduler: scheduler, resume: resume.handler, observe: observations.handler)
 
         XCTAssertTrue(owner.start(epoch: 4, completion: completions.handler))
         XCTAssertEqual(resume.epochs, [4])
@@ -42,10 +31,7 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
         XCTAssertEqual(owner.stateSnapshot(), .polling(epoch: 4, attempt: 2))
         scheduler.runNext()
 
-        XCTAssertEqual(
-            owner.stateSnapshot(),
-            .completed(epoch: 4, outcome: .converged)
-        )
+        XCTAssertEqual(owner.stateSnapshot(), .completed(epoch: 4, outcome: .converged))
         XCTAssertEqual(completions.values, [.init(epoch: 4, succeeded: true)])
         XCTAssertFalse(owner.start(epoch: 4, completion: completions.handler))
     }
@@ -53,27 +39,15 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
     func testForeignFutureFailedAndIncompatibleSnapshotsFailClosed() throws {
         let expectedHost = "host-a"
         let future = try snapshot(epoch: 6, status: .running)
-        let foreign = try snapshot(
-            hostInstanceID: "host-b",
-            epoch: 5,
-            status: .running
-        )
+        let foreign = try snapshot(hostInstanceID: "host-b", epoch: 5, status: .running)
         let failed = try snapshot(epoch: 5, status: .failed)
-        let incompatible = try snapshot(
-            epoch: 5,
-            status: .running,
-            registrationStatus: "pending"
-        )
+        let incompatible = try snapshot(epoch: 5, status: .running, registrationStatus: "pending")
 
         for value in [future, foreign, failed, incompatible] {
             XCTAssertEqual(
                 HostAgentRegistrationRecoveryPollingOwner.convergence(
-                    observation: .snapshot(value),
-                    expectedHostInstanceID: expectedHost,
-                    epoch: 5
-                ),
-                .failed
-            )
+                    observation: .snapshot(value), expectedHostInstanceID: expectedHost, epoch: 5),
+                .failed)
         }
     }
 
@@ -85,11 +59,8 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
         ])
         let completions = RegistrationRecoveryCompletionRecorder()
         let owner = makeOwner(
-            scheduler: scheduler,
-            maximumAttempts: 3,
-            resume: resume.handler,
-            observe: observations.handler
-        )
+            scheduler: scheduler, maximumAttempts: 3, resume: resume.handler,
+            observe: observations.handler)
 
         XCTAssertTrue(owner.start(epoch: 1, completion: completions.handler))
         scheduler.runNext()
@@ -98,10 +69,7 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
 
         XCTAssertEqual(observations.count, 3)
         XCTAssertEqual(scheduler.pendingCount, 0)
-        XCTAssertEqual(
-            owner.stateSnapshot(),
-            .completed(epoch: 1, outcome: .timedOut)
-        )
+        XCTAssertEqual(owner.stateSnapshot(), .completed(epoch: 1, outcome: .timedOut))
         XCTAssertEqual(completions.values, [.init(epoch: 1, succeeded: false)])
     }
 
@@ -111,16 +79,10 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
         let observations = RegistrationRecoveryObservationRecorder([.failed])
         let completions = RegistrationRecoveryCompletionRecorder()
         let owner = makeOwner(
-            scheduler: scheduler,
-            resume: resume.handler,
-            observe: observations.handler
-        )
+            scheduler: scheduler, resume: resume.handler, observe: observations.handler)
 
         XCTAssertFalse(owner.start(epoch: 1, completion: completions.handler))
-        XCTAssertEqual(
-            owner.stateSnapshot(),
-            .completed(epoch: 1, outcome: .failed)
-        )
+        XCTAssertEqual(owner.stateSnapshot(), .completed(epoch: 1, outcome: .failed))
         XCTAssertEqual(resume.epochs, [1])
         XCTAssertEqual(scheduler.pendingCount, 0)
         XCTAssertEqual(observations.count, 0)
@@ -133,21 +95,15 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
         let observations = RegistrationRecoveryObservationRecorder([.failed])
         let completions = RegistrationRecoveryCompletionRecorder()
         let owner = makeOwner(
-            scheduler: scheduler,
-            maximumAttempts: 100,
-            resume: resume.handler,
-            observe: observations.handler
-        )
+            scheduler: scheduler, maximumAttempts: 100, resume: resume.handler,
+            observe: observations.handler)
 
         XCTAssertTrue(owner.start(epoch: 1, completion: completions.handler))
         scheduler.advance(by: 5_001)
         scheduler.runNext()
 
         XCTAssertEqual(observations.count, 0)
-        XCTAssertEqual(
-            owner.stateSnapshot(),
-            .completed(epoch: 1, outcome: .timedOut)
-        )
+        XCTAssertEqual(owner.stateSnapshot(), .completed(epoch: 1, outcome: .timedOut))
     }
 
     func testCancellationSuppressesScheduledAndFutureWork() {
@@ -156,10 +112,7 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
         let observations = RegistrationRecoveryObservationRecorder([.failed])
         let completions = RegistrationRecoveryCompletionRecorder()
         let owner = makeOwner(
-            scheduler: scheduler,
-            resume: resume.handler,
-            observe: observations.handler
-        )
+            scheduler: scheduler, resume: resume.handler, observe: observations.handler)
 
         XCTAssertTrue(owner.start(epoch: 1, completion: completions.handler))
         owner.cancelAndWait()
@@ -173,76 +126,48 @@ final class HostAgentRegistrationRecoveryPollingOwnerTests: XCTestCase {
     }
 
     private func makeOwner(
-        scheduler: RegistrationRecoveryManualScheduler,
-        maximumAttempts: UInt64 = 100,
+        scheduler: RegistrationRecoveryManualScheduler, maximumAttempts: UInt64 = 100,
         resume: @escaping HostAgentRegistrationRecoveryPollingOwner.Resume,
         observe: @escaping HostAgentRegistrationRecoveryPollingOwner.Observe
     ) -> HostAgentRegistrationRecoveryPollingOwner {
         HostAgentRegistrationRecoveryPollingOwner(
-            expectedHostInstanceID: "host-a",
-            intervalMilliseconds: 50,
-            maximumAttempts: maximumAttempts,
-            timeoutMilliseconds: 50 * maximumAttempts,
-            schedule: scheduler.handler,
-            nowMilliseconds: scheduler.clock,
-            resume: resume,
-            observe: observe
-        )
+            expectedHostInstanceID: "host-a", intervalMilliseconds: 50,
+            maximumAttempts: maximumAttempts, timeoutMilliseconds: 50 * maximumAttempts,
+            schedule: scheduler.handler, nowMilliseconds: scheduler.clock, resume: resume,
+            observe: observe)
     }
 
     private func snapshot(
-        hostInstanceID: String = "host-a",
-        epoch: UInt64,
-        status: HostRecoveryStatus,
+        hostInstanceID: String = "host-a", epoch: UInt64, status: HostRecoveryStatus,
         registrationStatus: String? = nil
     ) throws -> HostCoreSnapshot {
         let defaults: (hostState: String, registrationStatus: String, error: Any)
         switch status {
-        case .running:
-            defaults = ("ready", "ready", NSNull())
-        case .resuming:
-            defaults = ("starting", "pending", NSNull())
-        case .suspending:
-            defaults = ("starting", "suspending", NSNull())
-        case .suspended:
-            defaults = ("starting", "suspended", NSNull())
-        case .failed:
-            defaults = ("error", "degraded", "registration.runtimeExited")
+        case .running: defaults = ("ready", "ready", NSNull())
+        case .resuming: defaults = ("starting", "pending", NSNull())
+        case .suspending: defaults = ("starting", "suspending", NSNull())
+        case .suspended: defaults = ("starting", "suspended", NSNull())
+        case .failed: defaults = ("error", "degraded", "registration.runtimeExited")
         }
         let document: [String: Any] = [
-            "schemaVersion": 8,
-            "hostInstanceId": hostInstanceID,
-            "hostState": defaults.hostState,
-            "localId": "123456789",
-            "authenticatedConnectionCount": 1,
-            "sessionAvailability": "available",
-            "sessionUnavailableReason": NSNull(),
-            "pendingApproval": NSNull(),
-            "activeSession": NSNull(),
+            "schemaVersion": 8, "hostInstanceId": hostInstanceID, "hostState": defaults.hostState,
+            "localId": "123456789", "authenticatedConnectionCount": 1,
+            "sessionAvailability": "available", "sessionUnavailableReason": NSNull(),
+            "pendingApproval": NSNull(), "activeSession": NSNull(),
             "temporaryPasswordPresentation": ["policy": "redacted"],
             "passwordPolicy": [
-                "localPasswordSet": false,
-                "effectivePasswordSet": false,
-                "usingPresetPassword": false,
-                "changeAllowed": true,
+                "localPasswordSet": false, "effectivePasswordSet": false,
+                "usingPresetPassword": false, "changeAllowed": true,
                 "strengthPolicy": [
-                    "version": 1,
-                    "minimumCharacters": 6,
-                    "maximumCharacters": 128,
-                    "maximumUtf8Bytes": 512,
-                    "rejectsControlCharacters": true,
+                    "version": 1, "minimumCharacters": 6, "maximumCharacters": 128,
+                    "maximumUtf8Bytes": 512, "rejectsControlCharacters": true,
                     "rejectsOuterWhitespace": true,
                 ],
-            ],
-            "registrationStatus": registrationStatus ?? defaults.registrationStatus,
-            "recoveryEpoch": epoch,
-            "recoveryStatus": status.rawValue,
-            "lastError": defaults.error,
+            ], "registrationStatus": registrationStatus ?? defaults.registrationStatus,
+            "recoveryEpoch": epoch, "recoveryStatus": status.rawValue, "lastError": defaults.error,
             "observedAt": 42,
         ]
-        return try HostCoreSnapshot(
-            rawJSON: JSONSerialization.data(withJSONObject: document)
-        )
+        return try HostCoreSnapshot(rawJSON: JSONSerialization.data(withJSONObject: document))
     }
 }
 
@@ -260,9 +185,7 @@ private final class RegistrationRecoveryManualScheduler: @unchecked Sendable {
     var handler: HostAgentRegistrationRecoveryPollingOwner.Scheduler {
         { [self] delayMilliseconds, action in
             let task = RegistrationRecoveryManualTask(
-                delayMilliseconds: delayMilliseconds,
-                action: action
-            )
+                delayMilliseconds: delayMilliseconds, action: action)
             lock.lock()
             tasks.append(task)
             lock.unlock()
@@ -293,8 +216,7 @@ private final class RegistrationRecoveryManualScheduler: @unchecked Sendable {
     }
 }
 
-private final class RegistrationRecoveryManualTask:
-    HostAgentRegistrationRecoveryScheduledTask,
+private final class RegistrationRecoveryManualTask: HostAgentRegistrationRecoveryScheduledTask,
     @unchecked Sendable
 {
     private let lock = NSLock()
@@ -302,10 +224,7 @@ private final class RegistrationRecoveryManualTask:
     private let action: @Sendable () -> Void
     private var cancelled = false
 
-    init(
-        delayMilliseconds: UInt64,
-        action: @escaping @Sendable () -> Void
-    ) {
+    init(delayMilliseconds: UInt64, action: @escaping @Sendable () -> Void) {
         self.delayMilliseconds = delayMilliseconds
         self.action = action
     }
@@ -329,9 +248,7 @@ private final class RegistrationRecoveryResumeRecorder: @unchecked Sendable {
     private let accepted: Bool
     private var storage: [UInt64] = []
 
-    init(accepted: Bool) {
-        self.accepted = accepted
-    }
+    init(accepted: Bool) { self.accepted = accepted }
 
     var epochs: [UInt64] {
         lock.lock()

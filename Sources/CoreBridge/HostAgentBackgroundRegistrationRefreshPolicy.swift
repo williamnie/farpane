@@ -1,7 +1,4 @@
-package enum HostAgentBackgroundRegistrationRefreshDecision:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundRegistrationRefreshDecision: Equatable, Sendable {
     case noAction
     case refresh(buildIdentifier: String)
 }
@@ -12,18 +9,12 @@ package enum HostAgentBackgroundRegistrationRefreshDecision:
 /// reporting `.enabled`.
 package enum HostAgentBackgroundRegistrationRefreshPolicy {
     package static func decision(
-        registration: HostAgentBackgroundRegistrationStatus,
-        currentBuildIdentifier: String?,
-        registeredBuildIdentifier: String?,
-        alreadyAttempted: Bool
+        registration: HostAgentBackgroundRegistrationStatus, currentBuildIdentifier: String?,
+        registeredBuildIdentifier: String?, alreadyAttempted: Bool
     ) -> HostAgentBackgroundRegistrationRefreshDecision {
-        guard registration == .enabled,
-              !alreadyAttempted,
-              let currentBuildIdentifier,
-              HostAgentRegistrationBundlePreflight.validBuildIdentifier(
-                  currentBuildIdentifier
-              ),
-              registeredBuildIdentifier != currentBuildIdentifier
+        guard registration == .enabled, !alreadyAttempted, let currentBuildIdentifier,
+            HostAgentRegistrationBundlePreflight.validBuildIdentifier(currentBuildIdentifier),
+            registeredBuildIdentifier != currentBuildIdentifier
         else { return .noAction }
         return .refresh(buildIdentifier: currentBuildIdentifier)
     }

@@ -1,9 +1,6 @@
 import Foundation
 
-package enum HostAgentXPCCommandAdmissionConfigurationError:
-    Error,
-    Equatable
-{
+package enum HostAgentXPCCommandAdmissionConfigurationError: Error, Equatable {
     case invalidCapacity
 }
 
@@ -25,15 +22,6 @@ package struct HostAgentXPCCommandReservation: Equatable, Sendable {
     fileprivate let commandID: String
     fileprivate let fingerprint: CommandFingerprint
 
-    fileprivate init(
-        sequence: UInt64,
-        commandID: String,
-        fingerprint: CommandFingerprint
-    ) {
-        self.sequence = sequence
-        self.commandID = commandID
-        self.fingerprint = fingerprint
-    }
 }
 
 package enum HostAgentXPCCommandAdmissionResult: Equatable, Sendable {
@@ -64,9 +52,7 @@ package struct HostAgentXPCCommandAdmissionSnapshot: Equatable, Sendable {
 /// Boot-identity-bound, capacity-bounded command reservation and replay state.
 /// It does not enqueue or execute work; only the future queue owner may turn an
 /// exact reservation into `queued` before constructing an acknowledgement.
-package final class HostAgentXPCCommandAdmissionAuthority:
-    @unchecked Sendable
-{
+package final class HostAgentXPCCommandAdmissionAuthority: @unchecked Sendable {
     package static let productCapacity = 256
 
     private static let allowedCapacity = 1...1_024
@@ -93,9 +79,9 @@ package final class HostAgentXPCCommandAdmissionAuthority:
         entries.reserveCapacity(capacity)
     }
 
-    package func reserve(
-        _ request: HostAgentXPCWireCommandRequest
-    ) -> HostAgentXPCCommandAdmissionResult {
+    package func reserve(_ request: HostAgentXPCWireCommandRequest)
+        -> HostAgentXPCCommandAdmissionResult
+    {
         lock.lock()
         defer { lock.unlock() }
 
@@ -103,10 +89,9 @@ package final class HostAgentXPCCommandAdmissionAuthority:
             incrementSaturating(&rejectedCount)
             return .rejected(.invalidated)
         }
-        guard request.wireVersion
-                == HostAgentXPCWireHandshakeContract.currentWireVersion,
-              request.hostInstanceID == identity.hostInstanceID,
-              request.agentBootID == identity.agentBootID
+        guard request.wireVersion == HostAgentXPCWireHandshakeContract.currentWireVersion,
+            request.hostInstanceID == identity.hostInstanceID,
+            request.agentBootID == identity.agentBootID
         else {
             incrementSaturating(&rejectedCount)
             return .rejected(.foreignIdentity)
@@ -118,12 +103,9 @@ package final class HostAgentXPCCommandAdmissionAuthority:
                 return .rejected(.conflictingPayload)
             }
             switch existing.phase {
-            case .reserved:
-                return .pendingQueue
-            case .queued:
-                return .alreadyQueued
-            case .completed(let result, _):
-                return .replay(result)
+            case .reserved: return .pendingQueue
+            case .queued: return .alreadyQueued
+            case .completed(let result, _): return .replay(result)
             }
         }
         guard makeRoomForNewEntryLocked() else {
@@ -137,51 +119,39 @@ package final class HostAgentXPCCommandAdmissionAuthority:
         }
         nextReservationSequence += 1
         let reservation = HostAgentXPCCommandReservation(
-            sequence: nextReservationSequence,
-            commandID: request.commandID,
-            fingerprint: fingerprint
-        )
+            sequence: nextReservationSequence, commandID: request.commandID,
+            fingerprint: fingerprint)
         entries[request.commandID] = CommandEntry(
-            fingerprint: fingerprint,
-            phase: .reserved(sequence: reservation.sequence)
-        )
+            fingerprint: fingerprint, phase: .reserved(sequence: reservation.sequence))
         return .reserved(reservation)
     }
 
     /// Marks an exact live reservation queued. A false return must not produce
     /// a queued acknowledgement.
-    @discardableResult
-    package func markQueued(
-        _ reservation: HostAgentXPCCommandReservation
-    ) -> Bool {
+    @discardableResult package func markQueued(_ reservation: HostAgentXPCCommandReservation)
+        -> Bool
+    {
         lock.lock()
         defer { lock.unlock() }
-        guard state == .active,
-              let entry = entries[reservation.commandID],
-              entry.fingerprint == reservation.fingerprint,
-              case .reserved(let sequence) = entry.phase,
-              sequence == reservation.sequence
+        guard state == .active, let entry = entries[reservation.commandID],
+            entry.fingerprint == reservation.fingerprint,
+            case .reserved(let sequence) = entry.phase, sequence == reservation.sequence
         else { return false }
         entries[reservation.commandID] = CommandEntry(
-            fingerprint: entry.fingerprint,
-            phase: .queued
-        )
+            fingerprint: entry.fingerprint, phase: .queued)
         return true
     }
 
     /// Removes only the exact not-yet-queued reservation. Queued or completed
     /// work cannot be cancelled through this rollback seam.
-    @discardableResult
-    package func cancelReservation(
-        _ reservation: HostAgentXPCCommandReservation
-    ) -> Bool {
+    @discardableResult package func cancelReservation(_ reservation: HostAgentXPCCommandReservation)
+        -> Bool
+    {
         lock.lock()
         defer { lock.unlock() }
-        guard state == .active,
-              let entry = entries[reservation.commandID],
-              entry.fingerprint == reservation.fingerprint,
-              case .reserved(let sequence) = entry.phase,
-              sequence == reservation.sequence
+        guard state == .active, let entry = entries[reservation.commandID],
+            entry.fingerprint == reservation.fingerprint,
+            case .reserved(let sequence) = entry.phase, sequence == reservation.sequence
         else { return false }
         entries.removeValue(forKey: reservation.commandID)
         return true
@@ -189,10 +159,9 @@ package final class HostAgentXPCCommandAdmissionAuthority:
 
     /// Records the final typed event result. Contradictory completion ordering
     /// or two different final results is a terminal internal-state failure.
-    @discardableResult
-    package func recordResult(
-        _ result: HostAgentXPCWireCommandResult
-    ) -> HostAgentXPCCommandResultRecordOutcome {
+    @discardableResult package func recordResult(_ result: HostAgentXPCWireCommandResult)
+        -> HostAgentXPCCommandResultRecordOutcome
+    {
         lock.lock()
         defer { lock.unlock() }
         guard state == .active else { return .invalidated }
@@ -212,11 +181,7 @@ package final class HostAgentXPCCommandAdmissionAuthority:
             nextCompletionSequence += 1
             entries[result.commandID] = CommandEntry(
                 fingerprint: entry.fingerprint,
-                phase: .completed(
-                    result: result,
-                    completionSequence: nextCompletionSequence
-                )
-            )
+                phase: .completed(result: result, completionSequence: nextCompletionSequence))
             return .recorded
         case .completed(let existing, _):
             guard existing == result else {
@@ -247,14 +212,9 @@ package final class HostAgentXPCCommandAdmissionAuthority:
             }
         }
         return HostAgentXPCCommandAdmissionSnapshot(
-            state: state,
-            retainedCount: entries.count,
-            reservedCount: reservedCount,
-            queuedCount: queuedCount,
-            completedCount: completedCount,
-            evictedCompletedCount: evictedCompletedCount,
-            rejectedCount: rejectedCount
-        )
+            state: state, retainedCount: entries.count, reservedCount: reservedCount,
+            queuedCount: queuedCount, completedCount: completedCount,
+            evictedCompletedCount: evictedCompletedCount, rejectedCount: rejectedCount)
     }
 
     private func makeRoomForNewEntryLocked() -> Bool {
@@ -262,18 +222,16 @@ package final class HostAgentXPCCommandAdmissionAuthority:
         let oldestCompleted = entries.min { left, right in
             completionSequence(left.value) < completionSequence(right.value)
         }
-        guard let oldestCompleted,
-              case .completed = oldestCompleted.value.phase
-        else { return false }
+        guard let oldestCompleted, case .completed = oldestCompleted.value.phase else {
+            return false
+        }
         entries.removeValue(forKey: oldestCompleted.key)
         incrementSaturating(&evictedCompletedCount)
         return true
     }
 
     private func completionSequence(_ entry: CommandEntry) -> UInt64 {
-        guard case .completed(_, let sequence) = entry.phase else {
-            return UInt64.max
-        }
+        guard case .completed(_, let sequence) = entry.phase else { return UInt64.max }
         return sequence
     }
 
@@ -282,9 +240,7 @@ package final class HostAgentXPCCommandAdmissionAuthority:
         entries.removeAll(keepingCapacity: false)
     }
 
-    private func incrementSaturating(_ value: inout UInt64) {
-        if value < UInt64.max { value += 1 }
-    }
+    private func incrementSaturating(_ value: inout UInt64) { if value < UInt64.max { value += 1 } }
 }
 
 private struct CommandFingerprint: Equatable, Sendable {
@@ -305,8 +261,5 @@ private struct CommandEntry: Sendable {
 private enum CommandPhase: Sendable {
     case reserved(sequence: UInt64)
     case queued
-    case completed(
-        result: HostAgentXPCWireCommandResult,
-        completionSequence: UInt64
-    )
+    case completed(result: HostAgentXPCWireCommandResult, completionSequence: UInt64)
 }

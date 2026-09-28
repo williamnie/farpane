@@ -1,8 +1,6 @@
 import Foundation
 
-package protocol ViewerAutomaticRecoveryScheduledTask: AnyObject, Sendable {
-    func cancel()
-}
+package protocol ViewerAutomaticRecoveryScheduledTask: AnyObject, Sendable { func cancel() }
 
 package enum ViewerAutomaticRecoveryAttemptResult: Equatable, Sendable {
     case started
@@ -34,9 +32,7 @@ package enum ViewerAutomaticRecoveryPolicy {
     package static let noRetryTerminalCode: Int32 = 15
 
     package static func permitsRecovery(after event: CoreStateEvent) -> Bool {
-        guard event.state == .error || event.state == .disconnected else {
-            return false
-        }
+        guard event.state == .error || event.state == .disconnected else { return false }
         return event.code != noRetryTerminalCode
     }
 }
@@ -45,15 +41,12 @@ package enum ViewerAutomaticRecoveryPolicy {
 /// A recovery succeeds only when the replacement client reports streaming;
 /// merely starting a Core connection never advances the logical session.
 package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
-    package typealias Scheduler = @Sendable (
-        _ delayMilliseconds: UInt64,
-        _ action: @escaping @Sendable () -> Void
-    ) -> ViewerAutomaticRecoveryScheduledTask
-    package typealias Attempt = @Sendable (
-        _ sessionEpoch: UInt64,
-        _ generation: UInt64,
-        _ attempt: UInt64
-    ) -> ViewerAutomaticRecoveryAttemptResult
+    package typealias Scheduler =
+        @Sendable (_ delayMilliseconds: UInt64, _ action: @escaping @Sendable () -> Void) ->
+        ViewerAutomaticRecoveryScheduledTask
+    package typealias Attempt =
+        @Sendable (_ sessionEpoch: UInt64, _ generation: UInt64, _ attempt: UInt64) ->
+        ViewerAutomaticRecoveryAttemptResult
     package typealias Exhausted = @Sendable (_ sessionEpoch: UInt64) -> Void
 
     package static let productDelaysMilliseconds: [UInt64] = [500, 1_500, 3_000]
@@ -68,30 +61,20 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
     private var operationInFlight = false
 
     package static func makeProduct(
-        queue: DispatchQueue = .main,
-        attempt: @escaping Attempt,
-        exhausted: @escaping Exhausted
+        queue: DispatchQueue = .main, attempt: @escaping Attempt, exhausted: @escaping Exhausted
     ) -> ViewerAutomaticRecoveryOwner {
         ViewerAutomaticRecoveryOwner(
             delaysMilliseconds: productDelaysMilliseconds,
             schedule: { delayMilliseconds, action in
                 let workItem = DispatchWorkItem(block: action)
                 let boundedDelay = Int(min(delayMilliseconds, UInt64(Int.max)))
-                queue.asyncAfter(
-                    deadline: .now() + .milliseconds(boundedDelay),
-                    execute: workItem
-                )
+                queue.asyncAfter(deadline: .now() + .milliseconds(boundedDelay), execute: workItem)
                 return ViewerAutomaticRecoveryDispatchTask(workItem: workItem)
-            },
-            attempt: attempt,
-            exhausted: exhausted
-        )
+            }, attempt: attempt, exhausted: exhausted)
     }
 
     package init(
-        delaysMilliseconds: [UInt64],
-        schedule: @escaping Scheduler,
-        attempt: @escaping Attempt,
+        delaysMilliseconds: [UInt64], schedule: @escaping Scheduler, attempt: @escaping Attempt,
         exhausted: @escaping Exhausted
     ) {
         self.delaysMilliseconds = delaysMilliseconds
@@ -100,9 +83,7 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
         self.exhausted = exhausted
     }
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
     package func stateSnapshot() -> ViewerAutomaticRecoveryState {
         condition.lock()
@@ -110,12 +91,11 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
         return state
     }
 
-    @discardableResult
-    package func begin(sessionEpoch: UInt64) -> Bool {
+    @discardableResult package func begin(sessionEpoch: UInt64) -> Bool {
         condition.lock()
         defer { condition.unlock() }
         guard sessionEpoch > 0, !delaysMilliseconds.isEmpty,
-              delaysMilliseconds.allSatisfy({ $0 > 0 }), state == .idle
+            delaysMilliseconds.allSatisfy({ $0 > 0 }), state == .idle
         else { return false }
         state = .starting(epoch: sessionEpoch)
         return true
@@ -123,8 +103,7 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
 
     /// Returns true only for a real recovery streaming edge, never for the
     /// initial connection or duplicate streaming callbacks.
-    @discardableResult
-    package func observeStreaming(sessionEpoch: UInt64) -> Bool {
+    @discardableResult package func observeStreaming(sessionEpoch: UInt64) -> Bool {
         condition.lock()
         defer { condition.unlock() }
         switch state {
@@ -134,8 +113,7 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
         case .connecting(let epoch, _, _) where epoch == sessionEpoch:
             state = .streaming(epoch: epoch)
             return true
-        case .idle, .starting, .streaming, .waiting, .connecting,
-             .finished, .exhausted, .cancelled:
+        case .idle, .starting, .streaming, .waiting, .connecting, .finished, .exhausted, .cancelled:
             return false
         }
     }
@@ -143,9 +121,7 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
     /// A pre-stream terminal edge is final. Once streaming was established,
     /// one terminal edge schedules a bounded recovery window; duplicates while
     /// waiting are ignored and a failed replacement advances to the next try.
-    package func observeTerminal(
-        sessionEpoch: UInt64
-    ) -> ViewerAutomaticRecoveryTerminalDecision {
+    package func observeTerminal(sessionEpoch: UInt64) -> ViewerAutomaticRecoveryTerminalDecision {
         condition.lock()
         switch state {
         case .starting(let epoch) where epoch == sessionEpoch:
@@ -156,12 +132,10 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
             scheduleAttemptLocked(epoch: epoch, generation: 1, attemptIndex: 1)
             condition.unlock()
             return .recovering
-        case .connecting(let epoch, let generation, let attemptIndex)
-            where epoch == sessionEpoch:
+        case .connecting(let epoch, let generation, let attemptIndex) where epoch == sessionEpoch:
             let nextGeneration = generation == UInt64.max ? nil : generation + 1
             let nextAttempt = attemptIndex == UInt64.max ? nil : attemptIndex + 1
-            guard let nextGeneration, let nextAttempt,
-                  Int(nextAttempt) <= delaysMilliseconds.count
+            guard let nextGeneration, let nextAttempt, Int(nextAttempt) <= delaysMilliseconds.count
             else {
                 state = .exhausted(epoch: epoch)
                 condition.unlock()
@@ -169,17 +143,13 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
                 return .finish
             }
             scheduleAttemptLocked(
-                epoch: epoch,
-                generation: nextGeneration,
-                attemptIndex: nextAttempt
-            )
+                epoch: epoch, generation: nextGeneration, attemptIndex: nextAttempt)
             condition.unlock()
             return .recovering
         case .waiting(let epoch, _, _) where epoch == sessionEpoch:
             condition.unlock()
             return .ignored
-        case .idle, .starting, .streaming, .waiting, .connecting,
-             .finished, .exhausted, .cancelled:
+        case .idle, .starting, .streaming, .waiting, .connecting, .finished, .exhausted, .cancelled:
             condition.unlock()
             return .ignored
         }
@@ -199,46 +169,22 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
         condition.unlock()
     }
 
-    private func scheduleAttemptLocked(
-        epoch: UInt64,
-        generation: UInt64,
-        attemptIndex: UInt64
-    ) {
+    private func scheduleAttemptLocked(epoch: UInt64, generation: UInt64, attemptIndex: UInt64) {
         let delay = delaysMilliseconds[Int(attemptIndex - 1)]
-        state = .waiting(
-            epoch: epoch,
-            generation: generation,
-            attempt: attemptIndex
-        )
+        state = .waiting(epoch: epoch, generation: generation, attempt: attemptIndex)
         scheduledTask = schedule(delay) { [weak self] in
-            self?.runAttempt(
-                epoch: epoch,
-                generation: generation,
-                attemptIndex: attemptIndex
-            )
+            self?.runAttempt(epoch: epoch, generation: generation, attemptIndex: attemptIndex)
         }
     }
 
-    private func runAttempt(
-        epoch: UInt64,
-        generation: UInt64,
-        attemptIndex: UInt64
-    ) {
+    private func runAttempt(epoch: UInt64, generation: UInt64, attemptIndex: UInt64) {
         condition.lock()
-        guard state == .waiting(
-            epoch: epoch,
-            generation: generation,
-            attempt: attemptIndex
-        ) else {
+        guard state == .waiting(epoch: epoch, generation: generation, attempt: attemptIndex) else {
             condition.unlock()
             return
         }
         scheduledTask = nil
-        state = .connecting(
-            epoch: epoch,
-            generation: generation,
-            attempt: attemptIndex
-        )
+        state = .connecting(epoch: epoch, generation: generation, attempt: attemptIndex)
         operationInFlight = true
         condition.unlock()
 
@@ -247,23 +193,16 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
         condition.lock()
         operationInFlight = false
         condition.broadcast()
-        guard state == .connecting(
-            epoch: epoch,
-            generation: generation,
-            attempt: attemptIndex
-        ) else {
+        guard state == .connecting(epoch: epoch, generation: generation, attempt: attemptIndex)
+        else {
             condition.unlock()
             return
         }
         switch result {
-        case .started:
-            condition.unlock()
+        case .started: condition.unlock()
         case .retryableFailure:
             let decision = advanceAfterFailedAttemptLocked(
-                epoch: epoch,
-                generation: generation,
-                attemptIndex: attemptIndex
-            )
+                epoch: epoch, generation: generation, attemptIndex: attemptIndex)
             condition.unlock()
             if decision { exhausted(epoch) }
         case .unavailable:
@@ -275,9 +214,7 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
 
     /// Returns true when the bounded attempt list is exhausted.
     private func advanceAfterFailedAttemptLocked(
-        epoch: UInt64,
-        generation: UInt64,
-        attemptIndex: UInt64
+        epoch: UInt64, generation: UInt64, attemptIndex: UInt64
     ) -> Bool {
         guard generation < UInt64.max, attemptIndex < UInt64.max else {
             state = .exhausted(epoch: epoch)
@@ -288,26 +225,17 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
             state = .exhausted(epoch: epoch)
             return true
         }
-        scheduleAttemptLocked(
-            epoch: epoch,
-            generation: generation + 1,
-            attemptIndex: nextAttempt
-        )
+        scheduleAttemptLocked(epoch: epoch, generation: generation + 1, attemptIndex: nextAttempt)
         return false
     }
 }
 
-private final class ViewerAutomaticRecoveryDispatchTask:
-    ViewerAutomaticRecoveryScheduledTask,
+private final class ViewerAutomaticRecoveryDispatchTask: ViewerAutomaticRecoveryScheduledTask,
     @unchecked Sendable
 {
     private let workItem: DispatchWorkItem
 
-    init(workItem: DispatchWorkItem) {
-        self.workItem = workItem
-    }
+    init(workItem: DispatchWorkItem) { self.workItem = workItem }
 
-    func cancel() {
-        workItem.cancel()
-    }
+    func cancel() { workItem.cancel() }
 }

@@ -10,25 +10,18 @@ public enum HostAgentProcessRunResult: Equatable, Sendable {
 
     public var exitCode: Int32 {
         switch self {
-        case .stopped:
-            return 0
-        case .startupFailed(let failure):
-            return failure.exitCode
-        case .stopFailed, .internalFailure:
-            return 70 // EX_SOFTWARE
+        case .stopped: return 0
+        case .startupFailed(let failure): return failure.exitCode
+        case .stopFailed, .internalFailure: return 70  // EX_SOFTWARE
         }
     }
 
     public var diagnostic: String? {
         switch self {
-        case .stopped:
-            return nil
-        case .startupFailed(let failure):
-            return failure.diagnostic
-        case .stopFailed:
-            return "FarPane HostAgent failed to stop cleanly."
-        case .internalFailure:
-            return "FarPane HostAgent encountered an internal lifecycle error."
+        case .stopped: return nil
+        case .startupFailed(let failure): return failure.diagnostic
+        case .stopFailed: return "FarPane HostAgent failed to stop cleanly."
+        case .internalFailure: return "FarPane HostAgent encountered an internal lifecycle error."
         }
     }
 }
@@ -40,23 +33,17 @@ package enum HostAgentProcessTerminalResult: Equatable, Sendable {
 
     fileprivate var exitCode: Int32 {
         switch self {
-        case .unavailable:
-            return 69 // EX_UNAVAILABLE
-        case .entryRejected(let failure):
-            return failure.exitCode
-        case .process(let result):
-            return result.exitCode
+        case .unavailable: return 69  // EX_UNAVAILABLE
+        case .entryRejected(let failure): return failure.exitCode
+        case .process(let result): return result.exitCode
         }
     }
 
     fileprivate var diagnostic: String? {
         switch self {
-        case .unavailable:
-            return "FarPane HostAgent runtime is not available in this build."
-        case .entryRejected(let failure):
-            return failure.diagnostic
-        case .process(let result):
-            return result.diagnostic
+        case .unavailable: return "FarPane HostAgent runtime is not available in this build."
+        case .entryRejected(let failure): return failure.diagnostic
+        case .process(let result): return result.diagnostic
         }
     }
 }
@@ -65,14 +52,10 @@ package enum HostAgentProcessTerminalResult: Equatable, Sendable {
 /// sysexits value that the executable should use. Diagnostic I/O failure never
 /// changes the process result or retains an underlying Foundation error.
 package enum HostAgentProcessTerminalReporter {
-    @discardableResult
-    package static func report(
-        _ result: HostAgentProcessTerminalResult,
-        to output: FileHandle = .standardError
+    @discardableResult package static func report(
+        _ result: HostAgentProcessTerminalResult, to output: FileHandle = .standardError
     ) -> Int32 {
-        if let diagnostic = result.diagnostic,
-           let bytes = (diagnostic + "\n").data(using: .utf8)
-        {
+        if let diagnostic = result.diagnostic, let bytes = (diagnostic + "\n").data(using: .utf8) {
             try? output.write(contentsOf: bytes)
         }
         return result.exitCode
@@ -92,21 +75,13 @@ public enum HostAgentProcessRunner {
         cancelTerminationIngress: (TerminationIngress) -> Void
     ) -> HostAgentProcessRunResult {
         let ingress: TerminationIngress
-        do {
-            ingress = try installTerminationIngress()
-        } catch {
-            return .internalFailure
-        }
-        defer {
-            cancelTerminationIngress(ingress)
-        }
+        do { ingress = try installTerminationIngress() } catch { return .internalFailure }
+        defer { cancelTerminationIngress(ingress) }
 
         let runtime: Runtime
         switch startRuntime() {
-        case .success(let startedRuntime):
-            runtime = startedRuntime
-        case .failure(let failure):
-            return .startupFailed(failure)
+        case .success(let startedRuntime): runtime = startedRuntime
+        case .failure(let failure): return .startupFailed(failure)
         }
 
         guard bindTermination(ingress, runtime) else {
@@ -116,10 +91,8 @@ public enum HostAgentProcessRunner {
         }
 
         switch waitUntilTerminated(runtime).status {
-        case .stopped:
-            return .stopped
-        case .stopFailed:
-            return .stopFailed
+        case .stopped: return .stopped
+        case .stopFailed: return .stopFailed
         }
     }
 }

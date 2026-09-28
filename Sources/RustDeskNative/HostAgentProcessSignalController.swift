@@ -2,9 +2,7 @@ import CoreBridge
 import Darwin
 import Foundation
 
-enum HostAgentProcessSignalControllerError: Error, Equatable {
-    case installationFailed
-}
+enum HostAgentProcessSignalControllerError: Error, Equatable { case installationFailed }
 
 /// Process-owned SIGTERM/SIGINT ingress. POSIX dispositions only ignore the
 /// fixed signals; all Swift work runs later on the Dispatch source queue.
@@ -22,9 +20,7 @@ final class HostAgentProcessSignalController: @unchecked Sendable {
 
     init(
         queue: DispatchQueue = DispatchQueue(
-            label: "io.farpane.host-agent.signals",
-            qos: .userInitiated
-        )
+            label: "io.farpane.host-agent.signals", qos: .userInitiated)
     ) throws {
         var installed: [SignalDisposition] = []
         do {
@@ -40,24 +36,17 @@ final class HostAgentProcessSignalController: @unchecked Sendable {
             DispatchSource.makeSignalSource(signal: $0.number, queue: queue)
         }
         for source in sources {
-            source.setEventHandler { [weak self] in
-                _ = self?.latch.requestTermination()
-            }
+            source.setEventHandler { [weak self] in _ = self?.latch.requestTermination() }
             source.activate()
         }
     }
 
-    deinit {
-        cancel()
-    }
+    deinit { cancel() }
 
     /// Binds one started lifetime. A signal received during startup is
     /// delivered immediately by the latch after this method releases its lock.
-    @discardableResult
-    func bind(lifetime: HostAgentProcessLifetime) -> Bool {
-        latch.bind {
-            _ = lifetime.requestTermination(reason: .appExit)
-        }
+    @discardableResult func bind(lifetime: HostAgentProcessLifetime) -> Bool {
+        latch.bind { _ = lifetime.requestTermination(reason: .appExit) }
     }
 
     /// Cancels both activated sources and restores the process dispositions
@@ -90,9 +79,9 @@ final class HostAgentProcessSignalController: @unchecked Sendable {
         Self.restore(dispositionsToRestore.reversed())
     }
 
-    private static func installIgnoreDisposition(
-        for signalNumber: Int32
-    ) throws -> SignalDisposition {
+    private static func installIgnoreDisposition(for signalNumber: Int32) throws
+        -> SignalDisposition
+    {
         var ignored = sigaction()
         ignored.__sigaction_u.__sa_handler = SIG_IGN
         ignored.sa_flags = 0
@@ -110,11 +99,7 @@ final class HostAgentProcessSignalController: @unchecked Sendable {
     private static func restore<S: Sequence>(_ dispositions: S)
     where S.Element == SignalDisposition {
         for var disposition in dispositions {
-            _ = sigaction(
-                disposition.number,
-                &disposition.previous,
-                nil
-            )
+            _ = sigaction(disposition.number, &disposition.previous, nil)
         }
     }
 }

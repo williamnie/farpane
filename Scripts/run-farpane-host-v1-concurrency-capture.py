@@ -19,6 +19,14 @@ import tempfile
 import time
 from typing import Any, Callable
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    has_control_character,
+    has_symlink_component,
+    is_sha256,
+)
+
 
 SCHEMA = "farpane-host-v1-concurrency-capture-receipt"
 MANIFEST_SCHEMA = "farpane-host-v1-concurrency-manifest"
@@ -191,25 +199,6 @@ def usage() -> None:
         "MATRIX_ROOT ITEM10_PAIR_RESULT",
         file=sys.stderr,
     )
-
-
-def is_sha256(value: Any) -> bool:
-    return isinstance(value, str) and SHA256_PATTERN.fullmatch(value) is not None
-
-
-def has_control_character(value: str) -> bool:
-    return any(ord(character) < 0x20 or ord(character) == 0x7F for character in value)
-
-
-def has_symlink_component(path: Path) -> bool:
-    if not path.is_absolute():
-        return True
-    current = Path(path.anchor)
-    for component in path.parts[1:]:
-        current /= component
-        if current.is_symlink():
-            return True
-    return False
 
 
 def validate_matrix_root(path: Path) -> Path:

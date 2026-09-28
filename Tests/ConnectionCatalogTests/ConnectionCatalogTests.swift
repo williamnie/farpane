@@ -8,34 +8,39 @@ final class ConnectionCatalogTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
         var document = DeviceCatalogDocument(
             server: ServerConfiguration(
-                displayName: "自建服务器",
-                rendezvousServer: "server.example.invalid:21116",
-                serverPublicKey: "public-key"
-            )
-        )
-        let saved = document.recordAuthenticated(peerID: "313 790 560", at: Date(timeIntervalSince1970: 10))
-        XCTAssertTrue(document.updateDevice(id: saved.id, displayName: "工作室 Mac mini", isFavorite: true))
+                displayName: "自建服务器", rendezvousServer: "server.example.invalid:21116",
+                serverPublicKey: "public-key"))
+        let saved = document.recordAuthenticated(
+            peerID: "313 790 560", at: Date(timeIntervalSince1970: 10))
+        XCTAssertTrue(
+            document.updateDevice(id: saved.id, displayName: "工作室 Mac mini", isFavorite: true))
 
         try fixture.store.save(document)
 
         XCTAssertEqual(try fixture.store.load(), document)
         let persisted = try String(contentsOf: fixture.store.fileURL, encoding: .utf8)
         XCTAssertFalse(persisted.contains("one-time-password-sentinel"))
-        let attributes = try FileManager.default.attributesOfItem(atPath: fixture.store.fileURL.path)
+        let attributes = try FileManager.default.attributesOfItem(
+            atPath: fixture.store.fileURL.path)
         XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.intValue, 0o600)
     }
 
     func testAuthenticatedDeviceIsUniqueAndSortedByFavoriteThenRecency() {
         var document = DeviceCatalogDocument()
-        let first = document.recordAuthenticated(peerID: " first ", at: Date(timeIntervalSince1970: 10))
-        let second = document.recordAuthenticated(peerID: "second", at: Date(timeIntervalSince1970: 20))
-        let updated = document.recordAuthenticated(peerID: "first", at: Date(timeIntervalSince1970: 30))
+        let first = document.recordAuthenticated(
+            peerID: " first ", at: Date(timeIntervalSince1970: 10))
+        let second = document.recordAuthenticated(
+            peerID: "second", at: Date(timeIntervalSince1970: 20))
+        let updated = document.recordAuthenticated(
+            peerID: "first", at: Date(timeIntervalSince1970: 30))
         XCTAssertTrue(document.updateDevice(id: second.id, isFavorite: true))
 
         XCTAssertEqual(first.id, updated.id)
         XCTAssertEqual(document.devices.count, 2)
         XCTAssertEqual(document.sortedDevices.map(\.id), [second.id, first.id])
-        XCTAssertEqual(document.device(peerID: " first ")?.lastSuccessfulConnectionAt, Date(timeIntervalSince1970: 30))
+        XCTAssertEqual(
+            document.device(peerID: " first ")?.lastSuccessfulConnectionAt,
+            Date(timeIntervalSince1970: 30))
     }
 
     func testLegacyMigrationIsSuccessfulAndIdempotent() throws {
@@ -45,12 +50,12 @@ final class ConnectionCatalogTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let legacy: [String: Any] = [
-            "rendezvousServer": "server.example.invalid:21116",
-            "serverPublicKey": "public-key",
-            "peerID": "peer-id",
-            "forceRelay": true,
+            "rendezvousServer": "server.example.invalid:21116", "serverPublicKey": "public-key",
+            "peerID": "peer-id", "forceRelay": true,
         ]
-        defaults.set(try JSONSerialization.data(withJSONObject: legacy), forKey: LegacyProfileMigrator.storageKey)
+        defaults.set(
+            try JSONSerialization.data(withJSONObject: legacy),
+            forKey: LegacyProfileMigrator.storageKey)
         let migrator = LegacyProfileMigrator(defaults: defaults)
 
         let result = try migrator.migrateIfNeeded(to: fixture.store)
@@ -74,8 +79,7 @@ final class ConnectionCatalogTests: XCTestCase {
 
         XCTAssertEqual(
             try LegacyProfileMigrator(defaults: defaults).migrateIfNeeded(to: fixture.store),
-            .invalidLegacyProfilePreserved
-        )
+            .invalidLegacyProfilePreserved)
         XCTAssertEqual(defaults.data(forKey: LegacyProfileMigrator.storageKey), corrupt)
         XCTAssertFalse(fixture.store.exists)
     }
@@ -83,7 +87,8 @@ final class ConnectionCatalogTests: XCTestCase {
     func testRejectsUnsupportedSchemaWithoutOverwritingIt() throws {
         let fixture = makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
-        try FileManager.default.createDirectory(at: fixture.directory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: fixture.directory, withIntermediateDirectories: true)
         let future = Data("{\"schemaVersion\":2,\"devices\":[]}".utf8)
         try future.write(to: fixture.store.fileURL)
 
@@ -116,11 +121,13 @@ final class ConnectionCatalogTests: XCTestCase {
     func testBacksUpCorruptDocumentWithoutChangingOriginal() throws {
         let fixture = makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
-        try FileManager.default.createDirectory(at: fixture.directory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: fixture.directory, withIntermediateDirectories: true)
         let corrupt = Data("corrupt-catalog".utf8)
         try corrupt.write(to: fixture.store.fileURL)
 
-        let backup = try XCTUnwrap(fixture.store.backupCorruptDocument(at: Date(timeIntervalSince1970: 0)))
+        let backup = try XCTUnwrap(
+            fixture.store.backupCorruptDocument(at: Date(timeIntervalSince1970: 0)))
 
         XCTAssertEqual(try Data(contentsOf: backup), corrupt)
         XCTAssertEqual(try Data(contentsOf: fixture.store.fileURL), corrupt)
@@ -129,8 +136,8 @@ final class ConnectionCatalogTests: XCTestCase {
     }
 
     private func makeFixture() -> (directory: URL, store: DeviceCatalogStore) {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ConnectionCatalogTests-\(UUID().uuidString)", isDirectory: true)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "ConnectionCatalogTests-\(UUID().uuidString)", isDirectory: true)
         let store = DeviceCatalogStore(fileURL: directory.appendingPathComponent("catalog-v1.json"))
         return (directory, store)
     }

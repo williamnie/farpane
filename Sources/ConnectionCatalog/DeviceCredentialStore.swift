@@ -44,14 +44,11 @@ public final class KeychainDeviceCredentialStore: DeviceCredentialStore {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         switch status {
         case errSecSuccess:
-            guard let data = result as? Data, let password = String(data: data, encoding: .utf8) else {
-                throw DeviceCredentialStoreError.invalidData
-            }
+            guard let data = result as? Data, let password = String(data: data, encoding: .utf8)
+            else { throw DeviceCredentialStoreError.invalidData }
             return password
-        case errSecItemNotFound:
-            return nil
-        default:
-            throw map(status)
+        case errSecItemNotFound: return nil
+        default: throw map(status)
         }
     }
 
@@ -59,9 +56,7 @@ public final class KeychainDeviceCredentialStore: DeviceCredentialStore {
         let data = Data(password.utf8)
         let query = baseQuery(deviceID: deviceID)
         let updateStatus = SecItemUpdate(
-            query as CFDictionary,
-            [kSecValueData as String: data] as CFDictionary
-        )
+            query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
         if updateStatus == errSecSuccess { return }
         guard updateStatus == errSecItemNotFound else { throw map(updateStatus) }
 
@@ -79,8 +74,7 @@ public final class KeychainDeviceCredentialStore: DeviceCredentialStore {
 
     private func baseQuery(deviceID: UUID) -> [String: Any] {
         [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
             kSecAttrAccount as String: deviceID.uuidString,
         ]
     }
@@ -89,8 +83,7 @@ public final class KeychainDeviceCredentialStore: DeviceCredentialStore {
         switch status {
         case errSecAuthFailed, errSecInteractionNotAllowed, errSecNotAvailable, errSecUserCanceled:
             return .lockedOrDenied
-        default:
-            return .unexpectedStatus(status)
+        default: return .unexpectedStatus(status)
         }
     }
 }

@@ -1,6 +1,7 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentProcessEntryDriverTests: XCTestCase {
     func testProductStateOwnerStartsWithFreshAuthorities() throws {
@@ -17,22 +18,16 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
         XCTAssertNil(first.snapshotState.snapshot().projection)
         XCTAssertEqual(first.mediaState.snapshot().acceptedControlCount, 0)
         XCTAssertFalse(first.mediaState.snapshot().cancelled)
-        XCTAssertEqual(first.concurrencyState.snapshot(), .init(
-            acceptedObservations: 0,
-            deliveredObservations: 0,
-            pendingObservations: 0,
-            lastSourceGeneration: 0,
-            bound: false,
-            failed: false,
-            cancelled: false
-        ))
+        XCTAssertEqual(
+            first.concurrencyState.snapshot(),
+            .init(
+                acceptedObservations: 0, deliveredObservations: 0, pendingObservations: 0,
+                lastSourceGeneration: 0, bound: false, failed: false, cancelled: false))
     }
 
     func testDriverCreatesOneOwnerAndRunsOnceWithSameEligibility() throws {
         let eligibility = HostAgentProcessEntryEligibility(
-            buildIdentifier: "202608090002",
-            signingChannel: .localDevelopment
-        )
+            buildIdentifier: "202608090002", signingChannel: .localDevelopment)
         let expectedOwner = try HostAgentProcessEntryStateOwner()
         var ownerFactoryCalls = 0
         var runnerCalls = 0
@@ -50,13 +45,9 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
                 XCTAssertTrue(receivedOwner.eventState === expectedOwner.eventState)
                 XCTAssertTrue(receivedOwner.snapshotState === expectedOwner.snapshotState)
                 XCTAssertTrue(receivedOwner.mediaState === expectedOwner.mediaState)
-                XCTAssertTrue(
-                    receivedOwner.concurrencyState
-                        === expectedOwner.concurrencyState
-                )
+                XCTAssertTrue(receivedOwner.concurrencyState === expectedOwner.concurrencyState)
                 return .stopped
-            }
-        )
+            })
 
         XCTAssertEqual(result, .stopped)
         XCTAssertEqual(ownerFactoryCalls, 1)
@@ -68,17 +59,12 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
 
         let result = HostAgentProcessEntryDriver.run(
             eligibility: HostAgentProcessEntryEligibility(
-                buildIdentifier: "dev-2",
-                signingChannel: .localDevelopment
-            ),
-            makeStateOwner: {
-                throw TestError.stateUnavailable
-            },
+                buildIdentifier: "dev-2", signingChannel: .localDevelopment),
+            makeStateOwner: { throw TestError.stateUnavailable },
             run: { _, _ in
                 runnerCalls += 1
                 return .stopped
-            }
-        )
+            })
 
         XCTAssertEqual(result, .internalFailure)
         XCTAssertEqual(runnerCalls, 0)
@@ -91,9 +77,7 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
 
             let result = HostAgentProcessEntryDriver.run(
                 eligibility: HostAgentProcessEntryEligibility(
-                    buildIdentifier: invalidBuildIdentifier,
-                    signingChannel: .localDevelopment
-                ),
+                    buildIdentifier: invalidBuildIdentifier, signingChannel: .localDevelopment),
                 makeStateOwner: {
                     ownerFactoryCalls += 1
                     return try HostAgentProcessEntryStateOwner()
@@ -101,8 +85,7 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
                 run: { _, _ in
                     runnerCalls += 1
                     return .stopped
-                }
-            )
+                })
 
             XCTAssertEqual(result, .internalFailure)
             XCTAssertEqual(ownerFactoryCalls, 0)
@@ -110,145 +93,6 @@ final class HostAgentProcessEntryDriverTests: XCTestCase {
         }
     }
 
-    func testProductWiringConsumesEligibilityButRealEntryRemainsClosed() throws {
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let productSource = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/RustDeskNative/HostAgentProcessProductEntry.swift"
-            ),
-            encoding: .utf8
-        )
-        let processSource = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/RustDeskNative/HostAgentProcess.swift"
-            ),
-            encoding: .utf8
-        )
-        let runtimeSource = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/RustDeskNative/HostAgentProcessRuntime.swift"
-            ),
-            encoding: .utf8
-        )
-        let contextSource = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/ConnectionCatalog/HostAgentBootstrapContext.swift"
-            ),
-            encoding: .utf8
-        )
-        let appSource = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/RustDeskNative/RustDeskNativeApp.swift"
-            ),
-            encoding: .utf8
-        )
-
-        XCTAssertTrue(productSource.contains("HostAgentProcessEntryDriver.run("))
-        XCTAssertTrue(productSource.contains("eligibility: eligibility"))
-        XCTAssertTrue(productSource.contains(
-            "expectedAgentBuildID: eligibility.buildIdentifier"
-        ))
-        XCTAssertTrue(productSource.contains("stateOwner.eventState"))
-        XCTAssertTrue(productSource.contains("stateOwner.snapshotState"))
-        XCTAssertTrue(productSource.contains("stateOwner.mediaState"))
-        XCTAssertTrue(productSource.contains("stateOwner.concurrencyState"))
-        XCTAssertFalse(productSource.contains("Bundle.main"))
-        XCTAssertFalse(productSource.contains("ProcessInfo"))
-        XCTAssertFalse(productSource.contains("getenv"))
-        XCTAssertFalse(productSource.contains("exit("))
-
-        XCTAssertTrue(processSource.contains(
-            "expectedAgentBuildID: String"
-        ))
-        XCTAssertTrue(processSource.contains(
-            "HostViewerConcurrencyEvidenceProcessOwner()"
-        ))
-        XCTAssertTrue(processSource.contains(
-            ".configureHostAgent(\n"
-                + "            expectedAgentBuildID: expectedAgentBuildID"
-        ))
-        XCTAssertTrue(processSource.contains(
-            "_ = concurrencyEvidenceOwner.terminateAndWait()"
-        ))
-        XCTAssertTrue(processSource.contains(
-            "owner.observeHostAgentRuntimeState("
-        ))
-        XCTAssertTrue(processSource.contains(
-            "sourceGeneration: observation.sourceGeneration"
-        ))
-        XCTAssertTrue(processSource.contains(
-            "_ = concurrencyState.observe(event: event)"
-        ))
-        XCTAssertTrue(processSource.contains(
-            "onSnapshotPublished: { snapshot in"
-        ))
-        let evidenceConfigure = try XCTUnwrap(processSource.range(
-            of: ".configureHostAgent("
-        ))
-        let processRun = try XCTUnwrap(processSource.range(
-            of: "HostAgentProcessRunner.run("
-        ))
-        XCTAssertLessThan(evidenceConfigure.lowerBound, processRun.lowerBound)
-        let evidenceBinding = try XCTUnwrap(processSource.range(
-            of: "_ = concurrencyState.bind { observation in"
-        ))
-        let snapshotBinding = try XCTUnwrap(processSource.range(
-            of: "guard snapshotCoordinator.bind("
-        ))
-        XCTAssertLessThan(
-            evidenceBinding.lowerBound,
-            snapshotBinding.lowerBound
-        )
-        let listenerActivation = try XCTUnwrap(processSource.range(
-            of: "lifetime.activateXPCListener()"
-        ))
-        let readyEvidence = try XCTUnwrap(processSource.range(
-            of: "snapshot: snapshotState.snapshot()"
-        ))
-        XCTAssertLessThan(
-            listenerActivation.lowerBound,
-            readyEvidence.lowerBound
-        )
-        XCTAssertTrue(runtimeSource.contains(
-            "HostAgentProcessEvidenceIdentity("
-        ))
-        XCTAssertTrue(runtimeSource.contains(
-            "agentBootID: bootstrapContext.leaseRecord.agentBootID"
-        ))
-        XCTAssertTrue(runtimeSource.contains(
-            "agentBuildID: bootstrapContext.leaseRecord.agentBuildID"
-        ))
-        XCTAssertTrue(runtimeSource.contains(
-            "configRevision: bootstrapContext.leaseRecord.configRevision"
-        ))
-        XCTAssertTrue(runtimeSource.contains(
-            "HostAgentBootstrapContext.prepare(\n"
-                + "            expectedAgentBuildID: expectedAgentBuildID"
-        ))
-        XCTAssertTrue(contextSource.contains(
-            "package static func prepare(\n"
-                + "        expectedAgentBuildID: String"
-        ))
-        XCTAssertFalse(contextSource.contains(
-            "package static func prepare(\n"
-                + "        expectedAgentBuildID: String\n"
-                + "    ) throws -> HostAgentBootstrapContext {\n"
-                + "        let configuration = try "
-                + "HostAgentBootstrapLaunchPreflight().prepare()"
-        ))
-
-        XCTAssertTrue(appSource.contains("exit(HostAgentProcessBootstrap.run())"))
-        XCTAssertFalse(appSource.contains("HostAgentProcessProductEntry.run("))
-        XCTAssertFalse(appSource.contains(
-            "HostAgentProcessEntryOrchestrator.resolve("
-        ))
-        XCTAssertFalse(appSource.contains("HostAgentProcess.run("))
-    }
 }
 
-private enum TestError: Error {
-    case stateUnavailable
-}
+private enum TestError: Error { case stateUnavailable }

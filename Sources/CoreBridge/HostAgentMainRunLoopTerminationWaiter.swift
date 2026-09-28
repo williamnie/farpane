@@ -14,9 +14,7 @@ public enum HostAgentMainRunLoopTerminationWaiter {
         while true {
             if let outcome = terminationOutcome() { return outcome }
             _ = RunLoop.current.run(
-                mode: .default,
-                before: Date(timeIntervalSinceNow: pollInterval)
-            )
+                mode: .default, before: Date(timeIntervalSinceNow: pollInterval))
         }
     }
 }

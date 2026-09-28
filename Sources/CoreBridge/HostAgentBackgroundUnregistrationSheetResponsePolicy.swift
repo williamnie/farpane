@@ -1,9 +1,5 @@
 package enum HostAgentBackgroundUnregistrationSheetResponsePolicy {
-    package static func intent(
-        confirmed: Bool
-    ) -> HostAgentBackgroundUnregistrationUXIntent {
-        confirmed
-            ? .confirmBackgroundUnregistration
-            : .cancelBackgroundUnregistration
+    package static func intent(confirmed: Bool) -> HostAgentBackgroundUnregistrationUXIntent {
+        confirmed ? .confirmBackgroundUnregistration : .cancelBackgroundUnregistration
     }
 }

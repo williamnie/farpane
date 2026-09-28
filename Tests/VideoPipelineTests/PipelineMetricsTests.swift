@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import VideoPipeline
 
 private final class TestMonotonicClock: @unchecked Sendable {
@@ -6,12 +7,14 @@ private final class TestMonotonicClock: @unchecked Sendable {
     private var value: UInt64 = 0
 
     func now() -> UInt64 {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         return value
     }
 
     func advance(seconds: Double) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         value += UInt64(seconds * 1_000_000_000)
     }
 }
@@ -20,27 +23,14 @@ final class PipelineMetricsTests: XCTestCase {
     func testHUDUsesRecentFrameRatesAndCurrentQueueDepths() {
         let clock = TestMonotonicClock()
         let metrics = PipelineMetrics(
-            inputWidth: 0,
-            inputHeight: 0,
-            inputFPS: 30,
-            selectedGPU: "test-gpu",
-            monotonicNow: { clock.now() }
-        )
+            inputWidth: 0, inputHeight: 0, inputFPS: 30, selectedGPU: "test-gpu",
+            monotonicNow: { clock.now() })
 
         for index in 0..<3 {
             metrics.recordEncodedPacket(
-                codec: "h265",
-                format: "annex-b",
-                byteCount: 128,
-                sequence: UInt64(index),
-                timestampUS: UInt64(index + 1),
-                isKeyframe: index == 0,
-                containsVPS: index == 0,
-                containsSPS: index == 0,
-                containsPPS: index == 0,
-                width: 3840,
-                height: 2160
-            )
+                codec: "h265", format: "annex-b", byteCount: 128, sequence: UInt64(index),
+                timestampUS: UInt64(index + 1), isKeyframe: index == 0, containsVPS: index == 0,
+                containsSPS: index == 0, containsPPS: index == 0, width: 3840, height: 2160)
             metrics.recordPresented(milliseconds: 1)
             if index < 2 { clock.advance(seconds: 0.5) }
         }
@@ -67,28 +57,15 @@ final class PipelineMetricsTests: XCTestCase {
 
     func testRecordsDistinctEncodedFrameRateAndRemoteDimensions() {
         let metrics = PipelineMetrics(
-            inputWidth: 0,
-            inputHeight: 0,
-            inputFPS: 30,
-            selectedGPU: "test-gpu",
-            source: "rustdesk-live"
-        )
+            inputWidth: 0, inputHeight: 0, inputFPS: 30, selectedGPU: "test-gpu",
+            source: "rustdesk-live")
 
         for (sequence, timestamp) in [UInt64(10_000), 10_000, 20_000].enumerated() {
             if sequence == 1 { Thread.sleep(forTimeInterval: 0.002) }
             metrics.recordEncodedPacket(
-                codec: "h265",
-                format: "annex-b",
-                byteCount: 128,
-                sequence: UInt64(sequence),
-                timestampUS: timestamp,
-                isKeyframe: sequence == 0,
-                containsVPS: sequence == 0,
-                containsSPS: sequence == 0,
-                containsPPS: sequence == 0,
-                width: 3840,
-                height: 2160
-            )
+                codec: "h265", format: "annex-b", byteCount: 128, sequence: UInt64(sequence),
+                timestampUS: timestamp, isKeyframe: sequence == 0, containsVPS: sequence == 0,
+                containsSPS: sequence == 0, containsPPS: sequence == 0, width: 3840, height: 2160)
         }
 
         let report = metrics.snapshot(durationOverride: 2)
@@ -100,8 +77,7 @@ final class PipelineMetricsTests: XCTestCase {
         XCTAssertFalse(report.measurementStartedAt.isEmpty)
         XCTAssertGreaterThan(
             report.measurementCompletedMonotonicNanoseconds,
-            report.measurementStartedMonotonicNanoseconds
-        )
+            report.measurementStartedMonotonicNanoseconds)
         XCTAssertNil(report.firstPresentationMonotonicNanoseconds)
         XCTAssertNil(report.lastPresentationMonotonicNanoseconds)
         XCTAssertEqual(report.encodedPackets, 3)
@@ -122,11 +98,7 @@ final class PipelineMetricsTests: XCTestCase {
 
     func testSeparatesActivePresentationRateFromEndToEndRate() {
         let metrics = PipelineMetrics(
-            inputWidth: 0,
-            inputHeight: 0,
-            inputFPS: 30,
-            selectedGPU: "test-gpu"
-        )
+            inputWidth: 0, inputHeight: 0, inputFPS: 30, selectedGPU: "test-gpu")
 
         metrics.recordPresented(milliseconds: 1)
         Thread.sleep(forTimeInterval: 0.02)
@@ -139,12 +111,8 @@ final class PipelineMetricsTests: XCTestCase {
 
     func testPreservesLastAvailableCoreNetworkMetrics() {
         let metrics = PipelineMetrics(
-            inputWidth: 0,
-            inputHeight: 0,
-            inputFPS: 30,
-            selectedGPU: "test-gpu",
-            source: "rustdesk-live"
-        )
+            inputWidth: 0, inputHeight: 0, inputFPS: 30, selectedGPU: "test-gpu",
+            source: "rustdesk-live")
 
         metrics.recordCoreMetrics(remoteFPS: 24, networkDelayMS: 7, targetBitrate: 2_000_000)
         metrics.recordCoreMetrics(remoteFPS: 0, networkDelayMS: -1, targetBitrate: 0)
@@ -157,12 +125,8 @@ final class PipelineMetricsTests: XCTestCase {
 
     func testRecordsAsynchronousDecoderRecoveryDiagnostics() {
         let metrics = PipelineMetrics(
-            inputWidth: 0,
-            inputHeight: 0,
-            inputFPS: 30,
-            selectedGPU: "test-gpu",
-            source: "rustdesk-live"
-        )
+            inputWidth: 0, inputHeight: 0, inputFPS: 30, selectedGPU: "test-gpu",
+            source: "rustdesk-live")
 
         metrics.recordDecodeError(status: -12_909)
         metrics.recordDecoderReset(status: -12_909)
@@ -196,15 +160,11 @@ final class PipelineMetricsTests: XCTestCase {
 
     func testPersistsPhase3InputAndManualFeedbackEvidence() {
         let metrics = PipelineMetrics(
-            inputWidth: 0,
-            inputHeight: 0,
-            inputFPS: 30,
-            selectedGPU: "test-gpu",
-            source: "rustdesk-live"
-        )
-        for category in ["pointer-move", "button-down", "button-up", "scroll", "key-down", "key-up"] {
-            metrics.recordInput(category: category, accepted: true)
-        }
+            inputWidth: 0, inputHeight: 0, inputFPS: 30, selectedGPU: "test-gpu",
+            source: "rustdesk-live")
+        for category in [
+            "pointer-move", "button-down", "button-up", "scroll", "key-down", "key-up",
+        ] { metrics.recordInput(category: category, accepted: true) }
         metrics.recordInput(category: "key-down", accepted: false)
         metrics.recordFullscreenToggle()
         metrics.recordHUDToggle()

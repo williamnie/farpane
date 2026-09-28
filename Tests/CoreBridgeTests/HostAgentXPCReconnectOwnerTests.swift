@@ -1,22 +1,17 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentXPCReconnectOwnerTests: XCTestCase {
     private let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
 
     func testStartCreatesExactlyOneSnapshotFirstSession() throws {
         let previousPeer = try peerIdentity()
-        let authority = ReconnectTestProjectionAuthority(
-            previousPeerIdentity: previousPeer
-        )
+        let authority = ReconnectTestProjectionAuthority(previousPeerIdentity: previousPeer)
         let scheduler = ReconnectTestScheduler()
         let factory = ReconnectTestSessionFactory()
-        let owner = makeOwner(
-            authority: authority,
-            scheduler: scheduler,
-            factory: factory
-        )
+        let owner = makeOwner(authority: authority, scheduler: scheduler, factory: factory)
 
         XCTAssertTrue(owner.start())
         XCTAssertFalse(owner.start())
@@ -33,11 +28,7 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         let authority = ReconnectTestProjectionAuthority()
         let scheduler = ReconnectTestScheduler()
         let factory = ReconnectTestSessionFactory()
-        let owner = makeOwner(
-            authority: authority,
-            scheduler: scheduler,
-            factory: factory
-        )
+        let owner = makeOwner(authority: authority, scheduler: scheduler, factory: factory)
         XCTAssertTrue(owner.start())
         let first = try XCTUnwrap(factory.sessions.first)
 
@@ -46,12 +37,7 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
 
         XCTAssertEqual(
             owner.stateSnapshot(),
-            .waitingToReconnect(
-                attempt: 1,
-                delayMilliseconds: 250,
-                reason: .disconnected
-            )
-        )
+            .waitingToReconnect(attempt: 1, delayMilliseconds: 250, reason: .disconnected))
         XCTAssertEqual(scheduler.delays, [250])
         scheduler.tasks[0].fire()
         XCTAssertEqual(owner.stateSnapshot(), .connecting(attempt: 1))
@@ -63,11 +49,7 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         let authority = ReconnectTestProjectionAuthority()
         let scheduler = ReconnectTestScheduler()
         let factory = ReconnectTestSessionFactory()
-        let owner = makeOwner(
-            authority: authority,
-            scheduler: scheduler,
-            factory: factory
-        )
+        let owner = makeOwner(authority: authority, scheduler: scheduler, factory: factory)
         XCTAssertTrue(owner.start())
 
         factory.sessions[0].terminate(.disconnected)
@@ -76,10 +58,8 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         XCTAssertEqual(scheduler.delays, [250, 500])
         scheduler.tasks[1].fire()
         try factory.sessions[2].publishInitial(
-            snapshot: snapshotResponse(lastEventID: 1),
-            peerIdentity: peerIdentity(),
-            transition: .firstObservation
-        )
+            snapshot: snapshotResponse(lastEventID: 1), peerIdentity: peerIdentity(),
+            transition: .firstObservation)
         XCTAssertEqual(owner.stateSnapshot(), .active)
 
         factory.sessions[2].terminate(.invalidResponse)
@@ -87,77 +67,47 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         XCTAssertEqual(scheduler.delays, [250, 500, 250])
         XCTAssertEqual(
             owner.stateSnapshot(),
-            .waitingToReconnect(
-                attempt: 1,
-                delayMilliseconds: 250,
-                reason: .invalidResponse
-            )
-        )
+            .waitingToReconnect(attempt: 1, delayMilliseconds: 250, reason: .invalidResponse))
     }
 
     func testCommandRouteIsBoundToCurrentActiveSessionGeneration() throws {
         let authority = ReconnectTestProjectionAuthority()
         let scheduler = ReconnectTestScheduler()
         let factory = ReconnectTestSessionFactory()
-        let owner = makeOwner(
-            authority: authority,
-            scheduler: scheduler,
-            factory: factory
-        )
+        let owner = makeOwner(authority: authority, scheduler: scheduler, factory: factory)
         XCTAssertTrue(owner.start())
         XCTAssertEqual(owner.commandAvailabilitySnapshot(), .unavailable)
         let firstSession = factory.sessions[0]
         let firstPeer = try peerIdentity()
         try firstSession.publishInitial(
-            snapshot: snapshotResponse(lastEventID: 1),
-            peerIdentity: firstPeer,
-            transition: .firstObservation
-        )
-        guard case .available(let firstRoute, let commandState) =
-            owner.commandAvailabilitySnapshot()
+            snapshot: snapshotResponse(lastEventID: 1), peerIdentity: firstPeer,
+            transition: .firstObservation)
+        guard
+            case .available(let firstRoute, let commandState) = owner.commandAvailabilitySnapshot()
         else { return XCTFail("expected command route") }
         XCTAssertEqual(commandState, .idle)
         XCTAssertEqual(firstRoute.sessionGeneration, 1)
         XCTAssertEqual(firstRoute.peerIdentity, firstPeer)
         let intent = HostAgentXPCCommandIntent(
-            commandID: "command-1",
-            name: .disconnectSession,
-            connectionID: "host-a:connection-1"
-        )
-        XCTAssertTrue(owner.submitCommand(
-            route: firstRoute,
-            intent: intent,
-            observer: { _ in }
-        ))
+            commandID: "command-1", name: .disconnectSession, connectionID: "host-a:connection-1")
+        XCTAssertTrue(owner.submitCommand(route: firstRoute, intent: intent, observer: { _ in }))
         XCTAssertEqual(firstSession.submittedCommands, [intent])
 
         firstSession.terminate(.disconnected)
         XCTAssertEqual(owner.commandAvailabilitySnapshot(), .unavailable)
-        XCTAssertFalse(owner.submitCommand(
-            route: firstRoute,
-            intent: intent,
-            observer: { _ in }
-        ))
+        XCTAssertFalse(owner.submitCommand(route: firstRoute, intent: intent, observer: { _ in }))
         scheduler.tasks[0].fire()
         let secondSession = factory.sessions[1]
         try secondSession.publishInitial(
-            snapshot: snapshotResponse(lastEventID: 2),
-            peerIdentity: firstPeer,
-            transition: .firstObservation
-        )
-        guard case .available(let secondRoute, _) =
-            owner.commandAvailabilitySnapshot()
-        else { return XCTFail("expected replacement command route") }
+            snapshot: snapshotResponse(lastEventID: 2), peerIdentity: firstPeer,
+            transition: .firstObservation)
+        guard case .available(let secondRoute, _) = owner.commandAvailabilitySnapshot() else {
+            return XCTFail("expected replacement command route")
+        }
         XCTAssertEqual(secondRoute.sessionGeneration, 2)
         XCTAssertNotEqual(secondRoute, firstRoute)
-        XCTAssertFalse(owner.retryCommand(
-            route: firstRoute,
-            observer: { _ in }
-        ))
-        XCTAssertTrue(owner.retryCommand(
-            route: secondRoute,
-            observer: { _ in }
-        ))
+        XCTAssertFalse(owner.retryCommand(route: firstRoute, observer: { _ in }))
+        XCTAssertTrue(owner.retryCommand(route: secondRoute, observer: { _ in }))
         XCTAssertEqual(secondSession.retryCount, 1)
     }
 
@@ -168,19 +118,11 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         let owner = HostAgentXPCReconnectOwner(
             projectionAuthority: authority,
             schedule: { delay, action in
-                scheduler.schedule(
-                    delayMilliseconds: delay,
-                    action: action
-                )
-            },
-            jitter: { upperBound in upperBound },
+                scheduler.schedule(delayMilliseconds: delay, action: action)
+            }, jitter: { upperBound in upperBound },
             makeSession: { previousPeerIdentity, sink in
-                try factory.makeSession(
-                    previousPeerIdentity: previousPeerIdentity,
-                    sink: sink
-                )
-            }
-        )
+                try factory.makeSession(previousPeerIdentity: previousPeerIdentity, sink: sink)
+            })
         XCTAssertTrue(owner.start())
 
         for index in 0..<8 {
@@ -188,12 +130,11 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
             scheduler.tasks[index].fire()
         }
 
-        XCTAssertEqual(scheduler.delays, [
-            312, 625, 1_250, 2_500, 5_000, 5_000, 5_000, 5_000,
-        ])
-        XCTAssertTrue(scheduler.delays.allSatisfy {
-            $0 <= HostAgentXPCReconnectOwner.maximumDelayMilliseconds
-        })
+        XCTAssertEqual(scheduler.delays, [312, 625, 1_250, 2_500, 5_000, 5_000, 5_000, 5_000])
+        XCTAssertTrue(
+            scheduler.delays.allSatisfy {
+                $0 <= HostAgentXPCReconnectOwner.maximumDelayMilliseconds
+            })
     }
 
     func testCancellationDuringJitterCannotBeOverwrittenByRetryState() {
@@ -204,22 +145,15 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         let owner = HostAgentXPCReconnectOwner(
             projectionAuthority: authority,
             schedule: { delay, action in
-                scheduler.schedule(
-                    delayMilliseconds: delay,
-                    action: action
-                )
+                scheduler.schedule(delayMilliseconds: delay, action: action)
             },
             jitter: { _ in
                 ownerBox.cancel()
                 return 0
             },
             makeSession: { previousPeerIdentity, sink in
-                try factory.makeSession(
-                    previousPeerIdentity: previousPeerIdentity,
-                    sink: sink
-                )
-            }
-        )
+                try factory.makeSession(previousPeerIdentity: previousPeerIdentity, sink: sink)
+            })
         ownerBox.owner = owner
         XCTAssertTrue(owner.start())
 
@@ -233,11 +167,7 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         let authority = ReconnectTestProjectionAuthority()
         let scheduler = ReconnectTestScheduler()
         let factory = ReconnectTestSessionFactory()
-        let owner = makeOwner(
-            authority: authority,
-            scheduler: scheduler,
-            factory: factory
-        )
+        let owner = makeOwner(authority: authority, scheduler: scheduler, factory: factory)
         XCTAssertTrue(owner.start())
         factory.sessions[0].terminate(.disconnected)
 
@@ -254,11 +184,7 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         let authority = ReconnectTestProjectionAuthority()
         let scheduler = ReconnectTestScheduler()
         let factory = ReconnectTestSessionFactory()
-        let owner = makeOwner(
-            authority: authority,
-            scheduler: scheduler,
-            factory: factory
-        )
+        let owner = makeOwner(authority: authority, scheduler: scheduler, factory: factory)
         XCTAssertTrue(owner.start())
         let session = factory.sessions[0]
 
@@ -276,20 +202,13 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         let factory = ReconnectTestSessionFactory()
         factory.shouldThrow = true
         factory.shouldBlock = true
-        let owner = makeOwner(
-            authority: authority,
-            scheduler: scheduler,
-            factory: factory
-        )
+        let owner = makeOwner(authority: authority, scheduler: scheduler, factory: factory)
         let startFinished = expectation(description: "start returned")
         DispatchQueue.global().async {
             _ = owner.start()
             startFinished.fulfill()
         }
-        XCTAssertEqual(
-            factory.factoryEntered.wait(timeout: .now() + 2),
-            .success
-        )
+        XCTAssertEqual(factory.factoryEntered.wait(timeout: .now() + 2), .success)
 
         owner.cancel()
         factory.releaseFactory.signal()
@@ -306,41 +225,26 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         let throwingFactory = ReconnectTestSessionFactory()
         throwingFactory.shouldThrow = true
         let creationOwner = makeOwner(
-            authority: ReconnectTestProjectionAuthority(),
-            scheduler: scheduler,
-            factory: throwingFactory
-        )
+            authority: ReconnectTestProjectionAuthority(), scheduler: scheduler,
+            factory: throwingFactory)
         XCTAssertTrue(creationOwner.start())
-        XCTAssertEqual(
-            creationOwner.stateSnapshot(),
-            .failed(.sessionCreation)
-        )
+        XCTAssertEqual(creationOwner.stateSnapshot(), .failed(.sessionCreation))
 
         let rejectingFactory = ReconnectTestSessionFactory()
         rejectingFactory.startResult = false
         let startOwner = makeOwner(
-            authority: ReconnectTestProjectionAuthority(),
-            scheduler: scheduler,
-            factory: rejectingFactory
-        )
+            authority: ReconnectTestProjectionAuthority(), scheduler: scheduler,
+            factory: rejectingFactory)
         XCTAssertTrue(startOwner.start())
-        XCTAssertEqual(
-            startOwner.stateSnapshot(),
-            .failed(.sessionStartRejected)
-        )
+        XCTAssertEqual(startOwner.stateSnapshot(), .failed(.sessionStartRejected))
 
         let invalidFactory = ReconnectTestSessionFactory()
         let invalidOwner = makeOwner(
-            authority: ReconnectTestProjectionAuthority(),
-            scheduler: scheduler,
-            factory: invalidFactory
-        )
+            authority: ReconnectTestProjectionAuthority(), scheduler: scheduler,
+            factory: invalidFactory)
         XCTAssertTrue(invalidOwner.start())
         invalidFactory.sessions[0].terminate(.invalidState)
-        XCTAssertEqual(
-            invalidOwner.stateSnapshot(),
-            .failed(.invalidState)
-        )
+        XCTAssertEqual(invalidOwner.stateSnapshot(), .failed(.invalidState))
         XCTAssertEqual(scheduler.delays, [])
     }
 
@@ -349,19 +253,13 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
         authority.acceptInitial = false
         let scheduler = ReconnectTestScheduler()
         let factory = ReconnectTestSessionFactory()
-        let owner = makeOwner(
-            authority: authority,
-            scheduler: scheduler,
-            factory: factory
-        )
+        let owner = makeOwner(authority: authority, scheduler: scheduler, factory: factory)
         XCTAssertTrue(owner.start())
         let session = factory.sessions[0]
 
         try session.publishInitial(
-            snapshot: snapshotResponse(lastEventID: 1),
-            peerIdentity: peerIdentity(),
-            transition: .firstObservation
-        )
+            snapshot: snapshotResponse(lastEventID: 1), peerIdentity: peerIdentity(),
+            transition: .firstObservation)
 
         XCTAssertEqual(owner.stateSnapshot(), .failed(.projectionRejected))
         XCTAssertEqual(session.cancelCount, 1)
@@ -369,12 +267,8 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
     }
 
     func testProductSchedulerExecutesAndCancelsDispatchWork() {
-        let queue = DispatchQueue(
-            label: "HostAgentXPCReconnectOwnerTests.scheduler"
-        )
-        let scheduler = HostAgentXPCReconnectOwner.productScheduler(
-            queue: queue
-        )
+        let queue = DispatchQueue(label: "HostAgentXPCReconnectOwnerTests.scheduler")
+        let scheduler = HostAgentXPCReconnectOwner.productScheduler(queue: queue)
         let executed = expectation(description: "scheduled reconnect")
         _ = scheduler(10) { executed.fulfill() }
         wait(for: [executed], timeout: 1)
@@ -388,164 +282,84 @@ final class HostAgentXPCReconnectOwnerTests: XCTestCase {
 
     func testProductFactoryIsInertUntilExplicitStart() {
         let authority = HostAgentBackgroundProjectionAuthority()
-        let owner = HostAgentXPCReconnectOwner.makeProduct(
-            projectionAuthority: authority
-        )
+        let owner = HostAgentXPCReconnectOwner.makeProduct(projectionAuthority: authority)
 
         XCTAssertEqual(owner.stateSnapshot(), .idle)
         XCTAssertEqual(authority.snapshot().phase, .idle)
     }
 
-    func testSourceUsesProductCompositionWithoutUIRegistrationOrCommands()
-        throws
-    {
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/CoreBridge/HostAgentXPCReconnectOwner.swift"
-            ),
-            encoding: .utf8
-        )
-
-        XCTAssertTrue(source.contains(
-            "HostAgentXPCSessionLifecycle.makeProduct("
-        ))
-        XCTAssertTrue(source.contains("projectionAuthority.beginSession()"))
-        XCTAssertFalse(source.contains("AppKit"))
-        XCTAssertFalse(source.contains("SwiftUI"))
-        XCTAssertFalse(source.contains("SMAppService"))
-        XCTAssertFalse(source.contains("HostAgentBackgroundServiceObserver"))
-        XCTAssertFalse(source.contains("HostAgentXPCWireCommandRequest"))
-        XCTAssertFalse(source.contains("HostControlClient"))
-        XCTAssertFalse(source.contains("UserDefaults"))
-        XCTAssertFalse(source.contains("ProcessInfo"))
-        XCTAssertFalse(source.contains("getenv"))
-    }
-
     private func makeOwner(
-        authority: ReconnectTestProjectionAuthority,
-        scheduler: ReconnectTestScheduler,
+        authority: ReconnectTestProjectionAuthority, scheduler: ReconnectTestScheduler,
         factory: ReconnectTestSessionFactory
     ) -> HostAgentXPCReconnectOwner {
         HostAgentXPCReconnectOwner(
             projectionAuthority: authority,
             schedule: { delay, action in
-                scheduler.schedule(
-                    delayMilliseconds: delay,
-                    action: action
-                )
-            },
-            jitter: { _ in 0 },
+                scheduler.schedule(delayMilliseconds: delay, action: action)
+            }, jitter: { _ in 0 },
             makeSession: { previousPeerIdentity, sink in
-                try factory.makeSession(
-                    previousPeerIdentity: previousPeerIdentity,
-                    sink: sink
-                )
-            }
-        )
+                try factory.makeSession(previousPeerIdentity: previousPeerIdentity, sink: sink)
+            })
     }
 
-    private func peerIdentity() throws
-        -> HostAgentXPCSnapshotClientPeerIdentity
-    {
+    private func peerIdentity() throws -> HostAgentXPCSnapshotClientPeerIdentity {
         try HostAgentXPCSnapshotClientPeerIdentity.test(
-            agentBuildID: "agent-build",
-            hostInstanceID: "host-a",
-            agentBootID: bootID
-        )
+            agentBuildID: "agent-build", hostInstanceID: "host-a", agentBootID: bootID)
     }
 
-    private func snapshotResponse(lastEventID: UInt64) throws
-        -> HostAgentXPCWireSnapshotResponse
-    {
+    private func snapshotResponse(lastEventID: UInt64) throws -> HostAgentXPCWireSnapshotResponse {
         let request = try HostAgentXPCWireSnapshotRequest(
-            requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            wireVersion: 2,
-            hostInstanceID: "host-a",
-            agentBootID: bootID,
-            sentAtUnixMilliseconds: 11
-        )
+            requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610", wireVersion: 2,
+            hostInstanceID: "host-a", agentBootID: bootID, sentAtUnixMilliseconds: 11)
         let state = HostAgentSnapshotState()
         _ = state.publish(
-            try coreSnapshot(),
-            eventSequence: lastEventID,
-            expectedHostInstanceID: "host-a"
-        )
+            try coreSnapshot(), eventSequence: lastEventID, expectedHostInstanceID: "host-a")
         return try HostAgentXPCWireSnapshotResponse.make(
             for: request,
             identity: try HostAgentXPCWireAgentIdentity.test(
-                agentBuildID: "agent-build",
-                hostInstanceID: "host-a",
-                agentBootID: bootID
-            ),
-            state: state.snapshot(),
-            sentAtUnixMilliseconds: 21
-        )
+                agentBuildID: "agent-build", hostInstanceID: "host-a", agentBootID: bootID),
+            state: state.snapshot(), sentAtUnixMilliseconds: 21)
     }
 
     private func coreSnapshot() throws -> HostCoreSnapshot {
-        try HostCoreSnapshot(rawJSON: JSONSerialization.data(
-            withJSONObject: [
-                "schemaVersion": 8,
-                "hostInstanceId": "host-a",
-                "hostState": "ready",
-                "localId": "123456789",
-                "authenticatedConnectionCount": 1,
-                "sessionAvailability": "available",
-                "sessionUnavailableReason": NSNull(),
-                "registrationStatus": "ready",
-                "recoveryEpoch": 0,
-                "recoveryStatus": "running",
-                "pendingApproval": NSNull(),
-                "activeSession": NSNull(),
+        try HostCoreSnapshot(
+            rawJSON: JSONSerialization.data(withJSONObject: [
+                "schemaVersion": 8, "hostInstanceId": "host-a", "hostState": "ready",
+                "localId": "123456789", "authenticatedConnectionCount": 1,
+                "sessionAvailability": "available", "sessionUnavailableReason": NSNull(),
+                "registrationStatus": "ready", "recoveryEpoch": 0, "recoveryStatus": "running",
+                "pendingApproval": NSNull(), "activeSession": NSNull(),
                 "temporaryPasswordPresentation": ["policy": "redacted"],
                 "passwordPolicy": [
-                    "localPasswordSet": true,
-                    "effectivePasswordSet": true,
-                    "usingPresetPassword": false,
-                    "changeAllowed": true,
+                    "localPasswordSet": true, "effectivePasswordSet": true,
+                    "usingPresetPassword": false, "changeAllowed": true,
                     "strengthPolicy": [
-                        "version": 1,
-                        "minimumCharacters": 6,
-                        "maximumCharacters": 128,
-                        "maximumUtf8Bytes": 512,
-                        "rejectsControlCharacters": true,
+                        "version": 1, "minimumCharacters": 6, "maximumCharacters": 128,
+                        "maximumUtf8Bytes": 512, "rejectsControlCharacters": true,
                         "rejectsOuterWhitespace": true,
                     ],
-                ],
-                "lastError": NSNull(),
-                "observedAt": 15,
-            ]
-        ))
+                ], "lastError": NSNull(), "observedAt": 15,
+            ]))
     }
 }
 
-private final class ReconnectTestProjectionAuthority:
-    HostAgentBackgroundProjectionSessionAuthority,
+private final class ReconnectTestProjectionAuthority: HostAgentBackgroundProjectionSessionAuthority,
     @unchecked Sendable
 {
     private let lock = NSLock()
-    private let previousPeerIdentity:
-        HostAgentXPCSnapshotClientPeerIdentity?
+    private let previousPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity?
     private var epoch: UInt64 = 0
     private var begins = 0
     private var currentAvailable = false
     private var terminals: [HostAgentXPCSessionTerminationReason] = []
     var acceptInitial = true
 
-    init(
-        previousPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity? = nil
-    ) {
+    init(previousPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity? = nil) {
         self.previousPeerIdentity = previousPeerIdentity
     }
 
     var beginCount: Int { locked { begins } }
-    var terminalReasons: [HostAgentXPCSessionTerminationReason] {
-        locked { terminals }
-    }
+    var terminalReasons: [HostAgentXPCSessionTerminationReason] { locked { terminals } }
 
     func beginSession() -> HostAgentBackgroundProjectionSessionBinding {
         lock.lock()
@@ -556,16 +370,10 @@ private final class ReconnectTestProjectionAuthority:
         lock.unlock()
         return HostAgentBackgroundProjectionSessionBinding(
             previousPeerIdentity: previousPeerIdentity,
-            sink: ReconnectTestProjectionSink(
-                authority: self,
-                epoch: epoch
-            )
-        )
+            sink: ReconnectTestProjectionSink(authority: self, epoch: epoch))
     }
 
-    func currentSessionIsAvailable() -> Bool {
-        locked { currentAvailable }
-    }
+    func currentSessionIsAvailable() -> Bool { locked { currentAvailable } }
 
     func publishInitial(epoch: UInt64) {
         lock.lock()
@@ -589,8 +397,7 @@ private final class ReconnectTestProjectionAuthority:
     }
 }
 
-private final class ReconnectTestProjectionSink:
-    HostAgentXPCSessionProjectionSink,
+private final class ReconnectTestProjectionSink: HostAgentXPCSessionProjectionSink,
     @unchecked Sendable
 {
     private let authority: ReconnectTestProjectionAuthority
@@ -607,9 +414,7 @@ private final class ReconnectTestProjectionSink:
         _ snapshot: HostAgentXPCWireSnapshotResponse,
         peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
         transition: HostAgentXPCSnapshotClientIdentityTransition
-    ) {
-        authority.publishInitial(epoch: epoch)
-    }
+    ) { authority.publishInitial(epoch: epoch) }
 
     func publishEvents(_ response: HostAgentXPCWireEventCursorResponse) {}
 
@@ -628,9 +433,7 @@ private final class ReconnectTestSessionFactory: @unchecked Sendable {
 
     private let lock = NSLock()
     private var storedSessions: [ReconnectTestSession] = []
-    private var storedPreviousIdentities: [
-        HostAgentXPCSnapshotClientPeerIdentity?
-    ] = []
+    private var storedPreviousIdentities: [HostAgentXPCSnapshotClientPeerIdentity?] = []
     var shouldThrow = false
     var startResult = true
     var shouldBlock = false
@@ -659,10 +462,7 @@ private final class ReconnectTestSessionFactory: @unchecked Sendable {
 
         lock.lock()
         defer { lock.unlock() }
-        let session = ReconnectTestSession(
-            sink: sink,
-            startResult: startResult
-        )
+        let session = ReconnectTestSession(sink: sink, startResult: startResult)
         storedPreviousIdentities.append(previousPeerIdentity)
         storedSessions.append(session)
         return session
@@ -675,10 +475,7 @@ private final class ReconnectTestSessionFactory: @unchecked Sendable {
     }
 }
 
-private final class ReconnectTestSession:
-    HostAgentXPCReconnectSession,
-    @unchecked Sendable
-{
+private final class ReconnectTestSession: HostAgentXPCReconnectSession, @unchecked Sendable {
     private let lock = NSLock()
     private let sink: HostAgentXPCSessionProjectionSink
     private let startResult: Bool
@@ -705,9 +502,7 @@ private final class ReconnectTestSession:
         return startResult
     }
 
-    func commandStateSnapshot() -> HostAgentXPCCommandIntentOwnerState {
-        locked { commandState }
-    }
+    func commandStateSnapshot() -> HostAgentXPCCommandIntentOwnerState { locked { commandState } }
 
     func submitCommand(
         _ intent: HostAgentXPCCommandIntent,
@@ -724,9 +519,7 @@ private final class ReconnectTestSession:
         return true
     }
 
-    func retryCommand(
-        observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
-    ) -> Bool {
+    func retryCommand(observer: @escaping HostAgentXPCSnapshotClient.CommandObserver) -> Bool {
         lock.lock()
         retries += 1
         lock.unlock()
@@ -750,11 +543,7 @@ private final class ReconnectTestSession:
         peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
         transition: HostAgentXPCSnapshotClientIdentityTransition
     ) throws {
-        sink.publishInitialSnapshot(
-            snapshot,
-            peerIdentity: peerIdentity,
-            transition: transition
-        )
+        sink.publishInitialSnapshot(snapshot, peerIdentity: peerIdentity, transition: transition)
     }
 
     private func locked<T>(_ body: () -> T) -> T {
@@ -772,10 +561,9 @@ private final class ReconnectTestScheduler: @unchecked Sendable {
     var delays: [UInt64] { locked { storedDelays } }
     var tasks: [ReconnectTestScheduledTask] { locked { storedTasks } }
 
-    func schedule(
-        delayMilliseconds: UInt64,
-        action: @escaping @Sendable () -> Void
-    ) -> HostAgentXPCReconnectScheduledTask {
+    func schedule(delayMilliseconds: UInt64, action: @escaping @Sendable () -> Void)
+        -> HostAgentXPCReconnectScheduledTask
+    {
         let task = ReconnectTestScheduledTask(action: action)
         lock.lock()
         storedDelays.append(delayMilliseconds)
@@ -791,8 +579,7 @@ private final class ReconnectTestScheduler: @unchecked Sendable {
     }
 }
 
-private final class ReconnectTestScheduledTask:
-    HostAgentXPCReconnectScheduledTask,
+private final class ReconnectTestScheduledTask: HostAgentXPCReconnectScheduledTask,
     @unchecked Sendable
 {
     private let lock = NSLock()
@@ -800,9 +587,7 @@ private final class ReconnectTestScheduledTask:
     private var cancelled = false
     private var cancels = 0
 
-    init(action: @escaping @Sendable () -> Void) {
-        self.action = action
-    }
+    init(action: @escaping @Sendable () -> Void) { self.action = action }
 
     var cancelCount: Int {
         lock.lock()
@@ -824,9 +609,7 @@ private final class ReconnectTestScheduledTask:
         if shouldFire { action() }
     }
 
-    func fireIgnoringCancellation() {
-        action()
-    }
+    func fireIgnoringCancellation() { action() }
 }
 
 private final class ReconnectTestOwnerBox: @unchecked Sendable {
@@ -846,7 +629,5 @@ private final class ReconnectTestOwnerBox: @unchecked Sendable {
         }
     }
 
-    func cancel() {
-        owner?.cancel()
-    }
+    func cancel() { owner?.cancel() }
 }

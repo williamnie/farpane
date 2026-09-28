@@ -1,6 +1,7 @@
 import Foundation
-@testable import CoreBridge
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
     func testInitialUsablePathEstablishesBaselineWithoutRecovery() {
@@ -10,10 +11,7 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
 
         XCTAssertEqual(owner.consume(wifi), .baselineEstablished)
         XCTAssertEqual(owner.consume(wifi), .unchanged)
-        XCTAssertEqual(
-            owner.stateSnapshot(),
-            .observing(path: wifi, pathGeneration: 0)
-        )
+        XCTAssertEqual(owner.stateSnapshot(), .observing(path: wifi, pathGeneration: 0))
         XCTAssertEqual(recorder.requests, [])
     }
 
@@ -25,15 +23,9 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
         XCTAssertEqual(owner.consume(wifi), .baselineEstablished)
         XCTAssertEqual(owner.consume(unavailablePath()), .unavailableRecorded)
         XCTAssertEqual(owner.consume(unavailablePath()), .unchanged)
-        XCTAssertEqual(
-            owner.consume(wifi),
-            .recoveryTriggered(pathGeneration: 1)
-        )
+        XCTAssertEqual(owner.consume(wifi), .recoveryTriggered(pathGeneration: 1))
         XCTAssertEqual(owner.consume(wifi), .unchanged)
-        XCTAssertEqual(
-            recorder.requests,
-            [.init(pathGeneration: 1, path: wifi)]
-        )
+        XCTAssertEqual(recorder.requests, [.init(pathGeneration: 1, path: wifi)])
     }
 
     func testOnlyMaterialUsablePathChangesTriggerMonotonicRecoveries() {
@@ -41,33 +33,15 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
         let owner = makeOwner(recorder: recorder)
         let wifi = usablePath(.wifi)
         let ethernet = usablePath(.wiredEthernet)
-        let constrainedEthernet = usablePath(
-            .wiredEthernet,
-            isConstrained: true
-        )
+        let constrainedEthernet = usablePath(.wiredEthernet, isConstrained: true)
 
         XCTAssertEqual(owner.consume(wifi), .baselineEstablished)
-        XCTAssertEqual(
-            owner.consume(ethernet),
-            .recoveryTriggered(pathGeneration: 1)
-        )
-        XCTAssertEqual(
-            owner.consume(constrainedEthernet),
-            .unchanged
-        )
+        XCTAssertEqual(owner.consume(ethernet), .recoveryTriggered(pathGeneration: 1))
+        XCTAssertEqual(owner.consume(constrainedEthernet), .unchanged)
         let ipv6OnlyEthernet = HostAgentNetworkPathSnapshot(
-            availability: .satisfied,
-            interfaceKinds: [.wiredEthernet],
-            supportsIPv4: false,
-            supportsIPv6: true,
-            supportsDNS: true,
-            isExpensive: false,
-            isConstrained: true
-        )
-        XCTAssertEqual(
-            owner.consume(ipv6OnlyEthernet),
-            .recoveryTriggered(pathGeneration: 2)
-        )
+            availability: .satisfied, interfaceKinds: [.wiredEthernet], supportsIPv4: false,
+            supportsIPv6: true, supportsDNS: true, isExpensive: false, isConstrained: true)
+        XCTAssertEqual(owner.consume(ipv6OnlyEthernet), .recoveryTriggered(pathGeneration: 2))
         XCTAssertEqual(recorder.requests.map(\.pathGeneration), [1, 2])
     }
 
@@ -77,44 +51,25 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
         let wifi = usablePath(.wifi)
 
         XCTAssertEqual(owner.consume(unavailablePath()), .unavailableRecorded)
-        XCTAssertEqual(
-            owner.consume(wifi),
-            .recoveryTriggered(pathGeneration: 1)
-        )
-        XCTAssertEqual(
-            recorder.requests,
-            [.init(pathGeneration: 1, path: wifi)]
-        )
+        XCTAssertEqual(owner.consume(wifi), .recoveryTriggered(pathGeneration: 1))
+        XCTAssertEqual(recorder.requests, [.init(pathGeneration: 1, path: wifi)])
     }
 
     func testMalformedSatisfiedPathFailsClosed() {
         let recorder = NetworkPathRecoveryRecorder()
         let owner = makeOwner(recorder: recorder)
         let malformed = HostAgentNetworkPathSnapshot(
-            availability: .satisfied,
-            interfaceKinds: [],
-            supportsIPv4: false,
-            supportsIPv6: false,
-            supportsDNS: true,
-            isExpensive: false,
-            isConstrained: false
-        )
+            availability: .satisfied, interfaceKinds: [], supportsIPv4: false, supportsIPv6: false,
+            supportsDNS: true, isExpensive: false, isConstrained: false)
 
         XCTAssertEqual(owner.consume(malformed), .rejected)
         XCTAssertEqual(
-            owner.stateSnapshot(),
-            .failed(pathGeneration: 0, reason: .invalidSatisfiedPath)
-        )
+            owner.stateSnapshot(), .failed(pathGeneration: 0, reason: .invalidSatisfiedPath))
         XCTAssertEqual(owner.consume(usablePath(.wifi)), .rejected)
         XCTAssertEqual(recorder.requests, [])
 
-        let loopbackOwner = makeOwner(
-            recorder: NetworkPathRecoveryRecorder()
-        )
-        XCTAssertEqual(
-            loopbackOwner.consume(usablePath(.loopback)),
-            .rejected
-        )
+        let loopbackOwner = makeOwner(recorder: NetworkPathRecoveryRecorder())
+        XCTAssertEqual(loopbackOwner.consume(usablePath(.loopback)), .rejected)
     }
 
     func testRejectedTriggerIsTerminalAndKeepsExactGeneration() {
@@ -125,15 +80,9 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
 
         XCTAssertEqual(owner.consume(wifi), .baselineEstablished)
         XCTAssertEqual(owner.consume(ethernet), .rejected)
-        XCTAssertEqual(
-            owner.stateSnapshot(),
-            .failed(pathGeneration: 1, reason: .triggerRejected)
-        )
+        XCTAssertEqual(owner.stateSnapshot(), .failed(pathGeneration: 1, reason: .triggerRejected))
         XCTAssertEqual(owner.consume(wifi), .rejected)
-        XCTAssertEqual(
-            recorder.requests,
-            [.init(pathGeneration: 1, path: ethernet)]
-        )
+        XCTAssertEqual(recorder.requests, [.init(pathGeneration: 1, path: ethernet)])
     }
 
     func testGenerationExhaustionFailsBeforeTrigger() {
@@ -141,19 +90,13 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
         let owner = HostAgentNetworkPathRecoveryTriggerOwner(
             initialPathGeneration: .max,
             trigger: { pathGeneration, path in
-                recorder.record(
-                    pathGeneration: pathGeneration,
-                    path: path
-                )
-            }
-        )
+                recorder.record(pathGeneration: pathGeneration, path: path)
+            })
 
         XCTAssertEqual(owner.consume(usablePath(.wifi)), .baselineEstablished)
         XCTAssertEqual(owner.consume(usablePath(.wiredEthernet)), .rejected)
         XCTAssertEqual(
-            owner.stateSnapshot(),
-            .failed(pathGeneration: .max, reason: .generationExhausted)
-        )
+            owner.stateSnapshot(), .failed(pathGeneration: .max, reason: .generationExhausted))
         XCTAssertEqual(recorder.requests, [])
     }
 
@@ -172,10 +115,7 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
         let cancelFinished = DispatchSemaphore(value: 0)
 
         DispatchQueue.global().async {
-            XCTAssertEqual(
-                owner.consume(ethernet),
-                .rejected
-            )
+            XCTAssertEqual(owner.consume(ethernet), .rejected)
             recoveryFinished.fulfill()
         }
         XCTAssertEqual(entered.wait(timeout: .now() + 1), .success)
@@ -185,16 +125,10 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
             owner.cancelAndWait()
             cancelFinished.signal()
         }
-        XCTAssertEqual(
-            cancelFinished.wait(timeout: .now() + 0.05),
-            .timedOut
-        )
+        XCTAssertEqual(cancelFinished.wait(timeout: .now() + 0.05), .timedOut)
         release.signal()
         wait(for: [recoveryFinished], timeout: 1)
-        XCTAssertEqual(
-            cancelFinished.wait(timeout: .now() + 1),
-            .success
-        )
+        XCTAssertEqual(cancelFinished.wait(timeout: .now() + 1), .success)
         XCTAssertEqual(owner.stateSnapshot(), .cancelled)
         XCTAssertEqual(owner.consume(wifi), .rejected)
     }
@@ -211,42 +145,26 @@ final class HostAgentNetworkPathRecoveryTriggerOwnerTests: XCTestCase {
         XCTAssertEqual(recorder.requests, [])
     }
 
-    private func makeOwner(
-        recorder: NetworkPathRecoveryRecorder
-    ) -> HostAgentNetworkPathRecoveryTriggerOwner {
+    private func makeOwner(recorder: NetworkPathRecoveryRecorder)
+        -> HostAgentNetworkPathRecoveryTriggerOwner
+    {
         HostAgentNetworkPathRecoveryTriggerOwner { pathGeneration, path in
-            recorder.record(
-                pathGeneration: pathGeneration,
-                path: path
-            )
+            recorder.record(pathGeneration: pathGeneration, path: path)
         }
     }
 
-    private func usablePath(
-        _ interface: HostAgentNetworkInterfaceKind,
-        isConstrained: Bool = false
-    ) -> HostAgentNetworkPathSnapshot {
+    private func usablePath(_ interface: HostAgentNetworkInterfaceKind, isConstrained: Bool = false)
+        -> HostAgentNetworkPathSnapshot
+    {
         HostAgentNetworkPathSnapshot(
-            availability: .satisfied,
-            interfaceKinds: [interface],
-            supportsIPv4: true,
-            supportsIPv6: true,
-            supportsDNS: true,
-            isExpensive: false,
-            isConstrained: isConstrained
-        )
+            availability: .satisfied, interfaceKinds: [interface], supportsIPv4: true,
+            supportsIPv6: true, supportsDNS: true, isExpensive: false, isConstrained: isConstrained)
     }
 
     private func unavailablePath() -> HostAgentNetworkPathSnapshot {
         HostAgentNetworkPathSnapshot(
-            availability: .unsatisfied,
-            interfaceKinds: [],
-            supportsIPv4: false,
-            supportsIPv6: false,
-            supportsDNS: false,
-            isExpensive: false,
-            isConstrained: false
-        )
+            availability: .unsatisfied, interfaceKinds: [], supportsIPv4: false,
+            supportsIPv6: false, supportsDNS: false, isExpensive: false, isConstrained: false)
     }
 }
 
@@ -260,9 +178,7 @@ private final class NetworkPathRecoveryRecorder: @unchecked Sendable {
     private let accepts: Bool
     private var requestStorage: [NetworkPathRecoveryRequest] = []
 
-    init(accepts: Bool = true) {
-        self.accepts = accepts
-    }
+    init(accepts: Bool = true) { self.accepts = accepts }
 
     var requests: [NetworkPathRecoveryRequest] {
         lock.lock()
@@ -270,15 +186,9 @@ private final class NetworkPathRecoveryRecorder: @unchecked Sendable {
         return requestStorage
     }
 
-    func record(
-        pathGeneration: UInt64,
-        path: HostAgentNetworkPathSnapshot
-    ) -> Bool {
+    func record(pathGeneration: UInt64, path: HostAgentNetworkPathSnapshot) -> Bool {
         lock.lock()
-        requestStorage.append(.init(
-            pathGeneration: pathGeneration,
-            path: path
-        ))
+        requestStorage.append(.init(pathGeneration: pathGeneration, path: path))
         lock.unlock()
         return accepts
     }

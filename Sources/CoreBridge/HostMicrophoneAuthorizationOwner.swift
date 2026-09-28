@@ -15,16 +15,12 @@ package enum HostMicrophoneAuthorizationRequestResult: Equatable, Sendable {
 }
 
 package struct HostMicrophoneAuthorizationOperations: Sendable {
-    package let observe:
-        @Sendable () -> HostMicrophoneAuthorizationStatus
-    package let requestAccess:
-        @Sendable (@escaping @Sendable (Bool) -> Void) -> Void
+    package let observe: @Sendable () -> HostMicrophoneAuthorizationStatus
+    package let requestAccess: @Sendable (@escaping @Sendable (Bool) -> Void) -> Void
 
     package init(
         observe: @escaping @Sendable () -> HostMicrophoneAuthorizationStatus,
-        requestAccess: @escaping @Sendable (
-            @escaping @Sendable (Bool) -> Void
-        ) -> Void
+        requestAccess: @escaping @Sendable (@escaping @Sendable (Bool) -> Void) -> Void
     ) {
         self.observe = observe
         self.requestAccess = requestAccess
@@ -39,15 +35,9 @@ package final class HostMicrophoneAuthorizationOwner: @unchecked Sendable {
     private let operations: HostMicrophoneAuthorizationOperations
     private var requestPending = false
 
-    package init(operations: HostMicrophoneAuthorizationOperations) {
-        self.operations = operations
-    }
+    package init(operations: HostMicrophoneAuthorizationOperations) { self.operations = operations }
 
-    package func authorizationStatus()
-        -> HostMicrophoneAuthorizationStatus
-    {
-        operations.observe()
-    }
+    package func authorizationStatus() -> HostMicrophoneAuthorizationStatus { operations.observe() }
 
     package func isRequestPending() -> Bool {
         lock.lock()
@@ -55,21 +45,14 @@ package final class HostMicrophoneAuthorizationOwner: @unchecked Sendable {
         return requestPending
     }
 
-    @discardableResult
-    package func requestAuthorization(
-        completion: @escaping @Sendable (
-            HostMicrophoneAuthorizationStatus
-        ) -> Void
+    @discardableResult package func requestAuthorization(
+        completion: @escaping @Sendable (HostMicrophoneAuthorizationStatus) -> Void
     ) -> HostMicrophoneAuthorizationRequestResult {
         switch operations.observe() {
-        case .authorized:
-            return .alreadyAuthorized
-        case .denied:
-            return .unavailable(.denied)
-        case .restricted:
-            return .unavailable(.restricted)
-        case .notDetermined:
-            break
+        case .authorized: return .alreadyAuthorized
+        case .denied: return .unavailable(.denied)
+        case .restricted: return .unavailable(.restricted)
+        case .notDetermined: break
         }
 
         lock.lock()

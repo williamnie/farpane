@@ -25,15 +25,11 @@ package enum HostAgentSleepWakeRecoveryState: Equatable, Sendable {
     case cancelled
 }
 
-package typealias HostAgentSleepWakeMediaRecoveryCompletion = @Sendable (
-    _ epoch: UInt64,
-    _ succeeded: Bool
-) -> Void
+package typealias HostAgentSleepWakeMediaRecoveryCompletion =
+    @Sendable (_ epoch: UInt64, _ succeeded: Bool) -> Void
 
-package typealias HostAgentSleepWakeRegistrationRecoveryCompletion = @Sendable (
-    _ epoch: UInt64,
-    _ succeeded: Bool
-) -> Void
+package typealias HostAgentSleepWakeRegistrationRecoveryCompletion =
+    @Sendable (_ epoch: UInt64, _ succeeded: Bool) -> Void
 
 /// Operations owned by the future product adapter. Media and registration
 /// recovery are asynchronous boundaries; each begin closure must return false
@@ -47,14 +43,15 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
     package let releaseSleepAssertion: @Sendable (_ epoch: UInt64) -> Bool
     package let reenumerateDisplays: @Sendable () -> Bool
     package let revalidatePermissions: @Sendable () -> Bool
-    package let beginMediaRecovery: @Sendable (
-        _ epoch: UInt64,
-        _ completion: @escaping HostAgentSleepWakeMediaRecoveryCompletion
-    ) -> Bool
-    package let beginRegistrationRecovery: @Sendable (
-        _ epoch: UInt64,
-        _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
-    ) -> Bool
+    package let beginMediaRecovery:
+        @Sendable (
+            _ epoch: UInt64, _ completion: @escaping HostAgentSleepWakeMediaRecoveryCompletion
+        ) -> Bool
+    package let beginRegistrationRecovery:
+        @Sendable (
+            _ epoch: UInt64,
+            _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
+        ) -> Bool
     package let publishAvailable: @Sendable (_ epoch: UInt64) -> Bool
     /// Best-effort observation only. These callbacks cannot veto, advance, or
     /// otherwise change recovery state.
@@ -68,15 +65,15 @@ package struct HostAgentSleepWakeRecoveryOperations: Sendable {
         releaseSleepAssertion: @escaping @Sendable (_ epoch: UInt64) -> Bool,
         reenumerateDisplays: @escaping @Sendable () -> Bool,
         revalidatePermissions: @escaping @Sendable () -> Bool,
-        beginMediaRecovery: @escaping @Sendable (
-            _ epoch: UInt64,
-            _ completion: @escaping HostAgentSleepWakeMediaRecoveryCompletion
-        ) -> Bool,
-        beginRegistrationRecovery: @escaping @Sendable (
-            _ epoch: UInt64,
-            _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
-        ) -> Bool,
-        publishAvailable: @escaping @Sendable (_ epoch: UInt64) -> Bool,
+        beginMediaRecovery:
+            @escaping @Sendable (
+                _ epoch: UInt64, _ completion: @escaping HostAgentSleepWakeMediaRecoveryCompletion
+            ) -> Bool,
+        beginRegistrationRecovery:
+            @escaping @Sendable (
+                _ epoch: UInt64,
+                _ completion: @escaping HostAgentSleepWakeRegistrationRecoveryCompletion
+            ) -> Bool, publishAvailable: @escaping @Sendable (_ epoch: UInt64) -> Bool,
         recoveryAccepted: @escaping @Sendable (_ epoch: UInt64) -> Void = { _ in },
         recoveryCompleted: @escaping @Sendable (_ epoch: UInt64) -> Void = { _ in }
     ) {
@@ -104,20 +101,11 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
     private let operations: HostAgentSleepWakeRecoveryOperations
     private var state: HostAgentSleepWakeRecoveryState
     private var mediaStartInFlightEpoch: UInt64?
-    private var deferredMediaCompletion: (
-        epoch: UInt64,
-        succeeded: Bool
-    )?
+    private var deferredMediaCompletion: (epoch: UInt64, succeeded: Bool)?
     private var registrationStartInFlightEpoch: UInt64?
-    private var deferredRegistrationCompletion: (
-        epoch: UInt64,
-        succeeded: Bool
-    )?
+    private var deferredRegistrationCompletion: (epoch: UInt64, succeeded: Bool)?
 
-    package init(
-        initialEpoch: UInt64 = 0,
-        operations: HostAgentSleepWakeRecoveryOperations
-    ) {
+    package init(initialEpoch: UInt64 = 0, operations: HostAgentSleepWakeRecoveryOperations) {
         self.operations = operations
         self.state = .running(epoch: initialEpoch)
     }
@@ -130,70 +118,50 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
 
     /// Claims one running epoch. Duplicate, out-of-order or reentrant sleep
     /// notifications are rejected without invoking a second operation.
-    @discardableResult
-    package func systemWillSleep() -> Bool {
+    @discardableResult package func systemWillSleep() -> Bool {
         lock.lock()
         guard case .running(let currentEpoch) = state else {
             lock.unlock()
             return false
         }
         guard currentEpoch < UInt64.max else {
-            state = .failed(
-                epoch: currentEpoch,
-                step: .generationExhausted
-            )
+            state = .failed(epoch: currentEpoch, step: .generationExhausted)
             lock.unlock()
             return false
         }
         let epoch = currentEpoch + 1
-        let transition = HostAgentSleepWakeRecoveryState.preparingForSleep(
-            epoch: epoch
-        )
+        let transition = HostAgentSleepWakeRecoveryState.preparingForSleep(epoch: epoch)
         state = transition
         lock.unlock()
 
-        return performSleepPreparation(
-            epoch: epoch,
-            during: transition
-        )
+        return performSleepPreparation(epoch: epoch, during: transition)
     }
 
     /// Wake is accepted only after the matching sleep preparation completed.
     /// Display and permission checks run synchronously. A successful media
     /// begin moves to waitingForMedia; registration and outward availability
     /// remain withdrawn until the exact epoch completes successfully.
-    @discardableResult
-    package func systemDidWake() -> Bool {
+    @discardableResult package func systemDidWake() -> Bool {
         lock.lock()
         guard case .sleeping(let epoch) = state else {
             lock.unlock()
             return false
         }
-        let transition = HostAgentSleepWakeRecoveryState.recovering(
-            epoch: epoch
-        )
+        let transition = HostAgentSleepWakeRecoveryState.recovering(epoch: epoch)
         state = transition
         lock.unlock()
 
         operations.recoveryAccepted(epoch)
 
-        guard perform(
-            .reenumerateDisplays,
-            epoch: epoch,
-            during: transition,
-            operation: operations.reenumerateDisplays
-        ), perform(
-            .revalidatePermissions,
-            epoch: epoch,
-            during: transition,
-            operation: operations.revalidatePermissions
-        ) else {
-            return false
-        }
-        return beginMediaRecovery(
-            epoch: epoch,
-            during: transition
-        )
+        guard
+            perform(
+                .reenumerateDisplays, epoch: epoch, during: transition,
+                operation: operations.reenumerateDisplays),
+            perform(
+                .revalidatePermissions, epoch: epoch, during: transition,
+                operation: operations.revalidatePermissions)
+        else { return false }
+        return beginMediaRecovery(epoch: epoch, during: transition)
     }
 
     package func cancel() {
@@ -211,23 +179,13 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
     /// terminal state only after availability withdrawal, media pause/flush
     /// and assertion release have all been attempted in order.
     private func performSleepPreparation(
-        epoch: UInt64,
-        during expected: HostAgentSleepWakeRecoveryState
+        epoch: UInt64, during expected: HostAgentSleepWakeRecoveryState
     ) -> Bool {
-        let orderedOperations: [(
-            HostAgentSleepWakeRecoveryStep,
-            @Sendable () -> Bool
-        )] = [
-            (.withdrawAvailability, {
-                self.operations.withdrawAvailability(epoch)
-            }),
-            (.publishSuspending, {
-                self.operations.publishSuspending(epoch)
-            }),
+        let orderedOperations: [(HostAgentSleepWakeRecoveryStep, @Sendable () -> Bool)] = [
+            (.withdrawAvailability, { self.operations.withdrawAvailability(epoch) }),
+            (.publishSuspending, { self.operations.publishSuspending(epoch) }),
             (.pauseMediaAndFlush, operations.pauseMediaAndFlush),
-            (.releaseSleepAssertion, {
-                self.operations.releaseSleepAssertion(epoch)
-            }),
+            (.releaseSleepAssertion, { self.operations.releaseSleepAssertion(epoch) }),
         ]
         var firstFailure: HostAgentSleepWakeRecoveryStep?
         for (step, operation) in orderedOperations {
@@ -237,9 +195,7 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
                 return false
             }
             lock.unlock()
-            if !operation(), firstFailure == nil {
-                firstFailure = step
-            }
+            if !operation(), firstFailure == nil { firstFailure = step }
         }
 
         lock.lock()
@@ -254,10 +210,8 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
     }
 
     private func perform(
-        _ step: HostAgentSleepWakeRecoveryStep,
-        epoch: UInt64,
-        during expected: HostAgentSleepWakeRecoveryState,
-        operation: @Sendable () -> Bool
+        _ step: HostAgentSleepWakeRecoveryStep, epoch: UInt64,
+        during expected: HostAgentSleepWakeRecoveryState, operation: @Sendable () -> Bool
     ) -> Bool {
         lock.lock()
         guard state == expected else {
@@ -278,17 +232,12 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         return true
     }
 
-    private func beginMediaRecovery(
-        epoch: UInt64,
-        during expected: HostAgentSleepWakeRecoveryState
-    ) -> Bool {
-        let waiting = HostAgentSleepWakeRecoveryState.waitingForMedia(
-            epoch: epoch
-        )
+    private func beginMediaRecovery(epoch: UInt64, during expected: HostAgentSleepWakeRecoveryState)
+        -> Bool
+    {
+        let waiting = HostAgentSleepWakeRecoveryState.waitingForMedia(epoch: epoch)
         lock.lock()
-        guard state == expected,
-              mediaStartInFlightEpoch == nil,
-              deferredMediaCompletion == nil
+        guard state == expected, mediaStartInFlightEpoch == nil, deferredMediaCompletion == nil
         else {
             lock.unlock()
             return false
@@ -300,31 +249,18 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         let accepted = operations.beginMediaRecovery(
             epoch,
             { [weak self] completedEpoch, succeeded in
-                self?.mediaRecoveryDidComplete(
-                    epoch: completedEpoch,
-                    succeeded: succeeded
-                )
-            }
-        )
-        return finishMediaRecoveryBegin(
-            epoch: epoch,
-            waiting: waiting,
-            accepted: accepted
-        )
+                self?.mediaRecoveryDidComplete(epoch: completedEpoch, succeeded: succeeded)
+            })
+        return finishMediaRecoveryBegin(epoch: epoch, waiting: waiting, accepted: accepted)
     }
 
     /// Completion may be delivered synchronously from beginMediaRecovery.
     /// Buffering it until begin returns prevents a callback from advancing
     /// registration when the adapter ultimately rejects the start.
-    private func mediaRecoveryDidComplete(
-        epoch: UInt64,
-        succeeded: Bool
-    ) {
+    private func mediaRecoveryDidComplete(epoch: UInt64, succeeded: Bool) {
         lock.lock()
         if mediaStartInFlightEpoch == epoch {
-            guard state == .waitingForMedia(epoch: epoch),
-                  deferredMediaCompletion == nil
-            else {
+            guard state == .waitingForMedia(epoch: epoch), deferredMediaCompletion == nil else {
                 lock.unlock()
                 return
             }
@@ -338,14 +274,10 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
     }
 
     private func finishMediaRecoveryBegin(
-        epoch: UInt64,
-        waiting: HostAgentSleepWakeRecoveryState,
-        accepted: Bool
+        epoch: UInt64, waiting: HostAgentSleepWakeRecoveryState, accepted: Bool
     ) -> Bool {
         lock.lock()
-        guard state == waiting,
-              mediaStartInFlightEpoch == epoch
-        else {
+        guard state == waiting, mediaStartInFlightEpoch == epoch else {
             lock.unlock()
             return false
         }
@@ -360,26 +292,14 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         lock.unlock()
 
         guard let deferred else { return true }
-        return finishMediaRecovery(
-            epoch: deferred.epoch,
-            succeeded: deferred.succeeded
-        )
+        return finishMediaRecovery(epoch: deferred.epoch, succeeded: deferred.succeeded)
     }
 
-    private func finishMediaRecovery(
-        epoch: UInt64,
-        succeeded: Bool
-    ) -> Bool {
-        let waiting = HostAgentSleepWakeRecoveryState.waitingForMedia(
-            epoch: epoch
-        )
-        let restoring = HostAgentSleepWakeRecoveryState.restoringRegistration(
-            epoch: epoch
-        )
+    private func finishMediaRecovery(epoch: UInt64, succeeded: Bool) -> Bool {
+        let waiting = HostAgentSleepWakeRecoveryState.waitingForMedia(epoch: epoch)
+        let restoring = HostAgentSleepWakeRecoveryState.restoringRegistration(epoch: epoch)
         lock.lock()
-        guard state == waiting,
-              mediaStartInFlightEpoch == nil,
-              deferredMediaCompletion == nil
+        guard state == waiting, mediaStartInFlightEpoch == nil, deferredMediaCompletion == nil
         else {
             lock.unlock()
             return false
@@ -392,23 +312,16 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         state = restoring
         lock.unlock()
 
-        return beginRegistrationRecovery(
-            epoch: epoch,
-            during: restoring
-        )
+        return beginRegistrationRecovery(epoch: epoch, during: restoring)
     }
 
     private func beginRegistrationRecovery(
-        epoch: UInt64,
-        during expected: HostAgentSleepWakeRecoveryState
+        epoch: UInt64, during expected: HostAgentSleepWakeRecoveryState
     ) -> Bool {
-        let waiting = HostAgentSleepWakeRecoveryState.waitingForRegistration(
-            epoch: epoch
-        )
+        let waiting = HostAgentSleepWakeRecoveryState.waitingForRegistration(epoch: epoch)
         lock.lock()
-        guard state == expected,
-              registrationStartInFlightEpoch == nil,
-              deferredRegistrationCompletion == nil
+        guard state == expected, registrationStartInFlightEpoch == nil,
+            deferredRegistrationCompletion == nil
         else {
             lock.unlock()
             return false
@@ -420,27 +333,16 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         let accepted = operations.beginRegistrationRecovery(
             epoch,
             { [weak self] completedEpoch, succeeded in
-                self?.registrationRecoveryDidComplete(
-                    epoch: completedEpoch,
-                    succeeded: succeeded
-                )
-            }
-        )
-        return finishRegistrationRecoveryBegin(
-            epoch: epoch,
-            waiting: waiting,
-            accepted: accepted
-        )
+                self?.registrationRecoveryDidComplete(epoch: completedEpoch, succeeded: succeeded)
+            })
+        return finishRegistrationRecoveryBegin(epoch: epoch, waiting: waiting, accepted: accepted)
     }
 
-    private func registrationRecoveryDidComplete(
-        epoch: UInt64,
-        succeeded: Bool
-    ) {
+    private func registrationRecoveryDidComplete(epoch: UInt64, succeeded: Bool) {
         lock.lock()
         if registrationStartInFlightEpoch == epoch {
             guard state == .waitingForRegistration(epoch: epoch),
-                  deferredRegistrationCompletion == nil
+                deferredRegistrationCompletion == nil
             else {
                 lock.unlock()
                 return
@@ -455,14 +357,10 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
     }
 
     private func finishRegistrationRecoveryBegin(
-        epoch: UInt64,
-        waiting: HostAgentSleepWakeRecoveryState,
-        accepted: Bool
+        epoch: UInt64, waiting: HostAgentSleepWakeRecoveryState, accepted: Bool
     ) -> Bool {
         lock.lock()
-        guard state == waiting,
-              registrationStartInFlightEpoch == epoch
-        else {
+        guard state == waiting, registrationStartInFlightEpoch == epoch else {
             lock.unlock()
             return false
         }
@@ -477,26 +375,15 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         lock.unlock()
 
         guard let deferred else { return true }
-        return finishRegistrationRecovery(
-            epoch: deferred.epoch,
-            succeeded: deferred.succeeded
-        )
+        return finishRegistrationRecovery(epoch: deferred.epoch, succeeded: deferred.succeeded)
     }
 
-    private func finishRegistrationRecovery(
-        epoch: UInt64,
-        succeeded: Bool
-    ) -> Bool {
-        let waiting = HostAgentSleepWakeRecoveryState.waitingForRegistration(
-            epoch: epoch
-        )
-        let restoring = HostAgentSleepWakeRecoveryState.restoringRegistration(
-            epoch: epoch
-        )
+    private func finishRegistrationRecovery(epoch: UInt64, succeeded: Bool) -> Bool {
+        let waiting = HostAgentSleepWakeRecoveryState.waitingForRegistration(epoch: epoch)
+        let restoring = HostAgentSleepWakeRecoveryState.restoringRegistration(epoch: epoch)
         lock.lock()
-        guard state == waiting,
-              registrationStartInFlightEpoch == nil,
-              deferredRegistrationCompletion == nil
+        guard state == waiting, registrationStartInFlightEpoch == nil,
+            deferredRegistrationCompletion == nil
         else {
             lock.unlock()
             return false
@@ -509,22 +396,12 @@ package final class HostAgentSleepWakeRecoveryOwner: @unchecked Sendable {
         state = restoring
         lock.unlock()
 
-        guard perform(
-            .publishAvailable,
-            epoch: epoch,
-            during: restoring,
-            operation: {
-                self.operations.publishAvailable(epoch)
-            }
-        ) else {
-            return false
-        }
-        guard replace(
-            restoring,
-            with: .running(epoch: epoch)
-        ) else {
-            return false
-        }
+        guard
+            perform(
+                .publishAvailable, epoch: epoch, during: restoring,
+                operation: { self.operations.publishAvailable(epoch) })
+        else { return false }
+        guard replace(restoring, with: .running(epoch: epoch)) else { return false }
         operations.recoveryCompleted(epoch)
         return true
     }

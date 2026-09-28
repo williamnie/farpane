@@ -12,8 +12,7 @@ package enum HostAgentXPCPasswordOperationResult: Equatable, Sendable {
 /// credential operation. It never shares the long-lived event-polling client,
 /// so password actions cannot race its selector state.
 package final class HostAgentXPCPasswordOperationOwner: @unchecked Sendable {
-    package typealias Completion = @Sendable
-        (HostAgentXPCPasswordOperationResult) -> Void
+    package typealias Completion = @Sendable (HostAgentXPCPasswordOperationResult) -> Void
 
     private let lock = NSLock()
     private let client: HostAgentXPCSnapshotClient
@@ -26,27 +25,20 @@ package final class HostAgentXPCPasswordOperationOwner: @unchecked Sendable {
 
     package static func makeProduct(
         expectedPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
-        action: HostAgentXPCPasswordAction,
-        secretData: Data = Data()
+        action: HostAgentXPCPasswordAction, secretData: Data = Data()
     ) throws -> HostAgentXPCPasswordOperationOwner {
         let client = try HostAgentXPCSnapshotClient.makeProduct(
-            previousPeerIdentity: expectedPeerIdentity,
-            onIdentityReplacementRequired: {},
-            onConnectionEnded: {}
-        )
+            previousPeerIdentity: expectedPeerIdentity, onIdentityReplacementRequired: {},
+            onConnectionEnded: {})
         return HostAgentXPCPasswordOperationOwner(
-            client: client,
-            expectedPeerIdentity: expectedPeerIdentity,
-            action: action,
-            secretData: secretData
-        )
+            client: client, expectedPeerIdentity: expectedPeerIdentity, action: action,
+            secretData: secretData)
     }
 
     package init(
         client: HostAgentXPCSnapshotClient,
         expectedPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
-        action: HostAgentXPCPasswordAction,
-        secretData: Data = Data()
+        action: HostAgentXPCPasswordAction, secretData: Data = Data()
     ) {
         self.client = client
         self.expectedPeerIdentity = expectedPeerIdentity
@@ -56,8 +48,7 @@ package final class HostAgentXPCPasswordOperationOwner: @unchecked Sendable {
 
     deinit { cancel() }
 
-    @discardableResult
-    package func start(completion: @escaping Completion) -> Bool {
+    @discardableResult package func start(completion: @escaping Completion) -> Bool {
         lock.lock()
         guard !started, !finished else {
             lock.unlock()
@@ -67,9 +58,7 @@ package final class HostAgentXPCPasswordOperationOwner: @unchecked Sendable {
         self.completion = completion
         lock.unlock()
 
-        client.start { [weak self] result in
-            self?.clientDidStart(result)
-        }
+        client.start { [weak self] result in self?.clientDidStart(result) }
         return true
     }
 
@@ -90,8 +79,7 @@ package final class HostAgentXPCPasswordOperationOwner: @unchecked Sendable {
     }
 
     private func clientDidStart(_ result: HostAgentXPCSnapshotClientResult) {
-        guard case .ready(_, let peerIdentity, _) = result,
-              peerIdentity == expectedPeerIdentity
+        guard case .ready(_, let peerIdentity, _) = result, peerIdentity == expectedPeerIdentity
         else {
             finish(.unavailable)
             return
@@ -103,28 +91,21 @@ package final class HostAgentXPCPasswordOperationOwner: @unchecked Sendable {
         }
         let secret = secretData
         lock.unlock()
-        client.performPasswordOperation(
-            action: action,
-            secretData: secret.isEmpty ? nil : secret
-        ) { [weak self] result in
-            self?.passwordOperationDidComplete(result)
+        client.performPasswordOperation(action: action, secretData: secret.isEmpty ? nil : secret) {
+            [weak self] result in self?.passwordOperationDidComplete(result)
         }
     }
 
-    private func passwordOperationDidComplete(
-        _ result: HostAgentXPCSnapshotClientPasswordResult
-    ) {
+    private func passwordOperationDidComplete(_ result: HostAgentXPCSnapshotClientPasswordResult) {
         switch result {
         case .completed(let response, let secret):
             switch response.status {
             case .ok:
                 if response.action == .revealTemporaryPassword {
-                    guard let secret,
-                          let password = String(data: secret, encoding: .utf8),
-                          !password.isEmpty,
-                          !password.unicodeScalars.contains(
-                            where: CharacterSet.controlCharacters.contains
-                          )
+                    guard let secret, let password = String(data: secret, encoding: .utf8),
+                        !password.isEmpty,
+                        !password.unicodeScalars.contains(
+                            where: CharacterSet.controlCharacters.contains)
                     else {
                         finish(.failed(.temporaryPasswordUnavailable))
                         return
@@ -133,15 +114,11 @@ package final class HostAgentXPCPasswordOperationOwner: @unchecked Sendable {
                 } else {
                     finish(.succeeded(temporaryPassword: nil))
                 }
-            case .rejected:
-                finish(.rejected(response.detail))
-            case .error:
-                finish(.failed(response.detail))
+            case .rejected: finish(.rejected(response.detail))
+            case .error: finish(.failed(response.detail))
             }
-        case .cancelled:
-            finish(.cancelled)
-        case .invalidRequest, .invalidResponse, .disconnected, .timedOut,
-             .invalidState:
+        case .cancelled: finish(.cancelled)
+        case .invalidRequest, .invalidResponse, .disconnected, .timedOut, .invalidState:
             finish(.unavailable)
         }
     }

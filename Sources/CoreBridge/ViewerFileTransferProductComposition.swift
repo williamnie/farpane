@@ -1,10 +1,7 @@
 import Foundation
 
-package protocol ViewerFileTransferProductCore:
-    ViewerFileTransferSessionCore,
-    ViewerFileTransferUploadSessionCore,
-    AnyObject,
-    Sendable
+package protocol ViewerFileTransferProductCore: ViewerFileTransferSessionCore,
+    ViewerFileTransferUploadSessionCore, AnyObject, Sendable
 {
     func connect(_ config: CoreConnectionConfig) throws
     func disconnect()
@@ -43,10 +40,7 @@ package enum ViewerFileTransferProductPhase: Equatable, Sendable {
 
 package enum ViewerFileTransferProductEvent: Equatable, Sendable {
     case connectionReady(sessionEpoch: UInt64)
-    case connectionFailed(
-        sessionEpoch: UInt64,
-        failure: ViewerFileTransferProductFailure
-    )
+    case connectionFailed(sessionEpoch: UInt64, failure: ViewerFileTransferProductFailure)
     case transfer(ViewerFileTransferSessionEvent)
 }
 
@@ -69,9 +63,7 @@ package struct ViewerFileTransferProductSnapshot: Equatable, Sendable {
     package let transfer: ViewerFileTransferSessionSnapshot?
 
     package init(
-        sessionEpoch: UInt64,
-        phase: ViewerFileTransferProductPhase,
-        queuedTransferID: Int32?,
+        sessionEpoch: UInt64, phase: ViewerFileTransferProductPhase, queuedTransferID: Int32?,
         transfer: ViewerFileTransferSessionSnapshot?
     ) {
         self.sessionEpoch = sessionEpoch
@@ -85,9 +77,9 @@ package struct ViewerFileTransferProductSnapshot: Equatable, Sendable {
 /// the desktop streaming Core. Construction is inert; only an explicit start
 /// projects a file-only configuration and opens a network runtime.
 package final class ViewerFileTransferProductComposition: @unchecked Sendable {
-    package typealias CoreFactory = @Sendable (
-        ViewerFileTransferProductCoreCallbacks
-    ) throws -> any ViewerFileTransferProductCore
+    package typealias CoreFactory =
+        @Sendable (ViewerFileTransferProductCoreCallbacks) throws ->
+        any ViewerFileTransferProductCore
 
     private enum RoutedCoreEvent: Sendable {
         case state(CoreStateEvent)
@@ -124,8 +116,7 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
     private var teardownComplete = false
 
     package init?(
-        sessionEpoch: UInt64,
-        makeCore: @escaping CoreFactory,
+        sessionEpoch: UInt64, makeCore: @escaping CoreFactory,
         onEvent: @escaping @Sendable (ViewerFileTransferProductEvent) -> Void
     ) {
         guard sessionEpoch > 0 else { return nil }
@@ -134,29 +125,22 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         self.onEvent = onEvent
     }
 
-    deinit {
-        _ = teardown()
-    }
+    deinit { _ = teardown() }
 
     package func snapshot() -> ViewerFileTransferProductSnapshot {
         condition.lock()
         let phase = phase
         let owner = sessionOwner
-        let queuedTransferID = queuedDownload?.transferID
-            ?? queuedUpload?.transferID
+        let queuedTransferID = queuedDownload?.transferID ?? queuedUpload?.transferID
         condition.unlock()
         return ViewerFileTransferProductSnapshot(
-            sessionEpoch: sessionEpoch,
-            phase: phase,
-            queuedTransferID: queuedTransferID,
-            transfer: owner?.snapshot()
-        )
+            sessionEpoch: sessionEpoch, phase: phase, queuedTransferID: queuedTransferID,
+            transfer: owner?.snapshot())
     }
 
     /// Starts a separate file-only Core. The base password is consumed only by
     /// this synchronous call and is not retained by the composition.
-    @discardableResult
-    package func start(baseConfiguration: CoreConnectionConfig) -> Bool {
+    @discardableResult package func start(baseConfiguration: CoreConnectionConfig) -> Bool {
         condition.lock()
         guard phase == .idle, !teardownStarted, !operationInFlight else {
             condition.unlock()
@@ -169,24 +153,18 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         let callbacks = ViewerFileTransferProductCoreCallbacks(
             onState: { [weak self] event in self?.route(.state(event)) },
             onManifest: { [weak self] event in self?.route(.manifest(event)) },
-            onTransfer: { [weak self] event in self?.route(.transfer(event)) }
-        )
+            onTransfer: { [weak self] event in self?.route(.transfer(event)) })
 
         do {
             let core = try makeCore(callbacks)
-            guard let owner = ViewerFileTransferSessionOwner(
-                sessionEpoch: sessionEpoch,
-                core: core,
-                onEvent: { [weak self] event in
-                    self?.deliverSessionEvent(event)
-                }
-            ), let uploadOwner = ViewerFileTransferUploadSessionOwner(
-                sessionEpoch: sessionEpoch,
-                core: core,
-                onEvent: { [weak self] event in
-                    self?.deliverSessionEvent(event)
-                }
-            ) else {
+            guard
+                let owner = ViewerFileTransferSessionOwner(
+                    sessionEpoch: sessionEpoch, core: core,
+                    onEvent: { [weak self] event in self?.deliverSessionEvent(event) }),
+                let uploadOwner = ViewerFileTransferUploadSessionOwner(
+                    sessionEpoch: sessionEpoch, core: core,
+                    onEvent: { [weak self] event in self?.deliverSessionEvent(event) })
+            else {
                 core.disconnect()
                 return finishStartFailure()
             }
@@ -207,13 +185,10 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
             condition.unlock()
 
             do {
-                try core.connect(Self.dedicatedConfiguration(
-                    from: baseConfiguration,
-                    sessionEpoch: sessionEpoch
-                ))
-            } catch {
-                return finishStartFailure()
-            }
+                try core.connect(
+                    Self.dedicatedConfiguration(from: baseConfiguration, sessionEpoch: sessionEpoch)
+                )
+            } catch { return finishStartFailure() }
 
             condition.lock()
             operationInFlight = false
@@ -226,33 +201,23 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
             condition.lock()
             let accepted: Bool
             switch phase {
-            case .connecting, .ready:
-                accepted = !teardownStarted
-            case .idle, .failed, .tornDown:
-                accepted = false
+            case .connecting, .ready: accepted = !teardownStarted
+            case .idle, .failed, .tornDown: accepted = false
             }
             condition.unlock()
             return accepted
-        } catch {
-            return finishStartFailure()
-        }
+        } catch { return finishStartFailure() }
     }
 
     /// Pins the user-selected destination immediately, starts the dedicated
     /// Core only for the first explicit action, and delays the manifest request
     /// until that file session is ready. No path or credential is retained.
-    package func requestDownload(
-        baseConfiguration: CoreConnectionConfig,
-        destinationDirectory: URL
-    ) -> ViewerFileTransferProductDownloadRequestResult {
+    package func requestDownload(baseConfiguration: CoreConnectionConfig, destinationDirectory: URL)
+        -> ViewerFileTransferProductDownloadRequestResult
+    {
         condition.lock()
-        guard
-            (phase == .idle || phase == .ready),
-            !teardownStarted,
-            !operationInFlight,
-            queuedDownload == nil,
-            queuedUpload == nil,
-            nextTransferID < Int32.max,
+        guard phase == .idle || phase == .ready, !teardownStarted, !operationInFlight,
+            queuedDownload == nil, queuedUpload == nil, nextTransferID < Int32.max,
             nextDestinationToken < UInt64.max
         else {
             condition.unlock()
@@ -265,17 +230,13 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         let phaseAtAdmission = phase
         condition.unlock()
 
-        guard let destination = ViewerFileTransferDestinationOwner(
-            sessionEpoch: sessionEpoch,
-            directoryURL: destinationDirectory,
-            leaseToken: token
-        ) else { return .destinationRejected }
+        guard
+            let destination = ViewerFileTransferDestinationOwner(
+                sessionEpoch: sessionEpoch, directoryURL: destinationDirectory, leaseToken: token)
+        else { return .destinationRejected }
 
         if phaseAtAdmission == .ready {
-            guard beginDownload(
-                transferID: transferID,
-                destinationOwner: destination
-            ) else {
+            guard beginDownload(transferID: transferID, destinationOwner: destination) else {
                 _ = destination.teardown(sessionEpoch: sessionEpoch)
                 return .unavailable
             }
@@ -283,28 +244,19 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         }
 
         condition.lock()
-        guard
-            phase == .idle,
-            !teardownStarted,
-            !operationInFlight,
-            queuedDownload == nil,
+        guard phase == .idle, !teardownStarted, !operationInFlight, queuedDownload == nil,
             queuedUpload == nil
         else {
             condition.unlock()
             _ = destination.teardown(sessionEpoch: sessionEpoch)
             return .unavailable
         }
-        queuedDownload = QueuedDownload(
-            transferID: transferID,
-            destinationOwner: destination
-        )
+        queuedDownload = QueuedDownload(transferID: transferID, destinationOwner: destination)
         condition.unlock()
 
         guard start(baseConfiguration: baseConfiguration) else {
             condition.lock()
-            let queued = queuedDownload?.transferID == transferID
-                ? queuedDownload
-                : nil
+            let queued = queuedDownload?.transferID == transferID ? queuedDownload : nil
             if queued != nil { queuedDownload = nil }
             condition.unlock()
             _ = queued?.destinationOwner.teardown(sessionEpoch: sessionEpoch)
@@ -316,17 +268,11 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
     /// Pins the explicit source selection before opening the dedicated Core.
     /// The request contains only a normalized manifest and opaque source lease.
     package func requestFileTransferUpload(
-        baseConfiguration: CoreConnectionConfig,
-        selectedURLs: [URL]
+        baseConfiguration: CoreConnectionConfig, selectedURLs: [URL]
     ) -> ViewerFileTransferProductUploadRequestResult {
         condition.lock()
-        guard
-            (phase == .idle || phase == .ready),
-            !teardownStarted,
-            !operationInFlight,
-            queuedDownload == nil,
-            queuedUpload == nil,
-            nextTransferID < Int32.max,
+        guard phase == .idle || phase == .ready, !teardownStarted, !operationInFlight,
+            queuedDownload == nil, queuedUpload == nil, nextTransferID < Int32.max,
             nextSourceToken < UInt64.max
         else {
             condition.unlock()
@@ -339,11 +285,10 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         let phaseAtAdmission = phase
         condition.unlock()
 
-        guard let source = ViewerFileTransferUploadSourceOwner(
-            sessionEpoch: sessionEpoch,
-            selectedURLs: selectedURLs,
-            leaseToken: token
-        ) else { return .sourceRejected }
+        guard
+            let source = ViewerFileTransferUploadSourceOwner(
+                sessionEpoch: sessionEpoch, selectedURLs: selectedURLs, leaseToken: token)
+        else { return .sourceRejected }
 
         if phaseAtAdmission == .ready {
             guard beginUpload(transferID: transferID, sourceOwner: source) else {
@@ -354,28 +299,19 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         }
 
         condition.lock()
-        guard
-            phase == .idle,
-            !teardownStarted,
-            !operationInFlight,
-            queuedDownload == nil,
+        guard phase == .idle, !teardownStarted, !operationInFlight, queuedDownload == nil,
             queuedUpload == nil
         else {
             condition.unlock()
             _ = source.teardown(sessionEpoch: sessionEpoch)
             return .unavailable
         }
-        queuedUpload = QueuedUpload(
-            transferID: transferID,
-            sourceOwner: source
-        )
+        queuedUpload = QueuedUpload(transferID: transferID, sourceOwner: source)
         condition.unlock()
 
         guard start(baseConfiguration: baseConfiguration) else {
             condition.lock()
-            let queued = queuedUpload?.transferID == transferID
-                ? queuedUpload
-                : nil
+            let queued = queuedUpload?.transferID == transferID ? queuedUpload : nil
             if queued != nil { queuedUpload = nil }
             condition.unlock()
             _ = queued?.sourceOwner.teardown(sessionEpoch: sessionEpoch)
@@ -388,12 +324,8 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
     /// is ready. IDs and opaque lease tokens are monotonic and never reused.
     package func beginDownload(destinationDirectory: URL) -> Int32? {
         condition.lock()
-        guard
-            phase == .ready,
-            !teardownStarted,
-            let owner = sessionOwner,
-            nextTransferID < Int32.max,
-            nextDestinationToken < UInt64.max
+        guard phase == .ready, !teardownStarted, let owner = sessionOwner,
+            nextTransferID < Int32.max, nextDestinationToken < UInt64.max
         else {
             condition.unlock()
             return nil
@@ -404,76 +336,56 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         let token = nextDestinationToken
         condition.unlock()
 
-        guard let destination = ViewerFileTransferDestinationOwner(
-            sessionEpoch: sessionEpoch,
-            directoryURL: destinationDirectory,
-            leaseToken: token
-        ) else { return nil }
-        guard beginDownload(
-            transferID: transferID,
-            destinationOwner: destination,
-            expectedOwner: owner
-        ) else {
+        guard
+            let destination = ViewerFileTransferDestinationOwner(
+                sessionEpoch: sessionEpoch, directoryURL: destinationDirectory, leaseToken: token)
+        else { return nil }
+        guard
+            beginDownload(
+                transferID: transferID, destinationOwner: destination, expectedOwner: owner)
+        else {
             _ = destination.teardown(sessionEpoch: sessionEpoch)
             return nil
         }
         return transferID
     }
 
-    @discardableResult
-    package func requestCancellation(transferID: Int32) -> Bool {
+    @discardableResult package func requestCancellation(transferID: Int32) -> Bool {
         condition.lock()
-        if !teardownStarted,
-           let queued = queuedDownload,
-           queued.transferID == transferID {
+        if !teardownStarted, let queued = queuedDownload, queued.transferID == transferID {
             queuedDownload = nil
             condition.unlock()
             _ = queued.destinationOwner.teardown(sessionEpoch: sessionEpoch)
-            deliverSessionEvent(.finished(
-                sessionEpoch: sessionEpoch,
-                transferID: transferID,
-                outcome: .cancelled
-            ))
+            deliverSessionEvent(
+                .finished(sessionEpoch: sessionEpoch, transferID: transferID, outcome: .cancelled))
             return true
         }
-        if !teardownStarted,
-           let queued = queuedUpload,
-           queued.transferID == transferID {
+        if !teardownStarted, let queued = queuedUpload, queued.transferID == transferID {
             queuedUpload = nil
             condition.unlock()
             _ = queued.sourceOwner.teardown(sessionEpoch: sessionEpoch)
-            deliverSessionEvent(.finished(
-                sessionEpoch: sessionEpoch,
-                transferID: transferID,
-                outcome: .cancelled
-            ))
+            deliverSessionEvent(
+                .finished(sessionEpoch: sessionEpoch, transferID: transferID, outcome: .cancelled))
             return true
         }
-        if phase == .ready,
-           !teardownStarted,
-           let uploadOwner,
-           uploadOwner.activeTransferID == transferID {
+        if phase == .ready, !teardownStarted, let uploadOwner,
+            uploadOwner.activeTransferID == transferID
+        {
             condition.unlock()
             return uploadOwner.requestCancellation(
-                sessionEpoch: sessionEpoch,
-                transferID: transferID
-            )
+                sessionEpoch: sessionEpoch, transferID: transferID)
         }
         guard phase == .ready, !teardownStarted, let owner = sessionOwner else {
             condition.unlock()
             return false
         }
         condition.unlock()
-        return owner.requestCancellation(
-            sessionEpoch: sessionEpoch,
-            transferID: transferID
-        )
+        return owner.requestCancellation(sessionEpoch: sessionEpoch, transferID: transferID)
     }
 
     /// Closes the session authority and destination descriptors before the
     /// dedicated Core, so no callback can outlive its local write authority.
-    @discardableResult
-    package func teardown() -> Bool {
+    @discardableResult package func teardown() -> Bool {
         condition.lock()
         guard !teardownStarted else {
             while !teardownComplete { condition.wait() }
@@ -523,19 +435,12 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
             onEvent(.connectionReady(sessionEpoch: sessionEpoch))
             beginQueuedActionIfNeeded()
             return
-        case .passwordRequired, .authenticationFailed:
-            failure = .authenticationRejected
-        case .disconnected:
-            failure = .connectionClosed
-        case .error, .controlReady:
-            failure = .protocolViolation
-        case .idle, .connecting, .transportReady, .authenticated,
-             .streaming:
-            failure = nil
+        case .passwordRequired, .authenticationFailed: failure = .authenticationRejected
+        case .disconnected: failure = .connectionClosed
+        case .error, .controlReady: failure = .protocolViolation
+        case .idle, .connecting, .transportReady, .authenticated, .streaming: failure = nil
         }
-        guard let failure,
-              phase == .connecting || phase == .ready
-        else {
+        guard let failure, phase == .connecting || phase == .ready else {
             condition.unlock()
             return
         }
@@ -552,10 +457,7 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         _ = uploadOwner?.teardown(sessionEpoch: sessionEpoch)
         _ = queued?.destinationOwner.teardown(sessionEpoch: sessionEpoch)
         _ = queuedUpload?.sourceOwner.teardown(sessionEpoch: sessionEpoch)
-        onEvent(.connectionFailed(
-            sessionEpoch: sessionEpoch,
-            failure: failure
-        ))
+        onEvent(.connectionFailed(sessionEpoch: sessionEpoch, failure: failure))
     }
 
     private func route(_ event: RoutedCoreEvent) {
@@ -575,12 +477,9 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
 
     private func consume(_ event: RoutedCoreEvent) {
         switch event {
-        case .state(let state):
-            observeState(state)
-        case .manifest(let manifest):
-            observeManifest(manifest)
-        case .transfer(let transfer):
-            observeTransfer(transfer)
+        case .state(let state): observeState(state)
+        case .manifest(let manifest): observeManifest(manifest)
+        case .transfer(let transfer): observeTransfer(transfer)
         }
     }
 
@@ -594,9 +493,7 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
     private func observeTransfer(_ event: CoreFileTransferEvent) {
         condition.lock()
         let owner = phase == .ready && !teardownStarted ? sessionOwner : nil
-        let uploadOwner = phase == .ready && !teardownStarted
-            ? uploadOwner
-            : nil
+        let uploadOwner = phase == .ready && !teardownStarted ? uploadOwner : nil
         condition.unlock()
         if uploadOwner?.observeCore(event) == true { return }
         _ = owner?.observeCore(event)
@@ -622,64 +519,50 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         condition.unlock()
 
         if let queued {
-            guard beginDownload(
-                transferID: queued.transferID,
-                destinationOwner: queued.destinationOwner
-            ) else {
+            guard
+                beginDownload(
+                    transferID: queued.transferID, destinationOwner: queued.destinationOwner)
+            else {
                 _ = queued.destinationOwner.teardown(sessionEpoch: sessionEpoch)
-                deliverSessionEvent(.finished(
-                    sessionEpoch: sessionEpoch,
-                    transferID: queued.transferID,
-                    outcome: .failed(.coreCommandRejected)
-                ))
+                deliverSessionEvent(
+                    .finished(
+                        sessionEpoch: sessionEpoch, transferID: queued.transferID,
+                        outcome: .failed(.coreCommandRejected)))
                 return
             }
         } else if let queuedUpload {
-            guard beginUpload(
-                transferID: queuedUpload.transferID,
-                sourceOwner: queuedUpload.sourceOwner
-            ) else {
+            guard
+                beginUpload(
+                    transferID: queuedUpload.transferID, sourceOwner: queuedUpload.sourceOwner)
+            else {
                 _ = queuedUpload.sourceOwner.teardown(sessionEpoch: sessionEpoch)
-                deliverSessionEvent(.finished(
-                    sessionEpoch: sessionEpoch,
-                    transferID: queuedUpload.transferID,
-                    outcome: .failed(.coreCommandRejected)
-                ))
+                deliverSessionEvent(
+                    .finished(
+                        sessionEpoch: sessionEpoch, transferID: queuedUpload.transferID,
+                        outcome: .failed(.coreCommandRejected)))
                 return
             }
         }
     }
 
-    private func beginUpload(
-        transferID: Int32,
-        sourceOwner: ViewerFileTransferUploadSourceOwner
-    ) -> Bool {
+    private func beginUpload(transferID: Int32, sourceOwner: ViewerFileTransferUploadSourceOwner)
+        -> Bool
+    {
         condition.lock()
-        guard
-            phase == .ready,
-            !teardownStarted,
-            let uploadOwner
-        else {
+        guard phase == .ready, !teardownStarted, let uploadOwner else {
             condition.unlock()
             return false
         }
         condition.unlock()
-        return uploadOwner.beginUpload(
-            transferID: transferID,
-            sourceOwner: sourceOwner
-        )
+        return uploadOwner.beginUpload(transferID: transferID, sourceOwner: sourceOwner)
     }
 
     private func beginDownload(
-        transferID: Int32,
-        destinationOwner: ViewerFileTransferDestinationOwner,
+        transferID: Int32, destinationOwner: ViewerFileTransferDestinationOwner,
         expectedOwner: ViewerFileTransferSessionOwner? = nil
     ) -> Bool {
         condition.lock()
-        guard
-            phase == .ready,
-            !teardownStarted,
-            let owner = sessionOwner,
+        guard phase == .ready, !teardownStarted, let owner = sessionOwner,
             expectedOwner == nil || owner === expectedOwner
         else {
             condition.unlock()
@@ -687,10 +570,8 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         }
         condition.unlock()
         return owner.beginDownload(
-            manifestRequestID: transferID,
-            transferID: transferID,
-            destinationOwner: destinationOwner
-        )
+            manifestRequestID: transferID, transferID: transferID,
+            destinationOwner: destinationOwner)
     }
 
     private func finishStartFailure() -> Bool {
@@ -720,32 +601,19 @@ package final class ViewerFileTransferProductComposition: @unchecked Sendable {
         _ = queued?.destinationOwner.teardown(sessionEpoch: sessionEpoch)
         _ = queuedUpload?.sourceOwner.teardown(sessionEpoch: sessionEpoch)
         core?.disconnect()
-        onEvent(.connectionFailed(
-            sessionEpoch: sessionEpoch,
-            failure: .coreUnavailable
-        ))
+        onEvent(.connectionFailed(sessionEpoch: sessionEpoch, failure: .coreUnavailable))
         return false
     }
 
     private static func dedicatedConfiguration(
-        from base: CoreConnectionConfig,
-        sessionEpoch: UInt64
+        from base: CoreConnectionConfig, sessionEpoch: UInt64
     ) -> CoreConnectionConfig {
         CoreConnectionConfig(
-            rendezvousServer: base.rendezvousServer,
-            serverPublicKey: base.serverPublicKey,
-            peerID: base.peerID,
-            password: base.password,
-            forceRelay: base.forceRelay,
-            receiveClipboardText: false,
-            sendClipboardText: false,
-            receiveClipboardRichText: false,
-            sendClipboardRichText: false,
-            receiveClipboardImage: false,
-            sendClipboardImage: false,
-            fileTransferEnabled: true,
-            fileTransferSessionEpoch: sessionEpoch
-        )
+            rendezvousServer: base.rendezvousServer, serverPublicKey: base.serverPublicKey,
+            peerID: base.peerID, password: base.password, forceRelay: base.forceRelay,
+            receiveClipboardText: false, sendClipboardText: false, receiveClipboardRichText: false,
+            sendClipboardRichText: false, receiveClipboardImage: false, sendClipboardImage: false,
+            fileTransferEnabled: true, fileTransferSessionEpoch: sessionEpoch)
     }
 }
 

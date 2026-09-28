@@ -11,23 +11,16 @@ package struct HostAgentXPCListenerAdmissionSnapshot: Equatable, Sendable {
     package let cancelled: Bool
 
     package init(
-        connectionAttemptCount: UInt64,
-        rejectedPeerIdentityCount: UInt64,
-        rejectedHandshakeUnavailableCount: UInt64,
-        acceptedHandshakeConnectionCount: UInt64,
-        activeHandshakeConnectionCount: UInt64,
-        closedHandshakeConnectionCount: UInt64,
-        listenerActivated: Bool,
-        cancelled: Bool
+        connectionAttemptCount: UInt64, rejectedPeerIdentityCount: UInt64,
+        rejectedHandshakeUnavailableCount: UInt64, acceptedHandshakeConnectionCount: UInt64,
+        activeHandshakeConnectionCount: UInt64, closedHandshakeConnectionCount: UInt64,
+        listenerActivated: Bool, cancelled: Bool
     ) {
         self.connectionAttemptCount = connectionAttemptCount
         self.rejectedPeerIdentityCount = rejectedPeerIdentityCount
-        self.rejectedHandshakeUnavailableCount =
-            rejectedHandshakeUnavailableCount
-        self.acceptedHandshakeConnectionCount =
-            acceptedHandshakeConnectionCount
-        self.activeHandshakeConnectionCount =
-            activeHandshakeConnectionCount
+        self.rejectedHandshakeUnavailableCount = rejectedHandshakeUnavailableCount
+        self.acceptedHandshakeConnectionCount = acceptedHandshakeConnectionCount
+        self.activeHandshakeConnectionCount = activeHandshakeConnectionCount
         self.closedHandshakeConnectionCount = closedHandshakeConnectionCount
         self.listenerActivated = listenerActivated
         self.cancelled = cancelled
@@ -38,32 +31,25 @@ package struct HostAgentXPCListenerAdmissionSnapshot: Equatable, Sendable {
 /// Only an identity-eligible peer admitted under the ready process identity can
 /// receive the fixed handshake-plus-snapshot service. Listener activation is a
 /// separate process-composition responsibility.
-package final class HostAgentXPCListenerAdmissionShell:
-    NSObject,
-    NSXPCListenerDelegate,
+package final class HostAgentXPCListenerAdmissionShell: NSObject, NSXPCListenerDelegate,
     @unchecked Sendable
 {
     package static let maximumActiveHandshakeConnectionCount = 8
 
-    typealias ConnectionAssessor = (NSXPCConnection)
-        -> HostAgentXPCPeerAdmissionStatus
+    typealias ConnectionAssessor = (NSXPCConnection) -> HostAgentXPCPeerAdmissionStatus
     typealias ConnectionLifecycleHandler = @Sendable () -> Void
     struct ConnectionLifecycleHandlers: Sendable {
         let onInterruption: ConnectionLifecycleHandler
         let onInvalidation: ConnectionLifecycleHandler
     }
     typealias ConnectionConfigurator = (
-        NSXPCConnection,
-        NSXPCInterface,
-        HostAgentXPCSnapshotSessionHandler,
+        NSXPCConnection, NSXPCInterface, HostAgentXPCSnapshotSessionHandler,
         ConnectionLifecycleHandlers
     ) -> Void
     typealias ConnectionAction = (NSXPCConnection) -> Void
     typealias ListenerAction = (NSXPCListener) -> Void
-    package typealias CommandServiceProvider = @Sendable ()
-        -> HostAgentXPCCommandService?
-    package typealias PasswordServiceProvider = @Sendable ()
-        -> HostAgentXPCPasswordService?
+    package typealias CommandServiceProvider = @Sendable () -> HostAgentXPCCommandService?
+    package typealias PasswordServiceProvider = @Sendable () -> HostAgentXPCPasswordService?
 
     private enum ConnectionEndReason: Equatable, Sendable {
         case interrupted
@@ -88,8 +74,7 @@ package final class HostAgentXPCListenerAdmissionShell:
     private let requiresPasswordService: Bool
     private let assessConnection: ConnectionAssessor
     private let nowUnixMilliseconds: HostAgentXPCHandshakeHandler.Clock
-    private let monotonicMilliseconds:
-        HostAgentXPCSnapshotSessionHandler.MonotonicClock
+    private let monotonicMilliseconds: HostAgentXPCSnapshotSessionHandler.MonotonicClock
     private let configureConnection: ConnectionConfigurator
     private let resumeConnection: ConnectionAction
     private let invalidateConnection: ConnectionAction
@@ -106,52 +91,37 @@ package final class HostAgentXPCListenerAdmissionShell:
 
     package static func makeProductShell(
         identityAuthority: HostAgentXPCProcessIdentityAuthority,
-        snapshotState: HostAgentSnapshotState,
-        eventState: HostAgentEventState,
+        snapshotState: HostAgentSnapshotState, eventState: HostAgentEventState,
         commandServiceProvider: @escaping CommandServiceProvider,
         passwordServiceProvider: @escaping PasswordServiceProvider = { nil }
-    )
-        -> HostAgentXPCListenerAdmissionShell
-    {
+    ) -> HostAgentXPCListenerAdmissionShell {
         let listener = HostAgentXPCListenerFactory.makeListener()
         return HostAgentXPCListenerAdmissionShell(
-            listener: listener,
-            identityAuthority: identityAuthority,
-            snapshotState: snapshotState,
-            eventState: eventState,
-            commandServiceProvider: commandServiceProvider,
-            passwordServiceProvider: passwordServiceProvider,
-            requiresCommandService: true,
-            requiresPasswordService: true,
-            assessConnection: HostAgentXPCPeerAdmissionGate.assess,
-            nowUnixMilliseconds: productClock,
-            monotonicMilliseconds: productMonotonicClock,
+            listener: listener, identityAuthority: identityAuthority, snapshotState: snapshotState,
+            eventState: eventState, commandServiceProvider: commandServiceProvider,
+            passwordServiceProvider: passwordServiceProvider, requiresCommandService: true,
+            requiresPasswordService: true, assessConnection: HostAgentXPCPeerAdmissionGate.assess,
+            nowUnixMilliseconds: productClock, monotonicMilliseconds: productMonotonicClock,
             configureConnection: configureProductConnection,
             resumeConnection: { connection in connection.resume() },
             invalidateConnection: { connection in connection.invalidate() },
             activateListener: { listener in listener.activate() },
-            invalidateListener: { listener in listener.invalidate() }
-        )
+            invalidateListener: { listener in listener.invalidate() })
     }
 
     init(
-        listener: NSXPCListener,
-        identityAuthority: HostAgentXPCProcessIdentityAuthority,
-        snapshotState: HostAgentSnapshotState,
-        eventState: HostAgentEventState,
+        listener: NSXPCListener, identityAuthority: HostAgentXPCProcessIdentityAuthority,
+        snapshotState: HostAgentSnapshotState, eventState: HostAgentEventState,
         commandServiceProvider: @escaping CommandServiceProvider = { nil },
         passwordServiceProvider: @escaping PasswordServiceProvider = { nil },
-        requiresCommandService: Bool = false,
-        requiresPasswordService: Bool = false,
+        requiresCommandService: Bool = false, requiresPasswordService: Bool = false,
         assessConnection: @escaping ConnectionAssessor,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
-        monotonicMilliseconds: @escaping
-            HostAgentXPCSnapshotSessionHandler.MonotonicClock,
+        monotonicMilliseconds: @escaping HostAgentXPCSnapshotSessionHandler.MonotonicClock,
         configureConnection: @escaping ConnectionConfigurator,
         resumeConnection: @escaping ConnectionAction,
         invalidateConnection: @escaping ConnectionAction,
-        activateListener: @escaping ListenerAction,
-        invalidateListener: @escaping ListenerAction
+        activateListener: @escaping ListenerAction, invalidateListener: @escaping ListenerAction
     ) {
         self.listener = listener
         self.identityAuthority = identityAuthority
@@ -171,20 +141,16 @@ package final class HostAgentXPCListenerAdmissionShell:
         self.invalidateListener = invalidateListener
         super.init()
         listener.delegate = self
-        let observerInstalled = identityAuthority.installInvalidationObserver {
-            [weak self] in
+        let observerInstalled = identityAuthority.installInvalidationObserver { [weak self] in
             self?.cancel()
         }
         if !observerInstalled { cancel() }
     }
 
-    deinit {
-        cancel()
-    }
+    deinit { cancel() }
 
     package func listener(
-        _ listener: NSXPCListener,
-        shouldAcceptNewConnection newConnection: NSXPCConnection
+        _ listener: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection
     ) -> Bool {
         guard listener === self.listener else {
             recordAttempt(rejectedPeerIdentity: true)
@@ -197,12 +163,8 @@ package final class HostAgentXPCListenerAdmissionShell:
             return false
         }
 
-        let admitted = identityAuthority.withReadyIdentityForAdmission {
-            [self] identity in
-            configureAndResume(
-                newConnection,
-                identity: identity
-            )
+        let admitted = identityAuthority.withReadyIdentityForAdmission { [self] identity in
+            configureAndResume(newConnection, identity: identity)
         }
         guard admitted == true else {
             recordRejectedHandshakeUnavailable()
@@ -213,10 +175,8 @@ package final class HostAgentXPCListenerAdmissionShell:
 
     /// One-shot activation is serialized with process identity invalidation.
     /// The fixed listener remains inactive until the identity is ready.
-    @discardableResult
-    package func activate() -> Bool {
-        identityAuthority.withReadyIdentityForAdmission { [self] _ in
-            activateWhileIdentityIsReady()
+    @discardableResult package func activate() -> Bool {
+        identityAuthority.withReadyIdentityForAdmission { [self] _ in activateWhileIdentityIsReady()
         } == true
     }
 
@@ -224,9 +184,7 @@ package final class HostAgentXPCListenerAdmissionShell:
     /// handshake/snapshot connection. Safe for repeated and concurrent callers.
     package func cancel() {
         lock.lock()
-        while listenerState == .activating {
-            lock.wait()
-        }
+        while listenerState == .activating { lock.wait() }
         guard !cancelled else {
             lock.unlock()
             return
@@ -236,19 +194,12 @@ package final class HostAgentXPCListenerAdmissionShell:
         listenerState = .cancelled
         let connections = Array(activeConnections.values)
         activeConnections.removeAll(keepingCapacity: false)
-        addSaturating(
-            UInt64(connections.count),
-            to: &closedHandshakeConnectionCount
-        )
+        addSaturating(UInt64(connections.count), to: &closedHandshakeConnectionCount)
         lock.broadcast()
         lock.unlock()
 
-        if shouldInvalidateListener {
-            invalidateListener(listener)
-        }
-        for connection in connections {
-            invalidateConnection(connection)
-        }
+        if shouldInvalidateListener { invalidateListener(listener) }
+        for connection in connections { invalidateConnection(connection) }
     }
 
     package func snapshot() -> HostAgentXPCListenerAdmissionSnapshot {
@@ -257,15 +208,11 @@ package final class HostAgentXPCListenerAdmissionShell:
         return HostAgentXPCListenerAdmissionSnapshot(
             connectionAttemptCount: connectionAttemptCount,
             rejectedPeerIdentityCount: rejectedPeerIdentityCount,
-            rejectedHandshakeUnavailableCount:
-                rejectedHandshakeUnavailableCount,
-            acceptedHandshakeConnectionCount:
-                acceptedHandshakeConnectionCount,
+            rejectedHandshakeUnavailableCount: rejectedHandshakeUnavailableCount,
+            acceptedHandshakeConnectionCount: acceptedHandshakeConnectionCount,
             activeHandshakeConnectionCount: UInt64(activeConnections.count),
             closedHandshakeConnectionCount: closedHandshakeConnectionCount,
-            listenerActivated: listenerState == .active,
-            cancelled: cancelled
-        )
+            listenerActivated: listenerState == .active, cancelled: cancelled)
     }
 
     private func activateWhileIdentityIsReady() -> Bool {
@@ -287,15 +234,12 @@ package final class HostAgentXPCListenerAdmissionShell:
     }
 
     private func configureAndResume(
-        _ connection: NSXPCConnection,
-        identity: HostAgentXPCWireAgentIdentity
+        _ connection: NSXPCConnection, identity: HostAgentXPCWireAgentIdentity
     ) -> Bool {
         let identifier = ObjectIdentifier(connection)
         lock.lock()
-        guard !cancelled,
-              activeConnections.count
-                < Self.maximumActiveHandshakeConnectionCount,
-              activeConnections[identifier] == nil
+        guard !cancelled, activeConnections.count < Self.maximumActiveHandshakeConnectionCount,
+            activeConnections[identifier] == nil
         else {
             lock.unlock()
             return false
@@ -306,7 +250,8 @@ package final class HostAgentXPCListenerAdmissionShell:
         let commandService = commandServiceProvider()
         let passwordService = passwordServiceProvider()
         if (requiresCommandService && commandService == nil)
-            || (requiresPasswordService && passwordService == nil) {
+            || (requiresPasswordService && passwordService == nil)
+        {
             lock.lock()
             activeConnections.removeValue(forKey: identifier)
             lock.unlock()
@@ -315,38 +260,21 @@ package final class HostAgentXPCListenerAdmissionShell:
 
         let interface = HostAgentXPCSnapshotInterfaceFactory.makeInterface()
         let handler = HostAgentXPCSnapshotSessionHandler(
-            identity: identity,
-            snapshotState: snapshotState,
-            eventState: eventState,
-            commandService: commandService,
-            passwordService: passwordService,
-            nowUnixMilliseconds: nowUnixMilliseconds,
-            monotonicMilliseconds: monotonicMilliseconds
-        )
+            identity: identity, snapshotState: snapshotState, eventState: eventState,
+            commandService: commandService, passwordService: passwordService,
+            nowUnixMilliseconds: nowUnixMilliseconds, monotonicMilliseconds: monotonicMilliseconds)
         configureConnection(
-            connection,
-            interface,
-            handler,
+            connection, interface, handler,
             ConnectionLifecycleHandlers(
                 onInterruption: { [weak self] in
-                    self?.connectionDidEnd(
-                        identifier,
-                        reason: .interrupted
-                    )
+                    self?.connectionDidEnd(identifier, reason: .interrupted)
                 },
                 onInvalidation: { [weak self] in
-                    self?.connectionDidEnd(
-                        identifier,
-                        reason: .invalidated
-                    )
-                }
-            )
-        )
+                    self?.connectionDidEnd(identifier, reason: .invalidated)
+                }))
 
         lock.lock()
-        guard !cancelled,
-              activeConnections[identifier] === connection
-        else {
+        guard !cancelled, activeConnections[identifier] === connection else {
             lock.unlock()
             return false
         }
@@ -357,31 +285,22 @@ package final class HostAgentXPCListenerAdmissionShell:
         return true
     }
 
-    private func connectionDidEnd(
-        _ identifier: ObjectIdentifier,
-        reason: ConnectionEndReason
-    ) {
+    private func connectionDidEnd(_ identifier: ObjectIdentifier, reason: ConnectionEndReason) {
         lock.lock()
-        guard let connection = activeConnections.removeValue(
-            forKey: identifier
-        ) else {
+        guard let connection = activeConnections.removeValue(forKey: identifier) else {
             lock.unlock()
             return
         }
         incrementSaturating(&closedHandshakeConnectionCount)
         lock.unlock()
 
-        if reason == .interrupted {
-            invalidateConnection(connection)
-        }
+        if reason == .interrupted { invalidateConnection(connection) }
     }
 
     private func recordAttempt(rejectedPeerIdentity: Bool) {
         lock.lock()
         incrementSaturating(&connectionAttemptCount)
-        if rejectedPeerIdentity {
-            incrementSaturating(&rejectedPeerIdentityCount)
-        }
+        if rejectedPeerIdentity { incrementSaturating(&rejectedPeerIdentityCount) }
         lock.unlock()
     }
 
@@ -399,23 +318,19 @@ package final class HostAgentXPCListenerAdmissionShell:
 
     private static let productClock: HostAgentXPCHandshakeHandler.Clock = {
         let milliseconds = Date().timeIntervalSince1970 * 1_000
-        guard milliseconds.isFinite,
-              milliseconds > 0,
-              milliseconds <= 9_007_199_254_740_991
-        else { return 0 }
+        guard milliseconds.isFinite, milliseconds > 0, milliseconds <= 9_007_199_254_740_991 else {
+            return 0
+        }
         return UInt64(milliseconds.rounded(.towardZero))
     }
 
-    private static let productMonotonicClock:
-        HostAgentXPCSnapshotSessionHandler.MonotonicClock = {
+    private static let productMonotonicClock: HostAgentXPCSnapshotSessionHandler.MonotonicClock = {
         DispatchTime.now().uptimeNanoseconds / 1_000_000
     }
 
     private static func configureProductConnection(
-        _ connection: NSXPCConnection,
-        _ interface: NSXPCInterface,
-        _ handler: HostAgentXPCSnapshotSessionHandler,
-        _ lifecycle: ConnectionLifecycleHandlers
+        _ connection: NSXPCConnection, _ interface: NSXPCInterface,
+        _ handler: HostAgentXPCSnapshotSessionHandler, _ lifecycle: ConnectionLifecycleHandlers
     ) {
         connection.exportedInterface = interface
         connection.exportedObject = handler
@@ -423,9 +338,7 @@ package final class HostAgentXPCListenerAdmissionShell:
         connection.invalidationHandler = lifecycle.onInvalidation
     }
 
-    private func incrementSaturating(_ value: inout UInt64) {
-        if value < UInt64.max { value += 1 }
-    }
+    private func incrementSaturating(_ value: inout UInt64) { if value < UInt64.max { value += 1 } }
 
     private func addSaturating(_ addition: UInt64, to value: inout UInt64) {
         let (sum, overflow) = value.addingReportingOverflow(addition)

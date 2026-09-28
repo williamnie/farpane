@@ -7,63 +7,39 @@ import Foundation
 final class HostMicrophoneAuthorizationAuthority: @unchecked Sendable {
     private let owner: HostMicrophoneAuthorizationOwner
 
-    init(owner: HostMicrophoneAuthorizationOwner) {
-        self.owner = owner
-    }
+    init(owner: HostMicrophoneAuthorizationOwner) { self.owner = owner }
 
     static func makeProduct() -> HostMicrophoneAuthorizationAuthority {
         HostMicrophoneAuthorizationAuthority(
             owner: HostMicrophoneAuthorizationOwner(
                 operations: HostMicrophoneAuthorizationOperations(
-                    observe: { @Sendable in
-                        authorizationStatusWithoutPrompt()
-                    },
+                    observe: { @Sendable in authorizationStatusWithoutPrompt() },
                     requestAccess: { completion in
-                        AVCaptureDevice.requestAccess(
-                            for: .audio,
-                            completionHandler: completion
-                        )
-                    }
-                )
-            )
-        )
+                        AVCaptureDevice.requestAccess(for: .audio, completionHandler: completion)
+                    })))
     }
 
     static func isAuthorizedWithoutPrompt() -> Bool {
         authorizationStatusWithoutPrompt() == .authorized
     }
 
-    func authorizationStatus() -> HostMicrophoneAuthorizationStatus {
-        owner.authorizationStatus()
-    }
+    func authorizationStatus() -> HostMicrophoneAuthorizationStatus { owner.authorizationStatus() }
 
-    func isRequestPending() -> Bool {
-        owner.isRequestPending()
-    }
+    func isRequestPending() -> Bool { owner.isRequestPending() }
 
-    @discardableResult
-    func requestAuthorization(
-        completion: @escaping @Sendable (
-            HostMicrophoneAuthorizationStatus
-        ) -> Void
+    @discardableResult func requestAuthorization(
+        completion: @escaping @Sendable (HostMicrophoneAuthorizationStatus) -> Void
     ) -> HostMicrophoneAuthorizationRequestResult {
         owner.requestAuthorization(completion: completion)
     }
 
-    private static func authorizationStatusWithoutPrompt()
-        -> HostMicrophoneAuthorizationStatus
-    {
+    private static func authorizationStatusWithoutPrompt() -> HostMicrophoneAuthorizationStatus {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
-        case .notDetermined:
-            return .notDetermined
-        case .denied:
-            return .denied
-        case .restricted:
-            return .restricted
-        case .authorized:
-            return .authorized
-        @unknown default:
-            return .restricted
+        case .notDetermined: return .notDetermined
+        case .denied: return .denied
+        case .restricted: return .restricted
+        case .authorized: return .authorized
+        @unknown default: return .restricted
         }
     }
 }

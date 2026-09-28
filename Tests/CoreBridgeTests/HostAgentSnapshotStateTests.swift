@@ -1,25 +1,17 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentSnapshotStateTests: XCTestCase {
     func testPublishesSanitizedProjectionWithoutRetainingRevealedPassword() throws {
         let state = HostAgentSnapshotState()
         let secret = "temporary-secret-must-not-be-retained"
-        let snapshot = try coreSnapshot(
-            host: "host-a",
-            observedAt: 100,
-            revealedPassword: secret
-        )
+        let snapshot = try coreSnapshot(host: "host-a", observedAt: 100, revealedPassword: secret)
 
         XCTAssertEqual(
-            state.publish(
-                snapshot,
-                eventSequence: 7,
-                expectedHostInstanceID: "host-a"
-            ),
-            .published(generation: 1)
-        )
+            state.publish(snapshot, eventSequence: 7, expectedHostInstanceID: "host-a"),
+            .published(generation: 1))
 
         let view = state.snapshot()
         XCTAssertEqual(view.status, .available)
@@ -39,42 +31,26 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let state = HostAgentSnapshotState()
         _ = state.publish(
             try coreSnapshot(
-                host: "host-a",
-                observedAt: 100,
-                sessionAvailability: .limited,
-                sessionUnavailableReason: .sessionUnavailable
-            ),
-            eventSequence: 1,
-            expectedHostInstanceID: "host-a"
-        )
+                host: "host-a", observedAt: 100, sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable), eventSequence: 1,
+            expectedHostInstanceID: "host-a")
 
         let projection = try XCTUnwrap(state.snapshot().projection)
         XCTAssertEqual(projection.sessionAvailability, .limited)
-        XCTAssertEqual(
-            projection.sessionUnavailableReason,
-            .sessionUnavailable
-        )
+        XCTAssertEqual(projection.sessionUnavailableReason, .sessionUnavailable)
     }
 
     func testHostInstanceMismatchFailsClosedAndClearsCurrentProjection() throws {
         let state = HostAgentSnapshotState()
         XCTAssertEqual(
             state.publish(
-                try coreSnapshot(host: "host-a", observedAt: 100),
-                eventSequence: 0,
-                expectedHostInstanceID: nil
-            ),
-            .published(generation: 1)
-        )
+                try coreSnapshot(host: "host-a", observedAt: 100), eventSequence: 0,
+                expectedHostInstanceID: nil), .published(generation: 1))
 
         XCTAssertEqual(
             state.publish(
-                try coreSnapshot(host: "host-b", observedAt: 101),
-                eventSequence: 1,
-                expectedHostInstanceID: "host-a"
-            ),
-            .rejected(.hostInstanceMismatch)
-        )
+                try coreSnapshot(host: "host-b", observedAt: 101), eventSequence: 1,
+                expectedHostInstanceID: "host-a"), .rejected(.hostInstanceMismatch))
 
         let view = state.snapshot()
         XCTAssertEqual(view.status, .hostInstanceMismatch)
@@ -87,19 +63,13 @@ final class HostAgentSnapshotStateTests: XCTestCase {
     func testOlderObservedAtFailsClosedWithoutMovingAcceptedWatermark() throws {
         let state = HostAgentSnapshotState()
         _ = state.publish(
-            try coreSnapshot(host: "host-a", observedAt: 200),
-            eventSequence: 1,
-            expectedHostInstanceID: "host-a"
-        )
+            try coreSnapshot(host: "host-a", observedAt: 200), eventSequence: 1,
+            expectedHostInstanceID: "host-a")
 
         XCTAssertEqual(
             state.publish(
-                try coreSnapshot(host: "host-a", observedAt: 199),
-                eventSequence: 2,
-                expectedHostInstanceID: "host-a"
-            ),
-            .rejected(.staleObservedAt)
-        )
+                try coreSnapshot(host: "host-a", observedAt: 199), eventSequence: 2,
+                expectedHostInstanceID: "host-a"), .rejected(.staleObservedAt))
 
         let view = state.snapshot()
         XCTAssertEqual(view.status, .staleSnapshot)
@@ -112,19 +82,13 @@ final class HostAgentSnapshotStateTests: XCTestCase {
     func testOlderEventSequenceCannotReplaceOrDegradeNewerProjection() throws {
         let state = HostAgentSnapshotState()
         _ = state.publish(
-            try coreSnapshot(host: "host-a", observedAt: 200),
-            eventSequence: 5,
-            expectedHostInstanceID: "host-a"
-        )
+            try coreSnapshot(host: "host-a", observedAt: 200), eventSequence: 5,
+            expectedHostInstanceID: "host-a")
 
         XCTAssertEqual(
             state.publish(
-                try coreSnapshot(host: "host-a", observedAt: 201),
-                eventSequence: 4,
-                expectedHostInstanceID: "host-a"
-            ),
-            .rejected(.staleEventSequence)
-        )
+                try coreSnapshot(host: "host-a", observedAt: 201), eventSequence: 4,
+                expectedHostInstanceID: "host-a"), .rejected(.staleEventSequence))
 
         let view = state.snapshot()
         XCTAssertEqual(view.status, .available)
@@ -152,12 +116,8 @@ final class HostAgentSnapshotStateTests: XCTestCase {
 
         XCTAssertEqual(
             state.publish(
-                try coreSnapshot(host: "host-a", observedAt: 100),
-                eventSequence: 4,
-                expectedHostInstanceID: "host-a"
-            ),
-            .published(generation: 2)
-        )
+                try coreSnapshot(host: "host-a", observedAt: 100), eventSequence: 4,
+                expectedHostInstanceID: "host-a"), .published(generation: 2))
         view = state.snapshot()
         XCTAssertEqual(view.status, .available)
         XCTAssertEqual(view.eventSequence, 4)
@@ -174,10 +134,8 @@ final class HostAgentSnapshotStateTests: XCTestCase {
 
         coordinator.requestRefresh(eventSequence: 2, hostInstanceID: "host-a")
         coordinator.requestRefresh(eventSequence: 5, hostInstanceID: "host-a")
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { _ in }
-        ))
+        XCTAssertTrue(
+            coordinator.bind(copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
         XCTAssertEqual(source.callCount, 1)
         XCTAssertEqual(state.snapshot().eventSequence, 5)
 
@@ -195,10 +153,8 @@ final class HostAgentSnapshotStateTests: XCTestCase {
             try coreSnapshot(host: "host-a", observedAt: 101),
         ])
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { _ in }
-        ))
+        XCTAssertTrue(
+            coordinator.bind(copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
         XCTAssertEqual(state.snapshot().eventSequence, 0)
         coordinator.requestPoll()
 
@@ -220,13 +176,11 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         ])
         let publishedGenerations = LockedSnapshotGenerations()
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { _ in },
-            onSnapshotPublished: { view in
-                publishedGenerations.append(view.refreshGeneration)
-            }
-        ))
+        XCTAssertTrue(
+            coordinator.bind(
+                copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in },
+                onSnapshotPublished: { view in publishedGenerations.append(view.refreshGeneration) }
+            ))
         coordinator.requestPoll()
         coordinator.requestPoll()
 
@@ -241,40 +195,26 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let source = SnapshotCopySource(snapshots: [
             try coreSnapshot(host: "host-a", observedAt: 100),
             try coreSnapshot(
-                host: "host-a",
-                observedAt: 101,
-                recoveryEpoch: 1,
-                recoveryStatus: .suspending,
-                registrationStatus: "suspending"
-            ),
-            try coreSnapshot(
-                host: "host-a",
-                observedAt: 102,
-                recoveryEpoch: 1
-            ),
+                host: "host-a", observedAt: 101, recoveryEpoch: 1, recoveryStatus: .suspending,
+                registrationStatus: "suspending"),
+            try coreSnapshot(host: "host-a", observedAt: 102, recoveryEpoch: 1),
         ])
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { _ in }
-        ))
-        XCTAssertTrue(coordinator.publishRecoverySnapshot(
-            expectedHostInstanceID: "host-a",
-            epoch: 1,
-            recoveryStatus: .suspending,
-            registrationStatus: "suspending"
-        ))
+        XCTAssertTrue(
+            coordinator.bind(copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
+        XCTAssertTrue(
+            coordinator.publishRecoverySnapshot(
+                expectedHostInstanceID: "host-a", epoch: 1, recoveryStatus: .suspending,
+                registrationStatus: "suspending"))
         var projection = try XCTUnwrap(state.snapshot().projection)
         XCTAssertEqual(projection.recoveryEpoch, 1)
         XCTAssertEqual(projection.recoveryStatus, .suspending)
         XCTAssertEqual(projection.registrationStatus, "suspending")
 
-        XCTAssertTrue(coordinator.publishRecoverySnapshot(
-            expectedHostInstanceID: "host-a",
-            epoch: 1,
-            recoveryStatus: .running,
-            registrationStatus: "ready"
-        ))
+        XCTAssertTrue(
+            coordinator.publishRecoverySnapshot(
+                expectedHostInstanceID: "host-a", epoch: 1, recoveryStatus: .running,
+                registrationStatus: "ready"))
         projection = try XCTUnwrap(state.snapshot().projection)
         XCTAssertEqual(projection.recoveryEpoch, 1)
         XCTAssertEqual(projection.recoveryStatus, .running)
@@ -288,25 +228,19 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let source = SnapshotCopySource(snapshots: [
             try coreSnapshot(host: "host-a", observedAt: 100),
             try coreSnapshot(
-                host: "host-a",
-                observedAt: 101,
-                recoveryEpoch: 1,
-                recoveryStatus: .resuming,
-                registrationStatus: "pending"
-            ),
+                host: "host-a", observedAt: 101, recoveryEpoch: 1, recoveryStatus: .resuming,
+                registrationStatus: "pending"),
         ])
         var invalidations: [HostAgentSnapshotIdentityInvalidationReason] = []
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { invalidations.append($0) }
-        ))
-        XCTAssertFalse(coordinator.publishRecoverySnapshot(
-            expectedHostInstanceID: "host-a",
-            epoch: 1,
-            recoveryStatus: .suspending,
-            registrationStatus: "suspending"
-        ))
+        XCTAssertTrue(
+            coordinator.bind(
+                copySnapshot: source.copy,
+                onIdentityInvalidationRequired: { invalidations.append($0) }))
+        XCTAssertFalse(
+            coordinator.publishRecoverySnapshot(
+                expectedHostInstanceID: "host-a", epoch: 1, recoveryStatus: .suspending,
+                registrationStatus: "suspending"))
 
         let view = state.snapshot()
         XCTAssertEqual(view.status, .copyFailed)
@@ -320,37 +254,27 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let source = BlockingSnapshotCopySource(snapshots: [
             try coreSnapshot(host: "host-a", observedAt: 100),
             try coreSnapshot(
-                host: "host-a",
-                observedAt: 101,
-                recoveryEpoch: 1,
-                recoveryStatus: .suspending,
-                registrationStatus: "suspending"
-            ),
+                host: "host-a", observedAt: 101, recoveryEpoch: 1, recoveryStatus: .suspending,
+                registrationStatus: "suspending"),
         ])
         let bound = expectation(description: "initial refresh finished")
         let recoveryReturned = DispatchSemaphore(value: 0)
 
         DispatchQueue.global().async {
-            XCTAssertTrue(coordinator.bind(
-                copySnapshot: source.copy,
-                onIdentityInvalidationRequired: { _ in }
-            ))
+            XCTAssertTrue(
+                coordinator.bind(
+                    copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
             bound.fulfill()
         }
         XCTAssertEqual(source.firstCopyEntered.wait(timeout: .now() + 2), .success)
         DispatchQueue.global().async {
-            XCTAssertTrue(coordinator.publishRecoverySnapshot(
-                expectedHostInstanceID: "host-a",
-                epoch: 1,
-                recoveryStatus: .suspending,
-                registrationStatus: "suspending"
-            ))
+            XCTAssertTrue(
+                coordinator.publishRecoverySnapshot(
+                    expectedHostInstanceID: "host-a", epoch: 1, recoveryStatus: .suspending,
+                    registrationStatus: "suspending"))
             recoveryReturned.signal()
         }
-        XCTAssertEqual(
-            recoveryReturned.wait(timeout: .now() + 0.05),
-            .timedOut
-        )
+        XCTAssertEqual(recoveryReturned.wait(timeout: .now() + 0.05), .timedOut)
         source.releaseFirstCopy.signal()
         wait(for: [bound], timeout: 2)
         XCTAssertEqual(recoveryReturned.wait(timeout: .now() + 2), .success)
@@ -367,27 +291,18 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let source = RecoveryBlockingSnapshotCopySource(
             initial: try coreSnapshot(host: "host-a", observedAt: 100),
             recovery: try coreSnapshot(
-                host: "host-a",
-                observedAt: 101,
-                recoveryEpoch: 1,
-                recoveryStatus: .suspending,
-                registrationStatus: "suspending"
-            )
-        )
+                host: "host-a", observedAt: 101, recoveryEpoch: 1, recoveryStatus: .suspending,
+                registrationStatus: "suspending"))
         let recoveryReturned = DispatchSemaphore(value: 0)
         let cancelReturned = DispatchSemaphore(value: 0)
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { _ in }
-        ))
+        XCTAssertTrue(
+            coordinator.bind(copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
         DispatchQueue.global().async {
-            XCTAssertFalse(coordinator.publishRecoverySnapshot(
-                expectedHostInstanceID: "host-a",
-                epoch: 1,
-                recoveryStatus: .suspending,
-                registrationStatus: "suspending"
-            ))
+            XCTAssertFalse(
+                coordinator.publishRecoverySnapshot(
+                    expectedHostInstanceID: "host-a", epoch: 1, recoveryStatus: .suspending,
+                    registrationStatus: "suspending"))
             recoveryReturned.signal()
         }
         XCTAssertEqual(source.recoveryCopyEntered.wait(timeout: .now() + 2), .success)
@@ -399,12 +314,10 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         source.releaseRecoveryCopy.signal()
         XCTAssertEqual(recoveryReturned.wait(timeout: .now() + 2), .success)
         XCTAssertEqual(cancelReturned.wait(timeout: .now() + 2), .success)
-        XCTAssertFalse(coordinator.publishRecoverySnapshot(
-            expectedHostInstanceID: "host-a",
-            epoch: 2,
-            recoveryStatus: .suspending,
-            registrationStatus: "suspending"
-        ))
+        XCTAssertFalse(
+            coordinator.publishRecoverySnapshot(
+                expectedHostInstanceID: "host-a", epoch: 2, recoveryStatus: .suspending,
+                registrationStatus: "suspending"))
     }
 
     func testCoordinatorCoalescesPollArrivingDuringRefresh() throws {
@@ -417,10 +330,9 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let bound = expectation(description: "coordinator bound after poll")
 
         DispatchQueue.global().async {
-            XCTAssertTrue(coordinator.bind(
-                copySnapshot: source.copy,
-                onIdentityInvalidationRequired: { _ in }
-            ))
+            XCTAssertTrue(
+                coordinator.bind(
+                    copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
             bound.fulfill()
         }
         XCTAssertEqual(source.firstCopyEntered.wait(timeout: .now() + 2), .success)
@@ -435,44 +347,25 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(state.snapshot().projection?.observedAt, 101)
     }
 
-    func testCoordinatorJournalsOneSemanticSessionTransitionAndRepublishesCursor()
-        throws
-    {
+    func testCoordinatorJournalsOneSemanticSessionTransitionAndRepublishesCursor() throws {
         let state = HostAgentSnapshotState()
-        let eventState = try HostAgentEventState(
-            capacity: 4,
-            maximumEventBytes: 4_096
-        )
-        let coordinator = HostAgentSnapshotRefreshCoordinator(
-            state: state,
-            eventState: eventState
-        )
+        let eventState = try HostAgentEventState(capacity: 4, maximumEventBytes: 4_096)
+        let coordinator = HostAgentSnapshotRefreshCoordinator(state: state, eventState: eventState)
         let source = SnapshotCopySource(snapshots: [
             try coreSnapshot(host: "host-a", observedAt: 100),
             try coreSnapshot(
-                host: "host-a",
-                observedAt: 101,
-                sessionAvailability: .limited,
-                sessionUnavailableReason: .sessionUnavailable
-            ),
+                host: "host-a", observedAt: 101, sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable),
             try coreSnapshot(
-                host: "host-a",
-                observedAt: 102,
-                sessionAvailability: .limited,
-                sessionUnavailableReason: .sessionUnavailable
-            ),
+                host: "host-a", observedAt: 102, sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable),
             try coreSnapshot(
-                host: "host-a",
-                observedAt: 103,
-                sessionAvailability: .limited,
-                sessionUnavailableReason: .sessionUnavailable
-            ),
+                host: "host-a", observedAt: 103, sessionAvailability: .limited,
+                sessionUnavailableReason: .sessionUnavailable),
         ])
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { _ in }
-        ))
+        XCTAssertTrue(
+            coordinator.bind(copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
         XCTAssertEqual(eventState.snapshot().latestSequence, 0)
 
         coordinator.requestPoll()
@@ -482,13 +375,9 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(transitioned.status, .available)
         XCTAssertEqual(transitioned.eventSequence, 1)
         XCTAssertEqual(transitioned.projection?.observedAt, 102)
-        XCTAssertEqual(
-            transitioned.projection?.sessionAvailability,
-            .limited
-        )
+        XCTAssertEqual(transitioned.projection?.sessionAvailability, .limited)
         XCTAssertEqual(eventState.snapshot().latestSequence, 1)
-        guard case .snapshotChanged(let sentAt) =
-            eventState.snapshot().records.first?.payload
+        guard case .snapshotChanged(let sentAt) = eventState.snapshot().records.first?.payload
         else { return XCTFail("expected local snapshot change marker") }
         XCTAssertEqual(sentAt, 101)
 
@@ -499,33 +388,21 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         XCTAssertEqual(eventState.snapshot().latestSequence, 1)
     }
 
-    func testCoordinatorNotifiesRegistrationChangesWithoutRepeatingStablePolls()
-        throws
-    {
+    func testCoordinatorNotifiesRegistrationChangesWithoutRepeatingStablePolls() throws {
         for (initial, updated) in [("pending", "ready"), ("ready", "pending")] {
             let state = HostAgentSnapshotState()
             let eventState = try HostAgentEventState()
             let coordinator = HostAgentSnapshotRefreshCoordinator(
-                state: state,
-                eventState: eventState
-            )
+                state: state, eventState: eventState)
             let initialSnapshot = try coreSnapshot(
-                host: "host-a",
-                observedAt: 100,
-                registrationStatus: initial
-            )
+                host: "host-a", observedAt: 100, registrationStatus: initial)
             let updatedSnapshot = try coreSnapshot(
-                host: "host-a",
-                observedAt: 101,
-                registrationStatus: updated
-            )
+                host: "host-a", observedAt: 101, registrationStatus: updated)
             var current = initialSnapshot
-            XCTAssertTrue(coordinator.bind(
-                copySnapshot: { current },
-                onIdentityInvalidationRequired: { _ in
-                    XCTFail("注册状态变化不应使后台身份失效")
-                }
-            ))
+            XCTAssertTrue(
+                coordinator.bind(
+                    copySnapshot: { current },
+                    onIdentityInvalidationRequired: { _ in XCTFail("注册状态变化不应使后台身份失效") }))
             let initialCursor = state.snapshot().eventSequence
             XCTAssertEqual(eventState.snapshot().latestSequence, initialCursor)
 
@@ -534,19 +411,22 @@ final class HostAgentSnapshotStateTests: XCTestCase {
 
             XCTAssertEqual(state.snapshot().projection?.registrationStatus, updated)
             XCTAssertEqual(state.snapshot().eventSequence, initialCursor + 1)
-            guard case .batch(let records, let latestSequence, false) =
-                try eventState.replay(afterSequence: initialCursor)
+            guard
+                case .batch(let records, let latestSequence, false) = try eventState.replay(
+                    afterSequence: initialCursor)
             else { return XCTFail("前台必须收到重新读取快照的通知") }
             XCTAssertEqual(latestSequence, initialCursor + 1)
             XCTAssertEqual(records.count, 1)
-            guard case .snapshotChanged(let sentAt) = records.first?.payload
-            else { return XCTFail("expected snapshot change marker") }
+            guard case .snapshotChanged(let sentAt) = records.first?.payload else {
+                return XCTFail("expected snapshot change marker")
+            }
             XCTAssertEqual(sentAt, 101)
 
             coordinator.requestPoll()
             XCTAssertEqual(state.snapshot().eventSequence, latestSequence)
-            guard case .upToDate(let unchangedSequence) =
-                try eventState.replay(afterSequence: latestSequence)
+            guard
+                case .upToDate(let unchangedSequence) = try eventState.replay(
+                    afterSequence: latestSequence)
             else { return XCTFail("稳定状态不应反复通知前台") }
             XCTAssertEqual(unchangedSequence, latestSequence)
             coordinator.cancelAndWait()
@@ -563,10 +443,9 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let bound = expectation(description: "coordinator bound")
 
         DispatchQueue.global().async {
-            XCTAssertTrue(coordinator.bind(
-                copySnapshot: source.copy,
-                onIdentityInvalidationRequired: { _ in }
-            ))
+            XCTAssertTrue(
+                coordinator.bind(
+                    copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
             bound.fulfill()
         }
         XCTAssertEqual(source.firstCopyEntered.wait(timeout: .now() + 2), .success)
@@ -587,21 +466,18 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let coordinator = HostAgentSnapshotRefreshCoordinator(state: state)
         var attempts = 0
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: {
-                attempts += 1
-                if attempts == 1 { throw SnapshotCopyTestError.secretBearing }
-                return try self.coreSnapshot(host: "host-a", observedAt: 100)
-            },
-            onIdentityInvalidationRequired: { _ in }
-        ))
+        XCTAssertTrue(
+            coordinator.bind(
+                copySnapshot: {
+                    attempts += 1
+                    if attempts == 1 { throw SnapshotCopyTestError.secretBearing }
+                    return try self.coreSnapshot(host: "host-a", observedAt: 100)
+                }, onIdentityInvalidationRequired: { _ in }))
         XCTAssertEqual(state.snapshot().status, .copyFailed)
-        XCTAssertFalse(coordinator.bind(
-            copySnapshot: {
-                try self.coreSnapshot(host: "replacement", observedAt: 999)
-            },
-            onIdentityInvalidationRequired: { _ in }
-        ))
+        XCTAssertFalse(
+            coordinator.bind(
+                copySnapshot: { try self.coreSnapshot(host: "replacement", observedAt: 999) },
+                onIdentityInvalidationRequired: { _ in }))
 
         coordinator.requestRefresh(eventSequence: 1, hostInstanceID: "host-a")
         XCTAssertEqual(attempts, 2)
@@ -615,19 +491,14 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         var attempts = 0
         var invalidationReasons: [HostAgentSnapshotIdentityInvalidationReason] = []
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: {
-                attempts += 1
-                if attempts == 2 { throw SnapshotCopyTestError.secretBearing }
-                return try self.coreSnapshot(
-                    host: "host-a",
-                    observedAt: UInt64(100 + attempts)
-                )
-            },
-            onIdentityInvalidationRequired: { reason in
-                invalidationReasons.append(reason)
-            }
-        ))
+        XCTAssertTrue(
+            coordinator.bind(
+                copySnapshot: {
+                    attempts += 1
+                    if attempts == 2 { throw SnapshotCopyTestError.secretBearing }
+                    return try self.coreSnapshot(host: "host-a", observedAt: UInt64(100 + attempts))
+                }, onIdentityInvalidationRequired: { reason in invalidationReasons.append(reason) })
+        )
         coordinator.requestPoll()
         coordinator.requestPoll()
 
@@ -645,12 +516,10 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         ])
         var invalidationReasons: [HostAgentSnapshotIdentityInvalidationReason] = []
 
-        XCTAssertTrue(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { reason in
-                invalidationReasons.append(reason)
-            }
-        ))
+        XCTAssertTrue(
+            coordinator.bind(
+                copySnapshot: source.copy,
+                onIdentityInvalidationRequired: { reason in invalidationReasons.append(reason) }))
         coordinator.requestPoll()
         XCTAssertEqual(state.snapshot().status, .staleSnapshot)
         XCTAssertTrue(invalidationReasons.isEmpty)
@@ -671,10 +540,9 @@ final class HostAgentSnapshotStateTests: XCTestCase {
         let cancelReturned = DispatchSemaphore(value: 0)
 
         DispatchQueue.global().async {
-            XCTAssertTrue(coordinator.bind(
-                copySnapshot: source.copy,
-                onIdentityInvalidationRequired: { _ in }
-            ))
+            XCTAssertTrue(
+                coordinator.bind(
+                    copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
             bound.fulfill()
         }
         XCTAssertEqual(source.firstCopyEntered.wait(timeout: .now() + 2), .success)
@@ -691,71 +559,47 @@ final class HostAgentSnapshotStateTests: XCTestCase {
 
         coordinator.requestPoll()
         coordinator.requestRefresh(eventSequence: 2, hostInstanceID: "host-a")
-        XCTAssertFalse(coordinator.bind(
-            copySnapshot: source.copy,
-            onIdentityInvalidationRequired: { _ in }
-        ))
+        XCTAssertFalse(
+            coordinator.bind(copySnapshot: source.copy, onIdentityInvalidationRequired: { _ in }))
         XCTAssertEqual(source.callCount, 1)
         XCTAssertEqual(state.snapshot().refreshGeneration, 1)
     }
 
     private func coreSnapshot(
-        host: String,
-        observedAt: UInt64,
-        revealedPassword: String? = nil,
+        host: String, observedAt: UInt64, revealedPassword: String? = nil,
         sessionAvailability: HostSessionAvailability = .available,
-        sessionUnavailableReason: HostSessionUnavailableReason? = nil,
-        recoveryEpoch: UInt64 = 0,
-        recoveryStatus: HostRecoveryStatus = .running,
-        registrationStatus: String? = nil
+        sessionUnavailableReason: HostSessionUnavailableReason? = nil, recoveryEpoch: UInt64 = 0,
+        recoveryStatus: HostRecoveryStatus = .running, registrationStatus: String? = nil
     ) throws -> HostCoreSnapshot {
-        let presentation: [String: Any] = revealedPassword.map {
-            ["policy": "revealed", "value": $0]
-        } ?? ["policy": "redacted"]
+        let presentation: [String: Any] =
+            revealedPassword.map { ["policy": "revealed", "value": $0] } ?? ["policy": "redacted"]
         let document: [String: Any] = [
-            "schemaVersion": 8,
-            "hostInstanceId": host,
+            "schemaVersion": 8, "hostInstanceId": host,
             "hostState": recoveryStatus == .running && registrationStatus != "pending"
-                ? "ready" : "starting",
-            "localId": "123456789",
-            "authenticatedConnectionCount": 1,
+                ? "ready" : "starting", "localId": "123456789", "authenticatedConnectionCount": 1,
             "sessionAvailability": sessionAvailability.rawValue,
-            "sessionUnavailableReason": sessionUnavailableReason.map {
-                $0.rawValue as Any
-            } ?? NSNull(),
+            "sessionUnavailableReason": sessionUnavailableReason.map { $0.rawValue as Any }
+                ?? NSNull(),
             "registrationStatus": registrationStatus
                 ?? (recoveryStatus == .running ? "ready" : "pending"),
-            "recoveryEpoch": recoveryEpoch,
-            "recoveryStatus": recoveryStatus.rawValue,
-            "pendingApproval": NSNull(),
-            "activeSession": NSNull(),
+            "recoveryEpoch": recoveryEpoch, "recoveryStatus": recoveryStatus.rawValue,
+            "pendingApproval": NSNull(), "activeSession": NSNull(),
             "temporaryPasswordPresentation": presentation,
             "passwordPolicy": [
-                "localPasswordSet": true,
-                "effectivePasswordSet": true,
-                "usingPresetPassword": false,
-                "changeAllowed": true,
+                "localPasswordSet": true, "effectivePasswordSet": true,
+                "usingPresetPassword": false, "changeAllowed": true,
                 "strengthPolicy": [
-                    "version": 1,
-                    "minimumCharacters": 6,
-                    "maximumCharacters": 128,
-                    "maximumUtf8Bytes": 512,
-                    "rejectsControlCharacters": true,
+                    "version": 1, "minimumCharacters": 6, "maximumCharacters": 128,
+                    "maximumUtf8Bytes": 512, "rejectsControlCharacters": true,
                     "rejectsOuterWhitespace": true,
                 ],
-            ],
-            "lastError": NSNull(),
-            "observedAt": observedAt,
+            ], "lastError": NSNull(), "observedAt": observedAt,
         ]
-        return try HostCoreSnapshot(
-            rawJSON: JSONSerialization.data(withJSONObject: document)
-        )
+        return try HostCoreSnapshot(rawJSON: JSONSerialization.data(withJSONObject: document))
     }
 }
 
-private enum SnapshotCopyTestError: Error {
-    case secretBearing
-}
+private enum SnapshotCopyTestError: Error { case secretBearing }
 
 private final class LockedSnapshotGenerations: @unchecked Sendable {
     private let lock = NSLock()
@@ -779,12 +623,11 @@ private final class SnapshotCopySource: @unchecked Sendable {
     private var snapshots: [HostCoreSnapshot]
     private(set) var callCount = 0
 
-    init(snapshots: [HostCoreSnapshot]) {
-        self.snapshots = snapshots
-    }
+    init(snapshots: [HostCoreSnapshot]) { self.snapshots = snapshots }
 
     func copy() throws -> HostCoreSnapshot {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         callCount += 1
         return snapshots.removeFirst()
     }
@@ -797,9 +640,7 @@ private final class BlockingSnapshotCopySource: @unchecked Sendable {
     private var snapshots: [HostCoreSnapshot]
     private(set) var callCount = 0
 
-    init(snapshots: [HostCoreSnapshot]) {
-        self.snapshots = snapshots
-    }
+    init(snapshots: [HostCoreSnapshot]) { self.snapshots = snapshots }
 
     func copy() throws -> HostCoreSnapshot {
         lock.lock()

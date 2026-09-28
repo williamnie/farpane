@@ -33,22 +33,16 @@ package struct HostAgentBackgroundProjectionView: Equatable, Sendable {
     package let generation: UInt64
     package let phase: HostAgentBackgroundProjectionPhase
 
-    fileprivate init(
-        generation: UInt64,
-        phase: HostAgentBackgroundProjectionPhase
-    ) {
+    fileprivate init(generation: UInt64, phase: HostAgentBackgroundProjectionPhase) {
         self.generation = generation
         self.phase = phase
     }
 
     package var handshakeStatus: HostAgentBackgroundHandshakeStatus {
         switch phase {
-        case .replacingIdentity, .available:
-            return .compatible
-        case .terminated(.incompatible):
-            return .incompatible
-        case .idle, .waitingForSnapshot, .terminated, .failed:
-            return .disconnected
+        case .replacingIdentity, .available: return .compatible
+        case .terminated(.incompatible): return .incompatible
+        case .idle, .waitingForSnapshot, .terminated, .failed: return .disconnected
         }
     }
 
@@ -58,19 +52,12 @@ package struct HostAgentBackgroundProjectionView: Equatable, Sendable {
     }
 
     package var sessionStatus: HostAgentBackgroundSessionStatus {
-        guard case .available(let projection) = phase else {
-            return .unavailable
-        }
-        switch (
-            projection.payload.sessionAvailability,
-            projection.payload.sessionUnavailableReason
-        ) {
-        case (.available, nil):
-            return .available
-        case (.limited, .sessionUnavailable):
-            return .limitedSessionUnavailable
-        default:
-            return .unavailable
+        guard case .available(let projection) = phase else { return .unavailable }
+        switch (projection.payload.sessionAvailability, projection.payload.sessionUnavailableReason)
+        {
+        case (.available, nil): return .available
+        case (.limited, .sessionUnavailable): return .limitedSessionUnavailable
+        default: return .unavailable
         }
     }
 
@@ -78,26 +65,19 @@ package struct HostAgentBackgroundProjectionView: Equatable, Sendable {
         switch phase {
         case .available(let projection):
             switch projection.payload.registrationStatus {
-            case "ready":
-                return .registered
-            case "notStarted", "pending":
-                return .checking
-            case "degraded":
-                return .offline
-            default:
-                return .offline
+            case "ready": return .registered
+            case "notStarted", "pending": return .checking
+            case "degraded": return .offline
+            default: return .offline
             }
-        case .idle, .waitingForSnapshot, .replacingIdentity:
-            return .checking
-        case .terminated, .failed:
-            return .offline
+        case .idle, .waitingForSnapshot, .replacingIdentity: return .checking
+        case .terminated, .failed: return .offline
         }
     }
 }
 
 package struct HostAgentBackgroundProjectionSessionBinding: Sendable {
-    package let previousPeerIdentity:
-        HostAgentXPCSnapshotClientPeerIdentity?
+    package let previousPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity?
     package let sink: HostAgentXPCSessionProjectionSink
 
     package init(
@@ -112,16 +92,12 @@ package struct HostAgentBackgroundProjectionSessionBinding: Sendable {
 /// App-owned, process-local projection authority. Each session receives an
 /// epoch-bound sink, so callbacks from a replaced lifecycle cannot alter the
 /// current component state. Only validated typed payloads are retained.
-package final class HostAgentBackgroundProjectionAuthority:
-    @unchecked Sendable
-{
-    package typealias Observer = @Sendable
-        (HostAgentBackgroundProjectionView) -> Void
+package final class HostAgentBackgroundProjectionAuthority: @unchecked Sendable {
+    package typealias Observer = @Sendable (HostAgentBackgroundProjectionView) -> Void
 
     private struct ActiveSession {
         let epoch: UInt64
-        let previousPeerIdentity:
-            HostAgentXPCSnapshotClientPeerIdentity?
+        let previousPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity?
         var replacementResetObserved = false
         var peerIdentity: HostAgentXPCSnapshotClientPeerIdentity?
         var eventCursor: UInt64?
@@ -130,17 +106,12 @@ package final class HostAgentBackgroundProjectionAuthority:
     private let lock = NSLock()
     private let deliveryLock = NSRecursiveLock()
     private let observer: Observer
-    private var view = HostAgentBackgroundProjectionView(
-        generation: 0,
-        phase: .idle
-    )
+    private var view = HostAgentBackgroundProjectionView(generation: 0, phase: .idle)
     private var nextSessionEpoch: UInt64 = 0
     private var activeSession: ActiveSession?
     private var lastPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity?
 
-    package init(observer: @escaping Observer = { _ in }) {
-        self.observer = observer
-    }
+    package init(observer: @escaping Observer = { _ in }) { self.observer = observer }
 
     package func snapshot() -> HostAgentBackgroundProjectionView {
         lock.lock()
@@ -148,9 +119,7 @@ package final class HostAgentBackgroundProjectionAuthority:
         return view
     }
 
-    package func beginSession()
-        -> HostAgentBackgroundProjectionSessionBinding
-    {
+    package func beginSession() -> HostAgentBackgroundProjectionSessionBinding {
         deliveryLock.lock()
         lock.lock()
         let previousPeerIdentity = lastPeerIdentity
@@ -163,10 +132,7 @@ package final class HostAgentBackgroundProjectionAuthority:
         } else {
             nextSessionEpoch += 1
             epoch = nextSessionEpoch
-            activeSession = ActiveSession(
-                epoch: epoch,
-                previousPeerIdentity: previousPeerIdentity
-            )
+            activeSession = ActiveSession(epoch: epoch, previousPeerIdentity: previousPeerIdentity)
             publication = replacePhase(.waitingForSnapshot)
         }
         lock.unlock()
@@ -175,23 +141,15 @@ package final class HostAgentBackgroundProjectionAuthority:
 
         return HostAgentBackgroundProjectionSessionBinding(
             previousPeerIdentity: previousPeerIdentity,
-            sink: HostAgentBackgroundProjectionSessionSink(
-                authority: self,
-                sessionEpoch: epoch
-            )
-        )
+            sink: HostAgentBackgroundProjectionSessionSink(authority: self, sessionEpoch: epoch))
     }
 
     fileprivate func resetForIdentityReplacement(sessionEpoch: UInt64) {
         serializeMutation {
-            guard var session = currentSession(sessionEpoch),
-                  session.previousPeerIdentity != nil,
-                  session.peerIdentity == nil,
-                  !session.replacementResetObserved,
-                  view.phase == .waitingForSnapshot
-            else {
-                return failCurrentSessionIfCurrent(sessionEpoch)
-            }
+            guard var session = currentSession(sessionEpoch), session.previousPeerIdentity != nil,
+                session.peerIdentity == nil, !session.replacementResetObserved,
+                view.phase == .waitingForSnapshot
+            else { return failCurrentSessionIfCurrent(sessionEpoch) }
             session.replacementResetObserved = true
             activeSession = session
             return replacePhase(.replacingIdentity)
@@ -201,54 +159,33 @@ package final class HostAgentBackgroundProjectionAuthority:
     fileprivate func publishInitialSnapshot(
         _ response: HostAgentXPCWireSnapshotResponse,
         peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
-        transition: HostAgentXPCSnapshotClientIdentityTransition,
-        sessionEpoch: UInt64
+        transition: HostAgentXPCSnapshotClientIdentityTransition, sessionEpoch: UInt64
     ) {
         serializeMutation {
-            guard var session = currentSession(sessionEpoch),
-                  session.peerIdentity == nil,
-                  validResponseIdentity(response, peerIdentity: peerIdentity),
-                  validInitialTransition(
-                    transition,
-                    peerIdentity: peerIdentity,
-                    session: session
-                  )
-            else {
-                return failCurrentSessionIfCurrent(sessionEpoch)
-            }
+            guard var session = currentSession(sessionEpoch), session.peerIdentity == nil,
+                validResponseIdentity(response, peerIdentity: peerIdentity),
+                validInitialTransition(transition, peerIdentity: peerIdentity, session: session)
+            else { return failCurrentSessionIfCurrent(sessionEpoch) }
             session.peerIdentity = peerIdentity
             session.eventCursor = response.lastEventID
             activeSession = session
             lastPeerIdentity = peerIdentity
-            return replacePhase(.available(
-                HostAgentBackgroundProjection(
-                    peerIdentity: peerIdentity,
-                    response: response
-                )
-            ))
+            return replacePhase(
+                .available(
+                    HostAgentBackgroundProjection(peerIdentity: peerIdentity, response: response)))
         }
     }
 
     fileprivate func publishEvents(
-        _ response: HostAgentXPCWireEventCursorResponse,
-        sessionEpoch: UInt64
+        _ response: HostAgentXPCWireEventCursorResponse, sessionEpoch: UInt64
     ) {
         serializeMutation {
             guard var session = currentSession(sessionEpoch),
-                  let peerIdentity = session.peerIdentity,
-                  let eventCursor = session.eventCursor,
-                  case .available = view.phase,
-                  validEventIdentity(
-                    response,
-                    peerIdentity: peerIdentity
-                  ),
-                  let nextCursor = validNextCursor(
-                    response,
-                    after: eventCursor
-                  )
-            else {
-                return failCurrentSessionIfCurrent(sessionEpoch)
-            }
+                let peerIdentity = session.peerIdentity, let eventCursor = session.eventCursor,
+                case .available = view.phase,
+                validEventIdentity(response, peerIdentity: peerIdentity),
+                let nextCursor = validNextCursor(response, after: eventCursor)
+            else { return failCurrentSessionIfCurrent(sessionEpoch) }
             session.eventCursor = nextCursor
             activeSession = session
             return nil
@@ -257,39 +194,28 @@ package final class HostAgentBackgroundProjectionAuthority:
 
     fileprivate func publishResynchronizedSnapshot(
         _ response: HostAgentXPCWireSnapshotResponse,
-        triggeringResponse: HostAgentXPCWireEventCursorResponse,
-        sessionEpoch: UInt64
+        triggeringResponse: HostAgentXPCWireEventCursorResponse, sessionEpoch: UInt64
     ) {
         serializeMutation {
             guard var session = currentSession(sessionEpoch),
-                  let peerIdentity = session.peerIdentity,
-                  let currentProjection = availableProjection,
-                  validResponseIdentity(response, peerIdentity: peerIdentity),
-                  validEventIdentity(
-                    triggeringResponse,
-                    peerIdentity: peerIdentity
-                  ),
-                  requiresResynchronization(triggeringResponse),
-                  response.lastEventID >= triggeringResponse.latestEventID,
-                  response.snapshot.observedAt
-                    >= currentProjection.payload.observedAt
-            else {
-                return failCurrentSessionIfCurrent(sessionEpoch)
-            }
+                let peerIdentity = session.peerIdentity,
+                let currentProjection = availableProjection,
+                validResponseIdentity(response, peerIdentity: peerIdentity),
+                validEventIdentity(triggeringResponse, peerIdentity: peerIdentity),
+                requiresResynchronization(triggeringResponse),
+                response.lastEventID >= triggeringResponse.latestEventID,
+                response.snapshot.observedAt >= currentProjection.payload.observedAt
+            else { return failCurrentSessionIfCurrent(sessionEpoch) }
             session.eventCursor = response.lastEventID
             activeSession = session
-            return replacePhase(.available(
-                HostAgentBackgroundProjection(
-                    peerIdentity: peerIdentity,
-                    response: response
-                )
-            ))
+            return replacePhase(
+                .available(
+                    HostAgentBackgroundProjection(peerIdentity: peerIdentity, response: response)))
         }
     }
 
     fileprivate func sessionDidTerminate(
-        _ reason: HostAgentXPCSessionTerminationReason,
-        sessionEpoch: UInt64
+        _ reason: HostAgentXPCSessionTerminationReason, sessionEpoch: UInt64
     ) {
         serializeMutation {
             guard currentSession(sessionEpoch) != nil else { return nil }
@@ -304,30 +230,23 @@ package final class HostAgentBackgroundProjectionAuthority:
     }
 
     private func currentSession(_ epoch: UInt64) -> ActiveSession? {
-        guard let session = activeSession, session.epoch == epoch else {
-            return nil
-        }
+        guard let session = activeSession, session.epoch == epoch else { return nil }
         return session
     }
 
     private func validInitialTransition(
         _ transition: HostAgentXPCSnapshotClientIdentityTransition,
-        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity,
-        session: ActiveSession
+        peerIdentity: HostAgentXPCSnapshotClientPeerIdentity, session: ActiveSession
     ) -> Bool {
         switch session.previousPeerIdentity {
         case nil:
-            return transition == .firstObservation
-                && !session.replacementResetObserved
+            return transition == .firstObservation && !session.replacementResetObserved
                 && view.phase == .waitingForSnapshot
-        case .some(let previousPeerIdentity)
-            where previousPeerIdentity == peerIdentity:
-            return transition == .unchanged
-                && !session.replacementResetObserved
+        case .some(let previousPeerIdentity) where previousPeerIdentity == peerIdentity:
+            return transition == .unchanged && !session.replacementResetObserved
                 && view.phase == .waitingForSnapshot
         case .some:
-            return transition == .replacedPrevious
-                && session.replacementResetObserved
+            return transition == .replacedPrevious && session.replacementResetObserved
                 && view.phase == .replacingIdentity
         }
     }
@@ -349,83 +268,71 @@ package final class HostAgentBackgroundProjectionAuthority:
     }
 
     private func validNextCursor(
-        _ response: HostAgentXPCWireEventCursorResponse,
-        after currentCursor: UInt64
+        _ response: HostAgentXPCWireEventCursorResponse, after currentCursor: UInt64
     ) -> UInt64? {
-        guard response.events.allSatisfy({ event in
-            if case .commandResult = event.payload { return true }
-            return false
-        }) else { return nil }
+        guard
+            response.events.allSatisfy({ event in
+                if case .commandResult = event.payload { return true }
+                return false
+            })
+        else { return nil }
         switch response.outcome {
         case .upToDate:
-            guard response.latestEventID == currentCursor,
-                  response.resumeAfterEventID == nil,
-                  response.events.isEmpty
+            guard response.latestEventID == currentCursor, response.resumeAfterEventID == nil,
+                response.events.isEmpty
             else { return nil }
             return currentCursor
         case .batch:
-            guard let nextCursor = response.resumeAfterEventID,
-                  nextCursor > currentCursor,
-                  response.latestEventID >= nextCursor
+            guard let nextCursor = response.resumeAfterEventID, nextCursor > currentCursor,
+                response.latestEventID >= nextCursor
             else { return nil }
             var previousEventID = currentCursor
             for event in response.events {
-                guard event.eventID > previousEventID,
-                      event.eventID <= nextCursor
-                else { return nil }
+                guard event.eventID > previousEventID, event.eventID <= nextCursor else {
+                    return nil
+                }
                 previousEventID = event.eventID
             }
             return nextCursor
-        case .gap, .invalidCursor, .resnapshotRequired:
-            return nil
+        case .gap, .invalidCursor, .resnapshotRequired: return nil
         }
     }
 
-    private func requiresResynchronization(
-        _ response: HostAgentXPCWireEventCursorResponse
-    ) -> Bool {
+    private func requiresResynchronization(_ response: HostAgentXPCWireEventCursorResponse) -> Bool
+    {
         switch response.outcome {
-        case .gap, .invalidCursor, .resnapshotRequired:
-            return true
+        case .gap, .invalidCursor, .resnapshotRequired: return true
         case .batch:
             return response.events.contains { event in
                 if case .snapshotChanged = event.payload { return true }
                 return false
             }
-        case .upToDate:
-            return false
+        case .upToDate: return false
         }
     }
 
-    private func failCurrentSessionIfCurrent(
-        _ sessionEpoch: UInt64
-    ) -> HostAgentBackgroundProjectionView? {
+    private func failCurrentSessionIfCurrent(_ sessionEpoch: UInt64)
+        -> HostAgentBackgroundProjectionView?
+    {
         guard currentSession(sessionEpoch) != nil else { return nil }
         activeSession = nil
         return replacePhase(.failed(.invalidProjection))
     }
 
-    private func replacePhase(
-        _ phase: HostAgentBackgroundProjectionPhase
-    ) -> HostAgentBackgroundProjectionView {
+    private func replacePhase(_ phase: HostAgentBackgroundProjectionPhase)
+        -> HostAgentBackgroundProjectionView
+    {
         guard view.generation < UInt64.max else {
             view = HostAgentBackgroundProjectionView(
-                generation: UInt64.max,
-                phase: .failed(.generationExhausted)
-            )
+                generation: UInt64.max, phase: .failed(.generationExhausted))
             activeSession = nil
             return view
         }
-        view = HostAgentBackgroundProjectionView(
-            generation: view.generation + 1,
-            phase: phase
-        )
+        view = HostAgentBackgroundProjectionView(generation: view.generation + 1, phase: phase)
         return view
     }
 
-    private func serializeMutation(
-        _ mutation: () -> HostAgentBackgroundProjectionView?
-    ) {
+    private func serializeMutation(_ mutation: () -> HostAgentBackgroundProjectionView?) {
         deliveryLock.lock()
         lock.lock()
         let publication = mutation()
@@ -435,17 +342,13 @@ package final class HostAgentBackgroundProjectionAuthority:
     }
 }
 
-private final class HostAgentBackgroundProjectionSessionSink:
-    HostAgentXPCSessionProjectionSink,
+private final class HostAgentBackgroundProjectionSessionSink: HostAgentXPCSessionProjectionSink,
     @unchecked Sendable
 {
     private let authority: HostAgentBackgroundProjectionAuthority
     private let sessionEpoch: UInt64
 
-    init(
-        authority: HostAgentBackgroundProjectionAuthority,
-        sessionEpoch: UInt64
-    ) {
+    init(authority: HostAgentBackgroundProjectionAuthority, sessionEpoch: UInt64) {
         self.authority = authority
         self.sessionEpoch = sessionEpoch
     }
@@ -460,10 +363,7 @@ private final class HostAgentBackgroundProjectionSessionSink:
         transition: HostAgentXPCSnapshotClientIdentityTransition
     ) {
         authority.publishInitialSnapshot(
-            snapshot,
-            peerIdentity: peerIdentity,
-            transition: transition,
-            sessionEpoch: sessionEpoch
+            snapshot, peerIdentity: peerIdentity, transition: transition, sessionEpoch: sessionEpoch
         )
     }
 
@@ -476,10 +376,7 @@ private final class HostAgentBackgroundProjectionSessionSink:
         triggeringResponse: HostAgentXPCWireEventCursorResponse
     ) {
         authority.publishResynchronizedSnapshot(
-            snapshot,
-            triggeringResponse: triggeringResponse,
-            sessionEpoch: sessionEpoch
-        )
+            snapshot, triggeringResponse: triggeringResponse, sessionEpoch: sessionEpoch)
     }
 
     func sessionDidTerminate(_ reason: HostAgentXPCSessionTerminationReason) {

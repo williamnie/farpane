@@ -1,7 +1,4 @@
-package enum HostAgentBackgroundProductRoutingDecision:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundProductRoutingDecision: Equatable, Sendable {
     case noChange
     case enableAndRefresh
     case disable
@@ -13,66 +10,44 @@ package enum HostAgentBackgroundProductRoutingDecision:
 /// state; nonterminal or contradictory completions fail closed at the App
 /// boundary instead of guessing from a partial observation.
 package enum HostAgentBackgroundProductRoutingPolicy {
-    package static func registrationDecision(
-        _ view: HostAgentBackgroundRegistrationUXView
-    ) -> HostAgentBackgroundProductRoutingDecision {
+    package static func registrationDecision(_ view: HostAgentBackgroundRegistrationUXView)
+        -> HostAgentBackgroundProductRoutingDecision
+    {
         switch (view.phase, view.registration) {
-        case (.registered, .enabled),
-             (.navigationRequested, .requiresApproval),
-             (.approvalNoLongerRequired, .enabled),
-             (.cancelled, .requiresApproval):
+        case (.registered, .enabled), (.navigationRequested, .requiresApproval),
+            (.approvalNoLongerRequired, .enabled), (.cancelled, .requiresApproval):
             return .enableAndRefresh
 
-        case (.approvalNoLongerRequired, .notRegistered):
-            return .disable
+        case (.approvalNoLongerRequired, .notRegistered): return .disable
 
-        case (.cancelled, nil),
-             (.migrationBlocked, nil):
+        case (.cancelled, nil), (.migrationBlocked, nil): return .noChange
+
+        case (.failed(.migration), nil): return .noChange
+
+        case (.failed(.registration(let failure)), let registration)
+        where isExpectedRegistrationFailure(failure, registration: registration): return .noChange
+
+        case (.failed(.approvalNavigation(.serviceUnavailable)), .serviceUnavailable):
             return .noChange
 
-        case (.failed(.migration), nil):
-            return .noChange
-
-        case (
-            .failed(.registration(let failure)),
-            let registration
-        ) where isExpectedRegistrationFailure(
-            failure,
-            registration: registration
-        ):
-            return .noChange
-
-        case (
-            .failed(.approvalNavigation(.serviceUnavailable)),
-            .serviceUnavailable
-        ):
-            return .noChange
-
-        default:
-            return .invalidCompletion
+        default: return .invalidCompletion
         }
     }
 
-    package static func unregistrationDecision(
-        _ view: HostAgentBackgroundUnregistrationUXView
-    ) -> HostAgentBackgroundProductRoutingDecision {
+    package static func unregistrationDecision(_ view: HostAgentBackgroundUnregistrationUXView)
+        -> HostAgentBackgroundProductRoutingDecision
+    {
         switch (view.phase, view.registration) {
-        case (.unregistered, .notRegistered):
-            return .disable
+        case (.unregistered, .notRegistered): return .disable
 
-        case (.cancelled, nil):
-            return .noChange
+        case (.cancelled, nil): return .noChange
 
         case (.failed(.mutation(.serviceUnavailable)), .serviceUnavailable),
-             (.failed(.mutation(.unregistrationNotEffective)), .enabled),
-             (
-                 .failed(.mutation(.unregistrationNotEffective)),
-                 .requiresApproval
-             ):
+            (.failed(.mutation(.unregistrationNotEffective)), .enabled),
+            (.failed(.mutation(.unregistrationNotEffective)), .requiresApproval):
             return .noChange
 
-        default:
-            return .invalidCompletion
+        default: return .invalidCompletion
         }
     }
 
@@ -81,15 +56,11 @@ package enum HostAgentBackgroundProductRoutingPolicy {
         registration: HostAgentBackgroundRegistrationStatus?
     ) -> Bool {
         switch (failure, registration) {
-        case (.invalidLaunchAgent, nil),
-             (.invalidApplication, nil),
-             (.invalidCodeSignature, nil),
-             (.distributionNotarizationRequired, nil),
-             (.registrationNotEffective, .notRegistered),
-             (.serviceUnavailable, .serviceUnavailable):
+        case (.invalidLaunchAgent, nil), (.invalidApplication, nil), (.invalidCodeSignature, nil),
+            (.distributionNotarizationRequired, nil), (.registrationNotEffective, .notRegistered),
+            (.serviceUnavailable, .serviceUnavailable):
             return true
-        default:
-            return false
+        default: return false
         }
     }
 }

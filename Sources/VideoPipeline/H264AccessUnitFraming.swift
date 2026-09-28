@@ -48,8 +48,7 @@ public struct H264FramingAccessUnit: Equatable, Sendable {
         var result = Data()
         for unit in nalUnits {
             switch framing {
-            case .annexB:
-                result.append(contentsOf: [0, 0, 0, 1])
+            case .annexB: result.append(contentsOf: [0, 0, 0, 1])
             case .avcc4:
                 var length = UInt32(unit.data.count).bigEndian
                 withUnsafeBytes(of: &length) { result.append(contentsOf: $0) }
@@ -65,10 +64,9 @@ public struct H264FramingAccessUnit: Equatable, Sendable {
         var index = 0
         while index < bytes.count {
             guard bytes.count - index >= 4 else { throw H264FramingError.malformedAVCC }
-            let length = Int(UInt32(bytes[index]) << 24
-                | UInt32(bytes[index + 1]) << 16
-                | UInt32(bytes[index + 2]) << 8
-                | UInt32(bytes[index + 3]))
+            let length = Int(
+                UInt32(bytes[index]) << 24 | UInt32(bytes[index + 1]) << 16 | UInt32(
+                    bytes[index + 2]) << 8 | UInt32(bytes[index + 3]))
             index += 4
             guard length > 0, length <= bytes.count - index else {
                 throw H264FramingError.malformedAVCC
@@ -82,13 +80,11 @@ public struct H264FramingAccessUnit: Equatable, Sendable {
     private static func parseAnnexB(_ data: Data) throws -> [Data] {
         let bytes = [UInt8](data)
         func startCodeLength(at index: Int) -> Int? {
-            guard index + 2 < bytes.count,
-                  bytes[index] == 0,
-                  bytes[index + 1] == 0 else { return nil }
-            if bytes[index + 2] == 1 { return 3 }
-            if index + 3 < bytes.count, bytes[index + 2] == 0, bytes[index + 3] == 1 {
-                return 4
+            guard index + 2 < bytes.count, bytes[index] == 0, bytes[index + 1] == 0 else {
+                return nil
             }
+            if bytes[index + 2] == 1 { return 3 }
+            if index + 3 < bytes.count, bytes[index + 2] == 0, bytes[index + 3] == 1 { return 4 }
             return nil
         }
 

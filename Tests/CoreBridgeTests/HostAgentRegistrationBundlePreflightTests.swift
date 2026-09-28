@@ -1,17 +1,15 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentRegistrationBundlePreflightTests: XCTestCase {
     func testAcceptsOnlyTheFixedProductBundleIdentity() throws {
         XCTAssertEqual(
             try HostAgentRegistrationBundlePreflight.validate(
-                bundleURL: productURL,
-                resolvedBundleURL: productURL,
-                infoDictionary: validInfoDictionary
-            ),
-            HostAgentRegistrationBundleIdentity(buildIdentifier: "202608080001")
-        )
+                bundleURL: productURL, resolvedBundleURL: productURL,
+                infoDictionary: validInfoDictionary),
+            HostAgentRegistrationBundleIdentity(buildIdentifier: "202608080001"))
     }
 
     func testRejectsRelocatedAliasedAndNonLocalBundles() throws {
@@ -22,15 +20,11 @@ final class HostAgentRegistrationBundlePreflightTests: XCTestCase {
         for location in invalidLocations {
             XCTAssertThrowsError(
                 try HostAgentRegistrationBundlePreflight.validate(
-                    bundleURL: location,
-                    resolvedBundleURL: location,
-                    infoDictionary: validInfoDictionary
-                )
+                    bundleURL: location, resolvedBundleURL: location,
+                    infoDictionary: validInfoDictionary)
             ) { error in
                 XCTAssertEqual(
-                    error as? HostAgentRegistrationBundlePreflightError,
-                    .invalidLocation
-                )
+                    error as? HostAgentRegistrationBundlePreflightError, .invalidLocation)
             }
         }
 
@@ -38,16 +32,10 @@ final class HostAgentRegistrationBundlePreflightTests: XCTestCase {
             try HostAgentRegistrationBundlePreflight.validate(
                 bundleURL: productURL,
                 resolvedBundleURL: URL(
-                    fileURLWithPath: "/private/tmp/FarPane.app",
-                    isDirectory: true
-                ),
-                infoDictionary: validInfoDictionary
-            )
+                    fileURLWithPath: "/private/tmp/FarPane.app", isDirectory: true),
+                infoDictionary: validInfoDictionary)
         ) { error in
-            XCTAssertEqual(
-                error as? HostAgentRegistrationBundlePreflightError,
-                .invalidLocation
-            )
+            XCTAssertEqual(error as? HostAgentRegistrationBundlePreflightError, .invalidLocation)
         }
     }
 
@@ -63,15 +51,10 @@ final class HostAgentRegistrationBundlePreflightTests: XCTestCase {
             infoDictionary[key] = value
             XCTAssertThrowsError(
                 try HostAgentRegistrationBundlePreflight.validate(
-                    bundleURL: productURL,
-                    resolvedBundleURL: productURL,
-                    infoDictionary: infoDictionary
-                )
+                    bundleURL: productURL, resolvedBundleURL: productURL,
+                    infoDictionary: infoDictionary)
             ) { error in
-                XCTAssertEqual(
-                    error as? HostAgentRegistrationBundlePreflightError,
-                    expectedError
-                )
+                XCTAssertEqual(error as? HostAgentRegistrationBundlePreflightError, expectedError)
             }
         }
     }
@@ -81,20 +64,12 @@ final class HostAgentRegistrationBundlePreflightTests: XCTestCase {
         validInfoDictionary["CFBundleVersion"] = "build+42"
         XCTAssertEqual(
             try HostAgentRegistrationBundlePreflight.validate(
-                bundleURL: productURL,
-                resolvedBundleURL: productURL,
+                bundleURL: productURL, resolvedBundleURL: productURL,
                 infoDictionary: validInfoDictionary
-            ).buildIdentifier,
-            "build+42"
-        )
+            ).buildIdentifier, "build+42")
 
         let invalidBuildIdentifiers: [Any?] = [
-            nil,
-            NSNumber(value: 42),
-            "",
-            " 42",
-            "build/42",
-            String(repeating: "a", count: 129),
+            nil, NSNumber(value: 42), "", " 42", "build/42", String(repeating: "a", count: 129),
         ]
 
         for buildIdentifier in invalidBuildIdentifiers {
@@ -102,27 +77,19 @@ final class HostAgentRegistrationBundlePreflightTests: XCTestCase {
             infoDictionary["CFBundleVersion"] = buildIdentifier
             XCTAssertThrowsError(
                 try HostAgentRegistrationBundlePreflight.validate(
-                    bundleURL: productURL,
-                    resolvedBundleURL: productURL,
-                    infoDictionary: infoDictionary
-                )
+                    bundleURL: productURL, resolvedBundleURL: productURL,
+                    infoDictionary: infoDictionary)
             ) { error in
                 XCTAssertEqual(
-                    error as? HostAgentRegistrationBundlePreflightError,
-                    .invalidBuildIdentifier
-                )
+                    error as? HostAgentRegistrationBundlePreflightError, .invalidBuildIdentifier)
             }
         }
     }
 
     func testProductInspectionFailsClosedOutsideApplicationsWithoutMutation() {
-        XCTAssertThrowsError(
-            try HostAgentRegistrationBundlePreflight.inspectMainBundle()
-        ) { error in
-            XCTAssertEqual(
-                error as? HostAgentRegistrationBundlePreflightError,
-                .invalidLocation
-            )
+        XCTAssertThrowsError(try HostAgentRegistrationBundlePreflight.inspectMainBundle()) {
+            error in
+            XCTAssertEqual(error as? HostAgentRegistrationBundlePreflightError, .invalidLocation)
         }
     }
 
@@ -132,10 +99,8 @@ final class HostAgentRegistrationBundlePreflightTests: XCTestCase {
 
     private var validInfoDictionary: [String: Any] {
         [
-            "CFBundleIdentifier": "io.rustdesknative.viewer",
-            "CFBundlePackageType": "APPL",
-            "CFBundleExecutable": "RustDeskNative",
-            "CFBundleVersion": "202608080001",
+            "CFBundleIdentifier": "io.rustdesknative.viewer", "CFBundlePackageType": "APPL",
+            "CFBundleExecutable": "RustDeskNative", "CFBundleVersion": "202608080001",
         ]
     }
 }

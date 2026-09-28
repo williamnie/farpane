@@ -8,17 +8,14 @@ public enum HostAgentBootstrapProjectionBuilderError: Error, Equatable {
 
 public enum HostAgentBootstrapProjectionBuilder {
     public static func build(
-        catalog: DeviceCatalogDocument,
-        configRevision: UInt64,
-        agentBuildID: String,
+        catalog: DeviceCatalogDocument, configRevision: UInt64, agentBuildID: String,
         clipboardPolicy: HostAgentClipboardPolicy = .disabled,
         fileTransferPolicy: HostAgentFileTransferPolicy = .disabled,
         audioPolicy: HostAgentAudioPolicy = .disabled
     ) throws -> Data {
         guard catalog.schemaVersion == DeviceCatalogDocument.currentSchemaVersion else {
             throw HostAgentBootstrapProjectionBuilderError.unsupportedCatalogSchema(
-                catalog.schemaVersion
-            )
+                catalog.schemaVersion)
         }
         guard let server = catalog.server else {
             throw HostAgentBootstrapProjectionBuilderError.serverUnavailable
@@ -26,8 +23,7 @@ public enum HostAgentBootstrapProjectionBuilder {
 
         let document: [String: Any] = [
             "schemaVersion": HostAgentBootstrapConfiguration.currentSchemaVersion,
-            "configRevision": NSNumber(value: configRevision),
-            "agentBuildID": agentBuildID,
+            "configRevision": NSNumber(value: configRevision), "agentBuildID": agentBuildID,
             "server": [
                 "rendezvousServer": server.rendezvousServer,
                 "serverPublicKey": server.serverPublicKey,
@@ -35,14 +31,10 @@ public enum HostAgentBootstrapProjectionBuilder {
             "clipboard": [
                 "allowRemoteRead": clipboardPolicy.allowRemoteRead,
                 "allowRemoteWrite": clipboardPolicy.allowRemoteWrite,
-                "allowRemoteRichTextRead":
-                    clipboardPolicy.allowRemoteRichTextRead,
-                "allowRemoteRichTextWrite":
-                    clipboardPolicy.allowRemoteRichTextWrite,
-                "allowRemoteImageRead":
-                    clipboardPolicy.allowRemoteImageRead,
-                "allowRemoteImageWrite":
-                    clipboardPolicy.allowRemoteImageWrite,
+                "allowRemoteRichTextRead": clipboardPolicy.allowRemoteRichTextRead,
+                "allowRemoteRichTextWrite": clipboardPolicy.allowRemoteRichTextWrite,
+                "allowRemoteImageRead": clipboardPolicy.allowRemoteImageRead,
+                "allowRemoteImageWrite": clipboardPolicy.allowRemoteImageWrite,
             ],
             "fileTransfer": [
                 "enabled": fileTransferPolicy.enabled,
@@ -50,19 +42,14 @@ public enum HostAgentBootstrapProjectionBuilder {
             ],
             "audio": [
                 "enabled": audioPolicy.enabled,
-                "inputDeviceName":
-                    audioPolicy.inputDeviceName as Any? ?? NSNull(),
+                "inputDeviceName": audioPolicy.inputDeviceName as Any? ?? NSNull(),
             ],
         ]
         do {
             let data = try JSONSerialization.data(
-                withJSONObject: document,
-                options: [.sortedKeys, .withoutEscapingSlashes]
-            )
+                withJSONObject: document, options: [.sortedKeys, .withoutEscapingSlashes])
             _ = try HostAgentBootstrapConfiguration.decode(data)
             return data
-        } catch {
-            throw HostAgentBootstrapProjectionBuilderError.invalidProjection
-        }
+        } catch { throw HostAgentBootstrapProjectionBuilderError.invalidProjection }
     }
 }

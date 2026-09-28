@@ -15,9 +15,7 @@ final class HostFileTransferReceiveRootPickerController {
 
     func begin(
         on window: NSWindow,
-        completion: @escaping (
-            HostFileTransferReceiveRootSelectionResult
-        ) -> Void
+        completion: @escaping (HostFileTransferReceiveRootSelectionResult) -> Void
     ) {
         guard panel == nil else {
             completion(.rejected)
@@ -40,10 +38,9 @@ final class HostFileTransferReceiveRootPickerController {
                 completion(.cancelled)
                 return
             }
-            guard let receiveRoot =
-                    HostFileTransferReceiveRootProvisioner.provision(
-                        inside: selectedParent
-                    )
+            guard
+                let receiveRoot = HostFileTransferReceiveRootProvisioner.provision(
+                    inside: selectedParent)
             else {
                 completion(.rejected)
                 return

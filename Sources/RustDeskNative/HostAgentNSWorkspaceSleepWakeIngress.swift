@@ -29,30 +29,20 @@ final class HostAgentNSWorkspaceSleepWakeIngress: @unchecked Sendable {
     private var observerTokens: [NSObjectProtocol] = []
 
     static func makeProduct(
-        composition: HostAgentSleepWakeRecoveryComposition,
-        lifetime: HostAgentProcessLifetime
+        composition: HostAgentSleepWakeRecoveryComposition, lifetime: HostAgentProcessLifetime
     ) -> HostAgentNSWorkspaceSleepWakeIngress {
         HostAgentNSWorkspaceSleepWakeIngress(
             notificationCenter: NSWorkspace.shared.notificationCenter,
             willSleepNotification: NSWorkspace.willSleepNotification,
             didWakeNotification: NSWorkspace.didWakeNotification,
             deliveryOwner: HostAgentSleepWakeNotificationDeliveryOwner(
-                deliverWillSleep: {
-                    composition.systemWillSleep()
-                },
-                deliverDidWake: {
-                    composition.systemDidWake()
-                }
-            ),
-            onFailure: { [weak lifetime] in
-                _ = lifetime?.requestTermination(reason: .error)
-            }
-        )
+                deliverWillSleep: { composition.systemWillSleep() },
+                deliverDidWake: { composition.systemDidWake() }),
+            onFailure: { [weak lifetime] in _ = lifetime?.requestTermination(reason: .error) })
     }
 
     init(
-        notificationCenter: NotificationCenter,
-        willSleepNotification: Notification.Name,
+        notificationCenter: NotificationCenter, willSleepNotification: Notification.Name,
         didWakeNotification: Notification.Name,
         deliveryOwner: HostAgentSleepWakeNotificationDeliveryOwner,
         onFailure: @escaping @Sendable () -> Void
@@ -64,9 +54,7 @@ final class HostAgentNSWorkspaceSleepWakeIngress: @unchecked Sendable {
         self.onFailure = onFailure
     }
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
     func stateSnapshot() -> HostAgentNSWorkspaceSleepWakeIngressState {
         condition.lock()
@@ -74,17 +62,14 @@ final class HostAgentNSWorkspaceSleepWakeIngress: @unchecked Sendable {
         return state
     }
 
-    @discardableResult
-    func start() -> Bool {
+    @discardableResult func start() -> Bool {
         condition.lock()
         guard state == .idle else {
             condition.unlock()
             return false
         }
         state = .starting
-        let thread = Thread { [weak self] in
-            self?.runObserverThread()
-        }
+        let thread = Thread { [weak self] in self?.runObserverThread() }
         thread.name = "com.farpane.host-agent.sleep-wake"
         observerThread = thread
         condition.unlock()
@@ -92,9 +77,7 @@ final class HostAgentNSWorkspaceSleepWakeIngress: @unchecked Sendable {
         thread.start()
 
         condition.lock()
-        while state == .starting {
-            condition.wait()
-        }
+        while state == .starting { condition.wait() }
         let started = state == .running
         condition.unlock()
         return started
@@ -107,9 +90,7 @@ final class HostAgentNSWorkspaceSleepWakeIngress: @unchecked Sendable {
             condition.unlock()
             return
         case .cancelling:
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
             return
         case .idle, .failed:
@@ -133,9 +114,7 @@ final class HostAgentNSWorkspaceSleepWakeIngress: @unchecked Sendable {
             }
 
             condition.lock()
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
         }
     }
@@ -179,34 +158,22 @@ final class HostAgentNSWorkspaceSleepWakeIngress: @unchecked Sendable {
             condition.broadcast()
             condition.unlock()
 
-            if exitedUnexpectedly {
-                requestProcessTermination()
-            }
+            if exitedUnexpectedly { requestProcessTermination() }
         }
     }
 
     private func registerObservers() -> [NSObjectProtocol] {
         let willSleep = notificationCenter.addObserver(
-            forName: willSleepNotification,
-            object: nil,
-            queue: nil
-        ) { [weak self] _ in
-            self?.deliver(.willSleep)
-        }
+            forName: willSleepNotification, object: nil, queue: nil
+        ) { [weak self] _ in self?.deliver(.willSleep) }
         let didWake = notificationCenter.addObserver(
-            forName: didWakeNotification,
-            object: nil,
-            queue: nil
-        ) { [weak self] _ in
-            self?.deliver(.didWake)
-        }
+            forName: didWakeNotification, object: nil, queue: nil
+        ) { [weak self] _ in self?.deliver(.didWake) }
         return [willSleep, didWake]
     }
 
     private func deliver(_ event: HostAgentSleepWakeNotificationEvent) {
-        guard !deliveryOwner.deliver(event),
-              case .failed = deliveryOwner.stateSnapshot()
-        else {
+        guard !deliveryOwner.deliver(event), case .failed = deliveryOwner.stateSnapshot() else {
             return
         }
         requestProcessTermination()
@@ -217,8 +184,6 @@ final class HostAgentNSWorkspaceSleepWakeIngress: @unchecked Sendable {
     }
 
     private func removeObservers(_ tokens: [NSObjectProtocol]) {
-        for token in tokens {
-            notificationCenter.removeObserver(token)
-        }
+        for token in tokens { notificationCenter.removeObserver(token) }
     }
 }

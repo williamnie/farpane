@@ -20,13 +20,9 @@ public enum HostApprovalMode: String, CaseIterable, Codable, Sendable {
     case passwordAndLocalApproval
     case passwordOrLocalApproval
 
-    public var permitsPasswordAuthentication: Bool {
-        self != .manualOnly
-    }
+    public var permitsPasswordAuthentication: Bool { self != .manualOnly }
 
-    public var permitsLocalApproval: Bool {
-        localApprovalPath != .prohibited
-    }
+    public var permitsLocalApproval: Bool { localApprovalPath != .prohibited }
 
     public var requiresLocalApprovalAfterPassword: Bool {
         localApprovalPath == .requiredAfterPassword
@@ -37,14 +33,10 @@ public enum HostApprovalMode: String, CaseIterable, Codable, Sendable {
     /// silently broadening password-only product modes.
     public var localApprovalPath: HostLocalApprovalPath {
         switch self {
-        case .manualOnly:
-            .primary
-        case .temporaryPassword, .permanentPassword:
-            .prohibited
-        case .passwordAndLocalApproval:
-            .requiredAfterPassword
-        case .passwordOrLocalApproval:
-            .alternativeToPassword
+        case .manualOnly: .primary
+        case .temporaryPassword, .permanentPassword: .prohibited
+        case .passwordAndLocalApproval: .requiredAfterPassword
+        case .passwordOrLocalApproval: .alternativeToPassword
         }
     }
 
@@ -52,10 +44,8 @@ public enum HostApprovalMode: String, CaseIterable, Codable, Sendable {
     /// Unattended access remains a separate explicit policy switch.
     public var supportsUnattendedAccess: Bool {
         switch self {
-        case .temporaryPassword, .permanentPassword, .passwordOrLocalApproval:
-            true
-        case .manualOnly, .passwordAndLocalApproval:
-            false
+        case .temporaryPassword, .permanentPassword, .passwordOrLocalApproval: true
+        case .manualOnly, .passwordAndLocalApproval: false
         }
     }
 }
@@ -80,10 +70,7 @@ public struct HostApprovalPolicy: Equatable, Sendable {
     public let mode: HostApprovalMode
     public let unattendedAccessEnabled: Bool
 
-    public init(
-        mode: HostApprovalMode,
-        unattendedAccessEnabled: Bool = false
-    ) throws {
+    public init(mode: HostApprovalMode, unattendedAccessEnabled: Bool = false) throws {
         guard !unattendedAccessEnabled || mode.supportsUnattendedAccess else {
             throw HostApprovalPolicyError
                 .unattendedAccessRequiresPasswordWithoutMandatoryLocalApproval
@@ -101,26 +88,17 @@ public struct HostApprovalPolicy: Equatable, Sendable {
             switch mode {
             case .manualOnly:
                 return HostUpstreamApprovalProjection(
-                    approveMode: .click,
-                    verificationMethod: .bothPasswords
-                )
+                    approveMode: .click, verificationMethod: .bothPasswords)
             case .temporaryPassword:
                 return HostUpstreamApprovalProjection(
-                    approveMode: .password,
-                    verificationMethod: .temporaryPassword
-                )
+                    approveMode: .password, verificationMethod: .temporaryPassword)
             case .permanentPassword:
                 return HostUpstreamApprovalProjection(
-                    approveMode: .password,
-                    verificationMethod: .permanentPassword
-                )
-            case .passwordAndLocalApproval:
-                throw HostApprovalPolicyError.nativeTwoStageGateRequired
+                    approveMode: .password, verificationMethod: .permanentPassword)
+            case .passwordAndLocalApproval: throw HostApprovalPolicyError.nativeTwoStageGateRequired
             case .passwordOrLocalApproval:
                 return HostUpstreamApprovalProjection(
-                    approveMode: .both,
-                    verificationMethod: .bothPasswords
-                )
+                    approveMode: .both, verificationMethod: .bothPasswords)
             }
         }
     }

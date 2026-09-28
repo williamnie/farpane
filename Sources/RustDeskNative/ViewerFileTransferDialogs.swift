@@ -5,10 +5,7 @@ import AppKit
 final class ViewerFileTransferDestinationPickerController {
     private var panel: NSOpenPanel?
 
-    func begin(
-        on window: NSWindow,
-        completion: @escaping (URL?) -> Void
-    ) {
+    func begin(on window: NSWindow, completion: @escaping (URL?) -> Void) {
         guard panel == nil else {
             completion(nil)
             return
@@ -47,10 +44,7 @@ final class ViewerFileTransferDestinationPickerController {
 final class ViewerFileTransferUploadSourcePickerController {
     private var panel: NSOpenPanel?
 
-    func begin(
-        on window: NSWindow,
-        completion: @escaping ([URL]?) -> Void
-    ) {
+    func begin(on window: NSWindow, completion: @escaping ([URL]?) -> Void) {
         guard panel == nil else {
             completion(nil)
             return
@@ -93,10 +87,7 @@ final class ViewerFileTransferPasswordPromptController {
     private let passwordField = NSSecureTextField()
     private var alert: NSAlert?
 
-    func begin(
-        on window: NSWindow,
-        completion: @escaping (String?) -> Void
-    ) {
+    func begin(on window: NSWindow, completion: @escaping (String?) -> Void) {
         guard alert == nil else {
             completion(nil)
             return

@@ -1,7 +1,7 @@
 import CoreFoundation
 import Foundation
 
-package enum HostAgentXPCWireHandshakeDocumentError: Error, Equatable {
+package enum HostAgentXPCWireHandshakeDocumentError: XPCDocumentFailure, Equatable {
     case invalidDocument
     case documentTooLarge
     case unsupportedSchema(UInt64)
@@ -26,32 +26,20 @@ package struct HostAgentXPCWireAgentIdentity: Equatable, Sendable {
     package let agentProcessStartIdentitySHA256: String
 
     package init(
-        agentBuildID: String,
-        hostInstanceID: String,
-        agentBootID: String,
-        agentProcessID: Int32,
+        agentBuildID: String, hostInstanceID: String, agentBootID: String, agentProcessID: Int32,
         agentProcessStartIdentitySHA256: String
     ) throws {
-        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
-            agentBuildID
-        ),
+        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(agentBuildID),
             HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID),
             HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
-            HostAgentXPCWireHandshakeContract.validAgentProcessID(
-                agentProcessID
-            ),
-            HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
-                agentProcessStartIdentitySHA256
-            )
-        else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
+            HostAgentXPCWireHandshakeContract.validAgentProcessID(agentProcessID),
+            HostAgentXPCWireHandshakeContract.validLowercaseSHA256(agentProcessStartIdentitySHA256)
+        else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         self.agentBuildID = agentBuildID
         self.hostInstanceID = hostInstanceID
         self.agentBootID = agentBootID
         self.agentProcessID = agentProcessID
-        self.agentProcessStartIdentitySHA256 =
-            agentProcessStartIdentitySHA256
+        self.agentProcessStartIdentitySHA256 = agentProcessStartIdentitySHA256
     }
 }
 
@@ -62,133 +50,56 @@ package struct HostAgentXPCWireAgentProcessIdentity: Equatable, Sendable {
     package let agentProcessStartIdentitySHA256: String
 
     package init(
-        agentBuildID: String,
-        agentBootID: String,
-        agentProcessID: Int32,
+        agentBuildID: String, agentBootID: String, agentProcessID: Int32,
         agentProcessStartIdentitySHA256: String
     ) throws {
-        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
-                agentBuildID
-              ),
-              HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
-              HostAgentXPCWireHandshakeContract.validAgentProcessID(
-                agentProcessID
-              ),
-              HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
-                agentProcessStartIdentitySHA256
-              )
-        else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
+        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(agentBuildID),
+            HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
+            HostAgentXPCWireHandshakeContract.validAgentProcessID(agentProcessID),
+            HostAgentXPCWireHandshakeContract.validLowercaseSHA256(agentProcessStartIdentitySHA256)
+        else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         self.agentBuildID = agentBuildID
         self.agentBootID = agentBootID
         self.agentProcessID = agentProcessID
-        self.agentProcessStartIdentitySHA256 =
-            agentProcessStartIdentitySHA256
+        self.agentProcessStartIdentitySHA256 = agentProcessStartIdentitySHA256
     }
 
-    package func bind(hostInstanceID: String) throws
-        -> HostAgentXPCWireAgentIdentity
-    {
+    package func bind(hostInstanceID: String) throws -> HostAgentXPCWireAgentIdentity {
         try HostAgentXPCWireAgentIdentity(
-            agentBuildID: agentBuildID,
-            hostInstanceID: hostInstanceID,
-            agentBootID: agentBootID,
+            agentBuildID: agentBuildID, hostInstanceID: hostInstanceID, agentBootID: agentBootID,
             agentProcessID: agentProcessID,
-            agentProcessStartIdentitySHA256:
-                agentProcessStartIdentitySHA256
-        )
+            agentProcessStartIdentitySHA256: agentProcessStartIdentitySHA256)
     }
 }
 
-package enum HostAgentXPCWireHandshakeContract {
+package enum HostAgentXPCWireHandshakeContract: XPCDocumentContract {
+    package typealias Failure = HostAgentXPCWireHandshakeDocumentError
     package static let currentSchemaVersion: UInt64 = 2
     package static let currentWireVersion: UInt64 = 2
     package static let supportedWireVersions: [UInt64] = [currentWireVersion]
     package static let maximumDocumentBytes = 8 * 1_024
     package static let maximumSupportedVersionCount = 8
 
-    fileprivate static let maximumExactJSONInteger: UInt64 =
-        9_007_199_254_740_991
     fileprivate static let maximumIdentifierBytes = 128
     fileprivate static let identifierPunctuation = ".-_+".unicodeScalars
 
-    fileprivate static func decodeDocument(_ data: Data) throws
-        -> [String: Any]
-    {
-        guard !data.isEmpty else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
-        guard data.count <= maximumDocumentBytes else {
-            throw HostAgentXPCWireHandshakeDocumentError.documentTooLarge
-        }
-        let value: Any
-        do {
-            value = try JSONSerialization.jsonObject(with: data)
-        } catch {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
-        guard let document = value as? [String: Any] else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
-        return document
-    }
-
-    fileprivate static func encodeDocument(_ document: [String: Any]) throws
-        -> Data
-    {
-        let data: Data
-        do {
-            data = try JSONSerialization.data(
-                withJSONObject: document,
-                options: [.sortedKeys]
-            )
-        } catch {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
-        guard data.count <= maximumDocumentBytes else {
-            throw HostAgentXPCWireHandshakeDocumentError.documentTooLarge
-        }
-        return data
-    }
-
-    fileprivate static func strictUInt64(_ value: Any?) -> UInt64? {
-        guard let number = value as? NSNumber,
-              CFGetTypeID(number) != CFBooleanGetTypeID()
-        else { return nil }
-        let double = number.doubleValue
-        guard double.isFinite,
-              double >= 0,
-              double <= Double(maximumExactJSONInteger),
-              double.rounded(.towardZero) == double
-        else { return nil }
-        return number.uint64Value
-    }
-
-    fileprivate static func decodeSchemaVersion(
-        _ document: [String: Any]
-    ) throws -> UInt64 {
-        guard let schemaVersion = strictUInt64(document["schemaVersion"])
-        else {
+    fileprivate static func decodeSchemaVersion(_ document: [String: Any]) throws -> UInt64 {
+        guard let schemaVersion = strictUInt64(document["schemaVersion"]) else {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
         }
         guard schemaVersion == currentSchemaVersion else {
-            throw HostAgentXPCWireHandshakeDocumentError.unsupportedSchema(
-                schemaVersion
-            )
+            throw HostAgentXPCWireHandshakeDocumentError.unsupportedSchema(schemaVersion)
         }
         return schemaVersion
     }
 
     fileprivate static func validVersions(_ versions: [UInt64]) -> Bool {
-        guard !versions.isEmpty,
-              versions.count <= maximumSupportedVersionCount
-        else { return false }
+        guard !versions.isEmpty, versions.count <= maximumSupportedVersionCount else {
+            return false
+        }
         var previous: UInt64 = 0
         for version in versions {
-            guard version > previous, version <= UInt64(UInt32.max) else {
-                return false
-            }
+            guard version > previous, version <= UInt64(UInt32.max) else { return false }
             previous = version
         }
         return true
@@ -197,49 +108,36 @@ package enum HostAgentXPCWireHandshakeContract {
     fileprivate static func decodeVersions(_ value: Any?) -> [UInt64]? {
         guard let rawVersions = value as? [Any] else { return nil }
         let versions = rawVersions.compactMap(strictUInt64)
-        guard versions.count == rawVersions.count,
-              validVersions(versions)
-        else { return nil }
+        guard versions.count == rawVersions.count, validVersions(versions) else { return nil }
         return versions
     }
 
     package static func validIdentifier(_ value: String) -> Bool {
-        guard !value.isEmpty,
-              value.utf8.count <= maximumIdentifierBytes
-        else { return false }
+        guard !value.isEmpty, value.utf8.count <= maximumIdentifierBytes else { return false }
         return value.unicodeScalars.allSatisfy {
-            CharacterSet.alphanumerics.contains($0)
-                || identifierPunctuation.contains($0)
+            CharacterSet.alphanumerics.contains($0) || identifierPunctuation.contains($0)
         }
     }
 
     package static func validCanonicalUUID(_ value: String) -> Bool {
-        guard value.utf8.count == 36,
-              let uuid = UUID(uuidString: value)
-        else { return false }
+        guard value.utf8.count == 36, let uuid = UUID(uuidString: value) else { return false }
         return uuid.uuidString.lowercased() == value
     }
 
-    package static func validAgentProcessID(_ value: Int32) -> Bool {
-        value > 1
-    }
+    package static func validAgentProcessID(_ value: Int32) -> Bool { value > 1 }
 
     package static func validLowercaseSHA256(_ value: String) -> Bool {
-        value.utf8.count == 64 && value.utf8.allSatisfy { byte in
-            (48...57).contains(byte) || (97...102).contains(byte)
-        }
+        value.utf8.count == 64
+            && value.utf8.allSatisfy { byte in (48...57).contains(byte) || (97...102).contains(byte)
+            }
     }
 
     fileprivate static func strictInt32(_ value: Any?) -> Int32? {
-        guard let unsigned = strictUInt64(value),
-              unsigned <= UInt64(Int32.max)
-        else { return nil }
+        guard let unsigned = strictUInt64(value), unsigned <= UInt64(Int32.max) else { return nil }
         return Int32(unsigned)
     }
 
-    fileprivate static func decodeOptionalIdentifier(_ value: Any?) throws
-        -> String?
-    {
+    fileprivate static func decodeOptionalIdentifier(_ value: Any?) throws -> String? {
         if value is NSNull { return nil }
         guard let value = value as? String, validIdentifier(value) else {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
@@ -255,9 +153,7 @@ package enum HostAgentXPCWireHandshakeContract {
         return value
     }
 
-    fileprivate static func decodeOptionalProcessID(_ value: Any?) throws
-        -> Int32?
-    {
+    fileprivate static func decodeOptionalProcessID(_ value: Any?) throws -> Int32? {
         if value is NSNull { return nil }
         guard let value = strictInt32(value), validAgentProcessID(value) else {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
@@ -265,9 +161,7 @@ package enum HostAgentXPCWireHandshakeContract {
         return value
     }
 
-    fileprivate static func decodeOptionalSHA256(_ value: Any?) throws
-        -> String?
-    {
+    fileprivate static func decodeOptionalSHA256(_ value: Any?) throws -> String? {
         if value is NSNull { return nil }
         guard let value = value as? String, validLowercaseSHA256(value) else {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
@@ -288,67 +182,43 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
     package let sentAtUnixMilliseconds: UInt64
 
     package init(
-        requestID: String,
-        supportedWireVersions: [UInt64],
-        appBuildID: String,
-        knownHostInstanceID: String?,
-        knownAgentBootID: String?,
-        knownAgentProcessID: Int32? = nil,
-        knownAgentProcessStartIdentitySHA256: String? = nil,
-        sentAtUnixMilliseconds: UInt64
+        requestID: String, supportedWireVersions: [UInt64], appBuildID: String,
+        knownHostInstanceID: String?, knownAgentBootID: String?, knownAgentProcessID: Int32? = nil,
+        knownAgentProcessStartIdentitySHA256: String? = nil, sentAtUnixMilliseconds: UInt64
     ) throws {
         if let knownHostInstanceID,
-           !HostAgentXPCWireHandshakeContract.validIdentifier(
-               knownHostInstanceID
-           )
+            !HostAgentXPCWireHandshakeContract.validIdentifier(knownHostInstanceID)
         {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
         }
         if let knownAgentBootID,
-           !HostAgentXPCWireHandshakeContract.validCanonicalUUID(
-               knownAgentBootID
-           )
+            !HostAgentXPCWireHandshakeContract.validCanonicalUUID(knownAgentBootID)
         {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
         }
         let knownIdentityPresence = [
-            knownHostInstanceID != nil,
-            knownAgentBootID != nil,
-            knownAgentProcessID != nil,
+            knownHostInstanceID != nil, knownAgentBootID != nil, knownAgentProcessID != nil,
             knownAgentProcessStartIdentitySHA256 != nil,
         ]
-        guard knownIdentityPresence.allSatisfy({ $0 })
-                || knownIdentityPresence.allSatisfy({ !$0 })
-        else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
+        guard knownIdentityPresence.allSatisfy({ $0 }) || knownIdentityPresence.allSatisfy({ !$0 })
+        else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         if let knownAgentProcessID,
-           !HostAgentXPCWireHandshakeContract.validAgentProcessID(
-               knownAgentProcessID
-           )
+            !HostAgentXPCWireHandshakeContract.validAgentProcessID(knownAgentProcessID)
         {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
         }
         if let knownAgentProcessStartIdentitySHA256,
-           !HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
-               knownAgentProcessStartIdentitySHA256
-           )
+            !HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
+                knownAgentProcessStartIdentitySHA256)
         {
             throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
         }
         guard HostAgentXPCWireHandshakeContract.validCanonicalUUID(requestID),
-              HostAgentXPCWireHandshakeContract.validVersions(
-                  supportedWireVersions
-              ),
-              HostAgentRegistrationBundlePreflight.validBuildIdentifier(
-                  appBuildID
-              ),
-              sentAtUnixMilliseconds > 0,
-              sentAtUnixMilliseconds
-                <= HostAgentXPCWireHandshakeContract.maximumExactJSONInteger
-        else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
+            HostAgentXPCWireHandshakeContract.validVersions(supportedWireVersions),
+            HostAgentRegistrationBundlePreflight.validBuildIdentifier(appBuildID),
+            sentAtUnixMilliseconds > 0,
+            sentAtUnixMilliseconds <= HostAgentXPCWireHandshakeContract.maximumExactJSONInteger
+        else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         schemaVersion = HostAgentXPCWireHandshakeContract.currentSchemaVersion
         self.requestID = requestID
         self.supportedWireVersions = supportedWireVersions
@@ -356,87 +226,64 @@ package struct HostAgentXPCWireHandshakeRequest: Equatable, Sendable {
         self.knownHostInstanceID = knownHostInstanceID
         self.knownAgentBootID = knownAgentBootID
         self.knownAgentProcessID = knownAgentProcessID
-        self.knownAgentProcessStartIdentitySHA256 =
-            knownAgentProcessStartIdentitySHA256
+        self.knownAgentProcessStartIdentitySHA256 = knownAgentProcessStartIdentitySHA256
         self.sentAtUnixMilliseconds = sentAtUnixMilliseconds
     }
 
     package static func makeProductRequest(
-        requestID: String,
-        appBuildID: String,
-        knownHostInstanceID: String?,
-        knownAgentBootID: String?,
-        knownAgentProcessID: Int32? = nil,
-        knownAgentProcessStartIdentitySHA256: String? = nil,
-        sentAtUnixMilliseconds: UInt64
+        requestID: String, appBuildID: String, knownHostInstanceID: String?,
+        knownAgentBootID: String?, knownAgentProcessID: Int32? = nil,
+        knownAgentProcessStartIdentitySHA256: String? = nil, sentAtUnixMilliseconds: UInt64
     ) throws -> Self {
         try Self(
             requestID: requestID,
-            supportedWireVersions:
-                HostAgentXPCWireHandshakeContract.supportedWireVersions,
-            appBuildID: appBuildID,
-            knownHostInstanceID: knownHostInstanceID,
-            knownAgentBootID: knownAgentBootID,
-            knownAgentProcessID: knownAgentProcessID,
-            knownAgentProcessStartIdentitySHA256:
-                knownAgentProcessStartIdentitySHA256,
-            sentAtUnixMilliseconds: sentAtUnixMilliseconds
-        )
+            supportedWireVersions: HostAgentXPCWireHandshakeContract.supportedWireVersions,
+            appBuildID: appBuildID, knownHostInstanceID: knownHostInstanceID,
+            knownAgentBootID: knownAgentBootID, knownAgentProcessID: knownAgentProcessID,
+            knownAgentProcessStartIdentitySHA256: knownAgentProcessStartIdentitySHA256,
+            sentAtUnixMilliseconds: sentAtUnixMilliseconds)
     }
 
     package static func decode(_ data: Data) throws -> Self {
         let document = try HostAgentXPCWireHandshakeContract.decodeDocument(data)
-        guard Set(document.keys) == Set([
-            "schemaVersion", "messageType", "requestId",
-            "supportedWireVersions", "appBuildId", "hostInstanceId",
-            "agentBootId", "agentProcessId",
-            "agentProcessStartIdentitySHA256", "sentAtUnixMilliseconds",
-        ]),
-            document["messageType"] as? String == "handshakeRequest",
+        guard
+            Set(document.keys)
+                == Set([
+                    "schemaVersion", "messageType", "requestId", "supportedWireVersions",
+                    "appBuildId", "hostInstanceId", "agentBootId", "agentProcessId",
+                    "agentProcessStartIdentitySHA256", "sentAtUnixMilliseconds",
+                ]), document["messageType"] as? String == "handshakeRequest",
             let requestID = document["requestId"] as? String,
-            let supportedWireVersions =
-                HostAgentXPCWireHandshakeContract.decodeVersions(
-                    document["supportedWireVersions"]
-                ),
+            let supportedWireVersions = HostAgentXPCWireHandshakeContract.decodeVersions(
+                document["supportedWireVersions"]),
             let appBuildID = document["appBuildId"] as? String,
-            let sentAtUnixMilliseconds =
-                HostAgentXPCWireHandshakeContract.strictUInt64(
-                    document["sentAtUnixMilliseconds"]
-                )
-        else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
+            let sentAtUnixMilliseconds = HostAgentXPCWireHandshakeContract.strictUInt64(
+                document["sentAtUnixMilliseconds"])
+        else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         _ = try HostAgentXPCWireHandshakeContract.decodeSchemaVersion(document)
         return try Self(
-            requestID: requestID,
-            supportedWireVersions: supportedWireVersions,
+            requestID: requestID, supportedWireVersions: supportedWireVersions,
             appBuildID: appBuildID,
-            knownHostInstanceID: try HostAgentXPCWireHandshakeContract
-                .decodeOptionalIdentifier(document["hostInstanceId"]),
-            knownAgentBootID: try HostAgentXPCWireHandshakeContract
-                .decodeOptionalUUID(document["agentBootId"]),
-            knownAgentProcessID: try HostAgentXPCWireHandshakeContract
-                .decodeOptionalProcessID(document["agentProcessId"]),
+            knownHostInstanceID: try HostAgentXPCWireHandshakeContract.decodeOptionalIdentifier(
+                document["hostInstanceId"]),
+            knownAgentBootID: try HostAgentXPCWireHandshakeContract.decodeOptionalUUID(
+                document["agentBootId"]),
+            knownAgentProcessID: try HostAgentXPCWireHandshakeContract.decodeOptionalProcessID(
+                document["agentProcessId"]),
             knownAgentProcessStartIdentitySHA256:
                 try HostAgentXPCWireHandshakeContract.decodeOptionalSHA256(
-                    document["agentProcessStartIdentitySHA256"]
-                ),
-            sentAtUnixMilliseconds: sentAtUnixMilliseconds
-        )
+                    document["agentProcessStartIdentitySHA256"]),
+            sentAtUnixMilliseconds: sentAtUnixMilliseconds)
     }
 
     package func encoded() throws -> Data {
         try HostAgentXPCWireHandshakeContract.encodeDocument([
-            "schemaVersion": schemaVersion,
-            "messageType": "handshakeRequest",
-            "requestId": requestID,
-            "supportedWireVersions": supportedWireVersions,
-            "appBuildId": appBuildID,
-            "hostInstanceId": knownHostInstanceID ?? NSNull(),
+            "schemaVersion": schemaVersion, "messageType": "handshakeRequest",
+            "requestId": requestID, "supportedWireVersions": supportedWireVersions,
+            "appBuildId": appBuildID, "hostInstanceId": knownHostInstanceID ?? NSNull(),
             "agentBootId": knownAgentBootID ?? NSNull(),
             "agentProcessId": knownAgentProcessID ?? NSNull(),
-            "agentProcessStartIdentitySHA256":
-                knownAgentProcessStartIdentitySHA256 ?? NSNull(),
+            "agentProcessStartIdentitySHA256": knownAgentProcessStartIdentitySHA256 ?? NSNull(),
             "sentAtUnixMilliseconds": sentAtUnixMilliseconds,
         ])
     }
@@ -456,45 +303,25 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
     package let sentAtUnixMilliseconds: UInt64
 
     fileprivate init(
-        requestID: String,
-        supportedWireVersions: [UInt64],
-        selectedWireVersion: UInt64?,
-        compatibility: HostAgentXPCWireHandshakeCompatibility,
-        agentBuildID: String,
-        hostInstanceID: String,
-        agentBootID: String,
-        agentProcessID: Int32,
-        agentProcessStartIdentitySHA256: String,
-        sentAtUnixMilliseconds: UInt64
+        requestID: String, supportedWireVersions: [UInt64], selectedWireVersion: UInt64?,
+        compatibility: HostAgentXPCWireHandshakeCompatibility, agentBuildID: String,
+        hostInstanceID: String, agentBootID: String, agentProcessID: Int32,
+        agentProcessStartIdentitySHA256: String, sentAtUnixMilliseconds: UInt64
     ) throws {
         guard HostAgentXPCWireHandshakeContract.validCanonicalUUID(requestID),
-              HostAgentXPCWireHandshakeContract.validVersions(
-                  supportedWireVersions
-              ),
-              HostAgentRegistrationBundlePreflight.validBuildIdentifier(
-                  agentBuildID
-              ),
-              HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID),
-              HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
-              HostAgentXPCWireHandshakeContract.validAgentProcessID(
-                agentProcessID
-              ),
-              HostAgentXPCWireHandshakeContract.validLowercaseSHA256(
-                agentProcessStartIdentitySHA256
-              ),
-              sentAtUnixMilliseconds > 0,
-              sentAtUnixMilliseconds
-                <= HostAgentXPCWireHandshakeContract.maximumExactJSONInteger
-        else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
+            HostAgentXPCWireHandshakeContract.validVersions(supportedWireVersions),
+            HostAgentRegistrationBundlePreflight.validBuildIdentifier(agentBuildID),
+            HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID),
+            HostAgentXPCWireHandshakeContract.validCanonicalUUID(agentBootID),
+            HostAgentXPCWireHandshakeContract.validAgentProcessID(agentProcessID),
+            HostAgentXPCWireHandshakeContract.validLowercaseSHA256(agentProcessStartIdentitySHA256),
+            sentAtUnixMilliseconds > 0,
+            sentAtUnixMilliseconds <= HostAgentXPCWireHandshakeContract.maximumExactJSONInteger
+        else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         switch compatibility {
         case .compatible:
-            guard let selectedWireVersion,
-                  supportedWireVersions.contains(selectedWireVersion)
-            else {
-                throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-            }
+            guard let selectedWireVersion, supportedWireVersions.contains(selectedWireVersion)
+            else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         case .incompatible:
             guard selectedWireVersion == nil else {
                 throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
@@ -510,87 +337,66 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
         self.hostInstanceID = hostInstanceID
         self.agentBootID = agentBootID
         self.agentProcessID = agentProcessID
-        self.agentProcessStartIdentitySHA256 =
-            agentProcessStartIdentitySHA256
+        self.agentProcessStartIdentitySHA256 = agentProcessStartIdentitySHA256
         self.sentAtUnixMilliseconds = sentAtUnixMilliseconds
     }
 
     package static func decode(_ data: Data) throws -> Self {
         let document = try HostAgentXPCWireHandshakeContract.decodeDocument(data)
-        guard Set(document.keys) == Set([
-            "schemaVersion", "messageType", "requestId",
-            "supportedWireVersions", "selectedWireVersion", "compatibility",
-            "agentBuildId", "hostInstanceId", "agentBootId",
-            "agentProcessId", "agentProcessStartIdentitySHA256",
-            "sentAtUnixMilliseconds",
-        ]),
-            document["messageType"] as? String == "handshakeResponse",
+        guard
+            Set(document.keys)
+                == Set([
+                    "schemaVersion", "messageType", "requestId", "supportedWireVersions",
+                    "selectedWireVersion", "compatibility", "agentBuildId", "hostInstanceId",
+                    "agentBootId", "agentProcessId", "agentProcessStartIdentitySHA256",
+                    "sentAtUnixMilliseconds",
+                ]), document["messageType"] as? String == "handshakeResponse",
             let requestID = document["requestId"] as? String,
-            let supportedWireVersions =
-                HostAgentXPCWireHandshakeContract.decodeVersions(
-                    document["supportedWireVersions"]
-                ),
+            let supportedWireVersions = HostAgentXPCWireHandshakeContract.decodeVersions(
+                document["supportedWireVersions"]),
             let compatibilityValue = document["compatibility"] as? String,
             let compatibility = HostAgentXPCWireHandshakeCompatibility(
-                rawValue: compatibilityValue
-            ),
+                rawValue: compatibilityValue),
             let agentBuildID = document["agentBuildId"] as? String,
             let hostInstanceID = document["hostInstanceId"] as? String,
             let agentBootID = document["agentBootId"] as? String,
             let agentProcessID = HostAgentXPCWireHandshakeContract.strictInt32(
-                document["agentProcessId"]
-            ),
-            let agentProcessStartIdentitySHA256 =
-                document["agentProcessStartIdentitySHA256"] as? String,
-            let sentAtUnixMilliseconds =
-                HostAgentXPCWireHandshakeContract.strictUInt64(
-                    document["sentAtUnixMilliseconds"]
-                )
-        else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
+                document["agentProcessId"]),
+            let agentProcessStartIdentitySHA256 = document["agentProcessStartIdentitySHA256"]
+                as? String,
+            let sentAtUnixMilliseconds = HostAgentXPCWireHandshakeContract.strictUInt64(
+                document["sentAtUnixMilliseconds"])
+        else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         _ = try HostAgentXPCWireHandshakeContract.decodeSchemaVersion(document)
 
         let selectedWireVersion: UInt64?
         if document["selectedWireVersion"] is NSNull {
             selectedWireVersion = nil
         } else {
-            guard let value = HostAgentXPCWireHandshakeContract.strictUInt64(
-                document["selectedWireVersion"]
-            ) else {
-                throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-            }
+            guard
+                let value = HostAgentXPCWireHandshakeContract.strictUInt64(
+                    document["selectedWireVersion"])
+            else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
             selectedWireVersion = value
         }
         return try Self(
-            requestID: requestID,
-            supportedWireVersions: supportedWireVersions,
-            selectedWireVersion: selectedWireVersion,
-            compatibility: compatibility,
-            agentBuildID: agentBuildID,
-            hostInstanceID: hostInstanceID,
-            agentBootID: agentBootID,
+            requestID: requestID, supportedWireVersions: supportedWireVersions,
+            selectedWireVersion: selectedWireVersion, compatibility: compatibility,
+            agentBuildID: agentBuildID, hostInstanceID: hostInstanceID, agentBootID: agentBootID,
             agentProcessID: agentProcessID,
-            agentProcessStartIdentitySHA256:
-                agentProcessStartIdentitySHA256,
-            sentAtUnixMilliseconds: sentAtUnixMilliseconds
-        )
+            agentProcessStartIdentitySHA256: agentProcessStartIdentitySHA256,
+            sentAtUnixMilliseconds: sentAtUnixMilliseconds)
     }
 
     package func encoded() throws -> Data {
         try HostAgentXPCWireHandshakeContract.encodeDocument([
-            "schemaVersion": schemaVersion,
-            "messageType": "handshakeResponse",
-            "requestId": requestID,
-            "supportedWireVersions": supportedWireVersions,
+            "schemaVersion": schemaVersion, "messageType": "handshakeResponse",
+            "requestId": requestID, "supportedWireVersions": supportedWireVersions,
             "selectedWireVersion": selectedWireVersion ?? NSNull(),
-            "compatibility": compatibility.rawValue,
-            "agentBuildId": agentBuildID,
-            "hostInstanceId": hostInstanceID,
-            "agentBootId": agentBootID,
+            "compatibility": compatibility.rawValue, "agentBuildId": agentBuildID,
+            "hostInstanceId": hostInstanceID, "agentBootId": agentBootID,
             "agentProcessId": agentProcessID,
-            "agentProcessStartIdentitySHA256":
-                agentProcessStartIdentitySHA256,
+            "agentProcessStartIdentitySHA256": agentProcessStartIdentitySHA256,
             "sentAtUnixMilliseconds": sentAtUnixMilliseconds,
         ])
     }
@@ -598,61 +404,43 @@ package struct HostAgentXPCWireHandshakeResponse: Equatable, Sendable {
 
 package enum HostAgentXPCWireHandshakeNegotiator {
     package static func makeResponse(
-        for request: HostAgentXPCWireHandshakeRequest,
-        identity: HostAgentXPCWireAgentIdentity,
+        for request: HostAgentXPCWireHandshakeRequest, identity: HostAgentXPCWireAgentIdentity,
         sentAtUnixMilliseconds: UInt64
     ) throws -> HostAgentXPCWireHandshakeResponse {
-        let agentSupportedWireVersions =
-            HostAgentXPCWireHandshakeContract.supportedWireVersions
+        let agentSupportedWireVersions = HostAgentXPCWireHandshakeContract.supportedWireVersions
         let selectedWireVersion = highestCommonVersion(
-            request.supportedWireVersions,
-            agentSupportedWireVersions
-        )
+            request.supportedWireVersions, agentSupportedWireVersions)
         return try HostAgentXPCWireHandshakeResponse(
-            requestID: request.requestID,
-            supportedWireVersions: agentSupportedWireVersions,
+            requestID: request.requestID, supportedWireVersions: agentSupportedWireVersions,
             selectedWireVersion: selectedWireVersion,
-            compatibility: selectedWireVersion == nil
-                ? .incompatible : .compatible,
-            agentBuildID: identity.agentBuildID,
-            hostInstanceID: identity.hostInstanceID,
-            agentBootID: identity.agentBootID,
-            agentProcessID: identity.agentProcessID,
-            agentProcessStartIdentitySHA256:
-                identity.agentProcessStartIdentitySHA256,
-            sentAtUnixMilliseconds: sentAtUnixMilliseconds
-        )
+            compatibility: selectedWireVersion == nil ? .incompatible : .compatible,
+            agentBuildID: identity.agentBuildID, hostInstanceID: identity.hostInstanceID,
+            agentBootID: identity.agentBootID, agentProcessID: identity.agentProcessID,
+            agentProcessStartIdentitySHA256: identity.agentProcessStartIdentitySHA256,
+            sentAtUnixMilliseconds: sentAtUnixMilliseconds)
     }
 
     package static func evaluate(
-        _ response: HostAgentXPCWireHandshakeResponse,
-        for request: HostAgentXPCWireHandshakeRequest
+        _ response: HostAgentXPCWireHandshakeResponse, for request: HostAgentXPCWireHandshakeRequest
     ) -> HostAgentXPCWireHandshakeEvaluation {
-        guard response.requestID == request.requestID else {
-            return .invalidResponse
-        }
+        guard response.requestID == request.requestID else { return .invalidResponse }
         let expectedVersion = highestCommonVersion(
-            request.supportedWireVersions,
-            response.supportedWireVersions
-        )
+            request.supportedWireVersions, response.supportedWireVersions)
         switch response.compatibility {
         case .compatible:
             guard let selectedWireVersion = response.selectedWireVersion,
-                  selectedWireVersion == expectedVersion
+                selectedWireVersion == expectedVersion
             else { return .invalidResponse }
             return .compatible(selectedWireVersion: selectedWireVersion)
         case .incompatible:
-            guard response.selectedWireVersion == nil,
-                  expectedVersion == nil
-            else { return .invalidResponse }
+            guard response.selectedWireVersion == nil, expectedVersion == nil else {
+                return .invalidResponse
+            }
             return .incompatible
         }
     }
 
-    private static func highestCommonVersion(
-        _ lhs: [UInt64],
-        _ rhs: [UInt64]
-    ) -> UInt64? {
+    private static func highestCommonVersion(_ lhs: [UInt64], _ rhs: [UInt64]) -> UInt64? {
         let available = Set(rhs)
         return lhs.reversed().first { available.contains($0) }
     }
