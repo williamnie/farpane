@@ -24,8 +24,8 @@ public enum ProductWindowTransitionPolicy {
 }
 
 public enum ProductWindowClosePolicy {
-    /// A live Viewer owns the only visible session surface. Accidental window
-    /// close shortcuts must not hide it or make the session appear disconnected.
+    /// Viewer 关闭操作由调用方处理断开并返回首页，因此保留产品窗口。
+    /// 首页没有 Viewer 会话时才允许 AppKit 直接关闭窗口。
     public static func shouldAllowClose(viewerSessionActive: Bool) -> Bool {
         !viewerSessionActive
     }
