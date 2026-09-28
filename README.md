@@ -167,7 +167,7 @@ Scripts/run-productization-acceptance-mbp.sh
 
 ### 发布
 
-向 `v*` tag 推送后，[GitHub Release workflow](.github/workflows/release.yml) 会重新执行测试并创建 prerelease。签名 macOS 二进制由受信任的 macOS 构建机生成并上传；Developer ID notarization 接入前，Release 页面会明确标记预览属性。
+普通分支推送和 PR 不触发 GitHub Actions。只有推送 `v*` tag，或手动运行 [GitHub Release workflow](.github/workflows/release.yml) 并指定已有的 `v*` tag，才会执行测试、构建并创建 prerelease。签名 macOS 二进制由受信任的 macOS 构建机生成并上传；Developer ID notarization 接入前，Release 页面会明确标记预览属性。
 
 ### 许可证
 
@@ -320,7 +320,7 @@ See [`docs/benchmark-results.md`](docs/benchmark-results.md) for current results
 
 ### Releases
 
-Pushing a `v*` tag runs the [GitHub Release workflow](.github/workflows/release.yml), repeats the test gates, and creates a prerelease. Signed macOS binaries are produced and uploaded from a trusted macOS signing host. Until Developer ID notarization is wired in, the Releases page explicitly identifies these binaries as previews.
+Branch pushes and pull requests do not trigger GitHub Actions. Only pushing a `v*` tag or manually running the [GitHub Release workflow](.github/workflows/release.yml) with an existing `v*` tag runs the tests, builds the viewer, and creates a prerelease. Signed macOS binaries are produced and uploaded from a trusted macOS signing host. Until Developer ID notarization is wired in, the Releases page explicitly identifies these binaries as previews.
 
 ### License
 
