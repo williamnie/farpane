@@ -7,11 +7,10 @@ import XCTest
 
 final class HostVideoEncoderCompatibilityTests: XCTestCase {
     func testInvalidConfigurationPreservesEachCodecErrorType() {
-        let configuration = HostVideoEncoderConfiguration(
-            width: 0, height: 128, framesPerSecond: 30, averageBitRate: 500_000)
         XCTAssertThrowsError(
             try HostH264Encoder(
-                configuration: configuration,
+                configuration: .init(
+                    width: 0, height: 128, framesPerSecond: 30, averageBitRate: 500_000),
                 sourcePixelFormat: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
                 onAccessUnit: { _ in }, onState: { _ in }, onError: { _ in })
         ) {
@@ -21,7 +20,8 @@ final class HostVideoEncoderCompatibilityTests: XCTestCase {
         }
         XCTAssertThrowsError(
             try HostHEVCEncoder(
-                configuration: configuration,
+                configuration: .init(
+                    width: 0, height: 128, framesPerSecond: 30, averageBitRate: 500_000),
                 sourcePixelFormat: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
                 onAccessUnit: { _ in }, onState: { _ in }, onError: { _ in })
         ) {
@@ -34,14 +34,14 @@ final class HostVideoEncoderCompatibilityTests: XCTestCase {
     func testInvalidatedSessionPreservesEachCodecErrorType() throws {
         guard HostH264Encoder.hardwareEncodingSupported, HostHEVCEncoder.hardwareEncodingSupported
         else { throw XCTSkip("Hardware encoders unavailable") }
-        let configuration = HostVideoEncoderConfiguration(
-            width: 128, height: 128, framesPerSecond: 30, averageBitRate: 500_000)
         let h264 = try HostH264Encoder(
-            configuration: configuration,
+            configuration: .init(
+                width: 128, height: 128, framesPerSecond: 30, averageBitRate: 500_000),
             sourcePixelFormat: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
             onAccessUnit: { _ in }, onState: { _ in }, onError: { _ in })
         let hevc = try HostHEVCEncoder(
-            configuration: configuration,
+            configuration: .init(
+                width: 128, height: 128, framesPerSecond: 30, averageBitRate: 500_000),
             sourcePixelFormat: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
             onAccessUnit: { _ in }, onState: { _ in }, onError: { _ in })
         var buffer: CVPixelBuffer?
@@ -70,4 +70,29 @@ final class HostVideoEncoderCompatibilityTests: XCTestCase {
             }
         }
     }
+
+    func testPublicCodecTypesRemainDistinctForOverloadResolution() {
+        let h264 = HostH264EncoderConfiguration(
+            width: 128, height: 128, framesPerSecond: 30, averageBitRate: 500_000)
+        let hevc = HostHEVCEncoderConfiguration(
+            width: 128, height: 128, framesPerSecond: 30, averageBitRate: 500_000)
+        XCTAssertEqual(codecName(h264), "h264")
+        XCTAssertEqual(codecName(hevc), "hevc")
+        XCTAssertEqual(
+            codecName(
+                HostH264AccessUnit(
+                    data: Data(), presentationTimeUS: 0, isKeyframe: false, hasParameterSets: false,
+                    logicalRawFrameCopyCount: 0)), "h264")
+        XCTAssertEqual(
+            codecName(
+                HostHEVCAccessUnit(
+                    data: Data(), presentationTimeUS: 0, isKeyframe: false, hasParameterSets: false,
+                    logicalRawFrameCopyCount: 0)), "hevc")
+    }
+
+    // 若再次合并公开类型，这些原本合法的重载会直接导致编译失败。
+    private func codecName(_ configuration: HostH264EncoderConfiguration) -> String { "h264" }
+    private func codecName(_ configuration: HostHEVCEncoderConfiguration) -> String { "hevc" }
+    private func codecName(_ unit: HostH264AccessUnit) -> String { "h264" }
+    private func codecName(_ unit: HostHEVCAccessUnit) -> String { "hevc" }
 }
