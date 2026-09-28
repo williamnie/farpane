@@ -82,7 +82,7 @@ final class HostApplicationLifecyclePolicyTests: XCTestCase {
         )
     }
 
-    func testWindowCloseIsBlockedOnlyWhileViewerSessionIsActive() {
+    func testViewerDisconnectPreservesWindowWhileHomeCanClose() {
         XCTAssertFalse(
             ProductWindowClosePolicy.shouldAllowClose(
                 viewerSessionActive: true

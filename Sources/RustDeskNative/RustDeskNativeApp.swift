@@ -795,9 +795,22 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        ProductWindowClosePolicy.shouldAllowClose(
+        guard sender === window else { return true }
+        guard ProductWindowClosePolicy.shouldAllowClose(
             viewerSessionActive: viewerChrome != nil
-        )
+        ) else {
+            disconnectViewer()
+            return false
+        }
+        return true
+    }
+
+    private func disconnectViewer() {
+        if automatedRun {
+            NSApplication.shared.terminate(nil)
+        } else {
+            showHomeUI()
+        }
     }
 
     func applicationShouldHandleReopen(
@@ -4887,9 +4900,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             _ = self?.selectViewerDisplay(displayIndex: displayIndex)
         }
         chrome.onDisconnect = { [weak self] in
-            guard let self else { return }
-            if self.automatedRun { NSApplication.shared.terminate(nil) }
-            else { self.showHomeUI() }
+            self?.disconnectViewer()
         }
 
         if let fixture {
