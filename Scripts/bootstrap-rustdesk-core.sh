@@ -350,9 +350,7 @@ fi
 
 # Both native bridges are wholly owned by this repository; tracked sources are
 # authoritative and always synced into the generated vendor checkout.
-cp "$bridge_source" "$vendor_dir/src/rdn_bridge.rs"
-cp "$host_bridge_source" "$vendor_dir/src/rdn_host_bridge.rs"
-cp "$host_file_transfer_source" "$vendor_dir/src/rdn_host_file_transfer.rs"
+python3 "$repo_dir/Scripts/sync-rustdesk-bridge.py"
 
 git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_patch_file"

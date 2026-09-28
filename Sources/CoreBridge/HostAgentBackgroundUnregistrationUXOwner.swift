@@ -1,28 +1,19 @@
 import Foundation
 
-package enum HostAgentBackgroundUnregistrationUXIntent:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundUnregistrationUXIntent: Equatable, Sendable {
     case requestBackgroundUnregistration
     case confirmBackgroundUnregistration
     case cancelBackgroundUnregistration
 }
 
-package struct HostAgentBackgroundUnregistrationUXPrompt:
-    Equatable,
-    Sendable
-{
+package struct HostAgentBackgroundUnregistrationUXPrompt: Equatable, Sendable {
     package let title: String
     package let message: String
     package let confirmButtonTitle: String
     package let cancelButtonTitle: String
 
     fileprivate init(
-        title: String,
-        message: String,
-        confirmButtonTitle: String,
-        cancelButtonTitle: String
+        title: String, message: String, confirmButtonTitle: String, cancelButtonTitle: String
     ) {
         self.title = title
         self.message = message
@@ -31,19 +22,13 @@ package struct HostAgentBackgroundUnregistrationUXPrompt:
     }
 }
 
-package enum HostAgentBackgroundUnregistrationUXFailure:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundUnregistrationUXFailure: Equatable, Sendable {
     case mutation(HostAgentBackgroundRegistrationMutationFailure)
     case invalidMutationResult
     case generationExhausted
 }
 
-package enum HostAgentBackgroundUnregistrationUXPhase:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundUnregistrationUXPhase: Equatable, Sendable {
     case idle
     case awaitingConfirmation(HostAgentBackgroundUnregistrationUXPrompt)
     case unregistering
@@ -52,17 +37,13 @@ package enum HostAgentBackgroundUnregistrationUXPhase:
     case failed(HostAgentBackgroundUnregistrationUXFailure)
 }
 
-package struct HostAgentBackgroundUnregistrationUXView:
-    Equatable,
-    Sendable
-{
+package struct HostAgentBackgroundUnregistrationUXView: Equatable, Sendable {
     package let generation: UInt64
     package let phase: HostAgentBackgroundUnregistrationUXPhase
     package let registration: HostAgentBackgroundRegistrationStatus?
 
     package init(
-        generation: UInt64,
-        phase: HostAgentBackgroundUnregistrationUXPhase,
+        generation: UInt64, phase: HostAgentBackgroundUnregistrationUXPhase,
         registration: HostAgentBackgroundRegistrationStatus?
     ) {
         self.generation = generation
@@ -75,23 +56,14 @@ package struct HostAgentBackgroundUnregistrationUXView:
 /// unregistering the background Agent. The caller must supply the same
 /// mutation authority used for registration so opposing operations cannot
 /// reach ServiceManagement concurrently through separate owners.
-package final class HostAgentBackgroundUnregistrationUXOwner:
-    @unchecked Sendable
-{
-    package typealias UnregistrationOperation = @Sendable () -> (
-        Bool,
-        HostAgentBackgroundRegistrationMutationView
-    )
-    package typealias Observer = @Sendable
-        (HostAgentBackgroundUnregistrationUXView) -> Void
+package final class HostAgentBackgroundUnregistrationUXOwner: @unchecked Sendable {
+    package typealias UnregistrationOperation =
+        @Sendable () -> (Bool, HostAgentBackgroundRegistrationMutationView)
+    package typealias Observer = @Sendable (HostAgentBackgroundUnregistrationUXView) -> Void
 
-    private static let confirmationPrompt =
-        HostAgentBackgroundUnregistrationUXPrompt(
-            title: "关闭后台连接？",
-            message: "关闭后，FarPane 将停止后台组件并不再接受新的远程连接。设备身份和服务器配置会保留，之后可以重新启用。",
-            confirmButtonTitle: "关闭后台连接",
-            cancelButtonTitle: "取消"
-        )
+    private static let confirmationPrompt = HostAgentBackgroundUnregistrationUXPrompt(
+        title: "关闭后台连接？", message: "关闭后，FarPane 将停止后台组件并不再接受新的远程连接。设备身份和服务器配置会保留，之后可以重新启用。",
+        confirmButtonTitle: "关闭后台连接", cancelButtonTitle: "取消")
 
     private let stateLock = NSLock()
     private let deliveryLock = NSRecursiveLock()
@@ -99,10 +71,7 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
     private let observer: Observer
     private var transitionInFlight = false
     private var view = HostAgentBackgroundUnregistrationUXView(
-        generation: 0,
-        phase: .idle,
-        registration: nil
-    )
+        generation: 0, phase: .idle, registration: nil)
 
     package static func makeProduct(
         mutationOwner: HostAgentBackgroundRegistrationMutationOwner,
@@ -110,13 +79,9 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
     ) -> HostAgentBackgroundUnregistrationUXOwner {
         HostAgentBackgroundUnregistrationUXOwner(
             performUnregistration: {
-                let accepted = mutationOwner.apply(
-                    .unregisterBackgroundAgent
-                )
+                let accepted = mutationOwner.apply(.unregisterBackgroundAgent)
                 return (accepted, mutationOwner.snapshot())
-            },
-            observer: observer
-        )
+            }, observer: observer)
     }
 
     package init(
@@ -133,17 +98,13 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
         return view
     }
 
-    @discardableResult
-    package func apply(
-        _ intent: HostAgentBackgroundUnregistrationUXIntent
-    ) -> Bool {
+    @discardableResult package func apply(_ intent: HostAgentBackgroundUnregistrationUXIntent)
+        -> Bool
+    {
         switch intent {
-        case .requestBackgroundUnregistration:
-            return requestUnregistration()
-        case .confirmBackgroundUnregistration:
-            return confirmUnregistration()
-        case .cancelBackgroundUnregistration:
-            return cancelUnregistration()
+        case .requestBackgroundUnregistration: return requestUnregistration()
+        case .confirmBackgroundUnregistration: return confirmUnregistration()
+        case .cancelBackgroundUnregistration: return cancelUnregistration()
         }
     }
 
@@ -151,15 +112,10 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
         transition(
             allowed: { phase in
                 switch phase {
-                case .idle, .unregistered, .cancelled, .failed:
-                    return true
-                case .awaitingConfirmation, .unregistering:
-                    return false
+                case .idle, .unregistered, .cancelled, .failed: return true
+                case .awaitingConfirmation, .unregistering: return false
                 }
-            },
-            phase: .awaitingConfirmation(Self.confirmationPrompt),
-            registration: nil
-        )
+            }, phase: .awaitingConfirmation(Self.confirmationPrompt), registration: nil)
     }
 
     private func cancelUnregistration() -> Bool {
@@ -167,10 +123,7 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
             allowed: { phase in
                 if case .awaitingConfirmation = phase { return true }
                 return false
-            },
-            phase: .cancelled,
-            registration: currentRegistration()
-        )
+            }, phase: .cancelled, registration: currentRegistration())
     }
 
     private func confirmUnregistration() -> Bool {
@@ -178,10 +131,7 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
         let (accepted, mutation) = performUnregistration()
         let resolution = resolve(accepted: accepted, mutation: mutation)
         return finishOperation(
-            phase: resolution.phase,
-            registration: mutation.registration,
-            result: resolution.result
-        )
+            phase: resolution.phase, registration: mutation.registration, result: resolution.result)
     }
 
     private func transition(
@@ -191,10 +141,7 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
     ) -> Bool {
         deliveryLock.lock()
         stateLock.lock()
-        guard !transitionInFlight,
-              view.generation < UInt64.max,
-              allowed(view.phase)
-        else {
+        guard !transitionInFlight, view.generation < UInt64.max, allowed(view.phase) else {
             stateLock.unlock()
             deliveryLock.unlock()
             return false
@@ -214,19 +161,15 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
     private func beginOperation() -> Bool {
         deliveryLock.lock()
         stateLock.lock()
-        guard !transitionInFlight,
-              view.generation < UInt64.max,
-              case .awaitingConfirmation = view.phase
+        guard !transitionInFlight, view.generation < UInt64.max,
+            case .awaitingConfirmation = view.phase
         else {
             stateLock.unlock()
             deliveryLock.unlock()
             return false
         }
         transitionInFlight = true
-        replaceViewLocked(
-            phase: .unregistering,
-            registration: view.registration
-        )
+        replaceViewLocked(phase: .unregistering, registration: view.registration)
         let publication = view
         stateLock.unlock()
         observer(publication)
@@ -236,8 +179,7 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
 
     private func finishOperation(
         phase: HostAgentBackgroundUnregistrationUXPhase,
-        registration: HostAgentBackgroundRegistrationStatus?,
-        result: Bool
+        registration: HostAgentBackgroundRegistrationStatus?, result: Bool
     ) -> Bool {
         deliveryLock.lock()
         stateLock.lock()
@@ -249,10 +191,7 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
 
         let finalResult: Bool
         if view.generation == UInt64.max {
-            replaceViewLocked(
-                phase: .failed(.generationExhausted),
-                registration: registration
-            )
+            replaceViewLocked(phase: .failed(.generationExhausted), registration: registration)
             finalResult = false
         } else {
             replaceViewLocked(phase: phase, registration: registration)
@@ -268,19 +207,17 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
         return finalResult
     }
 
-    private func resolve(
-        accepted: Bool,
-        mutation: HostAgentBackgroundRegistrationMutationView
-    ) -> (phase: HostAgentBackgroundUnregistrationUXPhase, result: Bool) {
+    private func resolve(accepted: Bool, mutation: HostAgentBackgroundRegistrationMutationView) -> (
+        phase: HostAgentBackgroundUnregistrationUXPhase, result: Bool
+    ) {
         switch mutation.phase {
-        case .unregistered
-            where accepted && mutation.registration == .notRegistered:
+        case .unregistered where accepted && mutation.registration == .notRegistered:
             return (.unregistered, true)
         case .failed(let intent, let failure)
-            where !accepted && intent == .unregisterBackgroundAgent:
+        where !accepted && intent == .unregisterBackgroundAgent:
             return (.failed(.mutation(failure)), false)
-        case .idle, .registering, .unregistering, .registered,
-             .requiresApproval, .unregistered, .failed:
+        case .idle, .registering, .unregistering, .registered, .requiresApproval, .unregistered,
+            .failed:
             return (.failed(.invalidMutationResult), false)
         }
     }
@@ -290,17 +227,11 @@ package final class HostAgentBackgroundUnregistrationUXOwner:
         registration: HostAgentBackgroundRegistrationStatus?
     ) {
         view = HostAgentBackgroundUnregistrationUXView(
-            generation: view.generation == UInt64.max
-                ? UInt64.max
-                : view.generation + 1,
-            phase: phase,
-            registration: registration
-        )
+            generation: view.generation == UInt64.max ? UInt64.max : view.generation + 1,
+            phase: phase, registration: registration)
     }
 
-    private func currentRegistration()
-        -> HostAgentBackgroundRegistrationStatus?
-    {
+    private func currentRegistration() -> HostAgentBackgroundRegistrationStatus? {
         stateLock.lock()
         defer { stateLock.unlock() }
         return view.registration

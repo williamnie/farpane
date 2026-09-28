@@ -1,6 +1,7 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostMicrophoneAuthorizationOwnerTests: XCTestCase {
     func testOnlyNotDeterminedStatusAdmitsOneRequest() {
@@ -9,17 +10,11 @@ final class HostMicrophoneAuthorizationOwnerTests: XCTestCase {
         let completions = ResultBox<[HostMicrophoneAuthorizationStatus]>([])
 
         XCTAssertEqual(
-            owner.requestAuthorization { status in
-                completions.mutate { $0.append(status) }
-            },
-            .admitted
-        )
+            owner.requestAuthorization { status in completions.mutate { $0.append(status) } },
+            .admitted)
         XCTAssertTrue(owner.isRequestPending())
         XCTAssertEqual(
-            owner.requestAuthorization { status in
-                completions.mutate { $0.append(status) }
-            },
-            .busy
+            owner.requestAuthorization { status in completions.mutate { $0.append(status) } }, .busy
         )
         XCTAssertEqual(state.requestCount, 1)
 
@@ -34,10 +29,7 @@ final class HostMicrophoneAuthorizationOwnerTests: XCTestCase {
         let owner = makeOwner(state)
         let completion = ResultBox<HostMicrophoneAuthorizationStatus?>(nil)
 
-        XCTAssertEqual(
-            owner.requestAuthorization { completion.value = $0 },
-            .admitted
-        )
+        XCTAssertEqual(owner.requestAuthorization { completion.value = $0 }, .admitted)
         state.status = .denied
         state.complete(granted: true)
 
@@ -50,9 +42,7 @@ final class HostMicrophoneAuthorizationOwnerTests: XCTestCase {
             (
                 HostMicrophoneAuthorizationStatus.authorized,
                 HostMicrophoneAuthorizationRequestResult.alreadyAuthorized
-            ),
-            (.denied, .unavailable(.denied)),
-            (.restricted, .unavailable(.restricted)),
+            ), (.denied, .unavailable(.denied)), (.restricted, .unavailable(.restricted)),
         ] {
             let state = State(status)
             let owner = makeOwner(state)
@@ -62,17 +52,11 @@ final class HostMicrophoneAuthorizationOwnerTests: XCTestCase {
         }
     }
 
-    private func makeOwner(_ state: State)
-        -> HostMicrophoneAuthorizationOwner
-    {
+    private func makeOwner(_ state: State) -> HostMicrophoneAuthorizationOwner {
         HostMicrophoneAuthorizationOwner(
             operations: HostMicrophoneAuthorizationOperations(
                 observe: { state.status },
-                requestAccess: { completion in
-                    state.register(completion)
-                }
-            )
-        )
+                requestAccess: { completion in state.register(completion) }))
     }
 }
 
@@ -82,9 +66,7 @@ private final class State: @unchecked Sendable {
     private var completion: (@Sendable (Bool) -> Void)?
     private var storedRequestCount = 0
 
-    init(_ status: HostMicrophoneAuthorizationStatus) {
-        storedStatus = status
-    }
+    init(_ status: HostMicrophoneAuthorizationStatus) { storedStatus = status }
 
     var status: HostMicrophoneAuthorizationStatus {
         get {
@@ -125,9 +107,7 @@ private final class ResultBox<Value>: @unchecked Sendable {
     private let lock = NSLock()
     private var storedValue: Value
 
-    init(_ value: Value) {
-        storedValue = value
-    }
+    init(_ value: Value) { storedValue = value }
 
     var value: Value {
         get {

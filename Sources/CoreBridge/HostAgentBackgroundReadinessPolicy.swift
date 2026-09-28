@@ -54,10 +54,8 @@ package struct HostAgentBackgroundComponentHealth: Equatable, Sendable {
 
     package init(
         registration: HostAgentBackgroundRegistrationStatus,
-        handshake: HostAgentBackgroundHandshakeStatus,
-        snapshot: HostAgentBackgroundSnapshotStatus,
-        session: HostAgentBackgroundSessionStatus,
-        rendezvous: HostAgentBackgroundRendezvousStatus
+        handshake: HostAgentBackgroundHandshakeStatus, snapshot: HostAgentBackgroundSnapshotStatus,
+        session: HostAgentBackgroundSessionStatus, rendezvous: HostAgentBackgroundRendezvousStatus
     ) {
         self.registration = registration
         self.handshake = handshake
@@ -67,44 +65,31 @@ package struct HostAgentBackgroundComponentHealth: Equatable, Sendable {
     }
 
     package var availability: HostAgentBackgroundAvailability {
-        guard (snapshot == .unavailable && session == .unavailable)
+        guard
+            (snapshot == .unavailable && session == .unavailable)
                 || (snapshot == .available && session != .unavailable)
         else { return .runtimeEvidenceInvalid }
 
         switch registration {
-        case .notRegistered:
-            return .notRegistered
-        case .requiresApproval:
-            return .requiresApproval
-        case .serviceUnavailable:
-            return .serviceUnavailable
-        case .enabled:
-            break
+        case .notRegistered: return .notRegistered
+        case .requiresApproval: return .requiresApproval
+        case .serviceUnavailable: return .serviceUnavailable
+        case .enabled: break
         }
 
         switch handshake {
-        case .disconnected:
-            return .waitingForHandshake
-        case .incompatible:
-            return .incompatible
-        case .compatible:
-            break
+        case .disconnected: return .waitingForHandshake
+        case .incompatible: return .incompatible
+        case .compatible: break
         }
 
-        guard snapshot == .available else {
-            return .waitingForSnapshot
-        }
+        guard snapshot == .available else { return .waitingForSnapshot }
         switch session {
-        case .unavailable:
-            return .runtimeEvidenceInvalid
-        case .limitedSessionUnavailable:
-            return .sessionUnavailable
-        case .available:
-            break
+        case .unavailable: return .runtimeEvidenceInvalid
+        case .limitedSessionUnavailable: return .sessionUnavailable
+        case .available: break
         }
-        guard rendezvous == .registered else {
-            return .rendezvousUnavailable
-        }
+        guard rendezvous == .registered else { return .rendezvousUnavailable }
         return .ready
     }
 

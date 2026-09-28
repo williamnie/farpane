@@ -3,19 +3,12 @@ import Foundation
 package protocol HostAgentXPCEventPollingClient: AnyObject, Sendable {
     func stateSnapshot() -> HostAgentXPCSnapshotClientState
     func fetchEvents(
-        completion: @escaping @Sendable
-            (HostAgentXPCSnapshotClientEventResult) -> Void
-    )
+        completion: @escaping @Sendable (HostAgentXPCSnapshotClientEventResult) -> Void)
 }
 
 extension HostAgentXPCSnapshotClient: HostAgentXPCEventPollingClient {}
 
-package protocol HostAgentXPCEventPollingScheduledTask:
-    AnyObject,
-    Sendable
-{
-    func cancel()
-}
+package protocol HostAgentXPCEventPollingScheduledTask: AnyObject, Sendable { func cancel() }
 
 package enum HostAgentXPCEventPollingOwnerState: Equatable, Sendable {
     case idle
@@ -30,12 +23,10 @@ package enum HostAgentXPCEventPollingOwnerState: Equatable, Sendable {
 /// Single-start App-side event polling authority. It serializes one bounded
 /// client fetch at a time and owns every delayed retry until terminal cancel.
 package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
-    package typealias Scheduler = @Sendable (
-        _ delayMilliseconds: UInt64,
-        _ action: @escaping @Sendable () -> Void
-    ) -> HostAgentXPCEventPollingScheduledTask
-    package typealias ResultObserver = @Sendable
-        (HostAgentXPCSnapshotClientEventResult) -> Void
+    package typealias Scheduler =
+        @Sendable (_ delayMilliseconds: UInt64, _ action: @escaping @Sendable () -> Void) ->
+        HostAgentXPCEventPollingScheduledTask
+    package typealias ResultObserver = @Sendable (HostAgentXPCSnapshotClientEventResult) -> Void
     package typealias PauseCompletion = @Sendable (Bool) -> Void
 
     package static let catchUpDelayMilliseconds: UInt64 = 100
@@ -54,40 +45,26 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
     package static func makeProduct(
         client: HostAgentXPCSnapshotClient,
         queue: DispatchQueue = DispatchQueue(
-            label: "io.farpane.host-agent.xpc-event-poll",
-            qos: .utility
-        ),
-        onResult: @escaping ResultObserver,
-        onTerminal: @escaping ResultObserver
+            label: "io.farpane.host-agent.xpc-event-poll", qos: .utility),
+        onResult: @escaping ResultObserver, onTerminal: @escaping ResultObserver
     ) -> HostAgentXPCEventPollingOwner {
         HostAgentXPCEventPollingOwner(
-            client: client,
-            schedule: productScheduler(queue: queue),
-            onResult: onResult,
-            onTerminal: onTerminal
-        )
+            client: client, schedule: productScheduler(queue: queue), onResult: onResult,
+            onTerminal: onTerminal)
     }
 
-    package static func productScheduler(
-        queue: DispatchQueue
-    ) -> Scheduler {
+    package static func productScheduler(queue: DispatchQueue) -> Scheduler {
         { delayMilliseconds, action in
             let workItem = DispatchWorkItem(block: action)
             queue.asyncAfter(
-                deadline: .now() + .milliseconds(Int(delayMilliseconds)),
-                execute: workItem
-            )
-            return HostAgentXPCEventPollingDispatchTask(
-                workItem: workItem
-            )
+                deadline: .now() + .milliseconds(Int(delayMilliseconds)), execute: workItem)
+            return HostAgentXPCEventPollingDispatchTask(workItem: workItem)
         }
     }
 
     package init(
-        client: HostAgentXPCEventPollingClient,
-        schedule: @escaping Scheduler,
-        onResult: @escaping ResultObserver,
-        onTerminal: @escaping ResultObserver
+        client: HostAgentXPCEventPollingClient, schedule: @escaping Scheduler,
+        onResult: @escaping ResultObserver, onTerminal: @escaping ResultObserver
     ) {
         self.client = client
         self.schedule = schedule
@@ -95,9 +72,7 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
         self.onTerminal = onTerminal
     }
 
-    deinit {
-        cancel()
-    }
+    deinit { cancel() }
 
     package func stateSnapshot() -> HostAgentXPCEventPollingOwnerState {
         lock.lock()
@@ -105,8 +80,7 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
         return state
     }
 
-    @discardableResult
-    package func start() -> Bool {
+    @discardableResult package func start() -> Bool {
         guard case .ready = client.stateSnapshot() else { return false }
 
         lock.lock()
@@ -123,21 +97,14 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
         return true
     }
 
-    package func cancel() {
-        terminate(state: .cancelled, terminalResult: nil)
-    }
+    package func cancel() { terminate(state: .cancelled, terminalResult: nil) }
 
-    package func connectionDidEnd() {
-        terminate(state: .failed, terminalResult: .disconnected)
-    }
+    package func connectionDidEnd() { terminate(state: .failed, terminalResult: .disconnected) }
 
     /// Stops scheduling new event selectors. If a fetch is already in flight,
     /// its accepted result is delivered first and the completion runs only
     /// after the client has returned to ready.
-    @discardableResult
-    package func pause(
-        completion: @escaping PauseCompletion
-    ) -> Bool {
+    @discardableResult package func pause(completion: @escaping PauseCompletion) -> Bool {
         lock.lock()
         switch state {
         case .scheduled:
@@ -162,8 +129,7 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
 
     /// Resumes only from an acknowledged pause. The caller owns the delay so
     /// command acceptance can leave a bounded post-reply settling window.
-    @discardableResult
-    package func resume(delayMilliseconds: UInt64) -> Bool {
+    @discardableResult package func resume(delayMilliseconds: UInt64) -> Bool {
         guard case .ready = client.stateSnapshot() else { return false }
 
         lock.lock()
@@ -176,26 +142,17 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
         state = .scheduled
         lock.unlock()
 
-        installSchedule(
-            delayMilliseconds: delayMilliseconds,
-            generation: generation
-        )
+        installSchedule(delayMilliseconds: delayMilliseconds, generation: generation)
         return true
     }
 
-    private func installSchedule(
-        delayMilliseconds: UInt64,
-        generation: UInt64
-    ) {
+    private func installSchedule(delayMilliseconds: UInt64, generation: UInt64) {
         let task = schedule(delayMilliseconds) { [weak self] in
             self?.scheduledFetchDidFire(generation: generation)
         }
 
         lock.lock()
-        guard state == .scheduled,
-              self.generation == generation,
-              scheduledTask == nil
-        else {
+        guard state == .scheduled, self.generation == generation, scheduledTask == nil else {
             lock.unlock()
             task.cancel()
             return
@@ -220,8 +177,7 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
     }
 
     private func fetchDidComplete(
-        _ result: HostAgentXPCSnapshotClientEventResult,
-        generation: UInt64
+        _ result: HostAgentXPCSnapshotClientEventResult, generation: UInt64
     ) {
         lock.lock()
         let isCompletable = state == .fetching || state == .pausing
@@ -235,43 +191,27 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
         switch result {
         case .events(let response):
             switch response.outcome {
-            case .upToDate:
-                nextDelay = Self.idleDelayMilliseconds
+            case .upToDate: nextDelay = Self.idleDelayMilliseconds
             case .batch:
-                nextDelay = response.hasMore
-                    ? Self.catchUpDelayMilliseconds
-                    : Self.idleDelayMilliseconds
+                nextDelay =
+                    response.hasMore ? Self.catchUpDelayMilliseconds : Self.idleDelayMilliseconds
             case .gap, .invalidCursor, .resnapshotRequired:
                 terminate(
-                    state: .failed,
-                    terminalResult: .invalidResponse,
-                    expectedGeneration: generation
+                    state: .failed, terminalResult: .invalidResponse, expectedGeneration: generation
                 )
                 return
             }
-        case .resynchronized:
-            nextDelay = Self.catchUpDelayMilliseconds
-        case .invalidResponse, .disconnected, .timedOut, .cancelled,
-             .invalidState:
-            terminate(
-                state: .failed,
-                terminalResult: result,
-                expectedGeneration: generation
-            )
+        case .resynchronized: nextDelay = Self.catchUpDelayMilliseconds
+        case .invalidResponse, .disconnected, .timedOut, .cancelled, .invalidState:
+            terminate(state: .failed, terminalResult: result, expectedGeneration: generation)
             return
         }
 
         onResult(result)
-        finishSuccessfulFetch(
-            delayMilliseconds: nextDelay,
-            generation: generation
-        )
+        finishSuccessfulFetch(delayMilliseconds: nextDelay, generation: generation)
     }
 
-    private func finishSuccessfulFetch(
-        delayMilliseconds: UInt64,
-        generation: UInt64
-    ) {
+    private func finishSuccessfulFetch(delayMilliseconds: UInt64, generation: UInt64) {
         lock.lock()
         guard self.generation == generation else {
             lock.unlock()
@@ -291,27 +231,18 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
         }
         state = .scheduled
         lock.unlock()
-        installSchedule(
-            delayMilliseconds: delayMilliseconds,
-            generation: generation
-        )
+        installSchedule(delayMilliseconds: delayMilliseconds, generation: generation)
     }
 
     private func terminate(
         state terminalState: HostAgentXPCEventPollingOwnerState,
-        terminalResult: HostAgentXPCSnapshotClientEventResult?,
-        expectedGeneration: UInt64? = nil
+        terminalResult: HostAgentXPCSnapshotClientEventResult?, expectedGeneration: UInt64? = nil
     ) {
         lock.lock()
-        let isTerminable = state == .idle
-            || state == .scheduled
-            || state == .fetching
-            || state == .pausing
+        let isTerminable =
+            state == .idle || state == .scheduled || state == .fetching || state == .pausing
             || state == .paused
-        guard isTerminable,
-              expectedGeneration == nil
-                || expectedGeneration == generation
-        else {
+        guard isTerminable, expectedGeneration == nil || expectedGeneration == generation else {
             lock.unlock()
             return
         }
@@ -329,17 +260,12 @@ package final class HostAgentXPCEventPollingOwner: @unchecked Sendable {
     }
 }
 
-private final class HostAgentXPCEventPollingDispatchTask:
-    HostAgentXPCEventPollingScheduledTask,
+private final class HostAgentXPCEventPollingDispatchTask: HostAgentXPCEventPollingScheduledTask,
     @unchecked Sendable
 {
     private let workItem: DispatchWorkItem
 
-    init(workItem: DispatchWorkItem) {
-        self.workItem = workItem
-    }
+    init(workItem: DispatchWorkItem) { self.workItem = workItem }
 
-    func cancel() {
-        workItem.cancel()
-    }
+    func cancel() { workItem.cancel() }
 }

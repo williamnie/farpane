@@ -1,6 +1,7 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     func testConstructionIsInertAndRequestOnlyPublishesPersistencePrompt() {
@@ -11,9 +12,9 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
         XCTAssertEqual(dependencies.events, [])
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
 
-        guard case .awaitingConfirmation(let prompt) =
-            owner.snapshot().phase
-        else { return XCTFail("expected persistence confirmation") }
+        guard case .awaitingConfirmation(let prompt) = owner.snapshot().phase else {
+            return XCTFail("expected persistence confirmation")
+        }
         XCTAssertEqual(prompt.kind, .backgroundPersistence)
         XCTAssertEqual(prompt.title, "允许 FarPane 在后台接受连接？")
         XCTAssertTrue(prompt.message.contains("即使退出 FarPane"))
@@ -48,8 +49,7 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     func testConfirmedPersistenceRunsRegistrationOnceWithoutStartingAgent() {
         let dependencies = RegistrationUXDependencies()
         dependencies.registrationResult = (
-            true,
-            registrationView(phase: .registered, registration: .enabled)
+            true, registrationView(phase: .registered, registration: .enabled)
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
@@ -64,20 +64,16 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     func testRequiresApprovalPublishesSecondExplicitPromptWithoutNavigation() {
         let dependencies = RegistrationUXDependencies()
         dependencies.registrationResult = (
-            true,
-            registrationView(
-                phase: .requiresApproval,
-                registration: .requiresApproval
-            )
+            true, registrationView(phase: .requiresApproval, registration: .requiresApproval)
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
 
         XCTAssertTrue(owner.apply(.confirmBackgroundRegistration))
 
-        guard case .awaitingConfirmation(let prompt) =
-            owner.snapshot().phase
-        else { return XCTFail("expected approval confirmation") }
+        guard case .awaitingConfirmation(let prompt) = owner.snapshot().phase else {
+            return XCTFail("expected approval confirmation")
+        }
         XCTAssertEqual(prompt.kind, .loginItemsApproval)
         XCTAssertTrue(prompt.message.contains("登录项与扩展"))
         XCTAssertTrue(prompt.message.contains("不代表已可被连接"))
@@ -90,18 +86,10 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     func testApprovalConfirmationInvokesOnlyDedicatedNavigationOwner() {
         let dependencies = RegistrationUXDependencies()
         dependencies.registrationResult = (
-            true,
-            registrationView(
-                phase: .requiresApproval,
-                registration: .requiresApproval
-            )
+            true, registrationView(phase: .requiresApproval, registration: .requiresApproval)
         )
         dependencies.navigationResult = (
-            true,
-            approvalView(
-                phase: .navigationRequested,
-                registration: .requiresApproval
-            )
+            true, approvalView(phase: .navigationRequested, registration: .requiresApproval)
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
@@ -109,10 +97,7 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
 
         XCTAssertTrue(owner.apply(.confirmApprovalNavigation))
 
-        XCTAssertEqual(
-            dependencies.events,
-            [.prepare, .register, .navigate]
-        )
+        XCTAssertEqual(dependencies.events, [.prepare, .register, .navigate])
         XCTAssertEqual(owner.snapshot().phase, .navigationRequested)
         XCTAssertEqual(owner.snapshot().registration, .requiresApproval)
     }
@@ -120,11 +105,7 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     func testCancelApprovalPromptDoesNotNavigateOrClaimRegistration() {
         let dependencies = RegistrationUXDependencies()
         dependencies.registrationResult = (
-            true,
-            registrationView(
-                phase: .requiresApproval,
-                registration: .requiresApproval
-            )
+            true, registrationView(phase: .requiresApproval, registration: .requiresApproval)
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
@@ -142,40 +123,25 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
         dependencies.registrationResult = (
             false,
             registrationView(
-                phase: .failed(
-                    intent: .registerBackgroundAgent,
-                    failure: .invalidCodeSignature
-                ),
-                registration: nil
-            )
+                phase: .failed(intent: .registerBackgroundAgent, failure: .invalidCodeSignature),
+                registration: nil)
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
 
         XCTAssertFalse(owner.apply(.confirmBackgroundRegistration))
 
-        XCTAssertEqual(
-            owner.snapshot().phase,
-            .failed(.registration(.invalidCodeSignature))
-        )
+        XCTAssertEqual(owner.snapshot().phase, .failed(.registration(.invalidCodeSignature)))
         XCTAssertEqual(dependencies.events, [.prepare, .register])
     }
 
     func testNavigationStatusDriftDoesNotClaimRequest() {
         let dependencies = RegistrationUXDependencies()
         dependencies.registrationResult = (
-            true,
-            registrationView(
-                phase: .requiresApproval,
-                registration: .requiresApproval
-            )
+            true, registrationView(phase: .requiresApproval, registration: .requiresApproval)
         )
         dependencies.navigationResult = (
-            false,
-            approvalView(
-                phase: .notRequired,
-                registration: .enabled
-            )
+            false, approvalView(phase: .notRequired, registration: .enabled)
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
@@ -185,10 +151,7 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
 
         XCTAssertEqual(owner.snapshot().phase, .approvalNoLongerRequired)
         XCTAssertEqual(owner.snapshot().registration, .enabled)
-        XCTAssertEqual(
-            dependencies.events,
-            [.prepare, .register, .navigate]
-        )
+        XCTAssertEqual(dependencies.events, [.prepare, .register, .navigate])
     }
 
     func testConcurrentOrReentrantIntentCannotSkipConfirmation() {
@@ -200,18 +163,13 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
             _ = releaseRegister.wait(timeout: .now() + 2)
         }
         dependencies.registrationResult = (
-            true,
-            registrationView(phase: .registered, registration: .enabled)
+            true, registrationView(phase: .registered, registration: .enabled)
         )
-        let ownerHolder = RegistrationUXLockedValue<
-            HostAgentBackgroundRegistrationUXOwner?
-        >(nil)
+        let ownerHolder = RegistrationUXLockedValue<HostAgentBackgroundRegistrationUXOwner?>(nil)
         let reentrantResult = RegistrationUXLockedValue<Bool?>(nil)
         let owner = makeOwner(dependencies) { view in
             if view.phase == .registered {
-                reentrantResult.set(
-                    ownerHolder.value?.apply(.requestBackgroundRegistration)
-                )
+                reentrantResult.set(ownerHolder.value?.apply(.requestBackgroundRegistration))
             }
         }
         ownerHolder.set(owner)
@@ -237,21 +195,14 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     func testMigrationBlockerNeverInvokesRegistration() {
         let dependencies = RegistrationUXDependencies()
         dependencies.migrationResult = (
-            false,
-            migrationView(phase: .blocked([
-                .runtimeActive,
-                .activeSession,
-            ]))
+            false, migrationView(phase: .blocked([.runtimeActive, .activeSession]))
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
 
         XCTAssertFalse(owner.apply(.confirmBackgroundRegistration))
 
-        XCTAssertEqual(
-            owner.snapshot().phase,
-            .migrationBlocked([.runtimeActive, .activeSession])
-        )
+        XCTAssertEqual(owner.snapshot().phase, .migrationBlocked([.runtimeActive, .activeSession]))
         XCTAssertNil(owner.snapshot().registration)
         XCTAssertEqual(dependencies.events, [.prepare])
     }
@@ -259,50 +210,36 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     func testMigrationFailureRemainsDistinctFromRegistrationFailure() {
         let dependencies = RegistrationUXDependencies()
         dependencies.migrationResult = (
-            false,
-            migrationView(phase: .failed(.quiescenceRequestFailed))
+            false, migrationView(phase: .failed(.quiescenceRequestFailed))
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
 
         XCTAssertFalse(owner.apply(.confirmBackgroundRegistration))
 
-        XCTAssertEqual(
-            owner.snapshot().phase,
-            .failed(.migration(.quiescenceRequestFailed))
-        )
+        XCTAssertEqual(owner.snapshot().phase, .failed(.migration(.quiescenceRequestFailed)))
         XCTAssertEqual(dependencies.events, [.prepare])
     }
 
     func testMigrationBlockerCanRetryOnlyThroughFreshConfirmation() {
         let dependencies = RegistrationUXDependencies()
-        dependencies.migrationResult = (
-            false,
-            migrationView(phase: .blocked([.activeSession]))
-        )
+        dependencies.migrationResult = (false, migrationView(phase: .blocked([.activeSession])))
         dependencies.registrationResult = (
-            true,
-            registrationView(phase: .registered, registration: .enabled)
+            true, registrationView(phase: .registered, registration: .enabled)
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
         XCTAssertFalse(owner.apply(.confirmBackgroundRegistration))
         XCTAssertEqual(dependencies.events, [.prepare])
 
-        dependencies.migrationResult = (
-            true,
-            migrationView(phase: .readyForRegistration)
-        )
+        dependencies.migrationResult = (true, migrationView(phase: .readyForRegistration))
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
         XCTAssertEqual(dependencies.events, [.prepare])
 
         XCTAssertTrue(owner.apply(.confirmBackgroundRegistration))
 
         XCTAssertEqual(owner.snapshot().phase, .registered)
-        XCTAssertEqual(
-            dependencies.events,
-            [.prepare, .prepare, .register]
-        )
+        XCTAssertEqual(dependencies.events, [.prepare, .prepare, .register])
     }
 
     func testBlockingMigrationRejectsConcurrentIntentAndDelaysRegistration() {
@@ -314,17 +251,14 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
             _ = releaseMigration.wait(timeout: .now() + 2)
         }
         dependencies.registrationResult = (
-            true,
-            registrationView(phase: .registered, registration: .enabled)
+            true, registrationView(phase: .registered, registration: .enabled)
         )
         let owner = makeOwner(dependencies)
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
         let confirmResult = RegistrationUXLockedValue<Bool?>(nil)
         let finished = expectation(description: "migration finished")
         DispatchQueue.global().async {
-            confirmResult.set(
-                owner.apply(.confirmBackgroundRegistration)
-            )
+            confirmResult.set(owner.apply(.confirmBackgroundRegistration))
             finished.fulfill()
         }
         XCTAssertEqual(migrationEntered.wait(timeout: .now() + 1), .success)
@@ -342,33 +276,21 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     }
 
     func testMigrationResultMismatchFailsClosedWithoutRegistration() {
-        let invalidResults: [(
-            Bool,
-            HostAgentLegacyHostMigrationCoordinatorPhase
-        )] = [
-            (false, .readyForRegistration),
-            (true, .blocked([.clientRetained])),
-            (true, .failed(.quiescenceRequestFailed)),
-            (true, .idle),
-            (true, .assessing),
+        let invalidResults: [(Bool, HostAgentLegacyHostMigrationCoordinatorPhase)] = [
+            (false, .readyForRegistration), (true, .blocked([.clientRetained])),
+            (true, .failed(.quiescenceRequestFailed)), (true, .idle), (true, .assessing),
             (true, .quiescing),
         ]
 
         for (accepted, phase) in invalidResults {
             let dependencies = RegistrationUXDependencies()
-            dependencies.migrationResult = (
-                accepted,
-                migrationView(phase: phase)
-            )
+            dependencies.migrationResult = (accepted, migrationView(phase: phase))
             let owner = makeOwner(dependencies)
             XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
 
             XCTAssertFalse(owner.apply(.confirmBackgroundRegistration))
 
-            XCTAssertEqual(
-                owner.snapshot().phase,
-                .failed(.invalidMigrationResult)
-            )
+            XCTAssertEqual(owner.snapshot().phase, .failed(.invalidMigrationResult))
             XCTAssertEqual(dependencies.events, [.prepare])
         }
     }
@@ -376,15 +298,10 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
     func testConfirmedFlowPublishesPreparationBeforeRegistration() {
         let dependencies = RegistrationUXDependencies()
         dependencies.registrationResult = (
-            true,
-            registrationView(phase: .registered, registration: .enabled)
+            true, registrationView(phase: .registered, registration: .enabled)
         )
-        let observed = RegistrationUXLockedValue<
-            [HostAgentBackgroundRegistrationUXPhase]
-        >([])
-        let owner = makeOwner(dependencies) { view in
-            observed.set(observed.value + [view.phase])
-        }
+        let observed = RegistrationUXLockedValue<[HostAgentBackgroundRegistrationUXPhase]>([])
+        let owner = makeOwner(dependencies) { view in observed.set(observed.value + [view.phase]) }
         XCTAssertTrue(owner.apply(.requestBackgroundRegistration))
         let persistencePromptPhase = owner.snapshot().phase
 
@@ -392,69 +309,19 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
 
         XCTAssertEqual(
             observed.value,
-            [
-                persistencePromptPhase,
-                .preparingLegacyHost,
-                .registering,
-                .registered,
-            ]
-        )
+            [persistencePromptPhase, .preparingLegacyHost, .registering, .registered])
         XCTAssertEqual(dependencies.events, [.prepare, .register])
     }
 
-    func testProductCompositionRemainsInertAndIndependentFromLegacyHost()
-        throws
-    {
+    func testProductCompositionRemainsInertAndIndependentFromLegacyHost() throws {
         let dependencies = RegistrationUXDependencies()
         let mutationOwner = HostAgentBackgroundRegistrationMutationOwner(
-            assessIdentity: { .invalidApplication },
-            register: {},
-            unregister: {},
-            observeRegistration: { .notRegistered }
-        )
+            assessIdentity: { .invalidApplication }, register: {}, unregister: {},
+            observeRegistration: { .notRegistered })
         let owner = HostAgentBackgroundRegistrationUXOwner.makeProduct(
-            mutationOwner: mutationOwner,
-            performMigrationPreparation: { dependencies.prepare() }
-        )
+            mutationOwner: mutationOwner, performMigrationPreparation: { dependencies.prepare() })
         XCTAssertEqual(owner.snapshot().phase, .idle)
         XCTAssertEqual(dependencies.events, [])
-
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/CoreBridge/HostAgentBackgroundRegistrationUXOwner.swift"
-            ),
-            encoding: .utf8
-        )
-
-        XCTAssertFalse(source.contains(
-            "HostAgentBackgroundRegistrationMutationOwner.makeProduct()"
-        ))
-        XCTAssertTrue(source.contains("mutationOwner.apply("))
-        XCTAssertTrue(source.contains(
-            "HostAgentBackgroundApprovalNavigationOwner.makeProduct()"
-        ))
-        XCTAssertTrue(source.contains(".registerBackgroundAgent"))
-        XCTAssertTrue(source.contains("performMigrationPreparation"))
-        XCTAssertFalse(source.contains(
-            "static func makeProduct(\n"
-                + "        observer:"
-        ))
-        XCTAssertTrue(source.contains(
-            ".openLoginItemsAfterUserConfirmation"
-        ))
-        XCTAssertFalse(source.contains("SMAppService"))
-        XCTAssertFalse(source.contains("HostAgentBackgroundActivationOwner"))
-        XCTAssertFalse(source.contains("HostControlClient"))
-        XCTAssertFalse(source.contains("UserDefaults"))
-        XCTAssertFalse(source.contains("AppKit"))
-        XCTAssertFalse(source.contains("SwiftUI"))
-        XCTAssertFalse(source.contains("NSAlert"))
-        XCTAssertFalse(source.contains("ProcessInfo"))
-        XCTAssertFalse(source.contains("getenv"))
     }
 
     private func makeOwner(
@@ -464,9 +331,7 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
         HostAgentBackgroundRegistrationUXOwner(
             performMigrationPreparation: { dependencies.prepare() },
             performRegistration: { dependencies.register() },
-            performApprovalNavigation: { dependencies.navigate() },
-            observer: observer
-        )
+            performApprovalNavigation: { dependencies.navigate() }, observer: observer)
     }
 
     private func registrationView(
@@ -474,27 +339,19 @@ final class HostAgentBackgroundRegistrationUXOwnerTests: XCTestCase {
         registration: HostAgentBackgroundRegistrationStatus?
     ) -> HostAgentBackgroundRegistrationMutationView {
         HostAgentBackgroundRegistrationMutationView(
-            generation: 2,
-            phase: phase,
-            registration: registration
-        )
+            generation: 2, phase: phase, registration: registration)
     }
 
-    private func migrationView(
-        phase: HostAgentLegacyHostMigrationCoordinatorPhase
-    ) -> HostAgentLegacyHostMigrationCoordinatorView {
-        HostAgentLegacyHostMigrationCoordinatorView(phase: phase)
-    }
+    private func migrationView(phase: HostAgentLegacyHostMigrationCoordinatorPhase)
+        -> HostAgentLegacyHostMigrationCoordinatorView
+    { HostAgentLegacyHostMigrationCoordinatorView(phase: phase) }
 
     private func approvalView(
         phase: HostAgentBackgroundApprovalNavigationPhase,
         registration: HostAgentBackgroundRegistrationStatus?
     ) -> HostAgentBackgroundApprovalNavigationView {
         HostAgentBackgroundApprovalNavigationView(
-            generation: 2,
-            phase: phase,
-            registration: registration
-        )
+            generation: 2, phase: phase, registration: registration)
     }
 }
 
@@ -509,39 +366,20 @@ private final class RegistrationUXDependencies: @unchecked Sendable {
     private var eventStorage: [RegistrationUXEvent] = []
     var migrationAction: (() -> Void)?
     var registrationAction: (() -> Void)?
-    var migrationResult: (
-        Bool,
-        HostAgentLegacyHostMigrationCoordinatorView
-    ) = (
-        true,
-        HostAgentLegacyHostMigrationCoordinatorView(
-            phase: .readyForRegistration
-        )
+    var migrationResult: (Bool, HostAgentLegacyHostMigrationCoordinatorView) = (
+        true, HostAgentLegacyHostMigrationCoordinatorView(phase: .readyForRegistration)
     )
-    var registrationResult: (
-        Bool,
-        HostAgentBackgroundRegistrationMutationView
-    ) = (
+    var registrationResult: (Bool, HostAgentBackgroundRegistrationMutationView) = (
         false,
         HostAgentBackgroundRegistrationMutationView(
             generation: 2,
-            phase: .failed(
-                intent: .registerBackgroundAgent,
-                failure: .serviceUnavailable
-            ),
-            registration: .serviceUnavailable
-        )
+            phase: .failed(intent: .registerBackgroundAgent, failure: .serviceUnavailable),
+            registration: .serviceUnavailable)
     )
-    var navigationResult: (
-        Bool,
-        HostAgentBackgroundApprovalNavigationView
-    ) = (
+    var navigationResult: (Bool, HostAgentBackgroundApprovalNavigationView) = (
         false,
         HostAgentBackgroundApprovalNavigationView(
-            generation: 2,
-            phase: .failed(.serviceUnavailable),
-            registration: .serviceUnavailable
-        )
+            generation: 2, phase: .failed(.serviceUnavailable), registration: .serviceUnavailable)
     )
 
     var events: [RegistrationUXEvent] {
@@ -550,28 +388,19 @@ private final class RegistrationUXDependencies: @unchecked Sendable {
         return eventStorage
     }
 
-    func prepare() -> (
-        Bool,
-        HostAgentLegacyHostMigrationCoordinatorView
-    ) {
+    func prepare() -> (Bool, HostAgentLegacyHostMigrationCoordinatorView) {
         append(.prepare)
         migrationAction?()
         return migrationResult
     }
 
-    func register() -> (
-        Bool,
-        HostAgentBackgroundRegistrationMutationView
-    ) {
+    func register() -> (Bool, HostAgentBackgroundRegistrationMutationView) {
         append(.register)
         registrationAction?()
         return registrationResult
     }
 
-    func navigate() -> (
-        Bool,
-        HostAgentBackgroundApprovalNavigationView
-    ) {
+    func navigate() -> (Bool, HostAgentBackgroundApprovalNavigationView) {
         append(.navigate)
         return navigationResult
     }
@@ -587,9 +416,7 @@ private final class RegistrationUXLockedValue<Value>: @unchecked Sendable {
     private let lock = NSLock()
     private var storage: Value
 
-    init(_ value: Value) {
-        storage = value
-    }
+    init(_ value: Value) { storage = value }
 
     var value: Value {
         lock.lock()

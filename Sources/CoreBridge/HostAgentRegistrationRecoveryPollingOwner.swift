@@ -1,11 +1,6 @@
 import Foundation
 
-package protocol HostAgentRegistrationRecoveryScheduledTask:
-    AnyObject,
-    Sendable
-{
-    func cancel()
-}
+package protocol HostAgentRegistrationRecoveryScheduledTask: AnyObject, Sendable { func cancel() }
 
 package enum HostAgentRegistrationRecoveryObservation: Sendable {
     case unavailable
@@ -39,20 +34,14 @@ package enum HostAgentRegistrationRecoveryState: Equatable, Sendable {
 /// resume call only starts polling; outward availability may be restored only
 /// after a direct HostCore snapshot for the pinned Host reports the same epoch
 /// as `running` with registration `ready`.
-package final class HostAgentRegistrationRecoveryPollingOwner:
-    @unchecked Sendable
-{
-    package typealias Scheduler = @Sendable (
-        _ delayMilliseconds: UInt64,
-        _ action: @escaping @Sendable () -> Void
-    ) -> HostAgentRegistrationRecoveryScheduledTask
+package final class HostAgentRegistrationRecoveryPollingOwner: @unchecked Sendable {
+    package typealias Scheduler =
+        @Sendable (_ delayMilliseconds: UInt64, _ action: @escaping @Sendable () -> Void) ->
+        HostAgentRegistrationRecoveryScheduledTask
     package typealias Clock = @Sendable () -> UInt64
     package typealias Resume = @Sendable (_ epoch: UInt64) -> Bool
     package typealias Observe = @Sendable () -> HostAgentRegistrationRecoveryObservation
-    package typealias Completion = @Sendable (
-        _ epoch: UInt64,
-        _ succeeded: Bool
-    ) -> Void
+    package typealias Completion = @Sendable (_ epoch: UInt64, _ succeeded: Bool) -> Void
 
     package static let productIntervalMilliseconds: UInt64 = 50
     package static let productMaximumAttempts: UInt64 = 100
@@ -79,11 +68,8 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
     package static func makeProduct(
         expectedHostInstanceID: String,
         queue: DispatchQueue = DispatchQueue(
-            label: "io.farpane.host-registration-recovery-poll",
-            qos: .userInitiated
-        ),
-        resume: @escaping Resume,
-        observe: @escaping Observe
+            label: "io.farpane.host-registration-recovery-poll", qos: .userInitiated),
+        resume: @escaping Resume, observe: @escaping Observe
     ) -> HostAgentRegistrationRecoveryPollingOwner {
         HostAgentRegistrationRecoveryPollingOwner(
             expectedHostInstanceID: expectedHostInstanceID,
@@ -91,35 +77,23 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
             maximumAttempts: productMaximumAttempts,
             timeoutMilliseconds: productTimeoutMilliseconds,
             schedule: productScheduler(queue: queue),
-            nowMilliseconds: {
-                DispatchTime.now().uptimeNanoseconds / 1_000_000
-            },
-            resume: resume,
-            observe: observe
-        )
+            nowMilliseconds: { DispatchTime.now().uptimeNanoseconds / 1_000_000 }, resume: resume,
+            observe: observe)
     }
 
     package static func productScheduler(queue: DispatchQueue) -> Scheduler {
         { delayMilliseconds, action in
             let workItem = DispatchWorkItem(block: action)
             let boundedDelay = Int(min(delayMilliseconds, UInt64(Int.max)))
-            queue.asyncAfter(
-                deadline: .now() + .milliseconds(boundedDelay),
-                execute: workItem
-            )
+            queue.asyncAfter(deadline: .now() + .milliseconds(boundedDelay), execute: workItem)
             return HostAgentRegistrationRecoveryDispatchTask(workItem: workItem)
         }
     }
 
     package init(
-        expectedHostInstanceID: String,
-        intervalMilliseconds: UInt64,
-        maximumAttempts: UInt64,
-        timeoutMilliseconds: UInt64,
-        schedule: @escaping Scheduler,
-        nowMilliseconds: @escaping Clock,
-        resume: @escaping Resume,
-        observe: @escaping Observe
+        expectedHostInstanceID: String, intervalMilliseconds: UInt64, maximumAttempts: UInt64,
+        timeoutMilliseconds: UInt64, schedule: @escaping Scheduler,
+        nowMilliseconds: @escaping Clock, resume: @escaping Resume, observe: @escaping Observe
     ) {
         self.expectedHostInstanceID = expectedHostInstanceID
         self.intervalMilliseconds = intervalMilliseconds
@@ -131,9 +105,7 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
         self.observe = observe
     }
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
     package func stateSnapshot() -> HostAgentRegistrationRecoveryState {
         condition.lock()
@@ -141,25 +113,16 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
         return state
     }
 
-    @discardableResult
-    package func start(
-        epoch: UInt64,
-        completion: @escaping Completion
-    ) -> Bool {
+    @discardableResult package func start(epoch: UInt64, completion: @escaping Completion) -> Bool {
         condition.lock()
-        guard !expectedHostInstanceID.isEmpty,
-              epoch > lastEpoch,
-              intervalMilliseconds > 0,
-              maximumAttempts > 0,
-              timeoutMilliseconds > 0,
-              generation < UInt64.max
+        guard !expectedHostInstanceID.isEmpty, epoch > lastEpoch, intervalMilliseconds > 0,
+            maximumAttempts > 0, timeoutMilliseconds > 0, generation < UInt64.max
         else {
             condition.unlock()
             return false
         }
         switch state {
-        case .idle, .completed:
-            break
+        case .idle, .completed: break
         case .resuming, .polling, .completing, .cancelling, .cancelled:
             condition.unlock()
             return false
@@ -169,9 +132,8 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
         lastEpoch = epoch
         self.completion = completion
         let now = nowMilliseconds()
-        deadlineMilliseconds = now > UInt64.max - timeoutMilliseconds
-            ? UInt64.max
-            : now + timeoutMilliseconds
+        deadlineMilliseconds =
+            now > UInt64.max - timeoutMilliseconds ? UInt64.max : now + timeoutMilliseconds
         state = .resuming(epoch: epoch)
         operationInFlight = true
         condition.unlock()
@@ -181,9 +143,7 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
         condition.lock()
         operationInFlight = false
         condition.broadcast()
-        guard state == .resuming(epoch: epoch),
-              self.generation == generation
-        else {
+        guard state == .resuming(epoch: epoch), self.generation == generation else {
             condition.unlock()
             return false
         }
@@ -210,9 +170,7 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
             condition.unlock()
             return
         case .cancelling:
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
             return
         case .idle, .resuming, .polling, .completing, .completed:
@@ -227,68 +185,47 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
         }
 
         condition.lock()
-        while operationInFlight || completionInFlight {
-            condition.wait()
-        }
+        while operationInFlight || completionInFlight { condition.wait() }
         state = .cancelled
         condition.broadcast()
         condition.unlock()
     }
 
     package static func convergence(
-        observation: HostAgentRegistrationRecoveryObservation,
-        expectedHostInstanceID: String,
+        observation: HostAgentRegistrationRecoveryObservation, expectedHostInstanceID: String,
         epoch: UInt64
     ) -> HostAgentRegistrationRecoveryConvergence {
         switch observation {
-        case .unavailable:
-            return .pending
-        case .failed:
-            return .failed
+        case .unavailable: return .pending
+        case .failed: return .failed
         case .snapshot(let snapshot):
-            guard snapshot.hostInstanceId == expectedHostInstanceID else {
-                return .failed
-            }
+            guard snapshot.hostInstanceId == expectedHostInstanceID else { return .failed }
             if snapshot.recoveryEpoch < epoch { return .pending }
             guard snapshot.recoveryEpoch == epoch else { return .failed }
             switch snapshot.recoveryStatus {
-            case .resuming:
-                return snapshot.registrationStatus == "pending"
-                    ? .pending
-                    : .failed
-            case .running:
-                return snapshot.registrationStatus == "ready"
-                    ? .converged
-                    : .failed
-            case .failed, .suspending, .suspended:
-                return .failed
+            case .resuming: return snapshot.registrationStatus == "pending" ? .pending : .failed
+            case .running: return snapshot.registrationStatus == "ready" ? .converged : .failed
+            case .failed, .suspending, .suspended: return .failed
             }
         }
     }
 
     private func scheduleNext(epoch: UInt64, generation: UInt64) {
         condition.lock()
-        guard state.isPolling(epoch: epoch),
-              self.generation == generation,
-              let deadlineMilliseconds
+        guard state.isPolling(epoch: epoch), self.generation == generation, let deadlineMilliseconds
         else {
             condition.unlock()
             return
         }
         let now = nowMilliseconds()
-        let remaining = deadlineMilliseconds > now
-            ? deadlineMilliseconds - now
-            : 0
+        let remaining = deadlineMilliseconds > now ? deadlineMilliseconds - now : 0
         let delay = min(intervalMilliseconds, remaining)
         condition.unlock()
 
-        let task = schedule(delay) { [weak self] in
-            self?.tick(epoch: epoch, generation: generation)
+        let task = schedule(delay) { [weak self] in self?.tick(epoch: epoch, generation: generation)
         }
         condition.lock()
-        guard state.isPolling(epoch: epoch),
-              self.generation == generation,
-              scheduledTask == nil
+        guard state.isPolling(epoch: epoch), self.generation == generation, scheduledTask == nil
         else {
             condition.unlock()
             task.cancel()
@@ -300,27 +237,17 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
 
     private func tick(epoch: UInt64, generation: UInt64) {
         condition.lock()
-        guard case .polling(epoch, let previousAttempt) = state,
-              self.generation == generation,
-              !operationInFlight,
-              previousAttempt < maximumAttempts,
-              let deadlineMilliseconds
+        guard case .polling(epoch, let previousAttempt) = state, self.generation == generation,
+            !operationInFlight, previousAttempt < maximumAttempts, let deadlineMilliseconds
         else {
             condition.unlock()
             return
         }
         scheduledTask = nil
         if nowMilliseconds() > deadlineMilliseconds {
-            let completion = beginCompletionLocked(
-                epoch: epoch,
-                outcome: .timedOut
-            )
+            let completion = beginCompletionLocked(epoch: epoch, outcome: .timedOut)
             condition.unlock()
-            finishCompletion(
-                epoch: epoch,
-                outcome: .timedOut,
-                completion: completion
-            )
+            finishCompletion(epoch: epoch, outcome: .timedOut, completion: completion)
             return
         }
         let attempt = previousAttempt + 1
@@ -329,31 +256,22 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
         condition.unlock()
 
         let convergence = Self.convergence(
-            observation: observe(),
-            expectedHostInstanceID: expectedHostInstanceID,
-            epoch: epoch
-        )
+            observation: observe(), expectedHostInstanceID: expectedHostInstanceID, epoch: epoch)
 
         condition.lock()
         operationInFlight = false
         condition.broadcast()
-        guard case .polling(epoch, attempt) = state,
-              self.generation == generation
-        else {
+        guard case .polling(epoch, attempt) = state, self.generation == generation else {
             condition.unlock()
             return
         }
         let outcome: HostAgentRegistrationRecoveryOutcome?
         switch convergence {
-        case .converged:
-            outcome = .converged
-        case .failed:
-            outcome = .failed
-        case .pending where attempt >= maximumAttempts
-            || nowMilliseconds() >= deadlineMilliseconds:
+        case .converged: outcome = .converged
+        case .failed: outcome = .failed
+        case .pending where attempt >= maximumAttempts || nowMilliseconds() >= deadlineMilliseconds:
             outcome = .timedOut
-        case .pending:
-            outcome = nil
+        case .pending: outcome = nil
         }
         guard let outcome else {
             condition.unlock()
@@ -365,19 +283,16 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
         finishCompletion(epoch: epoch, outcome: outcome, completion: completion)
     }
 
-    private func beginCompletionLocked(
-        epoch: UInt64,
-        outcome: HostAgentRegistrationRecoveryOutcome
-    ) -> Completion? {
+    private func beginCompletionLocked(epoch: UInt64, outcome: HostAgentRegistrationRecoveryOutcome)
+        -> Completion?
+    {
         state = .completing(epoch: epoch, outcome: outcome)
         completionInFlight = true
         return completion
     }
 
     private func finishCompletion(
-        epoch: UInt64,
-        outcome: HostAgentRegistrationRecoveryOutcome,
-        completion: Completion?
+        epoch: UInt64, outcome: HostAgentRegistrationRecoveryOutcome, completion: Completion?
     ) {
         completion?(epoch, outcome == .converged)
 
@@ -393,24 +308,19 @@ package final class HostAgentRegistrationRecoveryPollingOwner:
     }
 }
 
-private extension HostAgentRegistrationRecoveryState {
-    func isPolling(epoch: UInt64) -> Bool {
+extension HostAgentRegistrationRecoveryState {
+    fileprivate func isPolling(epoch: UInt64) -> Bool {
         guard case .polling(epoch, _) = self else { return false }
         return true
     }
 }
 
 private final class HostAgentRegistrationRecoveryDispatchTask:
-    HostAgentRegistrationRecoveryScheduledTask,
-    @unchecked Sendable
+    HostAgentRegistrationRecoveryScheduledTask, @unchecked Sendable
 {
     private let workItem: DispatchWorkItem
 
-    init(workItem: DispatchWorkItem) {
-        self.workItem = workItem
-    }
+    init(workItem: DispatchWorkItem) { self.workItem = workItem }
 
-    func cancel() {
-        workItem.cancel()
-    }
+    func cancel() { workItem.cancel() }
 }

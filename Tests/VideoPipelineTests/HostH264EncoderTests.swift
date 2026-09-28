@@ -1,6 +1,7 @@
 import CoreMedia
 import CoreVideo
 import XCTest
+
 @testable import VideoPipeline
 
 private final class HostEncoderTestResult: @unchecked Sendable {
@@ -10,22 +11,26 @@ private final class HostEncoderTestResult: @unchecked Sendable {
     private var callbackError: HostH264EncoderError?
 
     func set(accessUnit: HostH264AccessUnit) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         accessUnits.append(accessUnit)
     }
 
     func set(runtimeState: HostEncoderRuntimeState) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         self.runtimeState = runtimeState
     }
 
     func set(error: HostH264EncoderError) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         callbackError = error
     }
 
     func snapshot() -> ([HostH264AccessUnit], HostEncoderRuntimeState?, HostH264EncoderError?) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         return (accessUnits, runtimeState, callbackError)
     }
 }
@@ -41,11 +46,7 @@ final class HostH264EncoderTests: XCTestCase {
         let resultBox = HostEncoderTestResult()
         let encoder = try HostH264Encoder(
             configuration: HostH264EncoderConfiguration(
-                width: 128,
-                height: 128,
-                framesPerSecond: 30,
-                averageBitRate: 500_000
-            ),
+                width: 128, height: 128, framesPerSecond: 30, averageBitRate: 500_000),
             sourcePixelFormat: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
             onAccessUnit: { value in
                 resultBox.set(accessUnit: value)
@@ -54,23 +55,15 @@ final class HostH264EncoderTests: XCTestCase {
             onState: { value in
                 resultBox.set(runtimeState: value)
                 stateReady.fulfill()
-            },
-            onError: { error in
-                resultBox.set(error: error)
-            }
-        )
+            }, onError: { error in resultBox.set(error: error) })
         let pixelBuffer = try makeNV12Buffer(width: 128, height: 128)
         try encoder.encode(
-            pixelBuffer: pixelBuffer,
-            presentationTime: CMTime(value: 1, timescale: 30),
-            logicalRawFrameCopyCount: 0
-        )
+            pixelBuffer: pixelBuffer, presentationTime: CMTime(value: 1, timescale: 30),
+            logicalRawFrameCopyCount: 0)
         encoder.requestKeyframe()
         try encoder.encode(
-            pixelBuffer: pixelBuffer,
-            presentationTime: CMTime(value: 2, timescale: 30),
-            logicalRawFrameCopyCount: 0
-        )
+            pixelBuffer: pixelBuffer, presentationTime: CMTime(value: 2, timescale: 30),
+            logicalRawFrameCopyCount: 0)
         wait(for: [accessUnitReady, stateReady], timeout: 5)
         encoder.invalidate()
 
@@ -84,9 +77,7 @@ final class HostH264EncoderTests: XCTestCase {
         XCTAssertTrue(results.allSatisfy(\.hasParameterSets))
         XCTAssertTrue(results.allSatisfy { $0.logicalRawFrameCopyCount == 0 })
         XCTAssertTrue(results.allSatisfy { !$0.data.isEmpty })
-        let parsed = try results.map {
-            try H264FramingAccessUnit(data: $0.data, framing: .avcc4)
-        }
+        let parsed = try results.map { try H264FramingAccessUnit(data: $0.data, framing: .avcc4) }
         XCTAssertTrue(parsed.allSatisfy(\.hasParameterSets))
         XCTAssertTrue(parsed.allSatisfy(\.isIDR))
     }
@@ -94,13 +85,8 @@ final class HostH264EncoderTests: XCTestCase {
     private func makeNV12Buffer(width: Int, height: Int) throws -> CVPixelBuffer {
         var buffer: CVPixelBuffer?
         let status = CVPixelBufferCreate(
-            kCFAllocatorDefault,
-            width,
-            height,
-            kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
-            [kCVPixelBufferIOSurfacePropertiesKey: [:]] as CFDictionary,
-            &buffer
-        )
+            kCFAllocatorDefault, width, height, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+            [kCVPixelBufferIOSurfacePropertiesKey: [:]] as CFDictionary, &buffer)
         guard status == kCVReturnSuccess, let buffer else {
             throw NSError(domain: "HostH264EncoderTests", code: Int(status))
         }
@@ -109,8 +95,10 @@ final class HostH264EncoderTests: XCTestCase {
         for plane in 0..<CVPixelBufferGetPlaneCount(buffer) {
             guard let address = CVPixelBufferGetBaseAddressOfPlane(buffer, plane) else { continue }
             let fill: UInt8 = plane == 0 ? 16 : 128
-            memset(address, Int32(fill), CVPixelBufferGetBytesPerRowOfPlane(buffer, plane)
-                * CVPixelBufferGetHeightOfPlane(buffer, plane))
+            memset(
+                address, Int32(fill),
+                CVPixelBufferGetBytesPerRowOfPlane(buffer, plane)
+                    * CVPixelBufferGetHeightOfPlane(buffer, plane))
         }
         return buffer
     }

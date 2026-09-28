@@ -45,9 +45,7 @@ final class ViewerMetalView: MTKView {
         if let becomeObserver { NotificationCenter.default.removeObserver(becomeObserver) }
         resignObserver = window.map { window in
             NotificationCenter.default.addObserver(
-                forName: NSWindow.didResignKeyNotification,
-                object: window,
-                queue: .main
+                forName: NSWindow.didResignKeyNotification, object: window, queue: .main
             ) { [weak self] _ in
                 self?.releaseAllInput()
                 self?.onWindowResignKey?()
@@ -55,12 +53,8 @@ final class ViewerMetalView: MTKView {
         }
         becomeObserver = window.map { window in
             NotificationCenter.default.addObserver(
-                forName: NSWindow.didBecomeKeyNotification,
-                object: window,
-                queue: .main
-            ) { [weak self] _ in
-                self?.onWindowBecomeKey?()
-            }
+                forName: NSWindow.didBecomeKeyNotification, object: window, queue: .main
+            ) { [weak self] _ in self?.onWindowBecomeKey?() }
         }
     }
 
@@ -70,9 +64,7 @@ final class ViewerMetalView: MTKView {
         let area = NSTrackingArea(
             rect: bounds,
             options: [.activeInKeyWindow, .inVisibleRect, .mouseMoved, .enabledDuringMouseDrag],
-            owner: self,
-            userInfo: nil
-        )
+            owner: self, userInfo: nil)
         addTrackingArea(area)
         trackingAreaReference = area
     }
@@ -84,29 +76,32 @@ final class ViewerMetalView: MTKView {
 
     override func mouseDown(with event: NSEvent) { sendButton(.left, down: true, event: event) }
     override func mouseUp(with event: NSEvent) { sendButton(.left, down: false, event: event) }
-    override func rightMouseDown(with event: NSEvent) { sendButton(.right, down: true, event: event) }
-    override func rightMouseUp(with event: NSEvent) { sendButton(.right, down: false, event: event) }
-    override func otherMouseDown(with event: NSEvent) { sendButton(.middle, down: true, event: event) }
-    override func otherMouseUp(with event: NSEvent) { sendButton(.middle, down: false, event: event) }
+    override func rightMouseDown(with event: NSEvent) {
+        sendButton(.right, down: true, event: event)
+    }
+    override func rightMouseUp(with event: NSEvent) {
+        sendButton(.right, down: false, event: event)
+    }
+    override func otherMouseDown(with event: NSEvent) {
+        sendButton(.middle, down: true, event: event)
+    }
+    override func otherMouseUp(with event: NSEvent) {
+        sendButton(.middle, down: false, event: event)
+    }
 
     override func scrollWheel(with event: NSEvent) {
         guard !displaySelectionInputQuiesced else { return }
         guard map(event, clamp: false) != nil else { return }
-        guard let delta = ScrollDeltaMapper.map(
-            deltaX: event.scrollingDeltaX,
-            deltaY: event.scrollingDeltaY,
-            precise: event.hasPreciseScrollingDeltas
-        ) else { return }
+        guard
+            let delta = ScrollDeltaMapper.map(
+                deltaX: event.scrollingDeltaX, deltaY: event.scrollingDeltaY,
+                precise: event.hasPreciseScrollingDeltas)
+        else { return }
         flushPendingMove()
         send(
             CorePointerEvent(
-                kind: delta.kind,
-                scrollX: delta.x,
-                scrollY: delta.y,
-                modifiers: MacKeyMapper.modifiers(from: event.modifierFlags)
-            ),
-            category: "scroll"
-        )
+                kind: delta.kind, scrollX: delta.x, scrollY: delta.y,
+                modifiers: MacKeyMapper.modifiers(from: event.modifierFlags)), category: "scroll")
     }
 
     override func magnify(with event: NSEvent) {
@@ -126,13 +121,8 @@ final class ViewerMetalView: MTKView {
             modifiers.insert(.command)
             send(
                 CorePointerEvent(
-                    kind: delta.kind,
-                    scrollX: delta.x,
-                    scrollY: delta.y,
-                    modifiers: modifiers
-                ),
-                category: "scroll"
-            )
+                    kind: delta.kind, scrollX: delta.x, scrollY: delta.y, modifiers: modifiers),
+                category: "scroll")
         }
 
         if event.phase.contains(.ended) || event.phase.contains(.cancelled) {
@@ -163,11 +153,11 @@ final class ViewerMetalView: MTKView {
 
     override func flagsChanged(with event: NSEvent) {
         guard keyboardInputEnabled, !displaySelectionInputQuiesced else { return }
-        guard let isDown = MacKeyMapper.modifierIsDown(keyCode: event.keyCode, flags: event.modifierFlags),
-              let key = MacKeyMapper.key(
-                keyCode: event.keyCode,
-                charactersIgnoringModifiers: nil
-              ) else { return }
+        guard
+            let isDown = MacKeyMapper.modifierIsDown(
+                keyCode: event.keyCode, flags: event.modifierFlags),
+            let key = MacKeyMapper.key(keyCode: event.keyCode, charactersIgnoringModifiers: nil)
+        else { return }
         var modifiers = MacKeyMapper.modifiers(from: event.modifierFlags)
         switch key {
         case .special(.shift): modifiers.remove(.shift)
@@ -184,12 +174,8 @@ final class ViewerMetalView: MTKView {
         guard let point = map(event, clamp: clamp) else { return }
         lastRemotePoint = point
         pendingMove = CorePointerEvent(
-            kind: .move,
-            x: point.x,
-            y: point.y,
-            buttons: heldButtons,
-            modifiers: MacKeyMapper.modifiers(from: event.modifierFlags)
-        )
+            kind: .move, x: point.x, y: point.y, buttons: heldButtons,
+            modifiers: MacKeyMapper.modifiers(from: event.modifierFlags))
         guard !moveFlushScheduled else { return }
         moveFlushScheduled = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 60.0) { [weak self] in
@@ -206,35 +192,29 @@ final class ViewerMetalView: MTKView {
         if down { heldButtons.insert(button) }
         send(
             CorePointerEvent(
-                kind: down ? .down : .up,
-                x: point.x,
-                y: point.y,
-                buttons: button,
-                modifiers: MacKeyMapper.modifiers(from: event.modifierFlags)
-            ),
-            category: down ? "button-down" : "button-up"
-        )
+                kind: down ? .down : .up, x: point.x, y: point.y, buttons: button,
+                modifiers: MacKeyMapper.modifiers(from: event.modifierFlags)),
+            category: down ? "button-down" : "button-up")
         if !down { heldButtons.remove(button) }
     }
 
     private func sendKeyboard(_ event: NSEvent, isDown: Bool) {
-        guard let key = MacKeyMapper.key(
-            keyCode: event.keyCode,
-            charactersIgnoringModifiers: event.charactersIgnoringModifiers
-        ) else { return }
+        guard
+            let key = MacKeyMapper.key(
+                keyCode: event.keyCode,
+                charactersIgnoringModifiers: event.charactersIgnoringModifiers)
+        else { return }
         sendKeyEvent(
-            keyCode: event.keyCode,
-            key: key,
-            isDown: isDown,
-            modifiers: MacKeyMapper.modifiers(from: event.modifierFlags)
-        )
+            keyCode: event.keyCode, key: key, isDown: isDown,
+            modifiers: MacKeyMapper.modifiers(from: event.modifierFlags))
     }
 
     private func sendKeyboardPress(_ event: NSEvent) {
-        guard let key = MacKeyMapper.key(
-            keyCode: event.keyCode,
-            charactersIgnoringModifiers: event.charactersIgnoringModifiers
-        ) else { return }
+        guard
+            let key = MacKeyMapper.key(
+                keyCode: event.keyCode,
+                charactersIgnoringModifiers: event.charactersIgnoringModifiers)
+        else { return }
         sendKeyPress(key, modifiers: MacKeyMapper.modifiers(from: event.modifierFlags))
     }
 
@@ -246,10 +226,7 @@ final class ViewerMetalView: MTKView {
     }
 
     private func sendKeyEvent(
-        keyCode: UInt16,
-        key: CoreKey,
-        isDown: Bool,
-        modifiers: CoreInputModifiers
+        keyCode: UInt16, key: CoreKey, isDown: Bool, modifiers: CoreInputModifiers
     ) {
         if isDown { heldKeys[keyCode] = key } else { heldKeys.removeValue(forKey: keyCode) }
         let status = sendKey?(CoreKeyEvent(key: key, isDown: isDown, modifiers: modifiers)) ?? -3
@@ -275,10 +252,8 @@ final class ViewerMetalView: MTKView {
     private func map(_ event: NSEvent, clamp: Bool) -> RemotePoint? {
         let point = convert(event.locationInWindow, from: nil)
         let mapper = AspectFitCoordinateMapper(
-            remoteSize: remoteSize,
-            viewSizePoints: bounds.size,
-            backingScale: window?.backingScaleFactor ?? 1
-        )
+            remoteSize: remoteSize, viewSizePoints: bounds.size,
+            backingScale: window?.backingScaleFactor ?? 1)
         return mapper.map(pointInViewPoints: point, clampToContent: clamp)
     }
 
@@ -312,18 +287,16 @@ final class ViewerMetalView: MTKView {
         displaySelectionInputQuiesced = true
     }
 
-    func resumeInputAfterDisplaySelection() {
-        displaySelectionInputQuiesced = false
-    }
+    func resumeInputAfterDisplaySelection() { displaySelectionInputQuiesced = false }
 
     private func releaseHeldInput() {
         releaseAllKeyboardInput()
         if let point = lastRemotePoint {
-            for button: CorePointerButtons in [.left, .right, .middle] where heldButtons.contains(button) {
+            for button: CorePointerButtons in [.left, .right, .middle]
+            where heldButtons.contains(button) {
                 send(
                     CorePointerEvent(kind: .up, x: point.x, y: point.y, buttons: button),
-                    category: "button-up"
-                )
+                    category: "button-up")
             }
         }
         heldButtons = []
@@ -332,9 +305,7 @@ final class ViewerMetalView: MTKView {
     private func holdSyntheticMagnificationCommandIfNeeded() {
         guard !syntheticMagnificationCommandHeld, !physicalCommandIsHeld else { return }
         syntheticMagnificationCommandHeld = true
-        let status = sendKey?(
-            CoreKeyEvent(key: .special(.command), isDown: true)
-        ) ?? -3
+        let status = sendKey?(CoreKeyEvent(key: .special(.command), isDown: true)) ?? -3
         recordInputResult?("key-down", status)
     }
 
@@ -342,15 +313,11 @@ final class ViewerMetalView: MTKView {
         guard syntheticMagnificationCommandHeld else { return }
         syntheticMagnificationCommandHeld = false
         guard !physicalCommandIsHeld else { return }
-        let status = sendKey?(
-            CoreKeyEvent(key: .special(.command), isDown: false)
-        ) ?? -3
+        let status = sendKey?(CoreKeyEvent(key: .special(.command), isDown: false)) ?? -3
         recordInputResult?("key-up", status)
     }
 
-    private var physicalCommandIsHeld: Bool {
-        heldKeys.values.contains(.special(.command))
-    }
+    private var physicalCommandIsHeld: Bool { heldKeys.values.contains(.special(.command)) }
 }
 
 extension ViewerMetalView: NSTextInputClient {
@@ -386,9 +353,8 @@ extension ViewerMetalView: NSTextInputClient {
         default: special = nil
         }
         guard let special else { return }
-        let modifiers = interpretingEvent.map {
-            MacKeyMapper.modifiers(from: $0.modifierFlags)
-        } ?? []
+        let modifiers =
+            interpretingEvent.map { MacKeyMapper.modifiers(from: $0.modifierFlags) } ?? []
         sendKeyPress(.special(special), modifiers: modifiers)
     }
 
@@ -413,10 +379,9 @@ extension ViewerMetalView: NSTextInputClient {
 
     func hasMarkedText() -> Bool { !markedTextStorage.isEmpty }
 
-    func attributedSubstring(
-        forProposedRange range: NSRange,
-        actualRange: NSRangePointer?
-    ) -> NSAttributedString? {
+    func attributedSubstring(forProposedRange range: NSRange, actualRange: NSRangePointer?)
+        -> NSAttributedString?
+    {
         let full = markedTextStorage as NSString
         guard range.location != NSNotFound, NSMaxRange(range) <= full.length else { return nil }
         actualRange?.pointee = range

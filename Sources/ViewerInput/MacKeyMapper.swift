@@ -25,7 +25,8 @@ public enum MacKeyMapper {
         case 121: return .special(.pageDown)
         default:
             guard let scalar = charactersIgnoringModifiers?.unicodeScalars.first,
-                  !CharacterSet.controlCharacters.contains(scalar) else { return nil }
+                !CharacterSet.controlCharacters.contains(scalar)
+            else { return nil }
             return .character(scalar)
         }
     }
@@ -34,9 +35,7 @@ public enum MacKeyMapper {
     /// The exclusive event-tap callback runs on a background run loop, while
     /// macOS 13 requires Text Input Services character lookup on the main queue.
     public static func keyFromHardwareCode(_ keyCode: UInt16) -> CoreKey? {
-        if let special = key(keyCode: keyCode, charactersIgnoringModifiers: nil) {
-            return special
-        }
+        if let special = key(keyCode: keyCode, charactersIgnoringModifiers: nil) { return special }
         guard let scalar = ansiCharacters[keyCode] else { return nil }
         return .character(scalar)
     }
@@ -88,12 +87,10 @@ public enum MacKeyMapper {
     }
 
     private static let ansiCharacters: [UInt16: Unicode.Scalar] = [
-        0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g", 6: "z", 7: "x",
-        8: "c", 9: "v", 11: "b", 12: "q", 13: "w", 14: "e", 15: "r",
-        16: "y", 17: "t", 18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
-        23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0",
-        30: "]", 31: "o", 32: "u", 33: "[", 34: "i", 35: "p", 37: "l",
-        38: "j", 39: "'", 40: "k", 41: ";", 42: "\\", 43: ",", 44: "/",
-        45: "n", 46: "m", 47: ".", 50: "`",
+        0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g", 6: "z", 7: "x", 8: "c", 9: "v", 11: "b",
+        12: "q", 13: "w", 14: "e", 15: "r", 16: "y", 17: "t", 18: "1", 19: "2", 20: "3", 21: "4",
+        22: "6", 23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0", 30: "]", 31: "o",
+        32: "u", 33: "[", 34: "i", 35: "p", 37: "l", 38: "j", 39: "'", 40: "k", 41: ";", 42: "\\",
+        43: ",", 44: "/", 45: "n", 46: "m", 47: ".", 50: "`",
     ]
 }

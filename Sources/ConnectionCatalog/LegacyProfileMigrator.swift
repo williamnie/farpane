@@ -12,9 +12,7 @@ public final class LegacyProfileMigrator {
 
     private let defaults: UserDefaults
 
-    public init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-    }
+    public init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
     public func migrateIfNeeded(to store: DeviceCatalogStore) throws -> LegacyMigrationResult {
         guard !store.exists else { return .skippedCatalogExists }
@@ -24,21 +22,16 @@ public final class LegacyProfileMigrator {
         }
         let peerID = DeviceCatalogDocument.normalize(profile.peerID)
         guard !peerID.isEmpty,
-              !profile.rendezvousServer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !profile.serverPublicKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return .invalidLegacyProfilePreserved
-        }
+            !profile.rendezvousServer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            !profile.serverPublicKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return .invalidLegacyProfilePreserved }
 
         let device = SavedDevice(peerID: peerID, source: .migratedLegacy)
         let document = DeviceCatalogDocument(
             server: ServerConfiguration(
-                displayName: "自建服务器",
-                rendezvousServer: profile.rendezvousServer,
-                serverPublicKey: profile.serverPublicKey,
-                forceRelay: profile.forceRelay
-            ),
-            devices: [device]
-        )
+                displayName: "自建服务器", rendezvousServer: profile.rendezvousServer,
+                serverPublicKey: profile.serverPublicKey, forceRelay: profile.forceRelay),
+            devices: [device])
         try store.save(document)
         defaults.removeObject(forKey: Self.storageKey)
         return .migrated(device)

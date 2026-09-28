@@ -18,16 +18,14 @@ public final class HostAgentBootstrapProductIntegration: @unchecked Sendable {
     private let agentBuildID: String
 
     public convenience init() throws {
-        guard let applicationSupportURL = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first else {
-            throw HostAgentBootstrapProductLayoutError.applicationSupportUnavailable
-        }
+        guard
+            let applicationSupportURL = FileManager.default.urls(
+                for: .applicationSupportDirectory, in: .userDomainMask
+            ).first
+        else { throw HostAgentBootstrapProductLayoutError.applicationSupportUnavailable }
         try self.init(
             applicationSupportURL: applicationSupportURL,
-            agentBuildID: Self.agentBuildID(from: Bundle.main.infoDictionary)
-        )
+            agentBuildID: Self.agentBuildID(from: Bundle.main.infoDictionary))
     }
 
     init(applicationSupportURL: URL, agentBuildID: String) throws {
@@ -35,39 +33,27 @@ public final class HostAgentBootstrapProductIntegration: @unchecked Sendable {
             throw HostAgentBootstrapProductIntegrationError.buildIdentifierUnavailable
         }
         coordinator = HostAgentBootstrapPublicationCoordinator(
-            applicationSupportURL: applicationSupportURL
-        )
+            applicationSupportURL: applicationSupportURL)
         self.agentBuildID = agentBuildID
     }
 
     public func reconcileSavedCatalog(
-        from catalogStore: DeviceCatalogStore,
-        clipboardPolicy: HostAgentClipboardPolicy,
+        from catalogStore: DeviceCatalogStore, clipboardPolicy: HostAgentClipboardPolicy,
         fileTransferPolicy: HostAgentFileTransferPolicy = .disabled,
         audioPolicy: HostAgentAudioPolicy = .disabled
     ) -> HostAgentBootstrapProductIntegrationState {
         do {
             let catalog = try catalogStore.load()
-            guard catalog.server?.isComplete == true else {
-                return .waitingForServer
-            }
+            guard catalog.server?.isComplete == true else { return .waitingForServer }
             let outcome = try coordinator.publish(
-                catalog: catalog,
-                agentBuildID: agentBuildID,
-                clipboardPolicy: clipboardPolicy,
-                fileTransferPolicy: fileTransferPolicy,
-                audioPolicy: audioPolicy
-            )
+                catalog: catalog, agentBuildID: agentBuildID, clipboardPolicy: clipboardPolicy,
+                fileTransferPolicy: fileTransferPolicy, audioPolicy: audioPolicy)
             return .ready(configRevision: outcome.configRevision)
-        } catch {
-            return .degraded
-        }
+        } catch { return .degraded }
     }
 
     static func agentBuildID(from infoDictionary: [String: Any]?) throws -> String {
-        guard let value = HostAgentBootstrapBuildIdentifier.resolve(
-            from: infoDictionary
-        ) else {
+        guard let value = HostAgentBootstrapBuildIdentifier.resolve(from: infoDictionary) else {
             throw HostAgentBootstrapProductIntegrationError.buildIdentifierUnavailable
         }
         return value

@@ -10,34 +10,17 @@ public protocol HostAgentCoreControlSurface: AnyObject {
     func resumeAfterWake(epoch: UInt64) throws
     func recoverNetworkPath(generation: UInt64) throws
     func copySnapshot() throws -> HostCoreSnapshot
-    func setMediaCapabilities(
-        hostInstanceID: String,
-        capabilities: HostEncoderCapabilities
-    ) throws
+    func setMediaCapabilities(hostInstanceID: String, capabilities: HostEncoderCapabilities) throws
     func submit(accessUnit: HostEncodedAccessUnit) throws
     func reportEncoderState(
-        hostInstanceID: String,
-        connectionEpoch: UInt64,
-        codecEpoch: UInt64,
-        codec: HostMediaCodec,
-        hardwareAccelerated: Bool,
-        softwareFallback: Bool,
-        encoderID: String
-    ) throws
+        hostInstanceID: String, connectionEpoch: UInt64, codecEpoch: UInt64, codec: HostMediaCodec,
+        hardwareAccelerated: Bool, softwareFallback: Bool, encoderID: String) throws
     func resolvePendingApproval(
-        connectionID: String,
-        decision: HostApprovalDecision,
-        commandId: String
-    ) throws
+        connectionID: String, decision: HostApprovalDecision, commandId: String) throws
     func disableActiveSessionCapability(
-        _ capability: HostSessionRevocableCapability,
-        connectionID: String,
-        commandId: String
-    ) throws
-    func disconnectSession(
-        connectionID: String,
-        commandId: String
-    ) throws
+        _ capability: HostSessionRevocableCapability, connectionID: String, commandId: String)
+        throws
+    func disconnectSession(connectionID: String, commandId: String) throws
     func revealTemporaryPassword(commandId: String) throws -> String
     func regenerateTemporaryPassword(commandId: String) throws
     func setPermanentPassword(_ passwordUTF8: inout Data, commandId: String) throws
@@ -47,30 +30,25 @@ public protocol HostAgentCoreControlSurface: AnyObject {
 
 extension HostControlClient: HostAgentCoreControlSurface {}
 
-public extension HostAgentCoreControlSurface {
-    func revealTemporaryPassword(commandId: String) throws -> String {
+extension HostAgentCoreControlSurface {
+    public func revealTemporaryPassword(commandId: String) throws -> String {
         throw HostAgentCoreRuntimeAccessError.notRunning
     }
 
-    func regenerateTemporaryPassword(commandId: String) throws {
+    public func regenerateTemporaryPassword(commandId: String) throws {
         throw HostAgentCoreRuntimeAccessError.notRunning
     }
 
-    func setPermanentPassword(
-        _ passwordUTF8: inout Data,
-        commandId: String
-    ) throws {
+    public func setPermanentPassword(_ passwordUTF8: inout Data, commandId: String) throws {
         throw HostAgentCoreRuntimeAccessError.notRunning
     }
 
-    func clearPermanentPassword(commandId: String) throws {
+    public func clearPermanentPassword(commandId: String) throws {
         throw HostAgentCoreRuntimeAccessError.notRunning
     }
 }
 
-public enum HostAgentCoreRuntimeAccessError: Error, Equatable {
-    case notRunning
-}
+public enum HostAgentCoreRuntimeAccessError: Error, Equatable { case notRunning }
 
 /// Owns one successfully started HostCore and enforces config-root-first
 /// initialization. Loading/creating the concrete control surface and retaining
@@ -80,24 +58,15 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
     private let stateLock = NSLock()
     private var stopped = false
 
-    private init(client: any HostAgentCoreControlSurface) {
-        self.client = client
-    }
+    private init(client: any HostAgentCoreControlSurface) { self.client = client }
 
-    deinit {
-        try? stop(reason: .appExit)
-    }
+    deinit { try? stop(reason: .appExit) }
 
     public static func start(
-        client: any HostAgentCoreControlSurface,
-        configAppName: String,
-        configOrganization: String,
+        client: any HostAgentCoreControlSurface, configAppName: String, configOrganization: String,
         serverConfiguration: HostServerConfiguration
     ) throws -> HostAgentCoreRuntime {
-        try client.setConfigRoot(
-            appName: configAppName,
-            org: configOrganization
-        )
+        try client.setConfigRoot(appName: configAppName, org: configOrganization)
         try client.start(configuration: serverConfiguration)
         return HostAgentCoreRuntime(client: client)
     }
@@ -116,123 +85,80 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
     public func copySnapshot() throws -> HostCoreSnapshot {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard !stopped else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard !stopped else { throw HostAgentCoreRuntimeAccessError.notRunning }
         return try client.copySnapshot()
     }
 
     public func beginSleep(epoch: UInt64) throws {
-        try withRunningClient { client in
-            try client.beginSleep(epoch: epoch)
-        }
+        try withRunningClient { client in try client.beginSleep(epoch: epoch) }
     }
 
     public func finishSleep(epoch: UInt64) throws {
-        try withRunningClient { client in
-            try client.finishSleep(epoch: epoch)
-        }
+        try withRunningClient { client in try client.finishSleep(epoch: epoch) }
     }
 
     public func resumeAfterWake(epoch: UInt64) throws {
-        try withRunningClient { client in
-            try client.resumeAfterWake(epoch: epoch)
-        }
+        try withRunningClient { client in try client.resumeAfterWake(epoch: epoch) }
     }
 
     public func recoverNetworkPath(generation: UInt64) throws {
-        try withRunningClient { client in
-            try client.recoverNetworkPath(generation: generation)
-        }
+        try withRunningClient { client in try client.recoverNetworkPath(generation: generation) }
     }
 
-    public func setMediaCapabilities(
-        hostInstanceID: String,
-        capabilities: HostEncoderCapabilities
-    ) throws {
+    public func setMediaCapabilities(hostInstanceID: String, capabilities: HostEncoderCapabilities)
+        throws
+    {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard !stopped else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
-        try client.setMediaCapabilities(
-            hostInstanceID: hostInstanceID,
-            capabilities: capabilities
-        )
+        guard !stopped else { throw HostAgentCoreRuntimeAccessError.notRunning }
+        try client.setMediaCapabilities(hostInstanceID: hostInstanceID, capabilities: capabilities)
     }
 
     public func submit(accessUnit: HostEncodedAccessUnit) throws {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard !stopped else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard !stopped else { throw HostAgentCoreRuntimeAccessError.notRunning }
         try client.submit(accessUnit: accessUnit)
     }
 
     public func reportEncoderState(
-        hostInstanceID: String,
-        connectionEpoch: UInt64,
-        codecEpoch: UInt64,
-        codec: HostMediaCodec,
-        hardwareAccelerated: Bool,
-        softwareFallback: Bool,
-        encoderID: String
+        hostInstanceID: String, connectionEpoch: UInt64, codecEpoch: UInt64, codec: HostMediaCodec,
+        hardwareAccelerated: Bool, softwareFallback: Bool, encoderID: String
     ) throws {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard !stopped else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard !stopped else { throw HostAgentCoreRuntimeAccessError.notRunning }
         try client.reportEncoderState(
-            hostInstanceID: hostInstanceID,
-            connectionEpoch: connectionEpoch,
-            codecEpoch: codecEpoch,
-            codec: codec,
-            hardwareAccelerated: hardwareAccelerated,
-            softwareFallback: softwareFallback,
-            encoderID: encoderID
-        )
+            hostInstanceID: hostInstanceID, connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch, codec: codec, hardwareAccelerated: hardwareAccelerated,
+            softwareFallback: softwareFallback, encoderID: encoderID)
     }
 
     package func submit(command: HostAgentCoreCommandSubmission) throws {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard !stopped else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard !stopped else { throw HostAgentCoreRuntimeAccessError.notRunning }
         switch command.action {
         case .resolveApproval(let decision):
             try client.resolvePendingApproval(
-                connectionID: command.connectionID,
-                decision: decision,
-                commandId: command.commandID
+                connectionID: command.connectionID, decision: decision, commandId: command.commandID
             )
         case .disable(let capability):
             try client.disableActiveSessionCapability(
-                capability,
-                connectionID: command.connectionID,
-                commandId: command.commandID
-            )
+                capability, connectionID: command.connectionID, commandId: command.commandID)
         case .disconnect:
             try client.disconnectSession(
-                connectionID: command.connectionID,
-                commandId: command.commandID
-            )
+                connectionID: command.connectionID, commandId: command.commandID)
         }
     }
 
     package func performPasswordOperation(
-        _ action: HostAgentXPCPasswordAction,
-        secret: inout Data,
-        requestID: String
+        _ action: HostAgentXPCPasswordAction, secret: inout Data, requestID: String
     ) throws -> Data? {
         try withRunningClient { client in
             switch action {
             case .revealTemporaryPassword:
-                let password = try client.revealTemporaryPassword(
-                    commandId: requestID
-                )
+                let password = try client.revealTemporaryPassword(commandId: requestID)
                 return Data(password.utf8)
             case .regenerateTemporaryPassword:
                 try client.regenerateTemporaryPassword(commandId: requestID)
@@ -247,14 +173,12 @@ public final class HostAgentCoreRuntime: @unchecked Sendable {
         }
     }
 
-    private func withRunningClient<Value>(
-        _ body: (any HostAgentCoreControlSurface) throws -> Value
-    ) throws -> Value {
+    private func withRunningClient<Value>(_ body: (any HostAgentCoreControlSurface) throws -> Value)
+        throws -> Value
+    {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard !stopped else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard !stopped else { throw HostAgentCoreRuntimeAccessError.notRunning }
         return try body(client)
     }
 }

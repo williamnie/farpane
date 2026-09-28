@@ -30,27 +30,17 @@ final class HostAgentProcessRunnerTests: XCTestCase {
             waitUntilTerminated: { waitedRuntime in
                 XCTAssertTrue(waitedRuntime === runtime)
                 recorder.append(.wait)
-                return HostAgentProcessTerminationOutcome(
-                    reason: .appExit,
-                    status: .stopped
-                )
+                return HostAgentProcessTerminationOutcome(reason: .appExit, status: .stopped)
             },
             cancelTerminationIngress: { cancelledIngress in
                 XCTAssertTrue(cancelledIngress === ingress)
                 recorder.append(.cancel)
-            }
-        )
+            })
 
         XCTAssertEqual(result, .stopped)
         XCTAssertEqual(result.exitCode, 0)
         XCTAssertNil(result.diagnostic)
-        XCTAssertEqual(recorder.events, [
-            .install,
-            .start,
-            .bind,
-            .wait,
-            .cancel,
-        ])
+        XCTAssertEqual(recorder.events, [.install, .start, .bind, .wait, .cancel])
     }
 
     func testStartupFailureCancelsIngressWithoutBindingOrWaiting() {
@@ -64,8 +54,7 @@ final class HostAgentProcessRunnerTests: XCTestCase {
             },
             startRuntime: {
                 recorder.append(.start)
-                return Result<ProcessRunRuntime, HostAgentStartupFailure>
-                    .failure(failure)
+                return Result<ProcessRunRuntime, HostAgentStartupFailure>.failure(failure)
             },
             bindTermination: { _, _ in
                 recorder.append(.bind)
@@ -77,15 +66,8 @@ final class HostAgentProcessRunnerTests: XCTestCase {
             },
             waitUntilTerminated: { _ in
                 recorder.append(.wait)
-                return HostAgentProcessTerminationOutcome(
-                    reason: .error,
-                    status: .stopped
-                )
-            },
-            cancelTerminationIngress: { _ in
-                recorder.append(.cancel)
-            }
-        )
+                return HostAgentProcessTerminationOutcome(reason: .error, status: .stopped)
+            }, cancelTerminationIngress: { _ in recorder.append(.cancel) })
 
         XCTAssertEqual(result, .startupFailed(failure))
         XCTAssertEqual(result.exitCode, 78)
@@ -103,8 +85,8 @@ final class HostAgentProcessRunnerTests: XCTestCase {
             },
             startRuntime: {
                 recorder.append(.start)
-                return Result<ProcessRunRuntime, HostAgentStartupFailure>
-                    .success(ProcessRunRuntime())
+                return Result<ProcessRunRuntime, HostAgentStartupFailure>.success(
+                    ProcessRunRuntime())
             },
             bindTermination: { _, _ in
                 recorder.append(.bind)
@@ -116,22 +98,13 @@ final class HostAgentProcessRunnerTests: XCTestCase {
             },
             waitUntilTerminated: { _ in
                 recorder.append(.wait)
-                return HostAgentProcessTerminationOutcome(
-                    reason: .error,
-                    status: .stopped
-                )
-            },
-            cancelTerminationIngress: { _ in
-                recorder.append(.cancel)
-            }
-        )
+                return HostAgentProcessTerminationOutcome(reason: .error, status: .stopped)
+            }, cancelTerminationIngress: { _ in recorder.append(.cancel) })
 
         XCTAssertEqual(result, .internalFailure)
         XCTAssertEqual(result.exitCode, 70)
         XCTAssertEqual(
-            result.diagnostic,
-            "FarPane HostAgent encountered an internal lifecycle error."
-        )
+            result.diagnostic, "FarPane HostAgent encountered an internal lifecycle error.")
         XCTAssertEqual(recorder.events, [.install])
     }
 
@@ -157,25 +130,12 @@ final class HostAgentProcessRunnerTests: XCTestCase {
             },
             waitUntilTerminated: { _ in
                 recorder.append(.wait)
-                return HostAgentProcessTerminationOutcome(
-                    reason: .error,
-                    status: .stopped
-                )
-            },
-            cancelTerminationIngress: { _ in
-                recorder.append(.cancel)
-            }
-        )
+                return HostAgentProcessTerminationOutcome(reason: .error, status: .stopped)
+            }, cancelTerminationIngress: { _ in recorder.append(.cancel) })
 
         XCTAssertEqual(result, .internalFailure)
-        XCTAssertEqual(recorder.events, [
-            .install,
-            .start,
-            .bind,
-            .request(.error),
-            .wait,
-            .cancel,
-        ])
+        XCTAssertEqual(
+            recorder.events, [.install, .start, .bind, .request(.error), .wait, .cancel])
     }
 
     func testBindFailureWaitsWhenCleanupRequestWasAlreadyClaimed() {
@@ -183,21 +143,15 @@ final class HostAgentProcessRunnerTests: XCTestCase {
 
         let result = HostAgentProcessRunner.run(
             installTerminationIngress: { ProcessRunIngress() },
-            startRuntime: { .success(ProcessRunRuntime()) },
-            bindTermination: { _, _ in false },
+            startRuntime: { .success(ProcessRunRuntime()) }, bindTermination: { _, _ in false },
             requestTermination: { _, reason in
                 recorder.append(.request(reason))
                 return false
             },
             waitUntilTerminated: { _ in
                 recorder.append(.wait)
-                return HostAgentProcessTerminationOutcome(
-                    reason: .error,
-                    status: .stopped
-                )
-            },
-            cancelTerminationIngress: { _ in recorder.append(.cancel) }
-        )
+                return HostAgentProcessTerminationOutcome(reason: .error, status: .stopped)
+            }, cancelTerminationIngress: { _ in recorder.append(.cancel) })
 
         XCTAssertEqual(result, .internalFailure)
         XCTAssertEqual(recorder.events, [.request(.error), .wait, .cancel])
@@ -206,33 +160,23 @@ final class HostAgentProcessRunnerTests: XCTestCase {
     func testStopFailureHasFixedSoftwareExitAndSanitizedDiagnostic() {
         let result = HostAgentProcessRunner.run(
             installTerminationIngress: { ProcessRunIngress() },
-            startRuntime: { .success(ProcessRunRuntime()) },
-            bindTermination: { _, _ in true },
+            startRuntime: { .success(ProcessRunRuntime()) }, bindTermination: { _, _ in true },
             requestTermination: { _, _ in true },
             waitUntilTerminated: { _ in
-                HostAgentProcessTerminationOutcome(
-                    reason: .appExit,
-                    status: .stopFailed
-                )
-            },
-            cancelTerminationIngress: { _ in }
-        )
+                HostAgentProcessTerminationOutcome(reason: .appExit, status: .stopFailed)
+            }, cancelTerminationIngress: { _ in })
 
         XCTAssertEqual(result, .stopFailed)
         XCTAssertEqual(result.exitCode, 70)
-        XCTAssertEqual(
-            result.diagnostic,
-            "FarPane HostAgent failed to stop cleanly."
-        )
-        XCTAssertTrue(result.diagnostic?.unicodeScalars.allSatisfy {
-            !CharacterSet.controlCharacters.contains($0)
-        } == true)
+        XCTAssertEqual(result.diagnostic, "FarPane HostAgent failed to stop cleanly.")
+        XCTAssertTrue(
+            result.diagnostic?.unicodeScalars.allSatisfy {
+                !CharacterSet.controlCharacters.contains($0)
+            } == true)
     }
 }
 
-private enum ProcessRunError: Error {
-    case install
-}
+private enum ProcessRunError: Error { case install }
 
 private enum ProcessRunEvent: Equatable {
     case install
@@ -246,9 +190,7 @@ private enum ProcessRunEvent: Equatable {
 private final class ProcessRunRecorder {
     private(set) var events: [ProcessRunEvent] = []
 
-    func append(_ event: ProcessRunEvent) {
-        events.append(event)
-    }
+    func append(_ event: ProcessRunEvent) { events.append(event) }
 }
 
 private final class ProcessRunIngress {}

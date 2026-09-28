@@ -48,7 +48,8 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
     package init() {}
 
     package var activeCount: Int {
-        stateLock.lock(); defer { stateLock.unlock() }
+        stateLock.lock()
+        defer { stateLock.unlock() }
         return activeTransfers.count
     }
 
@@ -59,65 +60,43 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
     ) -> Bool {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard
-            activeTransfers.count < Self.maximumConcurrentTransfers,
+        guard activeTransfers.count < Self.maximumConcurrentTransfers,
             activeTransfers[request.transferID] == nil,
             destinationOwner.lease == request.destination
         else { return false }
         activeTransfers[request.transferID] = ActiveTransfer(
-            request: request,
-            destinationOwner: destinationOwner,
-            onEvent: onEvent
-        )
+            request: request, destinationOwner: destinationOwner, onEvent: onEvent)
         return true
     }
 
-    package func receive(
-        _ block: CoreFileTransferReceiveBlock
-    ) -> ViewerFileTransferReceiveBlockDisposition {
+    package func receive(_ block: CoreFileTransferReceiveBlock)
+        -> ViewerFileTransferReceiveBlockDisposition
+    {
         stateLock.lock()
         guard var active = activeTransfers[block.transferID] else {
             stateLock.unlock()
             return .unhandled
         }
         let fileNumber = Int(block.fileNumber)
-        guard
-            block.sessionEpoch == active.request.sessionEpoch,
+        guard block.sessionEpoch == active.request.sessionEpoch,
             fileNumber >= active.nextFileNumber,
             active.request.manifest.files.indices.contains(fileNumber)
-        else {
-            return failBlockLocked(
-                active,
-                failure: .protocolViolation
-            )
-        }
+        else { return failBlockLocked(active, failure: .protocolViolation) }
 
         var events: [ViewerFileTransferReceiveEvent] = []
-        if let failure = materializeZeroFiles(
-            active: &active,
-            before: fileNumber,
-            events: &events
-        ) {
+        if let failure = materializeZeroFiles(active: &active, before: fileNumber, events: &events)
+        {
             return failBlockLocked(active, failure: failure, priorEvents: events)
         }
-        guard
-            active.nextFileNumber == fileNumber,
+        guard active.nextFileNumber == fileNumber,
             active.request.manifest.files[fileNumber].size > 0
-        else {
-            return failBlockLocked(
-                active,
-                failure: .protocolViolation,
-                priorEvents: events
-            )
-        }
+        else { return failBlockLocked(active, failure: .protocolViolation, priorEvents: events) }
 
         if active.reservation == nil {
-            guard let reservation = active.destinationOwner.reserveNewFile(
-                for: active.request,
-                fileNumber: fileNumber
-            ) else {
-                return failBlockLocked(active, failure: .localIO, priorEvents: events)
-            }
+            guard
+                let reservation = active.destinationOwner.reserveNewFile(
+                    for: active.request, fileNumber: fileNumber)
+            else { return failBlockLocked(active, failure: .localIO, priorEvents: events) }
             active.reservation = reservation
             active.bytesWritten = 0
         }
@@ -125,19 +104,12 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
         let nextSize = active.bytesWritten.addingReportingOverflow(payloadCount)
         let declaredSize = active.request.manifest.files[fileNumber].size
         guard !nextSize.overflow, nextSize.partialValue <= declaredSize else {
-            return failBlockLocked(
-                active,
-                failure: .protocolViolation,
-                priorEvents: events
-            )
+            return failBlockLocked(active, failure: .protocolViolation, priorEvents: events)
         }
-        guard
-            let reservation = active.reservation,
+        guard let reservation = active.reservation,
             active.destinationOwner.writePayload(block.payload, to: reservation)
                 == nextSize.partialValue
-        else {
-            return failBlockLocked(active, failure: .localIO, priorEvents: events)
-        }
+        else { return failBlockLocked(active, failure: .localIO, priorEvents: events) }
         active.bytesWritten = nextSize.partialValue
 
         if active.bytesWritten == declaredSize {
@@ -148,14 +120,9 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
             case .committed:
                 events.append(.fileCommitted(fileNumber: fileNumber))
                 active.nextFileNumber += 1
-            case .rejected:
-                return failBlockLocked(active, failure: .localIO, priorEvents: events)
+            case .rejected: return failBlockLocked(active, failure: .localIO, priorEvents: events)
             case .durabilityUnconfirmed:
-                return failBlockLocked(
-                    active,
-                    failure: .durabilityUnconfirmed,
-                    priorEvents: events
-                )
+                return failBlockLocked(active, failure: .durabilityUnconfirmed, priorEvents: events)
             }
         }
 
@@ -165,40 +132,32 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
         return .accepted
     }
 
-    package func observe(
-        _ event: CoreFileTransferEvent
-    ) -> ViewerFileTransferReceiveCoreEventDisposition {
+    package func observe(_ event: CoreFileTransferEvent)
+        -> ViewerFileTransferReceiveCoreEventDisposition
+    {
         stateLock.lock()
         guard var active = activeTransfers[event.transferID] else {
             stateLock.unlock()
             return .unhandled
         }
-        guard
-            event.sessionEpoch == active.request.sessionEpoch,
+        guard event.sessionEpoch == active.request.sessionEpoch,
             event.totalFiles == UInt32(active.request.manifest.files.count),
             event.totalBytes == active.request.manifest.totalBytes
         else {
             return failCoreEventLocked(
-                active,
-                failure: .protocolViolation,
+                active, failure: .protocolViolation,
                 disposition: event.kind == .progress || event.kind == .waitingForConflict
-                    ? .cancelRequired
-                    : .suppress
-            )
+                    ? .cancelRequired : .suppress)
         }
 
         switch event.kind {
         case .progress, .waitingForConflict:
             let localBytes = locallyAcceptedBytes(active)
-            guard
-                Int(event.filesCompleted) <= active.nextFileNumber,
+            guard Int(event.filesCompleted) <= active.nextFileNumber,
                 event.bytesCompleted <= localBytes
             else {
                 return failCoreEventLocked(
-                    active,
-                    failure: .protocolViolation,
-                    disposition: .cancelRequired
-                )
+                    active, failure: .protocolViolation, disposition: .cancelRequired)
             }
             stateLock.unlock()
             return .forward
@@ -221,38 +180,23 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
                 return failCoreEventLocked(active, failure: .protocolViolation)
             }
             if let failure = materializeZeroFiles(
-                active: &active,
-                before: active.request.manifest.files.count,
-                events: &events
-            ) {
+                active: &active, before: active.request.manifest.files.count, events: &events)
+            {
                 return failCoreEventLocked(active, failure: failure, priorEvents: events)
             }
             guard active.nextFileNumber == active.request.manifest.files.count else {
-                return failCoreEventLocked(
-                    active,
-                    failure: .protocolViolation,
-                    priorEvents: events
-                )
+                return failCoreEventLocked(active, failure: .protocolViolation, priorEvents: events)
             }
             for directoryNumber in active.request.manifest.emptyDirectories.indices {
                 switch active.destinationOwner.createEmptyDirectory(
-                    for: active.request,
-                    directoryNumber: directoryNumber
-                ) {
-                case .committed:
-                    continue
+                    for: active.request, directoryNumber: directoryNumber)
+                {
+                case .committed: continue
                 case .rejected:
-                    return failCoreEventLocked(
-                        active,
-                        failure: .localIO,
-                        priorEvents: events
-                    )
+                    return failCoreEventLocked(active, failure: .localIO, priorEvents: events)
                 case .durabilityUnconfirmed:
                     return failCoreEventLocked(
-                        active,
-                        failure: .durabilityUnconfirmed,
-                        priorEvents: events
-                    )
+                        active, failure: .durabilityUnconfirmed, priorEvents: events)
                 }
             }
             activeTransfers.removeValue(forKey: event.transferID)
@@ -265,12 +209,9 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
 
     /// Removes a route whose Core start failed. No terminal callback is
     /// emitted because the download was never admitted by Core.
-    @discardableResult
-    package func rollback(sessionEpoch: UInt64, transferID: Int32) -> Bool {
+    @discardableResult package func rollback(sessionEpoch: UInt64, transferID: Int32) -> Bool {
         stateLock.lock()
-        guard
-            let active = activeTransfers[transferID],
-            active.request.sessionEpoch == sessionEpoch
+        guard let active = activeTransfers[transferID], active.request.sessionEpoch == sessionEpoch
         else {
             stateLock.unlock()
             return false
@@ -280,15 +221,13 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
         return true
     }
 
-    @discardableResult
-    package func teardown(sessionEpoch: UInt64) -> [Int32] {
+    @discardableResult package func teardown(sessionEpoch: UInt64) -> [Int32] {
         stateLock.lock()
-        let removed = activeTransfers.values
-            .filter { $0.request.sessionEpoch == sessionEpoch }
+        let removed = activeTransfers.values.filter { $0.request.sessionEpoch == sessionEpoch }
             .sorted { $0.request.transferID < $1.request.transferID }
         removed.forEach(removeLocked)
         stateLock.unlock()
-        removed.forEach { $0.onEvent(.failed(.connectionClosed)) }
+        for entry in removed { entry.onEvent(.failed(.connectionClosed)) }
         return removed.map(\.request.transferID)
     }
 
@@ -300,8 +239,7 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
     }
 
     private func materializeZeroFiles(
-        active: inout ActiveTransfer,
-        before upperBound: Int,
+        active: inout ActiveTransfer, before upperBound: Int,
         events: inout [ViewerFileTransferReceiveEvent]
     ) -> ViewerFileTransferReceiveFailure? {
         while active.nextFileNumber < upperBound {
@@ -309,33 +247,30 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
             guard active.request.manifest.files[fileNumber].size == 0 else {
                 return .protocolViolation
             }
-            guard let reservation = active.destinationOwner.reserveNewFile(
-                for: active.request,
-                fileNumber: fileNumber
-            ) else { return .localIO }
+            guard
+                let reservation = active.destinationOwner.reserveNewFile(
+                    for: active.request, fileNumber: fileNumber)
+            else { return .localIO }
             switch active.destinationOwner.commitReservation(reservation) {
             case .committed:
                 events.append(.fileCommitted(fileNumber: fileNumber))
                 active.nextFileNumber += 1
-            case .rejected:
-                return .localIO
-            case .durabilityUnconfirmed:
-                return .durabilityUnconfirmed
+            case .rejected: return .localIO
+            case .durabilityUnconfirmed: return .durabilityUnconfirmed
             }
         }
         return nil
     }
 
     private func locallyAcceptedBytes(_ active: ActiveTransfer) -> UInt64 {
-        let committed = active.request.manifest.files
-            .prefix(active.nextFileNumber)
-            .reduce(UInt64(0)) { $0 + $1.size }
+        let committed = active.request.manifest.files.prefix(active.nextFileNumber).reduce(
+            UInt64(0)
+        ) { $0 + $1.size }
         return committed + active.bytesWritten
     }
 
     private func failBlockLocked(
-        _ active: ActiveTransfer,
-        failure: ViewerFileTransferReceiveFailure,
+        _ active: ActiveTransfer, failure: ViewerFileTransferReceiveFailure,
         priorEvents: [ViewerFileTransferReceiveEvent] = []
     ) -> ViewerFileTransferReceiveBlockDisposition {
         removeLocked(active)
@@ -346,8 +281,7 @@ package final class ViewerFileTransferReceiveAdapter: @unchecked Sendable {
     }
 
     private func failCoreEventLocked(
-        _ active: ActiveTransfer,
-        failure: ViewerFileTransferReceiveFailure,
+        _ active: ActiveTransfer, failure: ViewerFileTransferReceiveFailure,
         priorEvents: [ViewerFileTransferReceiveEvent] = [],
         disposition: ViewerFileTransferReceiveCoreEventDisposition = .suppress
     ) -> ViewerFileTransferReceiveCoreEventDisposition {

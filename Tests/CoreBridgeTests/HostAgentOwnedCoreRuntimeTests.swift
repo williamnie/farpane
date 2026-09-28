@@ -22,14 +22,12 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         try runtime.stop(reason: .userRequest)
 
         XCTAssertNil(weakBootstrapOwner)
-        XCTAssertEqual(recorder.events, [
-            .bootstrapCreated,
-            .runtimeFactory,
-            .configRoot,
-            .coreStart,
-            .coreStop(.userRequest),
-            .bootstrapReleased,
-        ])
+        XCTAssertEqual(
+            recorder.events,
+            [
+                .bootstrapCreated, .runtimeFactory, .configRoot, .coreStart,
+                .coreStop(.userRequest), .bootstrapReleased,
+            ])
         XCTAssertNoThrow(try runtime.stop(reason: .appExit))
     }
 
@@ -52,10 +50,7 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         }
 
         XCTAssertNil(weakBootstrapOwner)
-        XCTAssertEqual(Array(recorder.events.suffix(2)), [
-            .coreStop(.appExit),
-            .bootstrapReleased,
-        ])
+        XCTAssertEqual(Array(recorder.events.suffix(2)), [.coreStop(.appExit), .bootstrapReleased])
     }
 
     func testRuntimeFactoryFailureReleasesBootstrapOwnerWithoutCoreStop() throws {
@@ -64,23 +59,16 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         weak var weakBootstrapOwner = bootstrapOwner
 
         XCTAssertThrowsError(
-            try HostAgentOwnedCoreRuntime.start(
-                bootstrapOwner: try XCTUnwrap(bootstrapOwner)
-            ) { _ in
+            try HostAgentOwnedCoreRuntime.start(bootstrapOwner: try XCTUnwrap(bootstrapOwner)) {
+                _ in
                 recorder.append(.runtimeFactory)
                 throw OwnedRuntimeTestFailure.runtimeFactory
             }
-        ) { error in
-            XCTAssertEqual(error as? OwnedRuntimeTestFailure, .runtimeFactory)
-        }
+        ) { error in XCTAssertEqual(error as? OwnedRuntimeTestFailure, .runtimeFactory) }
         bootstrapOwner = nil
 
         XCTAssertNil(weakBootstrapOwner)
-        XCTAssertEqual(recorder.events, [
-            .bootstrapCreated,
-            .runtimeFactory,
-            .bootstrapReleased,
-        ])
+        XCTAssertEqual(recorder.events, [.bootstrapCreated, .runtimeFactory, .bootstrapReleased])
     }
 
     func testStopFailureStillReleasesBootstrapOwnerAndDoesNotRetry() throws {
@@ -101,10 +89,11 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         }
         XCTAssertNil(weakBootstrapOwner)
         XCTAssertNoThrow(try runtime.stop(reason: .appExit))
-        XCTAssertEqual(recorder.events.filter {
-            if case .coreStop = $0 { return true }
-            return false
-        }, [.coreStop(.error)])
+        XCTAssertEqual(
+            recorder.events.filter {
+                if case .coreStop = $0 { return true }
+                return false
+            }, [.coreStop(.error)])
         XCTAssertEqual(recorder.events.last, .bootstrapReleased)
     }
 
@@ -128,16 +117,10 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
 
         try runtime.stop(reason: .appExit)
         XCTAssertThrowsError(try runtime.copySnapshot()) { error in
-            XCTAssertEqual(
-                error as? HostAgentCoreRuntimeAccessError,
-                .notRunning
-            )
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
         }
         XCTAssertNil(weakBootstrapOwner)
-        XCTAssertEqual(
-            recorder.events.filter { $0 == .coreCopySnapshot }.count,
-            1
-        )
+        XCTAssertEqual(recorder.events.filter { $0 == .coreCopySnapshot }.count, 1)
     }
 
     func testSleepRecoveryOperationsStayWithinOwnedRuntimeLifetime() throws {
@@ -153,11 +136,9 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         try runtime.beginSleep(epoch: 9)
         try runtime.finishSleep(epoch: 9)
         try runtime.resumeAfterWake(epoch: 9)
-        XCTAssertEqual(Array(recorder.events.suffix(3)), [
-            .coreBeginSleep(9),
-            .coreFinishSleep(9),
-            .coreResumeAfterWake(9),
-        ])
+        XCTAssertEqual(
+            Array(recorder.events.suffix(3)),
+            [.coreBeginSleep(9), .coreFinishSleep(9), .coreResumeAfterWake(9)])
 
         try runtime.stop(reason: .appExit)
         XCTAssertThrowsError(try runtime.beginSleep(epoch: 10)) { error in
@@ -169,14 +150,13 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         XCTAssertThrowsError(try runtime.resumeAfterWake(epoch: 9)) { error in
             XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
         }
-        XCTAssertEqual(recorder.events.filter {
-            switch $0 {
-            case .coreBeginSleep, .coreFinishSleep, .coreResumeAfterWake:
-                return true
-            default:
-                return false
-            }
-        }.count, 3)
+        XCTAssertEqual(
+            recorder.events.filter {
+                switch $0 {
+                case .coreBeginSleep, .coreFinishSleep, .coreResumeAfterWake: return true
+                default: return false
+                }
+            }.count, 3)
     }
 
     func testNetworkRecoveryStaysWithinOwnedRuntimeLifetime() throws {
@@ -193,18 +173,14 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         XCTAssertEqual(recorder.events.last, .coreRecoverNetworkPath(11))
 
         try runtime.stop(reason: .appExit)
-        XCTAssertThrowsError(
-            try runtime.recoverNetworkPath(generation: 12)
-        ) { error in
-            XCTAssertEqual(
-                error as? HostAgentCoreRuntimeAccessError,
-                .notRunning
-            )
+        XCTAssertThrowsError(try runtime.recoverNetworkPath(generation: 12)) { error in
+            XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
         }
-        XCTAssertEqual(recorder.events.filter {
-            if case .coreRecoverNetworkPath = $0 { return true }
-            return false
-        }.count, 1)
+        XCTAssertEqual(
+            recorder.events.filter {
+                if case .coreRecoverNetworkPath = $0 { return true }
+                return false
+            }.count, 1)
     }
 
     func testMediaOperationsStayWithinOwnedRuntimeLifetime() throws {
@@ -217,54 +193,27 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
             return try self.startCore(client: client)
         }
         let capabilities = HostEncoderCapabilities(
-            h264Hardware: true,
-            h265Hardware: true,
-            maxWidth: 1_920,
-            maxHeight: 1_080,
-            maxFPS: 30
-        )
+            h264Hardware: true, h265Hardware: true, maxWidth: 1_920, maxHeight: 1_080, maxFPS: 30)
         let accessUnit = HostEncodedAccessUnit(
-            hostInstanceID: "owned-runtime-host",
-            connectionEpoch: 11,
-            codecEpoch: 21,
-            displayID: 0,
-            displayRevision: 3,
-            codec: .h264,
-            framing: .avcc,
-            presentationTimeUS: 10,
-            isKeyframe: true,
-            hasParameterSets: true,
-            data: Data([0, 0, 0, 1])
-        )
+            hostInstanceID: "owned-runtime-host", connectionEpoch: 11, codecEpoch: 21, displayID: 0,
+            displayRevision: 3, codec: .h264, framing: .avcc, presentationTimeUS: 10,
+            isKeyframe: true, hasParameterSets: true, data: Data([0, 0, 0, 1]))
 
         try runtime.setMediaCapabilities(
-            hostInstanceID: "owned-runtime-host",
-            capabilities: capabilities
-        )
+            hostInstanceID: "owned-runtime-host", capabilities: capabilities)
         try runtime.submit(accessUnit: accessUnit)
         try runtime.reportEncoderState(
-            hostInstanceID: "owned-runtime-host",
-            connectionEpoch: 11,
-            codecEpoch: 21,
-            codec: .h264,
-            hardwareAccelerated: true,
-            softwareFallback: false,
-            encoderID: "test-encoder"
-        )
-        XCTAssertEqual(Array(recorder.events.suffix(3)), [
-            .coreSetMediaCapabilities,
-            .coreSubmitMedia,
-            .coreReportEncoderState,
-        ])
+            hostInstanceID: "owned-runtime-host", connectionEpoch: 11, codecEpoch: 21, codec: .h264,
+            hardwareAccelerated: true, softwareFallback: false, encoderID: "test-encoder")
+        XCTAssertEqual(
+            Array(recorder.events.suffix(3)),
+            [.coreSetMediaCapabilities, .coreSubmitMedia, .coreReportEncoderState])
 
         try runtime.stop(reason: .appExit)
         XCTAssertThrowsError(try runtime.submit(accessUnit: accessUnit)) { error in
             XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
         }
-        XCTAssertEqual(
-            recorder.events.filter { $0 == .coreSubmitMedia }.count,
-            1
-        )
+        XCTAssertEqual(recorder.events.filter { $0 == .coreSubmitMedia }.count, 1)
     }
 
     func testTypedCommandStaysWithinOwnedRuntimeLifetime() throws {
@@ -277,18 +226,11 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
             return try self.startCore(client: client)
         }
         let request = try HostAgentXPCWireCommandRequest(
-            requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            commandID: "command-1",
-            wireVersion: 2,
-            hostInstanceID: "owned-runtime-host",
-            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
-            name: .disconnectSession,
-            connectionID: "owned-runtime-host:connection-1",
-            sentAtUnixMilliseconds: 10
-        )
-        let command = HostAgentCoreCommandSubmission(
-            validatedRequest: request
-        )
+            requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610", commandID: "command-1",
+            wireVersion: 2, hostInstanceID: "owned-runtime-host",
+            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7", name: .disconnectSession,
+            connectionID: "owned-runtime-host:connection-1", sentAtUnixMilliseconds: 10)
+        let command = HostAgentCoreCommandSubmission(validatedRequest: request)
 
         try runtime.submit(command: command)
         XCTAssertEqual(recorder.events.last, .coreCommand)
@@ -296,24 +238,14 @@ final class HostAgentOwnedCoreRuntimeTests: XCTestCase {
         XCTAssertThrowsError(try runtime.submit(command: command)) { error in
             XCTAssertEqual(error as? HostAgentCoreRuntimeAccessError, .notRunning)
         }
-        XCTAssertEqual(
-            recorder.events.filter { $0 == .coreCommand }.count,
-            1
-        )
+        XCTAssertEqual(recorder.events.filter { $0 == .coreCommand }.count, 1)
     }
 
-    private func startCore(
-        client: OwnedRuntimeRecordingClient
-    ) throws -> HostAgentCoreRuntime {
+    private func startCore(client: OwnedRuntimeRecordingClient) throws -> HostAgentCoreRuntime {
         try HostAgentCoreRuntime.start(
-            client: client,
-            configAppName: "FarPaneHost",
-            configOrganization: "io.rustdesknative",
+            client: client, configAppName: "FarPaneHost", configOrganization: "io.rustdesknative",
             serverConfiguration: HostServerConfiguration(
-                rendezvousServer: "one.example.invalid:21116",
-                serverPublicKey: "public-key"
-            )
-        )
+                rendezvousServer: "one.example.invalid:21116", serverPublicKey: "public-key"))
     }
 }
 
@@ -338,9 +270,7 @@ private enum HostAgentLifecycleEvent: Equatable {
 private final class HostAgentLifecycleRecorder {
     private(set) var events: [HostAgentLifecycleEvent] = []
 
-    func append(_ event: HostAgentLifecycleEvent) {
-        events.append(event)
-    }
+    func append(_ event: HostAgentLifecycleEvent) { events.append(event) }
 }
 
 private final class HostAgentTestBootstrapOwner {
@@ -351,9 +281,7 @@ private final class HostAgentTestBootstrapOwner {
         recorder.append(.bootstrapCreated)
     }
 
-    deinit {
-        recorder.append(.bootstrapReleased)
-    }
+    deinit { recorder.append(.bootstrapReleased) }
 }
 
 private enum OwnedRuntimeTestFailure: Error, Equatable {
@@ -370,30 +298,20 @@ private final class OwnedRuntimeRecordingClient: HostAgentCoreControlSurface {
         self.failStop = failStop
     }
 
-    func setConfigRoot(appName: String, org: String) throws {
-        recorder.append(.configRoot)
-    }
+    func setConfigRoot(appName: String, org: String) throws { recorder.append(.configRoot) }
 
-    func start(configuration: HostServerConfiguration) throws {
-        recorder.append(.coreStart)
-    }
+    func start(configuration: HostServerConfiguration) throws { recorder.append(.coreStart) }
 
     func stop(reason: HostStopReason) throws {
         recorder.append(.coreStop(reason))
         if failStop { throw OwnedRuntimeTestFailure.stop }
     }
 
-    func beginSleep(epoch: UInt64) throws {
-        recorder.append(.coreBeginSleep(epoch))
-    }
+    func beginSleep(epoch: UInt64) throws { recorder.append(.coreBeginSleep(epoch)) }
 
-    func finishSleep(epoch: UInt64) throws {
-        recorder.append(.coreFinishSleep(epoch))
-    }
+    func finishSleep(epoch: UInt64) throws { recorder.append(.coreFinishSleep(epoch)) }
 
-    func resumeAfterWake(epoch: UInt64) throws {
-        recorder.append(.coreResumeAfterWake(epoch))
-    }
+    func resumeAfterWake(epoch: UInt64) throws { recorder.append(.coreResumeAfterWake(epoch)) }
 
     func recoverNetworkPath(generation: UInt64) throws {
         recorder.append(.coreRecoverNetworkPath(generation))
@@ -402,84 +320,44 @@ private final class OwnedRuntimeRecordingClient: HostAgentCoreControlSurface {
     func copySnapshot() throws -> HostCoreSnapshot {
         recorder.append(.coreCopySnapshot)
         let document: [String: Any] = [
-            "schemaVersion": 8,
-            "hostInstanceId": "owned-runtime-host",
-            "hostState": "ready",
-            "localId": "123456789",
-            "authenticatedConnectionCount": 1,
-            "sessionAvailability": "available",
-            "sessionUnavailableReason": NSNull(),
-            "registrationStatus": "ready",
-            "recoveryEpoch": 0,
-            "recoveryStatus": "running",
-            "pendingApproval": NSNull(),
-            "activeSession": NSNull(),
+            "schemaVersion": 8, "hostInstanceId": "owned-runtime-host", "hostState": "ready",
+            "localId": "123456789", "authenticatedConnectionCount": 1,
+            "sessionAvailability": "available", "sessionUnavailableReason": NSNull(),
+            "registrationStatus": "ready", "recoveryEpoch": 0, "recoveryStatus": "running",
+            "pendingApproval": NSNull(), "activeSession": NSNull(),
             "temporaryPasswordPresentation": ["policy": "redacted"],
             "passwordPolicy": [
-                "localPasswordSet": false,
-                "effectivePasswordSet": false,
-                "usingPresetPassword": false,
-                "changeAllowed": true,
+                "localPasswordSet": false, "effectivePasswordSet": false,
+                "usingPresetPassword": false, "changeAllowed": true,
                 "strengthPolicy": [
-                    "version": 1,
-                    "minimumCharacters": 6,
-                    "maximumCharacters": 128,
-                    "maximumUtf8Bytes": 512,
-                    "rejectsControlCharacters": true,
+                    "version": 1, "minimumCharacters": 6, "maximumCharacters": 128,
+                    "maximumUtf8Bytes": 512, "rejectsControlCharacters": true,
                     "rejectsOuterWhitespace": true,
                 ],
-            ],
-            "lastError": NSNull(),
-            "observedAt": 1_700_000_000_000 as UInt64,
+            ], "lastError": NSNull(), "observedAt": 1_700_000_000_000 as UInt64,
         ]
-        return try HostCoreSnapshot(
-            rawJSON: JSONSerialization.data(withJSONObject: document)
-        )
+        return try HostCoreSnapshot(rawJSON: JSONSerialization.data(withJSONObject: document))
     }
 
-    func setMediaCapabilities(
-        hostInstanceID: String,
-        capabilities: HostEncoderCapabilities
-    ) throws {
-        recorder.append(.coreSetMediaCapabilities)
-    }
+    func setMediaCapabilities(hostInstanceID: String, capabilities: HostEncoderCapabilities) throws
+    { recorder.append(.coreSetMediaCapabilities) }
 
-    func submit(accessUnit: HostEncodedAccessUnit) throws {
-        recorder.append(.coreSubmitMedia)
-    }
+    func submit(accessUnit: HostEncodedAccessUnit) throws { recorder.append(.coreSubmitMedia) }
 
     func reportEncoderState(
-        hostInstanceID: String,
-        connectionEpoch: UInt64,
-        codecEpoch: UInt64,
-        codec: HostMediaCodec,
-        hardwareAccelerated: Bool,
-        softwareFallback: Bool,
-        encoderID: String
-    ) throws {
-        recorder.append(.coreReportEncoderState)
-    }
+        hostInstanceID: String, connectionEpoch: UInt64, codecEpoch: UInt64, codec: HostMediaCodec,
+        hardwareAccelerated: Bool, softwareFallback: Bool, encoderID: String
+    ) throws { recorder.append(.coreReportEncoderState) }
 
     func resolvePendingApproval(
-        connectionID: String,
-        decision: HostApprovalDecision,
-        commandId: String
-    ) throws {
-        recorder.append(.coreCommand)
-    }
+        connectionID: String, decision: HostApprovalDecision, commandId: String
+    ) throws { recorder.append(.coreCommand) }
 
     func disableActiveSessionCapability(
-        _ capability: HostSessionRevocableCapability,
-        connectionID: String,
-        commandId: String
-    ) throws {
-        recorder.append(.coreCommand)
-    }
+        _ capability: HostSessionRevocableCapability, connectionID: String, commandId: String
+    ) throws { recorder.append(.coreCommand) }
 
-    func disconnectSession(
-        connectionID: String,
-        commandId: String
-    ) throws {
+    func disconnectSession(connectionID: String, commandId: String) throws {
         recorder.append(.coreCommand)
     }
 }

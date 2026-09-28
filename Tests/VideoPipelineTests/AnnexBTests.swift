@@ -1,5 +1,5 @@
-import XCTest
 import VideoPipeline
+import XCTest
 
 final class AnnexBTests: XCTestCase {
     func testParsesAUDSeparatedAccessUnitsAndParameterSets() throws {
@@ -20,9 +20,7 @@ final class AnnexBTests: XCTestCase {
         XCTAssertThrowsError(try HEVCAnnexBStream(data: annexB([nal(type: 32, payload: [1])])))
     }
 
-    private func nal(type: UInt8, payload: [UInt8]) -> Data {
-        Data([type << 1, 1] + payload)
-    }
+    private func nal(type: UInt8, payload: [UInt8]) -> Data { Data([type << 1, 1] + payload) }
 
     private func annexB(_ nals: [Data]) -> Data {
         nals.reduce(into: Data()) { result, nal in

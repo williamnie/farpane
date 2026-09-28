@@ -1,27 +1,33 @@
 import AppKit
 import CoreBridge
 import CoreGraphics
-import XCTest
 import ViewerInput
+import XCTest
 
 final class MacKeyMapperTests: XCTestCase {
     func testMapsBasicTextNavigationAndModifiers() {
-        XCTAssertEqual(MacKeyMapper.key(keyCode: 0, charactersIgnoringModifiers: "a"), .character("a"))
-        XCTAssertEqual(MacKeyMapper.key(keyCode: 36, charactersIgnoringModifiers: "\r"), .special(.return))
-        XCTAssertEqual(MacKeyMapper.key(keyCode: 48, charactersIgnoringModifiers: "\t"), .special(.tab))
-        XCTAssertEqual(MacKeyMapper.key(keyCode: 49, charactersIgnoringModifiers: " "), .special(.space))
-        XCTAssertEqual(MacKeyMapper.key(keyCode: 123, charactersIgnoringModifiers: nil), .special(.left))
-        XCTAssertEqual(MacKeyMapper.key(keyCode: 55, charactersIgnoringModifiers: nil), .special(.command))
+        XCTAssertEqual(
+            MacKeyMapper.key(keyCode: 0, charactersIgnoringModifiers: "a"), .character("a"))
+        XCTAssertEqual(
+            MacKeyMapper.key(keyCode: 36, charactersIgnoringModifiers: "\r"), .special(.return))
+        XCTAssertEqual(
+            MacKeyMapper.key(keyCode: 48, charactersIgnoringModifiers: "\t"), .special(.tab))
+        XCTAssertEqual(
+            MacKeyMapper.key(keyCode: 49, charactersIgnoringModifiers: " "), .special(.space))
+        XCTAssertEqual(
+            MacKeyMapper.key(keyCode: 123, charactersIgnoringModifiers: nil), .special(.left))
+        XCTAssertEqual(
+            MacKeyMapper.key(keyCode: 55, charactersIgnoringModifiers: nil), .special(.command))
     }
 
     func testMapsCommonModifierFlags() {
-        let modifiers = MacKeyMapper.modifiers(from: [.shift, .control, .option, .command, .capsLock])
+        let modifiers = MacKeyMapper.modifiers(from: [
+            .shift, .control, .option, .command, .capsLock,
+        ])
         XCTAssertEqual(modifiers, [.shift, .control, .option, .command])
         XCTAssertEqual(MacKeyMapper.modifierIsDown(keyCode: 56, flags: [.shift]), true)
         XCTAssertEqual(
-            MacKeyMapper.modifierIsDown(keyCode: 56, flags: NSEvent.ModifierFlags()),
-            false
-        )
+            MacKeyMapper.modifierIsDown(keyCode: 56, flags: NSEvent.ModifierFlags()), false)
     }
 
     func testMapsExclusiveHardwareKeysWithoutAppKitTextInput() {

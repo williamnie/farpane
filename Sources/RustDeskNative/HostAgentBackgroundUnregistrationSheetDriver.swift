@@ -11,9 +11,7 @@ final class HostAgentBackgroundUnregistrationSheetDriver {
     private let owner: HostAgentBackgroundUnregistrationUXOwner
     private let onUpdate: Update
     private let mutationQueue = DispatchQueue(
-        label: "io.farpane.background-unregistration",
-        qos: .userInitiated
-    )
+        label: "io.farpane.background-unregistration", qos: .userInitiated)
     private var alert: NSAlert?
     private var completion: Completion?
     private var activePresentationToken: UInt64 = 0
@@ -25,29 +23,18 @@ final class HostAgentBackgroundUnregistrationSheetDriver {
     ) -> HostAgentBackgroundUnregistrationSheetDriver {
         HostAgentBackgroundUnregistrationSheetDriver(
             owner: HostAgentBackgroundUnregistrationUXOwner.makeProduct(
-                mutationOwner: mutationOwner
-            ),
-            onUpdate: onUpdate
-        )
+                mutationOwner: mutationOwner), onUpdate: onUpdate)
     }
 
-    init(
-        owner: HostAgentBackgroundUnregistrationUXOwner,
-        onUpdate: @escaping Update = { _ in }
-    ) {
+    init(owner: HostAgentBackgroundUnregistrationUXOwner, onUpdate: @escaping Update = { _ in }) {
         self.owner = owner
         self.onUpdate = onUpdate
     }
 
-    @discardableResult
-    func begin(
-        on window: NSWindow,
-        completion: @escaping Completion = { _ in }
-    ) -> Bool {
-        guard Thread.isMainThread,
-              !isRunning,
-              alert == nil
-        else { return false }
+    @discardableResult func begin(on window: NSWindow, completion: @escaping Completion = { _ in })
+        -> Bool
+    {
+        guard Thread.isMainThread, !isRunning, alert == nil else { return false }
         isRunning = true
         self.completion = completion
 
@@ -63,15 +50,11 @@ final class HostAgentBackgroundUnregistrationSheetDriver {
         return true
     }
 
-    private func present(
-        _ view: HostAgentBackgroundUnregistrationUXView,
-        on window: NSWindow
-    ) -> Bool {
-        guard Thread.isMainThread,
-              isRunning,
-              alert == nil,
-              activePresentationToken < UInt64.max,
-              case .awaitingConfirmation(let prompt) = view.phase
+    private func present(_ view: HostAgentBackgroundUnregistrationUXView, on window: NSWindow)
+        -> Bool
+    {
+        guard Thread.isMainThread, isRunning, alert == nil, activePresentationToken < UInt64.max,
+            case .awaitingConfirmation(let prompt) = view.phase
         else { return false }
 
         activePresentationToken += 1
@@ -88,42 +71,28 @@ final class HostAgentBackgroundUnregistrationSheetDriver {
         alert.beginSheetModal(for: window) { [weak self, weak alert] response in
             guard let self, let alert else { return }
             self.handleResponse(
-                response,
-                alert: alert,
-                prompt: prompt,
-                generation: generation,
-                token: token
-            )
+                response, alert: alert, prompt: prompt, generation: generation, token: token)
         }
         return true
     }
 
     private func handleResponse(
-        _ response: NSApplication.ModalResponse,
-        alert: NSAlert,
-        prompt: HostAgentBackgroundUnregistrationUXPrompt,
-        generation: UInt64,
-        token: UInt64
+        _ response: NSApplication.ModalResponse, alert: NSAlert,
+        prompt: HostAgentBackgroundUnregistrationUXPrompt, generation: UInt64, token: UInt64
     ) {
-        guard Thread.isMainThread,
-              isRunning,
-              self.alert === alert,
-              activePresentationToken == token
+        guard Thread.isMainThread, isRunning, self.alert === alert, activePresentationToken == token
         else { return }
         self.alert = nil
 
         let current = owner.snapshot()
-        guard current.generation == generation,
-              current.phase == .awaitingConfirmation(prompt)
+        guard current.generation == generation, current.phase == .awaitingConfirmation(prompt)
         else {
             finish(current)
             return
         }
 
-        let intent =
-            HostAgentBackgroundUnregistrationSheetResponsePolicy.intent(
-                confirmed: response == .alertFirstButtonReturn
-            )
+        let intent = HostAgentBackgroundUnregistrationSheetResponsePolicy.intent(
+            confirmed: response == .alertFirstButtonReturn)
         guard intent == .confirmBackgroundUnregistration else {
             _ = owner.apply(intent)
             finish(owner.snapshot())
@@ -135,19 +104,15 @@ final class HostAgentBackgroundUnregistrationSheetDriver {
             _ = self.owner.apply(intent)
             let updated = self.owner.snapshot()
             DispatchQueue.main.async { [weak self] in
-                guard let self,
-                      self.isRunning,
-                      self.activePresentationToken == token,
-                      self.alert == nil
+                guard let self, self.isRunning, self.activePresentationToken == token,
+                    self.alert == nil
                 else { return }
                 self.finish(updated)
             }
         }
     }
 
-    private func finish(
-        _ view: HostAgentBackgroundUnregistrationUXView
-    ) {
+    private func finish(_ view: HostAgentBackgroundUnregistrationUXView) {
         guard isRunning else { return }
         let completion = completion
         self.completion = nil

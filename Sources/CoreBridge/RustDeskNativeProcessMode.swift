@@ -10,9 +10,7 @@ public enum RustDeskNativeProcessMode: Equatable, Sendable {
 public enum RustDeskNativeProcessModePolicy {
     public static func resolve(arguments: [String]) -> RustDeskNativeProcessMode {
         let roleArguments = Array(arguments.dropFirst())
-        if roleArguments.contains(where: {
-            $0 == "--cm" || $0 == "--cm-no-ui"
-        }) {
+        if roleArguments.contains(where: { $0 == "--cm" || $0 == "--cm-no-ui" }) {
             return .unsupportedConnectionManager
         }
         return roleArguments.contains("--host-agent") ? .hostAgent : .application
@@ -21,6 +19,5 @@ public enum RustDeskNativeProcessModePolicy {
 
 public enum RustDeskNativeConnectionManagerRejectionPolicy {
     public static let exitCode: Int32 = 64
-    public static let diagnostic =
-        "FarPane connection-manager mode is unsupported.\n"
+    public static let diagnostic = "FarPane connection-manager mode is unsupported.\n"
 }

@@ -8,17 +8,12 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
     private var runtime: HostAgentCoreRuntime?
     private var bootstrapOwner: BootstrapOwner?
 
-    private init(
-        bootstrapOwner: BootstrapOwner,
-        runtime: HostAgentCoreRuntime
-    ) {
+    private init(bootstrapOwner: BootstrapOwner, runtime: HostAgentCoreRuntime) {
         self.bootstrapOwner = bootstrapOwner
         self.runtime = runtime
     }
 
-    deinit {
-        try? stop(reason: .appExit)
-    }
+    deinit { try? stop(reason: .appExit) }
 
     /// Retains `bootstrapOwner` before invoking the synchronous Core factory.
     /// If the factory fails, no partially-owned runtime is returned.
@@ -27,10 +22,7 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
         startRuntime: (BootstrapOwner) throws -> HostAgentCoreRuntime
     ) throws -> HostAgentOwnedCoreRuntime<BootstrapOwner> {
         let runtime = try startRuntime(bootstrapOwner)
-        return HostAgentOwnedCoreRuntime(
-            bootstrapOwner: bootstrapOwner,
-            runtime: runtime
-        )
+        return HostAgentOwnedCoreRuntime(bootstrapOwner: bootstrapOwner, runtime: runtime)
     }
 
     /// Claims both owned values exactly once, attempts Core teardown, then
@@ -46,9 +38,7 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
         bootstrapOwner = nil
         stateLock.unlock()
 
-        guard runtimeToRelease != nil || bootstrapOwnerToRelease != nil else {
-            return
-        }
+        guard runtimeToRelease != nil || bootstrapOwnerToRelease != nil else { return }
         defer {
             runtimeToRelease = nil
             bootstrapOwnerToRelease = nil
@@ -60,116 +50,76 @@ public final class HostAgentOwnedCoreRuntime<BootstrapOwner: AnyObject>: @unchec
     public func copySnapshot() throws -> HostCoreSnapshot {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard let runtime else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard let runtime else { throw HostAgentCoreRuntimeAccessError.notRunning }
         return try runtime.copySnapshot()
     }
 
     public func beginSleep(epoch: UInt64) throws {
-        try withRunningRuntime { runtime in
-            try runtime.beginSleep(epoch: epoch)
-        }
+        try withRunningRuntime { runtime in try runtime.beginSleep(epoch: epoch) }
     }
 
     public func finishSleep(epoch: UInt64) throws {
-        try withRunningRuntime { runtime in
-            try runtime.finishSleep(epoch: epoch)
-        }
+        try withRunningRuntime { runtime in try runtime.finishSleep(epoch: epoch) }
     }
 
     public func resumeAfterWake(epoch: UInt64) throws {
-        try withRunningRuntime { runtime in
-            try runtime.resumeAfterWake(epoch: epoch)
-        }
+        try withRunningRuntime { runtime in try runtime.resumeAfterWake(epoch: epoch) }
     }
 
     public func recoverNetworkPath(generation: UInt64) throws {
-        try withRunningRuntime { runtime in
-            try runtime.recoverNetworkPath(generation: generation)
-        }
+        try withRunningRuntime { runtime in try runtime.recoverNetworkPath(generation: generation) }
     }
 
-    public func setMediaCapabilities(
-        hostInstanceID: String,
-        capabilities: HostEncoderCapabilities
-    ) throws {
+    public func setMediaCapabilities(hostInstanceID: String, capabilities: HostEncoderCapabilities)
+        throws
+    {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard let runtime else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
-        try runtime.setMediaCapabilities(
-            hostInstanceID: hostInstanceID,
-            capabilities: capabilities
-        )
+        guard let runtime else { throw HostAgentCoreRuntimeAccessError.notRunning }
+        try runtime.setMediaCapabilities(hostInstanceID: hostInstanceID, capabilities: capabilities)
     }
 
     public func submit(accessUnit: HostEncodedAccessUnit) throws {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard let runtime else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard let runtime else { throw HostAgentCoreRuntimeAccessError.notRunning }
         try runtime.submit(accessUnit: accessUnit)
     }
 
     public func reportEncoderState(
-        hostInstanceID: String,
-        connectionEpoch: UInt64,
-        codecEpoch: UInt64,
-        codec: HostMediaCodec,
-        hardwareAccelerated: Bool,
-        softwareFallback: Bool,
-        encoderID: String
+        hostInstanceID: String, connectionEpoch: UInt64, codecEpoch: UInt64, codec: HostMediaCodec,
+        hardwareAccelerated: Bool, softwareFallback: Bool, encoderID: String
     ) throws {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard let runtime else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard let runtime else { throw HostAgentCoreRuntimeAccessError.notRunning }
         try runtime.reportEncoderState(
-            hostInstanceID: hostInstanceID,
-            connectionEpoch: connectionEpoch,
-            codecEpoch: codecEpoch,
-            codec: codec,
-            hardwareAccelerated: hardwareAccelerated,
-            softwareFallback: softwareFallback,
-            encoderID: encoderID
-        )
+            hostInstanceID: hostInstanceID, connectionEpoch: connectionEpoch,
+            codecEpoch: codecEpoch, codec: codec, hardwareAccelerated: hardwareAccelerated,
+            softwareFallback: softwareFallback, encoderID: encoderID)
     }
 
     package func submit(command: HostAgentCoreCommandSubmission) throws {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard let runtime else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard let runtime else { throw HostAgentCoreRuntimeAccessError.notRunning }
         try runtime.submit(command: command)
     }
 
     package func performPasswordOperation(
-        _ action: HostAgentXPCPasswordAction,
-        secret: inout Data,
-        requestID: String
+        _ action: HostAgentXPCPasswordAction, secret: inout Data, requestID: String
     ) throws -> Data? {
         try withRunningRuntime { runtime in
-            try runtime.performPasswordOperation(
-                action,
-                secret: &secret,
-                requestID: requestID
-            )
+            try runtime.performPasswordOperation(action, secret: &secret, requestID: requestID)
         }
     }
 
-    private func withRunningRuntime<Value>(
-        _ body: (HostAgentCoreRuntime) throws -> Value
-    ) throws -> Value {
+    private func withRunningRuntime<Value>(_ body: (HostAgentCoreRuntime) throws -> Value) throws
+        -> Value
+    {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard let runtime else {
-            throw HostAgentCoreRuntimeAccessError.notRunning
-        }
+        guard let runtime else { throw HostAgentCoreRuntimeAccessError.notRunning }
         return try body(runtime)
     }
 }

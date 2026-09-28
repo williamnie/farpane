@@ -21,29 +21,19 @@ final class HostAgentMediaLiveLogPollingOwner: @unchecked Sendable {
     init(
         coordinator: HostMediaPipelineLiveLogCoordinator,
         queue: DispatchQueue = DispatchQueue(
-            label: "io.farpane.host-agent.media-live-log",
-            qos: .utility
-        )
+            label: "io.farpane.host-agent.media-live-log", qos: .utility)
     ) {
         self.coordinator = coordinator
         let timer = DispatchSource.makeTimerSource(queue: queue)
         self.timer = timer
         timer.schedule(
-            deadline: .now() + .seconds(1),
-            repeating: .seconds(1),
-            leeway: .milliseconds(100)
-        )
-        timer.setEventHandler { [weak self] in
-            self?.recordOnce()
-        }
+            deadline: .now() + .seconds(1), repeating: .seconds(1), leeway: .milliseconds(100))
+        timer.setEventHandler { [weak self] in self?.recordOnce() }
     }
 
-    deinit {
-        cancel()
-    }
+    deinit { cancel() }
 
-    @discardableResult
-    func start() -> Bool {
+    @discardableResult func start() -> Bool {
         condition.lock()
         guard case .idle = state, gate.start() else {
             condition.unlock()
@@ -63,9 +53,7 @@ final class HostAgentMediaLiveLogPollingOwner: @unchecked Sendable {
             condition.unlock()
             return
         case .cancelling:
-            while case .cancelling = state {
-                condition.wait()
-            }
+            while case .cancelling = state { condition.wait() }
             condition.unlock()
             return
         case .idle:

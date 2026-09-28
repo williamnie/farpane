@@ -8,15 +8,12 @@ public final class HostAgentBootstrapContext: @unchecked Sendable {
     public let agentBootID: UUID
     public let configuration: HostAgentBootstrapConfiguration
 
-    public var leaseRecord: HostAgentSingleWriterLeaseRecord {
-        lease.record
-    }
+    public var leaseRecord: HostAgentSingleWriterLeaseRecord { lease.record }
 
     private let lease: HostAgentSingleWriterLease
 
     private init(
-        agentBootID: UUID,
-        configuration: HostAgentBootstrapConfiguration,
+        agentBootID: UUID, configuration: HostAgentBootstrapConfiguration,
         lease: HostAgentSingleWriterLease
     ) {
         self.agentBootID = agentBootID
@@ -32,49 +29,33 @@ public final class HostAgentBootstrapContext: @unchecked Sendable {
     /// Package-only entry bridge. The expected identifier has already passed
     /// the installed application identity gate and must match the immutable
     /// projection before this process may acquire its single-writer lease.
-    package static func prepare(
-        expectedAgentBuildID: String
-    ) throws -> HostAgentBootstrapContext {
+    package static func prepare(expectedAgentBuildID: String) throws -> HostAgentBootstrapContext {
         let configuration = try HostAgentBootstrapLaunchPreflight().prepare(
-            expectedAgentBuildID: expectedAgentBuildID
-        )
+            expectedAgentBuildID: expectedAgentBuildID)
         return try prepare(configuration: configuration)
     }
 
-    private static func prepare(
-        configuration: HostAgentBootstrapConfiguration
-    ) throws -> HostAgentBootstrapContext {
+    private static func prepare(configuration: HostAgentBootstrapConfiguration) throws
+        -> HostAgentBootstrapContext
+    {
         let agentBootID = UUID()
         let lease = try HostAgentSingleWriterLease.acquire(
-            configuration: configuration,
-            agentBootID: agentBootID
-        )
+            configuration: configuration, agentBootID: agentBootID)
         return HostAgentBootstrapContext(
-            agentBootID: agentBootID,
-            configuration: configuration,
-            lease: lease
-        )
+            agentBootID: agentBootID, configuration: configuration, lease: lease)
     }
 
-    static func prepare(
-        applicationSupportURL: URL,
-        expectedAgentBuildID: String,
-        agentBootID: UUID
-    ) throws -> HostAgentBootstrapContext {
+    static func prepare(applicationSupportURL: URL, expectedAgentBuildID: String, agentBootID: UUID)
+        throws -> HostAgentBootstrapContext
+    {
         let configuration = try HostAgentBootstrapLaunchPreflight(
             applicationSupportURL: applicationSupportURL
         ).prepare(expectedAgentBuildID: expectedAgentBuildID)
         let lease = try HostAgentSingleWriterLease.acquire(
             directoryURL: HostAgentBootstrapProductLayout.directoryURL(
-                applicationSupportURL: applicationSupportURL
-            ),
-            configuration: configuration,
-            agentBootID: agentBootID
-        )
+                applicationSupportURL: applicationSupportURL), configuration: configuration,
+            agentBootID: agentBootID)
         return HostAgentBootstrapContext(
-            agentBootID: agentBootID,
-            configuration: configuration,
-            lease: lease
-        )
+            agentBootID: agentBootID, configuration: configuration, lease: lease)
     }
 }

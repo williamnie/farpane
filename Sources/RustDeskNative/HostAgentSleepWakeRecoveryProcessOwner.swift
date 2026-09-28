@@ -18,12 +18,9 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
     private var state: HostAgentSleepWakeRecoveryProcessState = .idle
     private var cancellationRequested = false
     private var composition: HostAgentSleepWakeRecoveryComposition?
-    private var notificationIngress:
-        HostAgentNSWorkspaceSleepWakeIngress?
+    private var notificationIngress: HostAgentNSWorkspaceSleepWakeIngress?
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
     func stateSnapshot() -> HostAgentSleepWakeRecoveryProcessState {
         condition.lock()
@@ -31,18 +28,14 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
         return state
     }
 
-    @discardableResult
-    func install(
-        lifetime: HostAgentProcessLifetime,
-        expectedHostInstanceID: String,
+    @discardableResult func install(
+        lifetime: HostAgentProcessLifetime, expectedHostInstanceID: String,
         mediaPipelineOwner: HostAgentMediaPipelineOwner,
         snapshotCoordinator: HostAgentSnapshotRefreshCoordinator,
         recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner
     ) -> Bool {
         condition.lock()
-        guard state == .idle,
-              !expectedHostInstanceID.isEmpty
-        else {
+        guard state == .idle, !expectedHostInstanceID.isEmpty else {
             condition.unlock()
             return false
         }
@@ -51,44 +44,27 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
 
         let composition = HostAgentSleepWakeRecoveryComposition(
             mediaPipelineOwner: mediaPipelineOwner,
-            displayTCCAuthority:
-                HostAgentDisplayTCCRecoveryAuthority.makeProduct(),
-            lifetime: lifetime,
-            expectedHostInstanceID: expectedHostInstanceID,
+            displayTCCAuthority: HostAgentDisplayTCCRecoveryAuthority.makeProduct(),
+            lifetime: lifetime, expectedHostInstanceID: expectedHostInstanceID,
             operations: HostAgentSleepWakeRecoveryProductOperations(
                 publishSuspending: { epoch in
                     snapshotCoordinator.publishRecoverySnapshot(
-                        expectedHostInstanceID: expectedHostInstanceID,
-                        epoch: epoch,
-                        recoveryStatus: .suspending,
-                        registrationStatus: "suspending"
-                    )
+                        expectedHostInstanceID: expectedHostInstanceID, epoch: epoch,
+                        recoveryStatus: .suspending, registrationStatus: "suspending")
                 },
                 publishAvailable: { epoch in
                     snapshotCoordinator.publishRecoverySnapshot(
-                        expectedHostInstanceID: expectedHostInstanceID,
-                        epoch: epoch,
-                        recoveryStatus: .running,
-                        registrationStatus: "ready"
-                    )
+                        expectedHostInstanceID: expectedHostInstanceID, epoch: epoch,
+                        recoveryStatus: .running, registrationStatus: "ready")
                 },
                 recoveryAccepted: { epoch in
-                    _ = recoveryEvidenceOwner.acceptSleepWake(
-                        recoveryEpoch: epoch
-                    )
+                    _ = recoveryEvidenceOwner.acceptSleepWake(recoveryEpoch: epoch)
                 },
                 recoveryCompleted: { epoch in
-                    _ = recoveryEvidenceOwner.recordSleepWakeCompleted(
-                        recoveryEpoch: epoch
-                    )
-                }
-            )
-        )
-        let notificationIngress =
-            HostAgentNSWorkspaceSleepWakeIngress.makeProduct(
-                composition: composition,
-                lifetime: lifetime
-            )
+                    _ = recoveryEvidenceOwner.recordSleepWakeCompleted(recoveryEpoch: epoch)
+                }))
+        let notificationIngress = HostAgentNSWorkspaceSleepWakeIngress.makeProduct(
+            composition: composition, lifetime: lifetime)
         guard notificationIngress.start() else {
             notificationIngress.cancelAndWait()
             composition.cancel()
@@ -118,13 +94,11 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
         return true
     }
 
-    @discardableResult
-    func systemWillSleep() -> Bool {
+    @discardableResult func systemWillSleep() -> Bool {
         installedComposition()?.systemWillSleep() ?? false
     }
 
-    @discardableResult
-    func systemDidWake() -> Bool {
+    @discardableResult func systemDidWake() -> Bool {
         installedComposition()?.systemDidWake() ?? false
     }
 
@@ -139,16 +113,12 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
             condition.unlock()
             return
         case .cancelling:
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
             return
         case .installing:
             cancellationRequested = true
-            while state == .installing {
-                condition.wait()
-            }
+            while state == .installing { condition.wait() }
             condition.unlock()
             return
         case .idle:
@@ -174,9 +144,7 @@ final class HostAgentSleepWakeRecoveryProcessOwner: @unchecked Sendable {
         }
     }
 
-    private func installedComposition()
-        -> HostAgentSleepWakeRecoveryComposition?
-    {
+    private func installedComposition() -> HostAgentSleepWakeRecoveryComposition? {
         condition.lock()
         defer { condition.unlock() }
         guard state == .installed else { return nil }

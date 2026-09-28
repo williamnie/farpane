@@ -1,8 +1,6 @@
 import Foundation
 
-public enum HostAgentProcessLifetimeAccessError: Error, Equatable {
-    case notRunning
-}
+public enum HostAgentProcessLifetimeAccessError: Error, Equatable { case notRunning }
 
 /// Sanitized result published after the single runtime stop attempt finishes.
 public struct HostAgentProcessTerminationOutcome: Equatable, Sendable {
@@ -23,9 +21,7 @@ public struct HostAgentProcessTerminationOutcome: Equatable, Sendable {
 /// Strongly owns a process runtime until the first termination request has
 /// completed its one stop attempt. Duplicate requests never block or stop the
 /// runtime again; waiters observe only the sanitized terminal outcome.
-public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
-    @unchecked Sendable
-{
+public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>: @unchecked Sendable {
     private enum State {
         case running(Runtime)
         case stopping
@@ -38,8 +34,7 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
     private var state: State
 
     public init(
-        runtime: Runtime,
-        prepareTermination: @escaping () -> Void = {},
+        runtime: Runtime, prepareTermination: @escaping () -> Void = {},
         stopRuntime: @escaping (Runtime, HostStopReason) throws -> Void
     ) {
         self.state = .running(runtime)
@@ -47,14 +42,11 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
         self.stopRuntime = stopRuntime
     }
 
-    deinit {
-        _ = requestTermination(reason: .appExit)
-    }
+    deinit { _ = requestTermination(reason: .appExit) }
 
     /// Returns true only for the request that claimed the runtime. The stop
     /// attempt is synchronous for that caller; duplicates return immediately.
-    @discardableResult
-    public func requestTermination(reason: HostStopReason) -> Bool {
+    @discardableResult public func requestTermination(reason: HostStopReason) -> Bool {
         condition.lock()
         guard case .running(let runtime) = state else {
             condition.unlock()
@@ -69,13 +61,8 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
         do {
             try stopRuntime(runtime, reason)
             status = .stopped
-        } catch {
-            status = .stopFailed
-        }
-        let outcome = HostAgentProcessTerminationOutcome(
-            reason: reason,
-            status: status
-        )
+        } catch { status = .stopFailed }
+        let outcome = HostAgentProcessTerminationOutcome(reason: reason, status: status)
 
         condition.lock()
         state = .terminated(outcome)
@@ -90,18 +77,14 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
         condition.lock()
         defer { condition.unlock() }
         while true {
-            if case .terminated(let outcome) = state {
-                return outcome
-            }
+            if case .terminated(let outcome) = state { return outcome }
             condition.wait()
         }
     }
 
     /// Returns the terminal outcome without blocking. Product entries that
     /// must keep their main run loop alive can use this to wait cooperatively.
-    public func terminationOutcomeSnapshot()
-        -> HostAgentProcessTerminationOutcome?
-    {
+    public func terminationOutcomeSnapshot() -> HostAgentProcessTerminationOutcome? {
         condition.lock()
         defer { condition.unlock() }
         guard case .terminated(let outcome) = state else { return nil }
@@ -110,9 +93,7 @@ public final class HostAgentProcessLifetimeGate<Runtime: AnyObject>:
 
     /// Provides a strong reference only while the gate is still running.
     /// Runtime-specific serialization remains owned by the runtime itself.
-    public func withRunningRuntime<Value>(
-        _ body: (Runtime) throws -> Value
-    ) throws -> Value {
+    public func withRunningRuntime<Value>(_ body: (Runtime) throws -> Value) throws -> Value {
         condition.lock()
         guard case .running(let runtime) = state else {
             condition.unlock()

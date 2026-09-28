@@ -8,8 +8,7 @@ package struct HostAgentBackgroundCommandRoute: Equatable, Sendable {
     package let reconnectRoute: HostAgentXPCReconnectCommandRoute
 
     package init(
-        activationEpoch: UInt64,
-        projectionGeneration: UInt64,
+        activationEpoch: UInt64, projectionGeneration: UInt64,
         reconnectRoute: HostAgentXPCReconnectCommandRoute
     ) {
         self.activationEpoch = activationEpoch
@@ -18,15 +17,10 @@ package struct HostAgentBackgroundCommandRoute: Equatable, Sendable {
     }
 }
 
-package enum HostAgentBackgroundCommandAvailability:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundCommandAvailability: Equatable, Sendable {
     case unavailable
     case available(
-        route: HostAgentBackgroundCommandRoute,
-        state: HostAgentXPCCommandIntentOwnerState
-    )
+        route: HostAgentBackgroundCommandRoute, state: HostAgentXPCCommandIntentOwnerState)
 }
 
 /// Final typed policy shared by App-side command discovery and submission.
@@ -34,51 +28,30 @@ package enum HostAgentBackgroundCommandAvailability:
 /// session; approval and every capability mutation fail closed.
 package enum HostAgentBackgroundSessionCommandPolicy {
     package static func allows(
-        _ intent: HostAgentXPCCommandIntent,
-        payload: HostAgentXPCWireSnapshotPayload
-    ) -> Bool {
-        allows(
-            intent.name,
-            connectionID: intent.connectionID,
-            payload: payload
-        )
-    }
+        _ intent: HostAgentXPCCommandIntent, payload: HostAgentXPCWireSnapshotPayload
+    ) -> Bool { allows(intent.name, connectionID: intent.connectionID, payload: payload) }
 
     package static func allows(
-        _ name: HostAgentXPCWireCommandName,
-        connectionID: String,
+        _ name: HostAgentXPCWireCommandName, connectionID: String,
         payload: HostAgentXPCWireSnapshotPayload
     ) -> Bool {
-        switch (
-            payload.sessionAvailability,
-            payload.sessionUnavailableReason
-        ) {
+        switch (payload.sessionAvailability, payload.sessionUnavailableReason) {
         case (.available, nil):
-            return projectedConnectionID(
-                for: name,
-                payload: payload
-            ) == connectionID
+            return projectedConnectionID(for: name, payload: payload) == connectionID
         case (.limited, .sessionUnavailable):
-            return name == .disconnectSession
-                && payload.activeSession?.connectionID == connectionID
-        default:
-            return false
+            return name == .disconnectSession && payload.activeSession?.connectionID == connectionID
+        default: return false
         }
     }
 
     private static func projectedConnectionID(
-        for name: HostAgentXPCWireCommandName,
-        payload: HostAgentXPCWireSnapshotPayload
+        for name: HostAgentXPCWireCommandName, payload: HostAgentXPCWireSnapshotPayload
     ) -> String? {
         switch name {
-        case .approveIncoming, .rejectIncoming:
-            return payload.pendingApproval?.connectionID
-        case .disableInputForActiveSession,
-             .disableClipboardReadForActiveSession,
-             .disableClipboardWriteForActiveSession,
-             .disableClipboardForActiveSession,
-             .disableAudioForActiveSession,
-             .disconnectSession:
+        case .approveIncoming, .rejectIncoming: return payload.pendingApproval?.connectionID
+        case .disableInputForActiveSession, .disableClipboardReadForActiveSession,
+            .disableClipboardWriteForActiveSession, .disableClipboardForActiveSession,
+            .disableAudioForActiveSession, .disconnectSession:
             return payload.activeSession?.connectionID
         }
     }

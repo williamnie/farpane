@@ -24,27 +24,19 @@ package enum HostAgentProcessEntryDriver {
         makeStateOwner: () throws -> HostAgentProcessEntryStateOwner = {
             try HostAgentProcessEntryStateOwner()
         },
-        run: (
-            HostAgentProcessEntryEligibility,
-            HostAgentProcessEntryStateOwner
-        ) -> HostAgentProcessRunResult
+        run: (HostAgentProcessEntryEligibility, HostAgentProcessEntryStateOwner) ->
+            HostAgentProcessRunResult
     ) -> HostAgentProcessRunResult {
-        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(
-            eligibility.buildIdentifier
-        ) else {
-            return .internalFailure
-        }
+        guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(eligibility.buildIdentifier)
+        else { return .internalFailure }
 
         switch eligibility.signingChannel {
-        case .localDevelopment:
-            break
+        case .localDevelopment: break
         }
 
         do {
             let stateOwner = try makeStateOwner()
             return run(eligibility, stateOwner)
-        } catch {
-            return .internalFailure
-        }
+        } catch { return .internalFailure }
     }
 }

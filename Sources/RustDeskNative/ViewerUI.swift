@@ -55,12 +55,8 @@ final class ViewerChromeView: NSView {
     private weak var metrics: PipelineMetrics?
 
     init(
-        videoView: ViewerMetalView,
-        metrics: PipelineMetrics,
-        showsAcceptanceControls: Bool,
-        showsFileTransferControls: Bool,
-        showsDisplayControls: Bool,
-        showsAudioStatus: Bool
+        videoView: ViewerMetalView, metrics: PipelineMetrics, showsAcceptanceControls: Bool,
+        showsFileTransferControls: Bool, showsDisplayControls: Bool, showsAudioStatus: Bool
     ) {
         self.videoView = videoView
         self.metrics = metrics
@@ -68,8 +64,8 @@ final class ViewerChromeView: NSView {
         self.showsFileTransferControls = showsFileTransferControls
         self.showsDisplayControls = showsDisplayControls
         self.showsAudioStatus = showsAudioStatus
-        hudVisible = showsAcceptanceControls
-            || UserDefaults.standard.bool(forKey: Self.hudPreferenceKey)
+        hudVisible =
+            showsAcceptanceControls || UserDefaults.standard.bool(forKey: Self.hudPreferenceKey)
         super.init(frame: .zero)
         configure()
     }
@@ -84,26 +80,24 @@ final class ViewerChromeView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        NotificationCenter.default.removeObserver(self, name: NSWindow.didEnterFullScreenNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSWindow.didExitFullScreenNotification, object: nil)
+        NotificationCenter.default.removeObserver(
+            self, name: NSWindow.didEnterFullScreenNotification, object: nil)
+        NotificationCenter.default.removeObserver(
+            self, name: NSWindow.didExitFullScreenNotification, object: nil)
         if let window {
             NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(windowFullscreenChanged),
-                name: NSWindow.didEnterFullScreenNotification,
-                object: window
-            )
+                self, selector: #selector(windowFullscreenChanged),
+                name: NSWindow.didEnterFullScreenNotification, object: window)
             NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(windowFullscreenChanged),
-                name: NSWindow.didExitFullScreenNotification,
-                object: window
-            )
+                self, selector: #selector(windowFullscreenChanged),
+                name: NSWindow.didExitFullScreenNotification, object: window)
         }
         if localMouseMonitor == nil {
-            localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) {
+                [weak self] event in
                 guard let self, self.controlsExpanded, !self.controlsPinned,
-                      event.window === self.window else { return event }
+                    event.window === self.window
+                else { return event }
                 let point = self.convert(event.locationInWindow, from: nil)
                 if !self.controlsPanel.frame.contains(point) { self.setControlsExpanded(false) }
                 return event
@@ -115,11 +109,10 @@ final class ViewerChromeView: NSView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(
-            rect: controlsPanel.frame,
-            options: [.mouseEnteredAndExited, .activeInKeyWindow],
-            owner: self
-        ))
+        addTrackingArea(
+            NSTrackingArea(
+                rect: controlsPanel.frame, options: [.mouseEnteredAndExited, .activeInKeyWindow],
+                owner: self))
     }
 
     override func mouseEntered(with event: NSEvent) {
@@ -144,17 +137,10 @@ final class ViewerChromeView: NSView {
 
     func setKeyboardGrabAvailable(_ available: Bool) {
         keyboardGrabAvailable = available
-        keyboardGrabButton.isEnabled = available
-            || keyboardGrabActive
-            || keyboardGrabResumePending
+        keyboardGrabButton.isEnabled = available || keyboardGrabActive || keyboardGrabResumePending
     }
 
-    func updateKeyboardGrab(
-        active: Bool,
-        resumePending: Bool,
-        message: String?,
-        isError: Bool
-    ) {
+    func updateKeyboardGrab(active: Bool, resumePending: Bool, message: String?, isError: Bool) {
         keyboardGrabActive = active
         keyboardGrabResumePending = resumePending
         let requested = active || resumePending
@@ -180,41 +166,30 @@ final class ViewerChromeView: NSView {
 
     func setFileTransferAvailable(_ available: Bool) {
         fileTransferAvailable = available
-        fileTransferButton.isEnabled = fileTransferActive
-            ? fileTransferDirection == .download && fileTransferCancellable
-            : available
-        fileTransferUploadButton.isEnabled = fileTransferActive
-            ? fileTransferDirection == .upload && fileTransferCancellable
-            : available
+        fileTransferButton.isEnabled =
+            fileTransferActive
+            ? fileTransferDirection == .download && fileTransferCancellable : available
+        fileTransferUploadButton.isEnabled =
+            fileTransferActive
+            ? fileTransferDirection == .upload && fileTransferCancellable : available
     }
 
     func updateFileTransferAction(
-        active: Bool,
-        cancellable: Bool = false,
+        active: Bool, cancellable: Bool = false,
         direction: ViewerFileTransferActionDirection = .download
     ) {
         fileTransferActive = active
         fileTransferCancellable = active && cancellable
         fileTransferDirection = active ? direction : nil
         updateFileTransferButton(
-            fileTransferButton,
-            direction: .download,
-            idleTitle: "接收文件",
-            cancelTitle: "取消接收",
-            idleToolTip: "选择本机私有目录并接收远端共享文件"
-        )
+            fileTransferButton, direction: .download, idleTitle: "接收文件", cancelTitle: "取消接收",
+            idleToolTip: "选择本机私有目录并接收远端共享文件")
         updateFileTransferButton(
-            fileTransferUploadButton,
-            direction: .upload,
-            idleTitle: "发送文件",
-            cancelTitle: "取消发送",
-            idleToolTip: "选择本机文件或文件夹并发送到远端"
-        )
+            fileTransferUploadButton, direction: .upload, idleTitle: "发送文件", cancelTitle: "取消发送",
+            idleToolTip: "选择本机文件或文件夹并发送到远端")
     }
 
-    func updateDisplaySelection(
-        _ presentation: ViewerDisplaySelectionPresentation
-    ) {
+    func updateDisplaySelection(_ presentation: ViewerDisplaySelectionPresentation) {
         displaySelector.removeAllItems()
         if let status = presentation.statusText {
             let statusItem = NSMenuItem(title: status, action: nil, keyEquivalent: "")
@@ -237,8 +212,7 @@ final class ViewerChromeView: NSView {
             displaySelector.selectItem(withTag: Int(firstEnabled.displayIndex))
         }
         displaySelector.isEnabled = presentation.selectorEnabled
-        displaySelector.toolTip = presentation.statusText
-            ?? "选择要查看和控制的远端显示器"
+        displaySelector.toolTip = presentation.statusText ?? "选择要查看和控制的远端显示器"
         displaySelector.setAccessibilityHelp(displaySelector.toolTip ?? "")
         if presentation.statusIsError {
             controlsPinned = true
@@ -248,9 +222,8 @@ final class ViewerChromeView: NSView {
 
     func updateAudioSession(_ presentation: ViewerAudioSessionPresentation) {
         audioStatusLabel.stringValue = presentation.statusText
-        audioStatusLabel.textColor = presentation.statusIsError
-            ? .systemOrange
-            : .secondaryLabelColor
+        audioStatusLabel.textColor =
+            presentation.statusIsError ? .systemOrange : .secondaryLabelColor
         if presentation.statusIsError {
             controlsPinned = true
             setControlsExpanded(true)
@@ -259,13 +232,12 @@ final class ViewerChromeView: NSView {
 
     func updateHUD(_ value: PipelineHUDSnapshot) {
         hudLabel.stringValue = String(
-            format: "远端 %dx%d  →  本地 %dx%d\n编码 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  累计丢帧 %d\n当前队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
+            format:
+                "远端 %dx%d  →  本地 %dx%d\n编码 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  累计丢帧 %d\n当前队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
             value.remoteWidth, value.remoteHeight, value.drawableWidth, value.drawableHeight,
-            value.encodedFPS, value.presentedFPS, value.networkDelayMS,
-            value.decodeMS, value.renderMS, value.droppedFrames,
-            value.decoderQueueDepth, value.rendererQueueDepth, value.cpuPercent, value.residentMB,
-            value.inputEvents, value.inputRejectedEvents
-        )
+            value.encodedFPS, value.presentedFPS, value.networkDelayMS, value.decodeMS,
+            value.renderMS, value.droppedFrames, value.decoderQueueDepth, value.rendererQueueDepth,
+            value.cpuPercent, value.residentMB, value.inputEvents, value.inputRejectedEvents)
     }
 
     private func configure() {
@@ -282,13 +254,10 @@ final class ViewerChromeView: NSView {
         collapsedButton.bezelStyle = .inline
         collapsedButton.font = .systemFont(ofSize: 12, weight: .semibold)
         let collapsedChevronConfiguration = NSImage.SymbolConfiguration(
-            pointSize: 9,
-            weight: .semibold
-        )
+            pointSize: 9, weight: .semibold)
         collapsedButton.image = NSImage(
-            systemSymbolName: "chevron.down",
-            accessibilityDescription: nil
-        )?.withSymbolConfiguration(collapsedChevronConfiguration)
+            systemSymbolName: "chevron.down", accessibilityDescription: nil)?
+            .withSymbolConfiguration(collapsedChevronConfiguration)
         collapsedButton.imagePosition = .imageTrailing
         collapsedButton.imageHugsTitle = true
         collapsedButton.target = self
@@ -298,10 +267,13 @@ final class ViewerChromeView: NSView {
         collapsedButton.translatesAutoresizingMaskIntoConstraints = false
         collapsedControl.addSubview(collapsedButton)
         NSLayoutConstraint.activate([
-            collapsedButton.leadingAnchor.constraint(equalTo: collapsedControl.leadingAnchor, constant: 8),
-            collapsedButton.trailingAnchor.constraint(equalTo: collapsedControl.trailingAnchor, constant: -8),
+            collapsedButton.leadingAnchor.constraint(
+                equalTo: collapsedControl.leadingAnchor, constant: 8),
+            collapsedButton.trailingAnchor.constraint(
+                equalTo: collapsedControl.trailingAnchor, constant: -8),
             collapsedButton.topAnchor.constraint(equalTo: collapsedControl.topAnchor, constant: 3),
-            collapsedButton.bottomAnchor.constraint(equalTo: collapsedControl.bottomAnchor, constant: -3),
+            collapsedButton.bottomAnchor.constraint(
+                equalTo: collapsedControl.bottomAnchor, constant: -3),
             collapsedControl.widthAnchor.constraint(greaterThanOrEqualToConstant: 42),
             collapsedControl.heightAnchor.constraint(equalToConstant: 26),
         ])
@@ -343,12 +315,8 @@ final class ViewerChromeView: NSView {
         displaySelector.isEnabled = false
         displaySelector.toolTip = "正在读取远端显示器"
         displaySelector.setAccessibilityLabel("远端显示器")
-        displaySelector.widthAnchor.constraint(
-            greaterThanOrEqualToConstant: 150
-        ).isActive = true
-        displaySelector.widthAnchor.constraint(
-            lessThanOrEqualToConstant: 260
-        ).isActive = true
+        displaySelector.widthAnchor.constraint(greaterThanOrEqualToConstant: 150).isActive = true
+        displaySelector.widthAnchor.constraint(lessThanOrEqualToConstant: 260).isActive = true
         hudButton.bezelStyle = .rounded
         hudButton.target = self
         hudButton.action = #selector(toggleHUD)
@@ -361,7 +329,9 @@ final class ViewerChromeView: NSView {
         collapseButton.toolTip = "收起会话控制"
         let acceptanceButton = actionButton("验收记录", #selector(showChecklist))
 
-        var views: [NSView] = [stateLabel, keyboardStatusLabel, keyboardPermissionButton, NSView(), keyboardGrabButton]
+        var views: [NSView] = [
+            stateLabel, keyboardStatusLabel, keyboardPermissionButton, NSView(), keyboardGrabButton,
+        ]
         if showsAudioStatus { views.append(audioStatusLabel) }
         if showsDisplayControls { views.append(displaySelector) }
         if showsFileTransferControls {
@@ -370,10 +340,8 @@ final class ViewerChromeView: NSView {
         }
         if showsAcceptanceControls { views.append(acceptanceButton) }
         views.append(contentsOf: [hudButton, fullscreenButton, disconnectButton, collapseButton])
-        let controlsStack = NSStackView(views: views)
-        controlsStack.orientation = .horizontal
-        controlsStack.alignment = .centerY
-        controlsStack.spacing = 8
+        let controlsStack = NSStackView(
+            views: views, axis: .horizontal, alignment: .centerY, spacing: 8)
         controlsStack.edgeInsets = NSEdgeInsets(top: 8, left: 12, bottom: 8, right: 10)
         controlsStack.translatesAutoresizingMaskIntoConstraints = false
         controlsPanel.addSubview(controlsStack)
@@ -403,11 +371,14 @@ final class ViewerChromeView: NSView {
         }
         NSLayoutConstraint.activate([
             collapsedControl.centerXAnchor.constraint(equalTo: centerXAnchor),
-            collapsedControl.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 8),
+            collapsedControl.topAnchor.constraint(
+                equalTo: safeAreaLayoutGuide.topAnchor, constant: 8),
             controlsPanel.centerXAnchor.constraint(equalTo: centerXAnchor),
             controlsPanel.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 8),
-            controlsPanel.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 16),
-            controlsPanel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
+            controlsPanel.leadingAnchor.constraint(
+                greaterThanOrEqualTo: leadingAnchor, constant: 16),
+            controlsPanel.trailingAnchor.constraint(
+                lessThanOrEqualTo: trailingAnchor, constant: -16),
             hudPanel.centerXAnchor.constraint(equalTo: centerXAnchor),
             hudPanel.topAnchor.constraint(equalTo: controlsPanel.bottomAnchor, constant: 10),
         ])
@@ -447,8 +418,7 @@ final class ViewerChromeView: NSView {
             pointerInsideControls = false
         }
         updateTrackingAreas()
-        if expanded { scheduleCollapse() }
-        else { collapseTimer?.invalidate() }
+        if expanded { scheduleCollapse() } else { collapseTimer?.invalidate() }
     }
 
     private func scheduleCollapse() {
@@ -459,9 +429,7 @@ final class ViewerChromeView: NSView {
         }
     }
 
-    private func updateHUDButtonTitle() {
-        hudButton.title = hudVisible ? "隐藏 HUD" : "显示 HUD"
-    }
+    private func updateHUDButtonTitle() { hudButton.title = hudVisible ? "隐藏 HUD" : "显示 HUD" }
 
     private func updateFullscreenTitle() {
         fullscreenButton.title = window?.styleMask.contains(.fullScreen) == true ? "退出全屏" : "全屏"
@@ -526,42 +494,29 @@ final class ViewerChromeView: NSView {
     @objc private func disconnect() { onDisconnect?() }
 
     private func updateFileTransferButton(
-        _ button: NSButton,
-        direction: ViewerFileTransferActionDirection,
-        idleTitle: String,
-        cancelTitle: String,
-        idleToolTip: String
+        _ button: NSButton, direction: ViewerFileTransferActionDirection, idleTitle: String,
+        cancelTitle: String, idleToolTip: String
     ) {
-        let isActiveDirection = fileTransferActive
-            && fileTransferDirection == direction
-        button.title = isActiveDirection
-            ? (fileTransferCancellable ? cancelTitle : "正在准备…")
-            : idleTitle
-        button.contentTintColor = isActiveDirection && fileTransferCancellable
-            ? .systemOrange
-            : nil
-        button.isEnabled = isActiveDirection
-            ? fileTransferCancellable
-            : (!fileTransferActive && fileTransferAvailable)
-        button.toolTip = isActiveDirection && fileTransferCancellable
-            ? (direction == .download ? "取消当前文件接收" : "取消当前文件发送")
-            : idleToolTip
+        let isActiveDirection = fileTransferActive && fileTransferDirection == direction
+        button.title =
+            isActiveDirection ? (fileTransferCancellable ? cancelTitle : "正在准备…") : idleTitle
+        button.contentTintColor = isActiveDirection && fileTransferCancellable ? .systemOrange : nil
+        button.isEnabled =
+            isActiveDirection
+            ? fileTransferCancellable : (!fileTransferActive && fileTransferAvailable)
+        button.toolTip =
+            isActiveDirection && fileTransferCancellable
+            ? (direction == .download ? "取消当前文件接收" : "取消当前文件发送") : idleToolTip
     }
 
     @objc private func showChecklist() {
         guard let metrics else { return }
         collapseTimer?.invalidate()
         let checks = [
-            ("click", "点击已在远端产生可见反馈"),
-            ("drag", "拖拽已在远端产生可见反馈"),
-            ("scroll", "滚轮已在远端产生可见反馈"),
-            ("text", "英文与本地中文输入法提交均正确"),
-            ("key-repeat", "长按退格等按键重复正常且无卡键"),
-            ("shortcut", "常用修饰键快捷键正确"),
-            ("exclusive-keyboard", "独占模式下系统快捷键仅在远端触发，退出组合键正常"),
-            ("fullscreen", "全屏进入与退出正常"),
-            ("hud", "HUD 显示与切换正常"),
-            ("error-state", "脱敏错误状态显示正常"),
+            ("click", "点击已在远端产生可见反馈"), ("drag", "拖拽已在远端产生可见反馈"), ("scroll", "滚轮已在远端产生可见反馈"),
+            ("text", "英文与本地中文输入法提交均正确"), ("key-repeat", "长按退格等按键重复正常且无卡键"),
+            ("shortcut", "常用修饰键快捷键正确"), ("exclusive-keyboard", "独占模式下系统快捷键仅在远端触发，退出组合键正常"),
+            ("fullscreen", "全屏进入与退出正常"), ("hud", "HUD 显示与切换正常"), ("error-state", "脱敏错误状态显示正常"),
         ]
         let current = metrics.functionalChecksSnapshot()
         let stack = NSStackView()

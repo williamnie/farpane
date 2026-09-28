@@ -16,8 +16,7 @@ public final class DeviceCatalogStore: @unchecked Sendable {
     private let decoder: JSONDecoder
 
     public init(
-        fileURL: URL = DeviceCatalogStore.defaultFileURL(),
-        fileManager: FileManager = .default
+        fileURL: URL = DeviceCatalogStore.defaultFileURL(), fileManager: FileManager = .default
     ) {
         self.fileURL = fileURL
         self.fileManager = fileManager
@@ -29,16 +28,14 @@ public final class DeviceCatalogStore: @unchecked Sendable {
     }
 
     public static func defaultFileURL(fileManager: FileManager = .default) -> URL {
-        let root = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        let root =
+            fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        return root
-            .appendingPathComponent("RustDesk Native Viewer", isDirectory: true)
+        return root.appendingPathComponent("RustDesk Native Viewer", isDirectory: true)
             .appendingPathComponent("catalog-v1.json", isDirectory: false)
     }
 
-    public var exists: Bool {
-        fileManager.fileExists(atPath: fileURL.path)
-    }
+    public var exists: Bool { fileManager.fileExists(atPath: fileURL.path) }
 
     public func load() throws -> DeviceCatalogDocument {
         try lock.withLock {
@@ -46,23 +43,19 @@ public final class DeviceCatalogStore: @unchecked Sendable {
                 return DeviceCatalogDocument()
             }
             let data: Data
-            do {
-                data = try Data(contentsOf: fileURL)
-            } catch {
+            do { data = try Data(contentsOf: fileURL) } catch {
                 throw DeviceCatalogStoreError.ioFailure
             }
             let document: DeviceCatalogDocument
-            do {
-                document = try decoder.decode(DeviceCatalogDocument.self, from: data)
-            } catch {
+            do { document = try decoder.decode(DeviceCatalogDocument.self, from: data) } catch {
                 throw DeviceCatalogStoreError.corruptDocument
             }
             guard document.schemaVersion == DeviceCatalogDocument.currentSchemaVersion else {
                 throw DeviceCatalogStoreError.unsupportedSchema(document.schemaVersion)
             }
-            guard document.devices.allSatisfy({ !DeviceCatalogDocument.normalize($0.peerID).isEmpty }) else {
-                throw DeviceCatalogStoreError.invalidDocument
-            }
+            guard
+                document.devices.allSatisfy({ !DeviceCatalogDocument.normalize($0.peerID).isEmpty })
+            else { throw DeviceCatalogStoreError.invalidDocument }
             return document
         }
     }
@@ -72,23 +65,17 @@ public final class DeviceCatalogStore: @unchecked Sendable {
             guard document.schemaVersion == DeviceCatalogDocument.currentSchemaVersion else {
                 throw DeviceCatalogStoreError.unsupportedSchema(document.schemaVersion)
             }
-            guard document.devices.allSatisfy({ !DeviceCatalogDocument.normalize($0.peerID).isEmpty }) else {
-                throw DeviceCatalogStoreError.invalidDocument
-            }
+            guard
+                document.devices.allSatisfy({ !DeviceCatalogDocument.normalize($0.peerID).isEmpty })
+            else { throw DeviceCatalogStoreError.invalidDocument }
             do {
                 try fileManager.createDirectory(
-                    at: fileURL.deletingLastPathComponent(),
-                    withIntermediateDirectories: true
-                )
+                    at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                 let data = try encoder.encode(document)
                 try data.write(to: fileURL, options: .atomic)
                 try fileManager.setAttributes(
-                    [.posixPermissions: 0o600],
-                    ofItemAtPath: fileURL.path
-                )
-            } catch let error as DeviceCatalogStoreError {
-                throw error
-            } catch {
+                    [.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+            } catch let error as DeviceCatalogStoreError { throw error } catch {
                 throw DeviceCatalogStoreError.ioFailure
             }
         }
@@ -100,25 +87,22 @@ public final class DeviceCatalogStore: @unchecked Sendable {
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "en_US_POSIX")
             formatter.dateFormat = "yyyyMMdd-HHmmss"
-            let backupURL = fileURL.deletingLastPathComponent()
-                .appendingPathComponent("catalog-v1.corrupt-\(formatter.string(from: date)).json")
+            let backupURL = fileURL.deletingLastPathComponent().appendingPathComponent(
+                "catalog-v1.corrupt-\(formatter.string(from: date)).json")
             do {
                 try fileManager.copyItem(at: fileURL, to: backupURL)
                 try fileManager.setAttributes(
-                    [.posixPermissions: 0o600],
-                    ofItemAtPath: backupURL.path
-                )
+                    [.posixPermissions: 0o600], ofItemAtPath: backupURL.path)
                 return backupURL
-            } catch {
-                throw DeviceCatalogStoreError.ioFailure
-            }
+            } catch { throw DeviceCatalogStoreError.ioFailure }
         }
     }
 }
 
-private extension NSLock {
-    func withLock<T>(_ body: () throws -> T) rethrows -> T {
-        lock(); defer { unlock() }
+extension NSLock {
+    fileprivate func withLock<T>(_ body: () throws -> T) rethrows -> T {
+        lock()
+        defer { unlock() }
         return try body()
     }
 }

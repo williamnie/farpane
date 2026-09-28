@@ -9,13 +9,9 @@ final class HostAgentTerminationRequestLatchTests: XCTestCase {
 
         XCTAssertTrue(latch.requestTermination())
         XCTAssertFalse(latch.requestTermination())
-        XCTAssertTrue(latch.bind {
-            deliveries += 1
-        })
+        XCTAssertTrue(latch.bind { deliveries += 1 })
         XCTAssertEqual(deliveries, 1)
-        XCTAssertFalse(latch.bind {
-            deliveries += 1
-        })
+        XCTAssertFalse(latch.bind { deliveries += 1 })
         XCTAssertFalse(latch.requestTermination())
         XCTAssertEqual(deliveries, 1)
     }
@@ -24,9 +20,7 @@ final class HostAgentTerminationRequestLatchTests: XCTestCase {
         let latch = HostAgentTerminationRequestLatch()
         var deliveries = 0
 
-        XCTAssertTrue(latch.bind {
-            deliveries += 1
-        })
+        XCTAssertTrue(latch.bind { deliveries += 1 })
         XCTAssertEqual(deliveries, 0)
         XCTAssertTrue(latch.requestTermination())
         XCTAssertFalse(latch.requestTermination())
@@ -37,9 +31,7 @@ final class HostAgentTerminationRequestLatchTests: XCTestCase {
         let latch = HostAgentTerminationRequestLatch()
         var reentrantRequest: Bool?
 
-        XCTAssertTrue(latch.bind {
-            reentrantRequest = latch.requestTermination()
-        })
+        XCTAssertTrue(latch.bind { reentrantRequest = latch.requestTermination() })
         XCTAssertTrue(latch.requestTermination())
         XCTAssertEqual(reentrantRequest, false)
     }
@@ -50,10 +42,11 @@ final class HostAgentTerminationRequestLatchTests: XCTestCase {
         weak var weakCapture = capture
         var deliveries = 0
 
-        XCTAssertTrue(latch.bind { [capture] in
-            capture?.deliveryCount += 1
-            deliveries += 1
-        })
+        XCTAssertTrue(
+            latch.bind { [capture] in
+                capture?.deliveryCount += 1
+                deliveries += 1
+            })
         capture = nil
         XCTAssertNotNil(weakCapture)
         XCTAssertTrue(latch.requestTermination())
@@ -62,6 +55,4 @@ final class HostAgentTerminationRequestLatchTests: XCTestCase {
     }
 }
 
-private final class LatchTestCapture {
-    var deliveryCount = 0
-}
+private final class LatchTestCapture { var deliveryCount = 0 }

@@ -12,8 +12,7 @@ public final class HostAgentTerminationRequestLatch: @unchecked Sendable {
 
     /// Binds exactly one delivery handler. A previously latched request is
     /// delivered synchronously after releasing the lock.
-    @discardableResult
-    public func bind(handler: @escaping () -> Void) -> Bool {
+    @discardableResult public func bind(handler: @escaping () -> Void) -> Bool {
         let delivery: (() -> Void)?
         lock.lock()
         guard !bound else {
@@ -35,8 +34,7 @@ public final class HostAgentTerminationRequestLatch: @unchecked Sendable {
 
     /// Records the first request only. If already bound, delivery occurs
     /// synchronously after releasing the lock; duplicates return false.
-    @discardableResult
-    public func requestTermination() -> Bool {
+    @discardableResult public func requestTermination() -> Bool {
         let delivery: (() -> Void)?
         lock.lock()
         guard !requested else {

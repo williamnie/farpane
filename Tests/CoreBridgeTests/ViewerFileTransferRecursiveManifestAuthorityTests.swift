@@ -1,72 +1,41 @@
-@testable import CoreBridge
 import XCTest
+
+@testable import CoreBridge
 
 final class ViewerFileTransferRecursiveManifestAuthorityTests: XCTestCase {
     func testABIManifestPartsRevalidateAndProjectSemanticPayloads() throws {
         let file = CoreFileTransferListEntry(
-            kind: .file,
-            relativePath: "资料/report.txt",
-            size: 42,
-            modifiedTime: 10
-        )
-        let files = try XCTUnwrap(CoreFileTransferManifestEvent(
-            sessionEpoch: 7,
-            requestID: 11,
-            status: .success,
-            part: .files,
-            entries: [file]
-        ))
-        guard case let .files(projectedFiles) = files.recursiveManifestPart else {
+            kind: .file, relativePath: "资料/report.txt", size: 42, modifiedTime: 10)
+        let files = try XCTUnwrap(
+            CoreFileTransferManifestEvent(
+                sessionEpoch: 7, requestID: 11, status: .success, part: .files, entries: [file]))
+        guard case .files(let projectedFiles) = files.recursiveManifestPart else {
             return XCTFail("files event must project one semantic files part")
         }
         XCTAssertEqual(projectedFiles.first?.relativePath, "资料/report.txt")
 
         let directory = CoreFileTransferListEntry(
-            kind: .directory,
-            relativePath: "资料/empty",
-            size: 0,
-            modifiedTime: 0
-        )
-        let directories = try XCTUnwrap(CoreFileTransferManifestEvent(
-            sessionEpoch: 7,
-            requestID: 11,
-            status: .success,
-            part: .emptyDirectories,
-            entries: [directory]
-        ))
-        XCTAssertEqual(
-            directories.recursiveManifestPart,
-            .emptyDirectories(["资料/empty"])
-        )
+            kind: .directory, relativePath: "资料/empty", size: 0, modifiedTime: 0)
+        let directories = try XCTUnwrap(
+            CoreFileTransferManifestEvent(
+                sessionEpoch: 7, requestID: 11, status: .success, part: .emptyDirectories,
+                entries: [directory]))
+        XCTAssertEqual(directories.recursiveManifestPart, .emptyDirectories(["资料/empty"]))
 
-        XCTAssertNil(CoreFileTransferManifestEvent(
-            sessionEpoch: 7,
-            requestID: 11,
-            status: .success,
-            part: .files,
-            entries: [directory]
-        ))
-        XCTAssertNil(CoreFileTransferManifestEvent(
-            sessionEpoch: 7,
-            requestID: 11,
-            status: .success,
-            part: .emptyDirectories,
-            entries: [file]
-        ))
-        XCTAssertNil(CoreFileTransferManifestEvent(
-            sessionEpoch: 7,
-            requestID: 11,
-            status: .rejected,
-            part: .files,
-            entries: [file]
-        ))
-        XCTAssertNotNil(CoreFileTransferManifestEvent(
-            sessionEpoch: 7,
-            requestID: 11,
-            status: .unavailable,
-            part: .files,
-            entries: []
-        ))
+        XCTAssertNil(
+            CoreFileTransferManifestEvent(
+                sessionEpoch: 7, requestID: 11, status: .success, part: .files, entries: [directory]
+            ))
+        XCTAssertNil(
+            CoreFileTransferManifestEvent(
+                sessionEpoch: 7, requestID: 11, status: .success, part: .emptyDirectories,
+                entries: [file]))
+        XCTAssertNil(
+            CoreFileTransferManifestEvent(
+                sessionEpoch: 7, requestID: 11, status: .rejected, part: .files, entries: [file]))
+        XCTAssertNotNil(
+            CoreFileTransferManifestEvent(
+                sessionEpoch: 7, requestID: 11, status: .unavailable, part: .files, entries: []))
     }
 
     func testCompletesOnlyAfterBothExactSessionPartsInEitherOrder() throws {
@@ -76,18 +45,10 @@ final class ViewerFileTransferRecursiveManifestAuthorityTests: XCTestCase {
         XCTAssertTrue(authority.begin(sessionEpoch: 7, requestID: 11))
         XCTAssertEqual(
             authority.observe(
-                sessionEpoch: 7,
-                requestID: 11,
-                part: .emptyDirectories(["资料/empty"])
-            ),
-            .awaitingRemainingPart
-        )
-        let outcome = authority.observe(
-            sessionEpoch: 7,
-            requestID: 11,
-            part: .files([file])
-        )
-        guard case let .completed(manifest) = outcome else {
+                sessionEpoch: 7, requestID: 11, part: .emptyDirectories(["资料/empty"])),
+            .awaitingRemainingPart)
+        let outcome = authority.observe(sessionEpoch: 7, requestID: 11, part: .files([file]))
+        guard case .completed(let manifest) = outcome else {
             return XCTFail("both parts must complete one manifest")
         }
         XCTAssertEqual(manifest.files, [file])
@@ -101,39 +62,23 @@ final class ViewerFileTransferRecursiveManifestAuthorityTests: XCTestCase {
         var authority = ViewerFileTransferRecursiveManifestAuthority()
         XCTAssertTrue(authority.begin(sessionEpoch: 3, requestID: 4))
 
-        XCTAssertNil(authority.observe(
-            sessionEpoch: 2,
-            requestID: 4,
-            part: .files([file])
-        ))
-        XCTAssertNil(authority.observe(
-            sessionEpoch: 3,
-            requestID: 5,
-            part: .files([file])
-        ))
+        XCTAssertNil(authority.observe(sessionEpoch: 2, requestID: 4, part: .files([file])))
+        XCTAssertNil(authority.observe(sessionEpoch: 3, requestID: 5, part: .files([file])))
         XCTAssertEqual(
             authority.observe(sessionEpoch: 3, requestID: 4, part: .files([file])),
-            .awaitingRemainingPart
-        )
+            .awaitingRemainingPart)
         XCTAssertEqual(
             authority.observe(sessionEpoch: 3, requestID: 4, part: .files([file])),
-            .failed(.protocolViolation)
-        )
+            .failed(.protocolViolation))
         XCTAssertFalse(authority.isActive)
 
         XCTAssertTrue(authority.begin(sessionEpoch: 3, requestID: 5))
         XCTAssertEqual(
             authority.observe(sessionEpoch: 3, requestID: 5, part: .files([file])),
-            .awaitingRemainingPart
-        )
+            .awaitingRemainingPart)
         XCTAssertEqual(
-            authority.observe(
-                sessionEpoch: 3,
-                requestID: 5,
-                part: .emptyDirectories(["folder"])
-            ),
-            .failed(.protocolViolation)
-        )
+            authority.observe(sessionEpoch: 3, requestID: 5, part: .emptyDirectories(["folder"])),
+            .failed(.protocolViolation))
         XCTAssertFalse(authority.isActive)
     }
 
@@ -143,49 +88,28 @@ final class ViewerFileTransferRecursiveManifestAuthorityTests: XCTestCase {
         XCTAssertTrue(authority.begin(sessionEpoch: 1, requestID: 1))
         XCTAssertEqual(
             authority.observe(
-                sessionEpoch: 1,
-                requestID: 1,
-                part: .files(Array(
-                    repeating: file,
-                    count: ViewerFileTransferManifest.maximumEntries + 1
-                ))
-            ),
-            .failed(.protocolViolation)
-        )
+                sessionEpoch: 1, requestID: 1,
+                part: .files(
+                    Array(repeating: file, count: ViewerFileTransferManifest.maximumEntries + 1))),
+            .failed(.protocolViolation))
 
         let hugePath = String(
-            repeating: "a",
-            count: ViewerFileTransferManifest.maximumMetadataUTF8Bytes + 1
-        )
+            repeating: "a", count: ViewerFileTransferManifest.maximumMetadataUTF8Bytes + 1)
         XCTAssertTrue(authority.begin(sessionEpoch: 1, requestID: 2))
         XCTAssertEqual(
-            authority.observe(
-                sessionEpoch: 1,
-                requestID: 2,
-                part: .emptyDirectories([hugePath])
-            ),
-            .failed(.protocolViolation)
-        )
+            authority.observe(sessionEpoch: 1, requestID: 2, part: .emptyDirectories([hugePath])),
+            .failed(.protocolViolation))
         XCTAssertFalse(authority.isActive)
     }
 
     func testStableFailureAndExactTeardownAreTerminal() {
         var authority = ViewerFileTransferRecursiveManifestAuthority()
         XCTAssertTrue(authority.begin(sessionEpoch: 8, requestID: 9))
-        XCTAssertNil(authority.fail(
-            sessionEpoch: 7,
-            requestID: 9,
-            failure: .unavailable
-        ))
-        XCTAssertNil(authority.fail(
-            sessionEpoch: 8,
-            requestID: 9,
-            failure: .localIO
-        ))
+        XCTAssertNil(authority.fail(sessionEpoch: 7, requestID: 9, failure: .unavailable))
+        XCTAssertNil(authority.fail(sessionEpoch: 8, requestID: 9, failure: .localIO))
         XCTAssertEqual(
             authority.fail(sessionEpoch: 8, requestID: 9, failure: .unavailable),
-            .failed(.unavailable)
-        )
+            .failed(.unavailable))
         XCTAssertFalse(authority.isActive)
 
         XCTAssertTrue(authority.begin(sessionEpoch: 8, requestID: 10))
@@ -195,13 +119,7 @@ final class ViewerFileTransferRecursiveManifestAuthorityTests: XCTestCase {
         XCTAssertFalse(authority.isActive)
     }
 
-    private func makeFile(path: String, size: UInt64) throws
-        -> ViewerFileTransferFile
-    {
-        try XCTUnwrap(ViewerFileTransferFile(
-            relativePath: path,
-            size: size,
-            modifiedTime: 10
-        ))
+    private func makeFile(path: String, size: UInt64) throws -> ViewerFileTransferFile {
+        try XCTUnwrap(ViewerFileTransferFile(relativePath: path, size: size, modifiedTime: 10))
     }
 }

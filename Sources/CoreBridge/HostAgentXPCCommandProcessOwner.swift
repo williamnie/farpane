@@ -8,10 +8,7 @@ package enum HostAgentXPCCommandProcessOwnerState: Equatable, Sendable {
     case invalidated
 }
 
-package enum HostAgentXPCCommandCoreEventRoutingOutcome:
-    Equatable,
-    Sendable
-{
+package enum HostAgentXPCCommandCoreEventRoutingOutcome: Equatable, Sendable {
     case forwarded
     case consumed(HostAgentXPCCommandResultDeliveryOutcome)
     case consumedPasswordOperation
@@ -23,9 +20,8 @@ package enum HostAgentXPCCommandCoreEventRoutingOutcome:
 /// typed result journaling. It deliberately owns no XPC connection: every
 /// admitted connection receives the same service snapshot for this boot.
 package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
-    package typealias RuntimeSubmission = @Sendable (
-        HostAgentCoreCommandSubmission
-    ) -> HostAgentXPCCommandSubmissionOutcome
+    package typealias RuntimeSubmission =
+        @Sendable (HostAgentCoreCommandSubmission) -> HostAgentXPCCommandSubmissionOutcome
     package typealias PasswordSubmission = HostAgentXPCPasswordService.Executor
     package typealias Clock = @Sendable () -> UInt64
     package typealias EventConsumer = @Sendable (HostCoreEvent) -> Void
@@ -37,8 +33,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     private let nowUnixMilliseconds: Clock
     private let onNonCommandEvent: EventConsumer
     private let onInvalidationRequired: InvalidationCallback
-    private var state: HostAgentXPCCommandProcessOwnerState =
-        .waitingForRuntime
+    private var state: HostAgentXPCCommandProcessOwnerState = .waitingForRuntime
     private var runtimeSubmission: RuntimeSubmission?
     private var passwordSubmission: PasswordSubmission?
     private var identity: HostAgentXPCWireAgentIdentity?
@@ -50,10 +45,8 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     private var invalidationDelivered = false
 
     package init(
-        agentProcessIdentity: HostAgentXPCWireAgentProcessIdentity,
-        eventState: HostAgentEventState,
-        nowUnixMilliseconds: @escaping Clock,
-        onNonCommandEvent: @escaping EventConsumer,
+        agentProcessIdentity: HostAgentXPCWireAgentProcessIdentity, eventState: HostAgentEventState,
+        nowUnixMilliseconds: @escaping Clock, onNonCommandEvent: @escaping EventConsumer,
         onInvalidationRequired: @escaping InvalidationCallback
     ) throws {
         self.agentProcessIdentity = agentProcessIdentity
@@ -63,9 +56,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         self.onInvalidationRequired = onInvalidationRequired
     }
 
-    deinit {
-        _ = cancelAndWait(timeout: .now())
-    }
+    deinit { _ = cancelAndWait(timeout: .now()) }
 
     package func stateSnapshot() -> HostAgentXPCCommandProcessOwnerState {
         lock.lock()
@@ -76,16 +67,12 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     /// Installs the only typed Core submission seam before identity/listener
     /// admission. Rebinding is rejected so commands cannot change executors
     /// during one Agent boot.
-    @discardableResult
-    package func bindRuntimeSubmission(
-        _ submission: @escaping RuntimeSubmission
-    ) -> Bool {
+    @discardableResult package func bindRuntimeSubmission(_ submission: @escaping RuntimeSubmission)
+        -> Bool
+    {
         lock.lock()
-        guard state == .waitingForRuntime,
-              runtimeSubmission == nil
-        else {
-            let shouldInvalidate = state == .waitingForIdentity
-                || state == .active
+        guard state == .waitingForRuntime, runtimeSubmission == nil else {
+            let shouldInvalidate = state == .waitingForIdentity || state == .active
             lock.unlock()
             if shouldInvalidate { invalidate() }
             return false
@@ -96,14 +83,11 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         return true
     }
 
-    @discardableResult
-    package func bindPasswordSubmission(
+    @discardableResult package func bindPasswordSubmission(
         _ submission: @escaping PasswordSubmission
     ) -> Bool {
         lock.lock()
-        guard state == .waitingForIdentity,
-              passwordSubmission == nil
-        else {
+        guard state == .waitingForIdentity, passwordSubmission == nil else {
             let shouldInvalidate = state == .active
             lock.unlock()
             if shouldInvalidate { invalidate() }
@@ -116,9 +100,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
 
     /// Creates exactly one boot/Host-bound admission authority, serial adapter
     /// and service. The same Host is idempotent; any replacement is terminal.
-    package func bindIdentity(
-        hostInstanceID: String
-    ) -> HostAgentXPCProcessIdentityBindResult {
+    package func bindIdentity(hostInstanceID: String) -> HostAgentXPCProcessIdentityBindResult {
         lock.lock()
         switch state {
         case .active:
@@ -129,8 +111,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
             }
             lock.unlock()
             return .unchanged
-        case .waitingForIdentity:
-            break
+        case .waitingForIdentity: break
         case .waitingForRuntime:
             lock.unlock()
             invalidate()
@@ -143,12 +124,8 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         let newIdentity: HostAgentXPCWireAgentIdentity
         let newAuthority: HostAgentXPCCommandAdmissionAuthority
         do {
-            newIdentity = try agentProcessIdentity.bind(
-                hostInstanceID: hostInstanceID
-            )
-            newAuthority = try HostAgentXPCCommandAdmissionAuthority(
-                identity: newIdentity
-            )
+            newIdentity = try agentProcessIdentity.bind(hostInstanceID: hostInstanceID)
+            newAuthority = try HostAgentXPCCommandAdmissionAuthority(identity: newIdentity)
         } catch {
             lock.unlock()
             invalidate()
@@ -157,41 +134,22 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
 
         let newAdapter = HostAgentXPCCommandExecutionAdapter(
             submit: { [weak self] submission in
-                self?.submitToRuntime(submission)
-                    ?? .failed(.coreUnavailable)
-            },
-            onImmediateResult: { [weak self] result in
-                self?.acceptImmediateResult(result)
-            }
-        )
+                self?.submitToRuntime(submission) ?? .failed(.coreUnavailable)
+            }, onImmediateResult: { [weak self] result in self?.acceptImmediateResult(result) })
         let newService = HostAgentXPCCommandService(
-            identity: newIdentity,
-            authority: newAuthority,
-            prepareExecution: { [weak newAdapter] execution in
-                newAdapter?.prepare(execution)
-            },
+            identity: newIdentity, authority: newAuthority,
+            prepareExecution: { [weak newAdapter] execution in newAdapter?.prepare(execution) },
             publishResult: { [weak self] result in
-                self?.publishResult(
-                    result,
-                    hostInstanceID: newIdentity.hostInstanceID
-                ) ?? false
-            },
-            nowUnixMilliseconds: nowUnixMilliseconds
-        )
+                self?.publishResult(result, hostInstanceID: newIdentity.hostInstanceID) ?? false
+            }, nowUnixMilliseconds: nowUnixMilliseconds)
         let newPasswordService = passwordSubmission.map { _ in
             HostAgentXPCPasswordService(
                 identity: newIdentity,
                 execute: { [weak self] action, secret, requestID in
-                    guard let self else {
-                        throw HostAgentCoreRuntimeAccessError.notRunning
-                    }
+                    guard let self else { throw HostAgentCoreRuntimeAccessError.notRunning }
                     return try self.submitPasswordOperation(
-                        action,
-                        secret: &secret,
-                        requestID: requestID
-                    )
-                }
-            )
+                        action, secret: &secret, requestID: requestID)
+                })
         }
         identity = newIdentity
         admissionAuthority = newAuthority
@@ -220,10 +178,9 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     /// Command results are consumed before the generic event journal. Ordinary
     /// events retain the pre-existing downstream route while the runtime is
     /// starting; no event is delivered after terminal teardown.
-    @discardableResult
-    package func consumeCoreEvent(
-        _ event: HostCoreEvent
-    ) -> HostAgentXPCCommandCoreEventRoutingOutcome {
+    @discardableResult package func consumeCoreEvent(_ event: HostCoreEvent)
+        -> HostAgentXPCCommandCoreEventRoutingOutcome
+    {
         if event.eventType != "commandResult" {
             lock.lock()
             let shouldForward = state != .cancelled && state != .invalidated
@@ -242,16 +199,13 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
             return .invalidated
         }
         decoded = HostAgentCoreCommandResultDecoder.decode(
-            event,
-            expectedHostInstanceID: expectedHostInstanceID
-        )
+            event, expectedHostInstanceID: expectedHostInstanceID)
         switch decoded {
         case .decoded(let result):
             if consumePasswordResult(commandID: result.commandID) {
                 return .consumedPasswordOperation
             }
-        case .notCommandResult:
-            return .forwarded
+        case .notCommandResult: return .forwarded
         case .malformed, .foreignIdentity:
             invalidate()
             return .invalidated
@@ -270,8 +224,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
             return .invalidated
         case .delivered(let outcome):
             switch outcome {
-            case .published, .unchanged:
-                return .consumed(outcome)
+            case .published, .unchanged: return .consumed(outcome)
             case .retainedForReplay, .unknownCommand, .invalidated:
                 invalidate()
                 return .invalidated
@@ -280,16 +233,12 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
     }
 
     private func submitPasswordOperation(
-        _ action: HostAgentXPCPasswordAction,
-        secret: inout Data,
-        requestID: String
+        _ action: HostAgentXPCPasswordAction, secret: inout Data, requestID: String
     ) throws -> Data? {
         let submission: PasswordSubmission
         lock.lock()
-        guard state == .active,
-              let passwordSubmission,
-              !pendingPasswordRequestIDs.contains(requestID),
-              pendingPasswordRequestIDs.count < 256
+        guard state == .active, let passwordSubmission,
+            !pendingPasswordRequestIDs.contains(requestID), pendingPasswordRequestIDs.count < 256
         else {
             lock.unlock()
             throw HostAgentCoreRuntimeAccessError.notRunning
@@ -308,8 +257,7 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
 
     /// Terminally closes command admission without requesting process/XPC
     /// invalidation. Existing queued Core work is boundedly drained.
-    @discardableResult
-    package func cancelAndWait(timeout: DispatchTime) -> Bool {
+    @discardableResult package func cancelAndWait(timeout: DispatchTime) -> Bool {
         lock.lock()
         if state == .cancelled || state == .invalidated {
             let adapter = executionAdapter
@@ -368,13 +316,11 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         callback?()
     }
 
-    private func submitToRuntime(
-        _ submission: HostAgentCoreCommandSubmission
-    ) -> HostAgentXPCCommandSubmissionOutcome {
+    private func submitToRuntime(_ submission: HostAgentCoreCommandSubmission)
+        -> HostAgentXPCCommandSubmissionOutcome
+    {
         lock.lock()
-        guard (state == .active || state == .cancelled),
-              let runtimeSubmission
-        else {
+        guard state == .active || state == .cancelled, let runtimeSubmission else {
             lock.unlock()
             return .failed(.coreUnavailable)
         }
@@ -382,30 +328,21 @@ package final class HostAgentXPCCommandProcessOwner: @unchecked Sendable {
         return runtimeSubmission(submission)
     }
 
-    private func acceptImmediateResult(
-        _ result: HostAgentXPCWireCommandResult
-    ) {
+    private func acceptImmediateResult(_ result: HostAgentXPCWireCommandResult) {
         guard let service = commandServiceSnapshot() else { return }
         switch service.acceptResult(result) {
-        case .published, .unchanged:
-            return
-        case .retainedForReplay, .unknownCommand, .invalidated:
-            invalidate()
+        case .published, .unchanged: return
+        case .retainedForReplay, .unknownCommand, .invalidated: invalidate()
         }
     }
 
-    private func publishResult(
-        _ result: HostAgentXPCWireCommandResult,
-        hostInstanceID: String
-    ) -> Bool {
+    private func publishResult(_ result: HostAgentXPCWireCommandResult, hostInstanceID: String)
+        -> Bool
+    {
         let journalResult = eventState.ingestCommandResult(
-            result,
-            hostInstanceID: hostInstanceID,
-            sentAtUnixMilliseconds: nowUnixMilliseconds()
-        )
+            result, hostInstanceID: hostInstanceID, sentAtUnixMilliseconds: nowUnixMilliseconds())
         switch journalResult {
-        case .accepted, .unchanged:
-            return true
+        case .accepted, .unchanged: return true
         case .rejected:
             invalidate()
             return false

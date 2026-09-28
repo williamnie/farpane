@@ -23,35 +23,22 @@ package struct HostAgentCoreCommandSubmission: Equatable, Sendable {
         action = Self.action(for: validatedRequest.name)
     }
 
-    private static func action(
-        for name: HostAgentXPCWireCommandName
-    ) -> HostAgentCoreCommandAction {
+    private static func action(for name: HostAgentXPCWireCommandName) -> HostAgentCoreCommandAction
+    {
         switch name {
-        case .approveIncoming:
-            return .resolveApproval(.approve)
-        case .rejectIncoming:
-            return .resolveApproval(.reject)
-        case .disableInputForActiveSession:
-            return .disable(.keyboardAndMouse)
-        case .disableClipboardReadForActiveSession:
-            return .disable(.clipboardRead)
-        case .disableClipboardWriteForActiveSession:
-            return .disable(.clipboardWrite)
-        case .disableClipboardForActiveSession:
-            return .disable(.clipboard)
-        case .disableAudioForActiveSession:
-            return .disable(.systemAudio)
-        case .disconnectSession:
-            return .disconnect
+        case .approveIncoming: return .resolveApproval(.approve)
+        case .rejectIncoming: return .resolveApproval(.reject)
+        case .disableInputForActiveSession: return .disable(.keyboardAndMouse)
+        case .disableClipboardReadForActiveSession: return .disable(.clipboardRead)
+        case .disableClipboardWriteForActiveSession: return .disable(.clipboardWrite)
+        case .disableClipboardForActiveSession: return .disable(.clipboard)
+        case .disableAudioForActiveSession: return .disable(.systemAudio)
+        case .disconnectSession: return .disconnect
         }
     }
 }
 
-package enum HostAgentXPCCommandImmediateDetail:
-    String,
-    Equatable,
-    Sendable
-{
+package enum HostAgentXPCCommandImmediateDetail: String, Equatable, Sendable {
     case coreRejected = "core-rejected"
     case coreUnavailable = "core-unavailable"
     case coreFailure = "core-failure"
@@ -65,10 +52,7 @@ package enum HostAgentXPCCommandSubmissionOutcome: Equatable, Sendable {
     case failed(HostAgentXPCCommandImmediateDetail)
 }
 
-package enum HostAgentXPCCommandExecutionAdapterState:
-    Equatable,
-    Sendable
-{
+package enum HostAgentXPCCommandExecutionAdapterState: Equatable, Sendable {
     case active
     case cancelled
     case invalidated
@@ -77,15 +61,10 @@ package enum HostAgentXPCCommandExecutionAdapterState:
 /// Process-lifetime serial execution seam for the typed XPC commands.
 /// Queue tickets remain inert until the XPC transport has delivered its ack.
 /// HostCore access and result journaling are injected by later composition.
-package final class HostAgentXPCCommandExecutionAdapter:
-    @unchecked Sendable
-{
-    package typealias Submit = @Sendable (
-        HostAgentCoreCommandSubmission
-    ) -> HostAgentXPCCommandSubmissionOutcome
-    package typealias ImmediateResultSink = @Sendable (
-        HostAgentXPCWireCommandResult
-    ) -> Void
+package final class HostAgentXPCCommandExecutionAdapter: @unchecked Sendable {
+    package typealias Submit =
+        @Sendable (HostAgentCoreCommandSubmission) -> HostAgentXPCCommandSubmissionOutcome
+    package typealias ImmediateResultSink = @Sendable (HostAgentXPCWireCommandResult) -> Void
 
     private let lock = NSLock()
     private let queue: DispatchQueue
@@ -97,10 +76,7 @@ package final class HostAgentXPCCommandExecutionAdapter:
 
     package init(
         queue: DispatchQueue = DispatchQueue(
-            label: "io.farpane.host-agent.commands",
-            qos: .userInitiated
-        ),
-        submit: @escaping Submit,
+            label: "io.farpane.host-agent.commands", qos: .userInitiated), submit: @escaping Submit,
         onImmediateResult: @escaping ImmediateResultSink
     ) {
         self.queue = queue
@@ -109,21 +85,17 @@ package final class HostAgentXPCCommandExecutionAdapter:
         queue.setSpecific(key: queueKey, value: 1)
     }
 
-    deinit {
-        cancel()
-    }
+    deinit { cancel() }
 
-    package func stateSnapshot()
-        -> HostAgentXPCCommandExecutionAdapterState
-    {
+    package func stateSnapshot() -> HostAgentXPCCommandExecutionAdapterState {
         lock.lock()
         defer { lock.unlock() }
         return state
     }
 
-    package func prepare(
-        _ execution: HostAgentXPCCommandExecution
-    ) -> HostAgentXPCCommandQueueTicket? {
+    package func prepare(_ execution: HostAgentXPCCommandExecution)
+        -> HostAgentXPCCommandQueueTicket?
+    {
         lock.lock()
         guard state == .active else {
             lock.unlock()
@@ -131,9 +103,7 @@ package final class HostAgentXPCCommandExecutionAdapter:
         }
         let submission = HostAgentCoreCommandSubmission(execution)
         lock.unlock()
-        return HostAgentXPCCommandQueueTicket { [self] in
-            enqueue(submission)
-        }
+        return HostAgentXPCCommandQueueTicket { [self] in enqueue(submission) }
     }
 
     /// Stops accepting new preparation and waits only for work that had
@@ -141,9 +111,7 @@ package final class HostAgentXPCCommandExecutionAdapter:
     /// instead of deadlocking.
     package func cancelAndWait(timeout: DispatchTime) -> Bool {
         cancel()
-        guard DispatchQueue.getSpecific(key: queueKey) == nil else {
-            return false
-        }
+        guard DispatchQueue.getSpecific(key: queueKey) == nil else { return false }
         return pending.wait(timeout: timeout) == .success
     }
 
@@ -165,13 +133,8 @@ package final class HostAgentXPCCommandExecutionAdapter:
             lock.unlock()
         case .cancelled:
             lock.unlock()
-            publish(
-                status: .error,
-                detail: .agentStopping,
-                for: submission
-            )
-        case .invalidated:
-            lock.unlock()
+            publish(status: .error, detail: .agentStopping, for: submission)
+        case .invalidated: lock.unlock()
         }
     }
 
@@ -180,25 +143,20 @@ package final class HostAgentXPCCommandExecutionAdapter:
         for submission: HostAgentCoreCommandSubmission
     ) {
         switch outcome {
-        case .awaitingCoreResult:
-            return
-        case .rejected(let detail):
-            publish(status: .rejected, detail: detail, for: submission)
-        case .failed(let detail):
-            publish(status: .error, detail: detail, for: submission)
+        case .awaitingCoreResult: return
+        case .rejected(let detail): publish(status: .rejected, detail: detail, for: submission)
+        case .failed(let detail): publish(status: .error, detail: detail, for: submission)
         }
     }
 
     private func publish(
-        status: HostAgentXPCWireCommandResultStatus,
-        detail: HostAgentXPCCommandImmediateDetail,
+        status: HostAgentXPCWireCommandResultStatus, detail: HostAgentXPCCommandImmediateDetail,
         for submission: HostAgentCoreCommandSubmission
     ) {
-        guard let result = try? HostAgentXPCWireCommandResult(
-            commandID: submission.commandID,
-            status: status,
-            detail: detail.rawValue
-        ) else {
+        guard
+            let result = try? HostAgentXPCWireCommandResult(
+                commandID: submission.commandID, status: status, detail: detail.rawValue)
+        else {
             lock.lock()
             state = .invalidated
             lock.unlock()

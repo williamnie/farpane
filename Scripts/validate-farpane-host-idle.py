@@ -13,6 +13,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from functools import partial
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    is_bounded_text as is_bounded_identity_text,
+    is_integer,
+    is_number,
+    load_json,
+    parse_float,
+    parse_int,
+    write_json_no_replace,
+)
+
 
 SCENARIO = "host-ready-no-screen-route"
 HOST_CPU_CEILING_PERCENT = 2.0
@@ -44,26 +57,6 @@ def usage() -> None:
     )
 
 
-def is_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
-
-
-def is_number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
-
-
-def is_bounded_identity_text(value: Any, maximum_length: int) -> bool:
-    return (
-        isinstance(value, str)
-        and value == value.strip()
-        and 0 < len(value) <= maximum_length
-        and all(
-            ord(character) >= 0x20 and ord(character) != 0x7F
-            for character in value
-        )
-    )
-
-
 def parse_iso8601_milliseconds(value: Any) -> int:
     if not isinstance(value, str):
         raise ValueError("capturedAt is not a string")
@@ -72,18 +65,6 @@ def parse_iso8601_milliseconds(value: Any) -> int:
     if parsed.tzinfo is None:
         raise ValueError("capturedAt has no timezone")
     return int(parsed.timestamp() * 1_000)
-
-
-def load_json(path: Path, label: str, failures: list[str]) -> dict[str, Any]:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        failures.append(f"{label} is missing or invalid JSON")
-        return {}
-    if not isinstance(value, dict):
-        failures.append(f"{label} root must be an object")
-        return {}
-    return value
 
 
 def load_state_records(path: Path, failures: list[str]) -> list[dict[str, Any]]:
@@ -113,31 +94,7 @@ def load_state_records(path: Path, failures: list[str]) -> list[dict[str, Any]]:
     return records
 
 
-def parse_float(row: dict[str, str], field: str) -> float:
-    return float(row[field])
-
-
-def parse_int(row: dict[str, str], field: str) -> int:
-    return int(row[field])
-
-
-def write_atomic_no_replace(path: Path, document: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        raise FileExistsError(path)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".farpane-idle-", suffix=".tmp", dir=path.parent
-    )
-    temporary_path = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            json.dump(document, output, indent=2, sort_keys=True)
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.link(temporary_path, path)
-    finally:
-        temporary_path.unlink(missing_ok=True)
+write_atomic_no_replace = partial(write_json_no_replace, prefix='.farpane-idle-')
 
 
 def validate_idle_run(
