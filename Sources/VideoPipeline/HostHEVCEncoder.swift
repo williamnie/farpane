@@ -40,10 +40,42 @@ public enum HostHEVCEncoderError: Error, CustomStringConvertible {
     }
 }
 
-public typealias HostHEVCEncoderConfiguration = HostVideoEncoderConfiguration
-public typealias HostHEVCAccessUnit = HostVideoAccessUnit
+public struct HostHEVCEncoderConfiguration: Sendable {
+    public let width: Int32
+    public let height: Int32
+    public let framesPerSecond: Int32
+    public let averageBitRate: Int
+    public let keyframeInterval: Int32
+    public let requireHardware: Bool
+
+    public init(
+        width: Int32, height: Int32, framesPerSecond: Int32, averageBitRate: Int,
+        keyframeInterval: Int32 = 120, requireHardware: Bool = true
+    ) {
+        self.width = width
+        self.height = height
+        self.framesPerSecond = framesPerSecond
+        self.averageBitRate = averageBitRate
+        self.keyframeInterval = keyframeInterval
+        self.requireHardware = requireHardware
+    }
+
+    public var isValid: Bool {
+        (16...16_384).contains(width) && (16...16_384).contains(height)
+            && (1...240).contains(framesPerSecond) && averageBitRate > 0 && keyframeInterval > 0
+    }
+}
+
+public struct HostHEVCAccessUnit: Sendable {
+    public let data: Data
+    public let presentationTimeUS: UInt64
+    public let isKeyframe: Bool
+    public let hasParameterSets: Bool
+    public let logicalRawFrameCopyCount: Int
+}
 
 public final class HostHEVCEncoder: HostVideoEncoder, @unchecked Sendable {
+    public typealias AccessUnitHandler = @Sendable (HostHEVCAccessUnit) -> Void
     public typealias ErrorHandler = @Sendable (HostHEVCEncoderError) -> Void
 
     public static var hardwareEncodingSupported: Bool {
@@ -57,9 +89,21 @@ public final class HostHEVCEncoder: HostVideoEncoder, @unchecked Sendable {
     ) throws {
         do {
             try super.init(
-                codec: .hevc, configuration: configuration, sourcePixelFormat: sourcePixelFormat,
-                onAccessUnit: onAccessUnit, onState: onState, onDrop: onDrop,
-                onError: { onError(HostHEVCEncoderError($0)) })
+                codec: .hevc,
+                configuration: HostVideoEncoderConfiguration(
+                    width: configuration.width, height: configuration.height,
+                    framesPerSecond: configuration.framesPerSecond,
+                    averageBitRate: configuration.averageBitRate,
+                    keyframeInterval: configuration.keyframeInterval,
+                    requireHardware: configuration.requireHardware),
+                sourcePixelFormat: sourcePixelFormat,
+                onAccessUnit: { unit in
+                    onAccessUnit(
+                        HostHEVCAccessUnit(
+                            data: unit.data, presentationTimeUS: unit.presentationTimeUS,
+                            isKeyframe: unit.isKeyframe, hasParameterSets: unit.hasParameterSets,
+                            logicalRawFrameCopyCount: unit.logicalRawFrameCopyCount))
+                }, onState: onState, onDrop: onDrop, onError: { onError(HostHEVCEncoderError($0)) })
         } catch let error as HostVideoEncoderFailure { throw HostHEVCEncoderError(error) }
     }
 
