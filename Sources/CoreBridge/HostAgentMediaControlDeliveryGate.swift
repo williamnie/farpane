@@ -41,8 +41,7 @@ package final class HostAgentMediaControlDeliveryGate: @unchecked Sendable {
 
     package init() {}
 
-    @discardableResult
-    package func submit(_ control: HostMediaControl)
+    @discardableResult package func submit(_ control: HostMediaControl)
         -> HostAgentMediaControlDeliveryDisposition
     {
         condition.lock()
@@ -80,10 +79,7 @@ package final class HostAgentMediaControlDeliveryGate: @unchecked Sendable {
     /// Activates once and synchronously drains every startup control that was
     /// admitted before the pipeline owner became ready. False is terminal: an
     /// overflow or cancellation requires the HostAgent startup to fail closed.
-    @discardableResult
-    package func activate(
-        deliver: @escaping DeliveryHandler
-    ) -> Bool {
+    @discardableResult package func activate(deliver: @escaping DeliveryHandler) -> Bool {
         condition.lock()
         guard status == .buffering else {
             condition.unlock()
@@ -115,17 +111,13 @@ package final class HostAgentMediaControlDeliveryGate: @unchecked Sendable {
             condition.unlock()
             return
         case .cancelling:
-            while status == .cancelling {
-                condition.wait()
-            }
+            while status == .cancelling { condition.wait() }
             condition.unlock()
             return
         case .buffering, .active, .overflowed:
             status = .cancelling
             pendingControls.removeAll(keepingCapacity: false)
-            while deliveryInFlight {
-                condition.wait()
-            }
+            while deliveryInFlight { condition.wait() }
             deliveryHandler = nil
             status = .cancelled
             condition.broadcast()
@@ -137,12 +129,9 @@ package final class HostAgentMediaControlDeliveryGate: @unchecked Sendable {
         condition.lock()
         defer { condition.unlock() }
         return HostAgentMediaControlDeliverySnapshot(
-            status: status,
-            bufferedControlCount: pendingControls.count,
+            status: status, bufferedControlCount: pendingControls.count,
             deliveredControlCount: deliveredControlCount,
-            rejectedControlCount: rejectedControlCount,
-            deliveryInFlight: deliveryInFlight
-        )
+            rejectedControlCount: rejectedControlCount, deliveryInFlight: deliveryInFlight)
     }
 
     private func appendLocked(_ control: HostMediaControl) -> Bool {
@@ -156,19 +145,14 @@ package final class HostAgentMediaControlDeliveryGate: @unchecked Sendable {
         return true
     }
 
-    private func drain(
-        startingWith first: HostMediaControl,
-        deliver: DeliveryHandler
-    ) {
+    private func drain(startingWith first: HostMediaControl, deliver: DeliveryHandler) {
         var control = first
         while true {
             deliver(control)
             condition.lock()
             incrementSaturating(&deliveredControlCount)
             guard status == .active, !pendingControls.isEmpty else {
-                if status == .overflowed {
-                    deliveryHandler = nil
-                }
+                if status == .overflowed { deliveryHandler = nil }
                 deliveryInFlight = false
                 condition.broadcast()
                 condition.unlock()
@@ -179,7 +163,5 @@ package final class HostAgentMediaControlDeliveryGate: @unchecked Sendable {
         }
     }
 
-    private func incrementSaturating(_ value: inout UInt64) {
-        if value < UInt64.max { value += 1 }
-    }
+    private func incrementSaturating(_ value: inout UInt64) { if value < UInt64.max { value += 1 } }
 }

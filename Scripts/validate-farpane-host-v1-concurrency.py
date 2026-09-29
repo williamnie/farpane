@@ -14,6 +14,15 @@ import sys
 import tempfile
 from typing import Any
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    has_symlink_component,
+    hash_bytes,
+    is_integer,
+    is_sha256,
+)
+
 
 MANIFEST_SCHEMA = "farpane-host-v1-concurrency-manifest"
 LIFECYCLE_SCHEMA = "farpane-host-viewer-concurrency-lifecycle"
@@ -132,10 +141,6 @@ def usage() -> None:
     )
 
 
-def is_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
-
-
 def is_bounded_text(value: Any, maximum: int) -> bool:
     return (
         isinstance(value, str)
@@ -143,10 +148,6 @@ def is_bounded_text(value: Any, maximum: int) -> bool:
         and value == value.strip()
         and all(ord(character) >= 0x20 and ord(character) != 0x7F for character in value)
     )
-
-
-def is_sha256(value: Any) -> bool:
-    return isinstance(value, str) and SHA256_PATTERN.fullmatch(value) is not None
 
 
 def strict_json(raw: bytes, label: str) -> dict[str, Any]:
@@ -171,21 +172,6 @@ def strict_json(raw: bytes, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise V1ConcurrencyValidationError(f"{label} root is not an object")
     return value
-
-
-def hash_bytes(raw: bytes) -> str:
-    return hashlib.sha256(raw).hexdigest()
-
-
-def has_symlink_component(path: Path) -> bool:
-    if not path.is_absolute():
-        return True
-    current = Path(path.anchor)
-    for component in path.parts[1:]:
-        current /= component
-        if current.is_symlink():
-            return True
-    return False
 
 
 def read_bounded_regular(path: Path, maximum_bytes: int, label: str) -> bytes:

@@ -28,22 +28,14 @@ final class HostAgentNWPathMonitorIngress: @unchecked Sendable {
     ) -> HostAgentNWPathMonitorIngress {
         HostAgentNWPathMonitorIngress(
             monitor: NWPathMonitor(),
-            queue: DispatchQueue(
-                label: "io.farpane.host-agent.network-path",
-                qos: .utility
-            ),
-            deliveryOwner: HostAgentNetworkPathDeliveryOwner(
-                deliverPath: deliverPath
-            ),
-            onFailure: onFailure
-        )
+            queue: DispatchQueue(label: "io.farpane.host-agent.network-path", qos: .utility),
+            deliveryOwner: HostAgentNetworkPathDeliveryOwner(deliverPath: deliverPath),
+            onFailure: onFailure)
     }
 
     private init(
-        monitor: NWPathMonitor,
-        queue: DispatchQueue,
-        deliveryOwner: HostAgentNetworkPathDeliveryOwner,
-        onFailure: @escaping @Sendable () -> Void
+        monitor: NWPathMonitor, queue: DispatchQueue,
+        deliveryOwner: HostAgentNetworkPathDeliveryOwner, onFailure: @escaping @Sendable () -> Void
     ) {
         self.monitor = monitor
         self.queue = queue
@@ -51,9 +43,7 @@ final class HostAgentNWPathMonitorIngress: @unchecked Sendable {
         self.onFailure = onFailure
     }
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
     func stateSnapshot() -> HostAgentNWPathMonitorIngressState {
         condition.lock()
@@ -61,17 +51,14 @@ final class HostAgentNWPathMonitorIngress: @unchecked Sendable {
         return state
     }
 
-    @discardableResult
-    func start() -> Bool {
+    @discardableResult func start() -> Bool {
         condition.lock()
         guard state == .idle else {
             condition.unlock()
             return false
         }
         state = .starting
-        monitor.pathUpdateHandler = { [weak self] path in
-            self?.deliver(path)
-        }
+        monitor.pathUpdateHandler = { [weak self] path in self?.deliver(path) }
         monitor.start(queue: queue)
         state = .running
         condition.broadcast()
@@ -88,9 +75,7 @@ final class HostAgentNWPathMonitorIngress: @unchecked Sendable {
             condition.unlock()
             return
         case .cancelling:
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
             return
         case .idle, .starting, .running, .failed:
@@ -110,8 +95,7 @@ final class HostAgentNWPathMonitorIngress: @unchecked Sendable {
 
     private func deliver(_ path: NWPath) {
         switch deliveryOwner.deliver(Self.normalize(path)) {
-        case .accepted, .closed:
-            return
+        case .accepted, .closed: return
         case .rejected:
             condition.lock()
             let shouldTerminate = state == .running
@@ -120,9 +104,7 @@ final class HostAgentNWPathMonitorIngress: @unchecked Sendable {
                 condition.broadcast()
             }
             condition.unlock()
-            if shouldTerminate {
-                requestProcessTermination()
-            }
+            if shouldTerminate { requestProcessTermination() }
         }
     }
 
@@ -130,47 +112,31 @@ final class HostAgentNWPathMonitorIngress: @unchecked Sendable {
         DispatchQueue.global(qos: .utility).async(execute: onFailure)
     }
 
-    private static func normalize(
-        _ path: NWPath
-    ) -> HostAgentNetworkPathSnapshot {
+    private static func normalize(_ path: NWPath) -> HostAgentNetworkPathSnapshot {
         let availability: HostAgentNetworkPathAvailability
         switch path.status {
-        case .satisfied:
-            availability = .satisfied
-        case .requiresConnection:
-            availability = .requiresConnection
-        case .unsatisfied:
-            availability = .unsatisfied
-        @unknown default:
-            availability = .unsatisfied
+        case .satisfied: availability = .satisfied
+        case .requiresConnection: availability = .requiresConnection
+        case .unsatisfied: availability = .unsatisfied
+        @unknown default: availability = .unsatisfied
         }
 
-        let interfaceKinds = Set(path.availableInterfaces.compactMap {
-            interface -> HostAgentNetworkInterfaceKind? in
-            guard path.usesInterfaceType(interface.type) else { return nil }
-            switch interface.type {
-            case .other:
-                return .other
-            case .wifi:
-                return .wifi
-            case .cellular:
-                return .cellular
-            case .wiredEthernet:
-                return .wiredEthernet
-            case .loopback:
-                return .loopback
-            @unknown default:
-                return .other
-            }
-        })
+        let interfaceKinds = Set(
+            path.availableInterfaces.compactMap { interface -> HostAgentNetworkInterfaceKind? in
+                guard path.usesInterfaceType(interface.type) else { return nil }
+                switch interface.type {
+                case .other: return .other
+                case .wifi: return .wifi
+                case .cellular: return .cellular
+                case .wiredEthernet: return .wiredEthernet
+                case .loopback: return .loopback
+                @unknown default: return .other
+                }
+            })
         return HostAgentNetworkPathSnapshot(
-            availability: availability,
-            interfaceKinds: interfaceKinds,
-            supportsIPv4: path.supportsIPv4,
-            supportsIPv6: path.supportsIPv6,
-            supportsDNS: path.supportsDNS,
-            isExpensive: path.isExpensive,
-            isConstrained: path.isConstrained
-        )
+            availability: availability, interfaceKinds: interfaceKinds,
+            supportsIPv4: path.supportsIPv4, supportsIPv6: path.supportsIPv6,
+            supportsDNS: path.supportsDNS, isExpensive: path.isExpensive,
+            isConstrained: path.isConstrained)
     }
 }

@@ -1,44 +1,32 @@
 import Foundation
 
-package struct HostAgentBackgroundHomeCommandActivationSnapshot:
-    Equatable,
-    Sendable
-{
+package struct HostAgentBackgroundHomeCommandActivationSnapshot: Equatable, Sendable {
     package let phase: HostAgentBackgroundActivationPhase
     package let projection: HostAgentBackgroundProjectionView?
 
     package init(
-        phase: HostAgentBackgroundActivationPhase,
-        projection: HostAgentBackgroundProjectionView?
+        phase: HostAgentBackgroundActivationPhase, projection: HostAgentBackgroundProjectionView?
     ) {
         self.phase = phase
         self.projection = projection
     }
 }
 
-package enum HostAgentBackgroundHomeCommandPresentationFailure:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundHomeCommandPresentationFailure: Equatable, Sendable {
     case submissionRejected
     case retryRejected
     case invalidResult
     case generationExhausted
 }
 
-package struct HostAgentBackgroundHomeCommandPresentationView:
-    Equatable,
-    Sendable
-{
+package struct HostAgentBackgroundHomeCommandPresentationView: Equatable, Sendable {
     package let generation: UInt64
     package let command: HostAgentBackgroundHomeCommandPresentation
     package let result: HostAgentBackgroundHomeCommandResultPresentation?
-    package let failure:
-        HostAgentBackgroundHomeCommandPresentationFailure?
+    package let failure: HostAgentBackgroundHomeCommandPresentationFailure?
 
     package init(
-        generation: UInt64,
-        command: HostAgentBackgroundHomeCommandPresentation,
+        generation: UInt64, command: HostAgentBackgroundHomeCommandPresentation,
         result: HostAgentBackgroundHomeCommandResultPresentation?,
         failure: HostAgentBackgroundHomeCommandPresentationFailure?
     ) {
@@ -53,25 +41,22 @@ package struct HostAgentBackgroundHomeCommandPresentationView:
 /// inert. Callers explicitly refresh it from one activation sample, then ask
 /// it to submit or retry through the same activation owner. No Home/AppKit or
 /// legacy Host callback is owned here.
-package final class HostAgentBackgroundHomeCommandPresentationOwner:
-    @unchecked Sendable
-{
-    package typealias ActivationSnapshotProvider = @Sendable ()
-        -> HostAgentBackgroundHomeCommandActivationSnapshot
-    package typealias AvailabilityProvider = @Sendable ()
-        -> HostAgentBackgroundCommandAvailability
-    package typealias Submit = @Sendable (
-        _ route: HostAgentBackgroundCommandRoute,
-        _ intent: HostAgentXPCCommandIntent,
-        _ observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
-    ) -> Bool
-    package typealias Retry = @Sendable (
-        _ route: HostAgentBackgroundCommandRoute,
-        _ observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
-    ) -> Bool
+package final class HostAgentBackgroundHomeCommandPresentationOwner: @unchecked Sendable {
+    package typealias ActivationSnapshotProvider =
+        @Sendable () -> HostAgentBackgroundHomeCommandActivationSnapshot
+    package typealias AvailabilityProvider = @Sendable () -> HostAgentBackgroundCommandAvailability
+    package typealias Submit =
+        @Sendable (
+            _ route: HostAgentBackgroundCommandRoute, _ intent: HostAgentXPCCommandIntent,
+            _ observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+        ) -> Bool
+    package typealias Retry =
+        @Sendable (
+            _ route: HostAgentBackgroundCommandRoute,
+            _ observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
+        ) -> Bool
     package typealias CommandIDFactory = @Sendable () -> String
-    package typealias Observer = @Sendable
-        (HostAgentBackgroundHomeCommandPresentationView) -> Void
+    package typealias Observer = @Sendable (HostAgentBackgroundHomeCommandPresentationView) -> Void
 
     private struct RuntimeSample {
         let activation: HostAgentBackgroundHomeCommandActivationSnapshot
@@ -86,8 +71,7 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
 
     private struct RoutedResult: Equatable {
         let route: HostAgentBackgroundCommandRoute
-        let presentation:
-            HostAgentBackgroundHomeCommandResultPresentation
+        let presentation: HostAgentBackgroundHomeCommandResultPresentation
     }
 
     private let stateLock = NSLock()
@@ -100,11 +84,7 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
     private let observer: Observer
 
     private var view = HostAgentBackgroundHomeCommandPresentationView(
-        generation: 0,
-        command: .unavailable,
-        result: nil,
-        failure: nil
-    )
+        generation: 0, command: .unavailable, result: nil, failure: nil)
     private var attemptGeneration: UInt64 = 0
     private var transitionInFlight = false
     private var activeAttempt: Attempt?
@@ -112,48 +92,30 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
     private var retrySubmission: HostAgentBackgroundHomeCommandSubmission?
     private var routedResult: RoutedResult?
     private var failedRoute: HostAgentBackgroundCommandRoute?
-    private var failure:
-        HostAgentBackgroundHomeCommandPresentationFailure?
+    private var failure: HostAgentBackgroundHomeCommandPresentationFailure?
 
     package static func makeProduct(
-        activationOwner: HostAgentBackgroundActivationOwner,
-        observer: @escaping Observer = { _ in }
+        activationOwner: HostAgentBackgroundActivationOwner, observer: @escaping Observer = { _ in }
     ) -> HostAgentBackgroundHomeCommandPresentationOwner {
         HostAgentBackgroundHomeCommandPresentationOwner(
             observeActivation: {
                 let activation = activationOwner.snapshot()
                 return HostAgentBackgroundHomeCommandActivationSnapshot(
-                    phase: activation.phase,
-                    projection: activation.projection
-                )
-            },
-            observeAvailability: {
-                activationOwner.commandAvailabilitySnapshot()
-            },
+                    phase: activation.phase, projection: activation.projection)
+            }, observeAvailability: { activationOwner.commandAvailabilitySnapshot() },
             submit: { route, intent, commandObserver in
                 activationOwner.submitCommand(
-                    route: route,
-                    intent: intent,
-                    observer: commandObserver
-                )
+                    route: route, intent: intent, observer: commandObserver)
             },
             retry: { route, commandObserver in
-                activationOwner.retryCommand(
-                    route: route,
-                    observer: commandObserver
-                )
-            },
-            makeCommandID: { UUID().uuidString.lowercased() },
-            observer: observer
-        )
+                activationOwner.retryCommand(route: route, observer: commandObserver)
+            }, makeCommandID: { UUID().uuidString.lowercased() }, observer: observer)
     }
 
     package init(
         observeActivation: @escaping ActivationSnapshotProvider,
-        observeAvailability: @escaping AvailabilityProvider,
-        submit: @escaping Submit,
-        retry: @escaping Retry,
-        makeCommandID: @escaping CommandIDFactory,
+        observeAvailability: @escaping AvailabilityProvider, submit: @escaping Submit,
+        retry: @escaping Retry, makeCommandID: @escaping CommandIDFactory,
         observer: @escaping Observer = { _ in }
     ) {
         self.observeActivation = observeActivation
@@ -164,16 +126,13 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         self.observer = observer
     }
 
-    package func snapshot()
-        -> HostAgentBackgroundHomeCommandPresentationView
-    {
+    package func snapshot() -> HostAgentBackgroundHomeCommandPresentationView {
         stateLock.lock()
         defer { stateLock.unlock() }
         return view
     }
 
-    @discardableResult
-    package func refresh() -> Bool {
+    @discardableResult package func refresh() -> Bool {
         deliveryLock.lock()
         let sample = runtimeSample()
         let publication = updateView(with: sample)
@@ -182,20 +141,14 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         return publication != nil
     }
 
-    @discardableResult
-    package func submit(
-        _ action: HostAgentBackgroundHomeCommandAction
-    ) -> Bool {
+    @discardableResult package func submit(_ action: HostAgentBackgroundHomeCommandAction) -> Bool {
         deliveryLock.lock()
         let initialSample = runtimeSample()
         let initialPublication = updateView(with: initialSample)
         publish(initialPublication)
 
         stateLock.lock()
-        guard !transitionInFlight,
-              activeAttempt == nil,
-              failure == nil
-        else {
+        guard !transitionInFlight, activeAttempt == nil, failure == nil else {
             stateLock.unlock()
             deliveryLock.unlock()
             return false
@@ -204,21 +157,15 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         let command = view.command
         stateLock.unlock()
 
-        guard let submission =
-            HostAgentBackgroundHomeCommandPolicy.submission(
-                action: action,
-                presentation: command,
-                makeCommandID: makeCommandID
-            )
+        guard
+            let submission = HostAgentBackgroundHomeCommandPolicy.submission(
+                action: action, presentation: command, makeCommandID: makeCommandID)
         else {
             finishTransition()
             deliveryLock.unlock()
             return false
         }
-        guard let attempt = beginAttempt(
-            action: action,
-            submission: submission
-        ) else {
+        guard let attempt = beginAttempt(action: action, submission: submission) else {
             finishTransition()
             let publication = forceGenerationFailure()
             publish(publication)
@@ -227,45 +174,28 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         }
 
         let accepted = submitOperation(
-            submission.route,
-            submission.intent,
-            { [weak self] result in
-                self?.consume(
-                    result,
-                    attempt: attempt
-                )
-            }
-        )
+            submission.route, submission.intent,
+            { [weak self] result in self?.consume(result, attempt: attempt) })
         let sample = runtimeSample()
         let publication = finishOperation(
-            accepted: accepted,
-            attempt: attempt,
-            rejectedFailure: .submissionRejected,
-            sample: sample
-        )
+            accepted: accepted, attempt: attempt, rejectedFailure: .submissionRejected,
+            sample: sample)
         publish(publication)
         deliveryLock.unlock()
         return accepted
     }
 
-    @discardableResult
-    package func retry() -> Bool {
+    @discardableResult package func retry() -> Bool {
         deliveryLock.lock()
         let initialSample = runtimeSample()
         let initialPublication = updateView(with: initialSample)
         publish(initialPublication)
 
         stateLock.lock()
-        guard !transitionInFlight,
-              activeAttempt == nil,
-              failure == nil,
-              let retrySubmission,
-              let route = HostAgentBackgroundHomeCommandPolicy.retryRoute(
-                presentation: view.command
-              ),
-              route == retrySubmission.route,
-              let action = view.command.activeAction,
-              routedResult?.presentation.action == action
+        guard !transitionInFlight, activeAttempt == nil, failure == nil, let retrySubmission,
+            let route = HostAgentBackgroundHomeCommandPolicy.retryRoute(presentation: view.command),
+            route == retrySubmission.route, let action = view.command.activeAction,
+            routedResult?.presentation.action == action
         else {
             stateLock.unlock()
             deliveryLock.unlock()
@@ -274,10 +204,7 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         transitionInFlight = true
         stateLock.unlock()
 
-        guard let attempt = beginAttempt(
-            action: action,
-            submission: retrySubmission
-        ) else {
+        guard let attempt = beginAttempt(action: action, submission: retrySubmission) else {
             finishTransition()
             let publication = forceGenerationFailure()
             publish(publication)
@@ -286,18 +213,10 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         }
 
         let accepted = retryOperation(
-            route,
-            { [weak self] result in
-                self?.consume(result, attempt: attempt)
-            }
-        )
+            route, { [weak self] result in self?.consume(result, attempt: attempt) })
         let sample = runtimeSample()
         let publication = finishOperation(
-            accepted: accepted,
-            attempt: attempt,
-            rejectedFailure: .retryRejected,
-            sample: sample
-        )
+            accepted: accepted, attempt: attempt, rejectedFailure: .retryRejected, sample: sample)
         publish(publication)
         deliveryLock.unlock()
         return accepted
@@ -309,11 +228,8 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         return RuntimeSample(
             activation: activation,
             command: HostAgentBackgroundHomeCommandPolicy.presentation(
-                phase: activation.phase,
-                projection: activation.projection,
-                availability: availability
-            )
-        )
+                phase: activation.phase, projection: activation.projection,
+                availability: availability))
     }
 
     private func beginAttempt(
@@ -322,16 +238,11 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
     ) -> Attempt? {
         stateLock.lock()
         defer { stateLock.unlock() }
-        guard transitionInFlight,
-              activeAttempt == nil,
-              attemptGeneration < UInt64.max
-        else { return nil }
+        guard transitionInFlight, activeAttempt == nil, attemptGeneration < UInt64.max else {
+            return nil
+        }
         attemptGeneration += 1
-        let attempt = Attempt(
-            generation: attemptGeneration,
-            action: action,
-            submission: submission
-        )
+        let attempt = Attempt(generation: attemptGeneration, action: action, submission: submission)
         activeAttempt = attempt
         activeAccepted = false
         retrySubmission = nil
@@ -342,57 +253,34 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
     }
 
     private func finishOperation(
-        accepted: Bool,
-        attempt: Attempt,
-        rejectedFailure:
-            HostAgentBackgroundHomeCommandPresentationFailure,
-        sample: RuntimeSample
+        accepted: Bool, attempt: Attempt,
+        rejectedFailure: HostAgentBackgroundHomeCommandPresentationFailure, sample: RuntimeSample
     ) -> HostAgentBackgroundHomeCommandPresentationView? {
         stateLock.lock()
         transitionInFlight = false
         if activeAttempt == attempt {
             if accepted {
                 if !attemptIsRepresented(attempt, by: sample) {
-                    if routeIsRelevant(
-                        attempt.submission.route,
-                        in: sample
-                    ) {
-                        failLocked(
-                            route: attempt.submission.route,
-                            failure: .invalidResult
-                        )
+                    if routeIsRelevant(attempt.submission.route, in: sample) {
+                        failLocked(route: attempt.submission.route, failure: .invalidResult)
                     } else {
                         clearAttemptLocked(attempt)
                     }
                 }
-            } else if routeIsRelevant(
-                attempt.submission.route,
-                in: sample
-            ) {
-                failLocked(
-                    route: attempt.submission.route,
-                    failure: rejectedFailure
-                )
+            } else if routeIsRelevant(attempt.submission.route, in: sample) {
+                failLocked(route: attempt.submission.route, failure: rejectedFailure)
             } else {
                 clearAttemptLocked(attempt)
             }
-        } else if !accepted,
-                  routeIsRelevant(attempt.submission.route, in: sample)
-        {
-            failLocked(
-                route: attempt.submission.route,
-                failure: .invalidResult
-            )
+        } else if !accepted, routeIsRelevant(attempt.submission.route, in: sample) {
+            failLocked(route: attempt.submission.route, failure: .invalidResult)
         }
         let publication = updateViewLocked(with: sample)
         stateLock.unlock()
         return publication
     }
 
-    private func consume(
-        _ result: HostAgentXPCSnapshotClientCommandResult,
-        attempt: Attempt
-    ) {
+    private func consume(_ result: HostAgentXPCSnapshotClientCommandResult, attempt: Attempt) {
         deliveryLock.lock()
         let sample = runtimeSample()
         stateLock.lock()
@@ -409,16 +297,11 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
             deliveryLock.unlock()
             return
         }
-        guard let resultPresentation =
-            HostAgentBackgroundHomeCommandPolicy.resultPresentation(
-                result,
-                submission: attempt.submission
-            )
+        guard
+            let resultPresentation = HostAgentBackgroundHomeCommandPolicy.resultPresentation(
+                result, submission: attempt.submission)
         else {
-            failLocked(
-                route: attempt.submission.route,
-                failure: .invalidResult
-            )
+            failLocked(route: attempt.submission.route, failure: .invalidResult)
             let publication = updateViewLocked(with: sample)
             stateLock.unlock()
             publish(publication)
@@ -429,10 +312,7 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         switch result {
         case .accepted:
             guard !activeAccepted else {
-                failLocked(
-                    route: attempt.submission.route,
-                    failure: .invalidResult
-                )
+                failLocked(route: attempt.submission.route, failure: .invalidResult)
                 let publication = updateViewLocked(with: sample)
                 stateLock.unlock()
                 publish(publication)
@@ -441,55 +321,44 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
             }
         case .completed, .resultUnknown, .resultTimedOut:
             guard activeAccepted else {
-                failLocked(
-                    route: attempt.submission.route,
-                    failure: .invalidResult
-                )
+                failLocked(route: attempt.submission.route, failure: .invalidResult)
                 let publication = updateViewLocked(with: sample)
                 stateLock.unlock()
                 publish(publication)
                 deliveryLock.unlock()
                 return
             }
-        case .invalidRequest, .invalidResponse, .disconnected,
-             .acceptanceTimedOut, .cancelled, .invalidState:
+        case .invalidRequest, .invalidResponse, .disconnected, .acceptanceTimedOut, .cancelled,
+            .invalidState:
             break
         }
 
         let stateIsValid: Bool
         switch result {
         case .accepted:
-            stateIsValid = sample.command.route
-                == attempt.submission.route
-                && sample.command.activeAction == attempt.action
-                && sample.command.isBusy
+            stateIsValid =
+                sample.command.route == attempt.submission.route
+                && sample.command.activeAction == attempt.action && sample.command.isBusy
                 && !sample.command.canRetry
         case .resultUnknown, .resultTimedOut:
-            stateIsValid = resultPresentation.canRetry
-                && sample.command.route == attempt.submission.route
-                && sample.command.activeAction == attempt.action
-                && sample.command.canRetry
-                && HostAgentBackgroundHomeCommandPolicy.retryRoute(
-                    presentation: sample.command
-                ) == attempt.submission.route
+            stateIsValid =
+                resultPresentation.canRetry && sample.command.route == attempt.submission.route
+                && sample.command.activeAction == attempt.action && sample.command.canRetry
+                && HostAgentBackgroundHomeCommandPolicy.retryRoute(presentation: sample.command)
+                    == attempt.submission.route
         case .completed, .invalidRequest:
-            stateIsValid = resultPresentation.isTerminal
-                && !resultPresentation.canRetry
+            stateIsValid =
+                resultPresentation.isTerminal && !resultPresentation.canRetry
                 && sample.command.route == attempt.submission.route
-                && sample.command.activeAction == nil
-                && !sample.command.isBusy
+                && sample.command.activeAction == nil && !sample.command.isBusy
                 && !sample.command.canRetry
-        case .invalidResponse, .disconnected, .acceptanceTimedOut,
-             .cancelled, .invalidState:
-            stateIsValid = resultPresentation.isTerminal
-                && !resultPresentation.canRetry
+        case .invalidResponse, .disconnected, .acceptanceTimedOut, .cancelled, .invalidState:
+            stateIsValid =
+                resultPresentation.isTerminal && !resultPresentation.canRetry
                 && sample.command == .unavailable
         }
         guard stateIsValid else {
-            failLocked(
-                route: attempt.submission.route,
-                failure: .invalidResult
-            )
+            failLocked(route: attempt.submission.route, failure: .invalidResult)
             let publication = updateViewLocked(with: sample)
             stateLock.unlock()
             publish(publication)
@@ -498,16 +367,12 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         }
 
         routedResult = RoutedResult(
-            route: attempt.submission.route,
-            presentation: resultPresentation
-        )
+            route: attempt.submission.route, presentation: resultPresentation)
         if case .accepted = result { activeAccepted = true }
         if resultPresentation.isTerminal {
             activeAttempt = nil
             activeAccepted = false
-            retrySubmission = resultPresentation.canRetry
-                ? attempt.submission
-                : nil
+            retrySubmission = resultPresentation.canRetry ? attempt.submission : nil
         }
         let publication = updateViewLocked(with: sample)
         stateLock.unlock()
@@ -515,67 +380,47 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         deliveryLock.unlock()
     }
 
-    private func updateView(
-        with sample: RuntimeSample
-    ) -> HostAgentBackgroundHomeCommandPresentationView? {
+    private func updateView(with sample: RuntimeSample)
+        -> HostAgentBackgroundHomeCommandPresentationView?
+    {
         stateLock.lock()
         let publication = updateViewLocked(with: sample)
         stateLock.unlock()
         return publication
     }
 
-    private func updateViewLocked(
-        with sample: RuntimeSample
-    ) -> HostAgentBackgroundHomeCommandPresentationView? {
-        if let activeAttempt,
-           !routeIsRelevant(activeAttempt.submission.route, in: sample)
-        {
+    private func updateViewLocked(with sample: RuntimeSample)
+        -> HostAgentBackgroundHomeCommandPresentationView?
+    {
+        if let activeAttempt, !routeIsRelevant(activeAttempt.submission.route, in: sample) {
             clearAttemptLocked(activeAttempt)
         }
         if let retrySubmission,
-           sample.command.route != retrySubmission.route
-            || !sample.command.canRetry
-            || sample.command.activeAction == nil
-            || sample.command.activeAction
-                != routedResult?.presentation.action
+            sample.command.route != retrySubmission.route || !sample.command.canRetry
+                || sample.command.activeAction == nil
+                || sample.command.activeAction != routedResult?.presentation.action
         {
             self.retrySubmission = nil
-            if routedResult?.presentation.canRetry == true {
-                routedResult = nil
-            }
+            if routedResult?.presentation.canRetry == true { routedResult = nil }
         }
-        if let routedResult,
-           !routeIsRelevant(routedResult.route, in: sample)
-        {
+        if let routedResult, !routeIsRelevant(routedResult.route, in: sample) {
             self.routedResult = nil
         }
-        if let failedRoute,
-           !routeIsRelevant(failedRoute, in: sample)
-        {
+        if let failedRoute, !routeIsRelevant(failedRoute, in: sample) {
             self.failedRoute = nil
             failure = nil
         }
 
         let command = failedRoute != nil ? .unavailable : sample.command
         let result = routedResult?.presentation
-        if view.command == command,
-           view.result == result,
-           view.failure == failure
-        {
-            return nil
-        }
-        return replaceViewLocked(
-            command: command,
-            result: result,
-            failure: failure
-        )
+        if view.command == command, view.result == result, view.failure == failure { return nil }
+        return replaceViewLocked(command: command, result: result, failure: failure)
     }
 
     private func replaceViewLocked(
         command: HostAgentBackgroundHomeCommandPresentation,
         result: HostAgentBackgroundHomeCommandResultPresentation?,
-        failure:
-            HostAgentBackgroundHomeCommandPresentationFailure?
+        failure: HostAgentBackgroundHomeCommandPresentationFailure?
     ) -> HostAgentBackgroundHomeCommandPresentationView? {
         if view.generation == UInt64.max {
             activeAttempt = nil
@@ -585,27 +430,18 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
             failedRoute = nil
             self.failure = .generationExhausted
             let failed = HostAgentBackgroundHomeCommandPresentationView(
-                generation: UInt64.max,
-                command: .unavailable,
-                result: nil,
-                failure: .generationExhausted
-            )
+                generation: UInt64.max, command: .unavailable, result: nil,
+                failure: .generationExhausted)
             guard view != failed else { return nil }
             view = failed
             return failed
         }
         view = HostAgentBackgroundHomeCommandPresentationView(
-            generation: view.generation + 1,
-            command: command,
-            result: result,
-            failure: failure
-        )
+            generation: view.generation + 1, command: command, result: result, failure: failure)
         return view
     }
 
-    private func forceGenerationFailure()
-        -> HostAgentBackgroundHomeCommandPresentationView?
-    {
+    private func forceGenerationFailure() -> HostAgentBackgroundHomeCommandPresentationView? {
         stateLock.lock()
         transitionInFlight = false
         activeAttempt = nil
@@ -615,49 +451,35 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         failedRoute = nil
         failure = .generationExhausted
         let publication = replaceViewLocked(
-            command: .unavailable,
-            result: nil,
-            failure: .generationExhausted
-        )
+            command: .unavailable, result: nil, failure: .generationExhausted)
         stateLock.unlock()
         return publication
     }
 
-    private func attemptIsRepresented(
-        _ attempt: Attempt,
-        by sample: RuntimeSample
-    ) -> Bool {
+    private func attemptIsRepresented(_ attempt: Attempt, by sample: RuntimeSample) -> Bool {
         sample.command.route == attempt.submission.route
-            && sample.command.activeAction == attempt.action
-            && sample.command.isBusy
+            && sample.command.activeAction == attempt.action && sample.command.isBusy
             && !sample.command.canRetry
     }
 
-    private func routeIsRelevant(
-        _ route: HostAgentBackgroundCommandRoute,
-        in sample: RuntimeSample
-    ) -> Bool {
+    private func routeIsRelevant(_ route: HostAgentBackgroundCommandRoute, in sample: RuntimeSample)
+        -> Bool
+    {
         if sample.command.route == route { return true }
         guard case .monitoring(let epoch, _) = sample.activation.phase,
-              epoch == route.activationEpoch,
-              let projection = sample.activation.projection,
-              projection.generation == route.projectionGeneration,
-              case .available(let available) = projection.phase
+            epoch == route.activationEpoch, let projection = sample.activation.projection,
+            projection.generation == route.projectionGeneration,
+            case .available(let available) = projection.phase
         else { return false }
-        return available.peerIdentity
-            == route.reconnectRoute.peerIdentity
+        return available.peerIdentity == route.reconnectRoute.peerIdentity
     }
 
     private func clearAttemptLocked(_ attempt: Attempt) {
         guard activeAttempt == attempt else { return }
         activeAttempt = nil
         activeAccepted = false
-        if retrySubmission?.route == attempt.submission.route {
-            retrySubmission = nil
-        }
-        if routedResult?.route == attempt.submission.route {
-            routedResult = nil
-        }
+        if retrySubmission?.route == attempt.submission.route { retrySubmission = nil }
+        if routedResult?.route == attempt.submission.route { routedResult = nil }
     }
 
     private func failLocked(
@@ -678,9 +500,7 @@ package final class HostAgentBackgroundHomeCommandPresentationOwner:
         stateLock.unlock()
     }
 
-    private func publish(
-        _ publication: HostAgentBackgroundHomeCommandPresentationView?
-    ) {
+    private func publish(_ publication: HostAgentBackgroundHomeCommandPresentationView?) {
         if let publication { observer(publication) }
     }
 }

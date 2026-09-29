@@ -15,6 +15,17 @@ import sys
 import tempfile
 from typing import Any
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    has_symlink_component,
+    hash_bytes,
+    is_bounded_text,
+    is_finite_number as is_number,
+    is_integer,
+    is_sha256,
+)
+
 
 MANIFEST_SCHEMA = "farpane-host-combined-role-pair-manifest"
 RUN_SCHEMA = "farpane-host-combined-role-run"
@@ -126,34 +137,6 @@ def usage() -> None:
     )
 
 
-def is_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
-
-
-def is_number(value: Any) -> bool:
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(float(value))
-    )
-
-
-def is_bounded_text(value: Any, maximum_length: int) -> bool:
-    return (
-        isinstance(value, str)
-        and value == value.strip()
-        and 0 < len(value) <= maximum_length
-        and all(
-            ord(character) >= 0x20 and ord(character) != 0x7F
-            for character in value
-        )
-    )
-
-
-def is_sha256(value: Any) -> bool:
-    return isinstance(value, str) and SHA256_PATTERN.fullmatch(value) is not None
-
-
 def strict_json(raw: bytes, label: str) -> dict[str, Any]:
     try:
         value = json.loads(
@@ -167,21 +150,6 @@ def strict_json(raw: bytes, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise PairValidationError(f"{label} root is not an object")
     return value
-
-
-def hash_bytes(raw: bytes) -> str:
-    return hashlib.sha256(raw).hexdigest()
-
-
-def has_symlink_component(path: Path) -> bool:
-    if not path.is_absolute():
-        return True
-    current = Path(path.anchor)
-    for component in path.parts[1:]:
-        current /= component
-        if current.is_symlink():
-            return True
-    return False
 
 
 def safe_relative_json_path(value: Any) -> bool:

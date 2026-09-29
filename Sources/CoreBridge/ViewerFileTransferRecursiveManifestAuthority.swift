@@ -28,68 +28,47 @@ package struct ViewerFileTransferRecursiveManifestAuthority: Sendable {
 
     package var isActive: Bool { activeRequest != nil }
 
-    @discardableResult
-    package mutating func begin(sessionEpoch: UInt64, requestID: Int32) -> Bool {
-        guard sessionEpoch > 0, requestID > 0, activeRequest == nil else {
-            return false
-        }
+    @discardableResult package mutating func begin(sessionEpoch: UInt64, requestID: Int32) -> Bool {
+        guard sessionEpoch > 0, requestID > 0, activeRequest == nil else { return false }
         activeRequest = ActiveRequest(
-            sessionEpoch: sessionEpoch,
-            requestID: requestID,
-            files: nil,
-            emptyDirectories: nil
-        )
+            sessionEpoch: sessionEpoch, requestID: requestID, files: nil, emptyDirectories: nil)
         return true
     }
 
     package mutating func observe(
-        sessionEpoch: UInt64,
-        requestID: Int32,
-        part: ViewerFileTransferRecursiveManifestPart
+        sessionEpoch: UInt64, requestID: Int32, part: ViewerFileTransferRecursiveManifestPart
     ) -> ViewerFileTransferRecursiveManifestOutcome? {
         guard var active = exactRequest(sessionEpoch: sessionEpoch, requestID: requestID) else {
             return nil
         }
 
         switch part {
-        case let .files(files):
-            guard active.files == nil else {
-                return failProtocolViolation()
-            }
-            guard Self.accepts(files: files) else {
-                return failProtocolViolation()
-            }
+        case .files(let files):
+            guard active.files == nil else { return failProtocolViolation() }
+            guard Self.accepts(files: files) else { return failProtocolViolation() }
             active.files = files
-        case let .emptyDirectories(emptyDirectories):
-            guard active.emptyDirectories == nil else {
-                return failProtocolViolation()
-            }
+        case .emptyDirectories(let emptyDirectories):
+            guard active.emptyDirectories == nil else { return failProtocolViolation() }
             guard Self.accepts(emptyDirectories: emptyDirectories) else {
                 return failProtocolViolation()
             }
             active.emptyDirectories = emptyDirectories
         }
 
-        guard let files = active.files,
-              let emptyDirectories = active.emptyDirectories
-        else {
+        guard let files = active.files, let emptyDirectories = active.emptyDirectories else {
             activeRequest = active
             return .awaitingRemainingPart
         }
-        guard let manifest = ViewerFileTransferManifest(
-            files: files,
-            emptyDirectories: emptyDirectories
-        ) else {
-            return failProtocolViolation()
-        }
+        guard
+            let manifest = ViewerFileTransferManifest(
+                files: files, emptyDirectories: emptyDirectories)
+        else { return failProtocolViolation() }
         activeRequest = nil
         return .completed(manifest)
     }
 
     package mutating func fail(
-        sessionEpoch: UInt64,
-        requestID: Int32,
-        failure: ViewerFileTransferFailure
+        sessionEpoch: UInt64, requestID: Int32, failure: ViewerFileTransferFailure
     ) -> ViewerFileTransferRecursiveManifestOutcome? {
         guard exactRequest(sessionEpoch: sessionEpoch, requestID: requestID) != nil else {
             return nil
@@ -98,49 +77,36 @@ package struct ViewerFileTransferRecursiveManifestAuthority: Sendable {
         case .rejected, .unavailable, .connectionClosed:
             activeRequest = nil
             return .failed(failure)
-        case .protocolViolation, .localIO:
-            return nil
+        case .protocolViolation, .localIO: return nil
         }
     }
 
-    @discardableResult
-    package mutating func teardown(sessionEpoch: UInt64) -> Int32? {
-        guard sessionEpoch > 0, activeRequest?.sessionEpoch == sessionEpoch else {
-            return nil
-        }
+    @discardableResult package mutating func teardown(sessionEpoch: UInt64) -> Int32? {
+        guard sessionEpoch > 0, activeRequest?.sessionEpoch == sessionEpoch else { return nil }
         let requestID = activeRequest?.requestID
         activeRequest = nil
         return requestID
     }
 
     private func exactRequest(sessionEpoch: UInt64, requestID: Int32) -> ActiveRequest? {
-        guard
-            sessionEpoch > 0,
-            requestID > 0,
-            let activeRequest,
-            activeRequest.sessionEpoch == sessionEpoch,
-            activeRequest.requestID == requestID
+        guard sessionEpoch > 0, requestID > 0, let activeRequest,
+            activeRequest.sessionEpoch == sessionEpoch, activeRequest.requestID == requestID
         else { return nil }
         return activeRequest
     }
 
-    private mutating func failProtocolViolation()
-        -> ViewerFileTransferRecursiveManifestOutcome
-    {
+    private mutating func failProtocolViolation() -> ViewerFileTransferRecursiveManifestOutcome {
         activeRequest = nil
         return .failed(.protocolViolation)
     }
 
     private static func accepts(files: [ViewerFileTransferFile]) -> Bool {
-        guard files.count <= ViewerFileTransferManifest.maximumEntries else {
-            return false
-        }
+        guard files.count <= ViewerFileTransferManifest.maximumEntries else { return false }
         return acceptsMetadata(files.map(\.relativePath))
     }
 
     private static func accepts(emptyDirectories: [String]) -> Bool {
-        guard
-            emptyDirectories.count <= ViewerFileTransferManifest.maximumEntries,
+        guard emptyDirectories.count <= ViewerFileTransferManifest.maximumEntries,
             emptyDirectories.allSatisfy(ViewerFileTransferManifest.accepts(relativePath:))
         else { return false }
         return acceptsMetadata(emptyDirectories)
@@ -150,8 +116,7 @@ package struct ViewerFileTransferRecursiveManifestAuthority: Sendable {
         var total = 0
         for path in paths {
             let next = total.addingReportingOverflow(path.utf8.count)
-            guard
-                !next.overflow,
+            guard !next.overflow,
                 next.partialValue <= ViewerFileTransferManifest.maximumMetadataUTF8Bytes
             else { return false }
             total = next.partialValue

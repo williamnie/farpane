@@ -1,7 +1,8 @@
 import CoreBridgeShim
 import Darwin
-@testable import CoreBridge
 import XCTest
+
+@testable import CoreBridge
 
 // All host ABI functions are resolved through raw-pointer C signatures; the
 // struct payload layouts below are asserted in testHostStructLayoutMatchesCABI.
@@ -70,17 +71,14 @@ struct HostEncodedAccessUnitRaw {
 enum HostEventRecorder {
     static var events: [String] = []
 
-    static let callback: @convention(c) (
-        UnsafeMutableRawPointer?, UnsafePointer<CChar>?, Int
-    ) -> Void = { _, json, length in
-        guard let json else { return }
-        let buffer = UnsafeRawBufferPointer(start: json, count: length)
-        if let text = String(bytes: buffer, encoding: .utf8) {
-            events.append(text)
+    static let callback:
+        @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<CChar>?, Int) -> Void = {
+            _, json, length in
+            guard let json else { return }
+            let buffer = UnsafeRawBufferPointer(start: json, count: length)
+            if let text = String(bytes: buffer, encoding: .utf8) { events.append(text) }
         }
-    }
 }
-
 
 /// Host Control ABI contract tests (§8.1, §20.2): the host namespace must
 /// coexist with the viewer ABI v14, export its full symbol surface, and fail
@@ -103,9 +101,7 @@ final class HostBridgeContractTests: XCTestCase {
     }
 
     override func tearDown() {
-        if let handle {
-            dlclose(handle)
-        }
+        if let handle { dlclose(handle) }
         handle = nil
     }
 
@@ -122,57 +118,42 @@ final class HostBridgeContractTests: XCTestCase {
 
     func testHostCreateOptionsRawLayoutMatchesImportedCABI() {
         XCTAssertEqual(
-            MemoryLayout<HostCreateOptionsRaw>.size,
-            MemoryLayout<RdnHostCreateOptions>.size
-        )
+            MemoryLayout<HostCreateOptionsRaw>.size, MemoryLayout<RdnHostCreateOptions>.size)
         XCTAssertEqual(
-            MemoryLayout<HostCreateOptionsRaw>.stride,
-            MemoryLayout<RdnHostCreateOptions>.stride
-        )
+            MemoryLayout<HostCreateOptionsRaw>.stride, MemoryLayout<RdnHostCreateOptions>.stride)
         XCTAssertEqual(
             MemoryLayout<HostCreateOptionsRaw>.alignment,
-            MemoryLayout<RdnHostCreateOptions>.alignment
-        )
+            MemoryLayout<RdnHostCreateOptions>.alignment)
     }
 
     func testHostABISurfaceIsExportedAlongsideViewerABI() throws {
         guard let handle else { throw XCTSkip("no library handle") }
         let viewerABI = unsafeBitCast(
-            try rawSymbol("rdn_core_abi_version"),
-            to: (@convention(c) () -> UInt32).self)
+            try rawSymbol("rdn_core_abi_version"), to: (@convention(c) () -> UInt32).self)
         XCTAssertEqual(viewerABI(), 18, "viewer ABI must expose the current v18 seam")
         XCTAssertNotNil(
             dlsym(handle, "rdn_client_file_transfer_cancel"),
-            "viewer file-transfer cancel seam missing"
-        )
+            "viewer file-transfer cancel seam missing")
         XCTAssertNotNil(
             dlsym(handle, "rdn_client_file_transfer_list_root"),
-            "viewer file-transfer list seam missing"
-        )
+            "viewer file-transfer list seam missing")
         XCTAssertNotNil(
             dlsym(handle, "rdn_client_file_transfer_manifest_root"),
-            "viewer recursive-manifest seam missing"
-        )
+            "viewer recursive-manifest seam missing")
         XCTAssertNotNil(
             dlsym(handle, "rdn_client_file_transfer_download_start"),
-            "viewer download-start seam missing"
-        )
+            "viewer download-start seam missing")
         XCTAssertNotNil(
             dlsym(handle, "rdn_client_file_transfer_upload_start"),
-            "viewer upload-start seam missing"
-        )
+            "viewer upload-start seam missing")
         XCTAssertNotNil(
-            dlsym(handle, "rdn_client_select_display"),
-            "viewer display-selection seam missing"
-        )
+            dlsym(handle, "rdn_client_select_display"), "viewer display-selection seam missing")
 
         let hostABI = unsafeBitCast(
-            try rawSymbol("rdn_host_abi_version"),
-            to: (@convention(c) () -> UInt32).self)
+            try rawSymbol("rdn_host_abi_version"), to: (@convention(c) () -> UInt32).self)
         XCTAssertEqual(hostABI(), Self.hostABIVersion)
         let mediaABI = unsafeBitCast(
-            try rawSymbol("rdn_host_media_abi_version"),
-            to: (@convention(c) () -> UInt32).self)
+            try rawSymbol("rdn_host_media_abi_version"), to: (@convention(c) () -> UInt32).self)
         XCTAssertEqual(mediaABI(), Self.hostMediaABIVersion)
 
         let commit = unsafeBitCast(
@@ -182,21 +163,11 @@ final class HostBridgeContractTests: XCTestCase {
 
         // Full lifecycle surface must resolve; absence is a contract break.
         let surface = [
-            "rdn_host_set_config_root",
-            "rdn_host_create",
-            "rdn_host_start",
-            "rdn_host_stop",
-            "rdn_host_recover_network_path",
-            "rdn_host_begin_sleep",
-            "rdn_host_finish_sleep",
-            "rdn_host_resume_after_wake",
-            "rdn_host_command",
-            "rdn_host_set_permanent_password",
-            "rdn_host_copy_snapshot",
-            "rdn_host_free_bytes",
-            "rdn_host_destroy",
-            "rdn_host_media_set_capabilities",
-            "rdn_host_media_submit_access_unit",
+            "rdn_host_set_config_root", "rdn_host_create", "rdn_host_start", "rdn_host_stop",
+            "rdn_host_recover_network_path", "rdn_host_begin_sleep", "rdn_host_finish_sleep",
+            "rdn_host_resume_after_wake", "rdn_host_command", "rdn_host_set_permanent_password",
+            "rdn_host_copy_snapshot", "rdn_host_free_bytes", "rdn_host_destroy",
+            "rdn_host_media_set_capabilities", "rdn_host_media_submit_access_unit",
             "rdn_host_media_report_encoder_state",
         ]
         for name in surface {
@@ -213,8 +184,7 @@ final class HostBridgeContractTests: XCTestCase {
         }
         var error = [CChar](repeating: 0, count: 1024)
         var library: OpaquePointer?
-        path.withCString { shimLibrary in
-            library = rdn_shim_open(shimLibrary, &error, error.count)
+        path.withCString { shimLibrary in library = rdn_shim_open(shimLibrary, &error, error.count)
         }
         guard let shimLibrary = library else {
             XCTFail("shim failed to load the core library: \(String(cString: error))")
@@ -224,9 +194,7 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertEqual(rdn_shim_abi_version(shimLibrary), 18, "viewer ABI must expose v18")
         XCTAssertNotEqual(rdn_shim_host_available(shimLibrary), 0)
         XCTAssertEqual(rdn_shim_host_abi_version(shimLibrary), Self.hostABIVersion)
-        XCTAssertEqual(
-            rdn_shim_host_media_abi_version(shimLibrary),
-            Self.hostMediaABIVersion)
+        XCTAssertEqual(rdn_shim_host_media_abi_version(shimLibrary), Self.hostMediaABIVersion)
         let hostCommit = rdn_shim_host_upstream_commit(shimLibrary).map { String(cString: $0) }
         XCTAssertEqual(hostCommit, Self.expectedUpstreamCommit)
         XCTAssertEqual(rdn_shim_host_recover_network_path(shimLibrary, nil, 1), -1)
@@ -245,8 +213,10 @@ final class HostBridgeContractTests: XCTestCase {
     /// namespace validation runs at the top, before the switch.
     func testFullHostCoreLifecycle() throws {
         let environment = ProcessInfo.processInfo.environment
-        let liveServer = environment["RDN_HOST_LIVE_SERVER"]?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let liveKey = environment["RDN_HOST_LIVE_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let liveServer = environment["RDN_HOST_LIVE_SERVER"]?.trimmingCharacters(
+            in: .whitespacesAndNewlines)
+        let liveKey = environment["RDN_HOST_LIVE_KEY"]?.trimmingCharacters(
+            in: .whitespacesAndNewlines)
         guard (liveServer == nil) == (liveKey == nil) else {
             XCTFail("RDN_HOST_LIVE_SERVER and RDN_HOST_LIVE_KEY must be supplied together")
             return
@@ -265,10 +235,8 @@ final class HostBridgeContractTests: XCTestCase {
             free(persistenceFailureServer)
             free(explicitAudioInput)
         }
-        let root = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(
-                "Library/Preferences/FarPaneHostTestsRoot.FarPaneHostTests"
-            )
+        let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
+            "Library/Preferences/FarPaneHostTestsRoot.FarPaneHostTests")
         try? FileManager.default.removeItem(at: root)
         defer { try? FileManager.default.removeItem(at: root) }
         let setConfigRoot = unsafeBitCast(
@@ -284,12 +252,10 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertEqual(setConfigRoot("", "org"), -5)
         let hostCreate = unsafeBitCast(
             try rawSymbol("rdn_host_create"),
-            to: (@convention(c) (
-                UnsafeRawPointer?, UnsafeRawPointer?, UnsafeMutableRawPointer?
-            ) -> Int32).self)
+            to: (@convention(c) (UnsafeRawPointer?, UnsafeRawPointer?, UnsafeMutableRawPointer?) ->
+                Int32).self)
         let hostStart = unsafeBitCast(
-            try rawSymbol("rdn_host_start"),
-            to: (@convention(c) (OpaquePointer?) -> Int32).self)
+            try rawSymbol("rdn_host_start"), to: (@convention(c) (OpaquePointer?) -> Int32).self)
         let hostStop = unsafeBitCast(
             try rawSymbol("rdn_host_stop"),
             to: (@convention(c) (OpaquePointer?, UInt32) -> Int32).self)
@@ -315,11 +281,12 @@ final class HostBridgeContractTests: XCTestCase {
             ) -> Int32).self)
 
         var noHostSecret = Array("no-host-canary".utf8)
-        XCTAssertEqual(noHostSecret.withUnsafeMutableBufferPointer { buffer in
-            "pw-no-host".withCString { commandID in
-                setPermanentPassword(nil, commandID, buffer.baseAddress, buffer.count)
-            }
-        }, -1)
+        XCTAssertEqual(
+            noHostSecret.withUnsafeMutableBufferPointer { buffer in
+                "pw-no-host".withCString { commandID in
+                    setPermanentPassword(nil, commandID, buffer.baseAddress, buffer.count)
+                }
+            }, -1)
         XCTAssertEqual(noHostSecret, [UInt8](repeating: 0, count: "no-host-canary".utf8.count))
         let copySnapshot = unsafeBitCast(
             try rawSymbol("rdn_host_copy_snapshot"),
@@ -331,8 +298,7 @@ final class HostBridgeContractTests: XCTestCase {
             try rawSymbol("rdn_host_free_bytes"),
             to: (@convention(c) (UnsafeRawPointer?) -> Void).self)
         let hostDestroy = unsafeBitCast(
-            try rawSymbol("rdn_host_destroy"),
-            to: (@convention(c) (OpaquePointer?) -> Void).self)
+            try rawSymbol("rdn_host_destroy"), to: (@convention(c) (OpaquePointer?) -> Void).self)
         let mediaSetCapabilities = unsafeBitCast(
             try rawSymbol("rdn_host_media_set_capabilities"),
             to: (@convention(c) (OpaquePointer?, UnsafeRawPointer?) -> Int32).self)
@@ -346,8 +312,7 @@ final class HostBridgeContractTests: XCTestCase {
                 withUnsafePointer(to: &callbacks) { callbacksPtr in
                     withUnsafeMutablePointer(to: &out) { outPtr in
                         hostCreate(
-                            UnsafeRawPointer(optionsPtr),
-                            UnsafeRawPointer(callbacksPtr),
+                            UnsafeRawPointer(optionsPtr), UnsafeRawPointer(callbacksPtr),
                             UnsafeMutableRawPointer(outPtr))
                     }
                 }
@@ -375,24 +340,15 @@ final class HostBridgeContractTests: XCTestCase {
 
         // create must fail closed before the config-root switch.
         var options = HostCreateOptionsRaw(
-            abiVersion: Self.hostABIVersion,
-            rendezvousServer: UnsafePointer(rendezvousServer),
+            abiVersion: Self.hostABIVersion, rendezvousServer: UnsafePointer(rendezvousServer),
             relayServer: UnsafePointer(relayServer),
-            serverPublicKey: UnsafePointer(serverPublicKey),
-            enableClipboardRead: false,
-            enableClipboardWrite: false,
-            enableClipboardRichTextRead: false,
-            enableClipboardRichTextWrite: false,
-            enableClipboardImageRead: false,
-            enableClipboardImageWrite: false,
-            enableAudio: false,
-            audioInputDevice: nil,
-            enableFileTransfer: false,
-            fileTransferReceiveRoot: nil)
+            serverPublicKey: UnsafePointer(serverPublicKey), enableClipboardRead: false,
+            enableClipboardWrite: false, enableClipboardRichTextRead: false,
+            enableClipboardRichTextWrite: false, enableClipboardImageRead: false,
+            enableClipboardImageWrite: false, enableAudio: false, audioInputDevice: nil,
+            enableFileTransfer: false, fileTransferReceiveRoot: nil)
         var callbacks = HostCallbacksRaw(
-            abiVersion: Self.hostABIVersion,
-            onEvent: nil,
-            context: nil)
+            abiVersion: Self.hostABIVersion, onEvent: nil, context: nil)
         var earlyHost: OpaquePointer?
         XCTAssertEqual(create(&earlyHost), -3)
 
@@ -408,17 +364,13 @@ final class HostBridgeContractTests: XCTestCase {
         options.serverPublicKey = validPublicKey
         options.audioInputDevice = UnsafePointer(explicitAudioInput)
         XCTAssertEqual(
-            create(&earlyHost),
-            -5,
-            "an explicit input must not be accepted while audio is disabled"
+            create(&earlyHost), -5, "an explicit input must not be accepted while audio is disabled"
         )
         options.audioInputDevice = nil
 
         HostEventRecorder.events.removeAll()
         callbacks = HostCallbacksRaw(
-            abiVersion: Self.hostABIVersion,
-            onEvent: HostEventRecorder.callback,
-            context: nil)
+            abiVersion: Self.hostABIVersion, onEvent: HostEventRecorder.callback, context: nil)
         var host: OpaquePointer?
         XCTAssertEqual(create(&host), 0)
         XCTAssertNotNil(host)
@@ -434,18 +386,15 @@ final class HostBridgeContractTests: XCTestCase {
         // instance may perform the normal first-start creation path.
         let configDirectory = root
         try FileManager.default.createDirectory(
-            at: configDirectory,
-            withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700]
-        )
+            at: configDirectory, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
         let identityFile = configDirectory.appendingPathComponent("FarPaneHostTests.toml")
         let optionsFile = configDirectory.appendingPathComponent("FarPaneHostTests2.toml")
         let malformedIdentity = Data("not-toml = [".utf8)
-        XCTAssertTrue(FileManager.default.createFile(
-            atPath: identityFile.path,
-            contents: malformedIdentity,
-            attributes: [.posixPermissions: 0o600]
-        ))
+        XCTAssertTrue(
+            FileManager.default.createFile(
+                atPath: identityFile.path, contents: malformedIdentity,
+                attributes: [.posixPermissions: 0o600]))
         XCTAssertEqual(hostStart(host), -20)
         XCTAssertEqual(try Data(contentsOf: identityFile), malformedIdentity)
         XCTAssertFalse(FileManager.default.fileExists(atPath: optionsFile.path))
@@ -456,32 +405,25 @@ final class HostBridgeContractTests: XCTestCase {
 
         XCTAssertEqual(hostStart(host), 0)
 
-        let snapshotDict = liveRegistration
-            ? try waitUntilRegistered(host)
-            : try copyDictionary(host)
+        let snapshotDict =
+            liveRegistration ? try waitUntilRegistered(host) : try copyDictionary(host)
         XCTAssertEqual(snapshotDict["schemaVersion"] as? Int, 8)
         XCTAssertEqual(snapshotDict["authenticatedConnectionCount"] as? UInt64, 0)
         switch snapshotDict["sessionAvailability"] as? String {
-        case "available":
-            XCTAssertTrue(snapshotDict["sessionUnavailableReason"] is NSNull)
+        case "available": XCTAssertTrue(snapshotDict["sessionUnavailableReason"] is NSNull)
         case "limited":
             XCTAssertEqual(
-                snapshotDict["sessionUnavailableReason"] as? String,
-                "sessionUnavailable"
-            )
-        default:
-            XCTFail("snapshot must contain an exact session availability tuple")
+                snapshotDict["sessionUnavailableReason"] as? String, "sessionUnavailable")
+        default: XCTFail("snapshot must contain an exact session availability tuple")
         }
         XCTAssertEqual(snapshotDict["recoveryEpoch"] as? UInt64, 0)
         XCTAssertEqual(snapshotDict["recoveryStatus"] as? String, "running")
         XCTAssertTrue(snapshotDict["pendingApproval"] is NSNull)
         XCTAssertTrue(snapshotDict["activeSession"] is NSNull)
         XCTAssertEqual(
-            snapshotDict["hostState"] as? String,
-            liveRegistration ? "ready" : "starting")
+            snapshotDict["hostState"] as? String, liveRegistration ? "ready" : "starting")
         XCTAssertEqual(
-            snapshotDict["registrationStatus"] as? String,
-            liveRegistration ? "ready" : "pending")
+            snapshotDict["registrationStatus"] as? String, liveRegistration ? "ready" : "pending")
         let localId = snapshotDict["localId"] as? String ?? ""
         XCTAssertFalse(localId.isEmpty)
         let hostInstanceID = snapshotDict["hostInstanceId"] as? String ?? ""
@@ -504,31 +446,30 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertEqual(networkRestartSnapshot["recoveryStatus"] as? String, "running")
         XCTAssertTrue(
             ["pending", "ready"].contains(
-                networkRestartSnapshot["registrationStatus"] as? String ?? "")
-        )
+                networkRestartSnapshot["registrationStatus"] as? String ?? ""))
         XCTAssertTrue(
-            ["starting", "ready"].contains(
-                networkRestartSnapshot["hostState"] as? String ?? "")
-        )
+            ["starting", "ready"].contains(networkRestartSnapshot["hostState"] as? String ?? ""))
         let noActiveSession = """
             {"commandId":"session-none","name":"disconnectSession","connectionId":"\(hostInstanceID):1"}
             """
-        XCTAssertEqual(noActiveSession.utf8CString.withUnsafeBytes {
-            hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
-        }, -24)
+        XCTAssertEqual(
+            noActiveSession.utf8CString.withUnsafeBytes {
+                hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
+            }, -24)
         let malformedSessionCommand = """
             {"commandId":"session-invalid","name":"disableInputForActiveSession","connectionId":"\(hostInstanceID):1","ignored":true}
             """
-        XCTAssertEqual(malformedSessionCommand.utf8CString.withUnsafeBytes {
-            hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
-        }, -5)
+        XCTAssertEqual(
+            malformedSessionCommand.utf8CString.withUnsafeBytes {
+                hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
+            }, -5)
         if let redacted = snapshotDict["temporaryPasswordPresentation"] as? [String: Any] {
             XCTAssertEqual(redacted["policy"] as? String, "redacted")
         } else {
             XCTFail("snapshot must carry temporaryPasswordPresentation")
         }
         if let passwordPolicy = snapshotDict["passwordPolicy"] as? [String: Any],
-           let strengthPolicy = passwordPolicy["strengthPolicy"] as? [String: Any]
+            let strengthPolicy = passwordPolicy["strengthPolicy"] as? [String: Any]
         {
             XCTAssertEqual(passwordPolicy["localPasswordSet"] as? Bool, false)
             XCTAssertEqual(passwordPolicy["effectivePasswordSet"] as? Bool, false)
@@ -546,13 +487,13 @@ final class HostBridgeContractTests: XCTestCase {
             let command = """
                 {"commandId":"\(commandID)","name":"revealTemporaryPassword"}
                 """
-            XCTAssertEqual(command.utf8CString.withUnsafeBytes {
-                hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
-            }, 0)
+            XCTAssertEqual(
+                command.utf8CString.withUnsafeBytes {
+                    hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
+                }, 0)
             let revealedSnapshot = try copyDictionary(host)
             let presentation = try XCTUnwrap(
-                revealedSnapshot["temporaryPasswordPresentation"] as? [String: Any]
-            )
+                revealedSnapshot["temporaryPasswordPresentation"] as? [String: Any])
             XCTAssertEqual(presentation["policy"] as? String, "revealed")
             return try XCTUnwrap(presentation["value"] as? String)
         }
@@ -592,13 +533,9 @@ final class HostBridgeContractTests: XCTestCase {
             XCTAssertEqual(resumedSnapshot["registrationStatus"] as? String, "ready")
         }
         XCTAssertEqual(
-            try revealTemporaryPassword("sleep-password-after"),
-            temporaryPasswordBeforeSleep
-        )
+            try revealTemporaryPassword("sleep-password-after"), temporaryPasswordBeforeSleep)
 
-        func assertSetPassword(
-            _ bytes: [UInt8], expectedCode: Int32, commandID: String
-        ) {
+        func assertSetPassword(_ bytes: [UInt8], expectedCode: Int32, commandID: String) {
             var mutableBytes = bytes
             let result = commandID.withCString { commandID in
                 mutableBytes.withUnsafeMutableBufferPointer { buffer in
@@ -616,16 +553,14 @@ final class HostBridgeContractTests: XCTestCase {
         assertSetPassword(Array(" leading-space".utf8), expectedCode: -18, commandID: "pw-space")
         assertSetPassword(Array("valid\npassword".utf8), expectedCode: -17, commandID: "pw-control")
         assertSetPassword(
-            [UInt8](repeating: 0x61, count: 513),
-            expectedCode: -16,
-            commandID: "pw-long")
+            [UInt8](repeating: 0x61, count: 513), expectedCode: -16, commandID: "pw-long")
         var invalidCommandSecret = Array("invalid-command-canary".utf8)
-        XCTAssertEqual(invalidCommandSecret.withUnsafeMutableBufferPointer { buffer in
-            setPermanentPassword(host, nil, buffer.baseAddress, buffer.count)
-        }, -1)
         XCTAssertEqual(
-            invalidCommandSecret,
-            [UInt8](repeating: 0, count: "invalid-command-canary".utf8.count))
+            invalidCommandSecret.withUnsafeMutableBufferPointer { buffer in
+                setPermanentPassword(host, nil, buffer.baseAddress, buffer.count)
+            }, -1)
+        XCTAssertEqual(
+            invalidCommandSecret, [UInt8](repeating: 0, count: "invalid-command-canary".utf8.count))
 
         let canaryPassword = "H3-canary-9f4a"
         assertSetPassword(Array(canaryPassword.utf8), expectedCode: 0, commandID: "pw-set")
@@ -634,16 +569,18 @@ final class HostBridgeContractTests: XCTestCase {
             passwordSetSnapshot["passwordPolicy"] as? [String: Any])
         XCTAssertEqual(passwordSetPolicy["localPasswordSet"] as? Bool, true)
         XCTAssertEqual(passwordSetPolicy["effectivePasswordSet"] as? Bool, true)
-        let serializedSnapshot = String(
-            data: try JSONSerialization.data(withJSONObject: passwordSetSnapshot),
-            encoding: .utf8) ?? ""
+        let serializedSnapshot =
+            String(
+                data: try JSONSerialization.data(withJSONObject: passwordSetSnapshot),
+                encoding: .utf8) ?? ""
         XCTAssertFalse(serializedSnapshot.contains(canaryPassword))
         XCTAssertFalse(HostEventRecorder.events.joined().contains(canaryPassword))
 
         let clearPermanentPassword = #"{"commandId":"pw-clear","name":"clearPermanentPassword"}"#
-        XCTAssertEqual(clearPermanentPassword.utf8CString.withUnsafeBytes {
-            hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
-        }, 0)
+        XCTAssertEqual(
+            clearPermanentPassword.utf8CString.withUnsafeBytes {
+                hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
+            }, 0)
         let passwordClearedSnapshot = try copyDictionary(host)
         let passwordClearedPolicy = try XCTUnwrap(
             passwordClearedSnapshot["passwordPolicy"] as? [String: Any])
@@ -655,54 +592,44 @@ final class HostBridgeContractTests: XCTestCase {
         // subscriber route; they must never bypass Rust service negotiation.
         hostInstanceID.withCString { instanceID in
             var capabilities = HostEncoderCapabilitiesRaw(
-                abiVersion: Self.hostMediaABIVersion,
-                hostInstanceID: instanceID,
-                h264Hardware: 1,
-                h265Hardware: 0,
-                maxWidth: 4096,
-                maxHeight: 4096,
-                maxFPS: 60
-            )
+                abiVersion: Self.hostMediaABIVersion, hostInstanceID: instanceID, h264Hardware: 1,
+                h265Hardware: 0, maxWidth: 4096, maxHeight: 4096, maxFPS: 60)
             capabilities.abiVersion += 1
-            XCTAssertEqual(withUnsafePointer(to: &capabilities) {
-                mediaSetCapabilities(host, UnsafeRawPointer($0))
-            }, -2)
+            XCTAssertEqual(
+                withUnsafePointer(to: &capabilities) {
+                    mediaSetCapabilities(host, UnsafeRawPointer($0))
+                }, -2)
             capabilities.abiVersion = Self.hostMediaABIVersion
-            XCTAssertEqual(withUnsafePointer(to: &capabilities) {
-                mediaSetCapabilities(host, UnsafeRawPointer($0))
-            }, 0)
+            XCTAssertEqual(
+                withUnsafePointer(to: &capabilities) {
+                    mediaSetCapabilities(host, UnsafeRawPointer($0))
+                }, 0)
 
             let packet: [UInt8] = [0, 0, 0, 1, 0x67]
             packet.withUnsafeBufferPointer { packetBuffer in
                 var accessUnit = HostEncodedAccessUnitRaw(
-                    abiVersion: Self.hostMediaABIVersion,
-                    hostInstanceID: instanceID,
-                    connectionEpoch: 1,
-                    codecEpoch: 1,
-                    displayID: 0,
-                    displayRevision: 1,
-                    codec: 1,
-                    framing: 1,
-                    flags: 3,
-                    presentationTimeUS: 1,
-                    data: packetBuffer.baseAddress,
-                    length: packetBuffer.count
-                )
-                XCTAssertEqual(withUnsafePointer(to: &accessUnit) {
-                    mediaSubmitAccessUnit(host, UnsafeRawPointer($0))
-                }, -3)
+                    abiVersion: Self.hostMediaABIVersion, hostInstanceID: instanceID,
+                    connectionEpoch: 1, codecEpoch: 1, displayID: 0, displayRevision: 1, codec: 1,
+                    framing: 1, flags: 3, presentationTimeUS: 1, data: packetBuffer.baseAddress,
+                    length: packetBuffer.count)
+                XCTAssertEqual(
+                    withUnsafePointer(to: &accessUnit) {
+                        mediaSubmitAccessUnit(host, UnsafeRawPointer($0))
+                    }, -3)
             }
         }
 
         // Regenerate + one-shot reveal (§9.2).
         let regenerate = #"{"commandId":"c1","name":"regenerateTemporaryPassword"}"#
-        XCTAssertEqual(regenerate.utf8CString.withUnsafeBytes {
-            hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
-        }, 0)
+        XCTAssertEqual(
+            regenerate.utf8CString.withUnsafeBytes {
+                hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
+            }, 0)
         let reveal = #"{"commandId":"c2","name":"revealTemporaryPassword"}"#
-        XCTAssertEqual(reveal.utf8CString.withUnsafeBytes {
-            hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
-        }, 0)
+        XCTAssertEqual(
+            reveal.utf8CString.withUnsafeBytes {
+                hostCommand(host, $0.bindMemory(to: UInt8.self).baseAddress, $0.count - 1)
+            }, 0)
         var revealed = HostOwnedBytesRaw()
         XCTAssertEqual(copy(host, &revealed), 0)
         let revealedDict = try snapshotJSON(revealed, freeBytes: freeBytes)
@@ -718,8 +645,8 @@ final class HostBridgeContractTests: XCTestCase {
         var followUp = HostOwnedBytesRaw()
         XCTAssertEqual(copy(host, &followUp), 0)
         let followUpDict = try snapshotJSON(followUp, freeBytes: freeBytes)
-        if let followUpPresentation =
-            followUpDict["temporaryPasswordPresentation"] as? [String: Any]
+        if let followUpPresentation = followUpDict["temporaryPasswordPresentation"]
+            as? [String: Any]
         {
             XCTAssertEqual(followUpPresentation["policy"] as? String, "redacted")
         } else {
@@ -734,32 +661,24 @@ final class HostBridgeContractTests: XCTestCase {
         // switch, so this client deliberately reuses that isolated namespace.
         let corePath = try XCTUnwrap(environment["RDN_CORE_LIBRARY"])
         let swiftClient = try HostControlClient(
-            libraryURL: URL(fileURLWithPath: corePath),
-            onEvent: { _ in }
-        )
-        try swiftClient.start(configuration: HostServerConfiguration(
-            rendezvousServer: liveServer ?? "127.0.0.1:21116",
-            serverPublicKey: liveKey ?? syntheticPublicKey
-        ))
+            libraryURL: URL(fileURLWithPath: corePath), onEvent: { _ in })
+        try swiftClient.start(
+            configuration: HostServerConfiguration(
+                rendezvousServer: liveServer ?? "127.0.0.1:21116",
+                serverPublicKey: liveKey ?? syntheticPublicKey))
         let swiftNetworkBaseline = try swiftClient.copySnapshot()
         XCTAssertThrowsError(try swiftClient.recoverNetworkPath(generation: 0)) { error in
             XCTAssertEqual(
-                (error as? HostControlError)?.networkPathRecoveryFailure,
-                .staleGeneration
-            )
+                (error as? HostControlError)?.networkPathRecoveryFailure, .staleGeneration)
         }
         try swiftClient.recoverNetworkPath(generation: 1)
         XCTAssertThrowsError(try swiftClient.recoverNetworkPath(generation: 1)) { error in
             XCTAssertEqual(
-                (error as? HostControlError)?.networkPathRecoveryFailure,
-                .staleGeneration
-            )
+                (error as? HostControlError)?.networkPathRecoveryFailure, .staleGeneration)
         }
         XCTAssertThrowsError(try swiftClient.recoverNetworkPath(generation: 3)) { error in
             XCTAssertEqual(
-                (error as? HostControlError)?.networkPathRecoveryFailure,
-                .staleGeneration
-            )
+                (error as? HostControlError)?.networkPathRecoveryFailure, .staleGeneration)
         }
         try swiftClient.recoverNetworkPath(generation: 2)
         var swiftSnapshot = try swiftClient.copySnapshot()
@@ -771,10 +690,7 @@ final class HostBridgeContractTests: XCTestCase {
             guard case HostControlError.sleepRecovery(.beginSleep, _) = error else {
                 return XCTFail("unexpected recovery error: \(error)")
             }
-            XCTAssertEqual(
-                (error as? HostControlError)?.sleepRecoveryFailure,
-                .invalidEpoch
-            )
+            XCTAssertEqual((error as? HostControlError)?.sleepRecoveryFailure, .invalidEpoch)
         }
         try swiftClient.beginSleep(epoch: 1)
         swiftSnapshot = try swiftClient.copySnapshot()
@@ -782,10 +698,7 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertEqual(swiftSnapshot.recoveryStatus, .suspending)
         XCTAssertEqual(swiftSnapshot.registrationStatus, "suspending")
         XCTAssertThrowsError(try swiftClient.finishSleep(epoch: 2)) { error in
-            XCTAssertEqual(
-                (error as? HostControlError)?.sleepRecoveryFailure,
-                .staleEpoch
-            )
+            XCTAssertEqual((error as? HostControlError)?.sleepRecoveryFailure, .staleEpoch)
         }
         try swiftClient.finishSleep(epoch: 1)
         swiftSnapshot = try swiftClient.copySnapshot()
@@ -793,10 +706,7 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertEqual(swiftSnapshot.recoveryStatus, .suspended)
         XCTAssertEqual(swiftSnapshot.registrationStatus, "suspended")
         XCTAssertThrowsError(try swiftClient.resumeAfterWake(epoch: 2)) { error in
-            XCTAssertEqual(
-                (error as? HostControlError)?.sleepRecoveryFailure,
-                .staleEpoch
-            )
+            XCTAssertEqual((error as? HostControlError)?.sleepRecoveryFailure, .staleEpoch)
         }
         try swiftClient.resumeAfterWake(epoch: 1)
         swiftSnapshot = try swiftClient.copySnapshot()
@@ -814,9 +724,9 @@ final class HostBridgeContractTests: XCTestCase {
         var revivedHost: OpaquePointer?
         XCTAssertEqual(create(&revivedHost), 0)
         XCTAssertEqual(hostStart(revivedHost), 0)
-        let revivedSnapshot = liveRegistration
-            ? try waitUntilRegistered(revivedHost)
-            : try copyDictionary(revivedHost)
+        let revivedSnapshot =
+            liveRegistration
+            ? try waitUntilRegistered(revivedHost) : try copyDictionary(revivedHost)
         XCTAssertEqual(revivedSnapshot["localId"] as? String, localId)
         if liveRegistration {
             XCTAssertEqual(revivedSnapshot["registrationStatus"] as? String, "ready")
@@ -829,62 +739,39 @@ final class HostBridgeContractTests: XCTestCase {
         let identityBeforePasswordFailedWrite = try Data(contentsOf: identityFile)
         let optionsBeforePasswordFailedWrite = try Data(contentsOf: optionsFile)
         let entriesBeforePasswordFailedWrite = try Set(
-            FileManager.default.contentsOfDirectory(atPath: configDirectory.path)
-        )
+            FileManager.default.contentsOfDirectory(atPath: configDirectory.path))
         try FileManager.default.setAttributes(
-            [.posixPermissions: 0o500],
-            ofItemAtPath: configDirectory.path
-        )
+            [.posixPermissions: 0o500], ofItemAtPath: configDirectory.path)
         defer {
             try? FileManager.default.setAttributes(
-                [.posixPermissions: 0o700],
-                ofItemAtPath: configDirectory.path
-            )
+                [.posixPermissions: 0o700], ofItemAtPath: configDirectory.path)
         }
         let persistenceCanary = "H4-persistence-canary-71"
         var persistenceSecret = Array(persistenceCanary.utf8)
-        XCTAssertEqual(persistenceSecret.withUnsafeMutableBufferPointer { buffer in
-            "pw-persistence-failure".withCString { commandID in
-                setPermanentPassword(
-                    revivedHost,
-                    commandID,
-                    buffer.baseAddress,
-                    buffer.count
-                )
-            }
-        }, -20)
         XCTAssertEqual(
-            persistenceSecret,
-            [UInt8](repeating: 0, count: persistenceCanary.utf8.count)
-        )
+            persistenceSecret.withUnsafeMutableBufferPointer { buffer in
+                "pw-persistence-failure".withCString { commandID in
+                    setPermanentPassword(revivedHost, commandID, buffer.baseAddress, buffer.count)
+                }
+            }, -20)
+        XCTAssertEqual(
+            persistenceSecret, [UInt8](repeating: 0, count: persistenceCanary.utf8.count))
         let passwordPersistenceFailureSnapshot = try copyDictionary(revivedHost)
         XCTAssertEqual(passwordPersistenceFailureSnapshot["hostState"] as? String, "error")
         XCTAssertEqual(
-            passwordPersistenceFailureSnapshot["registrationStatus"] as? String,
-            "degraded"
-        )
+            passwordPersistenceFailureSnapshot["registrationStatus"] as? String, "degraded")
         XCTAssertEqual(
             passwordPersistenceFailureSnapshot["lastError"] as? String,
-            "configuration.passwordPersistenceFailed"
-        )
-        XCTAssertEqual(
-            try Data(contentsOf: identityFile),
-            identityBeforePasswordFailedWrite
-        )
-        XCTAssertEqual(
-            try Data(contentsOf: optionsFile),
-            optionsBeforePasswordFailedWrite
-        )
+            "configuration.passwordPersistenceFailed")
+        XCTAssertEqual(try Data(contentsOf: identityFile), identityBeforePasswordFailedWrite)
+        XCTAssertEqual(try Data(contentsOf: optionsFile), optionsBeforePasswordFailedWrite)
         XCTAssertEqual(
             try Set(FileManager.default.contentsOfDirectory(atPath: configDirectory.path)),
-            entriesBeforePasswordFailedWrite
-        )
+            entriesBeforePasswordFailedWrite)
         XCTAssertFalse(HostEventRecorder.events.joined().contains(persistenceCanary))
         hostDestroy(revivedHost)
         try FileManager.default.setAttributes(
-            [.posixPermissions: 0o700],
-            ofItemAtPath: configDirectory.path
-        )
+            [.posixPermissions: 0o700], ofItemAtPath: configDirectory.path)
 
         // A synchronous upstream setter can update Config2 in memory even
         // when confy cannot create its replacement file. The Host start must
@@ -892,18 +779,13 @@ final class HostBridgeContractTests: XCTestCase {
         // preserve both documents before creating its runtime.
         let identityBeforeFailedWrite = try Data(contentsOf: identityFile)
         let optionsBeforeFailedWrite = try Data(contentsOf: optionsFile)
-        let entriesBeforeFailedWrite = try Set(FileManager.default.contentsOfDirectory(
-            atPath: configDirectory.path
-        ))
+        let entriesBeforeFailedWrite = try Set(
+            FileManager.default.contentsOfDirectory(atPath: configDirectory.path))
         try FileManager.default.setAttributes(
-            [.posixPermissions: 0o500],
-            ofItemAtPath: configDirectory.path
-        )
+            [.posixPermissions: 0o500], ofItemAtPath: configDirectory.path)
         defer {
             try? FileManager.default.setAttributes(
-                [.posixPermissions: 0o700],
-                ofItemAtPath: configDirectory.path
-            )
+                [.posixPermissions: 0o700], ofItemAtPath: configDirectory.path)
         }
         options.rendezvousServer = UnsafePointer(persistenceFailureServer)
         var persistenceFailedHost: OpaquePointer?
@@ -911,25 +793,18 @@ final class HostBridgeContractTests: XCTestCase {
         XCTAssertEqual(hostStart(persistenceFailedHost), -20)
         let persistenceFailureSnapshot = try copyDictionary(persistenceFailedHost)
         XCTAssertEqual(persistenceFailureSnapshot["hostState"] as? String, "error")
-        XCTAssertEqual(
-            persistenceFailureSnapshot["registrationStatus"] as? String,
-            "degraded"
-        )
+        XCTAssertEqual(persistenceFailureSnapshot["registrationStatus"] as? String, "degraded")
         XCTAssertEqual(
             persistenceFailureSnapshot["lastError"] as? String,
-            "configuration.storagePersistenceFailed"
-        )
+            "configuration.storagePersistenceFailed")
         XCTAssertEqual(try Data(contentsOf: identityFile), identityBeforeFailedWrite)
         XCTAssertEqual(try Data(contentsOf: optionsFile), optionsBeforeFailedWrite)
         XCTAssertEqual(
             try Set(FileManager.default.contentsOfDirectory(atPath: configDirectory.path)),
-            entriesBeforeFailedWrite
-        )
+            entriesBeforeFailedWrite)
         hostDestroy(persistenceFailedHost)
         try FileManager.default.setAttributes(
-            [.posixPermissions: 0o700],
-            ofItemAtPath: configDirectory.path
-        )
+            [.posixPermissions: 0o700], ofItemAtPath: configDirectory.path)
 
         XCTAssertFalse(HostEventRecorder.events.isEmpty)
         for encodedEvent in HostEventRecorder.events {
@@ -941,16 +816,11 @@ final class HostBridgeContractTests: XCTestCase {
 
     }
 
-    private func snapshotJSON(
-        _ bytes: HostOwnedBytesRaw,
-        freeBytes: (UnsafeRawPointer?) -> Void
-    ) throws -> [String: Any] {
+    private func snapshotJSON(_ bytes: HostOwnedBytesRaw, freeBytes: (UnsafeRawPointer?) -> Void)
+        throws -> [String: Any]
+    {
         var owned = bytes
-        defer {
-            withUnsafePointer(to: &owned) { ptr in
-                freeBytes(UnsafeRawPointer(ptr))
-            }
-        }
+        defer { withUnsafePointer(to: &owned) { ptr in freeBytes(UnsafeRawPointer(ptr)) } }
         guard let data = bytes.data else { return [:] }
         let payload = Data(bytes: data, count: bytes.length)
         let object = try JSONSerialization.jsonObject(with: payload)

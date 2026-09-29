@@ -15,8 +15,7 @@ public final class HostAgentSnapshotPollingGate: @unchecked Sendable {
 
     public init() {}
 
-    @discardableResult
-    public func start() -> Bool {
+    @discardableResult public func start() -> Bool {
         condition.lock()
         defer { condition.unlock() }
         guard case .idle = state else { return false }
@@ -24,8 +23,7 @@ public final class HostAgentSnapshotPollingGate: @unchecked Sendable {
         return true
     }
 
-    @discardableResult
-    public func beginTick() -> Bool {
+    @discardableResult public func beginTick() -> Bool {
         condition.lock()
         defer { condition.unlock() }
         guard case .running = state, !tickInFlight else { return false }
@@ -48,9 +46,7 @@ public final class HostAgentSnapshotPollingGate: @unchecked Sendable {
     public func cancelAndWait() {
         condition.lock()
         state = .cancelled
-        while tickInFlight {
-            condition.wait()
-        }
+        while tickInFlight { condition.wait() }
         condition.unlock()
     }
 }

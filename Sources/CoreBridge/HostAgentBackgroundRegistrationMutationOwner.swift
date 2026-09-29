@@ -1,18 +1,12 @@
 import Foundation
 import ServiceManagement
 
-package enum HostAgentBackgroundRegistrationMutationIntent:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundRegistrationMutationIntent: Equatable, Sendable {
     case registerBackgroundAgent
     case unregisterBackgroundAgent
 }
 
-package enum HostAgentBackgroundRegistrationMutationFailure:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundRegistrationMutationFailure: Equatable, Sendable {
     case invalidLaunchAgent
     case invalidApplication
     case invalidCodeSignature
@@ -23,10 +17,7 @@ package enum HostAgentBackgroundRegistrationMutationFailure:
     case generationExhausted
 }
 
-package enum HostAgentBackgroundRegistrationMutationPhase:
-    Equatable,
-    Sendable
-{
+package enum HostAgentBackgroundRegistrationMutationPhase: Equatable, Sendable {
     case idle
     case registering
     case unregistering
@@ -35,21 +26,16 @@ package enum HostAgentBackgroundRegistrationMutationPhase:
     case unregistered
     case failed(
         intent: HostAgentBackgroundRegistrationMutationIntent,
-        failure: HostAgentBackgroundRegistrationMutationFailure
-    )
+        failure: HostAgentBackgroundRegistrationMutationFailure)
 }
 
-package struct HostAgentBackgroundRegistrationMutationView:
-    Equatable,
-    Sendable
-{
+package struct HostAgentBackgroundRegistrationMutationView: Equatable, Sendable {
     package let generation: UInt64
     package let phase: HostAgentBackgroundRegistrationMutationPhase
     package let registration: HostAgentBackgroundRegistrationStatus?
 
     package init(
-        generation: UInt64,
-        phase: HostAgentBackgroundRegistrationMutationPhase,
+        generation: UInt64, phase: HostAgentBackgroundRegistrationMutationPhase,
         registration: HostAgentBackgroundRegistrationStatus?
     ) {
         self.generation = generation
@@ -63,16 +49,12 @@ package struct HostAgentBackgroundRegistrationMutationView:
 /// Registration re-runs the fixed signed-asset identity gate immediately
 /// before mutation. A mutation call returning is never considered readiness;
 /// the service's post-operation status remains authoritative.
-package final class HostAgentBackgroundRegistrationMutationOwner:
-    @unchecked Sendable
-{
-    package typealias Observer = @Sendable
-        (HostAgentBackgroundRegistrationMutationView) -> Void
-    package typealias IdentityAssessment = @Sendable ()
-        -> HostAgentRegistrationIdentityStatus
+package final class HostAgentBackgroundRegistrationMutationOwner: @unchecked Sendable {
+    package typealias Observer = @Sendable (HostAgentBackgroundRegistrationMutationView) -> Void
+    package typealias IdentityAssessment = @Sendable () -> HostAgentRegistrationIdentityStatus
     package typealias Mutation = @Sendable () throws -> Void
-    package typealias RegistrationObservation = @Sendable ()
-        -> HostAgentBackgroundRegistrationStatus
+    package typealias RegistrationObservation =
+        @Sendable () -> HostAgentBackgroundRegistrationStatus
     package typealias ObservationRetryDelay = @Sendable () -> Void
 
     private let stateLock = NSLock()
@@ -86,49 +68,34 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
     private let observer: Observer
     private var mutationInFlight = false
     private var view = HostAgentBackgroundRegistrationMutationView(
-        generation: 0,
-        phase: .idle,
-        registration: nil
-    )
+        generation: 0, phase: .idle, registration: nil)
 
-    package static func makeProduct(
-        observer: @escaping Observer = { _ in }
-    ) -> HostAgentBackgroundRegistrationMutationOwner {
+    package static func makeProduct(observer: @escaping Observer = { _ in })
+        -> HostAgentBackgroundRegistrationMutationOwner
+    {
         HostAgentBackgroundRegistrationMutationOwner(
-            assessIdentity: {
-                HostAgentRegistrationIdentityGate.assessMainBundle()
-            },
+            assessIdentity: { HostAgentRegistrationIdentityGate.assessMainBundle() },
             register: {
                 let service = SMAppService.agent(
-                    plistName: HostAgentBackgroundServiceObserver.plistName
-                )
+                    plistName: HostAgentBackgroundServiceObserver.plistName)
                 try service.register()
             },
             unregister: {
                 let service = SMAppService.agent(
-                    plistName: HostAgentBackgroundServiceObserver.plistName
-                )
+                    plistName: HostAgentBackgroundServiceObserver.plistName)
                 try service.unregister()
             },
             observeRegistration: {
                 let service = SMAppService.agent(
-                    plistName: HostAgentBackgroundServiceObserver.plistName
-                )
+                    plistName: HostAgentBackgroundServiceObserver.plistName)
                 return HostAgentSMAppServiceStatusAdapter.map(service.status)
-            },
-            unregistrationObservationRetryLimit: 40,
-            observationRetryDelay: {
-                Thread.sleep(forTimeInterval: 0.05)
-            },
-            observer: observer
-        )
+            }, unregistrationObservationRetryLimit: 40,
+            observationRetryDelay: { Thread.sleep(forTimeInterval: 0.05) }, observer: observer)
     }
 
     package init(
-        assessIdentity: @escaping IdentityAssessment,
-        register: @escaping Mutation,
-        unregister: @escaping Mutation,
-        observeRegistration: @escaping RegistrationObservation,
+        assessIdentity: @escaping IdentityAssessment, register: @escaping Mutation,
+        unregister: @escaping Mutation, observeRegistration: @escaping RegistrationObservation,
         unregistrationObservationRetryLimit: Int = 0,
         observationRetryDelay: @escaping ObservationRetryDelay = {},
         observer: @escaping Observer = { _ in }
@@ -137,10 +104,7 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
         registerService = register
         unregisterService = unregister
         self.observeRegistration = observeRegistration
-        self.unregistrationObservationRetryLimit = max(
-            0,
-            unregistrationObservationRetryLimit
-        )
+        self.unregistrationObservationRetryLimit = max(0, unregistrationObservationRetryLimit)
         self.observationRetryDelay = observationRetryDelay
         self.observer = observer
     }
@@ -151,23 +115,17 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
         return view
     }
 
-    @discardableResult
-    package func apply(
-        _ intent: HostAgentBackgroundRegistrationMutationIntent
-    ) -> Bool {
+    @discardableResult package func apply(_ intent: HostAgentBackgroundRegistrationMutationIntent)
+        -> Bool
+    {
         guard begin(intent) else { return false }
 
         switch intent {
         case .registerBackgroundAgent:
-            if let failure = registrationPreflightFailure(
-                assessIdentity()
-            ) {
+            if let failure = registrationPreflightFailure(assessIdentity()) {
                 return finish(
-                    intent: intent,
-                    phase: .failed(intent: intent, failure: failure),
-                    registration: nil,
-                    succeeded: false
-                )
+                    intent: intent, phase: .failed(intent: intent, failure: failure),
+                    registration: nil, succeeded: false)
             }
             _ = try? registerService()
         case .unregisterBackgroundAgent:
@@ -179,28 +137,22 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
         let registration = observeSettledRegistration(after: intent)
         let resolution = resolve(intent, registration: registration)
         return finish(
-            intent: intent,
-            phase: resolution.phase,
-            registration: registration,
-            succeeded: resolution.succeeded
-        )
+            intent: intent, phase: resolution.phase, registration: registration,
+            succeeded: resolution.succeeded)
     }
 
     private func observeSettledRegistration(
         after intent: HostAgentBackgroundRegistrationMutationIntent
     ) -> HostAgentBackgroundRegistrationStatus {
         var registration = observeRegistration()
-        guard intent == .unregisterBackgroundAgent else {
-            return registration
-        }
+        guard intent == .unregisterBackgroundAgent else { return registration }
 
         // ServiceManagement may briefly retain the pre-unregistration status
         // after unregister() returns. Require bounded convergence instead of
         // making the user issue the same explicit mutation a second time.
         for _ in 0..<unregistrationObservationRetryLimit {
             switch registration {
-            case .notRegistered, .serviceUnavailable:
-                return registration
+            case .notRegistered, .serviceUnavailable: return registration
             case .enabled, .requiresApproval:
                 observationRetryDelay()
                 registration = observeRegistration()
@@ -209,14 +161,10 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
         return registration
     }
 
-    private func begin(
-        _ intent: HostAgentBackgroundRegistrationMutationIntent
-    ) -> Bool {
+    private func begin(_ intent: HostAgentBackgroundRegistrationMutationIntent) -> Bool {
         deliveryLock.lock()
         stateLock.lock()
-        guard !mutationInFlight,
-              view.generation < UInt64.max
-        else {
+        guard !mutationInFlight, view.generation < UInt64.max else {
             stateLock.unlock()
             deliveryLock.unlock()
             return false
@@ -224,11 +172,8 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
         mutationInFlight = true
         view = HostAgentBackgroundRegistrationMutationView(
             generation: view.generation + 1,
-            phase: intent == .registerBackgroundAgent
-                ? .registering
-                : .unregistering,
-            registration: nil
-        )
+            phase: intent == .registerBackgroundAgent ? .registering : .unregistering,
+            registration: nil)
         let publication = view
         stateLock.unlock()
         observer(publication)
@@ -239,8 +184,7 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
     private func finish(
         intent: HostAgentBackgroundRegistrationMutationIntent,
         phase: HostAgentBackgroundRegistrationMutationPhase,
-        registration: HostAgentBackgroundRegistrationStatus?,
-        succeeded: Bool
+        registration: HostAgentBackgroundRegistrationStatus?, succeeded: Bool
     ) -> Bool {
         deliveryLock.lock()
         stateLock.lock()
@@ -253,22 +197,15 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
         let finalPhase: HostAgentBackgroundRegistrationMutationPhase
         let finalResult: Bool
         if view.generation == UInt64.max {
-            finalPhase = .failed(
-                intent: intent,
-                failure: .generationExhausted
-            )
+            finalPhase = .failed(intent: intent, failure: .generationExhausted)
             finalResult = false
         } else {
             finalPhase = phase
             finalResult = succeeded
         }
         view = HostAgentBackgroundRegistrationMutationView(
-            generation: view.generation == UInt64.max
-                ? UInt64.max
-                : view.generation + 1,
-            phase: finalPhase,
-            registration: registration
-        )
+            generation: view.generation == UInt64.max ? UInt64.max : view.generation + 1,
+            phase: finalPhase, registration: registration)
         let publication = view
         stateLock.unlock()
         observer(publication)
@@ -279,58 +216,34 @@ package final class HostAgentBackgroundRegistrationMutationOwner:
         return finalResult
     }
 
-    private func registrationPreflightFailure(
-        _ status: HostAgentRegistrationIdentityStatus
-    ) -> HostAgentBackgroundRegistrationMutationFailure? {
+    private func registrationPreflightFailure(_ status: HostAgentRegistrationIdentityStatus)
+        -> HostAgentBackgroundRegistrationMutationFailure?
+    {
         switch status {
-        case .invalidLaunchAgent:
-            return .invalidLaunchAgent
-        case .invalidApplication:
-            return .invalidApplication
-        case .invalidCodeSignature:
-            return .invalidCodeSignature
-        case .distributionNotarizationRequired:
-            return .distributionNotarizationRequired
-        case .localDevelopmentEligible:
-            return nil
+        case .invalidLaunchAgent: return .invalidLaunchAgent
+        case .invalidApplication: return .invalidApplication
+        case .invalidCodeSignature: return .invalidCodeSignature
+        case .distributionNotarizationRequired: return .distributionNotarizationRequired
+        case .localDevelopmentEligible: return nil
         }
     }
 
     private func resolve(
         _ intent: HostAgentBackgroundRegistrationMutationIntent,
         registration: HostAgentBackgroundRegistrationStatus
-    ) -> (phase: HostAgentBackgroundRegistrationMutationPhase,
-          succeeded: Bool) {
+    ) -> (phase: HostAgentBackgroundRegistrationMutationPhase, succeeded: Bool) {
         switch (intent, registration) {
-        case (.registerBackgroundAgent, .enabled):
-            return (.registered, true)
-        case (.registerBackgroundAgent, .requiresApproval):
-            return (.requiresApproval, true)
+        case (.registerBackgroundAgent, .enabled): return (.registered, true)
+        case (.registerBackgroundAgent, .requiresApproval): return (.requiresApproval, true)
         case (.registerBackgroundAgent, .serviceUnavailable),
-             (.unregisterBackgroundAgent, .serviceUnavailable):
-            return (
-                .failed(intent: intent, failure: .serviceUnavailable),
-                false
-            )
+            (.unregisterBackgroundAgent, .serviceUnavailable):
+            return (.failed(intent: intent, failure: .serviceUnavailable), false)
         case (.registerBackgroundAgent, .notRegistered):
-            return (
-                .failed(
-                    intent: intent,
-                    failure: .registrationNotEffective
-                ),
-                false
-            )
-        case (.unregisterBackgroundAgent, .notRegistered):
-            return (.unregistered, true)
+            return (.failed(intent: intent, failure: .registrationNotEffective), false)
+        case (.unregisterBackgroundAgent, .notRegistered): return (.unregistered, true)
         case (.unregisterBackgroundAgent, .enabled),
-             (.unregisterBackgroundAgent, .requiresApproval):
-            return (
-                .failed(
-                    intent: intent,
-                    failure: .unregistrationNotEffective
-                ),
-                false
-            )
+            (.unregisterBackgroundAgent, .requiresApproval):
+            return (.failed(intent: intent, failure: .unregistrationNotEffective), false)
         }
     }
 }

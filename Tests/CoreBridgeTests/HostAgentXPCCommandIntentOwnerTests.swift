@@ -1,20 +1,16 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
 
+@testable import CoreBridge
+
 final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
     private let intent = HostAgentXPCCommandIntent(
-        commandID: "command-1",
-        name: .disconnectSession,
-        connectionID: "host-a:connection-1"
-    )
+        commandID: "command-1", name: .disconnectSession, connectionID: "host-a:connection-1")
 
     func testPausesBeforeSubmitThenResumesAfterAcceptanceAndCompletes() throws {
         let client = CommandIntentTestClient()
         let polling = CommandIntentTestPollingArbiter()
-        let results = CommandIntentTestRecorder<
-            HostAgentXPCSnapshotClientCommandResult
-        >()
+        let results = CommandIntentTestRecorder<HostAgentXPCSnapshotClientCommandResult>()
         let owner = makeOwner(client: client, polling: polling)
 
         XCTAssertTrue(owner.submit(intent) { results.append($0) })
@@ -26,34 +22,24 @@ final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
 
         let accepted = try queuedAcceptance()
         client.publish(.accepted(accepted))
-        XCTAssertEqual(polling.resumeDelays, [
-            HostAgentXPCCommandIntentOwner
-                .acceptanceResumeDelayMilliseconds,
-        ])
+        XCTAssertEqual(
+            polling.resumeDelays, [HostAgentXPCCommandIntentOwner.acceptanceResumeDelayMilliseconds]
+        )
         XCTAssertEqual(results.values, [.accepted(accepted)])
         XCTAssertEqual(owner.stateSnapshot(), .awaitingResult(intent))
 
         let completed = try HostAgentXPCWireCommandResult(
-            commandID: intent.commandID,
-            status: .ok,
-            detail: "completed"
-        )
+            commandID: intent.commandID, status: .ok, detail: "completed")
         client.publish(.completed(completed))
-        XCTAssertEqual(results.values, [
-            .accepted(accepted), .completed(completed),
-        ])
+        XCTAssertEqual(results.values, [.accepted(accepted), .completed(completed)])
         XCTAssertEqual(owner.stateSnapshot(), .idle)
     }
 
     func testRetryRetainsExactIntentAndCommandID() throws {
         let client = CommandIntentTestClient()
         let polling = CommandIntentTestPollingArbiter()
-        let first = CommandIntentTestRecorder<
-            HostAgentXPCSnapshotClientCommandResult
-        >()
-        let retry = CommandIntentTestRecorder<
-            HostAgentXPCSnapshotClientCommandResult
-        >()
+        let first = CommandIntentTestRecorder<HostAgentXPCSnapshotClientCommandResult>()
+        let retry = CommandIntentTestRecorder<HostAgentXPCSnapshotClientCommandResult>()
         let owner = makeOwner(client: client, polling: polling)
 
         XCTAssertTrue(owner.submit(intent) { first.append($0) })
@@ -61,13 +47,12 @@ final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
         client.publish(.accepted(try queuedAcceptance()))
         client.publish(.resultTimedOut)
         XCTAssertEqual(owner.stateSnapshot(), .retryable(intent))
-        XCTAssertFalse(owner.submit(
-            HostAgentXPCCommandIntent(
-                commandID: "command-2",
-                name: .rejectIncoming,
-                connectionID: "host-a:connection-2"
-            )
-        ) { _ in })
+        XCTAssertFalse(
+            owner.submit(
+                HostAgentXPCCommandIntent(
+                    commandID: "command-2", name: .rejectIncoming,
+                    connectionID: "host-a:connection-2")
+            ) { _ in })
 
         XCTAssertTrue(owner.retry { retry.append($0) })
         polling.completePause(true)
@@ -83,17 +68,11 @@ final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
     func testInvalidRequestRestoresPollingWithoutInvalidatingSession() {
         let client = CommandIntentTestClient()
         let polling = CommandIntentTestPollingArbiter()
-        let results = CommandIntentTestRecorder<
-            HostAgentXPCSnapshotClientCommandResult
-        >()
+        let results = CommandIntentTestRecorder<HostAgentXPCSnapshotClientCommandResult>()
         let invalidations = CommandIntentTestRecorder<String>()
         let owner = HostAgentXPCCommandIntentOwner(
-            client: client,
-            polling: polling,
-            onInvalidationRequired: { _ in
-                invalidations.append("invalidated")
-            }
-        )
+            client: client, polling: polling,
+            onInvalidationRequired: { _ in invalidations.append("invalidated") })
 
         XCTAssertTrue(owner.submit(intent) { results.append($0) })
         polling.completePause(true)
@@ -108,9 +87,7 @@ final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
     func testCancelDiscardsIntentAndIgnoresLatePauseOrClientCallbacks() {
         let client = CommandIntentTestClient()
         let polling = CommandIntentTestPollingArbiter()
-        let results = CommandIntentTestRecorder<
-            HostAgentXPCSnapshotClientCommandResult
-        >()
+        let results = CommandIntentTestRecorder<HostAgentXPCSnapshotClientCommandResult>()
         let owner = makeOwner(client: client, polling: polling)
 
         XCTAssertTrue(owner.submit(intent) { results.append($0) })
@@ -127,17 +104,11 @@ final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
     func testDeferredPauseRejectionLeavesTerminalReasonToPollingOwner() {
         let client = CommandIntentTestClient()
         let polling = CommandIntentTestPollingArbiter()
-        let results = CommandIntentTestRecorder<
-            HostAgentXPCSnapshotClientCommandResult
-        >()
+        let results = CommandIntentTestRecorder<HostAgentXPCSnapshotClientCommandResult>()
         let invalidations = CommandIntentTestRecorder<String>()
         let owner = HostAgentXPCCommandIntentOwner(
-            client: client,
-            polling: polling,
-            onInvalidationRequired: { _ in
-                invalidations.append("invalidated")
-            }
-        )
+            client: client, polling: polling,
+            onInvalidationRequired: { _ in invalidations.append("invalidated") })
         XCTAssertTrue(owner.submit(intent) { results.append($0) })
 
         polling.completePause(false)
@@ -152,89 +123,60 @@ final class HostAgentXPCCommandIntentOwnerTests: XCTestCase {
         let polling = CommandIntentTestPollingArbiter(resumeResult: false)
         let order = CommandIntentTestRecorder<String>()
         let owner = HostAgentXPCCommandIntentOwner(
-            client: client,
-            polling: polling,
-            onInvalidationRequired: { _ in order.append("invalidated") }
-        )
-        XCTAssertTrue(owner.submit(intent) { result in
-            switch result {
-            case .accepted: order.append("accepted")
-            case .invalidState: order.append("invalidState")
-            default: XCTFail("unexpected result \(result)")
-            }
-        })
+            client: client, polling: polling,
+            onInvalidationRequired: { _ in order.append("invalidated") })
+        XCTAssertTrue(
+            owner.submit(intent) { result in
+                switch result {
+                case .accepted: order.append("accepted")
+                case .invalidState: order.append("invalidState")
+                default: XCTFail("unexpected result \(result)")
+                }
+            })
         polling.completePause(true)
 
         client.publish(.accepted(try queuedAcceptance()))
 
-        XCTAssertEqual(order.values, [
-            "accepted", "invalidState", "invalidated",
-        ])
+        XCTAssertEqual(order.values, ["accepted", "invalidState", "invalidated"])
         XCTAssertEqual(owner.stateSnapshot(), .invalidated)
     }
 
     private func makeOwner(
-        client: CommandIntentTestClient,
-        polling: CommandIntentTestPollingArbiter
+        client: CommandIntentTestClient, polling: CommandIntentTestPollingArbiter
     ) -> HostAgentXPCCommandIntentOwner {
         HostAgentXPCCommandIntentOwner(
-            client: client,
-            polling: polling,
-            onInvalidationRequired: { _ in
-                XCTFail("unexpected invalidation")
-            }
-        )
+            client: client, polling: polling,
+            onInvalidationRequired: { _ in XCTFail("unexpected invalidation") })
     }
 
-    private func queuedAcceptance() throws
-        -> HostAgentXPCWireCommandAcceptedResponse
-    {
+    private func queuedAcceptance() throws -> HostAgentXPCWireCommandAcceptedResponse {
         let request = try HostAgentXPCWireCommandRequest(
-            requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            commandID: intent.commandID,
-            wireVersion: 2,
-            hostInstanceID: "host-a",
-            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7",
-            name: intent.name,
-            connectionID: intent.connectionID,
-            sentAtUnixMilliseconds: 10
-        )
+            requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676", commandID: intent.commandID,
+            wireVersion: 2, hostInstanceID: "host-a",
+            agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7", name: intent.name,
+            connectionID: intent.connectionID, sentAtUnixMilliseconds: 10)
         return try HostAgentXPCWireCommandAcceptedResponse.makeQueued(
             for: request,
             identity: HostAgentXPCWireAgentIdentity.test(
-                agentBuildID: "agent-build",
-                hostInstanceID: "host-a",
-                agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7"
-            ),
-            sentAtUnixMilliseconds: 20
-        )
+                agentBuildID: "agent-build", hostInstanceID: "host-a",
+                agentBootID: "6973cef9-a610-4183-ac81-287fd5f298b7"), sentAtUnixMilliseconds: 20)
     }
 }
 
-private final class CommandIntentTestClient:
-    HostAgentXPCCommandIntentClient,
-    @unchecked Sendable
-{
+private final class CommandIntentTestClient: HostAgentXPCCommandIntentClient, @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [HostAgentXPCCommandIntent] = []
     private var observers: [HostAgentXPCSnapshotClient.CommandObserver] = []
 
-    var submissions: [HostAgentXPCCommandIntent] {
-        locked { storage }
-    }
+    var submissions: [HostAgentXPCCommandIntent] { locked { storage } }
 
     func submitCommand(
-        commandID: String,
-        name: HostAgentXPCWireCommandName,
-        connectionID: String,
+        commandID: String, name: HostAgentXPCWireCommandName, connectionID: String,
         observer: @escaping HostAgentXPCSnapshotClient.CommandObserver
     ) {
         lock.lock()
-        storage.append(HostAgentXPCCommandIntent(
-            commandID: commandID,
-            name: name,
-            connectionID: connectionID
-        ))
+        storage.append(
+            HostAgentXPCCommandIntent(commandID: commandID, name: name, connectionID: connectionID))
         observers.append(observer)
         lock.unlock()
     }
@@ -251,28 +193,21 @@ private final class CommandIntentTestClient:
     }
 }
 
-private final class CommandIntentTestPollingArbiter:
-    HostAgentXPCCommandPollingArbiter,
+private final class CommandIntentTestPollingArbiter: HostAgentXPCCommandPollingArbiter,
     @unchecked Sendable
 {
     private let lock = NSLock()
     private let resumeResult: Bool
     private var pauses = 0
-    private var pauseCompletions: [
-        HostAgentXPCEventPollingOwner.PauseCompletion
-    ] = []
+    private var pauseCompletions: [HostAgentXPCEventPollingOwner.PauseCompletion] = []
     private var delays: [UInt64] = []
 
-    init(resumeResult: Bool = true) {
-        self.resumeResult = resumeResult
-    }
+    init(resumeResult: Bool = true) { self.resumeResult = resumeResult }
 
     var pauseCount: Int { locked { pauses } }
     var resumeDelays: [UInt64] { locked { delays } }
 
-    func pause(
-        completion: @escaping HostAgentXPCEventPollingOwner.PauseCompletion
-    ) -> Bool {
+    func pause(completion: @escaping HostAgentXPCEventPollingOwner.PauseCompletion) -> Bool {
         lock.lock()
         pauses += 1
         pauseCompletions.append(completion)

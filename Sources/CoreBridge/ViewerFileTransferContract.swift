@@ -30,9 +30,7 @@ package struct ViewerFileTransferFile: Equatable, Sendable {
     package let modifiedTime: Int64
 
     package init?(relativePath: String, size: UInt64, modifiedTime: Int64) {
-        guard ViewerFileTransferManifest.accepts(relativePath: relativePath) else {
-            return nil
-        }
+        guard ViewerFileTransferManifest.accepts(relativePath: relativePath) else { return nil }
         self.relativePath = relativePath
         self.size = size
         self.modifiedTime = modifiedTime
@@ -51,9 +49,7 @@ package struct ViewerFileTransferManifest: Equatable, Sendable {
 
     package init?(files: [ViewerFileTransferFile], emptyDirectories: [String]) {
         let entryCount = files.count.addingReportingOverflow(emptyDirectories.count)
-        guard
-            !entryCount.overflow,
-            entryCount.partialValue > 0,
+        guard !entryCount.overflow, entryCount.partialValue > 0,
             entryCount.partialValue <= Self.maximumEntries,
             emptyDirectories.allSatisfy(Self.accepts(relativePath:))
         else { return nil }
@@ -77,9 +73,7 @@ package struct ViewerFileTransferManifest: Equatable, Sendable {
         var metadataBytes = 0
         for path in paths {
             let nextMetadata = metadataBytes.addingReportingOverflow(path.utf8.count)
-            guard
-                !nextMetadata.overflow,
-                nextMetadata.partialValue <= Self.maximumMetadataUTF8Bytes
+            guard !nextMetadata.overflow, nextMetadata.partialValue <= Self.maximumMetadataUTF8Bytes
             else { return nil }
             metadataBytes = nextMetadata.partialValue
         }
@@ -96,30 +90,21 @@ package struct ViewerFileTransferManifest: Equatable, Sendable {
     }
 
     package static func accepts(relativePath: String) -> Bool {
-        guard
-            !relativePath.isEmpty,
-            !relativePath.hasPrefix("/"),
-            !relativePath.hasSuffix("/"),
-            !relativePath.contains("\0"),
-            relativePath.utf8.count <= maximumMetadataUTF8Bytes,
-            relativePath.utf8.elementsEqual(
-                relativePath.precomposedStringWithCanonicalMapping.utf8
-            )
+        guard !relativePath.isEmpty, !relativePath.hasPrefix("/"), !relativePath.hasSuffix("/"),
+            !relativePath.contains("\0"), relativePath.utf8.count <= maximumMetadataUTF8Bytes,
+            relativePath.utf8.elementsEqual(relativePath.precomposedStringWithCanonicalMapping.utf8)
         else { return false }
         let components = relativePath.split(separator: "/", omittingEmptySubsequences: false)
-        return !components.isEmpty && components.allSatisfy { component in
-            component != "."
-                && component != ".."
-                && !component.isEmpty
-                && !component.lowercased().hasSuffix(privateStagingSuffix)
-        }
+        return !components.isEmpty
+            && components.allSatisfy { component in
+                component != "." && component != ".." && !component.isEmpty
+                    && !component.lowercased().hasSuffix(privateStagingSuffix)
+            }
     }
 
     private static func canonicalCollisionKey(_ path: String) -> String {
         path.precomposedStringWithCanonicalMapping.folding(
-            options: [.caseInsensitive],
-            locale: Locale(identifier: "en_US_POSIX")
-        )
+            options: [.caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
     }
 }
 
@@ -130,16 +115,12 @@ package struct ViewerFileTransferDownloadRequest: Equatable, Sendable {
     package let manifest: ViewerFileTransferManifest
 
     package init?(
-        sessionEpoch: UInt64,
-        transferID: Int32,
-        destination: ViewerFileTransferDestinationLease,
+        sessionEpoch: UInt64, transferID: Int32, destination: ViewerFileTransferDestinationLease,
         manifest: ViewerFileTransferManifest
     ) {
-        guard
-            sessionEpoch > 0,
-            transferID > 0,
-            destination.sessionEpoch == sessionEpoch
-        else { return nil }
+        guard sessionEpoch > 0, transferID > 0, destination.sessionEpoch == sessionEpoch else {
+            return nil
+        }
         self.sessionEpoch = sessionEpoch
         self.transferID = transferID
         self.destination = destination
@@ -158,10 +139,8 @@ package enum ViewerFileTransferProgressPhase: Equatable, Sendable {
 
     package var isTerminal: Bool {
         switch self {
-        case .completed, .cancelled, .failed:
-            return true
-        case .queued, .transferring, .waitingForConflict, .cancelling:
-            return false
+        case .completed, .cancelled, .failed: return true
+        case .queued, .transferring, .waitingForConflict, .cancelling: return false
         }
     }
 }
@@ -177,14 +156,9 @@ package struct ViewerFileTransferProgressUpdate: Equatable, Sendable {
     package let bytesPerSecond: Double
 
     package init(
-        sessionEpoch: UInt64,
-        transferID: Int32,
-        sequence: UInt64,
-        phase: ViewerFileTransferProgressPhase,
-        currentFileNumber: Int?,
-        filesCompleted: Int,
-        bytesCompleted: UInt64,
-        bytesPerSecond: Double
+        sessionEpoch: UInt64, transferID: Int32, sequence: UInt64,
+        phase: ViewerFileTransferProgressPhase, currentFileNumber: Int?, filesCompleted: Int,
+        bytesCompleted: UInt64, bytesPerSecond: Double
     ) {
         self.sessionEpoch = sessionEpoch
         self.transferID = transferID
@@ -201,47 +175,31 @@ extension CoreFileTransferEvent {
     package var viewerProgressUpdate: ViewerFileTransferProgressUpdate? {
         let phase: ViewerFileTransferProgressPhase
         switch kind {
-        case .progress:
-            phase = .transferring
-        case .waitingForConflict:
-            phase = .waitingForConflict
-        case .completed:
-            phase = .completed
-        case .cancelled:
-            phase = .cancelled
+        case .progress: phase = .transferring
+        case .waitingForConflict: phase = .waitingForConflict
+        case .completed: phase = .completed
+        case .cancelled: phase = .cancelled
         case .failed:
             guard let stableFailure = failure.viewerFailure else { return nil }
             phase = .failed(stableFailure)
         }
 
         return ViewerFileTransferProgressUpdate(
-            sessionEpoch: sessionEpoch,
-            transferID: transferID,
-            sequence: sequence,
-            phase: phase,
-            currentFileNumber: currentFileNumber,
-            filesCompleted: Int(filesCompleted),
-            bytesCompleted: bytesCompleted,
-            bytesPerSecond: bytesPerSecond
-        )
+            sessionEpoch: sessionEpoch, transferID: transferID, sequence: sequence, phase: phase,
+            currentFileNumber: currentFileNumber, filesCompleted: Int(filesCompleted),
+            bytesCompleted: bytesCompleted, bytesPerSecond: bytesPerSecond)
     }
 }
 
-private extension CoreFileTransferFailure {
-    var viewerFailure: ViewerFileTransferFailure? {
+extension CoreFileTransferFailure {
+    fileprivate var viewerFailure: ViewerFileTransferFailure? {
         switch self {
-        case .none:
-            nil
-        case .rejected:
-            .rejected
-        case .unavailable:
-            .unavailable
-        case .protocolViolation:
-            .protocolViolation
-        case .localIO:
-            .localIO
-        case .connectionClosed:
-            .connectionClosed
+        case .none: nil
+        case .rejected: .rejected
+        case .unavailable: .unavailable
+        case .protocolViolation: .protocolViolation
+        case .localIO: .localIO
+        case .connectionClosed: .connectionClosed
         }
     }
 }
@@ -266,9 +224,7 @@ package struct ViewerFileTransferProgressSnapshot: Equatable, Sendable {
 package struct ViewerFileTransferProgressAuthority: Sendable {
     package static let maximumConcurrentTransfers = 8
 
-    private struct ActiveTransfer: Sendable {
-        var snapshot: ViewerFileTransferProgressSnapshot
-    }
+    private struct ActiveTransfer: Sendable { var snapshot: ViewerFileTransferProgressSnapshot }
 
     private var activeTransfers: [Int32: ActiveTransfer] = [:]
 
@@ -276,98 +232,67 @@ package struct ViewerFileTransferProgressAuthority: Sendable {
 
     package var activeCount: Int { activeTransfers.count }
 
-    package mutating func begin(
-        _ request: ViewerFileTransferDownloadRequest
-    ) -> ViewerFileTransferProgressSnapshot? {
+    package mutating func begin(_ request: ViewerFileTransferDownloadRequest)
+        -> ViewerFileTransferProgressSnapshot?
+    {
         begin(
-            sessionEpoch: request.sessionEpoch,
-            transferID: request.transferID,
-            direction: .download,
-            manifest: request.manifest
-        )
+            sessionEpoch: request.sessionEpoch, transferID: request.transferID,
+            direction: .download, manifest: request.manifest)
     }
 
-    package mutating func begin(
-        _ request: ViewerFileTransferUploadRequest
-    ) -> ViewerFileTransferProgressSnapshot? {
+    package mutating func begin(_ request: ViewerFileTransferUploadRequest)
+        -> ViewerFileTransferProgressSnapshot?
+    {
         begin(
-            sessionEpoch: request.sessionEpoch,
-            transferID: request.transferID,
-            direction: .upload,
-            manifest: request.manifest
-        )
+            sessionEpoch: request.sessionEpoch, transferID: request.transferID, direction: .upload,
+            manifest: request.manifest)
     }
 
     private mutating func begin(
-        sessionEpoch: UInt64,
-        transferID: Int32,
-        direction: ViewerFileTransferDirection,
+        sessionEpoch: UInt64, transferID: Int32, direction: ViewerFileTransferDirection,
         manifest: ViewerFileTransferManifest
     ) -> ViewerFileTransferProgressSnapshot? {
-        guard
-            activeTransfers.count < Self.maximumConcurrentTransfers,
+        guard activeTransfers.count < Self.maximumConcurrentTransfers,
             activeTransfers[transferID] == nil
         else { return nil }
         let snapshot = ViewerFileTransferProgressSnapshot(
-            sessionEpoch: sessionEpoch,
-            transferID: transferID,
-            direction: direction,
-            sequence: 0,
-            phase: .queued,
-            currentFileNumber: nil,
-            filesCompleted: 0,
-            totalFiles: manifest.files.count,
-            bytesCompleted: 0,
-            totalBytes: manifest.totalBytes,
-            bytesPerSecond: 0
-        )
+            sessionEpoch: sessionEpoch, transferID: transferID, direction: direction, sequence: 0,
+            phase: .queued, currentFileNumber: nil, filesCompleted: 0,
+            totalFiles: manifest.files.count, bytesCompleted: 0, totalBytes: manifest.totalBytes,
+            bytesPerSecond: 0)
         activeTransfers[transferID] = ActiveTransfer(snapshot: snapshot)
         return snapshot
     }
 
-    package mutating func observe(
-        _ update: ViewerFileTransferProgressUpdate
-    ) -> ViewerFileTransferProgressSnapshot? {
+    package mutating func observe(_ update: ViewerFileTransferProgressUpdate)
+        -> ViewerFileTransferProgressSnapshot?
+    {
         guard var active = activeTransfers[update.transferID] else { return nil }
         let previous = active.snapshot
-        guard
-            update.sessionEpoch == previous.sessionEpoch,
-            update.sequence > previous.sequence,
+        guard update.sessionEpoch == previous.sessionEpoch, update.sequence > previous.sequence,
             update.filesCompleted >= previous.filesCompleted,
             update.filesCompleted <= previous.totalFiles,
             update.bytesCompleted >= previous.bytesCompleted,
-            update.bytesCompleted <= previous.totalBytes,
-            update.bytesPerSecond.isFinite,
-            update.bytesPerSecond >= 0,
-            acceptsTransition(from: previous.phase, to: update.phase),
+            update.bytesCompleted <= previous.totalBytes, update.bytesPerSecond.isFinite,
+            update.bytesPerSecond >= 0, acceptsTransition(from: previous.phase, to: update.phase),
             acceptsFileNumber(update.currentFileNumber, totalFiles: previous.totalFiles)
         else { return nil }
 
-        if update.phase == .waitingForConflict, update.currentFileNumber == nil {
-            return nil
-        }
-        if update.phase.isTerminal, update.currentFileNumber != nil {
-            return nil
-        }
+        if update.phase == .waitingForConflict, update.currentFileNumber == nil { return nil }
+        if update.phase.isTerminal, update.currentFileNumber != nil { return nil }
         if update.phase == .completed,
-           (update.filesCompleted != previous.totalFiles
-               || update.bytesCompleted != previous.totalBytes) {
+            update.filesCompleted != previous.totalFiles
+                || update.bytesCompleted != previous.totalBytes
+        {
             return nil
         }
 
         let snapshot = ViewerFileTransferProgressSnapshot(
-            sessionEpoch: previous.sessionEpoch,
-            transferID: previous.transferID,
-            direction: previous.direction,
-            sequence: update.sequence,
-            phase: update.phase,
-            currentFileNumber: update.currentFileNumber,
-            filesCompleted: update.filesCompleted,
-            totalFiles: previous.totalFiles,
-            bytesCompleted: update.bytesCompleted,
-            totalBytes: previous.totalBytes,
-            bytesPerSecond: update.bytesPerSecond
-        )
+            sessionEpoch: previous.sessionEpoch, transferID: previous.transferID,
+            direction: previous.direction, sequence: update.sequence, phase: update.phase,
+            currentFileNumber: update.currentFileNumber, filesCompleted: update.filesCompleted,
+            totalFiles: previous.totalFiles, bytesCompleted: update.bytesCompleted,
+            totalBytes: previous.totalBytes, bytesPerSecond: update.bytesPerSecond)
         if snapshot.phase.isTerminal {
             activeTransfers.removeValue(forKey: update.transferID)
         } else {
@@ -377,30 +302,20 @@ package struct ViewerFileTransferProgressAuthority: Sendable {
         return snapshot
     }
 
-    package mutating func requestCancellation(
-        sessionEpoch: UInt64,
-        transferID: Int32
-    ) -> ViewerFileTransferProgressSnapshot? {
+    package mutating func requestCancellation(sessionEpoch: UInt64, transferID: Int32)
+        -> ViewerFileTransferProgressSnapshot?
+    {
         guard var active = activeTransfers[transferID] else { return nil }
         let previous = active.snapshot
-        guard
-            previous.sessionEpoch == sessionEpoch,
-            !previous.phase.isTerminal,
+        guard previous.sessionEpoch == sessionEpoch, !previous.phase.isTerminal,
             previous.phase != .cancelling
         else { return nil }
         let snapshot = ViewerFileTransferProgressSnapshot(
-            sessionEpoch: previous.sessionEpoch,
-            transferID: previous.transferID,
-            direction: previous.direction,
-            sequence: previous.sequence,
-            phase: .cancelling,
-            currentFileNumber: previous.currentFileNumber,
-            filesCompleted: previous.filesCompleted,
-            totalFiles: previous.totalFiles,
-            bytesCompleted: previous.bytesCompleted,
-            totalBytes: previous.totalBytes,
-            bytesPerSecond: 0
-        )
+            sessionEpoch: previous.sessionEpoch, transferID: previous.transferID,
+            direction: previous.direction, sequence: previous.sequence, phase: .cancelling,
+            currentFileNumber: previous.currentFileNumber, filesCompleted: previous.filesCompleted,
+            totalFiles: previous.totalFiles, bytesCompleted: previous.bytesCompleted,
+            totalBytes: previous.totalBytes, bytesPerSecond: 0)
         active.snapshot = snapshot
         activeTransfers[transferID] = active
         return snapshot
@@ -410,43 +325,31 @@ package struct ViewerFileTransferProgressAuthority: Sendable {
         let identifiers = activeTransfers.values.compactMap { active in
             active.snapshot.sessionEpoch == sessionEpoch ? active.snapshot.transferID : nil
         }.sorted()
-        for identifier in identifiers {
-            activeTransfers.removeValue(forKey: identifier)
-        }
+        for identifier in identifiers { activeTransfers.removeValue(forKey: identifier) }
         return identifiers
     }
 
-    @discardableResult
-    package mutating func teardown(sessionEpoch: UInt64, transferID: Int32) -> Bool {
-        guard
-            let active = activeTransfers[transferID],
-            active.snapshot.sessionEpoch == sessionEpoch
+    @discardableResult package mutating func teardown(sessionEpoch: UInt64, transferID: Int32)
+        -> Bool
+    {
+        guard let active = activeTransfers[transferID], active.snapshot.sessionEpoch == sessionEpoch
         else { return false }
         activeTransfers.removeValue(forKey: transferID)
         return true
     }
 
     private func acceptsTransition(
-        from: ViewerFileTransferProgressPhase,
-        to: ViewerFileTransferProgressPhase
+        from: ViewerFileTransferProgressPhase, to: ViewerFileTransferProgressPhase
     ) -> Bool {
         switch from {
         case .queued:
-            return to == .transferring
-                || to == .waitingForConflict
-                || to == .completed
-                || to == .cancelled
-                || isFailure(to)
+            return to == .transferring || to == .waitingForConflict || to == .completed
+                || to == .cancelled || isFailure(to)
         case .transferring, .waitingForConflict:
-            return to == .transferring
-                || to == .waitingForConflict
-                || to == .completed
-                || to == .cancelled
-                || isFailure(to)
-        case .cancelling:
-            return to == .completed || to == .cancelled || isFailure(to)
-        case .completed, .cancelled, .failed:
-            return false
+            return to == .transferring || to == .waitingForConflict || to == .completed
+                || to == .cancelled || isFailure(to)
+        case .cancelling: return to == .completed || to == .cancelled || isFailure(to)
+        case .completed, .cancelled, .failed: return false
         }
     }
 

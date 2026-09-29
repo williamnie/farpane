@@ -25,12 +25,8 @@ package struct HostAgentNetworkPathSnapshot: Equatable, Sendable {
 
     package init(
         availability: HostAgentNetworkPathAvailability,
-        interfaceKinds: Set<HostAgentNetworkInterfaceKind>,
-        supportsIPv4: Bool,
-        supportsIPv6: Bool,
-        supportsDNS: Bool,
-        isExpensive: Bool,
-        isConstrained: Bool
+        interfaceKinds: Set<HostAgentNetworkInterfaceKind>, supportsIPv4: Bool, supportsIPv6: Bool,
+        supportsDNS: Bool, isExpensive: Bool, isConstrained: Bool
     ) {
         self.availability = availability
         self.interfaceKinds = interfaceKinds
@@ -42,18 +38,14 @@ package struct HostAgentNetworkPathSnapshot: Equatable, Sendable {
     }
 
     fileprivate var isUsableForHostRecovery: Bool {
-        availability == .satisfied
-            && interfaceKinds.contains { $0 != .loopback }
+        availability == .satisfied && interfaceKinds.contains { $0 != .loopback }
             && (supportsIPv4 || supportsIPv6)
     }
 
     fileprivate var recoveryIdentity: HostAgentNetworkPathRecoveryIdentity {
         HostAgentNetworkPathRecoveryIdentity(
-            interfaceKinds: interfaceKinds,
-            supportsIPv4: supportsIPv4,
-            supportsIPv6: supportsIPv6,
-            supportsDNS: supportsDNS
-        )
+            interfaceKinds: interfaceKinds, supportsIPv4: supportsIPv4, supportsIPv6: supportsIPv6,
+            supportsDNS: supportsDNS)
     }
 }
 
@@ -70,27 +62,12 @@ package enum HostAgentNetworkPathRecoveryFailure: Equatable, Sendable {
     case triggerRejected
 }
 
-package enum HostAgentNetworkPathRecoveryTriggerState:
-    Equatable,
-    Sendable
-{
+package enum HostAgentNetworkPathRecoveryTriggerState: Equatable, Sendable {
     case awaitingInitialPath(pathGeneration: UInt64)
-    case observing(
-        path: HostAgentNetworkPathSnapshot,
-        pathGeneration: UInt64
-    )
-    case waitingForUsablePath(
-        previousPath: HostAgentNetworkPathSnapshot?,
-        pathGeneration: UInt64
-    )
-    case triggering(
-        path: HostAgentNetworkPathSnapshot,
-        pathGeneration: UInt64
-    )
-    case failed(
-        pathGeneration: UInt64,
-        reason: HostAgentNetworkPathRecoveryFailure
-    )
+    case observing(path: HostAgentNetworkPathSnapshot, pathGeneration: UInt64)
+    case waitingForUsablePath(previousPath: HostAgentNetworkPathSnapshot?, pathGeneration: UInt64)
+    case triggering(path: HostAgentNetworkPathSnapshot, pathGeneration: UInt64)
+    case failed(pathGeneration: UInt64, reason: HostAgentNetworkPathRecoveryFailure)
     case cancelling
     case cancelled
 }
@@ -107,45 +84,31 @@ package enum HostAgentNetworkPathRecoveryDisposition: Equatable, Sendable {
 /// Initial availability establishes a baseline without restarting HostCore.
 /// A usable-path change or recovery from an observed outage triggers once;
 /// duplicate, malformed, concurrent, failed, and post-cancel work fails closed.
-package final class HostAgentNetworkPathRecoveryTriggerOwner:
-    @unchecked Sendable
-{
-    package typealias Trigger = @Sendable (
-        _ pathGeneration: UInt64,
-        _ path: HostAgentNetworkPathSnapshot
-    ) -> Bool
+package final class HostAgentNetworkPathRecoveryTriggerOwner: @unchecked Sendable {
+    package typealias Trigger =
+        @Sendable (_ pathGeneration: UInt64, _ path: HostAgentNetworkPathSnapshot) -> Bool
 
     private let condition = NSCondition()
     private let trigger: Trigger
     private var state: HostAgentNetworkPathRecoveryTriggerState
     private var operationInFlight = false
 
-    package init(
-        initialPathGeneration: UInt64 = 0,
-        trigger: @escaping Trigger
-    ) {
+    package init(initialPathGeneration: UInt64 = 0, trigger: @escaping Trigger) {
         self.trigger = trigger
-        self.state = .awaitingInitialPath(
-            pathGeneration: initialPathGeneration
-        )
+        self.state = .awaitingInitialPath(pathGeneration: initialPathGeneration)
     }
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
-    package func stateSnapshot()
-        -> HostAgentNetworkPathRecoveryTriggerState
-    {
+    package func stateSnapshot() -> HostAgentNetworkPathRecoveryTriggerState {
         condition.lock()
         defer { condition.unlock() }
         return state
     }
 
-    @discardableResult
-    package func consume(
-        _ path: HostAgentNetworkPathSnapshot
-    ) -> HostAgentNetworkPathRecoveryDisposition {
+    @discardableResult package func consume(_ path: HostAgentNetworkPathSnapshot)
+        -> HostAgentNetworkPathRecoveryDisposition
+    {
         condition.lock()
         guard !operationInFlight else {
             condition.unlock()
@@ -154,51 +117,32 @@ package final class HostAgentNetworkPathRecoveryTriggerOwner:
 
         switch state {
         case .awaitingInitialPath(let pathGeneration):
-            let disposition = establishInitialPath(
-                path,
-                pathGeneration: pathGeneration
-            )
+            let disposition = establishInitialPath(path, pathGeneration: pathGeneration)
             condition.unlock()
             return disposition
 
         case .observing(let currentPath, let pathGeneration):
-            if path.availability == .satisfied,
-               !path.isUsableForHostRecovery {
-                state = .failed(
-                    pathGeneration: pathGeneration,
-                    reason: .invalidSatisfiedPath
-                )
+            if path.availability == .satisfied, !path.isUsableForHostRecovery {
+                state = .failed(pathGeneration: pathGeneration, reason: .invalidSatisfiedPath)
                 condition.unlock()
                 return .rejected
             }
             guard path.isUsableForHostRecovery else {
                 state = .waitingForUsablePath(
-                    previousPath: currentPath,
-                    pathGeneration: pathGeneration
-                )
+                    previousPath: currentPath, pathGeneration: pathGeneration)
                 condition.unlock()
                 return .unavailableRecorded
             }
             guard path.recoveryIdentity != currentPath.recoveryIdentity else {
-                state = .observing(
-                    path: path,
-                    pathGeneration: pathGeneration
-                )
+                state = .observing(path: path, pathGeneration: pathGeneration)
                 condition.unlock()
                 return .unchanged
             }
-            return triggerRecovery(
-                path,
-                previousGeneration: pathGeneration
-            )
+            return triggerRecovery(path, previousGeneration: pathGeneration)
 
         case .waitingForUsablePath(_, let pathGeneration):
-            if path.availability == .satisfied,
-               !path.isUsableForHostRecovery {
-                state = .failed(
-                    pathGeneration: pathGeneration,
-                    reason: .invalidSatisfiedPath
-                )
+            if path.availability == .satisfied, !path.isUsableForHostRecovery {
+                state = .failed(pathGeneration: pathGeneration, reason: .invalidSatisfiedPath)
                 condition.unlock()
                 return .rejected
             }
@@ -206,10 +150,7 @@ package final class HostAgentNetworkPathRecoveryTriggerOwner:
                 condition.unlock()
                 return .unchanged
             }
-            return triggerRecovery(
-                path,
-                previousGeneration: pathGeneration
-            )
+            return triggerRecovery(path, previousGeneration: pathGeneration)
 
         case .triggering, .failed, .cancelling, .cancelled:
             condition.unlock()
@@ -226,65 +167,43 @@ package final class HostAgentNetworkPathRecoveryTriggerOwner:
             condition.unlock()
             return
         case .cancelling:
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
             return
-        case .awaitingInitialPath, .observing, .waitingForUsablePath,
-             .triggering, .failed:
+        case .awaitingInitialPath, .observing, .waitingForUsablePath, .triggering, .failed:
             state = .cancelling
-            while operationInFlight {
-                condition.wait()
-            }
+            while operationInFlight { condition.wait() }
             state = .cancelled
             condition.broadcast()
             condition.unlock()
         }
     }
 
-    private func establishInitialPath(
-        _ path: HostAgentNetworkPathSnapshot,
-        pathGeneration: UInt64
-    ) -> HostAgentNetworkPathRecoveryDisposition {
+    private func establishInitialPath(_ path: HostAgentNetworkPathSnapshot, pathGeneration: UInt64)
+        -> HostAgentNetworkPathRecoveryDisposition
+    {
         if path.availability == .satisfied {
             guard path.isUsableForHostRecovery else {
-                state = .failed(
-                    pathGeneration: pathGeneration,
-                    reason: .invalidSatisfiedPath
-                )
+                state = .failed(pathGeneration: pathGeneration, reason: .invalidSatisfiedPath)
                 return .rejected
             }
-            state = .observing(
-                path: path,
-                pathGeneration: pathGeneration
-            )
+            state = .observing(path: path, pathGeneration: pathGeneration)
             return .baselineEstablished
         }
-        state = .waitingForUsablePath(
-            previousPath: nil,
-            pathGeneration: pathGeneration
-        )
+        state = .waitingForUsablePath(previousPath: nil, pathGeneration: pathGeneration)
         return .unavailableRecorded
     }
 
-    private func triggerRecovery(
-        _ path: HostAgentNetworkPathSnapshot,
-        previousGeneration: UInt64
-    ) -> HostAgentNetworkPathRecoveryDisposition {
+    private func triggerRecovery(_ path: HostAgentNetworkPathSnapshot, previousGeneration: UInt64)
+        -> HostAgentNetworkPathRecoveryDisposition
+    {
         guard previousGeneration < UInt64.max else {
-            state = .failed(
-                pathGeneration: previousGeneration,
-                reason: .generationExhausted
-            )
+            state = .failed(pathGeneration: previousGeneration, reason: .generationExhausted)
             condition.unlock()
             return .rejected
         }
         let pathGeneration = previousGeneration + 1
-        state = .triggering(
-            path: path,
-            pathGeneration: pathGeneration
-        )
+        state = .triggering(path: path, pathGeneration: pathGeneration)
         operationInFlight = true
         condition.unlock()
 
@@ -293,25 +212,16 @@ package final class HostAgentNetworkPathRecoveryTriggerOwner:
         condition.lock()
         operationInFlight = false
         condition.broadcast()
-        guard state == .triggering(
-            path: path,
-            pathGeneration: pathGeneration
-        ) else {
+        guard state == .triggering(path: path, pathGeneration: pathGeneration) else {
             condition.unlock()
             return .rejected
         }
         guard accepted else {
-            state = .failed(
-                pathGeneration: pathGeneration,
-                reason: .triggerRejected
-            )
+            state = .failed(pathGeneration: pathGeneration, reason: .triggerRejected)
             condition.unlock()
             return .rejected
         }
-        state = .observing(
-            path: path,
-            pathGeneration: pathGeneration
-        )
+        state = .observing(path: path, pathGeneration: pathGeneration)
         condition.unlock()
         return .recoveryTriggered(pathGeneration: pathGeneration)
     }

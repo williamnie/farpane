@@ -19,15 +19,10 @@ public final class HostAgentBootstrapConfigurationReader: @unchecked Sendable {
 
     public convenience init(fileManager: FileManager = .default) throws {
         try self.init(
-            directoryURL: HostAgentBootstrapProductLayout.directoryURL(
-                fileManager: fileManager
-            )
-        )
+            directoryURL: HostAgentBootstrapProductLayout.directoryURL(fileManager: fileManager))
     }
 
-    init(directoryURL: URL) {
-        self.directoryURL = directoryURL
-    }
+    init(directoryURL: URL) { self.directoryURL = directoryURL }
 
     public func load() throws -> HostAgentBootstrapConfiguration {
         try HostAgentBootstrapConfiguration.decode(readDocument())
@@ -35,13 +30,11 @@ public final class HostAgentBootstrapConfigurationReader: @unchecked Sendable {
 
     func readDocument() throws -> Data {
         guard NSString(string: directoryURL.path).isAbsolutePath,
-              directoryURL.standardizedFileURL.path == directoryURL.path
+            directoryURL.standardizedFileURL.path == directoryURL.path
         else { throw HostAgentBootstrapConfigurationReaderError.insecureDirectory }
 
         let directoryDescriptor = Darwin.open(
-            directoryURL.path,
-            O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
-        )
+            directoryURL.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard directoryDescriptor >= 0 else {
             if errno == ELOOP || errno == ENOTDIR {
                 throw HostAgentBootstrapConfigurationReaderError.insecureDirectory
@@ -54,9 +47,8 @@ public final class HostAgentBootstrapConfigurationReader: @unchecked Sendable {
         guard fstat(directoryDescriptor, &directoryStatus) == 0 else {
             throw HostAgentBootstrapConfigurationReaderError.directoryUnavailable
         }
-        guard directoryStatus.st_mode & S_IFMT == S_IFDIR,
-              directoryStatus.st_uid == geteuid(),
-              directoryStatus.st_mode & 0o777 == 0o700
+        guard directoryStatus.st_mode & S_IFMT == S_IFDIR, directoryStatus.st_uid == geteuid(),
+            directoryStatus.st_mode & 0o777 == 0o700
         else { throw HostAgentBootstrapConfigurationReaderError.insecureDirectory }
 
         return try Self.readDocument(fromDirectoryDescriptor: directoryDescriptor)
@@ -64,18 +56,13 @@ public final class HostAgentBootstrapConfigurationReader: @unchecked Sendable {
 
     static func readDocument(fromDirectoryDescriptor directoryDescriptor: Int32) throws -> Data {
         let configurationDescriptor = Darwin.openat(
-            directoryDescriptor,
-            Self.configurationFileName,
-            O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC
-        )
+            directoryDescriptor, Self.configurationFileName,
+            O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC)
         guard configurationDescriptor >= 0 else {
             switch errno {
-            case ENOENT:
-                throw HostAgentBootstrapConfigurationReaderError.configurationUnavailable
-            case ELOOP:
-                throw HostAgentBootstrapConfigurationReaderError.insecureConfigurationFile
-            default:
-                throw HostAgentBootstrapConfigurationReaderError.readFailed
+            case ENOENT: throw HostAgentBootstrapConfigurationReaderError.configurationUnavailable
+            case ELOOP: throw HostAgentBootstrapConfigurationReaderError.insecureConfigurationFile
+            default: throw HostAgentBootstrapConfigurationReaderError.readFailed
             }
         }
         defer { Darwin.close(configurationDescriptor) }
@@ -85,14 +72,10 @@ public final class HostAgentBootstrapConfigurationReader: @unchecked Sendable {
             throw HostAgentBootstrapConfigurationReaderError.readFailed
         }
         guard configurationStatus.st_mode & S_IFMT == S_IFREG,
-              configurationStatus.st_uid == geteuid(),
-              configurationStatus.st_mode & 0o777 == 0o600,
-              configurationStatus.st_nlink == 1
-        else {
-            throw HostAgentBootstrapConfigurationReaderError.insecureConfigurationFile
-        }
-        guard configurationStatus.st_size
-            <= HostAgentBootstrapConfiguration.maximumDocumentBytes
+            configurationStatus.st_uid == geteuid(), configurationStatus.st_mode & 0o777 == 0o600,
+            configurationStatus.st_nlink == 1
+        else { throw HostAgentBootstrapConfigurationReaderError.insecureConfigurationFile }
+        guard configurationStatus.st_size <= HostAgentBootstrapConfiguration.maximumDocumentBytes
         else { throw HostAgentBootstrapConfigurationError.documentTooLarge }
 
         return try readBounded(from: configurationDescriptor)

@@ -32,16 +32,11 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
     private var invalidationObserver: InvalidationObserver?
     private var invalidationDelivered = false
 
-    package static func makeProduct(
-        agentBuildID: String,
-        agentBootID: String
-    ) throws -> Self {
-        guard let processIdentity = currentProcessIdentity(
-            agentBuildID: agentBuildID,
-            agentBootID: agentBootID
-        ) else {
-            throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
-        }
+    package static func makeProduct(agentBuildID: String, agentBootID: String) throws -> Self {
+        guard
+            let processIdentity = currentProcessIdentity(
+                agentBuildID: agentBuildID, agentBootID: agentBootID)
+        else { throw HostAgentXPCWireHandshakeDocumentError.invalidDocument }
         return Self(agentProcessIdentity: processIdentity)
     }
 
@@ -49,26 +44,21 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
         self.agentProcessIdentity = agentProcessIdentity
     }
 
-    package func agentProcessIdentitySnapshot()
-        -> HostAgentXPCWireAgentProcessIdentity?
-    {
+    package func agentProcessIdentitySnapshot() -> HostAgentXPCWireAgentProcessIdentity? {
         lock.lock()
         defer { lock.unlock() }
         if case .invalidated = state { return nil }
         return agentProcessIdentity
     }
 
-    package func bind(
-        hostInstanceID: String
-    ) -> HostAgentXPCProcessIdentityBindResult {
+    package func bind(hostInstanceID: String) -> HostAgentXPCProcessIdentityBindResult {
         lock.lock()
 
         if case .invalidated = state {
             lock.unlock()
             return .rejected(.invalidated)
         }
-        guard HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID)
-        else {
+        guard HostAgentXPCWireHandshakeContract.validIdentifier(hostInstanceID) else {
             let observer = transitionToInvalidatedLocked()
             lock.unlock()
             observer?()
@@ -77,11 +67,7 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
         switch state {
         case .waitingForHostInstance:
             do {
-                state = .ready(
-                    try agentProcessIdentity.bind(
-                        hostInstanceID: hostInstanceID
-                    )
-                )
+                state = .ready(try agentProcessIdentity.bind(hostInstanceID: hostInstanceID))
                 lock.unlock()
                 return .bound
             } catch {
@@ -115,8 +101,7 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
     /// Installs the sole process-lifetime teardown observer. If identity was
     /// already invalidated, delivery occurs synchronously after releasing the
     /// authority lock. A second observer is rejected without replacement.
-    @discardableResult
-    package func installInvalidationObserver(
+    @discardableResult package func installInvalidationObserver(
         _ observer: @escaping InvalidationObserver
     ) -> Bool {
         lock.lock()
@@ -139,9 +124,9 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
 
     /// Serializes authenticated service configuration/resume with identity
     /// invalidation. The body must not re-enter this authority.
-    package func withReadyIdentityForAdmission<T>(
-        _ body: (HostAgentXPCWireAgentIdentity) -> T
-    ) -> T? {
+    package func withReadyIdentityForAdmission<T>(_ body: (HostAgentXPCWireAgentIdentity) -> T)
+        -> T?
+    {
         lock.lock()
         defer { lock.unlock() }
         guard case .ready(let identity) = state else { return nil }
@@ -156,55 +141,36 @@ package final class HostAgentXPCProcessIdentityAuthority: @unchecked Sendable {
 
     private func transitionToInvalidatedLocked() -> InvalidationObserver? {
         state = .invalidated
-        guard !invalidationDelivered, let invalidationObserver else {
-            return nil
-        }
+        guard !invalidationDelivered, let invalidationObserver else { return nil }
         invalidationDelivered = true
         return invalidationObserver
     }
 
-    private static func currentProcessIdentity(
-        agentBuildID: String,
-        agentBootID: String
-    ) -> HostAgentXPCWireAgentProcessIdentity? {
+    private static func currentProcessIdentity(agentBuildID: String, agentBootID: String)
+        -> HostAgentXPCWireAgentProcessIdentity?
+    {
         let processID = getpid()
         guard processID > 1 else { return nil }
 
         var info = proc_bsdinfo()
         let expectedSize = Int32(MemoryLayout<proc_bsdinfo>.stride)
         let copiedSize = withUnsafeMutablePointer(to: &info) { pointer in
-            proc_pidinfo(
-                processID,
-                PROC_PIDTBSDINFO,
-                0,
-                pointer,
-                expectedSize
-            )
+            proc_pidinfo(processID, PROC_PIDTBSDINFO, 0, pointer, expectedSize)
         }
-        guard copiedSize == expectedSize,
-              info.pbi_pid == UInt32(processID),
-              info.pbi_start_tvsec > 0,
-              info.pbi_start_tvusec < 1_000_000
+        guard copiedSize == expectedSize, info.pbi_pid == UInt32(processID),
+            info.pbi_start_tvsec > 0, info.pbi_start_tvusec < 1_000_000
         else { return nil }
 
         let rawProcessStartIdentity =
-            "pid=\(processID);sec=\(info.pbi_start_tvsec);"
-            + "usec=\(info.pbi_start_tvusec)"
+            "pid=\(processID);sec=\(info.pbi_start_tvsec);" + "usec=\(info.pbi_start_tvusec)"
         var hasher = SHA256()
-        hasher.update(data: Data(
-            "farpane.v1-concurrency.process-start.v1".utf8
-        ))
+        hasher.update(data: Data("farpane.v1-concurrency.process-start.v1".utf8))
         hasher.update(data: Data([0]))
         hasher.update(data: Data(rawProcessStartIdentity.utf8))
-        let digest = hasher.finalize().map {
-            String(format: "%02x", $0)
-        }.joined()
+        let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()
 
         return try? HostAgentXPCWireAgentProcessIdentity(
-            agentBuildID: agentBuildID,
-            agentBootID: agentBootID,
-            agentProcessID: processID,
-            agentProcessStartIdentitySHA256: digest
-        )
+            agentBuildID: agentBuildID, agentBootID: agentBootID, agentProcessID: processID,
+            agentProcessStartIdentitySHA256: digest)
     }
 }

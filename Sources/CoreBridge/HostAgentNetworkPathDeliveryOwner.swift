@@ -17,25 +17,17 @@ package enum HostAgentNetworkPathDeliveryState: Equatable, Sendable {
 /// Serializes normalized system path observations before they enter the
 /// recovery trigger. Cancellation closes admission first and then drains the
 /// one accepted delivery already in flight.
-package final class HostAgentNetworkPathDeliveryOwner:
-    @unchecked Sendable
-{
-    package typealias Deliver = @Sendable (
-        _ path: HostAgentNetworkPathSnapshot
-    ) -> Bool
+package final class HostAgentNetworkPathDeliveryOwner: @unchecked Sendable {
+    package typealias Deliver = @Sendable (_ path: HostAgentNetworkPathSnapshot) -> Bool
 
     private let condition = NSCondition()
     private let deliverPath: Deliver
     private var state: HostAgentNetworkPathDeliveryState = .accepting
     private var deliveryInFlight = false
 
-    package init(deliverPath: @escaping Deliver) {
-        self.deliverPath = deliverPath
-    }
+    package init(deliverPath: @escaping Deliver) { self.deliverPath = deliverPath }
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
     package func stateSnapshot() -> HostAgentNetworkPathDeliveryState {
         condition.lock()
@@ -43,10 +35,9 @@ package final class HostAgentNetworkPathDeliveryOwner:
         return state
     }
 
-    @discardableResult
-    package func deliver(
-        _ path: HostAgentNetworkPathSnapshot
-    ) -> HostAgentNetworkPathDeliveryDisposition {
+    @discardableResult package func deliver(_ path: HostAgentNetworkPathSnapshot)
+        -> HostAgentNetworkPathDeliveryDisposition
+    {
         condition.lock()
         switch state {
         case .accepting where !deliveryInFlight:
@@ -66,9 +57,7 @@ package final class HostAgentNetworkPathDeliveryOwner:
         condition.lock()
         deliveryInFlight = false
         let cancelled = state == .cancelling
-        if !cancelled {
-            state = accepted ? .accepting : .failed
-        }
+        if !cancelled { state = accepted ? .accepting : .failed }
         condition.broadcast()
         condition.unlock()
         if cancelled { return .closed }
@@ -82,16 +71,12 @@ package final class HostAgentNetworkPathDeliveryOwner:
             condition.unlock()
             return
         case .cancelling:
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
             return
         case .accepting, .delivering, .failed:
             state = .cancelling
-            while deliveryInFlight {
-                condition.wait()
-            }
+            while deliveryInFlight { condition.wait() }
             state = .cancelled
             condition.broadcast()
             condition.unlock()

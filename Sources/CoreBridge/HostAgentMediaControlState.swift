@@ -7,10 +7,7 @@ package struct HostAgentMediaRoute: Equatable, Sendable {
     package let displayRevision: UInt64
 
     package init(
-        connectionEpoch: UInt64,
-        codecEpoch: UInt64,
-        displayID: UInt64,
-        displayRevision: UInt64
+        connectionEpoch: UInt64, codecEpoch: UInt64, displayID: UInt64, displayRevision: UInt64
     ) {
         self.connectionEpoch = connectionEpoch
         self.codecEpoch = codecEpoch
@@ -39,8 +36,7 @@ package enum HostAgentMediaControlDisposition: Equatable, Sendable {
 package struct HostAgentMediaControlStateSnapshot: Sendable {
     package let pendingRoute: HostAgentMediaRoute?
     package let activeRoute: HostAgentMediaRoute?
-    package let pendingDisplayReconfigure:
-        HostDisplayReconfigureProvenance?
+    package let pendingDisplayReconfigure: HostDisplayReconfigureProvenance?
     package let latestAcceptedEventSequence: UInt64
     package let acceptedControlCount: UInt64
     package let rejectedControlCount: UInt64
@@ -54,8 +50,7 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
     private let condition = NSCondition()
     private var pendingRoute: HostAgentMediaRoute?
     private var activeRoute: HostAgentMediaRoute?
-    private var pendingDisplayReconfigure:
-        HostDisplayReconfigureProvenance?
+    private var pendingDisplayReconfigure: HostDisplayReconfigureProvenance?
     private var highestConnectionEpoch: UInt64 = 0
     private var highestCodecEpoch: UInt64 = 0
     private var latestAcceptedEventSequence: UInt64 = 0
@@ -69,11 +64,8 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
     /// Non-media events are ignored. Accepted media actions run outside the
     /// condition lock; one action at a time preserves the serial Core event
     /// order and lets termination wait without racing Core teardown.
-    @discardableResult
-    package func consume(
-        _ event: HostCoreEvent,
-        eventSequence: UInt64,
-        onAccepted: (HostMediaControl) -> Void
+    @discardableResult package func consume(
+        _ event: HostCoreEvent, eventSequence: UInt64, onAccepted: (HostMediaControl) -> Void
     ) -> HostAgentMediaControlDisposition {
         guard event.eventType == "mediaControl" else { return .ignored }
         condition.lock()
@@ -114,10 +106,7 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
         actionInFlight = false
         condition.broadcast()
         condition.unlock()
-        return .accepted(
-            command: control.command,
-            eventSequence: eventSequence
-        )
+        return .accepted(command: control.command, eventSequence: eventSequence)
     }
 
     /// Terminal and idempotent. Must not be invoked by the active media action.
@@ -127,9 +116,7 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
         pendingRoute = nil
         activeRoute = nil
         pendingDisplayReconfigure = nil
-        while actionInFlight {
-            condition.wait()
-        }
+        while actionInFlight { condition.wait() }
         condition.unlock()
     }
 
@@ -137,24 +124,21 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
         condition.lock()
         defer { condition.unlock() }
         return HostAgentMediaControlStateSnapshot(
-            pendingRoute: pendingRoute,
-            activeRoute: activeRoute,
+            pendingRoute: pendingRoute, activeRoute: activeRoute,
             pendingDisplayReconfigure: pendingDisplayReconfigure,
             latestAcceptedEventSequence: latestAcceptedEventSequence,
-            acceptedControlCount: acceptedControlCount,
-            rejectedControlCount: rejectedControlCount,
-            cancelled: cancelled
-        )
+            acceptedControlCount: acceptedControlCount, rejectedControlCount: rejectedControlCount,
+            cancelled: cancelled)
     }
 
-    private func admissionRejectionLocked(
-        for control: HostMediaControl
-    ) -> HostAgentMediaControlRejectionReason? {
+    private func admissionRejectionLocked(for control: HostMediaControl)
+        -> HostAgentMediaControlRejectionReason?
+    {
         switch control.command {
         case .startCapture:
             guard let route = exactRoute(control) else { return .invalidControl }
             guard route.connectionEpoch > highestConnectionEpoch,
-                  route.codecEpoch > highestCodecEpoch
+                route.codecEpoch > highestCodecEpoch
             else { return .staleRoute }
             pendingRoute = route
             pendingDisplayReconfigure = control.displayReconfigure
@@ -166,8 +150,9 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
             guard let route = exactRoute(control) else { return .invalidControl }
             guard let pendingRoute else { return .missingRouteStart }
             guard pendingRoute == route else { return .routeMismatch }
-            guard pendingDisplayReconfigure == control.displayReconfigure
-            else { return .displayProvenanceMismatch }
+            guard pendingDisplayReconfigure == control.displayReconfigure else {
+                return .displayProvenanceMismatch
+            }
             self.pendingRoute = nil
             pendingDisplayReconfigure = nil
             activeRoute = route
@@ -194,39 +179,25 @@ package final class HostAgentMediaControlState: @unchecked Sendable {
     }
 
     private func exactRoute(_ control: HostMediaControl) -> HostAgentMediaRoute? {
-        guard control.connectionEpoch > 0,
-              control.codecEpoch > 0,
-              control.displayRevision > 0
+        guard control.connectionEpoch > 0, control.codecEpoch > 0, control.displayRevision > 0
         else { return nil }
         return HostAgentMediaRoute(
-            connectionEpoch: control.connectionEpoch,
-            codecEpoch: control.codecEpoch,
-            displayID: control.displayID,
-            displayRevision: control.displayRevision
-        )
+            connectionEpoch: control.connectionEpoch, codecEpoch: control.codecEpoch,
+            displayID: control.displayID, displayRevision: control.displayRevision)
     }
 
-    private func matchesStop(
-        _ control: HostMediaControl,
-        route: HostAgentMediaRoute
-    ) -> Bool {
-        control.connectionEpoch == route.connectionEpoch
-            && control.codecEpoch == route.codecEpoch
+    private func matchesStop(_ control: HostMediaControl, route: HostAgentMediaRoute) -> Bool {
+        control.connectionEpoch == route.connectionEpoch && control.codecEpoch == route.codecEpoch
             && control.displayID == route.displayID
-            && (control.displayRevision == 0
-                || control.displayRevision == route.displayRevision)
+            && (control.displayRevision == 0 || control.displayRevision == route.displayRevision)
     }
 
-    private func rejectLocked(
-        _ reason: HostAgentMediaControlRejectionReason
-    ) -> HostAgentMediaControlDisposition {
+    private func rejectLocked(_ reason: HostAgentMediaControlRejectionReason)
+        -> HostAgentMediaControlDisposition
+    {
         incrementSaturating(&rejectedControlCount)
         return .rejected(reason)
     }
 
-    private func incrementSaturating(_ value: inout UInt64) {
-        if value < UInt64.max {
-            value += 1
-        }
-    }
+    private func incrementSaturating(_ value: inout UInt64) { if value < UInt64.max { value += 1 } }
 }

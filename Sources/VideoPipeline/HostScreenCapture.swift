@@ -21,12 +21,10 @@ public enum HostCapturePixelPath: String, Sendable {
     public static func classify(pixelFormat: OSType) -> HostCapturePixelPath? {
         switch pixelFormat {
         case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
-             kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
+            kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
             return .biPlanarDirect
-        case kCVPixelFormatType_32BGRA:
-            return .bgraPixelTransfer
-        default:
-            return nil
+        case kCVPixelFormatType_32BGRA: return .bgraPixelTransfer
+        default: return nil
         }
     }
 }
@@ -39,11 +37,7 @@ public struct HostCaptureConfiguration: Sendable {
     public let showsCursor: Bool
 
     public init(
-        displayIndex: Int,
-        width: Int,
-        height: Int,
-        framesPerSecond: Int,
-        showsCursor: Bool = true
+        displayIndex: Int, width: Int, height: Int, framesPerSecond: Int, showsCursor: Bool = true
     ) {
         self.displayIndex = displayIndex
         self.width = width
@@ -53,9 +47,7 @@ public struct HostCaptureConfiguration: Sendable {
     }
 
     public var isValid: Bool {
-        displayIndex >= 0
-            && (16...16_384).contains(width)
-            && (16...16_384).contains(height)
+        displayIndex >= 0 && (16...16_384).contains(width) && (16...16_384).contains(height)
             && (1...240).contains(framesPerSecond)
     }
 }
@@ -67,9 +59,7 @@ public struct HostCapturedFrame: @unchecked Sendable {
     public let dirtyRectCount: Int?
     public let dirtyAreaRatio: Double?
 
-    public var logicalRawFrameCopyCount: Int {
-        pixelPath.logicalRawFrameCopyCount
-    }
+    public var logicalRawFrameCopyCount: Int { pixelPath.logicalRawFrameCopyCount }
 }
 
 public enum HostScreenCaptureError: Error, CustomStringConvertible {
@@ -85,8 +75,7 @@ public enum HostScreenCaptureError: Error, CustomStringConvertible {
         case .displayUnavailable: return "requested ScreenCaptureKit display is unavailable"
         case .unsupportedPixelFormat(let format):
             return "unsupported ScreenCaptureKit pixel format: \(format)"
-        case .configurationUpdateFailed:
-            return "ScreenCaptureKit configuration update failed"
+        case .configurationUpdateFailed: return "ScreenCaptureKit configuration update failed"
         case .streamStopped: return "ScreenCaptureKit stream stopped"
         }
     }
@@ -136,14 +125,11 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
 
     public static let preferredPixelFormats: [OSType] = [
         kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
-        kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
-        kCVPixelFormatType_32BGRA,
+        kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_32BGRA,
     ]
 
     private let captureQueue = DispatchQueue(
-        label: "io.farpane.host-capture",
-        qos: .userInteractive
-    )
+        label: "io.farpane.host-capture", qos: .userInteractive)
     private let lock = NSLock()
     private let onFrame: FrameHandler
     private let onSample: MetadataHandler
@@ -161,27 +147,18 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     private var stopTask: Task<Void, Never>?
 
     public convenience init(
-        onFrame: @escaping FrameHandler,
-        onSample: @escaping SampleHandler = {},
+        onFrame: @escaping FrameHandler, onSample: @escaping SampleHandler = {},
         onError: @escaping ErrorHandler
     ) {
         self.init(
-            onFrame: onFrame,
-            onSample: { _ in onSample() },
-            onDrop: { _ in },
-            onCadence: { _ in },
-            pressureProvider: { .clear },
-            onError: onError
-        )
+            onFrame: onFrame, onSample: { _ in onSample() }, onDrop: { _ in }, onCadence: { _ in },
+            pressureProvider: { .clear }, onError: onError)
     }
 
     init(
-        onFrame: @escaping FrameHandler,
-        onSample: @escaping MetadataHandler,
-        onDrop: @escaping DropHandler,
-        onCadence: @escaping CadenceHandler,
-        pressureProvider: @escaping PressureProvider,
-        onError: @escaping ErrorHandler
+        onFrame: @escaping FrameHandler, onSample: @escaping MetadataHandler,
+        onDrop: @escaping DropHandler, onCadence: @escaping CadenceHandler,
+        pressureProvider: @escaping PressureProvider, onError: @escaping ErrorHandler
     ) {
         self.onFrame = onFrame
         self.onSample = onSample
@@ -206,22 +183,12 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         }
         let display = content.displays[configuration.displayIndex]
         let filter = SCContentFilter(
-            display: display,
-            excludingApplications: [],
-            exceptingWindows: []
-        )
+            display: display, excludingApplications: [], exceptingWindows: [])
         let streamConfiguration = Self.streamConfiguration(
-            for: configuration,
-            framesPerSecond: configuration.framesPerSecond
-        )
+            for: configuration, framesPerSecond: configuration.framesPerSecond)
         let cadenceController = HostCaptureCadenceController(
-            maximumFramesPerSecond: configuration.framesPerSecond
-        )
-        let stream = SCStream(
-            filter: filter,
-            configuration: streamConfiguration,
-            delegate: self
-        )
+            maximumFramesPerSecond: configuration.framesPerSecond)
+        let stream = SCStream(filter: filter, configuration: streamConfiguration, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: captureQueue)
         let mayStart = lock.withLock { () -> Bool in
             guard !terminallyCancelled else { return false }
@@ -233,9 +200,7 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
             self.nextConfigurationRetryNanoseconds = 0
             return true
         }
-        guard mayStart else {
-            throw HostScreenCaptureError.streamStopped("cancelled")
-        }
+        guard mayStart else { throw HostScreenCaptureError.streamStopped("cancelled") }
         do {
             try await stream.startCapture()
             guard lock.withLock({ !terminallyCancelled && self.stream === stream }) else {
@@ -258,36 +223,27 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     /// explicitly and bridge its completion into async/await ourselves.
     private static func fastShareableContent() async throws -> SCShareableContent {
         try await withCheckedThrowingContinuation { continuation in
-            SCShareableContent.getExcludingDesktopWindows(
-                false,
-                onScreenWindowsOnly: true
-            ) { content, error in
+            SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: true) {
+                content, error in
                 if let content {
                     continuation.resume(returning: content)
                 } else {
                     continuation.resume(
-                        throwing: error ?? HostScreenCaptureError.displayUnavailable
-                    )
+                        throwing: error ?? HostScreenCaptureError.displayUnavailable)
                 }
             }
         }
     }
 
     static func streamConfiguration(
-        for configuration: HostCaptureConfiguration,
-        framesPerSecond: Int
+        for configuration: HostCaptureConfiguration, framesPerSecond: Int
     ) -> SCStreamConfiguration {
-        let boundedFPS = min(
-            configuration.framesPerSecond,
-            max(1, framesPerSecond)
-        )
+        let boundedFPS = min(configuration.framesPerSecond, max(1, framesPerSecond))
         let streamConfiguration = SCStreamConfiguration()
         streamConfiguration.width = configuration.width
         streamConfiguration.height = configuration.height
         streamConfiguration.minimumFrameInterval = CMTime(
-            value: 1,
-            timescale: CMTimeScale(boundedFPS)
-        )
+            value: 1, timescale: CMTimeScale(boundedFPS))
         streamConfiguration.queueDepth = 3
         streamConfiguration.showsCursor = configuration.showsCursor
         streamConfiguration.pixelFormat = Self.preferredPixelFormats[0]
@@ -310,47 +266,39 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
             let stream = self.stream
             let cancelledUpdate = clearStreamState()
             guard let stream else { return cancelledUpdate }
-            let task = Task {
-                do { try await stream.stopCapture() } catch {}
-            }
+            let task = Task { do { try await stream.stopCapture() } catch {} }
             stopTask = task
             return cancelledUpdate
         }
         if cancelledUpdate { onCadence(.configurationCancelled) }
     }
 
-    private static func frameAttachments(
-        from sampleBuffer: CMSampleBuffer
-    ) -> [SCStreamFrameInfo: Any]? {
-        guard let attachments = CMSampleBufferGetSampleAttachmentsArray(
-            sampleBuffer,
-            createIfNecessary: false
-        ) as? [[SCStreamFrameInfo: Any]],
-        let first = attachments.first else { return nil }
+    private static func frameAttachments(from sampleBuffer: CMSampleBuffer) -> [SCStreamFrameInfo:
+        Any]?
+    {
+        guard
+            let attachments = CMSampleBufferGetSampleAttachmentsArray(
+                sampleBuffer, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
+            let first = attachments.first
+        else { return nil }
         return first
     }
 
-    private static func frameStatus(
-        from attachments: [SCStreamFrameInfo: Any]?
-    ) -> SCFrameStatus? {
+    private static func frameStatus(from attachments: [SCStreamFrameInfo: Any]?) -> SCFrameStatus? {
         guard let raw = attachments?[.status] as? NSNumber else { return nil }
         return SCFrameStatus(rawValue: raw.intValue)
     }
 
-    static func metadataAvailability(
-        from attachments: [SCStreamFrameInfo: Any]?
-    ) -> HostCaptureSampleMetadataAvailability {
+    static func metadataAvailability(from attachments: [SCStreamFrameInfo: Any]?)
+        -> HostCaptureSampleMetadataAvailability
+    {
         guard let raw = attachments?[.status] as? NSNumber else {
             return HostCaptureSampleMetadataAvailability(
-                frameStatus: .missingOrInvalid,
-                completeFrameDirtyRects: nil
-            )
+                frameStatus: .missingOrInvalid, completeFrameDirtyRects: nil)
         }
         guard let status = SCFrameStatus(rawValue: raw.intValue) else {
             return HostCaptureSampleMetadataAvailability(
-                frameStatus: .unknown,
-                completeFrameDirtyRects: nil
-            )
+                frameStatus: .unknown, completeFrameDirtyRects: nil)
         }
         let statusKind: HostCaptureFrameStatusKind
         switch status {
@@ -365,14 +313,12 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         return HostCaptureSampleMetadataAvailability(
             frameStatus: statusKind,
             completeFrameDirtyRects: status == .complete
-                ? dirtyRectsAttachmentState(from: attachments)
-                : nil
-        )
+                ? dirtyRectsAttachmentState(from: attachments) : nil)
     }
 
-    private static func dirtyRectsAttachmentState(
-        from attachments: [SCStreamFrameInfo: Any]?
-    ) -> HostCaptureDirtyRectsAttachmentState {
+    private static func dirtyRectsAttachmentState(from attachments: [SCStreamFrameInfo: Any]?)
+        -> HostCaptureDirtyRectsAttachmentState
+    {
         guard let raw = attachments?[.dirtyRects] else { return .absent }
         guard let rects = raw as? [CGRect] else { return .unrecognized }
         return rects.isEmpty ? .recognizedEmpty : .recognizedNonEmpty
@@ -387,69 +333,53 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     }
 
     private static func dirtyMetadata(
-        from attachments: [SCStreamFrameInfo: Any]?,
-        pixelBuffer: CVPixelBuffer
+        from attachments: [SCStreamFrameInfo: Any]?, pixelBuffer: CVPixelBuffer
     ) -> (count: Int?, areaRatio: Double?) {
         guard let attachments else { return (nil, nil) }
         guard let rects = attachments[.dirtyRects] as? [CGRect] else { return (nil, nil) }
         let fallbackBounds = CGRect(
-            x: 0,
-            y: 0,
-            width: CVPixelBufferGetWidth(pixelBuffer),
-            height: CVPixelBufferGetHeight(pixelBuffer)
-        )
+            x: 0, y: 0, width: CVPixelBufferGetWidth(pixelBuffer),
+            height: CVPixelBufferGetHeight(pixelBuffer))
         let bounds = (attachments[.contentRect] as? CGRect ?? fallbackBounds).standardized
         guard bounds.width > 0, bounds.height > 0 else { return (rects.count, nil) }
         let dirtyArea = rects.reduce(0.0) { partial, rect in
             let clipped = rect.standardized.intersection(bounds)
-            guard !clipped.isNull, clipped.width > 0, clipped.height > 0 else {
-                return partial
-            }
+            guard !clipped.isNull, clipped.width > 0, clipped.height > 0 else { return partial }
             return partial + clipped.width * clipped.height
         }
         let ratio = min(1, max(0, dirtyArea / (bounds.width * bounds.height)))
         return (rects.count, ratio)
     }
 
-    private func updateCadence(
-        for stream: SCStream,
-        observation: HostCaptureCadenceObservation
-    ) {
+    private func updateCadence(for stream: SCStream, observation: HostCaptureCadenceObservation) {
         let now = DispatchTime.now().uptimeNanoseconds
         let backpressure = pressureProvider()
         var decisionToReport: HostCaptureCadenceDecision?
         let update = lock.withLock { () -> (HostCaptureConfiguration, Int)? in
-            guard self.stream === stream,
-                  let captureConfiguration,
-                  var cadenceController else { return nil }
+            guard self.stream === stream, let captureConfiguration, var cadenceController else {
+                return nil
+            }
             let decision: HostCaptureCadenceDecision
             switch observation {
             case .completeFrame(let dirtyAreaRatio):
                 decision = cadenceController.observe(
-                    dirtyAreaRatio: dirtyAreaRatio,
-                    backpressure: backpressure,
-                    nowNanoseconds: now
-                )
+                    dirtyAreaRatio: dirtyAreaRatio, backpressure: backpressure, nowNanoseconds: now)
             case .idleFrameStatus:
                 decision = cadenceController.observeIdleFrameStatus(
-                    backpressure: backpressure,
-                    nowNanoseconds: now
-                )
+                    backpressure: backpressure, nowNanoseconds: now)
             }
             self.cadenceController = cadenceController
             decisionToReport = decision
-            guard decision.framesPerSecond != appliedFramesPerSecond,
-                  !configurationUpdateInFlight,
-                  now >= nextConfigurationRetryNanoseconds else { return nil }
+            guard decision.framesPerSecond != appliedFramesPerSecond, !configurationUpdateInFlight,
+                now >= nextConfigurationRetryNanoseconds
+            else { return nil }
             configurationUpdateInFlight = true
             return (captureConfiguration, decision.framesPerSecond)
         }
         if let decisionToReport { onCadence(.decision(decisionToReport)) }
         guard let (captureConfiguration, framesPerSecond) = update else { return }
         let streamConfiguration = Self.streamConfiguration(
-            for: captureConfiguration,
-            framesPerSecond: framesPerSecond
-        )
+            for: captureConfiguration, framesPerSecond: framesPerSecond)
         onCadence(.configurationSubmitted(framesPerSecond: framesPerSecond))
         stream.updateConfiguration(streamConfiguration) { [weak self, weak stream] error in
             guard let self, let stream else { return }
@@ -462,15 +392,11 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
                     self.nextConfigurationRetryNanoseconds =
                         DispatchTime.now().uptimeNanoseconds + 2_000_000_000
                     reportedError = .configurationUpdateFailed(String(describing: error))
-                    cadenceEvent = .configurationFailed(
-                        framesPerSecond: framesPerSecond
-                    )
+                    cadenceEvent = .configurationFailed(framesPerSecond: framesPerSecond)
                 } else {
                     self.appliedFramesPerSecond = framesPerSecond
                     self.nextConfigurationRetryNanoseconds = 0
-                    cadenceEvent = .configurationApplied(
-                        framesPerSecond: framesPerSecond
-                    )
+                    cadenceEvent = .configurationApplied(framesPerSecond: framesPerSecond)
                 }
             }
             if let cadenceEvent { self.onCadence(cadenceEvent) }
@@ -492,8 +418,7 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
 
 extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
     public func stream(
-        _ stream: SCStream,
-        didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
+        _ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
         of outputType: SCStreamOutputType
     ) {
         guard outputType == .screen else { return }
@@ -515,8 +440,7 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
             // blank/suspended/started/stopped are lifecycle state signals,
             // not hidden application drops and must not be mislabeled.
             return
-        case .complete:
-            break
+        case .complete: break
         }
         guard let pixelBuffer = sampleBuffer.imageBuffer else {
             onDrop(.invalidFrame)
@@ -528,21 +452,13 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
             onError(.unsupportedPixelFormat(format))
             return
         }
-        let dirtyMetadata = Self.dirtyMetadata(
-            from: attachments,
-            pixelBuffer: pixelBuffer
-        )
-        onFrame(HostCapturedFrame(
-            pixelBuffer: pixelBuffer,
-            presentationTime: sampleBuffer.presentationTimeStamp,
-            pixelPath: pixelPath,
-            dirtyRectCount: dirtyMetadata.count,
-            dirtyAreaRatio: dirtyMetadata.areaRatio
-        ))
-        updateCadence(
-            for: stream,
-            observation: .completeFrame(dirtyMetadata.areaRatio)
-        )
+        let dirtyMetadata = Self.dirtyMetadata(from: attachments, pixelBuffer: pixelBuffer)
+        onFrame(
+            HostCapturedFrame(
+                pixelBuffer: pixelBuffer, presentationTime: sampleBuffer.presentationTimeStamp,
+                pixelPath: pixelPath, dirtyRectCount: dirtyMetadata.count,
+                dirtyAreaRatio: dirtyMetadata.areaRatio))
+        updateCadence(for: stream, observation: .completeFrame(dirtyMetadata.areaRatio))
     }
 
     public func stream(_ stream: SCStream, didStopWithError error: Error) {
@@ -561,8 +477,8 @@ private enum HostCaptureCadenceObservation {
     case idleFrameStatus
 }
 
-private extension NSLock {
-    func withLock<T>(_ body: () throws -> T) rethrows -> T {
+extension NSLock {
+    fileprivate func withLock<T>(_ body: () throws -> T) rethrows -> T {
         lock()
         defer { unlock() }
         return try body()

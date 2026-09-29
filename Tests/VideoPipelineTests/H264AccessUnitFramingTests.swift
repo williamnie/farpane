@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+
 @testable import VideoPipeline
 
 private struct H264FramingFixture: Decodable {
@@ -12,26 +13,18 @@ private struct H264FramingFixture: Decodable {
 
 final class H264AccessUnitFramingTests: XCTestCase {
     func testProvisionalAVCCAndAnnexBGoldenVectorsAreEquivalent() throws {
-        let fixtureURL = try XCTUnwrap(Bundle.module.url(
-            forResource: "h264-framing-vectors",
-            withExtension: "json",
-            subdirectory: "Fixtures"
-        ))
+        let fixtureURL = try XCTUnwrap(
+            Bundle.module.url(
+                forResource: "h264-framing-vectors", withExtension: "json", subdirectory: "Fixtures"
+            ))
         let fixture = try JSONDecoder().decode(
-            H264FramingFixture.self,
-            from: Data(contentsOf: fixtureURL)
-        )
+            H264FramingFixture.self, from: Data(contentsOf: fixtureURL))
         XCTAssertEqual(fixture.name, "provisional-h264-idr")
         XCTAssertTrue(fixture.source.contains("official RustDesk"))
 
-        let avcc = try H264FramingAccessUnit(
-            data: try Data(hex: fixture.avcc4Hex),
-            framing: .avcc4
-        )
+        let avcc = try H264FramingAccessUnit(data: try Data(hex: fixture.avcc4Hex), framing: .avcc4)
         let annexB = try H264FramingAccessUnit(
-            data: try Data(hex: fixture.annexBHex),
-            framing: .annexB
-        )
+            data: try Data(hex: fixture.annexBHex), framing: .annexB)
         XCTAssertEqual(avcc, annexB)
         XCTAssertEqual(avcc.nalUnits.map(\.data), try fixture.nalHex.map(Data.init(hex:)))
         XCTAssertEqual(avcc.nalUnits.map(\.type), [7, 8, 5])
@@ -42,30 +35,18 @@ final class H264AccessUnitFramingTests: XCTestCase {
     }
 
     func testFramingParserFailsClosedOnTruncationAndEmptyNALs() {
-        XCTAssertThrowsError(try H264FramingAccessUnit(
-            data: Data([0, 0, 0, 4, 0x65, 0x01]),
-            framing: .avcc4
-        ))
-        XCTAssertThrowsError(try H264FramingAccessUnit(
-            data: Data([0, 0, 0, 0]),
-            framing: .avcc4
-        ))
-        XCTAssertThrowsError(try H264FramingAccessUnit(
-            data: Data([0, 0, 0, 1, 0, 0, 1, 0x65]),
-            framing: .annexB
-        ))
-        XCTAssertThrowsError(try H264FramingAccessUnit(
-            data: Data([0x65, 0x01]),
-            framing: .annexB
-        ))
+        XCTAssertThrowsError(
+            try H264FramingAccessUnit(data: Data([0, 0, 0, 4, 0x65, 0x01]), framing: .avcc4))
+        XCTAssertThrowsError(try H264FramingAccessUnit(data: Data([0, 0, 0, 0]), framing: .avcc4))
+        XCTAssertThrowsError(
+            try H264FramingAccessUnit(data: Data([0, 0, 0, 1, 0, 0, 1, 0x65]), framing: .annexB))
+        XCTAssertThrowsError(try H264FramingAccessUnit(data: Data([0x65, 0x01]), framing: .annexB))
     }
 }
 
-private extension Data {
-    init(hex: String) throws {
-        guard hex.count.isMultiple(of: 2) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
+extension Data {
+    fileprivate init(hex: String) throws {
+        guard hex.count.isMultiple(of: 2) else { throw CocoaError(.fileReadCorruptFile) }
         var bytes: [UInt8] = []
         bytes.reserveCapacity(hex.count / 2)
         var index = hex.startIndex

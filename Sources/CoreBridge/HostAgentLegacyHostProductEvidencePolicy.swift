@@ -13,13 +13,9 @@ package struct HostAgentLegacyHostProductObservation: Equatable, Sendable {
     package let runtimeQuiescenceConfirmed: Bool
 
     package init(
-        preferenceEnabled: Bool,
-        runtimeActive: Bool,
-        clientRetained: Bool,
-        session: HostAgentLegacyHostSessionObservation,
-        mediaPipelineActive: Bool,
-        pollerActive: Bool,
-        runtimeQuiescenceConfirmed: Bool
+        preferenceEnabled: Bool, runtimeActive: Bool, clientRetained: Bool,
+        session: HostAgentLegacyHostSessionObservation, mediaPipelineActive: Bool,
+        pollerActive: Bool, runtimeQuiescenceConfirmed: Bool
     ) {
         self.preferenceEnabled = preferenceEnabled
         self.runtimeActive = runtimeActive
@@ -35,56 +31,40 @@ package struct HostAgentLegacyHostProductObservation: Equatable, Sendable {
 /// independent migration signals. A failed Core stop makes runtime and session
 /// ownership unavailable even if local references have already been cleared.
 package enum HostAgentLegacyHostProductEvidencePolicy {
-    package static let unavailableEvidence =
-        HostAgentLegacyHostMigrationEvidence(
-            preferenceEnabled: .unavailable,
-            runtimeActive: .unavailable,
-            clientRetained: .unavailable,
-            pendingApproval: .unavailable,
-            activeSession: .unavailable,
-            mediaPipelineActive: .unavailable,
-            pollerActive: .unavailable
-        )
+    package static let unavailableEvidence = HostAgentLegacyHostMigrationEvidence(
+        preferenceEnabled: .unavailable, runtimeActive: .unavailable, clientRetained: .unavailable,
+        pendingApproval: .unavailable, activeSession: .unavailable,
+        mediaPipelineActive: .unavailable, pollerActive: .unavailable)
 
-    package static func evidence(
-        _ observation: HostAgentLegacyHostProductObservation
-    ) -> HostAgentLegacyHostMigrationEvidence {
+    package static func evidence(_ observation: HostAgentLegacyHostProductObservation)
+        -> HostAgentLegacyHostMigrationEvidence
+    {
         let sessionEvidence = sessionEvidence(for: observation)
         return HostAgentLegacyHostMigrationEvidence(
             preferenceEnabled: status(observation.preferenceEnabled),
             runtimeActive: observation.runtimeQuiescenceConfirmed
-                ? status(observation.runtimeActive)
-                : .unavailable,
+                ? status(observation.runtimeActive) : .unavailable,
             clientRetained: status(observation.clientRetained),
             pendingApproval: sessionEvidence.pendingApproval,
             activeSession: sessionEvidence.activeSession,
             mediaPipelineActive: status(observation.mediaPipelineActive),
-            pollerActive: status(observation.pollerActive)
-        )
+            pollerActive: status(observation.pollerActive))
     }
 
-    private static func sessionEvidence(
-        for observation: HostAgentLegacyHostProductObservation
-    ) -> (
+    private static func sessionEvidence(for observation: HostAgentLegacyHostProductObservation) -> (
         pendingApproval: HostAgentLegacyHostMigrationEvidenceStatus,
         activeSession: HostAgentLegacyHostMigrationEvidenceStatus
     ) {
-        guard observation.runtimeQuiescenceConfirmed else {
-            return (.unavailable, .unavailable)
-        }
+        guard observation.runtimeQuiescenceConfirmed else { return (.unavailable, .unavailable) }
         switch observation.session {
         case .available(let pendingApproval, let activeSession):
             return (status(pendingApproval), status(activeSession))
         case .unavailable:
-            return observation.runtimeActive
-                ? (.unavailable, .unavailable)
-                : (.absent, .absent)
+            return observation.runtimeActive ? (.unavailable, .unavailable) : (.absent, .absent)
         }
     }
 
-    private static func status(
-        _ present: Bool
-    ) -> HostAgentLegacyHostMigrationEvidenceStatus {
+    private static func status(_ present: Bool) -> HostAgentLegacyHostMigrationEvidenceStatus {
         present ? .present : .absent
     }
 }

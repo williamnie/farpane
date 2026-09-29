@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import CoreBridge
 
 final class ViewerAudioSessionOwnerTests: XCTestCase {
@@ -39,16 +40,13 @@ final class ViewerAudioSessionOwnerTests: XCTestCase {
 
     func testPresentationDistinguishesEveryPolicyAndPermissionState() {
         let disabled = ViewerAudioSessionPresentationPolicy.project(
-            ViewerAudioSessionOwner(receiveAudio: false).snapshot()
-        )
+            ViewerAudioSessionOwner(receiveAudio: false).snapshot())
         XCTAssertEqual(disabled.statusText, "音频：本次未开启")
         XCTAssertFalse(disabled.statusIsError)
 
         let owner = ViewerAudioSessionOwner(receiveAudio: true)
         XCTAssertEqual(
-            ViewerAudioSessionPresentationPolicy.project(owner.snapshot()).statusText,
-            "音频：等待远端授权"
-        )
+            ViewerAudioSessionPresentationPolicy.project(owner.snapshot()).statusText, "音频：等待远端授权")
         XCTAssertTrue(owner.observe(permission(epoch: 3, enabled: false)))
         let denied = ViewerAudioSessionPresentationPolicy.project(owner.snapshot())
         XCTAssertEqual(denied.statusText, "音频：远端未授权")
@@ -56,10 +54,6 @@ final class ViewerAudioSessionOwnerTests: XCTestCase {
     }
 
     private func permission(epoch: UInt64, enabled: Bool) -> CoreRemotePermissionEvent {
-        CoreRemotePermissionEvent(
-            connectionEpoch: epoch,
-            permission: .audio,
-            enabled: enabled
-        )
+        CoreRemotePermissionEvent(connectionEpoch: epoch, permission: .audio, enabled: enabled)
     }
 }

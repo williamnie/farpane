@@ -22,6 +22,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, TextIO
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    has_control_character,
+    has_symlink_component,
+    is_positive_decimal,
+    utc_now,
+)
+
 
 SCHEMA = "farpane-host-combined-role-system-sample"
 SCHEMA_VERSION = 1
@@ -164,29 +173,6 @@ def usage() -> None:
         "SCENARIO DURATION OUTPUT_PREFIX HOST_AGENT_PID VIEWER_PID",
         file=sys.stderr,
     )
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def is_positive_decimal(value: str) -> bool:
-    return bool(re.fullmatch(r"[1-9][0-9]*", value))
-
-
-def has_control_character(value: str) -> bool:
-    return any(ord(character) < 0x20 or ord(character) == 0x7F for character in value)
-
-
-def has_symlink_component(path: Path) -> bool:
-    if not path.is_absolute():
-        return True
-    current = Path(path.anchor)
-    for component in path.parts[1:]:
-        current /= component
-        if current.is_symlink():
-            return True
-    return False
 
 
 def validate_output_prefix(value: str) -> Path:

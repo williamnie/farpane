@@ -1,6 +1,7 @@
 import Foundation
-@testable import CoreBridge
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentSleepWakeNotificationDeliveryOwnerTests: XCTestCase {
     func testDeliversOnlyExactSleepWakeCycles() {
@@ -15,17 +16,12 @@ final class HostAgentSleepWakeNotificationDeliveryOwnerTests: XCTestCase {
         XCTAssertTrue(owner.deliver(.willSleep))
         XCTAssertTrue(owner.deliver(.didWake))
 
-        XCTAssertEqual(
-            recorder.events,
-            [.willSleep, .didWake, .willSleep, .didWake]
-        )
+        XCTAssertEqual(recorder.events, [.willSleep, .didWake, .willSleep, .didWake])
         XCTAssertEqual(owner.stateSnapshot(), .awake)
     }
 
     func testWillSleepFailureFailsClosed() {
-        let recorder = SleepWakeNotificationRecorder(
-            rejectedEvent: .willSleep
-        )
+        let recorder = SleepWakeNotificationRecorder(rejectedEvent: .willSleep)
         let owner = makeOwner(recorder: recorder)
 
         XCTAssertFalse(owner.deliver(.willSleep))
@@ -35,9 +31,7 @@ final class HostAgentSleepWakeNotificationDeliveryOwnerTests: XCTestCase {
     }
 
     func testDidWakeFailureFailsClosed() {
-        let recorder = SleepWakeNotificationRecorder(
-            rejectedEvent: .didWake
-        )
+        let recorder = SleepWakeNotificationRecorder(rejectedEvent: .didWake)
         let owner = makeOwner(recorder: recorder)
 
         XCTAssertTrue(owner.deliver(.willSleep))
@@ -55,9 +49,7 @@ final class HostAgentSleepWakeNotificationDeliveryOwnerTests: XCTestCase {
                 entered.signal()
                 release.wait()
                 return true
-            },
-            deliverDidWake: { true }
-        )
+            }, deliverDidWake: { true })
         let finished = expectation(description: "will sleep delivered")
 
         DispatchQueue.global().async {
@@ -81,9 +73,7 @@ final class HostAgentSleepWakeNotificationDeliveryOwnerTests: XCTestCase {
                 entered.signal()
                 release.wait()
                 return true
-            },
-            deliverDidWake: { true }
-        )
+            }, deliverDidWake: { true })
         let deliveryFinished = expectation(description: "delivery returned")
         let cancellationFinished = DispatchSemaphore(value: 0)
 
@@ -97,18 +87,12 @@ final class HostAgentSleepWakeNotificationDeliveryOwnerTests: XCTestCase {
             owner.cancelAndWait()
             cancellationFinished.signal()
         }
-        XCTAssertEqual(
-            cancellationFinished.wait(timeout: .now() + 0.05),
-            .timedOut
-        )
+        XCTAssertEqual(cancellationFinished.wait(timeout: .now() + 0.05), .timedOut)
         XCTAssertFalse(owner.deliver(.didWake))
 
         release.signal()
         wait(for: [deliveryFinished], timeout: 1)
-        XCTAssertEqual(
-            cancellationFinished.wait(timeout: .now() + 1),
-            .success
-        )
+        XCTAssertEqual(cancellationFinished.wait(timeout: .now() + 1), .success)
         XCTAssertEqual(owner.stateSnapshot(), .cancelled)
         XCTAssertFalse(owner.deliver(.willSleep))
     }
@@ -126,17 +110,12 @@ final class HostAgentSleepWakeNotificationDeliveryOwnerTests: XCTestCase {
         XCTAssertEqual(recorder.events, [])
     }
 
-    private func makeOwner(
-        recorder: SleepWakeNotificationRecorder
-    ) -> HostAgentSleepWakeNotificationDeliveryOwner {
+    private func makeOwner(recorder: SleepWakeNotificationRecorder)
+        -> HostAgentSleepWakeNotificationDeliveryOwner
+    {
         HostAgentSleepWakeNotificationDeliveryOwner(
-            deliverWillSleep: {
-                recorder.record(.willSleep)
-            },
-            deliverDidWake: {
-                recorder.record(.didWake)
-            }
-        )
+            deliverWillSleep: { recorder.record(.willSleep) },
+            deliverDidWake: { recorder.record(.didWake) })
     }
 }
 

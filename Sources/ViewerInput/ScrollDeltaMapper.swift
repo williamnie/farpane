@@ -26,11 +26,7 @@ public enum ScrollDeltaMapper {
     /// Maps AppKit's fractional magnification delta to the pixel-scale scroll
     /// convention used by RustDesk's touch gesture implementation.
     public static func map(magnification: Double) -> RemoteScrollDelta? {
-        map(
-            deltaX: 0,
-            deltaY: magnification * magnificationToPixelScale,
-            precise: true
-        )
+        map(deltaX: 0, deltaY: magnification * magnificationToPixelScale, precise: true)
     }
 
     private static func quantize(_ value: Double, precise: Bool) -> Int32 {

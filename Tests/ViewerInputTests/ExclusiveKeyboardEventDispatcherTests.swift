@@ -14,19 +14,14 @@ final class ExclusiveKeyboardEventDispatcherTests: XCTestCase {
                 allowSendToFinish.wait()
                 sendFinished.fulfill()
                 return 0
-            },
-            recordResult: { _, _ in }
-        )
+            }, recordResult: { _, _ in })
 
         DispatchQueue.global().async {
             dispatcher.enqueue(CoreKeyEvent(key: .physical(45), isDown: true))
             enqueueReturned.fulfill()
         }
 
-        XCTAssertEqual(
-            XCTWaiter.wait(for: [enqueueReturned, sendStarted], timeout: 1),
-            .completed
-        )
+        XCTAssertEqual(XCTWaiter.wait(for: [enqueueReturned, sendStarted], timeout: 1), .completed)
         allowSendToFinish.signal()
         wait(for: [sendFinished], timeout: 1)
     }
@@ -39,9 +34,7 @@ final class ExclusiveKeyboardEventDispatcherTests: XCTestCase {
             send: { event in
                 recorder.append(event)
                 return 0
-            },
-            recordResult: { _, _ in recordedAllEvents.fulfill() }
-        )
+            }, recordResult: { _, _ in recordedAllEvents.fulfill() })
 
         dispatcher.enqueue(CoreKeyEvent(key: .physical(55), isDown: true))
         dispatcher.enqueue(CoreKeyEvent(key: .physical(45), isDown: true))
@@ -56,8 +49,7 @@ final class ExclusiveKeyboardEventDispatcherTests: XCTestCase {
                 KeyTransition(key: .physical(45), isDown: true),
                 KeyTransition(key: .physical(45), isDown: false),
                 KeyTransition(key: .physical(55), isDown: false),
-            ]
-        )
+            ])
     }
 }
 

@@ -20,9 +20,7 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
     private var composition: HostAgentNetworkPathRecoveryComposition?
     private var pathIngress: HostAgentNWPathMonitorIngress?
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
     func stateSnapshot() -> HostAgentNetworkPathRecoveryProcessState {
         condition.lock()
@@ -30,17 +28,13 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
         return state
     }
 
-    @discardableResult
-    func install(
-        lifetime: HostAgentProcessLifetime,
-        expectedHostInstanceID: String,
+    @discardableResult func install(
+        lifetime: HostAgentProcessLifetime, expectedHostInstanceID: String,
         snapshotCoordinator: HostAgentSnapshotRefreshCoordinator,
         recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner
     ) -> Bool {
         condition.lock()
-        guard state == .idle,
-              !expectedHostInstanceID.isEmpty
-        else {
+        guard state == .idle, !expectedHostInstanceID.isEmpty else {
             condition.unlock()
             return false
         }
@@ -48,19 +42,11 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
         condition.unlock()
 
         let composition = HostAgentNetworkPathRecoveryComposition(
-            lifetime: lifetime,
-            expectedHostInstanceID: expectedHostInstanceID,
-            snapshotCoordinator: snapshotCoordinator,
-            recoveryEvidenceOwner: recoveryEvidenceOwner
-        )
+            lifetime: lifetime, expectedHostInstanceID: expectedHostInstanceID,
+            snapshotCoordinator: snapshotCoordinator, recoveryEvidenceOwner: recoveryEvidenceOwner)
         let pathIngress = HostAgentNWPathMonitorIngress.makeProduct(
-            deliverPath: { path in
-                composition.consume(path) != .rejected
-            },
-            onFailure: { [weak lifetime] in
-                _ = lifetime?.requestTermination(reason: .error)
-            }
-        )
+            deliverPath: { path in composition.consume(path) != .rejected },
+            onFailure: { [weak lifetime] in _ = lifetime?.requestTermination(reason: .error) })
         guard pathIngress.start() else {
             pathIngress.cancelAndWait()
             composition.cancelAndWait()
@@ -112,16 +98,12 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
             condition.unlock()
             return
         case .cancelling:
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
             return
         case .installing:
             cancellationRequested = true
-            while state == .installing {
-                condition.wait()
-            }
+            while state == .installing { condition.wait() }
             condition.unlock()
             return
         case .idle:
@@ -147,9 +129,7 @@ final class HostAgentNetworkPathRecoveryProcessOwner: @unchecked Sendable {
         }
     }
 
-    private func installedComposition()
-        -> HostAgentNetworkPathRecoveryComposition?
-    {
+    private func installedComposition() -> HostAgentNetworkPathRecoveryComposition? {
         condition.lock()
         defer { condition.unlock() }
         guard state == .installed else { return nil }

@@ -12,9 +12,7 @@ public struct ServerConfiguration: Codable, Equatable, Sendable {
     public var forceRelay: Bool
 
     public init(
-        displayName: String,
-        rendezvousServer: String,
-        serverPublicKey: String,
+        displayName: String, rendezvousServer: String, serverPublicKey: String,
         forceRelay: Bool = false
     ) {
         self.displayName = displayName
@@ -39,12 +37,8 @@ public struct SavedDevice: Codable, Identifiable, Equatable, Sendable {
     public var source: DeviceSource
 
     public init(
-        id: UUID = UUID(),
-        peerID: String,
-        displayName: String? = nil,
-        isFavorite: Bool = false,
-        createdAt: Date = Date(),
-        lastSuccessfulConnectionAt: Date? = nil,
+        id: UUID = UUID(), peerID: String, displayName: String? = nil, isFavorite: Bool = false,
+        createdAt: Date = Date(), lastSuccessfulConnectionAt: Date? = nil,
         source: DeviceSource = .user
     ) {
         self.id = id
@@ -70,8 +64,7 @@ public struct DeviceCatalogDocument: Codable, Equatable, Sendable {
     public var devices: [SavedDevice]
 
     public init(
-        schemaVersion: Int = Self.currentSchemaVersion,
-        server: ServerConfiguration? = nil,
+        schemaVersion: Int = Self.currentSchemaVersion, server: ServerConfiguration? = nil,
         devices: [SavedDevice] = []
     ) {
         self.schemaVersion = schemaVersion
@@ -79,20 +72,15 @@ public struct DeviceCatalogDocument: Codable, Equatable, Sendable {
         self.devices = devices
     }
 
-    public func device(id: UUID) -> SavedDevice? {
-        devices.first { $0.id == id }
-    }
+    public func device(id: UUID) -> SavedDevice? { devices.first { $0.id == id } }
 
     public func device(peerID: String) -> SavedDevice? {
         let normalized = Self.normalize(peerID)
         return devices.first { Self.normalize($0.peerID) == normalized }
     }
 
-    @discardableResult
-    public mutating func recordAuthenticated(
-        peerID: String,
-        preferredID: UUID? = nil,
-        at date: Date = Date()
+    @discardableResult public mutating func recordAuthenticated(
+        peerID: String, preferredID: UUID? = nil, at date: Date = Date()
     ) -> SavedDevice {
         let normalized = Self.normalize(peerID)
         if let index = devices.firstIndex(where: { Self.normalize($0.peerID) == normalized }) {
@@ -102,21 +90,15 @@ public struct DeviceCatalogDocument: Codable, Equatable, Sendable {
             return devices[index]
         }
         let device = SavedDevice(
-            id: preferredID ?? UUID(),
-            peerID: normalized,
-            createdAt: date,
-            lastSuccessfulConnectionAt: date,
-            source: .user
-        )
+            id: preferredID ?? UUID(), peerID: normalized, createdAt: date,
+            lastSuccessfulConnectionAt: date, source: .user)
         devices.append(device)
         return device
     }
 
-    public mutating func updateDevice(
-        id: UUID,
-        displayName: String? = nil,
-        isFavorite: Bool? = nil
-    ) -> Bool {
+    public mutating func updateDevice(id: UUID, displayName: String? = nil, isFavorite: Bool? = nil)
+        -> Bool
+    {
         guard let index = devices.firstIndex(where: { $0.id == id }) else { return false }
         if let displayName {
             let normalized = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -126,8 +108,7 @@ public struct DeviceCatalogDocument: Codable, Equatable, Sendable {
         return true
     }
 
-    @discardableResult
-    public mutating func removeDevice(id: UUID) -> SavedDevice? {
+    @discardableResult public mutating func removeDevice(id: UUID) -> SavedDevice? {
         guard let index = devices.firstIndex(where: { $0.id == id }) else { return nil }
         return devices.remove(at: index)
     }
@@ -136,8 +117,7 @@ public struct DeviceCatalogDocument: Codable, Equatable, Sendable {
         devices.sorted { lhs, rhs in
             if lhs.isFavorite != rhs.isFavorite { return lhs.isFavorite }
             switch (lhs.lastSuccessfulConnectionAt, rhs.lastSuccessfulConnectionAt) {
-            case let (left?, right?):
-                if left != right { return left > right }
+            case (let left?, let right?): if left != right { return left > right }
             case (_?, nil): return true
             case (nil, _?): return false
             case (nil, nil): break

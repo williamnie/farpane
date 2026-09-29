@@ -11,3 +11,6 @@ __pycache__/
 *.pyc
 Vendor/rustdesk/
 .qoder
+
+# Prevent accidental scp-style destination directories from entering Git.
+mbp:/

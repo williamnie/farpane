@@ -1,17 +1,12 @@
 import Foundation
 
-package enum HostAgentProcessEntrySigningChannel: Equatable, Sendable {
-    case localDevelopment
-}
+package enum HostAgentProcessEntrySigningChannel: Equatable, Sendable { case localDevelopment }
 
 package struct HostAgentProcessEntryEligibility: Equatable, Sendable {
     package let buildIdentifier: String
     package let signingChannel: HostAgentProcessEntrySigningChannel
 
-    package init(
-        buildIdentifier: String,
-        signingChannel: HostAgentProcessEntrySigningChannel
-    ) {
+    package init(buildIdentifier: String, signingChannel: HostAgentProcessEntrySigningChannel) {
         self.buildIdentifier = buildIdentifier
         self.signingChannel = signingChannel
     }
@@ -40,46 +35,30 @@ package enum HostAgentProcessEntryPreflight {
         "/Applications/FarPane.app/Contents/MacOS/FarPaneHostAgent"
     private static let agentFlag = "--host-agent"
 
-    package static func assessMainProcess()
-        -> HostAgentProcessEntryAssessment
-    {
+    package static func assessMainProcess() -> HostAgentProcessEntryAssessment {
         assess(
             arguments: CommandLine.arguments,
-            assessIdentity: {
-                HostAgentRegistrationIdentityGate.assessMainBundle()
-            }
-        )
+            assessIdentity: { HostAgentRegistrationIdentityGate.assessMainBundle() })
     }
 
     package static func assess(
-        arguments: [String],
-        assessIdentity: () -> HostAgentRegistrationIdentityStatus
+        arguments: [String], assessIdentity: () -> HostAgentRegistrationIdentityStatus
     ) -> HostAgentProcessEntryAssessment {
-        guard validInvocation(arguments) else {
-            return .rejected(.invalidInvocation)
-        }
+        guard validInvocation(arguments) else { return .rejected(.invalidInvocation) }
 
         switch assessIdentity() {
-        case .invalidLaunchAgent:
-            return .rejected(.invalidLaunchAgent)
-        case .invalidApplication:
-            return .rejected(.invalidApplication)
-        case .invalidCodeSignature:
-            return .rejected(.invalidCodeSignature)
+        case .invalidLaunchAgent: return .rejected(.invalidLaunchAgent)
+        case .invalidApplication: return .rejected(.invalidApplication)
+        case .invalidCodeSignature: return .rejected(.invalidCodeSignature)
         case .localDevelopmentEligible(let buildIdentifier):
-            guard HostAgentRegistrationBundlePreflight
-                .validBuildIdentifier(buildIdentifier)
-            else {
+            guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(buildIdentifier) else {
                 return .rejected(.invalidApplication)
             }
-            return .eligible(HostAgentProcessEntryEligibility(
-                buildIdentifier: buildIdentifier,
-                signingChannel: .localDevelopment
-            ))
+            return .eligible(
+                HostAgentProcessEntryEligibility(
+                    buildIdentifier: buildIdentifier, signingChannel: .localDevelopment))
         case .distributionNotarizationRequired(let buildIdentifier):
-            guard HostAgentRegistrationBundlePreflight
-                .validBuildIdentifier(buildIdentifier)
-            else {
+            guard HostAgentRegistrationBundlePreflight.validBuildIdentifier(buildIdentifier) else {
                 return .rejected(.invalidApplication)
             }
             return .rejected(.distributionNotarizationRequired)
@@ -87,12 +66,7 @@ package enum HostAgentProcessEntryPreflight {
     }
 
     private static func validInvocation(_ arguments: [String]) -> Bool {
-        guard arguments.count == 2,
-              arguments[1] == agentFlag
-        else {
-            return false
-        }
-        return arguments[0] == executableName
-            || arguments[0] == installedExecutable
+        guard arguments.count == 2, arguments[1] == agentFlag else { return false }
+        return arguments[0] == executableName || arguments[0] == installedExecutable
     }
 }

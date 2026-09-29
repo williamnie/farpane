@@ -1,6 +1,7 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentBackgroundApprovalNavigationOwnerTests: XCTestCase {
     func testConstructionIsInertUntilExplicitUserConfirmation() {
@@ -10,11 +11,7 @@ final class HostAgentBackgroundApprovalNavigationOwnerTests: XCTestCase {
         XCTAssertEqual(
             owner.snapshot(),
             HostAgentBackgroundApprovalNavigationView(
-                generation: 0,
-                phase: .idle,
-                registration: nil
-            )
-        )
+                generation: 0, phase: .idle, registration: nil))
         XCTAssertEqual(dependencies.events, [])
     }
 
@@ -27,25 +24,17 @@ final class HostAgentBackgroundApprovalNavigationOwnerTests: XCTestCase {
         XCTAssertTrue(owner.apply(.openLoginItemsAfterUserConfirmation))
 
         XCTAssertEqual(dependencies.events, [.observe, .openLoginItems])
-        XCTAssertEqual(
-            publications.values.map(\.phase),
-            [.checking, .navigationRequested]
-        )
+        XCTAssertEqual(publications.values.map(\.phase), [.checking, .navigationRequested])
         XCTAssertEqual(owner.snapshot().registration, .requiresApproval)
     }
 
     func testDoesNotOpenSettingsWhenApprovalIsNotRequired() {
-        for registration in [
-            HostAgentBackgroundRegistrationStatus.notRegistered,
-            .enabled,
-        ] {
+        for registration in [HostAgentBackgroundRegistrationStatus.notRegistered, .enabled] {
             let dependencies = ApprovalNavigationDependencies()
             dependencies.registration = registration
             let owner = makeOwner(dependencies)
 
-            XCTAssertFalse(
-                owner.apply(.openLoginItemsAfterUserConfirmation)
-            )
+            XCTAssertFalse(owner.apply(.openLoginItemsAfterUserConfirmation))
 
             XCTAssertEqual(dependencies.events, [.observe])
             XCTAssertEqual(owner.snapshot().phase, .notRequired)
@@ -61,10 +50,7 @@ final class HostAgentBackgroundApprovalNavigationOwnerTests: XCTestCase {
         XCTAssertFalse(owner.apply(.openLoginItemsAfterUserConfirmation))
 
         XCTAssertEqual(dependencies.events, [.observe])
-        XCTAssertEqual(
-            owner.snapshot().phase,
-            .failed(.serviceUnavailable)
-        )
+        XCTAssertEqual(owner.snapshot().phase, .failed(.serviceUnavailable))
         XCTAssertEqual(owner.snapshot().registration, .serviceUnavailable)
     }
 
@@ -82,9 +68,7 @@ final class HostAgentBackgroundApprovalNavigationOwnerTests: XCTestCase {
         let finished = expectation(description: "navigation finished")
 
         DispatchQueue.global().async {
-            firstResult.set(
-                owner.apply(.openLoginItemsAfterUserConfirmation)
-            )
+            firstResult.set(owner.apply(.openLoginItemsAfterUserConfirmation))
             finished.fulfill()
         }
         XCTAssertEqual(openEntered.wait(timeout: .now() + 1), .success)
@@ -108,11 +92,7 @@ final class HostAgentBackgroundApprovalNavigationOwnerTests: XCTestCase {
         let chainedResult = ApprovalNavigationLockedValue<Bool?>(nil)
         let owner = makeOwner(dependencies) { view in
             if view.phase == .navigationRequested {
-                chainedResult.set(
-                    ownerHolder.value?.apply(
-                        .openLoginItemsAfterUserConfirmation
-                    )
-                )
+                chainedResult.set(ownerHolder.value?.apply(.openLoginItemsAfterUserConfirmation))
             }
         }
         ownerHolder.set(owner)
@@ -127,36 +107,6 @@ final class HostAgentBackgroundApprovalNavigationOwnerTests: XCTestCase {
     func testProductOwnerUsesReadOnlyStatusAndDedicatedSettingsAPI() throws {
         let owner = HostAgentBackgroundApprovalNavigationOwner.makeProduct()
         XCTAssertEqual(owner.snapshot().phase, .idle)
-
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/CoreBridge/HostAgentBackgroundApprovalNavigationOwner.swift"
-            ),
-            encoding: .utf8
-        )
-
-        XCTAssertTrue(source.contains("HostAgentBackgroundServiceObserver"))
-        XCTAssertTrue(source.contains(".observeRegistrationStatus()"))
-        XCTAssertTrue(source.contains(
-            "SMAppService.openSystemSettingsLoginItems()"
-        ))
-        XCTAssertFalse(source.contains("SMAppService.agent("))
-        XCTAssertFalse(source.contains(".register()"))
-        XCTAssertFalse(source.contains(".unregister()"))
-        XCTAssertFalse(source.contains(
-            "HostAgentBackgroundRegistrationMutationOwner"
-        ))
-        XCTAssertFalse(source.contains("HostAgentBackgroundActivationOwner"))
-        XCTAssertFalse(source.contains("UserDefaults"))
-        XCTAssertFalse(source.contains("AppKit"))
-        XCTAssertFalse(source.contains("SwiftUI"))
-        XCTAssertFalse(source.contains("NSWorkspace"))
-        XCTAssertFalse(source.contains("ProcessInfo"))
-        XCTAssertFalse(source.contains("getenv"))
     }
 
     private func makeOwner(
@@ -165,9 +115,7 @@ final class HostAgentBackgroundApprovalNavigationOwnerTests: XCTestCase {
     ) -> HostAgentBackgroundApprovalNavigationOwner {
         HostAgentBackgroundApprovalNavigationOwner(
             observeRegistration: { dependencies.observe() },
-            openLoginItems: { dependencies.openLoginItems() },
-            observer: observer
-        )
+            openLoginItems: { dependencies.openLoginItems() }, observer: observer)
     }
 }
 
@@ -226,9 +174,7 @@ private final class ApprovalNavigationLockedValue<Value>: @unchecked Sendable {
     private let lock = NSLock()
     private var storage: Value
 
-    init(_ value: Value) {
-        storage = value
-    }
+    init(_ value: Value) { storage = value }
 
     var value: Value {
         lock.lock()

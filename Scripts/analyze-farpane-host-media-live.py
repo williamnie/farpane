@@ -14,6 +14,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from functools import partial
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    is_finite_number as is_number,
+    is_integer,
+    write_json_no_replace,
+)
+
 
 SCHEMA = "farpane-host-media-live"
 SUPPORTED_SCHEMA_VERSIONS = {1, 2, 3}
@@ -115,18 +124,6 @@ def usage() -> None:
     print(
         "usage: analyze-farpane-host-media-live.py INPUT.jsonl [OUTPUT.json]",
         file=sys.stderr,
-    )
-
-
-def is_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
-
-
-def is_number(value: Any) -> bool:
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(float(value))
     )
 
 
@@ -581,23 +578,7 @@ def analyze(path: Path) -> dict[str, Any]:
     return summarize(records, failures)
 
 
-def write_atomic_no_replace(path: Path, document: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        raise FileExistsError(path)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".farpane-host-media-analysis-", suffix=".tmp", dir=path.parent
-    )
-    temporary_path = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            json.dump(document, output, indent=2, sort_keys=True)
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.link(temporary_path, path)
-    finally:
-        temporary_path.unlink(missing_ok=True)
+write_atomic_no_replace = partial(write_json_no_replace, prefix='.farpane-host-media-analysis-')
 
 
 def main() -> int:

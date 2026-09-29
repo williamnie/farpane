@@ -89,11 +89,8 @@ package final class HostAgentSnapshotState: @unchecked Sendable {
     private var failedRefreshCount: UInt64 = 0
     private var projection: HostAgentSnapshotProjection?
 
-    @discardableResult
-    package func publish(
-        _ snapshot: HostCoreSnapshot,
-        eventSequence: UInt64,
-        expectedHostInstanceID: String?
+    @discardableResult package func publish(
+        _ snapshot: HostCoreSnapshot, eventSequence: UInt64, expectedHostInstanceID: String?
     ) -> HostAgentSnapshotPublishResult {
         lock.lock()
         defer { lock.unlock() }
@@ -104,23 +101,18 @@ package final class HostAgentSnapshotState: @unchecked Sendable {
         }
         self.eventSequence = eventSequence
 
-        guard expectedHostInstanceID == nil
-                || expectedHostInstanceID == snapshot.hostInstanceId,
-              hostInstanceID == nil || hostInstanceID == snapshot.hostInstanceId
+        guard expectedHostInstanceID == nil || expectedHostInstanceID == snapshot.hostInstanceId,
+            hostInstanceID == nil || hostInstanceID == snapshot.hostInstanceId
         else {
             fail(.hostInstanceMismatch)
             return .rejected(.hostInstanceMismatch)
         }
-        if let lastAcceptedObservedAt,
-           snapshot.observedAt < lastAcceptedObservedAt
-        {
+        if let lastAcceptedObservedAt, snapshot.observedAt < lastAcceptedObservedAt {
             fail(.staleSnapshot)
             return .rejected(.staleObservedAt)
         }
 
-        if hostInstanceID == nil {
-            hostInstanceID = snapshot.hostInstanceId
-        }
+        if hostInstanceID == nil { hostInstanceID = snapshot.hostInstanceId }
         lastAcceptedObservedAt = snapshot.observedAt
         projection = HostAgentSnapshotProjection(snapshot: snapshot)
         status = .available
@@ -143,14 +135,9 @@ package final class HostAgentSnapshotState: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return HostAgentSnapshotStateView(
-            status: status,
-            refreshGeneration: refreshGeneration,
-            eventSequence: eventSequence,
-            hostInstanceID: hostInstanceID,
-            lastAcceptedObservedAt: lastAcceptedObservedAt,
-            failedRefreshCount: failedRefreshCount,
-            projection: projection
-        )
+            status: status, refreshGeneration: refreshGeneration, eventSequence: eventSequence,
+            hostInstanceID: hostInstanceID, lastAcceptedObservedAt: lastAcceptedObservedAt,
+            failedRefreshCount: failedRefreshCount, projection: projection)
     }
 
     private func fail(_ status: HostAgentSnapshotStatus) {
@@ -159,11 +146,7 @@ package final class HostAgentSnapshotState: @unchecked Sendable {
         incrementSaturating(&failedRefreshCount)
     }
 
-    private func incrementSaturating(_ value: inout UInt64) {
-        if value < UInt64.max {
-            value += 1
-        }
-    }
+    private func incrementSaturating(_ value: inout UInt64) { if value < UInt64.max { value += 1 } }
 }
 
 /// Binds the snapshot copier after runtime startup. Event requests received
@@ -181,8 +164,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
     private var copySnapshot: (() throws -> HostCoreSnapshot)?
     private var onIdentityInvalidationRequired:
         ((HostAgentSnapshotIdentityInvalidationReason) -> Void)?
-    private var onSnapshotPublished:
-        (@Sendable (HostAgentSnapshotStateView) -> Void)?
+    private var onSnapshotPublished: (@Sendable (HostAgentSnapshotStateView) -> Void)?
     private var identityInvalidationDelivered = false
     private var pending: RefreshRequest?
     private var pollPending = false
@@ -192,40 +174,28 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
     private var latestEventSequence: UInt64 = 0
     private var latestHostInstanceID: String?
 
-    package init(
-        state: HostAgentSnapshotState,
-        eventState: HostAgentEventState? = nil
-    ) {
+    package init(state: HostAgentSnapshotState, eventState: HostAgentEventState? = nil) {
         self.state = state
         self.eventState = eventState
     }
 
-    @discardableResult
-    package func bind(
+    @discardableResult package func bind(
         copySnapshot: @escaping () throws -> HostCoreSnapshot,
-        onIdentityInvalidationRequired: @escaping (
-            HostAgentSnapshotIdentityInvalidationReason
-        ) -> Void,
-        onSnapshotPublished: @escaping @Sendable (
-            HostAgentSnapshotStateView
-        ) -> Void = { _ in }
+        onIdentityInvalidationRequired:
+            @escaping (HostAgentSnapshotIdentityInvalidationReason) -> Void,
+        onSnapshotPublished: @escaping @Sendable (HostAgentSnapshotStateView) -> Void = { _ in }
     ) -> Bool {
         lock.lock()
-        guard !cancelled,
-              self.copySnapshot == nil,
-              self.onIdentityInvalidationRequired == nil,
-              self.onSnapshotPublished == nil
+        guard !cancelled, self.copySnapshot == nil, self.onIdentityInvalidationRequired == nil,
+            self.onSnapshotPublished == nil
         else {
             lock.unlock()
             return false
         }
         self.copySnapshot = copySnapshot
-        self.onIdentityInvalidationRequired =
-            onIdentityInvalidationRequired
+        self.onIdentityInvalidationRequired = onIdentityInvalidationRequired
         self.onSnapshotPublished = onSnapshotPublished
-        if pending == nil {
-            pending = RefreshRequest(eventSequence: 0, hostInstanceID: nil)
-        }
+        if pending == nil { pending = RefreshRequest(eventSequence: 0, hostInstanceID: nil) }
         guard !refreshing, let request = takePendingLocked() else {
             lock.unlock()
             return true
@@ -236,10 +206,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         return true
     }
 
-    package func requestRefresh(
-        eventSequence: UInt64,
-        hostInstanceID: String
-    ) {
+    package func requestRefresh(eventSequence: UInt64, hostInstanceID: String) {
         lock.lock()
         guard !cancelled else {
             lock.unlock()
@@ -256,19 +223,12 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         if let pending {
             if eventSequence >= pending.eventSequence {
                 self.pending = RefreshRequest(
-                    eventSequence: eventSequence,
-                    hostInstanceID: hostInstanceID
-                )
+                    eventSequence: eventSequence, hostInstanceID: hostInstanceID)
             }
         } else {
-            pending = RefreshRequest(
-                eventSequence: eventSequence,
-                hostInstanceID: hostInstanceID
-            )
+            pending = RefreshRequest(eventSequence: eventSequence, hostInstanceID: hostInstanceID)
         }
-        guard let copySnapshot, !refreshing,
-              let request = takePendingLocked()
-        else {
+        guard let copySnapshot, !refreshing, let request = takePendingLocked() else {
             lock.unlock()
             return
         }
@@ -296,9 +256,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
             return
         }
         let request = RefreshRequest(
-            eventSequence: latestEventSequence,
-            hostInstanceID: latestHostInstanceID
-        )
+            eventSequence: latestEventSequence, hostInstanceID: latestHostInstanceID)
         refreshing = true
         lock.unlock()
         drain(startingWith: request, copySnapshot: copySnapshot)
@@ -309,33 +267,23 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
     /// pinned Host/epoch/status tuple, then drains work that arrived while the
     /// recovery copy was active. A contradiction clears availability and uses
     /// the existing sanitized identity-invalidation path.
-    @discardableResult
-    package func publishRecoverySnapshot(
-        expectedHostInstanceID: String,
-        epoch: UInt64,
-        recoveryStatus: HostRecoveryStatus,
+    @discardableResult package func publishRecoverySnapshot(
+        expectedHostInstanceID: String, epoch: UInt64, recoveryStatus: HostRecoveryStatus,
         registrationStatus: String
     ) -> Bool {
-        guard !expectedHostInstanceID.isEmpty,
-              epoch > 0,
-              !registrationStatus.isEmpty
-        else { return false }
+        guard !expectedHostInstanceID.isEmpty, epoch > 0, !registrationStatus.isEmpty else {
+            return false
+        }
 
         lock.lock()
-        while refreshing && !cancelled {
-            lock.wait()
-        }
+        while refreshing && !cancelled { lock.wait() }
         guard !cancelled, let copySnapshot else {
             lock.unlock()
             return false
         }
         let request = RefreshRequest(
-            eventSequence: max(
-                latestEventSequence,
-                state.snapshot().eventSequence
-            ),
-            hostInstanceID: expectedHostInstanceID
-        )
+            eventSequence: max(latestEventSequence, state.snapshot().eventSequence),
+            hostInstanceID: expectedHostInstanceID)
         refreshing = true
         lock.unlock()
 
@@ -344,32 +292,23 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
             let snapshot = try copySnapshot()
             if snapshot.hostInstanceId != expectedHostInstanceID {
                 let result = state.publish(
-                    snapshot,
-                    eventSequence: request.eventSequence,
-                    expectedHostInstanceID: expectedHostInstanceID
-                )
+                    snapshot, eventSequence: request.eventSequence,
+                    expectedHostInstanceID: expectedHostInstanceID)
                 if result == .rejected(.hostInstanceMismatch) {
                     requireIdentityInvalidation(.hostInstanceMismatch)
                 }
                 accepted = false
-            } else if snapshot.recoveryEpoch == epoch,
-                      snapshot.recoveryStatus == recoveryStatus,
-                      snapshot.registrationStatus == registrationStatus
+            } else if snapshot.recoveryEpoch == epoch, snapshot.recoveryStatus == recoveryStatus,
+                snapshot.registrationStatus == registrationStatus
             {
                 let previousProjection = state.snapshot().projection
                 if case .published(let generation) = state.publish(
-                    snapshot,
-                    eventSequence: request.eventSequence,
-                    expectedHostInstanceID: expectedHostInstanceID
-                ) {
+                    snapshot, eventSequence: request.eventSequence,
+                    expectedHostInstanceID: expectedHostInstanceID)
+                {
                     accepted = publishSessionTransitionIfNeeded(
-                        from: previousProjection,
-                        to: snapshot,
-                        request: request
-                    )
-                    if accepted {
-                        publishAcceptedSnapshot(generation: generation)
-                    }
+                        from: previousProjection, to: snapshot, request: request)
+                    if accepted { publishAcceptedSnapshot(generation: generation) }
                 } else {
                     accepted = false
                 }
@@ -385,10 +324,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         }
 
         return finishExclusiveRefresh(
-            request: request,
-            copySnapshot: copySnapshot,
-            accepted: accepted
-        )
+            request: request, copySnapshot: copySnapshot, accepted: accepted)
     }
 
     /// Stops accepting refreshes and waits for the current copy/drain loop.
@@ -398,9 +334,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         cancelled = true
         pending = nil
         pollPending = false
-        while refreshing {
-            lock.wait()
-        }
+        while refreshing { lock.wait() }
         copySnapshot = nil
         onIdentityInvalidationRequired = nil
         onSnapshotPublished = nil
@@ -417,18 +351,13 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
                 let snapshot = try copySnapshot()
                 let previousProjection = state.snapshot().projection
                 let result = state.publish(
-                    snapshot,
-                    eventSequence: request.eventSequence,
-                    expectedHostInstanceID: request.hostInstanceID
-                )
+                    snapshot, eventSequence: request.eventSequence,
+                    expectedHostInstanceID: request.hostInstanceID)
                 if result == .rejected(.hostInstanceMismatch) {
                     requireIdentityInvalidation(.hostInstanceMismatch)
                 } else if case .published(let generation) = result,
-                          publishSessionTransitionIfNeeded(
-                        from: previousProjection,
-                        to: snapshot,
-                        request: request
-                          )
+                    publishSessionTransitionIfNeeded(
+                        from: previousProjection, to: snapshot, request: request)
                 {
                     publishAcceptedSnapshot(generation: generation)
                 }
@@ -453,9 +382,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
             } else {
                 lastCompletedSequence = request.eventSequence
             }
-            if let next = takePendingLocked(),
-               next.eventSequence > (lastCompletedSequence ?? 0)
-            {
+            if let next = takePendingLocked(), next.eventSequence > (lastCompletedSequence ?? 0) {
                 request = next
                 lock.unlock()
                 continue
@@ -463,9 +390,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
             if pollPending {
                 pollPending = false
                 request = RefreshRequest(
-                    eventSequence: latestEventSequence,
-                    hostInstanceID: latestHostInstanceID
-                )
+                    eventSequence: latestEventSequence, hostInstanceID: latestHostInstanceID)
                 lock.unlock()
                 continue
             }
@@ -478,8 +403,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
     }
 
     private func finishExclusiveRefresh(
-        request: RefreshRequest,
-        copySnapshot: @escaping () throws -> HostCoreSnapshot,
+        request: RefreshRequest, copySnapshot: @escaping () throws -> HostCoreSnapshot,
         accepted: Bool
     ) -> Bool {
         lock.lock()
@@ -498,9 +422,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         } else {
             lastCompletedSequence = request.eventSequence
         }
-        if let next = takePendingLocked(),
-           next.eventSequence > (lastCompletedSequence ?? 0)
-        {
+        if let next = takePendingLocked(), next.eventSequence > (lastCompletedSequence ?? 0) {
             lock.unlock()
             drain(startingWith: next, copySnapshot: copySnapshot)
             return accepted
@@ -508,9 +430,7 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         if pollPending {
             pollPending = false
             let next = RefreshRequest(
-                eventSequence: latestEventSequence,
-                hostInstanceID: latestHostInstanceID
-            )
+                eventSequence: latestEventSequence, hostInstanceID: latestHostInstanceID)
             lock.unlock()
             drain(startingWith: next, copySnapshot: copySnapshot)
             return accepted
@@ -528,25 +448,20 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         return request
     }
 
-    @discardableResult
-    private func publishSessionTransitionIfNeeded(
-        from previous: HostAgentSnapshotProjection?,
-        to snapshot: HostCoreSnapshot,
+    @discardableResult private func publishSessionTransitionIfNeeded(
+        from previous: HostAgentSnapshotProjection?, to snapshot: HostCoreSnapshot,
         request: RefreshRequest
     ) -> Bool {
         // 注册状态也可能仅通过轮询变化，必须通知前台重新读取就绪状态。
         guard let previous,
-              previous.registrationStatus != snapshot.registrationStatus
+            previous.registrationStatus != snapshot.registrationStatus
                 || previous.sessionAvailability != snapshot.sessionAvailability
-                || previous.sessionUnavailableReason
-                    != snapshot.sessionUnavailableReason,
-              let eventState
+                || previous.sessionUnavailableReason != snapshot.sessionUnavailableReason,
+            let eventState
         else { return true }
 
         let result = eventState.ingestSnapshotChanged(
-            hostInstanceID: snapshot.hostInstanceId,
-            sentAtUnixMilliseconds: snapshot.observedAt
-        )
+            hostInstanceID: snapshot.hostInstanceId, sentAtUnixMilliseconds: snapshot.observedAt)
         guard case .accepted(let sequence) = result else {
             state.recordCopyFailure(eventSequence: request.eventSequence)
             requireIdentityInvalidation(.copyFailed)
@@ -561,27 +476,20 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
         if let pending {
             if sequence >= pending.eventSequence {
                 self.pending = RefreshRequest(
-                    eventSequence: sequence,
-                    hostInstanceID: snapshot.hostInstanceId
-                )
+                    eventSequence: sequence, hostInstanceID: snapshot.hostInstanceId)
             }
         } else {
             pending = RefreshRequest(
-                eventSequence: sequence,
-                hostInstanceID: snapshot.hostInstanceId
-            )
+                eventSequence: sequence, hostInstanceID: snapshot.hostInstanceId)
         }
         lock.unlock()
         return true
     }
 
-    private func requireIdentityInvalidation(
-        _ reason: HostAgentSnapshotIdentityInvalidationReason
-    ) {
+    private func requireIdentityInvalidation(_ reason: HostAgentSnapshotIdentityInvalidationReason)
+    {
         lock.lock()
-        guard !identityInvalidationDelivered,
-              let onIdentityInvalidationRequired
-        else {
+        guard !identityInvalidationDelivered, let onIdentityInvalidationRequired else {
             lock.unlock()
             return
         }
@@ -593,9 +501,8 @@ package final class HostAgentSnapshotRefreshCoordinator: @unchecked Sendable {
     private func publishAcceptedSnapshot(generation: UInt64) {
         guard let onSnapshotPublished else { return }
         let view = state.snapshot()
-        guard view.status == .available,
-              view.refreshGeneration == generation,
-              view.projection != nil
+        guard view.status == .available, view.refreshGeneration == generation,
+            view.projection != nil
         else { return }
         onSnapshotPublished(view)
     }

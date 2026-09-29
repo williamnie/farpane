@@ -20,29 +20,20 @@ final class HostAgentSnapshotPollingOwner: @unchecked Sendable {
     init(
         snapshotCoordinator: HostAgentSnapshotRefreshCoordinator,
         queue: DispatchQueue = DispatchQueue(
-            label: "io.farpane.host-agent.snapshot-poll",
-            qos: .utility
-        )
+            label: "io.farpane.host-agent.snapshot-poll", qos: .utility)
     ) {
         self.snapshotCoordinator = snapshotCoordinator
         let timer = DispatchSource.makeTimerSource(queue: queue)
         self.timer = timer
         timer.schedule(
-            deadline: .now() + .milliseconds(500),
-            repeating: .milliseconds(500),
-            leeway: .milliseconds(50)
-        )
-        timer.setEventHandler { [weak self] in
-            self?.pollOnce()
-        }
+            deadline: .now() + .milliseconds(500), repeating: .milliseconds(500),
+            leeway: .milliseconds(50))
+        timer.setEventHandler { [weak self] in self?.pollOnce() }
     }
 
-    deinit {
-        cancel()
-    }
+    deinit { cancel() }
 
-    @discardableResult
-    func start() -> Bool {
+    @discardableResult func start() -> Bool {
         condition.lock()
         guard case .idle = state, gate.start() else {
             condition.unlock()
@@ -63,9 +54,7 @@ final class HostAgentSnapshotPollingOwner: @unchecked Sendable {
             condition.unlock()
             return
         case .cancelling:
-            while case .cancelling = state {
-                condition.wait()
-            }
+            while case .cancelling = state { condition.wait() }
             condition.unlock()
             return
         case .idle:

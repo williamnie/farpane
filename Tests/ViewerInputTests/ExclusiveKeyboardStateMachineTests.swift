@@ -34,10 +34,8 @@ final class ExclusiveKeyboardStateMachineTests: XCTestCase {
         _ = machine.handle(keyCode: 58, isDown: true, modifiers: [.control, .option])
         _ = machine.handle(keyCode: 56, isDown: true, modifiers: [.control, .option, .shift])
         let escape = machine.handle(
-            keyCode: ExclusiveKeyboardStateMachine.exitKeyCode,
-            isDown: true,
-            modifiers: ExclusiveKeyboardStateMachine.exitModifiers
-        )
+            keyCode: ExclusiveKeyboardStateMachine.exitKeyCode, isDown: true,
+            modifiers: ExclusiveKeyboardStateMachine.exitModifiers)
 
         XCTAssertEqual(machine.state, .releasingExitChord)
         XCTAssertTrue(escape.beganExit)
@@ -73,22 +71,12 @@ final class ExclusiveKeyboardStateMachineTests: XCTestCase {
         XCTAssertTrue(strayUp.suppressLocally)
         XCTAssertFalse(strayUp.forwardRemotely)
 
+        XCTAssertTrue(machine.handle(keyCode: 0, isDown: true, modifiers: []).forwardRemotely)
+        XCTAssertFalse(machine.handle(keyCode: 0, isDown: true, modifiers: []).forwardRemotely)
         XCTAssertTrue(
-            machine.handle(keyCode: 0, isDown: true, modifiers: []).forwardRemotely
-        )
-        XCTAssertFalse(
-            machine.handle(keyCode: 0, isDown: true, modifiers: []).forwardRemotely
-        )
-        XCTAssertTrue(
-            machine.handle(keyCode: 0, isDown: true, modifiers: [], isRepeat: true)
-                .forwardRemotely
-        )
-        XCTAssertTrue(
-            machine.handle(keyCode: 0, isDown: false, modifiers: []).forwardRemotely
-        )
-        XCTAssertFalse(
-            machine.handle(keyCode: 0, isDown: false, modifiers: []).forwardRemotely
-        )
+            machine.handle(keyCode: 0, isDown: true, modifiers: [], isRepeat: true).forwardRemotely)
+        XCTAssertTrue(machine.handle(keyCode: 0, isDown: false, modifiers: []).forwardRemotely)
+        XCTAssertFalse(machine.handle(keyCode: 0, isDown: false, modifiers: []).forwardRemotely)
     }
 
     func testFocusIntentResumesOnlyAfterTemporaryFocusLoss() {
@@ -104,11 +92,7 @@ final class ExclusiveKeyboardStateMachineTests: XCTestCase {
     func testFocusIntentCancelsDuringExitChord() {
         var intent = ExclusiveKeyboardFocusIntent()
         intent.request()
-        intent.setSuspended(
-            true,
-            for: .windowNotKey,
-            state: .releasingExitChord
-        )
+        intent.setSuspended(true, for: .windowNotKey, state: .releasingExitChord)
         XCTAssertFalse(intent.shouldResume)
         intent.setSuspended(false, for: .windowNotKey, state: .inactive)
         XCTAssertFalse(intent.canResume)
@@ -118,29 +102,13 @@ final class ExclusiveKeyboardStateMachineTests: XCTestCase {
         var intent = ExclusiveKeyboardFocusIntent()
         intent.request()
 
-        XCTAssertTrue(intent.setSuspended(
-            true,
-            for: .applicationInactive,
-            state: .active
-        ))
-        XCTAssertTrue(intent.setSuspended(
-            true,
-            for: .windowNotKey,
-            state: .inactive
-        ))
+        XCTAssertTrue(intent.setSuspended(true, for: .applicationInactive, state: .active))
+        XCTAssertTrue(intent.setSuspended(true, for: .windowNotKey, state: .inactive))
         XCTAssertFalse(intent.canResume)
 
-        XCTAssertTrue(intent.setSuspended(
-            false,
-            for: .applicationInactive,
-            state: .inactive
-        ))
+        XCTAssertTrue(intent.setSuspended(false, for: .applicationInactive, state: .inactive))
         XCTAssertFalse(intent.canResume)
-        XCTAssertTrue(intent.setSuspended(
-            false,
-            for: .windowNotKey,
-            state: .inactive
-        ))
+        XCTAssertTrue(intent.setSuspended(false, for: .windowNotKey, state: .inactive))
         XCTAssertTrue(intent.canResume)
     }
 
