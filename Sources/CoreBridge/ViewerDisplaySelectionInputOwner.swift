@@ -53,10 +53,8 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
     private var stopped = false
 
     package init(
-        initiallyQuiesced: Bool = false,
-        sendSelection: @escaping SendSelection,
-        quiesceInput: @escaping InputAction,
-        resumeInput: @escaping InputAction
+        initiallyQuiesced: Bool = false, sendSelection: @escaping SendSelection,
+        quiesceInput: @escaping InputAction, resumeInput: @escaping InputAction
     ) {
         inputQuiesced = initiallyQuiesced
         self.sendSelection = sendSelection
@@ -68,13 +66,8 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return ViewerDisplaySelectionInputSnapshot(
-            catalog: catalog,
-            pendingRequest: pendingRequest,
-            failure: failure,
-            controlAvailable: controlAvailable,
-            inputQuiesced: inputQuiesced,
-            stopped: stopped
-        )
+            catalog: catalog, pendingRequest: pendingRequest, failure: failure,
+            controlAvailable: controlAvailable, inputQuiesced: inputQuiesced, stopped: stopped)
     }
 
     package func setControlAvailable(_ available: Bool) {
@@ -83,8 +76,7 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
         lock.unlock()
     }
 
-    @discardableResult
-    package func observeCatalog(_ event: CoreDisplayCatalogEvent) -> Bool {
+    @discardableResult package func observeCatalog(_ event: CoreDisplayCatalogEvent) -> Bool {
         var shouldResume = false
         lock.lock()
         guard !stopped, acceptsCatalogLocked(event) else {
@@ -120,18 +112,15 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
             return .selectionPending
         }
         guard catalog.entries.indices.contains(Int(displayIndex)),
-              catalog.entries[Int(displayIndex)].online
+            catalog.entries[Int(displayIndex)].online
         else {
             lock.unlock()
             return .displayUnavailable
         }
         guard nextCommandID > 0,
-              let created = CoreDisplaySelectionRequest(
-                  connectionEpoch: catalog.connectionEpoch,
-                  commandID: nextCommandID,
-                  catalogRevision: catalog.catalogRevision,
-                  displayIndex: displayIndex
-              )
+            let created = CoreDisplaySelectionRequest(
+                connectionEpoch: catalog.connectionEpoch, commandID: nextCommandID,
+                catalogRevision: catalog.catalogRevision, displayIndex: displayIndex)
         else {
             lock.unlock()
             return .commandIDExhausted
@@ -165,17 +154,16 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
         return .coreRejected(status)
     }
 
-    package func observeSelection(
-        _ event: CoreDisplaySelectionEvent
-    ) -> ViewerDisplaySelectionInputTerminalDecision {
+    package func observeSelection(_ event: CoreDisplaySelectionEvent)
+        -> ViewerDisplaySelectionInputTerminalDecision
+    {
         var decision: ViewerDisplaySelectionInputTerminalDecision = .ignored
         var shouldResume = false
         lock.lock()
         guard !stopped, let request = pendingRequest,
-              event.connectionEpoch == request.connectionEpoch,
-              event.commandID == request.commandID,
-              event.catalogRevision == request.catalogRevision,
-              event.displayIndex == request.displayIndex
+            event.connectionEpoch == request.connectionEpoch, event.commandID == request.commandID,
+            event.catalogRevision == request.catalogRevision,
+            event.displayIndex == request.displayIndex
         else {
             lock.unlock()
             return .ignored
@@ -224,16 +212,15 @@ package final class ViewerDisplaySelectionInputOwner: @unchecked Sendable {
         if event.connectionEpoch == catalog.connectionEpoch {
             guard event.catalogRevision >= catalog.catalogRevision else { return false }
             if event.catalogRevision == catalog.catalogRevision {
-                return event.status == catalog.status
-                    && event.entries == catalog.entries
+                return event.status == catalog.status && event.entries == catalog.entries
             }
         }
         return true
     }
 
     private func pendingSuccessMatchesCurrentCatalogLocked() -> Bool {
-        guard let request = pendingRequest, let success = pendingSuccess,
-              let catalog, catalog.status == .available
+        guard let request = pendingRequest, let success = pendingSuccess, let catalog,
+            catalog.status == .available
         else { return false }
         return success.connectionEpoch == request.connectionEpoch
             && success.commandID == request.commandID

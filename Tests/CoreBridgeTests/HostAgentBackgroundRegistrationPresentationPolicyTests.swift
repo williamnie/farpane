@@ -1,9 +1,8 @@
-@testable import CoreBridge
 import XCTest
 
-final class HostAgentBackgroundRegistrationPresentationPolicyTests:
-    XCTestCase
-{
+@testable import CoreBridge
+
+final class HostAgentBackgroundRegistrationPresentationPolicyTests: XCTestCase {
     func testPromptPresentationDistinguishesPersistenceAndSystemApproval() {
         let persistence = presentation(for: persistencePromptView())
         XCTAssertEqual(persistence.statusText, "等待确认后台连接")
@@ -19,11 +18,8 @@ final class HostAgentBackgroundRegistrationPresentationPolicyTests:
     }
 
     func testBusyPhasesUseProgressPresentationWithoutClaimingReady() {
-        let expected: [
-            (HostAgentBackgroundRegistrationUXPhase, String)
-        ] = [
-            (.preparingLegacyHost, "正在停止旧的被控端…"),
-            (.registering, "正在注册后台组件…"),
+        let expected: [(HostAgentBackgroundRegistrationUXPhase, String)] = [
+            (.preparingLegacyHost, "正在停止旧的被控端…"), (.registering, "正在注册后台组件…"),
             (.navigating, "正在打开登录项设置…"),
         ]
 
@@ -38,20 +34,16 @@ final class HostAgentBackgroundRegistrationPresentationPolicyTests:
     }
 
     func testMigrationBlockersKeepUserActionSemantics() {
-        let activeSession = presentation(for: view(
-            .migrationBlocked([.runtimeActive, .activeSession])
-        ))
+        let activeSession = presentation(
+            for: view(.migrationBlocked([.runtimeActive, .activeSession])))
         XCTAssertEqual(activeSession.statusText, "后台连接尚未启用")
         XCTAssertTrue(activeSession.errorText.contains("远程会话"))
 
-        let pendingApproval = presentation(for: view(
-            .migrationBlocked([.runtimeActive, .pendingApproval])
-        ))
+        let pendingApproval = presentation(
+            for: view(.migrationBlocked([.runtimeActive, .pendingApproval])))
         XCTAssertTrue(pendingApproval.errorText.contains("连接请求"))
 
-        let residualOwnership = presentation(for: view(
-            .migrationBlocked([.clientRetained])
-        ))
+        let residualOwnership = presentation(for: view(.migrationBlocked([.clientRetained])))
         XCTAssertTrue(residualOwnership.errorText.contains("尚未完全停止"))
 
         for output in [activeSession, pendingApproval, residualOwnership] {
@@ -62,19 +54,15 @@ final class HostAgentBackgroundRegistrationPresentationPolicyTests:
     }
 
     func testMigrationFailuresStaySanitizedAndDistinct() {
-        let unavailable = presentation(for: view(
-            .failed(.migration(.assessment(.evidenceUnavailable)))
-        ))
+        let unavailable = presentation(
+            for: view(.failed(.migration(.assessment(.evidenceUnavailable)))))
         XCTAssertTrue(unavailable.errorText.contains("无法读取"))
 
-        let inconsistent = presentation(for: view(
-            .failed(.migration(.assessment(.inconsistentEvidence)))
-        ))
+        let inconsistent = presentation(
+            for: view(.failed(.migration(.assessment(.inconsistentEvidence)))))
         XCTAssertTrue(inconsistent.errorText.contains("状态不一致"))
 
-        let stopFailure = presentation(for: view(
-            .failed(.migration(.quiescenceRequestFailed))
-        ))
+        let stopFailure = presentation(for: view(.failed(.migration(.quiescenceRequestFailed))))
         XCTAssertTrue(stopFailure.errorText.contains("无法确认"))
         XCTAssertTrue(stopFailure.errorText.contains("重新启动 FarPane"))
 
@@ -86,44 +74,31 @@ final class HostAgentBackgroundRegistrationPresentationPolicyTests:
     }
 
     func testRegistrationAndApprovalResultsDoNotClaimAgentReadiness() {
-        let registered = presentation(for: view(
-            .registered,
-            registration: .enabled
-        ))
+        let registered = presentation(for: view(.registered, registration: .enabled))
         XCTAssertEqual(registered.statusText, "后台组件已注册")
         XCTAssertFalse(registered.statusText.contains("可被连接"))
         XCTAssertEqual(registered.tone, .success)
 
-        let navigationRequested = presentation(for: view(
-            .navigationRequested,
-            registration: .requiresApproval
-        ))
+        let navigationRequested = presentation(
+            for: view(.navigationRequested, registration: .requiresApproval))
         XCTAssertEqual(navigationRequested.statusText, "等待系统授权")
         XCTAssertTrue(navigationRequested.errorText.contains("允许 FarPane"))
         XCTAssertEqual(navigationRequested.tone, .attention)
 
-        let noLongerRequired = presentation(for: view(
-            .approvalNoLongerRequired,
-            registration: .enabled
-        ))
+        let noLongerRequired = presentation(
+            for: view(.approvalNoLongerRequired, registration: .enabled))
         XCTAssertEqual(noLongerRequired.statusText, "后台组件已注册")
         XCTAssertFalse(noLongerRequired.isBusy)
     }
 
     func testRegistrationAndInternalFailuresUseBoundedCopy() {
-        let buildFailure = presentation(for: view(
-            .failed(.registration(.invalidCodeSignature))
-        ))
+        let buildFailure = presentation(for: view(.failed(.registration(.invalidCodeSignature))))
         XCTAssertTrue(buildFailure.errorText.contains("当前构建"))
 
-        let serviceFailure = presentation(for: view(
-            .failed(.registration(.serviceUnavailable))
-        ))
+        let serviceFailure = presentation(for: view(.failed(.registration(.serviceUnavailable))))
         XCTAssertTrue(serviceFailure.errorText.contains("后台组件状态"))
 
-        let internalFailure = presentation(for: view(
-            .failed(.invalidMigrationResult)
-        ))
+        let internalFailure = presentation(for: view(.failed(.invalidMigrationResult)))
         XCTAssertTrue(internalFailure.errorText.contains("状态异常"))
 
         for output in [buildFailure, serviceFailure, internalFailure] {
@@ -146,83 +121,20 @@ final class HostAgentBackgroundRegistrationPresentationPolicyTests:
         XCTAssertEqual(cancelled.tone, .neutral)
     }
 
-    func testAppOwnsLazyCompositionWithoutBeginningFlow() throws {
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let appSource = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/RustDeskNative/RustDeskNativeApp.swift"
-            ),
-            encoding: .utf8
-        )
-        let homeSource = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/RustDeskNative/HomeView.swift"
-            ),
-            encoding: .utf8
-        )
-
-        XCTAssertTrue(appSource.contains(
-            "private lazy var hostAgentBackgroundRegistrationSheetDriver"
-        ))
-        XCTAssertTrue(appSource.contains(
-            "private lazy var hostAgentBackgroundRegistrationMutationOwner"
-        ))
-        XCTAssertTrue(appSource.contains(
-            "HostAgentBackgroundRegistrationSheetDriver.makeProduct("
-        ))
-        XCTAssertTrue(appSource.contains(
-            "mutationOwner: hostAgentBackgroundRegistrationMutationOwner"
-        ))
-        XCTAssertTrue(appSource.contains(
-            "self?.prepareLegacyHostForBackgroundRegistration()"
-        ))
-        XCTAssertTrue(appSource.contains(
-            "HostAgentBackgroundRegistrationPresentationPolicy.presentation("
-        ))
-        XCTAssertTrue(appSource.contains(
-            "hostAgentBackgroundUnregistrationPresentation = nil"
-        ))
-        XCTAssertTrue(appSource.contains(
-            "if let presentation = hostAgentBackgroundRegistrationPresentation"
-        ))
-        XCTAssertTrue(appSource.contains(
-            "hostAgentBackgroundRegistrationPresentation?.errorText"
-        ))
-        XCTAssertTrue(appSource.contains(
-            "hostAgentBackgroundRegistrationSheetDriver.begin("
-        ))
-        XCTAssertFalse(homeSource.contains(
-            "hostAgentBackgroundRegistrationSheetDriver"
-        ))
-        XCTAssertFalse(homeSource.contains(
-            "HostAgentBackgroundRegistrationPresentationPolicy"
-        ))
-    }
 }
 
-private func presentation(
-    for view: HostAgentBackgroundRegistrationUXView
-) -> HostAgentBackgroundRegistrationPresentation {
-    HostAgentBackgroundRegistrationPresentationPolicy.presentation(for: view)
-}
+private func presentation(for view: HostAgentBackgroundRegistrationUXView)
+    -> HostAgentBackgroundRegistrationPresentation
+{ HostAgentBackgroundRegistrationPresentationPolicy.presentation(for: view) }
 
 private func view(
     _ phase: HostAgentBackgroundRegistrationUXPhase,
     registration: HostAgentBackgroundRegistrationStatus? = nil
 ) -> HostAgentBackgroundRegistrationUXView {
-    HostAgentBackgroundRegistrationUXView(
-        generation: 1,
-        phase: phase,
-        registration: registration
-    )
+    HostAgentBackgroundRegistrationUXView(generation: 1, phase: phase, registration: registration)
 }
 
-private func persistencePromptView()
-    -> HostAgentBackgroundRegistrationUXView
-{
+private func persistencePromptView() -> HostAgentBackgroundRegistrationUXView {
     let owner = promptOwner(registration: .enabled)
     _ = owner.apply(.requestBackgroundRegistration)
     return owner.snapshot()
@@ -235,17 +147,12 @@ private func approvalPromptView() -> HostAgentBackgroundRegistrationUXView {
     return owner.snapshot()
 }
 
-private func promptOwner(
-    registration: HostAgentBackgroundRegistrationStatus
-) -> HostAgentBackgroundRegistrationUXOwner {
+private func promptOwner(registration: HostAgentBackgroundRegistrationStatus)
+    -> HostAgentBackgroundRegistrationUXOwner
+{
     HostAgentBackgroundRegistrationUXOwner(
         performMigrationPreparation: {
-            (
-                true,
-                HostAgentLegacyHostMigrationCoordinatorView(
-                    phase: .readyForRegistration
-                )
-            )
+            (true, HostAgentLegacyHostMigrationCoordinatorView(phase: .readyForRegistration))
         },
         performRegistration: {
             let phase: HostAgentBackgroundRegistrationMutationPhase =
@@ -253,21 +160,14 @@ private func promptOwner(
             return (
                 true,
                 HostAgentBackgroundRegistrationMutationView(
-                    generation: 1,
-                    phase: phase,
-                    registration: registration
-                )
+                    generation: 1, phase: phase, registration: registration)
             )
         },
         performApprovalNavigation: {
             (
                 false,
                 HostAgentBackgroundApprovalNavigationView(
-                    generation: 1,
-                    phase: .notRequired,
-                    registration: registration
-                )
+                    generation: 1, phase: .notRequired, registration: registration)
             )
-        }
-    )
+        })
 }

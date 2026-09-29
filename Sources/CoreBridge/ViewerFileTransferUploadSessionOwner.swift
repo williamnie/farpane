@@ -2,8 +2,7 @@ import Foundation
 
 package protocol ViewerFileTransferUploadSessionCore: AnyObject, Sendable {
     func startFileTransferUpload(
-        _ request: ViewerFileTransferUploadRequest,
-        sourceOwner: ViewerFileTransferUploadSourceOwner
+        _ request: ViewerFileTransferUploadRequest, sourceOwner: ViewerFileTransferUploadSourceOwner
     ) -> Int32
 
     func cancelFileTransfer(sessionEpoch: UInt64, transferID: Int32) -> Int32
@@ -30,8 +29,7 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
     private var teardownComplete = false
 
     package init?(
-        sessionEpoch: UInt64,
-        core: any ViewerFileTransferUploadSessionCore,
+        sessionEpoch: UInt64, core: any ViewerFileTransferUploadSessionCore,
         onEvent: @escaping @Sendable (ViewerFileTransferSessionEvent) -> Void
     ) {
         guard sessionEpoch > 0 else { return nil }
@@ -40,9 +38,7 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
         self.onEvent = onEvent
     }
 
-    deinit {
-        _ = teardown(sessionEpoch: sessionEpoch)
-    }
+    deinit { _ = teardown(sessionEpoch: sessionEpoch) }
 
     package var activeTransferID: Int32? {
         condition.lock()
@@ -52,18 +48,13 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
 
     /// On success this owner consumes `sourceOwner` until a terminal callback
     /// or teardown. On failure the caller still owns it.
-    @discardableResult
-    package func beginUpload(
-        transferID: Int32,
-        sourceOwner: ViewerFileTransferUploadSourceOwner
+    @discardableResult package func beginUpload(
+        transferID: Int32, sourceOwner: ViewerFileTransferUploadSourceOwner
     ) -> Bool {
         condition.lock()
-        guard
-            !teardownStarted,
-            activeUpload == nil,
+        guard !teardownStarted, activeUpload == nil,
             let request = sourceOwner.makeUploadRequest(transferID: transferID),
-            request.sessionEpoch == sessionEpoch,
-            let queued = progressAuthority.begin(request)
+            request.sessionEpoch == sessionEpoch, let queued = progressAuthority.begin(request)
         else {
             condition.unlock()
             return false
@@ -72,10 +63,7 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
         operationInFlight = true
         condition.unlock()
 
-        let result = core.startFileTransferUpload(
-            request,
-            sourceOwner: sourceOwner
-        )
+        let result = core.startFileTransferUpload(request, sourceOwner: sourceOwner)
 
         condition.lock()
         operationInFlight = false
@@ -88,10 +76,7 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
             let stillOwned = activeUpload?.request.transferID == transferID
             if stillOwned {
                 activeUpload = nil
-                _ = progressAuthority.teardown(
-                    sessionEpoch: sessionEpoch,
-                    transferID: transferID
-                )
+                _ = progressAuthority.teardown(sessionEpoch: sessionEpoch, transferID: transferID)
             }
             condition.unlock()
             return !stillOwned
@@ -102,35 +87,25 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
         return true
     }
 
-    @discardableResult
-    package func observeCore(_ event: CoreFileTransferEvent) -> Bool {
+    @discardableResult package func observeCore(_ event: CoreFileTransferEvent) -> Bool {
         condition.lock()
-        guard
-            !teardownStarted,
-            let active = activeUpload,
-            event.sessionEpoch == sessionEpoch,
+        guard !teardownStarted, let active = activeUpload, event.sessionEpoch == sessionEpoch,
             event.transferID == active.request.transferID
         else {
             condition.unlock()
             return false
         }
-        guard
-            event.totalFiles == UInt32(active.request.manifest.files.count),
+        guard event.totalFiles == UInt32(active.request.manifest.files.count),
             event.totalBytes == active.request.manifest.totalBytes,
             let update = event.viewerProgressUpdate,
             let progress = progressAuthority.observe(update)
-        else {
-            return failActiveLocked(active, failure: .protocolViolation)
-        }
+        else { return failActiveLocked(active, failure: .protocolViolation) }
 
         let outcome: ViewerFileTransferSessionOutcome?
         switch event.kind {
-        case .progress, .waitingForConflict:
-            outcome = nil
-        case .completed:
-            outcome = .completed
-        case .cancelled:
-            outcome = .cancelled
+        case .progress, .waitingForConflict: outcome = nil
+        case .completed: outcome = .completed
+        case .cancelled: outcome = .cancelled
         case .failed:
             guard event.failure != .none else {
                 return failActiveLocked(active, failure: .protocolViolation)
@@ -143,30 +118,21 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
         onEvent(.progress(progress))
         if let outcome {
             _ = active.sourceOwner.teardown(sessionEpoch: sessionEpoch)
-            onEvent(.finished(
-                sessionEpoch: sessionEpoch,
-                transferID: event.transferID,
-                outcome: outcome
-            ))
+            onEvent(
+                .finished(
+                    sessionEpoch: sessionEpoch, transferID: event.transferID, outcome: outcome))
         }
         return true
     }
 
-    @discardableResult
-    package func requestCancellation(
-        sessionEpoch: UInt64,
-        transferID: Int32
-    ) -> Bool {
+    @discardableResult package func requestCancellation(sessionEpoch: UInt64, transferID: Int32)
+        -> Bool
+    {
         condition.lock()
-        guard
-            !teardownStarted,
-            sessionEpoch == self.sessionEpoch,
-            let active = activeUpload,
+        guard !teardownStarted, sessionEpoch == self.sessionEpoch, let active = activeUpload,
             active.request.transferID == transferID,
             let cancelling = progressAuthority.requestCancellation(
-                sessionEpoch: sessionEpoch,
-                transferID: transferID
-            )
+                sessionEpoch: sessionEpoch, transferID: transferID)
         else {
             condition.unlock()
             return false
@@ -174,10 +140,7 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
         operationInFlight = true
         condition.unlock()
 
-        let result = core.cancelFileTransfer(
-            sessionEpoch: sessionEpoch,
-            transferID: transferID
-        )
+        let result = core.cancelFileTransfer(sessionEpoch: sessionEpoch, transferID: transferID)
 
         condition.lock()
         operationInFlight = false
@@ -197,26 +160,18 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
             return false
         }
         activeUpload = nil
-        _ = progressAuthority.teardown(
-            sessionEpoch: sessionEpoch,
-            transferID: transferID
-        )
+        _ = progressAuthority.teardown(sessionEpoch: sessionEpoch, transferID: transferID)
         condition.unlock()
-        _ = core.discardFileTransferUpload(
-            sessionEpoch: sessionEpoch,
-            transferID: transferID
-        )
+        _ = core.discardFileTransferUpload(sessionEpoch: sessionEpoch, transferID: transferID)
         _ = active.sourceOwner.teardown(sessionEpoch: sessionEpoch)
-        onEvent(.finished(
-            sessionEpoch: sessionEpoch,
-            transferID: transferID,
-            outcome: .failed(.coreCommandRejected)
-        ))
+        onEvent(
+            .finished(
+                sessionEpoch: sessionEpoch, transferID: transferID,
+                outcome: .failed(.coreCommandRejected)))
         return false
     }
 
-    @discardableResult
-    package func teardown(sessionEpoch: UInt64) -> Bool {
+    @discardableResult package func teardown(sessionEpoch: UInt64) -> Bool {
         condition.lock()
         guard sessionEpoch == self.sessionEpoch, !teardownStarted else {
             if sessionEpoch == self.sessionEpoch {
@@ -234,13 +189,9 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
 
         if let active {
             _ = core.cancelFileTransfer(
-                sessionEpoch: sessionEpoch,
-                transferID: active.request.transferID
-            )
+                sessionEpoch: sessionEpoch, transferID: active.request.transferID)
             _ = core.discardFileTransferUpload(
-                sessionEpoch: sessionEpoch,
-                transferID: active.request.transferID
-            )
+                sessionEpoch: sessionEpoch, transferID: active.request.transferID)
             _ = active.sourceOwner.teardown(sessionEpoch: sessionEpoch)
         }
 
@@ -251,30 +202,22 @@ package final class ViewerFileTransferUploadSessionOwner: @unchecked Sendable {
         return true
     }
 
-    private func failActiveLocked(
-        _ active: ActiveUpload,
-        failure: ViewerFileTransferSessionFailure
-    ) -> Bool {
+    private func failActiveLocked(_ active: ActiveUpload, failure: ViewerFileTransferSessionFailure)
+        -> Bool
+    {
         activeUpload = nil
         _ = progressAuthority.teardown(
-            sessionEpoch: sessionEpoch,
-            transferID: active.request.transferID
-        )
+            sessionEpoch: sessionEpoch, transferID: active.request.transferID)
         condition.unlock()
         _ = core.cancelFileTransfer(
-            sessionEpoch: sessionEpoch,
-            transferID: active.request.transferID
-        )
+            sessionEpoch: sessionEpoch, transferID: active.request.transferID)
         _ = core.discardFileTransferUpload(
-            sessionEpoch: sessionEpoch,
-            transferID: active.request.transferID
-        )
+            sessionEpoch: sessionEpoch, transferID: active.request.transferID)
         _ = active.sourceOwner.teardown(sessionEpoch: sessionEpoch)
-        onEvent(.finished(
-            sessionEpoch: sessionEpoch,
-            transferID: active.request.transferID,
-            outcome: .failed(failure)
-        ))
+        onEvent(
+            .finished(
+                sessionEpoch: sessionEpoch, transferID: active.request.transferID,
+                outcome: .failed(failure)))
         return true
     }
 }

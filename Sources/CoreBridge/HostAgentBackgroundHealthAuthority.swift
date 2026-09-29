@@ -8,10 +8,8 @@ package struct HostAgentBackgroundRuntimeEvidence: Equatable, Sendable {
     package let rendezvous: HostAgentBackgroundRendezvousStatus
 
     package init(
-        projectionGeneration: UInt64,
-        handshake: HostAgentBackgroundHandshakeStatus,
-        snapshot: HostAgentBackgroundSnapshotStatus,
-        session: HostAgentBackgroundSessionStatus,
+        projectionGeneration: UInt64, handshake: HostAgentBackgroundHandshakeStatus,
+        snapshot: HostAgentBackgroundSnapshotStatus, session: HostAgentBackgroundSessionStatus,
         rendezvous: HostAgentBackgroundRendezvousStatus
     ) {
         self.projectionGeneration = projectionGeneration
@@ -23,43 +21,31 @@ package struct HostAgentBackgroundRuntimeEvidence: Equatable, Sendable {
 
     package init(projection: HostAgentBackgroundProjectionView) {
         self.init(
-            projectionGeneration: projection.generation,
-            handshake: projection.handshakeStatus,
-            snapshot: projection.snapshotStatus,
-            session: projection.sessionStatus,
-            rendezvous: projection.rendezvousStatus
-        )
+            projectionGeneration: projection.generation, handshake: projection.handshakeStatus,
+            snapshot: projection.snapshotStatus, session: projection.sessionStatus,
+            rendezvous: projection.rendezvousStatus)
     }
 
     fileprivate var isConsistent: Bool {
         switch handshake {
         case .disconnected:
-            return snapshot == .unavailable
-                && session == .unavailable
-                && rendezvous != .registered
+            return snapshot == .unavailable && session == .unavailable && rendezvous != .registered
         case .incompatible:
-            return snapshot == .unavailable
-                && session == .unavailable
-                && rendezvous == .offline
+            return snapshot == .unavailable && session == .unavailable && rendezvous == .offline
         case .compatible:
             if snapshot == .unavailable {
-                return session == .unavailable
-                    && rendezvous != .registered
+                return session == .unavailable && rendezvous != .registered
             }
             return session != .unavailable
         }
     }
 
-    fileprivate static func failClosed(
-        projectionGeneration: UInt64
-    ) -> HostAgentBackgroundRuntimeEvidence {
+    fileprivate static func failClosed(projectionGeneration: UInt64)
+        -> HostAgentBackgroundRuntimeEvidence
+    {
         HostAgentBackgroundRuntimeEvidence(
-            projectionGeneration: projectionGeneration,
-            handshake: .disconnected,
-            snapshot: .unavailable,
-            session: .unavailable,
-            rendezvous: .offline
-        )
+            projectionGeneration: projectionGeneration, handshake: .disconnected,
+            snapshot: .unavailable, session: .unavailable, rendezvous: .offline)
     }
 }
 
@@ -75,10 +61,8 @@ package struct HostAgentBackgroundReadinessView: Equatable, Sendable {
     package let failure: HostAgentBackgroundHealthFailure?
 
     fileprivate init(
-        generation: UInt64,
-        registration: HostAgentBackgroundRegistrationStatus,
-        runtime: HostAgentBackgroundRuntimeEvidence,
-        failure: HostAgentBackgroundHealthFailure?
+        generation: UInt64, registration: HostAgentBackgroundRegistrationStatus,
+        runtime: HostAgentBackgroundRuntimeEvidence, failure: HostAgentBackgroundHealthFailure?
     ) {
         self.generation = generation
         self.registration = registration
@@ -88,12 +72,8 @@ package struct HostAgentBackgroundReadinessView: Equatable, Sendable {
 
     package var componentHealth: HostAgentBackgroundComponentHealth {
         HostAgentBackgroundComponentHealth(
-            registration: registration,
-            handshake: runtime.handshake,
-            snapshot: runtime.snapshot,
-            session: runtime.session,
-            rendezvous: runtime.rendezvous
-        )
+            registration: registration, handshake: runtime.handshake, snapshot: runtime.snapshot,
+            session: runtime.session, rendezvous: runtime.rendezvous)
     }
 
     package var availability: HostAgentBackgroundAvailability {
@@ -108,10 +88,8 @@ package struct HostAgentBackgroundReadinessView: Equatable, Sendable {
 /// combines read-only registration observation with evidence derived from the
 /// reconnect owner's projection authority. Activation remains a caller policy.
 package final class HostAgentBackgroundHealthAuthority: @unchecked Sendable {
-    package typealias RegistrationObserver = @Sendable ()
-        -> HostAgentBackgroundRegistrationStatus
-    package typealias Observer = @Sendable
-        (HostAgentBackgroundReadinessView) -> Void
+    package typealias RegistrationObserver = @Sendable () -> HostAgentBackgroundRegistrationStatus
+    package typealias Observer = @Sendable (HostAgentBackgroundReadinessView) -> Void
 
     private let stateLock = NSLock()
     private let deliveryLock = NSRecursiveLock()
@@ -121,23 +99,15 @@ package final class HostAgentBackgroundHealthAuthority: @unchecked Sendable {
 
     package init(
         initialRegistration: HostAgentBackgroundRegistrationStatus,
-        observeRegistration: @escaping RegistrationObserver,
-        observer: @escaping Observer = { _ in }
+        observeRegistration: @escaping RegistrationObserver, observer: @escaping Observer = { _ in }
     ) {
         self.observeRegistration = observeRegistration
         self.observer = observer
         view = HostAgentBackgroundReadinessView(
-            generation: 0,
-            registration: initialRegistration,
+            generation: 0, registration: initialRegistration,
             runtime: HostAgentBackgroundRuntimeEvidence(
-                projectionGeneration: 0,
-                handshake: .disconnected,
-                snapshot: .unavailable,
-                session: .unavailable,
-                rendezvous: .checking
-            ),
-            failure: nil
-        )
+                projectionGeneration: 0, handshake: .disconnected, snapshot: .unavailable,
+                session: .unavailable, rendezvous: .checking), failure: nil)
     }
 
     package func snapshot() -> HostAgentBackgroundReadinessView {
@@ -157,62 +127,41 @@ package final class HostAgentBackgroundHealthAuthority: @unchecked Sendable {
         deliveryLock.lock()
         let registration = observeRegistration()
         let publication = mutateView { current in
-            guard current.failure == nil,
-                  current.registration != registration
-            else { return nil }
+            guard current.failure == nil, current.registration != registration else { return nil }
             return nextView(
-                current: current,
-                registration: registration,
-                runtime: current.runtime,
-                failure: nil
+                current: current, registration: registration, runtime: current.runtime, failure: nil
             )
         }
         publish(publication)
         deliveryLock.unlock()
     }
 
-    package func acceptProjection(
-        _ projection: HostAgentBackgroundProjectionView
-    ) {
-        acceptRuntimeEvidence(
-            HostAgentBackgroundRuntimeEvidence(projection: projection)
-        )
+    package func acceptProjection(_ projection: HostAgentBackgroundProjectionView) {
+        acceptRuntimeEvidence(HostAgentBackgroundRuntimeEvidence(projection: projection))
     }
 
-    package func acceptRuntimeEvidence(
-        _ evidence: HostAgentBackgroundRuntimeEvidence
-    ) {
+    package func acceptRuntimeEvidence(_ evidence: HostAgentBackgroundRuntimeEvidence) {
         deliveryLock.lock()
         let publication = mutateView { current in
             guard current.failure == nil else { return nil }
             guard evidence.isConsistent else {
                 return failedView(current: current, evidence: evidence)
             }
-            if evidence.projectionGeneration <
-                current.runtime.projectionGeneration
-            {
-                return nil
-            }
-            if evidence.projectionGeneration ==
-                current.runtime.projectionGeneration
-            {
+            if evidence.projectionGeneration < current.runtime.projectionGeneration { return nil }
+            if evidence.projectionGeneration == current.runtime.projectionGeneration {
                 guard evidence != current.runtime else { return nil }
                 return failedView(current: current, evidence: evidence)
             }
             return nextView(
-                current: current,
-                registration: current.registration,
-                runtime: evidence,
-                failure: nil
-            )
+                current: current, registration: current.registration, runtime: evidence,
+                failure: nil)
         }
         publish(publication)
         deliveryLock.unlock()
     }
 
     private func mutateView(
-        _ mutation: (HostAgentBackgroundReadinessView)
-            -> HostAgentBackgroundReadinessView?
+        _ mutation: (HostAgentBackgroundReadinessView) -> HostAgentBackgroundReadinessView?
     ) -> HostAgentBackgroundReadinessView? {
         stateLock.lock()
         defer { stateLock.unlock() }
@@ -221,58 +170,42 @@ package final class HostAgentBackgroundHealthAuthority: @unchecked Sendable {
         return publication
     }
 
-    private func publish(
-        _ publication: HostAgentBackgroundReadinessView?
-    ) {
+    private func publish(_ publication: HostAgentBackgroundReadinessView?) {
         guard let publication else { return }
         observer(publication)
     }
 
     private func failedView(
-        current: HostAgentBackgroundReadinessView,
-        evidence: HostAgentBackgroundRuntimeEvidence
+        current: HostAgentBackgroundReadinessView, evidence: HostAgentBackgroundRuntimeEvidence
     ) -> HostAgentBackgroundReadinessView {
         nextView(
-            current: current,
-            registration: current.registration,
-            runtime: .failClosed(projectionGeneration: max(
-                current.runtime.projectionGeneration,
-                evidence.projectionGeneration
-            )),
-            failure: .invalidRuntimeEvidence
-        )
+            current: current, registration: current.registration,
+            runtime: .failClosed(
+                projectionGeneration: max(
+                    current.runtime.projectionGeneration, evidence.projectionGeneration)),
+            failure: .invalidRuntimeEvidence)
     }
 
     private func nextView(
         current: HostAgentBackgroundReadinessView,
         registration: HostAgentBackgroundRegistrationStatus,
-        runtime: HostAgentBackgroundRuntimeEvidence,
-        failure: HostAgentBackgroundHealthFailure?
+        runtime: HostAgentBackgroundRuntimeEvidence, failure: HostAgentBackgroundHealthFailure?
     ) -> HostAgentBackgroundReadinessView {
         guard current.generation < UInt64.max - 1 else {
             return HostAgentBackgroundReadinessView(
-                generation: UInt64.max,
-                registration: registration,
-                runtime: .failClosed(
-                    projectionGeneration: runtime.projectionGeneration
-                ),
-                failure: .generationExhausted
-            )
+                generation: UInt64.max, registration: registration,
+                runtime: .failClosed(projectionGeneration: runtime.projectionGeneration),
+                failure: .generationExhausted)
         }
         return HostAgentBackgroundReadinessView(
-            generation: current.generation + 1,
-            registration: registration,
-            runtime: runtime,
-            failure: failure
-        )
+            generation: current.generation + 1, registration: registration, runtime: runtime,
+            failure: failure)
     }
 }
 
 /// Product wiring for the three App-side owners. Construction performs one
 /// read-only registration observation but deliberately does not start XPC.
-package final class HostAgentBackgroundRuntimeComposition:
-    @unchecked Sendable
-{
+package final class HostAgentBackgroundRuntimeComposition: @unchecked Sendable {
     package let healthAuthority: HostAgentBackgroundHealthAuthority
     package let projectionAuthority: HostAgentBackgroundProjectionAuthority
     package let reconnectOwner: HostAgentXPCReconnectOwner
@@ -288,35 +221,22 @@ package final class HostAgentBackgroundRuntimeComposition:
     }
 
     package static func makeProduct(
-        observer: @escaping HostAgentBackgroundHealthAuthority.Observer = {
-            _ in
-        }
+        observer: @escaping HostAgentBackgroundHealthAuthority.Observer = { _ in }
     ) -> HostAgentBackgroundRuntimeComposition {
-        let initialRegistration =
-            HostAgentBackgroundServiceObserver.observeRegistrationStatus()
+        let initialRegistration = HostAgentBackgroundServiceObserver.observeRegistrationStatus()
         let healthAuthority = HostAgentBackgroundHealthAuthority(
             initialRegistration: initialRegistration,
-            observeRegistration: {
-                HostAgentBackgroundServiceObserver.observeRegistrationStatus()
-            },
-            observer: observer
-        )
-        let projectionAuthority = HostAgentBackgroundProjectionAuthority(
-            observer: { [weak healthAuthority] projection in
-                healthAuthority?.acceptProjection(projection)
-            }
-        )
+            observeRegistration: { HostAgentBackgroundServiceObserver.observeRegistrationStatus() },
+            observer: observer)
+        let projectionAuthority = HostAgentBackgroundProjectionAuthority(observer: {
+            [weak healthAuthority] projection in healthAuthority?.acceptProjection(projection)
+        })
         let reconnectOwner = HostAgentXPCReconnectOwner.makeProduct(
-            projectionAuthority: projectionAuthority
-        )
+            projectionAuthority: projectionAuthority)
         return HostAgentBackgroundRuntimeComposition(
-            healthAuthority: healthAuthority,
-            projectionAuthority: projectionAuthority,
-            reconnectOwner: reconnectOwner
-        )
+            healthAuthority: healthAuthority, projectionAuthority: projectionAuthority,
+            reconnectOwner: reconnectOwner)
     }
 
-    package func refreshRegistration() {
-        healthAuthority.refreshRegistration()
-    }
+    package func refreshRegistration() { healthAuthority.refreshRegistration() }
 }

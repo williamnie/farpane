@@ -1,26 +1,26 @@
-import Foundation
 import CoreVideo
+import Foundation
 
 public final class FixturePlayer: @unchecked Sendable {
     private let stream: HEVCAnnexBStream
     private let fps: Double
     private let metrics: PipelineMetrics
     private let decoder: VideoToolboxDecoder
-    private let queue = DispatchQueue(label: "io.rustdesknative.fixture-player", qos: .userInteractive)
+    private let queue = DispatchQueue(
+        label: "io.rustdesknative.fixture-player", qos: .userInteractive)
     private var timer: DispatchSourceTimer?
     private var nextIndex = 0
     private var sequence: Int64 = 0
 
     public init(
-        fixtureURL: URL,
-        fps: Double,
-        metrics: PipelineMetrics,
+        fixtureURL: URL, fps: Double, metrics: PipelineMetrics,
         output: @escaping VideoToolboxDecoder.FrameHandler
     ) throws {
         stream = try HEVCAnnexBStream(data: Data(contentsOf: fixtureURL))
         self.fps = fps
         self.metrics = metrics
-        decoder = try VideoToolboxDecoder(parameterSets: stream.parameterSets, metrics: metrics, output: output)
+        decoder = try VideoToolboxDecoder(
+            parameterSets: stream.parameterSets, metrics: metrics, output: output)
     }
 
     public func start() {
@@ -39,14 +39,16 @@ public final class FixturePlayer: @unchecked Sendable {
 
     private func submitNextFrame() {
         guard !stream.accessUnits.isEmpty else { return }
-        guard decoder.pendingFrames < 2 else { metrics.recordDrop(); return }
+        guard decoder.pendingFrames < 2 else {
+            metrics.recordDrop()
+            return
+        }
         if nextIndex == 0, !stream.accessUnits[0].isKeyframe {
-            metrics.recordDecodeError(); return
+            metrics.recordDecodeError()
+            return
         }
         let unit = stream.accessUnits[nextIndex]
-        do {
-            try decoder.decode(unit, sequence: sequence, fps: fps)
-        } catch {
+        do { try decoder.decode(unit, sequence: sequence, fps: fps) } catch {
             metrics.recordDecodeError()
             fputs("decode submit error: \(error)\n", stderr)
         }
@@ -54,4 +56,3 @@ public final class FixturePlayer: @unchecked Sendable {
         nextIndex = (nextIndex + 1) % stream.accessUnits.count
     }
 }
-

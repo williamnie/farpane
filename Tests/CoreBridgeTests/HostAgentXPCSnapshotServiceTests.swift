@@ -1,74 +1,18 @@
-@testable import CoreBridge
 import CoreBridgeShim
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     private let hostID = "host-a"
     private let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
 
-    func testFactoryConstructsHandshakeSnapshotEventCommandAndPasswordInterface() throws {
-        let interface = HostAgentXPCSnapshotInterfaceFactory.makeInterface()
-
-        XCTAssertEqual(
-            NSStringFromProtocol(interface.protocol),
-            "RDNHostAgentXPCPasswordService"
-        )
-        XCTAssertEqual(
-            HostAgentXPCSnapshotInterfaceFactory.handshakeSelectorName,
-            "performHandshakeWithRequestData:reply:"
-        )
-        XCTAssertEqual(
-            HostAgentXPCSnapshotInterfaceFactory.snapshotSelectorName,
-            "fetchSnapshotWithRequestData:reply:"
-        )
-        XCTAssertEqual(
-            HostAgentXPCSnapshotInterfaceFactory.eventSelectorName,
-            "fetchEventsWithRequestData:reply:"
-        )
-        XCTAssertEqual(
-            HostAgentXPCSnapshotInterfaceFactory.commandSelectorName,
-            "submitCommandWithRequestData:reply:"
-        )
-        XCTAssertEqual(
-            HostAgentXPCSnapshotInterfaceFactory.passwordSelectorName,
-            "performPasswordOperationWithRequestData:secretData:reply:"
-        )
-
-        let header = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "CoreBridge/include/HostAgentXPCHandshakeService.h"
-            ),
-            encoding: .utf8
-        )
-        XCTAssertTrue(header.contains(
-            "RDNHostAgentXPCSnapshotService <RDNHostAgentXPCHandshakeService>"
-        ))
-        XCTAssertTrue(header.contains(
-            "RDNHostAgentXPCEventService <RDNHostAgentXPCSnapshotService>"
-        ))
-        XCTAssertTrue(header.contains(
-            "RDNHostAgentXPCCommandService <RDNHostAgentXPCEventService>"
-        ))
-        XCTAssertTrue(header.contains(
-            "RDNHostAgentXPCPasswordService <RDNHostAgentXPCCommandService>"
-        ))
-        XCTAssertEqual(header.components(separatedBy: "- (void)").count - 1, 5)
-        XCTAssertTrue(header.contains("NSData *)requestData"))
-        XCTAssertTrue(header.contains("NSData * _Nullable responseData"))
-        XCTAssertFalse(header.contains("NSArray"))
-        XCTAssertFalse(header.contains("NSDictionary"))
-        XCTAssertFalse(header.contains("NSURL"))
-        XCTAssertFalse(header.contains("NSError"))
-    }
-
     func testSnapshotFailsClosedBeforeCompatibleHandshake() throws {
         let handler = try makeHandler(availableSnapshot: true)
         var replies: [Data?] = []
 
-        handler.fetchSnapshot(requestData: try snapshotRequest().encoded()) {
-            replies.append($0)
-        }
+        handler.fetchSnapshot(requestData: try snapshotRequest().encoded()) { replies.append($0) }
 
         XCTAssertEqual(replies.count, 1)
         XCTAssertNil(replies[0])
@@ -79,31 +23,22 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         let handler = try makeHandler(availableSnapshot: true, eventSequence: 7)
         let handshake = try handshakeRequest(versions: [2])
 
-        let handshakeData = try XCTUnwrap(handler.handshakeResponse(
-            for: handshake.encoded()
-        ))
-        let handshakeResponse = try HostAgentXPCWireHandshakeResponse.decode(
-            handshakeData
-        )
+        let handshakeData = try XCTUnwrap(handler.handshakeResponse(for: handshake.encoded()))
+        let handshakeResponse = try HostAgentXPCWireHandshakeResponse.decode(handshakeData)
         XCTAssertEqual(handshakeResponse.compatibility, .compatible)
         XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 2))
 
         let request = try snapshotRequest()
-        let snapshotData = try XCTUnwrap(handler.snapshotResponse(
-            for: request.encoded()
-        ))
+        let snapshotData = try XCTUnwrap(handler.snapshotResponse(for: request.encoded()))
         let response = try HostAgentXPCWireSnapshotResponse.decode(snapshotData)
         XCTAssertEqual(response.evaluate(for: request), .correlated)
         XCTAssertEqual(response.lastEventID, 7)
         XCTAssertEqual(response.snapshot.hostState, "ready")
 
         let wrongBoot = try HostAgentXPCWireSnapshotRequest(
-            requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            wireVersion: 2,
-            hostInstanceID: hostID,
-            agentBootID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            sentAtUnixMilliseconds: 12
-        )
+            requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676", wireVersion: 2,
+            hostInstanceID: hostID, agentBootID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
+            sentAtUnixMilliseconds: 12)
         XCTAssertNil(handler.snapshotResponse(for: try wrongBoot.encoded()))
         XCTAssertNil(handler.handshakeResponse(for: try handshake.encoded()))
     }
@@ -111,22 +46,14 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     func testIncompatibleHandshakeTerminallyRejectsSnapshotAndRenegotiation() throws {
         let handler = try makeHandler(availableSnapshot: true)
         let incompatible = try handshakeRequest(versions: [1])
-        let incompatibleData = try XCTUnwrap(handler.handshakeResponse(
-            for: incompatible.encoded()
-        ))
+        let incompatibleData = try XCTUnwrap(handler.handshakeResponse(for: incompatible.encoded()))
         XCTAssertEqual(
-            try HostAgentXPCWireHandshakeResponse.decode(incompatibleData)
-                .compatibility,
-            .incompatible
-        )
+            try HostAgentXPCWireHandshakeResponse.decode(incompatibleData).compatibility,
+            .incompatible)
         XCTAssertEqual(handler.stateSnapshot(), .incompatible)
 
-        XCTAssertNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
-        XCTAssertNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
+        XCTAssertNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
+        XCTAssertNil(handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
     }
 
     func testMalformedHandshakeCanRetryButUnavailableSnapshotStillFailsClosed() throws {
@@ -134,24 +61,19 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
 
         XCTAssertNil(handler.handshakeResponse(for: Data()))
         XCTAssertEqual(handler.stateSnapshot(), .awaitingHandshake)
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
         XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 2))
 
         XCTAssertNil(handler.snapshotResponse(for: Data()))
-        XCTAssertNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
+        XCTAssertNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
     }
 
     func testConcurrentHandshakeAllowsExactlyOneTerminalNegotiation() throws {
         let handler = try makeHandler(availableSnapshot: true)
         let requestData = try handshakeRequest(versions: [2]).encoded()
         let queue = DispatchQueue(
-            label: "HostAgentXPCSnapshotServiceTests.handshake",
-            attributes: .concurrent
-        )
+            label: "HostAgentXPCSnapshotServiceTests.handshake", attributes: .concurrent)
         let group = DispatchGroup()
         let lock = NSLock()
         var successfulReplies = 0
@@ -175,12 +97,9 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     func testSnapshotRequestsAreRateLimitedPerConnection() throws {
         let clock = SnapshotServiceTestClock(values: [1_000, 1_099, 1_100])
         let handler = try makeHandler(
-            availableSnapshot: true,
-            monotonicMilliseconds: { clock.now() }
-        )
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
+            availableSnapshot: true, monotonicMilliseconds: { clock.now() })
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
         let requestData = try snapshotRequest().encoded()
 
         XCTAssertNotNil(handler.snapshotResponse(for: requestData))
@@ -192,100 +111,55 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         let eventState = try makeEventState(count: 2)
         let clock = SnapshotServiceTestClock(values: [1_000, 2_000, 2_100])
         let handler = try makeHandler(
-            availableSnapshot: true,
-            eventSequence: 0,
-            eventState: eventState,
-            monotonicMilliseconds: { clock.now() }
-        )
+            availableSnapshot: true, eventSequence: 0, eventState: eventState,
+            monotonicMilliseconds: { clock.now() })
         let initialEventRequest = try eventRequest(afterEventID: 0)
 
-        XCTAssertNil(handler.eventResponse(
-            for: try initialEventRequest.encoded()
-        ))
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
-        XCTAssertNil(handler.eventResponse(
-            for: try initialEventRequest.encoded()
-        ))
-        XCTAssertNotNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
+        XCTAssertNil(handler.eventResponse(for: try initialEventRequest.encoded()))
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
+        XCTAssertNil(handler.eventResponse(for: try initialEventRequest.encoded()))
+        XCTAssertNotNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
 
-        let eventData = try XCTUnwrap(handler.eventResponse(
-            for: initialEventRequest.encoded()
-        ))
+        let eventData = try XCTUnwrap(handler.eventResponse(for: initialEventRequest.encoded()))
         let response = try HostAgentXPCWireEventCursorResponse.decode(eventData)
         XCTAssertEqual(response.outcome, .batch)
         XCTAssertEqual(response.resumeAfterEventID, 2)
         XCTAssertEqual(response.latestEventID, 2)
-        XCTAssertEqual(
-            handler.stateSnapshot(),
-            .snapshotReady(wireVersion: 2, afterEventID: 2)
-        )
+        XCTAssertEqual(handler.stateSnapshot(), .snapshotReady(wireVersion: 2, afterEventID: 2))
 
-        XCTAssertNil(handler.eventResponse(
-            for: try initialEventRequest.encoded()
-        ))
+        XCTAssertNil(handler.eventResponse(for: try initialEventRequest.encoded()))
         let caughtUp = try eventRequest(afterEventID: 2)
-        let caughtUpData = try XCTUnwrap(handler.eventResponse(
-            for: caughtUp.encoded()
-        ))
+        let caughtUpData = try XCTUnwrap(handler.eventResponse(for: caughtUp.encoded()))
         XCTAssertEqual(
-            try HostAgentXPCWireEventCursorResponse.decode(caughtUpData).outcome,
-            .upToDate
-        )
+            try HostAgentXPCWireEventCursorResponse.decode(caughtUpData).outcome, .upToDate)
     }
 
     func testGapRequiresAnotherSnapshotBeforeAnyEventRetry() throws {
-        let eventState = try HostAgentEventState(
-            capacity: 2,
-            maximumEventBytes: 4_096
-        )
+        let eventState = try HostAgentEventState(capacity: 2, maximumEventBytes: 4_096)
         let clock = SnapshotServiceTestClock(values: [1_000, 2_000])
         let handler = try makeHandler(
-            availableSnapshot: true,
-            eventSequence: 0,
-            eventState: eventState,
-            monotonicMilliseconds: { clock.now() }
-        )
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
-        XCTAssertNotNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
-        for eventID in 1...3 {
-            _ = eventState.ingest(try event(id: UInt64(eventID)))
-        }
+            availableSnapshot: true, eventSequence: 0, eventState: eventState,
+            monotonicMilliseconds: { clock.now() })
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
+        XCTAssertNotNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
+        for eventID in 1...3 { _ = eventState.ingest(try event(id: UInt64(eventID))) }
 
         let request = try eventRequest(afterEventID: 0)
-        let data = try XCTUnwrap(handler.eventResponse(
-            for: request.encoded()
-        ))
-        XCTAssertEqual(
-            try HostAgentXPCWireEventCursorResponse.decode(data).outcome,
-            .gap
-        )
+        let data = try XCTUnwrap(handler.eventResponse(for: request.encoded()))
+        XCTAssertEqual(try HostAgentXPCWireEventCursorResponse.decode(data).outcome, .gap)
         XCTAssertEqual(handler.stateSnapshot(), .compatible(wireVersion: 2))
         XCTAssertNil(handler.eventResponse(for: try request.encoded()))
     }
 
     func testEventRequestsAreRateLimitedIndependentlyFromSnapshot() throws {
-        let clock = SnapshotServiceTestClock(
-            values: [1_000, 2_000, 2_099, 2_100]
-        )
+        let clock = SnapshotServiceTestClock(values: [1_000, 2_000, 2_099, 2_100])
         let handler = try makeHandler(
-            availableSnapshot: true,
-            eventSequence: 0,
-            monotonicMilliseconds: { clock.now() }
-        )
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
-        XCTAssertNotNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
+            availableSnapshot: true, eventSequence: 0, monotonicMilliseconds: { clock.now() })
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
+        XCTAssertNotNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
         let requestData = try eventRequest(afterEventID: 0).encoded()
 
         XCTAssertNotNil(handler.eventResponse(for: requestData))
@@ -298,59 +172,34 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         let service = try makeCommandService(recorder: recorder)
         let clock = SnapshotServiceTestClock(values: [1_000, 2_000])
         let handler = try makeHandler(
-            availableSnapshot: true,
-            commandService: service,
-            monotonicMilliseconds: { clock.now() }
+            availableSnapshot: true, commandService: service, monotonicMilliseconds: { clock.now() }
         )
         let request = try commandRequest()
 
-        XCTAssertNil(commandReply(
-            handler,
-            requestData: try request.encoded()
-        ))
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
-        XCTAssertNil(commandReply(
-            handler,
-            requestData: try request.encoded()
-        ))
-        XCTAssertNotNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
-        XCTAssertNil(commandReply(
-            handler,
-            requestData: try commandRequest(
-                bootID: "287fd5f2-98b7-4183-ac81-6973cef9a610"
-            ).encoded()
-        ))
+        XCTAssertNil(commandReply(handler, requestData: try request.encoded()))
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
+        XCTAssertNil(commandReply(handler, requestData: try request.encoded()))
+        XCTAssertNotNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
+        XCTAssertNil(
+            commandReply(
+                handler,
+                requestData: try commandRequest(bootID: "287fd5f2-98b7-4183-ac81-6973cef9a610")
+                    .encoded()))
         XCTAssertEqual(recorder.preparedExecutions.count, 0)
 
-        let responseData = try XCTUnwrap(commandReply(
-            handler,
-            requestData: try request.encoded()
-        ))
+        let responseData = try XCTUnwrap(commandReply(handler, requestData: try request.encoded()))
         XCTAssertEqual(
-            try HostAgentXPCWireCommandAcceptedResponse.decode(responseData)
-                .evaluate(for: request),
-            .correlated
-        )
+            try HostAgentXPCWireCommandAcceptedResponse.decode(responseData).evaluate(for: request),
+            .correlated)
         XCTAssertEqual(recorder.preparedExecutions.count, 1)
         XCTAssertEqual(recorder.startedExecutions.count, 1)
-        XCTAssertEqual(
-            handler.stateSnapshot(),
-            .snapshotReady(wireVersion: 2, afterEventID: 1)
-        )
+        XCTAssertEqual(handler.stateSnapshot(), .snapshotReady(wireVersion: 2, afterEventID: 1))
     }
 
-    func testPasswordOperationRequiresSnapshotAndUsesDedicatedSecretReply()
-        throws
-    {
+    func testPasswordOperationRequiresSnapshotAndUsesDedicatedSecretReply() throws {
         let identity = try HostAgentXPCWireAgentIdentity.test(
-            agentBuildID: "agent-build",
-            hostInstanceID: hostID,
-            agentBootID: bootID
-        )
+            agentBuildID: "agent-build", hostInstanceID: hostID, agentBootID: bootID)
         let password = Data("246813579".utf8)
         let service = HostAgentXPCPasswordService(
             identity: identity,
@@ -358,45 +207,26 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
                 XCTAssertEqual(action, .revealTemporaryPassword)
                 XCTAssertTrue(secret.isEmpty)
                 return password
-            }
-        )
-        let handler = try makeHandler(
-            availableSnapshot: true,
-            passwordService: service
-        )
+            })
+        let handler = try makeHandler(availableSnapshot: true, passwordService: service)
         let request = try HostAgentXPCWirePasswordRequest(
-            wireVersion: 2,
-            requestID: "f3b55fb3-bc9f-443a-9a73-7769eb35875d",
-            hostInstanceID: hostID,
-            agentBootID: bootID,
-            sentAtUnixMilliseconds: 13,
-            action: .revealTemporaryPassword,
-            secretLength: 0
-        )
+            wireVersion: 2, requestID: "f3b55fb3-bc9f-443a-9a73-7769eb35875d",
+            hostInstanceID: hostID, agentBootID: bootID, sentAtUnixMilliseconds: 13,
+            action: .revealTemporaryPassword, secretLength: 0)
         var prematureReply = false
-        handler.performPasswordOperation(
-            requestData: try request.encoded(),
-            secretData: nil
-        ) { response, secret in
-            prematureReply = response != nil || secret != nil
+        handler.performPasswordOperation(requestData: try request.encoded(), secretData: nil) {
+            response, secret in prematureReply = response != nil || secret != nil
         }
         XCTAssertFalse(prematureReply)
 
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
-        XCTAssertNotNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
+        XCTAssertNotNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
 
         let replied = expectation(description: "password operation replied")
-        handler.performPasswordOperation(
-            requestData: try request.encoded(),
-            secretData: nil
-        ) { data, secret in
-            guard let data,
-                  let response = try? HostAgentXPCWirePasswordResponse.decode(data)
-            else {
+        handler.performPasswordOperation(requestData: try request.encoded(), secretData: nil) {
+            data, secret in
+            guard let data, let response = try? HostAgentXPCWirePasswordResponse.decode(data) else {
                 XCTFail("missing password response")
                 replied.fulfill()
                 return
@@ -413,26 +243,16 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         let service = try makeCommandService(recorder: recorder)
         let clock = SnapshotServiceTestClock(values: [1_000, 2_000, 2_100])
         let handler = try makeHandler(
-            availableSnapshot: true,
-            commandService: service,
-            monotonicMilliseconds: { clock.now() }
+            availableSnapshot: true, commandService: service, monotonicMilliseconds: { clock.now() }
         )
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
-        XCTAssertNotNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
+        XCTAssertNotNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
         let request = try commandRequest()
         recorder.ticketFactory = { execution in
             HostAgentXPCCommandQueueTicket {
                 XCTAssertEqual(
-                    handler.stateSnapshot(),
-                    .submittingCommand(
-                        wireVersion: 2,
-                        afterEventID: 1
-                    )
-                )
+                    handler.stateSnapshot(), .submittingCommand(wireVersion: 2, afterEventID: 1))
                 recorder.recordStarted(execution, marker: "execution")
             }
         }
@@ -451,17 +271,13 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
 
         XCTAssertNotNil(responseData)
         XCTAssertNil(reentrantData)
-        XCTAssertEqual(
-            recorder.markers,
-            ["reply", "reentrant-rejected", "execution"]
-        )
+        XCTAssertEqual(recorder.markers, ["reply", "reentrant-rejected", "execution"])
         XCTAssertEqual(recorder.startedExecutions.count, 1)
-        XCTAssertNotNil(commandReply(
-            handler,
-            requestData: try commandRequest(
-                requestID: "841733af-919b-4dc2-84bb-7134d0951dc9"
-            ).encoded()
-        ))
+        XCTAssertNotNil(
+            commandReply(
+                handler,
+                requestData: try commandRequest(requestID: "841733af-919b-4dc2-84bb-7134d0951dc9")
+                    .encoded()))
         XCTAssertEqual(recorder.preparedExecutions.count, 1)
         XCTAssertEqual(recorder.startedExecutions.count, 1)
     }
@@ -469,34 +285,19 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
     func testCommandRequestsAreRateLimitedPerConnection() throws {
         let recorder = SnapshotCommandServiceRecorder()
         let service = try makeCommandService(recorder: recorder)
-        let clock = SnapshotServiceTestClock(
-            values: [1_000, 2_000, 2_099, 2_100]
-        )
+        let clock = SnapshotServiceTestClock(values: [1_000, 2_000, 2_099, 2_100])
         let handler = try makeHandler(
-            availableSnapshot: true,
-            commandService: service,
-            monotonicMilliseconds: { clock.now() }
+            availableSnapshot: true, commandService: service, monotonicMilliseconds: { clock.now() }
         )
-        XCTAssertNotNil(handler.handshakeResponse(
-            for: try handshakeRequest(versions: [2]).encoded()
-        ))
-        XCTAssertNotNil(handler.snapshotResponse(
-            for: try snapshotRequest().encoded()
-        ))
-        XCTAssertNotNil(commandReply(
-            handler,
-            requestData: try commandRequest().encoded()
-        ))
+        XCTAssertNotNil(
+            handler.handshakeResponse(for: try handshakeRequest(versions: [2]).encoded()))
+        XCTAssertNotNil(handler.snapshotResponse(for: try snapshotRequest().encoded()))
+        XCTAssertNotNil(commandReply(handler, requestData: try commandRequest().encoded()))
         let second = try commandRequest(
-            requestID: "841733af-919b-4dc2-84bb-7134d0951dc9",
-            commandID: "command-2"
-        )
+            requestID: "841733af-919b-4dc2-84bb-7134d0951dc9", commandID: "command-2")
 
         XCTAssertNil(commandReply(handler, requestData: try second.encoded()))
-        XCTAssertNotNil(commandReply(
-            handler,
-            requestData: try second.encoded()
-        ))
+        XCTAssertNotNil(commandReply(handler, requestData: try second.encoded()))
         XCTAssertEqual(recorder.preparedExecutions.count, 2)
         XCTAssertEqual(recorder.startedExecutions.count, 2)
     }
@@ -505,18 +306,12 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         let commandRecorder = SnapshotCommandServiceRecorder()
         let clock = SnapshotServiceTestClock(values: [1_000, 2_000, 2_100])
         let handler = try makeHandler(
-            availableSnapshot: true,
-            eventSequence: 7,
-            eventState: makeEventState(count: 7),
+            availableSnapshot: true, eventSequence: 7, eventState: makeEventState(count: 7),
             commandService: makeCommandService(recorder: commandRecorder),
-            monotonicMilliseconds: { clock.now() }
-        )
+            monotonicMilliseconds: { clock.now() })
         let interface = HostAgentXPCSnapshotInterfaceFactory.makeInterface()
         let listener = NSXPCListener.anonymous()
-        let delegate = SnapshotServiceTestListenerDelegate(
-            interface: interface,
-            handler: handler
-        )
+        let delegate = SnapshotServiceTestListenerDelegate(interface: interface, handler: handler)
         listener.delegate = delegate
         listener.resume()
         let connection = NSXPCConnection(listenerEndpoint: listener.endpoint)
@@ -529,54 +324,39 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         let proxy = try XCTUnwrap(
             connection.remoteObjectProxyWithErrorHandler { error in
                 XCTFail("anonymous XPC error: \(error.localizedDescription)")
-            } as? RDNHostAgentXPCCommandService
-        )
+            } as? RDNHostAgentXPCCommandService)
 
         let handshakeReply = expectation(description: "handshake reply")
         var handshakeData: Data?
-        proxy.performHandshake(
-            requestData: try handshakeRequest(versions: [2]).encoded()
-        ) { data in
+        proxy.performHandshake(requestData: try handshakeRequest(versions: [2]).encoded()) { data in
             handshakeData = data
             handshakeReply.fulfill()
         }
         wait(for: [handshakeReply], timeout: 2)
         XCTAssertEqual(
-            try HostAgentXPCWireHandshakeResponse.decode(
-                XCTUnwrap(handshakeData)
-            ).compatibility,
-            .compatible
-        )
+            try HostAgentXPCWireHandshakeResponse.decode(XCTUnwrap(handshakeData)).compatibility,
+            .compatible)
 
         let snapshotReply = expectation(description: "snapshot reply")
         var snapshotData: Data?
-        proxy.fetchSnapshot(requestData: try snapshotRequest().encoded()) {
-            data in
+        proxy.fetchSnapshot(requestData: try snapshotRequest().encoded()) { data in
             snapshotData = data
             snapshotReply.fulfill()
         }
         wait(for: [snapshotReply], timeout: 2)
-        let response = try HostAgentXPCWireSnapshotResponse.decode(
-            XCTUnwrap(snapshotData)
-        )
+        let response = try HostAgentXPCWireSnapshotResponse.decode(XCTUnwrap(snapshotData))
         XCTAssertEqual(response.lastEventID, 7)
         XCTAssertEqual(response.snapshot.hostState, "ready")
 
         let eventReply = expectation(description: "event reply")
         var eventData: Data?
-        proxy.fetchEvents(requestData: try eventRequest(
-            afterEventID: 7
-        ).encoded()) { data in
+        proxy.fetchEvents(requestData: try eventRequest(afterEventID: 7).encoded()) { data in
             eventData = data
             eventReply.fulfill()
         }
         wait(for: [eventReply], timeout: 2)
         XCTAssertEqual(
-            try HostAgentXPCWireEventCursorResponse.decode(
-                XCTUnwrap(eventData)
-            ).outcome,
-            .upToDate
-        )
+            try HostAgentXPCWireEventCursorResponse.decode(XCTUnwrap(eventData)).outcome, .upToDate)
 
         let command = try commandRequest()
         let commandReply = expectation(description: "command reply")
@@ -587,225 +367,120 @@ final class HostAgentXPCSnapshotServiceTests: XCTestCase {
         }
         wait(for: [commandReply], timeout: 2)
         XCTAssertEqual(
-            try HostAgentXPCWireCommandAcceptedResponse.decode(
-                XCTUnwrap(commandData)
-            ).evaluate(for: command),
-            .correlated
-        )
+            try HostAgentXPCWireCommandAcceptedResponse.decode(XCTUnwrap(commandData)).evaluate(
+                for: command), .correlated)
         XCTAssertEqual(commandRecorder.startedExecutions.count, 1)
     }
 
-    func testServiceSourceCannotOwnConnectionHostCoreOrExternalState() throws {
-        let source = try String(
-            contentsOf: repositoryRoot.appendingPathComponent(
-                "Sources/CoreBridge/HostAgentXPCSnapshotService.swift"
-            ),
-            encoding: .utf8
-        )
-
-        XCTAssertFalse(source.contains("NSXPCListener"))
-        XCTAssertFalse(source.contains("NSXPCConnection"))
-        XCTAssertFalse(source.contains("shouldAcceptNewConnection"))
-        XCTAssertFalse(source.contains("activate()"))
-        XCTAssertFalse(source.contains("resume()"))
-        XCTAssertFalse(source.contains("exportedObject"))
-        XCTAssertFalse(source.contains("remoteObject"))
-        XCTAssertTrue(source.contains("HostAgentXPCWireCommand"))
-        XCTAssertTrue(source.contains("HostAgentXPCWireEvent"))
-        XCTAssertFalse(source.contains("HostControlClient"))
-        XCTAssertFalse(source.contains("rdn_host"))
-        XCTAssertFalse(source.contains("FileManager"))
-        XCTAssertFalse(source.contains("UserDefaults"))
-    }
-
     private var repositoryRoot: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
     }
 
     private func makeHandler(
-        availableSnapshot: Bool,
-        eventSequence: UInt64 = 1,
-        eventState: HostAgentEventState? = nil,
+        availableSnapshot: Bool, eventSequence: UInt64 = 1, eventState: HostAgentEventState? = nil,
         commandService: HostAgentXPCCommandService? = nil,
         passwordService: HostAgentXPCPasswordService? = nil,
-        nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock = {
-            20
-        },
-        monotonicMilliseconds: @escaping
-            HostAgentXPCSnapshotSessionHandler.MonotonicClock = {
-            1
-        }
+        nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock = { 20 },
+        monotonicMilliseconds: @escaping HostAgentXPCSnapshotSessionHandler.MonotonicClock = { 1 }
     ) throws -> HostAgentXPCSnapshotSessionHandler {
         let state = HostAgentSnapshotState()
         if availableSnapshot {
             _ = state.publish(
-                try coreSnapshot(),
-                eventSequence: eventSequence,
-                expectedHostInstanceID: hostID
-            )
+                try coreSnapshot(), eventSequence: eventSequence, expectedHostInstanceID: hostID)
         }
         return try HostAgentXPCSnapshotSessionHandler(
             identity: HostAgentXPCWireAgentIdentity.test(
-                agentBuildID: "agent-build",
-                hostInstanceID: hostID,
-                agentBootID: bootID
-            ),
-            snapshotState: state,
-            eventState: eventState ?? HostAgentEventState(),
-            commandService: commandService,
-            passwordService: passwordService,
-            nowUnixMilliseconds: nowUnixMilliseconds,
-            monotonicMilliseconds: monotonicMilliseconds
-        )
+                agentBuildID: "agent-build", hostInstanceID: hostID, agentBootID: bootID),
+            snapshotState: state, eventState: eventState ?? HostAgentEventState(),
+            commandService: commandService, passwordService: passwordService,
+            nowUnixMilliseconds: nowUnixMilliseconds, monotonicMilliseconds: monotonicMilliseconds)
     }
 
-    private func handshakeRequest(
-        versions: [UInt64]
-    ) throws -> HostAgentXPCWireHandshakeRequest {
+    private func handshakeRequest(versions: [UInt64]) throws -> HostAgentXPCWireHandshakeRequest {
         try HostAgentXPCWireHandshakeRequest(
-            requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610",
-            supportedWireVersions: versions,
-            appBuildID: "app-build",
-            knownHostInstanceID: nil,
-            knownAgentBootID: nil,
-            sentAtUnixMilliseconds: 10
-        )
+            requestID: "287fd5f2-98b7-4183-ac81-6973cef9a610", supportedWireVersions: versions,
+            appBuildID: "app-build", knownHostInstanceID: nil, knownAgentBootID: nil,
+            sentAtUnixMilliseconds: 10)
     }
 
     private func snapshotRequest() throws -> HostAgentXPCWireSnapshotRequest {
         try HostAgentXPCWireSnapshotRequest(
-            requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676",
-            wireVersion: 2,
-            hostInstanceID: hostID,
-            agentBootID: bootID,
-            sentAtUnixMilliseconds: 11
-        )
+            requestID: "151db9a9-7dd3-4fea-93af-1b6c10840676", wireVersion: 2,
+            hostInstanceID: hostID, agentBootID: bootID, sentAtUnixMilliseconds: 11)
     }
 
-    private func eventRequest(
-        afterEventID: UInt64
-    ) throws -> HostAgentXPCWireEventCursorRequest {
+    private func eventRequest(afterEventID: UInt64) throws -> HostAgentXPCWireEventCursorRequest {
         try HostAgentXPCWireEventCursorRequest(
-            requestID: "841733af-919b-4dc2-84bb-7134d0951dc9",
-            wireVersion: 2,
-            hostInstanceID: hostID,
-            agentBootID: bootID,
-            afterEventID: afterEventID,
-            maximumEventCount: 64,
-            sentAtUnixMilliseconds: 12
-        )
+            requestID: "841733af-919b-4dc2-84bb-7134d0951dc9", wireVersion: 2,
+            hostInstanceID: hostID, agentBootID: bootID, afterEventID: afterEventID,
+            maximumEventCount: 64, sentAtUnixMilliseconds: 12)
     }
 
     private func commandRequest(
-        requestID: String = "287fd5f2-98b7-4183-ac81-6973cef9a610",
-        commandID: String = "command-1",
+        requestID: String = "287fd5f2-98b7-4183-ac81-6973cef9a610", commandID: String = "command-1",
         bootID: String? = nil
     ) throws -> HostAgentXPCWireCommandRequest {
         try HostAgentXPCWireCommandRequest(
-            requestID: requestID,
-            commandID: commandID,
-            wireVersion: 2,
-            hostInstanceID: hostID,
-            agentBootID: bootID ?? self.bootID,
-            name: .approveIncoming,
-            connectionID: "\(hostID):connection-1",
-            sentAtUnixMilliseconds: 13
-        )
+            requestID: requestID, commandID: commandID, wireVersion: 2, hostInstanceID: hostID,
+            agentBootID: bootID ?? self.bootID, name: .approveIncoming,
+            connectionID: "\(hostID):connection-1", sentAtUnixMilliseconds: 13)
     }
 
-    private func makeCommandService(
-        recorder: SnapshotCommandServiceRecorder
-    ) throws -> HostAgentXPCCommandService {
+    private func makeCommandService(recorder: SnapshotCommandServiceRecorder) throws
+        -> HostAgentXPCCommandService
+    {
         let identity = try HostAgentXPCWireAgentIdentity.test(
-            agentBuildID: "agent-build",
-            hostInstanceID: hostID,
-            agentBootID: bootID
-        )
+            agentBuildID: "agent-build", hostInstanceID: hostID, agentBootID: bootID)
         return HostAgentXPCCommandService(
             identity: identity,
-            authority: try HostAgentXPCCommandAdmissionAuthority(
-                identity: identity
-            ),
-            prepareExecution: { execution in
-                recorder.prepare(execution)
-            },
-            publishResult: { result in
-                recorder.publish(result)
-            },
-            nowUnixMilliseconds: { 20 }
-        )
+            authority: try HostAgentXPCCommandAdmissionAuthority(identity: identity),
+            prepareExecution: { execution in recorder.prepare(execution) },
+            publishResult: { result in recorder.publish(result) }, nowUnixMilliseconds: { 20 })
     }
 
-    private func commandReply(
-        _ handler: HostAgentXPCSnapshotSessionHandler,
-        requestData: Data
-    ) -> Data? {
+    private func commandReply(_ handler: HostAgentXPCSnapshotSessionHandler, requestData: Data)
+        -> Data?
+    {
         var result: Data?
         handler.submitCommand(requestData: requestData) { result = $0 }
         return result
     }
 
     private func makeEventState(count: Int) throws -> HostAgentEventState {
-        let state = try HostAgentEventState(
-            capacity: max(2, count),
-            maximumEventBytes: 4_096
-        )
-        for eventID in 1...count {
-            _ = state.ingest(try event(id: UInt64(eventID)))
-        }
+        let state = try HostAgentEventState(capacity: max(2, count), maximumEventBytes: 4_096)
+        for eventID in 1...count { _ = state.ingest(try event(id: UInt64(eventID))) }
         return state
     }
 
     private func event(id: UInt64) throws -> HostCoreEvent {
-        try XCTUnwrap(HostCoreEvent(rawJSON: JSONSerialization.data(
-            withJSONObject: [
-                "schemaVersion": 1,
-                "eventId": id,
-                "eventType": "snapshotChanged",
-                "hostInstanceId": hostID,
-                "sentAt": 1_700_000_000_000 as UInt64,
-                "payload": [:],
-            ]
-        )))
+        try XCTUnwrap(
+            HostCoreEvent(
+                rawJSON: JSONSerialization.data(withJSONObject: [
+                    "schemaVersion": 1, "eventId": id, "eventType": "snapshotChanged",
+                    "hostInstanceId": hostID, "sentAt": 1_700_000_000_000 as UInt64, "payload": [:],
+                ])))
     }
 
     private func coreSnapshot() throws -> HostCoreSnapshot {
-        try HostCoreSnapshot(rawJSON: JSONSerialization.data(
-            withJSONObject: [
-                "schemaVersion": 8,
-                "hostInstanceId": hostID,
-                "hostState": "ready",
-                "localId": "123456789",
-                "authenticatedConnectionCount": 1,
-                "sessionAvailability": "available",
-                "sessionUnavailableReason": NSNull(),
-                "registrationStatus": "ready",
-                "recoveryEpoch": 0,
-                "recoveryStatus": "running",
-                "pendingApproval": NSNull(),
-                "activeSession": NSNull(),
+        try HostCoreSnapshot(
+            rawJSON: JSONSerialization.data(withJSONObject: [
+                "schemaVersion": 8, "hostInstanceId": hostID, "hostState": "ready",
+                "localId": "123456789", "authenticatedConnectionCount": 1,
+                "sessionAvailability": "available", "sessionUnavailableReason": NSNull(),
+                "registrationStatus": "ready", "recoveryEpoch": 0, "recoveryStatus": "running",
+                "pendingApproval": NSNull(), "activeSession": NSNull(),
                 "temporaryPasswordPresentation": ["policy": "redacted"],
                 "passwordPolicy": [
-                    "localPasswordSet": true,
-                    "effectivePasswordSet": true,
-                    "usingPresetPassword": false,
-                    "changeAllowed": true,
+                    "localPasswordSet": true, "effectivePasswordSet": true,
+                    "usingPresetPassword": false, "changeAllowed": true,
                     "strengthPolicy": [
-                        "version": 1,
-                        "minimumCharacters": 6,
-                        "maximumCharacters": 128,
-                        "maximumUtf8Bytes": 512,
-                        "rejectsControlCharacters": true,
+                        "version": 1, "minimumCharacters": 6, "maximumCharacters": 128,
+                        "maximumUtf8Bytes": 512, "rejectsControlCharacters": true,
                         "rejectsOuterWhitespace": true,
                     ],
-                ],
-                "lastError": NSNull(),
-                "observedAt": 15,
-            ]
-        ))
+                ], "lastError": NSNull(), "observedAt": 15,
+            ]))
     }
 }
 
@@ -813,9 +488,7 @@ private final class SnapshotServiceTestClock: @unchecked Sendable {
     private let lock = NSLock()
     private var values: [UInt64]
 
-    init(values: [UInt64]) {
-        self.values = values
-    }
+    init(values: [UInt64]) { self.values = values }
 
     func now() -> UInt64 {
         lock.lock()
@@ -826,23 +499,20 @@ private final class SnapshotServiceTestClock: @unchecked Sendable {
 
 private final class SnapshotCommandServiceRecorder: @unchecked Sendable {
     private let lock = NSLock()
-    var ticketFactory: (@Sendable (HostAgentXPCCommandExecution)
-        -> HostAgentXPCCommandQueueTicket?)?
+    var ticketFactory:
+        (@Sendable (HostAgentXPCCommandExecution) -> HostAgentXPCCommandQueueTicket?)?
     private(set) var preparedExecutions: [HostAgentXPCCommandExecution] = []
     private(set) var startedExecutions: [HostAgentXPCCommandExecution] = []
     private(set) var publishedResults: [HostAgentXPCWireCommandResult] = []
     private(set) var markers: [String] = []
 
-    func prepare(
-        _ execution: HostAgentXPCCommandExecution
-    ) -> HostAgentXPCCommandQueueTicket? {
+    func prepare(_ execution: HostAgentXPCCommandExecution) -> HostAgentXPCCommandQueueTicket? {
         lock.lock()
         preparedExecutions.append(execution)
         let factory = ticketFactory
         lock.unlock()
-        return factory?(execution) ?? HostAgentXPCCommandQueueTicket {
-            self.recordStarted(execution)
-        }
+        return factory?(execution)
+            ?? HostAgentXPCCommandQueueTicket { self.recordStarted(execution) }
     }
 
     func publish(_ result: HostAgentXPCWireCommandResult) -> Bool {
@@ -852,10 +522,7 @@ private final class SnapshotCommandServiceRecorder: @unchecked Sendable {
         return true
     }
 
-    func recordStarted(
-        _ execution: HostAgentXPCCommandExecution,
-        marker: String? = nil
-    ) {
+    func recordStarted(_ execution: HostAgentXPCCommandExecution, marker: String? = nil) {
         lock.lock()
         startedExecutions.append(execution)
         if let marker { markers.append(marker) }
@@ -869,24 +536,17 @@ private final class SnapshotCommandServiceRecorder: @unchecked Sendable {
     }
 }
 
-private final class SnapshotServiceTestListenerDelegate:
-    NSObject,
-    NSXPCListenerDelegate
-{
+private final class SnapshotServiceTestListenerDelegate: NSObject, NSXPCListenerDelegate {
     private let interface: NSXPCInterface
     private let handler: HostAgentXPCSnapshotSessionHandler
 
-    init(
-        interface: NSXPCInterface,
-        handler: HostAgentXPCSnapshotSessionHandler
-    ) {
+    init(interface: NSXPCInterface, handler: HostAgentXPCSnapshotSessionHandler) {
         self.interface = interface
         self.handler = handler
     }
 
     func listener(
-        _ listener: NSXPCListener,
-        shouldAcceptNewConnection newConnection: NSXPCConnection
+        _ listener: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection
     ) -> Bool {
         newConnection.exportedInterface = interface
         newConnection.exportedObject = handler

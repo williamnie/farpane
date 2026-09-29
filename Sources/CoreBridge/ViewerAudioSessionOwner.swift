@@ -34,21 +34,13 @@ public final class ViewerAudioSessionOwner: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return ViewerAudioSessionSnapshot(
-            receiveAudio: receiveAudio,
-            connectionEpoch: connectionEpoch,
-            phase: phase
-        )
+            receiveAudio: receiveAudio, connectionEpoch: connectionEpoch, phase: phase)
     }
 
-    @discardableResult
-    public func observe(_ event: CoreRemotePermissionEvent) -> Bool {
+    @discardableResult public func observe(_ event: CoreRemotePermissionEvent) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        guard
-            receiveAudio,
-            phase != .ended,
-            event.permission == .audio,
-            event.connectionEpoch > 0
+        guard receiveAudio, phase != .ended, event.permission == .audio, event.connectionEpoch > 0
         else { return false }
         if let connectionEpoch {
             guard connectionEpoch == event.connectionEpoch else { return false }
@@ -81,40 +73,22 @@ public struct ViewerAudioSessionPresentation: Equatable, Sendable {
 }
 
 public enum ViewerAudioSessionPresentationPolicy {
-    public static func project(
-        _ snapshot: ViewerAudioSessionSnapshot
-    ) -> ViewerAudioSessionPresentation {
+    public static func project(_ snapshot: ViewerAudioSessionSnapshot)
+        -> ViewerAudioSessionPresentation
+    {
         switch snapshot.phase {
         case .disabled:
-            return ViewerAudioSessionPresentation(
-                statusText: "音频：本次未开启",
-                statusIsError: false
-            )
+            return ViewerAudioSessionPresentation(statusText: "音频：本次未开启", statusIsError: false)
         case .awaitingRemotePermission:
-            return ViewerAudioSessionPresentation(
-                statusText: "音频：等待远端授权",
-                statusIsError: false
-            )
+            return ViewerAudioSessionPresentation(statusText: "音频：等待远端授权", statusIsError: false)
         case .receiving:
-            return ViewerAudioSessionPresentation(
-                statusText: "音频：正在接收",
-                statusIsError: false
-            )
+            return ViewerAudioSessionPresentation(statusText: "音频：正在接收", statusIsError: false)
         case .deniedByRemote:
-            return ViewerAudioSessionPresentation(
-                statusText: "音频：远端未授权",
-                statusIsError: true
-            )
+            return ViewerAudioSessionPresentation(statusText: "音频：远端未授权", statusIsError: true)
         case .revokedByRemote:
-            return ViewerAudioSessionPresentation(
-                statusText: "音频：远端已撤销",
-                statusIsError: true
-            )
+            return ViewerAudioSessionPresentation(statusText: "音频：远端已撤销", statusIsError: true)
         case .ended:
-            return ViewerAudioSessionPresentation(
-                statusText: "音频：已停止",
-                statusIsError: false
-            )
+            return ViewerAudioSessionPresentation(statusText: "音频：已停止", statusIsError: false)
         }
     }
 }

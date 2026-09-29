@@ -12,6 +12,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from functools import partial
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    is_bounded_text,
+    is_integer,
+    load_bounded_json,
+    write_json_no_replace,
+)
+
 
 MATRIX_SCHEMA = "farpane-host-base-performance-matrix-manifest"
 OUTPUT_SCHEMA = "farpane-host-base-performance-matrix"
@@ -96,22 +106,6 @@ def usage() -> None:
     )
 
 
-def is_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
-
-
-def is_bounded_text(value: Any, maximum_length: int) -> bool:
-    return (
-        isinstance(value, str)
-        and value == value.strip()
-        and 0 < len(value) <= maximum_length
-        and all(
-            ord(character) >= 0x20 and ord(character) != 0x7F
-            for character in value
-        )
-    )
-
-
 def is_safe_relative_json_path(value: Any) -> bool:
     if not is_bounded_text(value, 512):
         return False
@@ -134,33 +128,7 @@ def is_utc_timestamp(value: Any) -> bool:
     return True
 
 
-def load_bounded_json(path: Path, maximum_bytes: int) -> tuple[dict[str, Any], bytes]:
-    raw = path.read_bytes()
-    if not raw or len(raw) > maximum_bytes:
-        raise ValueError("JSON size is outside the accepted bound")
-    value = json.loads(raw.decode("utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError("JSON root is not an object")
-    return value, raw
-
-
-def write_atomic_no_replace(path: Path, document: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        raise FileExistsError(path)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".farpane-performance-matrix-", suffix=".tmp", dir=path.parent
-    )
-    temporary_path = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            json.dump(document, output, indent=2, sort_keys=True)
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.link(temporary_path, path)
-    finally:
-        temporary_path.unlink(missing_ok=True)
+write_atomic_no_replace = partial(write_json_no_replace, prefix='.farpane-performance-matrix-')
 
 
 def validate_matrix(manifest_path: Path) -> dict[str, Any]:

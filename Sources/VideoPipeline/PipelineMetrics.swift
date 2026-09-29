@@ -1,5 +1,5 @@
-import Foundation
 import Darwin
+import Foundation
 
 public final class PipelineMetrics: @unchecked Sendable {
     private static let hudFrameRateWindowNanoseconds: UInt64 = 5_000_000_000
@@ -10,8 +10,7 @@ public final class PipelineMetrics: @unchecked Sendable {
     private let processID = ProcessInfo.processInfo.processIdentifier
     private let bundleIdentifier = Bundle.main.bundleIdentifier ?? "unavailable"
     private let buildIdentifier =
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        ?? "unavailable"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unavailable"
     private let initialCPUSeconds: Double
     private let initialResidentBytes: UInt64
     private var decodedFrames = 0
@@ -93,29 +92,18 @@ public final class PipelineMetrics: @unchecked Sendable {
     public let source: String
 
     public convenience init(
-        inputWidth: Int,
-        inputHeight: Int,
-        inputFPS: Double,
-        selectedGPU: String,
+        inputWidth: Int, inputHeight: Int, inputFPS: Double, selectedGPU: String,
         source: String = "fixture"
     ) {
         self.init(
-            inputWidth: inputWidth,
-            inputHeight: inputHeight,
-            inputFPS: inputFPS,
-            selectedGPU: selectedGPU,
-            source: source,
-            monotonicNow: { DispatchTime.now().uptimeNanoseconds }
-        )
+            inputWidth: inputWidth, inputHeight: inputHeight, inputFPS: inputFPS,
+            selectedGPU: selectedGPU, source: source,
+            monotonicNow: { DispatchTime.now().uptimeNanoseconds })
     }
 
     init(
-        inputWidth: Int,
-        inputHeight: Int,
-        inputFPS: Double,
-        selectedGPU: String,
-        source: String = "fixture",
-        monotonicNow: @escaping @Sendable () -> UInt64
+        inputWidth: Int, inputHeight: Int, inputFPS: Double, selectedGPU: String,
+        source: String = "fixture", monotonicNow: @escaping @Sendable () -> UInt64
     ) {
         self.inputWidth = inputWidth
         self.inputHeight = inputHeight
@@ -140,7 +128,12 @@ public final class PipelineMetrics: @unchecked Sendable {
     public func recordDecoderQueueDepth(_ depth: Int) {
         locked { currentQueueDepth = max(0, depth) }
     }
-    public func recordDecoded(milliseconds: Double) { locked { decodedFrames += 1; decodeMilliseconds.append(milliseconds) } }
+    public func recordDecoded(milliseconds: Double) {
+        locked {
+            decodedFrames += 1
+            decodeMilliseconds.append(milliseconds)
+        }
+    }
     public func recordPresented(milliseconds: Double) {
         let now = monotonicNow()
         locked {
@@ -149,9 +142,7 @@ public final class PipelineMetrics: @unchecked Sendable {
             }
             if let previous = lastPresentationUptimeNanoseconds, now >= previous {
                 maxPresentationGapMilliseconds = max(
-                    maxPresentationGapMilliseconds,
-                    Double(now - previous) / 1_000_000
-                )
+                    maxPresentationGapMilliseconds, Double(now - previous) / 1_000_000)
             }
             lastPresentationUptimeNanoseconds = now
             firstUnpresentedEncodedUptimeNanoseconds = nil
@@ -194,11 +185,17 @@ public final class PipelineMetrics: @unchecked Sendable {
     public func recordKeyframeRequest() { locked { keyframeRequests += 1 } }
     public func recordDecodedDimensions(width: Int, height: Int) {
         locked {
-            if observedWidth == 0 { observedWidth = width; observedHeight = height }
+            if observedWidth == 0 {
+                observedWidth = width
+                observedHeight = height
+            }
         }
     }
     public func recordDrawableDimensions(width: Int, height: Int) {
-        locked { drawableWidth = width; drawableHeight = height }
+        locked {
+            drawableWidth = width
+            drawableHeight = height
+        }
     }
     public func recordHardwareDecode(active: Bool) { locked { hardwareDecodeActive = active } }
     public func recordNonNV12() { locked { nonNV12Frames += 1 } }
@@ -210,16 +207,8 @@ public final class PipelineMetrics: @unchecked Sendable {
         }
     }
     public func recordEncodedPacket(
-        codec: String,
-        format: String,
-        byteCount: Int,
-        sequence: UInt64,
-        timestampUS: UInt64,
-        isKeyframe: Bool,
-        containsVPS: Bool,
-        containsSPS: Bool,
-        containsPPS: Bool,
-        width: Int,
+        codec: String, format: String, byteCount: Int, sequence: UInt64, timestampUS: UInt64,
+        isKeyframe: Bool, containsVPS: Bool, containsSPS: Bool, containsPPS: Bool, width: Int,
         height: Int
     ) {
         let now = monotonicNow()
@@ -231,14 +220,11 @@ public final class PipelineMetrics: @unchecked Sendable {
             if now >= baseline {
                 maxPresentationStalenessWhileReceivingMilliseconds = max(
                     maxPresentationStalenessWhileReceivingMilliseconds,
-                    Double(now - baseline) / 1_000_000
-                )
+                    Double(now - baseline) / 1_000_000)
             }
             encodedPackets += 1
             if timestampUS == 0 || lastEncodedTimestampUS != timestampUS {
-                if firstEncodedUptimeNanoseconds == nil {
-                    firstEncodedUptimeNanoseconds = now
-                }
+                if firstEncodedUptimeNanoseconds == nil { firstEncodedUptimeNanoseconds = now }
                 lastEncodedUptimeNanoseconds = now
                 encodedFrames += 1
                 Self.appendRecentFrame(now, to: &recentEncodedFrameUptimes)
@@ -267,9 +253,7 @@ public final class PipelineMetrics: @unchecked Sendable {
         }
     }
     public func recordCoreState(_ value: String) {
-        locked {
-            if stateTransitions.last != value { stateTransitions.append(value) }
-        }
+        locked { if stateTransitions.last != value { stateTransitions.append(value) } }
     }
     public func recordCoreMetrics(remoteFPS: Double, networkDelayMS: Int, targetBitrate: UInt64) {
         locked {
@@ -281,7 +265,10 @@ public final class PipelineMetrics: @unchecked Sendable {
 
     public func recordInput(category: String, accepted: Bool) {
         locked {
-            if !accepted { inputRejectedEvents += 1; return }
+            if !accepted {
+                inputRejectedEvents += 1
+                return
+            }
             switch category {
             case "pointer-move": inputPointerMoves += 1
             case "button-down": inputButtonDowns += 1
@@ -311,21 +298,16 @@ public final class PipelineMetrics: @unchecked Sendable {
             PipelineHUDSnapshot(
                 encodedFPS: Self.recentFrameRate(recentEncodedFrameUptimes, now: now),
                 presentedFPS: Self.recentFrameRate(recentPresentationUptimes, now: now),
-                remoteWidth: remoteEncodedWidth,
-                remoteHeight: remoteEncodedHeight,
-                drawableWidth: drawableWidth,
-                drawableHeight: drawableHeight,
+                remoteWidth: remoteEncodedWidth, remoteHeight: remoteEncodedHeight,
+                drawableWidth: drawableWidth, drawableHeight: drawableHeight,
                 decodeMS: Self.average(decodeMilliseconds),
-                renderMS: Self.average(renderMilliseconds),
-                droppedFrames: droppedFrames,
-                decoderQueueDepth: currentQueueDepth,
-                rendererQueueDepth: currentRendererQueueDepth,
-                networkDelayMS: coreNetworkDelayMS,
-                cpuPercent: cpuSeconds / elapsed * 100,
+                renderMS: Self.average(renderMilliseconds), droppedFrames: droppedFrames,
+                decoderQueueDepth: currentQueueDepth, rendererQueueDepth: currentRendererQueueDepth,
+                networkDelayMS: coreNetworkDelayMS, cpuPercent: cpuSeconds / elapsed * 100,
                 residentMB: residentMB,
-                inputEvents: inputPointerMoves + inputButtonDowns + inputButtonUps + inputScrollEvents + inputKeyDowns + inputKeyUps,
-                inputRejectedEvents: inputRejectedEvents
-            )
+                inputEvents: inputPointerMoves + inputButtonDowns + inputButtonUps
+                    + inputScrollEvents + inputKeyDowns + inputKeyUps,
+                inputRejectedEvents: inputRejectedEvents)
         }
     }
 
@@ -349,126 +331,85 @@ public final class PipelineMetrics: @unchecked Sendable {
         return locked {
             let endToEndPresentedFPS = elapsed > 0 ? Double(presentedFrames) / elapsed : 0
             let activePresentedFPS = Self.activeFrameRate(
-                count: presentedFrames,
-                first: firstPresentationUptimeNanoseconds,
-                last: lastPresentationUptimeNanoseconds,
-                fallback: endToEndPresentedFPS
-            )
+                count: presentedFrames, first: firstPresentationUptimeNanoseconds,
+                last: lastPresentationUptimeNanoseconds, fallback: endToEndPresentedFPS)
             let endToEndEncodedFPS = elapsed > 0 ? Double(encodedFrames) / elapsed : 0
             let activeEncodedFPS = Self.activeFrameRate(
-                count: encodedFrames,
-                first: firstEncodedUptimeNanoseconds,
-                last: lastEncodedUptimeNanoseconds,
-                fallback: endToEndEncodedFPS
-            )
+                count: encodedFrames, first: firstEncodedUptimeNanoseconds,
+                last: lastEncodedUptimeNanoseconds, fallback: endToEndEncodedFPS)
             return BenchmarkReport(
-                schema: "farpane-viewer-pipeline-report",
-                schemaVersion: 1,
-                processID: processID,
-                bundleIdentifier: bundleIdentifier,
-                buildIdentifier: buildIdentifier,
+                schema: "farpane-viewer-pipeline-report", schemaVersion: 1, processID: processID,
+                bundleIdentifier: bundleIdentifier, buildIdentifier: buildIdentifier,
                 measurementStartedAt: ISO8601DateFormatter().string(from: startedAt),
                 measurementStartedMonotonicNanoseconds: startedUptimeNanoseconds,
                 measurementCompletedMonotonicNanoseconds: snapshotUptimeNanoseconds,
                 firstPresentationMonotonicNanoseconds: firstPresentationUptimeNanoseconds,
                 lastPresentationMonotonicNanoseconds: lastPresentationUptimeNanoseconds,
-                timestamp: ISO8601DateFormatter().string(from: snapshotDate),
-                source: source,
-                durationSeconds: elapsed,
-                codec: codec,
-                inputWidth: inputWidth,
-                inputHeight: inputHeight,
-                inputFPS: inputFPS,
-                observedWidth: observedWidth,
-                observedHeight: observedHeight,
-                drawableWidth: drawableWidth,
-                drawableHeight: drawableHeight,
-                selectedGPU: selectedGPU,
+                timestamp: ISO8601DateFormatter().string(from: snapshotDate), source: source,
+                durationSeconds: elapsed, codec: codec, inputWidth: inputWidth,
+                inputHeight: inputHeight, inputFPS: inputFPS, observedWidth: observedWidth,
+                observedHeight: observedHeight, drawableWidth: drawableWidth,
+                drawableHeight: drawableHeight, selectedGPU: selectedGPU,
                 processCPUPercent: elapsed > 0 ? cpuSeconds / elapsed * 100 : 0,
                 initialResidentMB: Double(initialResidentBytes) / 1_048_576,
                 finalResidentMB: Double(finalResidentBytes) / 1_048_576,
                 peakResidentMB: Double(peakResidentBytes) / 1_048_576,
-                memoryGrowthMB: Double(Int64(finalResidentBytes) - Int64(initialResidentBytes)) / 1_048_576,
-                peakMemoryGrowthMB: Double(Int64(peakResidentBytes) - Int64(initialResidentBytes)) / 1_048_576,
+                memoryGrowthMB: Double(Int64(finalResidentBytes) - Int64(initialResidentBytes))
+                    / 1_048_576,
+                peakMemoryGrowthMB: Double(Int64(peakResidentBytes) - Int64(initialResidentBytes))
+                    / 1_048_576,
                 steadyStateMemoryGrowthMB: warmupResidentBytes.map {
                     Double(Int64(finalResidentBytes) - Int64($0)) / 1_048_576
-                } ?? 0,
-                submittedFrames: submittedFrames,
-                decodedFrames: decodedFrames,
-                presentedFrames: presentedFrames,
-                droppedFrames: droppedFrames,
-                referenceFrameDrops: referenceFrameDrops,
-                backpressureWaits: backpressureWaits,
-                maxBackpressureWaitMS: maxBackpressureWaitMilliseconds,
-                decodeErrors: decodeErrors,
+                } ?? 0, submittedFrames: submittedFrames, decodedFrames: decodedFrames,
+                presentedFrames: presentedFrames, droppedFrames: droppedFrames,
+                referenceFrameDrops: referenceFrameDrops, backpressureWaits: backpressureWaits,
+                maxBackpressureWaitMS: maxBackpressureWaitMilliseconds, decodeErrors: decodeErrors,
                 firstDecodeErrorStatus: firstDecodeErrorStatus,
-                lastDecodeErrorStatus: lastDecodeErrorStatus,
-                decoderResets: decoderResets,
-                keyframeRequests: keyframeRequests,
-                measuredFPS: activePresentedFPS,
+                lastDecodeErrorStatus: lastDecodeErrorStatus, decoderResets: decoderResets,
+                keyframeRequests: keyframeRequests, measuredFPS: activePresentedFPS,
                 endToEndPresentedFPS: endToEndPresentedFPS,
                 maxPresentationGapMS: maxPresentationGapMilliseconds,
                 finalPresentationStalenessMS: Double(
-                    snapshotUptimeNanoseconds - (lastPresentationUptimeNanoseconds ?? startedUptimeNanoseconds)
-                ) / 1_000_000,
-                maxPresentationStalenessWhileReceivingMS: maxPresentationStalenessWhileReceivingMilliseconds,
+                    snapshotUptimeNanoseconds
+                        - (lastPresentationUptimeNanoseconds ?? startedUptimeNanoseconds))
+                    / 1_000_000,
+                maxPresentationStalenessWhileReceivingMS:
+                    maxPresentationStalenessWhileReceivingMilliseconds,
                 finalEncodedToPresentationStalenessMS: {
                     guard let encoded = lastEncodedUptimeNanoseconds,
-                          let baseline = firstUnpresentedEncodedUptimeNanoseconds,
-                          encoded > baseline else { return 0 }
+                        let baseline = firstUnpresentedEncodedUptimeNanoseconds, encoded > baseline
+                    else { return 0 }
                     return Double(encoded - baseline) / 1_000_000
-                }(),
-                maxQueueDepth: maxQueueDepth,
-                maxRendererQueueDepth: maxRendererQueueDepth,
+                }(), maxQueueDepth: maxQueueDepth, maxRendererQueueDepth: maxRendererQueueDepth,
                 averageDecodeMS: Self.average(decodeMilliseconds),
                 p95DecodeMS: Self.percentile95(decodeMilliseconds),
                 averageRenderMS: Self.average(renderMilliseconds),
-                p95RenderMS: Self.percentile95(renderMilliseconds),
-                nonNV12Frames: nonNV12Frames,
-                missingIOSurfaceFrames: missingIOSurfaceFrames,
-                cpuRGBAFallback: false,
-                hardwareDecodeRequired: true,
-                hardwareDecodeActive: hardwareDecodeActive,
-                remoteEncodedWidth: remoteEncodedWidth,
-                remoteEncodedHeight: remoteEncodedHeight,
-                encodedPackets: encodedPackets,
-                encodedFrames: encodedFrames,
-                measuredEncodedFPS: activeEncodedFPS,
-                endToEndEncodedFPS: endToEndEncodedFPS,
-                encodedBytes: encodedBytes,
-                annexBPackets: annexBPackets,
-                avccPackets: avccPackets,
-                mixedPackets: mixedPackets,
-                unknownFormatPackets: unknownFormatPackets,
-                h265Packets: h265Packets,
-                nonH265Packets: nonH265Packets,
-                keyframes: keyframes,
-                packetsWithVPS: packetsWithVPS,
-                packetsWithSPS: packetsWithSPS,
-                packetsWithPPS: packetsWithPPS,
-                packetSequenceGaps: packetSequenceGaps,
-                coreStateTransitions: stateTransitions,
-                coreRemoteFPS: coreRemoteFPS,
-                coreNetworkDelayMS: coreNetworkDelayMS,
-                coreTargetBitrate: coreTargetBitrate,
-                inputPointerMoves: inputPointerMoves,
-                inputButtonDowns: inputButtonDowns,
-                inputButtonUps: inputButtonUps,
-                inputScrollEvents: inputScrollEvents,
-                inputKeyDowns: inputKeyDowns,
-                inputKeyUps: inputKeyUps,
-                inputRejectedEvents: inputRejectedEvents,
-                fullscreenToggles: fullscreenToggles,
-                hudToggles: hudToggles,
-                exclusiveKeyboardActivations: exclusiveKeyboardActivations,
+                p95RenderMS: Self.percentile95(renderMilliseconds), nonNV12Frames: nonNV12Frames,
+                missingIOSurfaceFrames: missingIOSurfaceFrames, cpuRGBAFallback: false,
+                hardwareDecodeRequired: true, hardwareDecodeActive: hardwareDecodeActive,
+                remoteEncodedWidth: remoteEncodedWidth, remoteEncodedHeight: remoteEncodedHeight,
+                encodedPackets: encodedPackets, encodedFrames: encodedFrames,
+                measuredEncodedFPS: activeEncodedFPS, endToEndEncodedFPS: endToEndEncodedFPS,
+                encodedBytes: encodedBytes, annexBPackets: annexBPackets, avccPackets: avccPackets,
+                mixedPackets: mixedPackets, unknownFormatPackets: unknownFormatPackets,
+                h265Packets: h265Packets, nonH265Packets: nonH265Packets, keyframes: keyframes,
+                packetsWithVPS: packetsWithVPS, packetsWithSPS: packetsWithSPS,
+                packetsWithPPS: packetsWithPPS, packetSequenceGaps: packetSequenceGaps,
+                coreStateTransitions: stateTransitions, coreRemoteFPS: coreRemoteFPS,
+                coreNetworkDelayMS: coreNetworkDelayMS, coreTargetBitrate: coreTargetBitrate,
+                inputPointerMoves: inputPointerMoves, inputButtonDowns: inputButtonDowns,
+                inputButtonUps: inputButtonUps, inputScrollEvents: inputScrollEvents,
+                inputKeyDowns: inputKeyDowns, inputKeyUps: inputKeyUps,
+                inputRejectedEvents: inputRejectedEvents, fullscreenToggles: fullscreenToggles,
+                hudToggles: hudToggles, exclusiveKeyboardActivations: exclusiveKeyboardActivations,
                 exclusiveKeyboardFailures: exclusiveKeyboardFailures,
-                functionalChecks: functionalChecks
-            )
+                functionalChecks: functionalChecks)
         }
     }
 
     private func locked<T>(_ body: () -> T) -> T {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
         return body()
     }
 
@@ -482,12 +423,9 @@ public final class PipelineMetrics: @unchecked Sendable {
         return sorted[min(sorted.count - 1, Int(Double(sorted.count - 1) * 0.95))]
     }
 
-    private static func activeFrameRate(
-        count: Int,
-        first: UInt64?,
-        last: UInt64?,
-        fallback: Double
-    ) -> Double {
+    private static func activeFrameRate(count: Int, first: UInt64?, last: UInt64?, fallback: Double)
+        -> Double
+    {
         guard count > 1, let first, let last, last > first else { return fallback }
         let seconds = Double(last - first) / 1_000_000_000
         return Double(count - 1) / seconds
@@ -495,24 +433,21 @@ public final class PipelineMetrics: @unchecked Sendable {
 
     private static func appendRecentFrame(_ timestamp: UInt64, to values: inout [UInt64]) {
         values.append(timestamp)
-        let cutoff = timestamp > hudFrameRateWindowNanoseconds
-            ? timestamp - hudFrameRateWindowNanoseconds
-            : 0
+        let cutoff =
+            timestamp > hudFrameRateWindowNanoseconds
+            ? timestamp - hudFrameRateWindowNanoseconds : 0
         if let firstCurrent = values.firstIndex(where: { $0 >= cutoff }), firstCurrent > 0 {
             values.removeFirst(firstCurrent)
         }
     }
 
     private static func recentFrameRate(_ values: [UInt64], now: UInt64) -> Double {
-        let cutoff = now > hudFrameRateWindowNanoseconds
-            ? now - hudFrameRateWindowNanoseconds
-            : 0
+        let cutoff = now > hudFrameRateWindowNanoseconds ? now - hudFrameRateWindowNanoseconds : 0
         guard let first = values.firstIndex(where: { $0 >= cutoff }) else { return 0 }
         let current = values[first...]
-        guard current.count > 1,
-              let oldest = current.first,
-              let newest = current.last,
-              newest > oldest else { return 0 }
+        guard current.count > 1, let oldest = current.first, let newest = current.last,
+            newest > oldest
+        else { return 0 }
         return Double(current.count - 1) / (Double(newest - oldest) / 1_000_000_000)
     }
 

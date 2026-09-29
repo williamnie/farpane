@@ -18,16 +18,12 @@ package struct ViewerFileTransferUploadRequest: Equatable, Sendable {
     package let manifest: ViewerFileTransferManifest
 
     init?(
-        sessionEpoch: UInt64,
-        transferID: Int32,
-        source: ViewerFileTransferUploadSourceLease,
+        sessionEpoch: UInt64, transferID: Int32, source: ViewerFileTransferUploadSourceLease,
         manifest: ViewerFileTransferManifest
     ) {
-        guard
-            sessionEpoch > 0,
-            transferID > 0,
-            source.sessionEpoch == sessionEpoch
-        else { return nil }
+        guard sessionEpoch > 0, transferID > 0, source.sessionEpoch == sessionEpoch else {
+            return nil
+        }
         self.sessionEpoch = sessionEpoch
         self.transferID = transferID
         self.source = source

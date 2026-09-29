@@ -12,58 +12,43 @@ final class HostAgentNetworkPathRecoveryComposition: @unchecked Sendable {
     private let requestTermination: @Sendable () -> Void
 
     init(
-        lifetime: HostAgentProcessLifetime,
-        expectedHostInstanceID: String,
+        lifetime: HostAgentProcessLifetime, expectedHostInstanceID: String,
         snapshotCoordinator: HostAgentSnapshotRefreshCoordinator,
         recoveryEvidenceOwner: HostRecoveryTransitionEvidenceProcessOwner
     ) {
-        let requestTermination: @Sendable () -> Void = {
-            [weak lifetime] in
+        let requestTermination: @Sendable () -> Void = { [weak lifetime] in
             DispatchQueue.global(qos: .utility).async { [weak lifetime] in
                 _ = lifetime?.requestTermination(reason: .error)
             }
         }
-        let pollingOwner =
-            HostAgentNetworkPathRecoveryPollingOwner.makeProduct(
-                expectedHostInstanceID: expectedHostInstanceID,
-                recover: { [weak lifetime] pathGeneration in
-                    guard let lifetime else { return false }
-                    do {
-                        try lifetime.recoverNetworkPath(
-                            generation: pathGeneration
-                        )
-                        return true
-                    } catch {
-                        return false
-                    }
-                },
-                observe: { [weak lifetime] in
-                    guard let lifetime else { return .failed }
-                    do {
-                        return .snapshot(try lifetime.copySnapshot())
-                    } catch HostAgentProcessLifetimeAccessError.notRunning {
-                        return .failed
-                    } catch {
-                        return .unavailable
-                    }
-                },
-                recoveryAccepted: { pathGeneration, recoveryEpoch in
-                    _ = recoveryEvidenceOwner.acceptNetworkPath(
-                        pathGeneration: pathGeneration,
-                        recoveryEpoch: recoveryEpoch
-                    )
-                },
-                recoveryCompleted: { pathGeneration, recoveryEpoch in
-                    _ = recoveryEvidenceOwner.recordNetworkPathCompleted(
-                        pathGeneration: pathGeneration,
-                        recoveryEpoch: recoveryEpoch
-                    )
+        let pollingOwner = HostAgentNetworkPathRecoveryPollingOwner.makeProduct(
+            expectedHostInstanceID: expectedHostInstanceID,
+            recover: { [weak lifetime] pathGeneration in
+                guard let lifetime else { return false }
+                do {
+                    try lifetime.recoverNetworkPath(generation: pathGeneration)
+                    return true
+                } catch { return false }
+            },
+            observe: { [weak lifetime] in
+                guard let lifetime else { return .failed }
+                do {
+                    return .snapshot(try lifetime.copySnapshot())
+                } catch HostAgentProcessLifetimeAccessError.notRunning { return .failed } catch {
+                    return .unavailable
                 }
-            )
+            },
+            recoveryAccepted: { pathGeneration, recoveryEpoch in
+                _ = recoveryEvidenceOwner.acceptNetworkPath(
+                    pathGeneration: pathGeneration, recoveryEpoch: recoveryEpoch)
+            },
+            recoveryCompleted: { pathGeneration, recoveryEpoch in
+                _ = recoveryEvidenceOwner.recordNetworkPathCompleted(
+                    pathGeneration: pathGeneration, recoveryEpoch: recoveryEpoch)
+            })
         self.requestTermination = requestTermination
         self.pollingOwner = pollingOwner
-        self.triggerOwner = HostAgentNetworkPathRecoveryTriggerOwner {
-            pathGeneration, _ in
+        self.triggerOwner = HostAgentNetworkPathRecoveryTriggerOwner { pathGeneration, _ in
             pollingOwner.start(
                 pathGeneration: pathGeneration,
                 completion: { _, succeeded in
@@ -72,14 +57,11 @@ final class HostAgentNetworkPathRecoveryComposition: @unchecked Sendable {
                         return
                     }
                     snapshotCoordinator.requestPoll()
-                }
-            )
+                })
         }
     }
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
     func triggerSnapshot() -> HostAgentNetworkPathRecoveryTriggerState {
         triggerOwner.stateSnapshot()
@@ -89,12 +71,9 @@ final class HostAgentNetworkPathRecoveryComposition: @unchecked Sendable {
         pollingOwner.stateSnapshot()
     }
 
-    @discardableResult
-    func consume(
-        _ path: HostAgentNetworkPathSnapshot
-    ) -> HostAgentNetworkPathRecoveryDisposition {
-        triggerOwner.consume(path)
-    }
+    @discardableResult func consume(_ path: HostAgentNetworkPathSnapshot)
+        -> HostAgentNetworkPathRecoveryDisposition
+    { triggerOwner.consume(path) }
 
     /// Stops new path admissions before draining any accepted restart and
     /// snapshot/completion work. Never call from a trigger or completion

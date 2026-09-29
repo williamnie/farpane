@@ -5,10 +5,7 @@ package enum HostAgentSleepWakeNotificationEvent: Equatable, Sendable {
     case didWake
 }
 
-package enum HostAgentSleepWakeNotificationDeliveryState:
-    Equatable,
-    Sendable
-{
+package enum HostAgentSleepWakeNotificationDeliveryState: Equatable, Sendable {
     case awake
     case preparingForSleep
     case sleeping
@@ -21,9 +18,7 @@ package enum HostAgentSleepWakeNotificationDeliveryState:
 /// Serializes the process-facing sleep/wake edge and rejects duplicates or
 /// out-of-order notifications. Cancellation closes admission first and then
 /// waits for the accepted delivery already in flight to finish.
-package final class HostAgentSleepWakeNotificationDeliveryOwner:
-    @unchecked Sendable
-{
+package final class HostAgentSleepWakeNotificationDeliveryOwner: @unchecked Sendable {
     private let condition = NSCondition()
     private let deliverWillSleep: @Sendable () -> Bool
     private let deliverDidWake: @Sendable () -> Bool
@@ -38,26 +33,17 @@ package final class HostAgentSleepWakeNotificationDeliveryOwner:
         self.deliverDidWake = deliverDidWake
     }
 
-    deinit {
-        cancelAndWait()
-    }
+    deinit { cancelAndWait() }
 
-    package func stateSnapshot()
-        -> HostAgentSleepWakeNotificationDeliveryState
-    {
+    package func stateSnapshot() -> HostAgentSleepWakeNotificationDeliveryState {
         condition.lock()
         defer { condition.unlock() }
         return state
     }
 
-    @discardableResult
-    package func deliver(
-        _ event: HostAgentSleepWakeNotificationEvent
-    ) -> Bool {
+    @discardableResult package func deliver(_ event: HostAgentSleepWakeNotificationEvent) -> Bool {
         condition.lock()
-        guard !deliveryInFlight,
-              let transition = transitionForAcceptedEvent(event)
-        else {
+        guard !deliveryInFlight, let transition = transitionForAcceptedEvent(event) else {
             condition.unlock()
             return false
         }
@@ -67,17 +53,13 @@ package final class HostAgentSleepWakeNotificationDeliveryOwner:
 
         let accepted: Bool
         switch event {
-        case .willSleep:
-            accepted = deliverWillSleep()
-        case .didWake:
-            accepted = deliverDidWake()
+        case .willSleep: accepted = deliverWillSleep()
+        case .didWake: accepted = deliverDidWake()
         }
 
         condition.lock()
         deliveryInFlight = false
-        if state != .cancelling {
-            state = accepted ? completedState(for: event) : .failed(event)
-        }
+        if state != .cancelling { state = accepted ? completedState(for: event) : .failed(event) }
         condition.broadcast()
         condition.unlock()
         return accepted
@@ -90,44 +72,34 @@ package final class HostAgentSleepWakeNotificationDeliveryOwner:
             condition.unlock()
             return
         case .cancelling:
-            while state == .cancelling {
-                condition.wait()
-            }
+            while state == .cancelling { condition.wait() }
             condition.unlock()
             return
-        case .awake, .preparingForSleep, .sleeping,
-             .recoveringFromSleep, .failed:
+        case .awake, .preparingForSleep, .sleeping, .recoveringFromSleep, .failed:
             state = .cancelling
-            while deliveryInFlight {
-                condition.wait()
-            }
+            while deliveryInFlight { condition.wait() }
             state = .cancelled
             condition.broadcast()
             condition.unlock()
         }
     }
 
-    private func transitionForAcceptedEvent(
-        _ event: HostAgentSleepWakeNotificationEvent
-    ) -> HostAgentSleepWakeNotificationDeliveryState? {
+    private func transitionForAcceptedEvent(_ event: HostAgentSleepWakeNotificationEvent)
+        -> HostAgentSleepWakeNotificationDeliveryState?
+    {
         switch (state, event) {
-        case (.awake, .willSleep):
-            return .preparingForSleep
-        case (.sleeping, .didWake):
-            return .recoveringFromSleep
-        default:
-            return nil
+        case (.awake, .willSleep): return .preparingForSleep
+        case (.sleeping, .didWake): return .recoveringFromSleep
+        default: return nil
         }
     }
 
-    private func completedState(
-        for event: HostAgentSleepWakeNotificationEvent
-    ) -> HostAgentSleepWakeNotificationDeliveryState {
+    private func completedState(for event: HostAgentSleepWakeNotificationEvent)
+        -> HostAgentSleepWakeNotificationDeliveryState
+    {
         switch event {
-        case .willSleep:
-            return .sleeping
-        case .didWake:
-            return .awake
+        case .willSleep: return .sleeping
+        case .didWake: return .awake
         }
     }
 }

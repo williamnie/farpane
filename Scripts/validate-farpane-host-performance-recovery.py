@@ -12,6 +12,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from functools import partial
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    is_bounded_text,
+    is_integer,
+    is_lowercase_sha256,
+    is_number,
+    load_bounded_json,
+    write_json_no_replace,
+)
+
 
 MANIFEST_SCHEMA = "farpane-host-performance-recovery-manifest"
 OUTPUT_SCHEMA = "farpane-host-performance-recovery"
@@ -30,34 +42,6 @@ def usage() -> None:
         "usage: validate-farpane-host-performance-recovery.py "
         "MANIFEST_JSON OUTPUT_JSON",
         file=sys.stderr,
-    )
-
-
-def is_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
-
-
-def is_number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
-
-
-def is_bounded_text(value: Any, maximum_length: int) -> bool:
-    return (
-        isinstance(value, str)
-        and value == value.strip()
-        and 0 < len(value) <= maximum_length
-        and all(
-            ord(character) >= 0x20 and ord(character) != 0x7F
-            for character in value
-        )
-    )
-
-
-def is_lowercase_sha256(value: Any) -> bool:
-    return (
-        isinstance(value, str)
-        and len(value) == 64
-        and all(character in "0123456789abcdef" for character in value)
     )
 
 
@@ -82,16 +66,6 @@ def parse_utc_timestamp(value: Any) -> datetime | None:
         )
     except ValueError:
         return None
-
-
-def load_bounded_json(path: Path, maximum_bytes: int) -> tuple[dict[str, Any], bytes]:
-    raw = path.read_bytes()
-    if not raw or len(raw) > maximum_bytes:
-        raise ValueError("JSON size is outside the accepted bound")
-    value = json.loads(raw.decode("utf-8"))
-    if not isinstance(value, dict):
-        raise ValueError("JSON root is not an object")
-    return value, raw
 
 
 def has_symlink_component(root: Path, relative_path: Path) -> bool:
@@ -375,23 +349,7 @@ def validate_run(source: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     return normalized, failures
 
 
-def write_atomic_no_replace(path: Path, document: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        raise FileExistsError(path)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".farpane-performance-recovery-", suffix=".tmp", dir=path.parent
-    )
-    temporary_path = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            json.dump(document, output, indent=2, sort_keys=True)
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.link(temporary_path, path)
-    finally:
-        temporary_path.unlink(missing_ok=True)
+write_atomic_no_replace = partial(write_json_no_replace, prefix='.farpane-performance-recovery-')
 
 
 def validate_manifest(manifest_path: Path) -> dict[str, Any]:

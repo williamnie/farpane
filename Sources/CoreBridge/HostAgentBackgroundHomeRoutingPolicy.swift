@@ -3,10 +3,7 @@ package enum HostAgentBackgroundHomeFlow: Equatable, Sendable {
     case unregistration
 }
 
-package struct HostAgentBackgroundHomeControlState:
-    Equatable,
-    Sendable
-{
+package struct HostAgentBackgroundHomeControlState: Equatable, Sendable {
     package let isOn: Bool
     package let isInteractive: Bool
 
@@ -36,16 +33,13 @@ package enum HostAgentBackgroundHomeLaunchRoute: Equatable, Sendable {
 package enum HostAgentBackgroundHomeRoutingPolicy {
     package static func controlState(
         registration: HostAgentBackgroundRegistrationStatus,
-        legacy: HostAgentLegacyHostMigrationAssessment,
-        flow: HostAgentBackgroundHomeFlow?
+        legacy: HostAgentLegacyHostMigrationAssessment, flow: HostAgentBackgroundHomeFlow?
     ) -> HostAgentBackgroundHomeControlState {
         let legacyIntentOn = legacyIntentIsOn(legacy)
         let isOn: Bool
         switch registration {
-        case .enabled, .requiresApproval:
-            isOn = true
-        case .notRegistered:
-            isOn = legacyIntentOn
+        case .enabled, .requiresApproval: isOn = true
+        case .notRegistered: isOn = legacyIntentOn
         case .serviceUnavailable:
             // A replaced App can lose its ServiceManagement record while the
             // durable legacy preference remains enabled. Do not present that
@@ -55,98 +49,63 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
         }
 
         guard flow == nil else {
-            return HostAgentBackgroundHomeControlState(
-                isOn: isOn,
-                isInteractive: false
-            )
+            return HostAgentBackgroundHomeControlState(isOn: isOn, isInteractive: false)
         }
 
         let isInteractive: Bool
         switch legacy {
-        case .failed:
-            isInteractive = false
-        case .eligible:
-            isInteractive = true
+        case .failed: isInteractive = false
+        case .eligible: isInteractive = true
         case .blocked:
             switch registration {
-            case .notRegistered, .serviceUnavailable:
-                isInteractive = true
-            case .enabled, .requiresApproval:
-                isInteractive = false
+            case .notRegistered, .serviceUnavailable: isInteractive = true
+            case .enabled, .requiresApproval: isInteractive = false
             }
         }
-        return HostAgentBackgroundHomeControlState(
-            isOn: isOn,
-            isInteractive: isInteractive
-        )
+        return HostAgentBackgroundHomeControlState(isOn: isOn, isInteractive: isInteractive)
     }
 
     package static func toggleRoute(
-        requestedEnabled: Bool,
-        registration: HostAgentBackgroundRegistrationStatus,
-        legacy: HostAgentLegacyHostMigrationAssessment,
-        flow: HostAgentBackgroundHomeFlow?
+        requestedEnabled: Bool, registration: HostAgentBackgroundRegistrationStatus,
+        legacy: HostAgentLegacyHostMigrationAssessment, flow: HostAgentBackgroundHomeFlow?
     ) -> HostAgentBackgroundHomeToggleRoute {
-        let control = controlState(
-            registration: registration,
-            legacy: legacy,
-            flow: flow
-        )
-        guard control.isInteractive,
-              control.isOn != requestedEnabled
-        else { return .noAction }
+        let control = controlState(registration: registration, legacy: legacy, flow: flow)
+        guard control.isInteractive, control.isOn != requestedEnabled else { return .noAction }
 
         switch (requestedEnabled, registration) {
-        case (true, .notRegistered), (true, .serviceUnavailable):
-            return .beginRegistration
-        case (false, .notRegistered) where legacyIntentIsOn(legacy):
-            return .stopLegacyHost
-        case (false, .serviceUnavailable) where legacyRuntimeIsOn(legacy):
-            return .stopLegacyHost
-        case (false, .enabled), (false, .requiresApproval):
-            return .beginUnregistration
-        case (true, .enabled), (true, .requiresApproval),
-             (false, .serviceUnavailable), (false, .notRegistered):
+        case (true, .notRegistered), (true, .serviceUnavailable): return .beginRegistration
+        case (false, .notRegistered) where legacyIntentIsOn(legacy): return .stopLegacyHost
+        case (false, .serviceUnavailable) where legacyRuntimeIsOn(legacy): return .stopLegacyHost
+        case (false, .enabled), (false, .requiresApproval): return .beginUnregistration
+        case (true, .enabled), (true, .requiresApproval), (false, .serviceUnavailable),
+            (false, .notRegistered):
             return .noAction
         }
     }
 
     package static func allowsClipboardPolicyChange(
-        control: HostAgentBackgroundHomeControlState,
-        viewerConnectionInProgress: Bool
-    ) -> Bool {
-        control.isInteractive
-            && !control.isOn
-            && !viewerConnectionInProgress
-    }
+        control: HostAgentBackgroundHomeControlState, viewerConnectionInProgress: Bool
+    ) -> Bool { control.isInteractive && !control.isOn && !viewerConnectionInProgress }
 
     package static func allowsFileTransferPolicyChange(
-        control: HostAgentBackgroundHomeControlState,
-        viewerConnectionInProgress: Bool
+        control: HostAgentBackgroundHomeControlState, viewerConnectionInProgress: Bool
     ) -> Bool {
         allowsClipboardPolicyChange(
-            control: control,
-            viewerConnectionInProgress: viewerConnectionInProgress
-        )
+            control: control, viewerConnectionInProgress: viewerConnectionInProgress)
     }
 
     package static func allowsAudioPolicyChange(
-        control: HostAgentBackgroundHomeControlState,
-        viewerConnectionInProgress: Bool,
+        control: HostAgentBackgroundHomeControlState, viewerConnectionInProgress: Bool,
         authorizationRequestInProgress: Bool
     ) -> Bool {
         allowsClipboardPolicyChange(
-            control: control,
-            viewerConnectionInProgress: viewerConnectionInProgress
-        ) && !authorizationRequestInProgress
+            control: control, viewerConnectionInProgress: viewerConnectionInProgress)
+            && !authorizationRequestInProgress
     }
 
     package static func allowsHostToggle(
-        control: HostAgentBackgroundHomeControlState,
-        bootstrapReady: Bool
-    ) -> Bool {
-        control.isInteractive && (control.isOn || bootstrapReady)
-    }
+        control: HostAgentBackgroundHomeControlState, bootstrapReady: Bool
+    ) -> Bool { control.isInteractive && (control.isOn || bootstrapReady) }
 
     /// A configured product should enter its useful default state without
     /// requiring the user to toggle Host on after every explicit App quit.
@@ -154,19 +113,12 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
     /// system or signing failure cannot create an activation loop.
     package static func shouldAutomaticallyRegister(
         registration: HostAgentBackgroundRegistrationStatus,
-        legacy: HostAgentLegacyHostMigrationAssessment,
-        bootstrapReady: Bool,
-        alreadyAttempted: Bool
+        legacy: HostAgentLegacyHostMigrationAssessment, bootstrapReady: Bool, alreadyAttempted: Bool
     ) -> Bool {
-        guard bootstrapReady,
-              !alreadyAttempted,
-              legacy == .eligible
-        else { return false }
+        guard bootstrapReady, !alreadyAttempted, legacy == .eligible else { return false }
         switch registration {
-        case .notRegistered, .serviceUnavailable:
-            return true
-        case .enabled, .requiresApproval:
-            return false
+        case .notRegistered, .serviceUnavailable: return true
+        case .enabled, .requiresApproval: return false
         }
     }
 
@@ -176,40 +128,28 @@ package enum HostAgentBackgroundHomeRoutingPolicy {
     ) -> HostAgentBackgroundHomeLaunchRoute {
         if case .failed = legacy { return .hold }
         switch registration {
-        case .serviceUnavailable:
-            return .hold
-        case .notRegistered:
-            return legacyIntentIsOn(legacy)
-                ? .preserveLegacyHost
-                : .hold
+        case .serviceUnavailable: return .hold
+        case .notRegistered: return legacyIntentIsOn(legacy) ? .preserveLegacyHost : .hold
         case .enabled, .requiresApproval:
             switch legacy {
-            case .eligible:
-                return .observeBackground
-            case .blocked:
-                return .quiesceLegacyThenObserveBackground
-            case .failed:
-                return .hold
+            case .eligible: return .observeBackground
+            case .blocked: return .quiesceLegacyThenObserveBackground
+            case .failed: return .hold
             }
         }
     }
 
-    private static func legacyIntentIsOn(
-        _ assessment: HostAgentLegacyHostMigrationAssessment
-    ) -> Bool {
-        guard case .blocked(let blockers) = assessment else {
-            return false
-        }
-        return blockers.contains(.preferenceEnabled)
-            || blockers.contains(.runtimeActive)
+    private static func legacyIntentIsOn(_ assessment: HostAgentLegacyHostMigrationAssessment)
+        -> Bool
+    {
+        guard case .blocked(let blockers) = assessment else { return false }
+        return blockers.contains(.preferenceEnabled) || blockers.contains(.runtimeActive)
     }
 
-    private static func legacyRuntimeIsOn(
-        _ assessment: HostAgentLegacyHostMigrationAssessment
-    ) -> Bool {
-        guard case .blocked(let blockers) = assessment else {
-            return false
-        }
+    private static func legacyRuntimeIsOn(_ assessment: HostAgentLegacyHostMigrationAssessment)
+        -> Bool
+    {
+        guard case .blocked(let blockers) = assessment else { return false }
         return blockers.contains(.runtimeActive)
     }
 }

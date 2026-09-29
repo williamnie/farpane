@@ -13,9 +13,7 @@ public struct ExclusiveKeyboardDecision: Equatable {
     public let completedExit: Bool
 
     public init(
-        suppressLocally: Bool,
-        forwardRemotely: Bool,
-        beganExit: Bool = false,
+        suppressLocally: Bool, forwardRemotely: Bool, beganExit: Bool = false,
         completedExit: Bool = false
     ) {
         self.suppressLocally = suppressLocally
@@ -47,15 +45,10 @@ public struct ExclusiveKeyboardStateMachine {
         state = .inactive
     }
 
-    public func isHeld(keyCode: UInt16) -> Bool {
-        heldKeyCodes.contains(keyCode)
-    }
+    public func isHeld(keyCode: UInt16) -> Bool { heldKeyCodes.contains(keyCode) }
 
     public mutating func handle(
-        keyCode: UInt16,
-        isDown: Bool,
-        modifiers: CoreInputModifiers,
-        isRepeat: Bool = false
+        keyCode: UInt16, isDown: Bool, modifiers: CoreInputModifiers, isRepeat: Bool = false
     ) -> ExclusiveKeyboardDecision {
         guard state != .inactive else {
             return ExclusiveKeyboardDecision(suppressLocally: false, forwardRemotely: false)
@@ -72,30 +65,19 @@ public struct ExclusiveKeyboardStateMachine {
             let completed = exitChordKeyCodes.isDisjoint(with: heldKeyCodes)
             if completed { deactivate() }
             return ExclusiveKeyboardDecision(
-                suppressLocally: true,
-                forwardRemotely: false,
-                completedExit: completed
-            )
+                suppressLocally: true, forwardRemotely: false, completedExit: completed)
         }
 
-        if isDown, !isRepeat,
-           keyCode == Self.exitKeyCode,
-           modifiers.contains(Self.exitModifiers) {
+        if isDown, !isRepeat, keyCode == Self.exitKeyCode, modifiers.contains(Self.exitModifiers) {
             exitChordKeyCodes = heldKeyCodes.intersection(Self.modifierKeyCodes)
             exitChordKeyCodes.insert(Self.exitKeyCode)
             state = .releasingExitChord
             return ExclusiveKeyboardDecision(
-                suppressLocally: true,
-                forwardRemotely: false,
-                beganExit: true
-            )
+                suppressLocally: true, forwardRemotely: false, beganExit: true)
         }
 
         let validTransition = isRepeat || (isDown ? !wasHeld : wasHeld)
-        return ExclusiveKeyboardDecision(
-            suppressLocally: true,
-            forwardRemotely: validTransition
-        )
+        return ExclusiveKeyboardDecision(suppressLocally: true, forwardRemotely: validTransition)
     }
 
     private static let modifierKeyCodes: Set<UInt16> = [54, 55, 56, 60, 58, 61, 59, 62]
@@ -115,32 +97,20 @@ public struct ExclusiveKeyboardFocusIntent {
     public private(set) var shouldResume = false
     public private(set) var suspensionReasons: Set<ExclusiveKeyboardSuspensionReason> = []
 
-    public var canResume: Bool {
-        shouldResume && suspensionReasons.isEmpty
-    }
+    public var canResume: Bool { shouldResume && suspensionReasons.isEmpty }
 
     public init() {}
 
-    public mutating func request() {
-        shouldResume = true
-    }
+    public mutating func request() { shouldResume = true }
 
-    public mutating func cancel() {
-        shouldResume = false
-    }
+    public mutating func cancel() { shouldResume = false }
 
-    @discardableResult
-    public mutating func setSuspended(
-        _ suspended: Bool,
-        for reason: ExclusiveKeyboardSuspensionReason,
+    @discardableResult public mutating func setSuspended(
+        _ suspended: Bool, for reason: ExclusiveKeyboardSuspensionReason,
         state: ExclusiveKeyboardState
     ) -> Bool {
-        if suspended, state == .releasingExitChord {
-            cancel()
-        }
-        if suspended {
-            return suspensionReasons.insert(reason).inserted
-        }
+        if suspended, state == .releasingExitChord { cancel() }
+        if suspended { return suspensionReasons.insert(reason).inserted }
         return suspensionReasons.remove(reason) != nil
     }
 }

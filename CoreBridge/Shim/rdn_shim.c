@@ -6,96 +6,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef RDNClient *(*client_create_fn)(const RDNCallbacks *, void *);
-typedef void (*client_destroy_fn)(RDNClient *);
-typedef int32_t (*client_connect_fn)(RDNClient *, const RDNConnectionConfig *);
-typedef void (*client_disconnect_fn)(RDNClient *);
-typedef int32_t (*client_request_keyframe_fn)(RDNClient *, uint32_t);
-typedef int32_t (*client_select_display_fn)(
-    RDNClient *, const RDNDisplaySelectionRequest *);
-typedef int32_t (*client_send_pointer_fn)(RDNClient *, const RDNPointerEvent *);
-typedef int32_t (*client_send_key_fn)(RDNClient *, const RDNKeyEvent *);
-typedef int32_t (*client_send_text_fn)(RDNClient *, const uint8_t *, size_t);
-typedef int32_t (*client_send_clipboard_text_fn)(RDNClient *, const uint8_t *,
-                                                 size_t);
-typedef int32_t (*client_send_clipboard_rich_text_fn)(
-    RDNClient *, const RDNClipboardRichTextPayload *);
-typedef int32_t (*client_send_clipboard_image_fn)(
-    RDNClient *, const RDNClipboardImagePayload *);
-typedef int32_t (*client_file_transfer_cancel_fn)(RDNClient *, uint64_t,
-                                                  int32_t);
-typedef int32_t (*client_file_transfer_list_root_fn)(RDNClient *, uint64_t,
-                                                     int32_t);
-typedef int32_t (*client_file_transfer_manifest_root_fn)(RDNClient *, uint64_t,
-                                                         int32_t);
-typedef int32_t (*client_file_transfer_download_start_fn)(
-    RDNClient *, const RDNFileTransferDownloadStart *);
-typedef int32_t (*client_file_transfer_upload_start_fn)(
-    RDNClient *, const RDNFileTransferUploadStart *);
-typedef uint32_t (*abi_version_fn)(void);
-typedef const char *(*upstream_commit_fn)(void);
-
-typedef int32_t (*host_set_config_root_fn)(const char *, const char *);
-typedef int32_t (*host_create_fn)(const RdnHostCreateOptions *,
-                                  const RdnHostCallbacks *, RdnHost **);
-typedef int32_t (*host_start_fn)(RdnHost *);
-typedef int32_t (*host_stop_fn)(RdnHost *, RdnHostStopReason);
-typedef int32_t (*host_epoch_fn)(RdnHost *, uint64_t);
-typedef int32_t (*host_generation_fn)(RdnHost *, uint64_t);
-typedef int32_t (*host_command_fn)(RdnHost *, const uint8_t *, size_t);
-typedef int32_t (*host_set_permanent_password_fn)(RdnHost *, const char *,
-                                                  uint8_t *, size_t);
-typedef int32_t (*host_copy_snapshot_fn)(RdnHost *, RdnHostOwnedBytes *);
-typedef void (*host_free_bytes_fn)(RdnHostOwnedBytes);
-typedef void (*host_destroy_fn)(RdnHost *);
-typedef int32_t (*host_media_set_capabilities_fn)(
-    RdnHost *, const RdnHostEncoderCapabilities *);
-typedef int32_t (*host_media_submit_access_unit_fn)(
-    RdnHost *, const RdnHostEncodedAccessUnit *);
-typedef int32_t (*host_media_report_encoder_state_fn)(
-    RdnHost *, const RdnHostEncoderState *);
+#include "rdn_symbols.h"
 
 struct RDNCoreLibrary {
     void *handle;
-    client_create_fn client_create;
-    client_destroy_fn client_destroy;
-    client_connect_fn client_connect;
-    client_disconnect_fn client_disconnect;
-    client_request_keyframe_fn client_request_keyframe;
-    client_select_display_fn client_select_display;
-    client_send_pointer_fn client_send_pointer;
-    client_send_key_fn client_send_key;
-    client_send_text_fn client_send_text;
-    client_send_clipboard_text_fn client_send_clipboard_text;
-    client_send_clipboard_rich_text_fn client_send_clipboard_rich_text;
-    client_send_clipboard_image_fn client_send_clipboard_image;
-    client_file_transfer_cancel_fn client_file_transfer_cancel;
-    client_file_transfer_list_root_fn client_file_transfer_list_root;
-    client_file_transfer_manifest_root_fn client_file_transfer_manifest_root;
-    client_file_transfer_download_start_fn client_file_transfer_download_start;
-    client_file_transfer_upload_start_fn client_file_transfer_upload_start;
-    abi_version_fn abi_version;
-    upstream_commit_fn upstream_commit;
     int host_available;
-    abi_version_fn host_abi_version;
-    upstream_commit_fn host_upstream_commit;
-    host_set_config_root_fn host_set_config_root;
-    host_create_fn host_create;
-    host_start_fn host_start;
-    host_stop_fn host_stop;
-    host_generation_fn host_recover_network_path;
-    host_epoch_fn host_begin_sleep;
-    host_epoch_fn host_finish_sleep;
-    host_epoch_fn host_resume_after_wake;
-    host_command_fn host_command;
-    host_set_permanent_password_fn host_set_permanent_password;
-    host_copy_snapshot_fn host_copy_snapshot;
-    host_free_bytes_fn host_free_bytes;
-    host_destroy_fn host_destroy;
-    abi_version_fn host_media_abi_version;
-    host_media_set_capabilities_fn host_media_set_capabilities;
-    host_media_submit_access_unit_fn host_media_submit_access_unit;
-    host_media_report_encoder_state_fn host_media_report_encoder_state;
+#define DECLARE_SYMBOL(field, symbol) __typeof__(&symbol) field;
+    RDN_VIEWER_SYMBOLS(DECLARE_SYMBOL)
+    RDN_HOST_SYMBOLS(DECLARE_SYMBOL)
+#undef DECLARE_SYMBOL
 };
 
 static void write_error(char *error, size_t size, const char *message) {
@@ -141,60 +60,12 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
         return NULL;
     }
     library->handle = handle;
-    library->client_create = (client_create_fn)dlsym(handle, "rdn_client_create");
-    library->client_destroy = (client_destroy_fn)dlsym(handle, "rdn_client_destroy");
-    library->client_connect = (client_connect_fn)dlsym(handle, "rdn_client_connect");
-    library->client_disconnect = (client_disconnect_fn)dlsym(handle, "rdn_client_disconnect");
-    library->client_request_keyframe =
-        (client_request_keyframe_fn)dlsym(handle, "rdn_client_request_keyframe");
-    library->client_select_display =
-        (client_select_display_fn)dlsym(handle, "rdn_client_select_display");
-    library->client_send_pointer =
-        (client_send_pointer_fn)dlsym(handle, "rdn_client_send_pointer");
-    library->client_send_key =
-        (client_send_key_fn)dlsym(handle, "rdn_client_send_key");
-    library->client_send_text =
-        (client_send_text_fn)dlsym(handle, "rdn_client_send_text");
-    library->client_send_clipboard_text = (client_send_clipboard_text_fn)dlsym(
-        handle, "rdn_client_send_clipboard_text");
-    library->client_send_clipboard_rich_text =
-        (client_send_clipboard_rich_text_fn)dlsym(
-            handle, "rdn_client_send_clipboard_rich_text");
-    library->client_send_clipboard_image =
-        (client_send_clipboard_image_fn)dlsym(
-            handle, "rdn_client_send_clipboard_image");
-    library->client_file_transfer_cancel =
-        (client_file_transfer_cancel_fn)dlsym(
-            handle, "rdn_client_file_transfer_cancel");
-    library->client_file_transfer_list_root =
-        (client_file_transfer_list_root_fn)dlsym(
-            handle, "rdn_client_file_transfer_list_root");
-    library->client_file_transfer_manifest_root =
-        (client_file_transfer_manifest_root_fn)dlsym(
-            handle, "rdn_client_file_transfer_manifest_root");
-    library->client_file_transfer_download_start =
-        (client_file_transfer_download_start_fn)dlsym(
-            handle, "rdn_client_file_transfer_download_start");
-    library->client_file_transfer_upload_start =
-        (client_file_transfer_upload_start_fn)dlsym(
-            handle, "rdn_client_file_transfer_upload_start");
-    library->abi_version = (abi_version_fn)dlsym(handle, "rdn_core_abi_version");
-    library->upstream_commit = (upstream_commit_fn)dlsym(handle, "rdn_core_upstream_commit");
-    if (library->client_create == NULL || library->client_destroy == NULL ||
-        library->client_connect == NULL || library->client_disconnect == NULL ||
-        library->client_request_keyframe == NULL ||
-        library->client_select_display == NULL ||
-        library->client_send_pointer == NULL || library->client_send_key == NULL ||
-        library->client_send_text == NULL ||
-        library->client_send_clipboard_text == NULL ||
-        library->client_send_clipboard_rich_text == NULL ||
-        library->client_send_clipboard_image == NULL ||
-        library->client_file_transfer_cancel == NULL ||
-        library->client_file_transfer_list_root == NULL ||
-        library->client_file_transfer_manifest_root == NULL ||
-        library->client_file_transfer_download_start == NULL ||
-        library->client_file_transfer_upload_start == NULL ||
-        library->abi_version == NULL || library->upstream_commit == NULL) {
+    int available = 1;
+#define LOAD_SYMBOL(field, symbol) \
+    library->field = (__typeof__(library->field))dlsym(handle, #symbol); \
+    available &= library->field != NULL;
+    RDN_VIEWER_SYMBOLS(LOAD_SYMBOL)
+    if (!available) {
         rdn_shim_close(library);
         write_error(error, error_size, "core library is missing required ABI symbols");
         return NULL;
@@ -207,55 +78,10 @@ RDNCoreLibrary *rdn_shim_open(const char *path, char *error, size_t error_size) 
     /* Host Control ABI (rdn-native-host): optional surface, resolved
      * best-effort so viewer-only cores keep loading. All-or-nothing: either
      * the full host surface resolves or host_available stays 0. */
-    library->host_abi_version = (abi_version_fn)dlsym(handle, "rdn_host_abi_version");
-    library->host_upstream_commit =
-        (upstream_commit_fn)dlsym(handle, "rdn_host_upstream_commit");
-    library->host_set_config_root =
-        (host_set_config_root_fn)dlsym(handle, "rdn_host_set_config_root");
-    library->host_create = (host_create_fn)dlsym(handle, "rdn_host_create");
-    library->host_start = (host_start_fn)dlsym(handle, "rdn_host_start");
-    library->host_stop = (host_stop_fn)dlsym(handle, "rdn_host_stop");
-    library->host_recover_network_path = (host_generation_fn)dlsym(
-        handle, "rdn_host_recover_network_path");
-    library->host_begin_sleep =
-        (host_epoch_fn)dlsym(handle, "rdn_host_begin_sleep");
-    library->host_finish_sleep =
-        (host_epoch_fn)dlsym(handle, "rdn_host_finish_sleep");
-    library->host_resume_after_wake =
-        (host_epoch_fn)dlsym(handle, "rdn_host_resume_after_wake");
-    library->host_command = (host_command_fn)dlsym(handle, "rdn_host_command");
-    library->host_set_permanent_password =
-        (host_set_permanent_password_fn)dlsym(
-            handle, "rdn_host_set_permanent_password");
-    library->host_copy_snapshot =
-        (host_copy_snapshot_fn)dlsym(handle, "rdn_host_copy_snapshot");
-    library->host_free_bytes =
-        (host_free_bytes_fn)dlsym(handle, "rdn_host_free_bytes");
-    library->host_destroy = (host_destroy_fn)dlsym(handle, "rdn_host_destroy");
-    library->host_media_abi_version =
-        (abi_version_fn)dlsym(handle, "rdn_host_media_abi_version");
-    library->host_media_set_capabilities = (host_media_set_capabilities_fn)dlsym(
-        handle, "rdn_host_media_set_capabilities");
-    library->host_media_submit_access_unit = (host_media_submit_access_unit_fn)dlsym(
-        handle, "rdn_host_media_submit_access_unit");
-    library->host_media_report_encoder_state = (host_media_report_encoder_state_fn)dlsym(
-        handle, "rdn_host_media_report_encoder_state");
-    if (library->host_abi_version != NULL && library->host_upstream_commit != NULL &&
-        library->host_set_config_root != NULL && library->host_create != NULL &&
-        library->host_start != NULL && library->host_stop != NULL &&
-        library->host_recover_network_path != NULL &&
-        library->host_begin_sleep != NULL && library->host_finish_sleep != NULL &&
-        library->host_resume_after_wake != NULL &&
-        library->host_command != NULL &&
-        library->host_set_permanent_password != NULL &&
-        library->host_copy_snapshot != NULL &&
-        library->host_free_bytes != NULL && library->host_destroy != NULL &&
-        library->host_media_abi_version != NULL &&
-        library->host_media_set_capabilities != NULL &&
-        library->host_media_submit_access_unit != NULL &&
-        library->host_media_report_encoder_state != NULL) {
-        library->host_available = 1;
-    }
+    available = 1;
+    RDN_HOST_SYMBOLS(LOAD_SYMBOL)
+#undef LOAD_SYMBOL
+    library->host_available = available;
     return library;
 }
 

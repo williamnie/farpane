@@ -24,38 +24,32 @@ public struct AspectFitCoordinateMapper: Sendable {
 
         let viewPixels = CGSize(
             width: max(0, viewSizePoints.width * self.backingScale),
-            height: max(0, viewSizePoints.height * self.backingScale)
-        )
-        guard remoteSize.width > 0, remoteSize.height > 0,
-              viewPixels.width > 0, viewPixels.height > 0 else {
+            height: max(0, viewSizePoints.height * self.backingScale))
+        guard remoteSize.width > 0, remoteSize.height > 0, viewPixels.width > 0,
+            viewPixels.height > 0
+        else {
             contentRectPixels = .zero
             return
         }
-        let scale = min(
-            viewPixels.width / remoteSize.width,
-            viewPixels.height / remoteSize.height
-        )
+        let scale = min(viewPixels.width / remoteSize.width, viewPixels.height / remoteSize.height)
         let fitted = CGSize(width: remoteSize.width * scale, height: remoteSize.height * scale)
         contentRectPixels = CGRect(
-            x: (viewPixels.width - fitted.width) / 2,
-            y: (viewPixels.height - fitted.height) / 2,
-            width: fitted.width,
-            height: fitted.height
-        )
+            x: (viewPixels.width - fitted.width) / 2, y: (viewPixels.height - fitted.height) / 2,
+            width: fitted.width, height: fitted.height)
     }
 
     public var contentRectPoints: CGRect {
         CGRect(
-            x: contentRectPixels.minX / backingScale,
-            y: contentRectPixels.minY / backingScale,
+            x: contentRectPixels.minX / backingScale, y: contentRectPixels.minY / backingScale,
             width: contentRectPixels.width / backingScale,
-            height: contentRectPixels.height / backingScale
-        )
+            height: contentRectPixels.height / backingScale)
     }
 
-    public func map(pointInViewPoints point: CGPoint, clampToContent: Bool = false) -> RemotePoint? {
-        guard remoteSize.width >= 1, remoteSize.height >= 1,
-              contentRectPixels.width > 0, contentRectPixels.height > 0 else { return nil }
+    public func map(pointInViewPoints point: CGPoint, clampToContent: Bool = false) -> RemotePoint?
+    {
+        guard remoteSize.width >= 1, remoteSize.height >= 1, contentRectPixels.width > 0,
+            contentRectPixels.height > 0
+        else { return nil }
         var pixelPoint = CGPoint(x: point.x * backingScale, y: point.y * backingScale)
         if !contentRectPixels.contains(pixelPoint) {
             guard clampToContent else { return nil }
@@ -68,7 +62,6 @@ public struct AspectFitCoordinateMapper: Sendable {
         let maximumY = max(0, Int(remoteSize.height) - 1)
         return RemotePoint(
             x: Int32(min(maximumX, max(0, Int(floor(normalizedX * remoteSize.width))))),
-            y: Int32(min(maximumY, max(0, Int(floor(normalizedY * remoteSize.height)))))
-        )
+            y: Int32(min(maximumY, max(0, Int(floor(normalizedY * remoteSize.height))))))
     }
 }

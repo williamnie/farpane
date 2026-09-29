@@ -32,6 +32,10 @@ let package = Package(
             dependencies: ["VideoPipeline", "CoreBridge", "ViewerInput", "ConnectionCatalog"]
         ),
         .testTarget(
+            name: "RustDeskNativeTests",
+            dependencies: ["RustDeskNative"]
+        ),
+        .testTarget(
             name: "VideoPipelineTests",
             dependencies: ["VideoPipeline"],
             resources: [.copy("Fixtures")]

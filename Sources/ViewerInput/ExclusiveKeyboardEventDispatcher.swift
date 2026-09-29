@@ -13,8 +13,7 @@ public final class ExclusiveKeyboardEventDispatcher: @unchecked Sendable {
     private let recordResult: ResultRecorder
 
     public init(
-        label: String = "io.rustdesknative.exclusive-keyboard-send",
-        send: @escaping Sender,
+        label: String = "io.rustdesknative.exclusive-keyboard-send", send: @escaping Sender,
         recordResult: @escaping ResultRecorder
     ) {
         queue = DispatchQueue(label: label, qos: .userInteractive)

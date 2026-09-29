@@ -12,6 +12,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from functools import partial
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from Scripts.evidence import (
+    is_integer,
+    is_number,
+    load_json,
+    nested,
+    write_json_no_replace,
+)
+
 
 REQUIRED_PHASES = ("ready-before", "active", "ready-after")
 REQUIRED_COLUMNS = {
@@ -32,35 +43,6 @@ def usage() -> None:
     )
 
 
-def is_integer(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool)
-
-
-def is_number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
-
-
-def nested(document: dict[str, Any], path: str) -> Any:
-    value: Any = document
-    for component in path.split("."):
-        if not isinstance(value, dict) or component not in value:
-            return None
-        value = value[component]
-    return value
-
-
-def load_json(path: Path, label: str, failures: list[str]) -> dict[str, Any]:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        failures.append(f"{label} is missing or invalid JSON")
-        return {}
-    if not isinstance(value, dict):
-        failures.append(f"{label} root must be an object")
-        return {}
-    return value
-
-
 def parse_nonnegative_int(row: dict[str, str], field: str) -> int:
     value = int(row[field])
     if value < 0:
@@ -68,23 +50,7 @@ def parse_nonnegative_int(row: dict[str, str], field: str) -> int:
     return value
 
 
-def write_atomic_no_replace(path: Path, document: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        raise FileExistsError(path)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".farpane-sleep-lifecycle-", suffix=".tmp", dir=path.parent
-    )
-    temporary_path = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            json.dump(document, output, indent=2, sort_keys=True)
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.link(temporary_path, path)
-    finally:
-        temporary_path.unlink(missing_ok=True)
+write_atomic_no_replace = partial(write_json_no_replace, prefix='.farpane-sleep-lifecycle-')
 
 
 def main() -> int:

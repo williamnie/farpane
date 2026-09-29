@@ -26,19 +26,13 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
 
     public convenience init(fileManager: FileManager = .default) throws {
         try self.init(
-            directoryURL: HostAgentBootstrapProductLayout.directoryURL(
-                fileManager: fileManager
-            )
-        )
+            directoryURL: HostAgentBootstrapProductLayout.directoryURL(fileManager: fileManager))
     }
 
-    init(directoryURL: URL) {
-        self.directoryURL = directoryURL
-    }
+    init(directoryURL: URL) { self.directoryURL = directoryURL }
 
-    public func publish(
-        _ document: Data
-    ) throws -> HostAgentBootstrapConfigurationPublicationResult {
+    public func publish(_ document: Data) throws -> HostAgentBootstrapConfigurationPublicationResult
+    {
         let proposed = try HostAgentBootstrapConfiguration.decode(document)
         let directoryDescriptor = try openSecureDirectory()
         defer { Darwin.close(directoryDescriptor) }
@@ -51,18 +45,14 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
 
         do {
             let existingData = try HostAgentBootstrapConfigurationReader.readDocument(
-                fromDirectoryDescriptor: directoryDescriptor
-            )
+                fromDirectoryDescriptor: directoryDescriptor)
             let existing = try HostAgentBootstrapConfiguration.decode(existingData)
-            if existing.configRevision == proposed.configRevision,
-               existingData == document {
+            if existing.configRevision == proposed.configRevision, existingData == document {
                 return .unchanged
             }
             guard proposed.configRevision > existing.configRevision else {
                 throw HostAgentBootstrapConfigurationPublisherError.nonMonotonicRevision(
-                    current: existing.configRevision,
-                    proposed: proposed.configRevision
-                )
+                    current: existing.configRevision, proposed: proposed.configRevision)
             }
         } catch HostAgentBootstrapConfigurationReaderError.configurationUnavailable {
             // First publication has no prior revision.
@@ -74,12 +64,10 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
 
     private func openSecureDirectory() throws -> Int32 {
         guard NSString(string: directoryURL.path).isAbsolutePath,
-              directoryURL.standardizedFileURL.path == directoryURL.path
+            directoryURL.standardizedFileURL.path == directoryURL.path
         else { throw HostAgentBootstrapConfigurationPublisherError.insecureDirectory }
         let descriptor = Darwin.open(
-            directoryURL.path,
-            O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC
-        )
+            directoryURL.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard descriptor >= 0 else {
             if errno == ELOOP || errno == ENOTDIR {
                 throw HostAgentBootstrapConfigurationPublisherError.insecureDirectory
@@ -92,9 +80,8 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
             Darwin.close(descriptor)
             throw HostAgentBootstrapConfigurationPublisherError.directoryUnavailable
         }
-        guard status.st_mode & S_IFMT == S_IFDIR,
-              status.st_uid == geteuid(),
-              status.st_mode & 0o777 == 0o700
+        guard status.st_mode & S_IFMT == S_IFDIR, status.st_uid == geteuid(),
+            status.st_mode & 0o777 == 0o700
         else {
             Darwin.close(descriptor)
             throw HostAgentBootstrapConfigurationPublisherError.insecureDirectory
@@ -105,18 +92,12 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
     private func acquirePublicationLock(in directoryDescriptor: Int32) throws -> Int32 {
         let createFlags = O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC
         var descriptor = Darwin.openat(
-            directoryDescriptor,
-            Self.publicationLockFileName,
-            createFlags,
-            mode_t(0o600)
-        )
+            directoryDescriptor, Self.publicationLockFileName, createFlags, mode_t(0o600))
         let created = descriptor >= 0
         if !created, errno == EEXIST {
             descriptor = Darwin.openat(
-                directoryDescriptor,
-                Self.publicationLockFileName,
-                O_RDWR | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC
-            )
+                directoryDescriptor, Self.publicationLockFileName,
+                O_RDWR | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC)
         }
         guard descriptor >= 0 else {
             throw HostAgentBootstrapConfigurationPublisherError.insecurePublicationLock
@@ -128,11 +109,8 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
             throw HostAgentBootstrapConfigurationPublisherError.insecurePublicationLock
         }
         var status = stat()
-        guard fstat(descriptor, &status) == 0,
-              status.st_mode & S_IFMT == S_IFREG,
-              status.st_uid == geteuid(),
-              status.st_mode & 0o777 == 0o600,
-              status.st_nlink == 1
+        guard fstat(descriptor, &status) == 0, status.st_mode & S_IFMT == S_IFREG,
+            status.st_uid == geteuid(), status.st_mode & 0o777 == 0o600, status.st_nlink == 1
         else {
             Darwin.close(descriptor)
             throw HostAgentBootstrapConfigurationPublisherError.insecurePublicationLock
@@ -147,20 +125,15 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
     private func replaceAtomically(_ document: Data, in directoryDescriptor: Int32) throws {
         let temporaryName = Self.temporaryFilePrefix + UUID().uuidString
         let temporaryDescriptor = Darwin.openat(
-            directoryDescriptor,
-            temporaryName,
-            O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC,
-            mode_t(0o600)
-        )
+            directoryDescriptor, temporaryName,
+            O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, mode_t(0o600))
         guard temporaryDescriptor >= 0 else {
             throw HostAgentBootstrapConfigurationPublisherError.writeFailed
         }
         var shouldRemoveTemporary = true
         defer {
             Darwin.close(temporaryDescriptor)
-            if shouldRemoveTemporary {
-                unlinkat(directoryDescriptor, temporaryName, 0)
-            }
+            if shouldRemoveTemporary { unlinkat(directoryDescriptor, temporaryName, 0) }
         }
 
         guard fchmod(temporaryDescriptor, mode_t(0o600)) == 0 else {
@@ -170,14 +143,11 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
         guard fsync(temporaryDescriptor) == 0 else {
             throw HostAgentBootstrapConfigurationPublisherError.writeFailed
         }
-        guard renameat(
-            directoryDescriptor,
-            temporaryName,
-            directoryDescriptor,
-            HostAgentBootstrapConfigurationReader.configurationFileName
-        ) == 0 else {
-            throw HostAgentBootstrapConfigurationPublisherError.writeFailed
-        }
+        guard
+            renameat(
+                directoryDescriptor, temporaryName, directoryDescriptor,
+                HostAgentBootstrapConfigurationReader.configurationFileName) == 0
+        else { throw HostAgentBootstrapConfigurationPublisherError.writeFailed }
         shouldRemoveTemporary = false
         guard fsync(directoryDescriptor) == 0 else {
             throw HostAgentBootstrapConfigurationPublisherError.directorySyncFailed
@@ -192,10 +162,7 @@ public final class HostAgentBootstrapConfigurationPublisher: @unchecked Sendable
             }
             while offset < bytes.count {
                 let count = Darwin.write(
-                    descriptor,
-                    baseAddress.advanced(by: offset),
-                    bytes.count - offset
-                )
+                    descriptor, baseAddress.advanced(by: offset), bytes.count - offset)
                 if count > 0 {
                     offset += count
                     continue

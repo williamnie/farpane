@@ -5,10 +5,7 @@ package enum HostAgentXPCSnapshotSessionState: Equatable, Sendable {
     case awaitingHandshake
     case negotiating
     case compatible(wireVersion: UInt64)
-    case fetchingSnapshot(
-        wireVersion: UInt64,
-        previousAfterEventID: UInt64?
-    )
+    case fetchingSnapshot(wireVersion: UInt64, previousAfterEventID: UInt64?)
     case snapshotReady(wireVersion: UInt64, afterEventID: UInt64)
     case fetchingEvents(wireVersion: UInt64, afterEventID: UInt64)
     case submittingCommand(wireVersion: UInt64, afterEventID: UInt64)
@@ -18,52 +15,28 @@ package enum HostAgentXPCSnapshotSessionState: Equatable, Sendable {
 package enum HostAgentXPCSnapshotInterfaceFactory {
     package static var handshakeSelectorName: String {
         NSStringFromSelector(
-            #selector(
-                RDNHostAgentXPCSnapshotService.performHandshake(
-                    requestData:reply:
-                )
-            )
-        )
+            #selector(RDNHostAgentXPCSnapshotService.performHandshake(requestData:reply:)))
     }
 
     package static var snapshotSelectorName: String {
         NSStringFromSelector(
-            #selector(
-                RDNHostAgentXPCSnapshotService.fetchSnapshot(
-                    requestData:reply:
-                )
-            )
-        )
+            #selector(RDNHostAgentXPCSnapshotService.fetchSnapshot(requestData:reply:)))
     }
 
     package static var eventSelectorName: String {
-        NSStringFromSelector(
-            #selector(
-                RDNHostAgentXPCEventService.fetchEvents(
-                    requestData:reply:
-                )
-            )
-        )
+        NSStringFromSelector(#selector(RDNHostAgentXPCEventService.fetchEvents(requestData:reply:)))
     }
 
     package static var commandSelectorName: String {
         NSStringFromSelector(
-            #selector(
-                RDNHostAgentXPCCommandService.submitCommand(
-                    requestData:reply:
-                )
-            )
-        )
+            #selector(RDNHostAgentXPCCommandService.submitCommand(requestData:reply:)))
     }
 
     package static var passwordSelectorName: String {
         NSStringFromSelector(
             #selector(
                 RDNHostAgentXPCPasswordService.performPasswordOperation(
-                    requestData:secretData:reply:
-                )
-            )
-        )
+                    requestData:secretData:reply:)))
     }
 
     package static func makeInterface() -> NSXPCInterface {
@@ -75,9 +48,7 @@ package enum HostAgentXPCSnapshotInterfaceFactory {
 /// bound to the exact successful snapshot cursor on this same connection.
 /// Commands additionally require an injected process-owned service; without
 /// it the selector remains fail closed.
-package final class HostAgentXPCSnapshotSessionHandler:
-    NSObject,
-    RDNHostAgentXPCPasswordService,
+package final class HostAgentXPCSnapshotSessionHandler: NSObject, RDNHostAgentXPCPasswordService,
     @unchecked Sendable
 {
     package typealias MonotonicClock = @Sendable () -> UInt64
@@ -100,10 +71,8 @@ package final class HostAgentXPCSnapshotSessionHandler:
     private var lastPasswordAttemptAt: UInt64?
 
     package init(
-        identity: HostAgentXPCWireAgentIdentity,
-        snapshotState: HostAgentSnapshotState,
-        eventState: HostAgentEventState,
-        commandService: HostAgentXPCCommandService?,
+        identity: HostAgentXPCWireAgentIdentity, snapshotState: HostAgentSnapshotState,
+        eventState: HostAgentEventState, commandService: HostAgentXPCCommandService?,
         passwordService: HostAgentXPCPasswordService? = nil,
         nowUnixMilliseconds: @escaping HostAgentXPCHandshakeHandler.Clock,
         monotonicMilliseconds: @escaping MonotonicClock
@@ -135,24 +104,14 @@ package final class HostAgentXPCSnapshotSessionHandler:
         do {
             let request = try HostAgentXPCWireHandshakeRequest.decode(requestData)
             let response = try HostAgentXPCWireHandshakeNegotiator.makeResponse(
-                for: request,
-                identity: identity,
-                sentAtUnixMilliseconds: nowUnixMilliseconds()
-            )
+                for: request, identity: identity, sentAtUnixMilliseconds: nowUnixMilliseconds())
             let data = try response.encoded()
             let terminalState: HostAgentXPCSnapshotSessionState
-            switch HostAgentXPCWireHandshakeNegotiator.evaluate(
-                response,
-                for: request
-            ) {
+            switch HostAgentXPCWireHandshakeNegotiator.evaluate(response, for: request) {
             case .compatible(let selectedWireVersion):
-                terminalState = .compatible(
-                    wireVersion: selectedWireVersion
-                )
-            case .incompatible:
-                terminalState = .incompatible
-            case .invalidResponse:
-                throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
+                terminalState = .compatible(wireVersion: selectedWireVersion)
+            case .incompatible: terminalState = .incompatible
+            case .invalidResponse: throw HostAgentXPCWireHandshakeDocumentError.invalidDocument
             }
             finishNegotiation(with: terminalState)
             return data
@@ -164,30 +123,21 @@ package final class HostAgentXPCSnapshotSessionHandler:
 
     package func snapshotResponse(for requestData: Data) -> Data? {
         let request: HostAgentXPCWireSnapshotRequest
-        do {
-            request = try HostAgentXPCWireSnapshotRequest.decode(requestData)
-        } catch {
+        do { request = try HostAgentXPCWireSnapshotRequest.decode(requestData) } catch {
             return nil
         }
         guard canAttemptSnapshot(request: request) else { return nil }
         let monotonic = monotonicMilliseconds()
-        guard let reservation = reserveSnapshotAttempt(
-                request: request,
-                monotonicMilliseconds: monotonic
-              )
+        guard
+            let reservation = reserveSnapshotAttempt(
+                request: request, monotonicMilliseconds: monotonic)
         else { return nil }
         do {
             let response = try HostAgentXPCWireSnapshotResponse.make(
-                for: request,
-                identity: identity,
-                state: snapshotState.snapshot(),
-                sentAtUnixMilliseconds: nowUnixMilliseconds()
-            )
+                for: request, identity: identity, state: snapshotState.snapshot(),
+                sentAtUnixMilliseconds: nowUnixMilliseconds())
             let data = try response.encoded()
-            finishSnapshot(
-                reservation,
-                afterEventID: response.lastEventID
-            )
+            finishSnapshot(reservation, afterEventID: response.lastEventID)
             return data
         } catch {
             restoreSnapshot(reservation)
@@ -197,29 +147,20 @@ package final class HostAgentXPCSnapshotSessionHandler:
 
     package func eventResponse(for requestData: Data) -> Data? {
         let request: HostAgentXPCWireEventCursorRequest
-        do {
-            request = try HostAgentXPCWireEventCursorRequest.decode(requestData)
-        } catch {
+        do { request = try HostAgentXPCWireEventCursorRequest.decode(requestData) } catch {
             return nil
         }
         guard canAttemptEvents(request: request) else { return nil }
         let monotonic = monotonicMilliseconds()
-        guard reserveEventAttempt(
-                request: request,
-                monotonicMilliseconds: monotonic
-              )
-        else { return nil }
+        guard reserveEventAttempt(request: request, monotonicMilliseconds: monotonic) else {
+            return nil
+        }
         do {
             let replay = try eventState.replay(
-                afterSequence: request.afterEventID,
-                limit: request.maximumEventCount
-            )
+                afterSequence: request.afterEventID, limit: request.maximumEventCount)
             let response = try HostAgentXPCWireEventCursorResponse.make(
-                for: request,
-                identity: identity,
-                replay: replay,
-                sentAtUnixMilliseconds: nowUnixMilliseconds()
-            )
+                for: request, identity: identity, replay: replay,
+                sentAtUnixMilliseconds: nowUnixMilliseconds())
             let data = try response.encoded()
             finishEvents(request: request, response: response)
             return data
@@ -229,39 +170,25 @@ package final class HostAgentXPCSnapshotSessionHandler:
         }
     }
 
-    package func performHandshake(
-        requestData: Data,
-        reply: @escaping (Data?) -> Void
-    ) {
+    package func performHandshake(requestData: Data, reply: @escaping (Data?) -> Void) {
         reply(handshakeResponse(for: requestData))
     }
 
-    package func fetchSnapshot(
-        requestData: Data,
-        reply: @escaping (Data?) -> Void
-    ) {
+    package func fetchSnapshot(requestData: Data, reply: @escaping (Data?) -> Void) {
         reply(snapshotResponse(for: requestData))
     }
 
-    package func fetchEvents(
-        requestData: Data,
-        reply: @escaping (Data?) -> Void
-    ) {
+    package func fetchEvents(requestData: Data, reply: @escaping (Data?) -> Void) {
         reply(eventResponse(for: requestData))
     }
 
-    package func submitCommand(
-        requestData: Data,
-        reply: @escaping (Data?) -> Void
-    ) {
+    package func submitCommand(requestData: Data, reply: @escaping (Data?) -> Void) {
         guard let commandService else {
             reply(nil)
             return
         }
         let request: HostAgentXPCWireCommandRequest
-        do {
-            request = try HostAgentXPCWireCommandRequest.decode(requestData)
-        } catch {
+        do { request = try HostAgentXPCWireCommandRequest.decode(requestData) } catch {
             reply(nil)
             return
         }
@@ -270,16 +197,14 @@ package final class HostAgentXPCSnapshotSessionHandler:
             return
         }
         let monotonic = monotonicMilliseconds()
-        guard let reservation = reserveCommandAttempt(
-                request: request,
-                monotonicMilliseconds: monotonic
-              )
+        guard
+            let reservation = reserveCommandAttempt(
+                request: request, monotonicMilliseconds: monotonic)
         else {
             reply(nil)
             return
         }
-        guard let prepared = commandService.prepareResponse(for: requestData)
-        else {
+        guard let prepared = commandService.prepareResponse(for: requestData) else {
             restoreCommand(reservation)
             reply(nil)
             return
@@ -291,15 +216,11 @@ package final class HostAgentXPCSnapshotSessionHandler:
     }
 
     package func performPasswordOperation(
-        requestData: Data,
-        secretData: Data?,
-        reply: @escaping (Data?, Data?) -> Void
+        requestData: Data, secretData: Data?, reply: @escaping (Data?, Data?) -> Void
     ) {
         guard let passwordService,
-              let request = try? HostAgentXPCWirePasswordRequest.decode(
-                requestData
-              ),
-              canAttemptPassword(request: request)
+            let request = try? HostAgentXPCWirePasswordRequest.decode(requestData),
+            canAttemptPassword(request: request)
         else {
             reply(nil, nil)
             return
@@ -312,9 +233,9 @@ package final class HostAgentXPCSnapshotSessionHandler:
             return
         }
         if let lastPasswordAttemptAt,
-           monotonic < lastPasswordAttemptAt
-            || monotonic - lastPasswordAttemptAt
-                < Self.minimumCommandIntervalMilliseconds {
+            monotonic < lastPasswordAttemptAt
+                || monotonic - lastPasswordAttemptAt < Self.minimumCommandIntervalMilliseconds
+        {
             lock.unlock()
             reply(nil, nil)
             return
@@ -323,39 +244,27 @@ package final class HostAgentXPCSnapshotSessionHandler:
         lock.unlock()
         let relay = HostAgentXPCPasswordServiceReplyRelay(reply: reply)
         passwordService.perform(
-            requestData: requestData,
-            secretData: secretData,
-            reply: { response, secret in
-                relay.finish(response, secret)
-            }
-        )
+            requestData: requestData, secretData: secretData,
+            reply: { response, secret in relay.finish(response, secret) })
     }
 
-    private func canAttemptPassword(
-        request: HostAgentXPCWirePasswordRequest
-    ) -> Bool {
+    private func canAttemptPassword(request: HostAgentXPCWirePasswordRequest) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         guard request.hostInstanceID == identity.hostInstanceID,
-              request.agentBootID == identity.agentBootID
+            request.agentBootID == identity.agentBootID
         else { return false }
         switch state {
-        case .snapshotReady(let wireVersion, _),
-             .fetchingEvents(let wireVersion, _),
-             .submittingCommand(let wireVersion, _):
+        case .snapshotReady(let wireVersion, _), .fetchingEvents(let wireVersion, _),
+            .submittingCommand(let wireVersion, _):
             return request.wireVersion == wireVersion
-        default:
-            return false
+        default: return false
         }
     }
 
-    private func finishNegotiation(
-        with result: HostAgentXPCSnapshotSessionState
-    ) {
+    private func finishNegotiation(with result: HostAgentXPCSnapshotSessionState) {
         lock.lock()
-        if state == .negotiating {
-            state = result
-        }
+        if state == .negotiating { state = result }
         lock.unlock()
     }
 
@@ -364,91 +273,72 @@ package final class HostAgentXPCSnapshotSessionHandler:
         let previousAfterEventID: UInt64?
     }
 
-    private func canAttemptSnapshot(
-        request: HostAgentXPCWireSnapshotRequest
-    ) -> Bool {
+    private func canAttemptSnapshot(request: HostAgentXPCWireSnapshotRequest) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         guard request.hostInstanceID == identity.hostInstanceID,
-              request.agentBootID == identity.agentBootID
+            request.agentBootID == identity.agentBootID
         else { return false }
         switch state {
-        case .compatible(let wireVersion),
-             .snapshotReady(let wireVersion, _):
+        case .compatible(let wireVersion), .snapshotReady(let wireVersion, _):
             return request.wireVersion == wireVersion
-        default:
-            return false
+        default: return false
         }
     }
 
     private func reserveSnapshotAttempt(
-        request: HostAgentXPCWireSnapshotRequest,
-        monotonicMilliseconds: UInt64
+        request: HostAgentXPCWireSnapshotRequest, monotonicMilliseconds: UInt64
     ) -> SnapshotReservation? {
         lock.lock()
         defer { lock.unlock() }
         let reservation: SnapshotReservation
         switch state {
         case .compatible(let wireVersion):
-            reservation = SnapshotReservation(
-                wireVersion: wireVersion,
-                previousAfterEventID: nil
-            )
+            reservation = SnapshotReservation(wireVersion: wireVersion, previousAfterEventID: nil)
         case .snapshotReady(let wireVersion, let afterEventID):
             reservation = SnapshotReservation(
-                wireVersion: wireVersion,
-                previousAfterEventID: afterEventID
-            )
-        default:
-            return nil
+                wireVersion: wireVersion, previousAfterEventID: afterEventID)
+        default: return nil
         }
         guard request.wireVersion == reservation.wireVersion,
-              request.hostInstanceID == identity.hostInstanceID,
-              request.agentBootID == identity.agentBootID,
-              monotonicMilliseconds > 0
+            request.hostInstanceID == identity.hostInstanceID,
+            request.agentBootID == identity.agentBootID, monotonicMilliseconds > 0
         else { return nil }
         if let lastSnapshotAttemptAt {
             guard monotonicMilliseconds >= lastSnapshotAttemptAt,
-                  monotonicMilliseconds - lastSnapshotAttemptAt
+                monotonicMilliseconds - lastSnapshotAttemptAt
                     >= Self.minimumSnapshotIntervalMilliseconds
             else { return nil }
         }
         lastSnapshotAttemptAt = monotonicMilliseconds
         state = .fetchingSnapshot(
             wireVersion: reservation.wireVersion,
-            previousAfterEventID: reservation.previousAfterEventID
-        )
+            previousAfterEventID: reservation.previousAfterEventID)
         return reservation
     }
 
-    private func finishSnapshot(
-        _ reservation: SnapshotReservation,
-        afterEventID: UInt64
-    ) {
+    private func finishSnapshot(_ reservation: SnapshotReservation, afterEventID: UInt64) {
         lock.lock()
-        if state == .fetchingSnapshot(
-            wireVersion: reservation.wireVersion,
-            previousAfterEventID: reservation.previousAfterEventID
-        ) {
-            state = .snapshotReady(
+        if state
+            == .fetchingSnapshot(
                 wireVersion: reservation.wireVersion,
-                afterEventID: afterEventID
-            )
+                previousAfterEventID: reservation.previousAfterEventID)
+        {
+            state = .snapshotReady(wireVersion: reservation.wireVersion, afterEventID: afterEventID)
         }
         lock.unlock()
     }
 
     private func restoreSnapshot(_ reservation: SnapshotReservation) {
         lock.lock()
-        if state == .fetchingSnapshot(
-            wireVersion: reservation.wireVersion,
-            previousAfterEventID: reservation.previousAfterEventID
-        ) {
+        if state
+            == .fetchingSnapshot(
+                wireVersion: reservation.wireVersion,
+                previousAfterEventID: reservation.previousAfterEventID)
+        {
             if let previousAfterEventID = reservation.previousAfterEventID {
                 state = .snapshotReady(
-                    wireVersion: reservation.wireVersion,
-                    afterEventID: previousAfterEventID
-                )
+                    wireVersion: reservation.wireVersion, afterEventID: previousAfterEventID)
             } else {
                 state = .compatible(wireVersion: reservation.wireVersion)
             }
@@ -456,56 +346,46 @@ package final class HostAgentXPCSnapshotSessionHandler:
         lock.unlock()
     }
 
-    private func canAttemptEvents(
-        request: HostAgentXPCWireEventCursorRequest
-    ) -> Bool {
+    private func canAttemptEvents(request: HostAgentXPCWireEventCursorRequest) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        guard case .snapshotReady(let wireVersion, let afterEventID) = state
-        else { return false }
+        guard case .snapshotReady(let wireVersion, let afterEventID) = state else { return false }
         return request.wireVersion == wireVersion
             && request.hostInstanceID == identity.hostInstanceID
-            && request.agentBootID == identity.agentBootID
-            && request.afterEventID == afterEventID
+            && request.agentBootID == identity.agentBootID && request.afterEventID == afterEventID
     }
 
     private func reserveEventAttempt(
-        request: HostAgentXPCWireEventCursorRequest,
-        monotonicMilliseconds: UInt64
+        request: HostAgentXPCWireEventCursorRequest, monotonicMilliseconds: UInt64
     ) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        guard state == .snapshotReady(
-                wireVersion: request.wireVersion,
-                afterEventID: request.afterEventID
-              ),
-              request.hostInstanceID == identity.hostInstanceID,
-              request.agentBootID == identity.agentBootID,
-              monotonicMilliseconds > 0
+        guard
+            state
+                == .snapshotReady(
+                    wireVersion: request.wireVersion, afterEventID: request.afterEventID),
+            request.hostInstanceID == identity.hostInstanceID,
+            request.agentBootID == identity.agentBootID, monotonicMilliseconds > 0
         else { return false }
         if let lastEventAttemptAt {
             guard monotonicMilliseconds >= lastEventAttemptAt,
-                  monotonicMilliseconds - lastEventAttemptAt
-                    >= Self.minimumEventIntervalMilliseconds
+                monotonicMilliseconds - lastEventAttemptAt >= Self.minimumEventIntervalMilliseconds
             else { return false }
         }
         lastEventAttemptAt = monotonicMilliseconds
         state = .fetchingEvents(
-            wireVersion: request.wireVersion,
-            afterEventID: request.afterEventID
-        )
+            wireVersion: request.wireVersion, afterEventID: request.afterEventID)
         return true
     }
 
     private func finishEvents(
-        request: HostAgentXPCWireEventCursorRequest,
-        response: HostAgentXPCWireEventCursorResponse
+        request: HostAgentXPCWireEventCursorRequest, response: HostAgentXPCWireEventCursorResponse
     ) {
         lock.lock()
-        guard state == .fetchingEvents(
-                wireVersion: request.wireVersion,
-                afterEventID: request.afterEventID
-              )
+        guard
+            state
+                == .fetchingEvents(
+                    wireVersion: request.wireVersion, afterEventID: request.afterEventID)
         else {
             lock.unlock()
             return
@@ -514,35 +394,26 @@ package final class HostAgentXPCSnapshotSessionHandler:
         case .batch:
             if let resumeAfterEventID = response.resumeAfterEventID {
                 state = .snapshotReady(
-                    wireVersion: request.wireVersion,
-                    afterEventID: resumeAfterEventID
-                )
+                    wireVersion: request.wireVersion, afterEventID: resumeAfterEventID)
             } else {
                 state = .compatible(wireVersion: request.wireVersion)
             }
         case .upToDate:
             state = .snapshotReady(
-                wireVersion: request.wireVersion,
-                afterEventID: request.afterEventID
-            )
+                wireVersion: request.wireVersion, afterEventID: request.afterEventID)
         case .gap, .invalidCursor, .resnapshotRequired:
             state = .compatible(wireVersion: request.wireVersion)
         }
         lock.unlock()
     }
 
-    private func restoreEvents(
-        request: HostAgentXPCWireEventCursorRequest
-    ) {
+    private func restoreEvents(request: HostAgentXPCWireEventCursorRequest) {
         lock.lock()
-        if state == .fetchingEvents(
-            wireVersion: request.wireVersion,
-            afterEventID: request.afterEventID
-        ) {
+        if state
+            == .fetchingEvents(wireVersion: request.wireVersion, afterEventID: request.afterEventID)
+        {
             state = .snapshotReady(
-                wireVersion: request.wireVersion,
-                afterEventID: request.afterEventID
-            )
+                wireVersion: request.wireVersion, afterEventID: request.afterEventID)
         }
         lock.unlock()
     }
@@ -552,72 +423,53 @@ package final class HostAgentXPCSnapshotSessionHandler:
         let afterEventID: UInt64
     }
 
-    private func canAttemptCommand(
-        request: HostAgentXPCWireCommandRequest
-    ) -> Bool {
+    private func canAttemptCommand(request: HostAgentXPCWireCommandRequest) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        guard case .snapshotReady(let wireVersion, _) = state else {
-            return false
-        }
+        guard case .snapshotReady(let wireVersion, _) = state else { return false }
         return request.wireVersion == wireVersion
             && request.hostInstanceID == identity.hostInstanceID
             && request.agentBootID == identity.agentBootID
     }
 
     private func reserveCommandAttempt(
-        request: HostAgentXPCWireCommandRequest,
-        monotonicMilliseconds: UInt64
+        request: HostAgentXPCWireCommandRequest, monotonicMilliseconds: UInt64
     ) -> CommandReservation? {
         lock.lock()
         defer { lock.unlock() }
         guard case .snapshotReady(let wireVersion, let afterEventID) = state,
-              request.wireVersion == wireVersion,
-              request.hostInstanceID == identity.hostInstanceID,
-              request.agentBootID == identity.agentBootID,
-              monotonicMilliseconds > 0
+            request.wireVersion == wireVersion, request.hostInstanceID == identity.hostInstanceID,
+            request.agentBootID == identity.agentBootID, monotonicMilliseconds > 0
         else { return nil }
         if let lastCommandAttemptAt {
             guard monotonicMilliseconds >= lastCommandAttemptAt,
-                  monotonicMilliseconds - lastCommandAttemptAt
+                monotonicMilliseconds - lastCommandAttemptAt
                     >= Self.minimumCommandIntervalMilliseconds
             else { return nil }
         }
         lastCommandAttemptAt = monotonicMilliseconds
-        state = .submittingCommand(
-            wireVersion: wireVersion,
-            afterEventID: afterEventID
-        )
-        return CommandReservation(
-            wireVersion: wireVersion,
-            afterEventID: afterEventID
-        )
+        state = .submittingCommand(wireVersion: wireVersion, afterEventID: afterEventID)
+        return CommandReservation(wireVersion: wireVersion, afterEventID: afterEventID)
     }
 
     private func restoreCommand(_ reservation: CommandReservation) {
         lock.lock()
-        if state == .submittingCommand(
-            wireVersion: reservation.wireVersion,
-            afterEventID: reservation.afterEventID
-        ) {
+        if state
+            == .submittingCommand(
+                wireVersion: reservation.wireVersion, afterEventID: reservation.afterEventID)
+        {
             state = .snapshotReady(
-                wireVersion: reservation.wireVersion,
-                afterEventID: reservation.afterEventID
-            )
+                wireVersion: reservation.wireVersion, afterEventID: reservation.afterEventID)
         }
         lock.unlock()
     }
 }
 
-private final class HostAgentXPCPasswordServiceReplyRelay:
-    @unchecked Sendable
-{
+private final class HostAgentXPCPasswordServiceReplyRelay: @unchecked Sendable {
     private let lock = NSLock()
     private var reply: ((Data?, Data?) -> Void)?
 
-    init(reply: @escaping (Data?, Data?) -> Void) {
-        self.reply = reply
-    }
+    init(reply: @escaping (Data?, Data?) -> Void) { self.reply = reply }
 
     func finish(_ response: Data?, _ secret: Data?) {
         lock.lock()

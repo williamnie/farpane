@@ -4,14 +4,9 @@ import ServiceManagement
 /// Contents/Library/LaunchAgents. Registration and settings mutations remain
 /// separate operations that this type cannot perform.
 package enum HostAgentBackgroundServiceObserver {
-    package static let plistName =
-        "io.rustdesknative.viewer.host-agent.plist"
+    package static let plistName = "io.rustdesknative.viewer.host-agent.plist"
 
-    package static func observeRegistrationStatus()
-        -> HostAgentBackgroundRegistrationStatus
-    {
-        HostAgentSMAppServiceStatusAdapter.map(
-            SMAppService.agent(plistName: plistName).status
-        )
+    package static func observeRegistrationStatus() -> HostAgentBackgroundRegistrationStatus {
+        HostAgentSMAppServiceStatusAdapter.map(SMAppService.agent(plistName: plistName).status)
     }
 }

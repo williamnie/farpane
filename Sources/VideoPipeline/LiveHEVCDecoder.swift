@@ -10,8 +10,10 @@ public enum LiveHEVCDecoderError: Error, CustomStringConvertible {
         switch self {
         case .waitingForParameterSets: return "waiting for HEVC VPS/SPS/PPS"
         case .waitingForKeyframe: return "waiting for HEVC keyframe after decoder reset"
-        case .referenceFrameDropped: return "live HEVC reference frame dropped under decoder backpressure"
-        case .asynchronousDecodeFailure(let status): return "VideoToolbox asynchronous decode failed: \(status)"
+        case .referenceFrameDropped:
+            return "live HEVC reference frame dropped under decoder backpressure"
+        case .asynchronousDecodeFailure(let status):
+            return "VideoToolbox asynchronous decode failed: \(status)"
         }
     }
 }
@@ -34,10 +36,7 @@ public final class LiveHEVCDecoder: @unchecked Sendable {
     public var pendingFrames: Int { lock.withLock { decoder?.pendingFrames ?? 0 } }
 
     public func submit(
-        _ packet: HEVCEncodedPacket,
-        sequence: Int64,
-        timestampUS: UInt64,
-        fps: Double
+        _ packet: HEVCEncodedPacket, sequence: Int64, timestampUS: UInt64, fps: Double
     ) throws {
         try lock.withLock {
             if let status = decoder?.consumeAsyncDecodeError() {
@@ -49,10 +48,13 @@ public final class LiveHEVCDecoder: @unchecked Sendable {
                 throw LiveHEVCDecoderError.asynchronousDecodeFailure(status)
             }
             for (type, value) in packet.parameterSets { parameterSets[type] = value }
-            let ordered = [parameterSets[32], parameterSets[33], parameterSets[34]].compactMap { $0 }
+            let ordered = [parameterSets[32], parameterSets[33], parameterSets[34]].compactMap {
+                $0
+            }
             if ordered.count == 3, ordered != configuredParameterSets {
                 decoder?.invalidate()
-                decoder = try VideoToolboxDecoder(parameterSets: ordered, metrics: metrics, output: output)
+                decoder = try VideoToolboxDecoder(
+                    parameterSets: ordered, metrics: metrics, output: output)
                 configuredParameterSets = ordered
                 needsKeyframe = true
             }
@@ -98,11 +100,7 @@ public final class LiveHEVCDecoder: @unchecked Sendable {
             }
             do {
                 try decoder.decode(
-                    packet.accessUnit,
-                    sequence: sequence,
-                    fps: fps,
-                    timestampUS: timestampUS
-                )
+                    packet.accessUnit, sequence: sequence, fps: fps, timestampUS: timestampUS)
             } catch {
                 needsKeyframe = true
                 throw error
@@ -120,9 +118,10 @@ public final class LiveHEVCDecoder: @unchecked Sendable {
     }
 }
 
-private extension NSLock {
-    func withLock<T>(_ body: () throws -> T) rethrows -> T {
-        lock(); defer { unlock() }
+extension NSLock {
+    fileprivate func withLock<T>(_ body: () throws -> T) rethrows -> T {
+        lock()
+        defer { unlock() }
         return try body()
     }
 }

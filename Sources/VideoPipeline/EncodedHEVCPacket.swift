@@ -26,15 +26,14 @@ public struct HEVCEncodedPacket: Sendable {
     public let format: HEVCPacketFormat
     public let nalUnits: [Data]
 
-    public var isKeyframe: Bool {
-        nalUnits.contains { (16...21).contains(Self.nalType($0)) }
-    }
+    public var isKeyframe: Bool { nalUnits.contains { (16...21).contains(Self.nalType($0)) } }
 
     public var parameterSets: [UInt8: Data] {
-        Dictionary(uniqueKeysWithValues: nalUnits.compactMap { unit in
-            let type = Self.nalType(unit)
-            return (32...34).contains(type) ? (type, unit) : nil
-        })
+        Dictionary(
+            uniqueKeysWithValues: nalUnits.compactMap { unit in
+                let type = Self.nalType(unit)
+                return (32...34).contains(type) ? (type, unit) : nil
+            })
     }
 
     public var accessUnit: HEVCAccessUnit {
@@ -58,21 +57,21 @@ public struct HEVCEncodedPacket: Sendable {
         nalUnits = parsed.1
     }
 
-    public static func nalType(_ nal: Data) -> UInt8 {
-        nal.first.map { ($0 >> 1) & 0x3f } ?? 0xff
-    }
+    public static func nalType(_ nal: Data) -> UInt8 { nal.first.map { ($0 >> 1) & 0x3f } ?? 0xff }
 
     private static func parseAnnexB(_ data: Data) -> [Data]? {
         let bytes = [UInt8](data)
         var starts: [(offset: Int, prefix: Int)] = []
         var index = 0
         while index + 3 <= bytes.count {
-            if index + 4 <= bytes.count,
-               bytes[index] == 0, bytes[index + 1] == 0,
-               bytes[index + 2] == 0, bytes[index + 3] == 1 {
-                starts.append((index, 4)); index += 4
+            if index + 4 <= bytes.count, bytes[index] == 0, bytes[index + 1] == 0,
+                bytes[index + 2] == 0, bytes[index + 3] == 1
+            {
+                starts.append((index, 4))
+                index += 4
             } else if bytes[index] == 0, bytes[index + 1] == 0, bytes[index + 2] == 1 {
-                starts.append((index, 3)); index += 3
+                starts.append((index, 3))
+                index += 3
             } else {
                 index += 1
             }
@@ -93,10 +92,9 @@ public struct HEVCEncodedPacket: Sendable {
         var index = 0
         var units: [Data] = []
         while index + 4 <= bytes.count {
-            let length = Int(UInt32(bytes[index]) << 24 |
-                             UInt32(bytes[index + 1]) << 16 |
-                             UInt32(bytes[index + 2]) << 8 |
-                             UInt32(bytes[index + 3]))
+            let length = Int(
+                UInt32(bytes[index]) << 24 | UInt32(bytes[index + 1]) << 16 | UInt32(
+                    bytes[index + 2]) << 8 | UInt32(bytes[index + 3]))
             index += 4
             guard length > 0, index + length <= bytes.count else {
                 if units.isEmpty { return nil }

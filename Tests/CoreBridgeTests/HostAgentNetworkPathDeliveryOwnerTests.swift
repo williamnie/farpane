@@ -1,21 +1,16 @@
 import Foundation
-@testable import CoreBridge
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentNetworkPathDeliveryOwnerTests: XCTestCase {
     func testDeliversNormalizedPathsInOrder() {
         let recorder = NetworkPathDeliveryRecorder()
-        let owner = HostAgentNetworkPathDeliveryOwner(
-            deliverPath: recorder.handler
-        )
+        let owner = HostAgentNetworkPathDeliveryOwner(deliverPath: recorder.handler)
         let wifi = path(.wifi)
         let unavailable = path(
-            availability: .unsatisfied,
-            interfaceKinds: [],
-            supportsIPv4: false,
-            supportsIPv6: false,
-            supportsDNS: false
-        )
+            availability: .unsatisfied, interfaceKinds: [], supportsIPv4: false,
+            supportsIPv6: false, supportsDNS: false)
 
         XCTAssertEqual(owner.deliver(wifi), .accepted)
         XCTAssertEqual(owner.deliver(unavailable), .accepted)
@@ -25,9 +20,7 @@ final class HostAgentNetworkPathDeliveryOwnerTests: XCTestCase {
 
     func testOperationRejectionFailsClosed() {
         let recorder = NetworkPathDeliveryRecorder(accepts: false)
-        let owner = HostAgentNetworkPathDeliveryOwner(
-            deliverPath: recorder.handler
-        )
+        let owner = HostAgentNetworkPathDeliveryOwner(deliverPath: recorder.handler)
         let wifi = path(.wifi)
 
         XCTAssertEqual(owner.deliver(wifi), .rejected)
@@ -38,9 +31,7 @@ final class HostAgentNetworkPathDeliveryOwnerTests: XCTestCase {
 
     func testConcurrentDeliveryIsRejectedWithoutEnteringOperation() {
         let recorder = BlockingNetworkPathDeliveryRecorder()
-        let owner = HostAgentNetworkPathDeliveryOwner(
-            deliverPath: recorder.handler
-        )
+        let owner = HostAgentNetworkPathDeliveryOwner(deliverPath: recorder.handler)
         let deliveryFinished = expectation(description: "delivery finished")
         let firstResult = NetworkPathDeliveryDispositionBox()
         DispatchQueue.global().async {
@@ -61,9 +52,7 @@ final class HostAgentNetworkPathDeliveryOwnerTests: XCTestCase {
 
     func testCancellationClosesAdmissionAndDrainsAcceptedDelivery() {
         let recorder = BlockingNetworkPathDeliveryRecorder()
-        let owner = HostAgentNetworkPathDeliveryOwner(
-            deliverPath: recorder.handler
-        )
+        let owner = HostAgentNetworkPathDeliveryOwner(deliverPath: recorder.handler)
         let deliveryFinished = expectation(description: "delivery finished")
         let deliveryResult = NetworkPathDeliveryDispositionBox()
         DispatchQueue.global().async {
@@ -77,27 +66,19 @@ final class HostAgentNetworkPathDeliveryOwnerTests: XCTestCase {
             owner.cancelAndWait()
             cancellationFinished.signal()
         }
-        XCTAssertEqual(
-            cancellationFinished.wait(timeout: .now() + 0.05),
-            .timedOut
-        )
+        XCTAssertEqual(cancellationFinished.wait(timeout: .now() + 0.05), .timedOut)
         XCTAssertEqual(owner.deliver(path(.wiredEthernet)), .closed)
 
         recorder.release.signal()
         wait(for: [deliveryFinished], timeout: 1)
-        XCTAssertEqual(
-            cancellationFinished.wait(timeout: .now() + 1),
-            .success
-        )
+        XCTAssertEqual(cancellationFinished.wait(timeout: .now() + 1), .success)
         XCTAssertEqual(deliveryResult.value, .closed)
         XCTAssertEqual(owner.stateSnapshot(), .cancelled)
     }
 
     func testCancellationBeforeDeliveryIsTerminalAndIdempotent() {
         let recorder = NetworkPathDeliveryRecorder()
-        let owner = HostAgentNetworkPathDeliveryOwner(
-            deliverPath: recorder.handler
-        )
+        let owner = HostAgentNetworkPathDeliveryOwner(deliverPath: recorder.handler)
 
         owner.cancelAndWait()
         owner.cancelAndWait()
@@ -108,36 +89,23 @@ final class HostAgentNetworkPathDeliveryOwnerTests: XCTestCase {
     }
 
     private func path(
-        _ interfaceKind: HostAgentNetworkInterfaceKind,
-        supportsIPv4: Bool = true,
-        supportsIPv6: Bool = true,
-        supportsDNS: Bool = true
+        _ interfaceKind: HostAgentNetworkInterfaceKind, supportsIPv4: Bool = true,
+        supportsIPv6: Bool = true, supportsDNS: Bool = true
     ) -> HostAgentNetworkPathSnapshot {
         path(
-            availability: .satisfied,
-            interfaceKinds: [interfaceKind],
-            supportsIPv4: supportsIPv4,
-            supportsIPv6: supportsIPv6,
-            supportsDNS: supportsDNS
-        )
+            availability: .satisfied, interfaceKinds: [interfaceKind], supportsIPv4: supportsIPv4,
+            supportsIPv6: supportsIPv6, supportsDNS: supportsDNS)
     }
 
     private func path(
         availability: HostAgentNetworkPathAvailability,
-        interfaceKinds: Set<HostAgentNetworkInterfaceKind>,
-        supportsIPv4: Bool,
-        supportsIPv6: Bool,
+        interfaceKinds: Set<HostAgentNetworkInterfaceKind>, supportsIPv4: Bool, supportsIPv6: Bool,
         supportsDNS: Bool
     ) -> HostAgentNetworkPathSnapshot {
         HostAgentNetworkPathSnapshot(
-            availability: availability,
-            interfaceKinds: interfaceKinds,
-            supportsIPv4: supportsIPv4,
-            supportsIPv6: supportsIPv6,
-            supportsDNS: supportsDNS,
-            isExpensive: false,
-            isConstrained: false
-        )
+            availability: availability, interfaceKinds: interfaceKinds, supportsIPv4: supportsIPv4,
+            supportsIPv6: supportsIPv6, supportsDNS: supportsDNS, isExpensive: false,
+            isConstrained: false)
     }
 }
 
@@ -146,9 +114,7 @@ private final class NetworkPathDeliveryRecorder: @unchecked Sendable {
     private let accepts: Bool
     private var storage: [HostAgentNetworkPathSnapshot] = []
 
-    init(accepts: Bool = true) {
-        self.accepts = accepts
-    }
+    init(accepts: Bool = true) { self.accepts = accepts }
 
     var paths: [HostAgentNetworkPathSnapshot] {
         lock.lock()
@@ -166,9 +132,7 @@ private final class NetworkPathDeliveryRecorder: @unchecked Sendable {
     }
 }
 
-private final class BlockingNetworkPathDeliveryRecorder:
-    @unchecked Sendable
-{
+private final class BlockingNetworkPathDeliveryRecorder: @unchecked Sendable {
     let entered = DispatchSemaphore(value: 0)
     let release = DispatchSemaphore(value: 0)
     private let lock = NSLock()

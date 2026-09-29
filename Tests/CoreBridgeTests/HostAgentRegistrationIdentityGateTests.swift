@@ -1,6 +1,7 @@
-@testable import CoreBridge
 import Foundation
 import XCTest
+
+@testable import CoreBridge
 
 final class HostAgentRegistrationIdentityGateTests: XCTestCase {
     func testLocalDevelopmentEligibilityRequiresAllEvidenceInOrder() throws {
@@ -10,20 +11,14 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
             launchAgentPlistData: try plistData(),
             inspectBundle: {
                 recorder.append(.bundle)
-                return HostAgentRegistrationBundleIdentity(
-                    buildIdentifier: "202608080001"
-                )
+                return HostAgentRegistrationBundleIdentity(buildIdentifier: "202608080001")
             },
             inspectCodeSignature: {
                 recorder.append(.signature)
                 return signatureEvidence(channel: .development)
-            }
-        )
+            })
 
-        XCTAssertEqual(
-            status,
-            .localDevelopmentEligible(buildIdentifier: "202608080001")
-        )
+        XCTAssertEqual(status, .localDevelopmentEligible(buildIdentifier: "202608080001"))
         XCTAssertEqual(recorder.events, [.bundle, .signature])
     }
 
@@ -39,8 +34,7 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
             inspectCodeSignature: {
                 recorder.append(.signature)
                 return signatureEvidence(channel: .development)
-            }
-        )
+            })
 
         XCTAssertEqual(status, .invalidLaunchAgent)
         XCTAssertTrue(recorder.events.isEmpty)
@@ -58,8 +52,7 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
             inspectCodeSignature: {
                 recorder.append(.signature)
                 return signatureEvidence(channel: .development)
-            }
-        )
+            })
 
         XCTAssertEqual(status, .invalidApplication)
         XCTAssertEqual(recorder.events, [.bundle])
@@ -68,13 +61,8 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
     func testInvalidSignatureDoesNotLeakUnderlyingError() throws {
         let status = HostAgentRegistrationIdentityGate.assess(
             launchAgentPlistData: try plistData(),
-            inspectBundle: {
-                HostAgentRegistrationBundleIdentity(buildIdentifier: "1")
-            },
-            inspectCodeSignature: {
-                throw RegistrationIdentityTestError.unavailable
-            }
-        )
+            inspectBundle: { HostAgentRegistrationBundleIdentity(buildIdentifier: "1") },
+            inspectCodeSignature: { throw RegistrationIdentityTestError.unavailable })
 
         XCTAssertEqual(status, .invalidCodeSignature)
     }
@@ -82,17 +70,12 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
     func testRejectsMismatchedSanitizedSignatureEvidence() throws {
         let status = HostAgentRegistrationIdentityGate.assess(
             launchAgentPlistData: try plistData(),
-            inspectBundle: {
-                HostAgentRegistrationBundleIdentity(buildIdentifier: "1")
-            },
+            inspectBundle: { HostAgentRegistrationBundleIdentity(buildIdentifier: "1") },
             inspectCodeSignature: {
                 HostAgentRegistrationCodeSignatureEvidence(
-                    signingIdentifier: "com.example.forged",
-                    teamIdentifier: "OTHERTEAM1",
-                    channel: .development
-                )
-            }
-        )
+                    signingIdentifier: "com.example.forged", teamIdentifier: "OTHERTEAM1",
+                    channel: .development)
+            })
 
         XCTAssertEqual(status, .invalidCodeSignature)
     }
@@ -100,35 +83,22 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
     func testDeveloperIDStillRequiresIndependentNotarizationEvidence() throws {
         let status = HostAgentRegistrationIdentityGate.assess(
             launchAgentPlistData: try plistData(),
-            inspectBundle: {
-                HostAgentRegistrationBundleIdentity(buildIdentifier: "release-1")
-            },
-            inspectCodeSignature: {
-                signatureEvidence(channel: .developerID)
-            }
-        )
+            inspectBundle: { HostAgentRegistrationBundleIdentity(buildIdentifier: "release-1") },
+            inspectCodeSignature: { signatureEvidence(channel: .developerID) })
 
-        XCTAssertEqual(
-            status,
-            .distributionNotarizationRequired(buildIdentifier: "release-1")
-        )
+        XCTAssertEqual(status, .distributionNotarizationRequired(buildIdentifier: "release-1"))
     }
 
     func testProductAssessmentFailsClosedWithoutTheSignedAsset() {
-        XCTAssertEqual(
-            HostAgentRegistrationIdentityGate.assessMainBundle(),
-            .invalidLaunchAgent
-        )
+        XCTAssertEqual(HostAgentRegistrationIdentityGate.assessMainBundle(), .invalidLaunchAgent)
     }
 
-    private func signatureEvidence(
-        channel: HostAgentRegistrationSigningChannel
-    ) -> HostAgentRegistrationCodeSignatureEvidence {
+    private func signatureEvidence(channel: HostAgentRegistrationSigningChannel)
+        -> HostAgentRegistrationCodeSignatureEvidence
+    {
         HostAgentRegistrationCodeSignatureEvidence(
-            signingIdentifier: "io.rustdesknative.viewer",
-            teamIdentifier: "3J43F8H829",
-            channel: channel
-        )
+            signingIdentifier: "io.rustdesknative.viewer", teamIdentifier: "3J43F8H829",
+            channel: channel)
     }
 
     private func plistData() throws -> Data {
@@ -137,23 +107,14 @@ final class HostAgentRegistrationIdentityGateTests: XCTestCase {
                 "Label": "io.rustdesknative.viewer.host-agent",
                 "BundleProgram": "Contents/MacOS/FarPaneHostAgent",
                 "ProgramArguments": ["FarPaneHostAgent", "--host-agent"],
-                "MachServices": [
-                    "io.rustdesknative.viewer.host-agent": true,
-                ],
-                "LimitLoadToSessionType": "Aqua",
-                "KeepAlive": ["Crashed": true],
-                "ThrottleInterval": 10,
-                "ExitTimeOut": 10,
-            ],
-            format: .xml,
-            options: 0
-        )
+                "MachServices": ["io.rustdesknative.viewer.host-agent": true],
+                "LimitLoadToSessionType": "Aqua", "KeepAlive": ["Crashed": true],
+                "ThrottleInterval": 10, "ExitTimeOut": 10,
+            ], format: .xml, options: 0)
     }
 }
 
-private enum RegistrationIdentityTestError: Error {
-    case unavailable
-}
+private enum RegistrationIdentityTestError: Error { case unavailable }
 
 private enum RegistrationIdentityEvent: Equatable {
     case bundle
@@ -163,7 +124,5 @@ private enum RegistrationIdentityEvent: Equatable {
 private final class RegistrationIdentityRecorder {
     private(set) var events: [RegistrationIdentityEvent] = []
 
-    func append(_ event: RegistrationIdentityEvent) {
-        events.append(event)
-    }
+    func append(_ event: RegistrationIdentityEvent) { events.append(event) }
 }

@@ -30,39 +30,31 @@ struct HostAgentSleepWakeRecoveryProductOperations: Sendable {
 final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
     private let owner: HostAgentSleepWakeRecoveryOwner
     private let displayTCCAuthority: HostAgentDisplayTCCRecoveryAuthority
-    private let registrationRecoveryOwner:
-        HostAgentRegistrationRecoveryPollingOwner
+    private let registrationRecoveryOwner: HostAgentRegistrationRecoveryPollingOwner
 
     init(
         mediaPipelineOwner: HostAgentMediaPipelineOwner,
         displayTCCAuthority: HostAgentDisplayTCCRecoveryAuthority,
-        lifetime: HostAgentProcessLifetime,
-        expectedHostInstanceID: String,
+        lifetime: HostAgentProcessLifetime, expectedHostInstanceID: String,
         operations: HostAgentSleepWakeRecoveryProductOperations
     ) {
-        let registrationRecoveryOwner =
-            HostAgentRegistrationRecoveryPollingOwner.makeProduct(
-                expectedHostInstanceID: expectedHostInstanceID,
-                resume: { [weak lifetime] epoch in
-                    guard let lifetime else { return false }
-                    do {
-                        try lifetime.resumeAfterWake(epoch: epoch)
-                        return true
-                    } catch {
-                        return false
-                    }
-                },
-                observe: { [weak lifetime] in
-                    guard let lifetime else { return .failed }
-                    do {
-                        return .snapshot(try lifetime.copySnapshot())
-                    } catch HostAgentProcessLifetimeAccessError.notRunning {
-                        return .failed
-                    } catch {
-                        return .unavailable
-                    }
+        let registrationRecoveryOwner = HostAgentRegistrationRecoveryPollingOwner.makeProduct(
+            expectedHostInstanceID: expectedHostInstanceID,
+            resume: { [weak lifetime] epoch in
+                guard let lifetime else { return false }
+                do {
+                    try lifetime.resumeAfterWake(epoch: epoch)
+                    return true
+                } catch { return false }
+            },
+            observe: { [weak lifetime] in
+                guard let lifetime else { return .failed }
+                do {
+                    return .snapshot(try lifetime.copySnapshot())
+                } catch HostAgentProcessLifetimeAccessError.notRunning { return .failed } catch {
+                    return .unavailable
                 }
-            )
+            })
         self.displayTCCAuthority = displayTCCAuthority
         self.registrationRecoveryOwner = registrationRecoveryOwner
         self.owner = HostAgentSleepWakeRecoveryOwner(
@@ -72,63 +64,31 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
                     do {
                         try lifetime.beginSleep(epoch: epoch)
                         return true
-                    } catch {
-                        return false
-                    }
-                },
-                publishSuspending: { epoch in
-                    operations.publishSuspending(epoch)
-                },
-                pauseMediaAndFlush: {
-                    mediaPipelineOwner.pauseMediaAndFlushForSleep()
-                },
+                    } catch { return false }
+                }, publishSuspending: { epoch in operations.publishSuspending(epoch) },
+                pauseMediaAndFlush: { mediaPipelineOwner.pauseMediaAndFlushForSleep() },
                 releaseSleepAssertion: { [weak lifetime] epoch in
                     guard let lifetime else { return false }
                     do {
                         try lifetime.finishSleep(epoch: epoch)
                         return true
-                    } catch {
-                        return false
-                    }
-                },
-                reenumerateDisplays: {
-                    displayTCCAuthority.reenumerateDisplays()
-                },
-                revalidatePermissions: {
-                    displayTCCAuthority.revalidatePermissions()
-                },
+                    } catch { return false }
+                }, reenumerateDisplays: { displayTCCAuthority.reenumerateDisplays() },
+                revalidatePermissions: { displayTCCAuthority.revalidatePermissions() },
                 beginMediaRecovery: { epoch, completion in
                     mediaPipelineOwner.beginMediaRecoveryAfterWake(
-                        epoch: epoch,
-                        completion: completion
-                    )
+                        epoch: epoch, completion: completion)
                 },
                 beginRegistrationRecovery: { epoch, completion in
-                    registrationRecoveryOwner.start(
-                        epoch: epoch,
-                        completion: completion
-                    )
-                },
-                publishAvailable: { epoch in
-                    operations.publishAvailable(epoch)
-                },
-                recoveryAccepted: { epoch in
-                    operations.recoveryAccepted(epoch)
-                },
-                recoveryCompleted: { epoch in
-                    operations.recoveryCompleted(epoch)
-                }
-            )
-        )
+                    registrationRecoveryOwner.start(epoch: epoch, completion: completion)
+                }, publishAvailable: { epoch in operations.publishAvailable(epoch) },
+                recoveryAccepted: { epoch in operations.recoveryAccepted(epoch) },
+                recoveryCompleted: { epoch in operations.recoveryCompleted(epoch) }))
     }
 
-    deinit {
-        cancel()
-    }
+    deinit { cancel() }
 
-    func snapshot() -> HostAgentSleepWakeRecoveryState {
-        owner.snapshot()
-    }
+    func snapshot() -> HostAgentSleepWakeRecoveryState { owner.snapshot() }
 
     func environmentSnapshot() -> HostAgentDisplayTCCRecoveryState {
         displayTCCAuthority.snapshot()
@@ -138,15 +98,9 @@ final class HostAgentSleepWakeRecoveryComposition: @unchecked Sendable {
         registrationRecoveryOwner.stateSnapshot()
     }
 
-    @discardableResult
-    func systemWillSleep() -> Bool {
-        owner.systemWillSleep()
-    }
+    @discardableResult func systemWillSleep() -> Bool { owner.systemWillSleep() }
 
-    @discardableResult
-    func systemDidWake() -> Bool {
-        owner.systemDidWake()
-    }
+    @discardableResult func systemDidWake() -> Bool { owner.systemDidWake() }
 
     func cancel() {
         owner.cancel()

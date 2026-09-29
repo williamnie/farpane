@@ -7,10 +7,7 @@ package enum HostAgentProcessBootstrapOrchestrator {
         run: (HostAgentProcessEntryEligibility) -> HostAgentProcessRunResult,
         report: (HostAgentProcessTerminalResult) -> Int32
     ) -> Int32 {
-        let terminalResult = HostAgentProcessEntryOrchestrator.resolve(
-            assess: assess,
-            run: run
-        )
+        let terminalResult = HostAgentProcessEntryOrchestrator.resolve(assess: assess, run: run)
         return report(terminalResult)
     }
 }

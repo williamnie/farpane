@@ -1,6 +1,7 @@
 import CoreGraphics
 import Metal
 import XCTest
+
 @testable import VideoPipeline
 
 final class MetalVideoRendererTests: XCTestCase {
@@ -17,8 +18,7 @@ final class MetalVideoRendererTests: XCTestCase {
             throw XCTSkip("current display has no Metal device")
         }
         let selected = try XCTUnwrap(
-            MetalVideoRenderer.selectDevice(.automatic, displayID: displayID)
-        )
+            MetalVideoRenderer.selectDevice(.automatic, displayID: displayID))
 
         XCTAssertEqual(selected.registryID, displayDevice.registryID)
     }

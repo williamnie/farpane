@@ -6,10 +6,8 @@ public enum AnnexBError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .noNALUnits:
-            return "fixture does not contain Annex-B NAL units"
-        case .missingParameterSet(let name):
-            return "fixture is missing HEVC \(name)"
+        case .noNALUnits: return "fixture does not contain Annex-B NAL units"
+        case .missingParameterSet(let name): return "fixture is missing HEVC \(name)"
         }
     }
 }
@@ -72,13 +70,10 @@ public struct HEVCAnnexBStream: Sendable {
 
         // Some encoders omit AUD. In that case first_slice_segment_in_pic_flag marks
         // access-unit boundaries; generated project fixtures always contain AUD.
-        if groups.count <= 1 {
-            groups = Self.groupWithoutAUD(nals)
-        }
+        if groups.count <= 1 { groups = Self.groupWithoutAUD(nals) }
         accessUnits = groups.map { group in
             HEVCAccessUnit(
-                nalUnits: group,
-                isKeyframe: group.contains { (16...21).contains(Self.nalType($0)) }
+                nalUnits: group, isKeyframe: group.contains { (16...21).contains(Self.nalType($0)) }
             )
         }
         guard !accessUnits.isEmpty else { throw AnnexBError.noNALUnits }
@@ -89,9 +84,7 @@ public struct HEVCAnnexBStream: Sendable {
         return (first >> 1) & 0x3f
     }
 
-    private static func isSlice(_ nal: Data) -> Bool {
-        nalType(nal) <= 31
-    }
+    private static func isSlice(_ nal: Data) -> Bool { nalType(nal) <= 31 }
 
     private static func groupWithoutAUD(_ nals: [Data]) -> [[Data]] {
         var result: [[Data]] = []
@@ -104,7 +97,10 @@ public struct HEVCAnnexBStream: Sendable {
                 prefix.removeAll(keepingCapacity: true)
             }
             if isSlice(nal) {
-                if current.isEmpty { current = prefix; prefix.removeAll(keepingCapacity: true) }
+                if current.isEmpty {
+                    current = prefix
+                    prefix.removeAll(keepingCapacity: true)
+                }
                 current.append(nal)
             } else if current.contains(where: isSlice) {
                 prefix.append(nal)
@@ -126,12 +122,14 @@ public struct HEVCAnnexBStream: Sendable {
         var starts: [(offset: Int, prefix: Int)] = []
         var index = 0
         while index + 3 <= bytes.count {
-            if index + 4 <= bytes.count,
-               bytes[index] == 0, bytes[index + 1] == 0,
-               bytes[index + 2] == 0, bytes[index + 3] == 1 {
-                starts.append((index, 4)); index += 4
+            if index + 4 <= bytes.count, bytes[index] == 0, bytes[index + 1] == 0,
+                bytes[index + 2] == 0, bytes[index + 3] == 1
+            {
+                starts.append((index, 4))
+                index += 4
             } else if bytes[index] == 0, bytes[index + 1] == 0, bytes[index + 2] == 1 {
-                starts.append((index, 3)); index += 3
+                starts.append((index, 3))
+                index += 3
             } else {
                 index += 1
             }
