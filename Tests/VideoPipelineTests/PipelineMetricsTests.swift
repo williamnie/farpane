@@ -20,6 +20,50 @@ private final class TestMonotonicClock: @unchecked Sendable {
 }
 
 final class PipelineMetricsTests: XCTestCase {
+    func testViewerDiagnosticsDistinguishReceiveStallFromPresentationStall() {
+        let clock = TestMonotonicClock()
+        let metrics = PipelineMetrics(
+            inputWidth: 0, inputHeight: 0, inputFPS: 30, selectedGPU: "test",
+            monotonicNow: { clock.now() })
+        XCTAssertNil(metrics.viewerDiagnosticSnapshot().videoReceiveAgeMS)
+        XCTAssertNil(metrics.viewerDiagnosticSnapshot().presentationAgeMS)
+        XCTAssertNil(metrics.viewerDiagnosticSnapshot().coreMetricsAgeMS)
+        XCTAssertNil(metrics.viewerDiagnosticSnapshot().networkDelayMS)
+        metrics.recordEncodedPacket(
+            codec: "h265", format: "annex-b", byteCount: 128, sequence: 1, timestampUS: 1,
+            isKeyframe: true, containsVPS: true, containsSPS: true, containsPPS: true, width: 3840,
+            height: 2160)
+        metrics.recordPresented(milliseconds: 1)
+        metrics.recordCoreMetrics(remoteFPS: 30, networkDelayMS: 100, targetBitrate: 2_000_000)
+        clock.advance(seconds: 6)
+        var value = metrics.viewerDiagnosticSnapshot()
+        XCTAssertEqual(value.receivedFPS, 0)
+        XCTAssertEqual(value.presentedFPS, 0)
+        XCTAssertEqual(value.videoReceiveAgeMS, 6_000)
+        XCTAssertEqual(value.presentationAgeMS, 6_000)
+        XCTAssertEqual(value.coreMetricsAgeMS, 6_000)
+        XCTAssertEqual(value.networkDelayMS, 100)
+        XCTAssertEqual(value.receivedPackets, 1)
+        XCTAssertEqual(value.receivedBytes, 128)
+
+        metrics.recordEncodedPacket(
+            codec: "h265", format: "annex-b", byteCount: 256, sequence: 4, timestampUS: 2,
+            isKeyframe: false, containsVPS: false, containsSPS: false, containsPPS: false,
+            width: 3840, height: 2160)
+        metrics.recordDecodeError(status: -12_909)
+        metrics.recordDecoderReset(status: -12_909)
+        metrics.recordKeyframeRequest()
+        value = metrics.viewerDiagnosticSnapshot()
+        XCTAssertEqual(value.videoReceiveAgeMS, 0)
+        XCTAssertEqual(value.presentationAgeMS, 6_000)
+        XCTAssertEqual(value.receivedBytes, 384)
+        XCTAssertEqual(value.packetSequenceGaps, 2)
+        XCTAssertEqual(value.decodeErrors, 1)
+        XCTAssertEqual(value.lastDecodeErrorStatus, -12_909)
+        XCTAssertEqual(value.decoderResets, 1)
+        XCTAssertEqual(value.keyframeRequests, 1)
+    }
+
     func testHUDUsesRecentFrameRatesAndCurrentQueueDepths() {
         let clock = TestMonotonicClock()
         let metrics = PipelineMetrics(

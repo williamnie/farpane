@@ -349,6 +349,8 @@ RustDesk 共享 access group。
 - 普通连接默认关闭。
 - 用户主动打开后显示现有 FPS、延迟、解码、呈现、队列、CPU、内存与输入统计。
 - HUD 仍是浮层，不改变 Metal drawable 或视频 aspect-fit 区域。
+- 整个 HUD 可拖动，鼠标事件留在本地；窗口尺寸和全屏状态变化后仍限制在可见区域。
+- 普通会话记住相对位置，benchmark/验收不读取或写入用户的位置偏好。
 - 可用 `UserDefaults` 记住 HUD UI 偏好；benchmark/验收强制配置与普通用户偏好隔离。
 - 关闭控制菜单后，用户主动开启的 HUD 可以继续显示；再次点击顶部按钮可以关闭。
 

@@ -9,6 +9,7 @@ enum ViewerFileTransferActionDirection {
 
 final class ViewerChromeView: NSView {
     private static let hudPreferenceKey = "viewer.session-hud-visible.v1"
+    private static let hudPositionPreferenceKey = "viewer.session-hud-position.v1"
 
     let videoView: ViewerMetalView
     var onDisconnect: (() -> Void)?
@@ -23,7 +24,7 @@ final class ViewerChromeView: NSView {
     private let collapsedControl = NSVisualEffectView()
     private let collapsedButton = NSButton(title: "●", target: nil, action: nil)
     private let controlsPanel = NSVisualEffectView()
-    private let hudPanel = NSVisualEffectView()
+    private let hudPanel = ViewerHUDPanel()
     private let hudLabel = NSTextField(labelWithString: "正在等待视频…")
     private let stateLabel = NSTextField(labelWithString: "●  正在连接…")
     private let keyboardStatusLabel = NSTextField(labelWithString: "")
@@ -39,6 +40,8 @@ final class ViewerChromeView: NSView {
     private let showsFileTransferControls: Bool
     private let showsDisplayControls: Bool
     private let showsAudioStatus: Bool
+    private let defaults: UserDefaults
+    private var hudPosition: NSPoint?
     private var hudVisible: Bool
     private var keyboardGrabActive = false
     private var keyboardGrabResumePending = false
@@ -56,7 +59,8 @@ final class ViewerChromeView: NSView {
 
     init(
         videoView: ViewerMetalView, metrics: PipelineMetrics, showsAcceptanceControls: Bool,
-        showsFileTransferControls: Bool, showsDisplayControls: Bool, showsAudioStatus: Bool
+        showsFileTransferControls: Bool, showsDisplayControls: Bool, showsAudioStatus: Bool,
+        defaults: UserDefaults = .standard
     ) {
         self.videoView = videoView
         self.metrics = metrics
@@ -64,13 +68,49 @@ final class ViewerChromeView: NSView {
         self.showsFileTransferControls = showsFileTransferControls
         self.showsDisplayControls = showsDisplayControls
         self.showsAudioStatus = showsAudioStatus
-        hudVisible =
-            showsAcceptanceControls || UserDefaults.standard.bool(forKey: Self.hudPreferenceKey)
+        self.defaults = defaults
+        hudVisible = showsAcceptanceControls || defaults.bool(forKey: Self.hudPreferenceKey)
+        if !showsAcceptanceControls,
+            let position = defaults.array(forKey: Self.hudPositionPreferenceKey) as? [Double],
+            position.count == 2, position.allSatisfy({ $0.isFinite && (0...1).contains($0) })
+        {
+            hudPosition = NSPoint(x: position[0], y: position[1])
+        }
         super.init(frame: .zero)
         configure()
     }
 
     required init?(coder: NSCoder) { nil }
+
+    override func layout() {
+        super.layout()
+        let available = safeAreaRect.insetBy(dx: 16, dy: 16)
+        guard available.width > 0, available.height > 0 else { return }
+        let fittingSize = hudPanel.fittingSize
+        let size = NSSize(
+            width: min(fittingSize.width, available.width),
+            height: min(fittingSize.height, available.height))
+        let origin =
+            hudPosition.map { ViewerHUDPlacement.origin(for: $0, size: size, within: available) }
+            ?? NSPoint(
+                x: bounds.midX - size.width / 2, y: controlsPanel.frame.minY - 10 - size.height)
+        hudPanel.frame = NSRect(
+            origin: ViewerHUDPlacement.clamp(origin, size: size, within: available), size: size)
+    }
+
+    private func moveHUD(to origin: NSPoint) {
+        let available = safeAreaRect.insetBy(dx: 16, dy: 16)
+        hudPanel.setFrameOrigin(
+            ViewerHUDPlacement.clamp(origin, size: hudPanel.frame.size, within: available))
+        hudPosition = ViewerHUDPlacement.position(
+            for: hudPanel.frame.origin, size: hudPanel.frame.size, within: available)
+    }
+
+    private func saveHUDPosition() {
+        guard !showsAcceptanceControls, let hudPosition else { return }
+        defaults.set(
+            [Double(hudPosition.x), Double(hudPosition.y)], forKey: Self.hudPositionPreferenceKey)
+    }
 
     deinit {
         collapseTimer?.invalidate()
@@ -233,11 +273,12 @@ final class ViewerChromeView: NSView {
     func updateHUD(_ value: PipelineHUDSnapshot) {
         hudLabel.stringValue = String(
             format:
-                "远端 %dx%d  →  本地 %dx%d\n编码 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  累计丢帧 %d\n当前队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
+                "远端 %dx%d  →  本地 %dx%d\n接收 %.1f FPS  呈现 %.1f FPS  延迟 %d ms\n解码 %.2f ms  呈现 %.2f ms  累计丢帧 %d\n当前队列 %d/%d  CPU %.1f%%  内存 %.1f MB\n输入 %d  拒绝 %d",
             value.remoteWidth, value.remoteHeight, value.drawableWidth, value.drawableHeight,
             value.encodedFPS, value.presentedFPS, value.networkDelayMS, value.decodeMS,
             value.renderMS, value.droppedFrames, value.decoderQueueDepth, value.rendererQueueDepth,
             value.cpuPercent, value.residentMB, value.inputEvents, value.inputRejectedEvents)
+        needsLayout = true
     }
 
     private func configure() {
@@ -353,6 +394,10 @@ final class ViewerChromeView: NSView {
         ])
 
         configureMaterial(hudPanel, radius: 10)
+        hudPanel.toolTip = "拖动 HUD 可调整位置"
+        hudPanel.setAccessibilityLabel("性能 HUD，可拖动")
+        hudPanel.onDrag = { [weak self] in self?.moveHUD(to: $0) }
+        hudPanel.onDragEnded = { [weak self] in self?.saveHUDPosition() }
         hudLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         hudLabel.textColor = .white
         hudLabel.maximumNumberOfLines = 0
@@ -365,7 +410,8 @@ final class ViewerChromeView: NSView {
             hudLabel.bottomAnchor.constraint(equalTo: hudPanel.bottomAnchor, constant: -10),
         ])
 
-        for overlay in [collapsedControl, controlsPanel, hudPanel] {
+        addSubview(hudPanel)
+        for overlay in [collapsedControl, controlsPanel] {
             overlay.translatesAutoresizingMaskIntoConstraints = false
             addSubview(overlay)
         }
@@ -379,8 +425,6 @@ final class ViewerChromeView: NSView {
                 greaterThanOrEqualTo: leadingAnchor, constant: 16),
             controlsPanel.trailingAnchor.constraint(
                 lessThanOrEqualTo: trailingAnchor, constant: -16),
-            hudPanel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            hudPanel.topAnchor.constraint(equalTo: controlsPanel.bottomAnchor, constant: 10),
         ])
         controlsPanel.isHidden = true
         hudPanel.isHidden = !hudVisible
@@ -457,9 +501,7 @@ final class ViewerChromeView: NSView {
         hudVisible.toggle()
         hudPanel.isHidden = !hudVisible
         updateHUDButtonTitle()
-        if !showsAcceptanceControls {
-            UserDefaults.standard.set(hudVisible, forKey: Self.hudPreferenceKey)
-        }
+        if !showsAcceptanceControls { defaults.set(hudVisible, forKey: Self.hudPreferenceKey) }
         metrics?.recordHUDToggle()
         scheduleCollapse()
     }

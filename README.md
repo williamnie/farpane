@@ -153,6 +153,23 @@ FarPane 只把固定 Core 路径作为内部实现细节，不要求用户选择
 3. 在首页开启“被控 Host”，确认本机 ID 和临时密码，或设置永久密码。
 4. 收到入站请求后在 FarPane 中批准或拒绝；音频、剪贴板和文件传输按需单独开启。
 
+HUD 可直接拖动，并记住普通会话的位置；缩放窗口或切换全屏时会保持在可见范围内。“接收 FPS”是控制端收到编码帧的速率，“呈现 FPS”是本地画面更新速率。
+
+### 诊断日志
+
+在两端菜单选择 **FarPane → 打开诊断日志…**，或运行：
+
+```sh
+open "$HOME/Library/Logs/FarPane"
+```
+
+- 控制端：`ViewerSession/viewer-session-*.jsonl`，自动记录接收/呈现 FPS、距上一帧的时间、网络延迟、队列、解码错误、连接状态与自动重连结果。
+- 被控端：`HostMedia/host-media-live-*.jsonl`，记录采集、编码、提交、网络压力和降帧原因。
+
+控制端每秒采样，包括 HUD 隐藏时；每 3,600 条记录轮转，保留最近 24 个文件及最多 7 天历史，断开时追加最终记录。轮转后的文件保留同一 `sessionStartedAt` 和连续 `sequence`。日志只含固定诊断字段，不记录密码、服务器地址、设备 ID 或画面；原始连接错误文本也不会落盘。`forceRelay` 只表示配置策略，不能证明实际传输路径。
+
+停帧时记下发生时间（JSONL 时间为 UTC），保留两端相应文件。接收停止而 Host 仍在提交时，继续检查传输与接收路径；接收继续而呈现停止时，检查解码错误与队列。`coreMetricsAgeMS` 可判断 Core 指标回调是否陈旧，序号缺口不等于 UDP 丢包率。这些记录能帮助定位停顿阶段，不能单独证明运营商 QoS；WireGuard 的握手、收发统计与隧道内连通性需要另行对照。
+
 ### 验收与性能
 
 正式验收不会用 fixture 冒充真实远程链路。项目分别保留离线 fixture、短时 smoke、真实 H265 session 和 30 分钟正式验收证据。
@@ -305,6 +322,20 @@ As a Host:
 2. Grant Screen Recording, Accessibility, and Input Monitoring permissions in System Settings.
 3. Enable “被控 Host” on the home screen, then use the displayed device ID and temporary password or configure a permanent password.
 4. Approve or reject incoming requests in FarPane. Enable audio, clipboard, and file transfer separately when needed.
+
+Drag the HUD to reposition it. Normal sessions remember its position and keep it visible after resizing or fullscreen transitions. Received FPS measures encoded frames arriving at the Viewer; presented FPS measures local display updates.
+
+### Diagnostic logs
+
+Choose **FarPane → 打开诊断日志…** on each endpoint, or run:
+
+```sh
+open "$HOME/Library/Logs/FarPane"
+```
+
+Viewer logs are in `ViewerSession/viewer-session-*.jsonl`; Host media logs are in `HostMedia/host-media-live-*.jsonl`. The Viewer records frame rates, time since the last received/presented frame, delay, queues, decoder errors, connection states, and recovery outcomes every second, even with the HUD hidden. Files rotate after 3,600 records and retain at most 24 files for seven days. Rotation preserves `sessionStartedAt` and consecutive `sequence` values; disconnect appends a final record. Logs exclude credentials, server addresses, device IDs, images, and raw error messages. `forceRelay` records configuration policy rather than the actual transport.
+
+Note the failure time and keep the corresponding logs from both endpoints; JSONL timestamps use UTC. Compare Host submission, Viewer reception, and presentation to locate the stalled stage. `coreMetricsAgeMS` tracks Core callback freshness; sequence gaps do not measure UDP packet loss. Diagnosing ISP QoS also requires contemporaneous WireGuard handshake/transfer statistics and tunnel connectivity evidence.
 
 ### Acceptance and performance
 

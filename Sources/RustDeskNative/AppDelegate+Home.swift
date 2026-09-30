@@ -50,6 +50,7 @@ extension AppDelegate {
         memoryTimer?.invalidate()
         hudTimer?.invalidate()
         stopTimer?.invalidate()
+        stopViewerSessionLog()
         player = nil
         coreClient = nil
         viewerRecoveryDeviceID = nil
