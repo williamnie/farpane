@@ -137,6 +137,10 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     private let onCadence: CadenceHandler
     private let pressureProvider: PressureProvider
     private let onError: ErrorHandler
+    private let requiredDisplayID: UInt32?
+    private let onStreamStopped: (@Sendable (Error) -> Void)?
+    private var selectedDisplayID: UInt32?
+    var capturedDisplayID: UInt32? { lock.withLock { selectedDisplayID } }
     private var stream: SCStream?
     private var captureConfiguration: HostCaptureConfiguration?
     private var cadenceController: HostCaptureCadenceController?
@@ -158,7 +162,8 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
     init(
         onFrame: @escaping FrameHandler, onSample: @escaping MetadataHandler,
         onDrop: @escaping DropHandler, onCadence: @escaping CadenceHandler,
-        pressureProvider: @escaping PressureProvider, onError: @escaping ErrorHandler
+        pressureProvider: @escaping PressureProvider, onError: @escaping ErrorHandler,
+        requiredDisplayID: UInt32? = nil, onStreamStopped: (@Sendable (Error) -> Void)? = nil
     ) {
         self.onFrame = onFrame
         self.onSample = onSample
@@ -166,6 +171,8 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         self.onCadence = onCadence
         self.pressureProvider = pressureProvider
         self.onError = onError
+        self.requiredDisplayID = requiredDisplayID
+        self.onStreamStopped = onStreamStopped
         super.init()
     }
 
@@ -178,10 +185,13 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         guard lock.withLock({ !terminallyCancelled }) else {
             throw HostScreenCaptureError.streamStopped("cancelled")
         }
-        guard content.displays.indices.contains(configuration.displayIndex) else {
-            throw HostScreenCaptureError.displayUnavailable
+        let selectedDisplay = requiredDisplayID.flatMap { id in
+            content.displays.first { $0.displayID == id }
         }
-        let display = content.displays[configuration.displayIndex]
+        guard requiredDisplayID == nil || selectedDisplay != nil,
+            selectedDisplay != nil || content.displays.indices.contains(configuration.displayIndex)
+        else { throw HostScreenCaptureError.displayUnavailable }
+        let display = selectedDisplay ?? content.displays[configuration.displayIndex]
         let filter = SCContentFilter(
             display: display, excludingApplications: [], exceptingWindows: [])
         let streamConfiguration = Self.streamConfiguration(
@@ -193,6 +203,7 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         let mayStart = lock.withLock { () -> Bool in
             guard !terminallyCancelled else { return false }
             self.stream = stream
+            self.selectedDisplayID = display.displayID
             self.captureConfiguration = configuration
             self.cadenceController = cadenceController
             self.appliedFramesPerSecond = configuration.framesPerSecond
@@ -255,6 +266,8 @@ public final class HostScreenCaptureAdapter: NSObject, @unchecked Sendable {
         cancel()
         let task = lock.withLock { stopTask }
         await task?.value
+        // 系统停止回调可能已清空 stream；仍需排空旧采集回调，避免旧帧越过恢复边界。
+        captureQueue.sync {}
     }
 
     /// Synchronously makes this adapter terminal, then asks ScreenCaptureKit
@@ -421,7 +434,9 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
         _ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
         of outputType: SCStreamOutputType
     ) {
-        guard outputType == .screen else { return }
+        guard outputType == .screen,
+            lock.withLock({ self.stream === stream && !terminallyCancelled })
+        else { return }
         let attachments = Self.frameAttachments(from: sampleBuffer)
         onSample(Self.metadataAvailability(from: attachments))
         guard sampleBuffer.isValid else {
@@ -468,7 +483,11 @@ extension HostScreenCaptureAdapter: SCStreamOutput, SCStreamDelegate {
         }
         guard isCurrentStream else { return }
         if cancelled { onCadence(.configurationCancelled) }
-        onError(.streamStopped(String(describing: error)))
+        if let onStreamStopped {
+            onStreamStopped(error)
+        } else {
+            onError(.streamStopped(String(describing: error)))
+        }
     }
 }
 

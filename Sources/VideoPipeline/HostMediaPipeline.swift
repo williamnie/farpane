@@ -168,7 +168,7 @@ public final class HostMediaPipeline: @unchecked Sendable {
     private let onState: StateHandler
     private let onError: ErrorHandler
     public let telemetry: HostMediaTelemetry
-    private var capture: HostScreenCaptureAdapter?
+    private var capture: HostCaptureRecovery?
     private var encoder: HostMediaActiveEncoder?
     private var encoderGeneration = HostMediaEncoderGenerationGate()
     private var rawFrameHandoff = HostRawFrameHandoff<HostQueuedCapturedFrame>()
@@ -194,23 +194,32 @@ public final class HostMediaPipeline: @unchecked Sendable {
     }
 
     public func start() async throws {
-        let capture = HostScreenCaptureAdapter(
-            onFrame: { [weak self] frame in self?.enqueue(frame) },
-            onSample: { [weak self] metadata in self?.telemetry.recordCaptureSample(metadata) },
-            onDrop: { [weak self] reason in self?.telemetry.recordDrop(reason) },
-            onCadence: { [weak self] event in self?.telemetry.recordCaptureCadence(event) },
-            pressureProvider: { [weak self] in self?.telemetry.captureBackpressure() ?? .clear },
-            onError: { [weak self] error in self?.onError(error) })
+        let capture = HostCaptureRecovery(
+            configuration: HostCaptureConfiguration(
+                displayIndex: configuration.displayIndex, width: configuration.width,
+                height: configuration.height, framesPerSecond: configuration.framesPerSecond),
+            factory: { [weak self] displayID, stopped in
+                HostScreenCaptureAdapter(
+                    onFrame: { [weak self] frame in self?.enqueue(frame) },
+                    onSample: { [weak self] metadata in
+                        self?.telemetry.recordCaptureSample(metadata)
+                    }, onDrop: { [weak self] reason in self?.telemetry.recordDrop(reason) },
+                    onCadence: { [weak self] event in self?.telemetry.recordCaptureCadence(event) },
+                    pressureProvider: { [weak self] in
+                        self?.telemetry.captureBackpressure() ?? .clear
+                    }, onError: { error in stopped(error) }, requiredDisplayID: displayID,
+                    onStreamStopped: stopped)
+            },
+            beforeRestart: { [weak self] in
+                guard let self else { return }
+                self.encoderQueue.sync { self.requestKeyframe() }
+            }, onEvent: { [weak self] event in self?.telemetry.recordCaptureRecovery(event) },
+            onFailure: { [weak self] error in self?.onError(error) })
         lock.withLock {
             active = true
             self.capture = capture
         }
-        do {
-            try await capture.start(
-                configuration: HostCaptureConfiguration(
-                    displayIndex: configuration.displayIndex, width: configuration.width,
-                    height: configuration.height, framesPerSecond: configuration.framesPerSecond))
-        } catch {
+        do { try await capture.start() } catch {
             cancel()
             throw error
         }
@@ -234,7 +243,7 @@ public final class HostMediaPipeline: @unchecked Sendable {
     /// remains async but is safe to finish after the Rust route is removed.
     public func cancel() {
         let (capture, encoder, cancelledFrames) = lock.withLock {
-            () -> (HostScreenCaptureAdapter?, HostMediaActiveEncoder?, Int) in
+            () -> (HostCaptureRecovery?, HostMediaActiveEncoder?, Int) in
             active = false
             let capture = self.capture
             let value = self.encoder
@@ -250,7 +259,7 @@ public final class HostMediaPipeline: @unchecked Sendable {
 
     public func stop() async {
         cancel()
-        let capture = lock.withLock { () -> HostScreenCaptureAdapter? in
+        let capture = lock.withLock { () -> HostCaptureRecovery? in
             let value = self.capture
             self.capture = nil
             return value
