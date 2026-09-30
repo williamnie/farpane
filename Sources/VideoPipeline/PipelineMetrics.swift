@@ -21,6 +21,8 @@ public final class PipelineMetrics: @unchecked Sendable {
     private var maxPresentationGapMilliseconds = 0.0
     private var firstUnpresentedEncodedUptimeNanoseconds: UInt64?
     private var lastEncodedUptimeNanoseconds: UInt64?
+    private var lastVideoPacketUptimeNanoseconds: UInt64?
+    private var lastCoreMetricsUptimeNanoseconds: UInt64?
     private var maxPresentationStalenessWhileReceivingMilliseconds = 0.0
     private var submittedFrames = 0
     private var droppedFrames = 0
@@ -223,6 +225,7 @@ public final class PipelineMetrics: @unchecked Sendable {
                     Double(now - baseline) / 1_000_000)
             }
             encodedPackets += 1
+            lastVideoPacketUptimeNanoseconds = now
             if timestampUS == 0 || lastEncodedTimestampUS != timestampUS {
                 if firstEncodedUptimeNanoseconds == nil { firstEncodedUptimeNanoseconds = now }
                 lastEncodedUptimeNanoseconds = now
@@ -256,7 +259,9 @@ public final class PipelineMetrics: @unchecked Sendable {
         locked { if stateTransitions.last != value { stateTransitions.append(value) } }
     }
     public func recordCoreMetrics(remoteFPS: Double, networkDelayMS: Int, targetBitrate: UInt64) {
+        let now = monotonicNow()
         locked {
+            lastCoreMetricsUptimeNanoseconds = now
             if remoteFPS > 0 { coreRemoteFPS = remoteFPS }
             if networkDelayMS >= 0 { coreNetworkDelayMS = networkDelayMS }
             if targetBitrate > 0 { coreTargetBitrate = targetBitrate }
@@ -318,6 +323,30 @@ public final class PipelineMetrics: @unchecked Sendable {
             if warmupResidentBytes == nil, Date().timeIntervalSince(startedAt) >= 5 {
                 warmupResidentBytes = resident
             }
+        }
+    }
+
+    package func viewerDiagnosticSnapshot() -> ViewerPipelineDiagnosticSnapshot {
+        let now = monotonicNow()
+        func age(_ timestamp: UInt64?) -> Double? {
+            guard let timestamp, now >= timestamp else { return nil }
+            return Double(now - timestamp) / 1_000_000
+        }
+        return locked {
+            ViewerPipelineDiagnosticSnapshot(
+                receivedFPS: Self.recentFrameRate(recentEncodedFrameUptimes, now: now),
+                presentedFPS: Self.recentFrameRate(recentPresentationUptimes, now: now),
+                receivedPackets: encodedPackets, receivedBytes: encodedBytes,
+                decodedFrames: decodedFrames, presentedFrames: presentedFrames,
+                videoReceiveAgeMS: age(lastVideoPacketUptimeNanoseconds),
+                presentationAgeMS: age(lastPresentationUptimeNanoseconds),
+                coreMetricsAgeMS: age(lastCoreMetricsUptimeNanoseconds),
+                networkDelayMS: coreNetworkDelayMS >= 0 ? coreNetworkDelayMS : nil,
+                targetBitrate: coreTargetBitrate, packetSequenceGaps: packetSequenceGaps,
+                decodeErrors: decodeErrors, lastDecodeErrorStatus: lastDecodeErrorStatus,
+                decoderResets: decoderResets, keyframeRequests: keyframeRequests,
+                droppedFrames: droppedFrames, referenceFrameDrops: referenceFrameDrops,
+                decoderQueueDepth: currentQueueDepth, rendererQueueDepth: currentRendererQueueDepth)
         }
     }
 

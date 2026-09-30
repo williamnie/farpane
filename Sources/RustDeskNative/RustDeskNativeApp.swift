@@ -52,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
     var player: FixturePlayer?
     var liveDecoder: LiveHEVCDecoder?
     var coreClient: RustDeskCoreClient?
+    var viewerSessionLog: ViewerSessionLiveLog?
     var viewerEvidenceSessionEpoch: UInt64?
     let viewerPasteboardOwner = ViewerPasteboardOwner()
     var viewerClipboardCommittedEpoch: UInt64 = 0
@@ -228,6 +229,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
             keyEquivalent: "")
         aboutItem.target = application
         applicationMenu.addItem(aboutItem)
+        let logsItem = NSMenuItem(
+            title: "打开诊断日志…", action: #selector(openDiagnosticLogs(_:)), keyEquivalent: "")
+        logsItem.target = self
+        applicationMenu.addItem(logsItem)
         applicationMenu.addItem(.separator())
 
         let hideItem = NSMenuItem(
@@ -425,6 +430,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
         memoryTimer?.invalidate()
         hudTimer?.invalidate()
         stopTimer?.invalidate()
+        stopViewerSessionLog()
         let report = metrics.snapshot(durationOverride: Date().timeIntervalSince(startedAt))
         do {
             let data = try JSONEncoder.pretty.encode(report)

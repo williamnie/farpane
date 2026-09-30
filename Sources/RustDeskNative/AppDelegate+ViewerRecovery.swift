@@ -20,6 +20,9 @@ extension AppDelegate {
         if let attemptID, activeAttemptID != attemptID { return }
 
         metrics.recordCoreState("\(event.state):\(event.code)")
+        viewerSessionLog?.record(
+            .coreStateChanged, metrics: metrics, coreGeneration: coreGeneration, state: event.state,
+            code: event.code)
         print("CORE_STATE state=\(event.state) code=\(event.code)")
         chrome?.updateState(
             Self.connectionStateText(event), isError: Self.isErrorState(event.state))
@@ -112,18 +115,28 @@ extension AppDelegate {
         chrome: ViewerChromeView, decoder: LiveHEVCDecoder, recovery: CoreRecoveryCoordinator,
         attemptID: UUID, evidenceSessionEpoch: UInt64?
     ) -> ViewerAutomaticRecoveryAttemptResult {
+        recordViewerLog(.reconnectAttempt)
         guard activeAttemptID == attemptID, viewerRecoverySessionEpoch == sessionEpoch,
             let deviceID = viewerRecoveryDeviceID, let device = catalog.device(id: deviceID),
             let server = catalog.server, server.isComplete
-        else { return .unavailable }
+        else {
+            recordViewerLog(.reconnectUnavailable)
+            return .unavailable
+        }
 
         var password: String
         do {
             guard let storedPassword = try credentialStore.read(deviceID: deviceID),
                 !storedPassword.isEmpty
-            else { return .unavailable }
+            else {
+                recordViewerLog(.reconnectUnavailable)
+                return .unavailable
+            }
             password = storedPassword
-        } catch { return .unavailable }
+        } catch {
+            recordViewerLog(.reconnectUnavailable)
+            return .unavailable
+        }
         let configuration = CoreConnectionConfig(
             rendezvousServer: server.rendezvousServer, serverPublicKey: server.serverPublicKey,
             peerID: device.peerID, password: password, forceRelay: server.forceRelay,
@@ -141,14 +154,19 @@ extension AppDelegate {
                 chrome: chrome, decoder: decoder, recovery: recovery, attemptID: attemptID,
                 evidenceSessionEpoch: evidenceSessionEpoch)
             chrome.updateState("正在重新建立安全连接…", isError: false)
+            recordViewerLog(.reconnectStarted)
             return .started
-        } catch { return .retryableFailure }
+        } catch {
+            recordViewerLog(.reconnectFailed)
+            return .retryableFailure
+        }
     }
 
     func handleViewerAutomaticRecoveryExhausted(sessionEpoch: UInt64, attemptID: UUID) {
         guard activeAttemptID == attemptID, viewerRecoverySessionEpoch == sessionEpoch else {
             return
         }
+        recordViewerLog(.reconnectExhausted)
         activeAttemptID = nil
         showHomeUI(error: "连接已断开，自动重连未成功。未保存密码的连接需要重新输入密码。")
     }

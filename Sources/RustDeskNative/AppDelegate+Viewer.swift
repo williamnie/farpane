@@ -125,19 +125,32 @@ extension AppDelegate {
         if let fixture {
             try startFixture(fixture, renderer: renderer, metrics: metrics)
         } else if let liveConfiguration {
-            try startLive(
-                coreURL: liveConfiguration.0, configuration: liveConfiguration.1,
-                renderer: renderer, metrics: metrics, viewer: view, chrome: chrome,
-                attemptID: attemptID)
+            do {
+                viewerSessionLog = try ViewerSessionLiveLog(
+                    forceRelay: liveConfiguration.1.forceRelay)
+                recordViewerLog(.sessionStarted)
+            } catch { fputs("Viewer session log unavailable.\n", stderr) }
+            do {
+                try startLive(
+                    coreURL: liveConfiguration.0, configuration: liveConfiguration.1,
+                    renderer: renderer, metrics: metrics, viewer: view, chrome: chrome,
+                    attemptID: attemptID)
+            } catch {
+                recordViewerLog(.connectionStartFailed)
+                stopViewerSessionLog()
+                throw error
+            }
         }
 
         memoryTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak metrics] _ in
             metrics?.sampleMemory()
         }
         hudTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) {
-            [weak chrome, weak metrics] _ in
+            [weak self, weak chrome, weak metrics] _ in
             if let value = metrics?.hudSnapshot() { chrome?.updateHUD(value) }
+            self?.recordViewerLog(.periodic)
         }
+        if let hudTimer { RunLoop.main.add(hudTimer, forMode: .common) }
         if automatedRun {
             stopTimer = Timer.scheduledTimer(withTimeInterval: options.duration, repeats: false) {
                 _ in NSApplication.shared.terminate(nil)
