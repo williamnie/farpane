@@ -25,6 +25,7 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
     private var captureHeight: Int?
     private var pixelFormat: String?
     private var captureCallbacks = 0
+    private var captureRecovery = HostCaptureRecoveryDiagnostics()
     private var captureFrameStatusCounts: [HostCaptureFrameStatusKind: Int] = [:]
     private var captureCompleteDirtyRectsCounts: [HostCaptureDirtyRectsAttachmentState: Int] = [:]
     private var validFrames = 0
@@ -502,6 +503,19 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
         }
     }
 
+    func recordCaptureRecovery(_ event: HostCaptureRecoveryEvent) {
+        locked {
+            switch event {
+            case .stopped(let code):
+                captureRecovery.stoppedStreams += 1
+                captureRecovery.lastErrorCode = code
+            case .retrying: captureRecovery.attempts += 1
+            case .resumed: captureRecovery.restartedStreams += 1
+            case .exhausted: captureRecovery.exhausted += 1
+            }
+        }
+    }
+
     public func snapshot() -> HostMediaTelemetrySnapshot {
         snapshot(nowNS: DispatchTime.now().uptimeNanoseconds)
     }
@@ -538,7 +552,7 @@ public final class HostMediaTelemetry: HostMediaStageRecording, @unchecked Senda
                 codec: configuration.codec, requestedWidth: configuration.width,
                 requestedHeight: configuration.height, requestedFPS: configuration.framesPerSecond,
                 captureWidth: captureWidth, captureHeight: captureHeight, pixelFormat: pixelFormat,
-                captureCallbacks: captureCallbacks,
+                captureCallbacks: captureCallbacks, captureRecovery: captureRecovery,
                 captureFrameStatusCounts: HostCaptureFrameStatusCounts(
                     complete: captureFrameStatusCounts[.complete, default: 0],
                     idle: captureFrameStatusCounts[.idle, default: 0],

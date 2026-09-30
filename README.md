@@ -166,6 +166,8 @@ open "$HOME/Library/Logs/FarPane"
 - 控制端：`ViewerSession/viewer-session-*.jsonl`，自动记录接收/呈现 FPS、距上一帧的时间、网络延迟、队列、解码错误、连接状态与自动重连结果。
 - 被控端：`HostMedia/host-media-live-*.jsonl`，记录采集、编码、提交、网络压力和降帧原因。
 
+Host 遇到系统停止屏幕采集（ScreenCaptureKit `-3821`）时，会在同一显示器上按 1、2、4 秒退避重建采集，60 秒内最多尝试三次。连接、编码器和时间戳保持连续；用户主动停止、权限失效或显示器不可用时不自动恢复。降帧配置更新失败保留旧配置并按原有间隔重试。Host 日志 schema v4 的 `captureRecovery` 记录错误码、尝试、重启和耗尽次数；`restartedStreams` 表示采集启动成功，是否恢复出帧仍需对照采集、编码和 Viewer 指标。
+
 控制端每秒采样，包括 HUD 隐藏时；每 3,600 条记录轮转，保留最近 24 个文件及最多 7 天历史，断开时追加最终记录。轮转后的文件保留同一 `sessionStartedAt` 和连续 `sequence`。日志只含固定诊断字段，不记录密码、服务器地址、设备 ID 或画面；原始连接错误文本也不会落盘。`forceRelay` 只表示配置策略，不能证明实际传输路径。
 
 停帧时记下发生时间（JSONL 时间为 UTC），保留两端相应文件。接收停止而 Host 仍在提交时，继续检查传输与接收路径；接收继续而呈现停止时，检查解码错误与队列。`coreMetricsAgeMS` 可判断 Core 指标回调是否陈旧，序号缺口不等于 UDP 丢包率。这些记录能帮助定位停顿阶段，不能单独证明运营商 QoS；WireGuard 的握手、收发统计与隧道内连通性需要另行对照。
@@ -334,6 +336,8 @@ open "$HOME/Library/Logs/FarPane"
 ```
 
 Viewer logs are in `ViewerSession/viewer-session-*.jsonl`; Host media logs are in `HostMedia/host-media-live-*.jsonl`. The Viewer records frame rates, time since the last received/presented frame, delay, queues, decoder errors, connection states, and recovery outcomes every second, even with the HUD hidden. Files rotate after 3,600 records and retain at most 24 files for seven days. Rotation preserves `sessionStartedAt` and consecutive `sequence` values; disconnect appends a final record. Logs exclude credentials, server addresses, device IDs, images, and raw error messages. `forceRelay` records configuration policy rather than the actual transport.
+
+When the system stops Host screen capture with ScreenCaptureKit error `-3821`, capture restarts on the same display after delays of 1, 2, and 4 seconds, with at most three attempts per 60 seconds. The connection, encoder, and timestamp baseline remain intact. User stops, permission failures, and unavailable displays do not trigger recovery. Failed frame-rate configuration updates retain the old configuration and retry. Host log schema v4 adds numeric `captureRecovery` diagnostics; `restartedStreams` counts successful starts, so verify frame delivery separately using pipeline and Viewer metrics.
 
 Note the failure time and keep the corresponding logs from both endpoints; JSONL timestamps use UTC. Compare Host submission, Viewer reception, and presentation to locate the stalled stage. `coreMetricsAgeMS` tracks Core callback freshness; sequence gaps do not measure UDP packet loss. Diagnosing ISP QoS also requires contemporaneous WireGuard handshake/transfer statistics and tunnel connectivity evidence.
 

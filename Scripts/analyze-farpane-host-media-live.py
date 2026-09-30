@@ -25,18 +25,20 @@ from Scripts.evidence import (
 
 
 SCHEMA = "farpane-host-media-live"
-SUPPORTED_SCHEMA_VERSIONS = {1, 2, 3}
+SUPPORTED_SCHEMA_VERSIONS = {1, 2, 3, 4}
 MAXIMUM_PERIODIC_RECORDS = 3_600
 LEGACY_EVENTS = {"routeStarted", "periodic", "routeStopped", "routeStartFailed"}
 EVENTS_BY_SCHEMA = {
     1: LEGACY_EVENTS,
     2: LEGACY_EVENTS,
     3: LEGACY_EVENTS | {"captureSuspended"},
+    4: LEGACY_EVENTS | {"captureSuspended"},
 }
 FINAL_EVENTS_BY_SCHEMA = {
     1: {"routeStopped", "routeStartFailed"},
     2: {"routeStopped", "routeStartFailed"},
     3: {"routeStopped", "routeStartFailed", "captureSuspended"},
+    4: {"routeStopped", "routeStartFailed", "captureSuspended"},
 }
 CODECS = {"h264", "h265"}
 CONTENT_STATES = {"idle", "lowMotion", "interactive", "highMotion"}
@@ -97,6 +99,7 @@ OPTIONAL_KEYS = {
     "lowPowerModeEnabled",
 }
 ALLOWED_KEYS = REQUIRED_KEYS | OPTIONAL_KEYS
+RECOVERY_COUNT_KEYS = {"stoppedStreams", "attempts", "restartedStreams", "exhausted"}
 V2_REQUIRED_KEYS = {
     "captureCallbackCount",
     "captureFrameStatusCounts",
@@ -173,9 +176,28 @@ def validate_record(
 ) -> None:
     label = f"record {index + 1}"
     schema_version = record.get("schemaVersion")
-    has_capture_counts = is_integer(schema_version) and schema_version in {2, 3}
+    has_capture_counts = is_integer(schema_version) and schema_version in {2, 3, 4}
     required_keys = REQUIRED_KEYS | (V2_REQUIRED_KEYS if has_capture_counts else set())
     allowed_keys = ALLOWED_KEYS | (V2_REQUIRED_KEYS if has_capture_counts else set())
+    if schema_version == 4:
+        required_keys = required_keys | {"captureRecovery"}
+        allowed_keys = allowed_keys | {"captureRecovery"}
+        recovery = record.get("captureRecovery")
+        if not isinstance(recovery, dict):
+            failures.append(f"{label} has invalid captureRecovery")
+        else:
+            if not RECOVERY_COUNT_KEYS <= recovery.keys() or recovery.keys() - (
+                RECOVERY_COUNT_KEYS | {"lastErrorCode"}
+            ):
+                failures.append(f"{label} has invalid captureRecovery fields")
+            for key in RECOVERY_COUNT_KEYS:
+                if not is_integer(recovery.get(key)) or recovery.get(key, -1) < 0:
+                    failures.append(f"{label} has invalid captureRecovery.{key}")
+            if "lastErrorCode" in recovery and not is_integer(recovery["lastErrorCode"]):
+                failures.append(f"{label} has invalid captureRecovery.lastErrorCode")
+            if all(is_integer(recovery.get(key)) for key in ("restartedStreams", "attempts")):
+                if recovery["restartedStreams"] > recovery["attempts"]:
+                    failures.append(f"{label} has more restarted streams than attempts")
     missing = required_keys - record.keys()
     unknown = record.keys() - allowed_keys
     if missing:
@@ -435,7 +457,7 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
             failures.append("schema version is not an integer throughout the route")
         elif len(set(schema_versions)) != 1:
             failures.append("schema version changes inside the route")
-        elif schema_versions[0] in {2, 3}:
+        elif schema_versions[0] in {2, 3, 4}:
             cumulative_fields = (
                 "captureCallbackCount",
                 "captureFrameStatusCounts",
@@ -467,6 +489,15 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
                             for earlier, later in zip(values, values[1:])
                         ):
                             failures.append(f"{field}.{key} moves backwards")
+
+    if records and all(record.get("schemaVersion") == 4 for record in records):
+        for key in RECOVERY_COUNT_KEYS:
+            values = [record.get("captureRecovery", {}) for record in records]
+            counts = [value.get(key) if isinstance(value, dict) else None for value in values]
+            if all(is_integer(count) for count in counts) and any(
+                later < earlier for earlier, later in zip(counts, counts[1:])
+            ):
+                failures.append(f"captureRecovery.{key} moves backwards")
 
     periodic = [record for record in records if record.get("event") == "periodic"]
     if len(periodic) > MAXIMUM_PERIODIC_RECORDS:
@@ -557,7 +588,7 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
             "regimes": regimes,
         }
     )
-    if records[-1]["schemaVersion"] in {2, 3}:
+    if records[-1]["schemaVersion"] in {2, 3, 4}:
         result.update(
             {
                 "captureCallbackCount": records[-1]["captureCallbackCount"],
@@ -569,6 +600,8 @@ def summarize(records: list[dict[str, Any]], failures: list[str]) -> dict[str, A
                 ],
             }
         )
+    if records[-1]["schemaVersion"] == 4:
+        result["captureRecovery"] = records[-1]["captureRecovery"]
     return result
 
 

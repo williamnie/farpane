@@ -59,6 +59,7 @@ public struct HostMediaTelemetrySnapshot: Equatable, Sendable {
     public let captureHeight: Int?
     public let pixelFormat: String?
     public let captureCallbacks: Int
+    package let captureRecovery: HostCaptureRecoveryDiagnostics
     public let captureFrameStatusCounts: HostCaptureFrameStatusCounts
     public let captureCompleteDirtyRectsCounts: HostCaptureDirtyRectsAttachmentCounts
     public let validFrames: Int

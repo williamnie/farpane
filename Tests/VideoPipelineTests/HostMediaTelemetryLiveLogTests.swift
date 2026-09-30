@@ -8,6 +8,26 @@ private struct HostMediaLiveLogNoopRecorder: HostMediaStageRecording {
 }
 
 final class HostMediaTelemetryLiveLogTests: XCTestCase {
+    func testPersistsOnlyNumericCaptureRecoveryDiagnostics() throws {
+        let fixture = makeFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+        let telemetry = HostMediaTelemetry(
+            configuration: HostMediaPipelineConfiguration(
+                displayIndex: 0, width: 256, height: 144, framesPerSecond: 30, bitRate: 500_000))
+        telemetry.recordCaptureRecovery(.stopped(code: -3821))
+        telemetry.recordCaptureRecovery(.retrying)
+        telemetry.recordCaptureRecovery(.resumed)
+        let writer = try HostMediaTelemetryLiveLogWriter(outputURL: fixture.output)
+        try writer.record(snapshot: telemetry.snapshot(), event: .routeStopped)
+        let record = try XCTUnwrap(readRecords(fixture.output).first)
+        XCTAssertEqual(
+            record["captureRecovery"] as? [String: Int],
+            [
+                "stoppedStreams": 1, "attempts": 1, "restartedStreams": 1, "exhausted": 0,
+                "lastErrorCode": -3821,
+            ])
+    }
+
     func testWriterPersistsSanitizedLifecycleAndThrottledPeriodicSamples() throws {
         let fixture = makeFixture()
         defer { try? FileManager.default.removeItem(at: fixture.directory) }
@@ -48,7 +68,7 @@ final class HostMediaTelemetryLiveLogTests: XCTestCase {
             records.map { $0["event"] as? String },
             ["routeStarted", "periodic", "periodic", "captureSuspended"])
         XCTAssertEqual(records[1]["schema"] as? String, "farpane-host-media-live")
-        XCTAssertEqual(records[1]["schemaVersion"] as? Int, 3)
+        XCTAssertEqual(records[1]["schemaVersion"] as? Int, 4)
         XCTAssertEqual(records[1]["recentWindowSeconds"] as? Int, 5)
         XCTAssertEqual(records[1]["codec"] as? String, "h264")
         XCTAssertEqual(records[1]["requestedFPS"] as? Int, 30)
@@ -191,7 +211,7 @@ final class HostMediaTelemetryLiveLogTests: XCTestCase {
             "encodedQueueDepth", "encodedQueueCapacity", "networkDelayMS", "roundTripTimeMS",
             "responseDelayedSubscribers", "processCPUPercent", "residentBytes",
             "physicalFootprintBytes", "thermalState", "powerSource", "lowPowerModeEnabled",
-            "runtimeSeconds",
+            "runtimeSeconds", "captureRecovery",
         ]
     }
 

@@ -96,6 +96,7 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
         let captureContentState: String
         let captureDirtyMetadataTrusted: Bool
         let captureCallbackCount: Int
+        let captureRecovery: HostCaptureRecoveryDiagnostics
         let captureFrameStatusCounts: FrameStatusCounts
         let captureCompleteDirtyRectsCounts: DirtyRectsAttachmentCounts
         let latestDirtyAreaRatio: Double?
@@ -126,7 +127,7 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
             capturedAt: Date, monotonicNanoseconds: UInt64
         ) {
             schema = "farpane-host-media-live"
-            schemaVersion = 3
+            schemaVersion = 4
             self.sequence = sequence
             self.capturedAt = capturedAt
             self.monotonicNanoseconds = monotonicNanoseconds
@@ -143,6 +144,7 @@ public final class HostMediaTelemetryLiveLogWriter: @unchecked Sendable {
             captureContentState = snapshot.captureContentState.rawValue
             captureDirtyMetadataTrusted = snapshot.captureDirtyMetadataTrusted
             captureCallbackCount = snapshot.captureCallbacks
+            captureRecovery = snapshot.captureRecovery
             captureFrameStatusCounts = FrameStatusCounts(snapshot.captureFrameStatusCounts)
             captureCompleteDirtyRectsCounts = DirtyRectsAttachmentCounts(
                 snapshot.captureCompleteDirtyRectsCounts)

@@ -17,6 +17,35 @@ SPEC.loader.exec_module(ANALYZER)
 
 
 class HostMediaLiveAnalyzerTests(unittest.TestCase):
+    def test_accepts_v4_capture_recovery_and_rejects_unsafe_nested_fields(self) -> None:
+        records = self._valid_records()
+        for record in records:
+            record["schemaVersion"] = 4
+            record["captureRecovery"] = {
+                "stoppedStreams": 1,
+                "attempts": 1,
+                "restartedStreams": 1,
+                "exhausted": 0,
+                "lastErrorCode": -3821,
+            }
+        self._write(records)
+        result = ANALYZER.analyze(self.log_path)
+        self.assertEqual(result["validationStatus"], "pass")
+        self.assertEqual(result["captureRecovery"]["lastErrorCode"], -3821)
+        for invalid in [
+            {"rawError": "sensitive text"},
+            {"attempts": -1},
+            {"stoppedStreams": 0},
+            {"restartedStreams": 2},
+            {"lastErrorCode": "-3821"},
+        ]:
+            with self.subTest(invalid=invalid):
+                original = records[-1]["captureRecovery"].copy()
+                records[-1]["captureRecovery"].update(invalid)
+                self._write(records)
+                self.assertEqual(ANALYZER.analyze(self.log_path)["validationStatus"], "fail")
+                records[-1]["captureRecovery"] = original
+
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary_directory.name)
