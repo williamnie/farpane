@@ -44,10 +44,11 @@ final class ViewerAutomaticRecoveryOwnerTests: XCTestCase {
         XCTAssertTrue(owner.begin(sessionEpoch: 1))
         XCTAssertFalse(owner.observeStreaming(sessionEpoch: 1))
         XCTAssertEqual(owner.observeTerminal(sessionEpoch: 1), .recovering)
-        for _ in 0..<3 {
+        for code: Int32 in [16, 17, 16] {
             scheduler.runNext()
             let offline = CoreStateEvent(
-                state: .error, code: 16, message: "connection-peer-offline")
+                state: .error, code: code,
+                message: code == 16 ? "connection-peer-offline" : "connection-establishment-failed")
             XCTAssertTrue(ViewerAutomaticRecoveryPolicy.permitsRecovery(after: offline))
             XCTAssertEqual(owner.observeTerminal(sessionEpoch: 1), .recovering)
             // 同一 Core 随后的 disconnected 不能消耗第二次重试。

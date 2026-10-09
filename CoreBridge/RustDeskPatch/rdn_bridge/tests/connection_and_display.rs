@@ -90,6 +90,52 @@
     }
 
     #[test]
+    fn viewer_transient_connection_failures_keep_retry_through_upstream_callbacks() {
+        for text in [
+            "Failed to connect to rendezvous server",
+            "Failed to connect via rendezvous server",
+            "Failed to connect to relay server",
+            "Failed to make direct connection to remote desktop",
+            "Failed to connect via relay server: Timeout",
+            "Failed to connect via relay server: deadline has elapsed",
+            "Failed to connect via relay server: Failed to connect to rendezvous server",
+            "Failed to connect via relay server: Failed to connect to relay server",
+        ] {
+            for suffix in ["", ": Please try later"] {
+                let states = Mutex::new(Vec::<(u32, i32, String)>::new());
+                let mut ui = BridgeUi::default();
+                let shared = Arc::get_mut(&mut ui.shared).unwrap();
+                shared.callbacks.on_state = Some(capture_state);
+                shared.context = &states as *const _ as usize;
+                shared.active.store(true, Ordering::Release);
+                let session: Session<BridgeUi> = Session {
+                    ui_handler: ui.clone(),
+                    ..Default::default()
+                };
+                crate::client::Interface::msgbox(
+                    &session,
+                    "error",
+                    "Connection Error",
+                    &format!("{text}{suffix}"),
+                    "",
+                );
+                assert!(
+                    ui.shared.terminal_retry_allowed.load(Ordering::Acquire),
+                    "{text}{suffix}"
+                );
+                assert_eq!(
+                    states.lock().unwrap().as_slice(),
+                    &[(
+                        RDNState::Error as u32,
+                        17,
+                        "connection-establishment-failed".to_owned()
+                    )]
+                );
+            }
+        }
+    }
+
+    #[test]
     fn viewer_offline_exception_does_not_override_authentication_or_peer_close() {
         for (authenticated, title) in [(true, "Connection Error"), (false, "Login Error")] {
             let ui = BridgeUi::default();
@@ -105,6 +151,10 @@
             "ID does not exist",
             "Connection not allowed",
             "Failed to connect via relay server",
+            "Failed to connect via relay server: Key mismatch: Please try later",
+            "Failed to connect via relay server: Connection not allowed: Please try later",
+            "Failed to connect via relay server: Closed manually by the peer: Please try later",
+            "Failed to connect via relay server: unknown reason: Please try later",
             "Handshake failed",
             "Remote desktop is offline: unknown reason",
         ] {

@@ -58,6 +58,26 @@ impl Default for BridgeUi {
     }
 }
 
+fn viewer_transient_connect_error(text: &str) -> Option<(i32, &'static str)> {
+    let lower = text.to_ascii_lowercase();
+    let reason = lower.strip_suffix(": please try later").unwrap_or(&lower);
+    match reason {
+        "remote desktop is offline" => Some((16, "connection-peer-offline")),
+        // 只匹配固定上游的网络错误。relay 包装里也可能含拒绝理由，不能按前缀放行。
+        "failed to connect to rendezvous server"
+        | "failed to connect via rendezvous server"
+        | "failed to connect to relay server"
+        | "failed to make direct connection to remote desktop"
+        | "failed to connect via relay server: timeout"
+        | "failed to connect via relay server: deadline has elapsed"
+        | "failed to connect via relay server: failed to connect to rendezvous server"
+        | "failed to connect via relay server: failed to connect to relay server" => {
+            Some((17, "connection-establishment-failed"))
+        }
+        _ => None,
+    }
+}
+
 fn viewer_terminal_error_state(text: &str, retry: bool) -> (i32, &'static str) {
     let lower = text.to_ascii_lowercase();
     if !retry {
@@ -84,8 +104,8 @@ fn viewer_terminal_error_state(text: &str, retry: bool) -> (i32, &'static str) {
         };
         return (TERMINAL_NO_RETRY_CODE, reason);
     }
-    if lower == "remote desktop is offline" {
-        (16, "connection-peer-offline")
+    if let Some(classified) = viewer_transient_connect_error(text) {
+        classified
     } else if lower == "timeout" {
         (10, "connection-timeout")
     } else if lower.contains("reset by the peer") || lower.contains("connection reset") {
@@ -538,12 +558,12 @@ impl InvokeUiSession for BridgeUi {
             }
             "success" => {}
             _ => {
-                // 上游 UI 不为离线显示重试按钮，但 Host 重新注册期间的离线允许
-                // Swift 执行有界重连。仅限建连阶段的精确错误，不覆盖认证或主动断开。
+                // 上游 UI 将离线和部分建连错误标为不可重试；这些临时错误允许
+                // Swift 执行有界恢复。仅限建连阶段的精确错误，不覆盖认证或主动断开。
                 let retry = retry
                     || (message_type == "error"
                         && title == "Connection Error"
-                        && text.eq_ignore_ascii_case("Remote desktop is offline")
+                        && viewer_transient_connect_error(text).is_some()
                         && !self.shared.authenticated.load(Ordering::Acquire));
                 let (code, message) = viewer_terminal_error_state(text, retry);
                 if !retry {
