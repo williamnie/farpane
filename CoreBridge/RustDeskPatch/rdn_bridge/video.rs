@@ -3,9 +3,9 @@ struct PacketInspection {
     flags: u32,
 }
 
-fn inspect_packet(data: &[u8]) -> PacketInspection {
-    let annex_types = annex_b_nal_types(data);
-    let avcc_types = avcc_nal_types(data);
+fn inspect_packet(data: &[u8], codec: RDNCodec) -> PacketInspection {
+    let annex_types = annex_b_nal_types(data, codec);
+    let avcc_types = avcc_nal_types(data, codec);
     let (format, types) = match (annex_types, avcc_types) {
         (Some(types), None) => (RDNPacketFormat::AnnexB, types),
         (None, Some(types)) => (RDNPacketFormat::Avcc, types),
@@ -14,17 +14,25 @@ fn inspect_packet(data: &[u8]) -> PacketInspection {
     };
     let mut flags = 0;
     for nal_type in types {
-        match nal_type {
-            32 => flags |= FLAG_VPS,
-            33 => flags |= FLAG_SPS,
-            34 => flags |= FLAG_PPS,
+        match (codec, nal_type) {
+            (RDNCodec::H265, 32) => flags |= FLAG_VPS,
+            (RDNCodec::H265, 33) | (RDNCodec::H264, 7) => flags |= FLAG_SPS,
+            (RDNCodec::H265, 34) | (RDNCodec::H264, 8) => flags |= FLAG_PPS,
             _ => {}
         }
     }
     PacketInspection { format, flags }
 }
 
-fn annex_b_nal_types(data: &[u8]) -> Option<Vec<u8>> {
+fn nal_type(byte: u8, codec: RDNCodec) -> u8 {
+    match codec {
+        RDNCodec::H264 => byte & 0x1f,
+        RDNCodec::H265 => (byte >> 1) & 0x3f,
+        RDNCodec::Unknown => 0xff,
+    }
+}
+
+fn annex_b_nal_types(data: &[u8], codec: RDNCodec) -> Option<Vec<u8>> {
     let mut starts = Vec::new();
     let mut index = 0;
     while index + 3 <= data.len() {
@@ -44,12 +52,12 @@ fn annex_b_nal_types(data: &[u8]) -> Option<Vec<u8>> {
     }
     let types: Vec<u8> = starts
         .iter()
-        .filter_map(|(offset, prefix)| data.get(offset + prefix).map(|byte| (byte >> 1) & 0x3f))
+        .filter_map(|(offset, prefix)| data.get(offset + prefix).map(|byte| nal_type(*byte, codec)))
         .collect();
     (!types.is_empty()).then_some(types)
 }
 
-fn avcc_nal_types(data: &[u8]) -> Option<Vec<u8>> {
+fn avcc_nal_types(data: &[u8], codec: RDNCodec) -> Option<Vec<u8>> {
     let mut index = 0;
     let mut types = Vec::new();
     while index + 4 <= data.len() {
@@ -58,7 +66,7 @@ fn avcc_nal_types(data: &[u8]) -> Option<Vec<u8>> {
         if length == 0 || index + length > data.len() {
             return None;
         }
-        types.push((data[index] >> 1) & 0x3f);
+        types.push(nal_type(data[index], codec));
         index += length;
     }
     (index == data.len() && !types.is_empty()).then_some(types)

@@ -37,11 +37,25 @@ extension AppDelegate {
             timestampUS: packet.timestampUS, isKeyframe: packet.isKeyframe,
             containsVPS: packet.containsVPS, containsSPS: packet.containsSPS,
             containsPPS: packet.containsPPS, width: Int(packet.width), height: Int(packet.height))
-        guard packet.codec == .h265, let declaredFormat else {
+        guard packet.codec == .h265 || packet.codec == .h264, let declaredFormat else {
             metrics.recordDecodeError()
             return
         }
         do {
+            if packet.codec == .h264 {
+                let encoded = try H264FramingAccessUnit(
+                    data: packet.data, framing: declaredFormat == .annexB ? .annexB : .avcc4)
+                guard encoded.isIDR == packet.isKeyframe, !packet.containsVPS,
+                    encoded.hasSPS == packet.containsSPS, encoded.hasPPS == packet.containsPPS
+                else {
+                    metrics.recordDecodeError()
+                    return
+                }
+                try decoder.submit(
+                    encoded, sequence: Int64(clamping: packet.sequence),
+                    timestampUS: packet.timestampUS, fps: max(1, fallbackFPS))
+                return
+            }
             let encoded = try HEVCEncodedPacket(data: packet.data, declaredFormat: declaredFormat)
             let sets = encoded.parameterSets
             guard encoded.isKeyframe == packet.isKeyframe, (sets[32] != nil) == packet.containsVPS,

@@ -1,6 +1,26 @@
 
     use super::*;
 
+    #[test]
+    fn native_viewer_advertises_h264_on_login_and_codec_refresh() {
+        let handler = crate::client::LoginConfigHandler::default();
+        let login = handler.get_supported_decoding();
+        let refresh = handler.update_supported_decodings();
+        let Some(message::Union::Misc(misc)) = refresh.union else {
+            panic!("codec refresh must carry an option message");
+        };
+        let refreshed = misc.option().supported_decoding.as_ref().unwrap().clone();
+
+        for decoding in [login, refreshed] {
+            // Linux 只有 H.264 编码时仍须有共同格式；保留 Mac 的 HEVC 能力。
+            assert!(decoding.ability_h264 > 0, "H.264-only hosts need a common codec");
+            assert!(decoding.ability_h265 > 0, "HEVC hosts must remain supported");
+            assert_eq!(decoding.ability_vp8, 0);
+            assert_eq!(decoding.ability_vp9, 0);
+            assert_eq!(decoding.ability_av1, 0);
+        }
+    }
+
     unsafe extern "C" fn capture_state(
         context: *mut c_void,
         state: RDNState,
@@ -393,7 +413,7 @@
             data.extend_from_slice(&[0, 0, 0, 1]);
             data.extend_from_slice(&nal(nal_type));
         }
-        let result = inspect_packet(&data);
+        let result = inspect_packet(&data, RDNCodec::H265);
         assert_eq!(result.format, RDNPacketFormat::AnnexB);
         assert_eq!(result.flags, FLAG_VPS | FLAG_SPS | FLAG_PPS);
     }
@@ -406,7 +426,7 @@
             data.extend_from_slice(&(unit.len() as u32).to_be_bytes());
             data.extend_from_slice(&unit);
         }
-        let result = inspect_packet(&data);
+        let result = inspect_packet(&data, RDNCodec::H265);
         assert_eq!(result.format, RDNPacketFormat::Avcc);
         assert_eq!(result.flags, FLAG_VPS | FLAG_SPS | FLAG_PPS);
     }
@@ -414,9 +434,29 @@
     #[test]
     fn rejects_unframed_packet() {
         assert_eq!(
-            inspect_packet(&[0x26, 0x01, 0x80]).format,
+            inspect_packet(&[0x26, 0x01, 0x80], RDNCodec::H265).format,
             RDNPacketFormat::Unknown
         );
+    }
+
+    #[test]
+    fn identifies_h264_parameter_sets_in_annex_b_and_avcc() {
+        let units = [vec![0x67, 0x64, 0x00, 0x1f], vec![0x68, 0xce, 0x0f], vec![0x65, 0x80]];
+        let mut annex_b = Vec::new();
+        let mut avcc = Vec::new();
+        for unit in units {
+            annex_b.extend_from_slice(&[0, 0, 0, 1]);
+            annex_b.extend_from_slice(&unit);
+            avcc.extend_from_slice(&(unit.len() as u32).to_be_bytes());
+            avcc.extend_from_slice(&unit);
+        }
+        for (data, format) in [(annex_b, RDNPacketFormat::AnnexB), (avcc, RDNPacketFormat::Avcc)] {
+            let result = inspect_packet(&data, RDNCodec::H264);
+            assert_eq!(result.format, format);
+            assert_eq!(result.flags, FLAG_SPS | FLAG_PPS);
+        }
+        // H.264 P 帧的 0x41 不能按 HEVC 位布局误报 VPS。
+        assert_eq!(inspect_packet(&[0, 0, 0, 1, 0x41, 1, 0x80], RDNCodec::H264).flags, 0);
     }
 
     #[test]

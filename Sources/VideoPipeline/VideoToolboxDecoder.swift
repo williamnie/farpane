@@ -12,8 +12,7 @@ public enum VideoDecoderError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .formatDescription(let s):
-            return "CMVideoFormatDescriptionCreateFromHEVCParameterSets failed: \(s)"
+        case .formatDescription(let s): return "video format description creation failed: \(s)"
         case .session(let s): return "VTDecompressionSessionCreate failed: \(s)"
         case .blockBuffer(let s): return "CMBlockBuffer creation failed: \(s)"
         case .sampleBuffer(let s): return "CMSampleBufferCreateReady failed: \(s)"
@@ -43,12 +42,13 @@ public final class VideoToolboxDecoder: @unchecked Sendable {
         }
     }
 
-    public init(parameterSets: [Data], metrics: PipelineMetrics, output: @escaping FrameHandler)
-        throws
-    {
+    public init(
+        parameterSets: [Data], codec: HostPipelineCodec = .h265, metrics: PipelineMetrics,
+        output: @escaping FrameHandler
+    ) throws {
         self.output = output
         self.metrics = metrics
-        try configure(parameterSets: parameterSets)
+        try configure(parameterSets: parameterSets, codec: codec)
     }
 
     deinit { invalidate() }
@@ -129,12 +129,21 @@ public final class VideoToolboxDecoder: @unchecked Sendable {
         formatDescription = nil
     }
 
-    private func configure(parameterSets: [Data]) throws {
+    private func configure(parameterSets: [Data], codec: HostPipelineCodec) throws {
         let status: OSStatus = parameterSets.withUnsafeParameterSetPointers { pointers, sizes in
-            CMVideoFormatDescriptionCreateFromHEVCParameterSets(
-                allocator: kCFAllocatorDefault, parameterSetCount: parameterSets.count,
-                parameterSetPointers: pointers, parameterSetSizes: sizes, nalUnitHeaderLength: 4,
-                extensions: nil, formatDescriptionOut: &formatDescription)
+            switch codec {
+            case .h264:
+                return CMVideoFormatDescriptionCreateFromH264ParameterSets(
+                    allocator: kCFAllocatorDefault, parameterSetCount: parameterSets.count,
+                    parameterSetPointers: pointers, parameterSetSizes: sizes,
+                    nalUnitHeaderLength: 4, formatDescriptionOut: &formatDescription)
+            case .h265:
+                return CMVideoFormatDescriptionCreateFromHEVCParameterSets(
+                    allocator: kCFAllocatorDefault, parameterSetCount: parameterSets.count,
+                    parameterSetPointers: pointers, parameterSetSizes: sizes,
+                    nalUnitHeaderLength: 4, extensions: nil,
+                    formatDescriptionOut: &formatDescription)
+            }
         }
         guard status == noErr, let formatDescription else {
             throw VideoDecoderError.formatDescription(status)
@@ -209,7 +218,7 @@ extension [Data] {
             if index == count { return body(pointers, sizes) }
             return self[index].withUnsafeBytes { raw in
                 guard let base = raw.bindMemory(to: UInt8.self).baseAddress else {
-                    preconditionFailure("HEVC parameter set must not be empty")
+                    preconditionFailure("video parameter set must not be empty")
                 }
                 return recurse(index + 1, pointers + [base], sizes + [self[index].count])
             }
