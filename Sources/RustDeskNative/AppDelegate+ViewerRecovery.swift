@@ -22,7 +22,7 @@ extension AppDelegate {
         metrics.recordCoreState("\(event.state):\(event.code)")
         viewerSessionLog?.record(
             .coreStateChanged, metrics: metrics, coreGeneration: coreGeneration, state: event.state,
-            code: event.code)
+            code: event.code, message: event.message)
         print("CORE_STATE state=\(event.state) code=\(event.code)")
         chrome?.updateState(
             Self.connectionStateText(event), isError: Self.isErrorState(event.state))

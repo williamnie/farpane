@@ -61,7 +61,7 @@ final class ViewerSessionLiveLogTests: XCTestCase {
         let expectedKeys: Set<String> = [
             "schema", "schemaVersion", "sequence", "capturedAt", "monotonicNanoseconds",
             "sessionStartedAt", "buildIdentifier", "event", "forceRelay", "coreGeneration",
-            "coreState", "stateCode", "pipeline",
+            "coreState", "stateCode", "stateReason", "pipeline",
         ]
         for row in rows { XCTAssertEqual(Set(row.keys), expectedKeys) }
         let file = try XCTUnwrap(
@@ -69,6 +69,33 @@ final class ViewerSessionLiveLogTests: XCTestCase {
                 .first)
         let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
         XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.intValue, 0o600)
+    }
+
+    func testFailureClassificationIsRetainedButRawErrorsAreNeverWritten() throws {
+        let directory = try makeDirectory()
+        let metrics = PipelineMetrics(
+            inputWidth: 0, inputHeight: 0, inputFPS: 30, selectedGPU: "test")
+        let log = try ViewerSessionLiveLog(directory: directory, forceRelay: false)
+        log.record(
+            .coreStateChanged, metrics: metrics, coreGeneration: 1, state: .error, code: 16,
+            message: "connection-peer-offline")
+        log.record(.reconnectAttempt, metrics: metrics, coreGeneration: 1)
+        let rawError = "connection-peer-offline secret-peer-address-password"
+        log.record(
+            .coreStateChanged, metrics: metrics, coreGeneration: 2, state: .error, code: 15,
+            message: rawError)
+        log.record(
+            .coreStateChanged, metrics: metrics, coreGeneration: 3, state: .streaming,
+            message: "streaming")
+        log.finish(metrics: metrics, coreGeneration: 3)
+        let rows = try records(in: directory)
+        XCTAssertEqual(
+            rows.compactMap { $0["stateReason"] as? String },
+            ["connection-peer-offline", "connection-peer-offline", "unclassified", "none", "none"])
+        XCTAssertTrue(rows.allSatisfy { $0["schemaVersion"] as? Int == 2 })
+        let encoded = try JSONSerialization.data(withJSONObject: rows)
+        XCTAssertFalse(
+            String(decoding: encoded, as: UTF8.self).contains("secret-peer-address-password"))
     }
 
     func testRotationKeepsLateSessionSamplesAndFinalEvent() throws {

@@ -30,7 +30,35 @@ final class ViewerAutomaticRecoveryOwnerTests: XCTestCase {
     }
 
     func testProductBackoffIsBounded() {
-        XCTAssertEqual(ViewerAutomaticRecoveryOwner.productDelaysMilliseconds, [500, 1_500, 3_000])
+        XCTAssertEqual(
+            ViewerAutomaticRecoveryOwner.productDelaysMilliseconds, [500, 1_500, 3_000, 6_000])
+    }
+
+    func testTemporaryOfflineDuringReplacementCanRecoverAfterTenSeconds() {
+        let scheduler = ViewerRecoveryManualScheduler()
+        let attempts = ViewerRecoveryAttemptRecorder([.started, .started, .started, .started])
+        let exhausted = ViewerRecoveryExhaustedRecorder()
+        let owner = ViewerAutomaticRecoveryOwner(
+            delaysMilliseconds: ViewerAutomaticRecoveryOwner.productDelaysMilliseconds,
+            schedule: scheduler.schedule, attempt: attempts.handler, exhausted: exhausted.handler)
+        XCTAssertTrue(owner.begin(sessionEpoch: 1))
+        XCTAssertFalse(owner.observeStreaming(sessionEpoch: 1))
+        XCTAssertEqual(owner.observeTerminal(sessionEpoch: 1), .recovering)
+        for _ in 0..<3 {
+            scheduler.runNext()
+            let offline = CoreStateEvent(
+                state: .error, code: 16, message: "connection-peer-offline")
+            XCTAssertTrue(ViewerAutomaticRecoveryPolicy.permitsRecovery(after: offline))
+            XCTAssertEqual(owner.observeTerminal(sessionEpoch: 1), .recovering)
+            // 同一 Core 随后的 disconnected 不能消耗第二次重试。
+            XCTAssertEqual(owner.observeTerminal(sessionEpoch: 1), .ignored)
+        }
+        scheduler.runNext()
+        XCTAssertEqual(attempts.values.map(\.attempt), [1, 2, 3, 4])
+        XCTAssertEqual(scheduler.delays.reduce(0, +), 11_000)
+        XCTAssertTrue(owner.observeStreaming(sessionEpoch: 1))
+        XCTAssertEqual(owner.stateSnapshot(), .streaming(epoch: 1))
+        XCTAssertTrue(exhausted.epochs.isEmpty)
     }
 
     func testInitialStreamingIsNotRecoveryButReplacementStreamingIs() {

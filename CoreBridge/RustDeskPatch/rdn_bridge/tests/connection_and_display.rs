@@ -42,7 +42,7 @@
     fn viewer_terminal_error_state_preserves_retry_authority() {
         assert_eq!(
             viewer_terminal_error_state("Closed manually by the peer", false),
-            (TERMINAL_NO_RETRY_CODE, "connection-no-retry")
+            (TERMINAL_NO_RETRY_CODE, "connection-peer-closed")
         );
         assert_eq!(
             viewer_terminal_error_state("Timeout", true),
@@ -52,6 +52,101 @@
             viewer_terminal_error_state("Connection reset", true),
             (11, "connection-reset")
         );
+    }
+
+    #[test]
+    fn viewer_temporary_offline_does_not_disable_recovery() {
+        let states = Mutex::new(Vec::<(u32, i32, String)>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_state = Some(capture_state);
+        shared.context = &states as *const _ as usize;
+        shared.active.store(true, Ordering::Release);
+        let session: Session<BridgeUi> = Session {
+            ui_handler: ui.clone(),
+            ..Default::default()
+        };
+        // 经过真实上游分类：离线会给 UI retry=false，但不能终止有界恢复。
+        crate::client::Interface::msgbox(
+            &session,
+            "error",
+            "Connection Error",
+            "Remote desktop is offline",
+            "",
+        );
+        assert!(ui.shared.terminal_retry_allowed.load(Ordering::Acquire));
+        assert_eq!(
+            states.lock().unwrap().as_slice(),
+            &[(
+                RDNState::Error as u32,
+                16,
+                "connection-peer-offline".to_owned()
+            )]
+        );
+        assert_eq!(
+            viewer_terminal_error_state("Remote desktop is offline", true),
+            (16, "connection-peer-offline")
+        );
+    }
+
+    #[test]
+    fn viewer_offline_exception_does_not_override_authentication_or_peer_close() {
+        for (authenticated, title) in [(true, "Connection Error"), (false, "Login Error")] {
+            let ui = BridgeUi::default();
+            ui.shared
+                .authenticated
+                .store(authenticated, Ordering::Release);
+            ui.msgbox("error", title, "Remote desktop is offline", "", false);
+            assert!(!ui.shared.terminal_retry_allowed.load(Ordering::Acquire));
+        }
+        for text in [
+            "Closed manually by the peer",
+            "Key mismatch",
+            "ID does not exist",
+            "Connection not allowed",
+            "Failed to connect via relay server",
+            "Handshake failed",
+            "Remote desktop is offline: unknown reason",
+        ] {
+            let ui = BridgeUi::default();
+            ui.msgbox("error", "Connection Error", text, "", false);
+            assert!(
+                !ui.shared.terminal_retry_allowed.load(Ordering::Acquire),
+                "{text}"
+            );
+            assert_eq!(
+                viewer_terminal_error_state(text, false).0,
+                TERMINAL_NO_RETRY_CODE
+            );
+        }
+    }
+
+    #[test]
+    fn viewer_terminal_diagnostics_never_include_raw_error_details() {
+        for (text, reason) in [
+            (
+                "Key mismatch secret-peer-address",
+                "connection-key-mismatch",
+            ),
+            (
+                "Failed to secure tcp: secret-key",
+                "connection-handshake-failed",
+            ),
+            (
+                "Failed to resolve secret-host",
+                "connection-name-resolution-failed",
+            ),
+            (
+                "Failed to connect to rendezvous server: secret-host",
+                "connection-establishment-failed",
+            ),
+            ("secret-unrecognized-message", "connection-no-retry"),
+        ] {
+            assert_eq!(
+                viewer_terminal_error_state(text, false),
+                (TERMINAL_NO_RETRY_CODE, reason)
+            );
+        }
     }
 
     #[test]
