@@ -989,7 +989,7 @@ impl BridgeShared {
             return true;
         };
         for encoded in encoded_frames.frames.iter() {
-            let inspection = inspect_packet(&encoded.data);
+            let inspection = inspect_packet(&encoded.data, codec);
             let mut flags = inspection.flags;
             if encoded.key {
                 flags |= FLAG_KEYFRAME;

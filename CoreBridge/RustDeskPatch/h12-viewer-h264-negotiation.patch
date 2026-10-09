@@ -1,0 +1,26 @@
+diff --git a/src/client.rs b/src/client.rs
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -2386,11 +2386,11 @@
+         );
+         #[cfg(feature = "rdn-native-core")]
+         {
+-            // The native bridge consumes encoded HEVC before RustDesk's decoder.
++            // 原生桥接在 RustDesk 解码前接收 H.264/HEVC，供 VideoToolbox 解码。
+             decoding.ability_vp8 = 0;
+             decoding.ability_vp9 = 0;
+             decoding.ability_av1 = 0;
+-            decoding.ability_h264 = 0;
++            decoding.ability_h264 = 1;
+             decoding.ability_h265 = 1;
+         }
+         decoding
+@@ -2852,7 +2852,7 @@
+             decoding.ability_vp8 = 0;
+             decoding.ability_vp9 = 0;
+             decoding.ability_av1 = 0;
+-            decoding.ability_h264 = 0;
++            decoding.ability_h264 = 1;
+             decoding.ability_h265 = 1;
+         }
+         let mut misc = Misc::new();

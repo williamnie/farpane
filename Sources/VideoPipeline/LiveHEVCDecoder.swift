@@ -8,10 +8,10 @@ public enum LiveHEVCDecoderError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .waitingForParameterSets: return "waiting for HEVC VPS/SPS/PPS"
-        case .waitingForKeyframe: return "waiting for HEVC keyframe after decoder reset"
+        case .waitingForParameterSets: return "waiting for video parameter sets"
+        case .waitingForKeyframe: return "waiting for video keyframe after decoder reset"
         case .referenceFrameDropped:
-            return "live HEVC reference frame dropped under decoder backpressure"
+            return "live video reference frame dropped under decoder backpressure"
         case .asynchronousDecodeFailure(let status):
             return "VideoToolbox asynchronous decode failed: \(status)"
         }
@@ -27,6 +27,7 @@ public final class LiveHEVCDecoder: @unchecked Sendable {
     private var decoder: VideoToolboxDecoder?
     private var configuredParameterSets: [Data] = []
     private var needsKeyframe = true
+    private var codec: HostPipelineCodec?
 
     public init(metrics: PipelineMetrics, output: @escaping VideoToolboxDecoder.FrameHandler) {
         self.metrics = metrics
@@ -38,7 +39,38 @@ public final class LiveHEVCDecoder: @unchecked Sendable {
     public func submit(
         _ packet: HEVCEncodedPacket, sequence: Int64, timestampUS: UInt64, fps: Double
     ) throws {
+        try submit(
+            parameterSets: packet.parameterSets, accessUnit: packet.accessUnit, codec: .h265,
+            sequence: sequence, timestampUS: timestampUS, fps: fps)
+    }
+
+    public func submit(
+        _ packet: H264FramingAccessUnit, sequence: Int64, timestampUS: UInt64, fps: Double
+    ) throws {
+        var sets: [UInt8: Data] = [:]
+        for unit in packet.nalUnits where unit.type == 7 || unit.type == 8 {
+            sets[unit.type] = unit.data
+        }
+        try submit(
+            parameterSets: sets,
+            accessUnit: HEVCAccessUnit(
+                nalUnits: packet.nalUnits.map(\.data), isKeyframe: packet.isIDR), codec: .h264,
+            sequence: sequence, timestampUS: timestampUS, fps: fps)
+    }
+
+    private func submit(
+        parameterSets incomingSets: [UInt8: Data], accessUnit: HEVCAccessUnit,
+        codec: HostPipelineCodec, sequence: Int64, timestampUS: UInt64, fps: Double
+    ) throws {
         try lock.withLock {
+            if self.codec != codec {
+                decoder?.invalidate()
+                decoder = nil
+                parameterSets = [:]
+                configuredParameterSets = []
+                needsKeyframe = true
+                self.codec = codec
+            }
             if let status = decoder?.consumeAsyncDecodeError() {
                 decoder?.invalidate()
                 decoder = nil
@@ -47,20 +79,19 @@ public final class LiveHEVCDecoder: @unchecked Sendable {
                 metrics.recordDecoderReset(status: status)
                 throw LiveHEVCDecoderError.asynchronousDecodeFailure(status)
             }
-            for (type, value) in packet.parameterSets { parameterSets[type] = value }
-            let ordered = [parameterSets[32], parameterSets[33], parameterSets[34]].compactMap {
-                $0
-            }
-            if ordered.count == 3, ordered != configuredParameterSets {
+            for (type, value) in incomingSets { parameterSets[type] = value }
+            let requiredTypes: [UInt8] = codec == .h264 ? [7, 8] : [32, 33, 34]
+            let ordered = requiredTypes.compactMap { parameterSets[$0] }
+            if ordered.count == requiredTypes.count, ordered != configuredParameterSets {
                 decoder?.invalidate()
                 decoder = try VideoToolboxDecoder(
-                    parameterSets: ordered, metrics: metrics, output: output)
+                    parameterSets: ordered, codec: codec, metrics: metrics, output: output)
                 configuredParameterSets = ordered
                 needsKeyframe = true
             }
             guard let decoder else { throw LiveHEVCDecoderError.waitingForParameterSets }
             if needsKeyframe {
-                guard packet.isKeyframe else { throw LiveHEVCDecoderError.waitingForKeyframe }
+                guard accessUnit.isKeyframe else { throw LiveHEVCDecoderError.waitingForKeyframe }
                 needsKeyframe = false
             }
             if decoder.pendingFrames >= Self.maximumPendingFrames {
@@ -100,7 +131,7 @@ public final class LiveHEVCDecoder: @unchecked Sendable {
             }
             do {
                 try decoder.decode(
-                    packet.accessUnit, sequence: sequence, fps: fps, timestampUS: timestampUS)
+                    accessUnit, sequence: sequence, fps: fps, timestampUS: timestampUS)
             } catch {
                 needsKeyframe = true
                 throw error
