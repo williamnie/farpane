@@ -49,7 +49,8 @@ package final class ViewerAutomaticRecoveryOwner: @unchecked Sendable {
         ViewerAutomaticRecoveryAttemptResult
     package typealias Exhausted = @Sendable (_ sessionEpoch: UInt64) -> Void
 
-    package static let productDelaysMilliseconds: [UInt64] = [500, 1_500, 3_000]
+    // 覆盖短暂掉线后 Host 重新注册的窗口，同时保持有限次数。
+    package static let productDelaysMilliseconds: [UInt64] = [500, 1_500, 3_000, 6_000]
 
     private let condition = NSCondition()
     private let delaysMilliseconds: [UInt64]

@@ -170,6 +170,8 @@ Host 遇到系统停止屏幕采集（ScreenCaptureKit `-3821`）时，会在同
 
 控制端每秒采样，包括 HUD 隐藏时；每 3,600 条记录轮转，保留最近 24 个文件及最多 7 天历史，断开时追加最终记录。轮转后的文件保留同一 `sessionStartedAt` 和连续 `sequence`。日志只含固定诊断字段，不记录密码、服务器地址、设备 ID 或画面；原始连接错误文本也不会落盘。`forceRelay` 只表示配置策略，不能证明实际传输路径。
 
+Viewer 日志 schema v2 增加白名单 `stateReason`，区分暂时离线、主动断开、密钥不匹配、握手和连接建立失败；未知错误只记 `unclassified` 或通用分类。已出画面的会话断开后，保存了密码的连接最多按 0.5、1.5、3、6 秒间隔重试四次。建连阶段的暂时离线允许继续重试（`stateCode=16`），认证失败、远端主动断开及其他不可重试错误仍会终止恢复；首次连接失败不会触发这个恢复循环。
+
 停帧时记下发生时间（JSONL 时间为 UTC），保留两端相应文件。接收停止而 Host 仍在提交时，继续检查传输与接收路径；接收继续而呈现停止时，检查解码错误与队列。`coreMetricsAgeMS` 可判断 Core 指标回调是否陈旧，序号缺口不等于 UDP 丢包率。这些记录能帮助定位停顿阶段，不能单独证明运营商 QoS；WireGuard 的握手、收发统计与隧道内连通性需要另行对照。
 
 ### 验收与性能
@@ -336,6 +338,8 @@ open "$HOME/Library/Logs/FarPane"
 ```
 
 Viewer logs are in `ViewerSession/viewer-session-*.jsonl`; Host media logs are in `HostMedia/host-media-live-*.jsonl`. The Viewer records frame rates, time since the last received/presented frame, delay, queues, decoder errors, connection states, and recovery outcomes every second, even with the HUD hidden. Files rotate after 3,600 records and retain at most 24 files for seven days. Rotation preserves `sessionStartedAt` and consecutive `sequence` values; disconnect appends a final record. Logs exclude credentials, server addresses, device IDs, images, and raw error messages. `forceRelay` records configuration policy rather than the actual transport.
+
+Viewer log schema v2 adds an allowlisted `stateReason` for temporary offline, manual close, key mismatch, handshake, and connection establishment failures. Unknown text is recorded only as `unclassified` or a generic category. After a streaming session disconnects, connections with saved credentials retry at most four times with delays of 0.5, 1.5, 3, and 6 seconds. Temporary offline during connection establishment (`stateCode=16`) permits another attempt; authentication failures, explicit peer closes, and other non-retryable errors stop recovery. Initial connection failures do not enter this recovery loop.
 
 When the system stops Host screen capture with ScreenCaptureKit error `-3821`, capture restarts on the same display after delays of 1, 2, and 4 seconds, with at most three attempts per 60 seconds. The connection, encoder, and timestamp baseline remain intact. User stops, permission failures, and unavailable displays do not trigger recovery. Failed frame-rate configuration updates retain the old configuration and retry. Host log schema v4 adds numeric `captureRecovery` diagnostics; `restartedStreams` counts successful starts, so verify frame delivery separately using pipeline and Viewer metrics.
 

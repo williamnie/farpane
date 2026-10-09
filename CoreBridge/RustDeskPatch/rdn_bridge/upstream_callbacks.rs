@@ -59,11 +59,34 @@ impl Default for BridgeUi {
 }
 
 fn viewer_terminal_error_state(text: &str, retry: bool) -> (i32, &'static str) {
-    if !retry {
-        return (TERMINAL_NO_RETRY_CODE, "connection-no-retry");
-    }
     let lower = text.to_ascii_lowercase();
-    if lower == "timeout" {
+    if !retry {
+        let reason = if lower == "remote desktop is offline" {
+            "connection-peer-offline"
+        } else if lower.contains("not exist") {
+            "connection-peer-not-found"
+        } else if lower.contains("key mismatch") || lower.contains("key overuse") {
+            "connection-key-mismatch"
+        } else if lower.contains("manually") {
+            "connection-peer-closed"
+        } else if lower.contains("not allowed") || lower.contains("restricted") {
+            "connection-permission-denied"
+        } else if lower.contains("handshake") || lower.contains("secure tcp") {
+            "connection-handshake-failed"
+        } else if lower.contains("resolve") {
+            "connection-name-resolution-failed"
+        } else if lower.starts_with("failed to connect")
+            || lower.starts_with("failed to make direct connection")
+        {
+            "connection-establishment-failed"
+        } else {
+            "connection-no-retry"
+        };
+        return (TERMINAL_NO_RETRY_CODE, reason);
+    }
+    if lower == "remote desktop is offline" {
+        (16, "connection-peer-offline")
+    } else if lower == "timeout" {
         (10, "connection-timeout")
     } else if lower.contains("reset by the peer") || lower.contains("connection reset") {
         (11, "connection-reset")
@@ -503,7 +526,7 @@ impl InvokeUiSession for BridgeUi {
     fn adapt_size(&self) {}
     fn on_rgba(&self, _display: usize, _rgba: &mut scrap::ImageRgb) {}
 
-    fn msgbox(&self, message_type: &str, _title: &str, text: &str, _link: &str, retry: bool) {
+    fn msgbox(&self, message_type: &str, title: &str, text: &str, _link: &str, retry: bool) {
         match message_type {
             "input-password" => {
                 self.shared
@@ -515,12 +538,19 @@ impl InvokeUiSession for BridgeUi {
             }
             "success" => {}
             _ => {
+                // 上游 UI 不为离线显示重试按钮，但 Host 重新注册期间的离线允许
+                // Swift 执行有界重连。仅限建连阶段的精确错误，不覆盖认证或主动断开。
+                let retry = retry
+                    || (message_type == "error"
+                        && title == "Connection Error"
+                        && text.eq_ignore_ascii_case("Remote desktop is offline")
+                        && !self.shared.authenticated.load(Ordering::Acquire));
+                let (code, message) = viewer_terminal_error_state(text, retry);
                 if !retry {
                     self.shared
                         .terminal_retry_allowed
                         .store(false, Ordering::Release);
                 }
-                let (code, message) = viewer_terminal_error_state(text, retry);
                 self.shared.emit_state(RDNState::Error, code, message)
             }
         }

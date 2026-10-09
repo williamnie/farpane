@@ -19,7 +19,7 @@ final class ViewerSessionLiveLog: @unchecked Sendable {
 
     private struct Record: Encodable {
         let schema = "farpane-viewer-session"
-        let schemaVersion = 1
+        let schemaVersion = 2
         let sequence: UInt64
         let capturedAt: Date
         let monotonicNanoseconds: UInt64
@@ -30,6 +30,7 @@ final class ViewerSessionLiveLog: @unchecked Sendable {
         let coreGeneration: UInt64
         let coreState: String
         let stateCode: Int32
+        let stateReason: String
         let pipeline: ViewerPipelineDiagnosticSnapshot
     }
 
@@ -50,7 +51,19 @@ final class ViewerSessionLiveLog: @unchecked Sendable {
     private var sequence: UInt64 = 0
     private var coreState = "idle"
     private var stateCode: Int32 = 0
+    private var stateReason = "none"
     private var finished = false
+
+    // 只接收 Core 的固定分类，未知文本绝不落盘。
+    private static let allowedStateReasons: Set<String> = [
+        "connection-timeout", "connection-reset", "connection-deadline", "connection-broken-pipe",
+        "connection-closed", "rustdesk-session-error", "connection-peer-offline",
+        "connection-peer-not-found", "connection-key-mismatch", "connection-peer-closed",
+        "connection-permission-denied", "connection-handshake-failed",
+        "connection-establishment-failed", "connection-name-resolution-failed",
+        "connection-no-retry", "password-required", "authentication-failed", "disconnected",
+        "disconnected-no-retry",
+    ]
 
     init(directory: URL = defaultDirectoryURL, forceRelay: Bool, maximumRecordsPerFile: Int = 3_600)
         throws
@@ -68,7 +81,7 @@ final class ViewerSessionLiveLog: @unchecked Sendable {
 
     func record(
         _ event: Event, metrics: PipelineMetrics, coreGeneration: UInt64,
-        state: CoreConnectionState? = nil, code: Int32 = 0
+        state: CoreConnectionState? = nil, code: Int32 = 0, message: String? = nil
     ) {
         let snapshot = metrics.viewerDiagnosticSnapshot()
         let capturedAt = Date()
@@ -78,6 +91,13 @@ final class ViewerSessionLiveLog: @unchecked Sendable {
             if let state {
                 coreState = String(describing: state)
                 stateCode = code
+                switch state {
+                case .error, .disconnected, .passwordRequired, .authenticationFailed:
+                    stateReason =
+                        message.flatMap { Self.allowedStateReasons.contains($0) ? $0 : nil }
+                        ?? "unclassified"
+                default: stateReason = "none"
+                }
             }
             append(
                 event, snapshot: snapshot, coreGeneration: coreGeneration, capturedAt: capturedAt,
@@ -115,7 +135,8 @@ final class ViewerSessionLiveLog: @unchecked Sendable {
                 sequence: sequence + 1, capturedAt: capturedAt, monotonicNanoseconds: uptime,
                 sessionStartedAt: startedAt, buildIdentifier: buildIdentifier,
                 event: event.rawValue, forceRelay: forceRelay, coreGeneration: coreGeneration,
-                coreState: coreState, stateCode: stateCode, pipeline: snapshot)
+                coreState: coreState, stateCode: stateCode, stateReason: stateReason,
+                pipeline: snapshot)
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
