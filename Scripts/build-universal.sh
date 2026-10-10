@@ -166,8 +166,12 @@ else
 fi
 codesign --force --sign "$signing_identity" --timestamp=none \
   "$app_dir/Contents/Frameworks/liblibrustdesk.dylib"
+# 主程序与 helper 必须各有签名标识，避免本地网络权限缓存交替映射不同 UUID。
 codesign --force --sign "$signing_identity" --timestamp=none \
-  --identifier io.rustdesknative.viewer \
+  --identifier io.rustdesknative.viewer.host-agent \
+  "$host_agent_executable"
+codesign --verify --strict \
+  --test-requirement='=identifier "io.rustdesknative.viewer.host-agent"' \
   "$host_agent_executable"
 codesign --force --sign "$signing_identity" --timestamp=none "$app_dir"
 codesign --verify --deep --strict "$app_dir"

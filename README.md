@@ -118,6 +118,8 @@ Scripts/build-universal.sh
 
 产物位于 `Build/FarPane.app`。稳定的本地 Accessibility/Input Monitoring 权限需要 Apple Development 签名身份；仅做不涉及 TCC 的开发时，可显式设置 `RDN_ALLOW_ADHOC_SIGNING=1`。
 
+主程序使用 `io.rustdesknative.viewer`，后台 HostAgent 使用独立的 `io.rustdesknative.viewer.host-agent` 签名标识，避免本地网络权限缓存把两个程序的 UUID 混淆。HostAgent 仍由同一 App 的 SMAppService 管理；安装更新后应核验 Host 的屏幕录制、辅助功能和本地网络权限。
+
 如果当前机器只能构建自身架构，可显式生成单架构 App；默认不设置时仍严格构建 Universal App：
 
 ```sh
@@ -288,6 +290,8 @@ Scripts/build-universal.sh
 ```
 
 The result is `Build/FarPane.app`. Stable local Accessibility/Input Monitoring permissions require an Apple Development signing identity. For development that does not exercise TCC, ad-hoc signing can be explicitly enabled with `RDN_ALLOW_ADHOC_SIGNING=1`.
+
+The app uses signing identifier `io.rustdesknative.viewer`, while HostAgent uses `io.rustdesknative.viewer.host-agent` so the local network permission cache can distinguish their executable UUIDs. HostAgent remains managed by the app's SMAppService; verify Host screen recording, Accessibility, and local network access after installing an update.
 
 When a machine can only build its native architecture, explicitly request a
 single-architecture App. The default remains a strict Universal build:
