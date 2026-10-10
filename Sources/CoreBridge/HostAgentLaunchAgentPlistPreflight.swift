@@ -9,6 +9,7 @@ package enum HostAgentLaunchAgentPlistPreflightError: Error, Equatable {
     case invalidBundleProgram
     case invalidProgramArguments
     case invalidMachServices
+    case invalidSpawnConstraint
     case invalidLifecyclePolicy
 }
 
@@ -23,10 +24,14 @@ package enum HostAgentLaunchAgentPlistPreflight {
     package static let sessionType = "Aqua"
     package static let throttleInterval = 10
     package static let exitTimeOut = 10
+    package static let spawnConstraint = [
+        "signing-identifier": label,
+        "team-identifier": HostAgentRegistrationCodeSignaturePreflight.expectedTeamIdentifier,
+    ]
 
     private static let allowedKeys: Set<String> = [
         "Label", "BundleProgram", "ProgramArguments", "MachServices", "LimitLoadToSessionType",
-        "KeepAlive", "ThrottleInterval", "ExitTimeOut",
+        "KeepAlive", "ThrottleInterval", "ExitTimeOut", "SpawnConstraint",
     ]
 
     private static let forbiddenKeys: Set<String> = ["Program", "UserName", "GroupName"]
@@ -62,6 +67,10 @@ package enum HostAgentLaunchAgentPlistPreflight {
         }
         guard hasExactMachService(propertyList["MachServices"]) else {
             throw HostAgentLaunchAgentPlistPreflightError.invalidMachServices
+        }
+        // 独立签名的 helper 必须有精确的启动约束，不能沿用主程序身份或放宽为任意进程。
+        guard propertyList["SpawnConstraint"] as? [String: String] == spawnConstraint else {
+            throw HostAgentLaunchAgentPlistPreflightError.invalidSpawnConstraint
         }
         guard Set(propertyList.keys) == allowedKeys,
             propertyList["LimitLoadToSessionType"] as? String == sessionType,

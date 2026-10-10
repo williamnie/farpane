@@ -6,6 +6,13 @@
     <string>io.rustdesknative.viewer.host-agent</string>
     <key>BundleProgram</key>
     <string>Contents/MacOS/FarPaneHostAgent</string>
+    <key>SpawnConstraint</key>
+    <dict>
+        <key>signing-identifier</key>
+        <string>io.rustdesknative.viewer.host-agent</string>
+        <key>team-identifier</key>
+        <string>3J43F8H829</string>
+    </dict>
     <key>ProgramArguments</key>
     <array>
         <string>FarPaneHostAgent</string>
