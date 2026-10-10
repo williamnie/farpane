@@ -1,4 +1,6 @@
 from pathlib import Path
+import plistlib
+import re
 import unittest
 
 
@@ -55,9 +57,16 @@ class ReleaseMetadataTests(unittest.TestCase):
             'HostAgent executable must have a distinct Mach-O UUID',
             script,
         )
-        helper_signing = script.index(
-            '--identifier io.rustdesknative.viewer'
-        )
+        helper_identifier = re.search(
+            r'--identifier\s+(\S+)\s+\\\n\s+"\$host_agent_executable"', script
+        ).group(1)
+        app_identifier = plistlib.loads(
+            (REPO_ROOT / "App/Info.plist").read_bytes()
+        )["CFBundleIdentifier"]
+        # 不同 Mach-O 不能共用签名标识，否则本地网络权限缓存会混淆两者。
+        self.assertNotEqual(helper_identifier, app_identifier)
+        self.assertEqual(helper_identifier, "io.rustdesknative.viewer.host-agent")
+        helper_signing = script.index(f'--identifier {helper_identifier}')
         app_signing = script.index(
             'codesign --force --sign "$signing_identity" --timestamp=none "$app_dir"'
         )

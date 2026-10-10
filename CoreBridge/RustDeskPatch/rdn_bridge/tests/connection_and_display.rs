@@ -90,6 +90,24 @@
     }
 
     #[test]
+    fn viewer_endpoint_transport_errors_are_retryable() {
+        // pinned hbb_common::tcp::FramedStream::new 的实际错误格式。
+        for endpoint in [
+            "192.0.2.1:21116",
+            "[2001:db8::1]:21116",
+            "rendezvous.example.com:21116",
+        ] {
+            assert_eq!(
+                viewer_transient_connect_error(&format!(
+                    "Failed to connect to {endpoint}: Please try later"
+                )),
+                Some((17, "connection-establishment-failed")),
+                "{endpoint}"
+            );
+        }
+    }
+
+    #[test]
     fn viewer_transient_connection_failures_keep_retry_through_upstream_callbacks() {
         for text in [
             "Failed to connect to rendezvous server",
@@ -100,6 +118,10 @@
             "Failed to connect via relay server: deadline has elapsed",
             "Failed to connect via relay server: Failed to connect to rendezvous server",
             "Failed to connect via relay server: Failed to connect to relay server",
+            "Failed to connect to 192.0.2.1:21116",
+            "Failed to connect to [2001:db8::1]:21116",
+            "Failed to connect to rendezvous.example.com:21116",
+            "Failed to connect to localhost:21116",
         ] {
             for suffix in ["", ": Please try later"] {
                 let states = Mutex::new(Vec::<(u32, i32, String)>::new());
@@ -138,12 +160,17 @@
     #[test]
     fn viewer_offline_exception_does_not_override_authentication_or_peer_close() {
         for (authenticated, title) in [(true, "Connection Error"), (false, "Login Error")] {
-            let ui = BridgeUi::default();
-            ui.shared
-                .authenticated
-                .store(authenticated, Ordering::Release);
-            ui.msgbox("error", title, "Remote desktop is offline", "", false);
-            assert!(!ui.shared.terminal_retry_allowed.load(Ordering::Acquire));
+            for text in [
+                "Remote desktop is offline",
+                "Failed to connect to 192.0.2.1:21116",
+            ] {
+                let ui = BridgeUi::default();
+                ui.shared
+                    .authenticated
+                    .store(authenticated, Ordering::Release);
+                ui.msgbox("error", title, text, "", false);
+                assert!(!ui.shared.terminal_retry_allowed.load(Ordering::Acquire));
+            }
         }
         for text in [
             "Closed manually by the peer",
@@ -157,6 +184,17 @@
             "Failed to connect via relay server: unknown reason: Please try later",
             "Handshake failed",
             "Remote desktop is offline: unknown reason",
+            "Failed to connect to 192.0.2.1:21116: Key mismatch",
+            "Failed to connect to rendezvous.example.com:21116: Connection not allowed",
+            "Failed to connect to relay server: Closed manually by the peer",
+            "Failed to connect to user:password@example.com:21116",
+            "Failed to connect to https://example.com:21116",
+            "Failed to connect to example.com:0",
+            "Failed to connect to example.com:65536",
+            "Failed to connect to example.com:not-a-port",
+            "Failed to connect to example.com:21116/path",
+            "Failed to connect to -invalid.example:21116",
+            "Failed to connect to invalid..example:21116",
         ] {
             let ui = BridgeUi::default();
             ui.msgbox("error", "Connection Error", text, "", false);

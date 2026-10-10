@@ -74,8 +74,46 @@ fn viewer_transient_connect_error(text: &str) -> Option<(i32, &'static str)> {
         | "failed to connect via relay server: failed to connect to relay server" => {
             Some((17, "connection-establishment-failed"))
         }
+        _ if reason
+            .strip_prefix("failed to connect to ")
+            .is_some_and(viewer_connect_endpoint) =>
+        {
+            Some((17, "connection-establishment-failed"))
+        }
         _ => None,
     }
+}
+
+fn viewer_connect_endpoint(endpoint: &str) -> bool {
+    // FramedStream::new 把具体地址放进错误。只接纳完整 host:port，不能按
+    // "Failed to connect" 前缀放行带认证、拒绝理由或其他后缀的错误。
+    let Some((host, port)) = endpoint.rsplit_once(':') else {
+        return false;
+    };
+    if port.is_empty()
+        || !port.bytes().all(|c| c.is_ascii_digit())
+        || !port.parse::<u16>().is_ok_and(|port| port > 0)
+    {
+        return false;
+    }
+    if let Some(ipv6) = host
+        .strip_prefix('[')
+        .and_then(|host| host.strip_suffix(']'))
+    {
+        return ipv6.parse::<std::net::Ipv6Addr>().is_ok();
+    }
+    let host = host.strip_suffix('.').unwrap_or(host);
+    !host.is_empty()
+        && host.len() <= 253
+        && host.split('.').all(|label| {
+            !label.is_empty()
+                && label.len() <= 63
+                && label.as_bytes()[0].is_ascii_alphanumeric()
+                && label.as_bytes()[label.len() - 1].is_ascii_alphanumeric()
+                && label
+                    .bytes()
+                    .all(|c| c.is_ascii_alphanumeric() || c == b'-')
+        })
 }
 
 fn viewer_terminal_error_state(text: &str, retry: bool) -> (i32, &'static str) {
