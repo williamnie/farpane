@@ -4,9 +4,50 @@ import XCTest
 @testable import CoreBridge
 
 final class HostAgentLaunchAgentPlistPreflightTests: XCTestCase {
+    func testRepositorySpawnConstraintTargetsTheIndependentlySignedHelper() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let asset = try Data(
+            contentsOf: root.appendingPathComponent(
+                "App/LaunchAgents/io.rustdesknative.viewer.host-agent.plist"))
+        let decoded = try XCTUnwrap(
+            try PropertyListSerialization.propertyList(from: asset, options: [], format: nil)
+                as? [String: Any])
+        XCTAssertEqual(
+            decoded["SpawnConstraint"] as? [String: String],
+            [
+                "signing-identifier": "io.rustdesknative.viewer.host-agent",
+                "team-identifier": "3J43F8H829",
+            ])
+    }
+
     func testAcceptsExactProductIdentityAndLifecyclePolicy() throws {
         XCTAssertNoThrow(
             try HostAgentLaunchAgentPlistPreflight.validate(data(for: validPropertyList())))
+    }
+
+    func testRequiresExactHelperAndTeamSpawnConstraint() throws {
+        for constraint in [
+            [:],
+            ["signing-identifier": "io.rustdesknative.viewer", "team-identifier": "3J43F8H829"],
+            [
+                "signing-identifier": "io.rustdesknative.viewer.host-agent",
+                "team-identifier": "OTHERTEAM1",
+            ], ["signing-identifier": "io.rustdesknative.viewer.host-agent"],
+            ["team-identifier": "3J43F8H829"],
+            [
+                "signing-identifier": "io.rustdesknative.viewer.host-agent",
+                "team-identifier": "3J43F8H829", "unexpected": "value",
+            ],
+        ] {
+            try assertRejected(
+                replacing: "SpawnConstraint", with: constraint, as: .invalidSpawnConstraint)
+        }
+        var missing = validPropertyList()
+        missing.removeValue(forKey: "SpawnConstraint")
+        XCTAssertThrowsError(try HostAgentLaunchAgentPlistPreflight.validate(data(for: missing))) {
+            XCTAssertEqual($0 as? HostAgentLaunchAgentPlistPreflightError, .invalidSpawnConstraint)
+        }
     }
 
     func testRequiresExactAquaCrashOnlyLifecyclePolicy() throws {
@@ -57,7 +98,7 @@ final class HostAgentLaunchAgentPlistPreflightTests: XCTestCase {
         let decoded = try XCTUnwrap(
             try PropertyListSerialization.propertyList(from: asset, options: [], format: nil)
                 as? [String: Any])
-        XCTAssertEqual(decoded.keys.count, 8)
+        XCTAssertEqual(decoded.keys.count, 9)
         XCTAssertNil(decoded["RunAtLoad"])
         XCTAssertEqual(decoded["LimitLoadToSessionType"] as? String, "Aqua")
         XCTAssertEqual(decoded["ThrottleInterval"] as? Int, 10)
@@ -156,6 +197,10 @@ final class HostAgentLaunchAgentPlistPreflightTests: XCTestCase {
             "MachServices": ["io.rustdesknative.viewer.host-agent": true],
             "LimitLoadToSessionType": "Aqua", "KeepAlive": ["Crashed": true],
             "ThrottleInterval": 10, "ExitTimeOut": 10,
+            "SpawnConstraint": [
+                "signing-identifier": "io.rustdesknative.viewer.host-agent",
+                "team-identifier": "3J43F8H829",
+            ],
         ]
     }
 
