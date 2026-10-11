@@ -7,6 +7,7 @@ final class ViewerMetalView: MTKView {
     var sendPointer: ((CorePointerEvent) -> Int32)?
     var sendKey: ((CoreKeyEvent) -> Int32)?
     var sendText: ((String) -> Int32)?
+    var ubuntuPasteCompatibilityEnabled = false
     var recordInputResult: ((String, Int32) -> Void)?
     var onWindowResignKey: (() -> Void)?
     var onWindowBecomeKey: (() -> Void)?
@@ -187,6 +188,10 @@ final class ViewerMetalView: MTKView {
         guard !displaySelectionInputQuiesced else { return }
         window?.makeFirstResponder(self)
         guard let point = map(event, clamp: down || !heldButtons.isEmpty) else { return }
+        // RustDesk 的按钮事件不移动远端光标，必须先同步本次点击或拖动结束的位置。
+        pendingMove = CorePointerEvent(
+            kind: .move, x: point.x, y: point.y, buttons: heldButtons,
+            modifiers: MacKeyMapper.modifiers(from: event.modifierFlags))
         flushPendingMove()
         lastRemotePoint = point
         if down { heldButtons.insert(button) }
@@ -326,7 +331,9 @@ extension ViewerMetalView: NSTextInputClient {
         guard let text = plainText(string), !text.isEmpty else { return }
         markedTextStorage = ""
         markedSelection = NSRange(location: 0, length: 0)
-        let status = sendText?(text) ?? -3
+        let status = ViewerTextCommitSender.send(
+            text, ubuntuPasteCompatibility: ubuntuPasteCompatibilityEnabled,
+            sendText: { self.sendText?($0) ?? -3 }, sendKey: { self.sendKey?($0) ?? -3 })
         for _ in text.unicodeScalars {
             recordInputResult?("key-down", status)
             recordInputResult?("key-up", status)

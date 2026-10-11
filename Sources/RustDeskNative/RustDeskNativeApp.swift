@@ -280,6 +280,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
         editMenu.addItem(.separator())
         editMenu.addItem(
             NSMenuItem(title: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+        editMenu.addItem(.separator())
+        let ubuntuInputItem = NSMenuItem(
+            title: "Ubuntu 中文兼容输入", action: #selector(toggleUbuntuPasteCompatibility(_:)),
+            keyEquivalent: "")
+        ubuntuInputItem.target = self
+        ubuntuInputItem.toolTip = "仅在 Ubuntu 中文选字后未显示时开启；若文字重复请关闭。为当前设备记住选择。"
+        editMenu.addItem(ubuntuInputItem)
 
         let windowMenuItem = NSMenuItem()
         mainMenu.addItem(windowMenuItem)
