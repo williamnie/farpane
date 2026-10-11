@@ -80,6 +80,8 @@ extension AppDelegate {
         view.sendPointer = { [weak self] event in self?.coreClient?.sendPointer(event) ?? -3 }
         view.sendKey = sendKey
         view.sendText = { [weak self] text in self?.coreClient?.sendText(text) ?? -3 }
+        view.ubuntuPasteCompatibilityEnabled = ViewerTextInputPreferences.isEnabled(
+            deviceID: viewerRecoveryDeviceID)
         view.recordInputResult = recordInputResult
         if liveConfiguration != nil {
             let keyboardController = ExclusiveKeyboardController(
