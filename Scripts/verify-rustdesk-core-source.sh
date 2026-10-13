@@ -24,6 +24,7 @@ android_first_frame_compatibility_patch="$repo_dir/CoreBridge/RustDeskPatch/h9-a
 android_software_codec_fallback_patch="$repo_dir/CoreBridge/RustDeskPatch/h10-android-software-codec-fallback.patch"
 macos_scroll_modifiers_patch="$repo_dir/CoreBridge/RustDeskPatch/h11-macos-scroll-modifiers.patch"
 viewer_h264_negotiation_patch="$repo_dir/CoreBridge/RustDeskPatch/h12-viewer-h264-negotiation.patch"
+native_scroll_units_patch="$repo_dir/CoreBridge/RustDeskPatch/h13-native-scroll-units.patch"
 hbb_secret_wipe_patch="$repo_dir/CoreBridge/RustDeskPatch/hbb-common-7e1c392.patch"
 hbb_bounded_block_patch="$repo_dir/CoreBridge/RustDeskPatch/h6-file-transfer-bounded-block.patch"
 
@@ -46,6 +47,7 @@ git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_patch"
 git -C "$vendor_dir" apply --check --reverse "$macos_scroll_modifiers_patch"
 git -C "$vendor_dir" apply --check --reverse "$viewer_h264_negotiation_patch"
+git -C "$vendor_dir" apply --check --reverse "$native_scroll_units_patch"
 
 # H10 overlaps H9 and H8 context, so verify the layered chain against temporary
 # copies rather than modifying the generated checkout during verification.

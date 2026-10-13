@@ -27,6 +27,8 @@ final class ViewerMetalView: MTKView {
     private var keyboardInputEnabled = true
     private var displaySelectionInputQuiesced = false
     private var syntheticMagnificationCommandHeld = false
+    private var scrollAccumulator = ScrollDeltaMapper.Accumulator()
+    private var scrollModifiers: NSEvent.ModifierFlags = []
 
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
@@ -93,8 +95,17 @@ final class ViewerMetalView: MTKView {
     override func scrollWheel(with event: NSEvent) {
         guard !displaySelectionInputQuiesced else { return }
         guard map(event, clamp: false) != nil else { return }
+        if event.phase.contains(.began) || scrollModifiers != event.modifierFlags {
+            scrollAccumulator.reset()
+        }
+        scrollModifiers = event.modifierFlags
+        defer {
+            if event.phase.contains(.cancelled) || event.momentumPhase.contains(.ended) {
+                scrollAccumulator.reset()
+            }
+        }
         guard
-            let delta = ScrollDeltaMapper.map(
+            let delta = scrollAccumulator.map(
                 deltaX: event.scrollingDeltaX, deltaY: event.scrollingDeltaY,
                 precise: event.hasPreciseScrollingDeltas)
         else { return }
@@ -295,6 +306,7 @@ final class ViewerMetalView: MTKView {
     func resumeInputAfterDisplaySelection() { displaySelectionInputQuiesced = false }
 
     private func releaseHeldInput() {
+        scrollAccumulator.reset()
         releaseAllKeyboardInput()
         if let point = lastRemotePoint {
             for button: CorePointerButtons in [.left, .right, .middle]

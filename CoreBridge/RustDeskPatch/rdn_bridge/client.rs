@@ -11,6 +11,7 @@ impl RDNClient {
             .terminate_display_selection(DISPLAY_SELECTION_FAILURE_CONNECTION_CLOSED);
         self.shared.authenticated.store(false, Ordering::Release);
         self.shared.input_allowed.store(false, Ordering::Release);
+        *self.shared.scroll.lock().unwrap() = NativeScrollState::default();
         self.shared
             .receive_clipboard_text
             .store(false, Ordering::Release);

@@ -23,6 +23,7 @@ pub unsafe extern "C" fn rdn_client_create(
         terminal_retry_allowed: AtomicBool::new(true),
         sequence: AtomicU64::new(0),
         dimensions: RwLock::new((0, 0)),
+        scroll: Mutex::new(NativeScrollState::default()),
         connection_epoch: AtomicU64::new(0),
         display_catalog: Mutex::new(NativeViewerDisplayCatalogState::default()),
         display_catalog_delivery: Mutex::new(()),

@@ -547,3 +547,201 @@
             gate.store(true, Ordering::Release);
         }
     }
+
+
+    fn scroll_test_client(
+        platform: &str,
+    ) -> (
+        RDNClient,
+        hbb_common::tokio::sync::mpsc::UnboundedReceiver<Data>,
+    ) {
+        let ui = BridgeUi::default();
+        ui.shared.active.store(true, Ordering::Release);
+        ui.shared.input_allowed.store(true, Ordering::Release);
+        let (sender, receiver) = hbb_common::tokio::sync::mpsc::unbounded_channel();
+        let session = Session {
+            sender: Arc::new(RwLock::new(Some(sender))),
+            ui_handler: ui.clone(),
+            ..Default::default()
+        };
+        ui.set_peer_info(&PeerInfo {
+            platform: platform.to_owned(),
+            ..Default::default()
+        });
+        (
+            RDNClient {
+                shared: ui.shared.clone(),
+                session: Mutex::new(Some(session)),
+                worker: Mutex::new(None),
+                housekeeping: Mutex::new(None),
+            },
+            receiver,
+        )
+    }
+
+    fn send_test_scroll(client: &mut RDNClient, kind: RDNPointerKind, x: i32, y: i32) -> i32 {
+        let event = RDNPointerEvent {
+            abi_version: ABI_VERSION,
+            kind,
+            x: 0,
+            y: 0,
+            scroll_x: x,
+            scroll_y: y,
+            buttons: 0,
+            modifiers: 0,
+        };
+        unsafe { rdn_client_send_pointer(client, &event) }
+    }
+
+    fn receive_test_scroll(
+        receiver: &mut hbb_common::tokio::sync::mpsc::UnboundedReceiver<Data>,
+    ) -> MouseEvent {
+        let Data::Message(message) = receiver.try_recv().unwrap() else {
+            panic!("expected message")
+        };
+        let Some(message::Union::MouseEvent(event)) = message.union else {
+            panic!("expected mouse event")
+        };
+        event
+    }
+
+    #[test]
+    fn native_scroll_linux_precise_pixels_are_scaled_before_wire_send() {
+        let (mut client, mut receiver) = scroll_test_client("Linux");
+        assert_eq!(
+            send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, 0, 18),
+            0
+        );
+        let event = receive_test_scroll(&mut receiver);
+        assert_eq!((event.mask, event.x, event.y), (MOUSE_TYPE_TRACKPAD, 0, 1));
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn native_scroll_discrete_steps_keep_kind_and_magnitude_on_both_axes() {
+        for platform in ["Linux", "Mac OS", "Windows"] {
+            let (mut client, mut receiver) = scroll_test_client(platform);
+            for (x, y) in [(0, 1), (0, -1), (1, 0), (-1, 0)] {
+                assert_eq!(
+                    send_test_scroll(&mut client, RDNPointerKind::Scroll, x, y),
+                    0
+                );
+                let event = receive_test_scroll(&mut receiver);
+                assert_eq!(
+                    (event.mask, event.x, event.y),
+                    (MOUSE_TYPE_WHEEL, x, y),
+                    "{platform}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn native_scroll_linux_accumulates_substeps_and_preserves_direction() {
+        let (mut client, mut receiver) = scroll_test_client("Linux");
+        for _ in 0..16 {
+            assert_eq!(
+                send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, -1, 1),
+                0
+            );
+            assert!(receiver.try_recv().is_err());
+        }
+        assert_eq!(
+            send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, -1, 1),
+            0
+        );
+        let event = receive_test_scroll(&mut receiver);
+        assert_eq!((event.x, event.y), (-1, 1));
+        let mut total = (event.x, event.y);
+        for _ in 17..100 {
+            assert_eq!(
+                send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, -1, 1),
+                0
+            );
+            while let Ok(Data::Message(message)) = receiver.try_recv() {
+                if let Some(message::Union::MouseEvent(event)) = message.union {
+                    total.0 += event.x;
+                    total.1 += event.y;
+                }
+            }
+        }
+        assert_eq!(total, (-6, 6));
+    }
+
+    #[test]
+    fn native_scroll_non_linux_pixels_are_not_scaled_or_retyped() {
+        for platform in ["Mac OS", "Windows"] {
+            let (mut client, mut receiver) = scroll_test_client(platform);
+            assert_eq!(
+                send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, -18, 120),
+                0
+            );
+            let event = receive_test_scroll(&mut receiver);
+            assert_eq!(
+                (event.mask, event.x, event.y),
+                (MOUSE_TYPE_TRACKPAD, -18, 120)
+            );
+        }
+    }
+
+    #[test]
+    fn native_scroll_permission_revoke_and_new_peer_clear_remainders() {
+        let (mut client, mut receiver) = scroll_test_client("Linux");
+        assert_eq!(
+            send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, 0, 16),
+            0
+        );
+        assert!(receiver.try_recv().is_err());
+        let ui = BridgeUi {
+            shared: client.shared.clone(),
+        };
+        ui.set_permission("keyboard", false);
+        assert_eq!(
+            send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, 0, 120),
+            -6
+        );
+        client.shared.authenticated.store(true, Ordering::Release);
+        ui.set_permission("keyboard", true);
+        assert_eq!(
+            send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, 0, 1),
+            0
+        );
+        assert!(receiver.try_recv().is_err());
+        ui.set_peer_info(&PeerInfo {
+            platform: "Linux".to_owned(),
+            ..Default::default()
+        });
+        assert_eq!(
+            send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, 0, 16),
+            0
+        );
+        assert!(receiver.try_recv().is_err());
+        client.disconnect(false);
+        assert_eq!(client.shared.scroll.lock().unwrap().remainder, (0, 0));
+    }
+
+    #[test]
+    fn native_scroll_modifier_changes_do_not_reuse_plain_scroll_remainders() {
+        let (mut client, mut receiver) = scroll_test_client("Linux");
+        assert_eq!(
+            send_test_scroll(&mut client, RDNPointerKind::PreciseScroll, 0, 16),
+            0
+        );
+        let mut event = RDNPointerEvent {
+            abi_version: ABI_VERSION,
+            kind: RDNPointerKind::PreciseScroll,
+            x: 0,
+            y: 0,
+            scroll_x: 0,
+            scroll_y: 1,
+            buttons: 0,
+            modifiers: MODIFIER_CONTROL,
+        };
+        assert_eq!(unsafe { rdn_client_send_pointer(&mut client, &event) }, 0);
+        assert!(receiver.try_recv().is_err());
+        event.scroll_y = 16;
+        assert_eq!(unsafe { rdn_client_send_pointer(&mut client, &event) }, 0);
+        let wire = receive_test_scroll(&mut receiver);
+        assert_eq!(wire.y, 1);
+        assert!(wire.modifiers.contains(&ControlKey::Control.into()));
+    }

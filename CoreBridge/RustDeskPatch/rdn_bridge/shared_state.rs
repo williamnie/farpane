@@ -5,6 +5,7 @@ struct BridgeShared {
     terminal_retry_allowed: AtomicBool,
     sequence: AtomicU64,
     dimensions: RwLock<(u32, u32)>,
+    scroll: Mutex<NativeScrollState>,
     connection_epoch: AtomicU64,
     display_catalog: Mutex<NativeViewerDisplayCatalogState>,
     display_catalog_delivery: Mutex<()>,
