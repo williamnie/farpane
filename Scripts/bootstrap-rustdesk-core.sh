@@ -31,6 +31,7 @@ android_first_frame_compatibility_patch_file="$repo_dir/CoreBridge/RustDeskPatch
 android_software_codec_fallback_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h10-android-software-codec-fallback.patch"
 macos_scroll_modifiers_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h11-macos-scroll-modifiers.patch"
 viewer_h264_negotiation_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h12-viewer-h264-negotiation.patch"
+native_scroll_units_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h13-native-scroll-units.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 host_file_transfer_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs"
@@ -339,6 +340,14 @@ elif ! git -C "$vendor_dir" apply --check --reverse "$viewer_h264_negotiation_pa
   exit 1
 fi
 
+# 原生输入已使用明确的滚轮/像素单位，不再套用旧 UI 的三倍转换。
+if git -C "$vendor_dir" apply --check "$native_scroll_units_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$native_scroll_units_patch_file"
+elif ! git -C "$vendor_dir" apply --check --reverse "$native_scroll_units_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout does not match the native scroll units patch"
+  exit 1
+fi
+
 hbb_common_dir="$vendor_dir/libs/hbb_common"
 if git -C "$hbb_common_dir" apply --check "$hbb_common_patch_file" 2>/dev/null; then
   git -C "$hbb_common_dir" apply "$hbb_common_patch_file"
@@ -364,6 +373,7 @@ git -C "$vendor_dir" diff --check
 git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$macos_scroll_modifiers_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$viewer_h264_negotiation_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$native_scroll_units_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$native_host_physical_display_pixels_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch_file"
 if git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_wire_patch_file" 2>/dev/null; then

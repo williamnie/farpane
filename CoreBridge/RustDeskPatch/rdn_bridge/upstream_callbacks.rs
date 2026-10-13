@@ -29,6 +29,7 @@ impl Default for BridgeUi {
                 terminal_retry_allowed: AtomicBool::new(true),
                 sequence: AtomicU64::new(0),
                 dimensions: RwLock::new((0, 0)),
+                scroll: Mutex::new(NativeScrollState::default()),
                 connection_epoch: AtomicU64::new(0),
                 display_catalog: Mutex::new(NativeViewerDisplayCatalogState::default()),
                 display_catalog_delivery: Mutex::new(()),
@@ -186,6 +187,10 @@ impl InvokeUiSession for BridgeUi {
     }
 
     fn set_peer_info(&self, peer_info: &PeerInfo) {
+        *self.shared.scroll.lock().unwrap() = NativeScrollState {
+            linux: peer_info.platform == "Linux",
+            ..Default::default()
+        };
         let selected = u32::try_from(peer_info.current_display).ok();
         self.shared
             .publish_display_catalog(&peer_info.displays, Some(selected));
@@ -224,6 +229,9 @@ impl InvokeUiSession for BridgeUi {
             let allowed = !self.shared.file_transfer_enabled.load(Ordering::Acquire)
                 && input_is_allowed(self.shared.authenticated.load(Ordering::Acquire), value);
             self.shared.input_allowed.store(allowed, Ordering::Release);
+            if !allowed {
+                self.shared.scroll.lock().unwrap().remainder = (0, 0);
+            }
             if allowed {
                 self.shared
                     .emit_state(RDNState::ControlReady, 0, "control-ready");

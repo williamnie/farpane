@@ -1,0 +1,21 @@
+diff --git a/src/client.rs b/src/client.rs
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -3224,7 +3224,7 @@
+ 
+ /// Whether is track pad scrolling.
+ #[inline]
+-#[cfg(all(target_os = "macos", not(feature = "flutter")))]
++#[cfg(all(target_os = "macos", not(any(feature = "flutter", feature = "rdn-native-core"))))]
+ fn check_scroll_on_mac(mask: i32, x: i32, y: i32) -> bool {
+     // flutter version we set mask type bit to 4 when track pad scrolling.
+     if mask & 7 == crate::input::MOUSE_TYPE_TRACKPAD {
+@@ -3291,7 +3291,7 @@
+     if command {
+         mouse_event.modifiers.push(ControlKey::Meta.into());
+     }
+-    #[cfg(all(target_os = "macos", not(feature = "flutter")))]
++    #[cfg(all(target_os = "macos", not(any(feature = "flutter", feature = "rdn-native-core"))))]
+     if check_scroll_on_mac(mask, x, y) {
+         let factor = 3;
+         mouse_event.mask = crate::input::MOUSE_TYPE_TRACKPAD;

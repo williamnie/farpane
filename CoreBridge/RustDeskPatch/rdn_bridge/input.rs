@@ -1,3 +1,31 @@
+#[derive(Default)]
+struct NativeScrollState {
+    linux: bool,
+    remainder: (i32, i32),
+    modifiers: u32,
+}
+
+impl NativeScrollState {
+    fn map(&mut self, kind: RDNPointerKind, x: i32, y: i32, modifiers: u32) -> Option<(i32, i32)> {
+        if self.modifiers != modifiers {
+            self.remainder = (0, 0);
+            self.modifiers = modifiers;
+        }
+        if self.linux && kind == RDNPointerKind::PreciseScroll {
+            // 与原版 Linux 的 0.06 系数一致；整数余数避免小增量被放大或丢失。
+            self.remainder.0 += x * 6;
+            self.remainder.1 += y * 6;
+            let delta = (self.remainder.0 / 100, self.remainder.1 / 100);
+            self.remainder.0 %= 100;
+            self.remainder.1 %= 100;
+            (delta != (0, 0)).then_some(delta)
+        } else {
+            self.remainder = (0, 0);
+            Some((x, y))
+        }
+    }
+}
+
 fn pointer_mask(kind: RDNPointerKind, buttons: u32) -> Option<i32> {
     if buttons & !VALID_POINTER_BUTTONS != 0 {
         return None;
@@ -181,6 +209,24 @@ pub unsafe extern "C" fn rdn_client_send_pointer(
         dimensions,
     ) else {
         return -5;
+    };
+    let (x, y) = if matches!(
+        event.kind,
+        RDNPointerKind::Scroll | RDNPointerKind::PreciseScroll
+    ) {
+        let Some(delta) = client
+            .shared
+            .scroll
+            .lock()
+            .unwrap()
+            .map(event.kind, x, y, event.modifiers)
+        else {
+            // 已接受的亚档位输入只累计余数，不发送零增量，也不报告输入失败。
+            return 0;
+        };
+        delta
+    } else {
+        (x, y)
     };
     session.send_mouse(mask, x, y, alt, ctrl, shift, command);
     0
