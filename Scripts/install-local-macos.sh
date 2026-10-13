@@ -2,11 +2,11 @@
 set -euo pipefail
 
 repo_dir=${0:A:h:h}
-source_app=${1:-$repo_dir/Build/FarPane.app}
+source_app=${1:-$repo_dir/Build/.app-staging.noindex/FarPane.app}
 install_parent=${RDN_INSTALL_DIRECTORY:-$HOME/Applications}
 installed_app="$install_parent/FarPane.app"
 legacy_installed_app="$install_parent/RustDesk Native Viewer.app"
-backup_parent="$HOME/Library/Application Support/RustDesk Native Viewer/Install Backups"
+backup_parent="$HOME/Library/Application Support/RustDesk Native Viewer/Install Backups.noindex"
 
 [[ -d "$source_app" ]] || { print -u2 "product app not found: $source_app"; exit 2; }
 codesign --verify --deep --strict "$source_app"
@@ -45,4 +45,5 @@ installed_requirement=$(codesign -d -r- "$installed_app" 2>&1 | tail -1)
   exit 1
 }
 /usr/bin/plutil -extract CFBundleIdentifier raw "$installed_app/Contents/Info.plist"
+python3 "$repo_dir/Scripts/register-installed-app.py" "$installed_app"
 print "INSTALLED_APP=$installed_app"

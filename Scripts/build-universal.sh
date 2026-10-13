@@ -3,7 +3,8 @@ set -euo pipefail
 
 repo_dir=${0:A:h:h}
 build_dir="$repo_dir/Build"
-app_dir="$build_dir/FarPane.app"
+# 防止 Spotlight 把待发布的另一架构注册为正在使用的同 Bundle ID 应用。
+app_dir="$build_dir/.app-staging.noindex/FarPane.app"
 host_agent_executable="$app_dir/Contents/MacOS/FarPaneHostAgent"
 launch_agent_source="$repo_dir/App/LaunchAgents/io.rustdesknative.viewer.host-agent.plist"
 launch_agent_dir="$app_dir/Contents/Library/LaunchAgents"

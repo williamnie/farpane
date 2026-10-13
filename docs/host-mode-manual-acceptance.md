@@ -56,8 +56,8 @@ HUD 上某一秒的 FPS 不是正式性能结论。正式结论以 P4 runner 生
 cd /Users/xiaobei/Documents/xiaobei/farpane
 git status --short --branch
 git rev-parse --short HEAD
-/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Build/FarPane.app/Contents/Info.plist
-Scripts/install-local-macos.sh Build/FarPane.app
+/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Build/.app-staging.noindex/FarPane.app/Contents/Info.plist
+Scripts/install-local-macos.sh Build/.app-staging.noindex/FarPane.app
 codesign --verify --deep --strict "$HOME/Applications/FarPane.app"
 ```
 
@@ -81,7 +81,7 @@ open "$HOME/Applications/FarPane.app"
 ```zsh
 cd /Users/xiaobei/Documents/xiaobei/farpane
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
-  Build/FarPane.app "$HOME/Desktop/FarPane-202608111917.zip"
+  Build/.app-staging.noindex/FarPane.app "$HOME/Desktop/FarPane-202608111917.zip"
 ```
 
 通过 AirDrop 或局域网把 ZIP 交给 MacBook Pro，解压后放到该用户的 `~/Applications/FarPane.app`。控制端也必须核对：

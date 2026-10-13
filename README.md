@@ -116,7 +116,7 @@ Build/CoreBridge/<arch>/liblibrustdesk.dylib
 Scripts/build-universal.sh
 ```
 
-产物位于 `Build/FarPane.app`。稳定的本地 Accessibility/Input Monitoring 权限需要 Apple Development 签名身份；仅做不涉及 TCC 的开发时，可显式设置 `RDN_ALLOW_ADHOC_SIGNING=1`。
+产物位于 `Build/.app-staging.noindex/FarPane.app`，避免 Spotlight 自动索引待发布副本。稳定的本地 Accessibility/Input Monitoring 权限需要 Apple Development 签名身份；仅做不涉及 TCC 的开发时，可显式设置 `RDN_ALLOW_ADHOC_SIGNING=1`。
 
 主程序使用 `io.rustdesknative.viewer`，后台 HostAgent 使用独立的 `io.rustdesknative.viewer.host-agent` 签名标识，避免本地网络权限缓存把两个程序的 UUID 混淆。HostAgent 仍由同一 App 的 SMAppService 管理；安装更新后应核验 Host 的屏幕录制、辅助功能和本地网络权限。
 
@@ -193,6 +193,8 @@ Scripts/run-productization-acceptance-mbp.sh
 ### 发布
 
 普通分支推送和 PR 不触发 GitHub Actions。只有推送 `v*` tag，或手动运行 [GitHub Release workflow](.github/workflows/release.yml) 并指定已有的 `v*` tag，才会执行测试、构建并创建 prerelease。签名 macOS 二进制由受信任的 macOS 构建机生成并上传；Developer ID notarization 接入前，Release 页面会明确标记预览属性。
+
+打包时，松散的 `.app` 副本应留在隐藏的 `.noindex` 目录中，DMG 可以放在普通发布目录。不要在正式应用运行期间直接启动另一架构的待发布 `.app`（包括 `--help`）；这会让相同 Bundle ID 对应不同 Mach-O UUID，干扰本地网络授权。安装脚本会清理重复注册。手动验收或挂载 DMG 后，先卸载镜像，再执行 `python3 Scripts/register-installed-app.py /Applications/FarPane.app`（使用实际安装路径），确认只有正式安装版本保留注册；该命令不删除副本或重置权限。
 
 ### 许可证
 
@@ -291,7 +293,7 @@ Once both `arm64` and `x86_64` Core libraries are available, build the Universal
 Scripts/build-universal.sh
 ```
 
-The result is `Build/FarPane.app`. Stable local Accessibility/Input Monitoring permissions require an Apple Development signing identity. For development that does not exercise TCC, ad-hoc signing can be explicitly enabled with `RDN_ALLOW_ADHOC_SIGNING=1`.
+The result is `Build/.app-staging.noindex/FarPane.app`, which keeps staged copies out of Spotlight indexing. Stable local Accessibility/Input Monitoring permissions require an Apple Development signing identity. For development that does not exercise TCC, ad-hoc signing can be explicitly enabled with `RDN_ALLOW_ADHOC_SIGNING=1`.
 
 The app uses signing identifier `io.rustdesknative.viewer`, while HostAgent uses `io.rustdesknative.viewer.host-agent` so the local network permission cache can distinguish their executable UUIDs. HostAgent remains managed by the app's SMAppService; verify Host screen recording, Accessibility, and local network access after installing an update.
 
@@ -366,6 +368,8 @@ See [`docs/benchmark-results.md`](docs/benchmark-results.md) for current results
 ### Releases
 
 Branch pushes and pull requests do not trigger GitHub Actions. Only pushing a `v*` tag or manually running the [GitHub Release workflow](.github/workflows/release.yml) with an existing `v*` tag runs the tests, builds the viewer, and creates a prerelease. Signed macOS binaries are produced and uploaded from a trusted macOS signing host. Until Developer ID notarization is wired in, the Releases page explicitly identifies these binaries as previews.
+
+Keep unpacked `.app` copies in a hidden `.noindex` directory; DMGs can remain in the regular release directory. Do not launch another architecture's staged app, even with `--help`, while the installed app is running: different Mach-O UUIDs sharing one bundle identifier can disrupt local network authorization. The installer removes duplicate registrations. After manual bundle or DMG checks, unmount the image and run `python3 Scripts/register-installed-app.py /Applications/FarPane.app` with the actual installed path. This preserves all copies and permissions while keeping only the installed app registered.
 
 ### License
 
