@@ -67,12 +67,16 @@ extension AppDelegate {
                         event, coreGeneration: coreGeneration, attemptID: attemptID)
                 }
             },
-            onVideo: { [weak viewer] packet in
+            onVideo: { [weak self, weak chrome] packet in
                 if packet.width > 0, packet.height > 0 {
-                    let viewer = viewer
+                    let width = Int(packet.width)
+                    let height = Int(packet.height)
                     DispatchQueue.main.async {
-                        viewer?.updateRemoteSize(
-                            width: Int(packet.width), height: Int(packet.height))
+                        guard let self, self.viewerCoreGeneration == coreGeneration,
+                            self.viewerChrome === chrome
+                        else { return }
+                        if let attemptID, self.activeAttemptID != attemptID { return }
+                        chrome?.updateRemoteSize(width: width, height: height)
                     }
                 }
                 Self.consume(
