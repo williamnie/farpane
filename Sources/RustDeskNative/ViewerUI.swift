@@ -56,11 +56,12 @@ final class ViewerChromeView: NSView {
     private var collapseTimer: Timer?
     private var localMouseMonitor: Any?
     private weak var metrics: PipelineMetrics?
+    private let windowSizer: ViewerWindowSizer?
 
     init(
         videoView: ViewerMetalView, metrics: PipelineMetrics, showsAcceptanceControls: Bool,
         showsFileTransferControls: Bool, showsDisplayControls: Bool, showsAudioStatus: Bool,
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard, automaticallySizesWindow: Bool = false
     ) {
         self.videoView = videoView
         self.metrics = metrics
@@ -69,6 +70,7 @@ final class ViewerChromeView: NSView {
         self.showsDisplayControls = showsDisplayControls
         self.showsAudioStatus = showsAudioStatus
         self.defaults = defaults
+        windowSizer = automaticallySizesWindow ? ViewerWindowSizer() : nil
         hudVisible = showsAcceptanceControls || defaults.bool(forKey: Self.hudPreferenceKey)
         if !showsAcceptanceControls,
             let position = defaults.array(forKey: Self.hudPositionPreferenceKey) as? [Double],
@@ -120,6 +122,7 @@ final class ViewerChromeView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        windowSizer?.attach(to: window)
         NotificationCenter.default.removeObserver(
             self, name: NSWindow.didEnterFullScreenNotification, object: nil)
         NotificationCenter.default.removeObserver(
@@ -173,6 +176,11 @@ final class ViewerChromeView: NSView {
             controlsPinned = true
             setControlsExpanded(true)
         }
+    }
+
+    func updateRemoteSize(width: Int, height: Int) {
+        videoView.updateRemoteSize(width: width, height: height)
+        windowSizer?.updateRemoteSize(width: width, height: height)
     }
 
     func setKeyboardGrabAvailable(_ available: Bool) {

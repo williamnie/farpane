@@ -34,7 +34,8 @@ extension AppDelegate {
             showsAcceptanceControls: automatedRun && fixture == nil,
             showsFileTransferControls: liveConfiguration != nil,
             showsDisplayControls: liveConfiguration != nil,
-            showsAudioStatus: liveConfiguration != nil)
+            showsAudioStatus: liveConfiguration != nil,
+            automaticallySizesWindow: !automatedRun && liveConfiguration != nil)
         let window =
             self.window
             ?? NSWindow(
