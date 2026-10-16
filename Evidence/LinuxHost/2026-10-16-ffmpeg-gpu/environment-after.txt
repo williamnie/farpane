@@ -1,0 +1,55 @@
+ActiveState=active
+ActiveEnterTimestamp=Thu 2026-10-15 09:47:46 PDT
+MainPID=1880443
+b7908e555b0ad96f78b6398a470be0f0c9e07f3ccedb8acfb9ee565c63312896  /usr/share/rustdesk/lib/librustdesk.so
+38718 /usr/bin/rustdesk
+1880443 /usr/bin/rustdesk --service
+1880508 /usr/share/rustdesk/rustdesk --server
+1880515 /usr/share/rustdesk/rustdesk --tray
+1880736 /usr/share/rustdesk/rustdesk --cm
+plane[42]: plane-0
+	crtc=crtc-0
+	fb=48
+		allocated by = gnome-shell
+		refcount=2
+		format=XR24 little-endian (0x34325258)
+		modifier=0x0
+		size=2560x1440
+		layers:
+			size[0]=2560x1440
+			pitch[0]=10240
+			offset[0]=0
+			obj[0]:
+				name=0
+				refcount=4
+				start=0012d782
+				size=15851520
+				imported=no
+	crtc-pos=2560x1440+0+0
+	src-pos=2560.000000x1440.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=0
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+	color-pipeline=0
+crtc[43]: crtc-0
+	enable=1
+	active=1
+	self_refresh_active=0
+	planes_changed=1
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=1
+	connector_mask=1
+	encoder_mask=1
+	mode: "2560x1440": 60 312320 2560 2752 3024 3488 1440 1443 1448 1493 0x0 0x6
+connector[44]: Virtual-1
+	crtc=crtc-0
+	self_refresh_aware=0
+	interlace_allowed=0
+	ycbcr_420_allowed=0
+	max_requested_bpc=0
+	colorspace=Default

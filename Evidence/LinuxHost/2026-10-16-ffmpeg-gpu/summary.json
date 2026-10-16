@@ -1,0 +1,444 @@
+{
+  "cpu_unit": "100 percent = one logical CPU",
+  "cases": [
+    {
+      "label": "gpu-r1",
+      "mode": "gpu",
+      "sample_duration_s": 61.60091093706433,
+      "sample_start_utc": "2026-10-16T00:44:48.370845+00:00",
+      "end_utc": "2026-10-16T00:45:51.239739+00:00",
+      "means": {
+        "ffmpeg_cpu": 3.5226751796203457,
+        "rustdesk_cpu": 32.09368124474347,
+        "server_cpu": 27.986599122882023,
+        "drm_recv_cpu": 18.863357413450707,
+        "compositor_cpu": 0.16233526173424706,
+        "gnome-shell_drm-engine-gfx": 0.004814695034348049,
+        "gnome-shell_drm-engine-compute": 0.0,
+        "rustdesk_drm-engine-gfx": 4.043200587641659,
+        "rustdesk_drm-engine-compute": 0.005276402492360444,
+        "rustdesk_drm-engine-enc": 19.501519682514783,
+        "ffmpeg_drm-engine-compute": 3.0921618155063855,
+        "ffmpeg_drm-engine-enc": 19.951011272473394
+      },
+      "ffmpeg_measured_fps": 29.793603754567503,
+      "final_memory": {
+        "gnome-shell": {
+          "pss_mib": 243.513671875,
+          "uss_mib": 215.99609375
+        },
+        "rustdesk": {
+          "pss_mib": 413.107421875,
+          "uss_mib": 338.0703125
+        },
+        "ffmpeg": {
+          "pss_mib": 46.8037109375,
+          "uss_mib": 40.57421875
+        }
+      },
+      "viewer": {
+        "samples": 70,
+        "generation": 17,
+        "error_deltas": {
+          "decodeErrors": 0,
+          "decoderResets": 0,
+          "referenceFrameDrops": 0,
+          "packetSequenceGaps": 0
+        },
+        "received_fps_mean": 29.866598999359297,
+        "presented_fps_mean": 29.336389207939575,
+        "received_fps_min": 29.819046493161785,
+        "max_receive_age_ms": 33.140208,
+        "max_presentation_age_ms": 56.119666
+      },
+      "issues": []
+    },
+    {
+      "label": "ram-r1",
+      "mode": "ram",
+      "sample_duration_s": 61.59276258700993,
+      "sample_start_utc": "2026-10-16T00:45:59.782371+00:00",
+      "end_utc": "2026-10-16T00:47:02.644138+00:00",
+      "means": {
+        "ffmpeg_cpu": 40.296942298922964,
+        "rustdesk_cpu": 30.669187752885016,
+        "server_cpu": 26.82133306922448,
+        "drm_recv_cpu": 16.609094267445645,
+        "compositor_cpu": 0.17859241147884697,
+        "gnome-shell_drm-engine-gfx": 0.005186193743928106,
+        "gnome-shell_drm-engine-compute": 0.0,
+        "rustdesk_drm-engine-gfx": 4.042465861930862,
+        "rustdesk_drm-engine-compute": 0.004635603080745996,
+        "rustdesk_drm-engine-enc": 19.26969809193645,
+        "ffmpeg_drm-engine-compute": 1.7147428928975275,
+        "ffmpeg_drm-engine-enc": 19.712344504515936
+      },
+      "ffmpeg_measured_fps": 29.746709996647084,
+      "final_memory": {
+        "gnome-shell": {
+          "pss_mib": 243.72265625,
+          "uss_mib": 216.17578125
+        },
+        "rustdesk": {
+          "pss_mib": 412.8427734375,
+          "uss_mib": 337.734375
+        },
+        "ffmpeg": {
+          "pss_mib": 93.3349609375,
+          "uss_mib": 87.24609375
+        }
+      },
+      "viewer": {
+        "samples": 70,
+        "generation": 17,
+        "error_deltas": {
+          "decodeErrors": 0,
+          "decoderResets": 0,
+          "referenceFrameDrops": 0,
+          "packetSequenceGaps": 0
+        },
+        "received_fps_mean": 29.88091679110747,
+        "presented_fps_mean": 29.469388756169362,
+        "received_fps_min": 29.81500444663696,
+        "max_receive_age_ms": 37.573458,
+        "max_presentation_age_ms": 53.697625
+      },
+      "issues": []
+    },
+    {
+      "label": "ram-r2",
+      "mode": "ram",
+      "sample_duration_s": 61.59655253496021,
+      "sample_start_utc": "2026-10-16T00:47:11.455629+00:00",
+      "end_utc": "2026-10-16T00:48:14.270397+00:00",
+      "means": {
+        "ffmpeg_cpu": 40.74903378034681,
+        "rustdesk_cpu": 32.03101340582616,
+        "server_cpu": 28.264568849236333,
+        "drm_recv_cpu": 16.786653756524096,
+        "compositor_cpu": 0.11364272368973771,
+        "gnome-shell_drm-engine-gfx": 0.004125601020540364,
+        "gnome-shell_drm-engine-compute": 0.0,
+        "rustdesk_drm-engine-gfx": 3.829056716544897,
+        "rustdesk_drm-engine-compute": 0.004056951074626589,
+        "rustdesk_drm-engine-enc": 19.038525182629485,
+        "ffmpeg_drm-engine-compute": 1.8034150017884887,
+        "ffmpeg_drm-engine-enc": 19.94203010635737
+      },
+      "ffmpeg_measured_fps": 29.81644539502207,
+      "final_memory": {
+        "gnome-shell": {
+          "pss_mib": 243.5634765625,
+          "uss_mib": 216.015625
+        },
+        "rustdesk": {
+          "pss_mib": 412.8203125,
+          "uss_mib": 337.7109375
+        },
+        "ffmpeg": {
+          "pss_mib": 93.3642578125,
+          "uss_mib": 87.27734375
+        }
+      },
+      "viewer": {
+        "samples": 70,
+        "generation": 17,
+        "error_deltas": {
+          "decodeErrors": 0,
+          "decoderResets": 0,
+          "referenceFrameDrops": 0,
+          "packetSequenceGaps": 0
+        },
+        "received_fps_mean": 29.89123725990482,
+        "presented_fps_mean": 29.57386770462251,
+        "received_fps_min": 29.836051898759145,
+        "max_receive_age_ms": 34.789625,
+        "max_presentation_age_ms": 30.190542
+      },
+      "issues": []
+    },
+    {
+      "label": "gpu-r2",
+      "mode": "gpu",
+      "sample_duration_s": 61.60157270601485,
+      "sample_start_utc": "2026-10-16T00:48:23.070901+00:00",
+      "end_utc": "2026-10-16T00:49:25.939618+00:00",
+      "means": {
+        "ffmpeg_cpu": 3.8635377238795945,
+        "rustdesk_cpu": 35.58350710396685,
+        "server_cpu": 31.379068992685838,
+        "drm_recv_cpu": 18.911854824873693,
+        "compositor_cpu": 0.2110335731517879,
+        "gnome-shell_drm-engine-gfx": 0.0037289031742134596,
+        "gnome-shell_drm-engine-compute": 0.0,
+        "rustdesk_drm-engine-gfx": 3.8650436513409394,
+        "rustdesk_drm-engine-compute": 0.00445886668041481,
+        "rustdesk_drm-engine-enc": 18.978472060760346,
+        "ffmpeg_drm-engine-compute": 3.1306130416564804,
+        "ffmpeg_drm-engine-enc": 20.01032175562688
+      },
+      "ffmpeg_measured_fps": 29.78489021915595,
+      "final_memory": {
+        "gnome-shell": {
+          "pss_mib": 243.533203125,
+          "uss_mib": 216.015625
+        },
+        "rustdesk": {
+          "pss_mib": 412.7236328125,
+          "uss_mib": 337.6875
+        },
+        "ffmpeg": {
+          "pss_mib": 46.7177734375,
+          "uss_mib": 40.48046875
+        }
+      },
+      "viewer": {
+        "samples": 70,
+        "generation": 17,
+        "error_deltas": {
+          "decodeErrors": 0,
+          "decoderResets": 0,
+          "referenceFrameDrops": 0,
+          "packetSequenceGaps": 0
+        },
+        "received_fps_mean": 29.862818966188364,
+        "presented_fps_mean": 29.458347633914073,
+        "received_fps_min": 29.818397450277743,
+        "max_receive_age_ms": 40.04125,
+        "max_presentation_age_ms": 61.23425
+      },
+      "issues": []
+    },
+    {
+      "label": "gpu-r3",
+      "mode": "gpu",
+      "sample_duration_s": 61.60676196904387,
+      "sample_start_utc": "2026-10-16T00:49:34.534137+00:00",
+      "end_utc": "2026-10-16T00:50:37.408209+00:00",
+      "means": {
+        "ffmpeg_cpu": 3.944372212292256,
+        "rustdesk_cpu": 35.72659769240731,
+        "server_cpu": 31.60367365157516,
+        "drm_recv_cpu": 18.829101918761975,
+        "compositor_cpu": 0.16231984412784384,
+        "gnome-shell_drm-engine-gfx": 0.003367868937897697,
+        "gnome-shell_drm-engine-compute": 0.0,
+        "rustdesk_drm-engine-gfx": 3.8584117100561377,
+        "rustdesk_drm-engine-compute": 0.004836783990525717,
+        "rustdesk_drm-engine-enc": 18.866836323649736,
+        "ffmpeg_drm-engine-compute": 3.132953640656915,
+        "ffmpeg_drm-engine-enc": 20.027239670865445
+      },
+      "ffmpeg_measured_fps": 29.77858847166,
+      "final_memory": {
+        "gnome-shell": {
+          "pss_mib": 243.662109375,
+          "uss_mib": 216.14453125
+        },
+        "rustdesk": {
+          "pss_mib": 412.3935546875,
+          "uss_mib": 337.35546875
+        },
+        "ffmpeg": {
+          "pss_mib": 46.8779296875,
+          "uss_mib": 40.64453125
+        }
+      },
+      "viewer": {
+        "samples": 70,
+        "generation": 17,
+        "error_deltas": {
+          "decodeErrors": 0,
+          "decoderResets": 0,
+          "referenceFrameDrops": 0,
+          "packetSequenceGaps": 0
+        },
+        "received_fps_mean": 29.848627882853712,
+        "presented_fps_mean": 29.47221678452246,
+        "received_fps_min": 29.80474068566612,
+        "max_receive_age_ms": 32.6075,
+        "max_presentation_age_ms": 61.023459
+      },
+      "issues": []
+    },
+    {
+      "label": "ram-r3",
+      "mode": "ram",
+      "sample_duration_s": 61.66386688302737,
+      "sample_start_utc": "2026-10-16T00:50:45.993512+00:00",
+      "end_utc": "2026-10-16T00:51:48.824761+00:00",
+      "means": {
+        "ffmpeg_cpu": 40.753201624007936,
+        "rustdesk_cpu": 31.590623463416932,
+        "server_cpu": 27.828290484200963,
+        "drm_recv_cpu": 16.57372545154534,
+        "compositor_cpu": 0.09730171497889852,
+        "gnome-shell_drm-engine-gfx": 0.004661470558524402,
+        "gnome-shell_drm-engine-compute": 0.0,
+        "rustdesk_drm-engine-gfx": 3.8219528763427038,
+        "rustdesk_drm-engine-compute": 0.003834798431447163,
+        "rustdesk_drm-engine-enc": 19.020196534622823,
+        "ffmpeg_drm-engine-compute": 1.7468745692568473,
+        "ffmpeg_drm-engine-enc": 19.93004130330116
+      },
+      "ffmpeg_measured_fps": 29.859891274286824,
+      "final_memory": {
+        "gnome-shell": {
+          "pss_mib": 243.5869140625,
+          "uss_mib": 216.0390625
+        },
+        "rustdesk": {
+          "pss_mib": 412.4365234375,
+          "uss_mib": 337.328125
+        },
+        "ffmpeg": {
+          "pss_mib": 93.4404296875,
+          "uss_mib": 87.3515625
+        }
+      },
+      "viewer": {
+        "samples": 70,
+        "generation": 17,
+        "error_deltas": {
+          "decodeErrors": 0,
+          "decoderResets": 0,
+          "referenceFrameDrops": 0,
+          "packetSequenceGaps": 0
+        },
+        "received_fps_mean": 29.889866954255393,
+        "presented_fps_mean": 29.60215779264167,
+        "received_fps_min": 29.82874771762213,
+        "max_receive_age_ms": 33.353792,
+        "max_presentation_age_ms": 62.756708
+      },
+      "issues": []
+    }
+  ],
+  "baselines": [
+    {
+      "label": "baseline-pre",
+      "mode": "baseline",
+      "sample_duration_s": 20.937687022960745,
+      "sample_start_utc": "2026-10-16T00:40:27.327441+00:00",
+      "end_utc": "2026-10-16T00:40:48.265119+00:00",
+      "means": {
+        "ffmpeg_cpu": 0.0,
+        "rustdesk_cpu": 33.43253718676441,
+        "server_cpu": 29.372871956942554,
+        "drm_recv_cpu": 18.53117775495074,
+        "compositor_cpu": 0.2388038370448525,
+        "gnome-shell_drm-engine-gfx": 0.0136705692317453,
+        "gnome-shell_drm-engine-compute": 0.0,
+        "rustdesk_drm-engine-gfx": 4.461413048994506,
+        "rustdesk_drm-engine-compute": 0.005091154523568114,
+        "rustdesk_drm-engine-enc": 19.61823583710802
+      },
+      "ffmpeg_measured_fps": null,
+      "final_memory": {
+        "gnome-shell": {
+          "pss_mib": 244.0263671875,
+          "uss_mib": 216.07421875
+        },
+        "rustdesk": {
+          "pss_mib": 416.9775390625,
+          "uss_mib": 339.5625
+        }
+      },
+      "viewer": {
+        "samples": 21,
+        "generation": 17,
+        "error_deltas": {
+          "decodeErrors": 0,
+          "decoderResets": 0,
+          "referenceFrameDrops": 0,
+          "packetSequenceGaps": 0
+        },
+        "received_fps_mean": 29.851470726228797,
+        "presented_fps_mean": 29.58038439369283,
+        "received_fps_min": 29.83400274996372,
+        "max_receive_age_ms": 31.915417,
+        "max_presentation_age_ms": 53.688042
+      },
+      "issues": []
+    },
+    {
+      "label": "baseline-post",
+      "mode": "baseline",
+      "sample_duration_s": 21.001701208064333,
+      "sample_start_utc": "2026-10-16T00:51:49.352555+00:00",
+      "end_utc": "2026-10-16T00:52:10.354246+00:00",
+      "means": {
+        "ffmpeg_cpu": 0.0,
+        "rustdesk_cpu": 34.378167408779696,
+        "server_cpu": 30.188030660895613,
+        "drm_recv_cpu": 18.760384984844467,
+        "compositor_cpu": 0.2380759515895415,
+        "gnome-shell_drm-engine-gfx": 0.01408791112057105,
+        "gnome-shell_drm-engine-compute": 0.0,
+        "rustdesk_drm-engine-gfx": 4.325271181608829,
+        "rustdesk_drm-engine-compute": 0.004615554665770534,
+        "rustdesk_drm-engine-enc": 19.61391339773117
+      },
+      "ffmpeg_measured_fps": null,
+      "final_memory": {
+        "gnome-shell": {
+          "pss_mib": 244.0498046875,
+          "uss_mib": 216.09765625
+        },
+        "rustdesk": {
+          "pss_mib": 416.2626953125,
+          "uss_mib": 338.84765625
+        }
+      },
+      "viewer": {
+        "samples": 21,
+        "generation": 17,
+        "error_deltas": {
+          "decodeErrors": 0,
+          "decoderResets": 0,
+          "referenceFrameDrops": 0,
+          "packetSequenceGaps": 0
+        },
+        "received_fps_mean": 29.854649212390296,
+        "presented_fps_mean": 29.176229226800004,
+        "received_fps_min": 29.82905608075539,
+        "max_receive_age_ms": 33.37175,
+        "max_presentation_age_ms": 31.074375
+      },
+      "issues": []
+    }
+  ],
+  "modes": {
+    "gpu": {
+      "ffmpeg_cpu_median": 3.8635377238795945,
+      "ffmpeg_cpu_range": [
+        3.5226751796203457,
+        3.944372212292256
+      ],
+      "fps_median": 29.78489021915595,
+      "pss_mib_median": 46.8037109375,
+      "concurrent_rustdesk_cpu_median": 35.58350710396685,
+      "concurrent_drm_recv_cpu_median": 18.863357413450707,
+      "compositor_cpu_median": 0.16233526173424706
+    },
+    "ram": {
+      "ffmpeg_cpu_median": 40.74903378034681,
+      "ffmpeg_cpu_range": [
+        40.296942298922964,
+        40.753201624007936
+      ],
+      "fps_median": 29.81644539502207,
+      "pss_mib_median": 93.3642578125,
+      "concurrent_rustdesk_cpu_median": 31.590623463416932,
+      "concurrent_drm_recv_cpu_median": 16.609094267445645,
+      "compositor_cpu_median": 0.11364272368973771
+    }
+  },
+  "ffmpeg_pipeline_cpu_reduction_pct": 90.5187010207271,
+  "limitations": [
+    "FFmpeg RAM control is not RustDesk code",
+    "Live desktop content was not controlled or changed by this experiment",
+    "Current linear framebuffer only; no tiled/DCC compatibility claim",
+    "No full client performance, picture-quality, latency, cursor, or reconnect acceptance"
+  ]
+}

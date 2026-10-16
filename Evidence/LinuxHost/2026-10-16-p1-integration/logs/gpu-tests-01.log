@@ -1,0 +1,1360 @@
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+   Compiling scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:476:21
+    |
+476 |                 "v0.{minor}.{patch} is not the verified minor and must be refused"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+    = note: `#[warn(non_fmt_panics)]` on by default
+help: add the missing arguments
+    |
+476 |                 "v0.{minor}.{patch} is not the verified minor and must be refused", ...
+    |                                                                                   +++++
+help: or add a "{}" format string to use the message literally
+    |
+476 |                 "{}", "v0.{minor}.{patch} is not the verified minor and must be refused"
+    |                 +++++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:510:21
+    |
+510 |                 "v0.{minor}.{patch} is a patch of the verified minor and must be accepted"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+help: add the missing arguments
+    |
+510 |                 "v0.{minor}.{patch} is a patch of the verified minor and must be accepted", ...
+    |                                                                                           +++++
+help: or add a "{}" format string to use the message literally
+    |
+510 |                 "{}", "v0.{minor}.{patch} is a patch of the verified minor and must be accepted"
+    |                 +++++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:528:21
+    |
+528 |                 "v0.{minor}.{patch} is an unverified minor and must be refused"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+help: add the missing arguments
+    |
+528 |                 "v0.{minor}.{patch} is an unverified minor and must be refused", ...
+    |                                                                                +++++
+help: or add a "{}" format string to use the message literally
+    |
+528 |                 "{}", "v0.{minor}.{patch} is an unverified minor and must be refused"
+    |                 +++++
+
+warning: `scrap` (lib test) generated 8 warnings (run `cargo fix --lib -p scrap --tests` to apply 4 suggestions)
+    Finished `release` profile [optimized] target(s) in 12.62s
+     Running unittests src/lib.rs (/workspace/Build/Linux/target/release/deps/scrap-148ae77a81d2b5ea)
+
+running 49 tests
+test common::aom::webrtc::tests::tile_log2_uses_c_uint_and_rounds_up ... ok
+test common::drm_reader::hotspot_guess_tests::a_blank_sprite_has_no_hotspot_to_guess ... ok
+test common::drm_reader::hotspot_guess_tests::a_diagonal_two_headed_arrow_is_held_by_its_middle_too ... ok
+test common::drm_reader::hotspot_guess_tests::a_corner_bracket_is_held_by_its_inner_corner ... ok
+test common::drm_reader::hotspot_guess_tests::a_directional_resize_cursor_is_held_by_its_bar ... ok
+test common::drm_reader::hotspot_guess_tests::an_arrow_points_at_the_corner_of_its_box ... ok
+test common::drm_reader::hotspot_guess_tests::a_symmetric_shape_is_held_by_its_middle ... ok
+test common::drm_reader::hotspot_guess_tests::an_elongated_shape_keeps_its_centre_even_when_it_is_lopsided ... ok
+test common::drm_reader::hotspot_guess_tests::one_symmetric_axis_centres_that_axis_only ... ok
+test common::drm_reader::hotspot_provenance_tests::a_measured_zero_hotspot_is_measured ... ok
+test common::drm_reader::hotspot_provenance_tests::provenance_changes_the_cursor_identity ... ok
+test common::drm_reader::hotspot_provenance_tests::provenance_is_logged_once_and_then_only_on_a_change ... ok
+test common::drm_reader::hotspot_provenance_tests::the_librarys_no_beats_the_coordinates ... ok
+test common::drm_reader::hotspot_provenance_tests::without_an_answer_the_old_heuristic_stands ... ok
+test common::drm_reader::plane_rotation_tests::a_plane_without_the_property_turned_nothing ... ok
+test common::drm_reader::plane_rotation_tests::a_frame_keeps_the_rotation_its_plane_had_when_it_was_grabbed ... ok
+test common::drm_render::output_buffer_tests::old_libraries_and_linear_frames_keep_the_copy_fallback ... ok
+test common::drm_render::output_buffer_tests::changed_geometry_uses_complete_frames_and_errors_release_the_buffer ... ok
+test common::drm_render::output_buffer_tests::reused_buffer_receives_complete_padded_pixels_directly ... ok
+test common::drmtap_dl::tests::abi_gate_accepts_the_floor_and_later_patches_of_the_same_minor ... ok
+test common::drmtap_dl::tests::abi_gate_rejects_a_library_from_before_the_split ... ok
+test common::drmtap_dl::tests::abi_gate_rejects_an_unknown_newer_minor ... ok
+test common::drmtap_dl::tests::abi_gate_rejects_another_major_in_both_directions ... ok
+test common::drmtap_dl::tests::the_patch_floor_is_currently_vacuous_and_that_is_deliberate ... ok
+test wayland::display::tests::a_single_rotated_display_swaps_the_uinput_rect ... ok
+test common::record::tests::sanitize_recording_filename_component ... ok
+test wayland::display::tests::a_transform_flip_is_visible_to_the_drift_comparison ... ok
+test wayland::display::tests::only_the_explicit_bump_moves_the_generation ... ok
+test wayland::display::tests::test_clear_keeps_the_failure_stamp ... ok
+test wayland::display::tests::test_desktop_rect_empty ... ok
+test common::linux_gpu::tests::source_credit_is_returned_once_after_last_owner_or_explicit_completion ... ok
+test wayland::display::tests::test_desktop_rect_multi_display_uses_logical_size ... ok
+test wayland::display::tests::test_desktop_rect_missing_logical_size_falls_back_to_physical ... ok
+test wayland::display::tests::test_desktop_rect_single_display_uses_physical_size ... ok
+test wayland::display::tests::test_logical_rects_multi_display_uses_logical ... ok
+test wayland::display::tests::test_logical_rects_single_display_uses_physical ... ok
+test common::linux_gpu::tests::failed_device_initialization_latches_reason_and_returns_worker_permit ... ok
+test wayland::display::tests::test_lookup_backoff_boundaries ... ok
+test wayland::display::tests::test_lookup_stamp_from_the_future_only_waits ... ok
+test wayland::display::tests::test_remap_display_removed_unchanged ... ok
+test wayland::display::tests::test_remap_enlarged_display_reaches_far_edge ... ok
+test wayland::display::tests::test_remap_identity_when_unchanged ... ok
+test wayland::display::tests::test_remap_named_miss_equal_count_unchanged ... ok
+test wayland::display::tests::test_remap_nameless_count_changed_unchanged ... ok
+test wayland::display::tests::test_remap_nameless_index_fallback ... ok
+test wayland::display::tests::test_remap_point_outside_all_displays_unchanged ... ok
+test wayland::display::tests::test_remap_primary_rescale_shifts_second_display ... ok
+test wayland::display::tests::test_remap_scales_within_resized_display ... ok
+test wayland::pipewire::tests::stage_err_keeps_the_detail_safe_for_a_placeholder ... ok
+
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling serde v1.0.228
+   Compiling zeroize v1.8.1
+   Compiling thiserror v1.0.61
+   Compiling subtle v2.6.1
+   Compiling futures-util v0.3.31
+   Compiling generic-array v0.14.7
+   Compiling const-oid v0.9.6
+   Compiling simd-adler32 v0.3.7
+   Compiling bitflags v2.9.1
+   Compiling bytes v1.11.1
+   Compiling crypto-common v0.1.6
+   Compiling block-buffer v0.10.4
+   Compiling libloading v0.7.4
+   Compiling digest v0.10.7
+   Compiling nix v0.26.4
+   Compiling ipnet v2.11.0
+   Compiling tokio v1.44.2
+   Compiling tracing v0.1.41
+   Compiling dlib v0.5.2
+   Compiling linux-raw-sys v0.4.14
+   Compiling futures-executor v0.3.30
+   Compiling rustix v1.1.2
+   Compiling rustix v0.38.34
+   Compiling ring v0.17.14
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.8.9
+   Compiling glib-sys v0.18.1
+   Compiling wayland-sys v0.31.7
+   Compiling portable-atomic v1.11.1
+   Compiling hmac v0.12.1
+   Compiling crc32fast v1.4.2
+   Compiling scoped-tls v1.0.1
+   Compiling minimal-lexical v0.2.1
+   Compiling wayland-backend v0.3.11
+   Compiling flate2 v1.1.9
+   Compiling nom v7.1.3
+   Compiling thiserror v2.0.17
+   Compiling webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling sha1 v0.10.6
+   Compiling gobject-sys v0.18.0
+   Compiling num-integer v0.1.46
+   Compiling base64ct v1.6.0
+   Compiling adler v1.0.2
+   Compiling miniz_oxide v0.7.4
+   Compiling pem-rfc7468 v0.7.0
+   Compiling bytemuck v1.23.2
+   Compiling wayland-client v0.31.11
+   Compiling block-padding v0.3.3
+   Compiling inout v0.1.3
+   Compiling der v0.7.10
+   Compiling http v1.3.1
+   Compiling powerfmt v0.2.0
+   Compiling spki v0.7.3
+   Compiling deranged v0.3.11
+   Compiling cipher v0.4.4
+   Compiling gio-sys v0.18.1
+   Compiling rustls-webpki v0.103.3
+   Compiling num-conv v0.1.0
+   Compiling crc-catalog v2.4.0
+   Compiling time-core v0.1.2
+   Compiling time v0.3.36
+   Compiling crc v3.3.0
+   Compiling rustls v0.23.28
+   Compiling pkcs8 v0.10.2
+   Compiling url v2.5.2
+   Compiling fdeflate v0.3.4
+   Compiling ff v0.13.1
+   Compiling base16ct v0.2.0
+   Compiling sec1 v0.7.3
+   Compiling group v0.13.0
+   Compiling openssl-sys v0.9.104
+   Compiling rusticata-macros v4.1.0
+   Compiling hkdf v0.12.4
+   Compiling universal-hash v0.5.1
+   Compiling crypto-bigint v0.5.5
+   Compiling opaque-debug v0.3.1
+   Compiling polyval v0.6.2
+   Compiling asn1-rs v0.6.2
+   Compiling openssl v0.10.68
+   Compiling elliptic-curve v0.13.8
+   Compiling ctr v0.9.2
+   Compiling wayland-protocols v0.32.9
+   Compiling num-bigint v0.4.6
+   Compiling polling v3.7.2
+   Compiling tokio-util v0.7.15
+   Compiling aead v0.5.2
+   Compiling native-tls v0.2.12
+   Compiling ghash v0.5.1
+   Compiling zstd-sys v2.0.11+zstd.1.5.6
+   Compiling png v0.17.13
+   Compiling aes v0.8.4
+   Compiling rfc6979 v0.4.0
+   Compiling sha2 v0.10.8
+   Compiling signature v2.2.0
+   Compiling ecdsa v0.16.9
+   Compiling serde_json v1.0.118
+   Compiling aes-gcm v0.10.3
+   Compiling zstd-safe v7.1.0
+   Compiling oid-registry v0.7.1
+   Compiling der-parser v9.0.0
+   Compiling primeorder v0.13.6
+   Compiling rtp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling futures v0.3.30
+   Compiling md-5 v0.10.6
+   Compiling arc-swap v1.7.1
+   Compiling stun v0.8.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling curve25519-dalek v4.1.3
+   Compiling x509-parser v0.16.0
+   Compiling zstd v0.13.1
+   Compiling pango-sys v0.18.0
+   Compiling cairo-sys-rs v0.18.2
+   Compiling gdk-pixbuf-sys v0.18.0
+   Compiling x11 v2.21.0
+   Compiling tokio-native-tls v0.3.1
+   Compiling tokio-rustls v0.26.0
+   Compiling yasna v0.5.2
+   Compiling pem v3.0.6
+   Compiling rtcp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling waitgroup v0.1.2
+   Compiling rcgen v0.13.2
+   Compiling webrtc-srtp v0.15.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling x25519-dalek v2.0.1
+   Compiling nix v0.28.0
+   Compiling glib v0.18.5
+   Compiling turn v0.10.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling substring v1.4.5
+   Compiling webrtc-sctp v0.12.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling p256 v0.13.2
+   Compiling p384 v0.13.1
+   Compiling wayland-protocols-wlr v0.3.9
+   Compiling ccm v0.5.0
+   Compiling dlopen v0.1.8
+   Compiling cbc v0.1.2
+   Compiling webrtc-mdns v0.9.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling glib-sys v0.10.1
+   Compiling smol_str v0.2.2
+   Compiling bincode v1.3.3
+   Compiling toml_datetime v0.6.3
+   Compiling serde_spanned v0.6.6
+   Compiling toml_edit v0.19.15
+   Compiling webrtc-dtls v0.12.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling gobject-sys v0.10.0
+   Compiling webrtc-ice v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling libsodium-sys v0.2.7
+   Compiling tungstenite v0.29.0 (https://github.com/rustdesk-org/tungstenite-rs?rev=efce47e5364f00a63302cf07ab1fb13ded478914#efce47e5)
+   Compiling webrtc-data v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling sdp v0.8.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling interceptor v0.14.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling gdk-sys v0.18.0
+   Compiling webrtc-media v0.10.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling pin-project v1.1.5
+   Compiling toml v0.5.11
+   Compiling protobuf-support v3.7.2
+   Compiling flexi_logger v0.27.4
+   Compiling confy v0.4.0-2 (https://github.com/rustdesk-org/confy#83db9ec1)
+   Compiling webrtc v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+   Compiling protobuf v3.7.2
+   Compiling machine-uid v0.3.0 (https://github.com/rustdesk-org/machine-uid#381ff579)
+   Compiling tokio-socks v0.5.2-3 (https://github.com/rustdesk-org/tokio-socks#bdb9aa3d)
+   Compiling tokio-tungstenite v0.29.0 (https://github.com/rustdesk-org/tokio-tungstenite?rev=c241b11b03de4881faf1ecd2fe6e867c92f3013b#c241b11b)
+   Compiling sodiumoxide v0.2.7
+   Compiling toml v0.7.8
+   Compiling mac_address v1.1.7
+   Compiling rustls-platform-verifier v0.6.2
+   Compiling dasp_sample v0.11.0
+   Compiling wayland-csd-frame v0.3.0
+   Compiling wayland-cursor v0.31.5
+   Compiling libm v0.2.8
+   Compiling gio v0.18.4
+   Compiling gstreamer-sys v0.9.1
+   Compiling atk-sys v0.18.0
+   Compiling enumflags2 v0.7.10
+   Compiling mozjpeg-sys v2.2.2
+   Compiling dasp_frame v0.11.0
+   Compiling image v0.25.1
+   Compiling hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common)
+   Compiling http-body v1.0.1
+   Compiling rgb v0.8.50
+   Compiling as-raw-xcb-connection v1.0.1
+   Compiling zvariant v3.15.2
+   Compiling mozjpeg v0.10.11
+   Compiling gtk-sys v0.18.0
+   Compiling gstreamer-base-sys v0.9.1
+   Compiling core_maths v0.1.1
+   Compiling cairo-rs v0.18.5
+   Compiling pango v0.18.3
+   Compiling gdk-pixbuf v0.18.5
+   Compiling calloop v0.14.3
+   Compiling tower-service v0.3.3
+   Compiling x11rb-protocol v0.13.1
+   Compiling option-ext v0.2.0
+   Compiling try-lock v0.2.5
+   Compiling want v0.3.1
+   Compiling calloop-wayland-source v0.4.1
+   Compiling gdk v0.18.0
+   Compiling ttf-parser v0.25.1
+   Compiling zbus_names v2.6.1
+   Compiling field-offset v0.3.6
+   Compiling glib v0.10.3
+   Compiling num-rational v0.3.2
+   Compiling nokhwa-core v0.1.5 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling atk v0.18.0
+   Compiling wayland-protocols-experimental v20250721.0.1
+   Compiling wayland-protocols-misc v0.3.9
+   Compiling dasp_ring_buffer v0.11.0
+   Compiling fixedbitset v0.4.2
+   Compiling x11rb v0.13.1
+   Compiling smithay-client-toolkit v0.20.0
+   Compiling petgraph v0.6.5
+   Compiling gstreamer v0.16.7
+   Compiling backtrace v0.3.73
+   Compiling zbus v3.15.2
+   Compiling libpulse-sys v1.21.0
+   Compiling trackable v1.3.0
+   Compiling gtk v0.18.1
+   Compiling v4l2-sys-mit v0.3.0
+   Compiling ahash v0.7.8
+   Compiling memoffset v0.6.5
+   Compiling hyper v1.7.0
+   Compiling libxdo-sys v0.11.0 (/workspace/Build/Linux/src/rustdesk/libs/libxdo-sys-stub)
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+   Compiling calloop v0.13.0
+   Compiling home v0.5.9
+   Compiling weezl v0.1.8
+   Compiling arrayref v0.3.9
+   Compiling linux-raw-sys v0.6.5
+   Compiling strict-num v0.1.1
+   Compiling tiny-skia-path v0.11.4
+   Compiling drm-sys v0.7.0
+   Compiling tree_magic_mini v3.1.5
+   Compiling base v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/base)
+   Compiling calloop-wayland-source v0.3.0
+   Compiling hyper-util v0.1.17
+   Compiling hashbrown v0.12.3
+   Compiling v4l v0.14.0
+   Compiling trackable v0.2.24
+   Compiling gstreamer-base v0.16.5
+   Compiling dasp_rms v0.11.0
+   Compiling owned_ttf_parser v0.25.1
+   Compiling dasp_peak v0.11.0
+   Compiling async-lock v3.4.0
+   Compiling jpeg-decoder v0.3.1
+   Compiling zune-inflate v0.2.54
+   Compiling sync_wrapper v1.0.2
+   Compiling half v2.4.1
+   Compiling serial-core v0.4.0
+   Compiling os_pipe v1.2.0
+   Compiling ioctl-rs v0.1.6
+   Compiling termios v0.2.2
+   Compiling inotify-sys v0.1.5
+   Compiling compression-core v0.4.29
+   Compiling bit_field v0.10.2
+   Compiling unicode-segmentation v1.11.0
+   Compiling dpi v0.1.1
+   Compiling tap v1.0.1
+   Compiling color_quant v1.1.0
+   Compiling ab_glyph_rasterizer v0.1.10
+   Compiling raw-window-handle v0.6.2
+   Compiling dlv-list v0.3.0
+   Compiling siphasher v1.0.1
+   Compiling tower-layer v0.3.3
+   Compiling lebe v0.5.2
+   Compiling exr v1.72.0
+   Compiling tower v0.5.2
+   Compiling phf_shared v0.11.3
+   Compiling ordered-multimap v0.4.3
+   Compiling ab_glyph v0.2.31
+   Compiling gif v0.13.1
+   Compiling wyz v0.5.1
+   Compiling keyboard-types v0.7.0
+   Compiling compression-codecs v0.4.31
+   Compiling inotify v0.10.2
+   Compiling serial-unix v0.4.0
+   Compiling wl-clipboard-rs v0.9.3
+   Compiling enum-map v2.7.3
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+   Compiling tiff v0.9.1
+   Compiling async-io v2.3.3
+   Compiling dasp_envelope v0.11.0
+   Compiling bytecodec v0.4.15
+   Compiling nokhwa-bindings-linux v0.1.1 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling smithay-client-toolkit v0.19.2
+   Compiling webm-sys v1.0.4 (https://github.com/rustdesk-org/rust-webm#d2c4d3ac)
+   Compiling x11-dl v2.21.0
+   Compiling x11 v2.19.0 (https://github.com/bjornsnoen/x11-rs#c2e9bfaa)
+   Compiling tiny-skia v0.11.4
+   Compiling drm-fourcc v2.2.0
+   Compiling zerocopy v0.8.26
+   Compiling radium v0.7.0
+   Compiling drm-ffi v0.8.0
+   Compiling nokhwa-bindings-macos v0.2.2 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling libxdo v0.6.0
+   Compiling gstreamer-video-sys v0.9.1
+   Compiling gstreamer-app-sys v0.9.1
+   Compiling libpulse-binding v2.28.1
+   Compiling dasp_interpolate v0.11.0
+   Compiling nokhwa-bindings-windows v0.4.2 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling dirs-sys v0.5.0
+   Compiling dirs-sys v0.4.1
+   Compiling libappindicator-sys v0.9.0
+   Compiling http-body-util v0.1.3
+   Compiling dasp_window v0.11.1
+   Compiling qoi v0.4.1
+   Compiling epoll v4.3.3
+   Compiling mio v0.8.11
+   Compiling dirs-sys v0.3.7
+   Compiling iri-string v0.7.8
+   Compiling widestring v1.1.0
+   Compiling strum v0.24.1
+   Compiling utf8-width v0.1.7
+   Compiling ctor-lite v0.1.0
+   Compiling roxmltree v0.20.0
+   Compiling funty v2.0.0
+   Compiling md5 v0.7.0
+   Compiling atomic v0.5.3
+   Compiling stun_codec v0.3.5
+   Compiling allo-isolate v0.1.25
+   Compiling tower-http v0.6.6
+   Compiling rdev v0.5.0-2 (https://github.com/rustdesk-org/rdev#a361d86a)
+   Compiling bitvec v1.0.1
+   Compiling fontconfig-parser v0.5.8
+   Compiling tiny-xlib v0.2.4
+   Compiling html-escape v0.2.13
+   Compiling dirs v4.0.0
+   Compiling zerocopy v0.7.34
+   Compiling ahash v0.8.12
+   Compiling image v0.24.9
+   Compiling hyper-tls v0.6.0
+   Compiling dasp_signal v0.11.0
+   Compiling libappindicator v0.9.0
+   Compiling dirs v5.0.1
+   Compiling dirs v6.0.0
+   Compiling nokhwa v0.10.7 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling gstreamer-video v0.16.7
+   Compiling gstreamer-app v0.16.5
+   Compiling muda v0.17.1
+   Compiling drm v0.12.0
+   Compiling sctk-adwaita v0.10.1
+   Compiling tfc v0.7.0 (https://github.com/rustdesk-org/The-Fat-Controller?branch=history%2Frebase_upstream_20240722#78bb80a8)
+   Compiling webm v1.1.0 (https://github.com/rustdesk-org/rust-webm#d2c4d3ac)
+   Compiling async-signal v0.2.8
+   Compiling gdkx11-sys v0.18.0
+   Compiling slotmap v1.0.7
+   Compiling dart-sys v4.1.5
+   Compiling libpulse-simple-sys v1.21.1
+   Compiling serial v0.4.0
+   Compiling async-compression v0.4.32
+   Compiling rust-ini v0.18.0
+   Compiling phf v0.11.3
+   Compiling threadpool v1.8.1
+   Compiling hyper-rustls v0.27.7
+   Compiling nix v0.25.1
+   Compiling nix v0.23.2
+   Compiling x11-clipboard v0.9.2
+   Compiling dasp_slice v0.11.0
+   Compiling xkbcommon-dl v0.4.2
+   Compiling gdkwayland-sys v0.18.0
+   Compiling wayland-protocols-plasma v0.3.3
+   Compiling serde_urlencoded v0.7.1
+   Compiling event-listener v3.1.0
+   Compiling png v0.18.1
+   Compiling dashmap v6.1.0
+   Compiling enquote v1.1.0
+   Compiling filedescriptor v0.8.2 (https://github.com/rustdesk-org/wezterm?branch=rustdesk%2Fpty_based_0.8.1#80174f80)
+   Compiling instant v0.1.13
+   Compiling qrcodegen v1.8.0
+   Compiling debug-helper v0.3.13
+   Compiling constant_time_eq v0.2.6
+   Compiling shell-words v1.1.0
+   Compiling base32 v0.4.0
+   Compiling urlencoding v2.1.3
+   Compiling portable-pty v0.8.1 (https://github.com/rustdesk-org/wezterm?branch=rustdesk%2Fpty_based_0.8.1#80174f80)
+   Compiling totp-rs v5.5.1
+   Compiling flutter_rust_bridge v1.80.1
+   Compiling cidr-utils v0.5.11
+   Compiling docopt v1.1.1
+   Compiling qrcode-generator v4.1.9
+   Compiling tao v0.25.0 (https://github.com/rustdesk-org/tao?branch=dev#288c219c)
+   Compiling kcp-sys v0.1.0 (https://github.com/rustdesk-org/kcp-sys?branch=rustdesk-patches#938eda3e)
+   Compiling tray-icon v0.21.3 (https://github.com/tauri-apps/tray-icon#0a5835b0)
+   Compiling winit v0.30.9
+   Compiling wallpaper v3.2.0 (https://github.com/rustdesk-org/wallpaper.rs#ce4a0cd3)
+   Compiling async-process v1.8.1
+   Compiling reqwest v0.12.24
+   Compiling evdev v0.11.5 (https://github.com/rustdesk-org/evdev#cec616e3)
+   Compiling dasp v0.11.0
+   Compiling clipboard-master v4.0.0-beta.6 (https://github.com/rustdesk-org/clipboard-master#522fafb6)
+   Compiling terminfo v0.8.0
+   Compiling fontdb v0.23.0
+   Compiling scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+   Compiling libpulse-simple-binding v2.28.1
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+   Compiling keepawake v0.4.3 (https://github.com/rustdesk-org/keepawake-rs#64d56858)
+   Compiling enigo v0.0.14 (/workspace/Build/Linux/src/rustdesk/libs/enigo)
+   Compiling softbuffer v0.4.5
+   Compiling magnum-opus v0.4.0 (https://github.com/rustdesk-org/magnum-opus#588c6e1f)
+   Compiling nix v0.29.0
+   Compiling clipboard v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/clipboard)
+   Compiling stunclient v0.4.1
+   Compiling rust-pulsectl v0.2.12 (https://github.com/rustdesk-org/pulsectl#aa34dde4)
+   Compiling dbus-crossroads v0.5.2
+   Compiling arboard v3.4.0 (https://github.com/rustdesk-org/arboard#c7d5781f)
+   Compiling system_shutdown v4.0.1
+   Compiling fon v0.6.0
+   Compiling ctrlc v3.4.4
+   Compiling parity-tokio-ipc v0.7.3-6 (https://github.com/rustdesk-org/parity-tokio-ipc#d0ae39bf)
+   Compiling repng v0.2.2
+   Compiling sciter-rs v0.5.57 (https://github.com/rustdesk-org/rust-sciter?branch=dyn#5322f3a7)
+   Compiling default-net v0.14.1
+   Compiling errno v0.3.14
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+   Compiling wol-rs v1.0.1
+   Compiling sys-locale v0.3.1
+   Compiling hound v3.5.1
+   Compiling xxhash-rust v0.8.18
+   Compiling shutdown_hooks v0.1.0
+   Compiling rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Duration` and `path::PathBuf`
+  --> src/flutter_ffi.rs:27:5
+   |
+27 |     path::PathBuf,
+   |     ^^^^^^^^^^^^^
+...
+32 |     time::{Duration, SystemTime},
+   |            ^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2179:51
+     |
+2179 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2194:47
+     |
+2194 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: unused import: `super`
+  --> src/server/video_qos/tests/robustness.rs:10:5
+   |
+10 | use super::*;
+   |     ^^^^^
+
+warning: variable does not need to be mutable
+    --> src/flutter_ffi.rs:1085:9
+     |
+1085 |     let mut map: HashMap<String, String> = serde_json::from_str(&json).unwrap_or(HashMap::new());
+     |         ----^^^
+     |         |
+     |         help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/tray.rs:156:17
+    |
+156 |             let mut builder = TrayIconBuilder::new()
+    |                 ----^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/tray.rs:64:9
+   |
+64 |     let mut event_loop = EventLoopBuilder::new().build();
+   |         ----^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: type `server::video_service::CapturerInfo` is more private than the item `gpu::capture`
+   --> src/server/linux_gpu_capture.rs:91:1
+    |
+91  | / pub(crate) fn capture(eligible: Eligibility, generation: u64, failure: Failure)
+92  | |     -> ResultType<(super::super::video_service::CapturerInfo, Descriptor)> {
+    | |__________________________________________________________________________^ function `gpu::capture` is reachable at visibility `pub(crate)`
+    |
+note: but type `server::video_service::CapturerInfo` is only usable at visibility `pub(in crate::server)`
+   --> src/server/video_service.rs:429:1
+    |
+429 | pub(super) struct CapturerInfo {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: function `is_opensuse` is never used
+    --> src/platform/linux.rs:1398:4
+     |
+1398 | fn is_opensuse() -> bool {
+     |    ^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` on by default
+
+warning: fields `0` and `1` are never read
+    --> src/platform/linux.rs:2580:21
+     |
+2580 | pub struct WakeLock(Option<keepawake::AwakeHandle>, Option<SessionIdleInhibit>);
+     |            -------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |            |
+     |            fields in this struct
+     |
+     = help: consider removing these fields
+
+warning: variants `Side`, `Extra`, `Back`, `Forward`, and `Task` are never constructed
+    --> src/server/uinput.rs:1135:9
+     |
+1132 |     pub enum MouseButton {
+     |              ----------- variants in this enum
+...
+1135 |         Side,
+     |         ^^^^
+1136 |         Extra,
+     |         ^^^^^
+1137 |         Right,
+1138 |         Back,
+     |         ^^^^
+1139 |         Forward,
+     |         ^^^^^^^
+1140 |         Task,
+     |         ^^^^
+     |
+     = note: `MouseButton` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Right` and `Left` are never constructed
+    --> src/server/uinput.rs:1147:9
+     |
+1144 |     pub enum ScrollDirection {
+     |              --------------- variants in this enum
+...
+1147 |         Right,
+     |         ^^^^^
+1148 |         Left,
+     |         ^^^^
+     |
+     = note: `ScrollDirection` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `resolution` is never read
+   --> src/server/rdp_input.rs:322:9
+    |
+318 |     pub struct RdpInputMouse {
+    |                ------------- field in this struct
+...
+322 |         resolution: (usize, usize),
+    |         ^^^^^^^^^^
+
+warning: constant `MOUSE_MOVE_PROTECTION_TIMEOUT` is never used
+   --> src/server/input_service.rs:633:7
+    |
+633 | const MOUSE_MOVE_PROTECTION_TIMEOUT: Duration = Duration::from_millis(1_000);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MOUSE_ACTIVE_DISTANCE` is never used
+   --> src/server/input_service.rs:635:7
+    |
+635 | const MOUSE_ACTIVE_DISTANCE: i32 = 5;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `enable_file_transfer` is never read
+   --> src/server/connection.rs:403:5
+    |
+356 | pub struct Connection {
+    |            ---------- field in this struct
+...
+403 |     enable_file_transfer: bool,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_capturer_mag_supported` is never used
+   --> src/server/display_service.rs:610:4
+    |
+610 | fn is_capturer_mag_supported() -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `produced_fps` is never read
+   --> src/server/video_qos/tests/sim.rs:283:9
+    |
+272 | pub struct Report {
+    |            ------ field in this struct
+...
+283 |     pub produced_fps: f64,
+    |         ^^^^^^^^^^^^
+    |
+    = note: `Report` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `message` is never used
+    --> src/ui_interface.rs:1066:12
+     |
+1065 | impl DeployResult {
+     | ----------------- method in this implementation
+1066 |     pub fn message(&self) -> String {
+     |            ^^^^^^^
+
+warning: field `finished` is never read
+  --> src/hbbs_http/downloader.rs:45:5
+   |
+38 | struct Downloader {
+   |        ---------- field in this struct
+...
+45 |     finished: bool,
+   |     ^^^^^^^^
+
+warning: function `download_file` is never used
+  --> src/hbbs_http/downloader.rs:50:8
+   |
+50 | pub fn download_file(
+   |        ^^^^^^^^^^^^^
+
+warning: function `do_download` is never used
+   --> src/hbbs_http/downloader.rs:163:10
+    |
+163 | async fn do_download(
+    |          ^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url` is never used
+   --> src/hbbs_http/http_client.rs:260:14
+    |
+260 | pub async fn create_http_client_async_with_url(url: &str) -> AsyncClient {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_strict` is never used
+   --> src/hbbs_http/http_client.rs:278:14
+    |
+278 | pub async fn create_http_client_async_with_url_strict(url: &str) -> ResultType<AsyncClient> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_` is never used
+   --> src/hbbs_http/http_client.rs:306:10
+    |
+306 | async fn create_http_client_async_with_url_(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused `hbb_common::sodiumoxide::crypto::secretbox::Key` that must be used
+    --> src/common.rs:3519:13
+     |
+3519 |             hbb_common::tcp::Encrypt::decode(&ex.keys[1], &ex.keys[0], &eph_sk).unwrap();
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+     |
+3519 |             let _ = hbb_common::tcp::Encrypt::decode(&ex.keys[1], &ex.keys[0], &eph_sk).unwrap();
+     |             +++++++
+
+warning: module `pt_BR` should have a snake case name
+  --> src/lang.rs:36:5
+   |
+36 | mod pt_BR;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_br`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: module `pt_PT` should have a snake case name
+  --> src/lang.rs:37:5
+   |
+37 | mod pt_PT;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_pt`
+
+warning: `rustdesk` (lib test) generated 35 warnings (run `cargo fix --lib -p rustdesk --tests` to apply 10 suggestions)
+    Finished `release` profile [optimized] target(s) in 6m 11s
+     Running unittests src/lib.rs (/workspace/Build/Linux/target/release/deps/librustdesk-886680a6475c0a95)
+
+running 419 tests
+test audio_resampler::tests::downsamples_across_packet_boundaries ... ok
+test audio_resampler::tests::interpolates_mono_samples ... ok
+test audio_resampler::tests::rejects_zero_rate_configuration ... ok
+test audio_resampler::tests::rejects_incomplete_interleaved_frames ... ok
+test audio_resampler::tests::sender_downsampling_preserves_packet_continuity ... ok
+test audio_resampler::tests::preserves_decoded_packet_continuity_and_output_ratio ... ok
+test client::audio_format_tests::only_mono_and_stereo_are_supported ... ok
+test audio_resampler::tests::sender_resampler_emits_only_complete_continuous_frames ... ok
+test client::audio_format_tests::failed_audio_start_discards_format_state ... ok
+test client::io_loop::cursor_dedupe_tests::a_shape_rejected_under_handles_never_seen_files_nothing ... ok
+test client::io_loop::cursor_dedupe_tests::a_rejected_shape_names_its_handle_and_is_never_decoded ... ok
+test client::io_loop::cursor_dedupe_tests::a_reused_handle_names_its_latest_shape ... ok
+test client::io_loop::cursor_dedupe_tests::a_shape_sent_under_a_new_handle_keeps_its_id ... ok
+test client::io_loop::cursor_dedupe_tests::an_id_the_peer_never_sent_is_passed_on ... ok
+test client::io_loop::cursor_dedupe_tests::peers_from_1_5_0_name_cursors_by_content ... ok
+test client::io_loop::cursor_dedupe_tests::the_hotspot_is_part_of_the_shape ... ok
+test client::io_loop::kept_cursor_tests::a_kept_shape_is_a_copy_under_the_ui_id ... ok
+test client::kx_tests::test_a_peer_without_versions_gets_version_0 ... ok
+test client::io_loop::kept_cursor_tests::a_kept_shape_is_checked_again_when_it_is_read ... ok
+test client::kx_tests::test_a_pick_lowered_in_transit_decrypts_nothing ... ok
+test client::kx_tests::test_new_peers_pick_version_1_and_exchange_application_data ... ok
+test client::peer_online::tests::accepts_webrtc_ice_by_session_key_only ... ok
+test client::port_forward_mux_tests::a_login_asks_for_the_tunnel_when_its_mapping_probes ... ok
+test client::retry_tests::incoming_only_error_is_not_retryable ... ok
+test client::screenshot::tests::preserves_cached_screenshot_when_save_fails ... ok
+test client::peer_online::tests::test_query_onlines ... ok
+test audio_resampler::allocation_tests::capture_resampling_reuses_buffers ... ok
+test client::webrtc_race_tests::direct_result_wins_even_when_it_arrives_first ... ok
+test client::webrtc_race_tests::both_failing_compose_error ... ok
+test client::webrtc_race_tests::held_relay_committed_when_webrtc_fails ... ok
+test client::webrtc_race_tests::held_relay_survives_both_errors ... ok
+test client::webrtc_race_tests::p2p_transport_committed_immediately ... ok
+test client::webrtc_race_tests::held_relay_waits_for_racing_direct_when_webrtc_fails ... ok
+test client::webrtc_race_tests::held_relay_committed_when_window_expires ... ok
+test client::webrtc_race_tests::relay_committed_directly_after_webrtc_failed ... ok
+test client::webrtc_race_tests::relay_does_not_preempt_unfinished_direct_after_webrtc_fails ... ok
+test client::io_loop::tests::a_clipboard_queued_before_this_rounds_login_is_dropped ... ok
+test client::webrtc_race_tests::relay_from_preferred_branch_committed_when_fallback_fails ... ok
+test client::webrtc_race_tests::relay_from_preferred_branch_committed_when_window_expires ... ok
+test client::webrtc_race_tests::unfinished_ipv6_still_beats_held_relay ... ok
+test client::webrtc_race_tests::webrtc_request_never_reuses_its_signaling_socket_for_tcp_punch ... ok
+test client::webrtc_race_tests::relay_from_preferred_branch_does_not_preempt_a_direct_fallback ... ok
+test clipboard::proto::tests::preserves_uncompressed_special_clipboard_data ... ok
+test clipboard::rgba_tests::validates_dimensions_against_content_length ... ok
+test clipboard_file::tests::test_is_file_data_request ... ok
+test common::tests::a_cursor_content_id_fits_a_web_client_number ... ok
+test client::webrtc_race_tests::preference_window_starts_when_relay_is_ready ... ok
+test client::webrtc_race_tests::webrtc_preferred_over_faster_relay_within_window ... ok
+test common::tests::test_dtls_fingerprint_travels_signed_and_binds ... ok
+test common::tests::test_duration_multiplication ... ok
+test common::tests::test_get_tcp_proxy_addr_normalizes_bare_ipv6_host ... ok
+test common::tests::test_http_proxy_response_to_json ... ok
+test common::tests::test_http_request_via_tcp_proxy_rejects_invalid_header_json ... ok
+test common::tests::test_http_request_via_tcp_proxy_rejects_non_object_header_json ... ok
+test common::tests::test_ipv6_route_probe_does_not_wait_on_the_network ... ok
+test common::tests::test_is_public ... ok
+test common::tests::test_is_public_matches_rustdesk_root_domain ... ok
+test common::tests::test_mouse_event_constants_and_mask_layout ... ok
+test common::tests::test_parse_json_header_entries_does_not_add_default_content_type ... ok
+test common::tests::test_parse_json_header_entries_preserves_single_content_type ... ok
+test common::tests::test_parse_simple_header_preserves_non_content_type_header ... ok
+test common::tests::test_parse_simple_header_respects_custom_content_type ... ok
+test common::tests::test_secure_tcp_legacy_and_signed_servers_exchange_application_data ... ok
+test common::tests::test_secure_tcp_rejects_unverified_versions_before_reply ... ok
+test common::tests::test_secure_tcp_required_accepts_a_completed_exchange ... ok
+test common::tests::test_secure_tcp_required_refuses_a_closed_connection ... ok
+test common::tests::test_secure_tcp_required_refuses_a_server_without_the_exchange ... ok
+test common::tests::test_secure_tcp_version_1_keys_match_the_server_both_ways ... ok
+test common::tests::test_should_throttle_log ... ok
+test common::tests::test_should_use_tcp_proxy_for_api_url ... ok
+test common::tests::test_tcp_proxy_log_target_brackets_ipv6_host_with_port ... ok
+test common::tests::test_tcp_proxy_log_target_redacts_query_only ... ok
+test client::webrtc_race_tests::webrtc_still_wins_past_window_when_relay_dead ... ok
+test common::tests::test_udp_punch_deadline_survives_a_talkative_peer ... ok
+test common::tests::untrusted_peer_id_validation ... ok
+test core_main::tests::user_main_ipc_scope_cli_command_matches_management_commands_only ... ok
+test custom_server::test::test_filename_license_string ... ok
+test hbbs_http::sync::tests::test_switch_code_verifier_is_not_raw_switch_code ... ok
+test hbbs_http::sync::tests::test_switch_grant_signed_msg_layout ... ok
+test ipc::ipc_auth::tests::test_service_peer_uid_policy ... ok
+test ipc::ipc_drm::cursor_pos_tests::a_descriptor_without_a_cursor_position_reads_as_none ... ok
+test ipc::ipc_drm::cursor_pos_tests::the_plane_position_rides_both_frame_kinds_and_a_hidden_cursor_rides_as_none ... ok
+test common::tests::test_tokio_time_interval_sleep ... ok
+test ipc::ipc_drm::drm_conn_tests::a_body_that_never_arrives_times_out ... ok
+test ipc::ipc_drm::drm_conn_tests::accept_time_exe_match_accepts_only_our_own_executable ... ok
+test ipc::ipc_drm::drm_conn_tests::drm_auth_admission_bound ... ok
+test ipc::ipc_drm::drm_conn_tests::drm_conn_admission_bound ... ok
+test ipc::ipc_drm::drm_conn_tests::drm_display_info_decodes_without_render_node ... ok
+test ipc::ipc_drm::drm_conn_tests::drm_peer_authorized_matrix ... ok
+test ipc::ipc_drm::drm_conn_tests::peer_uid_from_fd_reads_socket_peer ... ok
+test ipc::ipc_drm::drm_conn_tests::rejects_oversized_length_prefix ... ok
+test ipc::ipc_drm::drm_conn_tests::rejects_truncated_control_message ... ok
+test ipc::ipc_drm::drm_conn_tests::roundtrip_msg_no_fd ... ok
+test ipc::ipc_drm::drm_conn_tests::roundtrip_msg_with_fd_identity ... ok
+test ipc::ipc_drm::drm_conn_tests::roundtrip_raw_body ... ok
+test ipc::ipc_drm::drm_conn_tests::surplus_fds_keep_only_the_first ... ok
+test ipc::ipc_fs::tests::test_ensure_secure_ipc_parent_dir_creates_parent_with_expected_mode ... ok
+test ipc::ipc_fs::tests::test_ensure_secure_ipc_parent_dir_keeps_service_artifacts_before_liveness_probe ... ok
+test ipc::ipc_fs::tests::test_ensure_secure_ipc_parent_dir_marks_non_service_mode_repair_for_scrub ... ok
+test ipc::ipc_fs::tests::test_ensure_secure_ipc_parent_dir_rejects_symlink_parent ... ok
+test ipc::ipc_fs::tests::test_remove_ipc_entry_via_secure_parent_fd_clears_an_empty_directory_squatter ... ok
+test ipc::ipc_fs::tests::test_scrub_preexisting_ipc_parent_entries_only_removes_target_postfix_artifacts ... ok
+test ipc::ipc_fs::tests::test_scrub_preexisting_ipc_parent_entries_should_bind_to_opened_inode_not_path ... ok
+test ipc::ipc_fs::tests::test_should_scrub_parent_entries_after_check_pid_only_when_requested_and_not_alive ... ok
+test ipc::ipc_fs::tests::test_write_pid_file_rejects_symlink ... ok
+test ipc::test::a_drm_cursor_without_provenance_keeps_the_hotspot_the_producer_sent ... ok
+test ipc::test::a_drm_frame_without_a_cursor_position_reads_as_none ... ok
+test ipc::test::a_frame_without_a_plane_rotation_reads_as_none ... ok
+test ipc::test::test_ipc_path_differs_by_uid_for_cm ... ok
+test ipc::test::test_select_server_uid_fails_when_multiple_servers_are_ambiguous ... ok
+test ipc::test::test_select_server_uid_prefers_active_uid_with_multiple_servers ... ok
+test ipc::test::test_select_server_uid_prefers_root_on_wayland_login_screen ... ok
+test ipc::test::test_select_server_uid_uses_active_uid_when_no_server_found ... ok
+test ipc::test::test_select_server_uid_uses_single_server_uid ... ok
+test ipc::test::test_service_ipc_path_is_shared_across_uids ... ok
+test ipc::test::verify_ffi_enum_data_size ... ok
+test kcp_stream::tests::test_kcp_connect_timeout_without_peer ... ok
+test ipc::ipc_drm::drm_conn_tests::a_dripping_peer_cannot_re_arm_the_send_deadline ... ok
+test kcp_stream::tests::test_kcp_io_treats_socket_errors_as_loss ... ok
+test kcp_stream::tests::test_kcp_stream_loopback_roundtrip_and_close ... ok
+test lang::test::test_extract_placeholders ... ok
+test lang::test::test_resolve_lang_detects_pt_pt_and_pt_br_from_locale ... ok
+test lang::test::test_resolve_lang_forces_english_for_cjk_locale_when_target_disables_cjk ... ok
+test lang::test::test_resolve_lang_forces_english_for_saved_cjk_when_target_disables_cjk ... ok
+test lang::test::test_resolve_lang_preserves_cjk_when_target_allows_cjk ... ok
+test lang::test::test_resolve_lang_saved_lang_takes_precedence_over_locale ... ok
+test kcp_stream::tests::test_kcp_stream_close_delivers_all_frames ... ok
+test platform::linux::gnome_monitor_layout_tests::maps_logical_layouts ... ok
+test platform::linux::gnome_monitor_layout_tests::maps_physical_layout ... ok
+test platform::linux::desktop::tests::test_desktop_env ... ok
+test platform::linux::gnome_monitor_layout_tests::rejects_unknown_layout ... ok
+Error: Can't open display: (null)
+test platform::tests::test_get_cursor_pos ... FAILED
+test platform::tests::test_cursor_data ... ok
+test port_forward::login_tests::a_mapping_answers_the_prompt_with_its_own_challenge ... ok
+test platform::tests::test_resolution ... ok
+test port_forward::login_tests::a_password_typed_before_this_connections_hash_answers_it_when_it_comes ... ok
+test port_forward::login_tests::a_password_typed_at_the_prompt_keeps_a_raw_pipe_login_raw ... ok
+test port_forward::login_tests::a_probing_login_asks_for_the_tunnel ... ok
+test port_forward::login_tests::a_raw_pipe_login_on_a_multiplexed_window_does_not_ask_for_the_tunnel ... ok
+test port_forward::tests::peer_supports_mux_reads_the_features_bit ... ok
+test port_forward::tests::port_forward_mux_defaults_to_on ... ok
+test port_forward::tests::take_socket_hands_back_a_working_socket_and_the_prebuf ... ok
+test port_forward_mux::tests::a_channel_subscribed_after_teardown_ends_at_once ... ok
+test port_forward_mux::tests::accounting_survives_a_transfer_far_larger_than_the_window ... ok
+test port_forward_mux::tests::dropped_tunnel_ends_the_channel_silently ... ok
+test port_forward_mux::tests::effective_window_clamps_to_initial ... ok
+test port_forward_mux::tests::frame_builders_set_the_expected_union_variant ... ok
+test port_forward_mux::tests::grant_extends_a_window_that_has_been_used_up ... ok
+test port_forward_mux::tests::inbound_data_is_written_and_window_update_follows_threshold ... ok
+test port_forward_mux::tests::local_bytes_become_data_frames_capped_at_max_frame ... ok
+test port_forward_mux::tests::local_eof_sends_close_exactly_once_after_the_data ... ok
+test port_forward_mux::tests::peer_close_ends_the_channel_without_echoing_close ... ok
+test port_forward_mux::tests::prebuf_is_the_head_of_the_send_stream ... ok
+test port_forward_mux::tests::raise_initial_rebases_credit_from_initial_window ... ok
+test port_forward_mux::tests::recv_window_rejects_over_window_data ... ok
+test port_forward_mux::tests::recv_window_updates_only_past_threshold ... ok
+test port_forward_mux::tests::send_credit_blocks_at_zero_and_resumes_on_add ... ok
+test port_forward_mux::tests::send_credit_is_capped_whatever_the_peer_advertises ... ok
+test port_forward::login_tests::mappings_logging_in_at_once_each_carry_their_own_target ... ok
+test port_forward_mux::tests::send_side_stops_at_credit_and_resumes_on_add ... ok
+test port_forward_mux::tests::tiny_frames_are_charged_at_the_minimum ... ok
+test port_forward_mux::tests::tunnel::a_channel_opened_during_a_bulk_transfer_is_served_promptly ... ok
+test port_forward_mux::tests::tunnel::a_local_half_close_ends_the_whole_channel ... ok
+test port_forward_mux::tests::teardown_ends_a_channel_parked_on_a_socket_nobody_reads ... ok
+test port_forward_mux::tests::tunnel::a_refused_channel_is_reported_once_per_reason ... ok
+test port_forward_mux::tests::tunnel::a_refused_reason_is_reported_again_after_a_quiet_spell ... ok
+test port_forward_mux::tests::tunnel::an_id_still_live_when_the_counter_comes_round_is_skipped ... ok
+test port_forward_mux::tests::tunnel::an_over_window_frame_drops_the_channel_at_once ... ok
+test port_forward_mux::tests::tunnel::claim_follows_the_tunnel_state ... ok
+test port_forward_mux::tests::tunnel::dropping_the_tunnel_ends_the_peer_connection ... ok
+test port_forward_mux::tests::tunnel::a_packet_declared_over_the_cap_ends_the_tunnel_before_it_arrives ... ok
+test port_forward_mux::tests::tunnel::failed_open_closes_the_local_socket ... ok
+test port_forward_mux::tests::tunnel::every_open_precedes_its_own_channels_first_data ... ok
+test port_forward_mux::tests::tunnel::one_byte_frames_never_trip_the_window ... ok
+test port_forward_mux::tests::tunnel::open_sends_open_then_pipelined_data_and_relays_replies ... ok
+test port_forward_mux::tests::tunnel::many_channels_echo_concurrently ... ok
+test port_forward_mux::tests::tunnel::tail_before_close_is_delivered_in_both_directions ... ok
+test port_forward_mux::tests::tunnel::tunnel_death_closes_channels_and_resets_state ... ok
+test port_forward_mux::tests::violation_signalled_by_the_demux_sends_close ... ok
+test rendezvous_mediator::tests::a_candidate_the_full_queue_refused_is_not_remembered ... ok
+test rendezvous_mediator::tests::a_declined_udp_punch_still_replies ... ok
+test rendezvous_mediator::tests::a_full_udp_pool_leaves_the_tcp_places_alone ... ok
+test rendezvous_mediator::tests::a_listen_that_finds_no_peer_gives_its_place_back ... ok
+test rendezvous_mediator::tests::a_punch_binds_the_address_the_listener_holds ... ok
+test rendezvous_mediator::tests::a_punch_in_flight_runs_the_grace_past_the_deadline_and_no_further ... ok
+test rendezvous_mediator::tests::a_punch_that_meets_the_peers_syn_connects_both_ends ... ok
+test rendezvous_mediator::tests::a_re_send_is_skipped_while_the_original_is_still_queued ... ok
+test rendezvous_mediator::tests::test_answerer_slots_cap_and_release ... ok
+test rendezvous_mediator::tests::test_punch_slots_cap_and_release ... ok
+test rendezvous_mediator::tests::the_last_place_goes_to_the_v4_punch ... ok
+test rendezvous_mediator::tests::the_punches_end_on_one_at_the_deadline ... ok
+test rendezvous_mediator::tests::the_re_sent_copy_does_not_spend_a_queue_slot ... ok
+test rendezvous_mediator::tests::the_window_forgets_in_arrival_order ... ok
+test server::clipboard_service::tests::decode_utf8_prefix_applies_max_bytes_limit ... ok
+test server::clipboard_service::tests::decode_utf8_prefix_keeps_utf8_boundary_when_limited ... ok
+test server::clipboard_service::tests::decode_utf8_prefix_returns_none_for_invalid_utf8_sequence ... ok
+test server::clipboard_service::tests::decode_utf8_prefix_returns_text_for_valid_utf8 ... ok
+test server::clipboard_service::tests::decode_utf8_prefix_trims_incomplete_utf8_suffix ... ok
+test server::connection::test::ipv6 ... ok
+test server::connection::test::login_scope_latches_session_scope_across_login_retries ... ok
+test server::connection::test::only_a_newer_remote_control_of_the_same_session_keeps_the_screen_unlocked ... ok
+test server::connection::test::session_scope_allows_only_messages_for_authenticated_session_type ... ok
+test server::connection::test::session_scope_limited_render_noop_options_reject_mixed_fields ... ok
+test server::connection::test::session_scope_login_options_are_limited_to_authenticated_session_type ... ok
+test server::connection::test::session_scope_view_camera_options_keep_only_camera_fields ... ok
+test server::connection::test::test_clear_failures_drops_shared_prefixes ... ok
+test server::connection::test::test_decay_stale_failures ... ok
+test server::connection::test::test_id_whitelist_allows ... ok
+test server::connection::test::test_pending_switch_sides_uuid_is_claimed_once ... ok
+test server::connection::test::test_unauthorized_admission_is_per_address ... ok
+test server::connection::test::test_unauthorized_frame_is_refused_on_its_header ... ok
+test server::connection::test::test_unauthorized_full_one_address_turns_out_at_most_its_share ... ok
+test server::connection::test::test_unauthorized_full_tells_the_oldest_to_go_and_frees_its_place_only_when_it_has ... ok
+test server::connection::test::test_unauthorized_limit_bounds_live_handshakes ... ok
+test server::connection::test::test_wildcard_match ... ok
+test server::display_service::input_map_tests::a_uinput_apply_job_can_bound_its_ipc_with_a_timeout ... ok
+test server::display_service::input_map_tests::a_uinput_apply_thread_that_died_is_started_again ... ok
+test server::display_service::input_map_tests::an_acknowledged_range_is_an_adoption_and_a_fitting_one_is_not ... ok
+test server::display_service::input_map_tests::an_apply_leaves_no_range_ready_until_it_is_acknowledged ... ok
+test server::display_service::input_map_tests::the_raw_drm_union_labels_a_range_with_no_generation ... ok
+test server::display_service::input_map_tests::uinput_applies_run_one_at_a_time_in_the_order_asked ... ok
+test server::display_service::tests::normalize_primary_display_idx_bounds ... ok
+test server::display_service::wayland_layout_tests::a_capturer_built_after_a_failed_init_still_owes_a_rebuild ... ok
+test server::display_service::wayland_layout_tests::a_capturer_record_that_lost_the_race_with_the_first_poll_is_still_an_edge ... ok
+test server::display_service::wayland_layout_tests::a_late_record_from_a_generation_already_promoted_is_not_a_second_edge ... ok
+test server::display_service::wayland_layout_tests::a_later_capturer_does_not_overwrite_the_polls_memory ... ok
+test server::display_service::wayland_layout_tests::a_promoted_layout_is_not_an_edge_again ... ok
+test server::display_service::wayland_layout_tests::a_rotation_between_two_inits_before_the_first_poll_is_still_an_edge ... ok
+test server::display_service::wayland_layout_tests::a_rotation_between_two_session_inits_is_still_an_edge ... ok
+test server::display_service::wayland_layout_tests::repeated_baseline_resets_without_a_rotation_are_not_an_edge ... ok
+test server::drm_capturer::drm_capturer_tests::a_180_frame_is_turned_only_when_the_plane_did_not_turn_it ... ok
+test server::drm_capturer::drm_capturer_tests::a_180_output_turns_the_cursor_but_not_the_frame_on_i915_plus_mutter ... ok
+test server::drm_capturer::drm_capturer_tests::a_cached_correction_is_not_served_without_a_context ... ok
+test server::drm_capturer::drm_capturer_tests::a_calibration_context_exists_only_for_an_identity_matched_upright_output ... ok
+test server::drm_capturer::drm_capturer_tests::a_candidate_does_not_confirm_across_an_input_mapping_change ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_in_band_with_both_keeps_the_served_correction ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_in_band_with_the_served_one_changes_nothing_and_stays_cached ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_near_the_wire_serves_the_wire_and_drops_the_cached_correction ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirming_measurement_publishes_the_retained_candidate_not_the_new_sample ... ok
+test server::drm_capturer::drm_capturer_tests::a_corrected_id_differs_from_the_wire_id_and_is_deterministic ... ok
+test server::drm_capturer::drm_capturer_tests::a_correction_confirmed_under_an_older_generation_is_not_served ... ok
+test server::drm_capturer::drm_capturer_tests::a_dead_producer_stops_being_advertised ... ok
+test server::drm_capturer::drm_capturer_tests::a_delivered_frame_clears_the_streak_but_keeps_the_cadence_and_the_convert_verdict ... ok
+test server::drm_capturer::drm_capturer_tests::a_disagreeing_measurement_replaces_the_candidate_and_the_same_sample_never_confirms ... ok
+test server::drm_capturer::drm_capturer_tests::a_first_frame_that_never_matched_counts_as_a_session_without_frames ... ok
+test server::drm_capturer::drm_capturer_tests::a_guessed_hotspot_is_guessed_on_the_upright_sprite ... ok
+test server::drm_capturer::drm_capturer_tests::a_kernel_measured_hotspot_is_never_calibrated_even_at_the_origin ... ok
+test server::drm_capturer::drm_capturer_tests::a_larger_frame_ends_the_session_too ... ok
+test server::drm_capturer::drm_capturer_tests::a_legacy_cursor_message_keeps_the_hotspot_the_old_protocol_meant ... ok
+test server::drm_capturer::drm_capturer_tests::a_lone_display_goes_offline_only_when_its_fallback_was_rejected ... ok
+test server::drm_capturer::drm_capturer_tests::a_lone_rotated_output_advertises_delivered_dimensions ... ok
+test server::drm_capturer::drm_capturer_tests::a_name_match_beats_the_positional_fallback ... ok
+test server::drm_capturer::drm_capturer_tests::a_permanently_ungrabbable_display_stops_churning ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_move_without_a_new_peer_sample_never_confirms ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_that_rotated_90_in_hardware_hands_over_a_portrait_scanout ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_that_rotated_holds_the_logical_desktop_whatever_wl_output_says ... ok
+test server::drm_capturer::drm_capturer_tests::a_portrait_scanout_from_a_plane_that_rotated_90_is_left_alone ... ok
+test server::drm_capturer::drm_capturer_tests::a_published_hotspot_does_not_move_when_the_output_turns ... ok
+test server::drm_capturer::drm_capturer_tests::a_resolution_guess_never_steals_an_exact_name_match ... ok
+test server::drm_capturer::drm_capturer_tests::a_rotated_session_delivers_rotated_frames_and_guards_in_rotated_dims ... ok
+test server::drm_capturer::drm_capturer_tests::a_sample_is_a_reference_only_under_the_adopted_input_mapping ... ok
+test server::drm_capturer::drm_capturer_tests::a_settle_lands_one_sample_later_than_the_constant_reads ... ok
+test server::drm_capturer::drm_capturer_tests::a_smaller_frame_ends_the_session_instead_of_being_encoded ... ok
+test server::drm_capturer::drm_capturer_tests::a_stale_input_mapping_publishes_nothing_until_fresh_samples_follow_the_adoption ... ok
+test server::drm_capturer::drm_capturer_tests::a_stale_snapshot_generation_asks_for_a_rebuild_without_blaming_the_display ... ok
+test server::drm_capturer::drm_capturer_tests::a_still_plane_is_measured_once ... ok
+test server::drm_capturer::drm_capturer_tests::adwaita_hotspot_survey ... ignored
+test server::drm_capturer::drm_capturer_tests::an_ibeam_keeps_its_centre_whichever_way_it_lies ... ok
+test server::drm_capturer::drm_capturer_tests::demote_cooldown_doubles_per_cycle_and_caps ... ok
+test server::drm_capturer::drm_capturer_tests::extra_connectors_stay_unmatched ... ok
+test server::drm_capturer::drm_capturer_tests::frame_buffers_circulate_instead_of_being_reallocated ... ok
+test server::drm_capturer::drm_capturer_tests::frame_of_the_session_size_is_delivered ... ok
+test server::drm_capturer::drm_capturer_tests::health_reports_demoted_only_while_the_cooldown_runs ... ok
+test server::drm_capturer::drm_capturer_tests::identical_monitors_that_match_no_name_take_layout_order ... ok
+test server::drm_capturer::drm_capturer_tests::no_shape_lands_further_from_the_theme_than_master_except_the_two_no_bitmap_can_reach ... ok
+test server::drm_capturer::drm_capturer_tests::one_connector_assignment_drives_geometry_and_primary ... ok
+test server::drm_capturer::drm_capturer_tests::one_output_is_never_claimed_by_two_connectors ... ok
+test server::drm_capturer::drm_capturer_tests::outputs_are_matched_by_name_across_the_drm_naming_difference ... ok
+test server::drm_capturer::drm_capturer_tests::provenance_is_tracked_per_display_and_ignores_the_hidden_cursor ... ok
+test server::drm_capturer::drm_capturer_tests::refresh_keeps_a_verdict_through_one_failure_and_gives_it_up_after_a_run ... ok
+test server::drm_capturer::drm_capturer_tests::the_bound_never_drops_an_entry_from_a_newer_generation ... ok
+test server::drm_capturer::drm_capturer_tests::the_calibration_cache_is_bounded ... ok
+test server::drm_capturer::drm_capturer_tests::the_cursor_id_names_the_orientation_too ... ok
+test server::drm_capturer::drm_capturer_tests::the_cursor_path_publishes_an_upright_sprite_at_every_angle ... ok
+test server::drm_capturer::drm_capturer_tests::the_first_position_after_a_shape_never_counts_as_settled ... ok
+test server::drm_capturer::drm_capturer_tests::the_frame_is_turned_unless_the_plane_rotated_it ... ok
+test server::drm_capturer::drm_capturer_tests::the_measurement_is_the_injected_tip_in_scanout_space_minus_the_plane ... ok
+test server::drm_capturer::drm_capturer_tests::the_settle_window_and_the_sample_gates_are_closed_intervals ... ok
+test server::drm_capturer::drm_capturer_tests::the_two_excused_shapes_are_excused_by_how_much ... ok
+test server::drm_capturer::drm_capturer_tests::transform_and_origin_come_from_the_same_snapshot ... ok
+test server::drm_capturer::drm_capturer_tests::two_idle_buffers_are_both_kept_rather_than_one_being_dropped ... ok
+test server::drm_capturer::drm_capturer_tests::unknown_session_size_delivers_whatever_arrives ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_180_reverses_both_axes ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_270_is_the_inverse_of_90 ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_90_maps_the_left_column_to_the_top_row ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_hotspot_follows_the_pixel_mapping ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_reads_padded_strides_and_writes_tight ... ok
+test server::input_service::cursor_shape_tests::a_shape_is_kept_once_and_can_be_asked_for_again ... ok
+test server::input_service::peer_abs_sample_tests::a_move_of_this_process_forgets_the_sample_of_a_peer_move_it_waited_for ... ok
+test server::input_service::peer_abs_sample_tests::a_move_without_an_absolute_sample_forgets_the_last_one ... ok
+test server::input_service::peer_abs_sample_tests::every_absolute_move_is_a_new_sample ... ok
+test server::login_failure_check::tests::os_credential_policy_audits_every_backoff_block ... ok
+test server::login_failure_check::tests::os_credential_policy_idle_window_resets_total_counter ... ok
+test server::login_failure_check::tests::os_credential_policy_prioritizes_backoff ... ok
+test server::port_forward_mux::tests::a_revoked_permission_refuses_new_channels_and_keeps_live_ones ... ok
+test server::port_forward_mux::tests::an_over_window_frame_drops_the_channel_at_once ... ok
+test server::port_forward_mux::tests::close_while_connecting_sends_no_opened ... ok
+test server::port_forward_mux::tests::demux_admits_only_the_initial_window_before_opened ... ok
+test server::port_forward_mux::tests::open_connects_and_echoes_pipelined_data ... ok
+test server::port_forward_mux::tests::open_frees_dead_entries_so_the_cap_counts_live_channels ... ok
+test server::port_forward_mux::tests::open_to_a_target_other_than_the_login_target_is_refused ... ok
+test server::port_forward_mux::tests::over_window_data_closes_only_that_channel ... ok
+test server::port_forward_mux::tests::pending_bytes_are_bounded_by_initial_window_before_opened ... ok
+test server::port_forward_mux::tests::permission_denied_refuses_without_spawning ... ok
+test server::port_forward_mux::tests::unreachable_target_fails_open_and_discards_pipelined_data ... ok
+test server::rdp_input::client::tests::detects_niri_in_desktop_list ... ok
+test server::terminal_service::tests::output_buffer_trim_after_incomplete_merge_does_not_underflow ... ok
+test server::terminal_service::tests::utf8_chunk_accumulator_buffers_leading_split_multibyte_output ... ok
+test server::terminal_service::tests::utf8_chunk_accumulator_buffers_lone_utf8_lead_bytes ... ok
+test server::terminal_service::tests::utf8_chunk_accumulator_does_not_hold_back_non_utf8_prefixes ... ok
+test server::terminal_service::tests::utf8_chunk_accumulator_does_not_stall_on_malformed_bytes ... ok
+test server::terminal_service::tests::utf8_chunk_accumulator_flushes_incomplete_tail_on_finish ... ok
+test server::terminal_service::tests::utf8_chunk_accumulator_reassembles_split_multibyte_output ... ok
+test server::terminal_service::tests::utf8_split_point_detects_incomplete_trailing_sequence ... ok
+test server::terminal_service::tests::utf8_split_point_keeps_malformed_prefix_but_buffers_trailing_lead_byte ... ok
+test server::terminal_service::tests::utf8_split_point_returns_full_len_for_complete_input ... ok
+test server::terminal_service::tests::utf8_split_point_treats_orphan_continuations_as_complete ... ok
+test server::video_qos::tests::adaptation::baseline_step_relearns_higher_rtt ... ok
+test server::video_qos::tests::adaptation::low_capacity_preserves_auto_floor_and_recovers ... ok
+test server::video_qos::tests::adaptation::oscillation_metric_distinguishes_recovery_and_small_jitter ... ok
+test server::video_qos::tests::adaptation::permanent_capacity_drop_600s ... ok
+test server::video_qos::tests::adaptation::permanent_capacity_drop_held_out_seeds ... ignored, extended permanent-drop coverage over 100 held-out seeds
+test server::video_qos::tests::adaptation::static_to_dynamic_ratio_recovery ... ok
+test server::video_qos::tests::baseline::intermittent_spikes_do_not_raise_the_baseline ... ok
+test server::video_qos::tests::baseline::old_minimum_expires_after_a_stable_path_change ... ok
+test server::video_qos::tests::baseline::pending_probes_and_late_replies_do_not_age_the_baseline ... ok
+test server::video_qos::tests::baseline::rising_delay_is_not_learned_as_a_new_baseline ... ok
+test server::video_qos::tests::baseline::stable_path_change_recovers_without_reconnecting ... ok
+test server::video_qos::tests::custom_fps_limit_applies_during_delay_spike ... ok
+test server::video_qos::tests::delay_history_keeps_two_samples ... ok
+test server::video_qos::tests::invariants::a_bitrate_cut_is_owned_by_a_viewers_evidence ... ok
+test server::video_qos::tests::invariants::a_late_reply_after_a_brake_does_not_brake_again ... ok
+test server::video_qos::tests::invariants::a_timeout_keeps_or_lowers_every_target ... ok
+test server::video_qos::tests::invariants::a_viewers_target_is_independent_of_other_viewers ... ok
+test server::video_qos::tests::invariants::bad_evidence_never_raises_a_target_or_the_ratio ... ok
+test server::video_qos::tests::invariants::joins_and_leaves_only_change_the_aggregation ... ok
+test server::video_qos::tests::invariants::targets_stay_within_caps_and_the_stream_is_their_aggregation ... ok
+test server::video_qos::tests::isolated_delay_spike_does_not_lower_fps ... ok
+test server::video_qos::tests::jitter::a_congested_viewer_does_not_lower_another_viewers_target ... ok
+test server::video_qos::tests::jitter::a_new_viewer_caps_the_stream_at_init_fps_for_a_second ... ok
+test server::video_qos::tests::jitter::a_single_stall_does_not_cut_bitrate ... ok
+test server::video_qos::tests::jitter::a_stall_beyond_three_seconds_cuts_bitrate ... ok
+test server::video_qos::tests::jitter::bitrate_cooldown_defers_ordinary_fps_reduction ... ok
+test server::video_qos::tests::jitter::bitrate_reduction_precedes_ordinary_fps_reduction ... ok
+test server::video_qos::tests::jitter::bitrate_timer_does_not_punish_unconfirmed_spikes_or_stale_averages ... ok
+test server::video_qos::tests::jitter::closing_a_just_opened_viewer_does_not_throttle_existing_viewers ... ok
+test server::video_qos::tests::jitter::closing_the_latest_newcomer_keeps_an_earlier_newcomers_guard ... ok
+test server::video_qos::tests::jitter::confirmed_severe_congestion_halves_bitrate ... ok
+test server::video_qos::tests::jitter::congestion_bitrate_reduction_resets_dynamic_screen_window ... ok
+test server::video_qos::tests::jitter::custom_limit_of_one_viewer_does_not_lower_another_viewers_target ... ok
+test server::video_qos::tests::jitter::fps_holds_its_floor_while_bitrate_can_still_drop ... ok
+test server::video_qos::tests::jitter::minimum_bitrate_during_cooldown_does_not_block_fps_reduction ... ok
+test server::video_qos::tests::jitter::new_viewer_does_not_inherit_another_viewers_congested_fps ... ok
+test server::video_qos::tests::jitter::new_viewers_first_reply_does_not_bypass_bitrate_cooldown ... ok
+test server::video_qos::tests::jitter::pending_probe_checks_do_not_count_as_fresh_bad_replies ... ok
+test server::video_qos::tests::jitter::recovery_continues_with_intermittent_jitter ... ok
+test server::video_qos::tests::jitter::severe_delay_and_timeout_bypass_bitrate_cooldown ... ok
+test server::video_qos::tests::jitter::stable_high_rtt_does_not_dip_at_start ... ok
+test server::video_qos::tests::jitter::stable_high_rtt_restores_bitrate ... ok
+test server::video_qos::tests::jitter::unavailable_abr_or_minimum_bitrate_does_not_prevent_fps_reduction ... ok
+test server::video_qos::tests::jitter::unconfirmed_severe_viewer_does_not_amplify_another_viewers_confirmed_mild_congestion ... ok
+test server::video_qos::tests::jitter::viewers_confirm_congestion_independently ... ok
+test server::video_qos::tests::occasional_spikes_do_not_accumulate_congestion ... ok
+test server::video_qos::tests::recovery::a_failed_fast_restore_rolls_back_before_the_queue_grows ... ok
+test server::video_qos::tests::recovery::automatic_floor_preserves_lower_custom_limits ... ok
+test server::video_qos::tests::recovery::jitter_during_recovery_does_not_discard_the_restore_target ... ok
+test server::video_qos::tests::recovery::ordinary_congestion_waits_between_bounded_cuts ... ok
+test server::video_qos::tests::recovery::two_good_replies_restore_after_a_severe_stall ... ok
+test server::video_qos::tests::response_timeout_halves_fps_for_each_second_outstanding ... ok
+test server::video_qos::tests::response_timeout_recovers_in_two_good_replies ... ok
+test server::video_qos::tests::restore_aims_lower_after_a_restore_that_congested ... ok
+test server::video_qos::tests::robustness::held_out_seeds ... ignored
+test server::video_qos::tests::robustness::sensitivity ... ignored
+test server::video_qos::tests::severe_delay_does_not_wait_for_another_reply ... ok
+test server::video_qos::tests::sim::replay_recorded_trace ... ok
+test server::video_qos::tests::sim::replay_recorded_trace_is_independent_of_connection_id ... ok
+test server::video_qos::tests::sim::replay_time_axis_is_shared_across_connections ... ok
+test server::video_qos::tests::sim::sim_scenarios ... ok
+test server::video_qos::tests::smoke::smoke_abr_bandwidth_drop_and_recovery ... ok
+test server::video_qos::tests::smoke::smoke_bandwidth_drop_and_recovery ... ok
+test server::video_qos::tests::smoke::smoke_capacity_with_short_stalls ... ok
+test server::video_qos::tests::smoke::smoke_latency_profiles ... ok
+test server::video_qos::tests::startup::a_failed_startup_probe_rolls_back_and_does_not_restart ... ok
+test server::video_qos::tests::startup::a_startup_spike_still_requires_congestion_confirmation ... ok
+test server::video_qos::tests::startup::a_startup_timeout_keeps_legacy_recovery ... ok
+test server::video_qos::tests::startup::an_unclean_startup_reply_disables_faster_growth ... ok
+test server::video_qos::tests::startup::clean_startup_reaches_the_cap_without_waiting_for_slow_growth ... ok
+test server::video_qos::tests::startup::closed_loop_startup_preserves_quality_and_bounds_queueing ... ok
+test server::video_qos::tests::startup::constrained_startup_does_not_leave_a_large_queue ... ok
+test server::video_qos::tests::startup::raising_the_cap_does_not_restart_startup_acceleration ... ok
+test server::video_qos::tests::startup::startup_remains_per_viewer_and_preserves_the_join_guard ... ok
+test server::video_qos::tests::sustained_delay_reduces_fps_gradually ... ok
+test server::wayland::tests::a_detail_carrying_message_reduces_back_to_its_key ... ok
+test server::wayland::tests::legacy_ubuntu_keeps_its_message_for_machine_faults_only ... ok
+test server::wayland::tests::only_a_portal_that_may_be_dead_is_told_to_restart ... ok
+test server::wayland::tests::staged_message_names_the_outcome ... ok
+test ui_cm_interface::tests::read_all_files_success ... ok
+test ui_cm_interface::tests::read_dir_reports_success_and_error ... ok
+test ui_cm_interface::tests::test_symlink_creation_works ... ok
+test ui_interface::tests::trim_configured_video_save_directory ... ok
+test ui_interface::tests::validate_service_video_save_directory ... ok
+test ui_session_interface::mobile_wheel::tests::preserves_both_axes_when_disabled ... ok
+test ui_session_interface::mobile_wheel::tests::reverses_both_axes_when_enabled ... ok
+test ui_session_interface::mobile_wheel::tests::reversing_minimum_delta_does_not_overflow ... ok
+test updater::tests::update_download_file_accepts_expected_github_asset_urls ... ok
+test updater::tests::update_download_file_rejects_untrusted_or_malformed_urls ... ok
+test common::tests::test_RustDesk_interval_sleep ... ok
+test common::tests::test_RustDesk_interval ... ok
+test port_forward_mux::tests::tunnel::sequential_connections_far_beyond_max_channels_all_succeed has been running for over 60 seconds
+test port_forward_mux::tests::tunnel::sequential_connections_far_beyond_max_channels_all_succeed ... ok
+
+failures:
+
+---- platform::tests::test_get_cursor_pos stdout ----
+
+thread 'platform::tests::test_get_cursor_pos' panicked at src/platform/mod.rs:243:13:
+assertion failed: !get_cursor_pos().is_none()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    platform::tests::test_get_cursor_pos
+
+test result: FAILED. 414 passed; 1 failed; 4 ignored; 0 measured; 0 filtered out; finished in 73.04s
+
+error: test failed, to rerun pass `--lib`

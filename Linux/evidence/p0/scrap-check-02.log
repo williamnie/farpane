@@ -1,0 +1,77 @@
+    Checking mozjpeg-sys v2.2.2
+    Checking libsodium-sys v0.2.7
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+   Compiling serde_repr v0.1.19
+    Checking mozjpeg v0.10.11
+    Checking sodiumoxide v0.2.7
+    Checking nokhwa-core v0.1.5 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+    Checking nokhwa-bindings-windows v0.4.2 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+    Checking nokhwa-bindings-macos v0.2.2 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+    Checking nokhwa-bindings-linux v0.1.1 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+    Checking filetime v0.2.23
+    Checking xdg-home v1.2.0
+   Compiling async-trait v0.1.80
+    Checking hex v0.4.3
+    Checking hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common)
+    Checking nokhwa v0.10.7 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+    Checking gstreamer-video v0.16.7
+    Checking zbus v3.15.2
+    Checking gstreamer-app v0.16.5
+    Checking dbus v0.9.7
+    Checking base v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/base)
+    Checking webm v1.1.0 (https://github.com/rustdesk-org/rust-webm#d2c4d3ac)
+   Compiling scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+    Checking winapi v0.3.9
+    Checking num_cpus v1.16.0
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.41s

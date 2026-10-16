@@ -1,0 +1,76 @@
+[VAAPI @ 0x5a9248d5ab80] libva: VA-API version 1.23.0
+[VAAPI @ 0x5a9248d5ab80] libva: Trying to open /usr/lib/x86_64-linux-gnu/dri/radeonsi_drv_video.so
+[VAAPI @ 0x5a9248d5ab80] libva: Found init function __vaDriverInit_1_23
+[VAAPI @ 0x5a9248d5ab80] libva: va_openDriver() returns 0
+[VAAPI @ 0x5a9248d5ab80] Initialised VAAPI connection: version 1.23
+[VAAPI @ 0x5a9248d5ab80] VAAPI driver: Mesa Gallium driver 26.0.8-1ubuntu0.3 for AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic).
+[VAAPI @ 0x5a9248d5ab80] Driver not found in known nonstandard list, using standard behaviour.
+ffmpeg stats and -progress period set to 1.
+[DRM @ 0x5a9248d5abc0] Opened DRM device /dev/dri/card1: driver amdgpu version 3.64.0.
+[kmsgrab @ 0x5a9248f15ec0] Template framebuffer is 48: 2560x1440 format 34325258 modifier 0 flags 0.
+[kmsgrab @ 0x5a9248f15ec0] Format is bgr0, from DRM format 34325258 modifier ffffffffffffff.
+Input #0, kmsgrab, from 'fd:':
+  Duration: N/A, start: 1792111694.837140, bitrate: N/A
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, drm_prime, 2560x1440, 29.92 tbr, 1000k tbn, start 1792111694.837140
+[out#0/null @ 0x5a9248f18c00] No explicit maps, mapping streams automatically...
+[vost#0:0/h264_vaapi @ 0x5a9248f18f80] Created video stream from input stream 0:0
+[vost#0:0/h264_vaapi @ 0x5a9248f18f80] -enc_time_base -1 is deprecated, use -enc_time_base demux
+Stream mapping:
+  Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (h264_vaapi))
+[vost#0:0/h264_vaapi @ 0x5a9248f18f80] Starting thread...
+[vf#0:0 @ 0x5a9248f19c00] Starting thread...
+[vist#0:0/wrapped_avframe @ 0x5a9248f18900] [dec:wrapped_avframe @ 0x5a9248f24dc0] Starting thread...
+[in#0/kmsgrab @ 0x5a9248f15c00] Starting thread...
+[graph -1 input from stream 0:0 @ 0x7846fc001f80] w:2560 h:1440 pixfmt:drm_prime tb:1/1000000 fr:359/12 sar:0/1 csp:unknown range:unknown
+[VAAPI @ 0x7846fc003c00] Using render node /dev/dri/renderD128 in place of non-render DRM device.
+[VAAPI @ 0x7846fc003c00] libva: VA-API version 1.23.0
+[VAAPI @ 0x7846fc003c00] libva: Trying to open /usr/lib/x86_64-linux-gnu/dri/radeonsi_drv_video.so
+[VAAPI @ 0x7846fc003c00] libva: Found init function __vaDriverInit_1_23
+[VAAPI @ 0x7846fc003c00] libva: va_openDriver() returns 0
+[VAAPI @ 0x7846fc003c00] Initialised VAAPI connection: version 1.23
+[VAAPI @ 0x7846fc003c00] VAAPI driver: Mesa Gallium driver 26.0.8-1ubuntu0.3 for AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic).
+[VAAPI @ 0x7846fc003c00] Driver not found in known nonstandard list, using standard behaviour.
+[graph -1 input from stream 0:0 @ 0x7846fc001f80] video frame properties congruent with link at pts_time: 0
+[vost#0:0/h264_vaapi @ 0x5a9248f18f80] [enc:h264_vaapi @ 0x5a9248f19440] Using input frames context (format vaapi) with h264_vaapi encoder.
+[h264_vaapi @ 0x5a9248f194c0] Input surface format is nv12.
+[h264_vaapi @ 0x5a9248f194c0] Using VAAPI profile VAProfileH264Main (6).
+[h264_vaapi @ 0x5a9248f194c0] Using VAAPI entrypoint VAEntrypointEncSlice (6).
+[h264_vaapi @ 0x5a9248f194c0] Using VAAPI render target format YUV420 (0x1).
+[h264_vaapi @ 0x5a9248f194c0] RC mode: CBR.
+[h264_vaapi @ 0x5a9248f194c0] Block Level bitrate control: OFF.
+[h264_vaapi @ 0x5a9248f194c0] RC target: 100% of 4000000 bps over 1000 ms.
+[h264_vaapi @ 0x5a9248f194c0] RC buffer: 4000000 bits, initial fullness 3000000 bits.
+[h264_vaapi @ 0x5a9248f194c0] RC framerate: 359/12 (29.92 fps).
+[h264_vaapi @ 0x5a9248f194c0] Driver does not report any additional prediction constraints.
+[h264_vaapi @ 0x5a9248f194c0] Using intra and P-frames (supported references: 1 / 1).
+[h264_vaapi @ 0x5a9248f194c0] All wanted packed headers available (wanted 0xd, found 0x1f).
+[h264_vaapi @ 0x5a9248f194c0] Using level 5.
+Output #0, null, to '/dev/null':
+  Metadata:
+    encoder         : Lavf62.3.100
+  Stream #0:0: Video: h264 (Main), 1 reference frame, vaapi(tv, progressive), 2560x1440, q=2-31, 4000 kb/s, 29.92 fps, 1000k tbn
+    Metadata:
+      encoder         : Lavc62.11.100 h264_vaapi
+[out#0/null @ 0x5a9248f18c00] Starting thread...
+[vf#0:0 @ 0x5a9248f19c00] Filtergraph returned EOF, finishing
+[vf#0:0 @ 0x5a9248f19c00] All consumers returned EOF
+[vost#0:0/h264_vaapi @ 0x5a9248f18f80] [enc:h264_vaapi @ 0x5a9248f19440] Encoder thread received EOF
+[vost#0:0/h264_vaapi @ 0x5a9248f18f80] Terminating thread with return code 0 (success)
+[vf#0:0 @ 0x5a9248f19c00] Terminating thread with return code 0 (success)
+[out#0/null @ 0x5a9248f18c00] All streams finished
+[out#0/null @ 0x5a9248f18c00] Terminating thread with return code 0 (success)
+[in#0/kmsgrab @ 0x5a9248f15c00] Terminating thread with return code 0 (success)
+[vist#0:0/wrapped_avframe @ 0x5a9248f18900] [dec:wrapped_avframe @ 0x5a9248f24dc0] Decoder thread received EOF packet
+[vist#0:0/wrapped_avframe @ 0x5a9248f18900] [dec:wrapped_avframe @ 0x5a9248f24dc0] Decoder returned EOF, finishing
+[vist#0:0/wrapped_avframe @ 0x5a9248f18900] [dec:wrapped_avframe @ 0x5a9248f24dc0] Terminating thread with return code 0 (success)
+[out#0/null @ 0x5a9248f18c00] Output file #0 (/dev/null):
+[out#0/null @ 0x5a9248f18c00]   Output stream #0:0 (video): 2120 frames encoded; 2120 packets muxed (35492315 bytes); 
+[out#0/null @ 0x5a9248f18c00]   Total: 2120 packets (35492315 bytes) muxed
+[out#0/null @ 0x5a9248f18c00] video:34660KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+frame= 2120 fps= 30 q=-0.0 Lsize=N/A time=00:01:11.00 bitrate=N/A speed=1.01x elapsed=0:01:10.37    
+[AVIOContext @ 0x5a9248f15ac0] Statistics: 13433 bytes written, 0 seeks, 71 writeouts
+[in#0/kmsgrab @ 0x5a9248f15c00] Input file #0 (fd:):
+[in#0/kmsgrab @ 0x5a9248f15c00]   Input stream #0:0 (video): 2122 packets read (882752 bytes); 2121 frames decoded; 0 decode errors; 
+[in#0/kmsgrab @ 0x5a9248f15c00]   Total: 2122 packets (882752 bytes) demuxed
+
+Exiting with exit code 0

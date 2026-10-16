@@ -1,0 +1,333 @@
+diff --git a/libs/scrap/src/common/drm_render.rs b/libs/scrap/src/common/drm_render.rs
+index 6df6ea6..45b86bb 100644
+--- a/libs/scrap/src/common/drm_render.rs
++++ b/libs/scrap/src/common/drm_render.rs
+@@ -3,7 +3,9 @@
+ // in the UNPRIVILEGED process on this path; the root service loads them only if it falls back to
+ // its own CPU-mapped grab (`drmtap_grab_mapped`).
+ 
+-use super::drmtap_dl::{self, drmtap_ctx, drmtap_dmabuf_desc, drmtap_frame_info, DrmtapLib};
++use super::drmtap_dl::{
++    self, drmtap_ctx, drmtap_dmabuf_desc, drmtap_frame_info, DrmtapLib, FnSetOutputBuffer,
++};
+ use super::Pixfmt;
+ use hbb_common::log;
+ use std::ffi::CString;
+@@ -22,6 +24,19 @@ pub struct RenderConverter {
+     ctx: *mut drmtap_ctx,
+ }
+ 
++struct OutputBufferReset {
++    ctx: *mut drmtap_ctx,
++    set: FnSetOutputBuffer,
++}
++
++impl Drop for OutputBufferReset {
++    fn drop(&mut self) {
++        // 转换同步完成；缓冲区交回帧池前必须清掉 C 上下文中的借用指针。
++        let result = unsafe { (self.set)(self.ctx, std::ptr::null_mut(), 0) };
++        debug_assert_eq!(result, 0);
++    }
++}
++
+ impl RenderConverter {
+     /// `node` is the render node of the GPU that exports the scanout; `None`/invalid path falls back to libdrmtap auto-selection.
+     pub fn open_render(node: Option<&str>) -> Option<RenderConverter> {
+@@ -60,6 +75,50 @@ impl RenderConverter {
+         Some(RenderConverter { lib, ctx })
+     }
+ 
++    pub fn convert_into(
++        &mut self,
++        desc: &mut drmtap_dmabuf_desc,
++        received_fd: RawFd,
++        output: &mut Vec<u8>,
++    ) -> io::Result<(u32, u32, Pixfmt)> {
++        // EGL 输出紧密 RGBA，CPU 回退可能保留源 stride。split API 未保留所有
++        // ENOSPC，因此容量不足时先走旧路径，不能依赖失败后的错误码来重试。
++        let buffer_fits = (desc.width as usize)
++            .checked_mul(4)
++            .map(|row| row.max(desc.pitches[0] as usize))
++            .and_then(|row| row.checked_mul(desc.height as usize))
++            .map_or(false, |size| size > 0 && size <= output.len());
++        let reset = match self.lib.set_output_buffer.filter(|_| buffer_fits) {
++            Some(set) => {
++                let reset = OutputBufferReset { ctx: self.ctx, set };
++                // 复用上一帧的实际 stride * height，不以 width * height * 4 猜测容量。
++                let result = unsafe { set(self.ctx, output.as_mut_ptr().cast(), output.len()) };
++                if result < 0 {
++                    return Err(io::Error::from_raw_os_error(-result));
++                }
++                Some(reset)
++            }
++            None => None,
++        };
++        let result = self.convert(desc, received_fd);
++        drop(reset);
++        let (data, width, height, format) = result?;
++        if data.as_ptr() == output.as_ptr() {
++            if data.len() > output.len() {
++                return Err(io::Error::new(
++                    io::ErrorKind::InvalidData,
++                    "drmtap output exceeds the supplied buffer",
++                ));
++            }
++            output.truncate(data.len());
++        } else {
++            // 首帧、旧库或无须转换的线性扫描缓冲区仍采用原有复制路径。
++            output.clear();
++            output.extend_from_slice(data);
++        }
++        Ok((width, height, format))
++    }
++
+     /// Returns context-owned linear pixels valid ONLY until the next `convert()`; row stride is `len / height`.
+     pub fn convert(
+         &mut self,
+@@ -182,3 +241,170 @@ impl Drop for RenderConverter {
+         }
+     }
+ }
++
++#[cfg(test)]
++mod output_buffer_tests {
++    use super::*;
++    use std::{ffi::c_int, ptr};
++
++    #[derive(Default)]
++    struct Render {
++        pixels: Vec<u8>,
++        destination: *mut u8,
++        available: usize,
++        direct_writes: usize,
++        linear: bool,
++        error: c_int,
++        short_error: c_int,
++    }
++
++    unsafe extern "C" fn set(
++        ctx: *mut drmtap_ctx,
++        dst: *mut std::ffi::c_void,
++        len: usize,
++    ) -> c_int {
++        let render = &mut *ctx.cast::<Render>();
++        render.destination = dst.cast();
++        render.available = len;
++        0
++    }
++
++    unsafe extern "C" fn convert(
++        ctx: *mut drmtap_ctx,
++        _: *const drmtap_dmabuf_desc,
++        frame: *mut drmtap_frame_info,
++    ) -> c_int {
++        let render = &mut *ctx.cast::<Render>();
++        if render.error != 0 {
++            return render.error;
++        }
++        let mut data = render.pixels.as_mut_ptr();
++        if !render.destination.is_null() && !render.linear {
++            if render.available < render.pixels.len() {
++                return if render.short_error != 0 {
++                    render.short_error
++                } else {
++                    -hbb_common::libc::ENOSPC
++                };
++            }
++            ptr::copy_nonoverlapping(data, render.destination, render.pixels.len());
++            data = render.destination;
++            render.direct_writes += 1;
++        }
++        *frame = std::mem::zeroed();
++        (*frame).data = data.cast();
++        (*frame).width = 2;
++        (*frame).height = (render.pixels.len() / 12) as u32;
++        (*frame).stride = 12;
++        (*frame).format = DRM_FORMAT_XRGB8888;
++        0
++    }
++
++    fn converter(render: &mut Render, supports_output: bool) -> RenderConverter {
++        unsafe extern "C" fn grab(_: *mut drmtap_ctx, _: *mut drmtap_frame_info) -> c_int {
++            -1
++        }
++        unsafe extern "C" fn release(_: *mut drmtap_ctx, _: *mut drmtap_frame_info) {}
++        unsafe extern "C" fn desc(
++            _: *mut drmtap_ctx,
++            _: *mut drmtap_dmabuf_desc,
++            _: *mut drmtap_frame_info,
++        ) -> c_int {
++            -1
++        }
++        unsafe extern "C" fn rotation(_: *mut drmtap_ctx, _: *mut u32) -> c_int {
++            -1
++        }
++        let mut lib = DrmtapLib::fake(grab, release, desc, rotation);
++        lib.convert_dmabuf = convert;
++        lib.set_output_buffer = supports_output.then_some(set);
++        RenderConverter {
++            lib: Box::leak(Box::new(lib)),
++            ctx: (render as *mut Render).cast(),
++        }
++    }
++
++    fn descriptor(height: u32) -> drmtap_dmabuf_desc {
++        drmtap_dmabuf_desc {
++            width: 2,
++            height,
++            pitches: [12, 0, 0, 0],
++            ..Default::default()
++        }
++    }
++
++    #[test]
++    fn reused_buffer_receives_complete_padded_pixels_directly() {
++        let mut render = Render {
++            pixels: vec![0x31; 24],
++            ..Default::default()
++        };
++        let mut converter = converter(&mut render, true);
++        let mut output = Vec::new();
++        converter
++            .convert_into(&mut descriptor(2), -1, &mut output)
++            .unwrap();
++        assert_eq!(output, render.pixels);
++        render.pixels.fill(0x72);
++        converter
++            .convert_into(&mut descriptor(2), -1, &mut output)
++            .unwrap();
++        assert_eq!(output, render.pixels);
++        assert_eq!(render.direct_writes, 1);
++        assert!(render.destination.is_null());
++    }
++
++    #[test]
++    fn old_libraries_and_linear_frames_keep_the_copy_fallback() {
++        for (supported, linear) in [(false, false), (true, true)] {
++            let mut render = Render {
++                pixels: vec![0x84; 24],
++                linear,
++                ..Default::default()
++            };
++            let mut converter = converter(&mut render, supported);
++            let mut output = vec![0; 24];
++            converter
++                .convert_into(&mut descriptor(2), -1, &mut output)
++                .unwrap();
++            assert_eq!(output, render.pixels);
++            assert_eq!(render.direct_writes, 0);
++            assert!(render.destination.is_null());
++        }
++    }
++
++    #[test]
++    fn changed_geometry_uses_complete_frames_and_errors_release_the_buffer() {
++        let mut render = Render {
++            pixels: vec![0x95; 36],
++            // split convert 的 EGL 容量错误可能被后续 CPU 回退覆盖为 EINVAL。
++            short_error: -hbb_common::libc::EINVAL,
++            ..Default::default()
++        };
++        let mut converter = converter(&mut render, true);
++        let mut output = vec![0; 24];
++        converter
++            .convert_into(&mut descriptor(3), -1, &mut output)
++            .unwrap();
++        assert_eq!(output, render.pixels);
++        assert!(render.destination.is_null());
++        converter
++            .convert_into(&mut descriptor(3), -1, &mut output)
++            .unwrap();
++        assert_eq!(render.direct_writes, 1);
++        render.error = -hbb_common::libc::EAGAIN;
++        let err = converter
++            .convert_into(&mut descriptor(3), -1, &mut output)
++            .unwrap_err();
++        assert_eq!(err.kind(), io::ErrorKind::WouldBlock);
++        assert!(render.destination.is_null());
++        assert_eq!(output, render.pixels);
++        render.error = 0;
++        render.pixels.resize(24, 0);
++        converter
++            .convert_into(&mut descriptor(2), -1, &mut output)
++            .unwrap();
++        assert_eq!(output, render.pixels);
++        assert_eq!(output.len(), 24);
++    }
++}
+diff --git a/libs/scrap/src/common/drmtap_dl.rs b/libs/scrap/src/common/drmtap_dl.rs
+index 6bb74ee..b0fe55c 100644
+--- a/libs/scrap/src/common/drmtap_dl.rs
++++ b/libs/scrap/src/common/drmtap_dl.rs
+@@ -148,6 +148,8 @@ type FnRenderNode = unsafe extern "C" fn(*mut drmtap_ctx) -> *const c_char;
+ type FnPlaneRotation = unsafe extern "C" fn(*mut drmtap_ctx, *mut u32) -> c_int;
+ type FnConvertDmabuf =
+     unsafe extern "C" fn(*mut drmtap_ctx, *const drmtap_dmabuf_desc, *mut drmtap_frame_info) -> c_int;
++pub(crate) type FnSetOutputBuffer =
++    unsafe extern "C" fn(*mut drmtap_ctx, *mut std::ffi::c_void, usize) -> c_int;
+ 
+ /// The dlopen'd libdrmtap; the `Library` is kept alive for the process lifetime, so the raw fn pointers stay valid.
+ pub struct DrmtapLib {
+@@ -167,6 +169,7 @@ pub struct DrmtapLib {
+     pub grab_desc: FnGrabDesc,
+     pub open_render: FnOpenRender,
+     pub convert_dmabuf: FnConvertDmabuf,
++    pub set_output_buffer: Option<FnSetOutputBuffer>,
+     pub render_node: Option<FnRenderNode>,
+     /// Optional: it only exists from libdrmtap 0.5.8. Absent means the library cannot say whether
+     /// the plane rotated the scanout, and the consumer keeps the pre-0.5.8 rule for that case.
+@@ -219,6 +222,7 @@ impl DrmtapLib {
+             grab_desc,
+             open_render,
+             convert_dmabuf,
++            set_output_buffer: None,
+             render_node: None,
+             plane_rotation: Some(plane_rotation),
+             version: (0, 5, 8),
+@@ -353,6 +357,8 @@ impl DrmtapLib {
+                 lib.get(b"drmtap_cursor_hotspot_valid").ok().map(|s| *s);
+             let plane_rotation: Option<FnPlaneRotation> =
+                 lib.get(b"drmtap_plane_rotation").ok().map(|s| *s);
++            let set_output_buffer: Option<FnSetOutputBuffer> =
++                lib.get(b"drmtap_set_output_buffer").ok().map(|s| *s);
+             // Log the load only now that every required symbol resolved: this fn still returns None on a missing one.
+             let loaded_from = real
+                 .as_ref()
+@@ -418,6 +424,7 @@ impl DrmtapLib {
+                 grab_desc,
+                 open_render,
+                 convert_dmabuf,
++                set_output_buffer,
+                 render_node,
+                 plane_rotation,
+                 version: (major, minor, patch),
+diff --git a/src/server/drm_capturer.rs b/src/server/drm_capturer.rs
+index 73fa3e6..1e8d82b 100644
+--- a/src/server/drm_capturer.rs
++++ b/src/server/drm_capturer.rs
+@@ -761,19 +761,16 @@ async fn recv_thread(
+                     hdr_eotf: desc.hdr_eotf,
+                     hdr_max_nits: desc.hdr_max_nits,
+                 };
+-                match conv.convert(&mut ddesc, received_fd) {
+-                    Ok((data, w, h, fmt)) => {
+-                        // Borrowed from the render context, valid only until the next convert.
+-                        // Copy into a recycled buffer, and OUTSIDE the slot lock, so a
+-                        // multi-megabyte memcpy never holds the encoder off the slot.
+-                        let mut buf = shared.slot.lock().unwrap().take_free().unwrap_or_default();
+-                        buf.clear();
+-                        buf.extend_from_slice(data);
++                let mut buf = shared.slot.lock().unwrap().take_free().unwrap_or_default();
++                match conv.convert_into(&mut ddesc, received_fd, &mut buf) {
++                    Ok((w, h, fmt)) => {
+                         let mut slot = shared.slot.lock().unwrap();
+                         slot.publish(w as usize, h as usize, fmt, desc.plane_rotation, buf);
+                         shared.cv.notify_one();
+                     }
+-                    Err(err) if err.kind() == io::ErrorKind::WouldBlock => {}
++                    Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
++                        shared.slot.lock().unwrap().recycle(buf);
++                    }
+                     Err(err) => {
+                         drm_set_prefer_cpu(&our_key);
+                         break format!("convert: {err}");

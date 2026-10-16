@@ -1,0 +1,67 @@
+[DRM @ 0x565819667900] Opened DRM device /dev/dri/card1: driver amdgpu version 3.64.0.
+[kmsgrab @ 0x5658196670c0] Template framebuffer is 47: 2560x1440 format 34325258 modifier 0 flags 0.
+[kmsgrab @ 0x5658196670c0] Format is bgr0, from DRM format 34325258 modifier ffffffffffffff.
+Input #0, kmsgrab, from 'fd:':
+  Duration: N/A, start: 1792111947.525966, bitrate: N/A
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, drm_prime, 2560x1440, 29.75 tbr, 1000k tbn, start 1792111947.525966
+[out#0/h264 @ 0x565819669f40] No explicit maps, mapping streams automatically...
+[vost#0:0/h264_vaapi @ 0x56581966a2c0] Created video stream from input stream 0:0
+[vost#0:0/h264_vaapi @ 0x56581966a2c0] -enc_time_base -1 is deprecated, use -enc_time_base demux
+Stream mapping:
+  Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (h264_vaapi))
+[vost#0:0/h264_vaapi @ 0x56581966a2c0] Starting thread...
+[vf#0:0 @ 0x56581966b100] Starting thread...
+[vist#0:0/wrapped_avframe @ 0x565819669c40] [dec:wrapped_avframe @ 0x56581966c840] Starting thread...
+[in#0/kmsgrab @ 0x565819666e00] Starting thread...
+[graph -1 input from stream 0:0 @ 0x7bd5c4001f40] w:2560 h:1440 pixfmt:drm_prime tb:1/1000000 fr:119/4 sar:0/1 csp:unknown range:unknown
+[VAAPI @ 0x7bd5c4002c40] Using render node /dev/dri/renderD128 in place of non-render DRM device.
+[VAAPI @ 0x7bd5c4002c40] libva: VA-API version 1.23.0
+[VAAPI @ 0x7bd5c4002c40] libva: Trying to open /usr/lib/x86_64-linux-gnu/dri/radeonsi_drv_video.so
+[VAAPI @ 0x7bd5c4002c40] libva: Found init function __vaDriverInit_1_23
+[VAAPI @ 0x7bd5c4002c40] libva: va_openDriver() returns 0
+[VAAPI @ 0x7bd5c4002c40] Initialised VAAPI connection: version 1.23
+[VAAPI @ 0x7bd5c4002c40] VAAPI driver: Mesa Gallium driver 26.0.8-1ubuntu0.3 for AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic).
+[VAAPI @ 0x7bd5c4002c40] Driver not found in known nonstandard list, using standard behaviour.
+[graph -1 input from stream 0:0 @ 0x7bd5c4001f40] video frame properties congruent with link at pts_time: 0
+[vost#0:0/h264_vaapi @ 0x56581966a2c0] [enc:h264_vaapi @ 0x56581966a840] Using input frames context (format vaapi) with h264_vaapi encoder.
+[h264_vaapi @ 0x56581966a8c0] Input surface format is nv12.
+[h264_vaapi @ 0x56581966a8c0] Using VAAPI profile VAProfileH264Main (6).
+[h264_vaapi @ 0x56581966a8c0] Using VAAPI entrypoint VAEntrypointEncSlice (6).
+[h264_vaapi @ 0x56581966a8c0] Using VAAPI render target format YUV420 (0x1).
+[h264_vaapi @ 0x56581966a8c0] RC mode: CBR.
+[h264_vaapi @ 0x56581966a8c0] Block Level bitrate control: OFF.
+[h264_vaapi @ 0x56581966a8c0] RC target: 100% of 4000000 bps over 1000 ms.
+[h264_vaapi @ 0x56581966a8c0] RC buffer: 4000000 bits, initial fullness 3000000 bits.
+[h264_vaapi @ 0x56581966a8c0] RC framerate: 119/4 (29.75 fps).
+[h264_vaapi @ 0x56581966a8c0] Driver does not report any additional prediction constraints.
+[h264_vaapi @ 0x56581966a8c0] Using intra and P-frames (supported references: 1 / 1).
+[h264_vaapi @ 0x56581966a8c0] All wanted packed headers available (wanted 0xd, found 0x1f).
+[h264_vaapi @ 0x56581966a8c0] Using level 5.
+Output #0, h264, to 'pipe:1':
+  Metadata:
+    encoder         : Lavf62.3.100
+  Stream #0:0: Video: h264 (Main), 1 reference frame, vaapi(tv, progressive), 2560x1440, q=2-31, 4000 kb/s, 29.75 fps, 1000k tbn
+    Metadata:
+      encoder         : Lavc62.11.100 h264_vaapi
+[out#0/h264 @ 0x565819669f40] Starting thread...
+frame=   35 fps=0.0 q=-0.0 size=     437KiB time=00:00:01.18 bitrate=3006.6kbits/s speed=2.38x elapsed=0:00:00.50    frame=   50 fps= 50 q=-0.0 size=     683KiB time=00:00:01.69 bitrate=3306.3kbits/s speed=1.69x elapsed=0:00:01.00    frame=   55 fps= 37 q=-0.0 size=     769KiB time=00:00:02.12 bitrate=2964.0kbits/s speed=1.42x elapsed=0:00:01.50    frame=   80 fps= 40 q=-0.0 size=    1176KiB time=00:00:02.69 bitrate=3574.2kbits/s speed=1.35x elapsed=0:00:02.00    [vost#0:0/h264_vaapi @ 0x56581966a2c0] [enc:h264_vaapi @ 0x56581966a840] Encoder thread received EOF
+[vost#0:0/h264_vaapi @ 0x56581966a2c0] Terminating thread with return code 0 (success)
+[out#0/h264 @ 0x565819669f40] All streams finished
+[out#0/h264 @ 0x565819669f40] Terminating thread with return code 0 (success)
+[in#0/kmsgrab @ 0x565819666e00] Terminating thread with return code 0 (success)
+[vist#0:0/wrapped_avframe @ 0x565819669c40] [dec:wrapped_avframe @ 0x56581966c840] Decoder thread received EOF packet
+[vist#0:0/wrapped_avframe @ 0x565819669c40] [dec:wrapped_avframe @ 0x56581966c840] Decoder returned EOF, finishing
+[vist#0:0/wrapped_avframe @ 0x565819669c40] [dec:wrapped_avframe @ 0x56581966c840] Terminating thread with return code 0 (success)
+[vf#0:0 @ 0x56581966b100] All consumers returned EOF
+[vf#0:0 @ 0x56581966b100] Terminating thread with return code 0 (success)
+[AVIOContext @ 0x56581967f6c0] Statistics: 1388967 bytes written, 0 seeks, 114 writeouts
+[out#0/h264 @ 0x565819669f40] Output file #0 (pipe:1):
+[out#0/h264 @ 0x565819669f40]   Output stream #0:0 (video): 90 frames encoded; 90 packets muxed (1388967 bytes); 
+[out#0/h264 @ 0x565819669f40]   Total: 90 packets (1388967 bytes) muxed
+[out#0/h264 @ 0x565819669f40] video:1356KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.000000%
+frame=   90 fps= 38 q=-0.0 Lsize=    1356KiB time=00:00:03.02 bitrate=3668.4kbits/s speed=1.29x elapsed=0:00:02.35    
+[in#0/kmsgrab @ 0x565819666e00] Input file #0 (fd:):
+[in#0/kmsgrab @ 0x565819666e00]   Input stream #0:0 (video): 91 packets read (37856 bytes); 90 frames decoded; 0 decode errors; 
+[in#0/kmsgrab @ 0x565819666e00]   Total: 91 packets (37856 bytes) demuxed
+
+Exiting with exit code 0

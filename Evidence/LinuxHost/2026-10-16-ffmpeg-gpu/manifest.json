@@ -1,0 +1,28 @@
+{
+  "host": "linux-host",
+  "client_timezone": "Asia/Shanghai",
+  "scope": "independent FFmpeg feasibility and CPU-path benchmark; existing RustDesk remains running",
+  "formal_labels": [
+    "gpu-r1",
+    "ram-r1",
+    "ram-r2",
+    "gpu-r2",
+    "gpu-r3",
+    "ram-r3"
+  ],
+  "original_library_sha256": "b7908e555b0ad96f78b6398a470be0f0c9e07f3ccedb8acfb9ee565c63312896",
+  "modified_product_files": [],
+  "cleanup_verified": {
+    "ffmpeg_processes_remaining": [],
+    "ffmpeg_lookup_exit": 1,
+    "rustdesk_active": true,
+    "service_main_pid_unchanged": true,
+    "installed_library_matches_previous_original": true,
+    "loaded_library_path": "/usr/share/rustdesk/lib/librustdesk.so",
+    "initial_library_probe_wrong_path": true,
+    "display_size_unchanged": true,
+    "current_modifier_linear": true,
+    "completed_utc": "2026-10-16T00:52:51.462501+00:00"
+  },
+  "verdict": "Proceed to a bounded Host media-path integration prototype; whole-client gain remains unproven."
+}

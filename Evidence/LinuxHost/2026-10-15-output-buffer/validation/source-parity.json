@@ -1,0 +1,23 @@
+[
+  {
+    "file": "libs/scrap/src/common/drm_render.rs",
+    "tested_source_sha256": "b892255910ba7252dd16b68c13b7a11ebffd2e4a7e5de12ebcb16eb16318770c",
+    "delivered_source_sha256": "c2a036b0b08da7647b0a130c4a2a89c7426461242e5371b2552b77a73eb476ea",
+    "executable_code_matches": true,
+    "comments_only_difference": true
+  },
+  {
+    "file": "libs/scrap/src/common/drmtap_dl.rs",
+    "tested_source_sha256": "eebde7671466ac1a5eb19c4c8b60415ad3591bc6507b00b2e787e33b63dbb2a9",
+    "delivered_source_sha256": "eebde7671466ac1a5eb19c4c8b60415ad3591bc6507b00b2e787e33b63dbb2a9",
+    "executable_code_matches": true,
+    "comments_only_difference": false
+  },
+  {
+    "file": "src/server/drm_capturer.rs",
+    "tested_source_sha256": "b33ca11920647c3ac4bfd86b609ac5e79fc4ff8f764a6f5959c526fbeed8275a",
+    "delivered_source_sha256": "b33ca11920647c3ac4bfd86b609ac5e79fc4ff8f764a6f5959c526fbeed8275a",
+    "executable_code_matches": true,
+    "comments_only_difference": false
+  }
+]

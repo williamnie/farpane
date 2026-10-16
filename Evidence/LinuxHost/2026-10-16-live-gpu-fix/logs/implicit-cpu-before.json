@@ -1,0 +1,50 @@
+{
+  "utc": "2026-10-16T06:39:45.306176+00:00",
+  "elapsed_seconds": 20.072919929982163,
+  "cpu_unit": "one logical core = 100%",
+  "stable_pids": true,
+  "total_cpu_percent": 22.11935291670316,
+  "total_pss_kib": 411672,
+  "processes": [
+    {
+      "pid": 3160019,
+      "role": "--service",
+      "executable": "/opt/farpane/releases/farpane-p1-a7c58f13c07d-90876510-551585f0/farpane",
+      "cpu_percent": 2.2418263091253205,
+      "pss_kib": 43816,
+      "fd_count": 42
+    },
+    {
+      "pid": 3160084,
+      "role": "--server",
+      "executable": "/opt/farpane/releases/farpane-p1-a7c58f13c07d-90876510-551585f0/farpane",
+      "cpu_percent": 18.68188590937767,
+      "pss_kib": 131371,
+      "fd_count": 68
+    },
+    {
+      "pid": 3160091,
+      "role": "--tray",
+      "executable": "/opt/farpane/releases/farpane-p1-a7c58f13c07d-90876510-551585f0/farpane",
+      "cpu_percent": 0.049818362425007125,
+      "pss_kib": 24141,
+      "fd_count": 19
+    },
+    {
+      "pid": 3160536,
+      "role": "gui",
+      "executable": "/opt/farpane/releases/farpane-p1-a7c58f13c07d-90876510-551585f0/farpane",
+      "cpu_percent": 0.5978203491000854,
+      "pss_kib": 111733,
+      "fd_count": 43
+    },
+    {
+      "pid": 3184256,
+      "role": "--cm",
+      "executable": "/opt/farpane/releases/farpane-p1-a7c58f13c07d-90876510-551585f0/farpane",
+      "cpu_percent": 0.5480019866750783,
+      "pss_kib": 100611,
+      "fd_count": 55
+    }
+  ]
+}

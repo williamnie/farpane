@@ -1,0 +1,492 @@
+{
+  "artifact_id": "farpane-p1-445515cfa1ec-90876510-551585f0",
+  "stage": "P1 GPU integration; live acceptance pending",
+  "gpu_integrated": true,
+  "gpu_default_enabled": false,
+  "features": [
+    "flutter",
+    "hwcodec",
+    "drm",
+    "farpane-linux",
+    "linux-gpu-media"
+  ],
+  "core_sha256": "445515cfa1ece3579afc3834f8c6be500c19babc85afcc4c9d381281b7802099",
+  "files": [
+    {
+      "path": "README.txt",
+      "sha256": "cb63bfe7680afae11647fd613963095e602419389374028c6711e3a6bdf34346"
+    },
+    {
+      "path": "data/flutter_assets/AssetManifest.bin",
+      "sha256": "5ff1849d2dfcedb6c994c116105f3b816559e3ce71bee1ec9aca3c265e2d4651"
+    },
+    {
+      "path": "data/flutter_assets/AssetManifest.json",
+      "sha256": "906376b04000dba1692eb097c3a0d8872f3174679ad633ae590bff62e87ca98a"
+    },
+    {
+      "path": "data/flutter_assets/FontManifest.json",
+      "sha256": "068f1cc96816fab157a6813ce233731e46bf661ad84d0018381fb58b19396886"
+    },
+    {
+      "path": "data/flutter_assets/NOTICES.Z",
+      "sha256": "371c654d0bd026f2298538eafd1af92cd59f66631fd1007a169a4695e9d6e66c"
+    },
+    {
+      "path": "data/flutter_assets/assets/actions.svg",
+      "sha256": "ef6597b20e4578e8a6ddfe62f46a9681a8e4649b132f1f10f9fc5da15018a7c9"
+    },
+    {
+      "path": "data/flutter_assets/assets/actions_mobile.svg",
+      "sha256": "527c6a251e5053ace7e469d2b1080108448ade654a5641a3b8d4052df94a13cf"
+    },
+    {
+      "path": "data/flutter_assets/assets/address_book.ttf",
+      "sha256": "c725b18176aa78151e013222a9fc9c439a9a9106d6c061e8f617162a80a8b4f7"
+    },
+    {
+      "path": "data/flutter_assets/assets/android.svg",
+      "sha256": "3feb445086c26cc0db5153b5501bfa29d7824cb62f287f2217c51d728ce61522"
+    },
+    {
+      "path": "data/flutter_assets/assets/arrow.svg",
+      "sha256": "fe040cf78012f519f391e664c55cd3170be59575520995a4bc143d2943fb1d64"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-apple.svg",
+      "sha256": "98583b4cf0dc8afe3b5025fce65f261c2f01264afdbea19b591853e8e93d7fbe"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-auth0.svg",
+      "sha256": "65360327073579c1e72626b3dad257913c6653bfc82b1becddd5f49179fa511a"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-default.svg",
+      "sha256": "1e555baf5a32c88d5f1e47648c0fdae13e211e6a743632cd68256cd35aa259e2"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-facebook.svg",
+      "sha256": "7d05241541ea2ac9a918a5852ace86c06673d8aa54cc02a274c8bc5ff7efa715"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-github.svg",
+      "sha256": "699aae703998c04758bc8c90ed9e89baaf7cd3ce9b90f6b261cd18b2e9a0b32f"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-gitlab.svg",
+      "sha256": "976be154f07bed12377690ddfe734bf94ff01858f9ce28a0a526db7617130e5e"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-google.svg",
+      "sha256": "442e7678b4ba49a4261222bff05e52c9c892d4b37f5403c974f3ecf79007bc4b"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-microsoft.svg",
+      "sha256": "45bd7de758b979cb6b8735abb4d1ad8e5e3ed4f6c24a969d6b724fdc413cd1a7"
+    },
+    {
+      "path": "data/flutter_assets/assets/auth-okta.svg",
+      "sha256": "483911dd70639a6c5c20d7c44b26593a7032fd0c61c824646e5692b019d51fdb"
+    },
+    {
+      "path": "data/flutter_assets/assets/call_end.svg",
+      "sha256": "a9b2e7de60c87f5289db4eafe78e997a70d76d7a4245d2b2cfa7ccb7ae3605a0"
+    },
+    {
+      "path": "data/flutter_assets/assets/call_wait.svg",
+      "sha256": "b6bf409d50255048c0b8e73397190a222a6c26f32326ad654dbebb8794525fb4"
+    },
+    {
+      "path": "data/flutter_assets/assets/chat.svg",
+      "sha256": "b59da6aea860332acff94d1b630ee8cc8d2e67aef38227815879e64d7695d3de"
+    },
+    {
+      "path": "data/flutter_assets/assets/chat2.svg",
+      "sha256": "911922bceba29fcff411cd9e4205b060bc9af12bca96a5aebb3e6ab7e684b515"
+    },
+    {
+      "path": "data/flutter_assets/assets/checkbox-outline.svg",
+      "sha256": "b8520bb0397257021199d933bee9e047cf35347fa56fe615cdfba201294f87c0"
+    },
+    {
+      "path": "data/flutter_assets/assets/chevron_up_chevron_down.svg",
+      "sha256": "5b5fd77cd98711d9a4815a761aabec5a97157e4d74eb2cfa61e3b72f527c252c"
+    },
+    {
+      "path": "data/flutter_assets/assets/close.svg",
+      "sha256": "19b67ad30d9024bf95714bba11576eb5a04b6950eb9760c987e4b2773e0544ac"
+    },
+    {
+      "path": "data/flutter_assets/assets/device_group.ttf",
+      "sha256": "757071e3671adac7f6fca290259e782ddaf8e5a8381cf14b6984b3f05c67412f"
+    },
+    {
+      "path": "data/flutter_assets/assets/display.svg",
+      "sha256": "e8cbf643fa4c34782a94f401504e77adf2610e0145b3c99013c3d69639aa07d5"
+    },
+    {
+      "path": "data/flutter_assets/assets/display_switcher.svg",
+      "sha256": "483bd169c51abe1ac25ae43149ff544d922281dee68baffb24f302b463277c40"
+    },
+    {
+      "path": "data/flutter_assets/assets/dots.svg",
+      "sha256": "a99cad2b4112f6c593657783b25abced982cce342866554cd8e37ffc364b50fb"
+    },
+    {
+      "path": "data/flutter_assets/assets/file.svg",
+      "sha256": "4a17002f83a6b30239f172f9d7d7c26e3c6ccfa029c22f11af020981a5f41291"
+    },
+    {
+      "path": "data/flutter_assets/assets/file_transfer.svg",
+      "sha256": "33f79b7d82b7c44a51791f942f12b754f7fdcbbfe6dbcc783af3ac55527edea0"
+    },
+    {
+      "path": "data/flutter_assets/assets/folder.svg",
+      "sha256": "6a1c84071c3d76e796e06909cb6e338e2d6c07e9784376289234f237711b8b8f"
+    },
+    {
+      "path": "data/flutter_assets/assets/folder_new.svg",
+      "sha256": "a8672a3dc43ca1db7b9889c6642e43a7bb818af908dda8754b509233003c39d8"
+    },
+    {
+      "path": "data/flutter_assets/assets/fullscreen.svg",
+      "sha256": "524bfa7c693571d43e298c9a63a1813a4302b9dd40ac34519479a09d21ed08e3"
+    },
+    {
+      "path": "data/flutter_assets/assets/fullscreen_exit.svg",
+      "sha256": "d06c8eb61ecb9b5ff1c1c91f3e29e9b00e812a131e0fd092be441de79c3b65c7"
+    },
+    {
+      "path": "data/flutter_assets/assets/gestures.ttf",
+      "sha256": "195ff53b2eff7718dbaa69e30685d63986d5a1ee6cf3de6090989d880f0e3c5c"
+    },
+    {
+      "path": "data/flutter_assets/assets/home.svg",
+      "sha256": "02de1b923b3ae4e15b9027db1db70c32717b72ce6c8b52c46e235df6a768d023"
+    },
+    {
+      "path": "data/flutter_assets/assets/icon.svg",
+      "sha256": "4d6ecc2b45571382576049095435f41576c02e895b8766ef3f300623c35b3488"
+    },
+    {
+      "path": "data/flutter_assets/assets/insecure.svg",
+      "sha256": "b25093ec9bf629995f2ed67603cf10dd98425a318b98c460b9be569aa71a8102"
+    },
+    {
+      "path": "data/flutter_assets/assets/insecure_relay.svg",
+      "sha256": "9cb9c44ff9b003bf0a8254c940eb8835846c977035129cc755704b6d5b3cae0b"
+    },
+    {
+      "path": "data/flutter_assets/assets/kb_layout_iso.svg",
+      "sha256": "fcd844ad1f7b360edef92f1f18a9dd42a87bf436c5a3e2d4d5bcc88bc2da638b"
+    },
+    {
+      "path": "data/flutter_assets/assets/kb_layout_not_iso.svg",
+      "sha256": "58ca6bbc9f5da46610f5ee7d948d6027458b8e1421422c9acfe43002cb50d513"
+    },
+    {
+      "path": "data/flutter_assets/assets/keyboard_mouse.svg",
+      "sha256": "3d5f9268842ab114a9bf84a31312a8081476ed3a8dc4aa702d533f48a68d61d7"
+    },
+    {
+      "path": "data/flutter_assets/assets/linux.svg",
+      "sha256": "ed618b2fc45b47cedd01d63ff3e725158f7287b163b1119cf4992fd524fc6dc4"
+    },
+    {
+      "path": "data/flutter_assets/assets/mac.svg",
+      "sha256": "99f529a74e1e8cb086cd338864dbe334a1fa758c5b53faeca2ebb3b57caeb1bf"
+    },
+    {
+      "path": "data/flutter_assets/assets/message_24dp_5F6368.svg",
+      "sha256": "11c36e1555a8f74aeca3de9d259122d51b6206b8ada4872e3259bcd8e6a994f2"
+    },
+    {
+      "path": "data/flutter_assets/assets/more.ttf",
+      "sha256": "54d71ef06045813df9227bd03e97a082c4bf22def1483e8dd5343391508d5740"
+    },
+    {
+      "path": "data/flutter_assets/assets/peer_searchbar.ttf",
+      "sha256": "28be41836cefbe1f6f59d2b17d58bd944923285e6c8b9e574e6ec7d7643873d9"
+    },
+    {
+      "path": "data/flutter_assets/assets/pinned.svg",
+      "sha256": "db10b9be0bd09d2a70ccabd1be2145d334ec2ccf135e10058f4e6a628b900c0d"
+    },
+    {
+      "path": "data/flutter_assets/assets/rec.svg",
+      "sha256": "7b8b348d37bc747db1b78f5ad1f312ac1ee2f7af7ebd9a10d05c41cd9eabcd18"
+    },
+    {
+      "path": "data/flutter_assets/assets/record_screen.svg",
+      "sha256": "4f8461b4811429f5080acfe3514f9c8cc75caa968e1ee29e5334eff3c6e575bd"
+    },
+    {
+      "path": "data/flutter_assets/assets/refresh.svg",
+      "sha256": "c82401190b54604d878b2c418e54d629369efe77b4ae5be0da76b02c0a541b65"
+    },
+    {
+      "path": "data/flutter_assets/assets/scam.png",
+      "sha256": "73b10db88c45da3604b2c10492d60452f8d4efcaaf31f953ccd9ee8ecaee0801"
+    },
+    {
+      "path": "data/flutter_assets/assets/screen.svg",
+      "sha256": "c25d47a1d34d258629d1826dba784ee6092b705cf328260afa44f4809f0df391"
+    },
+    {
+      "path": "data/flutter_assets/assets/search.svg",
+      "sha256": "b7868a196030ea2f7f15dc954057b57f3a80865a92432249505a059b31bbafb5"
+    },
+    {
+      "path": "data/flutter_assets/assets/secure.svg",
+      "sha256": "74082330afa95c3f2c1220efb7a38e420243c7b2cec97091073abe7e199cb2a9"
+    },
+    {
+      "path": "data/flutter_assets/assets/secure_relay.svg",
+      "sha256": "1d3be44539e7e1afb79f29359b9dd451e714fd94b9acc382997b749af156a213"
+    },
+    {
+      "path": "data/flutter_assets/assets/tabbar.ttf",
+      "sha256": "a17ca0a8f7d5aa5ea3f6380f3a282b98b3d66135bb0cee5d431082f560030db8"
+    },
+    {
+      "path": "data/flutter_assets/assets/transfer.svg",
+      "sha256": "b0668dbf64e68e88860032eb6510daf5018aef02138d4c13ce544b817fbdb689"
+    },
+    {
+      "path": "data/flutter_assets/assets/trash.svg",
+      "sha256": "cbd53c61f856910fb53b8e184f5aa72f6c356979c047578563461c4559ad6355"
+    },
+    {
+      "path": "data/flutter_assets/assets/unpinned.svg",
+      "sha256": "5a9e5eaf50ddb4505279fc6c89c9d63f623e5e7423cc40f7d088e2b36c3e4f4c"
+    },
+    {
+      "path": "data/flutter_assets/assets/voice_call.svg",
+      "sha256": "66678adc66d724ca25088ffea6508c5757b5a0012e39a78a45463cced52852c1"
+    },
+    {
+      "path": "data/flutter_assets/assets/voice_call_waiting.svg",
+      "sha256": "9fdc429170ecebd5f8aaafde07b20f5a63e9029164c8f857b51b32b39e3330e6"
+    },
+    {
+      "path": "data/flutter_assets/assets/win.svg",
+      "sha256": "0ef23580fc65eb8e151e0d2744db1525d8d54258fc5afc51e2719a7e2a5335f6"
+    },
+    {
+      "path": "data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+      "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453"
+    },
+    {
+      "path": "data/flutter_assets/packages/dash_chat_2/assets/placeholder.png",
+      "sha256": "17e85113e43a4ddba198adf0bdc7502340765782c9d2f85c43e6516e9f395b64"
+    },
+    {
+      "path": "data/flutter_assets/packages/dash_chat_2/assets/profile_placeholder.png",
+      "sha256": "4064371da447aa1fa2d15b63b676bd4c8adf4db3f516f8ed604cc92dcddcb6ba"
+    },
+    {
+      "path": "data/flutter_assets/packages/flex_color_picker/assets/opacity.png",
+      "sha256": "8f40db314a0a7eab3ebc1817b78547496fbed922203783a1a8a4adb2afda0976"
+    },
+    {
+      "path": "data/flutter_assets/packages/wakelock_plus/assets/no_sleep.js",
+      "sha256": "dce4eef0b197b640ad6aaab2228ee1ee7dccf8bd6d6b5de5484dd1bd16430a78"
+    },
+    {
+      "path": "data/flutter_assets/packages/window_manager/images/ic_chrome_close.png",
+      "sha256": "70fe0130bbbd928d04cd33a49ecde422ec54fd748b7a4e983f4e31be6e73f5f5"
+    },
+    {
+      "path": "data/flutter_assets/packages/window_manager/images/ic_chrome_maximize.png",
+      "sha256": "93f2ed012ec01288b78ad4816ef254261e9ff25e8a9858359b45431c9a5de5f4"
+    },
+    {
+      "path": "data/flutter_assets/packages/window_manager/images/ic_chrome_minimize.png",
+      "sha256": "0976edbb9977136544af17de125f345a41065694de92036d9365817ea6d8f05a"
+    },
+    {
+      "path": "data/flutter_assets/packages/window_manager/images/ic_chrome_unmaximize.png",
+      "sha256": "3d375930c514ec2ebc0603ad1e1398b4daf458951042a97232d16f17e1c9603b"
+    },
+    {
+      "path": "data/flutter_assets/shaders/ink_sparkle.frag",
+      "sha256": "3aa09424d1dc391fd59a9735efe986ff43302b5e5bc310926afe11c68626c3b2"
+    },
+    {
+      "path": "data/flutter_assets/version.json",
+      "sha256": "5487e3227363bec74d93c6de43e5db5c83f7521725616e2521e7288653197645"
+    },
+    {
+      "path": "data/icudtl.dat",
+      "sha256": "c12537022ef818991a7bfed41a76d8d6ae962ffbc0e6511ac762a5d0845e7f7c"
+    },
+    {
+      "path": "dependencies.lock.json",
+      "sha256": "b8f1b60ae70927406851eab468bae690866420c1a0c500b70196ae5377220918"
+    },
+    {
+      "path": "farpane",
+      "sha256": "90876510a62ad4854574e85897bbe369cd8dd71279f8ff435f9259e0a6c1180a"
+    },
+    {
+      "path": "lib/libapp.so",
+      "sha256": "551585f0d7eaffbde66fccf33ebf08546dba1190620bee352dc85fa7f47f140e"
+    },
+    {
+      "path": "lib/libdesktop_drop_plugin.so",
+      "sha256": "5bf7dc4680f3c9bd8f232de0f4379120fac8bdc40986845ae274b35f2bda6101"
+    },
+    {
+      "path": "lib/libdesktop_multi_window_plugin.so",
+      "sha256": "d8e3fe6591c916adcdc3020946e97a4661d75fa26e9d24726cce7d4b59c825dd"
+    },
+    {
+      "path": "lib/libdrmtap.so.0",
+      "symlink": "libdrmtap.so.0.5.8"
+    },
+    {
+      "path": "lib/libdrmtap.so.0.5.8",
+      "sha256": "f583791f617d5ad113c65a2247a84bcc15de235fd5c2459a10bbdddcc6a38f0d"
+    },
+    {
+      "path": "lib/libfile_selector_linux_plugin.so",
+      "sha256": "f8fd8be443181dc4e95f266097d4c35b0bdb64a05f6a820a3438a8d360a74089"
+    },
+    {
+      "path": "lib/libflutter_custom_cursor_plugin.so",
+      "sha256": "7745a9bc452cdb5ae450474feaff1b1eaea3a48951cff2cd7c7a697c446aab03"
+    },
+    {
+      "path": "lib/libflutter_linux_gtk.so",
+      "sha256": "854bf421539fa8572d7d61469eeb78c017c10754a8748cf00788deb6db8887b8"
+    },
+    {
+      "path": "lib/librustdesk.so",
+      "sha256": "445515cfa1ece3579afc3834f8c6be500c19babc85afcc4c9d381281b7802099"
+    },
+    {
+      "path": "lib/libscreen_retriever_plugin.so",
+      "sha256": "9a701e9e721732934e7150929851031eb98eac9f843a6c3c539ab15d209b298c"
+    },
+    {
+      "path": "lib/libtexture_rgba_renderer_plugin.so",
+      "sha256": "854cbef0cf30b3f1a38e9d69f909569b88e7699b545d910bf884a88f9d6ba7b5"
+    },
+    {
+      "path": "lib/liburl_launcher_linux_plugin.so",
+      "sha256": "e4865e5cfe0f82119594ebea99aa3a70f9df8567fcb08eb1c09b5e0b0a6ee694"
+    },
+    {
+      "path": "lib/libwindow_manager_plugin.so",
+      "sha256": "b15ba8cda039f69f8b593314105178e65606cee58ace83dac9fe941f5afa7b11"
+    },
+    {
+      "path": "lib/libwindow_size_plugin.so",
+      "sha256": "24d25b1a2798e1589a73127ad7c77469374f8cdd2c32cff74eef11945cde8941"
+    },
+    {
+      "path": "licenses/ffmpeg.txt",
+      "sha256": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30"
+    },
+    {
+      "path": "licenses/libdrmtap.txt",
+      "sha256": "a6db0e06dbfbfcd2f0875c5790cccbf7cd20b7b4fef7947086926f127cde0052"
+    },
+    {
+      "path": "licenses/rustdesk.txt",
+      "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+    },
+    {
+      "path": "source/overlays/app.rs",
+      "sha256": "d47ce9cf238edb133a671ab25fe80cf775eace5c72131b58617b22340db51a0d"
+    },
+    {
+      "path": "source/overlays/gpu_build.rs",
+      "sha256": "f97dd12bcd261dc76327cd49dc778ff72d643f74382ded338b98d12d2f04eb4d"
+    },
+    {
+      "path": "source/overlays/gpu_capture.rs",
+      "sha256": "8cf88be2c227de8c8e56819778bcf875051b5f025689cf61f81f76a3cc7c0a86"
+    },
+    {
+      "path": "source/overlays/gpu_host.rs",
+      "sha256": "4b62cf55860f29914ef2bdbb6619afa1315fe4ed957d1bde1dd7e0256d1fe86d"
+    },
+    {
+      "path": "source/overlays/gpu_media.cpp",
+      "sha256": "efa7c745eccf59c5bd74011f5d2c94236ae822ff009080f6b7304634093b6ab6"
+    },
+    {
+      "path": "source/overlays/gpu_media.h",
+      "sha256": "6405efc5307de5c0760cc199ea8cd671c57fe97da5ba65db4a170b5a63f4bcf6"
+    },
+    {
+      "path": "source/overlays/gpu_settings.dart",
+      "sha256": "db71a3d316aced6aca41ca483d78ea614d59bb1d5cd3d581aa13241d3d391bd2"
+    },
+    {
+      "path": "source/overlays/gpu_status.rs",
+      "sha256": "eea7be5e828f811580eea8ce5d7c5a20836cf8e88ef3aab3287eac42ed2320fa"
+    },
+    {
+      "path": "source/overlays/linux_gpu.rs",
+      "sha256": "5e70f45e15dac4336dec46107d422bb7313d02853e694308527e8c3fd0b32c8f"
+    },
+    {
+      "path": "source/patches/0001-output-buffer.patch",
+      "sha256": "2647a6c43bb9bac961916bede321526a01f1e49bb76d3937fd6aedc3ef29f300"
+    },
+    {
+      "path": "source/patches/0002-hwcodec-ffmpeg9.patch",
+      "sha256": "620a4e1267d93a86ddb7a722411ad0f97d1db0fbbd2b5a474ab97fb419c933ea"
+    },
+    {
+      "path": "source/patches/0003-hwcodec-linux-link.patch",
+      "sha256": "a7fd92d4e8f1cedc14e52ae0fb6634545c090021081fc17e2c2f135a739d2261"
+    },
+    {
+      "path": "source/patches/0004-linux-hwcodec-source.patch",
+      "sha256": "6eaa6eca388061927ecdbb7fbde4bafc4fbcdbd180e42ed741173b9b09abc701"
+    },
+    {
+      "path": "source/patches/0005-hwcodec-ffmpeg9-profiles.patch",
+      "sha256": "b4bf1837cd6d0d389a0588834e72cff757d9b053a4719791dde756d484d5fd31"
+    },
+    {
+      "path": "source/patches/0006-ffmpeg-vaapi-pool-limit.patch",
+      "sha256": "e0f36f7d234de06e8f64992490f8e9080548f344dbdc087c0c206c98060dccb9"
+    },
+    {
+      "path": "source/patches/0007-flutter-core-location.patch",
+      "sha256": "90b7e91c90fd8712f29fd0dc25a369d187ea155fbb80dcf9e1ff9f4ba46ed2f6"
+    },
+    {
+      "path": "source/patches/0008-farpane-application-identity.patch",
+      "sha256": "00e4682d9325abbd828c887bca6ca388496cb28fe9bd4884c8950883256b62fc"
+    },
+    {
+      "path": "source/patches/0009-farpane-private-drmtap.patch",
+      "sha256": "9ab1d0c366b06284a0c00ecc4a502e41348558f0f8d4fe927ffd419e05495dd0"
+    },
+    {
+      "path": "source/patches/0010-linux-gpu-encoder.patch",
+      "sha256": "b5f7eb0894b323d729b6f1a45c98e55da09d117d5ecee82395cbf19008f507fa"
+    },
+    {
+      "path": "source/patches/0011-linux-gpu-capture-host.patch",
+      "sha256": "2c83fd1108c31e8acbd0d26da4d8317cecd838860d0de971a0590fd0fae9cdb8"
+    },
+    {
+      "path": "source/patches/0012-linux-gpu-settings.patch",
+      "sha256": "1a986802cbe0ee64580b9a0132341efcc49bf317d8993450d404d0bb28b594d4"
+    },
+    {
+      "path": "source/patches/0013-farpane-system-location.patch",
+      "sha256": "916b7d499a52efae915e31ac6ba84c632b57cce4238875802ae4d133b66a7ab1"
+    },
+    {
+      "path": "source/patches/0014-farpane-network-identity.patch",
+      "sha256": "5de92871a8892c8066fa09c1ea377619b2601f88d7b1a0174c5dab3a57fc6c84"
+    }
+  ]
+}

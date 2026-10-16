@@ -1,0 +1,13 @@
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+product_adapter implicit=0 alpha=0 decoded=36 keys=3 color_max=1 screenshot_guard=pass
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+product_adapter implicit=0 alpha=1 decoded=36 keys=3 color_max=1 screenshot_guard=pass
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+tiled_fixture tiling_info=0x8000303fe000001b
+tiled_fixture modifier=0xffffffffffffff pitch=1024 size=139264
+product_adapter implicit=1 alpha=0 decoded=36 keys=3 color_max=1 screenshot_guard=pass
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+tiled_fixture tiling_info=0x8000303fe000001b
+tiled_fixture modifier=0xffffffffffffff pitch=1024 size=139264
+product_adapter implicit=1 alpha=1 decoded=36 keys=3 color_max=1 screenshot_guard=pass
+PASS product C ABI, CBR, source reuse, cold screenshot, color, PTS, IDR, packet failure and cleanup

@@ -1,0 +1,44 @@
+{
+  "utc": "2026-10-16T06:46:03.244971+00:00",
+  "elapsed_seconds": 20.056402481975965,
+  "cpu_unit": "one logical core = 100%",
+  "stable_pids": true,
+  "total_cpu_percent": 2.7422664682475686,
+  "total_pss_kib": 220332,
+  "processes": [
+    {
+      "pid": 3212867,
+      "role": "--service",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 1.5456411002849932,
+      "pss_kib": 47772,
+      "fd_count": 40
+    },
+    {
+      "pid": 3213898,
+      "role": "gui",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 0.49859390331773973,
+      "pss_kib": 113738,
+      "fd_count": 46
+    },
+    {
+      "pid": 3216350,
+      "role": "--server",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 0.6481720743130617,
+      "pss_kib": 31292,
+      "fd_count": 36
+    },
+    {
+      "pid": 3216357,
+      "role": "--tray",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 0.04985939033177398,
+      "pss_kib": 27530,
+      "fd_count": 19
+    }
+  ],
+  "excluded": true,
+  "reason": "Client closed connection before sampling; idle sample cannot measure streaming CPU"
+}

@@ -1,0 +1,56 @@
+{
+  "patched_files": [
+    {
+      "target": "rustdesk",
+      "file": "Cargo.toml",
+      "sha256": "b0a2a7080fc70e83f7f9975d5b5620597722ce99a29ce465588ee3150ec100ff"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/drm_render.rs",
+      "sha256": "c2a036b0b08da7647b0a130c4a2a89c7426461242e5371b2552b77a73eb476ea"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/drmtap_dl.rs",
+      "sha256": "eebde7671466ac1a5eb19c4c8b60415ad3591bc6507b00b2e787e33b63dbb2a9"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/drm_capturer.rs",
+      "sha256": "b33ca11920647c3ac4bfd86b609ac5e79fc4ff8f764a6f5959c526fbeed8275a"
+    },
+    {
+      "target": "hwcodec",
+      "file": "build.rs",
+      "sha256": "b26f120570772ba2133a292abecf122ec463fc520f9f0b8e463673b61b7dea46"
+    },
+    {
+      "target": "hwcodec",
+      "file": "cpp/common/util.cpp",
+      "sha256": "d1f58f39e84264de1ce414267382441ed2c98ecc369bae9622cbc0b5a1dd10cf"
+    },
+    {
+      "target": "hwcodec",
+      "file": "cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp",
+      "sha256": "d092a951c4175bebd5b525489ccc51e2f77646e646064c64082e86d58ebb63d7"
+    },
+    {
+      "target": "ffmpeg",
+      "file": "libavfilter/vaapi_vpp.c",
+      "sha256": "0ce39b212bba5930f8958ccd8a9d9c4fe70c6f409b44d887eacfc2950e3cf6b2"
+    },
+    {
+      "target": "ffmpeg",
+      "file": "libavfilter/vaapi_vpp.h",
+      "sha256": "96d15d06c519c743c584a96659567e1dc4e44a323dd341d7d882f15e6f1e398b"
+    },
+    {
+      "target": "ffmpeg",
+      "file": "libavfilter/vf_scale_vaapi.c",
+      "sha256": "be42fe22bb5fc3afd3860d15334e1def40d94fcc3bbb0a08540d938aa61a2e75"
+    }
+  ],
+  "lockfiles": "match",
+  "result": "PASS"
+}

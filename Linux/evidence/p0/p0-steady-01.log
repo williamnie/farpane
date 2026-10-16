@@ -1,0 +1,50 @@
+ffmpeg=9.0.2 uid=1000 size=256x128 fps=12 frames=720 pre_tol=3 decoded_tol=10
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+COLOR rgb=0,0,0 yuv=16,128,128
+COLOR rgb=255,255,255 yuv=235,128,128
+COLOR rgb=255,0,0 yuv=81,90,240
+COLOR rgb=0,255,0 yuv=145,54,34
+COLOR rgb=0,0,255 yuv=41,240,110
+COLOR rgb=255,255,0 yuv=210,16,146
+COLOR rgb=0,255,255 yuv=170,166,16
+COLOR rgb=255,0,255 yuv=106,202,222
+MEMORY frame=60 pss_kb=73064 private_kb=73064 fd=11
+GPU_MEMORY frame=60 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=60 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=120 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=120 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=120 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=180 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=180 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=180 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=240 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=240 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=240 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=300 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=300 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=300 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=360 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=360 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=360 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=420 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=420 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=420 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=480 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=480 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=480 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=540 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=540 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=540 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=600 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=600 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=600 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=660 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=660 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=660 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+MEMORY frame=720 pss_kb=73108 private_kb=73108 fd=11
+GPU_MEMORY frame=720 drm-client-id:	2055 drm-memory-vram:	21376 KiB drm-memory-gtt: 	10384 KiB drm-memory-cpu: 	0 KiB
+GPU_MEMORY frame=720 drm-client-id:	2056 drm-memory-vram:	12 KiB drm-memory-gtt: 	2048 KiB drm-memory-cpu: 	0 KiB
+format=XR24 pool_cap=4 surfaces_used=1 fd_steady=10 fd_peak=10
+pre_max=1 decoded_max=1 fine_luma_psnr_min=47.12 packets=720 decoded=720 keyframes=24 leases=720/720 peak=1 busy_observed=1 sync_p95_ms=0.138 fd_before=4 fd_after=4
+driver_timeouts=416 tiny_wait_max_ms=0.090
+PASS synthetic GPU graph; real desktop tearing, GPU-hang recovery and end-to-end latency remain unverified

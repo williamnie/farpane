@@ -1,0 +1,4 @@
+ffmpeg=7.1.1 gop=12 (non-IDR intra)
+h264_vaapi packets=24 keys=1 software=24/2 error=0 hardware=24/2 error=0 mp4_bytes=2062
+hevc_vaapi packets=24 keys=1 software=24/2 error=0 hardware=24/2 error=0 mp4_bytes=1788
+PASS existing hwcodec CPU upload, software/VAAPI decode, key flags, PTS and MP4 smoke

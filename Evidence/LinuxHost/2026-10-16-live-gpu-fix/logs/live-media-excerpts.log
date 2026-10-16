@@ -1,0 +1,19 @@
+[2026-10-15 23:21:56.446443 -07:00] INFO [src/server/connection.rs:5249] #1748 Connection closed: Peer close
+[2026-10-15 23:22:08.811786 -07:00] INFO [src/server/connection.rs:5249] #1749 Connection closed: Peer close
+[2026-10-15 23:25:05.778291 -07:00] WARN [src/server/linux_gpu_host.rs:75] GPU capture declined; paired CPU fallback: unsupported or changed DMA-BUF geometry/planes/modifier/HDR/rotation
+[2026-10-15 23:25:05.779539 -07:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: HWRAM(HwRamEncoderConfig { name: "h264_vaapi", mc_name: None, width: 2560, height: 1440, quality: 0.67, keyframe_interval: None }), i444: false
+[2026-10-15 23:44:54.193331 -07:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: LinuxGpu(LinuxGpuEncoderConfig { render_node: "/dev/dri/renderD128", width: 2560, height: 1440, fourcc: 875713112, kbps: 4000, fps: 15, gop: 2147483647, generation: 1, failure: Mutex { data: None, poisoned: false, .. } }), i444: false
+[2026-10-15 23:44:54.219398 -07:00] INFO [src/server/linux_gpu_host.rs:144] GPU media active: generation=1 node=/dev/dri/renderD128 2560x1440 fps=15 bitrate=4000kbps
+[2026-10-15 23:44:55.355871 -07:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: LinuxGpu(LinuxGpuEncoderConfig { render_node: "/dev/dri/renderD128", width: 2560, height: 1440, fourcc: 875713112, kbps: 4000, fps: 32, gop: 2147483647, generation: 2, failure: Mutex { data: None, poisoned: false, .. } }), i444: false
+[2026-10-15 23:44:55.366823 -07:00] INFO [src/server/linux_gpu_host.rs:144] GPU media active: generation=2 node=/dev/dri/renderD128 2560x1440 fps=32 bitrate=4000kbps
+[2026-10-15 23:44:55.907407 -07:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: LinuxGpu(LinuxGpuEncoderConfig { render_node: "/dev/dri/renderD128", width: 2560, height: 1440, fourcc: 875713112, kbps: 4000, fps: 36, gop: 2147483647, generation: 3, failure: Mutex { data: None, poisoned: false, .. } }), i444: false
+[2026-10-15 23:44:55.916791 -07:00] INFO [src/server/linux_gpu_host.rs:144] GPU media active: generation=3 node=/dev/dri/renderD128 2560x1440 fps=36 bitrate=4000kbps
+[2026-10-15 23:45:38.475973 -07:00] INFO [src/server/connection.rs:5249] #1832 Connection closed: Peer close
+[2026-10-15 23:47:00.372640 -07:00] INFO [src/server/connection.rs:5249] #1475 Connection closed: Peer close
+[2026-10-15 23:47:12.604069 -07:00] INFO [src/server/connection.rs:5249] #1476 Connection closed: Peer close
+[2026-10-15 23:47:32.075385 -07:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: LinuxGpu(LinuxGpuEncoderConfig { render_node: "/dev/dri/renderD128", width: 2560, height: 1440, fourcc: 875713112, kbps: 4000, fps: 15, gop: 2147483647, generation: 1, failure: Mutex { data: None, poisoned: false, .. } }), i444: false
+[2026-10-15 23:47:32.102390 -07:00] INFO [src/server/linux_gpu_host.rs:144] GPU media active: generation=1 node=/dev/dri/renderD128 2560x1440 fps=15 bitrate=4000kbps
+[2026-10-15 23:47:33.243508 -07:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: LinuxGpu(LinuxGpuEncoderConfig { render_node: "/dev/dri/renderD128", width: 2560, height: 1440, fourcc: 875713112, kbps: 4000, fps: 32, gop: 2147483647, generation: 2, failure: Mutex { data: None, poisoned: false, .. } }), i444: false
+[2026-10-15 23:47:33.254997 -07:00] INFO [src/server/linux_gpu_host.rs:144] GPU media active: generation=2 node=/dev/dri/renderD128 2560x1440 fps=32 bitrate=4000kbps
+[2026-10-15 23:47:33.795131 -07:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: LinuxGpu(LinuxGpuEncoderConfig { render_node: "/dev/dri/renderD128", width: 2560, height: 1440, fourcc: 875713112, kbps: 4000, fps: 36, gop: 2147483647, generation: 3, failure: Mutex { data: None, poisoned: false, .. } }), i444: false
+[2026-10-15 23:47:33.806260 -07:00] INFO [src/server/linux_gpu_host.rs:144] GPU media active: generation=3 node=/dev/dri/renderD128 2560x1440 fps=36 bitrate=4000kbps

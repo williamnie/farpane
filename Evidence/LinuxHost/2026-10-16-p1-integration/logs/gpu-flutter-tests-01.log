@@ -1,0 +1,1392 @@
+Command exited with code 128: git fetch --tags
+Standard error: fatal: unable to access 'https://github.com/flutter/flutter.git/': Could not resolve host: github.com
+
+
+┌─────────────────────────────────────────────────────────┐
+│ WARNING: your installation of Flutter is 701 days old.  │
+│                                                         │
+│ To update to the latest version, run "flutter upgrade". │
+└─────────────────────────────────────────────────────────┘
+00:00 +0: loading /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart
+00:00 +0: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +1: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +2: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +2: /workspace/Build/Linux/src/rustdesk/flutter/test/file_model_test.dart: a resolved Home path completes the sole empty-path request
+init remote home: /home/user
+00:00 +3: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +3: /workspace/Build/Linux/src/rustdesk/flutter/test/file_model_test.dart: an automatic response initializes Home without a pending request
+init remote home: /home/user
+00:00 +4: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +5: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +6: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +7: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +8: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +9: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +10: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +11: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: Linux Ctrl+V is not paste
+00:00 +12: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: reports SGR wheel buttons without the Shift modifier bit
+00:00 +13: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: reports normal-encoding wheel buttons in the 64..67 range
+00:00 +14: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: reports utf-encoding wheel buttons beyond the normal-mode range
+00:00 +15: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: reports urxvt-encoding wheel buttons shifted by 32
+00:00 +16: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: sends a null byte for coordinates past the encoding limit
+00:00 +17: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: leaves non-wheel buttons to the upstream handler
+00:00 +18: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: stays silent when the peer has not enabled mouse reporting
+00:00 +19: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: stays silent for the wheel in click-only mode
+00:00 +20: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: does not report wheel button releases
+00:00 +21: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: dragging below scrolls and extends selection
+00:00 +22: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: tmux mouse input is reported without local selection
+00:00 +23: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_mouse_handler_test.dart: tmux drag stays suppressed after mouse mode is disabled
+00:01 +24: /workspace/Build/Linux/src/rustdesk/flutter/test/autocomplete_peer_merge_test.dart: merged autocomplete peers keep address book metadata and online state
+00:01 +25: /workspace/Build/Linux/src/rustdesk/flutter/test/autocomplete_peer_merge_test.dart: peer copies preserve online state
+00:01 +26: /workspace/Build/Linux/src/rustdesk/flutter/test/autocomplete_peer_merge_test.dart: online callbacks update autocomplete-only peers
+00:01 +27: /workspace/Build/Linux/src/rustdesk/flutter/test/autocomplete_peer_merge_test.dart: online query ids are deduplicated and limited
+00:01 +28: /workspace/Build/Linux/src/rustdesk/flutter/test/autocomplete_peer_merge_test.dart: empty online query ids cancel pending debounce
+00:01 +29: /workspace/Build/Linux/src/rustdesk/flutter/test/autocomplete_peer_merge_test.dart: failed online query enqueue does not suppress retry
+query autocomplete online state failed: Exception: queue full
+query autocomplete online state failed: Exception: queue full
+00:01 +30: /workspace/Build/Linux/src/rustdesk/flutter/test/autocomplete_peer_merge_test.dart: online callback updates currently displayed options
+00:01 +31: /workspace/Build/Linux/src/rustdesk/flutter/test/autocomplete_peer_merge_test.dart: cached online callback state is reapplied after peers merge
+00:01 +32: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_default_test.dart: a shape the core cannot give shows the default cursor at once
+Register custom cursor with key 0__1_80000000_80000000_8_8 (0.0,0.0)
+Cursor 2 is not kept by the core
+00:01 +33: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_default_test.dart: a shape the core cannot give shows the default cursor at once
+00:01 +34: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_default_test.dart: a shape the core cannot give shows the default cursor at once
+00:01 +35: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_default_test.dart: a shape the core cannot give shows the default cursor at once
+Register custom cursor with key 0__-1_320000000_320000000_32_32 (16.0,16.0)
+00:02 +36: /workspace/Build/Linux/src/rustdesk/flutter/test/quality_monitor_transport_test.dart: the quality monitor names the WebRTC transport only on web
+00:02 +37: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: native cursor size ((4, 64), 0.5, (2, 32))
+Register custom cursor with key 0_size_(4, 64)_20000000_320000000_2_32 (0.0,0.0)
+00:02 +38: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: native cursor size ((64, 4), 0.5, (32, 2))
+Register custom cursor with key 1_size_(64, 4)_320000000_20000000_32_2 (0.0,0.0)
+00:02 +39: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: native cursor size ((1, 64), 0.25, (1, 16))
+Register custom cursor with key 2_size_(1, 64)_2500000_160000000_1_16 (0.0,0.0)
+00:02 +40: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: native cursor size ((8, 8), 0.5, (12, 12))
+Register custom cursor with key 3_size_(8, 8)_120000000_120000000_12_12 (0.0,0.0)
+00:02 +41: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: native cursor size ((4, 64), 1.0, (4, 64))
+Register custom cursor with key 4_size_(4, 64)_40000000_640000000_4_64 (0.0,0.0)
+00:02 +42: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: native cursor size ((1, 512), 10.0, (1, 512))
+Cursor (1, 512): rejected scale 10.0 for 1x512; using 1.0 (maximum raster side 512).
+Register custom cursor with key 5_size_(1, 512)_10000000_5120000000_1_512 (0.0,0.0)
+00:02 +43: /workspace/Build/Linux/src/rustdesk/flutter/test/cm_test.dart: connection manager demo clients match the current Client API
+00:03 +44: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: native raster boundaries rebuild buffers and distinguish cache keys
+Register custom cursor with key 6_size_(64, 64)_640000000_640000000_65_65 (0.0,0.0)
+Register custom cursor with key 6_size_(64, 64)_319999981_319999981_32_32 (0.0,0.0)
+Register custom cursor with key 6_size_(64, 64)_320000019_320000019_33_33 (0.0,0.0)
+Register custom cursor with key 6_size_(64, 64)_640000000_640000000_64_64 (0.0,0.0)
+00:03 +45: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: cursor resize limits preserve the last valid raster
+Register custom cursor with key 7_size_(30, 20)_5120000000_3413333333_512_342 (68.26666666666667,119.7)
+Cursor (30, 20): rejected scale 17.1 for 30x20; using 17.066666666666666 (maximum raster side 512).
+Register custom cursor with key 7_size_(30, 20)_300000000_200000000_30_20 (4.0,7.0)
+Register custom cursor with key 8_size_(20, 30)_3413333333_5120000000_342_512 (68.4,119.46666666666667)
+Cursor (20, 30): rejected scale 17.1 for 20x30; using 17.066666666666666 (maximum raster side 512).
+Register custom cursor with key 8_size_(20, 30)_200000000_300000000_20_30 (4.0,7.0)
+00:03 +46: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: Windows peer cursor alpha survives resizing ([128, 0, 0, 128], 128)
+Register custom cursor with key 9__alpha_320000000_320000000_32_32 (0.0,0.0)
+00:03 +47: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: Windows peer cursor alpha survives resizing ([255, 0, 0, 255, 0, 0, 0, 0], 127)
+Register custom cursor with key 10__alpha_320000000_320000000_32_32 (0.0,0.0)
+00:03 +48: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: original zoom=false follows the live DPR and peer scale
+Register custom cursor with key 11_size_(64, 64)_1280000000_1280000000_128_128 (0.0,0.0)
+Register custom cursor with key 11_size_(64, 64)_256000000_256000000_26_26 (0.0,0.0)
+Register custom cursor with key 11_size_(64, 64)_320000000_320000000_32_32 (0.0,0.0)
+00:03 +49: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: original zoom=true follows the live DPR and peer scale
+Register custom cursor with key 12_size_(64, 64)_1280000000_1280000000_128_128 (0.0,0.0)
+Register custom cursor with key 12_size_(64, 64)_256000000_256000000_26_26 (0.0,0.0)
+Register custom cursor with key 12_size_(64, 64)_320000000_320000000_32_32 (0.0,0.0)
+00:03 +50: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: adaptive zoom=false follows the live DPR and peer scale
+Register custom cursor with key 13_size_(64, 64)_640000000_640000000_64_64 (0.0,0.0)
+Register custom cursor with key 13_size_(64, 64)_256000000_256000000_26_26 (0.0,0.0)
+00:03 +51: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: adaptive zoom=true follows the live DPR and peer scale
+Register custom cursor with key 14_size_(64, 64)_640000000_640000000_64_64 (0.0,0.0)
+Register custom cursor with key 14_size_(64, 64)_160000000_160000000_16_16 (0.0,0.0)
+Register custom cursor with key 14_size_(64, 64)_320000000_320000000_32_32 (0.0,0.0)
+00:03 +52: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: custom zoom=false follows the live DPR and peer scale
+Register custom cursor with key 15_size_(64, 64)_640000000_640000000_64_64 (0.0,0.0)
+Register custom cursor with key 15_size_(64, 64)_256000000_256000000_26_26 (0.0,0.0)
+00:03 +53: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_size_test.dart: custom zoom=true follows the live DPR and peer scale
+Register custom cursor with key 16_size_(64, 64)_5120000000_5120000000_512_512 (0.0,0.0)
+Register custom cursor with key 16_size_(64, 64)_1024000000_1024000000_103_103 (0.0,0.0)
+Register custom cursor with key 16_size_(64, 64)_1280000000_1280000000_128_128 (0.0,0.0)
+00:03 +54: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_alt_screen_scroll_test.dart: alternate screen reports wheel after main-screen history (variant: TargetPlatform.macOS)
+00:04 +55: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_alt_screen_scroll_test.dart: alternate screen reports trackpad after main-screen history (variant: TargetPlatform.macOS)
+00:04 +56: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_alt_screen_scroll_test.dart: trackpad scrolling keeps subsequent drag coordinates aligned (variant: TargetPlatform.macOS)
+00:04 +57: /workspace/Build/Linux/src/rustdesk/flutter/test/server_settings_dialog_test.dart: server settings text fields preserve literal input
+00:04 +58: /workspace/Build/Linux/src/rustdesk/flutter/test/server_settings_dialog_test.dart: server settings text fields preserve literal input
+00:04 +59: /workspace/Build/Linux/src/rustdesk/flutter/test/server_settings_dialog_test.dart: server settings text fields preserve literal input
+00:04 +60: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift does not release when cached shift is already false
+00:04 +61: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift releases one-shot mobile shift after a text key
+00:04 +62: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift does not release manually toggled shift without tracked key down
+00:04 +63: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift does not release when shift is still physically pressed
+00:04 +64: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift does not release on non-mobile platforms
+00:04 +65: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift releases on enter key
+00:04 +66: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift releases on arrow key
+00:04 +67: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift does not release on modifier events
+00:04 +68: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldReleaseStaleMobileShift does not release on shiftRight modifier events
+00:04 +69: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldApplyTerminalInputModifiers accepts ordinary single-character keyboard input
+00:04 +70: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldApplyTerminalInputModifiers accepts supplementary-plane single-character keyboard input
+00:04 +71: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldApplyTerminalInputModifiers rejects terminal control bytes and multi-character sequences
+00:04 +72: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: applyTerminalInputModifiers keeps decomposed graphemes intact under Ctrl
+00:04 +73: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: applyTerminalInputModifiers keeps non-ASCII graphemes intact under Ctrl
+00:04 +74: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: applyTerminalInputModifiers maps Ctrl underscore to unit separator
+00:04 +75: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: applyTerminalInputModifiers maps the complete Ctrl symbol range
+00:04 +76: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: applyTerminalInputModifiers applies Ctrl before Alt for combined modifiers
+00:04 +77: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: terminalPastePayload wraps paste text when bracketed paste mode is active
+00:04 +78: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: terminalPastePayload keeps a lone newline unchanged when bracketed paste is disabled
+00:04 +79: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: prepareTerminalInputPayload normalizes a mobile keyboard Enter to carriage return
+00:04 +80: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: prepareTerminalInputPayload keeps Ctrl+J as line feed on mobile
+00:04 +81: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: prepareTerminalInputPayload does not apply Alt to a terminal control byte
+00:04 +82: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: prepareTerminalInputPayload keeps large keyboard payloads unchanged when modifiers are inactive
+00:04 +83: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: prepareTerminalInputPayload keeps decomposed graphemes intact with locked keyboard modifiers
+00:04 +84: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: prepareTerminalInputPayload preserves a lone pasted newline when modifiers are locked
+00:04 +85: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: prepareTerminalInputPayload wraps paste without applying locked modifiers
+00:04 +86: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldHandleTerminalPasteShortcut handles only Ctrl+Shift+V on Linux with a virtual lock
+00:04 +87: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldHandleTerminalPasteShortcut keeps default xterm paste behavior when virtual modifiers are inactive
+00:04 +88: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldHandleTerminalPasteShortcut handles Ctrl+V and Meta+V when a virtual modifier lock is active
+00:04 +89: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldHandleTerminalPasteShortcut handles paste shortcut repeats while a virtual lock is active
+00:04 +90: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldHandleTerminalPasteShortcut ignores key-up and unmodified V events
+00:04 +91: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldHandleTerminalPasteShortcut ignores paste shortcuts with extra modifiers
+00:04 +92: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldHandleTerminalPasteShortcut ignores non-V key events
+00:04 +93: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldClearTerminalModifiersWhenRow3Collapses clears visible modifier state when expanded row is collapsed
+00:04 +94: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldClearTerminalModifiersWhenRow3Collapses does not clear modifiers when row expands
+00:04 +95: /workspace/Build/Linux/src/rustdesk/flutter/test/input_modifier_utils_test.dart: shouldClearTerminalModifiersWhenRow3Collapses clears Alt state when expanded row is collapsed
+00:05 +96: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_keyboard_utils_test.dart: mobile terminal keyboard layout keeps the latest key order from the reviewed PR layout
+00:05 +97: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_keyboard_utils_test.dart: mobile terminal keyboard layout keeps two trailing Row3 placeholders for row alignment
+00:05 +98: /workspace/Build/Linux/src/rustdesk/flutter/test/terminal_keyboard_utils_test.dart: mobile terminal keyboard layout keeps every expanded row aligned at 348dp
+00:05 +99: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: only the shape in use keeps an image, and a shape its native cursor holds keeps no pixels
+Register custom cursor with key 0__1_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 0__2_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 0__3_80000000_80000000_8_8 (0.0,0.0)
+00:05 +100: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: the shape in use keeps its pixels, and a new raster is made at once
+Register custom cursor with key 1__1_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 1__1_160000000_160000000_16_16 (0.0,0.0)
+00:05 +101: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: native cursors stay for the session, every raster of every shape
+Register custom cursor with key 2__0_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__1_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__2_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__3_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__4_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__5_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__6_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__7_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__8_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__9_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__10_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__11_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__12_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__13_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__14_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__15_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__16_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__17_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__18_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__19_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__20_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__21_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__22_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__23_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__24_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__25_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__26_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__27_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__28_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__29_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__30_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__31_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__32_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__33_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__34_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__35_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__36_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__37_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__38_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__39_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__40_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__41_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__42_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__43_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__44_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__45_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__46_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__47_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__48_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__49_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__50_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__51_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__52_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__53_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__54_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__55_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__56_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__57_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__58_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__59_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__60_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__61_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__62_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__63_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__64_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__65_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__66_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__67_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__68_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__69_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__70_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__71_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__72_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__73_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__74_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__75_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__76_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__77_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__78_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__79_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__80_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__81_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__82_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__83_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__84_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__85_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__86_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__87_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__88_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__89_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__90_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__91_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__92_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__93_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__94_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__95_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__96_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__97_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__98_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 2__99_320000000_320000000_32_32 (0.0,0.0)
+00:07 +102: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a raster made before is found again after the shape was switched away from
+Register custom cursor with key 3__A_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 3__A_160000000_160000000_16_16 (0.0,0.0)
+Register custom cursor with key 3__B_80000000_80000000_8_8 (0.0,0.0)
+00:07 +103: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a new raster of a shape without pixels keeps the cursor shown before
+Register custom cursor with key 4__1_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 4__2_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 4__1_160000000_160000000_16_16 (0.0,0.0)
+00:07 +104: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: shapes that keep decoding late still get their native cursors
+Register custom cursor with key 5__arrow_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 5__A_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 5__B_80000000_80000000_8_8 (0.0,0.0)
+00:07 +105: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a zoom still gets native cursors for shapes that keep decoding late
+Register custom cursor with key 6__A_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 6__B_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 6__A_160000000_160000000_16_16 (0.0,0.0)
+Register custom cursor with key 6__B_160000000_160000000_16_16 (0.0,0.0)
+00:07 +106: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a raster still missing keeps a late restore, whatever was shown meanwhile
+Register custom cursor with key 7__A_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 7__B_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 7__A_160000000_160000000_16_16 (0.0,0.0)
+00:07 +107: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: shapes waiting for a native cursor keep their pixels, within the limit
+00:07 +108: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: two animated cursors and the everyday set keep their native cursors
+Register custom cursor with key 9__s0_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s1_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s2_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s3_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s4_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s5_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s6_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s7_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s8_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s9_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s10_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__s11_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait0_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait1_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait2_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait3_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait4_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait5_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait6_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait7_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait8_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait9_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait10_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait11_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait12_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait13_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait14_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait15_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait16_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait17_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait18_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait19_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait20_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait21_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__wait22_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress0_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress1_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress2_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress3_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress4_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress5_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress6_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress7_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress8_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress9_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress10_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress11_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress12_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress13_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress14_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress15_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress16_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress17_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress18_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress19_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress20_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress21_80000000_80000000_8_8 (0.0,0.0)
+Register custom cursor with key 9__progress22_80000000_80000000_8_8 (0.0,0.0)
+00:09 +109: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape painted again is decoded again, the last one shown meanwhile
+00:09 +110: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape the core gives but that does not decode is asked for once
+Shell: [ERROR:flutter/lib/ui/painting/image_decoder_skia.cc(89)] Could not create image from decompressed bytes.
+getNextFrame failed: Exception: Codec failed to produce an image, possibly due to invalid image data.
+00:09 +111: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape switched away from while it decoded is asked for again
+00:09 +112: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape decoded after the session was cleared is not kept
+00:09 +113: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape the core does not have is asked for once
+Cursor 1 is not kept by the core
+00:09 +114: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape the core lacks is remembered only while it is in use
+Cursor missing0 is not kept by the core
+Cursor missing1 is not kept by the core
+Cursor missing2 is not kept by the core
+Cursor missing3 is not kept by the core
+Cursor missing4 is not kept by the core
+Cursor missing5 is not kept by the core
+Cursor missing6 is not kept by the core
+Cursor missing7 is not kept by the core
+Cursor missing8 is not kept by the core
+Cursor missing9 is not kept by the core
+Cursor missing10 is not kept by the core
+Cursor missing11 is not kept by the core
+Cursor missing12 is not kept by the core
+Cursor missing13 is not kept by the core
+Cursor missing14 is not kept by the core
+Cursor missing15 is not kept by the core
+Cursor missing16 is not kept by the core
+Cursor missing17 is not kept by the core
+Cursor missing18 is not kept by the core
+Cursor missing19 is not kept by the core
+Cursor missing20 is not kept by the core
+Cursor missing21 is not kept by the core
+Cursor missing22 is not kept by the core
+Cursor missing23 is not kept by the core
+Cursor missing24 is not kept by the core
+Cursor missing25 is not kept by the core
+Cursor missing26 is not kept by the core
+Cursor missing27 is not kept by the core
+Cursor missing28 is not kept by the core
+Cursor missing29 is not kept by the core
+Cursor missing30 is not kept by the core
+Cursor missing31 is not kept by the core
+Cursor missing32 is not kept by the core
+Cursor missing33 is not kept by the core
+Cursor missing34 is not kept by the core
+Cursor missing35 is not kept by the core
+Cursor missing36 is not kept by the core
+Cursor missing37 is not kept by the core
+Cursor missing38 is not kept by the core
+Cursor missing39 is not kept by the core
+Cursor missing40 is not kept by the core
+Cursor missing41 is not kept by the core
+Cursor missing42 is not kept by the core
+Cursor missing43 is not kept by the core
+Cursor missing44 is not kept by the core
+Cursor missing45 is not kept by the core
+Cursor missing46 is not kept by the core
+Cursor missing47 is not kept by the core
+Cursor missing48 is not kept by the core
+Cursor missing49 is not kept by the core
+Cursor missing50 is not kept by the core
+Cursor missing51 is not kept by the core
+Cursor missing52 is not kept by the core
+Cursor missing53 is not kept by the core
+Cursor missing54 is not kept by the core
+Cursor missing55 is not kept by the core
+Cursor missing56 is not kept by the core
+Cursor missing57 is not kept by the core
+Cursor missing58 is not kept by the core
+Cursor missing59 is not kept by the core
+Cursor missing60 is not kept by the core
+Cursor missing61 is not kept by the core
+Cursor missing62 is not kept by the core
+Cursor missing63 is not kept by the core
+Cursor missing64 is not kept by the core
+Cursor missing65 is not kept by the core
+Cursor missing66 is not kept by the core
+Cursor missing67 is not kept by the core
+Cursor missing68 is not kept by the core
+Cursor missing69 is not kept by the core
+Cursor missing70 is not kept by the core
+Cursor missing71 is not kept by the core
+Cursor missing72 is not kept by the core
+Cursor missing73 is not kept by the core
+Cursor missing74 is not kept by the core
+Cursor missing75 is not kept by the core
+Cursor missing76 is not kept by the core
+Cursor missing77 is not kept by the core
+Cursor missing78 is not kept by the core
+Cursor missing79 is not kept by the core
+Cursor missing80 is not kept by the core
+Cursor missing81 is not kept by the core
+Cursor missing82 is not kept by the core
+Cursor missing83 is not kept by the core
+Cursor missing84 is not kept by the core
+Cursor missing85 is not kept by the core
+Cursor missing86 is not kept by the core
+Cursor missing87 is not kept by the core
+Cursor missing88 is not kept by the core
+Cursor missing89 is not kept by the core
+Cursor missing90 is not kept by the core
+Cursor missing91 is not kept by the core
+Cursor missing92 is not kept by the core
+Cursor missing93 is not kept by the core
+Cursor missing94 is not kept by the core
+Cursor missing95 is not kept by the core
+Cursor missing96 is not kept by the core
+Cursor missing97 is not kept by the core
+Cursor missing98 is not kept by the core
+Cursor missing99 is not kept by the core
+Cursor missing100 is not kept by the core
+Cursor missing101 is not kept by the core
+Cursor missing102 is not kept by the core
+Cursor missing103 is not kept by the core
+Cursor missing104 is not kept by the core
+Cursor missing105 is not kept by the core
+Cursor missing106 is not kept by the core
+Cursor missing107 is not kept by the core
+Cursor missing108 is not kept by the core
+Cursor missing109 is not kept by the core
+Cursor missing110 is not kept by the core
+Cursor missing111 is not kept by the core
+Cursor missing112 is not kept by the core
+Cursor missing113 is not kept by the core
+Cursor missing114 is not kept by the core
+Cursor missing115 is not kept by the core
+Cursor missing116 is not kept by the core
+Cursor missing117 is not kept by the core
+Cursor missing118 is not kept by the core
+Cursor missing119 is not kept by the core
+Cursor missing120 is not kept by the core
+Cursor missing121 is not kept by the core
+Cursor missing122 is not kept by the core
+Cursor missing123 is not kept by the core
+Cursor missing124 is not kept by the core
+Cursor missing125 is not kept by the core
+Cursor missing126 is not kept by the core
+Cursor missing127 is not kept by the core
+Cursor missing128 is not kept by the core
+Cursor missing129 is not kept by the core
+Cursor missing130 is not kept by the core
+Cursor missing131 is not kept by the core
+Cursor missing132 is not kept by the core
+Cursor missing133 is not kept by the core
+Cursor missing134 is not kept by the core
+Cursor missing135 is not kept by the core
+Cursor missing136 is not kept by the core
+Cursor missing137 is not kept by the core
+Cursor missing138 is not kept by the core
+Cursor missing139 is not kept by the core
+Cursor missing140 is not kept by the core
+Cursor missing141 is not kept by the core
+Cursor missing142 is not kept by the core
+Cursor missing143 is not kept by the core
+Cursor missing144 is not kept by the core
+Cursor missing145 is not kept by the core
+Cursor missing146 is not kept by the core
+Cursor missing147 is not kept by the core
+Cursor missing148 is not kept by the core
+Cursor missing149 is not kept by the core
+Cursor missing150 is not kept by the core
+Cursor missing151 is not kept by the core
+Cursor missing152 is not kept by the core
+Cursor missing153 is not kept by the core
+Cursor missing154 is not kept by the core
+Cursor missing155 is not kept by the core
+Cursor missing156 is not kept by the core
+Cursor missing157 is not kept by the core
+Cursor missing158 is not kept by the core
+Cursor missing159 is not kept by the core
+Cursor missing160 is not kept by the core
+Cursor missing161 is not kept by the core
+Cursor missing162 is not kept by the core
+Cursor missing163 is not kept by the core
+Cursor missing164 is not kept by the core
+Cursor missing165 is not kept by the core
+Cursor missing166 is not kept by the core
+Cursor missing167 is not kept by the core
+Cursor missing168 is not kept by the core
+Cursor missing169 is not kept by the core
+Cursor missing170 is not kept by the core
+Cursor missing171 is not kept by the core
+Cursor missing172 is not kept by the core
+Cursor missing173 is not kept by the core
+Cursor missing174 is not kept by the core
+Cursor missing175 is not kept by the core
+Cursor missing176 is not kept by the core
+Cursor missing177 is not kept by the core
+Cursor missing178 is not kept by the core
+Cursor missing179 is not kept by the core
+Cursor missing180 is not kept by the core
+Cursor missing181 is not kept by the core
+Cursor missing182 is not kept by the core
+Cursor missing183 is not kept by the core
+Cursor missing184 is not kept by the core
+Cursor missing185 is not kept by the core
+Cursor missing186 is not kept by the core
+Cursor missing187 is not kept by the core
+Cursor missing188 is not kept by the core
+Cursor missing189 is not kept by the core
+Cursor missing190 is not kept by the core
+Cursor missing191 is not kept by the core
+Cursor missing192 is not kept by the core
+Cursor missing193 is not kept by the core
+Cursor missing194 is not kept by the core
+Cursor missing195 is not kept by the core
+Cursor missing196 is not kept by the core
+Cursor missing197 is not kept by the core
+Cursor missing198 is not kept by the core
+Cursor missing199 is not kept by the core
+Cursor missing200 is not kept by the core
+Cursor missing201 is not kept by the core
+Cursor missing202 is not kept by the core
+Cursor missing203 is not kept by the core
+Cursor missing204 is not kept by the core
+Cursor missing205 is not kept by the core
+Cursor missing206 is not kept by the core
+Cursor missing207 is not kept by the core
+Cursor missing208 is not kept by the core
+Cursor missing209 is not kept by the core
+Cursor missing210 is not kept by the core
+Cursor missing211 is not kept by the core
+Cursor missing212 is not kept by the core
+Cursor missing213 is not kept by the core
+Cursor missing214 is not kept by the core
+Cursor missing215 is not kept by the core
+Cursor missing216 is not kept by the core
+Cursor missing217 is not kept by the core
+Cursor missing218 is not kept by the core
+Cursor missing219 is not kept by the core
+Cursor missing220 is not kept by the core
+Cursor missing221 is not kept by the core
+Cursor missing222 is not kept by the core
+Cursor missing223 is not kept by the core
+Cursor missing224 is not kept by the core
+Cursor missing225 is not kept by the core
+Cursor missing226 is not kept by the core
+Cursor missing227 is not kept by the core
+Cursor missing228 is not kept by the core
+Cursor missing229 is not kept by the core
+Cursor missing230 is not kept by the core
+Cursor missing231 is not kept by the core
+Cursor missing232 is not kept by the core
+Cursor missing233 is not kept by the core
+Cursor missing234 is not kept by the core
+Cursor missing235 is not kept by the core
+Cursor missing236 is not kept by the core
+Cursor missing237 is not kept by the core
+Cursor missing238 is not kept by the core
+Cursor missing239 is not kept by the core
+Cursor missing240 is not kept by the core
+Cursor missing241 is not kept by the core
+Cursor missing242 is not kept by the core
+Cursor missing243 is not kept by the core
+Cursor missing244 is not kept by the core
+Cursor missing245 is not kept by the core
+Cursor missing246 is not kept by the core
+Cursor missing247 is not kept by the core
+Cursor missing248 is not kept by the core
+Cursor missing249 is not kept by the core
+Cursor missing250 is not kept by the core
+Cursor missing251 is not kept by the core
+Cursor missing252 is not kept by the core
+Cursor missing253 is not kept by the core
+Cursor missing254 is not kept by the core
+Cursor missing255 is not kept by the core
+Cursor missing256 is not kept by the core
+Cursor missing257 is not kept by the core
+Cursor missing258 is not kept by the core
+Cursor missing259 is not kept by the core
+Cursor missing260 is not kept by the core
+Cursor missing261 is not kept by the core
+Cursor missing262 is not kept by the core
+Cursor missing263 is not kept by the core
+Cursor missing264 is not kept by the core
+Cursor missing265 is not kept by the core
+Cursor missing266 is not kept by the core
+Cursor missing267 is not kept by the core
+Cursor missing268 is not kept by the core
+Cursor missing269 is not kept by the core
+Cursor missing270 is not kept by the core
+Cursor missing271 is not kept by the core
+Cursor missing272 is not kept by the core
+Cursor missing273 is not kept by the core
+Cursor missing274 is not kept by the core
+Cursor missing275 is not kept by the core
+Cursor missing276 is not kept by the core
+Cursor missing277 is not kept by the core
+Cursor missing278 is not kept by the core
+Cursor missing279 is not kept by the core
+Cursor missing280 is not kept by the core
+Cursor missing281 is not kept by the core
+Cursor missing282 is not kept by the core
+Cursor missing283 is not kept by the core
+Cursor missing284 is not kept by the core
+Cursor missing285 is not kept by the core
+Cursor missing286 is not kept by the core
+Cursor missing287 is not kept by the core
+Cursor missing288 is not kept by the core
+Cursor missing289 is not kept by the core
+Cursor missing290 is not kept by the core
+Cursor missing291 is not kept by the core
+Cursor missing292 is not kept by the core
+Cursor missing293 is not kept by the core
+Cursor missing294 is not kept by the core
+Cursor missing295 is not kept by the core
+Cursor missing296 is not kept by the core
+Cursor missing297 is not kept by the core
+Cursor missing298 is not kept by the core
+Cursor missing299 is not kept by the core
+Cursor missing300 is not kept by the core
+Cursor missing301 is not kept by the core
+Cursor missing302 is not kept by the core
+Cursor missing303 is not kept by the core
+Cursor missing304 is not kept by the core
+Cursor missing305 is not kept by the core
+Cursor missing306 is not kept by the core
+Cursor missing307 is not kept by the core
+Cursor missing308 is not kept by the core
+Cursor missing309 is not kept by the core
+Cursor missing310 is not kept by the core
+Cursor missing311 is not kept by the core
+Cursor missing312 is not kept by the core
+Cursor missing313 is not kept by the core
+Cursor missing314 is not kept by the core
+Cursor missing315 is not kept by the core
+Cursor missing316 is not kept by the core
+Cursor missing317 is not kept by the core
+Cursor missing318 is not kept by the core
+Cursor missing319 is not kept by the core
+Cursor missing320 is not kept by the core
+Cursor missing321 is not kept by the core
+Cursor missing322 is not kept by the core
+Cursor missing323 is not kept by the core
+Cursor missing324 is not kept by the core
+Cursor missing325 is not kept by the core
+Cursor missing326 is not kept by the core
+Cursor missing327 is not kept by the core
+Cursor missing328 is not kept by the core
+Cursor missing329 is not kept by the core
+Cursor missing330 is not kept by the core
+Cursor missing331 is not kept by the core
+Cursor missing332 is not kept by the core
+Cursor missing333 is not kept by the core
+Cursor missing334 is not kept by the core
+Cursor missing335 is not kept by the core
+Cursor missing336 is not kept by the core
+Cursor missing337 is not kept by the core
+Cursor missing338 is not kept by the core
+Cursor missing339 is not kept by the core
+Cursor missing340 is not kept by the core
+Cursor missing341 is not kept by the core
+Cursor missing342 is not kept by the core
+Cursor missing343 is not kept by the core
+Cursor missing344 is not kept by the core
+Cursor missing345 is not kept by the core
+Cursor missing346 is not kept by the core
+Cursor missing347 is not kept by the core
+Cursor missing348 is not kept by the core
+Cursor missing349 is not kept by the core
+Cursor missing350 is not kept by the core
+Cursor missing351 is not kept by the core
+Cursor missing352 is not kept by the core
+Cursor missing353 is not kept by the core
+Cursor missing354 is not kept by the core
+Cursor missing355 is not kept by the core
+Cursor missing356 is not kept by the core
+Cursor missing357 is not kept by the core
+Cursor missing358 is not kept by the core
+Cursor missing359 is not kept by the core
+Cursor missing360 is not kept by the core
+Cursor missing361 is not kept by the core
+Cursor missing362 is not kept by the core
+Cursor missing363 is not kept by the core
+Cursor missing364 is not kept by the core
+Cursor missing365 is not kept by the core
+Cursor missing366 is not kept by the core
+Cursor missing367 is not kept by the core
+Cursor missing368 is not kept by the core
+Cursor missing369 is not kept by the core
+Cursor missing370 is not kept by the core
+Cursor missing371 is not kept by the core
+Cursor missing372 is not kept by the core
+Cursor missing373 is not kept by the core
+Cursor missing374 is not kept by the core
+Cursor missing375 is not kept by the core
+Cursor missing376 is not kept by the core
+Cursor missing377 is not kept by the core
+Cursor missing378 is not kept by the core
+Cursor missing379 is not kept by the core
+Cursor missing380 is not kept by the core
+Cursor missing381 is not kept by the core
+Cursor missing382 is not kept by the core
+Cursor missing383 is not kept by the core
+Cursor missing384 is not kept by the core
+Cursor missing385 is not kept by the core
+Cursor missing386 is not kept by the core
+Cursor missing387 is not kept by the core
+Cursor missing388 is not kept by the core
+Cursor missing389 is not kept by the core
+Cursor missing390 is not kept by the core
+Cursor missing391 is not kept by the core
+Cursor missing392 is not kept by the core
+Cursor missing393 is not kept by the core
+Cursor missing394 is not kept by the core
+Cursor missing395 is not kept by the core
+Cursor missing396 is not kept by the core
+Cursor missing397 is not kept by the core
+Cursor missing398 is not kept by the core
+Cursor missing399 is not kept by the core
+Cursor missing400 is not kept by the core
+Cursor missing401 is not kept by the core
+Cursor missing402 is not kept by the core
+Cursor missing403 is not kept by the core
+Cursor missing404 is not kept by the core
+Cursor missing405 is not kept by the core
+Cursor missing406 is not kept by the core
+Cursor missing407 is not kept by the core
+Cursor missing408 is not kept by the core
+Cursor missing409 is not kept by the core
+Cursor missing410 is not kept by the core
+Cursor missing411 is not kept by the core
+Cursor missing412 is not kept by the core
+Cursor missing413 is not kept by the core
+Cursor missing414 is not kept by the core
+Cursor missing415 is not kept by the core
+Cursor missing416 is not kept by the core
+Cursor missing417 is not kept by the core
+Cursor missing418 is not kept by the core
+Cursor missing419 is not kept by the core
+Cursor missing420 is not kept by the core
+Cursor missing421 is not kept by the core
+Cursor missing422 is not kept by the core
+Cursor missing423 is not kept by the core
+Cursor missing424 is not kept by the core
+Cursor missing425 is not kept by the core
+Cursor missing426 is not kept by the core
+Cursor missing427 is not kept by the core
+Cursor missing428 is not kept by the core
+Cursor missing429 is not kept by the core
+Cursor missing430 is not kept by the core
+Cursor missing431 is not kept by the core
+Cursor missing432 is not kept by the core
+Cursor missing433 is not kept by the core
+Cursor missing434 is not kept by the core
+Cursor missing435 is not kept by the core
+Cursor missing436 is not kept by the core
+Cursor missing437 is not kept by the core
+Cursor missing438 is not kept by the core
+Cursor missing439 is not kept by the core
+Cursor missing440 is not kept by the core
+Cursor missing441 is not kept by the core
+Cursor missing442 is not kept by the core
+Cursor missing443 is not kept by the core
+Cursor missing444 is not kept by the core
+Cursor missing445 is not kept by the core
+Cursor missing446 is not kept by the core
+Cursor missing447 is not kept by the core
+Cursor missing448 is not kept by the core
+Cursor missing449 is not kept by the core
+Cursor missing450 is not kept by the core
+Cursor missing451 is not kept by the core
+Cursor missing452 is not kept by the core
+Cursor missing453 is not kept by the core
+Cursor missing454 is not kept by the core
+Cursor missing455 is not kept by the core
+Cursor missing456 is not kept by the core
+Cursor missing457 is not kept by the core
+Cursor missing458 is not kept by the core
+Cursor missing459 is not kept by the core
+Cursor missing460 is not kept by the core
+Cursor missing461 is not kept by the core
+Cursor missing462 is not kept by the core
+Cursor missing463 is not kept by the core
+Cursor missing464 is not kept by the core
+Cursor missing465 is not kept by the core
+Cursor missing466 is not kept by the core
+Cursor missing467 is not kept by the core
+Cursor missing468 is not kept by the core
+Cursor missing469 is not kept by the core
+Cursor missing470 is not kept by the core
+Cursor missing471 is not kept by the core
+Cursor missing472 is not kept by the core
+Cursor missing473 is not kept by the core
+Cursor missing474 is not kept by the core
+Cursor missing475 is not kept by the core
+Cursor missing476 is not kept by the core
+Cursor missing477 is not kept by the core
+Cursor missing478 is not kept by the core
+Cursor missing479 is not kept by the core
+Cursor missing480 is not kept by the core
+Cursor missing481 is not kept by the core
+Cursor missing482 is not kept by the core
+Cursor missing483 is not kept by the core
+Cursor missing484 is not kept by the core
+Cursor missing485 is not kept by the core
+Cursor missing486 is not kept by the core
+Cursor missing487 is not kept by the core
+Cursor missing488 is not kept by the core
+Cursor missing489 is not kept by the core
+Cursor missing490 is not kept by the core
+Cursor missing491 is not kept by the core
+Cursor missing492 is not kept by the core
+Cursor missing493 is not kept by the core
+Cursor missing494 is not kept by the core
+Cursor missing495 is not kept by the core
+Cursor missing496 is not kept by the core
+Cursor missing497 is not kept by the core
+Cursor missing498 is not kept by the core
+Cursor missing499 is not kept by the core
+Cursor missing500 is not kept by the core
+Cursor missing501 is not kept by the core
+Cursor missing502 is not kept by the core
+Cursor missing503 is not kept by the core
+Cursor missing504 is not kept by the core
+Cursor missing505 is not kept by the core
+Cursor missing506 is not kept by the core
+Cursor missing507 is not kept by the core
+Cursor missing508 is not kept by the core
+Cursor missing509 is not kept by the core
+Cursor missing510 is not kept by the core
+Cursor missing511 is not kept by the core
+Cursor missing512 is not kept by the core
+Cursor missing513 is not kept by the core
+Cursor missing514 is not kept by the core
+Cursor missing515 is not kept by the core
+Cursor missing516 is not kept by the core
+Cursor missing517 is not kept by the core
+Cursor missing518 is not kept by the core
+Cursor missing519 is not kept by the core
+Cursor missing520 is not kept by the core
+Cursor missing521 is not kept by the core
+Cursor missing522 is not kept by the core
+Cursor missing523 is not kept by the core
+Cursor missing524 is not kept by the core
+Cursor missing525 is not kept by the core
+Cursor missing526 is not kept by the core
+Cursor missing527 is not kept by the core
+Cursor missing528 is not kept by the core
+Cursor missing529 is not kept by the core
+Cursor missing530 is not kept by the core
+Cursor missing531 is not kept by the core
+Cursor missing532 is not kept by the core
+Cursor missing533 is not kept by the core
+Cursor missing534 is not kept by the core
+Cursor missing535 is not kept by the core
+Cursor missing536 is not kept by the core
+Cursor missing537 is not kept by the core
+Cursor missing538 is not kept by the core
+Cursor missing539 is not kept by the core
+Cursor missing540 is not kept by the core
+Cursor missing541 is not kept by the core
+Cursor missing542 is not kept by the core
+Cursor missing543 is not kept by the core
+Cursor missing544 is not kept by the core
+Cursor missing545 is not kept by the core
+Cursor missing546 is not kept by the core
+Cursor missing547 is not kept by the core
+Cursor missing548 is not kept by the core
+Cursor missing549 is not kept by the core
+Cursor missing550 is not kept by the core
+Cursor missing551 is not kept by the core
+Cursor missing552 is not kept by the core
+Cursor missing553 is not kept by the core
+Cursor missing554 is not kept by the core
+Cursor missing555 is not kept by the core
+Cursor missing556 is not kept by the core
+Cursor missing557 is not kept by the core
+Cursor missing558 is not kept by the core
+Cursor missing559 is not kept by the core
+Cursor missing560 is not kept by the core
+Cursor missing561 is not kept by the core
+Cursor missing562 is not kept by the core
+Cursor missing563 is not kept by the core
+Cursor missing564 is not kept by the core
+Cursor missing565 is not kept by the core
+Cursor missing566 is not kept by the core
+Cursor missing567 is not kept by the core
+Cursor missing568 is not kept by the core
+Cursor missing569 is not kept by the core
+Cursor missing570 is not kept by the core
+Cursor missing571 is not kept by the core
+Cursor missing572 is not kept by the core
+Cursor missing573 is not kept by the core
+Cursor missing574 is not kept by the core
+Cursor missing575 is not kept by the core
+Cursor missing576 is not kept by the core
+Cursor missing577 is not kept by the core
+Cursor missing578 is not kept by the core
+Cursor missing579 is not kept by the core
+Cursor missing580 is not kept by the core
+Cursor missing581 is not kept by the core
+Cursor missing582 is not kept by the core
+Cursor missing583 is not kept by the core
+Cursor missing584 is not kept by the core
+Cursor missing585 is not kept by the core
+Cursor missing586 is not kept by the core
+Cursor missing587 is not kept by the core
+Cursor missing588 is not kept by the core
+Cursor missing589 is not kept by the core
+Cursor missing590 is not kept by the core
+Cursor missing591 is not kept by the core
+Cursor missing592 is not kept by the core
+Cursor missing593 is not kept by the core
+Cursor missing594 is not kept by the core
+Cursor missing595 is not kept by the core
+Cursor missing596 is not kept by the core
+Cursor missing597 is not kept by the core
+Cursor missing598 is not kept by the core
+Cursor missing599 is not kept by the core
+Cursor missing600 is not kept by the core
+Cursor missing601 is not kept by the core
+Cursor missing602 is not kept by the core
+Cursor missing603 is not kept by the core
+Cursor missing604 is not kept by the core
+Cursor missing605 is not kept by the core
+Cursor missing606 is not kept by the core
+Cursor missing607 is not kept by the core
+Cursor missing608 is not kept by the core
+Cursor missing609 is not kept by the core
+Cursor missing610 is not kept by the core
+Cursor missing611 is not kept by the core
+Cursor missing612 is not kept by the core
+Cursor missing613 is not kept by the core
+Cursor missing614 is not kept by the core
+Cursor missing615 is not kept by the core
+Cursor missing616 is not kept by the core
+Cursor missing617 is not kept by the core
+Cursor missing618 is not kept by the core
+Cursor missing619 is not kept by the core
+Cursor missing620 is not kept by the core
+Cursor missing621 is not kept by the core
+Cursor missing622 is not kept by the core
+Cursor missing623 is not kept by the core
+Cursor missing624 is not kept by the core
+Cursor missing625 is not kept by the core
+Cursor missing626 is not kept by the core
+Cursor missing627 is not kept by the core
+Cursor missing628 is not kept by the core
+Cursor missing629 is not kept by the core
+Cursor missing630 is not kept by the core
+Cursor missing631 is not kept by the core
+Cursor missing632 is not kept by the core
+Cursor missing633 is not kept by the core
+Cursor missing634 is not kept by the core
+Cursor missing635 is not kept by the core
+Cursor missing636 is not kept by the core
+Cursor missing637 is not kept by the core
+Cursor missing638 is not kept by the core
+Cursor missing639 is not kept by the core
+Cursor missing640 is not kept by the core
+Cursor missing641 is not kept by the core
+Cursor missing642 is not kept by the core
+Cursor missing643 is not kept by the core
+Cursor missing644 is not kept by the core
+Cursor missing645 is not kept by the core
+Cursor missing646 is not kept by the core
+Cursor missing647 is not kept by the core
+Cursor missing648 is not kept by the core
+Cursor missing649 is not kept by the core
+Cursor missing650 is not kept by the core
+Cursor missing651 is not kept by the core
+Cursor missing652 is not kept by the core
+Cursor missing653 is not kept by the core
+Cursor missing654 is not kept by the core
+Cursor missing655 is not kept by the core
+Cursor missing656 is not kept by the core
+Cursor missing657 is not kept by the core
+Cursor missing658 is not kept by the core
+Cursor missing659 is not kept by the core
+Cursor missing660 is not kept by the core
+Cursor missing661 is not kept by the core
+Cursor missing662 is not kept by the core
+Cursor missing663 is not kept by the core
+Cursor missing664 is not kept by the core
+Cursor missing665 is not kept by the core
+Cursor missing666 is not kept by the core
+Cursor missing667 is not kept by the core
+Cursor missing668 is not kept by the core
+Cursor missing669 is not kept by the core
+Cursor missing670 is not kept by the core
+Cursor missing671 is not kept by the core
+Cursor missing672 is not kept by the core
+Cursor missing673 is not kept by the core
+Cursor missing674 is not kept by the core
+Cursor missing675 is not kept by the core
+Cursor missing676 is not kept by the core
+Cursor missing677 is not kept by the core
+Cursor missing678 is not kept by the core
+Cursor missing679 is not kept by the core
+Cursor missing680 is not kept by the core
+Cursor missing681 is not kept by the core
+Cursor missing682 is not kept by the core
+Cursor missing683 is not kept by the core
+Cursor missing684 is not kept by the core
+Cursor missing685 is not kept by the core
+Cursor missing686 is not kept by the core
+Cursor missing687 is not kept by the core
+Cursor missing688 is not kept by the core
+Cursor missing689 is not kept by the core
+Cursor missing690 is not kept by the core
+Cursor missing691 is not kept by the core
+Cursor missing692 is not kept by the core
+Cursor missing693 is not kept by the core
+Cursor missing694 is not kept by the core
+Cursor missing695 is not kept by the core
+Cursor missing696 is not kept by the core
+Cursor missing697 is not kept by the core
+Cursor missing698 is not kept by the core
+Cursor missing699 is not kept by the core
+Cursor missing700 is not kept by the core
+Cursor missing701 is not kept by the core
+Cursor missing702 is not kept by the core
+Cursor missing703 is not kept by the core
+Cursor missing704 is not kept by the core
+Cursor missing705 is not kept by the core
+Cursor missing706 is not kept by the core
+Cursor missing707 is not kept by the core
+Cursor missing708 is not kept by the core
+Cursor missing709 is not kept by the core
+Cursor missing710 is not kept by the core
+Cursor missing711 is not kept by the core
+Cursor missing712 is not kept by the core
+Cursor missing713 is not kept by the core
+Cursor missing714 is not kept by the core
+Cursor missing715 is not kept by the core
+Cursor missing716 is not kept by the core
+Cursor missing717 is not kept by the core
+Cursor missing718 is not kept by the core
+Cursor missing719 is not kept by the core
+Cursor missing720 is not kept by the core
+Cursor missing721 is not kept by the core
+Cursor missing722 is not kept by the core
+Cursor missing723 is not kept by the core
+Cursor missing724 is not kept by the core
+Cursor missing725 is not kept by the core
+Cursor missing726 is not kept by the core
+Cursor missing727 is not kept by the core
+Cursor missing728 is not kept by the core
+Cursor missing729 is not kept by the core
+Cursor missing730 is not kept by the core
+Cursor missing731 is not kept by the core
+Cursor missing732 is not kept by the core
+Cursor missing733 is not kept by the core
+Cursor missing734 is not kept by the core
+Cursor missing735 is not kept by the core
+Cursor missing736 is not kept by the core
+Cursor missing737 is not kept by the core
+Cursor missing738 is not kept by the core
+Cursor missing739 is not kept by the core
+Cursor missing740 is not kept by the core
+Cursor missing741 is not kept by the core
+Cursor missing742 is not kept by the core
+Cursor missing743 is not kept by the core
+Cursor missing744 is not kept by the core
+Cursor missing745 is not kept by the core
+Cursor missing746 is not kept by the core
+Cursor missing747 is not kept by the core
+Cursor missing748 is not kept by the core
+Cursor missing749 is not kept by the core
+Cursor missing750 is not kept by the core
+Cursor missing751 is not kept by the core
+Cursor missing752 is not kept by the core
+Cursor missing753 is not kept by the core
+Cursor missing754 is not kept by the core
+Cursor missing755 is not kept by the core
+Cursor missing756 is not kept by the core
+Cursor missing757 is not kept by the core
+Cursor missing758 is not kept by the core
+Cursor missing759 is not kept by the core
+Cursor missing760 is not kept by the core
+Cursor missing761 is not kept by the core
+Cursor missing762 is not kept by the core
+Cursor missing763 is not kept by the core
+Cursor missing764 is not kept by the core
+Cursor missing765 is not kept by the core
+Cursor missing766 is not kept by the core
+Cursor missing767 is not kept by the core
+Cursor missing768 is not kept by the core
+Cursor missing769 is not kept by the core
+Cursor missing770 is not kept by the core
+Cursor missing771 is not kept by the core
+Cursor missing772 is not kept by the core
+Cursor missing773 is not kept by the core
+Cursor missing774 is not kept by the core
+Cursor missing775 is not kept by the core
+Cursor missing776 is not kept by the core
+Cursor missing777 is not kept by the core
+Cursor missing778 is not kept by the core
+Cursor missing779 is not kept by the core
+Cursor missing780 is not kept by the core
+Cursor missing781 is not kept by the core
+Cursor missing782 is not kept by the core
+Cursor missing783 is not kept by the core
+Cursor missing784 is not kept by the core
+Cursor missing785 is not kept by the core
+Cursor missing786 is not kept by the core
+Cursor missing787 is not kept by the core
+Cursor missing788 is not kept by the core
+Cursor missing789 is not kept by the core
+Cursor missing790 is not kept by the core
+Cursor missing791 is not kept by the core
+Cursor missing792 is not kept by the core
+Cursor missing793 is not kept by the core
+Cursor missing794 is not kept by the core
+Cursor missing795 is not kept by the core
+Cursor missing796 is not kept by the core
+Cursor missing797 is not kept by the core
+Cursor missing798 is not kept by the core
+Cursor missing799 is not kept by the core
+Cursor missing800 is not kept by the core
+Cursor missing801 is not kept by the core
+Cursor missing802 is not kept by the core
+Cursor missing803 is not kept by the core
+Cursor missing804 is not kept by the core
+Cursor missing805 is not kept by the core
+Cursor missing806 is not kept by the core
+Cursor missing807 is not kept by the core
+Cursor missing808 is not kept by the core
+Cursor missing809 is not kept by the core
+Cursor missing810 is not kept by the core
+Cursor missing811 is not kept by the core
+Cursor missing812 is not kept by the core
+Cursor missing813 is not kept by the core
+Cursor missing814 is not kept by the core
+Cursor missing815 is not kept by the core
+Cursor missing816 is not kept by the core
+Cursor missing817 is not kept by the core
+Cursor missing818 is not kept by the core
+Cursor missing819 is not kept by the core
+Cursor missing820 is not kept by the core
+Cursor missing821 is not kept by the core
+Cursor missing822 is not kept by the core
+Cursor missing823 is not kept by the core
+Cursor missing824 is not kept by the core
+Cursor missing825 is not kept by the core
+Cursor missing826 is not kept by the core
+Cursor missing827 is not kept by the core
+Cursor missing828 is not kept by the core
+Cursor missing829 is not kept by the core
+Cursor missing830 is not kept by the core
+Cursor missing831 is not kept by the core
+Cursor missing832 is not kept by the core
+Cursor missing833 is not kept by the core
+Cursor missing834 is not kept by the core
+Cursor missing835 is not kept by the core
+Cursor missing836 is not kept by the core
+Cursor missing837 is not kept by the core
+Cursor missing838 is not kept by the core
+Cursor missing839 is not kept by the core
+Cursor missing840 is not kept by the core
+Cursor missing841 is not kept by the core
+Cursor missing842 is not kept by the core
+Cursor missing843 is not kept by the core
+Cursor missing844 is not kept by the core
+Cursor missing845 is not kept by the core
+Cursor missing846 is not kept by the core
+Cursor missing847 is not kept by the core
+Cursor missing848 is not kept by the core
+Cursor missing849 is not kept by the core
+Cursor missing850 is not kept by the core
+Cursor missing851 is not kept by the core
+Cursor missing852 is not kept by the core
+Cursor missing853 is not kept by the core
+Cursor missing854 is not kept by the core
+Cursor missing855 is not kept by the core
+Cursor missing856 is not kept by the core
+Cursor missing857 is not kept by the core
+Cursor missing858 is not kept by the core
+Cursor missing859 is not kept by the core
+Cursor missing860 is not kept by the core
+Cursor missing861 is not kept by the core
+Cursor missing862 is not kept by the core
+Cursor missing863 is not kept by the core
+Cursor missing864 is not kept by the core
+Cursor missing865 is not kept by the core
+Cursor missing866 is not kept by the core
+Cursor missing867 is not kept by the core
+Cursor missing868 is not kept by the core
+Cursor missing869 is not kept by the core
+Cursor missing870 is not kept by the core
+Cursor missing871 is not kept by the core
+Cursor missing872 is not kept by the core
+Cursor missing873 is not kept by the core
+Cursor missing874 is not kept by the core
+Cursor missing875 is not kept by the core
+Cursor missing876 is not kept by the core
+Cursor missing877 is not kept by the core
+Cursor missing878 is not kept by the core
+Cursor missing879 is not kept by the core
+Cursor missing880 is not kept by the core
+Cursor missing881 is not kept by the core
+Cursor missing882 is not kept by the core
+Cursor missing883 is not kept by the core
+Cursor missing884 is not kept by the core
+Cursor missing885 is not kept by the core
+Cursor missing886 is not kept by the core
+Cursor missing887 is not kept by the core
+Cursor missing888 is not kept by the core
+Cursor missing889 is not kept by the core
+Cursor missing890 is not kept by the core
+Cursor missing891 is not kept by the core
+Cursor missing892 is not kept by the core
+Cursor missing893 is not kept by the core
+Cursor missing894 is not kept by the core
+Cursor missing895 is not kept by the core
+Cursor missing896 is not kept by the core
+Cursor missing897 is not kept by the core
+Cursor missing898 is not kept by the core
+Cursor missing899 is not kept by the core
+Cursor missing900 is not kept by the core
+Cursor missing901 is not kept by the core
+Cursor missing902 is not kept by the core
+Cursor missing903 is not kept by the core
+Cursor missing904 is not kept by the core
+Cursor missing905 is not kept by the core
+Cursor missing906 is not kept by the core
+Cursor missing907 is not kept by the core
+Cursor missing908 is not kept by the core
+Cursor missing909 is not kept by the core
+Cursor missing910 is not kept by the core
+Cursor missing911 is not kept by the core
+Cursor missing912 is not kept by the core
+Cursor missing913 is not kept by the core
+Cursor missing914 is not kept by the core
+Cursor missing915 is not kept by the core
+Cursor missing916 is not kept by the core
+Cursor missing917 is not kept by the core
+Cursor missing918 is not kept by the core
+Cursor missing919 is not kept by the core
+Cursor missing920 is not kept by the core
+Cursor missing921 is not kept by the core
+Cursor missing922 is not kept by the core
+Cursor missing923 is not kept by the core
+Cursor missing924 is not kept by the core
+Cursor missing925 is not kept by the core
+Cursor missing926 is not kept by the core
+Cursor missing927 is not kept by the core
+Cursor missing928 is not kept by the core
+Cursor missing929 is not kept by the core
+Cursor missing930 is not kept by the core
+Cursor missing931 is not kept by the core
+Cursor missing932 is not kept by the core
+Cursor missing933 is not kept by the core
+Cursor missing934 is not kept by the core
+Cursor missing935 is not kept by the core
+Cursor missing936 is not kept by the core
+Cursor missing937 is not kept by the core
+Cursor missing938 is not kept by the core
+Cursor missing939 is not kept by the core
+Cursor missing940 is not kept by the core
+Cursor missing941 is not kept by the core
+Cursor missing942 is not kept by the core
+Cursor missing943 is not kept by the core
+Cursor missing944 is not kept by the core
+Cursor missing945 is not kept by the core
+Cursor missing946 is not kept by the core
+Cursor missing947 is not kept by the core
+Cursor missing948 is not kept by the core
+Cursor missing949 is not kept by the core
+Cursor missing950 is not kept by the core
+Cursor missing951 is not kept by the core
+Cursor missing952 is not kept by the core
+Cursor missing953 is not kept by the core
+Cursor missing954 is not kept by the core
+Cursor missing955 is not kept by the core
+Cursor missing956 is not kept by the core
+Cursor missing957 is not kept by the core
+Cursor missing958 is not kept by the core
+Cursor missing959 is not kept by the core
+Cursor missing960 is not kept by the core
+Cursor missing961 is not kept by the core
+Cursor missing962 is not kept by the core
+Cursor missing963 is not kept by the core
+Cursor missing964 is not kept by the core
+Cursor missing965 is not kept by the core
+Cursor missing966 is not kept by the core
+Cursor missing967 is not kept by the core
+Cursor missing968 is not kept by the core
+Cursor missing969 is not kept by the core
+Cursor missing970 is not kept by the core
+Cursor missing971 is not kept by the core
+Cursor missing972 is not kept by the core
+Cursor missing973 is not kept by the core
+Cursor missing974 is not kept by the core
+Cursor missing975 is not kept by the core
+Cursor missing976 is not kept by the core
+Cursor missing977 is not kept by the core
+Cursor missing978 is not kept by the core
+Cursor missing979 is not kept by the core
+Cursor missing980 is not kept by the core
+Cursor missing981 is not kept by the core
+Cursor missing982 is not kept by the core
+Cursor missing983 is not kept by the core
+Cursor missing984 is not kept by the core
+Cursor missing985 is not kept by the core
+Cursor missing986 is not kept by the core
+Cursor missing987 is not kept by the core
+Cursor missing988 is not kept by the core
+Cursor missing989 is not kept by the core
+Cursor missing990 is not kept by the core
+Cursor missing991 is not kept by the core
+Cursor missing992 is not kept by the core
+Cursor missing993 is not kept by the core
+Cursor missing994 is not kept by the core
+Cursor missing995 is not kept by the core
+Cursor missing996 is not kept by the core
+Cursor missing997 is not kept by the core
+Cursor missing998 is not kept by the core
+Cursor missing999 is not kept by the core
+Cursor missing0 is not kept by the core
+00:09 +115: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape the core lacks is asked for again after another was in use
+Cursor missing0 is not kept by the core
+Cursor missing0 is not kept by the core
+00:09 +116: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a moved tab carries the id in use, and its window asks the core
+00:09 +117: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape keeps a native cursor for each raster it was shown at
+Register custom cursor with key 19__1_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 19__1_160000000_160000000_16_16 (0.0,0.0)
+00:09 +118: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a cleared session forgets the native cursors it deleted
+Register custom cursor with key 20__1_80000000_80000000_8_8 (0.0,0.0)
+deleting cursor with key 20__1_80000000_80000000_8_8
+00:09 +119: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a tab closing does not delete the cursors of another tab
+Register custom cursor with key 21__-1_320000000_320000000_32_32 (16.0,16.0)
+Register custom cursor with key 22__-1_320000000_320000000_32_32 (16.0,16.0)
+deleting cursor with key 21__-1_320000000_320000000_32_32
+00:09 +120: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape given as a view into a larger buffer is read from the view
+00:09 +121: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape still decoding leaves the one shown before in place
+Register custom cursor with key 24__1_80000000_80000000_8_8 (0.0,0.0)
+Cursor 2 is not kept by the core
+00:09 +122: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape the core does not have leaves the default cursor, not the one before
+Cursor 2 is not kept by the core
+00:09 +123: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape the core cannot decode leaves the default cursor, not the one before
+Shell: [ERROR:flutter/lib/ui/painting/image_decoder_skia.cc(89)] Could not create image from decompressed bytes.
+getNextFrame failed: Exception: Codec failed to produce an image, possibly due to invalid image data.
+00:09 +124: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a shape sent that does not decode leaves the default cursor
+Shell: [ERROR:flutter/lib/ui/painting/image_decoder_skia.cc(89)] Could not create image from decompressed bytes.
+getNextFrame failed: Exception: Codec failed to produce an image, possibly due to invalid image data.
+00:09 +125: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a fetch failing after the session was cleared marks nothing in it
+Failed to fetch cursor 1: Bad state: failed
+Cursor 1 is not kept by the core
+00:09 +126: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a fetch that throws at once tells the listeners after the build
+Failed to fetch cursor 2: Bad state: no core
+00:09 +127: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a raster still being made falls back to a shape, not the forbidden one
+Register custom cursor with key 30__1_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 30__2_320000000_320000000_32_32 (0.0,0.0)
+Register custom cursor with key 30__-2_320000000_320000000_32_32 (0.0,0.0)
+00:09 +128: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a painted cursor keeps the images of two animations and the everyday set (mobile)
+00:09 +129: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a painted cursor keeps the images of two animations and the everyday set (remote cursor shown)
+00:09 +130: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a painted cursor keeps the images used last, and decodes the others again
+00:09 +131: /workspace/Build/Linux/src/rustdesk/flutter/test/cursor_replay_test.dart: a painted cursor keeps a shape that finished decoding after the peer moved on
+00:09 +132: All tests passed!

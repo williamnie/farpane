@@ -1,0 +1,14 @@
+[
+  {
+    "first": "192.0.2.10",
+    "second": "192.0.2.10",
+    "paired_echo_ok": true,
+    "received_bytes": 22
+  },
+  {
+    "first": "192.0.2.10",
+    "second": "id.example.com",
+    "paired_echo_ok": false,
+    "error": "timed out"
+  }
+]

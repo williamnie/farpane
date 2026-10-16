@@ -1,0 +1,16 @@
+# X-FarPane-Managed=true
+[Unit]
+Description=FarPane Linux host
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/farpane/farpane --service
+WorkingDirectory=/opt/farpane
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

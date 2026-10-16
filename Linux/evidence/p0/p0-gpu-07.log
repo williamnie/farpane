@@ -1,0 +1,28 @@
+ffmpeg=9.0.2 uid=1000 size=256x128 fps=12 frames=60 pre_tol=3 decoded_tol=10
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
++----------+
+|  source  |default--[256x128 1:1 drm_prime]--direct:default
+| (buffer) |
++----------+
+
+                                                +---------+
+source:default--[256x128 1:1 drm_prime]--default| direct  |default--[256x128 1:1 vaapi]--nv12:default
+                                                | (hwmap) |
+                                                +---------+
+
+                                            +---------------+
+direct:default--[256x128 1:1 vaapi]--default|     nv12      |default--[256x128 1:1 vaapi]--sink:default
+                                            | (scale_vaapi) |
+                                            +---------------+
+
+                                          +--------------+
+nv12:default--[256x128 1:1 vaapi]--default|     sink     |
+                                          | (buffersink) |
+                                          +--------------+
+
+
+[source @ 0x5981600c6180] Changing video frame properties on the fly is not supported by all filters.
+[source @ 0x5981600c6180] filter context - w: 256 h: 128 fmt: 178 csp: unknown range: unknown alpha: unspecified, incoming frame - w: 256 h: 128 fmt: 178 csp: gbr range: pc alpha: unspecified pts_time: 0
+surfaces=1 fd_steady=10 fd_peak=10
+pre_max=1 decoded_max=1 fine_luma_psnr_min=47.12 packets=60 decoded=60 keyframes=2 leases=60/60 peak=1 busy_observed=1 sync_p95_ms=0.125 fd_before=4 fd_after=4
+PASS synthetic GPU graph; real desktop tearing, driver-timeout and end-to-end latency remain unverified

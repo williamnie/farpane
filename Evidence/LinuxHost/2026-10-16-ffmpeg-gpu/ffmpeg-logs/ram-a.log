@@ -1,0 +1,96 @@
+[VAAPI @ 0x639999443b80] libva: VA-API version 1.23.0
+[VAAPI @ 0x639999443b80] libva: Trying to open /usr/lib/x86_64-linux-gnu/dri/radeonsi_drv_video.so
+[VAAPI @ 0x639999443b80] libva: Found init function __vaDriverInit_1_23
+[VAAPI @ 0x639999443b80] libva: va_openDriver() returns 0
+[VAAPI @ 0x639999443b80] Initialised VAAPI connection: version 1.23
+[VAAPI @ 0x639999443b80] VAAPI driver: Mesa Gallium driver 26.0.8-1ubuntu0.3 for AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic).
+[VAAPI @ 0x639999443b80] Driver not found in known nonstandard list, using standard behaviour.
+ffmpeg stats and -progress period set to 1.
+[DRM @ 0x639999443bc0] Opened DRM device /dev/dri/card1: driver amdgpu version 3.64.0.
+[kmsgrab @ 0x6399995fee40] Template framebuffer is 47: 2560x1440 format 34325258 modifier 0 flags 0.
+[kmsgrab @ 0x6399995fee40] Format is bgr0, from DRM format 34325258 modifier ffffffffffffff.
+Input #0, kmsgrab, from 'fd:':
+  Duration: N/A, start: 1792111379.518777, bitrate: N/A
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, drm_prime, 2560x1440, 29.75 tbr, 1000k tbn, start 1792111379.518777
+[out#0/null @ 0x639999601b80] No explicit maps, mapping streams automatically...
+[vost#0:0/h264_vaapi @ 0x639999601f00] Created video stream from input stream 0:0
+Stream mapping:
+  Stream #0:0 -> #0:0 (wrapped_avframe (native) -> h264 (h264_vaapi))
+[vost#0:0/h264_vaapi @ 0x639999601f00] Starting thread...
+[vf#0:0 @ 0x639999602d00] Starting thread...
+[vist#0:0/wrapped_avframe @ 0x639999601880] [dec:wrapped_avframe @ 0x63999960e9c0] Starting thread...
+[in#0/kmsgrab @ 0x6399995feb80] Starting thread...
+[graph -1 input from stream 0:0 @ 0x7f9848002dc0] w:2560 h:1440 pixfmt:drm_prime tb:1/1000000 fr:119/4 sar:0/1 csp:unknown range:unknown
+[auto_scale_0 @ 0x7f9848003fc0] w:iw h:ih flags:'' interl:0
+[Parsed_format_3 @ 0x7f9848001ec0] auto-inserting filter 'auto_scale_0' between the filter 'Parsed_format_2' and the filter 'Parsed_format_3'
+[VAAPI @ 0x7f98480132c0] Using render node /dev/dri/renderD128 in place of non-render DRM device.
+[VAAPI @ 0x7f98480132c0] libva: VA-API version 1.23.0
+[VAAPI @ 0x7f98480132c0] libva: Trying to open /usr/lib/x86_64-linux-gnu/dri/radeonsi_drv_video.so
+[VAAPI @ 0x7f98480132c0] libva: Found init function __vaDriverInit_1_23
+[VAAPI @ 0x7f98480132c0] libva: va_openDriver() returns 0
+[VAAPI @ 0x7f98480132c0] Initialised VAAPI connection: version 1.23
+[VAAPI @ 0x7f98480132c0] VAAPI driver: Mesa Gallium driver 26.0.8-1ubuntu0.3 for AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic).
+[VAAPI @ 0x7f98480132c0] Driver not found in known nonstandard list, using standard behaviour.
+[auto_scale_0 @ 0x7f9848003fc0] w:2560 h:1440 fmt:bgr0 csp:gbr range:pc sar:0/1 -> w:2560 h:1440 fmt:nv12 csp:unknown range:tv sar:0/1 flags:0x00000004
+[auto_scale_0 @ 0x7f9848003fc0] [framesync @ 0x7f98480040d0] Selected 1/1000000 time base
+[auto_scale_0 @ 0x7f9848003fc0] [framesync @ 0x7f98480040d0] Sync level 1
+[graph -1 input from stream 0:0 @ 0x7f9848002dc0] video frame properties congruent with link at pts_time: 0
+[auto_scale_0 @ 0x7f9848003fc0] w:2560 h:1440 fmt:bgr0 csp:gbr range:pc sar:0/1 -> w:2560 h:1440 fmt:nv12 csp:unknown range:tv sar:0/1 flags:0x00000004
+[auto_scale_0 @ 0x7f9848003fc0] [framesync @ 0x7f98480040d0] Sync level 1
+[auto_scale_0 @ 0x7f9848003fc0] w:2560 h:1440 fmt:bgr0 csp:gbr range:pc sar:0/1 -> w:2560 h:1440 fmt:nv12 csp:unknown range:tv sar:0/1 flags:0x00000004
+[auto_scale_0 @ 0x7f9848003fc0] [framesync @ 0x7f98480040d0] Sync level 1
+[auto_scale_0 @ 0x7f9848003fc0] w:2560 h:1440 fmt:bgr0 csp:unknown range:unknown sar:0/1 -> w:2560 h:1440 fmt:nv12 csp:unknown range:tv sar:0/1 flags:0x00000004
+[auto_scale_0 @ 0x7f9848003fc0] [framesync @ 0x7f98480040d0] Sync level 1
+[vost#0:0/h264_vaapi @ 0x639999601f00] [enc:h264_vaapi @ 0x6399996023c0] Using input frames context (format vaapi) with h264_vaapi encoder.
+[h264_vaapi @ 0x639999602440] Input surface format is nv12.
+[h264_vaapi @ 0x639999602440] Using VAAPI profile VAProfileH264Main (6).
+[h264_vaapi @ 0x639999602440] Using VAAPI entrypoint VAEntrypointEncSlice (6).
+[h264_vaapi @ 0x639999602440] Using VAAPI render target format YUV420 (0x1).
+[h264_vaapi @ 0x639999602440] RC mode: CBR.
+[h264_vaapi @ 0x639999602440] Block Level bitrate control: OFF.
+[h264_vaapi @ 0x639999602440] RC target: 100% of 4000000 bps over 1000 ms.
+[h264_vaapi @ 0x639999602440] RC buffer: 4000000 bits, initial fullness 3000000 bits.
+[h264_vaapi @ 0x639999602440] RC framerate: 119/4 (29.75 fps).
+[h264_vaapi @ 0x639999602440] Driver does not report any additional prediction constraints.
+[h264_vaapi @ 0x639999602440] Using intra and P-frames (supported references: 1 / 1).
+[h264_vaapi @ 0x639999602440] All wanted packed headers available (wanted 0xd, found 0x1f).
+[h264_vaapi @ 0x639999602440] Using level 5.
+Output #0, null, to '/dev/null':
+  Metadata:
+    encoder         : Lavf62.3.100
+  Stream #0:0: Video: h264 (Main), 1 reference frame, vaapi(tv, progressive), 2560x1440, q=2-31, 4000 kb/s, 29.75 fps, 29.75 tbn
+    Metadata:
+      encoder         : Lavc62.11.100 h264_vaapi
+[out#0/null @ 0x639999601b80] Starting thread...
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 179 >= 179
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 434 >= 434
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 654 >= 654
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 845 >= 845
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 1048 >= 1048
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 1253 >= 1253
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 1440 >= 1440
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 1657 >= 1657
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 1848 >= 1848
+[null @ 0x639999601c80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 2028 >= 2028
+[vf#0:0 @ 0x639999602d00] Filtergraph returned EOF, finishing
+[vf#0:0 @ 0x639999602d00] All consumers returned EOF
+[vost#0:0/h264_vaapi @ 0x639999601f00] [enc:h264_vaapi @ 0x6399996023c0] Encoder thread received EOF
+[vost#0:0/h264_vaapi @ 0x639999601f00] Terminating thread with return code 0 (success)
+[out#0/null @ 0x639999601b80] All streams finished
+[out#0/null @ 0x639999601b80] Terminating thread with return code 0 (success)
+[vf#0:0 @ 0x639999602d00] Terminating thread with return code 0 (success)
+[in#0/kmsgrab @ 0x6399995feb80] Terminating thread with return code 0 (success)
+[vist#0:0/wrapped_avframe @ 0x639999601880] [dec:wrapped_avframe @ 0x63999960e9c0] Decoder thread received EOF packet
+[vist#0:0/wrapped_avframe @ 0x639999601880] [dec:wrapped_avframe @ 0x63999960e9c0] Decoder returned EOF, finishing
+[vist#0:0/wrapped_avframe @ 0x639999601880] [dec:wrapped_avframe @ 0x63999960e9c0] Terminating thread with return code 0 (success)
+[out#0/null @ 0x639999601b80] Output file #0 (/dev/null):
+[out#0/null @ 0x639999601b80]   Output stream #0:0 (video): 2122 frames encoded; 2122 packets muxed (35663827 bytes); 
+[out#0/null @ 0x639999601b80]   Total: 2122 packets (35663827 bytes) muxed
+[out#0/null @ 0x639999601b80] video:34828KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+frame= 2122 fps= 30 q=-0.0 Lsize=N/A time=00:01:11.02 bitrate=N/A speed=1.01x elapsed=0:01:10.38    
+[AVIOContext @ 0x6399995fea40] Statistics: 13433 bytes written, 0 seeks, 71 writeouts
+[in#0/kmsgrab @ 0x6399995feb80] Input file #0 (fd:):
+[in#0/kmsgrab @ 0x6399995feb80]   Input stream #0:0 (video): 2124 packets read (883584 bytes); 2123 frames decoded; 0 decode errors; 
+[in#0/kmsgrab @ 0x6399995feb80]   Total: 2124 packets (883584 bytes) demuxed
+
+Exiting with exit code 0

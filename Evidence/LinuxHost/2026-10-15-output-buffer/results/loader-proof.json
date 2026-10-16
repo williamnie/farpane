@@ -1,0 +1,44 @@
+{
+  "A": {
+    "exit_code": 0,
+    "version": "1.5.0",
+    "library": "/home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so",
+    "sha256": "43e158c4b5922c707965382300a825b49b5c7cdf1411d1da6ff43af63c4f3a71",
+    "loader_lines": [
+      "1902354:\tfile=/home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0];  dynamically loaded by /home/user/services/rustdesk-host-perf-20261015/bundles/A/rustdesk [0]",
+      "1902354:\tfile=/home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0];  generating link map",
+      "1902354:\tfile=libpulse-simple.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]",
+      "1902354:\tfile=libpulse.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]",
+      "1902354:\tfile=libXtst.so.6 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]",
+      "1902354:\tfile=libxcb-randr.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]",
+      "1902354:\tfile=libgstvideo-1.0.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]",
+      "1902354:\tfile=libgstreamer-1.0.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]",
+      "1902354:\tfile=libdrm.so.2 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]",
+      "1902354:\tfile=libgstapp-1.0.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]",
+      "1902354:\tcalling init: /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so",
+      "1902354:\topening file=/home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]; direct_opencount=1",
+      "1902354:\tcalling fini: /home/user/services/rustdesk-host-perf-20261015/bundles/A/lib/librustdesk.so [0]"
+    ]
+  },
+  "B": {
+    "exit_code": 0,
+    "version": "1.5.0",
+    "library": "/home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so",
+    "sha256": "7aece4647c50c31e496843f0c61b88577f01707d0621624faa6b3820b6a22931",
+    "loader_lines": [
+      "1902380:\tfile=/home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0];  dynamically loaded by /home/user/services/rustdesk-host-perf-20261015/bundles/B/rustdesk [0]",
+      "1902380:\tfile=/home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0];  generating link map",
+      "1902380:\tfile=libpulse-simple.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]",
+      "1902380:\tfile=libpulse.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]",
+      "1902380:\tfile=libXtst.so.6 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]",
+      "1902380:\tfile=libxcb-randr.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]",
+      "1902380:\tfile=libgstvideo-1.0.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]",
+      "1902380:\tfile=libgstreamer-1.0.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]",
+      "1902380:\tfile=libdrm.so.2 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]",
+      "1902380:\tfile=libgstapp-1.0.so.0 [0];  needed by /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]",
+      "1902380:\tcalling init: /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so",
+      "1902380:\topening file=/home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]; direct_opencount=1",
+      "1902380:\tcalling fini: /home/user/services/rustdesk-host-perf-20261015/bundles/B/lib/librustdesk.so [0]"
+    ]
+  }
+}

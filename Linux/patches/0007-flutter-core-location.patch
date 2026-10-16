@@ -1,0 +1,15 @@
+--- a/flutter/linux/CMakeLists.txt
++++ b/flutter/linux/CMakeLists.txt
+@@ -189,7 +189,11 @@
+ string(TOLOWER ${CMAKE_BUILD_TYPE} ${RUSTDESK_LIB_BUILD_TYPE})
+ message(STATUS "rustdesk lib build type: ${RUSTDESK_LIB_BUILD_TYPE}")
+ 
+-set(RUSTDESK_LIB "../../target/${RUSTDESK_LIB_BUILD_TYPE}/liblibrustdesk.so")
++if(DEFINED ENV{CARGO_TARGET_DIR})
++  set(RUSTDESK_LIB "$ENV{CARGO_TARGET_DIR}/${RUSTDESK_LIB_BUILD_TYPE}/liblibrustdesk.so")
++else()
++  set(RUSTDESK_LIB "../../target/${RUSTDESK_LIB_BUILD_TYPE}/liblibrustdesk.so")
++endif()
+ install(FILES "${RUSTDESK_LIB}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+ COMPONENT Runtime RENAME librustdesk.so)
+ 

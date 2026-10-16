@@ -1,0 +1,11 @@
+--- a/src/platform/linux.rs
++++ b/src/platform/linux.rs
+@@ -1548,4 +1548,8 @@
+ pub fn is_installed() -> bool {
+     if let Ok(p) = std::env::current_exe() {
++        #[cfg(feature = "farpane-linux")]
++        if std::fs::canonicalize("/opt/farpane/farpane").ok().as_ref() == Some(&p) {
++            return true;
++        }
+         p.to_str().unwrap_or_default().starts_with("/usr")
+             || p.to_str().unwrap_or_default().starts_with("/nix/store")

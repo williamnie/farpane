@@ -1,0 +1,98 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -22,4 +22,5 @@
+ 
+ [features]
++linux-gpu-media = ["farpane-linux", "drm", "hwcodec", "scrap/linux-gpu-media"]
+ inline = []
+ use_samplerate = ["samplerate", "libsamplerate-sys"]
+--- a/libs/scrap/Cargo.toml
++++ b/libs/scrap/Cargo.toml
+@@ -27,4 +27,5 @@
+ hwcodec = ["dep:hwcodec"]
+ vram = ["hwcodec/vram"]
++linux-gpu-media = ["drm", "hwcodec"]
+ 
+ [dependencies]
+--- a/libs/scrap/build.rs
++++ b/libs/scrap/build.rs
+@@ -227,5 +227,10 @@
+ */
+ 
++#[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++mod linux_gpu_build;
++
+ fn main() {
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    linux_gpu_build::build();
+     // in this crate, these are also valid configurations
+     println!("cargo:rustc-check-cfg=cfg(dxgi,quartz,x11)");
+--- a/libs/scrap/src/common/mod.rs
++++ b/libs/scrap/src/common/mod.rs
+@@ -40,4 +40,6 @@
+ 
+ pub mod codec;
++#[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++pub mod linux_gpu;
+ pub mod convert;
+ #[cfg(feature = "hwcodec")]
+@@ -178,4 +180,6 @@
+ #[cfg(not(any(target_os = "ios")))]
+ pub enum Frame<'a> {
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    LinuxGpu(linux_gpu::LinuxGpuFrame),
+     PixelBuffer(PixelBuffer<'a>),
+     Texture((*mut c_void, usize)),
+@@ -188,4 +192,6 @@
+             Frame::PixelBuffer(pixelbuffer) => !pixelbuffer.data().is_empty(),
+             Frame::Texture((texture, _)) => !texture.is_null(),
++            #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++            Frame::LinuxGpu(frame) => frame.valid(),
+         }
+     }
+@@ -203,4 +209,6 @@
+             }
+             Frame::Texture(texture) => Ok(EncodeInput::Texture(*texture)),
++            #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++            Frame::LinuxGpu(frame) => Ok(EncodeInput::LinuxGpu(frame.clone())),
+         }
+     }
+@@ -208,4 +216,6 @@
+ 
+ pub enum EncodeInput<'a> {
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    LinuxGpu(linux_gpu::LinuxGpuFrame),
+     YUV(&'a [u8]),
+     Texture((*mut c_void, usize)),
+--- a/libs/scrap/src/common/codec.rs
++++ b/libs/scrap/src/common/codec.rs
+@@ -50,4 +50,6 @@
+ #[derive(Debug, Clone)]
+ pub enum EncoderCfg {
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    LinuxGpu(crate::linux_gpu::LinuxGpuEncoderConfig),
+     VPX(VpxEncoderConfig),
+     AOM(AomEncoderConfig),
+@@ -135,4 +137,8 @@
+         log::info!("new encoder: {config:?}, i444: {i444}");
+         match config {
++            #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++            EncoderCfg::LinuxGpu(_) => Ok(Encoder {
++                codec: Box::new(crate::linux_gpu::LinuxGpuEncoder::new(config, i444)?),
++            }),
+             EncoderCfg::VPX(_) => Ok(Encoder {
+                 codec: Box::new(VpxEncoder::new(config, i444)?),
+@@ -361,4 +367,6 @@
+     pub fn set_fallback(config: &EncoderCfg) {
+         let format = match config {
++            #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++            EncoderCfg::LinuxGpu(_) => CodecFormat::H264,
+             EncoderCfg::VPX(vpx) => match vpx.codec {
+                 VpxVideoCodecId::VP8 => CodecFormat::VP8,
+@@ -407,4 +415,6 @@
+             .all(|d| d.1.prefer_chroma == Chroma::I444.into());
+         let i444_useable = match config {
++            #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++            EncoderCfg::LinuxGpu(_) => false,
+             EncoderCfg::VPX(vpx) => match vpx.codec {
+                 VpxVideoCodecId::VP8 => false,

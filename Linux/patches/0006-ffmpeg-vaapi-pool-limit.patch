@@ -1,0 +1,33 @@
+--- a/libavfilter/vaapi_vpp.h
++++ b/libavfilter/vaapi_vpp.h
+@@ -52,6 +52,7 @@
+     enum AVPixelFormat output_format;
+     int output_width;   // computed width
+     int output_height;  // computed height
++    int output_pool_size; // zero preserves upstream pool policy
+ 
+     VABufferID         filter_buffers[VAProcFilterCount];
+     int                nb_filter_buffers;
+--- a/libavfilter/vaapi_vpp.c
++++ b/libavfilter/vaapi_vpp.c
+@@ -211,6 +211,9 @@
+     err = ff_filter_init_hw_frames(avctx, outlink, 10);
+     if (err < 0)
+         goto fail;
++
++    if (ctx->output_pool_size > 0)
++        output_frames->initial_pool_size = ctx->output_pool_size;
+ 
+     err = av_hwframe_ctx_init(outl->hw_frames_ctx);
+     if (err < 0) {
+--- a/libavfilter/vf_scale_vaapi.c
++++ b/libavfilter/vf_scale_vaapi.c
+@@ -240,6 +240,8 @@
+       OFFSET(h_expr), AV_OPT_TYPE_STRING, {.str = "ih"}, .flags = FLAGS },
+     { "format", "Output video format (software format of hardware frames)",
+       OFFSET(output_format_string), AV_OPT_TYPE_STRING, .flags = FLAGS },
++    { "pool_size", "Fixed output surface limit (zero uses upstream policy)",
++      OFFSET(vpp_ctx.output_pool_size), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 64, FLAGS },
+     { "mode", "Scaling mode",
+       OFFSET(mode), AV_OPT_TYPE_INT, { .i64 = VA_FILTER_SCALING_HQ },
+       0, VA_FILTER_SCALING_NL_ANAMORPHIC, FLAGS, .unit = "mode" },

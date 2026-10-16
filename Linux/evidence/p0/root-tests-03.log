@@ -1,0 +1,114 @@
+
+running 67 tests
+test server::drm_capturer::drm_capturer_tests::a_180_frame_is_turned_only_when_the_plane_did_not_turn_it ... ok
+test server::drm_capturer::drm_capturer_tests::a_180_output_turns_the_cursor_but_not_the_frame_on_i915_plus_mutter ... ok
+test server::drm_capturer::drm_capturer_tests::a_cached_correction_is_not_served_without_a_context ... ok
+test server::drm_capturer::drm_capturer_tests::a_calibration_context_exists_only_for_an_identity_matched_upright_output ... ok
+test server::drm_capturer::drm_capturer_tests::a_candidate_does_not_confirm_across_an_input_mapping_change ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_in_band_with_both_keeps_the_served_correction ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_in_band_with_the_served_one_changes_nothing_and_stays_cached ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_near_the_wire_serves_the_wire_and_drops_the_cached_correction ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirming_measurement_publishes_the_retained_candidate_not_the_new_sample ... ok
+test server::drm_capturer::drm_capturer_tests::a_corrected_id_differs_from_the_wire_id_and_is_deterministic ... ok
+test server::drm_capturer::drm_capturer_tests::a_correction_confirmed_under_an_older_generation_is_not_served ... ok
+test server::drm_capturer::drm_capturer_tests::a_dead_producer_stops_being_advertised ... ok
+test server::drm_capturer::drm_capturer_tests::a_delivered_frame_clears_the_streak_but_keeps_the_cadence_and_the_convert_verdict ... ok
+test server::drm_capturer::drm_capturer_tests::a_disagreeing_measurement_replaces_the_candidate_and_the_same_sample_never_confirms ... ok
+test server::drm_capturer::drm_capturer_tests::a_first_frame_that_never_matched_counts_as_a_session_without_frames ... ok
+test server::drm_capturer::drm_capturer_tests::a_guessed_hotspot_is_guessed_on_the_upright_sprite ... ok
+test server::drm_capturer::drm_capturer_tests::a_kernel_measured_hotspot_is_never_calibrated_even_at_the_origin ... ok
+test server::drm_capturer::drm_capturer_tests::a_larger_frame_ends_the_session_too ... ok
+test server::drm_capturer::drm_capturer_tests::a_legacy_cursor_message_keeps_the_hotspot_the_old_protocol_meant ... ok
+test server::drm_capturer::drm_capturer_tests::a_lone_display_goes_offline_only_when_its_fallback_was_rejected ... ok
+test server::drm_capturer::drm_capturer_tests::a_lone_rotated_output_advertises_delivered_dimensions ... ok
+test server::drm_capturer::drm_capturer_tests::a_name_match_beats_the_positional_fallback ... ok
+test server::drm_capturer::drm_capturer_tests::a_permanently_ungrabbable_display_stops_churning ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_move_without_a_new_peer_sample_never_confirms ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_that_rotated_90_in_hardware_hands_over_a_portrait_scanout ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_that_rotated_holds_the_logical_desktop_whatever_wl_output_says ... ok
+test server::drm_capturer::drm_capturer_tests::a_portrait_scanout_from_a_plane_that_rotated_90_is_left_alone ... ok
+test server::drm_capturer::drm_capturer_tests::a_published_hotspot_does_not_move_when_the_output_turns ... ok
+test server::drm_capturer::drm_capturer_tests::a_resolution_guess_never_steals_an_exact_name_match ... ok
+test server::drm_capturer::drm_capturer_tests::a_rotated_session_delivers_rotated_frames_and_guards_in_rotated_dims ... ok
+test server::drm_capturer::drm_capturer_tests::a_sample_is_a_reference_only_under_the_adopted_input_mapping ... ok
+test server::drm_capturer::drm_capturer_tests::a_settle_lands_one_sample_later_than_the_constant_reads ... ok
+test server::drm_capturer::drm_capturer_tests::a_smaller_frame_ends_the_session_instead_of_being_encoded ... ok
+test server::drm_capturer::drm_capturer_tests::a_stale_input_mapping_publishes_nothing_until_fresh_samples_follow_the_adoption ... ok
+test server::drm_capturer::drm_capturer_tests::a_stale_snapshot_generation_asks_for_a_rebuild_without_blaming_the_display ... ok
+test server::drm_capturer::drm_capturer_tests::a_still_plane_is_measured_once ... ok
+test server::drm_capturer::drm_capturer_tests::adwaita_hotspot_survey ... ignored
+test server::drm_capturer::drm_capturer_tests::an_ibeam_keeps_its_centre_whichever_way_it_lies ... ok
+test server::drm_capturer::drm_capturer_tests::demote_cooldown_doubles_per_cycle_and_caps ... ok
+test server::drm_capturer::drm_capturer_tests::extra_connectors_stay_unmatched ... ok
+test server::drm_capturer::drm_capturer_tests::frame_buffers_circulate_instead_of_being_reallocated ... ok
+test server::drm_capturer::drm_capturer_tests::frame_of_the_session_size_is_delivered ... ok
+test server::drm_capturer::drm_capturer_tests::health_reports_demoted_only_while_the_cooldown_runs ... ok
+test server::drm_capturer::drm_capturer_tests::identical_monitors_that_match_no_name_take_layout_order ... ok
+test server::drm_capturer::drm_capturer_tests::no_shape_lands_further_from_the_theme_than_master_except_the_two_no_bitmap_can_reach ... ok
+test server::drm_capturer::drm_capturer_tests::one_connector_assignment_drives_geometry_and_primary ... ok
+test server::drm_capturer::drm_capturer_tests::one_output_is_never_claimed_by_two_connectors ... ok
+test server::drm_capturer::drm_capturer_tests::outputs_are_matched_by_name_across_the_drm_naming_difference ... ok
+test server::drm_capturer::drm_capturer_tests::provenance_is_tracked_per_display_and_ignores_the_hidden_cursor ... ok
+test server::drm_capturer::drm_capturer_tests::refresh_keeps_a_verdict_through_one_failure_and_gives_it_up_after_a_run ... ok
+test server::drm_capturer::drm_capturer_tests::the_bound_never_drops_an_entry_from_a_newer_generation ... ok
+test server::drm_capturer::drm_capturer_tests::the_calibration_cache_is_bounded ... ok
+test server::drm_capturer::drm_capturer_tests::the_cursor_id_names_the_orientation_too ... ok
+test server::drm_capturer::drm_capturer_tests::the_cursor_path_publishes_an_upright_sprite_at_every_angle ... ok
+test server::drm_capturer::drm_capturer_tests::the_first_position_after_a_shape_never_counts_as_settled ... ok
+test server::drm_capturer::drm_capturer_tests::the_frame_is_turned_unless_the_plane_rotated_it ... ok
+test server::drm_capturer::drm_capturer_tests::the_measurement_is_the_injected_tip_in_scanout_space_minus_the_plane ... ok
+test server::drm_capturer::drm_capturer_tests::the_settle_window_and_the_sample_gates_are_closed_intervals ... ok
+test server::drm_capturer::drm_capturer_tests::the_two_excused_shapes_are_excused_by_how_much ... ok
+test server::drm_capturer::drm_capturer_tests::transform_and_origin_come_from_the_same_snapshot ... ok
+test server::drm_capturer::drm_capturer_tests::two_idle_buffers_are_both_kept_rather_than_one_being_dropped ... ok
+test server::drm_capturer::drm_capturer_tests::unknown_session_size_delivers_whatever_arrives ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_180_reverses_both_axes ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_270_is_the_inverse_of_90 ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_90_maps_the_left_column_to_the_top_row ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_hotspot_follows_the_pixel_mapping ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_reads_padded_strides_and_writes_tight ... ok
+
+test result: ok. 66 passed; 0 failed; 1 ignored; 0 measured; 352 filtered out; finished in 0.10s
+
+
+running 2 tests
+test ipc::ipc_drm::cursor_pos_tests::a_descriptor_without_a_cursor_position_reads_as_none ... ok
+test ipc::ipc_drm::cursor_pos_tests::the_plane_position_rides_both_frame_kinds_and_a_hidden_cursor_rides_as_none ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 417 filtered out; finished in 0.00s
+
+
+running 6 tests
+test server::display_service::input_map_tests::a_uinput_apply_job_can_bound_its_ipc_with_a_timeout ... ok
+test server::display_service::input_map_tests::a_uinput_apply_thread_that_died_is_started_again ... ok
+test server::display_service::input_map_tests::an_acknowledged_range_is_an_adoption_and_a_fitting_one_is_not ... ok
+test server::display_service::input_map_tests::an_apply_leaves_no_range_ready_until_it_is_acknowledged ... ok
+test server::display_service::input_map_tests::the_raw_drm_union_labels_a_range_with_no_generation ... ok
+test server::display_service::input_map_tests::uinput_applies_run_one_at_a_time_in_the_order_asked ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 413 filtered out; finished in 0.09s
+
+
+running 3 tests
+test server::input_service::peer_abs_sample_tests::a_move_of_this_process_forgets_the_sample_of_a_peer_move_it_waited_for ... ok
+test server::input_service::peer_abs_sample_tests::a_move_without_an_absolute_sample_forgets_the_last_one ... ok
+test server::input_service::peer_abs_sample_tests::every_absolute_move_is_a_new_sample ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 416 filtered out; finished in 0.00s
+
+
+running 11 tests
+test ipc::test::a_drm_cursor_without_provenance_keeps_the_hotspot_the_producer_sent ... ok
+test ipc::test::a_drm_frame_without_a_cursor_position_reads_as_none ... ok
+test ipc::test::a_frame_without_a_plane_rotation_reads_as_none ... ok
+test ipc::test::test_ipc_path_differs_by_uid_for_cm ... ok
+test ipc::test::test_select_server_uid_fails_when_multiple_servers_are_ambiguous ... ok
+test ipc::test::test_select_server_uid_prefers_active_uid_with_multiple_servers ... ok
+test ipc::test::test_select_server_uid_prefers_root_on_wayland_login_screen ... ok
+test ipc::test::test_select_server_uid_uses_active_uid_when_no_server_found ... ok
+test ipc::test::test_select_server_uid_uses_single_server_uid ... ok
+test ipc::test::test_service_ipc_path_is_shared_across_uids ... ok
+test ipc::test::verify_ffi_enum_data_size ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 408 filtered out; finished in 0.00s
+

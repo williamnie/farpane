@@ -1,0 +1,434 @@
+[
+  {
+    "path": "Linux/Cargo.lock",
+    "sha256": "f85349efc5528206ec9f541ee997ff6c26e42b6e72a6c00e18cecc7b7b043205"
+  },
+  {
+    "path": "Linux/README.md",
+    "sha256": "1f68c50fec16686e88860accab611d237f513724ee6e0dd007b1f6200a3c1399"
+  },
+  {
+    "path": "Linux/build-support/ninja",
+    "sha256": "9ad63fad0c9efe64c23de0c67fcc442a9f16d80fbd8646ef51f942576f534044"
+  },
+  {
+    "path": "Linux/dependencies.lock.json",
+    "sha256": "b8f1b60ae70927406851eab468bae690866420c1a0c500b70196ae5377220918"
+  },
+  {
+    "path": "Linux/docs/application-status.md",
+    "sha256": "213464b1a745ff2849df4ce6b56a8dc8a4abdd783f857cd05ec63962016aab64"
+  },
+  {
+    "path": "Linux/docs/implicit-layout.md",
+    "sha256": "5cb0dfa93c6a3121357f53357b5da67cb7bf1209c4a126be17eaf9e8149b02be"
+  },
+  {
+    "path": "Linux/docs/network-identity.md",
+    "sha256": "eeaab74f57df6a2e545c6df473b8e41b009ee7491e1f06a1e4d65aac8aa8faad"
+  },
+  {
+    "path": "Linux/docs/p0-status.md",
+    "sha256": "9f5f9712de682e17f89e40c69be8e591b74155374a966d4a0c413eb2ccafb5ed"
+  },
+  {
+    "path": "Linux/docs/p1-integration-audit.md",
+    "sha256": "72c15e784663b53668f1d7bb2aba53a1ec3f542a3c13e5219baa351419108712"
+  },
+  {
+    "path": "Linux/docs/p1-status.md",
+    "sha256": "ba5ed168dcfb47066e51600c731bd937872fe59a0419de103c627d25a8ba2109"
+  },
+  {
+    "path": "Linux/evidence/p0/README.md",
+    "sha256": "38364b3b5b958628b68005adb1465ac5a27c5b5b40e48f9e58a4c4452a256b38"
+  },
+  {
+    "path": "Linux/evidence/p0/b0-regression-02.log",
+    "sha256": "fb0023437148b89907e92f78eadfc9375b3fe3a73362b2f80cf5a2fb645d2ec9"
+  },
+  {
+    "path": "Linux/evidence/p0/b0-release-link-audit.log",
+    "sha256": "129dc3d143c43dabb49dccbb1742494cb0103c8d6dd60e33e78b1159b3a109cc"
+  },
+  {
+    "path": "Linux/evidence/p0/clean-load-01.log",
+    "sha256": "3016531df09dadc58c78f5d17c380731b99916b716a3a5fc252d03299a5cb1c9"
+  },
+  {
+    "path": "Linux/evidence/p0/clean-load-02.log",
+    "sha256": "01a098af3f41a5488db7cfbec6bc9da84bcfd6a038cfb6d6920128cbab72625a"
+  },
+  {
+    "path": "Linux/evidence/p0/evidence-buffer-integrity.log",
+    "sha256": "2814d0f62ac1f5cb860cbfe4fcf56b312d58716b9d989b0f7ce1be3f89a56691"
+  },
+  {
+    "path": "Linux/evidence/p0/evidence-gpu-integrity.log",
+    "sha256": "8df49767d37d737cfc0caf085672aa5ec32dd9262b3f0253b24df85c489ce313"
+  },
+  {
+    "path": "Linux/evidence/p0/export-reentry-01.log",
+    "sha256": "6919d7b4646a26f7fc411f24888bc7ac3317cce294ae8ff938122887e7d7d01d"
+  },
+  {
+    "path": "Linux/evidence/p0/ffmpeg-filter-incremental-01.log",
+    "sha256": "993a25d38bb800f8fc1d8410eb0660ea2d3eb7b0a149909ee56f954da951275f"
+  },
+  {
+    "path": "Linux/evidence/p0/ffmpeg-signature-02.log",
+    "sha256": "30187ec5503248e8e2ce0158c8cff2f77cda37d45d6453cd0fc83d0e148310a6"
+  },
+  {
+    "path": "Linux/evidence/p0/linux-b0-release-01.log",
+    "sha256": "d75b050885755a52e590f95ff40c0731ff5f115a0a5a288883ba0eadc2141e39"
+  },
+  {
+    "path": "Linux/evidence/p0/load-root-manifest.json",
+    "sha256": "5bbe8ce3a9ffd058019df5fd702317fd03bf7c58b88244592c48aa7fa9fa1216"
+  },
+  {
+    "path": "Linux/evidence/p0/manifest.json",
+    "sha256": "624d349d1f87ed12fb661ce6f05a64d4399fe7197ea2d0794b1d0cadc0e8544c"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-argb-02.log",
+    "sha256": "541fe4c17ea216735a441abc7459224effd92718a9f84ca2818fd43681a54da9"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-cpu-01.log",
+    "sha256": "b1540fd6a779e74a6c401723c8a9281efaea50afa3f7154f2297d9f1d2560dc3"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-cpu-02.log",
+    "sha256": "d57afcf1c1216bed268e348a1f92dcd20e367f42490d4fa827410c3d8170d2bb"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-cpu-short-02.log",
+    "sha256": "d1e0ce28f4e249ccbc245f9b5e456fae9ee3a3ddb57b11f4bef46a04b46520ce"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-gpu-01.log",
+    "sha256": "eca87fd25f7e6ff94aae74eccc02b831fc01bf72016e9abd2be7f3ce9bf2f564"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-gpu-02.log",
+    "sha256": "ce8138b91af74f163062aff15f811e66b2b0d8ffe3f38c54367cbf97b00ca870"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-gpu-03.log",
+    "sha256": "dac79993d5b82db85789060ed5c08907e40d9b829ffb772f10636d3ae4c2d8a2"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-gpu-04.log",
+    "sha256": "8da1c420aa0c6c4cb492bb20b38f5b3971bdc09663798bf60403bdb4bdafe5af"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-gpu-05.log",
+    "sha256": "bc8998e5322784b6111be4bdf1e9d734588ee85f2a94a1d900b2528d543e4367"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-gpu-06.log",
+    "sha256": "55ee4c2fc4ccd8c988929998747265681cb94320ca7668f20290a6d938fc4bb2"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-gpu-07.log",
+    "sha256": "4de54fef3ee75ab3071c313cf75cf20b4f7112f359d033c8e6a7b8fa570fca62"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-gpu-10.log",
+    "sha256": "72b4f9bb5414b0dc5f60be0e463981c03b3fd2a56a914aa84cee8a76809ac58e"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-legacy-cpu-short-03.log",
+    "sha256": "91498fc2a701fbeb438ae5935bd8f8ce7d29fd94f43467f3ba83c4d673ca30c1"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-lifecycle-03.log",
+    "sha256": "af82dde29375e8944ea315c32d32a6afcfc5d5e7bf5e5bb5978276db07d085c1"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-pool-one-01.log",
+    "sha256": "e02121e3ff2b37948a538afb2fb3a0ed3ed1a083f50b286cc4973dcb4eb61d0f"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-steady-01.log",
+    "sha256": "d57b52c203dd2b658c4392559c228e2c7c91fd61d1948c042aaacead05f703ec"
+  },
+  {
+    "path": "Linux/evidence/p0/p0-steady-summary.json",
+    "sha256": "45caa6a10c5a98de98f65467dfc556de7caa4b061465f740587ff611b2504b8e"
+  },
+  {
+    "path": "Linux/evidence/p0/prepare-05.log",
+    "sha256": "0a89d80c7c5d35ed027667faa1d09156c5b91bf7be7f9e8951819041fa5370b8"
+  },
+  {
+    "path": "Linux/evidence/p0/prepare-06.log",
+    "sha256": "87527440a6a5a6dfc8bf14d1b098bf31d7c2897cc539a52aa9ca88dc1c95e127"
+  },
+  {
+    "path": "Linux/evidence/p0/prepare-tests-01.log",
+    "sha256": "a09812658b89c470ca0b88aa0da1bfdc2c53ffe88619acc803dec97ea783f31b"
+  },
+  {
+    "path": "Linux/evidence/p0/root-tests-03.log",
+    "sha256": "2003dfdcf147c7520d4023b4d1862510c83020fea4b158a625b720490b0cc173"
+  },
+  {
+    "path": "Linux/evidence/p0/scrap-check-02.log",
+    "sha256": "2285a80ac6596dba7e2ef6744659249e8b1cdf5a4c9990944b16912cbd68ace7"
+  },
+  {
+    "path": "Linux/evidence/p0/source-parity-02.json",
+    "sha256": "ef5b3fa0b61227c6c1fc270f05057acaba2a151d0b0fd575617231861a19c3e9"
+  },
+  {
+    "path": "Linux/evidence/p0/source-parity-final.json",
+    "sha256": "ef5b3fa0b61227c6c1fc270f05057acaba2a151d0b0fd575617231861a19c3e9"
+  },
+  {
+    "path": "Linux/evidence/p0/toolchain-02.log",
+    "sha256": "928f4666f2b391c494dd5c2ec7d6a8e39d1777b68188118d5edf17528e9167e5"
+  },
+  {
+    "path": "Linux/evidence/p0/viewer-color-contract-01.json",
+    "sha256": "b5c33736586267c0a882f870e65312e950befa2743ef7881088b82cd0b44c147"
+  },
+  {
+    "path": "Linux/flutter-pubspec.lock",
+    "sha256": "e4f87b5c7a0d9217ad0589dc9e60fb39b277f8bd1744ab663f06902e852c1008"
+  },
+  {
+    "path": "Linux/packaging/farpane.service",
+    "sha256": "fec51046adfc04b182850da92ea97c457e79384d51d5eb5c1a6fb2a809e090a7"
+  },
+  {
+    "path": "Linux/packaging/gui-test.Dockerfile",
+    "sha256": "419650e8d07f4cf21bf355d874d8dd53118291ddf6ebb0da08447ca15120363e"
+  },
+  {
+    "path": "Linux/patches/0001-output-buffer.patch",
+    "sha256": "2647a6c43bb9bac961916bede321526a01f1e49bb76d3937fd6aedc3ef29f300"
+  },
+  {
+    "path": "Linux/patches/0002-hwcodec-ffmpeg9.patch",
+    "sha256": "620a4e1267d93a86ddb7a722411ad0f97d1db0fbbd2b5a474ab97fb419c933ea"
+  },
+  {
+    "path": "Linux/patches/0003-hwcodec-linux-link.patch",
+    "sha256": "a7fd92d4e8f1cedc14e52ae0fb6634545c090021081fc17e2c2f135a739d2261"
+  },
+  {
+    "path": "Linux/patches/0004-linux-hwcodec-source.patch",
+    "sha256": "6eaa6eca388061927ecdbb7fbde4bafc4fbcdbd180e42ed741173b9b09abc701"
+  },
+  {
+    "path": "Linux/patches/0005-hwcodec-ffmpeg9-profiles.patch",
+    "sha256": "b4bf1837cd6d0d389a0588834e72cff757d9b053a4719791dde756d484d5fd31"
+  },
+  {
+    "path": "Linux/patches/0006-ffmpeg-vaapi-pool-limit.patch",
+    "sha256": "e0f36f7d234de06e8f64992490f8e9080548f344dbdc087c0c206c98060dccb9"
+  },
+  {
+    "path": "Linux/patches/0007-flutter-core-location.patch",
+    "sha256": "90b7e91c90fd8712f29fd0dc25a369d187ea155fbb80dcf9e1ff9f4ba46ed2f6"
+  },
+  {
+    "path": "Linux/patches/0008-farpane-application-identity.patch",
+    "sha256": "00e4682d9325abbd828c887bca6ca388496cb28fe9bd4884c8950883256b62fc"
+  },
+  {
+    "path": "Linux/patches/0009-farpane-private-drmtap.patch",
+    "sha256": "9ab1d0c366b06284a0c00ecc4a502e41348558f0f8d4fe927ffd419e05495dd0"
+  },
+  {
+    "path": "Linux/patches/0010-linux-gpu-encoder.patch",
+    "sha256": "b5f7eb0894b323d729b6f1a45c98e55da09d117d5ecee82395cbf19008f507fa"
+  },
+  {
+    "path": "Linux/patches/0011-linux-gpu-capture-host.patch",
+    "sha256": "2c83fd1108c31e8acbd0d26da4d8317cecd838860d0de971a0590fd0fae9cdb8"
+  },
+  {
+    "path": "Linux/patches/0012-linux-gpu-settings.patch",
+    "sha256": "1a986802cbe0ee64580b9a0132341efcc49bf317d8993450d404d0bb28b594d4"
+  },
+  {
+    "path": "Linux/patches/0013-farpane-system-location.patch",
+    "sha256": "916b7d499a52efae915e31ac6ba84c632b57cce4238875802ae4d133b66a7ab1"
+  },
+  {
+    "path": "Linux/patches/0014-farpane-network-identity.patch",
+    "sha256": "5de92871a8892c8066fa09c1ea377619b2601f88d7b1a0174c5dab3a57fc6c84"
+  },
+  {
+    "path": "Linux/src/app.rs",
+    "sha256": "d47ce9cf238edb133a671ab25fe80cf775eace5c72131b58617b22340db51a0d"
+  },
+  {
+    "path": "Linux/src/gpu_build.rs",
+    "sha256": "f97dd12bcd261dc76327cd49dc778ff72d643f74382ded338b98d12d2f04eb4d"
+  },
+  {
+    "path": "Linux/src/gpu_capture.rs",
+    "sha256": "8cf88be2c227de8c8e56819778bcf875051b5f025689cf61f81f76a3cc7c0a86"
+  },
+  {
+    "path": "Linux/src/gpu_host.rs",
+    "sha256": "4b62cf55860f29914ef2bdbb6619afa1315fe4ed957d1bde1dd7e0256d1fe86d"
+  },
+  {
+    "path": "Linux/src/gpu_media.cpp",
+    "sha256": "efa7c745eccf59c5bd74011f5d2c94236ae822ff009080f6b7304634093b6ab6"
+  },
+  {
+    "path": "Linux/src/gpu_media.h",
+    "sha256": "6405efc5307de5c0760cc199ea8cd671c57fe97da5ba65db4a170b5a63f4bcf6"
+  },
+  {
+    "path": "Linux/src/gpu_settings.dart",
+    "sha256": "db71a3d316aced6aca41ca483d78ea614d59bb1d5cd3d581aa13241d3d391bd2"
+  },
+  {
+    "path": "Linux/src/gpu_status.rs",
+    "sha256": "eea7be5e828f811580eea8ce5d7c5a20836cf8e88ef3aab3287eac42ed2320fa"
+  },
+  {
+    "path": "Linux/src/linux_gpu.rs",
+    "sha256": "5e70f45e15dac4336dec46107d422bb7313d02853e694308527e8c3fd0b32c8f"
+  },
+  {
+    "path": "Linux/tests/app_identity.py",
+    "sha256": "2a61c7a30d86ac0acf4bf27011c297c95c6910ea724ee4f4e099058e9bd72a76"
+  },
+  {
+    "path": "Linux/tests/gpu_adapter.cpp",
+    "sha256": "d1c394a6eae49fe2deec8222a7a871c5fba74629724bc98b939a02055921ed48"
+  },
+  {
+    "path": "Linux/tests/gui_settings.py",
+    "sha256": "644ee1387fffe81a17e92d86795cebf21a5eac9f69274523ca64d4451216b54a"
+  },
+  {
+    "path": "Linux/tests/p0_cpu.cpp",
+    "sha256": "44c708c9940832ef6fb8c6f967a4e505dadabf43d7b23649f3910a8d1b7b33bc"
+  },
+  {
+    "path": "Linux/tests/p0_load.c",
+    "sha256": "94e8bdea053158ce9bdd2a1dfba4eca2641b3cfc0a8440ab08b9aee4a26b0abd"
+  },
+  {
+    "path": "Linux/tests/p0_media.cpp",
+    "sha256": "3808f6df006d1fffab5a92cf86ad24ee178b067a13ed74302f38d5bb7ca1a1d4"
+  },
+  {
+    "path": "Linux/tests/test_install.py",
+    "sha256": "50f972dfc5a179427bf7caaa3012af6aa39c16089c0b5bbd37b69913c985a728"
+  },
+  {
+    "path": "Linux/tests/test_prepare.py",
+    "sha256": "18456cf3edd0f01ec51c13c33b64f1563c0c87defa34df3f7e335aa7304b0c14"
+  },
+  {
+    "path": "Linux/tests/viewer_color_contract.py",
+    "sha256": "4086ebfe819aaebacf9e525d01d49473b4e081d6f9352490586a8098fe1783ae"
+  },
+  {
+    "path": "Scripts/linux/build-core.sh",
+    "sha256": "d84cb1c7f352e01dfaeaae14a5a622e5d29fb434c94c71b70bfbc32889041463"
+  },
+  {
+    "path": "Scripts/linux/build-drmtap.sh",
+    "sha256": "5513862f18841ff80e19a3cd4cf39d2b8eec93e8f46f8797d6cc75208386e774"
+  },
+  {
+    "path": "Scripts/linux/build-ffmpeg.sh",
+    "sha256": "39658bc14520994a2ea918ff421e50dcdf475d0c342911d505beb1b403e43b3a"
+  },
+  {
+    "path": "Scripts/linux/build-gpu-test.sh",
+    "sha256": "96232476c6080d463ce340d135705fcdcc726335ed5337188e4c17d8ffecab1c"
+  },
+  {
+    "path": "Scripts/linux/build-gui.sh",
+    "sha256": "926eb3c73f6443929b4483e011953fe4f1e6fea6497146b40a130a0ccba4f301"
+  },
+  {
+    "path": "Scripts/linux/build-legacy-cpu.sh",
+    "sha256": "11b7eba44665c3fefbc97f5747d821bcbc3cd5e4ddf87e8e756ff5ad7a152069"
+  },
+  {
+    "path": "Scripts/linux/build-p0.sh",
+    "sha256": "611134de61785bd54a4c6acfd8eaf0af74bf90e02c9128b7c715a64c5d568a1e"
+  },
+  {
+    "path": "Scripts/linux/container.sh",
+    "sha256": "a7b6a3132eafba0519e908747072b81868daadc45696ea28f92f120417f99958"
+  },
+  {
+    "path": "Scripts/linux/generate-bridge.sh",
+    "sha256": "2830cb306172a796005890e2d223fc335a766e8109fd435af3a651bf1594b806"
+  },
+  {
+    "path": "Scripts/linux/install-app.py",
+    "sha256": "160a71724bf36c1dc8d048684fa32b14f22ef51d67249ccb6d138dacb98fb792"
+  },
+  {
+    "path": "Scripts/linux/install-system.py",
+    "sha256": "7c2f2db204a3dd8aa87a83cf475ef615a81e448f10cd38ea56140dc6c6b2f089"
+  },
+  {
+    "path": "Scripts/linux/package-app.py",
+    "sha256": "6965e5920523ccaafdc22be2266d56f969062a1cd07e593662ee4dc91813530d"
+  },
+  {
+    "path": "Scripts/linux/package-core.py",
+    "sha256": "85d86b71041a848161055d148a25000e9070065484c0332af6f8549d3d40dd4d"
+  },
+  {
+    "path": "Scripts/linux/prepare-cache.sh",
+    "sha256": "987613d3834c819c07f66e2669ccaf6b39797709c9164d8b75af32032bcc8298"
+  },
+  {
+    "path": "Scripts/linux/prepare.py",
+    "sha256": "1b6f8c20af0fb09276c7fffd30ce29a76e1546ee42cc6c70a0e11153a88e72c3"
+  },
+  {
+    "path": "Scripts/linux/run-p0.sh",
+    "sha256": "ac605b788ee20516fba231fd51a17099c7d9e9df83f2863b08a7c1b3590a957e"
+  },
+  {
+    "path": "Scripts/linux/sample-runtime.py",
+    "sha256": "383dc86e0d740a543c749cfee4f34f47c9f48f02748583c143f129d3ef9895d4"
+  },
+  {
+    "path": "Scripts/linux/stage-load-test.py",
+    "sha256": "c59d80a6791944adb854ce1eed9bd8cd444d869e5593f9383ff9c87e4ceef397"
+  },
+  {
+    "path": "Scripts/linux/test-clean-load.sh",
+    "sha256": "19973a463adb6aba207bceb60b3ef3778d6241d32420808fea9453a0f592f14a"
+  },
+  {
+    "path": "Scripts/linux/test-flutter.sh",
+    "sha256": "2933804545f1879c12c92d0c1ffc0242303d7e18fe7fa9f6b8271d91d8ed7aaf"
+  },
+  {
+    "path": "Scripts/linux/test-gui.sh",
+    "sha256": "404df1937aadd3c9f8959535a385c7c90fd63dabb8f2e6ff0991fe45d4f90941"
+  },
+  {
+    "path": "Scripts/linux/test-identity.sh",
+    "sha256": "4da061b9984e0ab7ecac20e215cbe0e9d806df1eb7850be9adea3d0584e3bc9d"
+  },
+  {
+    "path": "Scripts/linux/verify-sources.py",
+    "sha256": "876927e8e89dfc1a7ca83be2dde7506d2abc3eb330ec2980189713a1305869fa"
+  },
+  {
+    "path": "docs/linux-host-gpu-media-plan.md",
+    "sha256": "aa544b594947dff1f8d227cacf54ef60cfe32fa5ba01f06c24ef3564aa593372"
+  }
+]

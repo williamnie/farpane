@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "target": "x86_64-unknown-linux-gnu",
+  "rustdesk": {
+    "url": "https://github.com/rustdesk/rustdesk.git",
+    "commit": "fada664df7a294d1d1a9ca3e7cd3637069122f17"
+  },
+  "hbb_common": {
+    "url": "https://github.com/rustdesk/hbb_common.git",
+    "commit": "229b904508364c8997aad0fb5af57effac859f60"
+  },
+  "hwcodec": {
+    "url": "https://github.com/rustdesk-org/hwcodec.git",
+    "commit": "778df1f99597722473b29443bac22ae6c23946fe"
+  },
+  "libdrmtap": {
+    "version": "0.5.8",
+    "commit": "95d4d74549631aa5c39461300acfd2e106583cc9",
+    "url": "https://github.com/rustdesk-org/libdrmtap.git"
+  },
+  "vcpkg": {
+    "commit": "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  },
+  "ffmpeg": {
+    "version": "9.0.2",
+    "url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+    "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+    "signer": "FCF986EA15E6E293A5644F10B4322F04D67658D8",
+    "abi": {
+      "avutil": 61,
+      "avcodec": 63,
+      "avformat": 63,
+      "avfilter": 12
+    }
+  },
+  "builder": {
+    "image": "sha256:17d91d2b9bc68621d5c8ab51aeb7e7cf7589d96ae5f1caddc0c7598f4bf01841",
+    "label": "farpane-linux-builder:20260930",
+    "rust": "1.89.0",
+    "jobs": 4,
+    "memory": "12g"
+  },
+  "patches": [
+    {
+      "path": "Linux/patches/0001-output-buffer.patch",
+      "sha256": "2647a6c43bb9bac961916bede321526a01f1e49bb76d3937fd6aedc3ef29f300"
+    },
+    {
+      "path": "Linux/patches/0002-hwcodec-ffmpeg9.patch",
+      "target": "hwcodec",
+      "sha256": "620a4e1267d93a86ddb7a722411ad0f97d1db0fbbd2b5a474ab97fb419c933ea"
+    },
+    {
+      "path": "Linux/patches/0003-hwcodec-linux-link.patch",
+      "target": "hwcodec",
+      "sha256": "a7fd92d4e8f1cedc14e52ae0fb6634545c090021081fc17e2c2f135a739d2261"
+    },
+    {
+      "path": "Linux/patches/0004-linux-hwcodec-source.patch",
+      "target": "rustdesk",
+      "sha256": "6eaa6eca388061927ecdbb7fbde4bafc4fbcdbd180e42ed741173b9b09abc701"
+    },
+    {
+      "path": "Linux/patches/0005-hwcodec-ffmpeg9-profiles.patch",
+      "target": "hwcodec",
+      "sha256": "b4bf1837cd6d0d389a0588834e72cff757d9b053a4719791dde756d484d5fd31"
+    },
+    {
+      "path": "Linux/patches/0006-ffmpeg-vaapi-pool-limit.patch",
+      "target": "ffmpeg",
+      "sha256": "e0f36f7d234de06e8f64992490f8e9080548f344dbdc087c0c206c98060dccb9"
+    },
+    {
+      "path": "Linux/patches/0007-flutter-core-location.patch",
+      "target": "rustdesk",
+      "sha256": "90b7e91c90fd8712f29fd0dc25a369d187ea155fbb80dcf9e1ff9f4ba46ed2f6"
+    },
+    {
+      "path": "Linux/patches/0008-farpane-application-identity.patch",
+      "target": "rustdesk",
+      "sha256": "00e4682d9325abbd828c887bca6ca388496cb28fe9bd4884c8950883256b62fc"
+    },
+    {
+      "path": "Linux/patches/0009-farpane-private-drmtap.patch",
+      "target": "rustdesk",
+      "sha256": "9ab1d0c366b06284a0c00ecc4a502e41348558f0f8d4fe927ffd419e05495dd0"
+    },
+    {
+      "path": "Linux/patches/0010-linux-gpu-encoder.patch",
+      "target": "rustdesk",
+      "sha256": "b5f7eb0894b323d729b6f1a45c98e55da09d117d5ecee82395cbf19008f507fa"
+    },
+    {
+      "path": "Linux/patches/0011-linux-gpu-capture-host.patch",
+      "target": "rustdesk",
+      "sha256": "2c83fd1108c31e8acbd0d26da4d8317cecd838860d0de971a0590fd0fae9cdb8"
+    },
+    {
+      "path": "Linux/patches/0012-linux-gpu-settings.patch",
+      "target": "rustdesk",
+      "sha256": "1a986802cbe0ee64580b9a0132341efcc49bf317d8993450d404d0bb28b594d4"
+    },
+    {
+      "path": "Linux/patches/0013-farpane-system-location.patch",
+      "target": "rustdesk",
+      "sha256": "916b7d499a52efae915e31ac6ba84c632b57cce4238875802ae4d133b66a7ab1"
+    },
+    {
+      "path": "Linux/patches/0014-farpane-network-identity.patch",
+      "target": "rustdesk",
+      "sha256": "5de92871a8892c8066fa09c1ea377619b2601f88d7b1a0174c5dab3a57fc6c84"
+    }
+  ],
+  "hwcodec_externals": {
+    "url": "https://github.com/rustdesk-org/externals.git",
+    "commit": "8903740a1f47884906a6e347ad3d8d56304d9771"
+  },
+  "amf_headers": {
+    "version": "1.5.2",
+    "commit": "eadd00804d5f7e5cd8c85d540073198312870776",
+    "url": "https://codeload.github.com/GPUOpen-LibrariesAndSDKs/AMF/tar.gz/refs/tags/v1.5.2",
+    "sha256": "8a70b6dc85261e6e6e57769bd81ac1e09c0a4c96bbd5e358ffbc2dee51e8e50a",
+    "tag_object": "eae4a4b7efc35f8b0a3977a0984c0d642efc4e63"
+  },
+  "bridge_generator": {
+    "version": "1.80.1",
+    "image_path": "/root/.cargo/bin/flutter_rust_bridge_codegen",
+    "flutter": "3.24.5",
+    "dart": "3.5.4"
+  },
+  "lockfiles": [
+    {
+      "path": "Linux/Cargo.lock",
+      "sha256": "f85349efc5528206ec9f541ee997ff6c26e42b6e72a6c00e18cecc7b7b043205"
+    },
+    {
+      "path": "Linux/flutter-pubspec.lock",
+      "sha256": "e4f87b5c7a0d9217ad0589dc9e60fb39b277f8bd1744ab663f06902e852c1008"
+    }
+  ],
+  "overlays": [
+    {
+      "path": "Linux/src/app.rs",
+      "target": "src/platform/linux/farpane.rs",
+      "sha256": "d47ce9cf238edb133a671ab25fe80cf775eace5c72131b58617b22340db51a0d"
+    },
+    {
+      "path": "Linux/src/gpu_build.rs",
+      "target": "libs/scrap/linux_gpu_build.rs",
+      "sha256": "f97dd12bcd261dc76327cd49dc778ff72d643f74382ded338b98d12d2f04eb4d"
+    },
+    {
+      "path": "Linux/src/gpu_media.cpp",
+      "target": "libs/scrap/src/common/linux_gpu/gpu_media.cpp",
+      "sha256": "5b6b5156f688b89448a3a01d07a9e74a262538fb9a485bce8b9c4642a9dd09e4"
+    },
+    {
+      "path": "Linux/src/gpu_media.h",
+      "target": "libs/scrap/src/common/linux_gpu/gpu_media.h",
+      "sha256": "e6479ed689c2d3ee50848529b2e495e7cd47132f00ed2011e86583024413c154"
+    },
+    {
+      "path": "Linux/src/linux_gpu.rs",
+      "target": "libs/scrap/src/common/linux_gpu.rs",
+      "sha256": "6ca35dd255a4554c7fdb1ff9fda5e25ddca95a3d9d2136c6412eecc2fe94fd2d"
+    },
+    {
+      "path": "Linux/src/gpu_capture.rs",
+      "target": "src/server/linux_gpu_capture.rs",
+      "sha256": "5f2ecbf5e50a5ee59e5c467d31ff9065e3a697a3bcb9cd53f7f53b37e6fe8d44"
+    },
+    {
+      "path": "Linux/src/gpu_host.rs",
+      "target": "src/server/linux_gpu_host.rs",
+      "sha256": "4b62cf55860f29914ef2bdbb6619afa1315fe4ed957d1bde1dd7e0256d1fe86d"
+    },
+    {
+      "path": "Linux/src/gpu_status.rs",
+      "target": "src/platform/linux/gpu_status.rs",
+      "sha256": "eea7be5e828f811580eea8ce5d7c5a20836cf8e88ef3aab3287eac42ed2320fa"
+    },
+    {
+      "path": "Linux/src/gpu_settings.dart",
+      "target": "flutter/lib/desktop/widgets/farpane_gpu_settings.dart",
+      "sha256": "db71a3d316aced6aca41ca483d78ea614d59bb1d5cd3d581aa13241d3d391bd2"
+    }
+  ],
+  "meson": {
+    "version": "1.9.1",
+    "url": "https://files.pythonhosted.org/packages/9c/07/b48592d325cb86682829f05216e4efb2dc881762b8f1bafb48b57442307a/meson-1.9.1-py3-none-any.whl",
+    "filename": "meson-1.9.1-py3-none-any.whl",
+    "sha256": "f824ab770c041a202f532f69e114c971918ed2daff7ea56583d80642564598d0"
+  },
+  "gui_test": {
+    "image": "sha256:393e1132b0f83b7a245488e7f3138511f13e1d84b8a6e59858c05edca0621f8d",
+    "dockerfile": "Linux/packaging/gui-test.Dockerfile"
+  }
+}

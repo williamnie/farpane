@@ -1,0 +1,151 @@
+{
+  "result": "OPEN: native Mac rendering validation required",
+  "method": "Current Metal coefficients applied to measured NV12; assumes VT retains source matrix",
+  "not_measured": "VideoToolbox output attachments or native rendered pixels",
+  "rows": [
+    {
+      "source_rgb": [
+        0,
+        0,
+        0
+      ],
+      "measured_gpu_yuv": [
+        16,
+        128,
+        128
+      ],
+      "shader_prediction_rgb": [
+        1,
+        0,
+        1
+      ],
+      "max_channel_error": 1
+    },
+    {
+      "source_rgb": [
+        255,
+        255,
+        255
+      ],
+      "measured_gpu_yuv": [
+        235,
+        128,
+        128
+      ],
+      "shader_prediction_rgb": [
+        255,
+        255,
+        255
+      ],
+      "max_channel_error": 0
+    },
+    {
+      "source_rgb": [
+        255,
+        0,
+        0
+      ],
+      "measured_gpu_yuv": [
+        81,
+        90,
+        240
+      ],
+      "shader_prediction_rgb": [
+        255,
+        24,
+        0
+      ],
+      "max_channel_error": 24
+    },
+    {
+      "source_rgb": [
+        0,
+        255,
+        0
+      ],
+      "measured_gpu_yuv": [
+        145,
+        54,
+        34
+      ],
+      "shader_prediction_rgb": [
+        0,
+        216,
+        0
+      ],
+      "max_channel_error": 39
+    },
+    {
+      "source_rgb": [
+        0,
+        0,
+        255
+      ],
+      "measured_gpu_yuv": [
+        41,
+        240,
+        110
+      ],
+      "shader_prediction_rgb": [
+        0,
+        14,
+        255
+      ],
+      "max_channel_error": 14
+    },
+    {
+      "source_rgb": [
+        255,
+        255,
+        0
+      ],
+      "measured_gpu_yuv": [
+        210,
+        16,
+        146
+      ],
+      "shader_prediction_rgb": [
+        255,
+        240,
+        0
+      ],
+      "max_channel_error": 15
+    },
+    {
+      "source_rgb": [
+        0,
+        255,
+        255
+      ],
+      "measured_gpu_yuv": [
+        170,
+        166,
+        16
+      ],
+      "shader_prediction_rgb": [
+        0,
+        231,
+        255
+      ],
+      "max_channel_error": 24
+    },
+    {
+      "source_rgb": [
+        255,
+        0,
+        255
+      ],
+      "measured_gpu_yuv": [
+        106,
+        202,
+        222
+      ],
+      "shader_prediction_rgb": [
+        255,
+        39,
+        255
+      ],
+      "max_channel_error": 39
+    }
+  ]
+}

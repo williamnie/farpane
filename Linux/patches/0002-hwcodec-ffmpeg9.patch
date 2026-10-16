@@ -1,0 +1,11 @@
+--- a/cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp
++++ b/cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp
+@@ -212,7 +212,7 @@
+       out_++;
+       LOG_DEBUG(std::string("delay DO: in:") + in_ + " out:" + out_);
+ #endif
+-#if FF_API_FRAME_KEY
++#if LIBAVUTIL_VERSION_MAJOR >= 58
+       int key_frame = frame_->flags & AV_FRAME_FLAG_KEY;
+ #else
+       int key_frame = frame_->key_frame;
