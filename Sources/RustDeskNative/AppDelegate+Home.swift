@@ -66,7 +66,7 @@ extension AppDelegate {
         viewerView = nil
         pendingProductConnection?.password = ""
         pendingProductConnection = nil
-        let frame = NSRect(x: 0, y: 0, width: 1060, height: 720)
+        let frame = NSRect(origin: .zero, size: HomeWindowSizer.defaultContentSize)
         let window =
             self.window
             ?? NSWindow(
@@ -140,7 +140,7 @@ extension AppDelegate {
             self?.viewerPasteboardOwner.writeLocalProductText(text) ?? false
         }
         window.contentView = view
-        window.center()
+        MainActorBackport.assumeIsolated { homeWindowSizer.showHome(in: window) }
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
         self.window = window

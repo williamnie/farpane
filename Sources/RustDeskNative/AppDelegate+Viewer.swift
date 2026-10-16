@@ -42,6 +42,7 @@ extension AppDelegate {
                 contentRect: windowFrame,
                 styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered,
                 defer: false)
+        MainActorBackport.assumeIsolated { homeWindowSizer.leaveHome() }
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.title = fixture == nil ? "FarPane" : "FarPane — Fixture"

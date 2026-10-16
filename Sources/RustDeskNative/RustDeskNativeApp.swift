@@ -41,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
     var pendingProductConnection: PendingProductConnection?
     var window: NSWindow?
     var homeView: HomeView?
+    @MainActor lazy var homeWindowSizer = HomeWindowSizer()
     var hostSessionStatusItem: NSStatusItem?
     var hostSessionIndicatorPresentation: HostSessionIndicatorPresentation?
     var passwordPrompt: PasswordPromptController?

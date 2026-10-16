@@ -177,6 +177,8 @@ FarPane 只把固定 Core 路径作为内部实现细节，不要求用户选择
 
 普通远程会话首次收到视频分辨率、或远端分辨率变化时，窗口会自动按画面比例调整大小，并根据本机 Retina 缩放和屏幕可用区域适配，避免标题栏或固定窗口比例造成额外黑边。同一分辨率下会保留手动调整的窗口大小；全屏期间不调整窗口，尚未应用的分辨率变化会在退出全屏后适配。
 
+断开连接或关闭远程会话后，首页恢复连接前的窗口大小，默认内容区域为 1060×720 点；本次运行中手动调整的首页大小会保留，不受远端分辨率影响。全屏中返回首页时，尺寸恢复会延迟到退出全屏后执行。
+
 HUD 可直接拖动，并记住普通会话的位置；缩放窗口或切换全屏时会保持在可见范围内。“接收 FPS”是控制端收到编码帧的速率，“呈现 FPS”是本地画面更新速率。
 
 若连接 Ubuntu Wayland 后，Mac 输入法选字确认却没有上屏，可在会话中开启 **编辑 → Ubuntu 中文兼容输入**。该选项默认关闭、按设备记忆，在非 ASCII 文本提交后补发 `Ctrl+Shift+V`，适用于远端 RustDesk 的 `Shift+Insert` 自动粘贴失效、目标应用支持 `Ctrl+Shift+V` 的情况。英文保持原有输入方式；若目标应用已能正常自动上屏或出现重复文字，应关闭此项。使用 Mac 输入法时请保持普通键盘模式，独占键盘模式使用远端输入法。
@@ -376,6 +378,8 @@ As a Host:
 2. Grant Screen Recording, Accessibility, and Input Monitoring permissions in System Settings.
 3. Enable “被控 Host” on the home screen, then use the displayed device ID and temporary password or configure a permanent password.
 4. Approve or reject incoming requests in FarPane. Enable audio, clipboard, and file transfer separately when needed.
+
+Disconnecting or closing a remote session restores the home window's previous size, with a default content area of 1060×720 points. Manual home-window resizing is retained during the current app run and is independent of the remote resolution. When returning home in fullscreen, restoration waits until fullscreen ends.
 
 Drag the HUD to reposition it. Normal sessions remember its position and keep it visible after resizing or fullscreen transitions. Received FPS measures encoded frames arriving at the Viewer; presented FPS measures local display updates.
 
