@@ -1,0 +1,21 @@
+[VAAPI @ 0x637df9ba7b80] libva: VA-API version 1.23.0
+[VAAPI @ 0x637df9ba7b80] libva: Trying to open /usr/lib/x86_64-linux-gnu/dri/radeonsi_drv_video.so
+[VAAPI @ 0x637df9ba7b80] libva: Found init function __vaDriverInit_1_23
+[VAAPI @ 0x637df9ba7b80] libva: va_openDriver() returns 0
+[VAAPI @ 0x637df9ba7b80] Initialised VAAPI connection: version 1.23
+[VAAPI @ 0x637df9ba7b80] VAAPI driver: Mesa Gallium driver 26.0.8-1ubuntu0.3 for AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic).
+[VAAPI @ 0x637df9ba7b80] Driver not found in known nonstandard list, using standard behaviour.
+ffmpeg stats and -progress period set to 1.
+[DRM @ 0x637df9ba7bc0] Opened DRM device /dev/dri/card1: driver amdgpu version 3.64.0.
+[kmsgrab @ 0x637df9d62d80] Template framebuffer is 48: 2560x1440 format 34325258 modifier 0 flags 0.
+[kmsgrab @ 0x637df9d62d80] Format is bgr0, from DRM format 34325258 modifier ffffffffffffff.
+Input #0, kmsgrab, from 'fd:':
+  Duration: N/A, start: 1792111261.158833, bitrate: N/A
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, drm_prime, 2560x1440, 29.83 tbr, 1000k tbn, start 1792111261.158833
+[out#0/null @ 0x637df9d65b00] No explicit maps, mapping streams automatically...
+[vost#0:0/h264_vaapi @ 0x637df9d65e80] Created video stream from input stream 0:0
+[vost#0:0/h264_vaapi @ 0x637df9d65e80] One of -r/-fpsmax was specified together a non-CFR -vsync/-fps_mode. This is contradictory.
+Error opening output file /dev/null.
+Error opening output files: Invalid argument
+
+Exiting with exit code -22

@@ -1,0 +1,732 @@
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+   Compiling scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+   Compiling rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Duration` and `path::PathBuf`
+  --> src/flutter_ffi.rs:27:5
+   |
+27 |     path::PathBuf,
+   |     ^^^^^^^^^^^^^
+...
+32 |     time::{Duration, SystemTime},
+   |            ^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2183:51
+     |
+2183 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2198:47
+     |
+2198 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: unused import: `super`
+  --> src/server/video_qos/tests/robustness.rs:10:5
+   |
+10 | use super::*;
+   |     ^^^^^
+
+warning: variable does not need to be mutable
+    --> src/flutter_ffi.rs:1085:9
+     |
+1085 |     let mut map: HashMap<String, String> = serde_json::from_str(&json).unwrap_or(HashMap::new());
+     |         ----^^^
+     |         |
+     |         help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/tray.rs:156:17
+    |
+156 |             let mut builder = TrayIconBuilder::new()
+    |                 ----^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/tray.rs:64:9
+   |
+64 |     let mut event_loop = EventLoopBuilder::new().build();
+   |         ----^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: function `is_opensuse` is never used
+    --> src/platform/linux.rs:1398:4
+     |
+1398 | fn is_opensuse() -> bool {
+     |    ^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` on by default
+
+warning: fields `0` and `1` are never read
+    --> src/platform/linux.rs:2584:21
+     |
+2584 | pub struct WakeLock(Option<keepawake::AwakeHandle>, Option<SessionIdleInhibit>);
+     |            -------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |            |
+     |            fields in this struct
+     |
+     = help: consider removing these fields
+
+warning: variants `Side`, `Extra`, `Back`, `Forward`, and `Task` are never constructed
+    --> src/server/uinput.rs:1135:9
+     |
+1132 |     pub enum MouseButton {
+     |              ----------- variants in this enum
+...
+1135 |         Side,
+     |         ^^^^
+1136 |         Extra,
+     |         ^^^^^
+1137 |         Right,
+1138 |         Back,
+     |         ^^^^
+1139 |         Forward,
+     |         ^^^^^^^
+1140 |         Task,
+     |         ^^^^
+     |
+     = note: `MouseButton` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Right` and `Left` are never constructed
+    --> src/server/uinput.rs:1147:9
+     |
+1144 |     pub enum ScrollDirection {
+     |              --------------- variants in this enum
+...
+1147 |         Right,
+     |         ^^^^^
+1148 |         Left,
+     |         ^^^^
+     |
+     = note: `ScrollDirection` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `resolution` is never read
+   --> src/server/rdp_input.rs:322:9
+    |
+318 |     pub struct RdpInputMouse {
+    |                ------------- field in this struct
+...
+322 |         resolution: (usize, usize),
+    |         ^^^^^^^^^^
+
+warning: constant `MOUSE_MOVE_PROTECTION_TIMEOUT` is never used
+   --> src/server/input_service.rs:633:7
+    |
+633 | const MOUSE_MOVE_PROTECTION_TIMEOUT: Duration = Duration::from_millis(1_000);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MOUSE_ACTIVE_DISTANCE` is never used
+   --> src/server/input_service.rs:635:7
+    |
+635 | const MOUSE_ACTIVE_DISTANCE: i32 = 5;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `enable_file_transfer` is never read
+   --> src/server/connection.rs:403:5
+    |
+356 | pub struct Connection {
+    |            ---------- field in this struct
+...
+403 |     enable_file_transfer: bool,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_capturer_mag_supported` is never used
+   --> src/server/display_service.rs:610:4
+    |
+610 | fn is_capturer_mag_supported() -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `produced_fps` is never read
+   --> src/server/video_qos/tests/sim.rs:283:9
+    |
+272 | pub struct Report {
+    |            ------ field in this struct
+...
+283 |     pub produced_fps: f64,
+    |         ^^^^^^^^^^^^
+    |
+    = note: `Report` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `message` is never used
+    --> src/ui_interface.rs:1066:12
+     |
+1065 | impl DeployResult {
+     | ----------------- method in this implementation
+1066 |     pub fn message(&self) -> String {
+     |            ^^^^^^^
+
+warning: field `finished` is never read
+  --> src/hbbs_http/downloader.rs:45:5
+   |
+38 | struct Downloader {
+   |        ---------- field in this struct
+...
+45 |     finished: bool,
+   |     ^^^^^^^^
+
+warning: function `download_file` is never used
+  --> src/hbbs_http/downloader.rs:50:8
+   |
+50 | pub fn download_file(
+   |        ^^^^^^^^^^^^^
+
+warning: function `do_download` is never used
+   --> src/hbbs_http/downloader.rs:163:10
+    |
+163 | async fn do_download(
+    |          ^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url` is never used
+   --> src/hbbs_http/http_client.rs:260:14
+    |
+260 | pub async fn create_http_client_async_with_url(url: &str) -> AsyncClient {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_strict` is never used
+   --> src/hbbs_http/http_client.rs:278:14
+    |
+278 | pub async fn create_http_client_async_with_url_strict(url: &str) -> ResultType<AsyncClient> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_` is never used
+   --> src/hbbs_http/http_client.rs:306:10
+    |
+306 | async fn create_http_client_async_with_url_(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused `hbb_common::sodiumoxide::crypto::secretbox::Key` that must be used
+    --> src/common.rs:3519:13
+     |
+3519 |             hbb_common::tcp::Encrypt::decode(&ex.keys[1], &ex.keys[0], &eph_sk).unwrap();
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+     |
+3519 |             let _ = hbb_common::tcp::Encrypt::decode(&ex.keys[1], &ex.keys[0], &eph_sk).unwrap();
+     |             +++++++
+
+warning: module `pt_BR` should have a snake case name
+  --> src/lang.rs:36:5
+   |
+36 | mod pt_BR;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_br`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: module `pt_PT` should have a snake case name
+  --> src/lang.rs:37:5
+   |
+37 | mod pt_PT;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_pt`
+
+warning: `rustdesk` (lib test) generated 34 warnings (run `cargo fix --lib -p rustdesk --tests` to apply 10 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 41.15s
+     Running unittests src/lib.rs (/workspace/Build/Linux/target/debug/deps/librustdesk-e79d7bf5756a2cb1)
+
+running 67 tests
+test server::drm_capturer::drm_capturer_tests::a_180_output_turns_the_cursor_but_not_the_frame_on_i915_plus_mutter ... ok
+test server::drm_capturer::drm_capturer_tests::a_cached_correction_is_not_served_without_a_context ... ok
+test server::drm_capturer::drm_capturer_tests::a_180_frame_is_turned_only_when_the_plane_did_not_turn_it ... ok
+test server::drm_capturer::drm_capturer_tests::a_candidate_does_not_confirm_across_an_input_mapping_change ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_in_band_with_both_keeps_the_served_correction ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_in_band_with_the_served_one_changes_nothing_and_stays_cached ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirmed_value_near_the_wire_serves_the_wire_and_drops_the_cached_correction ... ok
+test server::drm_capturer::drm_capturer_tests::a_confirming_measurement_publishes_the_retained_candidate_not_the_new_sample ... ok
+test server::drm_capturer::drm_capturer_tests::a_calibration_context_exists_only_for_an_identity_matched_upright_output ... ok
+test server::drm_capturer::drm_capturer_tests::a_corrected_id_differs_from_the_wire_id_and_is_deterministic ... ok
+test server::drm_capturer::drm_capturer_tests::a_dead_producer_stops_being_advertised ... ok
+test server::drm_capturer::drm_capturer_tests::a_correction_confirmed_under_an_older_generation_is_not_served ... ok
+test server::drm_capturer::drm_capturer_tests::a_disagreeing_measurement_replaces_the_candidate_and_the_same_sample_never_confirms ... ok
+test server::drm_capturer::drm_capturer_tests::a_delivered_frame_clears_the_streak_but_keeps_the_cadence_and_the_convert_verdict ... ok
+test server::drm_capturer::drm_capturer_tests::a_kernel_measured_hotspot_is_never_calibrated_even_at_the_origin ... ok
+test server::drm_capturer::drm_capturer_tests::a_legacy_cursor_message_keeps_the_hotspot_the_old_protocol_meant ... ok
+test server::drm_capturer::drm_capturer_tests::a_guessed_hotspot_is_guessed_on_the_upright_sprite ... ok
+test server::drm_capturer::drm_capturer_tests::a_lone_display_goes_offline_only_when_its_fallback_was_rejected ... ok
+test server::drm_capturer::drm_capturer_tests::a_lone_rotated_output_advertises_delivered_dimensions ... ok
+test server::drm_capturer::drm_capturer_tests::a_name_match_beats_the_positional_fallback ... ok
+test server::drm_capturer::drm_capturer_tests::a_permanently_ungrabbable_display_stops_churning ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_move_without_a_new_peer_sample_never_confirms ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_that_rotated_holds_the_logical_desktop_whatever_wl_output_says ... ok
+test server::drm_capturer::drm_capturer_tests::a_plane_that_rotated_90_in_hardware_hands_over_a_portrait_scanout ... ok
+test server::drm_capturer::drm_capturer_tests::a_portrait_scanout_from_a_plane_that_rotated_90_is_left_alone ... ok
+test server::drm_capturer::drm_capturer_tests::a_resolution_guess_never_steals_an_exact_name_match ... ok
+test server::drm_capturer::drm_capturer_tests::a_rotated_session_delivers_rotated_frames_and_guards_in_rotated_dims ... ok
+test server::drm_capturer::drm_capturer_tests::a_sample_is_a_reference_only_under_the_adopted_input_mapping ... ok
+test server::drm_capturer::drm_capturer_tests::a_settle_lands_one_sample_later_than_the_constant_reads ... ok
+test server::drm_capturer::drm_capturer_tests::a_first_frame_that_never_matched_counts_as_a_session_without_frames ... ok
+test server::drm_capturer::drm_capturer_tests::a_stale_input_mapping_publishes_nothing_until_fresh_samples_follow_the_adoption ... ok
+test server::drm_capturer::drm_capturer_tests::a_stale_snapshot_generation_asks_for_a_rebuild_without_blaming_the_display ... ok
+test server::drm_capturer::drm_capturer_tests::a_still_plane_is_measured_once ... ok
+test server::drm_capturer::drm_capturer_tests::adwaita_hotspot_survey ... ignored
+test server::drm_capturer::drm_capturer_tests::an_ibeam_keeps_its_centre_whichever_way_it_lies ... ok
+test server::drm_capturer::drm_capturer_tests::demote_cooldown_doubles_per_cycle_and_caps ... ok
+test server::drm_capturer::drm_capturer_tests::extra_connectors_stay_unmatched ... ok
+test server::drm_capturer::drm_capturer_tests::frame_buffers_circulate_instead_of_being_reallocated ... ok
+test server::drm_capturer::drm_capturer_tests::frame_of_the_session_size_is_delivered ... ok
+test server::drm_capturer::drm_capturer_tests::health_reports_demoted_only_while_the_cooldown_runs ... ok
+test server::drm_capturer::drm_capturer_tests::identical_monitors_that_match_no_name_take_layout_order ... ok
+test server::drm_capturer::drm_capturer_tests::a_larger_frame_ends_the_session_too ... ok
+test server::drm_capturer::drm_capturer_tests::one_connector_assignment_drives_geometry_and_primary ... ok
+test server::drm_capturer::drm_capturer_tests::one_output_is_never_claimed_by_two_connectors ... ok
+test server::drm_capturer::drm_capturer_tests::outputs_are_matched_by_name_across_the_drm_naming_difference ... ok
+test server::drm_capturer::drm_capturer_tests::provenance_is_tracked_per_display_and_ignores_the_hidden_cursor ... ok
+test server::drm_capturer::drm_capturer_tests::refresh_keeps_a_verdict_through_one_failure_and_gives_it_up_after_a_run ... ok
+test server::drm_capturer::drm_capturer_tests::the_bound_never_drops_an_entry_from_a_newer_generation ... ok
+test server::drm_capturer::drm_capturer_tests::the_calibration_cache_is_bounded ... ok
+test server::drm_capturer::drm_capturer_tests::the_cursor_id_names_the_orientation_too ... ok
+test server::drm_capturer::drm_capturer_tests::the_cursor_path_publishes_an_upright_sprite_at_every_angle ... ok
+test server::drm_capturer::drm_capturer_tests::the_first_position_after_a_shape_never_counts_as_settled ... ok
+test server::drm_capturer::drm_capturer_tests::the_frame_is_turned_unless_the_plane_rotated_it ... ok
+test server::drm_capturer::drm_capturer_tests::the_measurement_is_the_injected_tip_in_scanout_space_minus_the_plane ... ok
+test server::drm_capturer::drm_capturer_tests::no_shape_lands_further_from_the_theme_than_master_except_the_two_no_bitmap_can_reach ... ok
+test server::drm_capturer::drm_capturer_tests::the_settle_window_and_the_sample_gates_are_closed_intervals ... ok
+test server::drm_capturer::drm_capturer_tests::transform_and_origin_come_from_the_same_snapshot ... ok
+test server::drm_capturer::drm_capturer_tests::two_idle_buffers_are_both_kept_rather_than_one_being_dropped ... ok
+test server::drm_capturer::drm_capturer_tests::the_two_excused_shapes_are_excused_by_how_much ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_180_reverses_both_axes ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_270_is_the_inverse_of_90 ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_90_maps_the_left_column_to_the_top_row ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_hotspot_follows_the_pixel_mapping ... ok
+test server::drm_capturer::drm_capturer_tests::unrotate_reads_padded_strides_and_writes_tight ... ok
+test server::drm_capturer::drm_capturer_tests::a_published_hotspot_does_not_move_when_the_output_turns ... ok
+test server::drm_capturer::drm_capturer_tests::unknown_session_size_delivers_whatever_arrives ... ok
+test server::drm_capturer::drm_capturer_tests::a_smaller_frame_ends_the_session_instead_of_being_encoded ... ok
+
+test result: ok. 66 passed; 0 failed; 1 ignored; 0 measured; 352 filtered out; finished in 0.03s
+
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+   Compiling scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+   Compiling rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Duration` and `path::PathBuf`
+  --> src/flutter_ffi.rs:27:5
+   |
+27 |     path::PathBuf,
+   |     ^^^^^^^^^^^^^
+...
+32 |     time::{Duration, SystemTime},
+   |            ^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2183:51
+     |
+2183 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2198:47
+     |
+2198 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: variable does not need to be mutable
+    --> src/flutter_ffi.rs:1085:9
+     |
+1085 |     let mut map: HashMap<String, String> = serde_json::from_str(&json).unwrap_or(HashMap::new());
+     |         ----^^^
+     |         |
+     |         help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/tray.rs:156:17
+    |
+156 |             let mut builder = TrayIconBuilder::new()
+    |                 ----^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/tray.rs:64:9
+   |
+64 |     let mut event_loop = EventLoopBuilder::new().build();
+   |         ----^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: type `server::video_service::CapturerInfo` is more private than the item `gpu::capture`
+   --> src/server/linux_gpu_capture.rs:92:1
+    |
+92  | / pub(crate) fn capture(eligible: Eligibility, generation: u64, failure: Failure)
+93  | |     -> ResultType<(super::super::video_service::CapturerInfo, Descriptor)> {
+    | |__________________________________________________________________________^ function `gpu::capture` is reachable at visibility `pub(crate)`
+    |
+note: but type `server::video_service::CapturerInfo` is only usable at visibility `pub(in crate::server)`
+   --> src/server/video_service.rs:429:1
+    |
+429 | pub(super) struct CapturerInfo {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: function `is_opensuse` is never used
+    --> src/platform/linux.rs:1398:4
+     |
+1398 | fn is_opensuse() -> bool {
+     |    ^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` on by default
+
+warning: fields `0` and `1` are never read
+    --> src/platform/linux.rs:2584:21
+     |
+2584 | pub struct WakeLock(Option<keepawake::AwakeHandle>, Option<SessionIdleInhibit>);
+     |            -------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |            |
+     |            fields in this struct
+     |
+     = help: consider removing these fields
+
+warning: variants `Side`, `Extra`, `Back`, `Forward`, and `Task` are never constructed
+    --> src/server/uinput.rs:1135:9
+     |
+1132 |     pub enum MouseButton {
+     |              ----------- variants in this enum
+...
+1135 |         Side,
+     |         ^^^^
+1136 |         Extra,
+     |         ^^^^^
+1137 |         Right,
+1138 |         Back,
+     |         ^^^^
+1139 |         Forward,
+     |         ^^^^^^^
+1140 |         Task,
+     |         ^^^^
+     |
+     = note: `MouseButton` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Right` and `Left` are never constructed
+    --> src/server/uinput.rs:1147:9
+     |
+1144 |     pub enum ScrollDirection {
+     |              --------------- variants in this enum
+...
+1147 |         Right,
+     |         ^^^^^
+1148 |         Left,
+     |         ^^^^
+     |
+     = note: `ScrollDirection` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `resolution` is never read
+   --> src/server/rdp_input.rs:322:9
+    |
+318 |     pub struct RdpInputMouse {
+    |                ------------- field in this struct
+...
+322 |         resolution: (usize, usize),
+    |         ^^^^^^^^^^
+
+warning: constant `MOUSE_MOVE_PROTECTION_TIMEOUT` is never used
+   --> src/server/input_service.rs:633:7
+    |
+633 | const MOUSE_MOVE_PROTECTION_TIMEOUT: Duration = Duration::from_millis(1_000);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MOUSE_ACTIVE_DISTANCE` is never used
+   --> src/server/input_service.rs:635:7
+    |
+635 | const MOUSE_ACTIVE_DISTANCE: i32 = 5;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `enable_file_transfer` is never read
+   --> src/server/connection.rs:403:5
+    |
+356 | pub struct Connection {
+    |            ---------- field in this struct
+...
+403 |     enable_file_transfer: bool,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_capturer_mag_supported` is never used
+   --> src/server/display_service.rs:610:4
+    |
+610 | fn is_capturer_mag_supported() -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `message` is never used
+    --> src/ui_interface.rs:1066:12
+     |
+1065 | impl DeployResult {
+     | ----------------- method in this implementation
+1066 |     pub fn message(&self) -> String {
+     |            ^^^^^^^
+
+warning: field `finished` is never read
+  --> src/hbbs_http/downloader.rs:45:5
+   |
+38 | struct Downloader {
+   |        ---------- field in this struct
+...
+45 |     finished: bool,
+   |     ^^^^^^^^
+
+warning: function `download_file` is never used
+  --> src/hbbs_http/downloader.rs:50:8
+   |
+50 | pub fn download_file(
+   |        ^^^^^^^^^^^^^
+
+warning: function `do_download` is never used
+   --> src/hbbs_http/downloader.rs:163:10
+    |
+163 | async fn do_download(
+    |          ^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url` is never used
+   --> src/hbbs_http/http_client.rs:260:14
+    |
+260 | pub async fn create_http_client_async_with_url(url: &str) -> AsyncClient {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_strict` is never used
+   --> src/hbbs_http/http_client.rs:278:14
+    |
+278 | pub async fn create_http_client_async_with_url_strict(url: &str) -> ResultType<AsyncClient> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_` is never used
+   --> src/hbbs_http/http_client.rs:306:10
+    |
+306 | async fn create_http_client_async_with_url_(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: module `pt_BR` should have a snake case name
+  --> src/lang.rs:36:5
+   |
+36 | mod pt_BR;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_br`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: module `pt_PT` should have a snake case name
+  --> src/lang.rs:37:5
+   |
+37 | mod pt_PT;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_pt`
+
+warning: `rustdesk` (lib) generated 32 warnings (run `cargo fix --lib -p rustdesk` to apply 10 suggestions)
+    Finished `release` profile [optimized] target(s) in 1m 46s

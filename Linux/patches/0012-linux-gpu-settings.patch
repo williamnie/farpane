@@ -1,0 +1,52 @@
+--- a/src/platform/linux.rs
++++ b/src/platform/linux.rs
+@@ -2967,2 +2967,6 @@
+     }
+ }
++
++#[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++#[path = "linux/gpu_status.rs"]
++pub(crate) mod gpu_status;
+--- a/src/ipc.rs
++++ b/src/ipc.rs
+@@ -934,4 +934,10 @@
+         Data::Config((name, value)) => match value {
+             None => {
++                #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++                if name == "linux-gpu-status" {
++                    let value = crate::platform::linux::gpu_status::json();
++                    allow_err!(stream.send(&Data::Config((name, Some(value)))).await);
++                    return;
++                }
+                 let value;
+                 if name == "id" {
+--- a/src/flutter_ffi.rs
++++ b/src/flutter_ffi.rs
+@@ -994,4 +994,13 @@
+ 
+ pub fn main_get_option(key: String) -> String {
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    {
++        if key == "linux-gpu-capability" { return "Y".into(); }
++        if key == "linux-gpu-status" {
++            // Normal FRB calls execute on its worker pool, outside a Tokio runtime.
++            return crate::ipc::get_config(&key).ok().flatten().unwrap_or_else(||
++                serde_json::json!({"backend": "unavailable", "reason": "FarPane background process is not ready"}).to_string());
++        }
++    }
+     get_option(key)
+ }
+--- a/flutter/lib/desktop/pages/desktop_setting_page.dart
++++ b/flutter/lib/desktop/pages/desktop_setting_page.dart
+@@ -2,4 +2,5 @@
+ import 'dart:convert';
+ import 'dart:io';
++import '../widgets/farpane_gpu_settings.dart';
+ 
+ import 'package:file_picker/file_picker.dart';
+@@ -417,4 +418,5 @@
+         _Card(title: 'Language', children: [language()]),
+         if (!isWeb) hwcodec(),
++        if (!isWeb && Platform.isLinux) const FarPaneGpuSettings(),
+         if (!isWeb) audio(context),
+         if (!isWeb) record(context),

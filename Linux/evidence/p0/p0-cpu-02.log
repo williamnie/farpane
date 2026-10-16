@@ -1,0 +1,4 @@
+ffmpeg=9.0.2 gop=product default
+h264_vaapi packets=24 keys=1 software=24/1 error=0 hardware=24/1 error=0 mp4_bytes=2007
+hevc_vaapi packets=24 keys=1 software=24/1 error=0 hardware=24/1 error=0 mp4_bytes=1764
+PASS existing hwcodec CPU upload, software/VAAPI decode, key flags, PTS and MP4 smoke

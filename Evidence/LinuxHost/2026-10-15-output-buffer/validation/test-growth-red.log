@@ -1,0 +1,122 @@
+   Compiling scrap v0.5.0 (/workspace/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:463:21
+    |
+463 |                 "v0.{minor}.{patch} is not the verified minor and must be refused"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+    = note: `#[warn(non_fmt_panics)]` on by default
+help: add the missing arguments
+    |
+463 |                 "v0.{minor}.{patch} is not the verified minor and must be refused", ...
+    |                                                                                   +++++
+help: or add a "{}" format string to use the message literally
+    |
+463 |                 "{}", "v0.{minor}.{patch} is not the verified minor and must be refused"
+    |                 +++++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:497:21
+    |
+497 |                 "v0.{minor}.{patch} is a patch of the verified minor and must be accepted"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+help: add the missing arguments
+    |
+497 |                 "v0.{minor}.{patch} is a patch of the verified minor and must be accepted", ...
+    |                                                                                           +++++
+help: or add a "{}" format string to use the message literally
+    |
+497 |                 "{}", "v0.{minor}.{patch} is a patch of the verified minor and must be accepted"
+    |                 +++++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:515:21
+    |
+515 |                 "v0.{minor}.{patch} is an unverified minor and must be refused"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+help: add the missing arguments
+    |
+515 |                 "v0.{minor}.{patch} is an unverified minor and must be refused", ...
+    |                                                                                +++++
+help: or add a "{}" format string to use the message literally
+    |
+515 |                 "{}", "v0.{minor}.{patch} is an unverified minor and must be refused"
+    |                 +++++
+
+warning: `scrap` (lib test) generated 8 warnings (run `cargo fix --lib -p scrap --tests` to apply 4 suggestions)
+    Finished `release` profile [optimized] target(s) in 9.58s
+     Running unittests src/lib.rs (/workspace/target/release/deps/scrap-3dfb8d3efda01acf)
+
+running 1 test
+test common::drm_render::output_buffer_tests::larger_frames_retry_without_borrowing_and_errors_release_the_buffer ... FAILED
+
+failures:
+
+---- common::drm_render::output_buffer_tests::larger_frames_retry_without_borrowing_and_errors_release_the_buffer stdout ----
+
+thread 'common::drm_render::output_buffer_tests::larger_frames_retry_without_borrowing_and_errors_release_the_buffer' panicked at libs/scrap/src/common/drm_render.rs:386:14:
+called `Result::unwrap()` on an `Err` value: Custom { kind: Other, error: "drmtap_convert_dmabuf failed: errno 22" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    common::drm_render::output_buffer_tests::larger_frames_retry_without_borrowing_and_errors_release_the_buffer
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 46 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p scrap --lib`

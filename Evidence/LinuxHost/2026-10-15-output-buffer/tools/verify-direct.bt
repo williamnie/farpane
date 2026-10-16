@@ -1,0 +1,30 @@
+uprobe:/usr/lib/rustdesk/libdrmtap.so.0.5.8:drmtap_set_output_buffer
+/pid == $1/
+{
+  @destination[tid] = arg1;
+}
+
+uprobe:/usr/lib/rustdesk/libdrmtap.so.0.5.8:drmtap_convert_dmabuf
+/pid == $1/
+{
+  @frame[tid] = arg2;
+}
+
+uretprobe:/usr/lib/rustdesk/libdrmtap.so.0.5.8:drmtap_convert_dmabuf
+/pid == $1/
+{
+  if (retval == 0) {
+    $data = *uptr((uint64 *)@frame[tid]);
+    if (@destination[tid] != 0 && $data == @destination[tid]) {
+      @direct = count();
+    } else {
+      @copy_fallback = count();
+    }
+  } else {
+    @errors[retval] = count();
+  }
+  delete(@frame[tid]);
+}
+
+interval:s:20 { exit(); }
+END { clear(@frame); clear(@destination); }

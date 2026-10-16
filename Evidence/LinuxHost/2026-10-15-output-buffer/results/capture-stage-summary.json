@@ -1,0 +1,34 @@
+{
+  "A": {
+    "valid": true,
+    "frames": 599,
+    "fd_count": 1,
+    "convert_mean_ms": 6.342866444073455,
+    "convert_p95_ms": 7.114,
+    "stage_mean_ms": 7.488550918196995,
+    "stage_p95_ms": 8.4986,
+    "post_convert_mean_ms": 1.1456844741235392,
+    "counts": {
+      "completed": 599,
+      "convert_count": 600
+    },
+    "mode": "scroll",
+    "script_sha256": "f216b1b102a693aa10a9398f91d46d3b4e03c2aa1b8a53fc3e862f6c32764a89"
+  },
+  "B": {
+    "valid": true,
+    "frames": 600,
+    "fd_count": 1,
+    "convert_mean_ms": 5.886455,
+    "convert_p95_ms": 6.52115,
+    "stage_mean_ms": 5.909633333333333,
+    "stage_p95_ms": 6.539299999999999,
+    "post_convert_mean_ms": 0.023178333333333336,
+    "counts": {
+      "completed": 600,
+      "convert_count": 600
+    },
+    "mode": "scroll",
+    "script_sha256": "f216b1b102a693aa10a9398f91d46d3b4e03c2aa1b8a53fc3e862f6c32764a89"
+  }
+}

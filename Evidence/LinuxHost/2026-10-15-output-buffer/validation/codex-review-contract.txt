@@ -1,0 +1,11 @@
+**上一轮 C 契约证据缺口已补齐；发现 1 个可触发的新回归。**依据固定提交 `95d4d74549631aa5c39461300acfd2e106583cc9` 的本地源码。
+
+**缓冲区增长时，重试可能失效并结束采集。**新增的 [Rust 重试分支](/home/xiaobei/services/rustdesk-host-perf-20261015/rustdesk/libs/scrap/src/common/drm_render.rs:100)只识别 `ENOSPC`，但 [C 转换入口](/home/xiaobei/services/rustdesk-host-perf-20261015/libdrmtap-source/src/drm_grab.c:2526)收到 EGL 的 `ENOSPC` 后仍进入 CPU 回退：缓存命中且 fd 为 `-1` 时改为返回 `EINVAL`；有 fd 但无法 mmap 时改为返回映射错误。结果是 Rust 不重试，转而[设置 CPU 偏好并结束接收循环](/home/xiaobei/services/rustdesk-host-perf-20261015/rustdesk/src/server/drm_capturer.rs:774)。旧路径使用 C 自动扩容缓冲区，本次传入有限长度 Vec 才暴露此问题。
+
+其余两项及长度检查无阻塞发现：
+
+- **长度：**[ensure_out](/home/xiaobei/services/rustdesk-host-perf-20261015/libdrmtap-source/src/drm_grab.c:522)在写入前检查容量；EGL 输出为 `width × height × 4`，CPU 路径按实际 stride 分配。Rust 按返回的 `stride × height` 取长度并截短 Vec，与契约一致。
+- **fd/cache 所有权：**C 不关闭传入 fd；[EGL 清理](/home/xiaobei/services/rustdesk-host-perf-20261015/libdrmtap-source/src/gpu_egl.c:1365)保留缓存项，仅销毁非缓存导入。Rust 在两次调用期间保持 fd 存活，所有权本身不阻碍重试。
+- **清空后的 frame.data：**[setter](/home/xiaobei/services/rustdesk-host-perf-20261015/libdrmtap-source/src/drmtap.c:810)仅清空上下文的目标指针和长度，不释放或改写像素；同步转换完成后，仍由 Vec 持有的数据继续有效。
+
+本轮仅只读核对，未修改文件、运行测试或负载。

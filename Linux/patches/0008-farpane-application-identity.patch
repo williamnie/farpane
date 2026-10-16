@@ -1,0 +1,87 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -26,6 +26,7 @@
+ use_rubato = ["rubato"]
+ use_dasp = ["dasp"]
+ flutter = ["flutter_rust_bridge"]
++farpane-linux = ["scrap/farpane-linux"]
+ default = ["use_dasp"]
+ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+--- a/src/core_main.rs
++++ b/src/core_main.rs
+@@ -30,6 +30,10 @@
+ /// If it returns [`Some`], then the process will continue, and flutter gui will be started.
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+ pub fn core_main() -> Option<Vec<String>> {
++    #[cfg(all(target_os = "linux", feature = "farpane-linux"))]
++    if !crate::platform::linux::farpane::initialize() {
++        return None;
++    }
+     if !crate::common::global_init() {
+         return None;
+     }
+--- a/src/platform/linux.rs
++++ b/src/platform/linux.rs
+@@ -1,5 +1,8 @@
+ use super::{gtk_sudo, CursorData, ResultType};
+ use desktop::Desktop;
++#[cfg(feature = "farpane-linux")]
++#[path = "linux/farpane.rs"]
++pub(crate) mod farpane;
+ pub use base::platform::linux::*;
+ 
+ #[cfg(feature = "drm")]
+--- a/src/server/dbus.rs
++++ b/src/server/dbus.rs
+@@ -10,7 +10,10 @@
+ use std::collections::HashMap;
+ use std::{error::Error, fmt, time::Duration};
+ 
++#[cfg(not(feature = "farpane-linux"))]
+ const DBUS_NAME: &str = "org.rustdesk.rustdesk";
++#[cfg(feature = "farpane-linux")]
++const DBUS_NAME: &str = "org.farpane.FarPane";
+ const DBUS_PREFIX: &str = "/dbus";
+ const DBUS_METHOD_NEW_CONNECTION: &str = "NewConnection";
+ const DBUS_METHOD_NEW_CONNECTION_ID: &str = "id";
+--- a/flutter/linux/CMakeLists.txt
++++ b/flutter/linux/CMakeLists.txt
+@@ -4,10 +4,10 @@
+ 
+ # The name of the executable created for the application. Change this to change
+ # the on-disk name of your application.
+-set(BINARY_NAME "rustdesk")
++set(BINARY_NAME "farpane")
+ # The unique GTK application identifier for this application. See:
+ # https://wiki.gnome.org/HowDoI/ChooseApplicationID
+-set(APPLICATION_ID "com.carriez.flutter_hbb")
++set(APPLICATION_ID "org.farpane.FarPane")
+ 
+ # Explicitly opt into modern CMake behaviors to avoid warnings with recent
+ # versions of CMake.
+--- a/flutter/linux/my_application.cc
++++ b/flutter/linux/my_application.cc
+@@ -116,7 +116,7 @@
+   GtkIconTheme* theme = gtk_icon_theme_get_default();
+   gint icons[4] = {256, 128, 64, 32};
+   for (int i = 0; i < 4; i++) {
+-    GdkPixbuf* icon = gtk_icon_theme_load_icon(theme, "rustdesk", icons[i], GTK_ICON_LOOKUP_NO_SVG, NULL);
++    GdkPixbuf* icon = gtk_icon_theme_load_icon(theme, "farpane", icons[i], GTK_ICON_LOOKUP_NO_SVG, NULL);
+     if (icon != nullptr) {
+       gtk_window_set_icon(window, icon);
+     }
+@@ -142,11 +142,11 @@
+   if (use_header_bar) {
+     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
+     gtk_widget_show(GTK_WIDGET(header_bar));
+-    gtk_header_bar_set_title(header_bar, "rustdesk");
++    gtk_header_bar_set_title(header_bar, "FarPane");
+     gtk_header_bar_set_show_close_button(header_bar, TRUE);
+     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
+   } else {
+-    gtk_window_set_title(window, "rustdesk");
++    gtk_window_set_title(window, "FarPane");
+   }
+ 
+   // auto bdw = bitsdojo_window_from(window); // <--- add this line

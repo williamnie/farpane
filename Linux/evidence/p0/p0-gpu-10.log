@@ -1,0 +1,14 @@
+ffmpeg=9.0.2 uid=1000 size=256x128 fps=12 frames=60 pre_tol=3 decoded_tol=10
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+COLOR rgb=0,0,0 yuv=16,128,128
+COLOR rgb=255,255,255 yuv=235,128,128
+COLOR rgb=255,0,0 yuv=81,90,240
+COLOR rgb=0,255,0 yuv=145,54,34
+COLOR rgb=0,0,255 yuv=41,240,110
+COLOR rgb=255,255,0 yuv=210,16,146
+COLOR rgb=0,255,255 yuv=170,166,16
+COLOR rgb=255,0,255 yuv=106,202,222
+format=XR24 pool_cap=4 surfaces_used=1 fd_steady=10 fd_peak=10
+pre_max=1 decoded_max=1 fine_luma_psnr_min=47.12 packets=60 decoded=60 keyframes=2 leases=60/60 peak=1 busy_observed=1 sync_p95_ms=0.128 fd_before=4 fd_after=4
+driver_timeouts=37 tiny_wait_max_ms=0.025
+PASS synthetic GPU graph; real desktop tearing, GPU-hang recovery and end-to-end latency remain unverified

@@ -1,0 +1,7 @@
+**无阻塞发现，原报告这一项可以关闭。**
+
+- **容量上界安全**：固定 0.5.8 的 [EGL 输出](/home/xiaobei/services/rustdesk-host-perf-20261015/libdrmtap-source/src/gpu_egl.c:1328)、[线性降位深](/home/xiaobei/services/rustdesk-host-perf-20261015/libdrmtap-source/src/drm_grab.c:1421)、[线性重打包](/home/xiaobei/services/rustdesk-host-perf-20261015/libdrmtap-source/src/drm_grab.c:2606)均需 `width*4*height`；[CPU 去平铺及后续原位转换](/home/xiaobei/services/rustdesk-host-perf-20261015/libdrmtap-source/src/drm_grab.c:1623)需 `pitches[0]*height`。该上界覆盖全部相关路径。
+- **原失败已消除**：[容量不足时不注册指针](/home/xiaobei/services/rustdesk-host-perf-20261015/rustdesk/libs/scrap/src/common/drm_render.rs:86)，直接使用 C 自分配路径，因此不会再由短 Vec 触发 `ENOSPC → EINVAL/映射错误`。
+- **热路径保留**：长度足够时仍直接写入 Vec，缩小帧按实际长度截断；padding 导致部分 EGL 路径持续复制属于已接受的性能限制。[测试源码](/home/xiaobei/services/rustdesk-host-perf-20261015/rustdesk/libs/scrap/src/common/drm_render.rs:376)覆盖错误掩盖、增长后恢复直写及缩小截断。
+
+本项修复的回归面是 `drm_render.rs::convert_into` 的 split 输出缓冲选择；原 `convert()` 路径和错误处理未改写，无新增跨帧状态。本轮仅只读核对，未运行测试或构建。

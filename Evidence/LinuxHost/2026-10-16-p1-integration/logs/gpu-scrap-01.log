@@ -1,0 +1,469 @@
+   Compiling libc v0.2.171
+   Compiling syn v2.0.98
+   Compiling cfg-if v1.0.0
+   Compiling serde_core v1.0.228
+   Compiling serde v1.0.228
+   Compiling jobserver v0.1.31
+   Compiling cc v1.2.13
+   Compiling pin-project-lite v0.2.14
+   Compiling memchr v2.7.4
+   Compiling futures-core v0.3.31
+   Compiling bitflags v2.9.1
+   Compiling once_cell v1.19.0
+   Compiling log v0.4.22
+   Compiling smallvec v1.15.1
+   Compiling clang-sys v1.8.1
+   Compiling slab v0.4.9
+   Compiling crossbeam-utils v0.8.20
+   Compiling toml v0.5.11
+   Compiling thiserror-impl v1.0.61
+   Compiling serde_derive v1.0.228
+   Compiling futures-io v0.3.31
+   Compiling futures-sink v0.3.31
+   Compiling num-traits v0.2.19
+   Compiling thiserror v1.0.61
+   Compiling system-deps v1.3.2
+   Compiling glib-sys v0.10.1
+   Compiling gobject-sys v0.10.0
+   Compiling gstreamer-sys v0.9.1
+   Compiling getrandom v0.2.15
+   Compiling futures-channel v0.3.31
+   Compiling futures-macro v0.3.31
+   Compiling pin-utils v0.1.0
+   Compiling futures-task v0.3.31
+   Compiling wayland-sys v0.31.7
+   Compiling scopeguard v1.2.0
+   Compiling linux-raw-sys v0.11.0
+   Compiling lock_api v0.4.12
+   Compiling gstreamer-base-sys v0.9.1
+   Compiling thiserror-impl v2.0.17
+   Compiling futures-util v0.3.31
+   Compiling bytes v1.11.1
+   Compiling rustix v1.1.2
+   Compiling wayland-backend v0.3.11
+   Compiling bitflags v1.3.2
+   Compiling openssl-sys v0.9.104
+   Compiling thiserror v2.0.17
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.17.0
+   Compiling ring v0.17.14
+   Compiling atty v0.2.14
+   Compiling rustls-pki-types v1.11.0
+   Compiling downcast-rs v1.2.1
+   Compiling prettyplease v0.2.20
+   Compiling byteorder v1.5.0
+   Compiling rustix v0.38.34
+   Compiling protobuf v3.7.2
+   Compiling clap v2.34.0
+   Compiling env_logger v0.9.3
+   Compiling parking_lot_core v0.9.10
+   Compiling protobuf-support v3.7.2
+   Compiling aho-corasick v1.1.3
+   Compiling nasm-rs v0.3.0
+   Compiling untrusted v0.9.0
+   Compiling linux-raw-sys v0.4.14
+   Compiling regex-syntax v0.8.5
+   Compiling ppv-lite86 v0.2.17
+   Compiling mozjpeg-sys v2.2.2
+   Compiling regex-automata v0.4.9
+   Compiling parking_lot v0.12.3
+   Compiling bindgen v0.59.2
+   Compiling wayland-client v0.31.11
+   Compiling getrandom v0.3.2
+   Compiling crypto-common v0.1.6
+   Compiling block-buffer v0.10.4
+   Compiling futures-executor v0.3.30
+   Compiling rand_os v0.1.3
+   Compiling tokio-macros v2.5.0
+   Compiling concurrent-queue v2.5.0
+   Compiling socket2 v0.5.10
+   Compiling mio v1.0.3
+   Compiling signal-hook-registry v1.4.2
+   Compiling foreign-types-shared v0.1.1
+   Compiling bytemuck v1.23.2
+   Compiling parking v2.2.0
+   Compiling openssl-probe v0.1.5
+   Compiling rustls v0.23.28
+   Compiling tokio v1.44.2
+   Compiling foreign-types v0.3.2
+   Compiling openssl v0.10.68
+   Compiling rand v0.6.5
+   Compiling digest v0.10.7
+   Compiling rustls-webpki v0.103.3
+   Compiling protobuf-parse v3.7.2
+   Compiling regex v1.11.1
+   Compiling openssl-macros v0.1.1
+   Compiling tracing-attributes v0.1.29
+   Compiling tracing-core v0.1.34
+   Compiling zstd-sys v2.0.11+zstd.1.5.6
+   Compiling lazy_static v1.5.0
+   Compiling fastrand v2.1.0
+   Compiling toml_datetime v0.6.3
+   Compiling subtle v2.6.1
+   Compiling itoa v1.0.11
+   Compiling cpufeatures v0.2.12
+   Compiling zeroize v1.8.1
+   Compiling native-tls v0.2.12
+   Compiling toml_edit v0.19.15
+   Compiling tracing v0.1.41
+   Compiling protobuf-codegen v3.7.2
+   Compiling phf_generator v0.7.24
+   Compiling crossbeam-epoch v0.9.20
+   Compiling bindgen v0.65.1
+   Compiling rgb v0.8.50
+   Compiling rand_core v0.9.3
+   Compiling proc-macro-crate v0.1.5
+   Compiling arrayvec v0.7.6
+   Compiling tinyvec_macros v0.1.1
+   Compiling tinyvec v1.6.1
+   Compiling glib-macros v0.10.1
+   Compiling rand_chacha v0.9.0
+   Compiling crossbeam-deque v0.8.5
+   Compiling phf_codegen v0.7.24
+   Compiling dlopen_derive v0.1.4
+   Compiling proc-macro-crate v1.3.1
+   Compiling libsodium-sys v0.2.7
+   Compiling sha1 v0.10.6
+   Compiling image v0.25.1
+   Compiling rustls-native-certs v0.8.1
+   Compiling v4l2-sys-mit v0.3.0
+   Compiling event-listener v5.3.1
+   Compiling wayland-protocols v0.32.9
+   Compiling webpki-roots v1.0.9
+   Compiling rand_core v0.6.4
+   Compiling num-integer v0.1.46
+   Compiling dirs-sys-next v0.1.2
+   Compiling event-listener v2.5.3
+   Compiling equivalent v1.0.1
+   Compiling either v1.13.0
+   Compiling utf8parse v0.2.2
+   Compiling hashbrown v0.14.5
+   Compiling fnv v1.0.7
+   Compiling http v1.3.1
+   Compiling indexmap v2.2.6
+   Compiling anstyle-parse v0.2.4
+   Compiling gstreamer v0.16.7
+   Compiling num-rational v0.3.2
+   Compiling rand_chacha v0.3.1
+   Compiling webpki-roots v0.26.11
+   Compiling event-listener-strategy v0.5.2
+   Compiling dlopen v0.1.8
+   Compiling rayon-core v1.12.1
+   Compiling target_build_utils v0.3.1
+   Compiling rand v0.9.2
+   Compiling glib v0.10.3
+   Compiling memoffset v0.9.1
+   Compiling httparse v1.10.1
+   Compiling nix v0.28.0
+   Compiling unicode-normalization v0.1.23
+   Compiling polling v3.7.2
+   Compiling machine-uid v0.3.0 (https://github.com/rustdesk-org/machine-uid#381ff579)
+   Compiling serde_spanned v0.6.6
+   Compiling gstreamer-app-sys v0.9.1
+   Compiling gstreamer-video-sys v0.9.1
+   Compiling pin-project-internal v1.1.5
+   Compiling enumflags2_derive v0.7.10
+   Compiling futures-lite v2.3.0
+   Compiling anstyle-query v1.1.0
+   Compiling colorchoice v1.0.1
+   Compiling iana-time-zone v0.1.60
+   Compiling waker-fn v1.2.0
+   Compiling async-task v4.7.1
+   Compiling is_terminal_polyfill v1.70.0
+   Compiling signature v1.6.4
+   Compiling pretty-hex v0.2.1
+   Compiling fastrand v1.9.0
+   Compiling unicode-bidi v0.3.15
+   Compiling data-encoding v2.9.0
+   Compiling percent-encoding v2.3.1
+   Compiling anstyle v1.0.13
+   Compiling winnow v0.5.40
+   Compiling ryu v1.0.18
+   Compiling atomic-waker v1.1.2
+   Compiling muldiv v0.2.1
+   Compiling piper v0.2.3
+   Compiling gstreamer-base v0.16.5
+   Compiling serde_json v1.0.118
+   Compiling anstream v0.6.14
+   Compiling form_urlencoded v1.2.1
+   Compiling tungstenite v0.29.0 (https://github.com/rustdesk-org/tungstenite-rs?rev=efce47e5364f00a63302cf07ab1fb13ded478914#efce47e5)
+   Compiling idna v0.5.0
+   Compiling futures-lite v1.13.0
+   Compiling ed25519 v1.5.3
+   Compiling chrono v0.4.41
+   Compiling enumflags2 v0.7.10
+   Compiling x11 v2.21.0
+   Compiling pin-project v1.1.5
+   Compiling anyhow v1.0.98
+   Compiling calloop v0.14.3
+   Compiling rayon v1.10.0
+   Compiling async-channel v2.3.1
+   Compiling rand v0.8.5
+   Compiling io-lifetimes v1.0.11
+   Compiling async-lock v2.8.0
+   Compiling zvariant_derive v3.15.2
+   Compiling directories-next v2.0.0
+   Compiling tokio-native-tls v0.3.1
+   Compiling hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common)
+   Compiling zstd-safe v7.1.0
+   Compiling tokio-rustls v0.26.0
+   Compiling tokio-util v0.7.15
+   Compiling env_filter v0.1.3
+   Compiling async-recursion v1.1.1
+   Compiling crossbeam-channel v0.5.13
+   Compiling crossbeam-queue v0.3.11
+   Compiling webm-sys v1.0.4 (https://github.com/rustdesk-org/rust-webm#d2c4d3ac)
+   Compiling backtrace v0.3.73
+   Compiling is-terminal v0.4.16
+   Compiling adler v1.0.2
+   Compiling adler2 v2.0.1
+   Compiling static_assertions v1.1.0
+   Compiling simd-adler32 v0.3.7
+   Compiling nu-ansi-term v0.49.0
+   Compiling cursor-icon v1.2.0
+   Compiling linux-raw-sys v0.3.8
+   Compiling gimli v0.29.0
+   Compiling glob v0.3.1
+   Compiling humantime v2.1.0
+   Compiling xcursor v0.3.10
+   Compiling env_logger v0.11.6
+   Compiling wayland-cursor v0.31.5
+   Compiling rustix v0.37.27
+   Compiling flexi_logger v0.27.4
+   Compiling addr2line v0.22.0
+   Compiling wayland-csd-frame v0.3.0
+   Compiling bindgen v0.72.1
+   Compiling miniz_oxide v0.8.9
+   Compiling zvariant v3.15.2
+   Compiling miniz_oxide v0.7.4
+   Compiling confy v0.4.0-2 (https://github.com/rustdesk-org/confy#83db9ec1)
+   Compiling tokio-socks v0.5.2-3 (https://github.com/rustdesk-org/tokio-socks#bdb9aa3d)
+   Compiling sodiumoxide v0.2.7
+   Compiling tokio-tungstenite v0.29.0 (https://github.com/rustdesk-org/tokio-tungstenite?rev=c241b11b03de4881faf1ecd2fe6e867c92f3013b#c241b11b)
+   Compiling zstd v0.13.1
+   Compiling blocking v1.6.1
+   Compiling v4l v0.14.0
+   Compiling sysinfo v0.29.10 (https://github.com/rustdesk-org/sysinfo?branch=rlim_max#90b1705d)
+   Compiling mac_address v1.1.7
+   Compiling calloop-wayland-source v0.4.1
+   Compiling default_net v0.1.0 (https://github.com/rustdesk-org/default_net#78f8f70c)
+   Compiling memoffset v0.7.1
+   Compiling polling v2.8.0
+   Compiling url v2.5.2
+   Compiling toml v0.7.8
+   Compiling wayland-protocols-experimental v20250721.0.1
+   Compiling wayland-protocols-wlr v0.3.9
+   Compiling wayland-protocols-misc v0.3.9
+   Compiling dirs-next v2.0.0
+   Compiling rustls-platform-verifier v0.6.2
+   Compiling base v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/base)
+   Compiling sha2 v0.10.8
+   Compiling futures v0.3.30
+   Compiling uuid v1.16.0
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+   Compiling spin v0.9.8
+   Compiling nanorand v0.7.0
+   Compiling users v0.11.0
+   Compiling object v0.36.1
+   Compiling memmap2 v0.9.8
+   Compiling socket2 v0.3.19
+   Compiling socket2 v0.4.10
+   Compiling libloading v0.8.4
+   Compiling crc32fast v1.4.2
+   Compiling rustc-demangle v0.1.24
+   Compiling xkeysym v0.2.1
+   Compiling whoami v1.6.0
+   Compiling base64 v0.22.1
+   Compiling gstreamer-video v0.16.7
+   Compiling smithay-client-toolkit v0.20.0
+   Compiling gstreamer-app v0.16.5
+   Compiling flate2 v1.1.9
+   Compiling async-io v1.13.0
+   Compiling flume v0.11.0
+   Compiling nix v0.26.4
+   Compiling scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+   Compiling async-fs v1.6.0
+   Compiling libdbus-sys v0.2.5
+   Compiling zbus_names v2.6.1
+   Compiling async-executor v1.12.0
+   Compiling async-broadcast v0.5.1
+   Compiling zbus_macros v3.15.2
+   Compiling tempfile v3.10.1
+   Compiling async-trait v0.1.80
+   Compiling serde_repr v0.1.19
+   Compiling ordered-stream v0.2.0
+   Compiling filetime v0.2.23
+   Compiling xdg-home v1.2.0
+   Compiling termios v0.3.3
+   Compiling rpassword v2.1.0
+   Compiling strsim v0.10.0
+   Compiling hex v0.4.3
+   Compiling cfg-if v0.1.10
+   Compiling zbus v3.15.2
+   Compiling quest v0.3.0
+   Compiling docopt v1.1.1
+   Compiling dbus v0.9.7
+   Compiling webm v1.1.0 (https://github.com/rustdesk-org/rust-webm#d2c4d3ac)
+   Compiling repng v0.2.2
+   Compiling winapi v0.3.9
+   Compiling num_cpus v1.16.0
+   Compiling mozjpeg v0.10.11
+   Compiling nokhwa-core v0.1.5 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling nokhwa-bindings-linux v0.1.1 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling nokhwa-bindings-macos v0.2.2 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling nokhwa-bindings-windows v0.4.2 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+   Compiling nokhwa v0.10.7 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:476:21
+    |
+476 |                 "v0.{minor}.{patch} is not the verified minor and must be refused"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+    = note: `#[warn(non_fmt_panics)]` on by default
+help: add the missing arguments
+    |
+476 |                 "v0.{minor}.{patch} is not the verified minor and must be refused", ...
+    |                                                                                   +++++
+help: or add a "{}" format string to use the message literally
+    |
+476 |                 "{}", "v0.{minor}.{patch} is not the verified minor and must be refused"
+    |                 +++++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:510:21
+    |
+510 |                 "v0.{minor}.{patch} is a patch of the verified minor and must be accepted"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+help: add the missing arguments
+    |
+510 |                 "v0.{minor}.{patch} is a patch of the verified minor and must be accepted", ...
+    |                                                                                           +++++
+help: or add a "{}" format string to use the message literally
+    |
+510 |                 "{}", "v0.{minor}.{patch} is a patch of the verified minor and must be accepted"
+    |                 +++++
+
+warning: panic message contains unused formatting placeholders
+   --> libs/scrap/src/common/drmtap_dl.rs:528:21
+    |
+528 |                 "v0.{minor}.{patch} is an unverified minor and must be refused"
+    |                     ^^^^^^^ ^^^^^^^
+    |
+    = note: this message is not used as a format string when given without arguments, but will be in Rust 2021
+help: add the missing arguments
+    |
+528 |                 "v0.{minor}.{patch} is an unverified minor and must be refused", ...
+    |                                                                                +++++
+help: or add a "{}" format string to use the message literally
+    |
+528 |                 "{}", "v0.{minor}.{patch} is an unverified minor and must be refused"
+    |                 +++++
+
+warning: `scrap` (lib test) generated 8 warnings (run `cargo fix --lib -p scrap --tests` to apply 4 suggestions)
+    Finished `release` profile [optimized] target(s) in 1m 41s
+     Running unittests src/lib.rs (/workspace/Build/Linux/target/release/deps/scrap-148ae77a81d2b5ea)
+
+running 47 tests
+test common::aom::webrtc::tests::tile_log2_uses_c_uint_and_rounds_up ... ok
+test common::drm_reader::hotspot_guess_tests::a_blank_sprite_has_no_hotspot_to_guess ... ok
+test common::drm_reader::hotspot_guess_tests::a_corner_bracket_is_held_by_its_inner_corner ... ok
+test common::drm_reader::hotspot_guess_tests::a_diagonal_two_headed_arrow_is_held_by_its_middle_too ... ok
+test common::drm_reader::hotspot_guess_tests::a_directional_resize_cursor_is_held_by_its_bar ... ok
+test common::drm_reader::hotspot_guess_tests::an_arrow_points_at_the_corner_of_its_box ... ok
+test common::drm_reader::hotspot_guess_tests::an_elongated_shape_keeps_its_centre_even_when_it_is_lopsided ... ok
+test common::drm_reader::hotspot_guess_tests::one_symmetric_axis_centres_that_axis_only ... ok
+test common::drm_reader::hotspot_guess_tests::a_symmetric_shape_is_held_by_its_middle ... ok
+test common::drm_reader::hotspot_provenance_tests::a_measured_zero_hotspot_is_measured ... ok
+test common::drm_reader::hotspot_provenance_tests::provenance_is_logged_once_and_then_only_on_a_change ... ok
+test common::drm_reader::hotspot_provenance_tests::provenance_changes_the_cursor_identity ... ok
+test common::drm_reader::hotspot_provenance_tests::the_librarys_no_beats_the_coordinates ... ok
+test common::drm_reader::hotspot_provenance_tests::without_an_answer_the_old_heuristic_stands ... ok
+test common::drm_reader::plane_rotation_tests::a_frame_keeps_the_rotation_its_plane_had_when_it_was_grabbed ... ok
+test common::drm_reader::plane_rotation_tests::a_plane_without_the_property_turned_nothing ... ok
+test common::drm_render::output_buffer_tests::changed_geometry_uses_complete_frames_and_errors_release_the_buffer ... ok
+test common::drm_render::output_buffer_tests::old_libraries_and_linear_frames_keep_the_copy_fallback ... ok
+test common::drm_render::output_buffer_tests::reused_buffer_receives_complete_padded_pixels_directly ... ok
+test common::drmtap_dl::tests::abi_gate_accepts_the_floor_and_later_patches_of_the_same_minor ... ok
+test common::drmtap_dl::tests::abi_gate_rejects_a_library_from_before_the_split ... ok
+test common::drmtap_dl::tests::abi_gate_rejects_an_unknown_newer_minor ... ok
+test common::drmtap_dl::tests::abi_gate_rejects_another_major_in_both_directions ... ok
+test common::drmtap_dl::tests::the_patch_floor_is_currently_vacuous_and_that_is_deliberate ... ok
+test common::record::tests::sanitize_recording_filename_component ... ok
+test wayland::display::tests::a_single_rotated_display_swaps_the_uinput_rect ... ok
+test wayland::display::tests::a_transform_flip_is_visible_to_the_drift_comparison ... ok
+test wayland::display::tests::only_the_explicit_bump_moves_the_generation ... ok
+test wayland::display::tests::test_clear_keeps_the_failure_stamp ... ok
+test wayland::display::tests::test_desktop_rect_empty ... ok
+test wayland::display::tests::test_desktop_rect_missing_logical_size_falls_back_to_physical ... ok
+test wayland::display::tests::test_desktop_rect_multi_display_uses_logical_size ... ok
+test wayland::display::tests::test_desktop_rect_single_display_uses_physical_size ... ok
+test wayland::display::tests::test_logical_rects_multi_display_uses_logical ... ok
+test wayland::display::tests::test_logical_rects_single_display_uses_physical ... ok
+test wayland::display::tests::test_lookup_backoff_boundaries ... ok
+test wayland::display::tests::test_lookup_stamp_from_the_future_only_waits ... ok
+test wayland::display::tests::test_remap_display_removed_unchanged ... ok
+test wayland::display::tests::test_remap_enlarged_display_reaches_far_edge ... ok
+test wayland::display::tests::test_remap_identity_when_unchanged ... ok
+test wayland::display::tests::test_remap_named_miss_equal_count_unchanged ... ok
+test wayland::display::tests::test_remap_nameless_count_changed_unchanged ... ok
+test wayland::display::tests::test_remap_nameless_index_fallback ... ok
+test wayland::display::tests::test_remap_point_outside_all_displays_unchanged ... ok
+test wayland::display::tests::test_remap_primary_rescale_shifts_second_display ... ok
+test wayland::display::tests::test_remap_scales_within_resized_display ... ok
+test wayland::pipewire::tests::stage_err_keeps_the_detail_safe_for_a_placeholder ... ok
+
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

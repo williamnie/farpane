@@ -1,0 +1,4 @@
+ffmpeg=9.0.2 uid=1000 size=256x128 fps=12 frames=60 pre_tol=3 decoded_tol=10
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+[source @ 0x5acd77015180] Setting BufferSourceContext.pix_fmt to a HW format requires hw_frames_ctx to be non-NULL!
+FAIL buffer: Invalid argument

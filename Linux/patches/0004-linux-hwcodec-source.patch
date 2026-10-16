@@ -1,0 +1,10 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -290,3 +290,7 @@
+ 
+ [profile.dev]
+ debug = 1
++
++# Linux build uses one FFmpeg ABI and the reviewed local compatibility patch.
++[patch."https://github.com/rustdesk-org/hwcodec"]
++hwcodec = { path = "../hwcodec" }

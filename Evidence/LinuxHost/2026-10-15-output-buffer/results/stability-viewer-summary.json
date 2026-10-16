@@ -1,0 +1,46 @@
+{
+  "samples": 1796,
+  "states": [
+    "streaming"
+  ],
+  "generations": [
+    13
+  ],
+  "receivedFPS": {
+    "mean": 29.890296088903597,
+    "min": 29.785095502669602,
+    "max": 30.295989258317917
+  },
+  "presentedFPS": {
+    "mean": 29.41403822151509,
+    "min": 26.37504037137835,
+    "max": 30.047141494686485
+  },
+  "videoReceiveAgeMS": {
+    "mean": 15.968446788975502,
+    "min": 0.017458,
+    "max": 35.104125
+  },
+  "presentationAgeMS": {
+    "mean": 23.48672988195991,
+    "min": 10.51425,
+    "max": 65.329875
+  },
+  "decoderQueueDepth": {
+    "mean": 0.4292873051224944,
+    "min": 0,
+    "max": 1
+  },
+  "rendererQueueDepth": {
+    "mean": 0.3775055679287305,
+    "min": 0,
+    "max": 1
+  },
+  "decodeErrors_delta": 0,
+  "decoderResets_delta": 0,
+  "packetSequenceGaps_delta": 0,
+  "referenceFrameDrops_delta": 0,
+  "decodedFrames_delta": 53655,
+  "presentedFrames_delta": 52782,
+  "zero_fps_samples": 0
+}

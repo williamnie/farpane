@@ -1,0 +1,134 @@
+--- a/src/common.rs
++++ b/src/common.rs
+@@ -2537,10 +2537,18 @@
+     arg[prefix.len()..].chars().all(|c| c == '/')
+ }
+ 
++pub fn get_network_uuid() -> Vec<u8> {
++    let uuid = hbb_common::get_uuid();
++    #[cfg(all(target_os = "linux", feature = "farpane-linux"))]
++    { return crate::platform::linux::farpane::namespace_uuid(&uuid); }
++    #[cfg(not(all(target_os = "linux", feature = "farpane-linux")))]
++    uuid
++}
++
+ pub fn get_hwid() -> Bytes {
+     use hbb_common::sha2::{Digest, Sha256};
+ 
+-    let uuid = hbb_common::get_uuid();
++    let uuid = crate::common::get_network_uuid();
+     let mut hasher = Sha256::new();
+     hasher.update(&uuid);
+     Bytes::from(hasher.finalize().to_vec())
+--- a/src/rendezvous_mediator.rs
++++ b/src/rendezvous_mediator.rs
+@@ -1270,7 +1270,7 @@
+         }
+         let mut msg_out = Message::new();
+         let pk = Config::get_key_pair().1;
+-        let uuid = hbb_common::get_uuid();
++        let uuid = crate::common::get_network_uuid();
+         let id = Config::get_id();
+         msg_out.set_register_pk(RegisterPk {
+             id,
+--- a/src/ui_interface.rs
++++ b/src/ui_interface.rs
+@@ -831,7 +831,7 @@
+ 
+ #[inline]
+ pub fn get_uuid() -> String {
+-    crate::encode64(hbb_common::get_uuid())
++    crate::encode64(crate::common::get_network_uuid())
+ }
+ 
+ #[inline]
+@@ -1092,7 +1092,7 @@
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+     let local_id = ipc::get_id();
+     let id_to_deploy = new_id.clone().unwrap_or_else(|| local_id.clone());
+-    let uuid = crate::encode64(hbb_common::get_uuid());
++    let uuid = crate::encode64(crate::common::get_network_uuid());
+     let pk = crate::encode64(Config::get_key_pair().1);
+     let body = serde_json::json!({
+         "id": id_to_deploy,
+@@ -1510,15 +1510,17 @@
+         return INVALID_FORMAT;
+     }
+ 
+-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[cfg(not(any(target_os = "android", target_os = "ios",
++        all(target_os = "linux", feature = "farpane-linux"))))]
+     let uuid = Bytes::from(
+         hbb_common::machine_uid::get()
+             .unwrap_or("".to_owned())
+             .as_bytes()
+             .to_vec(),
+     );
+-    #[cfg(any(target_os = "android", target_os = "ios"))]
+-    let uuid = Bytes::from(hbb_common::get_uuid());
++    #[cfg(any(target_os = "android", target_os = "ios",
++        all(target_os = "linux", feature = "farpane-linux")))]
++    let uuid = Bytes::from(crate::common::get_network_uuid());
+ 
+     if uuid.is_empty() {
+         log::error!("Failed to change id, uuid is_empty");
+--- a/src/core_main.rs
++++ b/src/core_main.rs
+@@ -552,7 +552,7 @@
+                 if pos < max {
+                     let token = args[pos + 1].to_owned();
+                     let id = crate::ipc::get_id();
+-                    let uuid = crate::encode64(hbb_common::get_uuid());
++                    let uuid = crate::encode64(crate::common::get_network_uuid());
+                     let get_value = |c: &str| {
+                         let pos = args.iter().position(|x| x == c).unwrap_or(max);
+                         if pos < max {
+--- a/src/hbbs_http/sync.rs
++++ b/src/hbbs_http/sync.rs
+@@ -132,7 +132,7 @@
+                 if need_upload {
+                     v["version"] = json!(crate::VERSION);
+                     v["id"] = json!(id);
+-                    v["uuid"] = json!(crate::encode64(hbb_common::get_uuid()));
++                    v["uuid"] = json!(crate::encode64(crate::common::get_network_uuid()));
+                     let ab_name = Config::get_option(keys::OPTION_PRESET_ADDRESS_BOOK_NAME);
+                     if !ab_name.is_empty() {
+                         v[keys::OPTION_PRESET_ADDRESS_BOOK_NAME] = json!(ab_name);
+@@ -235,7 +235,7 @@
+                 last_sent = Some(Instant::now());
+                 let mut v = Value::default();
+                 v["id"] = json!(id);
+-                v["uuid"] = json!(crate::encode64(hbb_common::get_uuid()));
++                v["uuid"] = json!(crate::encode64(crate::common::get_network_uuid()));
+                 v["ver"] = json!(hbb_common::get_version_number(crate::VERSION));
+                 if !conns.is_empty() {
+                     v["conns"] = json!(conns);
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -1554,7 +1554,7 @@
+         let url = self.server_audit_conn.clone();
+         let mut v = v;
+         v["id"] = json!(Config::get_id());
+-        v["uuid"] = json!(crate::encode64(hbb_common::get_uuid()));
++        v["uuid"] = json!(crate::encode64(crate::common::get_network_uuid()));
+         v["conn_id"] = json!(self.inner.id);
+         v["session_id"] = json!(self.lr.session_id);
+         // Unique per record; the api server dedups retried posts by it.
+@@ -1601,7 +1601,7 @@
+         info["files"] = json!(files);
+         let v = json!({
+             "id":json!(Config::get_id()),
+-            "uuid":json!(crate::encode64(hbb_common::get_uuid())),
++            "uuid":json!(crate::encode64(crate::common::get_network_uuid())),
+             "peer_id":json!(self.lr.my_id),
+             "conn_id":json!(self.inner.id()),
+             "type": r#type as i8,
+@@ -1626,7 +1626,7 @@
+         }
+         let mut v = Value::default();
+         v["id"] = json!(Config::get_id());
+-        v["uuid"] = json!(crate::encode64(hbb_common::get_uuid()));
++        v["uuid"] = json!(crate::encode64(crate::common::get_network_uuid()));
+         v["typ"] = json!(typ as i8);
+         v["info"] = serde_json::Value::String(info.to_string());
+         v["conn_id"] = json!(self.inner.id());

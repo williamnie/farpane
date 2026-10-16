@@ -1,0 +1,16 @@
+{
+  "gpu-1": "FFmpeg rejected conflicting -r and passthrough options before sampling; no performance result.",
+  "gpu-a": "Setup pilot before encoder time-base was pinned; null muxer timestamp rounding warnings. Excluded.",
+  "ram-a": "Setup pilot before encoder time-base was pinned; its final seconds overlapped the short gpu-timebase validation. Excluded from performance comparisons.",
+  "gpu-timebase": "Short option validation, overlapped ram-a at startup; excluded from performance comparisons.",
+  "probe-60frames": "Capability smoke only; startup dominates so not used for CPU statistics.",
+  "formal_labels": [
+    "gpu-r1",
+    "ram-r1",
+    "ram-r2",
+    "gpu-r2",
+    "gpu-r3",
+    "ram-r3"
+  ],
+  "formal_runs": "Sequential, guarded by one advisory lock; identical codec options and source time-base; only filter data path differs."
+}

@@ -1,0 +1,47 @@
+[h264 @ 0x5e6118bd9f80] Reinit context to 2560x1440, pix_fmt: yuv420p
+Input #0, h264, from 'pipe:0':
+  Duration: N/A, bitrate: N/A
+  Stream #0:0: Video: h264 (Main), 1 reference frame, yuv420p(tv, progressive, left), 2560x1440, 25 fps, 59.50 tbr, 1200k tbn
+[out#0/null @ 0x5e6118cd7440] No explicit maps, mapping streams automatically...
+[vost#0:0/wrapped_avframe @ 0x5e6118cd7540] Created video stream from input stream 0:0
+[AVIOContext @ 0x5e6118cd6ac0] Statistics: 0 bytes written, 0 seeks, 0 writeouts
+Stream mapping:
+  Stream #0:0 -> #0:0 (h264 (native) -> wrapped_avframe (native))
+[vost#0:0/wrapped_avframe @ 0x5e6118cd7540] Starting thread...
+[vf#0:0 @ 0x5e6118cd7e80] Starting thread...
+[vist#0:0/h264 @ 0x5e6118bdb3c0] [dec:h264 @ 0x5e6118be3ac0] Starting thread...
+[in#0/h264 @ 0x5e6118bc8c80] Starting thread...
+[h264 @ 0x5e6118be3c00] Reinit context to 2560x1440, pix_fmt: yuv420p
+[graph -1 input from stream 0:0 @ 0x7c4db000a340] w:2560 h:1440 pixfmt:yuv420p tb:1/1200000 fr:119/4 sar:0/1 csp:unknown range:tv
+[graph -1 input from stream 0:0 @ 0x7c4db000a340] video frame properties congruent with link at pts_time: 0
+Output #0, null, to '/dev/null':
+  Metadata:
+    encoder         : Lavf62.3.100
+  Stream #0:0: Video: wrapped_avframe, 1 reference frame, yuv420p(tv, progressive, left), 2560x1440, q=2-31, 200 kb/s, 29.75 fps, 29.75 tbn
+    Metadata:
+      encoder         : Lavc62.11.100 wrapped_avframe
+[out#0/null @ 0x5e6118cd7440] Starting thread...
+frame=   28 fps=0.0 q=-0.0 size=N/A time=00:00:00.94 bitrate=N/A speed=1.88x elapsed=0:00:00.50    frame=   59 fps= 59 q=-0.0 size=N/A time=00:00:01.98 bitrate=N/A speed=1.98x elapsed=0:00:01.00    [in#0/h264 @ 0x5e6118bc8c80] EOF while reading input
+[in#0/h264 @ 0x5e6118bc8c80] Terminating thread with return code 0 (success)
+[vist#0:0/h264 @ 0x5e6118bdb3c0] [dec:h264 @ 0x5e6118be3ac0] Decoder thread received EOF packet
+[vist#0:0/h264 @ 0x5e6118bdb3c0] [dec:h264 @ 0x5e6118be3ac0] Decoder returned EOF, finishing
+[vist#0:0/h264 @ 0x5e6118bdb3c0] [dec:h264 @ 0x5e6118be3ac0] Terminating thread with return code 0 (success)
+[vf#0:0 @ 0x5e6118cd7e80] Filtergraph returned EOF, finishing
+[vf#0:0 @ 0x5e6118cd7e80] All consumers returned EOF
+[vost#0:0/wrapped_avframe @ 0x5e6118cd7540] [enc:wrapped_avframe @ 0x5e6118cd7a00] Encoder thread received EOF
+[vost#0:0/wrapped_avframe @ 0x5e6118cd7540] Terminating thread with return code 0 (success)
+[out#0/null @ 0x5e6118cd7440] All streams finished
+[out#0/null @ 0x5e6118cd7440] Terminating thread with return code 0 (success)
+[AVIOContext @ 0x7c4db0009e80] Statistics: 6428 bytes written, 0 seeks, 1 writeouts
+[vf#0:0 @ 0x5e6118cd7e80] Terminating thread with return code 0 (success)
+[out#0/null @ 0x5e6118cd7440] Output file #0 (/dev/null):
+[out#0/null @ 0x5e6118cd7440]   Output stream #0:0 (video): 90 frames encoded; 90 packets muxed (37440 bytes); 
+[out#0/null @ 0x5e6118cd7440]   Total: 90 packets (37440 bytes) muxed
+[out#0/null @ 0x5e6118cd7440] video:37KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+frame=   90 fps= 61 q=-0.0 Lsize=N/A time=00:00:03.02 bitrate=N/A speed=2.04x elapsed=0:00:01.48    
+[in#0/h264 @ 0x5e6118bc8c80] Input file #0 (pipe:0):
+[in#0/h264 @ 0x5e6118bc8c80]   Input stream #0:0 (video): 90 packets read (1388967 bytes); 90 frames decoded; 0 decode errors; 
+[in#0/h264 @ 0x5e6118bc8c80]   Total: 90 packets (1388967 bytes) demuxed
+[AVIOContext @ 0x5e6118bd9680] Statistics: 1388967 bytes read, 0 seeks
+
+Exiting with exit code 0

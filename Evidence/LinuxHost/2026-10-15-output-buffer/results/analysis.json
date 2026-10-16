@@ -1,0 +1,1994 @@
+{
+  "expected_cases": 18,
+  "available_cases": 18,
+  "missing": [],
+  "case_integrity_complete": true,
+  "clock_start": [
+    1792077361.0958717,
+    37.62224340438843
+  ],
+  "clock_end": [
+    1792080477.339029,
+    37.63656997680664
+  ],
+  "scenarios": {
+    "static": {
+      "A": {
+        "runs": 3,
+        "cpu_values": [
+          34.33713215666854,
+          33.97052318235548,
+          34.29495295561122
+        ],
+        "cpu_median": 34.29495295561122,
+        "cpu_min": 33.97052318235548,
+        "cpu_max": 34.33713215666854,
+        "drm_cpu_median": 18.68902048431012,
+        "pss_mib_median": 449.7587890625,
+        "package_w_median": 8.24085965440094,
+        "source_fps_min": 0.0
+      },
+      "B": {
+        "runs": 3,
+        "cpu_values": [
+          30.320642897296672,
+          30.537567282555436,
+          30.237266263520443
+        ],
+        "cpu_median": 30.320642897296672,
+        "cpu_min": 30.237266263520443,
+        "cpu_max": 30.537567282555436,
+        "drm_cpu_median": 14.73122142227005,
+        "pss_mib_median": 444.439453125,
+        "package_w_median": 7.955030432730364,
+        "source_fps_min": 0.0
+      },
+      "relative_cpu_reduction_pct": 11.588614987921385,
+      "run_ranges_separated": true
+    },
+    "scroll": {
+      "A": {
+        "runs": 3,
+        "cpu_values": [
+          31.64549351845742,
+          31.179017222058533,
+          31.90409218567814
+        ],
+        "cpu_median": 31.64549351845742,
+        "cpu_min": 31.179017222058533,
+        "cpu_max": 31.90409218567814,
+        "drm_cpu_median": 17.997679668873015,
+        "pss_mib_median": 451.7763671875,
+        "package_w_median": 9.587975834195932,
+        "source_fps_min": 60.00008199403605
+      },
+      "B": {
+        "runs": 3,
+        "cpu_values": [
+          26.813076659349104,
+          26.795673172845053,
+          26.504337493413058
+        ],
+        "cpu_median": 26.795673172845053,
+        "cpu_min": 26.504337493413058,
+        "cpu_max": 26.813076659349104,
+        "drm_cpu_median": 13.122985830864367,
+        "pss_mib_median": 447.6142578125,
+        "package_w_median": 9.355662698211745,
+        "source_fps_min": 59.999414925324096
+      },
+      "relative_cpu_reduction_pct": 15.32546914707992,
+      "run_ranges_separated": true
+    },
+    "motion": {
+      "A": {
+        "runs": 3,
+        "cpu_values": [
+          31.52906046886598,
+          31.421337387648435,
+          31.34564231305581
+        ],
+        "cpu_median": 31.421337387648435,
+        "cpu_min": 31.34564231305581,
+        "cpu_max": 31.52906046886598,
+        "drm_cpu_median": 17.964127074228447,
+        "pss_mib_median": 452.1513671875,
+        "package_w_median": 9.700467515759192,
+        "source_fps_min": 60.00043665339697
+      },
+      "B": {
+        "runs": 3,
+        "cpu_values": [
+          26.971211306735306,
+          26.971262007799194,
+          26.637838504018355
+        ],
+        "cpu_median": 26.971211306735306,
+        "cpu_min": 26.637838504018355,
+        "cpu_max": 26.971262007799194,
+        "drm_cpu_median": 13.206431146374292,
+        "pss_mib_median": 447.677734375,
+        "package_w_median": 9.436506755770203,
+        "source_fps_min": 60.00011046914374
+      },
+      "relative_cpu_reduction_pct": 14.162751973321324,
+      "run_ranges_separated": true
+    }
+  },
+  "cases": [
+    {
+      "case": "A-static-1",
+      "variant": "A",
+      "mode": "static",
+      "round": 1,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:21:15.096022+00:00",
+      "end_utc": "2026-10-15T15:23:15.113176+00:00",
+      "duration_s": 120.01591442595236,
+      "issues": [],
+      "means": {
+        "rustdesk": 34.33713215666854,
+        "relay": 0.05834198595340123,
+        "compositor": 0.15833835436610297,
+        "browser": 0.5500242452103897,
+        "fixture": 0.6082748001232857,
+        "drm_recv": 18.73920144748123,
+        "gpu_gfx": 4.220147961241495,
+        "gpu_enc": 19.590388723075645,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1324.246075,
+        "cpu_temp_c": 37.025,
+        "gpu_temp_c": 34.583333333333336,
+        "amdgpu_power_average_w": 8.080566666666666,
+        "system_busy_pct": 3.3055435839057603,
+        "rapl_core_w": 0.25199776375956745,
+        "rapl_package-0_w": 8.232248838785232
+      },
+      "source_animation_fps": 0.0,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 441.662109375,
+      "initial_uss_mib": 386.359375,
+      "initial_server_pss_mib": 124.73828125,
+      "final_pss_mib": 449.7587890625,
+      "final_uss_mib": 394.4453125,
+      "final_server_pss_mib": 125.75,
+      "cpu_sample_sd": 0.7554689459415704,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          6
+        ],
+        "receivedFPS": {
+          "mean": 29.85091128869463,
+          "p95": 29.889492581387124,
+          "max": 29.910899397402332
+        },
+        "presentedFPS": {
+          "mean": 29.039041132459904,
+          "p95": 29.689139009643775,
+          "max": 30.008946542735686
+        },
+        "networkDelayMS": {
+          "mean": 0.0603448275862069,
+          "p95": 1.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 41.62928525,
+          "p95": 45.33423925,
+          "max": 77.297667
+        },
+        "videoReceiveAgeMS": {
+          "mean": 17.190974103448276,
+          "p95": 32.669166,
+          "max": 35.591125
+        },
+        "decoderQueueDepth": {
+          "mean": 0.4482758620689655,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.8275862068965517,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3433,
+        "presentedFrames_delta": 3331,
+        "droppedFrames_delta": 102,
+        "receivedBytes_delta": 18362261,
+        "receivedPackets_delta": 3433,
+        "decoded_rate": 29.85217391304348,
+        "presented_rate": 28.965217391304346,
+        "observed_bitrate_kbps": 1277.3746782608696
+      }
+    },
+    {
+      "case": "A-scroll-1",
+      "variant": "A",
+      "mode": "scroll",
+      "round": 1,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:23:30.739455+00:00",
+      "end_utc": "2026-10-15T15:25:30.756776+00:00",
+      "duration_s": 120.01640721794683,
+      "issues": [],
+      "means": {
+        "rustdesk": 31.64549351845742,
+        "relay": 0.04998181921704392,
+        "compositor": 9.248633039041112,
+        "browser": 0.5166126648823334,
+        "fixture": 11.281789341342993,
+        "drm_recv": 17.997679668873015,
+        "gpu_gfx": 3.3885423831586277,
+        "gpu_enc": 19.362221107390095,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1675.0063,
+        "cpu_temp_c": 41.81875,
+        "gpu_temp_c": 39.233333333333334,
+        "amdgpu_power_average_w": 9.320716666666666,
+        "system_busy_pct": 4.387280727806663,
+        "rapl_core_w": 0.19568248008539021,
+        "rapl_package-0_w": 9.650437912403756
+      },
+      "source_animation_fps": 60.008461900724505,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 450.3818359375,
+      "initial_uss_mib": 395.0703125,
+      "initial_server_pss_mib": 127.4248046875,
+      "final_pss_mib": 451.7763671875,
+      "final_uss_mib": 396.46875,
+      "final_server_pss_mib": 127.7060546875,
+      "cpu_sample_sd": 1.4338916435833904,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          6
+        ],
+        "receivedFPS": {
+          "mean": 29.91148452998374,
+          "p95": 29.93374809233207,
+          "max": 29.962241794034473
+        },
+        "presentedFPS": {
+          "mean": 29.124815116039674,
+          "p95": 30.06314297383509,
+          "max": 30.09406819590618
+        },
+        "networkDelayMS": {
+          "mean": 0,
+          "p95": 0.0,
+          "max": 0
+        },
+        "presentationAgeMS": {
+          "mean": 41.925951853448275,
+          "p95": 44.7913645,
+          "max": 76.556375
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.79178624137931,
+          "p95": 32.4023745,
+          "max": 36.415291
+        },
+        "decoderQueueDepth": {
+          "mean": 0.4827586206896552,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.896551724137931,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3339,
+        "droppedFrames_delta": 101,
+        "receivedBytes_delta": 67122780,
+        "receivedPackets_delta": 3440,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.034782608695654,
+        "observed_bitrate_kbps": 4669.410782608696
+      }
+    },
+    {
+      "case": "A-motion-1",
+      "variant": "A",
+      "mode": "motion",
+      "round": 1,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:25:46.136848+00:00",
+      "end_utc": "2026-10-15T15:27:46.153651+00:00",
+      "duration_s": 120.0157932449365,
+      "issues": [],
+      "means": {
+        "rustdesk": 31.52906046886598,
+        "relay": 0.04162495746190333,
+        "compositor": 9.215392964053926,
+        "browser": 0.4916596967114984,
+        "fixture": 11.123586568292083,
+        "drm_recv": 18.030855921432167,
+        "gpu_gfx": 3.343620526829774,
+        "gpu_enc": 19.64611398756679,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1815.7998666666667,
+        "cpu_temp_c": 38.16458333333333,
+        "gpu_temp_c": 35.766666666666666,
+        "amdgpu_power_average_w": 9.285083333333333,
+        "system_busy_pct": 4.326174352452778,
+        "rapl_core_w": 0.17960809182717768,
+        "rapl_package-0_w": 9.700467515759192
+      },
+      "source_animation_fps": 60.00043665339697,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 451.0458984375,
+      "initial_uss_mib": 395.734375,
+      "initial_server_pss_mib": 127.7099609375,
+      "final_pss_mib": 452.1513671875,
+      "final_uss_mib": 396.83984375,
+      "final_server_pss_mib": 127.7177734375,
+      "cpu_sample_sd": 1.3582557517389287,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          6
+        ],
+        "receivedFPS": {
+          "mean": 29.910946290881963,
+          "p95": 29.93054379064574,
+          "max": 29.968967285226658
+        },
+        "presentedFPS": {
+          "mean": 29.114660484389027,
+          "p95": 30.069740351235623,
+          "max": 30.099346525329338
+        },
+        "networkDelayMS": {
+          "mean": 0.008620689655172414,
+          "p95": 0.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 41.84345977586207,
+          "p95": 44.648948250000004,
+          "max": 75.994958
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.425925637931034,
+          "p95": 32.12038525,
+          "max": 37.860625
+        },
+        "decoderQueueDepth": {
+          "mean": 0.49137931034482757,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.8879310344827587,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3341,
+        "droppedFrames_delta": 99,
+        "receivedBytes_delta": 62032989,
+        "receivedPackets_delta": 3439,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.05217391304348,
+        "observed_bitrate_kbps": 4315.338365217392
+      }
+    },
+    {
+      "case": "B-static-1",
+      "variant": "B",
+      "mode": "static",
+      "round": 1,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:28:12.336576+00:00",
+      "end_utc": "2026-10-15T15:30:12.353888+00:00",
+      "duration_s": 120.01627692801412,
+      "issues": [],
+      "means": {
+        "rustdesk": 30.320642897296672,
+        "relay": 0.04997947052441464,
+        "compositor": 0.1334389852516722,
+        "browser": 0.5083421621027919,
+        "fixture": 0.6249279638921025,
+        "drm_recv": 14.73122142227005,
+        "gpu_gfx": 4.297335069856012,
+        "gpu_enc": 19.685324404452235,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1441.9048833333334,
+        "cpu_temp_c": 36.00208333333333,
+        "gpu_temp_c": 33.516666666666666,
+        "amdgpu_power_average_w": 7.5220666666666665,
+        "system_busy_pct": 3.0589490007742044,
+        "rapl_core_w": 0.2359568655765438,
+        "rapl_package-0_w": 7.932488638147873
+      },
+      "source_animation_fps": 0.0,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 438.5185546875,
+      "initial_uss_mib": 387.296875,
+      "initial_server_pss_mib": 123.2783203125,
+      "final_pss_mib": 443.9248046875,
+      "final_uss_mib": 392.69140625,
+      "final_server_pss_mib": 123.900390625,
+      "cpu_sample_sd": 1.003334547397818,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          7
+        ],
+        "receivedFPS": {
+          "mean": 29.845570674477827,
+          "p95": 29.871417801109516,
+          "max": 29.877342906966387
+        },
+        "presentedFPS": {
+          "mean": 29.02522770904757,
+          "p95": 29.67696467485079,
+          "max": 29.707626680880455
+        },
+        "networkDelayMS": {
+          "mean": 0.10344827586206896,
+          "p95": 1.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 43.41383117241379,
+          "p95": 47.2641455,
+          "max": 76.621333
+        },
+        "videoReceiveAgeMS": {
+          "mean": 16.372798120689655,
+          "p95": 32.27967725,
+          "max": 35.2035
+        },
+        "decoderQueueDepth": {
+          "mean": 0.4482758620689655,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.9224137931034483,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3432,
+        "presentedFrames_delta": 3330,
+        "droppedFrames_delta": 103,
+        "receivedBytes_delta": 17780934,
+        "receivedPackets_delta": 3433,
+        "decoded_rate": 29.843478260869563,
+        "presented_rate": 28.956521739130434,
+        "observed_bitrate_kbps": 1236.9345391304348
+      }
+    },
+    {
+      "case": "B-scroll-1",
+      "variant": "B",
+      "mode": "scroll",
+      "round": 1,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:30:27.740439+00:00",
+      "end_utc": "2026-10-15T15:32:27.757321+00:00",
+      "duration_s": 120.01587423996534,
+      "issues": [],
+      "means": {
+        "rustdesk": 26.813076659349104,
+        "relay": 0.058330586482200616,
+        "compositor": 9.315558944099681,
+        "browser": 0.48320362913348675,
+        "fixture": 11.015178603861825,
+        "drm_recv": 13.181426976927062,
+        "gpu_gfx": 3.378980695238997,
+        "gpu_enc": 19.36194027558325,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 2108.3162,
+        "cpu_temp_c": 35.74583333333333,
+        "gpu_temp_c": 33.28333333333333,
+        "amdgpu_power_average_w": 9.05745,
+        "system_busy_pct": 4.035942132298564,
+        "rapl_core_w": 0.1579832561210781,
+        "rapl_package-0_w": 9.204903690989648
+      },
+      "source_animation_fps": 60.000396160944376,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 444.4736328125,
+      "initial_uss_mib": 393.23828125,
+      "initial_server_pss_mib": 125.505859375,
+      "final_pss_mib": 446.4736328125,
+      "final_uss_mib": 395.23828125,
+      "final_server_pss_mib": 125.880859375,
+      "cpu_sample_sd": 1.0834733445466704,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          7
+        ],
+        "receivedFPS": {
+          "mean": 29.90599517845574,
+          "p95": 29.925668400335503,
+          "max": 29.93773911306365
+        },
+        "presentedFPS": {
+          "mean": 29.08888587881493,
+          "p95": 29.9091024774079,
+          "max": 30.1030258361086
+        },
+        "networkDelayMS": {
+          "mean": 0.017241379310344827,
+          "p95": 0.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 43.872857387931035,
+          "p95": 47.1294685,
+          "max": 77.746917
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.310908086206897,
+          "p95": 31.3758645,
+          "max": 33.241875
+        },
+        "decoderQueueDepth": {
+          "mean": 0.5,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.9224137931034483,
+          "p95": 1.0,
+          "max": 2
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3335,
+        "droppedFrames_delta": 105,
+        "receivedBytes_delta": 67172824,
+        "receivedPackets_delta": 3440,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.0,
+        "observed_bitrate_kbps": 4672.892104347826
+      }
+    },
+    {
+      "case": "B-motion-1",
+      "variant": "B",
+      "mode": "motion",
+      "round": 1,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:32:43.385594+00:00",
+      "end_utc": "2026-10-15T15:34:43.403111+00:00",
+      "duration_s": 120.01634897198528,
+      "issues": [],
+      "means": {
+        "rustdesk": 26.971211306735306,
+        "relay": 0.05000236722683803,
+        "compositor": 9.165577114517516,
+        "browser": 0.5415777434046674,
+        "fixture": 11.173360427031195,
+        "drm_recv": 13.389878201426383,
+        "gpu_gfx": 3.3924543135553136,
+        "gpu_enc": 19.654075126371037,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1610.9711166666666,
+        "cpu_temp_c": 35.83541666666667,
+        "gpu_temp_c": 33.38333333333333,
+        "amdgpu_power_average_w": 9.154066666666667,
+        "system_busy_pct": 4.037283092668222,
+        "rapl_core_w": 0.157393635874231,
+        "rapl_package-0_w": 9.436506755770203
+      },
+      "source_animation_fps": 60.00015882570205,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 445.73046875,
+      "initial_uss_mib": 394.49609375,
+      "initial_server_pss_mib": 125.888671875,
+      "final_pss_mib": 446.8369140625,
+      "final_uss_mib": 395.6015625,
+      "final_server_pss_mib": 125.900390625,
+      "cpu_sample_sd": 1.2092627836775547,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          7
+        ],
+        "receivedFPS": {
+          "mean": 29.909345776330714,
+          "p95": 29.927299545080587,
+          "max": 29.935499615318008
+        },
+        "presentedFPS": {
+          "mean": 29.076459131393698,
+          "p95": 29.899819278504268,
+          "max": 30.10981393079509
+        },
+        "networkDelayMS": {
+          "mean": 0.017241379310344827,
+          "p95": 0.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 44.80516131034483,
+          "p95": 48.75285425,
+          "max": 80.027417
+        },
+        "videoReceiveAgeMS": {
+          "mean": 16.502418827586208,
+          "p95": 31.85647925,
+          "max": 33.171125
+        },
+        "decoderQueueDepth": {
+          "mean": 0.46551724137931033,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.9482758620689655,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3439,
+        "presentedFrames_delta": 3328,
+        "droppedFrames_delta": 111,
+        "receivedBytes_delta": 61985108,
+        "receivedPackets_delta": 3440,
+        "decoded_rate": 29.904347826086955,
+        "presented_rate": 28.93913043478261,
+        "observed_bitrate_kbps": 4312.007513043478
+      }
+    },
+    {
+      "case": "A-static-2",
+      "variant": "A",
+      "mode": "static",
+      "round": 2,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:42:07.069651+00:00",
+      "end_utc": "2026-10-15T15:44:07.086387+00:00",
+      "duration_s": 120.01524066901766,
+      "issues": [],
+      "means": {
+        "rustdesk": 33.97052318235548,
+        "relay": 0.0583531539762546,
+        "compositor": 0.12498869087346295,
+        "browser": 0.5166035539445691,
+        "fixture": 0.6165248874929481,
+        "drm_recv": 18.33923280870029,
+        "gpu_gfx": 4.216705267337412,
+        "gpu_enc": 19.64869162292926,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1692.1589083333333,
+        "cpu_temp_c": 36.0875,
+        "gpu_temp_c": 33.483333333333334,
+        "amdgpu_power_average_w": 8.076816666666666,
+        "system_busy_pct": 3.241925861169503,
+        "rapl_core_w": 0.27301261331475846,
+        "rapl_package-0_w": 8.263602234216545
+      },
+      "source_animation_fps": 0.0,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 440.5810546875,
+      "initial_uss_mib": 385.32421875,
+      "initial_server_pss_mib": 124.78125,
+      "final_pss_mib": 449.0615234375,
+      "final_uss_mib": 393.79296875,
+      "final_server_pss_mib": 125.3134765625,
+      "cpu_sample_sd": 0.7237947576948698,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          9
+        ],
+        "receivedFPS": {
+          "mean": 29.841461607729194,
+          "p95": 29.86132718228403,
+          "max": 29.88303768751573
+        },
+        "presentedFPS": {
+          "mean": 28.999151457859515,
+          "p95": 29.631400334718805,
+          "max": 29.9084167605853
+        },
+        "networkDelayMS": {
+          "mean": 0.017241379310344827,
+          "p95": 0.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 35.485958637931034,
+          "p95": 48.38567725,
+          "max": 77.5145
+        },
+        "videoReceiveAgeMS": {
+          "mean": 16.884241362068966,
+          "p95": 32.5431255,
+          "max": 34.857875
+        },
+        "decoderQueueDepth": {
+          "mean": 0.39655172413793105,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.7155172413793104,
+          "p95": 1.0,
+          "max": 2
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3432,
+        "presentedFrames_delta": 3329,
+        "droppedFrames_delta": 104,
+        "receivedBytes_delta": 17898166,
+        "receivedPackets_delta": 3432,
+        "decoded_rate": 29.843478260869563,
+        "presented_rate": 28.94782608695652,
+        "observed_bitrate_kbps": 1245.0898086956522
+      }
+    },
+    {
+      "case": "A-scroll-2",
+      "variant": "A",
+      "mode": "scroll",
+      "round": 2,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:44:22.461570+00:00",
+      "end_utc": "2026-10-15T15:46:22.479509+00:00",
+      "duration_s": 120.0165748030413,
+      "issues": [],
+      "means": {
+        "rustdesk": 31.179017222058533,
+        "relay": 0.04164271700880567,
+        "compositor": 9.29877455598088,
+        "browser": 0.48309778494302086,
+        "fixture": 11.198280776086602,
+        "drm_recv": 17.605856927255623,
+        "gpu_gfx": 3.369006270700642,
+        "gpu_enc": 19.366591450424828,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1706.6734666666666,
+        "cpu_temp_c": 35.891666666666666,
+        "gpu_temp_c": 33.36666666666667,
+        "amdgpu_power_average_w": 9.101633333333334,
+        "system_busy_pct": 4.315266840392139,
+        "rapl_core_w": 0.16675014352932416,
+        "rapl_package-0_w": 9.37129366623592
+      },
+      "source_animation_fps": 60.00837810793361,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 449.5068359375,
+      "initial_uss_mib": 394.23828125,
+      "initial_server_pss_mib": 126.8134765625,
+      "final_pss_mib": 450.6552734375,
+      "final_uss_mib": 395.38671875,
+      "final_server_pss_mib": 126.8486328125,
+      "cpu_sample_sd": 1.1740887025413766,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          9
+        ],
+        "receivedFPS": {
+          "mean": 29.90841000219341,
+          "p95": 29.923975917147644,
+          "max": 29.942710449321503
+        },
+        "presentedFPS": {
+          "mean": 28.926957927329035,
+          "p95": 29.82835212918833,
+          "max": 29.927794397458285
+        },
+        "networkDelayMS": {
+          "mean": 0,
+          "p95": 0.0,
+          "max": 0
+        },
+        "presentationAgeMS": {
+          "mean": 38.15453692241379,
+          "p95": 49.582665999999996,
+          "max": 77.649375
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.986066784482759,
+          "p95": 32.4629895,
+          "max": 33.55725
+        },
+        "decoderQueueDepth": {
+          "mean": 0.4396551724137931,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.7672413793103449,
+          "p95": 1.0,
+          "max": 2
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3322,
+        "droppedFrames_delta": 118,
+        "receivedBytes_delta": 67316614,
+        "receivedPackets_delta": 3440,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 28.88695652173913,
+        "observed_bitrate_kbps": 4682.894886956521
+      }
+    },
+    {
+      "case": "A-motion-2",
+      "variant": "A",
+      "mode": "motion",
+      "round": 2,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:46:38.113482+00:00",
+      "end_utc": "2026-10-15T15:48:38.129231+00:00",
+      "duration_s": 120.01452618895564,
+      "issues": [],
+      "means": {
+        "rustdesk": 31.421337387648435,
+        "relay": 0.058350953418757685,
+        "compositor": 9.307150005363138,
+        "browser": 0.5082356037680771,
+        "fixture": 11.32377197950598,
+        "drm_recv": 17.831292623172097,
+        "gpu_gfx": 3.344326510236655,
+        "gpu_enc": 19.639282502260574,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1745.9491,
+        "cpu_temp_c": 35.98125,
+        "gpu_temp_c": 33.85,
+        "amdgpu_power_average_w": 9.216133333333334,
+        "system_busy_pct": 4.349614235394116,
+        "rapl_core_w": 0.18276687896871047,
+        "rapl_package-0_w": 9.598890082612135
+      },
+      "source_animation_fps": 60.00107010931709,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 449.9208984375,
+      "initial_uss_mib": 394.65234375,
+      "initial_server_pss_mib": 126.8525390625,
+      "final_pss_mib": 451.0341796875,
+      "final_uss_mib": 395.765625,
+      "final_server_pss_mib": 126.8720703125,
+      "cpu_sample_sd": 1.2777341268195872,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          9
+        ],
+        "receivedFPS": {
+          "mean": 29.904689660979002,
+          "p95": 29.921655305355447,
+          "max": 29.943246670876654
+        },
+        "presentedFPS": {
+          "mean": 29.434495126372873,
+          "p95": 30.009352873604993,
+          "max": 30.015336023701238
+        },
+        "networkDelayMS": {
+          "mean": 0.02586206896551724,
+          "p95": 0.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 16.842337586206895,
+          "p95": 46.7939165,
+          "max": 75.859667
+        },
+        "videoReceiveAgeMS": {
+          "mean": 16.815715448275864,
+          "p95": 31.4862085,
+          "max": 33.377833
+        },
+        "decoderQueueDepth": {
+          "mean": 0.4051724137931034,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.14655172413793102,
+          "p95": 1.0,
+          "max": 2
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3385,
+        "droppedFrames_delta": 55,
+        "receivedBytes_delta": 61917183,
+        "receivedPackets_delta": 3439,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.434782608695652,
+        "observed_bitrate_kbps": 4307.282295652173
+      }
+    },
+    {
+      "case": "B-static-2",
+      "variant": "B",
+      "mode": "static",
+      "round": 2,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:35:09.846705+00:00",
+      "end_utc": "2026-10-15T15:37:09.864767+00:00",
+      "duration_s": 120.0164604880847,
+      "issues": [],
+      "means": {
+        "rustdesk": 30.537567282555436,
+        "relay": 0.05831751897318281,
+        "compositor": 0.1167306841863501,
+        "browser": 0.47493067829923963,
+        "fixture": 0.5999135657510835,
+        "drm_recv": 14.764591892075913,
+        "gpu_gfx": 4.2413958529824605,
+        "gpu_enc": 19.68943432449756,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1403.67715,
+        "cpu_temp_c": 37.69375,
+        "gpu_temp_c": 35.53333333333333,
+        "amdgpu_power_average_w": 7.579783333333333,
+        "system_busy_pct": 3.069455202820733,
+        "rapl_core_w": 0.22902324067726645,
+        "rapl_package-0_w": 7.955030432730364
+      },
+      "source_animation_fps": 0.0,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 440.9052734375,
+      "initial_uss_mib": 389.68359375,
+      "initial_server_pss_mib": 123.642578125,
+      "final_pss_mib": 444.439453125,
+      "final_uss_mib": 393.20703125,
+      "final_server_pss_mib": 124.228515625,
+      "cpu_sample_sd": 0.8010301047411696,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          8
+        ],
+        "receivedFPS": {
+          "mean": 29.84514282918538,
+          "p95": 29.87485708986406,
+          "max": 29.886060899159656
+        },
+        "presentedFPS": {
+          "mean": 29.09617318160681,
+          "p95": 29.513399410246798,
+          "max": 29.726876989077667
+        },
+        "networkDelayMS": {
+          "mean": 0.22413793103448276,
+          "p95": 1.0,
+          "max": 2
+        },
+        "presentationAgeMS": {
+          "mean": 44.806938879310344,
+          "p95": 47.86958325,
+          "max": 78.617167
+        },
+        "videoReceiveAgeMS": {
+          "mean": 16.031510336206896,
+          "p95": 31.9318015,
+          "max": 34.361667
+        },
+        "decoderQueueDepth": {
+          "mean": 0.4482758620689655,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.9913793103448276,
+          "p95": 1.0,
+          "max": 2
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3433,
+        "presentedFrames_delta": 3337,
+        "droppedFrames_delta": 96,
+        "receivedBytes_delta": 17646772,
+        "receivedPackets_delta": 3432,
+        "decoded_rate": 29.85217391304348,
+        "presented_rate": 29.017391304347825,
+        "observed_bitrate_kbps": 1227.6015304347827
+      }
+    },
+    {
+      "case": "B-scroll-2",
+      "variant": "B",
+      "mode": "scroll",
+      "round": 2,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:37:25.492314+00:00",
+      "end_utc": "2026-10-15T15:39:25.511459+00:00",
+      "duration_s": 120.01783698995132,
+      "issues": [],
+      "means": {
+        "rustdesk": 26.795673172845053,
+        "relay": 0.058275407984530674,
+        "compositor": 9.048663435933271,
+        "browser": 0.4916564997303023,
+        "fixture": 11.156651573935582,
+        "drm_recv": 13.122985830864367,
+        "gpu_gfx": 3.3684312080902687,
+        "gpu_enc": 19.355883212972763,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1809.2484333333334,
+        "cpu_temp_c": 41.639583333333334,
+        "gpu_temp_c": 39.233333333333334,
+        "amdgpu_power_average_w": 9.0787,
+        "system_busy_pct": 4.026942924897539,
+        "rapl_core_w": 0.1720422652224743,
+        "rapl_package-0_w": 9.355662698211745
+      },
+      "source_animation_fps": 59.999414925324096,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 445.4228515625,
+      "initial_uss_mib": 394.19140625,
+      "initial_server_pss_mib": 126.259765625,
+      "final_pss_mib": 447.6142578125,
+      "final_uss_mib": 396.3828125,
+      "final_server_pss_mib": 126.525390625,
+      "cpu_sample_sd": 1.2684801490089364,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          8
+        ],
+        "receivedFPS": {
+          "mean": 29.912540884979393,
+          "p95": 29.928841906953778,
+          "max": 29.95195443013159
+        },
+        "presentedFPS": {
+          "mean": 29.102926305827168,
+          "p95": 29.91216971214378,
+          "max": 30.112807830696713
+        },
+        "networkDelayMS": {
+          "mean": 0.0603448275862069,
+          "p95": 1.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 44.91301651724138,
+          "p95": 48.33583325,
+          "max": 76.793666
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.656558543103449,
+          "p95": 31.332645749999998,
+          "max": 33.327459
+        },
+        "decoderQueueDepth": {
+          "mean": 0.47413793103448276,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.9913793103448276,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3335,
+        "droppedFrames_delta": 105,
+        "receivedBytes_delta": 66697718,
+        "receivedPackets_delta": 3441,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.0,
+        "observed_bitrate_kbps": 4639.841252173913
+      }
+    },
+    {
+      "case": "B-motion-2",
+      "variant": "B",
+      "mode": "motion",
+      "round": 2,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:39:40.886844+00:00",
+      "end_utc": "2026-10-15T15:41:40.904239+00:00",
+      "duration_s": 120.01642583997454,
+      "issues": [],
+      "means": {
+        "rustdesk": 26.971262007799194,
+        "relay": 0.04166908537343244,
+        "compositor": 8.915219850049331,
+        "browser": 0.46662005213212315,
+        "fixture": 11.090024738459274,
+        "drm_recv": 13.206431146374292,
+        "gpu_gfx": 3.29966347429657,
+        "gpu_enc": 19.641850411222187,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1654.0489333333335,
+        "cpu_temp_c": 37.65208333333333,
+        "gpu_temp_c": 35.516666666666666,
+        "amdgpu_power_average_w": 9.1622,
+        "system_busy_pct": 3.994037856427778,
+        "rapl_core_w": 0.1604108595181001,
+        "rapl_package-0_w": 9.467887976442473
+      },
+      "source_animation_fps": 60.00845258967202,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 446.5595703125,
+      "initial_uss_mib": 395.328125,
+      "initial_server_pss_mib": 126.529296875,
+      "final_pss_mib": 447.677734375,
+      "final_uss_mib": 396.4453125,
+      "final_server_pss_mib": 126.537109375,
+      "cpu_sample_sd": 1.0288027722302908,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          8
+        ],
+        "receivedFPS": {
+          "mean": 29.90775209152665,
+          "p95": 29.9254903080974,
+          "max": 29.95048305052756
+        },
+        "presentedFPS": {
+          "mean": 29.09959327839819,
+          "p95": 29.949084576364722,
+          "max": 30.091798667084788
+        },
+        "networkDelayMS": {
+          "mean": 0.0603448275862069,
+          "p95": 1.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 38.91369537931035,
+          "p95": 49.388885,
+          "max": 78.621167
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.136989620689656,
+          "p95": 30.56674,
+          "max": 32.707166
+        },
+        "decoderQueueDepth": {
+          "mean": 0.47413793103448276,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.8103448275862069,
+          "p95": 1.0,
+          "max": 2
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3337,
+        "droppedFrames_delta": 102,
+        "receivedBytes_delta": 61898883,
+        "receivedPackets_delta": 3440,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.017391304347825,
+        "observed_bitrate_kbps": 4306.0092521739125
+      }
+    },
+    {
+      "case": "A-static-3",
+      "variant": "A",
+      "mode": "static",
+      "round": 3,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:49:04.566258+00:00",
+      "end_utc": "2026-10-15T15:51:04.584380+00:00",
+      "duration_s": 120.01691962499171,
+      "issues": [],
+      "means": {
+        "rustdesk": 34.29495295561122,
+        "relay": 0.0665450177213421,
+        "compositor": 0.11663096634763291,
+        "browser": 0.5082340018993401,
+        "fixture": 0.6081101872986667,
+        "drm_recv": 18.68902048431012,
+        "gpu_gfx": 4.194899568876279,
+        "gpu_enc": 19.62843658551772,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1658.2388833333334,
+        "cpu_temp_c": 38.172916666666666,
+        "gpu_temp_c": 35.68333333333333,
+        "amdgpu_power_average_w": 8.068683333333333,
+        "system_busy_pct": 3.2728725539707724,
+        "rapl_core_w": 0.24888461304426177,
+        "rapl_package-0_w": 8.24085965440094
+      },
+      "source_animation_fps": 0.0,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 443.568359375,
+      "initial_uss_mib": 388.37890625,
+      "initial_server_pss_mib": 124.7666015625,
+      "final_pss_mib": 450.330078125,
+      "final_uss_mib": 395.12890625,
+      "final_server_pss_mib": 125.3798828125,
+      "cpu_sample_sd": 0.9740048139385044,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          10
+        ],
+        "receivedFPS": {
+          "mean": 29.849477561133074,
+          "p95": 29.883949678427676,
+          "max": 29.895789595713737
+        },
+        "presentedFPS": {
+          "mean": 29.412459922311037,
+          "p95": 30.004342901115365,
+          "max": 30.01280882223494
+        },
+        "networkDelayMS": {
+          "mean": 0.09482758620689655,
+          "p95": 1.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 16.674413094827585,
+          "p95": 46.521656,
+          "max": 78.333833
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.679852353448275,
+          "p95": 30.85994825,
+          "max": 32.924792
+        },
+        "decoderQueueDepth": {
+          "mean": 0.45689655172413796,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.14655172413793102,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3433,
+        "presentedFrames_delta": 3381,
+        "droppedFrames_delta": 52,
+        "receivedBytes_delta": 17460240,
+        "receivedPackets_delta": 3433,
+        "decoded_rate": 29.85217391304348,
+        "presented_rate": 29.4,
+        "observed_bitrate_kbps": 1214.6253913043479
+      }
+    },
+    {
+      "case": "A-scroll-3",
+      "variant": "A",
+      "mode": "scroll",
+      "round": 3,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:51:20.212469+00:00",
+      "end_utc": "2026-10-15T15:53:20.230004+00:00",
+      "duration_s": 120.01650265604258,
+      "issues": [],
+      "means": {
+        "rustdesk": 31.90409218567814,
+        "relay": 0.03332552601190865,
+        "compositor": 9.248728906895552,
+        "browser": 0.48322179080077426,
+        "fixture": 11.123345976768814,
+        "drm_recv": 18.197528383242847,
+        "gpu_gfx": 3.380546635899594,
+        "gpu_enc": 19.35638793864816,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1764.1612333333333,
+        "cpu_temp_c": 41.514583333333334,
+        "gpu_temp_c": 38.983333333333334,
+        "amdgpu_power_average_w": 9.227916666666667,
+        "system_busy_pct": 4.361270832721738,
+        "rapl_core_w": 0.18835153164980256,
+        "rapl_package-0_w": 9.587975834195932
+      },
+      "source_animation_fps": 60.00008199403605,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 451.5771484375,
+      "initial_uss_mib": 396.375,
+      "initial_server_pss_mib": 127.6767578125,
+      "final_pss_mib": 452.7529296875,
+      "final_uss_mib": 397.55078125,
+      "final_server_pss_mib": 127.7314453125,
+      "cpu_sample_sd": 1.5165269032362136,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          10
+        ],
+        "receivedFPS": {
+          "mean": 29.908296866833254,
+          "p95": 29.927308003285756,
+          "max": 29.934600181350437
+        },
+        "presentedFPS": {
+          "mean": 29.519488232363177,
+          "p95": 30.012065943747405,
+          "max": 30.01548491816311
+        },
+        "networkDelayMS": {
+          "mean": 0.02586206896551724,
+          "p95": 0.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 13.854168120689655,
+          "p95": 18.83323925,
+          "max": 47.927375
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.006888301724137,
+          "p95": 31.7931355,
+          "max": 33.562541
+        },
+        "decoderQueueDepth": {
+          "mean": 0.4827586206896552,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.05172413793103448,
+          "p95": 0.25,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3396,
+        "droppedFrames_delta": 44,
+        "receivedBytes_delta": 66946024,
+        "receivedPackets_delta": 3440,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.530434782608694,
+        "observed_bitrate_kbps": 4657.114713043478
+      }
+    },
+    {
+      "case": "A-motion-3",
+      "variant": "A",
+      "mode": "motion",
+      "round": 3,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:53:35.609860+00:00",
+      "end_utc": "2026-10-15T15:55:35.627307+00:00",
+      "duration_s": 120.01647960802075,
+      "issues": [],
+      "means": {
+        "rustdesk": 31.34564231305581,
+        "relay": 0.05000122713084397,
+        "compositor": 9.34040559620771,
+        "browser": 0.4750218539589749,
+        "fixture": 11.173623154315134,
+        "drm_recv": 17.964127074228447,
+        "gpu_gfx": 3.3262968712940415,
+        "gpu_enc": 19.649441431089123,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1804.99315,
+        "cpu_temp_c": 37.92916666666667,
+        "gpu_temp_c": 35.68333333333333,
+        "amdgpu_power_average_w": 9.21625,
+        "system_busy_pct": 4.33854703034105,
+        "rapl_core_w": 0.19032338323995554,
+        "rapl_package-0_w": 9.711550919801605
+      },
+      "source_animation_fps": 60.008425705553584,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 452.001953125,
+      "initial_uss_mib": 396.80078125,
+      "initial_server_pss_mib": 127.7314453125,
+      "final_pss_mib": 453.1103515625,
+      "final_uss_mib": 397.91015625,
+      "final_server_pss_mib": 127.7421875,
+      "cpu_sample_sd": 1.382946966322654,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          10
+        ],
+        "receivedFPS": {
+          "mean": 29.910221835728013,
+          "p95": 29.92750116679871,
+          "max": 29.94396785457735
+        },
+        "presentedFPS": {
+          "mean": 29.41099180804078,
+          "p95": 30.011525926899868,
+          "max": 30.016695779755818
+        },
+        "networkDelayMS": {
+          "mean": 0,
+          "p95": 0.0,
+          "max": 0
+        },
+        "presentationAgeMS": {
+          "mean": 14.770744939655172,
+          "p95": 19.1403745,
+          "max": 49.176583
+        },
+        "videoReceiveAgeMS": {
+          "mean": 16.122590844827585,
+          "p95": 31.876791750000002,
+          "max": 33.771708
+        },
+        "decoderQueueDepth": {
+          "mean": 0.43103448275862066,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.1206896551724138,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3439,
+        "presentedFrames_delta": 3379,
+        "droppedFrames_delta": 61,
+        "receivedBytes_delta": 62016836,
+        "receivedPackets_delta": 3440,
+        "decoded_rate": 29.904347826086955,
+        "presented_rate": 29.382608695652173,
+        "observed_bitrate_kbps": 4314.21467826087
+      }
+    },
+    {
+      "case": "B-static-3",
+      "variant": "B",
+      "mode": "static",
+      "round": 3,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:56:01.785427+00:00",
+      "end_utc": "2026-10-15T15:58:01.804367+00:00",
+      "duration_s": 120.01771397702396,
+      "issues": [],
+      "means": {
+        "rustdesk": 30.237266263520443,
+        "relay": 0.06667964606533505,
+        "compositor": 0.14171082761258696,
+        "browser": 0.6415726006001392,
+        "fixture": 0.5998581654702732,
+        "drm_recv": 14.50618015137303,
+        "gpu_gfx": 4.2361897275665115,
+        "gpu_enc": 19.673430143924204,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1321.5929916666666,
+        "cpu_temp_c": 36.10208333333333,
+        "gpu_temp_c": 33.6,
+        "amdgpu_power_average_w": 7.638516666666667,
+        "system_busy_pct": 3.0667789491879023,
+        "rapl_core_w": 0.22989874162549445,
+        "rapl_package-0_w": 7.957237102394648
+      },
+      "source_animation_fps": 0.0,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 440.759765625,
+      "initial_uss_mib": 389.53515625,
+      "initial_server_pss_mib": 123.5830078125,
+      "final_pss_mib": 445.9150390625,
+      "final_uss_mib": 394.6796875,
+      "final_server_pss_mib": 124.4658203125,
+      "cpu_sample_sd": 0.7575871690549121,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          11
+        ],
+        "receivedFPS": {
+          "mean": 29.846913846742083,
+          "p95": 29.871490969295973,
+          "max": 29.883635047370174
+        },
+        "presentedFPS": {
+          "mean": 29.3621799408653,
+          "p95": 30.005122707291132,
+          "max": 30.01308565095769
+        },
+        "networkDelayMS": {
+          "mean": 0.1810344827586207,
+          "p95": 1.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 14.843280146551724,
+          "p95": 19.215062500000002,
+          "max": 51.581458
+        },
+        "videoReceiveAgeMS": {
+          "mean": 14.931013689655172,
+          "p95": 31.56381275,
+          "max": 33.305083
+        },
+        "decoderQueueDepth": {
+          "mean": 0.49137931034482757,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.0603448275862069,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3433,
+        "presentedFrames_delta": 3376,
+        "droppedFrames_delta": 57,
+        "receivedBytes_delta": 17577529,
+        "receivedPackets_delta": 3433,
+        "decoded_rate": 29.85217391304348,
+        "presented_rate": 29.356521739130436,
+        "observed_bitrate_kbps": 1222.7846260869567
+      }
+    },
+    {
+      "case": "B-scroll-3",
+      "variant": "B",
+      "mode": "scroll",
+      "round": 3,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T15:58:17.176997+00:00",
+      "end_utc": "2026-10-15T16:00:17.194924+00:00",
+      "duration_s": 120.01687773293816,
+      "issues": [],
+      "means": {
+        "rustdesk": 26.504337493413058,
+        "relay": 0.04998042222778636,
+        "compositor": 9.15695700616192,
+        "browser": 0.49160733042968197,
+        "fixture": 11.065157111375495,
+        "drm_recv": 13.014679841434214,
+        "gpu_gfx": 3.3694635341060533,
+        "gpu_enc": 19.346587653782557,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1726.044625,
+        "cpu_temp_c": 36.31666666666667,
+        "gpu_temp_c": 33.833333333333336,
+        "amdgpu_power_average_w": 9.44455,
+        "system_busy_pct": 4.339822471358532,
+        "rapl_core_w": 0.1894815639472091,
+        "rapl_package-0_w": 9.749855157053782
+      },
+      "source_animation_fps": 60.00822664313854,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 446.8525390625,
+      "initial_uss_mib": 395.6171875,
+      "initial_server_pss_mib": 126.4580078125,
+      "final_pss_mib": 448.0673828125,
+      "final_uss_mib": 396.83203125,
+      "final_server_pss_mib": 126.5595703125,
+      "cpu_sample_sd": 1.1881080644578959,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          11
+        ],
+        "receivedFPS": {
+          "mean": 29.916942437482046,
+          "p95": 29.93894834637217,
+          "max": 29.962211168617795
+        },
+        "presentedFPS": {
+          "mean": 29.337467710290813,
+          "p95": 30.011978299599015,
+          "max": 30.01503621973645
+        },
+        "networkDelayMS": {
+          "mean": 0.02586206896551724,
+          "p95": 0.0,
+          "max": 1
+        },
+        "presentationAgeMS": {
+          "mean": 15.293390801724138,
+          "p95": 19.76939575,
+          "max": 51.907375
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.958714448275861,
+          "p95": 31.19677025,
+          "max": 33.116417
+        },
+        "decoderQueueDepth": {
+          "mean": 0.4482758620689655,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.10344827586206896,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3370,
+        "droppedFrames_delta": 70,
+        "receivedBytes_delta": 67171647,
+        "receivedPackets_delta": 3441,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.304347826086957,
+        "observed_bitrate_kbps": 4672.810226086956
+      }
+    },
+    {
+      "case": "B-motion-3",
+      "variant": "B",
+      "mode": "motion",
+      "round": 3,
+      "seconds": 120,
+      "warmup": 15,
+      "start_utc": "2026-10-15T16:00:32.826220+00:00",
+      "end_utc": "2026-10-15T16:02:32.843646+00:00",
+      "duration_s": 120.01644569810014,
+      "issues": [],
+      "means": {
+        "rustdesk": 26.637838504018355,
+        "relay": 0.05001751135744698,
+        "compositor": 8.89048173486837,
+        "browser": 0.6164765269101956,
+        "fixture": 10.981810502901014,
+        "drm_recv": 13.09813164816689,
+        "gpu_gfx": 3.3544400317297476,
+        "gpu_enc": 19.654493497788724,
+        "gpu_compute": 0.0,
+        "cpu_mhz_median": 1827.7585416666666,
+        "cpu_temp_c": 35.954166666666666,
+        "gpu_temp_c": 33.81666666666667,
+        "amdgpu_power_average_w": 9.199566666666666,
+        "system_busy_pct": 3.9751298866691247,
+        "rapl_core_w": 0.1555123941060636,
+        "rapl_package-0_w": 9.43130089225453
+      },
+      "source_animation_fps": 60.00011046914374,
+      "fixture_backend": "native-gl",
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "initial_pss_mib": 447.3212890625,
+      "initial_uss_mib": 396.0859375,
+      "initial_server_pss_mib": 126.5595703125,
+      "final_pss_mib": 448.4462890625,
+      "final_uss_mib": 397.2109375,
+      "final_server_pss_mib": 126.5791015625,
+      "cpu_sample_sd": 1.1669193922923131,
+      "viewer": {
+        "samples": 116,
+        "states": [
+          "streaming"
+        ],
+        "generations": [
+          11
+        ],
+        "receivedFPS": {
+          "mean": 29.914726194375948,
+          "p95": 29.93398255357071,
+          "max": 29.942888463841925
+        },
+        "presentedFPS": {
+          "mean": 29.402358892161086,
+          "p95": 30.007798252249955,
+          "max": 30.015674374519005
+        },
+        "networkDelayMS": {
+          "mean": 0.034482758620689655,
+          "p95": 0.0,
+          "max": 2
+        },
+        "presentationAgeMS": {
+          "mean": 16.315479163793103,
+          "p95": 20.87807275,
+          "max": 51.616833
+        },
+        "videoReceiveAgeMS": {
+          "mean": 15.365312077586207,
+          "p95": 30.892385,
+          "max": 33.861875
+        },
+        "decoderQueueDepth": {
+          "mean": 0.47413793103448276,
+          "p95": 1.0,
+          "max": 1
+        },
+        "rendererQueueDepth": {
+          "mean": 0.16379310344827586,
+          "p95": 1.0,
+          "max": 1
+        },
+        "targetBitrate": {
+          "mean": 4000,
+          "p95": 4000.0,
+          "max": 4000
+        },
+        "decodeErrors_delta": 0,
+        "decoderResets_delta": 0,
+        "packetSequenceGaps_delta": 0,
+        "decodedFrames_delta": 3440,
+        "presentedFrames_delta": 3385,
+        "droppedFrames_delta": 56,
+        "receivedBytes_delta": 61987942,
+        "receivedPackets_delta": 3440,
+        "decoded_rate": 29.91304347826087,
+        "presented_rate": 29.434782608695652,
+        "observed_bitrate_kbps": 4312.204660869565
+      }
+    }
+  ],
+  "latency_scope": "network RTT and receive/presentation-age proxies; not glass-to-glass latency",
+  "power_scope": "RAPL package-0; not wall-plug power; amdgpu power is not added to it"
+}

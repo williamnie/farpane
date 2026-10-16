@@ -1,0 +1,200 @@
+{
+  "utc": "2026-10-16T06:48:01.702098+00:00",
+  "elapsed_seconds": 20.084519992000423,
+  "cpu_unit": "one logical core = 100%",
+  "video_active_throughout": true,
+  "video_states": [
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    },
+    {
+      "connections": 1,
+      "backend": "gpu",
+      "enabled": true,
+      "generation": 3,
+      "reason": ""
+    }
+  ],
+  "stable_pids": true,
+  "total_cpu_percent": 7.866755096110373,
+  "total_pss_kib": 329567,
+  "processes": [
+    {
+      "pid": 3212867,
+      "role": "--service",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 2.7882169960897527,
+      "pss_kib": 46658,
+      "fd_count": 42
+    },
+    {
+      "pid": 3213898,
+      "role": "gui",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 0.3983167137271075,
+      "pss_kib": 103129,
+      "fd_count": 46
+    },
+    {
+      "pid": 3219567,
+      "role": "--server",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 4.0329567264869635,
+      "pss_kib": 54480,
+      "fd_count": 66
+    },
+    {
+      "pid": 3219574,
+      "role": "--tray",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 0.0,
+      "pss_kib": 26147,
+      "fd_count": 19
+    },
+    {
+      "pid": 3220388,
+      "role": "--cm",
+      "executable": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "cpu_percent": 0.6472646598065497,
+      "pss_kib": 99153,
+      "fd_count": 54
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "processes": [
+    {
+      "pid": 3212867,
+      "exe": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "core_paths": [
+        "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/lib/librustdesk.so"
+      ]
+    },
+    {
+      "pid": 3213898,
+      "exe": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "core_paths": [
+        "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/lib/librustdesk.so"
+      ]
+    },
+    {
+      "pid": 3219567,
+      "exe": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "core_paths": [
+        "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/lib/librustdesk.so"
+      ]
+    },
+    {
+      "pid": 3219574,
+      "exe": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "core_paths": [
+        "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/lib/librustdesk.so"
+      ]
+    },
+    {
+      "pid": 3220388,
+      "exe": "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/farpane",
+      "core_paths": [
+        "/opt/farpane/releases/farpane-p1-445515cfa1ec-90876510-551585f0/lib/librustdesk.so"
+      ]
+    }
+  ],
+  "installed_core_sha256": "445515cfa1ece3579afc3834f8c6be500c19babc85afcc4c9d381281b7802099",
+  "unit": [
+    "ActiveState=active",
+    "SubState=running",
+    "UnitFileState=disabled",
+    "MainPID=3212867",
+    "NRestarts=0"
+  ]
+}

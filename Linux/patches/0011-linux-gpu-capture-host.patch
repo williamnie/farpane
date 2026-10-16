@@ -1,0 +1,90 @@
+--- a/src/server/drm_capturer.rs
++++ b/src/server/drm_capturer.rs
+@@ -1,4 +1,8 @@
+ // Unprivileged consumer of the root `--service`'s DRM/KMS capture stream: the service does the
+ // privileged export (open + grab the scanout dma-buf fd), the EGL detile / RGBA convert runs here.
++
++#[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++#[path = "linux_gpu_capture.rs"]
++pub(crate) mod gpu;
+ 
+ use crate::ipc::{connect_drm, Data, DrmDisplayInfo};
+--- a/src/server/video_service.rs
++++ b/src/server/video_service.rs
+@@ -273,4 +273,6 @@
+ #[derive(Clone)]
+ pub struct VideoService {
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    gpu_state: Arc<Mutex<gpu_host::State>>,
+     sp: GenericService,
+     idx: usize,
+@@ -308,4 +310,6 @@
+         });
+     let vs = VideoService {
++        #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++        gpu_state: Default::default(),
+         sp: GenericService::new(get_service_name(source, idx), true),
+         idx,
+@@ -593,5 +597,11 @@
+ }
+ 
++#[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++#[path = "linux_gpu_host.rs"]
++mod gpu_host;
++
+ fn run(vs: VideoService) -> ResultType<()> {
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    let gpu_run = gpu_host::Run::new(vs.gpu_state.clone(), vs.sp.clone(), vs.source.is_monitor());
+     let mut _raii = Raii::new(vs.idx, vs.sp.name());
+     // Wayland only support one video capturer for now. It is ok to call ensure_inited() here.
+@@ -628,4 +638,10 @@
+     let dxgi_recovery_state = vs.dxgi_recovery_state.clone();
+     let sp = vs.sp;
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    let (mut c, mut gpu_selection) = match gpu_run.select(vs.source, display_idx) {
++        Some((capturer, selection)) => (capturer, Some(selection)),
++        None => (get_capturer(vs.source, display_idx, last_portable_service_running)?, None),
++    };
++    #[cfg(not(all(target_os = "linux", feature = "linux-gpu-media")))]
+     let mut c = get_capturer(vs.source, display_idx, last_portable_service_running)?;
+     #[cfg(windows)]
+@@ -657,4 +673,15 @@
+     let client_record = video_qos.record();
+     drop(video_qos);
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    if let Some(selection) = gpu_selection.as_mut() { selection.prepare(spf); }
++    #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++    let setup_encoder = |c: &CapturerInfo, name: String, quality, client_record, record_incoming,
++        portable, source, index| {
++        if let Some(selection) = gpu_selection.as_ref() {
++            selection.setup(quality, client_record || record_incoming, record_incoming, index)
++        } else {
++            self::setup_encoder(c, name, quality, client_record, record_incoming, portable, source, index)
++        }
++    };
+     let (mut encoder, encoder_cfg, codec_format, use_i444, recorder) = match setup_encoder(
+         &c,
+@@ -669,4 +696,6 @@
+         Ok(result) => result,
+         Err(err) => {
++            #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++            if gpu_selection.is_some() { bail!("SWITCH"); }
+             log::error!("Failed to create encoder: {err:?}, fallback to VP9");
+             Encoder::set_fallback(&EncoderCfg::VPX(VpxEncoderConfig {
+@@ -744,4 +773,6 @@
+             &sp.name(),
+         )?;
++        #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++        if gpu_run.changed(&gpu_selection, spf) { bail!("SWITCH"); }
+         if sp.is_option_true(OPTION_REFRESH) {
+             if vs.source.is_monitor() {
+@@ -816,4 +847,9 @@
+                                     (format!("Convert pixfmt: {}", serr), 0, 0, vec![])
+                                 }
++                            },
++                            #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++                            scrap::Frame::LinuxGpu(frame) => match frame.rgba() {
++                                Ok((w, h, pixels)) => (String::new(), w, h, pixels),
++                                Err(error) => (format!("GPU screenshot: {error}"), 0, 0, vec![]),
+                             },
+                             scrap::Frame::Texture(_) => {

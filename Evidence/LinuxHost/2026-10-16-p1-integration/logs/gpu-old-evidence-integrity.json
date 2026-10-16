@@ -1,0 +1,562 @@
+[
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/README.md",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/completion-audit.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/manifest.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/output-buffer.patch",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-motion-1.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-motion-2.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-motion-3.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-scroll-1.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-scroll-2.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-scroll-3.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-static-1.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-static-2.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/A-static-3.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-motion-1.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-motion-2.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-motion-3.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-scroll-1.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-scroll-2.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-scroll-3.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-static-1.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-static-2.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/B-static-3.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/analysis.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/capture-stage-A-final.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/capture-stage-B-final.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/capture-stage-summary.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/cleanup.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/clock-calibration-end.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/clock-calibration-final.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/clock-calibration-start.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/exclusions.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/geometry-B2-viewer.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/geometry-B2.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/loader-proof.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/stability-B2.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/stability-memory-analysis.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/stability-viewer-summary.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/results/viewer-samples.jsonl.gz",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/analyze_results.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/capture-stage.bt",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/fixture_server.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/geometry_smoke.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/measure.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/native_fixture.c",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/run_matrix.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/stability.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/switch_runtime.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/timing_pair.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/tools/verify-direct.bt",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/capture-stage-A-final.txt",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/capture-stage-B-final.txt",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/codex-review-contract.txt",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/codex-review-final.txt",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/source-parity.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/test-B2-final-cursor_pos_tests.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/test-B2-final-drm_capturer_tests.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/test-B2-final-input_map_tests.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/test-B2-final-ipc__test.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/test-B2-final-peer_abs_sample_tests.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/test-growth-green.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/test-growth-red.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/tested-output-buffer.patch",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-15-output-buffer/validation/verify-direct-B2.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/README.md",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/analyze.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/baseline-post-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/baseline-post-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/baseline-post.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/baseline-pre-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/baseline-pre-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/baseline-pre.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/cleanup.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/clock-end.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/clock-start.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/encoding-audit.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/environment-after.txt",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/environment-before.txt",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/exclusions.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/decode-decoder.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/decode-encoder.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/decode-validation.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-1.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-1.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-a.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-a.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-r1.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-r1.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-r2.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-r2.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-r3.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-r3.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-timebase.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/gpu-timebase.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/ram-a.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/ram-a.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/ram-r1.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/ram-r1.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/ram-r2.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/ram-r2.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/ram-r3.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ffmpeg-logs/ram-r3.progress",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-1-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-1-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-1.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-a-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-a-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-a.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r1-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r1-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r1.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r2-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r2-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r2.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r3-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r3-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-r3.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-timebase-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-timebase-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/gpu-timebase.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/manifest.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/probe-60frames.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/probe-60frames.log",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-a-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-a-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-a.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r1-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r1-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r1.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r2-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r2-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r2.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r3-controller.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r3-viewer.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/ram-r3.jsonl",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/remote_probe.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/run_probe.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/summary.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/validate_decode.py",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/viewer-full-window-summary.json",
+    "result": "match"
+  },
+  {
+    "file": "Evidence/LinuxHost/2026-10-16-ffmpeg-gpu/viewer-full-window.jsonl.gz",
+    "result": "match"
+  }
+]

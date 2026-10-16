@@ -1,0 +1,40 @@
+--- a/libs/scrap/Cargo.toml
++++ b/libs/scrap/Cargo.toml
+@@ -10,6 +10,7 @@
+ edition = "2018"
+ 
+ [features]
++farpane-linux = []
+ wayland = ["gstreamer", "gstreamer-app", "gstreamer-video", "dbus", "tracing", "zbus"]
+ # `drm` is a pure runtime-dlopen backend: rustdesk loads `libdrmtap.so.0` at runtime (`drmtap_dl.rs`)
+ # and NEVER link-time links it, so the graceful PipeWire fallback when the .so or EGL is absent is
+--- a/libs/scrap/src/common/drmtap_dl.rs
++++ b/libs/scrap/src/common/drmtap_dl.rs
+@@ -256,7 +256,10 @@
+ impl DrmtapLib {
+     fn load() -> Option<Self> {
+         // Absolute path FIRST: the deb bundles the .so privately under /usr/lib/rustdesk and does NOT register that dir with ld.so.
++        #[cfg(not(feature = "farpane-linux"))]
+         const INSTALLED: &str = "/usr/lib/rustdesk/libdrmtap.so.0";
++        #[cfg(feature = "farpane-linux")]
++        const INSTALLED: &str = "/opt/farpane/lib/libdrmtap.so.0";
+         // Bare sonames exist so an unpackaged development build can load a locally built .so from
+         // the normal ld.so search path. They are NOT offered when running as root: this is the one
+         // place where which file happens to be on the load path decides what gets mapped into the
+@@ -269,6 +272,16 @@
+             vec![INSTALLED]
+         } else {
+             std::iter::once(INSTALLED).chain(DEV_ONLY).collect()
++        };
++        #[cfg(feature = "farpane-linux")]
++        let bundled = std::env::current_exe().ok().and_then(|exe| {
++            exe.parent().map(|dir| dir.join("lib/libdrmtap.so.0"))
++        });
++        #[cfg(feature = "farpane-linux")]
++        let candidates: Vec<&str> = if is_root {
++            candidates
++        } else {
++            bundled.as_ref().and_then(|p| p.to_str()).into_iter().chain(candidates).collect()
+         };
+         unsafe {
+             let mut errs = Vec::new();

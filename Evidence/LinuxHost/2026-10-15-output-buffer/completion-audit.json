@@ -1,0 +1,32 @@
+{
+  "objective": "完成 Linux RustDesk 常驻资源优化实验并给出重构或小改的结论",
+  "verdict": "当前 hermes 场景优先小范围修改，不启动完整 Linux 客户端重写；本次未实现大幅内存降低。",
+  "checks": {
+    "controlled_matrix_18_valid": true,
+    "three_repeats_each": true,
+    "cpu_gain_exceeds_gate_and_ranges": true,
+    "current_regressions_pass": true,
+    "tested_executable_source_matches_delivery": true,
+    "stable_30min": true,
+    "viewer_continuous": true,
+    "viewer_no_new_errors": true,
+    "last_5min_server_uss_flat": true,
+    "capture_stage_timing_valid": true,
+    "capture_stage_not_slower": true,
+    "original_runtime_restored": true,
+    "test_runtime_cleaned": true,
+    "display_restored": true,
+    "report_and_patch_saved": true
+  },
+  "tests": {
+    "passed": 135,
+    "failed": 0,
+    "ignored": 1
+  },
+  "limitations": [
+    "30分钟稳定性，不是24小时保证",
+    "采集处理段时延，不是端到端显示延迟",
+    "当前AMD/Wayland/DRM/H.264环境；未测试Linux Viewer或MyGo"
+  ],
+  "verified_at_utc": "2026-10-15T17:39:31.211352+00:00"
+}

@@ -1,0 +1,21 @@
+error: patch failed: libs/scrap/Cargo.toml:10
+error: libs/scrap/Cargo.toml: patch does not apply
+error: patch failed: libs/scrap/src/common/drmtap_dl.rs:256
+error: libs/scrap/src/common/drmtap_dl.rs: patch does not apply
+Traceback (most recent call last):
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/prepare.py", line 191, in <module>
+    main()
+    ~~~~^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/prepare.py", line 131, in main
+    apply_patch(target_dir, patch)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/prepare.py", line 41, in apply_patch
+    run(*command, '--check', str(patch), env=patch_env)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/prepare.py", line 25, in run
+    return subprocess.run(args, check=True, **kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '('git', '-C', '/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/src/rustdesk', 'apply', '--check', '/home/xiaobei/Documents/xiaobei/farpane/Linux/patches/0009-farpane-private-drmtap.patch')' returned non-zero exit status 1.

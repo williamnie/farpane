@@ -1,0 +1,42 @@
+Command exited with code 128: git fetch --tags
+Standard error: fatal: unable to access 'https://github.com/flutter/flutter.git/': Could not resolve host: github.com
+
+
+┌─────────────────────────────────────────────────────────┐
+│ WARNING: your installation of Flutter is 701 days old.  │
+│                                                         │
+│ To update to the latest version, run "flutter upgrade". │
+└─────────────────────────────────────────────────────────┘
+Flutter 3.24.5 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision dec2ee5c1f (1 year, 11 months ago) • 2024-11-13 11:13:06 -0800
+Engine • revision a18df97ca5
+Tools • Dart 3.5.4 • DevTools 2.37.3
+Resolving dependencies...
+Downloading packages...
+! flutter_plugin_android_lifecycle 2.0.17 (overridden)
+! intl 0.19.0 (overridden)
+  pull_down_button 0.9.4 (discontinued replaced by cupertino_ui)
+  uni_links_desktop 0.1.7 (discontinued replaced by protocol_handler)
+Got dependencies!
+2 packages are discontinued.
+[INFO] Generating build script...
+[INFO] Generating build script completed, took 224ms
+
+[INFO] Initializing inputs
+[INFO] Reading cached asset graph...
+[INFO] Reading cached asset graph completed, took 253ms
+
+[INFO] Checking for updates since last build...
+[INFO] Checking for updates since last build completed, took 837ms
+
+[INFO] Running build...
+[INFO] Running build completed, took 37ms
+
+[INFO] Caching finalized dependency graph...
+[INFO] Caching finalized dependency graph completed, took 146ms
+
+[INFO] Succeeded after 189ms with 0 outputs (0 actions)
+
+
+Building Linux application...                                   
+✓ Built build/linux/x64/release/bundle/farpane

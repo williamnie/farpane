@@ -1,0 +1,92 @@
+Linux 7.0.0-38-generic
+ffmpeg version 8.0.1-3ubuntu2 Copyright (c) 2000-2025 the FFmpeg developers
+built with gcc 15 (Ubuntu 15.2.0-13ubuntu3)
+configuration: --prefix=/usr --extra-version=3ubuntu2 --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --disable-pocketsphinx --disable-libcaca --disable-libmfx --disable-omx --enable-gnutls --enable-libaom --enable-libass --enable-libbs2b --enable-libcdio --enable-libcodec2 --enable-libdav1d --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libglslang --enable-libgme --enable-libgsm --enable-libharfbuzz --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzimg --enable-openal --enable-opencl --enable-opengl --disable-sndio --enable-libvpl --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-frei0r --enable-ladspa --enable-libbluray --enable-libdvdnav --enable-libdvdread --enable-libjack --enable-libjxl --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-sdl2 --enable-libplacebo --enable-librav1e --enable-librsvg --enable-shared
+libavutil      60.  8.100 / 60.  8.100
+libavcodec     62. 11.100 / 62. 11.100
+libavformat    62.  3.100 / 62.  3.100
+libavdevice    62.  1.100 / 62.  1.100
+libavfilter    11.  4.100 / 11.  4.100
+libswscale      9.  1.100 /  9.  1.100
+libswresample   6.  1.100 /  6.  1.100
+
+Exiting with exit code 0
+Trying display: drm
+vainfo: VA-API version: 1.23 (libva 2.22.0)
+vainfo: Driver version: Mesa Gallium driver 26.0.8-1ubuntu0.3 for AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic)
+vainfo: Supported profile and entrypoints
+      VAProfileH264ConstrainedBaseline:	VAEntrypointVLD
+      VAProfileH264ConstrainedBaseline:	VAEntrypointEncSlice
+      VAProfileH264Main               :	VAEntrypointVLD
+      VAProfileH264Main               :	VAEntrypointEncSlice
+      VAProfileH264High               :	VAEntrypointVLD
+      VAProfileH264High               :	VAEntrypointEncSlice
+      VAProfileHEVCMain               :	VAEntrypointVLD
+      VAProfileHEVCMain               :	VAEntrypointEncSlice
+      VAProfileHEVCMain10             :	VAEntrypointVLD
+      VAProfileHEVCMain10             :	VAEntrypointEncSlice
+      VAProfileJPEGBaseline           :	VAEntrypointVLD
+      VAProfileVP9Profile0            :	VAEntrypointVLD
+      VAProfileVP9Profile2            :	VAEntrypointVLD
+      VAProfileAV1Profile0            :	VAEntrypointVLD
+      VAProfileAV1Profile0            :	VAEntrypointEncSlice
+      VAProfileNone                   :	VAEntrypointVideoProc
+plane[42]: plane-0
+	crtc=crtc-0
+	fb=48
+		allocated by = gnome-shell
+		refcount=2
+		format=XR24 little-endian (0x34325258)
+		modifier=0x0
+		size=2560x1440
+		layers:
+			size[0]=2560x1440
+			pitch[0]=10240
+			offset[0]=0
+			obj[0]:
+				name=0
+				refcount=4
+				start=0012d782
+				size=15851520
+				imported=no
+	crtc-pos=2560x1440+0+0
+	src-pos=2560.000000x1440.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=0
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+	color-pipeline=0
+crtc[43]: crtc-0
+	enable=1
+	active=1
+	self_refresh_active=0
+	planes_changed=1
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=1
+	connector_mask=1
+	encoder_mask=1
+	mode: "2560x1440": 60 312320 2560 2752 3024 3488 1440 1443 1448 1493 0x0 0x6
+connector[44]: Virtual-1
+	crtc=crtc-0
+	self_refresh_aware=0
+	interlace_allowed=0
+	ycbcr_420_allowed=0
+	max_requested_bpc=0
+	colorspace=Default
+ActiveState=active
+ActiveEnterTimestamp=Thu 2026-10-15 09:47:46 PDT
+MainPID=1880443
+38718 /usr/bin/rustdesk
+1880443 /usr/bin/rustdesk --service
+1880508 /usr/share/rustdesk/rustdesk --server
+1880515 /usr/share/rustdesk/rustdesk --tray
+1880736 /usr/share/rustdesk/rustdesk --cm
+libva info: VA-API version 1.23.0
+libva info: Trying to open /usr/lib/x86_64-linux-gnu/dri/radeonsi_drv_video.so
+libva info: Found init function __vaDriverInit_1_23
+libva info: va_openDriver() returns 0
+sha256sum: /usr/share/rustdesk/librustdesk.so: No such file or directory

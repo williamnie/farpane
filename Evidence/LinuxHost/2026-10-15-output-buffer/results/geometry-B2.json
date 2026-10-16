@@ -1,0 +1,102 @@
+[
+  {
+    "event": "before",
+    "time_utc": "2026-10-15T15:07:46.926619+00:00",
+    "mode": [
+      "2560x1440@59.974",
+      2560,
+      1440,
+      59.97406768798828
+    ],
+    "fixture": {
+      "mode": "static",
+      "generation": 3,
+      "ack": 3,
+      "visible": true,
+      "focused": true,
+      "heartbeat": 556571.940513065,
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "animation_frames": 1,
+      "backend": "native-gl"
+    }
+  },
+  {
+    "event": "1080p",
+    "time_utc": "2026-10-15T15:07:50.010432+00:00",
+    "mode": [
+      "1920x1080@60.000",
+      1920,
+      1080,
+      59.99958419799805
+    ],
+    "fixture": {
+      "mode": "static",
+      "generation": 3,
+      "ack": 3,
+      "visible": true,
+      "focused": true,
+      "heartbeat": 556574.941474983,
+      "viewport": {
+        "width": 1920,
+        "height": 1080,
+        "dpr": 1
+      },
+      "animation_frames": 2,
+      "backend": "native-gl"
+    }
+  },
+  {
+    "event": "restored-1440p",
+    "time_utc": "2026-10-15T15:08:13.074498+00:00",
+    "mode": [
+      "2560x1440@59.974",
+      2560,
+      1440,
+      59.97406768798828
+    ],
+    "fixture": {
+      "mode": "static",
+      "generation": 3,
+      "ack": 3,
+      "visible": true,
+      "focused": true,
+      "heartbeat": 556597.94824275,
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "animation_frames": 3,
+      "backend": "native-gl"
+    }
+  },
+  {
+    "event": "final-restored",
+    "time_utc": "2026-10-15T15:08:33.095374+00:00",
+    "mode": [
+      "2560x1440@59.974",
+      2560,
+      1440,
+      59.97406768798828
+    ],
+    "fixture": {
+      "mode": "static",
+      "generation": 3,
+      "ack": 3,
+      "visible": true,
+      "focused": true,
+      "heartbeat": 556617.956926866,
+      "viewport": {
+        "width": 2560,
+        "height": 1440,
+        "dpr": 1
+      },
+      "animation_frames": 3,
+      "backend": "native-gl"
+    }
+  }
+]

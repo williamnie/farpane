@@ -1,0 +1,150 @@
+{
+  "gpu-r1": {
+    "progress": {
+      "frame": "2121",
+      "fps": "30.13",
+      "stream_0_0_q": "-0.0",
+      "bitrate": "N/A",
+      "total_size": "N/A",
+      "out_time_us": "71031770",
+      "out_time_ms": "71031770",
+      "out_time": "00:01:11.031770",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "speed": "1.01x",
+      "progress": "end"
+    },
+    "unexpected_messages": [],
+    "vaapi_nv12": true,
+    "encoded": [
+      [
+        "2121",
+        "2121"
+      ]
+    ]
+  },
+  "gpu-r2": {
+    "progress": {
+      "frame": "2120",
+      "fps": "30.13",
+      "stream_0_0_q": "-0.0",
+      "bitrate": "N/A",
+      "total_size": "N/A",
+      "out_time_us": "71007881",
+      "out_time_ms": "71007881",
+      "out_time": "00:01:11.007881",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "speed": "1.01x",
+      "progress": "end"
+    },
+    "unexpected_messages": [],
+    "vaapi_nv12": true,
+    "encoded": [
+      [
+        "2120",
+        "2120"
+      ]
+    ]
+  },
+  "gpu-r3": {
+    "progress": {
+      "frame": "2120",
+      "fps": "30.12",
+      "stream_0_0_q": "-0.0",
+      "bitrate": "N/A",
+      "total_size": "N/A",
+      "out_time_us": "71022153",
+      "out_time_ms": "71022153",
+      "out_time": "00:01:11.022153",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "speed": "1.01x",
+      "progress": "end"
+    },
+    "unexpected_messages": [],
+    "vaapi_nv12": true,
+    "encoded": [
+      [
+        "2120",
+        "2120"
+      ]
+    ]
+  },
+  "ram-r1": {
+    "progress": {
+      "frame": "2121",
+      "fps": "30.13",
+      "stream_0_0_q": "-0.0",
+      "bitrate": "N/A",
+      "total_size": "N/A",
+      "out_time_us": "71032405",
+      "out_time_ms": "71032405",
+      "out_time": "00:01:11.032405",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "speed": "1.01x",
+      "progress": "end"
+    },
+    "unexpected_messages": [],
+    "vaapi_nv12": true,
+    "encoded": [
+      [
+        "2121",
+        "2121"
+      ]
+    ]
+  },
+  "ram-r2": {
+    "progress": {
+      "frame": "2121",
+      "fps": "30.14",
+      "stream_0_0_q": "-0.0",
+      "bitrate": "N/A",
+      "total_size": "N/A",
+      "out_time_us": "71006860",
+      "out_time_ms": "71006860",
+      "out_time": "00:01:11.006860",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "speed": "1.01x",
+      "progress": "end"
+    },
+    "unexpected_messages": [],
+    "vaapi_nv12": true,
+    "encoded": [
+      [
+        "2121",
+        "2121"
+      ]
+    ]
+  },
+  "ram-r3": {
+    "progress": {
+      "frame": "2121",
+      "fps": "30.14",
+      "stream_0_0_q": "-0.0",
+      "bitrate": "N/A",
+      "total_size": "N/A",
+      "out_time_us": "71009830",
+      "out_time_ms": "71009830",
+      "out_time": "00:01:11.009830",
+      "dup_frames": "0",
+      "drop_frames": "0",
+      "speed": "1.01x",
+      "progress": "end"
+    },
+    "unexpected_messages": [],
+    "vaapi_nv12": true,
+    "encoded": [
+      [
+        "2121",
+        "2121"
+      ]
+    ]
+  },
+  "decode_summary": [
+    "  Stream #0:0: Video: h264 (Main), 1 reference frame, yuv420p(tv, progressive, left), 2560x1440, 25 fps, 59.50 tbr, 1200k tbn",
+    "[in#0/h264 @ 0x5e6118bc8c80]   Input stream #0:0 (video): 90 packets read (1388967 bytes); 90 frames decoded; 0 decode errors; "
+  ]
+}

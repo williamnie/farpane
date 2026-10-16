@@ -1,0 +1,282 @@
+{
+  "recorded_utc": "2026-10-16T03:50:47.321728+00:00",
+  "stage": "P0 offline checks; P0 overall open, no P1 runtime integration",
+  "core_sha256": "fe666073a8c9df7d0550723737d11917d9a4f0df7515dc4a4995f3ad8634959f",
+  "notes": [
+    "Raw logs include failed attempts; see docs/p0-status.md.",
+    "Source hashes below describe the final checkpoint, not every earlier failed iteration.",
+    "One-minute resource probe preceded only the AR24 varying-alpha fixture and decoder loop cap additions."
+  ],
+  "evidence": [
+    {
+      "path": "scrap-check-02.log",
+      "sha256": "2285a80ac6596dba7e2ef6744659249e8b1cdf5a4c9990944b16912cbd68ace7"
+    },
+    {
+      "path": "b0-regression-02.log",
+      "sha256": "fb0023437148b89907e92f78eadfc9375b3fe3a73362b2f80cf5a2fb645d2ec9"
+    },
+    {
+      "path": "root-tests-03.log",
+      "sha256": "2003dfdcf147c7520d4023b4d1862510c83020fea4b158a625b720490b0cc173"
+    },
+    {
+      "path": "linux-b0-release-01.log",
+      "sha256": "d75b050885755a52e590f95ff40c0731ff5f115a0a5a288883ba0eadc2141e39"
+    },
+    {
+      "path": "p0-cpu-01.log",
+      "sha256": "b1540fd6a779e74a6c401723c8a9281efaea50afa3f7154f2297d9f1d2560dc3"
+    },
+    {
+      "path": "p0-cpu-02.log",
+      "sha256": "d57afcf1c1216bed268e348a1f92dcd20e367f42490d4fa827410c3d8170d2bb"
+    },
+    {
+      "path": "p0-cpu-short-02.log",
+      "sha256": "d1e0ce28f4e249ccbc245f9b5e456fae9ee3a3ddb57b11f4bef46a04b46520ce"
+    },
+    {
+      "path": "p0-legacy-cpu-short-03.log",
+      "sha256": "91498fc2a701fbeb438ae5935bd8f8ce7d29fd94f43467f3ba83c4d673ca30c1"
+    },
+    {
+      "path": "p0-gpu-01.log",
+      "sha256": "eca87fd25f7e6ff94aae74eccc02b831fc01bf72016e9abd2be7f3ce9bf2f564"
+    },
+    {
+      "path": "p0-gpu-02.log",
+      "sha256": "ce8138b91af74f163062aff15f811e66b2b0d8ffe3f38c54367cbf97b00ca870"
+    },
+    {
+      "path": "p0-gpu-03.log",
+      "sha256": "dac79993d5b82db85789060ed5c08907e40d9b829ffb772f10636d3ae4c2d8a2"
+    },
+    {
+      "path": "p0-gpu-04.log",
+      "sha256": "8da1c420aa0c6c4cb492bb20b38f5b3971bdc09663798bf60403bdb4bdafe5af"
+    },
+    {
+      "path": "p0-gpu-05.log",
+      "sha256": "bc8998e5322784b6111be4bdf1e9d734588ee85f2a94a1d900b2528d543e4367"
+    },
+    {
+      "path": "p0-gpu-06.log",
+      "sha256": "55ee4c2fc4ccd8c988929998747265681cb94320ca7668f20290a6d938fc4bb2"
+    },
+    {
+      "path": "p0-gpu-07.log",
+      "sha256": "4de54fef3ee75ab3071c313cf75cf20b4f7112f359d033c8e6a7b8fa570fca62"
+    },
+    {
+      "path": "p0-gpu-10.log",
+      "sha256": "72b4f9bb5414b0dc5f60be0e463981c03b3fd2a56a914aa84cee8a76809ac58e"
+    },
+    {
+      "path": "p0-argb-02.log",
+      "sha256": "541fe4c17ea216735a441abc7459224effd92718a9f84ca2818fd43681a54da9"
+    },
+    {
+      "path": "p0-pool-one-01.log",
+      "sha256": "e02121e3ff2b37948a538afb2fb3a0ed3ed1a083f50b286cc4973dcb4eb61d0f"
+    },
+    {
+      "path": "p0-lifecycle-03.log",
+      "sha256": "af82dde29375e8944ea315c32d32a6afcfc5d5e7bf5e5bb5978276db07d085c1"
+    },
+    {
+      "path": "p0-steady-01.log",
+      "sha256": "d57b52c203dd2b658c4392559c228e2c7c91fd61d1948c042aaacead05f703ec"
+    },
+    {
+      "path": "p0-steady-summary.json",
+      "sha256": "45caa6a10c5a98de98f65467dfc556de7caa4b061465f740587ff611b2504b8e"
+    },
+    {
+      "path": "viewer-color-contract-01.json",
+      "sha256": "b5c33736586267c0a882f870e65312e950befa2743ef7881088b82cd0b44c147"
+    },
+    {
+      "path": "ffmpeg-filter-incremental-01.log",
+      "sha256": "993a25d38bb800f8fc1d8410eb0660ea2d3eb7b0a149909ee56f954da951275f"
+    },
+    {
+      "path": "ffmpeg-signature-02.log",
+      "sha256": "30187ec5503248e8e2ce0158c8cff2f77cda37d45d6453cd0fc83d0e148310a6"
+    },
+    {
+      "path": "toolchain-02.log",
+      "sha256": "928f4666f2b391c494dd5c2ec7d6a8e39d1777b68188118d5edf17528e9167e5"
+    },
+    {
+      "path": "source-parity-02.json",
+      "sha256": "ef5b3fa0b61227c6c1fc270f05057acaba2a151d0b0fd575617231861a19c3e9"
+    },
+    {
+      "path": "prepare-tests-01.log",
+      "sha256": "a09812658b89c470ca0b88aa0da1bfdc2c53ffe88619acc803dec97ea783f31b"
+    },
+    {
+      "path": "export-reentry-01.log",
+      "sha256": "6919d7b4646a26f7fc411f24888bc7ac3317cce294ae8ff938122887e7d7d01d"
+    },
+    {
+      "path": "b0-release-link-audit.log",
+      "sha256": "129dc3d143c43dabb49dccbb1742494cb0103c8d6dd60e33e78b1159b3a109cc"
+    },
+    {
+      "path": "clean-load-01.log",
+      "sha256": "3016531df09dadc58c78f5d17c380731b99916b716a3a5fc252d03299a5cb1c9"
+    },
+    {
+      "path": "clean-load-02.log",
+      "sha256": "01a098af3f41a5488db7cfbec6bc9da84bcfd6a038cfb6d6920128cbab72625a"
+    },
+    {
+      "path": "load-root-manifest.json",
+      "sha256": "5bbe8ce3a9ffd058019df5fd702317fd03bf7c58b88244592c48aa7fa9fa1216"
+    },
+    {
+      "path": "evidence-buffer-integrity.log",
+      "sha256": "2814d0f62ac1f5cb860cbfe4fcf56b312d58716b9d989b0f7ce1be3f89a56691"
+    },
+    {
+      "path": "evidence-gpu-integrity.log",
+      "sha256": "8df49767d37d737cfc0caf085672aa5ec32dd9262b3f0253b24df85c489ce313"
+    },
+    {
+      "path": "prepare-05.log",
+      "sha256": "0a89d80c7c5d35ed027667faa1d09156c5b91bf7be7f9e8951819041fa5370b8"
+    },
+    {
+      "path": "prepare-06.log",
+      "sha256": "87527440a6a5a6dfc8bf14d1b098bf31d7c2897cc539a52aa9ca88dc1c95e127"
+    },
+    {
+      "path": "source-parity-final.json",
+      "sha256": "ef5b3fa0b61227c6c1fc270f05057acaba2a151d0b0fd575617231861a19c3e9"
+    }
+  ],
+  "canonical_sources": [
+    {
+      "path": "Linux/Cargo.lock",
+      "sha256": "f85349efc5528206ec9f541ee997ff6c26e42b6e72a6c00e18cecc7b7b043205"
+    },
+    {
+      "path": "Linux/README.md",
+      "sha256": "6d447c88b1a86870cb991c636f671f2a937aad6ab01cf13e42e09dbc9f14a74b"
+    },
+    {
+      "path": "Linux/dependencies.lock.json",
+      "sha256": "ff3bafdffc203221bd31fb2999e9a365801afebadecae49cb56a8f315bc20f79"
+    },
+    {
+      "path": "Linux/docs/p0-status.md",
+      "sha256": "9f5f9712de682e17f89e40c69be8e591b74155374a966d4a0c413eb2ccafb5ed"
+    },
+    {
+      "path": "Linux/docs/p1-integration-audit.md",
+      "sha256": "72c15e784663b53668f1d7bb2aba53a1ec3f542a3c13e5219baa351419108712"
+    },
+    {
+      "path": "Linux/flutter-pubspec.lock",
+      "sha256": "e4f87b5c7a0d9217ad0589dc9e60fb39b277f8bd1744ab663f06902e852c1008"
+    },
+    {
+      "path": "Linux/patches/0001-output-buffer.patch",
+      "sha256": "2647a6c43bb9bac961916bede321526a01f1e49bb76d3937fd6aedc3ef29f300"
+    },
+    {
+      "path": "Linux/patches/0002-hwcodec-ffmpeg9.patch",
+      "sha256": "620a4e1267d93a86ddb7a722411ad0f97d1db0fbbd2b5a474ab97fb419c933ea"
+    },
+    {
+      "path": "Linux/patches/0003-hwcodec-linux-link.patch",
+      "sha256": "a7fd92d4e8f1cedc14e52ae0fb6634545c090021081fc17e2c2f135a739d2261"
+    },
+    {
+      "path": "Linux/patches/0004-linux-hwcodec-source.patch",
+      "sha256": "6eaa6eca388061927ecdbb7fbde4bafc4fbcdbd180e42ed741173b9b09abc701"
+    },
+    {
+      "path": "Linux/patches/0005-hwcodec-ffmpeg9-profiles.patch",
+      "sha256": "b4bf1837cd6d0d389a0588834e72cff757d9b053a4719791dde756d484d5fd31"
+    },
+    {
+      "path": "Linux/patches/0006-ffmpeg-vaapi-pool-limit.patch",
+      "sha256": "e0f36f7d234de06e8f64992490f8e9080548f344dbdc087c0c206c98060dccb9"
+    },
+    {
+      "path": "Linux/tests/p0_cpu.cpp",
+      "sha256": "44c708c9940832ef6fb8c6f967a4e505dadabf43d7b23649f3910a8d1b7b33bc"
+    },
+    {
+      "path": "Linux/tests/p0_load.c",
+      "sha256": "94e8bdea053158ce9bdd2a1dfba4eca2641b3cfc0a8440ab08b9aee4a26b0abd"
+    },
+    {
+      "path": "Linux/tests/p0_media.cpp",
+      "sha256": "3808f6df006d1fffab5a92cf86ad24ee178b067a13ed74302f38d5bb7ca1a1d4"
+    },
+    {
+      "path": "Linux/tests/test_prepare.py",
+      "sha256": "acdb2ab2fd8c5851c93ae3e8ea9f8530ff04b857e8df86f23f7ac8ea24f05cce"
+    },
+    {
+      "path": "Linux/tests/viewer_color_contract.py",
+      "sha256": "4086ebfe819aaebacf9e525d01d49473b4e081d6f9352490586a8098fe1783ae"
+    },
+    {
+      "path": "Scripts/linux/build-core.sh",
+      "sha256": "811575573bca0dc3e70b4682e8ff167dee60f5259dd3b49d784e9256402d7188"
+    },
+    {
+      "path": "Scripts/linux/build-ffmpeg.sh",
+      "sha256": "39658bc14520994a2ea918ff421e50dcdf475d0c342911d505beb1b403e43b3a"
+    },
+    {
+      "path": "Scripts/linux/build-legacy-cpu.sh",
+      "sha256": "11b7eba44665c3fefbc97f5747d821bcbc3cd5e4ddf87e8e756ff5ad7a152069"
+    },
+    {
+      "path": "Scripts/linux/build-p0.sh",
+      "sha256": "611134de61785bd54a4c6acfd8eaf0af74bf90e02c9128b7c715a64c5d568a1e"
+    },
+    {
+      "path": "Scripts/linux/container.sh",
+      "sha256": "a7b6a3132eafba0519e908747072b81868daadc45696ea28f92f120417f99958"
+    },
+    {
+      "path": "Scripts/linux/generate-bridge.sh",
+      "sha256": "2830cb306172a796005890e2d223fc335a766e8109fd435af3a651bf1594b806"
+    },
+    {
+      "path": "Scripts/linux/package-core.py",
+      "sha256": "d58eb3bb66f7db17f0cf73ba2f2d9a366f98a35a96b23aed431113d7824cd9a2"
+    },
+    {
+      "path": "Scripts/linux/prepare-cache.sh",
+      "sha256": "987613d3834c819c07f66e2669ccaf6b39797709c9164d8b75af32032bcc8298"
+    },
+    {
+      "path": "Scripts/linux/prepare.py",
+      "sha256": "358e92b1e2307c542e9718ca6578a1943446350f50110288c1916d718b52b5d0"
+    },
+    {
+      "path": "Scripts/linux/run-p0.sh",
+      "sha256": "b83faa16c907612b5e89ef4e6d32617618750249946707f51f8229d8e0aca8e0"
+    },
+    {
+      "path": "Scripts/linux/stage-load-test.py",
+      "sha256": "03625d609cc117592d08ea6f761569c7bb67852c070f33e4248c57c04a2fbcd8"
+    },
+    {
+      "path": "Scripts/linux/test-clean-load.sh",
+      "sha256": "ffc67a0aafa7108c49ada346a97509877711a368abb6e349bbdf8bf39fa9a00c"
+    },
+    {
+      "path": "Scripts/linux/verify-sources.py",
+      "sha256": "12d80caf38c028b92c50c84c2b08d9f4a534f83cd611038b003f73056d764a85"
+    }
+  ]
+}

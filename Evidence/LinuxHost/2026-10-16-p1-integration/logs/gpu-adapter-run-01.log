@@ -1,0 +1,5 @@
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+product_adapter alpha=0 decoded=36 keys=3 color_max=1 screenshot=pass
+source_modifier=0 planes=1 amdgpu=3.64 stride=1024 allocation=131072
+product_adapter alpha=1 decoded=36 keys=3 color_max=1 screenshot=pass
+PASS product C ABI, CBR, source reuse, cold screenshot, color, PTS, IDR and cleanup
