@@ -1,0 +1,3894 @@
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+warning: unexpected `cfg` condition value: `cargo-clippy`
+  --> /workspace/Build/Linux/src/clipboard_master/src/lib.rs:42:13
+   |
+42 | #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+   |
+   = note: no expected values for `feature`
+   = help: consider adding `cargo-clippy` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: `clipboard-master` (lib) generated 1 warning
+   Compiling scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+   Compiling rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ClipboardSide` and `update_clipboard`
+  --> src/server/connection.rs:10:24
+   |
+10 | use crate::clipboard::{update_clipboard, ClipboardSide};
+   |                        ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: unused import: `uuid::Uuid`
+  --> src/ui_session_interface.rs:41:5
+   |
+41 | use uuid::Uuid;
+   |     ^^^^^^^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2212:51
+     |
+2212 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2227:47
+     |
+2227 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+  --> src/farpane_native/viewer_ui.rs:73:39
+   |
+73 |             rgba: hbb_common::base64::encode(cd.colors),
+   |                                       ^^^^^^
+
+warning: unreachable pattern
+    --> src/server/connection.rs:6591:21
+     |
+6591 |                     _ => {}
+     |                     ^ no value can reach this
+     |
+note: multiple earlier patterns match some of the same values
+    --> src/server/connection.rs:6591:21
+     |
+6557 |                     Err(err) => {
+     |                     -------- matches some of the same values
+...
+6560 |                     Ok(Some(data)) => {
+     |                     -------------- matches some of the same values
+...
+6590 |                     Ok(None) => bail!("Native connection manager disconnected"),
+     |                     -------- matches some of the same values
+6591 |                     _ => {}
+     |                     ^ collectively making this unreachable
+     = note: `#[warn(unreachable_patterns)]` on by default
+
+warning: unreachable statement
+    --> src/platform/linux.rs:1002:5
+     |
+1001 |       { crate::farpane_native::process::stop_servers(None); return; }
+     |                                                             ------ any code following this expression is unreachable
+1002 | /     let _ = run_cmds(&format!(
+1003 | |         r##"ps -ef | grep -E '{} +--server' | awk '{{print $2}}' | xargs -r kill -9"##,
+1004 | |         crate::get_app_name().to_lowercase(),
+1005 | |     ));
+     | |_______^ unreachable statement
+     |
+     = note: `#[warn(unreachable_code)]` on by default
+
+warning: unreachable statement
+    --> src/platform/linux.rs:1019:5
+     |
+1018 |     { if try_x11 && (is_display_changed || *uid != desktop.uid) { set_x11_env(desktop); } let Ok(next_uid) = desktop.uid.parse() else { return false; }; return crate::farpane_native::supervisor::should_start(next_uid, uid, is_display_changed, last_restart, server); }
+     |                                                                                                                                                          --------------------------------------------------------------------------------------------------------------- any code following this expression is unreachable
+1019 |     let cm = get_cm();
+     |     ^^^^^^^^^^^^^^^^^^ unreachable statement
+
+warning: unreachable statement
+    --> src/ui_cm_interface.rs:1779:5
+     |
+1777 |     { crate::farpane_native::cm::ready(false); return; }
+     |                                                ------ any code following this expression is unreachable
+1778 |     // in case of std::process::exit not work
+1779 |     log::info!("quit cm");
+     |     ^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+     |
+     = note: this warning originates in the macro `$crate::log` which comes from the expansion of the macro `log::info` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused import: `super`
+  --> src/server/video_qos/tests/robustness.rs:10:5
+   |
+10 | use super::*;
+   |     ^^^^^
+
+warning: unused variable: `is_press`
+   --> src/keyboard.rs:689:17
+    |
+689 |             let is_press = matches!(event.event_type, EventType::KeyPress(_));
+    |                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_press`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `key_event`
+   --> src/keyboard.rs:993:23
+    |
+993 | pub fn send_key_event(key_event: &KeyEvent) {
+    |                       ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_key_event`
+
+warning: unused variable: `cm0`
+    --> src/platform/linux.rs:1013:5
+     |
+1013 |     cm0: &mut bool,
+     |     ^^^ help: if this is intentional, prefix it with an underscore: `_cm0`
+
+warning: unused variable: `evt`
+    --> src/server/input_service.rs:1472:34
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_evt`
+
+warning: unused variable: `conn`
+    --> src/server/input_service.rs:1472:52
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_conn`
+
+warning: unused variable: `username`
+    --> src/server/input_service.rs:1472:63
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                               ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_username`
+
+warning: unused variable: `argb`
+    --> src/server/input_service.rs:1472:81
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                                                 ^^^^ help: if this is intentional, prefix it with an underscore: `_argb`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `lease`
+   --> src/farpane_native/viewer_media.rs:274:21
+    |
+274 |                     lease,
+    |                     ^^^^^ help: try ignoring the field: `lease: _`
+
+warning: type `server::video_service::CapturerInfo` is more private than the item `gpu::capture`
+   --> src/server/linux_gpu_capture.rs:92:1
+    |
+92  | / pub(crate) fn capture(eligible: Eligibility, generation: u64, failure: Failure)
+93  | |     -> ResultType<(super::super::video_service::CapturerInfo, Descriptor)> {
+    | |__________________________________________________________________________^ function `gpu::capture` is reachable at visibility `pub(crate)`
+    |
+note: but type `server::video_service::CapturerInfo` is only usable at visibility `pub(in crate::server)`
+   --> src/server/video_service.rs:429:1
+    |
+429 | pub(super) struct CapturerInfo {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: static `KEYBOARD_HOOKED` is never used
+  --> src/keyboard.rs:36:8
+   |
+36 | static KEYBOARD_HOOKED: AtomicBool = AtomicBool::new(false);
+   |        ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `get_keyboard_mode` is never used
+   --> src/keyboard.rs:471:4
+    |
+471 | fn get_keyboard_mode() -> String {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `start_grab_loop` is never used
+   --> src/keyboard.rs:612:4
+    |
+612 | fn start_grab_loop() {
+    |    ^^^^^^^^^^^^^^^
+
+warning: fields `owner`, `last_grab`, and `deferred_pending` are never read
+   --> src/keyboard.rs:99:9
+    |
+98  |     struct GrabOwnerState {
+    |            -------------- fields in this struct
+99  |         owner: Option<u128>,
+    |         ^^^^^
+100 |         last_grab: Option<std::time::Instant>,
+    |         ^^^^^^^^^
+...
+103 |         deferred_pending: bool,
+    |         ^^^^^^^^^^^^^^^^
+
+warning: constant `GRAB_DEBOUNCE_MS` is never used
+   --> src/keyboard.rs:109:11
+    |
+109 |     const GRAB_DEBOUNCE_MS: u128 = 300;
+    |           ^^^^^^^^^^^^^^^^
+
+warning: function `apply_run_grab_if_owner` is never used
+   --> src/keyboard.rs:122:8
+    |
+122 |     fn apply_run_grab_if_owner(session_id: u128, disable_first: bool) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `disable_grab_if_released` is never used
+   --> src/keyboard.rs:137:8
+    |
+137 |     fn disable_grab_if_released() {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `start_grab_loop` is never used
+   --> src/keyboard.rs:148:12
+    |
+148 |     pub fn start_grab_loop() {
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `change_grab_status` is never used
+   --> src/keyboard.rs:158:12
+    |
+158 |     pub fn change_grab_status(state: GrabState, keyboard_mode: &str, session_id: u128) {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: function `process_event_with_session` is never used
+   --> src/keyboard.rs:332:12
+    |
+332 |     pub fn process_event_with_session<T: InvokeUiSession>(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_opensuse` is never used
+    --> src/platform/linux.rs:1413:4
+     |
+1413 | fn is_opensuse() -> bool {
+     |    ^^^^^^^^^^^
+
+warning: type alias `GObjectPtr` is never used
+    --> src/platform/linux.rs:1858:6
+     |
+1858 | type GObjectPtr = *mut c_void;
+     |      ^^^^^^^^^^
+
+warning: fields `0` and `1` are never read
+    --> src/platform/linux.rs:2613:21
+     |
+2613 | pub struct WakeLock(Option<keepawake::AwakeHandle>, Option<SessionIdleInhibit>);
+     |            -------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |            |
+     |            fields in this struct
+     |
+     = help: consider removing these fields
+
+warning: function `check_if_stop_service` is never used
+    --> src/platform/linux.rs:2770:4
+     |
+2770 | fn check_if_stop_service() {
+     |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `g_object_get` is never used
+    --> src/platform/linux.rs:1868:8
+     |
+1868 |     fn g_object_get(object: GObjectPtr, first_property_name: *const c_char, ...);
+     |        ^^^^^^^^^^^^
+
+warning: function `get_audio_input` is never used
+  --> src/server/audio_service.rs:67:4
+   |
+67 | fn get_audio_input() -> String {
+   |    ^^^^^^^^^^^^^^^
+
+warning: function `common_get_error` is never used
+   --> src/server/wayland.rs:873:8
+    |
+873 | pub fn common_get_error() -> String {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: variants `Side`, `Extra`, `Back`, `Forward`, and `Task` are never constructed
+    --> src/server/uinput.rs:1135:9
+     |
+1132 |     pub enum MouseButton {
+     |              ----------- variants in this enum
+...
+1135 |         Side,
+     |         ^^^^
+1136 |         Extra,
+     |         ^^^^^
+1137 |         Right,
+1138 |         Back,
+     |         ^^^^
+1139 |         Forward,
+     |         ^^^^^^^
+1140 |         Task,
+     |         ^^^^
+     |
+     = note: `MouseButton` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Right` and `Left` are never constructed
+    --> src/server/uinput.rs:1147:9
+     |
+1144 |     pub enum ScrollDirection {
+     |              --------------- variants in this enum
+...
+1147 |         Right,
+     |         ^^^^^
+1148 |         Left,
+     |         ^^^^
+     |
+     = note: `ScrollDirection` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `resolution` is never read
+   --> src/server/rdp_input.rs:322:9
+    |
+318 |     pub struct RdpInputMouse {
+    |                ------------- field in this struct
+...
+322 |         resolution: (usize, usize),
+    |         ^^^^^^^^^^
+
+warning: fields `x` and `y` are never read
+   --> src/server/input_service.rs:109:5
+    |
+106 | struct Input {
+    |        ----- fields in this struct
+...
+109 |     x: i32,
+    |     ^
+110 |     y: i32,
+    |     ^
+    |
+    = note: `Input` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: constant `MOUSE_MOVE_PROTECTION_TIMEOUT` is never used
+   --> src/server/input_service.rs:634:7
+    |
+634 | const MOUSE_MOVE_PROTECTION_TIMEOUT: Duration = Duration::from_millis(1_000);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MOUSE_ACTIVE_DISTANCE` is never used
+   --> src/server/input_service.rs:636:7
+    |
+636 | const MOUSE_ACTIVE_DISTANCE: i32 = 5;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_last_input_cursor_pos` is never used
+    --> src/server/input_service.rs:1162:4
+     |
+1162 | fn get_last_input_cursor_pos() -> (i32, i32) {
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variant `SwitchSides` is never constructed
+   --> src/server/connection.rs:315:5
+    |
+310 | enum ConnAuditPrimaryAuth {
+    |      -------------------- variant in this enum
+...
+315 |     SwitchSides = 4,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ConnAuditPrimaryAuth` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `enable_file_transfer` is never read
+   --> src/server/connection.rs:411:5
+    |
+356 | pub struct Connection {
+    |            ---------- field in this struct
+...
+411 |     enable_file_transfer: bool,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_capturer_mag_supported` is never used
+   --> src/server/display_service.rs:610:4
+    |
+610 | fn is_capturer_mag_supported() -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `produced_fps` is never read
+   --> src/server/video_qos/tests/sim.rs:283:9
+    |
+272 | pub struct Report {
+    |            ------ field in this struct
+...
+283 |     pub produced_fps: f64,
+    |         ^^^^^^^^^^^^
+    |
+    = note: `Report` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `save_ab_password_to_recent` is never read
+    --> src/client.rs:2896:9
+     |
+2854 | pub struct LoginConfigHandler {
+     |            ------------------ field in this struct
+...
+2896 |     pub save_ab_password_to_recent: bool, // true: connected with ab password
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+    --> src/client.rs:3117:12
+     |
+2919 | impl LoginConfigHandler {
+     | ----------------------- associated items in this implementation
+...
+3117 |     pub fn save_view_style(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^
+...
+3128 |     pub fn save_keyboard_mode(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+3139 |     pub fn save_reverse_mouse_wheel(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3150 |     pub fn save_displays_as_individual_windows(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3161 |     pub fn save_use_all_my_displays_for_the_remote_session(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3172 |     pub fn save_scroll_style(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+3183 |     pub fn save_edge_scroll_edge_thickness(&mut self, value: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3195 |     pub fn save_ui_flutter(&mut self, k: String, v: String) {
+     |            ^^^^^^^^^^^^^^^
+...
+3217 |     pub fn get_ui_flutter(&self, k: &str) -> String {
+     |            ^^^^^^^^^^^^^^
+...
+3543 |     pub fn is_privacy_mode_supported(&self) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3561 |     pub fn refresh_display(display: usize) -> Message {
+     |            ^^^^^^^^^^^^^^^
+...
+3575 |     pub fn save_custom_image_quality(&mut self, image_quality: i32) -> Message {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3595 |     pub fn save_image_quality(&mut self, value: String) -> Option<Message> {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+3613 |     pub fn save_trackpad_speed(&mut self, speed: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+3625 |     pub fn set_custom_fps(&mut self, fps: i32, save_config: bool) -> Message {
+     |            ^^^^^^^^^^^^^^
+...
+3683 |     pub fn get_username(&self, pi: &PeerInfo) -> String {
+     |            ^^^^^^^^^^^^
+...
+3795 |     pub fn get_all_remote_dir(&self, path: String) -> String {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+3941 |     pub fn restart_remote_device(&self) -> Message {
+     |            ^^^^^^^^^^^^^^^^^^^^^
+...
+3949 |     pub fn mark_restarting_remote_device(&mut self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3973 |     pub fn get_conn_token(&self) -> Option<String> {
+     |            ^^^^^^^^^^^^^^
+...
+3985 |     pub fn get_id(&self) -> &str {
+     |            ^^^^^^
+
+warning: function `send_pointer_device_event` is never used
+    --> src/client.rs:4382:8
+     |
+4382 | pub fn send_pointer_device_event(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `send_switch_login_request` is never used
+    --> src/client.rs:4867:10
+     |
+4867 | async fn send_switch_login_request(
+     |          ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple variants are never constructed
+    --> src/client.rs:4997:5
+     |
+4988 | pub enum Data {
+     |          ---- variants in this enum
+...
+4997 |     SendFiles((i32, JobType, String, String, i32, bool, bool)),
+     |     ^^^^^^^^^
+4998 |     RemoveDirAll((i32, String, bool, bool)),
+     |     ^^^^^^^^^^^^
+4999 |     ConfirmDeleteFiles((i32, i32)),
+     |     ^^^^^^^^^^^^^^^^^^
+5000 |     SetNoConfirm(i32),
+     |     ^^^^^^^^^^^^
+5001 |     RemoveDir((i32, String)),
+     |     ^^^^^^^^^
+5002 |     RemoveFile((i32, String, i32, bool)),
+5003 |     CreateDir((i32, String, bool)),
+     |     ^^^^^^^^^
+5004 |     CancelJob(i32),
+     |     ^^^^^^^^^
+5005 |     RemovePortForward(i32),
+     |     ^^^^^^^^^^^^^^^^^
+...
+5009 |     NewRDP,
+     |     ^^^^^^
+5010 |     SetConfirmOverrideFile((i32, i32, bool, bool, bool)),
+     |     ^^^^^^^^^^^^^^^^^^^^^^
+5011 |     AddJob((i32, JobType, String, String, i32, bool, bool)),
+     |     ^^^^^^
+5012 |     ResumeJob((i32, bool)),
+     |     ^^^^^^^^^
+5013 |     RecordScreen(bool),
+     |     ^^^^^^^^^^^^
+5014 |     ElevateDirect,
+     |     ^^^^^^^^^^^^^
+5015 |     ElevateWithLogon(String, String),
+     |     ^^^^^^^^^^^^^^^^
+5016 |     NewVoiceCall,
+     |     ^^^^^^^^^^^^
+5017 |     CloseVoiceCall,
+     |     ^^^^^^^^^^^^^^
+5018 |     ContinueInsecureConnection,
+5019 |     ResetDecoder(Option<usize>),
+     |     ^^^^^^^^^^^^
+5020 |     RenameFile((i32, String, String, bool)),
+     |     ^^^^^^^^^^
+5021 |     TakeScreenshot((i32, String)),
+     |     ^^^^^^^^^^^^^^
+     |
+     = note: `Data` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: variants `ControlKey` and `Chr` are never constructed
+    --> src/client.rs:5050:5
+     |
+5049 | pub enum Key {
+     |          --- variants in this enum
+5050 |     ControlKey(ControlKey),
+     |     ^^^^^^^^^^
+5051 |     Chr(u32),
+     |     ^^^
+     |
+     = note: `Key` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/client/file_trait.rs:12:8
+    |
+6   | pub trait FileManager: Interface {
+    |           ----------- methods in this trait
+...
+12  |     fn get_home_dir(&self) -> String {
+    |        ^^^^^^^^^^^^
+...
+21  |     fn get_next_job_id(&self) -> i32 {
+    |        ^^^^^^^^^^^^^^^
+...
+30  |     fn update_next_job_id(&self, id: i32) {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+52  |     fn cancel_job(&self, id: i32) {
+    |        ^^^^^^^^^^
+...
+56  |     fn read_empty_dirs(&self, path: String, include_hidden: bool) {
+    |        ^^^^^^^^^^^^^^^
+...
+80  |     fn remove_file(&self, id: i32, path: String, file_num: i32, is_remote: bool) {
+    |        ^^^^^^^^^^^
+...
+84  |     fn remove_dir_all(&self, id: i32, path: String, is_remote: bool, include_hidden: bool) {
+    |        ^^^^^^^^^^^^^^
+...
+93  |     fn confirm_delete_files(&self, id: i32, file_num: i32) {
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+102 |     fn set_no_confirm(&self, id: i32) {
+    |        ^^^^^^^^^^^^^^
+...
+106 |     fn remove_dir(&self, id: i32, path: String, is_remote: bool) {
+    |        ^^^^^^^^^^
+...
+114 |     fn create_dir(&self, id: i32, path: String, is_remote: bool) {
+    |        ^^^^^^^^^^
+...
+118 |     fn send_files(
+    |        ^^^^^^^^^^
+...
+139 |     fn add_job(
+    |        ^^^^^^^
+...
+160 |     fn resume_job(&self, id: i32, is_remote: bool) {
+    |        ^^^^^^^^^^
+...
+164 |     fn set_confirm_override_file(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+186 |     fn rename_file(&self, act_id: i32, path: String, new_name: String, is_remote: bool) {
+    |        ^^^^^^^^^^^
+
+warning: fields `speed`, `fps`, `target_bitrate`, `codec_format`, and `chroma` are never read
+  --> src/client/helper.rs:8:9
+   |
+7  | pub struct QualityStatus {
+   |            ------------- fields in this struct
+8  |     pub speed: Option<String>,
+   |         ^^^^^
+9  |     pub fps: HashMap<usize, i32>,
+   |         ^^^
+10 |     pub delay: Option<i32>,
+11 |     pub target_bitrate: Option<i32>,
+   |         ^^^^^^^^^^^^^^
+12 |     pub codec_format: Option<CodecFormat>,
+   |         ^^^^^^^^^^^^
+13 |     pub chroma: Option<String>,
+   |         ^^^^^^
+   |
+   = note: `QualityStatus` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: function `handle_screenshot` is never used
+   --> src/client/screenshot.rs:101:8
+    |
+101 | pub fn handle_screenshot(action: String) -> String {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `discover` is never used
+  --> src/lan.rs:77:14
+   |
+77 | pub async fn discover() -> ResultType<()> {
+   |              ^^^^^^^^
+
+warning: function `send_wol` is never used
+  --> src/lan.rs:86:8
+   |
+86 | pub fn send_wol(id: String) {
+   |        ^^^^^^^^
+
+warning: function `create_broadcast_sockets` is never used
+   --> src/lan.rs:164:4
+    |
+164 | fn create_broadcast_sockets() -> Vec<UdpSocket> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `send_query` is never used
+   --> src/lan.rs:188:4
+    |
+188 | fn send_query() -> ResultType<Vec<UdpSocket>> {
+    |    ^^^^^^^^^^
+
+warning: function `wait_response` is never used
+   --> src/lan.rs:221:4
+    |
+221 | fn wait_response(
+    |    ^^^^^^^^^^^^^
+
+warning: function `spawn_wait_responses` is never used
+   --> src/lan.rs:298:4
+    |
+298 | fn spawn_wait_responses(sockets: Vec<UdpSocket>) -> UnboundedReceiver<config::DiscoveryPeer> {
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `handle_received_peers` is never used
+   --> src/lan.rs:313:10
+    |
+313 | async fn handle_received_peers(mut rx: UnboundedReceiver<config::DiscoveryPeer>) -> ResultType<()> {
+    |          ^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `gen_totp_info` and `into_string` are never used
+  --> src/auth_2fa.rs:42:8
+   |
+28 | impl TOTPInfo {
+   | ------------- associated items in this implementation
+...
+42 |     fn gen_totp_info(name: String, digits: usize) -> ResultType<TOTPInfo> {
+   |        ^^^^^^^^^^^^^
+...
+54 |     pub fn into_string(&self) -> ResultType<String> {
+   |            ^^^^^^^^^^^
+
+warning: function `generate2fa` is never used
+  --> src/auth_2fa.rs:76:8
+   |
+76 | pub fn generate2fa() -> String {
+   |        ^^^^^^^^^^^
+
+warning: function `verify2fa` is never used
+  --> src/auth_2fa.rs:91:8
+   |
+91 | pub fn verify2fa(code: String) -> bool {
+   |        ^^^^^^^^^
+
+warning: methods `into_string` and `save` are never used
+   --> src/auth_2fa.rs:123:8
+    |
+122 | impl TelegramBot {
+    | ---------------- methods in this implementation
+123 |     fn into_string(&self) -> ResultType<String> {
+    |        ^^^^^^^^^^^
+...
+133 |     fn save(&self) -> ResultType<()> {
+    |        ^^^^
+
+warning: function `get_chatid_telegram` is never used
+   --> src/auth_2fa.rs:165:8
+    |
+165 | pub fn get_chatid_telegram(bot_token: &str) -> ResultType<Option<String>> {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `OPTION_ALLOW_SYNC_CLIPBOARD_BETWEEN_SESSIONS` is never used
+  --> src/clipboard.rs:17:11
+   |
+17 | pub const OPTION_ALLOW_SYNC_CLIPBOARD_BETWEEN_SESSIONS: &str =
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `LANGS` is never used
+  --> src/lang.rs:58:11
+   |
+58 | pub const LANGS: &[(&str, &str)] = &[
+   |           ^^^^^
+
+warning: function `cjk_ui_unavailable` is never used
+   --> src/lang.rs:114:15
+    |
+114 | pub(crate) fn cjk_ui_unavailable() -> bool {
+    |               ^^^^^^^^^^^^^^^^^^
+
+warning: function `translate` is never used
+   --> src/lang.rs:179:8
+    |
+179 | pub fn translate(name: String) -> String {
+    |        ^^^^^^^^^
+
+warning: function `translate_locale` is never used
+   --> src/lang.rs:184:8
+    |
+184 | pub fn translate_locale(name: String, locale: &str) -> String {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `update_controlling_session_count` is never used
+  --> src/updater.rs:83:8
+   |
+83 | pub fn update_controlling_session_count(count: usize) {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `check_click_time` is never used
+   --> src/ui_cm_interface.rs:354:8
+    |
+354 | pub fn check_click_time(id: i32) {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `get_click_time` is never used
+   --> src/ui_cm_interface.rs:361:8
+    |
+361 | pub fn get_click_time() -> i64 {
+    |        ^^^^^^^^^^^^^^
+
+warning: function `close_window` is never used
+   --> src/ui_cm_interface.rs:386:8
+    |
+386 | pub fn close_window(id: i32) {
+    |        ^^^^^^^^^^^^
+
+warning: function `remove` is never used
+   --> src/ui_cm_interface.rs:393:8
+    |
+393 | pub fn remove(id: i32) {
+    |        ^^^^^^
+
+warning: function `get_clients_length` is never used
+   --> src/ui_cm_interface.rs:465:8
+    |
+465 | pub fn get_clients_length() -> usize {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `can_elevate` is never used
+    --> src/ui_cm_interface.rs:1735:8
+     |
+1735 | pub fn can_elevate() -> bool {
+     |        ^^^^^^^^^^^
+
+warning: function `elevate_portable` is never used
+    --> src/ui_cm_interface.rs:1742:8
+     |
+1742 | pub fn elevate_portable(_id: i32) {
+     |        ^^^^^^^^^^^^^^^^
+
+warning: struct `LoginDeviceInfo` is never constructed
+  --> src/ui_interface.rs:52:12
+   |
+52 | pub struct LoginDeviceInfo {
+   |            ^^^^^^^^^^^^^^^
+
+warning: constant `INIT_ASYNC_JOB_STATUS` is never used
+  --> src/ui_interface.rs:89:7
+   |
+89 | const INIT_ASYNC_JOB_STATUS: &str = " ";
+   |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `goto_install` is never used
+   --> src/ui_interface.rs:101:8
+    |
+101 | pub fn goto_install() {
+    |        ^^^^^^^^^^^^
+
+warning: function `install_me` is never used
+   --> src/ui_interface.rs:107:8
+    |
+107 | pub fn install_me(_options: String, _path: String, _silent: bool, _debug: bool) {
+    |        ^^^^^^^^^^
+
+warning: function `update_me` is never used
+   --> src/ui_interface.rs:118:8
+    |
+118 | pub fn update_me(_path: String) {
+    |        ^^^^^^^^^
+
+warning: function `run_without_install` is never used
+   --> src/ui_interface.rs:123:8
+    |
+123 | pub fn run_without_install() {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `show_run_without_install` is never used
+   --> src/ui_interface.rs:129:8
+    |
+129 | pub fn show_run_without_install() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_license` is never used
+   --> src/ui_interface.rs:140:8
+    |
+140 | pub fn get_license() -> String {
+    |        ^^^^^^^^^^^
+
+warning: function `refresh_options` is never used
+   --> src/ui_interface.rs:156:8
+    |
+156 | pub fn refresh_options() {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `is_option_fixed` is never used
+   --> src/ui_interface.rs:214:8
+    |
+214 | pub fn is_option_fixed(key: &str) -> bool {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `peer_has_password` is never used
+   --> src/ui_interface.rs:290:8
+    |
+290 | pub fn peer_has_password(id: String) -> bool {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `forget_password` is never used
+   --> src/ui_interface.rs:295:8
+    |
+295 | pub fn forget_password(id: String) {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_peer_option` is never used
+   --> src/ui_interface.rs:302:8
+    |
+302 | pub fn get_peer_option(id: String, name: String) -> String {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `set_peer_option` is never used
+   --> src/ui_interface.rs:327:8
+    |
+327 | pub fn set_peer_option(id: String, name: String, value: String) {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_options` is never used
+   --> src/ui_interface.rs:338:8
+    |
+338 | pub fn get_options() -> String {
+    |        ^^^^^^^^^^^
+
+warning: function `test_if_valid_server` is never used
+   --> src/ui_interface.rs:357:8
+    |
+357 | pub fn test_if_valid_server(host: String, test_with_proxy: bool) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `set_options` is never used
+   --> src/ui_interface.rs:412:8
+    |
+412 | pub fn set_options(m: HashMap<String, String>) {
+    |        ^^^^^^^^^^^
+
+warning: function `install_path` is never used
+   --> src/ui_interface.rs:469:8
+    |
+469 | pub fn install_path() -> String {
+    |        ^^^^^^^^^^^^
+
+warning: function `install_options` is never used
+   --> src/ui_interface.rs:477:8
+    |
+477 | pub fn install_options() -> String {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_socks` is never used
+   --> src/ui_interface.rs:485:8
+    |
+485 | pub fn get_socks() -> Vec<String> {
+    |        ^^^^^^^^^
+
+warning: function `set_socks` is never used
+   --> src/ui_interface.rs:503:8
+    |
+503 | pub fn set_socks(proxy: String, username: String, password: String) {
+    |        ^^^^^^^^^
+
+warning: function `is_installed` is never used
+   --> src/ui_interface.rs:540:8
+    |
+540 | pub fn is_installed() -> bool {
+    |        ^^^^^^^^^^^^
+
+warning: function `is_share_rdp` is never used
+   --> src/ui_interface.rs:551:8
+    |
+551 | pub fn is_share_rdp() -> bool {
+    |        ^^^^^^^^^^^^
+
+warning: function `set_share_rdp` is never used
+   --> src/ui_interface.rs:559:8
+    |
+559 | pub fn set_share_rdp(_enable: bool) {
+    |        ^^^^^^^^^^^^^
+
+warning: function `is_installed_lower_version` is never used
+   --> src/ui_interface.rs:565:8
+    |
+565 | pub fn is_installed_lower_version() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_mouse_time` is never used
+   --> src/ui_interface.rs:577:8
+    |
+577 | pub fn get_mouse_time() -> f64 {
+    |        ^^^^^^^^^^^^^^
+
+warning: function `check_mouse_time` is never used
+   --> src/ui_interface.rs:582:8
+    |
+582 | pub fn check_mouse_time() {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `get_connect_status` is never used
+   --> src/ui_interface.rs:592:8
+    |
+592 | pub fn get_connect_status() -> UiStatus {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `temporary_password` is never used
+   --> src/ui_interface.rs:597:8
+    |
+597 | pub fn temporary_password() -> String {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `update_temporary_password` is never used
+   --> src/ui_interface.rs:605:8
+    |
+605 | pub fn update_temporary_password() {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_permanent_password_set` is never used
+   --> src/ui_interface.rs:613:8
+    |
+613 | pub fn is_permanent_password_set() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_local_permanent_password_set` is never used
+   --> src/ui_interface.rs:635:8
+    |
+635 | pub fn is_local_permanent_password_set() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `set_permanent_password_with_result` is never used
+   --> src/ui_interface.rs:645:8
+    |
+645 | pub fn set_permanent_password_with_result(password: String) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_peer` is never used
+   --> src/ui_interface.rs:666:8
+    |
+666 | pub fn get_peer(id: String) -> PeerConfig {
+    |        ^^^^^^^^
+
+warning: function `get_fav` is never used
+   --> src/ui_interface.rs:671:8
+    |
+671 | pub fn get_fav() -> Vec<String> {
+    |        ^^^^^^^
+
+warning: function `store_fav` is never used
+   --> src/ui_interface.rs:676:8
+    |
+676 | pub fn store_fav(fav: Vec<String>) {
+    |        ^^^^^^^^^
+
+warning: function `is_process_trusted` is never used
+   --> src/ui_interface.rs:681:8
+    |
+681 | pub fn is_process_trusted(_prompt: bool) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `is_can_screen_recording` is never used
+   --> src/ui_interface.rs:689:8
+    |
+689 | pub fn is_can_screen_recording(_prompt: bool) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_installed_daemon` is never used
+   --> src/ui_interface.rs:697:8
+    |
+697 | pub fn is_installed_daemon(_prompt: bool) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_error` is never used
+   --> src/ui_interface.rs:714:8
+    |
+714 | pub fn get_error() -> String {
+    |        ^^^^^^^^^
+
+warning: function `is_login_wayland` is never used
+   --> src/ui_interface.rs:734:8
+    |
+734 | pub fn is_login_wayland() -> bool {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `current_is_wayland` is never used
+   --> src/ui_interface.rs:742:8
+    |
+742 | pub fn current_is_wayland() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `get_new_version` is never used
+   --> src/ui_interface.rs:750:8
+    |
+750 | pub fn get_new_version() -> String {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_version` is never used
+   --> src/ui_interface.rs:761:8
+    |
+761 | pub fn get_version() -> String {
+    |        ^^^^^^^^^^^
+
+warning: function `get_lan_peers` is never used
+   --> src/ui_interface.rs:810:8
+    |
+810 | pub fn get_lan_peers() -> Vec<HashMap<&'static str, String>> {
+    |        ^^^^^^^^^^^^^
+
+warning: function `remove_discovered` is never used
+   --> src/ui_interface.rs:826:8
+    |
+826 | pub fn remove_discovered(id: String) {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `get_uuid` is never used
+   --> src/ui_interface.rs:833:8
+    |
+833 | pub fn get_uuid() -> String {
+    |        ^^^^^^^^
+
+warning: function `get_init_async_job_status` is never used
+   --> src/ui_interface.rs:838:8
+    |
+838 | pub fn get_init_async_job_status() -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `reset_async_job_status` is never used
+   --> src/ui_interface.rs:843:8
+    |
+843 | pub fn reset_async_job_status() {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `http_request` is never used
+   --> src/ui_interface.rs:858:8
+    |
+858 | pub fn http_request(url: String, method: String, body: Option<String>, header: String) {
+    |        ^^^^^^^^^^^^
+
+warning: function `get_async_http_status` is never used
+   --> src/ui_interface.rs:878:8
+    |
+878 | pub fn get_async_http_status(url: String) -> Option<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `post_request` is never used
+   --> src/ui_interface.rs:887:8
+    |
+887 | pub fn post_request(url: String, body: String, header: String) {
+    |        ^^^^^^^^^^^^
+
+warning: function `get_async_job_status` is never used
+   --> src/ui_interface.rs:898:8
+    |
+898 | pub fn get_async_job_status() -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_langs` is never used
+   --> src/ui_interface.rs:903:8
+    |
+903 | pub fn get_langs() -> String {
+    |        ^^^^^^^^^
+
+warning: method `message` is never used
+    --> src/ui_interface.rs:1066:12
+     |
+1065 | impl DeployResult {
+     | ----------------- method in this implementation
+1066 |     pub fn message(&self) -> String {
+     |            ^^^^^^^
+
+warning: function `has_hwcodec` is never used
+    --> src/ui_interface.rs:1154:8
+     |
+1154 | pub fn has_hwcodec() -> bool {
+     |        ^^^^^^^^^^^
+
+warning: function `has_vram` is never used
+    --> src/ui_interface.rs:1160:8
+     |
+1160 | pub fn has_vram() -> bool {
+     |        ^^^^^^^^
+
+warning: function `is_root` is never used
+    --> src/ui_interface.rs:1187:8
+     |
+1187 | pub fn is_root() -> bool {
+     |        ^^^^^^^
+
+warning: function `check_zombie` is never used
+    --> src/ui_interface.rs:1207:8
+     |
+1207 | pub fn check_zombie() {
+     |        ^^^^^^^^^^^^
+
+warning: function `recent_sessions_updated` is never used
+    --> src/ui_interface.rs:1231:8
+     |
+1231 | pub fn recent_sessions_updated() -> bool {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `new_remote` is never used
+    --> src/ui_interface.rs:1242:8
+     |
+1242 | pub fn new_remote(id: String, remote_type: String, force_relay: bool) {
+     |        ^^^^^^^^^^
+
+warning: function `get_fingerprint` is never used
+    --> src/ui_interface.rs:1316:8
+     |
+1316 | pub fn get_fingerprint() -> String {
+     |        ^^^^^^^^^^^^^^^
+
+warning: function `get_login_device_info` is never used
+    --> src/ui_interface.rs:1328:8
+     |
+1328 | pub fn get_login_device_info() -> LoginDeviceInfo {
+     |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_login_device_info_json` is never used
+    --> src/ui_interface.rs:1338:8
+     |
+1338 | pub fn get_login_device_info_json() -> String {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `support_remove_wallpaper` is never used
+    --> src/ui_interface.rs:1633:8
+     |
+1633 | pub fn support_remove_wallpaper() -> bool {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `has_valid_2fa` is never used
+    --> src/ui_interface.rs:1640:8
+     |
+1640 | pub fn has_valid_2fa() -> bool {
+     |        ^^^^^^^^^^^^^
+
+warning: function `generate2fa` is never used
+    --> src/ui_interface.rs:1645:8
+     |
+1645 | pub fn generate2fa() -> String {
+     |        ^^^^^^^^^^^
+
+warning: function `verify2fa` is never used
+    --> src/ui_interface.rs:1649:8
+     |
+1649 | pub fn verify2fa(code: String) -> bool {
+     |        ^^^^^^^^^
+
+warning: function `has_valid_bot` is never used
+    --> src/ui_interface.rs:1657:8
+     |
+1657 | pub fn has_valid_bot() -> bool {
+     |        ^^^^^^^^^^^^^
+
+warning: function `verify_bot` is never used
+    --> src/ui_interface.rs:1661:8
+     |
+1661 | pub fn verify_bot(token: String) -> String {
+     |        ^^^^^^^^^^
+
+warning: function `check_hwcodec` is never used
+    --> src/ui_interface.rs:1671:8
+     |
+1671 | pub fn check_hwcodec() {
+     |        ^^^^^^^^^^^^^
+
+warning: function `is_remote_modify_enabled_by_control_permissions` is never used
+    --> src/ui_interface.rs:1738:8
+     |
+1738 | pub fn is_remote_modify_enabled_by_control_permissions() -> Option<bool> {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `thread` and `printer_names` are never read
+  --> src/ui_session_interface.rs:66:9
+   |
+61 | pub struct Session<T: InvokeUiSession> {
+   |            ------- fields in this struct
+...
+66 |     pub thread: Arc<Mutex<Option<std::thread::JoinHandle<()>>>>,
+   |         ^^^^^^
+...
+73 |     pub printer_names: Arc<RwLock<HashMap<i32, String>>>,
+   |         ^^^^^^^^^^^^^
+   |
+   = note: `Session` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: field `server_file_transfer_enabled` is never read
+  --> src/ui_session_interface.rs:89:9
+   |
+86 | pub struct SessionPermissionConfig {
+   |            ----------------------- field in this struct
+...
+89 |     pub server_file_transfer_enabled: Arc<RwLock<bool>>,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `SessionPermissionConfig` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: methods `new_round` and `is_connected` are never used
+   --> src/ui_session_interface.rs:113:12
+    |
+112 | impl ConnectionRoundState {
+    | ------------------------- methods in this implementation
+113 |     pub fn new_round(&mut self) -> u32 {
+    |            ^^^^^^^^^
+...
+140 |     pub fn is_connected(&self) -> bool {
+    |            ^^^^^^^^^^^^
+
+warning: multiple methods are never used
+    --> src/ui_session_interface.rs:253:12
+     |
+203  | impl<T: InvokeUiSession> Session<T> {
+     | ----------------------------------- methods in this implementation
+...
+253  |     pub fn get_view_style(&self) -> String {
+     |            ^^^^^^^^^^^^^^
+...
+257  |     pub fn get_scroll_style(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^
+...
+261  |     pub fn get_edge_scroll_edge_thickness(&self) -> i32 {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+265  |     pub fn get_image_quality(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^
+...
+269  |     pub fn get_custom_image_quality(&self) -> Vec<i32> {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+273  |     pub fn get_peer_version(&self) -> i64 {
+     |            ^^^^^^^^^^^^^^^^
+...
+277  |     pub fn get_trackpad_speed(&self) -> i32 {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+281  |     pub fn fallback_keyboard_mode(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+298  |     pub fn get_keyboard_mode(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^
+...
+315  |     pub fn is_keyboard_mode_supported(&self, mode: String) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+327  |     pub fn save_keyboard_mode(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+331  |     pub fn get_reverse_mouse_wheel(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+335  |     pub fn get_displays_as_individual_windows(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+343  |     pub fn get_use_all_my_displays_for_the_remote_session(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+351  |     pub fn save_reverse_mouse_wheel(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+355  |     pub fn save_displays_as_individual_windows(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+362  |     pub fn save_use_all_my_displays_for_the_remote_session(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+369  |     pub fn save_view_style(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^
+...
+373  |     pub fn save_scroll_style(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+377  |     pub fn save_edge_scroll_edge_thickness(&self, value: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+384  |     pub fn save_flutter_option(&self, k: String, v: String) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+388  |     pub fn get_flutter_option(&self, k: String) -> String {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+403  |     pub fn toggle_privacy_mode(&self, impl_key: String, on: bool) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+420  |     pub fn is_privacy_mode_supported(&self) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+452  |     pub fn toggle_virtual_display(&self, index: i32, on: bool) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+469  |     pub fn record_screen(&self, start: bool) {
+     |            ^^^^^^^^^^^^^
+...
+473  |     pub fn is_screenshot_supported(&self) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+477  |     pub fn take_screenshot(&self, display: i32, sid: String) {
+     |            ^^^^^^^^^^^^^^^
+...
+481  |     pub fn is_recording(&self) -> bool {
+     |            ^^^^^^^^^^^^
+...
+485  |     pub fn save_custom_image_quality(&self, custom_image_quality: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+494  |     pub fn save_image_quality(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+509  |     pub fn save_trackpad_speed(&self, trackpad_speed: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+513  |     pub fn set_custom_fps(&self, custom_fps: i32) {
+     |            ^^^^^^^^^^^^^^
+...
+518  |     pub fn get_remember(&self) -> bool {
+     |            ^^^^^^^^^^^^
+...
+523  |     pub fn set_write_override(
+     |            ^^^^^^^^^^^^^^^^^^
+...
+541  |     pub fn alternative_codecs(&self) -> (bool, bool, bool, bool) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+562  |     pub fn update_supported_decodings(&self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+567  |     pub fn use_texture_render_changed(&self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+573  |     pub fn restart_remote_device(&self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^
+...
+580  |     pub fn get_audit_server(&self, typ: String) -> String {
+     |            ^^^^^^^^^^^^^^^^
+...
+591  |     pub fn send_note(&self, note: String) {
+     |            ^^^^^^^^^
+...
+603  |     pub fn is_xfce(&self) -> bool {
+     |            ^^^^^^^
+...
+607  |     pub fn remove_port_forward(&self, port: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+618  |     pub fn add_port_forward(&self, port: i32, remote_host: String, remote_port: i32) {
+     |            ^^^^^^^^^^^^^^^^
+...
+642  |     pub fn set_option(&self, k: String, mut v: String) {
+     |            ^^^^^^^^^^
+...
+686  |     pub fn input_os_password(&self, pass: String, activate: bool) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+691  |     pub fn get_chatbox(&self) -> String {
+     |            ^^^^^^^^^^^
+...
+698  |     pub fn swap_modifier_key(&self, msg: &mut KeyEvent) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+773  |     pub fn send_key_event(&self, evt: &KeyEvent) {
+     |            ^^^^^^^^^^^^^^
+...
+783  |     pub fn send_chat(&self, text: String) {
+     |            ^^^^^^^^^
+...
+795  |     pub fn open_terminal(&self, terminal_id: i32, rows: u32, cols: u32) {
+     |            ^^^^^^^^^^^^^
+...
+808  |     pub fn send_terminal_input(&self, terminal_id: i32, data: String) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+820  |     pub fn resize_terminal(&self, terminal_id: i32, rows: u32, cols: u32) {
+     |            ^^^^^^^^^^^^^^^
+...
+833  |     pub fn close_terminal(&self, terminal_id: i32) {
+     |            ^^^^^^^^^^^^^^
+...
+880  |     pub fn enter(&self, keyboard_mode: String) {
+     |            ^^^^^
+...
+886  |     pub fn leave(&self, keyboard_mode: String) {
+     |            ^^^^^
+...
+892  |     pub fn input_key(
+     |            ^^^^^^^^^
+...
+913  |     pub fn input_string(&self, value: &str) {
+     |            ^^^^^^^^^^^^
+...
+934  |     pub fn handle_flutter_raw_key_event(
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+995  |     pub fn handle_flutter_key_event(
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1148 |     pub fn send_touch_scale(&self, scale: i32, alt: bool, ctrl: bool, shift: bool, command: bool) {
+     |            ^^^^^^^^^^^^^^^^
+...
+1160 |     pub fn send_touch_pan_event(
+     |            ^^^^^^^^^^^^^^^^^^^^
+...
+1206 |     fn is_scroll_reverse_mode(&self) -> bool {
+     |        ^^^^^^^^^^^^^^^^^^^^^^
+...
+1211 |     fn get_scroll_xy(&self, xy: (i32, i32)) -> (i32, i32) {
+     |        ^^^^^^^^^^^^^
+...
+1219 |     pub fn send_mouse(
+     |            ^^^^^^^^^^
+...
+1292 |     pub fn reconnect(&self, force_relay: bool) {
+     |            ^^^^^^^^^
+...
+1330 |     pub fn get_icon_path(&self, file_type: i32, ext: String) -> String {
+     |            ^^^^^^^^^^^^^
+...
+1409 |     pub fn get_enable_trusted_devices(&self) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1413 |     pub fn new_rdp(&self) {
+     |            ^^^^^^^
+...
+1417 |     pub fn close(&self) {
+     |            ^^^^^
+...
+1488 |     pub fn elevate_direct(&self) {
+     |            ^^^^^^^^^^^^^^
+...
+1492 |     pub fn elevate_with_logon(&self, username: String, password: String) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+1497 |     pub fn switch_sides(&self) {}
+     |            ^^^^^^^^^^^^
+...
+1607 |     pub fn request_voice_call(&self) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+1614 |     pub fn close_voice_call(&self) {
+     |            ^^^^^^^^^^^^^^^^
+...
+1659 |     pub fn request_init_msgs(&self, display: usize) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+1663 |     fn send_message_query(&self, display: usize) {
+     |        ^^^^^^^^^^^^^^^^^^
+...
+1674 |     pub fn get_conn_token(&self) -> Option<String> {
+     |            ^^^^^^^^^^^^^^
+...
+1678 |     pub fn printer_response(&self, id: i32, path: String, printer_name: String) {
+     |            ^^^^^^^^^^^^^^^^
+
+warning: methods `switch_back`, `on_voice_call_incoming`, `get_rgba`, `next_rgba`, and `printer_request` are never used
+    --> src/ui_session_interface.rs:1740:8
+     |
+1693 | pub trait InvokeUiSession: Send + Sync + Clone + 'static + Sized + Default {
+     |           --------------- methods in this trait
+...
+1740 |     fn switch_back(&self, id: &str);
+     |        ^^^^^^^^^^^
+...
+1745 |     fn on_voice_call_incoming(&self);
+     |        ^^^^^^^^^^^^^^^^^^^^^^
+1746 |     fn get_rgba(&self, display: usize) -> *const u8;
+     |        ^^^^^^^^
+1747 |     fn next_rgba(&self, display: usize);
+     |        ^^^^^^^^^
+...
+1756 |     fn printer_request(&self, id: i32, path: String);
+     |        ^^^^^^^^^^^^^^^
+
+warning: methods `lock_screen` and `ctrl_alt_del` are never used
+    --> src/ui_session_interface.rs:1953:12
+     |
+1952 | impl<T: InvokeUiSession> Session<T> {
+     | ----------------------------------- methods in this implementation
+1953 |     pub fn lock_screen(&self) {
+     |            ^^^^^^^^^^^
+...
+1956 |     pub fn ctrl_alt_del(&self) {
+     |            ^^^^^^^^^^^^
+
+warning: function `send_note` is never used
+    --> src/ui_session_interface.rs:2092:10
+     |
+2092 | async fn send_note(url: String, id: String, sid: u64, note: String) {
+     |          ^^^^^^^^^
+
+warning: enum `HbbHttpResponse` is never used
+  --> src/hbbs_http.rs:17:10
+   |
+17 | pub enum HbbHttpResponse<T> {
+   |          ^^^^^^^^^^^^^^^
+
+warning: associated function `parse` is never used
+  --> src/hbbs_http.rs:25:12
+   |
+24 | impl<T: DeserializeOwned> HbbHttpResponse<T> {
+   | -------------------------------------------- associated function in this implementation
+25 |     pub fn parse(body: &str) -> ResultType<Self> {
+   |            ^^^^^
+
+warning: struct `DownloadData` is never constructed
+  --> src/hbbs_http/downloader.rs:26:12
+   |
+26 | pub struct DownloadData {
+   |            ^^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/hbbs_http/downloader.rs:39:5
+   |
+38 | struct Downloader {
+   |        ---------- fields in this struct
+39 |     data: Vec<u8>,
+   |     ^^^^
+40 |     path: Option<PathBuf>,
+   |     ^^^^
+41 |     // Some file may be empty, so we use Option<u64> to indicate if the size is known
+42 |     total_size: Option<u64>,
+   |     ^^^^^^^^^^
+43 |     downloaded_size: u64,
+   |     ^^^^^^^^^^^^^^^
+44 |     error: Option<String>,
+   |     ^^^^^
+45 |     finished: bool,
+   |     ^^^^^^^^
+46 |     tx_cancel: UnboundedSender<()>,
+   |     ^^^^^^^^^
+
+warning: function `download_file` is never used
+  --> src/hbbs_http/downloader.rs:50:8
+   |
+50 | pub fn download_file(
+   |        ^^^^^^^^^^^^^
+
+warning: function `do_download` is never used
+   --> src/hbbs_http/downloader.rs:163:10
+    |
+163 | async fn do_download(
+    |          ^^^^^^^^^^^
+
+warning: function `get_download_data` is never used
+   --> src/hbbs_http/downloader.rs:274:8
+    |
+274 | pub fn get_download_data(id: &str) -> ResultType<DownloadData> {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `cancel` is never used
+   --> src/hbbs_http/downloader.rs:299:8
+    |
+299 | pub fn cancel(id: &str) {
+    |        ^^^^^^
+
+warning: function `remove` is never used
+   --> src/hbbs_http/downloader.rs:307:8
+    |
+307 | pub fn remove(id: &str) {
+    |        ^^^^^^
+
+warning: function `create_http_client_async_with_url` is never used
+   --> src/hbbs_http/http_client.rs:260:14
+    |
+260 | pub async fn create_http_client_async_with_url(url: &str) -> AsyncClient {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_strict` is never used
+   --> src/hbbs_http/http_client.rs:278:14
+    |
+278 | pub async fn create_http_client_async_with_url_strict(url: &str) -> ResultType<AsyncClient> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_` is never used
+   --> src/hbbs_http/http_client.rs:306:10
+    |
+306 | async fn create_http_client_async_with_url_(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused `hbb_common::sodiumoxide::crypto::secretbox::Key` that must be used
+    --> src/common.rs:3538:13
+     |
+3538 |             hbb_common::tcp::Encrypt::decode(&ex.keys[1], &ex.keys[0], &eph_sk).unwrap();
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(unused_must_use)]` on by default
+help: use `let _ = ...` to ignore the resulting value
+     |
+3538 |             let _ = hbb_common::tcp::Encrypt::decode(&ex.keys[1], &ex.keys[0], &eph_sk).unwrap();
+     |             +++++++
+
+warning: module `pt_BR` should have a snake case name
+  --> src/lang.rs:36:5
+   |
+36 | mod pt_BR;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_br`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: module `pt_PT` should have a snake case name
+  --> src/lang.rs:37:5
+   |
+37 | mod pt_PT;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_pt`
+
+warning: `rustdesk` (lib test) generated 182 warnings (run `cargo fix --lib -p rustdesk --tests` to apply 8 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 32.83s
+     Running unittests src/lib.rs (/workspace/Build/Linux/target/debug/deps/librustdesk-092117bf2c9dd4c1)
+
+running 3 tests
+test farpane_native::host_clipboard::tests::migration_is_text_only_and_invalid_explicit_policy_fails_closed ... ok
+test farpane_native::host_clipboard::tests::global_network_credit_preserves_latest_watch_and_never_resends_completed_value ... ok
+test farpane_native::host_clipboard::tests::incoming_real_wire_coalesces_and_revoke_invalidates_active_and_pending ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 435 filtered out; finished in 0.00s
+
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+warning: unexpected `cfg` condition value: `cargo-clippy`
+  --> /workspace/Build/Linux/src/clipboard_master/src/lib.rs:42:13
+   |
+42 | #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+   |
+   = note: no expected values for `feature`
+   = help: consider adding `cargo-clippy` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: `clipboard-master` (lib) generated 1 warning
+   Compiling rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+    Checking scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Duration` and `path::PathBuf`
+  --> src/flutter_ffi.rs:27:5
+   |
+27 |     path::PathBuf,
+   |     ^^^^^^^^^^^^^
+...
+32 |     time::{Duration, SystemTime},
+   |            ^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2212:51
+     |
+2212 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2227:47
+     |
+2227 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: variable does not need to be mutable
+    --> src/flutter_ffi.rs:1085:9
+     |
+1085 |     let mut map: HashMap<String, String> = serde_json::from_str(&json).unwrap_or(HashMap::new());
+     |         ----^^^
+     |         |
+     |         help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/tray.rs:156:17
+    |
+156 |             let mut builder = TrayIconBuilder::new()
+    |                 ----^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/tray.rs:64:9
+   |
+64 |     let mut event_loop = EventLoopBuilder::new().build();
+   |         ----^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: type `server::video_service::CapturerInfo` is more private than the item `gpu::capture`
+   --> src/server/linux_gpu_capture.rs:92:1
+    |
+92  | / pub(crate) fn capture(eligible: Eligibility, generation: u64, failure: Failure)
+93  | |     -> ResultType<(super::super::video_service::CapturerInfo, Descriptor)> {
+    | |__________________________________________________________________________^ function `gpu::capture` is reachable at visibility `pub(crate)`
+    |
+note: but type `server::video_service::CapturerInfo` is only usable at visibility `pub(in crate::server)`
+   --> src/server/video_service.rs:429:1
+    |
+429 | pub(super) struct CapturerInfo {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: function `is_opensuse` is never used
+    --> src/platform/linux.rs:1413:4
+     |
+1413 | fn is_opensuse() -> bool {
+     |    ^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` on by default
+
+warning: fields `0` and `1` are never read
+    --> src/platform/linux.rs:2613:21
+     |
+2613 | pub struct WakeLock(Option<keepawake::AwakeHandle>, Option<SessionIdleInhibit>);
+     |            -------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |            |
+     |            fields in this struct
+     |
+     = help: consider removing these fields
+
+warning: variants `Side`, `Extra`, `Back`, `Forward`, and `Task` are never constructed
+    --> src/server/uinput.rs:1135:9
+     |
+1132 |     pub enum MouseButton {
+     |              ----------- variants in this enum
+...
+1135 |         Side,
+     |         ^^^^
+1136 |         Extra,
+     |         ^^^^^
+1137 |         Right,
+1138 |         Back,
+     |         ^^^^
+1139 |         Forward,
+     |         ^^^^^^^
+1140 |         Task,
+     |         ^^^^
+     |
+     = note: `MouseButton` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Right` and `Left` are never constructed
+    --> src/server/uinput.rs:1147:9
+     |
+1144 |     pub enum ScrollDirection {
+     |              --------------- variants in this enum
+...
+1147 |         Right,
+     |         ^^^^^
+1148 |         Left,
+     |         ^^^^
+     |
+     = note: `ScrollDirection` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `resolution` is never read
+   --> src/server/rdp_input.rs:322:9
+    |
+318 |     pub struct RdpInputMouse {
+    |                ------------- field in this struct
+...
+322 |         resolution: (usize, usize),
+    |         ^^^^^^^^^^
+
+warning: constant `MOUSE_MOVE_PROTECTION_TIMEOUT` is never used
+   --> src/server/input_service.rs:634:7
+    |
+634 | const MOUSE_MOVE_PROTECTION_TIMEOUT: Duration = Duration::from_millis(1_000);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MOUSE_ACTIVE_DISTANCE` is never used
+   --> src/server/input_service.rs:636:7
+    |
+636 | const MOUSE_ACTIVE_DISTANCE: i32 = 5;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `enable_file_transfer` is never read
+   --> src/server/connection.rs:411:5
+    |
+356 | pub struct Connection {
+    |            ---------- field in this struct
+...
+411 |     enable_file_transfer: bool,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_capturer_mag_supported` is never used
+   --> src/server/display_service.rs:610:4
+    |
+610 | fn is_capturer_mag_supported() -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `message` is never used
+    --> src/ui_interface.rs:1066:12
+     |
+1065 | impl DeployResult {
+     | ----------------- method in this implementation
+1066 |     pub fn message(&self) -> String {
+     |            ^^^^^^^
+
+warning: field `finished` is never read
+  --> src/hbbs_http/downloader.rs:45:5
+   |
+38 | struct Downloader {
+   |        ---------- field in this struct
+...
+45 |     finished: bool,
+   |     ^^^^^^^^
+
+warning: function `download_file` is never used
+  --> src/hbbs_http/downloader.rs:50:8
+   |
+50 | pub fn download_file(
+   |        ^^^^^^^^^^^^^
+
+warning: function `do_download` is never used
+   --> src/hbbs_http/downloader.rs:163:10
+    |
+163 | async fn do_download(
+    |          ^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url` is never used
+   --> src/hbbs_http/http_client.rs:260:14
+    |
+260 | pub async fn create_http_client_async_with_url(url: &str) -> AsyncClient {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_strict` is never used
+   --> src/hbbs_http/http_client.rs:278:14
+    |
+278 | pub async fn create_http_client_async_with_url_strict(url: &str) -> ResultType<AsyncClient> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_` is never used
+   --> src/hbbs_http/http_client.rs:306:10
+    |
+306 | async fn create_http_client_async_with_url_(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: module `pt_BR` should have a snake case name
+  --> src/lang.rs:36:5
+   |
+36 | mod pt_BR;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_br`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: module `pt_PT` should have a snake case name
+  --> src/lang.rs:37:5
+   |
+37 | mod pt_PT;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_pt`
+
+warning: `rustdesk` (lib) generated 32 warnings (run `cargo fix --lib -p rustdesk` to apply 10 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.99s
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+warning: unexpected `cfg` condition value: `cargo-clippy`
+  --> /workspace/Build/Linux/src/clipboard_master/src/lib.rs:42:13
+   |
+42 | #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+   |
+   = note: no expected values for `feature`
+   = help: consider adding `cargo-clippy` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: `clipboard-master` (lib) generated 1 warning
+   Compiling rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+   Compiling scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ClipboardSide` and `update_clipboard`
+  --> src/server/connection.rs:10:24
+   |
+10 | use crate::clipboard::{update_clipboard, ClipboardSide};
+   |                        ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: unused import: `uuid::Uuid`
+  --> src/ui_session_interface.rs:41:5
+   |
+41 | use uuid::Uuid;
+   |     ^^^^^^^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2212:51
+     |
+2212 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2227:47
+     |
+2227 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+  --> src/farpane_native/viewer_ui.rs:73:39
+   |
+73 |             rgba: hbb_common::base64::encode(cd.colors),
+   |                                       ^^^^^^
+
+warning: unreachable pattern
+    --> src/server/connection.rs:6591:21
+     |
+6591 |                     _ => {}
+     |                     ^ no value can reach this
+     |
+note: multiple earlier patterns match some of the same values
+    --> src/server/connection.rs:6591:21
+     |
+6557 |                     Err(err) => {
+     |                     -------- matches some of the same values
+...
+6560 |                     Ok(Some(data)) => {
+     |                     -------------- matches some of the same values
+...
+6590 |                     Ok(None) => bail!("Native connection manager disconnected"),
+     |                     -------- matches some of the same values
+6591 |                     _ => {}
+     |                     ^ collectively making this unreachable
+     = note: `#[warn(unreachable_patterns)]` on by default
+
+warning: unreachable statement
+    --> src/platform/linux.rs:1002:5
+     |
+1001 |       { crate::farpane_native::process::stop_servers(None); return; }
+     |                                                             ------ any code following this expression is unreachable
+1002 | /     let _ = run_cmds(&format!(
+1003 | |         r##"ps -ef | grep -E '{} +--server' | awk '{{print $2}}' | xargs -r kill -9"##,
+1004 | |         crate::get_app_name().to_lowercase(),
+1005 | |     ));
+     | |_______^ unreachable statement
+     |
+     = note: `#[warn(unreachable_code)]` on by default
+
+warning: unreachable statement
+    --> src/platform/linux.rs:1019:5
+     |
+1018 |     { if try_x11 && (is_display_changed || *uid != desktop.uid) { set_x11_env(desktop); } let Ok(next_uid) = desktop.uid.parse() else { return false; }; return crate::farpane_native::supervisor::should_start(next_uid, uid, is_display_changed, last_restart, server); }
+     |                                                                                                                                                          --------------------------------------------------------------------------------------------------------------- any code following this expression is unreachable
+1019 |     let cm = get_cm();
+     |     ^^^^^^^^^^^^^^^^^^ unreachable statement
+
+warning: unreachable statement
+    --> src/ui_cm_interface.rs:1779:5
+     |
+1777 |     { crate::farpane_native::cm::ready(false); return; }
+     |                                                ------ any code following this expression is unreachable
+1778 |     // in case of std::process::exit not work
+1779 |     log::info!("quit cm");
+     |     ^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+     |
+     = note: this warning originates in the macro `$crate::log` which comes from the expansion of the macro `log::info` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused variable: `is_press`
+   --> src/keyboard.rs:689:17
+    |
+689 |             let is_press = matches!(event.event_type, EventType::KeyPress(_));
+    |                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_press`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `key_event`
+   --> src/keyboard.rs:993:23
+    |
+993 | pub fn send_key_event(key_event: &KeyEvent) {
+    |                       ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_key_event`
+
+warning: unused variable: `cm0`
+    --> src/platform/linux.rs:1013:5
+     |
+1013 |     cm0: &mut bool,
+     |     ^^^ help: if this is intentional, prefix it with an underscore: `_cm0`
+
+warning: unused variable: `evt`
+    --> src/server/input_service.rs:1472:34
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_evt`
+
+warning: unused variable: `conn`
+    --> src/server/input_service.rs:1472:52
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_conn`
+
+warning: unused variable: `username`
+    --> src/server/input_service.rs:1472:63
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                               ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_username`
+
+warning: unused variable: `argb`
+    --> src/server/input_service.rs:1472:81
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                                                 ^^^^ help: if this is intentional, prefix it with an underscore: `_argb`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `lease`
+   --> src/farpane_native/viewer_media.rs:274:21
+    |
+274 |                     lease,
+    |                     ^^^^^ help: try ignoring the field: `lease: _`
+
+warning: type `server::video_service::CapturerInfo` is more private than the item `gpu::capture`
+   --> src/server/linux_gpu_capture.rs:92:1
+    |
+92  | / pub(crate) fn capture(eligible: Eligibility, generation: u64, failure: Failure)
+93  | |     -> ResultType<(super::super::video_service::CapturerInfo, Descriptor)> {
+    | |__________________________________________________________________________^ function `gpu::capture` is reachable at visibility `pub(crate)`
+    |
+note: but type `server::video_service::CapturerInfo` is only usable at visibility `pub(in crate::server)`
+   --> src/server/video_service.rs:429:1
+    |
+429 | pub(super) struct CapturerInfo {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: static `KEYBOARD_HOOKED` is never used
+  --> src/keyboard.rs:36:8
+   |
+36 | static KEYBOARD_HOOKED: AtomicBool = AtomicBool::new(false);
+   |        ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `get_keyboard_mode` is never used
+   --> src/keyboard.rs:471:4
+    |
+471 | fn get_keyboard_mode() -> String {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `start_grab_loop` is never used
+   --> src/keyboard.rs:612:4
+    |
+612 | fn start_grab_loop() {
+    |    ^^^^^^^^^^^^^^^
+
+warning: fields `owner`, `last_grab`, and `deferred_pending` are never read
+   --> src/keyboard.rs:99:9
+    |
+98  |     struct GrabOwnerState {
+    |            -------------- fields in this struct
+99  |         owner: Option<u128>,
+    |         ^^^^^
+100 |         last_grab: Option<std::time::Instant>,
+    |         ^^^^^^^^^
+...
+103 |         deferred_pending: bool,
+    |         ^^^^^^^^^^^^^^^^
+
+warning: constant `GRAB_DEBOUNCE_MS` is never used
+   --> src/keyboard.rs:109:11
+    |
+109 |     const GRAB_DEBOUNCE_MS: u128 = 300;
+    |           ^^^^^^^^^^^^^^^^
+
+warning: function `apply_run_grab_if_owner` is never used
+   --> src/keyboard.rs:122:8
+    |
+122 |     fn apply_run_grab_if_owner(session_id: u128, disable_first: bool) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `disable_grab_if_released` is never used
+   --> src/keyboard.rs:137:8
+    |
+137 |     fn disable_grab_if_released() {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `start_grab_loop` is never used
+   --> src/keyboard.rs:148:12
+    |
+148 |     pub fn start_grab_loop() {
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `change_grab_status` is never used
+   --> src/keyboard.rs:158:12
+    |
+158 |     pub fn change_grab_status(state: GrabState, keyboard_mode: &str, session_id: u128) {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: function `process_event_with_session` is never used
+   --> src/keyboard.rs:332:12
+    |
+332 |     pub fn process_event_with_session<T: InvokeUiSession>(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_opensuse` is never used
+    --> src/platform/linux.rs:1413:4
+     |
+1413 | fn is_opensuse() -> bool {
+     |    ^^^^^^^^^^^
+
+warning: type alias `GObjectPtr` is never used
+    --> src/platform/linux.rs:1858:6
+     |
+1858 | type GObjectPtr = *mut c_void;
+     |      ^^^^^^^^^^
+
+warning: fields `0` and `1` are never read
+    --> src/platform/linux.rs:2613:21
+     |
+2613 | pub struct WakeLock(Option<keepawake::AwakeHandle>, Option<SessionIdleInhibit>);
+     |            -------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |            |
+     |            fields in this struct
+     |
+     = help: consider removing these fields
+
+warning: function `check_if_stop_service` is never used
+    --> src/platform/linux.rs:2770:4
+     |
+2770 | fn check_if_stop_service() {
+     |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `g_object_get` is never used
+    --> src/platform/linux.rs:1868:8
+     |
+1868 |     fn g_object_get(object: GObjectPtr, first_property_name: *const c_char, ...);
+     |        ^^^^^^^^^^^^
+
+warning: function `get_audio_input` is never used
+  --> src/server/audio_service.rs:67:4
+   |
+67 | fn get_audio_input() -> String {
+   |    ^^^^^^^^^^^^^^^
+
+warning: function `common_get_error` is never used
+   --> src/server/wayland.rs:873:8
+    |
+873 | pub fn common_get_error() -> String {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: variants `Side`, `Extra`, `Back`, `Forward`, and `Task` are never constructed
+    --> src/server/uinput.rs:1135:9
+     |
+1132 |     pub enum MouseButton {
+     |              ----------- variants in this enum
+...
+1135 |         Side,
+     |         ^^^^
+1136 |         Extra,
+     |         ^^^^^
+1137 |         Right,
+1138 |         Back,
+     |         ^^^^
+1139 |         Forward,
+     |         ^^^^^^^
+1140 |         Task,
+     |         ^^^^
+     |
+     = note: `MouseButton` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Right` and `Left` are never constructed
+    --> src/server/uinput.rs:1147:9
+     |
+1144 |     pub enum ScrollDirection {
+     |              --------------- variants in this enum
+...
+1147 |         Right,
+     |         ^^^^^
+1148 |         Left,
+     |         ^^^^
+     |
+     = note: `ScrollDirection` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `resolution` is never read
+   --> src/server/rdp_input.rs:322:9
+    |
+318 |     pub struct RdpInputMouse {
+    |                ------------- field in this struct
+...
+322 |         resolution: (usize, usize),
+    |         ^^^^^^^^^^
+
+warning: fields `x` and `y` are never read
+   --> src/server/input_service.rs:109:5
+    |
+106 | struct Input {
+    |        ----- fields in this struct
+...
+109 |     x: i32,
+    |     ^
+110 |     y: i32,
+    |     ^
+    |
+    = note: `Input` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: constant `MOUSE_MOVE_PROTECTION_TIMEOUT` is never used
+   --> src/server/input_service.rs:634:7
+    |
+634 | const MOUSE_MOVE_PROTECTION_TIMEOUT: Duration = Duration::from_millis(1_000);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MOUSE_ACTIVE_DISTANCE` is never used
+   --> src/server/input_service.rs:636:7
+    |
+636 | const MOUSE_ACTIVE_DISTANCE: i32 = 5;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_last_input_cursor_pos` is never used
+    --> src/server/input_service.rs:1162:4
+     |
+1162 | fn get_last_input_cursor_pos() -> (i32, i32) {
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variant `SwitchSides` is never constructed
+   --> src/server/connection.rs:315:5
+    |
+310 | enum ConnAuditPrimaryAuth {
+    |      -------------------- variant in this enum
+...
+315 |     SwitchSides = 4,
+    |     ^^^^^^^^^^^
+    |
+    = note: `ConnAuditPrimaryAuth` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `enable_file_transfer` is never read
+   --> src/server/connection.rs:411:5
+    |
+356 | pub struct Connection {
+    |            ---------- field in this struct
+...
+411 |     enable_file_transfer: bool,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_capturer_mag_supported` is never used
+   --> src/server/display_service.rs:610:4
+    |
+610 | fn is_capturer_mag_supported() -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `save_ab_password_to_recent` is never read
+    --> src/client.rs:2896:9
+     |
+2854 | pub struct LoginConfigHandler {
+     |            ------------------ field in this struct
+...
+2896 |     pub save_ab_password_to_recent: bool, // true: connected with ab password
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+    --> src/client.rs:3117:12
+     |
+2919 | impl LoginConfigHandler {
+     | ----------------------- associated items in this implementation
+...
+3117 |     pub fn save_view_style(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^
+...
+3128 |     pub fn save_keyboard_mode(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+3139 |     pub fn save_reverse_mouse_wheel(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3150 |     pub fn save_displays_as_individual_windows(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3161 |     pub fn save_use_all_my_displays_for_the_remote_session(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3172 |     pub fn save_scroll_style(&mut self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+3183 |     pub fn save_edge_scroll_edge_thickness(&mut self, value: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3195 |     pub fn save_ui_flutter(&mut self, k: String, v: String) {
+     |            ^^^^^^^^^^^^^^^
+...
+3217 |     pub fn get_ui_flutter(&self, k: &str) -> String {
+     |            ^^^^^^^^^^^^^^
+...
+3543 |     pub fn is_privacy_mode_supported(&self) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3561 |     pub fn refresh_display(display: usize) -> Message {
+     |            ^^^^^^^^^^^^^^^
+...
+3575 |     pub fn save_custom_image_quality(&mut self, image_quality: i32) -> Message {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3595 |     pub fn save_image_quality(&mut self, value: String) -> Option<Message> {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+3613 |     pub fn save_trackpad_speed(&mut self, speed: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+3625 |     pub fn set_custom_fps(&mut self, fps: i32, save_config: bool) -> Message {
+     |            ^^^^^^^^^^^^^^
+...
+3683 |     pub fn get_username(&self, pi: &PeerInfo) -> String {
+     |            ^^^^^^^^^^^^
+...
+3795 |     pub fn get_all_remote_dir(&self, path: String) -> String {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+3941 |     pub fn restart_remote_device(&self) -> Message {
+     |            ^^^^^^^^^^^^^^^^^^^^^
+...
+3949 |     pub fn mark_restarting_remote_device(&mut self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+3973 |     pub fn get_conn_token(&self) -> Option<String> {
+     |            ^^^^^^^^^^^^^^
+...
+3985 |     pub fn get_id(&self) -> &str {
+     |            ^^^^^^
+
+warning: function `send_pointer_device_event` is never used
+    --> src/client.rs:4382:8
+     |
+4382 | pub fn send_pointer_device_event(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `send_switch_login_request` is never used
+    --> src/client.rs:4867:10
+     |
+4867 | async fn send_switch_login_request(
+     |          ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple variants are never constructed
+    --> src/client.rs:4997:5
+     |
+4988 | pub enum Data {
+     |          ---- variants in this enum
+...
+4997 |     SendFiles((i32, JobType, String, String, i32, bool, bool)),
+     |     ^^^^^^^^^
+4998 |     RemoveDirAll((i32, String, bool, bool)),
+     |     ^^^^^^^^^^^^
+4999 |     ConfirmDeleteFiles((i32, i32)),
+     |     ^^^^^^^^^^^^^^^^^^
+5000 |     SetNoConfirm(i32),
+     |     ^^^^^^^^^^^^
+5001 |     RemoveDir((i32, String)),
+     |     ^^^^^^^^^
+5002 |     RemoveFile((i32, String, i32, bool)),
+5003 |     CreateDir((i32, String, bool)),
+     |     ^^^^^^^^^
+5004 |     CancelJob(i32),
+     |     ^^^^^^^^^
+5005 |     RemovePortForward(i32),
+     |     ^^^^^^^^^^^^^^^^^
+...
+5009 |     NewRDP,
+     |     ^^^^^^
+5010 |     SetConfirmOverrideFile((i32, i32, bool, bool, bool)),
+     |     ^^^^^^^^^^^^^^^^^^^^^^
+5011 |     AddJob((i32, JobType, String, String, i32, bool, bool)),
+     |     ^^^^^^
+5012 |     ResumeJob((i32, bool)),
+     |     ^^^^^^^^^
+5013 |     RecordScreen(bool),
+     |     ^^^^^^^^^^^^
+5014 |     ElevateDirect,
+     |     ^^^^^^^^^^^^^
+5015 |     ElevateWithLogon(String, String),
+     |     ^^^^^^^^^^^^^^^^
+5016 |     NewVoiceCall,
+     |     ^^^^^^^^^^^^
+5017 |     CloseVoiceCall,
+     |     ^^^^^^^^^^^^^^
+5018 |     ContinueInsecureConnection,
+5019 |     ResetDecoder(Option<usize>),
+     |     ^^^^^^^^^^^^
+5020 |     RenameFile((i32, String, String, bool)),
+     |     ^^^^^^^^^^
+5021 |     TakeScreenshot((i32, String)),
+     |     ^^^^^^^^^^^^^^
+     |
+     = note: `Data` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: variants `ControlKey` and `Chr` are never constructed
+    --> src/client.rs:5050:5
+     |
+5049 | pub enum Key {
+     |          --- variants in this enum
+5050 |     ControlKey(ControlKey),
+     |     ^^^^^^^^^^
+5051 |     Chr(u32),
+     |     ^^^
+     |
+     = note: `Key` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: multiple methods are never used
+   --> src/client/file_trait.rs:12:8
+    |
+6   | pub trait FileManager: Interface {
+    |           ----------- methods in this trait
+...
+12  |     fn get_home_dir(&self) -> String {
+    |        ^^^^^^^^^^^^
+...
+21  |     fn get_next_job_id(&self) -> i32 {
+    |        ^^^^^^^^^^^^^^^
+...
+30  |     fn update_next_job_id(&self, id: i32) {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+52  |     fn cancel_job(&self, id: i32) {
+    |        ^^^^^^^^^^
+...
+56  |     fn read_empty_dirs(&self, path: String, include_hidden: bool) {
+    |        ^^^^^^^^^^^^^^^
+...
+80  |     fn remove_file(&self, id: i32, path: String, file_num: i32, is_remote: bool) {
+    |        ^^^^^^^^^^^
+...
+84  |     fn remove_dir_all(&self, id: i32, path: String, is_remote: bool, include_hidden: bool) {
+    |        ^^^^^^^^^^^^^^
+...
+93  |     fn confirm_delete_files(&self, id: i32, file_num: i32) {
+    |        ^^^^^^^^^^^^^^^^^^^^
+...
+102 |     fn set_no_confirm(&self, id: i32) {
+    |        ^^^^^^^^^^^^^^
+...
+106 |     fn remove_dir(&self, id: i32, path: String, is_remote: bool) {
+    |        ^^^^^^^^^^
+...
+114 |     fn create_dir(&self, id: i32, path: String, is_remote: bool) {
+    |        ^^^^^^^^^^
+...
+118 |     fn send_files(
+    |        ^^^^^^^^^^
+...
+139 |     fn add_job(
+    |        ^^^^^^^
+...
+160 |     fn resume_job(&self, id: i32, is_remote: bool) {
+    |        ^^^^^^^^^^
+...
+164 |     fn set_confirm_override_file(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+186 |     fn rename_file(&self, act_id: i32, path: String, new_name: String, is_remote: bool) {
+    |        ^^^^^^^^^^^
+
+warning: fields `speed`, `fps`, `target_bitrate`, `codec_format`, and `chroma` are never read
+  --> src/client/helper.rs:8:9
+   |
+7  | pub struct QualityStatus {
+   |            ------------- fields in this struct
+8  |     pub speed: Option<String>,
+   |         ^^^^^
+9  |     pub fps: HashMap<usize, i32>,
+   |         ^^^
+10 |     pub delay: Option<i32>,
+11 |     pub target_bitrate: Option<i32>,
+   |         ^^^^^^^^^^^^^^
+12 |     pub codec_format: Option<CodecFormat>,
+   |         ^^^^^^^^^^^^
+13 |     pub chroma: Option<String>,
+   |         ^^^^^^
+   |
+   = note: `QualityStatus` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: enum `ScreenshotAction` is never used
+  --> src/client/screenshot.rs:11:10
+   |
+11 | pub enum ScreenshotAction {
+   |          ^^^^^^^^^^^^^^^^
+
+warning: associated items `handle_screenshot` and `handle_screenshot_` are never used
+  --> src/client/screenshot.rs:61:8
+   |
+56 | impl Screenshot {
+   | --------------- associated items in this implementation
+...
+61 |     fn handle_screenshot(&mut self, action: String) -> String {
+   |        ^^^^^^^^^^^^^^^^^
+...
+74 |     fn handle_screenshot_(data: bytes::Bytes, action: String) -> ResultType<()> {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `handle_screenshot` is never used
+   --> src/client/screenshot.rs:101:8
+    |
+101 | pub fn handle_screenshot(action: String) -> String {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `query_online_states` is never used
+    --> src/client.rs:5325:18
+     |
+5325 |     pub async fn query_online_states<F: FnOnce(Vec<String>, Vec<String>)>(ids: Vec<String>, f: F) {
+     |                  ^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_online_stream` is never used
+    --> src/client.rs:5345:14
+     |
+5345 |     async fn create_online_stream() -> ResultType<Stream> {
+     |              ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `query_online_states_` is never used
+    --> src/client.rs:5360:14
+     |
+5360 |     async fn query_online_states_(
+     |              ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `discover` is never used
+  --> src/lan.rs:77:14
+   |
+77 | pub async fn discover() -> ResultType<()> {
+   |              ^^^^^^^^
+
+warning: function `send_wol` is never used
+  --> src/lan.rs:86:8
+   |
+86 | pub fn send_wol(id: String) {
+   |        ^^^^^^^^
+
+warning: function `create_broadcast_sockets` is never used
+   --> src/lan.rs:164:4
+    |
+164 | fn create_broadcast_sockets() -> Vec<UdpSocket> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `send_query` is never used
+   --> src/lan.rs:188:4
+    |
+188 | fn send_query() -> ResultType<Vec<UdpSocket>> {
+    |    ^^^^^^^^^^
+
+warning: function `wait_response` is never used
+   --> src/lan.rs:221:4
+    |
+221 | fn wait_response(
+    |    ^^^^^^^^^^^^^
+
+warning: function `spawn_wait_responses` is never used
+   --> src/lan.rs:298:4
+    |
+298 | fn spawn_wait_responses(sockets: Vec<UdpSocket>) -> UnboundedReceiver<config::DiscoveryPeer> {
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `handle_received_peers` is never used
+   --> src/lan.rs:313:10
+    |
+313 | async fn handle_received_peers(mut rx: UnboundedReceiver<config::DiscoveryPeer>) -> ResultType<()> {
+    |          ^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `gen_totp_info` and `into_string` are never used
+  --> src/auth_2fa.rs:42:8
+   |
+28 | impl TOTPInfo {
+   | ------------- associated items in this implementation
+...
+42 |     fn gen_totp_info(name: String, digits: usize) -> ResultType<TOTPInfo> {
+   |        ^^^^^^^^^^^^^
+...
+54 |     pub fn into_string(&self) -> ResultType<String> {
+   |            ^^^^^^^^^^^
+
+warning: function `generate2fa` is never used
+  --> src/auth_2fa.rs:76:8
+   |
+76 | pub fn generate2fa() -> String {
+   |        ^^^^^^^^^^^
+
+warning: function `verify2fa` is never used
+  --> src/auth_2fa.rs:91:8
+   |
+91 | pub fn verify2fa(code: String) -> bool {
+   |        ^^^^^^^^^
+
+warning: methods `into_string` and `save` are never used
+   --> src/auth_2fa.rs:123:8
+    |
+122 | impl TelegramBot {
+    | ---------------- methods in this implementation
+123 |     fn into_string(&self) -> ResultType<String> {
+    |        ^^^^^^^^^^^
+...
+133 |     fn save(&self) -> ResultType<()> {
+    |        ^^^^
+
+warning: function `get_chatid_telegram` is never used
+   --> src/auth_2fa.rs:165:8
+    |
+165 | pub fn get_chatid_telegram(bot_token: &str) -> ResultType<Option<String>> {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `OPTION_ALLOW_SYNC_CLIPBOARD_BETWEEN_SESSIONS` is never used
+  --> src/clipboard.rs:17:11
+   |
+17 | pub const OPTION_ALLOW_SYNC_CLIPBOARD_BETWEEN_SESSIONS: &str =
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `LANGS` is never used
+  --> src/lang.rs:58:11
+   |
+58 | pub const LANGS: &[(&str, &str)] = &[
+   |           ^^^^^
+
+warning: function `cjk_ui_unavailable` is never used
+   --> src/lang.rs:114:15
+    |
+114 | pub(crate) fn cjk_ui_unavailable() -> bool {
+    |               ^^^^^^^^^^^^^^^^^^
+
+warning: function `is_cjk_lang` is never used
+   --> src/lang.rs:122:15
+    |
+122 | pub(crate) fn is_cjk_lang(lang_or_locale: &str) -> bool {
+    |               ^^^^^^^^^^^
+
+warning: function `resolve_lang` is never used
+   --> src/lang.rs:131:4
+    |
+131 | fn resolve_lang(saved_lang: &str, locale: &str, cjk_fallback: bool) -> String {
+    |    ^^^^^^^^^^^^
+
+warning: function `translate` is never used
+   --> src/lang.rs:179:8
+    |
+179 | pub fn translate(name: String) -> String {
+    |        ^^^^^^^^^
+
+warning: function `translate_locale` is never used
+   --> src/lang.rs:184:8
+    |
+184 | pub fn translate_locale(name: String, locale: &str) -> String {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `extract_placeholder` is never used
+   --> src/lang.rs:303:4
+    |
+303 | fn extract_placeholder(input: &str) -> (String, Option<String>) {
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `update_controlling_session_count` is never used
+  --> src/updater.rs:83:8
+   |
+83 | pub fn update_controlling_session_count(count: usize) {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `check_click_time` is never used
+   --> src/ui_cm_interface.rs:354:8
+    |
+354 | pub fn check_click_time(id: i32) {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `get_click_time` is never used
+   --> src/ui_cm_interface.rs:361:8
+    |
+361 | pub fn get_click_time() -> i64 {
+    |        ^^^^^^^^^^^^^^
+
+warning: function `close_window` is never used
+   --> src/ui_cm_interface.rs:386:8
+    |
+386 | pub fn close_window(id: i32) {
+    |        ^^^^^^^^^^^^
+
+warning: function `remove` is never used
+   --> src/ui_cm_interface.rs:393:8
+    |
+393 | pub fn remove(id: i32) {
+    |        ^^^^^^
+
+warning: function `get_clients_length` is never used
+   --> src/ui_cm_interface.rs:465:8
+    |
+465 | pub fn get_clients_length() -> usize {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `can_elevate` is never used
+    --> src/ui_cm_interface.rs:1735:8
+     |
+1735 | pub fn can_elevate() -> bool {
+     |        ^^^^^^^^^^^
+
+warning: function `elevate_portable` is never used
+    --> src/ui_cm_interface.rs:1742:8
+     |
+1742 | pub fn elevate_portable(_id: i32) {
+     |        ^^^^^^^^^^^^^^^^
+
+warning: struct `LoginDeviceInfo` is never constructed
+  --> src/ui_interface.rs:52:12
+   |
+52 | pub struct LoginDeviceInfo {
+   |            ^^^^^^^^^^^^^^^
+
+warning: constant `INIT_ASYNC_JOB_STATUS` is never used
+  --> src/ui_interface.rs:89:7
+   |
+89 | const INIT_ASYNC_JOB_STATUS: &str = " ";
+   |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `goto_install` is never used
+   --> src/ui_interface.rs:101:8
+    |
+101 | pub fn goto_install() {
+    |        ^^^^^^^^^^^^
+
+warning: function `install_me` is never used
+   --> src/ui_interface.rs:107:8
+    |
+107 | pub fn install_me(_options: String, _path: String, _silent: bool, _debug: bool) {
+    |        ^^^^^^^^^^
+
+warning: function `update_me` is never used
+   --> src/ui_interface.rs:118:8
+    |
+118 | pub fn update_me(_path: String) {
+    |        ^^^^^^^^^
+
+warning: function `run_without_install` is never used
+   --> src/ui_interface.rs:123:8
+    |
+123 | pub fn run_without_install() {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `show_run_without_install` is never used
+   --> src/ui_interface.rs:129:8
+    |
+129 | pub fn show_run_without_install() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_license` is never used
+   --> src/ui_interface.rs:140:8
+    |
+140 | pub fn get_license() -> String {
+    |        ^^^^^^^^^^^
+
+warning: function `refresh_options` is never used
+   --> src/ui_interface.rs:156:8
+    |
+156 | pub fn refresh_options() {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `is_option_fixed` is never used
+   --> src/ui_interface.rs:214:8
+    |
+214 | pub fn is_option_fixed(key: &str) -> bool {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `peer_has_password` is never used
+   --> src/ui_interface.rs:290:8
+    |
+290 | pub fn peer_has_password(id: String) -> bool {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `forget_password` is never used
+   --> src/ui_interface.rs:295:8
+    |
+295 | pub fn forget_password(id: String) {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_peer_option` is never used
+   --> src/ui_interface.rs:302:8
+    |
+302 | pub fn get_peer_option(id: String, name: String) -> String {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `set_peer_option` is never used
+   --> src/ui_interface.rs:327:8
+    |
+327 | pub fn set_peer_option(id: String, name: String, value: String) {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_options` is never used
+   --> src/ui_interface.rs:338:8
+    |
+338 | pub fn get_options() -> String {
+    |        ^^^^^^^^^^^
+
+warning: function `test_if_valid_server` is never used
+   --> src/ui_interface.rs:357:8
+    |
+357 | pub fn test_if_valid_server(host: String, test_with_proxy: bool) -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `set_options` is never used
+   --> src/ui_interface.rs:412:8
+    |
+412 | pub fn set_options(m: HashMap<String, String>) {
+    |        ^^^^^^^^^^^
+
+warning: function `install_path` is never used
+   --> src/ui_interface.rs:469:8
+    |
+469 | pub fn install_path() -> String {
+    |        ^^^^^^^^^^^^
+
+warning: function `install_options` is never used
+   --> src/ui_interface.rs:477:8
+    |
+477 | pub fn install_options() -> String {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_socks` is never used
+   --> src/ui_interface.rs:485:8
+    |
+485 | pub fn get_socks() -> Vec<String> {
+    |        ^^^^^^^^^
+
+warning: function `set_socks` is never used
+   --> src/ui_interface.rs:503:8
+    |
+503 | pub fn set_socks(proxy: String, username: String, password: String) {
+    |        ^^^^^^^^^
+
+warning: function `is_installed` is never used
+   --> src/ui_interface.rs:540:8
+    |
+540 | pub fn is_installed() -> bool {
+    |        ^^^^^^^^^^^^
+
+warning: function `is_share_rdp` is never used
+   --> src/ui_interface.rs:551:8
+    |
+551 | pub fn is_share_rdp() -> bool {
+    |        ^^^^^^^^^^^^
+
+warning: function `set_share_rdp` is never used
+   --> src/ui_interface.rs:559:8
+    |
+559 | pub fn set_share_rdp(_enable: bool) {
+    |        ^^^^^^^^^^^^^
+
+warning: function `is_installed_lower_version` is never used
+   --> src/ui_interface.rs:565:8
+    |
+565 | pub fn is_installed_lower_version() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_mouse_time` is never used
+   --> src/ui_interface.rs:577:8
+    |
+577 | pub fn get_mouse_time() -> f64 {
+    |        ^^^^^^^^^^^^^^
+
+warning: function `check_mouse_time` is never used
+   --> src/ui_interface.rs:582:8
+    |
+582 | pub fn check_mouse_time() {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `get_connect_status` is never used
+   --> src/ui_interface.rs:592:8
+    |
+592 | pub fn get_connect_status() -> UiStatus {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `temporary_password` is never used
+   --> src/ui_interface.rs:597:8
+    |
+597 | pub fn temporary_password() -> String {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `update_temporary_password` is never used
+   --> src/ui_interface.rs:605:8
+    |
+605 | pub fn update_temporary_password() {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_permanent_password_set` is never used
+   --> src/ui_interface.rs:613:8
+    |
+613 | pub fn is_permanent_password_set() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_local_permanent_password_set` is never used
+   --> src/ui_interface.rs:635:8
+    |
+635 | pub fn is_local_permanent_password_set() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `set_permanent_password_with_result` is never used
+   --> src/ui_interface.rs:645:8
+    |
+645 | pub fn set_permanent_password_with_result(password: String) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_peer` is never used
+   --> src/ui_interface.rs:666:8
+    |
+666 | pub fn get_peer(id: String) -> PeerConfig {
+    |        ^^^^^^^^
+
+warning: function `get_fav` is never used
+   --> src/ui_interface.rs:671:8
+    |
+671 | pub fn get_fav() -> Vec<String> {
+    |        ^^^^^^^
+
+warning: function `store_fav` is never used
+   --> src/ui_interface.rs:676:8
+    |
+676 | pub fn store_fav(fav: Vec<String>) {
+    |        ^^^^^^^^^
+
+warning: function `is_process_trusted` is never used
+   --> src/ui_interface.rs:681:8
+    |
+681 | pub fn is_process_trusted(_prompt: bool) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `is_can_screen_recording` is never used
+   --> src/ui_interface.rs:689:8
+    |
+689 | pub fn is_can_screen_recording(_prompt: bool) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_installed_daemon` is never used
+   --> src/ui_interface.rs:697:8
+    |
+697 | pub fn is_installed_daemon(_prompt: bool) -> bool {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_error` is never used
+   --> src/ui_interface.rs:714:8
+    |
+714 | pub fn get_error() -> String {
+    |        ^^^^^^^^^
+
+warning: function `is_login_wayland` is never used
+   --> src/ui_interface.rs:734:8
+    |
+734 | pub fn is_login_wayland() -> bool {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: function `current_is_wayland` is never used
+   --> src/ui_interface.rs:742:8
+    |
+742 | pub fn current_is_wayland() -> bool {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `get_new_version` is never used
+   --> src/ui_interface.rs:750:8
+    |
+750 | pub fn get_new_version() -> String {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `get_version` is never used
+   --> src/ui_interface.rs:761:8
+    |
+761 | pub fn get_version() -> String {
+    |        ^^^^^^^^^^^
+
+warning: function `get_lan_peers` is never used
+   --> src/ui_interface.rs:810:8
+    |
+810 | pub fn get_lan_peers() -> Vec<HashMap<&'static str, String>> {
+    |        ^^^^^^^^^^^^^
+
+warning: function `remove_discovered` is never used
+   --> src/ui_interface.rs:826:8
+    |
+826 | pub fn remove_discovered(id: String) {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `get_uuid` is never used
+   --> src/ui_interface.rs:833:8
+    |
+833 | pub fn get_uuid() -> String {
+    |        ^^^^^^^^
+
+warning: function `get_init_async_job_status` is never used
+   --> src/ui_interface.rs:838:8
+    |
+838 | pub fn get_init_async_job_status() -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `reset_async_job_status` is never used
+   --> src/ui_interface.rs:843:8
+    |
+843 | pub fn reset_async_job_status() {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `http_request` is never used
+   --> src/ui_interface.rs:858:8
+    |
+858 | pub fn http_request(url: String, method: String, body: Option<String>, header: String) {
+    |        ^^^^^^^^^^^^
+
+warning: function `get_async_http_status` is never used
+   --> src/ui_interface.rs:878:8
+    |
+878 | pub fn get_async_http_status(url: String) -> Option<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `post_request` is never used
+   --> src/ui_interface.rs:887:8
+    |
+887 | pub fn post_request(url: String, body: String, header: String) {
+    |        ^^^^^^^^^^^^
+
+warning: function `get_async_job_status` is never used
+   --> src/ui_interface.rs:898:8
+    |
+898 | pub fn get_async_job_status() -> String {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_langs` is never used
+   --> src/ui_interface.rs:903:8
+    |
+903 | pub fn get_langs() -> String {
+    |        ^^^^^^^^^
+
+warning: method `message` is never used
+    --> src/ui_interface.rs:1066:12
+     |
+1065 | impl DeployResult {
+     | ----------------- method in this implementation
+1066 |     pub fn message(&self) -> String {
+     |            ^^^^^^^
+
+warning: function `has_hwcodec` is never used
+    --> src/ui_interface.rs:1154:8
+     |
+1154 | pub fn has_hwcodec() -> bool {
+     |        ^^^^^^^^^^^
+
+warning: function `has_vram` is never used
+    --> src/ui_interface.rs:1160:8
+     |
+1160 | pub fn has_vram() -> bool {
+     |        ^^^^^^^^
+
+warning: function `is_root` is never used
+    --> src/ui_interface.rs:1187:8
+     |
+1187 | pub fn is_root() -> bool {
+     |        ^^^^^^^
+
+warning: function `check_zombie` is never used
+    --> src/ui_interface.rs:1207:8
+     |
+1207 | pub fn check_zombie() {
+     |        ^^^^^^^^^^^^
+
+warning: function `recent_sessions_updated` is never used
+    --> src/ui_interface.rs:1231:8
+     |
+1231 | pub fn recent_sessions_updated() -> bool {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `new_remote` is never used
+    --> src/ui_interface.rs:1242:8
+     |
+1242 | pub fn new_remote(id: String, remote_type: String, force_relay: bool) {
+     |        ^^^^^^^^^^
+
+warning: function `get_fingerprint` is never used
+    --> src/ui_interface.rs:1316:8
+     |
+1316 | pub fn get_fingerprint() -> String {
+     |        ^^^^^^^^^^^^^^^
+
+warning: function `get_login_device_info` is never used
+    --> src/ui_interface.rs:1328:8
+     |
+1328 | pub fn get_login_device_info() -> LoginDeviceInfo {
+     |        ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_login_device_info_json` is never used
+    --> src/ui_interface.rs:1338:8
+     |
+1338 | pub fn get_login_device_info_json() -> String {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `support_remove_wallpaper` is never used
+    --> src/ui_interface.rs:1633:8
+     |
+1633 | pub fn support_remove_wallpaper() -> bool {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `has_valid_2fa` is never used
+    --> src/ui_interface.rs:1640:8
+     |
+1640 | pub fn has_valid_2fa() -> bool {
+     |        ^^^^^^^^^^^^^
+
+warning: function `generate2fa` is never used
+    --> src/ui_interface.rs:1645:8
+     |
+1645 | pub fn generate2fa() -> String {
+     |        ^^^^^^^^^^^
+
+warning: function `verify2fa` is never used
+    --> src/ui_interface.rs:1649:8
+     |
+1649 | pub fn verify2fa(code: String) -> bool {
+     |        ^^^^^^^^^
+
+warning: function `has_valid_bot` is never used
+    --> src/ui_interface.rs:1657:8
+     |
+1657 | pub fn has_valid_bot() -> bool {
+     |        ^^^^^^^^^^^^^
+
+warning: function `verify_bot` is never used
+    --> src/ui_interface.rs:1661:8
+     |
+1661 | pub fn verify_bot(token: String) -> String {
+     |        ^^^^^^^^^^
+
+warning: function `check_hwcodec` is never used
+    --> src/ui_interface.rs:1671:8
+     |
+1671 | pub fn check_hwcodec() {
+     |        ^^^^^^^^^^^^^
+
+warning: function `is_remote_modify_enabled_by_control_permissions` is never used
+    --> src/ui_interface.rs:1738:8
+     |
+1738 | pub fn is_remote_modify_enabled_by_control_permissions() -> Option<bool> {
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `thread` and `printer_names` are never read
+  --> src/ui_session_interface.rs:66:9
+   |
+61 | pub struct Session<T: InvokeUiSession> {
+   |            ------- fields in this struct
+...
+66 |     pub thread: Arc<Mutex<Option<std::thread::JoinHandle<()>>>>,
+   |         ^^^^^^
+...
+73 |     pub printer_names: Arc<RwLock<HashMap<i32, String>>>,
+   |         ^^^^^^^^^^^^^
+   |
+   = note: `Session` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: field `server_file_transfer_enabled` is never read
+  --> src/ui_session_interface.rs:89:9
+   |
+86 | pub struct SessionPermissionConfig {
+   |            ----------------------- field in this struct
+...
+89 |     pub server_file_transfer_enabled: Arc<RwLock<bool>>,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `SessionPermissionConfig` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: methods `new_round` and `is_connected` are never used
+   --> src/ui_session_interface.rs:113:12
+    |
+112 | impl ConnectionRoundState {
+    | ------------------------- methods in this implementation
+113 |     pub fn new_round(&mut self) -> u32 {
+    |            ^^^^^^^^^
+...
+140 |     pub fn is_connected(&self) -> bool {
+    |            ^^^^^^^^^^^^
+
+warning: multiple methods are never used
+    --> src/ui_session_interface.rs:253:12
+     |
+203  | impl<T: InvokeUiSession> Session<T> {
+     | ----------------------------------- methods in this implementation
+...
+253  |     pub fn get_view_style(&self) -> String {
+     |            ^^^^^^^^^^^^^^
+...
+257  |     pub fn get_scroll_style(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^
+...
+261  |     pub fn get_edge_scroll_edge_thickness(&self) -> i32 {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+265  |     pub fn get_image_quality(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^
+...
+269  |     pub fn get_custom_image_quality(&self) -> Vec<i32> {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+273  |     pub fn get_peer_version(&self) -> i64 {
+     |            ^^^^^^^^^^^^^^^^
+...
+277  |     pub fn get_trackpad_speed(&self) -> i32 {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+281  |     pub fn fallback_keyboard_mode(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+298  |     pub fn get_keyboard_mode(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^
+...
+315  |     pub fn is_keyboard_mode_supported(&self, mode: String) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+327  |     pub fn save_keyboard_mode(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+331  |     pub fn get_reverse_mouse_wheel(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+335  |     pub fn get_displays_as_individual_windows(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+343  |     pub fn get_use_all_my_displays_for_the_remote_session(&self) -> String {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+351  |     pub fn save_reverse_mouse_wheel(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+355  |     pub fn save_displays_as_individual_windows(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+362  |     pub fn save_use_all_my_displays_for_the_remote_session(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+369  |     pub fn save_view_style(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^
+...
+373  |     pub fn save_scroll_style(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+377  |     pub fn save_edge_scroll_edge_thickness(&self, value: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+384  |     pub fn save_flutter_option(&self, k: String, v: String) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+388  |     pub fn get_flutter_option(&self, k: String) -> String {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+403  |     pub fn toggle_privacy_mode(&self, impl_key: String, on: bool) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+420  |     pub fn is_privacy_mode_supported(&self) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+452  |     pub fn toggle_virtual_display(&self, index: i32, on: bool) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^
+...
+469  |     pub fn record_screen(&self, start: bool) {
+     |            ^^^^^^^^^^^^^
+...
+473  |     pub fn is_screenshot_supported(&self) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^
+...
+477  |     pub fn take_screenshot(&self, display: i32, sid: String) {
+     |            ^^^^^^^^^^^^^^^
+...
+481  |     pub fn is_recording(&self) -> bool {
+     |            ^^^^^^^^^^^^
+...
+485  |     pub fn save_custom_image_quality(&self, custom_image_quality: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+494  |     pub fn save_image_quality(&self, value: String) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+509  |     pub fn save_trackpad_speed(&self, trackpad_speed: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+513  |     pub fn set_custom_fps(&self, custom_fps: i32) {
+     |            ^^^^^^^^^^^^^^
+...
+518  |     pub fn get_remember(&self) -> bool {
+     |            ^^^^^^^^^^^^
+...
+523  |     pub fn set_write_override(
+     |            ^^^^^^^^^^^^^^^^^^
+...
+541  |     pub fn alternative_codecs(&self) -> (bool, bool, bool, bool) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+562  |     pub fn update_supported_decodings(&self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+567  |     pub fn use_texture_render_changed(&self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+573  |     pub fn restart_remote_device(&self) {
+     |            ^^^^^^^^^^^^^^^^^^^^^
+...
+580  |     pub fn get_audit_server(&self, typ: String) -> String {
+     |            ^^^^^^^^^^^^^^^^
+...
+591  |     pub fn send_note(&self, note: String) {
+     |            ^^^^^^^^^
+...
+603  |     pub fn is_xfce(&self) -> bool {
+     |            ^^^^^^^
+...
+607  |     pub fn remove_port_forward(&self, port: i32) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+618  |     pub fn add_port_forward(&self, port: i32, remote_host: String, remote_port: i32) {
+     |            ^^^^^^^^^^^^^^^^
+...
+642  |     pub fn set_option(&self, k: String, mut v: String) {
+     |            ^^^^^^^^^^
+...
+686  |     pub fn input_os_password(&self, pass: String, activate: bool) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+691  |     pub fn get_chatbox(&self) -> String {
+     |            ^^^^^^^^^^^
+...
+698  |     pub fn swap_modifier_key(&self, msg: &mut KeyEvent) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+773  |     pub fn send_key_event(&self, evt: &KeyEvent) {
+     |            ^^^^^^^^^^^^^^
+...
+783  |     pub fn send_chat(&self, text: String) {
+     |            ^^^^^^^^^
+...
+795  |     pub fn open_terminal(&self, terminal_id: i32, rows: u32, cols: u32) {
+     |            ^^^^^^^^^^^^^
+...
+808  |     pub fn send_terminal_input(&self, terminal_id: i32, data: String) {
+     |            ^^^^^^^^^^^^^^^^^^^
+...
+820  |     pub fn resize_terminal(&self, terminal_id: i32, rows: u32, cols: u32) {
+     |            ^^^^^^^^^^^^^^^
+...
+833  |     pub fn close_terminal(&self, terminal_id: i32) {
+     |            ^^^^^^^^^^^^^^
+...
+880  |     pub fn enter(&self, keyboard_mode: String) {
+     |            ^^^^^
+...
+886  |     pub fn leave(&self, keyboard_mode: String) {
+     |            ^^^^^
+...
+892  |     pub fn input_key(
+     |            ^^^^^^^^^
+...
+913  |     pub fn input_string(&self, value: &str) {
+     |            ^^^^^^^^^^^^
+...
+934  |     pub fn handle_flutter_raw_key_event(
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+995  |     pub fn handle_flutter_key_event(
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1148 |     pub fn send_touch_scale(&self, scale: i32, alt: bool, ctrl: bool, shift: bool, command: bool) {
+     |            ^^^^^^^^^^^^^^^^
+...
+1160 |     pub fn send_touch_pan_event(
+     |            ^^^^^^^^^^^^^^^^^^^^
+...
+1206 |     fn is_scroll_reverse_mode(&self) -> bool {
+     |        ^^^^^^^^^^^^^^^^^^^^^^
+...
+1211 |     fn get_scroll_xy(&self, xy: (i32, i32)) -> (i32, i32) {
+     |        ^^^^^^^^^^^^^
+...
+1219 |     pub fn send_mouse(
+     |            ^^^^^^^^^^
+...
+1292 |     pub fn reconnect(&self, force_relay: bool) {
+     |            ^^^^^^^^^
+...
+1330 |     pub fn get_icon_path(&self, file_type: i32, ext: String) -> String {
+     |            ^^^^^^^^^^^^^
+...
+1409 |     pub fn get_enable_trusted_devices(&self) -> bool {
+     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1413 |     pub fn new_rdp(&self) {
+     |            ^^^^^^^
+...
+1417 |     pub fn close(&self) {
+     |            ^^^^^
+...
+1488 |     pub fn elevate_direct(&self) {
+     |            ^^^^^^^^^^^^^^
+...
+1492 |     pub fn elevate_with_logon(&self, username: String, password: String) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+1497 |     pub fn switch_sides(&self) {}
+     |            ^^^^^^^^^^^^
+...
+1607 |     pub fn request_voice_call(&self) {
+     |            ^^^^^^^^^^^^^^^^^^
+...
+1614 |     pub fn close_voice_call(&self) {
+     |            ^^^^^^^^^^^^^^^^
+...
+1659 |     pub fn request_init_msgs(&self, display: usize) {
+     |            ^^^^^^^^^^^^^^^^^
+...
+1663 |     fn send_message_query(&self, display: usize) {
+     |        ^^^^^^^^^^^^^^^^^^
+...
+1674 |     pub fn get_conn_token(&self) -> Option<String> {
+     |            ^^^^^^^^^^^^^^
+...
+1678 |     pub fn printer_response(&self, id: i32, path: String, printer_name: String) {
+     |            ^^^^^^^^^^^^^^^^
+
+warning: methods `switch_back`, `on_voice_call_incoming`, `get_rgba`, `next_rgba`, and `printer_request` are never used
+    --> src/ui_session_interface.rs:1740:8
+     |
+1693 | pub trait InvokeUiSession: Send + Sync + Clone + 'static + Sized + Default {
+     |           --------------- methods in this trait
+...
+1740 |     fn switch_back(&self, id: &str);
+     |        ^^^^^^^^^^^
+...
+1745 |     fn on_voice_call_incoming(&self);
+     |        ^^^^^^^^^^^^^^^^^^^^^^
+1746 |     fn get_rgba(&self, display: usize) -> *const u8;
+     |        ^^^^^^^^
+1747 |     fn next_rgba(&self, display: usize);
+     |        ^^^^^^^^^
+...
+1756 |     fn printer_request(&self, id: i32, path: String);
+     |        ^^^^^^^^^^^^^^^
+
+warning: methods `lock_screen` and `ctrl_alt_del` are never used
+    --> src/ui_session_interface.rs:1953:12
+     |
+1952 | impl<T: InvokeUiSession> Session<T> {
+     | ----------------------------------- methods in this implementation
+1953 |     pub fn lock_screen(&self) {
+     |            ^^^^^^^^^^^
+...
+1956 |     pub fn ctrl_alt_del(&self) {
+     |            ^^^^^^^^^^^^
+
+warning: function `send_note` is never used
+    --> src/ui_session_interface.rs:2092:10
+     |
+2092 | async fn send_note(url: String, id: String, sid: u64, note: String) {
+     |          ^^^^^^^^^
+
+warning: enum `HbbHttpResponse` is never used
+  --> src/hbbs_http.rs:17:10
+   |
+17 | pub enum HbbHttpResponse<T> {
+   |          ^^^^^^^^^^^^^^^
+
+warning: associated function `parse` is never used
+  --> src/hbbs_http.rs:25:12
+   |
+24 | impl<T: DeserializeOwned> HbbHttpResponse<T> {
+   | -------------------------------------------- associated function in this implementation
+25 |     pub fn parse(body: &str) -> ResultType<Self> {
+   |            ^^^^^
+
+warning: struct `DownloadData` is never constructed
+  --> src/hbbs_http/downloader.rs:26:12
+   |
+26 | pub struct DownloadData {
+   |            ^^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/hbbs_http/downloader.rs:39:5
+   |
+38 | struct Downloader {
+   |        ---------- fields in this struct
+39 |     data: Vec<u8>,
+   |     ^^^^
+40 |     path: Option<PathBuf>,
+   |     ^^^^
+41 |     // Some file may be empty, so we use Option<u64> to indicate if the size is known
+42 |     total_size: Option<u64>,
+   |     ^^^^^^^^^^
+43 |     downloaded_size: u64,
+   |     ^^^^^^^^^^^^^^^
+44 |     error: Option<String>,
+   |     ^^^^^
+45 |     finished: bool,
+   |     ^^^^^^^^
+46 |     tx_cancel: UnboundedSender<()>,
+   |     ^^^^^^^^^
+
+warning: function `download_file` is never used
+  --> src/hbbs_http/downloader.rs:50:8
+   |
+50 | pub fn download_file(
+   |        ^^^^^^^^^^^^^
+
+warning: function `do_download` is never used
+   --> src/hbbs_http/downloader.rs:163:10
+    |
+163 | async fn do_download(
+    |          ^^^^^^^^^^^
+
+warning: function `get_download_data` is never used
+   --> src/hbbs_http/downloader.rs:274:8
+    |
+274 | pub fn get_download_data(id: &str) -> ResultType<DownloadData> {
+    |        ^^^^^^^^^^^^^^^^^
+
+warning: function `cancel` is never used
+   --> src/hbbs_http/downloader.rs:299:8
+    |
+299 | pub fn cancel(id: &str) {
+    |        ^^^^^^
+
+warning: function `remove` is never used
+   --> src/hbbs_http/downloader.rs:307:8
+    |
+307 | pub fn remove(id: &str) {
+    |        ^^^^^^
+
+warning: function `create_http_client_async_with_url` is never used
+   --> src/hbbs_http/http_client.rs:260:14
+    |
+260 | pub async fn create_http_client_async_with_url(url: &str) -> AsyncClient {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_strict` is never used
+   --> src/hbbs_http/http_client.rs:278:14
+    |
+278 | pub async fn create_http_client_async_with_url_strict(url: &str) -> ResultType<AsyncClient> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_` is never used
+   --> src/hbbs_http/http_client.rs:306:10
+    |
+306 | async fn create_http_client_async_with_url_(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: module `pt_BR` should have a snake case name
+  --> src/lang.rs:36:5
+   |
+36 | mod pt_BR;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_br`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: module `pt_PT` should have a snake case name
+  --> src/lang.rs:37:5
+   |
+37 | mod pt_PT;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_pt`
+
+warning: `rustdesk` (lib) generated 187 warnings (run `cargo fix --lib -p rustdesk` to apply 8 suggestions)
+    Finished `release` profile [optimized] target(s) in 3m 43s

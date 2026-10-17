@@ -1,0 +1,43 @@
+{
+  "result": "pass",
+  "connections": [
+    {
+      "mode": "direct",
+      "force_relay": false,
+      "worker_pid": 217,
+      "worker_reaped": true,
+      "remote_pixels": 157664,
+      "host_retained": true,
+      "actual_id_lookup": true,
+      "direct_ip_server_disabled": true
+    },
+    {
+      "mode": "wrong-server-key",
+      "rejected_without_password_submission": true,
+      "worker_reaped": true,
+      "host_inbound_empty": true,
+      "no_relay_pair": true,
+      "host_retained": true
+    },
+    {
+      "mode": "relay",
+      "force_relay": true,
+      "worker_pid": 401,
+      "worker_reaped": true,
+      "remote_pixels": 157680,
+      "host_retained": true,
+      "actual_id_lookup": true,
+      "direct_ip_server_disabled": true
+    }
+  ],
+  "real_hbbs_hbbr": true,
+  "same_host_process": 55,
+  "network": "isolated-namespace-benchmark-address",
+  "server_address": "198.18.0.1",
+  "net_admin_dropped_before_application": true,
+  "hbbr_tokio_workers": 1,
+  "gpu": false,
+  "real_desktop": false,
+  "product_rebuilt": false,
+  "installed_services_touched": false
+}

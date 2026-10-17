@@ -1,0 +1,27 @@
+{
+  "run": "Build/Linux/native-viewer-smoke/20261017T032240Z",
+  "rounds": {
+    "0": {
+      "samples": 22,
+      "seconds": 2.4440845960052684,
+      "peak_pss_kib": {
+        "gui": 269631,
+        "viewer": 381869,
+        "host": 653706
+      },
+      "peak_three_process_pss_kib": 1095666
+    },
+    "1": {
+      "samples": 22,
+      "seconds": 2.4861033119959757,
+      "peak_pss_kib": {
+        "gui": 270721,
+        "viewer": 388291,
+        "host": 664375
+      },
+      "peak_three_process_pss_kib": 1116417
+    }
+  },
+  "sampling_interval_seconds": 0.1,
+  "scope": "matched private 128 MiB two-pixel padded PNG transfer; three actual FarPane processes; not maximum pixels or a formal performance acceptance"
+}

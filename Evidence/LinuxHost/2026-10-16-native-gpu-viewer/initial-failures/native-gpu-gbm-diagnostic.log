@@ -1,0 +1,16 @@
+GL=AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic) version=OpenGL ES 3.2 Mesa 26.0.8-1ubuntu0.3 EGL=Mesa Project
+EGL dma_import=1 modifiers=1 GL image=1
+advertised=67 R8=1 GR88=1
+format=0x20203852 query=1 count=0 error=0x3000
+format=0x38385247 query=1 count=0 error=0x3000
+EGL render path=/dev/dri/renderD128
+GBM linear 0x20203852 allocated=1 modifier=0xffffffffffffff
+GBM linear 0x38385247 allocated=1 modifier=0xffffffffffffff
+FAIL No DMA-BUF plane formats
+Traceback (most recent call last):
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/run-native-gpu-test.py", line 87, in <module>
+    main()
+    ~~~~^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/run-native-gpu-test.py", line 72, in main
+    raise RuntimeError(f'GPU probe exited {process.returncode}')
+RuntimeError: GPU probe exited 1

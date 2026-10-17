@@ -1,0 +1,109 @@
+{
+  "result": "pass",
+  "artifact_id": "farpane-native-dev-5ad72a016972fad57d895c5e",
+  "packaged_binaries": {
+    "farpane": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0",
+    "libexec/farpane-core": "4e0ac6b78fcc2e630aa52fe2485dc727bd1a5f45c3597e8b3daf970264cf3ced",
+    "lib/libdrmtap.so.0.5.8": "bf4eedcee4f6049c6bf2eddf0d5e37f20123ea427769ea7287b9fafa5581b185"
+  },
+  "tests": {
+    "package_ubuntu2404": {
+      "directory": "Build/Linux/native-package-smoke/20261017T051154Z",
+      "sessions": [
+        {
+          "frames": 1,
+          "presented": true,
+          "gpu_frames": 0,
+          "gpu_completed": 0,
+          "worker_reaped": true
+        },
+        {
+          "frames": 1,
+          "presented": true,
+          "gpu_frames": 0,
+          "gpu_completed": 0,
+          "worker_reaped": true
+        }
+      ]
+    },
+    "package_ubuntu2604": {
+      "directory": "Build/Linux/native-package-smoke/20261017T051224Z",
+      "sessions": [
+        {
+          "frames": 2,
+          "presented": true,
+          "gpu_frames": 0,
+          "gpu_completed": 0,
+          "worker_reaped": true
+        },
+        {
+          "frames": 1,
+          "presented": true,
+          "gpu_frames": 0,
+          "gpu_completed": 0,
+          "worker_reaped": true
+        }
+      ]
+    },
+    "gpu_private_wayland": {
+      "directory": "Build/Linux/native-viewer-smoke/20261017T051247Z",
+      "sessions": [
+        {
+          "frames": 1,
+          "presented": true,
+          "gpu_frames": 1,
+          "gpu_completed": 1,
+          "worker_reaped": true
+        },
+        {
+          "frames": 1,
+          "presented": true,
+          "gpu_frames": 1,
+          "gpu_completed": 1,
+          "worker_reaped": true
+        }
+      ]
+    },
+    "deb_ubuntu2404": {
+      "directory": "Build/Linux/native-deb-smoke/20261017T051312Z",
+      "sessions": [
+        {
+          "frames": 1,
+          "presented": true,
+          "gpu_frames": 0,
+          "gpu_completed": 0,
+          "worker_reaped": true
+        },
+        {
+          "frames": 1,
+          "presented": true,
+          "gpu_frames": 0,
+          "gpu_completed": 0,
+          "worker_reaped": true
+        }
+      ]
+    },
+    "deb_ubuntu2604": {
+      "directory": "Build/Linux/native-deb-smoke/20261017T051424Z",
+      "sessions": [
+        {
+          "frames": 2,
+          "presented": true,
+          "gpu_frames": 0,
+          "gpu_completed": 0,
+          "worker_reaped": true
+        },
+        {
+          "frames": 1,
+          "presented": true,
+          "gpu_frames": 0,
+          "gpu_completed": 0,
+          "worker_reaped": true
+        }
+      ]
+    }
+  },
+  "real_desktop_tested": false,
+  "long_run_tested": false,
+  "installed": false
+}

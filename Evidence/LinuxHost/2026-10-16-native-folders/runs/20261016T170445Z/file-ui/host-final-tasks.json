@@ -1,0 +1,86 @@
+[
+  {
+    "job": 1,
+    "connection": 562,
+    "name": "upload.bin",
+    "upload": true,
+    "done": 393233,
+    "total": 393233,
+    "status": "completed",
+    "detail": "\u6587\u4ef6\u5df2\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 2,
+    "connection": 562,
+    "name": "upload.bin",
+    "upload": false,
+    "done": 393233,
+    "total": 393233,
+    "status": "sent",
+    "detail": "\u5df2\u53d1\u9001\uff1b\u6b64\u534f\u8bae\u672a\u786e\u8ba4\u8fdc\u7aef\u843d\u76d8",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 3,
+    "connection": 562,
+    "name": "cancel.bin",
+    "upload": true,
+    "done": 0,
+    "total": 17408,
+    "status": "cancelled",
+    "detail": "\u8fdc\u7aef\u53d6\u6d88\u4e86\u4f20\u8f93",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 4,
+    "connection": 562,
+    "name": "upload.bin",
+    "upload": true,
+    "done": 0,
+    "total": 622592,
+    "status": "rejected",
+    "detail": "\u672c\u673a\u62d2\u7edd\u4e86\u4f20\u8f93",
+    "needs_confirmation": false,
+    "overwrite_required": true
+  },
+  {
+    "job": 5,
+    "connection": 562,
+    "name": "upload.bin",
+    "upload": true,
+    "done": 622592,
+    "total": 622592,
+    "status": "completed",
+    "detail": "\u6587\u4ef6\u5df2\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": true
+  },
+  {
+    "job": 6,
+    "connection": 562,
+    "name": "upload.bin",
+    "upload": false,
+    "done": 622592,
+    "total": 622592,
+    "status": "sent",
+    "detail": "\u5df2\u53d1\u9001\uff1b\u6b64\u534f\u8bae\u672a\u786e\u8ba4\u8fdc\u7aef\u843d\u76d8",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 7,
+    "connection": 562,
+    "name": "interrupted.bin",
+    "upload": true,
+    "done": 4194304,
+    "total": 16777216,
+    "status": "cancelled",
+    "detail": "\u6587\u4ef6\u8fde\u63a5\u5df2\u7ed3\u675f",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  }
+]

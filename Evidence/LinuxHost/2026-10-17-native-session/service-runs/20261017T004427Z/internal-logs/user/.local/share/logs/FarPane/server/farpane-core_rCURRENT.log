@@ -1,0 +1,68 @@
+[2026-10-17 00:44:28.211628 +00:00] INFO [src/core_main.rs:404] start --server with user ubuntu
+[2026-10-17 00:44:28.212072 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":92")
+[2026-10-17 00:44:28.212078 +00:00] INFO [src/server.rs:666] XAUTHORITY=Ok("/run/user/1000/test.Xauthority")
+[2026-10-17 00:44:28.212340 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-1000/ipc
+[2026-10-17 00:44:28.212363 +00:00] DEBUG [src/server.rs:833] #tries of ipc service connection: 30
+[2026-10-17 00:44:28.302159 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:44:28.313211 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:44:28.514764 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-17 00:44:28.515866 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:44:28.515892 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-17 00:44:28.516360 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:44:28.516412 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.87, available memory: 25G, codec thread: 2
+[2026-10-17 00:44:28.630594 +00:00] INFO [libs/scrap/src/common/codec.rs:1150] av1 time: key: 18.531426ms, non-key: 6.966832ms, consume: 112.080187ms
+[2026-10-17 00:44:28.815786 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:28.815957 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:28.816074 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:29.117826 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:29.118007 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:29.118195 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:29.419169 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:29.419224 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:29.419321 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:29.516526 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-17 00:44:29.517903 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:44:29.545268 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0
+[2026-10-17 00:44:29.720879 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:29.720935 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:29.721029 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:30.022530 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:30.022606 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:30.022668 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:30.323281 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:30.323357 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:30.323505 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:30.624983 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:30.625036 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:30.625144 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:30.926933 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:30.927015 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:30.927186 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:31.214018 +00:00] INFO [src/server/drm_capturer.rs:1897] drm: consumer cache warm found no producer at startup (will probe lazily)
+[2026-10-17 00:44:31.228726 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:31.228834 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:31.228962 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:31.531040 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:31.531214 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:31.531366 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:31.833266 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:31.833371 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:31.833525 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:32.134823 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:32.134894 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:32.135022 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:32.436609 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:32.436722 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:32.436837 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:32.518094 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-17 00:44:32.519231 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:44:32.737408 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:32.737477 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:32.737595 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:33.038782 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:33.038855 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:33.038999 +00:00] INFO [src/server.rs:904] reconnected to ipc_service
+[2026-10-17 00:44:33.340403 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:44:33.340449 +00:00] ERROR [src/server.rs:900] sync config to root failed: Broken pipe (os error 32)
+[2026-10-17 00:44:33.535805 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:44:33.546864 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file

@@ -1,0 +1,23 @@
+{
+  "time_unix": 1792216505.4559698,
+  "backend": "software",
+  "root_service": false,
+  "gpu": false,
+  "processes": {
+    "gui": {
+      "pid": 112,
+      "pss_kib": 136714,
+      "rss_kib": 173504
+    },
+    "viewer": {
+      "pid": 163,
+      "pss_kib": 14332,
+      "rss_kib": 26384
+    },
+    "host": {
+      "pid": 66,
+      "pss_kib": 115721,
+      "rss_kib": 129088
+    }
+  }
+}

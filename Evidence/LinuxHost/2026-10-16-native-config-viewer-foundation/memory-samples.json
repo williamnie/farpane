@@ -1,0 +1,36 @@
+{
+  "source": "Build/Linux/native-host-smoke/20261016T095643Z",
+  "simultaneous": false,
+  "network": false,
+  "gpu": false,
+  "samples": {
+    "agent-memory.txt": {
+      "Rss_kib": 46944,
+      "Pss_kib": 43580,
+      "Private_Clean_kib": 3824,
+      "Private_Dirty_kib": 38092,
+      "SwapPss_kib": 0
+    },
+    "gui-0/page-0-memory.txt": {
+      "Rss_kib": 147592,
+      "Pss_kib": 117662,
+      "Private_Clean_kib": 55864,
+      "Private_Dirty_kib": 34816,
+      "SwapPss_kib": 0
+    },
+    "gui-1/page-0-memory.txt": {
+      "Rss_kib": 138012,
+      "Pss_kib": 108561,
+      "Private_Clean_kib": 51228,
+      "Private_Dirty_kib": 30872,
+      "SwapPss_kib": 0
+    },
+    "gui-offline/page-0-memory.txt": {
+      "Rss_kib": 138072,
+      "Pss_kib": 110222,
+      "Private_Clean_kib": 53680,
+      "Private_Dirty_kib": 30772,
+      "SwapPss_kib": 0
+    }
+  }
+}

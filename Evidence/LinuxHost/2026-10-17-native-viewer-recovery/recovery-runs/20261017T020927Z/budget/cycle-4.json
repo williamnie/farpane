@@ -1,0 +1,87 @@
+{
+  "authentication_visible": false,
+  "challenge": 0,
+  "cycle": 4,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 13318023249240987877
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在建立远程连接",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 13318023249240987877
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 13318023249240987877
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "传输已建立，等待认证",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 13318023249240987877
+    },
+    {
+      "event": {
+        "data": {
+          "retryable": true
+        },
+        "type": "connection_ended"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 13318023249240987877
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "远程连接失败或已关闭",
+          "phase": "failed"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 13318023249240987877
+    }
+  ],
+  "frames": 0,
+  "gpu_completed": 0,
+  "gpu_frames": 0,
+  "password_attempts": 0,
+  "presented": false,
+  "session": 13318023249240987877,
+  "worker_reaped": true
+}

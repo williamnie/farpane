@@ -1,0 +1,7 @@
+Extracting checksum-verified source archive
+Verifying every extracted source entry
+Running offline Cargo core-metadata
+Running offline Cargo gui-metadata
+Running offline Cargo protocol-tests
+Running offline Cargo gui-release
+{"result": "pass", "checks": ["archive_sha256_and_complete_extracted_source_manifest", "empty_cargo_home_offline_core_graph_inside_snapshot", "empty_cargo_home_offline_gui_graph_inside_snapshot", "fresh_target_compilation_and_38_actual_protocol_tests", "offline_full_gui_release_build_and_headless_component_probe"], "archive_sha256": "2d5ea561e6baa96cff73dbae8fa9696e2e5a3323ab0ceaa5121f834d32ebb31c", "source_entries": 88601, "cargo_graph_packages": {"core": 666, "gui": 71}, "gui_sha256": "18e35ba0926187a7295dd124e5644a146d477eb8ab073e19701ab21ddfccf4de", "full_gui_release_build": true, "compiler": "rustc 1.89.0 (29483883e 2025-08-04)", "repository_mounted": false, "compiler_cache_mounted": false, "network": "none", "full_native_media_build": false, "complete_license_source_audit": false, "host_modified": false}

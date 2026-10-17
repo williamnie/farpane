@@ -1,0 +1,20 @@
+{
+  "result": "pass",
+  "python_ast": [
+    "Linux/tests/native_shared_runtime.py",
+    "Linux/tests/native_home_memory.py",
+    "Linux/tests/native_viewer_smoke.py",
+    "Scripts/linux/run-native-gpu-test.py"
+  ],
+  "relative_links": 65,
+  "canonical_sha256": {
+    "Linux/docs/home-memory.md": "45c53654f48692de084d1abc9be73b3435f938732a3326f479883f7da563c26a",
+    "Linux/tests/native_viewer_smoke.py": "e37d173aeafc09cba69072fda36b9023b2b07bf69f978a1eaf72ce55cf928092",
+    "Linux/tests/native_home_memory.py": "f91d87c1041473c9c6236fe2b5c9607d16f2bfa2d28d6a23099f7a2f3933c540",
+    "Linux/tests/native_shared_runtime.py": "e69580b37075ab76ee798d27506a092d4cc06546c1f68598e7489db480ce14c0",
+    "Linux/tests/native_gl_identity.c": "07c97c091f8a36e8f7d0c9086dab38f6d3cb501c36dd931e9801f4fc323f4537",
+    "Scripts/linux/run-native-gpu-test.py": "d3002a375fc4b6f3b6fd5a83de83b2cc0f77dc4016f7f01a9878da6c63e20d02"
+  },
+  "original_build_receipt_valid": true,
+  "memory_target_not_claimed_pass": true
+}

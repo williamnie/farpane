@@ -1,0 +1,15 @@
+/workspace/Build/Linux/native-multidisplay-smoke/20261017T075705Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 524, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 293, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_multidisplay_smoke.py", line 120, in exercise
+    wait(lambda: '显示器目录：2 项，选择序号 0' in diagnostic.read_text(), 'Missing two-monitor catalog')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_multidisplay_smoke.py", line 80, in wait
+    assert gui.poll() is None and agent.poll() is None, 'GUI/Host exited: ' + message
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: GUI/Host exited: Missing two-monitor catalog

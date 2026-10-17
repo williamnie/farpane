@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/package-native-source.py", line 20, in <module>
+    print(json.dumps(native_source_bundle.package(args.reference, args.vendor, args.vendor_config,
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                                args.output, args.source_build), indent=2))
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Linux/packaging/native_source_bundle.py", line 247, in package
+    supplemental_notices(tree)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Linux/packaging/native_source_bundle.py", line 215, in supplemental_notices
+    return native_notice_supplements.collect(baseline / 'report.json',
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                            tree / 'native-dependencies/notice-supplements')
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Linux/packaging/native_notice_supplements.py", line 31, in collect
+    raise ValueError('Baseline inventory does not describe current product binaries')
+ValueError: Baseline inventory does not describe current product binaries

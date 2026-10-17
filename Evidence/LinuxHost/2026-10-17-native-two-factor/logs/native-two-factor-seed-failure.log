@@ -1,0 +1,12 @@
+/workspace/Build/Linux/native-two-factor-smoke/20261017T064602Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 502, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 173, in user_test
+    seed(settings, output)
+    ~~~~^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_two_factor_smoke.py", line 38, in seed
+    assert len(public_key) == 32
+           ^^^^^^^^^^^^^^^^^^^^^
+AssertionError

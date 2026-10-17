@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_service_smoke.py", line 123, in <module>
+    if __name__=='__main__':main(Path(sys.argv[1]),int(sys.argv[2]),int(sys.argv[3]))
+                            ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_service_smoke.py", line 95, in main
+    wait_for(lambda:any(p['role']=='--server' and p['uid']==1000 for p in roles()),seconds=15)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_service_smoke.py", line 27, in wait_for
+    raise TimeoutError('Service fixture condition did not arrive')
+TimeoutError: Service fixture condition did not arrive

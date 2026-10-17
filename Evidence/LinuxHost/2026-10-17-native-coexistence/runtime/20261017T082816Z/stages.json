@@ -1,0 +1,123 @@
+[
+  {
+    "stage": "connect-a-to-b",
+    "viewer_role": "a",
+    "worker": {
+      "pid": 223,
+      "exe": "/opt/farpane-native-test/releases/native-smoke-1/libexec/farpane-core",
+      "uid": 2201,
+      "children": [],
+      "start_ticks": 70541234
+    }
+  },
+  {
+    "stage": "connect-b-to-a",
+    "viewer_role": "b",
+    "worker": {
+      "pid": 264,
+      "exe": "/opt/farpane-native-test/releases/native-smoke-1/libexec/farpane-core",
+      "uid": 2202,
+      "children": [],
+      "start_ticks": 70541377
+    }
+  },
+  {
+    "stage": "simultaneous",
+    "pixels_a": 157456,
+    "pixels_b": 154000,
+    "a": {
+      "host_pid": 27,
+      "host_enabled": true,
+      "inbound_id": 1368,
+      "gui": {
+        "pid": 120,
+        "exe": "/opt/farpane-native-test/releases/native-smoke-1/farpane",
+        "uid": 2201,
+        "children": [
+          223
+        ],
+        "start_ticks": 70540936
+      }
+    },
+    "b": {
+      "host_pid": 78,
+      "host_enabled": true,
+      "inbound_id": 106,
+      "gui": {
+        "pid": 169,
+        "exe": "/opt/farpane-native-test/releases/native-smoke-1/farpane",
+        "uid": 2202,
+        "children": [
+          264
+        ],
+        "start_ticks": 70541057
+      }
+    }
+  },
+  {
+    "stage": "both-hosts-disabled",
+    "pixels_a": 157440,
+    "pixels_b": 156016,
+    "a": {
+      "host_pid": 27,
+      "host_enabled": false,
+      "inbound_id": 1368,
+      "gui": {
+        "pid": 120,
+        "exe": "/opt/farpane-native-test/releases/native-smoke-1/farpane",
+        "uid": 2201,
+        "children": [
+          223
+        ],
+        "start_ticks": 70540936
+      }
+    },
+    "b": {
+      "host_pid": 78,
+      "host_enabled": false,
+      "inbound_id": 106,
+      "gui": {
+        "pid": 169,
+        "exe": "/opt/farpane-native-test/releases/native-smoke-1/farpane",
+        "uid": 2202,
+        "children": [
+          264
+        ],
+        "start_ticks": 70541057
+      }
+    }
+  },
+  {
+    "stage": "both-hosts-reenabled",
+    "pixels_a": 157664,
+    "pixels_b": 156144,
+    "a": {
+      "host_pid": 27,
+      "host_enabled": true,
+      "inbound_id": 1368,
+      "gui": {
+        "pid": 120,
+        "exe": "/opt/farpane-native-test/releases/native-smoke-1/farpane",
+        "uid": 2201,
+        "children": [
+          223
+        ],
+        "start_ticks": 70540936
+      }
+    },
+    "b": {
+      "host_pid": 78,
+      "host_enabled": true,
+      "inbound_id": 106,
+      "gui": {
+        "pid": 169,
+        "exe": "/opt/farpane-native-test/releases/native-smoke-1/farpane",
+        "uid": 2202,
+        "children": [
+          264
+        ],
+        "start_ticks": 70541057
+      }
+    }
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "file-only-authentication",
+    "wrong-password-retry",
+    "bounded-directory-pages",
+    "actual-next-page-button",
+    "upload",
+    "download",
+    "actual-host-consent-buttons",
+    "cancel-before-consent",
+    "worker-reaped",
+    "folder-upload-multiple-batches",
+    "one-folder-consent",
+    "unsupported-symlink-reported",
+    "multiple-files-one-task",
+    "empty-folder-upload"
+  ],
+  "host_confirmation_buttons": 5,
+  "password_attempts": 2,
+  "result": "pass",
+  "stage": 23,
+  "worker_reaped": true
+}

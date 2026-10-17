@@ -1,0 +1,36 @@
+{
+  "read_only": true,
+  "native_service_test": false,
+  "local_observation_only": true,
+  "graphical_sessions_for_user": 1,
+  "active_session_is_the_only_graphical_session": true,
+  "unique_display_targets": 1,
+  "candidates": [
+    {
+      "program": "gnome-shell-calendar-server",
+      "created_after_session_leader": true,
+      "owned_wayland_socket_present": true
+    },
+    {
+      "program": "ibus-daemon",
+      "created_after_session_leader": true,
+      "owned_wayland_socket_present": true
+    },
+    {
+      "program": "xdg-desktop-portal",
+      "created_after_session_leader": true,
+      "owned_wayland_socket_present": true
+    },
+    {
+      "program": "xdg-desktop-portal-gnome",
+      "created_after_session_leader": true,
+      "owned_wayland_socket_present": true
+    },
+    {
+      "program": "xdg-desktop-portal-gtk",
+      "created_after_session_leader": true,
+      "owned_wayland_socket_present": true
+    }
+  ],
+  "identity_and_environment_values_omitted": true
+}

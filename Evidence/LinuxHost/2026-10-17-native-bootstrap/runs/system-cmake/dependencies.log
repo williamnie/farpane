@@ -1,0 +1,63 @@
+Computing installation plan...
+The following packages will be built and installed:
+    aom:x64-linux@3.14.1
+    ffnvcodec:x64-linux@12.1.14.0
+    libjpeg-turbo:x64-linux@3.2.0
+    libvpx:x64-linux@1.15.2
+    libyuv:x64-linux@1857
+    mfx-dispatch:x64-linux@1.35.1#5
+    opus:x64-linux@1.5.2
+    pkgconf:x64-linux@3.0.3
+    vcpkg-cmake:x64-linux@2024-04-23
+    vcpkg-cmake-config:x64-linux@2026-07-21
+    vcpkg-cmake-get-vars:x64-linux@2025-05-29
+    vcpkg-pkgconfig-get-modules:x64-linux@2024-04-03
+    vcpkg-tool-meson:x64-linux@1.9.0#10
+Detecting compiler hash for triplet x64-linux...
+Compiler found: /usr/bin/c++
+Installing 1/13 vcpkg-cmake:x64-linux@2024-04-23...
+vcpkg-cmake:x64-linux@2024-04-23 package ABI: 93234fb9e357507bb5c92fef24e9a2e78dc100b68e23354a4b158ab57706b1b1
+Building vcpkg-cmake:x64-linux@2024-04-23...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/vcpkg_cmake_configure.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/vcpkg_cmake_build.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/vcpkg_cmake_install.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/vcpkg-port-config.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/copyright
+-- Performing post-build validation
+Elapsed time to handle vcpkg-cmake:x64-linux: 18.6 ms
+Installing 2/13 vcpkg-cmake-config:x64-linux@2026-07-21...
+vcpkg-cmake-config:x64-linux@2026-07-21 package ABI: 7e650b5b0e472690c771958e37e6563e6bb240fa4f9d99ec4f9963cfe7403544
+Building vcpkg-cmake-config:x64-linux@2026-07-21...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-config_x64-linux/share/vcpkg-cmake-config/vcpkg_cmake_config_fixup.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-config_x64-linux/share/vcpkg-cmake-config/vcpkg-port-config.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-config_x64-linux/share/vcpkg-cmake-config/copyright
+-- Skipping post-build validation due to VCPKG_POLICY_EMPTY_PACKAGE
+Elapsed time to handle vcpkg-cmake-config:x64-linux: 17.2 ms
+Installing 3/13 aom:x64-linux@3.14.1...
+aom:x64-linux@3.14.1 package ABI: 85f9ce43903dc9184eac266d96240240ff18f6e9549de768adf323bbd1d3ab26
+Building aom:x64-linux@3.14.1...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Using cached /output/work/downloads/aom-03087864cf4bea6abb0d28f95cf7843511413d8f.tar.gz
+-- Extracting source /output/work/downloads/aom-03087864cf4bea6abb0d28f95cf7843511413d8f.tar.gz
+-- Applying patch aom-uninitialized-pointer.diff
+-- Using source at /output/work/vcpkg/buildtrees/aom/src/3511413d8f-ae57dc8de2.clean
+CMake Error at scripts/cmake/z_vcpkg_spdx.cmake:15 (string):
+  string sub-command JSON got an invalid mode 'STRING_ENCODE', expected one
+  of GET, TYPE, MEMBER, LENGTH, REMOVE, SET, EQUAL.
+Call Stack (most recent call first):
+  scripts/cmake/vcpkg_from_git.cmake:193 (z_vcpkg_add_spdx_resource)
+  /output/work/ports/aom/portfile.cmake:24 (vcpkg_from_git)
+  scripts/ports.cmake:209 (include)
+
+
+error: building aom:x64-linux failed with: BUILD_FAILED
+See https://learn.microsoft.com/vcpkg/troubleshoot/build-failures?WT.mc_id=vcpkg_inproduct_cli for more information.
+Elapsed time to handle aom:x64-linux: 122 ms
+Please ensure you're using the latest port files with `git pull` and `vcpkg update`.
+Then check for known issues at:
+  https://github.com/microsoft/vcpkg/issues?q=is%3Aissue+is%3Aopen+in%3Atitle+aom
+You can submit a new issue at:
+  https://github.com/microsoft/vcpkg/issues/new?title=%5Baom%5D%20build%20error%20on%20x64-linux&body=Copy%20issue%20body%20from%20%2Foutput%2Fwork%2Fvcpkg%2Finstalled%2Fvcpkg%2Fissue_body.md
+

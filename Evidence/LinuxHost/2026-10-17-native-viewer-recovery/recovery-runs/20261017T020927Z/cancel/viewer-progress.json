@@ -1,0 +1,156 @@
+{
+  "authentication_visible": true,
+  "challenge": 1,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在建立远程连接",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "传输已建立，等待认证",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "请输入远端密码",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "policy": {
+            "image": {
+              "receive": false,
+              "send": false
+            },
+            "rich_text": {
+              "receive": false,
+              "send": false
+            },
+            "text": {
+              "receive": false,
+              "send": false
+            }
+          },
+          "revision": 1
+        },
+        "type": "clipboard_policy"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "audio": true,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 7,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 8,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 9,
+      "session": 3810391457124062435
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 10,
+      "session": 3810391457124062435
+    }
+  ],
+  "frames": 0,
+  "gpu_completed": 0,
+  "gpu_frames": 0,
+  "hud_enabled": false,
+  "password_attempts": 0,
+  "phase": "password_required",
+  "presented": false,
+  "worker_reaped": false
+}

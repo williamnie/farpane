@@ -1,0 +1,106 @@
+   Compiling farpane-protocol v0.1.0 (/workspace/Build/Linux/native/protocol)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.94s
+     Running unittests src/lib.rs (/workspace/Build/Linux/native-target/debug/deps/farpane_protocol-9e929bb9c4f0906a)
+
+running 24 tests
+test devices::tests::corrupt_future_duplicate_and_oversized_data_are_not_silently_reset ... ok
+test devices::tests::remote_name_migrates_old_records_and_never_replaces_user_alias ... ok
+test devices::tests::same_id_is_isolated_by_server_and_public_key_but_not_relay ... ok
+test frame::tests::rejects_overflow_bad_index_hdr_and_unreferenced_fds ... ok
+test frame::tests::missing_vui_policy_is_explicit ... ok
+test frame::tests::validates_two_objects_and_rejects_truncated_or_stale_frames ... ok
+test frame_socket::tests::transferred_descriptors_are_close_on_exec_and_must_match_metadata ... ok
+test frame_socket::tests::channel_bootstrap_and_lease_return_preserve_ownership ... ok
+test sealed::tests::shared_pixels_cannot_change_or_shrink_under_the_gui ... ok
+test supervision::tests::a_long_active_connection_survives_hourly_maintenance ... ok
+test supervision::tests::approvals_files_and_retiring_media_all_prevent_maintenance ... ok
+test supervision::tests::recovery_requires_sustained_independent_health_failures ... ok
+test supervision::tests::unknown_stale_wrong_owner_and_auth_rejection_never_become_idle ... ok
+test telemetry::tests::parses_proc_comm_with_spaces_parentheses_and_rejects_missing_fields ... ok
+test tests::secrets_are_redacted_inside_nested_messages ... ok
+test tests::worker_cannot_manage_host ... ok
+test transport::tests::bounded_transport_and_peer_identity ... ok
+test frame_socket::tests::malformed_payload_closes_received_descriptors_and_does_not_leak_secrets ... ok
+test transport::tests::malformed_json_does_not_leak_payload ... ok
+test transport::tests::runtime_directory_rejects_symlinks_and_public_permissions ... ok
+test transport::tests::saturated_listener_never_blocks_the_caller ... ok
+test transport::tests::incomplete_message_has_a_deadline ... ok
+test devices::tests::evicts_only_unstarred_history_and_bounds_encoded_bytes ... ok
+test telemetry::tests::own_process_monitor_stops_and_resets_cpu_baseline ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.22s
+
+   Doc-tests farpane_protocol
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling farpane-protocol v0.1.0 (/workspace/Build/Linux/native/protocol)
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+warning: unused import: `gtk::glib`
+ --> src/viewer_hud.rs:8:5
+  |
+8 | use gtk::glib;
+  |     ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: methods `enabled`, `samples`, and `snapshot` are never used
+  --> src/viewer_hud.rs:90:12
+   |
+55 | impl Hud {
+   | -------- methods in this implementation
+...
+90 |     pub fn enabled(&self) -> bool {
+   |            ^^^^^^^
+...
+93 |     pub fn samples(&self) -> u64 {
+   |            ^^^^^^^
+...
+96 |     pub fn snapshot(&self) -> Snapshot {
+   |            ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: `farpane-gui` (bin "farpane" test) generated 2 warnings (run `cargo fix --bin "farpane" --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.16s
+     Running unittests src/main.rs (/workspace/Build/Linux/native-target/debug/deps/farpane-36b0ed4f00ba5d12)
+
+running 4 tests
+test model::tests::authentication_does_not_claim_picture_and_old_events_cannot_replace_new_session ... ok
+test viewer_input::tests::letterbox_hidpi_and_negative_monitor_origin_map_to_remote_coordinates ... ok
+test bridge::tests::stale_approval_is_not_sent_to_a_new_agent_generation ... ok
+test model::tests::stale_generation_replayed_sequence_and_frames_after_cancel_are_rejected ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling farpane-protocol v0.1.0 (/workspace/Build/Linux/native/protocol)
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+warning: unused import: `gtk::glib`
+ --> src/viewer_hud.rs:8:5
+  |
+8 | use gtk::glib;
+  |     ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: methods `enabled`, `samples`, and `snapshot` are never used
+  --> src/viewer_hud.rs:90:12
+   |
+55 | impl Hud {
+   | -------- methods in this implementation
+...
+90 |     pub fn enabled(&self) -> bool {
+   |            ^^^^^^^
+...
+93 |     pub fn samples(&self) -> u64 {
+   |            ^^^^^^^
+...
+96 |     pub fn snapshot(&self) -> Snapshot {
+   |            ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: `farpane-gui` (bin "farpane") generated 2 warnings (run `cargo fix --bin "farpane"` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 20.16s

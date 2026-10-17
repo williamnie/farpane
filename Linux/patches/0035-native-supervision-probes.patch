@@ -1,0 +1,30 @@
+--- a/src/ipc.rs
++++ b/src/ipc.rs
+@@ -605,7 +605,13 @@
+                     let mut stream = Connection::new(stream);
+                     let postfix = postfix.to_owned();
+                     #[cfg(feature = "farpane-native")]
+-                    if postfix.is_empty() && !stream.native_core_peer() { continue; }
++                    if postfix.is_empty() {
++                        if let Some(peer) = stream.native_root_probe_peer() {
++                            tokio::spawn(crate::farpane_native::supervisor::serve_probe(stream, peer));
++                            continue;
++                        }
++                        if !stream.native_core_peer() { continue; }
++                    }
+                     #[cfg(any(target_os = "linux", target_os = "macos"))]
+                     if config::is_service_ipc_postfix(&postfix) {
+                         if !authorize_service_scoped_ipc_connection(&stream, &postfix) {
+--- a/src/ipc/auth.rs
++++ b/src/ipc/auth.rs
+@@ -1041,6 +1041,10 @@
+     pub(crate) fn native_same_process(&self) -> bool {
+         farpane_protocol::transport::Peer::from_fd_for_uid(self.inner.get_ref().as_raw_fd(), unsafe { libc::geteuid() }).map(|p| p.pid == std::process::id()).unwrap_or(false)
+     }
++    pub(crate) fn native_root_probe_peer(&self) -> Option<farpane_protocol::transport::Peer> {
++        if unsafe { libc::geteuid() } == 0 { return None; }
++        farpane_protocol::transport::Peer::from_fd_for_uid(self.inner.get_ref().as_raw_fd(), 0).ok()
++    }
+     pub(crate) fn native_core_peer(&self) -> bool {
+         let Some(uid) = self.peer_uid() else { return false; };
+         if uid != 0 && uid != unsafe { libc::geteuid() } { return false; }

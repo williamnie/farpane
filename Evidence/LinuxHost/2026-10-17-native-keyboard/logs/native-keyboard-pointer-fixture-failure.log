@@ -1,0 +1,14 @@
+/workspace/Build/Linux/native-keyboard-smoke/20261017T072925Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 510, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 279, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_keyboard_smoke.py", line 84, in exercise
+    wait(lambda: diagnostic.exists() and 'PasswordRequired' in diagnostic.read_text(), 'No password challenge')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_keyboard_smoke.py", line 62, in wait
+    raise AssertionError(message)
+AssertionError: No password challenge

@@ -1,0 +1,44 @@
+Fetching pinned rustc
+Fetching pinned cargo
+Fetching pinned rust-std
+Fetching pinned vcpkg
+Fetching pinned cmake
+sdk_output=/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/native-tools/rust-sdk.i5f0jr3s
+{
+  "result": "pass",
+  "sdk": "/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/native-tools/rust-sdk.i5f0jr3s/sdk",
+  "tools": {
+    "rustc": {
+      "path": "/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/native-tools/downloads/rustc-1.89.0-x86_64-unknown-linux-gnu.tar.xz",
+      "sha256": "b42c254e1349df86bd40bc28fdf386172a1a46f2eeabe3c7a08a75cf1fb60e27",
+      "bytes": 81862808,
+      "cache_reused": false
+    },
+    "cargo": {
+      "path": "/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/native-tools/downloads/cargo-1.89.0-x86_64-unknown-linux-gnu.tar.xz",
+      "sha256": "99fc10be2aeedf2c23a484f217bfa76458494495a0eee33e280d3616bb08282d",
+      "bytes": 10120792,
+      "cache_reused": false
+    },
+    "rust-std": {
+      "path": "/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/native-tools/downloads/rust-std-1.89.0-x86_64-unknown-linux-gnu.tar.xz",
+      "sha256": "2719470dcd78b3f97d78b978c8f85a1a58d84ff11b62558294621c01bca34d49",
+      "bytes": 28894028,
+      "cache_reused": false
+    },
+    "vcpkg": {
+      "path": "/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/native-tools/downloads/vcpkg-glibc-2026-07-27",
+      "sha256": "7e97ef6bcd58f74d079f40d086b801a0222c5d15e4ea0d8d507a538033493d04",
+      "bytes": 8548168,
+      "cache_reused": false
+    },
+    "cmake": {
+      "path": "/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/native-tools/downloads/cmake-4.4.0-linux-x86_64.tar.gz",
+      "sha256": "3864eb649b4466ae126a64bbde1657adad78efbbaa068bf38201de5cf1b5349f",
+      "bytes": 64838835,
+      "cache_reused": false
+    }
+  },
+  "sdk_receipt_sha256": "adbd762eb3ea1beb1829d03a4a3f8611ff7a3cde261c1113cd6783e47e98a929",
+  "host_installed": false
+}

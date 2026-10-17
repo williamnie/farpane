@@ -1,0 +1,53 @@
+{
+  "present_fps": 0.9952897,
+  "presentation_wait_ms": 8.809946,
+  "local_candidates_skipped": 0,
+  "gpu_loans": 0,
+  "gui": {
+    "pid": 63,
+    "sample": 4,
+    "age_ms": 10,
+    "cpu_percent": 1.9873196,
+    "pss_kib": 153855,
+    "rss_kib": 194092,
+    "uss_kib": 129984,
+    "swap_pss_kib": 0,
+    "private_hugetlb_kib": 0,
+    "fds": 15,
+    "threads": 57
+  },
+  "worker": {
+    "received_packets": 5,
+    "received_bytes": 40070,
+    "decoded_frames": 5,
+    "decode_call_ns": 10327839,
+    "packet_rate": 1.9765054,
+    "decode_fps": 1.9765054,
+    "receive_kib_per_sec": 15.468471,
+    "decode_ms": 1.810711,
+    "delay_ms": 0,
+    "delay_age_ms": 150,
+    "queue_bytes": 0,
+    "queued_groups": 0,
+    "leases": 0,
+    "skipped_display_groups": 0,
+    "channel_rejected_groups": 0,
+    "resources": {
+      "pid": 114,
+      "sample": 3,
+      "age_ms": 1000,
+      "cpu_percent": 0.9983561,
+      "pss_kib": 16292,
+      "rss_kib": 28748,
+      "uss_kib": 8116,
+      "swap_pss_kib": 0,
+      "private_hugetlb_kib": 0,
+      "fds": 13,
+      "threads": 5
+    },
+    "backend": "software",
+    "codec": "VP9",
+    "relay": false
+  },
+  "worker_sample_age_ms": 988
+}

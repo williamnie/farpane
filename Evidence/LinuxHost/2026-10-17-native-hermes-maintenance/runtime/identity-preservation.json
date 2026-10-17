@@ -1,0 +1,85 @@
+{
+  "user": {
+    "directory_mode": "0o700",
+    "checks": [
+      {
+        "file": "FarPane.toml",
+        "field": "enc_id",
+        "equal": true
+      },
+      {
+        "file": "FarPane.toml",
+        "field": "password",
+        "equal": true
+      },
+      {
+        "file": "FarPane.toml",
+        "field": "salt",
+        "equal": true
+      },
+      {
+        "file": "FarPane.toml",
+        "field": "key_pair",
+        "equal": true
+      },
+      {
+        "file": "FarPane2.toml",
+        "field": "options.custom-rendezvous-server",
+        "equal": true
+      },
+      {
+        "file": "FarPane2.toml",
+        "field": "options.relay-server",
+        "equal": true
+      },
+      {
+        "file": "FarPane2.toml",
+        "field": "options.key",
+        "equal": true
+      }
+    ],
+    "all_equal": true
+  },
+  "root": {
+    "directory_mode": "0o700",
+    "checks": [
+      {
+        "file": "FarPane.toml",
+        "field": "enc_id",
+        "equal": true
+      },
+      {
+        "file": "FarPane.toml",
+        "field": "password",
+        "equal": true
+      },
+      {
+        "file": "FarPane.toml",
+        "field": "salt",
+        "equal": true
+      },
+      {
+        "file": "FarPane.toml",
+        "field": "key_pair",
+        "equal": true
+      },
+      {
+        "file": "FarPane2.toml",
+        "field": "options.custom-rendezvous-server",
+        "equal": true
+      },
+      {
+        "file": "FarPane2.toml",
+        "field": "options.relay-server",
+        "equal": true
+      },
+      {
+        "file": "FarPane2.toml",
+        "field": "options.key",
+        "equal": true
+      }
+    ],
+    "all_equal": true
+  },
+  "checked_at_utc": "2026-10-17T13:11:20.514613+00:00"
+}

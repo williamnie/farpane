@@ -1,0 +1,31 @@
+/workspace/Build/Linux/native-lifecycle-smoke/20261017T061822Z
+/workspace/Linux/tests/native_object_observer.c:69:10: error: conflicting types for ‘g_object_new_with_properties’; have ‘void *(GType,  guint,  const char **, const GValue *)’ {aka ‘void *(long unsigned int,  unsigned int,  const char **, const struct _GValue *)’}
+   69 | gpointer g_object_new_with_properties(GType type, guint n, const char *names[], const GValue values[]) {
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/glib-2.0/gobject/gbinding.h:31,
+                 from /usr/include/glib-2.0/glib-object.h:24,
+                 from /workspace/Linux/tests/native_object_observer.c:5:
+/usr/include/glib-2.0/gobject/gobject.h:436:13: note: previous declaration of ‘g_object_new_with_properties’ with type ‘GObject *(GType,  guint,  const char **, const GValue *)’ {aka ‘struct _GObject *(long unsigned int,  unsigned int,  const char **, const struct _GValue *)’}
+  436 | GObject*    g_object_new_with_properties      (GType           object_type,
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/workspace/Linux/tests/native_object_observer.c:74:10: error: conflicting types for ‘g_object_new_valist’; have ‘void *(GType,  const char *, __va_list_tag *)’ {aka ‘void *(long unsigned int,  const char *, __va_list_tag *)’}
+   74 | gpointer g_object_new_valist(GType type, const char *first, va_list args) {
+      |          ^~~~~~~~~~~~~~~~~~~
+/usr/include/glib-2.0/gobject/gobject.h:451:13: note: previous declaration of ‘g_object_new_valist’ with type ‘GObject *(GType,  const gchar *, __va_list_tag *)’ {aka ‘struct _GObject *(long unsigned int,  const char *, __va_list_tag *)’}
+  451 | GObject*    g_object_new_valist               (GType           object_type,
+      |             ^~~~~~~~~~~~~~~~~~~
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 496, in <module>
+    else: setup(Path(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+          ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 468, in setup
+    subprocess.run(['cc','-std=c11','-shared','-fPIC','-O2','-Wall','-Wextra','-Werror',
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    '/workspace/Linux/tests/native_object_observer.c','-ldl','-pthread',*flags,
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    '-o',str(output/'object-observer.so')],check=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['cc', '-std=c11', '-shared', '-fPIC', '-O2', '-Wall', '-Wextra', '-Werror', '/workspace/Linux/tests/native_object_observer.c', '-ldl', '-pthread', '-I/usr/include/glib-2.0', '-I/usr/lib/x86_64-linux-gnu/glib-2.0/include', '-I/usr/include/sysprof-6', '-pthread', '-lgobject-2.0', '-lglib-2.0', '-o', '/workspace/Build/Linux/native-lifecycle-smoke/20261017T061822Z/object-observer.so']' returned non-zero exit status 1.

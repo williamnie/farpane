@@ -1,0 +1,28 @@
+{
+  "result": "pass",
+  "checks": [
+    "two-endpoints-each-inbound-and-outbound-present-new-frames",
+    "host-disable-stops-new-direct-connections",
+    "host-disable-preserves-existing-inbound-and-outbound-workers",
+    "host-reenable-preserves-both-streams",
+    "disconnect-inbound-does-not-kill-local-outbound",
+    "peer-reconnect-restores-coexistence",
+    "gui-close-reaps-own-outbound-but-retains-host-and-inbound-stream",
+    "reopened-home-attaches-same-host-with-live-inbound",
+    "both-guis-exit-workers-reaped-hosts-and-identities-preserved"
+  ],
+  "host_pids": {
+    "a": 27,
+    "b": 78
+  },
+  "private_uids": {
+    "a": 2201,
+    "b": 2202
+  },
+  "gpu": false,
+  "host_switch_control": "authenticated config-cli",
+  "inbound_disconnect": "actual GUI button",
+  "gui_controls": "external XTest",
+  "system_service_tested": false,
+  "real_desktop_tested": false
+}

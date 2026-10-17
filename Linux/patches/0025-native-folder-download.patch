@@ -1,0 +1,34 @@
+--- a/libs/base/protos/message.proto
++++ b/libs/base/protos/message.proto
+@@ -378,6 +378,9 @@
+   uint32 farpane_page = 102;
+   bool farpane_more = 103;
+   bool farpane_upload_batches = 104;
++  bool farpane_download_batches = 105;
++  bool farpane_tree = 106;
++  uint64 farpane_skipped = 107;
+ }
+ 
+ message ReadDir {
+@@ -478,6 +481,7 @@
+     Printer = 1;
+   }
+   FileType file_type = 5;
++  bool farpane_tree = 100;
+ }
+ 
+ message FileTransferSendConfirmRequest {
+@@ -487,11 +491,13 @@
+     bool skip = 3;
+     uint32 offset_blk = 4;
+   }
++  uint32 farpane_page = 100;
+ }
+ 
+ message FileTransferDone {
+   int32 id = 1;
+   sint32 file_num = 2;
++  uint32 farpane_page = 100;
+ }
+ 
+ message FileTransferReceiveRequest {

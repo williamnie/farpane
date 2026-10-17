@@ -1,0 +1,34 @@
+   Compiling farpane-files v0.1.0 (/workspace/Build/Linux/native/files)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.46s
+     Running unittests src/lib.rs (/workspace/Build/Linux/native-target/debug/deps/farpane_files-207a150206be51e3)
+
+running 20 tests
+test tests::cancelled_or_short_receive_preserves_existing_destination ... ok
+test tests::changed_root_or_directory_permissions_stop_already_open_handles ... ok
+test tests::explicit_upload_directory_is_read_only_and_need_not_be_private ... ok
+test tests::block_bounds_and_source_changes_are_enforced ... ok
+test tests::owner_cancel_revoke_and_new_generation_cannot_reuse_old_decisions ... ok
+test tests::owner_confirmation_is_one_use_and_never_creates_files_in_advance ... ok
+test tests::complete_transfer_is_atomic_and_noreplace_checks_again_at_commit ... ok
+test tests::owner_limits_pending_work_and_expires_unanswered_or_stalled_jobs ... ok
+test tests::owner_read_requires_consent_and_never_buffers_a_whole_large_file ... ok
+test tests::provision_creates_private_leaf_and_supports_ordinary_owned_subdirectories ... ok
+test tests::receive_batch_validates_manifest_order_and_preserves_committed_prefix_on_cancel ... ok
+test tests::remote_paths_cannot_escape_or_address_internal_staging ... ok
+test tests::replaced_staging_name_is_never_committed_or_unlinked ... ok
+test tests::root_permission_checks_do_not_chmod_or_follow_ancestors ... ok
+test tests::selected_multiple_files_reject_collisions_and_changed_sources ... ok
+test tests::enumeration_is_incremental_bounded_and_hides_partial_files ... ok
+test tests::symlinks_hardlinks_and_special_files_are_never_followed ... ok
+test tests::owner_directory_continuations_are_bounded_and_bound_to_exact_request ... ok
+test tests::outgoing_tree_streams_bounded_manifests_and_explicit_empty_root ... ok
+test tests::streaming_walk_visits_nested_and_empty_directories_without_following_links ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+   Doc-tests farpane_files
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

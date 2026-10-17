@@ -1,0 +1,132 @@
+{
+  "scope": "same instrumented .5 GUI; allocator counters are not exact live user allocations",
+  "glibc_version": "2.43",
+  "measured_rounds": 20,
+  "heap_counts": [
+    59
+  ],
+  "reported_arena_bin_kinds": [
+    "rest"
+  ],
+  "baseline": {
+    "arena_system_bytes": 90189824,
+    "bin_free_bytes": 44731422,
+    "arena_reported_nonfree_bytes": 45458402,
+    "mmap_bytes": 1527872,
+    "reported_nonfree_plus_mmap_bytes": 46986274
+  },
+  "final": {
+    "arena_system_bytes": 90193920,
+    "bin_free_bytes": 44690561,
+    "arena_reported_nonfree_bytes": 45503359,
+    "mmap_bytes": 1527872,
+    "reported_nonfree_plus_mmap_bytes": 47031231
+  },
+  "delta": {
+    "arena_system_bytes": 4096,
+    "bin_free_bytes": -40861,
+    "arena_reported_nonfree_bytes": 44957,
+    "mmap_bytes": 0,
+    "reported_nonfree_plus_mmap_bytes": 44957
+  },
+  "max_reported_nonfree_growth_bytes": 48701,
+  "max_gui_pss_growth_bytes": 1687552,
+  "final_gui_pss_growth_bytes": 1675264,
+  "last_ten_gui_pss_growth_bytes": 409600,
+  "changed_heaps": [
+    {
+      "index": 0,
+      "system_bytes": 0,
+      "bin_free_bytes": -66570,
+      "reported_nonfree_bytes": 66570
+    },
+    {
+      "index": 1,
+      "system_bytes": 0,
+      "bin_free_bytes": -31,
+      "reported_nonfree_bytes": 31
+    },
+    {
+      "index": 2,
+      "system_bytes": 0,
+      "bin_free_bytes": 768,
+      "reported_nonfree_bytes": -768
+    },
+    {
+      "index": 3,
+      "system_bytes": 0,
+      "bin_free_bytes": -768,
+      "reported_nonfree_bytes": 768
+    },
+    {
+      "index": 5,
+      "system_bytes": 0,
+      "bin_free_bytes": 768,
+      "reported_nonfree_bytes": -768
+    },
+    {
+      "index": 7,
+      "system_bytes": 0,
+      "bin_free_bytes": 1,
+      "reported_nonfree_bytes": -1
+    },
+    {
+      "index": 9,
+      "system_bytes": 0,
+      "bin_free_bytes": -768,
+      "reported_nonfree_bytes": 768
+    },
+    {
+      "index": 10,
+      "system_bytes": 0,
+      "bin_free_bytes": -31,
+      "reported_nonfree_bytes": 31
+    },
+    {
+      "index": 16,
+      "system_bytes": 4096,
+      "bin_free_bytes": 4096,
+      "reported_nonfree_bytes": 0
+    },
+    {
+      "index": 18,
+      "system_bytes": 0,
+      "bin_free_bytes": -175,
+      "reported_nonfree_bytes": 175
+    },
+    {
+      "index": 19,
+      "system_bytes": 0,
+      "bin_free_bytes": 6958,
+      "reported_nonfree_bytes": -6958
+    },
+    {
+      "index": 20,
+      "system_bytes": 0,
+      "bin_free_bytes": -973,
+      "reported_nonfree_bytes": 973
+    },
+    {
+      "index": 21,
+      "system_bytes": 0,
+      "bin_free_bytes": 15672,
+      "reported_nonfree_bytes": -15672
+    },
+    {
+      "index": 22,
+      "system_bytes": 0,
+      "bin_free_bytes": 192,
+      "reported_nonfree_bytes": -192
+    }
+  ],
+  "gobject_type_deltas": {
+    "GdkMemoryTexture": -1,
+    "GtkIconPaintable": -3
+  },
+  "gobject_baseline_alive": 2681,
+  "gobject_final_alive": 2677,
+  "allocator_default_changed": false,
+  "product_memory_budget_accepted": false,
+  "persistent_growth_ruled_out": false,
+  "complete_plan_acceptance": false
+}

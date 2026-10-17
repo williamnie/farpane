@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "baseline_audit_sha256": "0558b85b9088b7fad3561b1b14ff5815806c4475b38cf948b3ce55842e6f0804",
+  "existing_supplement_pins_sha256": "7c1b43fa886e6a95e89b88044bc3bb7e85c9838380f86243e4719a2c8f99ef4a",
+  "artifact_id": "farpane-native-dev-e7508f297ef1d671172d7737",
+  "packages": [
+    {
+      "package_id": "registry+https://github.com/rust-lang/crates.io-index#dlopen_derive@0.1.4",
+      "name": "dlopen_derive",
+      "version": "0.1.4",
+      "manifest_sha256": "464de5a774c3e291124e3fa76f673b7cdcec2cabfee16d1cbe41c653f8552074",
+      "repository": "szymonwieloch/rust-dlopen",
+      "revision": "26b70292744db1052403378d4a01075b6171e3d1",
+      "package_path": "rust-dlopen-derive",
+      "tree_sha256": "974d49c81997041e1e94838a28840226e2e19d66ccb16d5c07edca3144122490",
+      "tree_path": "Linux/notices/published-sources/szymonwieloch/rust-dlopen/26b70292744db1052403378d4a01075b6171e3d1/tree.json",
+      "tree_url": "https://api.github.com/repos/szymonwieloch/rust-dlopen/git/trees/26b70292744db1052403378d4a01075b6171e3d1?recursive=1",
+      "published_files": [
+        {
+          "local_path": "Cargo.toml.orig",
+          "upstream_path": "rust-dlopen-derive/Cargo.toml",
+          "bytes": 266,
+          "sha256": "958588360dfb7e4419b26e7268268539d0ed02b5fd7f79cee3da9633f46d1a7c",
+          "git_blob_sha1": "969ea82047f1b0f5c8991bdd7848a755533242a1"
+        },
+        {
+          "local_path": "src/api.rs",
+          "upstream_path": "rust-dlopen-derive/src/api.rs",
+          "bytes": 1167,
+          "sha256": "ce3e14bf1398609ada2863d749b766ee5e32a346c4dd33e68e3f63bde7631e9c",
+          "git_blob_sha1": "cb87ef6d944ee6f2c7d4d5e52b5e6424eb039a49"
+        },
+        {
+          "local_path": "src/common.rs",
+          "upstream_path": "rust-dlopen-derive/src/common.rs",
+          "bytes": 1773,
+          "sha256": "241bc4c4dce36d111ed50a44448dfd7d36598b7baa9f41e90eab157fc0c1a983",
+          "git_blob_sha1": "6963a09e94735754177259bd9de1b500a7590989"
+        },
+        {
+          "local_path": "src/lib.rs",
+          "upstream_path": "rust-dlopen-derive/src/lib.rs",
+          "bytes": 1331,
+          "sha256": "f7e9af048e68ff900ab41a1b5eba28d51fffde2cc5435b4abc852caf837f974c",
+          "git_blob_sha1": "f5233a3b6645e600d2ecc2f2df61ea0ebd21b083"
+        },
+        {
+          "local_path": "src/multi_api.rs",
+          "upstream_path": "rust-dlopen-derive/src/multi_api.rs",
+          "bytes": 1060,
+          "sha256": "ad4e7ce169640502946f94037397c8e71baba2f9cf2499fe4a143fb4c2f80d11",
+          "git_blob_sha1": "d7f97c8aa5e706c5f06a4775fe96d7c71653f785"
+        },
+        {
+          "local_path": "src/wrapper.rs",
+          "upstream_path": "rust-dlopen-derive/src/wrapper.rs",
+          "bytes": 5459,
+          "sha256": "8d6b87bf7bfe32439b8195ce9b0ba368247988faf2e63de12ddac534cddb9b4b",
+          "git_blob_sha1": "bf58c513984b0dbd8de78101cdecd1674aa9baed"
+        }
+      ],
+      "notice": {
+        "upstream_path": "LICENSE",
+        "bytes": 1071,
+        "sha256": "062e40ee707f6ab1ca0955624ccfa78d666250a2e821f892705f455cf70dc28a",
+        "git_blob_sha1": "06d65cd3bb642617eca8f800c095a54d7f8b3cc7",
+        "url": "https://raw.githubusercontent.com/szymonwieloch/rust-dlopen/26b70292744db1052403378d4a01075b6171e3d1/LICENSE",
+        "existing_material": "Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen-0.1.8/LICENSE"
+      },
+      "source_snapshot_package": "vendor/dlopen_derive-0.1.4"
+    },
+    {
+      "package_id": "registry+https://github.com/rust-lang/crates.io-index#serial@0.4.0",
+      "name": "serial",
+      "version": "0.4.0",
+      "manifest_sha256": "004b18acbd586d62ee32e3847d558f8993411ec37f332a6119bff2b669f4ff29",
+      "repository": "dcuddeback/serial-rs",
+      "revision": "7ed6540c2789b7c7365cd7a89fcb7bac7c567de8",
+      "package_path": "serial",
+      "tree_sha256": "9c258fdc90f49c6d0970d7f7f963e3f7c0764825940eb274f891e0ced83b7c7c",
+      "tree_path": "Linux/notices/published-sources/dcuddeback/serial-rs/7ed6540c2789b7c7365cd7a89fcb7bac7c567de8/tree.json",
+      "tree_url": "https://api.github.com/repos/dcuddeback/serial-rs/git/trees/7ed6540c2789b7c7365cd7a89fcb7bac7c567de8?recursive=1",
+      "published_files": [
+        {
+          "local_path": "Cargo.toml",
+          "upstream_path": "serial/Cargo.toml",
+          "bytes": 743,
+          "sha256": "004b18acbd586d62ee32e3847d558f8993411ec37f332a6119bff2b669f4ff29",
+          "git_blob_sha1": "db5856faf3a96a84445ddcca1b96debfc52404d1"
+        },
+        {
+          "local_path": "README.md",
+          "upstream_path": "serial/README.md",
+          "bytes": 2447,
+          "sha256": "40c5f9b91270c1ac368c3ce74c3e9910d6b335e877d5f25299099b81201923f9",
+          "git_blob_sha1": "6a9567a365872699838cf4cae170211978b669c0"
+        },
+        {
+          "local_path": "examples/open_port.rs",
+          "upstream_path": "serial/examples/open_port.rs",
+          "bytes": 360,
+          "sha256": "7751c805617ddeb1111c9aac24cdb68c95d6c2fbbb1fb8e319bffca483034810",
+          "git_blob_sha1": "78f8f6c7177c19b7bf1314e481a6b481908855b2"
+        },
+        {
+          "local_path": "examples/probe_pins.rs",
+          "upstream_path": "serial/examples/probe_pins.rs",
+          "bytes": 1398,
+          "sha256": "a1ec57ffba91dbde63a45450f77bdef2b8ca65263842f79f471ca6d64b3be34a",
+          "git_blob_sha1": "0e974b50030a1445e03fa4592fc9f9643016a61f"
+        },
+        {
+          "local_path": "examples/read_write.rs",
+          "upstream_path": "serial/examples/read_write.rs",
+          "bytes": 898,
+          "sha256": "fc72f79c61ea306eee86023cea9b6d8cc4432daca3c1dc77d47b8a3e56936407",
+          "git_blob_sha1": "4670611be215367e9f5dd389e111c3fe82fa6838"
+        },
+        {
+          "local_path": "src/lib.rs",
+          "upstream_path": "serial/src/lib.rs",
+          "bytes": 3402,
+          "sha256": "cc29084f5b75a4f44f8e78a62084a2f6c186acc4a64d0e6c61ea3e08195fb609",
+          "git_blob_sha1": "07623dccb58d98db8b6348e80cc4f18602a3bdb0"
+        }
+      ],
+      "notice": {
+        "upstream_path": "LICENSE",
+        "bytes": 1059,
+        "sha256": "871afd9d691846de71e0b83812ba9c7ff00bc7b3ad102dedcaa109f2246d52ad",
+        "git_blob_sha1": "19f28b12c2ba3f910c7872777604d3afa287bb33",
+        "url": "https://raw.githubusercontent.com/dcuddeback/serial-rs/7ed6540c2789b7c7365cd7a89fcb7bac7c567de8/LICENSE",
+        "existing_material": "Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serial-core-0.4.0/LICENSE"
+      },
+      "source_snapshot_package": "vendor/serial-0.4.0"
+    }
+  ],
+  "source_snapshot": "farpane-native-source-a2b4ecc2bc7e4908a8c1aeb5",
+  "source_manifest_sha256": "a2b4ecc2bc7e4908a8c1aeb531c6096c82ef0e4b8a9695cbe885a36dcab4743a",
+  "source_archive_sha256": "ad3e09c3618d986e693d3d8462a5500fea4b86ea09098ab71cc62df2b8a7ba03"
+}

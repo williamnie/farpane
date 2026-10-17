@@ -1,0 +1,263 @@
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+    Checking farpane-protocol v0.1.0 (/workspace/Build/Linux/native/protocol)
+    Checking scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+    Checking rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: unused import: `uuid::Uuid`
+  --> src/ui_session_interface.rs:41:5
+   |
+41 | use uuid::Uuid;
+   |     ^^^^^^^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2212:51
+     |
+2212 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2227:47
+     |
+2227 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+  --> src/farpane_native/viewer_ui.rs:73:39
+   |
+73 |             rgba: hbb_common::base64::encode(cd.colors),
+   |                                       ^^^^^^
+
+warning: unreachable pattern
+    --> src/server/connection.rs:6525:21
+     |
+6525 |                     _ => {}
+     |                     ^ no value can reach this
+     |
+note: multiple earlier patterns match some of the same values
+    --> src/server/connection.rs:6525:21
+     |
+6491 |                     Err(err) => {
+     |                     -------- matches some of the same values
+...
+6494 |                     Ok(Some(data)) => {
+     |                     -------------- matches some of the same values
+...
+6524 |                     Ok(None) => bail!("Native connection manager disconnected"),
+     |                     -------- matches some of the same values
+6525 |                     _ => {}
+     |                     ^ collectively making this unreachable
+     = note: `#[warn(unreachable_patterns)]` on by default
+
+warning: unreachable statement
+    --> src/platform/linux.rs:1002:5
+     |
+1001 |       { crate::farpane_native::process::stop_servers(None); return; }
+     |                                                             ------ any code following this expression is unreachable
+1002 | /     let _ = run_cmds(&format!(
+1003 | |         r##"ps -ef | grep -E '{} +--server' | awk '{{print $2}}' | xargs -r kill -9"##,
+1004 | |         crate::get_app_name().to_lowercase(),
+1005 | |     ));
+     | |_______^ unreachable statement
+     |
+     = note: `#[warn(unreachable_code)]` on by default
+
+warning: unreachable statement
+    --> src/platform/linux.rs:1019:5
+     |
+1018 |     { if try_x11 && (is_display_changed || *uid != desktop.uid) { set_x11_env(desktop); } let Ok(next_uid) = desktop.uid.parse() else { return false; }; return crate::farpane_native::supervisor::should_start(next_uid, uid, is_display_changed, last_restart, server); }
+     |                                                                                                                                                          --------------------------------------------------------------------------------------------------------------- any code following this expression is unreachable
+1019 |     let cm = get_cm();
+     |     ^^^^^^^^^^^^^^^^^^ unreachable statement
+
+warning: unreachable statement
+    --> src/ui_cm_interface.rs:1779:5
+     |
+1777 |     { crate::farpane_native::cm::ready(false); return; }
+     |                                                ------ any code following this expression is unreachable
+1778 |     // in case of std::process::exit not work
+1779 |     log::info!("quit cm");
+     |     ^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+     |
+     = note: this warning originates in the macro `$crate::log` which comes from the expansion of the macro `log::info` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused variable: `is_press`
+   --> src/keyboard.rs:689:17
+    |
+689 |             let is_press = matches!(event.event_type, EventType::KeyPress(_));
+    |                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_press`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `key_event`
+   --> src/keyboard.rs:993:23
+    |
+993 | pub fn send_key_event(key_event: &KeyEvent) {
+    |                       ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_key_event`
+
+warning: unused variable: `cm0`
+    --> src/platform/linux.rs:1013:5
+     |
+1013 |     cm0: &mut bool,
+     |     ^^^ help: if this is intentional, prefix it with an underscore: `_cm0`
+
+warning: unused variable: `evt`
+    --> src/server/input_service.rs:1472:34
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_evt`
+
+warning: unused variable: `conn`
+    --> src/server/input_service.rs:1472:52
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_conn`
+
+warning: unused variable: `username`
+    --> src/server/input_service.rs:1472:63
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                               ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_username`
+
+warning: unused variable: `argb`
+    --> src/server/input_service.rs:1472:81
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                                                 ^^^^ help: if this is intentional, prefix it with an underscore: `_argb`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+error[E0521]: borrowed data escapes outside of function
+   --> src/farpane_native/desktop.rs:111:5
+    |
+110 |   fn register_item(cr: &mut Crossroads, interface: &str) -> IfaceToken<Item> {
+    |                                         ---------  - let's call the lifetime of this reference `'1`
+    |                                         |
+    |                                         `interface` is a reference that is only valid in the function body
+111 | /     cr.register(interface, |b| {
+112 | |         b.property::<String, _>("Category")
+113 | |             .get(|_, _: &mut Item| Ok("Communications".into()));
+114 | |         b.property::<String, _>("Id")
+...   |
+179 | |         );
+180 | |     })
+    | |      ^
+    | |      |
+    | |______`interface` escapes the function body here
+    |        argument requires that `'1` must outlive `'static`
+
+warning: unused variable: `lease`
+   --> src/farpane_native/viewer_media.rs:227:21
+    |
+227 |                     lease,
+    |                     ^^^^^ help: try ignoring the field: `lease: _`
+
+For more information about this error, try `rustc --explain E0521`.
+warning: `rustdesk` (lib) generated 23 warnings
+error: could not compile `rustdesk` (lib) due to 1 previous error; 23 warnings emitted

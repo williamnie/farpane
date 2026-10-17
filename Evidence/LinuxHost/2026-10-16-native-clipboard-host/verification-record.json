@@ -1,0 +1,15 @@
+{
+  "prepare_tests": {
+    "command": "python3 -B Linux/tests/test_prepare.py",
+    "passed": 3
+  },
+  "native_prepare_tests": {
+    "command": "python3 -B Linux/tests/test_native_prepare.py",
+    "passed": 5
+  },
+  "staging": {
+    "command": "python3 -B Scripts/linux/prepare-native.py --check",
+    "canonical_files": 61
+  },
+  "note": "Counts recorded from successful commands in this session; source verification raw output is in logs/host-clipboard-source-check-final.log"
+}

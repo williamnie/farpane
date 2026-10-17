@@ -1,0 +1,11 @@
+/workspace/Build/Linux/native-multidisplay-smoke/20261017T075020Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 519, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 218, in user_test
+    from native_multidisplay_smoke import configure_monitors
+  File "/workspace/Linux/tests/native_multidisplay_smoke.py", line 145
+    actual = wait(lambda: (p if max(abs(a-b) for a,b in zip(p := pointer(), expected)) <= 3 else None),
+                                                            ^^^^^^^^^^^^^^
+SyntaxError: assignment expression cannot be used in a comprehension iterable expression

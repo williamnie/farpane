@@ -1,0 +1,14 @@
+{
+  "result": "pass",
+  "python_ast": [
+    "Linux/packaging/native_package_source.py",
+    "Linux/packaging/native_source_bundle.py",
+    "Scripts/linux/package-native.py",
+    "Scripts/linux/package-native-source.py",
+    "Linux/tests/native_source_package_smoke.py",
+    "Linux/tests/native_deb_smoke.py"
+  ],
+  "bash_n": [
+    "Scripts/linux/test-native-source-package.sh"
+  ]
+}

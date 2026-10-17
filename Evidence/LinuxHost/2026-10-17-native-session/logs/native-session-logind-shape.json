@@ -1,0 +1,24 @@
+{
+  "read_only": true,
+  "commands": [
+    "loginctl show-seat seat0 --property=ActiveSession --no-pager",
+    "loginctl show-session <active-id> --all --no-pager"
+  ],
+  "required_properties_present": [
+    "Id",
+    "User",
+    "Name",
+    "Seat",
+    "Active",
+    "State",
+    "Type",
+    "Class",
+    "Remote",
+    "Leader",
+    "Display"
+  ],
+  "session_class": "user",
+  "display_protocol": "wayland",
+  "identity_values_omitted": true,
+  "service_or_display_changes": false
+}

@@ -1,0 +1,589 @@
+00:00:00.000 [INFO] [sway/main.c:321] Sway version 1.11
+00:00:00.000 [INFO] [sway/main.c:322] wlroots version 0.19.1
+00:00:00.003 [INFO] [sway/main.c:78] Linux 0090bf150e44 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64 GNU/Linux
+00:00:00.003 [INFO] [sway/main.c:94] Contents of /etc/lsb-release:
+00:00:00.003 [INFO] [sway/main.c:78] DISTRIB_ID=Ubuntu
+00:00:00.003 [INFO] [sway/main.c:78] DISTRIB_RELEASE=26.04
+00:00:00.003 [INFO] [sway/main.c:78] DISTRIB_CODENAME=resolute
+00:00:00.003 [INFO] [sway/main.c:78] DISTRIB_DESCRIPTION="Ubuntu 26.04.1 LTS"
+00:00:00.003 [INFO] [sway/main.c:94] Contents of /etc/os-release:
+00:00:00.003 [INFO] [sway/main.c:78] PRETTY_NAME="Ubuntu 26.04.1 LTS"
+00:00:00.003 [INFO] [sway/main.c:78] NAME="Ubuntu"
+00:00:00.003 [INFO] [sway/main.c:78] VERSION_ID="26.04"
+00:00:00.003 [INFO] [sway/main.c:78] VERSION="26.04.1 LTS (Resolute Raccoon)"
+00:00:00.003 [INFO] [sway/main.c:78] VERSION_CODENAME=resolute
+00:00:00.003 [INFO] [sway/main.c:78] ID=ubuntu
+00:00:00.003 [INFO] [sway/main.c:78] ID_LIKE=debian
+00:00:00.003 [INFO] [sway/main.c:78] HOME_URL="https://www.ubuntu.com/"
+00:00:00.003 [INFO] [sway/main.c:78] SUPPORT_URL="https://help.ubuntu.com/"
+00:00:00.003 [INFO] [sway/main.c:78] BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+00:00:00.003 [INFO] [sway/main.c:78] PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+00:00:00.003 [INFO] [sway/main.c:78] UBUNTU_CODENAME=resolute
+00:00:00.003 [INFO] [sway/main.c:78] LOGO=ubuntu-logo
+00:00:00.003 [INFO] [sway/main.c:94] Contents of /etc/debian_version:
+00:00:00.003 [INFO] [sway/main.c:78] forky/sid
+00:00:00.003 [INFO] [sway/main.c:66] LD_LIBRARY_PATH=
+00:00:00.003 [INFO] [sway/main.c:66] LD_PRELOAD=
+00:00:00.003 [INFO] [sway/main.c:66] PATH=/opt/flutter/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+00:00:00.003 [INFO] [sway/main.c:66] SWAYSOCK=
+00:00:00.003 [INFO] [sway/main.c:351] Starting sway version 1.11
+00:00:00.003 [DEBUG] [sway/server.c:236] Initializing Wayland server
+00:00:00.003 [INFO] [wlr] [backend/backend.c:342] Loading user-specified backends due to WLR_BACKENDS: headless
+00:00:00.003 [INFO] [wlr] [backend/headless/backend.c:60] Creating headless backend
+00:00:00.003 [INFO] [wlr] [util/env.c:25] Loading WLR_RENDERER option: pixman
+00:00:00.003 [INFO] [wlr] [render/pixman/renderer.c:328] Creating pixman renderer
+00:00:00.003 [DEBUG] [wlr] [render/allocator/allocator.c:132] Trying to create shm allocator
+00:00:00.003 [DEBUG] [wlr] [render/allocator/shm.c:118] Created shm allocator
+00:00:00.004 [DEBUG] [wlr] [types/wlr_drm_lease_v1.c:679] No DRM backend supplied, failed to create wlr_drm_lease_v1_manager
+00:00:00.004 [DEBUG] [sway/server.c:380] Failed to create wlr_drm_lease_device_v1
+00:00:00.004 [INFO] [sway/server.c:381] VR will not be available
+00:00:00.004 [INFO] [wlr] [backend/headless/backend.c:60] Creating headless backend
+00:00:00.006 [INFO] [sway/config.c:422] Loading config from /workspace/Build/Linux/native-keyboard-smoke/20261017T073241Z/sway.conf
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 1: xwayland disable
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: xwayland disable
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: xwayland disable
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 2: output HEADLESS-1 resolution 1020x720
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: output HEADLESS-1 resolution 1020x720
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: output HEADLESS-1 resolution 1020x720
+00:00:00.006 [DEBUG] [sway/commands.c:436] Subcommand: resolution 1020x720
+00:00:00.006 [DEBUG] [sway/config/output.c:272] Config stored for output HEADLESS-1 (enabled: -1) (1020x720@-1.000000Hz position 2147483647,2147483647 scale -1.000000 subpixel unknown transform -1) (bg (null) (null)) (power -1) (max render time: -1) (allow tearing: -1)
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 3: seat seat0 fallback true
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: seat seat0 fallback true
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: seat seat0 fallback true
+00:00:00.006 [DEBUG] [sway/commands.c:436] Subcommand: fallback true
+00:00:00.006 [DEBUG] [sway/config/seat.c:65] Adding non-wildcard seat config
+00:00:00.006 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 4: seat seat0 shortcuts_inhibitor disable
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: seat seat0 shortcuts_inhibitor disable
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: seat seat0 shortcuts_inhibitor disable
+00:00:00.006 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor disable
+00:00:00.006 [DEBUG] [sway/config/seat.c:59] Merging on top of existing seat config
+00:00:00.006 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 5: default_border none
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: default_border none
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: default_border none
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 6: focus_follows_mouse no
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: focus_follows_mouse no
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: focus_follows_mouse no
+00:00:00.011 [DEBUG] [sway/input/input-manager.c:637] applying seat config for seat seat0
+00:00:00.012 [DEBUG] [sway/config/output.c:1150] spawn_swaybg cmd[0] = swaybg
+00:00:00.012 [INFO] [sway/realtime.c:35] Failed to set scheduling priority to 1
+00:00:00.012 [INFO] [sway/server.c:538] Starting backend on wayland display 'wayland-1'
+00:00:00.012 [INFO] [wlr] [backend/headless/backend.c:17] Starting headless backend
+00:00:00.012 [DEBUG] [sway/desktop/output.c:534] New output 0x5a93e3746bc0: HEADLESS-1 (non-desktop: 0)
+00:00:00.012 [INFO] [wlr] [backend/headless/backend.c:17] Starting headless backend
+00:00:00.012 [DEBUG] [sway/config/output.c:880] Committing 1 outputs
+00:00:00.012 [DEBUG] [sway/config/output.c:643] Output state for HEADLESS-1
+00:00:00.012 [DEBUG] [sway/config/output.c:645]     enabled:       yes
+00:00:00.012 [DEBUG] [sway/config/output.c:649]     render_format: XR24
+00:00:00.012 [DEBUG] [sway/config/output.c:654]     custom mode:   1020x720@0mHz
+00:00:00.012 [DEBUG] [sway/config/output.c:667]     scale:         1.000000
+00:00:00.012 [DEBUG] [sway/config/output.c:670]     subpixel:      unknown
+00:00:00.012 [DEBUG] [wlr] [types/wlr_output_swapchain_manager.c:160] Preparing test commit for 1 outputs with explicit modifiers
+00:00:00.012 [DEBUG] [wlr] [render/swapchain.c:101] Allocating new swapchain buffer
+00:00:00.012 [DEBUG] [wlr] [types/wlr_output_swapchain_manager.c:181] Test commit for 1 outputs succeeded
+00:00:00.012 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 1020x720
+00:00:00.014 [DEBUG] [sway/config/output.c:940] Commit of 1 outputs succeeded
+00:00:00.014 [DEBUG] [sway/config/output.c:946] Finalizing config for HEADLESS-1
+00:00:00.014 [DEBUG] [sway/tree/workspace.c:294] Workspace: Generating new workspace name for output HEADLESS-1
+00:00:00.014 [DEBUG] [sway/tree/output.c:163] Creating default workspace 1
+00:00:00.014 [DEBUG] [sway/tree/workspace.c:65] Adding workspace 1 for output HEADLESS-1
+00:00:00.014 [DEBUG] [sway/desktop/layer_shell.c:96] Usable area changed, rearranging output
+00:00:00.014 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:00.014 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:00.014 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:00.014 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:00.014 [DEBUG] [sway/desktop/transaction.c:821] Transaction 0x5a93e375ea50 committing with 2 instructions
+00:00:00.014 [DEBUG] [sway/desktop/transaction.c:717] Applying transaction 0x5a93e375ea50
+00:00:00.019 [DEBUG] [wlr] [xcursor/wlr_xcursor.c:224] Loaded cursor theme 'default' at size 24 (63 available cursors)
+00:00:00.019 [INFO] [sway/server.c:550] Running compositor on wayland display 'wayland-1'
+2026-10-17 07:32:44 - [main.c:278] Could not find config for output HEADLESS-1 ((null))
+00:00:00.045 [DEBUG] [sway/input/input-manager.c:421] adding virtual pointer: '0:0:wlr_virtual_pointer_v1'
+00:00:00.045 [DEBUG] [sway/input/seat.c:945] adding device 0:0:wlr_virtual_pointer_v1 to seat seat0
+00:00:00.045 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:00.045 [DEBUG] [wlr] [render/swapchain.c:101] Allocating new swapchain buffer
+00:00:00.045 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 24x24
+00:00:00.045 [DEBUG] [sway/input/input-manager.c:389] adding virtual keyboard: '0:0:wlr_virtual_keyboard_v1'
+00:00:00.045 [DEBUG] [sway/input/seat.c:945] adding device 0:0:wlr_virtual_keyboard_v1 to seat seat0
+00:00:00.053 [DEBUG] [sway/ipc-server.c:196] New client: fd 20
+00:00:00.054 [INFO] [sway/ipc-server.c:570] IPC Client 20 disconnected
+00:00:00.075 [DEBUG] [wlr] [types/wlr_compositor.c:786] New wlr_surface 0x5a93e37f1130 (res 0x5a93e3898fa0)
+00:00:00.135 [DEBUG] [sway/ipc-server.c:196] New client: fd 23
+00:00:00.136 [INFO] [sway/ipc-server.c:570] IPC Client 23 disconnected
+00:00:00.191 [DEBUG] [wlr] [types/wlr_compositor.c:786] New wlr_surface 0x5a93e37ea2d0 (res 0x5a93e38a3d40)
+00:00:00.191 [DEBUG] [wlr] [types/xdg_shell/wlr_xdg_surface.c:441] new xdg_surface 0x5a93e377c6d0 (res 0x5a93e38a39e0)
+00:00:00.191 [DEBUG] [sway/desktop/xdg_shell.c:543] New xdg_shell toplevel title='(null)' app_id='(null)'
+00:00:00.191 [DEBUG] [wlr] [types/wlr_xdg_activation_v1.c:113] Rejecting token commit request: serial 0 was never given to client
+00:00:00.191 [DEBUG] [wlr] [types/wlr_xdg_activation_v1.c:308] Rejecting activate request: unknown token
+00:00:00.216 [DEBUG] [sway/tree/view.c:466] View 0x5a93e37ad4e0 updated CSD to 1
+00:00:00.216 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:00.216 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:00.216 [DEBUG] [sway/tree/arrange.c:76] Arranging 0x7ffd173c5f10 horizontally
+00:00:00.216 [DEBUG] [sway/desktop/transaction.c:821] Transaction 0x5a93e377c8c0 committing with 3 instructions
+00:00:00.218 [DEBUG] [sway/ipc-server.c:196] New client: fd 25
+00:00:00.218 [INFO] [sway/ipc-server.c:570] IPC Client 25 disconnected
+00:00:00.222 [DEBUG] [sway/desktop/transaction.c:907] Transaction 0x5a93e377c8c0 is ready
+00:00:00.222 [DEBUG] [sway/desktop/transaction.c:717] Applying transaction 0x5a93e377c8c0
+00:00:00.222 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:01.219 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:01.219 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:01.219 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:01.221 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:01.234 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.234 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 430 252'
+00:00:01.234 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 430 252
+00:00:01.234 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.235 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.235 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.235 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.235 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.236 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:01.236 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.236 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.236 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.237 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.237 [DEBUG] [wlr] [render/swapchain.c:101] Allocating new swapchain buffer
+00:00:01.237 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 24x24
+00:00:01.388 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.388 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.388 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.388 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.388 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.388 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.388 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.388 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.388 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.388 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.389 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 824 252'
+00:00:01.389 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 824 252
+00:00:01.389 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.390 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.390 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.390 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.390 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.391 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.391 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.391 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.391 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.482 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.482 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.543 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.543 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 485 233'
+00:00:01.543 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 485 233
+00:00:01.543 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.545 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.545 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.545 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.545 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.546 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.546 [INFO] [sway/input/text_input.c:264] Inactive text input tried to commit an update
+00:00:01.546 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.546 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.546 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.546 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.547 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.547 [INFO] [sway/input/text_input.c:252] Enabling text input when input method is gone
+00:00:01.698 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.698 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.698 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.698 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.698 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.698 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.699 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 510 387'
+00:00:01.699 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 510 387
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.699 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.699 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.699 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.700 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.700 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.700 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.700 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.700 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.700 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.700 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.700 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.700 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.700 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.701 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.701 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.701 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.701 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.703 [DEBUG] [sway/ipc-server.c:196] New client: fd 27
+00:00:01.703 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.703 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.703 [INFO] [sway/ipc-server.c:570] IPC Client 27 disconnected
+00:00:01.854 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:01.854 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:01.854 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:01.857 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:01.866 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:01.871 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:01.873 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:01.885 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:01.885 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:01.885 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:01.885 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:01.886 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:01.886 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.886 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.886 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:01.887 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:01.887 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.887 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.887 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:01.887 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:01.887 [DEBUG] [sway/input/input-manager.c:313] Adding keyboard shortcuts inhibitor
+00:00:02.888 [DEBUG] [sway/input/input-manager.c:298] Removing keyboard shortcuts inhibitor
+00:00:03.288 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:03.288 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:03.288 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:03.291 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:03.307 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.307 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor activate'
+00:00:03.307 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor activate
+00:00:03.307 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.457 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:03.458 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:03.460 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:03.476 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.476 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor enable'
+00:00:03.476 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor enable
+00:00:03.476 [DEBUG] [sway/config/seat.c:59] Merging on top of existing seat config
+00:00:03.476 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:03.476 [DEBUG] [sway/input/input-manager.c:637] applying seat config for seat seat0
+00:00:03.476 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:03.476 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:03.476 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.477 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.477 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:03.477 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:03.477 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.478 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.478 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:03.478 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:03.478 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.479 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.479 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:03.479 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:03.479 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.479 [DEBUG] [sway/input/input-manager.c:313] Adding keyboard shortcuts inhibitor
+00:00:03.504 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:03.630 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:03.632 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:03.632 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:03.635 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:03.649 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:03.649 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.649 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:03.649 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:03.650 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.651 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.651 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:03.651 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:03.651 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.652 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.652 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:03.652 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:03.652 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.652 [DEBUG] [sway/input/input-manager.c:298] Removing keyboard shortcuts inhibitor
+00:00:03.804 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.804 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor activate'
+00:00:03.804 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor activate
+00:00:03.804 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.955 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:03.955 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:03.955 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:03.959 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:03.975 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.975 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:03.975 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:03.975 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.976 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.976 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:03.976 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:03.976 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.978 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.978 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:03.978 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:03.978 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.978 [DEBUG] [sway/input/input-manager.c:313] Adding keyboard shortcuts inhibitor
+00:00:03.997 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:04.130 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.130 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor deactivate'
+00:00:04.130 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor deactivate
+00:00:04.130 [DEBUG] [sway/commands/seat/shortcuts_inhibitor.c:48] Deactivated keyboard shortcuts inhibitor
+00:00:04.130 [DEBUG] [sway/config/seat.c:59] Merging on top of existing seat config
+00:00:04.130 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:04.130 [DEBUG] [sway/input/input-manager.c:637] applying seat config for seat seat0
+00:00:04.130 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:04.130 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:04.131 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.131 [DEBUG] [sway/input/input-manager.c:298] Removing keyboard shortcuts inhibitor
+00:00:04.333 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.333 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor activate'
+00:00:04.333 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor activate
+00:00:04.333 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.484 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:04.484 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:04.484 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:04.487 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:04.503 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.503 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor disable'
+00:00:04.503 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor disable
+00:00:04.503 [DEBUG] [sway/commands/seat/shortcuts_inhibitor.c:20] Deactivated all keyboard shortcuts inhibitors
+00:00:04.503 [DEBUG] [sway/config/seat.c:59] Merging on top of existing seat config
+00:00:04.503 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:04.503 [DEBUG] [sway/input/input-manager.c:637] applying seat config for seat seat0
+00:00:04.503 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:04.503 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:04.503 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.505 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.505 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:04.505 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:04.505 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.506 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.506 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:04.506 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:04.506 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.508 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.508 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:04.508 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:04.508 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.509 [DEBUG] [sway/input/input-manager.c:313] Adding keyboard shortcuts inhibitor
+00:00:04.526 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:04.810 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.810 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:04.810 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:04.811 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.812 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.812 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:04.812 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:04.812 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.813 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.813 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:04.813 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:04.813 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.813 [DEBUG] [sway/input/input-manager.c:298] Removing keyboard shortcuts inhibitor
+00:00:04.965 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.965 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:04.965 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:04.965 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.966 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.966 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:04.966 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:04.966 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.967 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:04.967 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:04.967 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:04.967 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:04.968 [DEBUG] [sway/input/input-manager.c:313] Adding keyboard shortcuts inhibitor
+00:00:05.656 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:05.656 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor activate'
+00:00:05.656 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor activate
+00:00:05.656 [DEBUG] [sway/commands/seat/shortcuts_inhibitor.c:48] Activated keyboard shortcuts inhibitor
+00:00:05.656 [DEBUG] [sway/config/seat.c:59] Merging on top of existing seat config
+00:00:05.656 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:05.656 [DEBUG] [sway/input/input-manager.c:637] applying seat config for seat seat0
+00:00:05.656 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:05.656 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:05.656 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:05.857 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:05.857 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:05.857 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:05.860 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:05.876 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:05.876 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:05.876 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:05.876 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:05.877 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:05.877 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:05.877 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:05.877 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:05.878 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:05.878 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:05.878 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:05.879 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:05.879 [DEBUG] [sway/input/input-manager.c:298] Removing keyboard shortcuts inhibitor
+00:00:05.897 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:06.030 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.030 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor activate'
+00:00:06.030 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor activate
+00:00:06.030 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.181 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:06.181 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:06.181 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:06.183 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:06.198 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.198 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor enable'
+00:00:06.198 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor enable
+00:00:06.198 [DEBUG] [sway/config/seat.c:59] Merging on top of existing seat config
+00:00:06.198 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:06.198 [DEBUG] [sway/input/input-manager.c:637] applying seat config for seat seat0
+00:00:06.198 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:06.198 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:06.198 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.200 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.200 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:06.200 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:06.200 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.201 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.201 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:06.201 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:06.201 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.202 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.202 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:06.202 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:06.202 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.203 [DEBUG] [sway/input/input-manager.c:313] Adding keyboard shortcuts inhibitor
+00:00:06.228 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:06.355 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.355 [INFO] [sway/commands.c:261] Handling command 'workspace number 2'
+00:00:06.355 [DEBUG] [sway/tree/workspace.c:65] Adding workspace 2 for output HEADLESS-1
+00:00:06.355 [DEBUG] [sway/tree/workspace.c:587] Switching to workspace 0x5a93e37e81c0:2
+00:00:06.355 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:06.355 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '2' at 0.000000, 0.000000
+00:00:06.355 [DEBUG] [sway/desktop/transaction.c:821] Transaction 0x5a93e375ea50 committing with 4 instructions
+00:00:06.355 [DEBUG] [sway/desktop/transaction.c:717] Applying transaction 0x5a93e375ea50
+00:00:06.355 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.356 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:06.356 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:06.356 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:06.356 [DEBUG] [sway/input/input-manager.c:298] Removing keyboard shortcuts inhibitor
+00:00:06.356 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:06.557 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.557 [INFO] [sway/commands.c:261] Handling command 'workspace number 1'
+00:00:06.557 [DEBUG] [sway/tree/workspace.c:587] Switching to workspace 0x5a93e37b43f0:1
+00:00:06.557 [DEBUG] [sway/tree/workspace.c:162] Destroying workspace '2'
+00:00:06.557 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:06.557 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:06.558 [DEBUG] [sway/tree/arrange.c:76] Arranging 0x7ffd173c63d0 horizontally
+00:00:06.558 [DEBUG] [sway/desktop/transaction.c:821] Transaction 0x5a93e384ec20 committing with 4 instructions
+00:00:06.558 [DEBUG] [sway/desktop/transaction.c:717] Applying transaction 0x5a93e384ec20
+00:00:06.558 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:06.558 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.760 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.760 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor activate'
+00:00:06.760 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor activate
+00:00:06.760 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.911 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:06.911 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:06.911 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:06.914 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:06.929 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.929 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:06.929 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:06.929 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.930 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.930 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:06.930 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:06.930 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.931 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:06.931 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:06.931 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:06.931 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:06.931 [DEBUG] [sway/input/input-manager.c:313] Adding keyboard shortcuts inhibitor
+00:00:06.955 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:07.083 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:07.084 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 80 28'
+00:00:07.084 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 80 28
+00:00:07.084 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:07.085 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:07.085 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:07.085 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:07.085 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:07.086 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:07.086 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:07.086 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:07.086 [DEBUG] [sway/input/input-manager.c:298] Removing keyboard shortcuts inhibitor
+00:00:07.086 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:07.086 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:07.086 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:07.087 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:07.248 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:07.248 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor activate'
+00:00:07.248 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor activate
+00:00:07.248 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:07.400 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:07.402 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:07.402 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:07.405 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:07.419 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:07.420 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:07.420 [DEBUG] [sway/criteria.c:809] Found pair: app_id=org.farpane.FarPane
+00:00:07.420 [INFO] [sway/commands.c:261] Handling command 'kill'
+00:00:07.420 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:07.423 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:07.423 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:07.423 [DEBUG] [sway/desktop/transaction.c:821] Transaction 0x5a93e38a0c10 committing with 2 instructions
+00:00:07.423 [DEBUG] [sway/desktop/transaction.c:717] Applying transaction 0x5a93e38a0c10
+00:00:07.433 [DEBUG] [sway/input/text_input.c:278] Disabling text input, but input method is gone
+00:00:07.435 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:07.436 [DEBUG] [sway/input/input-manager.c:208] removing device: '0:0:wlr_virtual_pointer_v1'
+00:00:07.436 [DEBUG] [sway/input/seat.c:965] removing device 0:0:wlr_virtual_pointer_v1 from seat seat0
+00:00:07.437 [DEBUG] [sway/input/input-manager.c:208] removing device: '0:0:wlr_virtual_keyboard_v1'
+00:00:07.437 [DEBUG] [sway/input/seat.c:965] removing device 0:0:wlr_virtual_keyboard_v1 from seat seat0
+00:00:07.437 [INFO] [sway/main.c:398] Shutting down sway
+00:00:07.437 [DEBUG] [sway/tree/output.c:286] Disabling output 'HEADLESS-1'
+00:00:07.437 [DEBUG] [sway/tree/workspace.c:162] Destroying workspace '1'
+00:00:07.437 [DEBUG] [sway/tree/output.c:302] Destroying output 'HEADLESS-1'

@@ -1,0 +1,15 @@
+/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/native-bootstrap/application.fQLWLQG3
+Verifying every source snapshot entry
+Copying verified sources and freshly built non-FFmpeg prefix
+Building ffmpeg
+Building drmtap
+Building core-release
+Building gui-release
+Traceback (most recent call last):
+  File "/inputs/build.py", line 160, in <module>
+    main()
+  File "/inputs/build.py", line 144, in main
+    require(len(drmtap) == 1, 'Expected one private drmtap library')
+  File "/inputs/build.py", line 22, in require
+    raise RuntimeError(message)
+RuntimeError: Expected one private drmtap library

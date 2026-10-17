@@ -1,0 +1,5 @@
+usage: run-native-gpu-test.py [-h] [--viewer] [--x11]
+                              [--memory-probe {baseline,cache,trim,arena2,identity,mmap128k,allocations}]
+                              [--artifact ARTIFACT] [--shared-runtime-pages]
+                              [--home-memory]
+run-native-gpu-test.py: error: Allocation profiling is limited to --home-memory; diagnostic PSS/CPU are not product budgets

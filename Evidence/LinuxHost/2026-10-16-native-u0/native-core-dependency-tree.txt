@@ -1,0 +1,1666 @@
+rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+├── arboard v3.4.0 (https://github.com/rustdesk-org/arboard#c7d5781f)
+│   ├── image v0.25.1
+│   │   ├── bytemuck v1.23.2
+│   │   ├── byteorder v1.5.0
+│   │   ├── num-traits v0.2.19
+│   │   └── png v0.17.13
+│   │       ├── bitflags v1.3.2
+│   │       ├── crc32fast v1.4.2
+│   │       │   └── cfg-if v1.0.0
+│   │       ├── fdeflate v0.3.4
+│   │       │   └── simd-adler32 v0.3.7
+│   │       ├── flate2 v1.1.9
+│   │       │   ├── crc32fast v1.4.2 (*)
+│   │       │   └── miniz_oxide v0.8.9
+│   │       │       ├── adler2 v2.0.1
+│   │       │       └── simd-adler32 v0.3.7
+│   │       └── miniz_oxide v0.7.4
+│   │           ├── adler v1.0.2
+│   │           └── simd-adler32 v0.3.7
+│   ├── log v0.4.22
+│   ├── parking_lot v0.12.3
+│   │   ├── lock_api v0.4.12
+│   │   │   └── scopeguard v1.2.0
+│   │   └── parking_lot_core v0.9.10
+│   │       ├── cfg-if v1.0.0
+│   │       ├── libc v0.2.171
+│   │       └── smallvec v1.15.1
+│   ├── percent-encoding v2.3.1
+│   ├── serde v1.0.228
+│   │   ├── serde_core v1.0.228
+│   │   └── serde_derive v1.0.228 (proc-macro)
+│   │       ├── proc-macro2 v1.0.93
+│   │       │   └── unicode-ident v1.0.12
+│   │       ├── quote v1.0.36
+│   │       │   └── proc-macro2 v1.0.93 (*)
+│   │       └── syn v2.0.98
+│   │           ├── proc-macro2 v1.0.93 (*)
+│   │           ├── quote v1.0.36 (*)
+│   │           └── unicode-ident v1.0.12
+│   ├── serde_derive v1.0.228 (proc-macro) (*)
+│   ├── wl-clipboard-rs v0.9.3
+│   │   ├── libc v0.2.171
+│   │   ├── log v0.4.22
+│   │   ├── os_pipe v1.2.0
+│   │   │   └── libc v0.2.171
+│   │   ├── rustix v1.1.2
+│   │   │   ├── bitflags v2.9.1
+│   │   │   └── linux-raw-sys v0.11.0
+│   │   ├── thiserror v2.0.17
+│   │   │   └── thiserror-impl v2.0.17 (proc-macro)
+│   │   │       ├── proc-macro2 v1.0.93 (*)
+│   │   │       ├── quote v1.0.36 (*)
+│   │   │       └── syn v2.0.98 (*)
+│   │   ├── tree_magic_mini v3.1.5
+│   │   │   ├── fnv v1.0.7
+│   │   │   ├── home v0.5.9
+│   │   │   ├── memchr v2.7.4
+│   │   │   ├── nom v7.1.3
+│   │   │   │   ├── memchr v2.7.4
+│   │   │   │   └── minimal-lexical v0.2.1
+│   │   │   ├── once_cell v1.19.0
+│   │   │   └── petgraph v0.6.5
+│   │   │       ├── fixedbitset v0.4.2
+│   │   │       └── indexmap v2.2.6
+│   │   │           ├── equivalent v1.0.1
+│   │   │           └── hashbrown v0.14.5
+│   │   ├── wayland-backend v0.3.11
+│   │   │   ├── downcast-rs v1.2.1
+│   │   │   ├── rustix v1.1.2 (*)
+│   │   │   ├── smallvec v1.15.1
+│   │   │   └── wayland-sys v0.31.7
+│   │   ├── wayland-client v0.31.11
+│   │   │   ├── bitflags v2.9.1
+│   │   │   ├── rustix v1.1.2 (*)
+│   │   │   ├── wayland-backend v0.3.11 (*)
+│   │   │   └── wayland-scanner v0.31.7 (proc-macro)
+│   │   │       ├── proc-macro2 v1.0.93 (*)
+│   │   │       ├── quick-xml v0.37.5
+│   │   │       │   └── memchr v2.7.4
+│   │   │       └── quote v1.0.36 (*)
+│   │   ├── wayland-protocols v0.32.9
+│   │   │   ├── bitflags v2.9.1
+│   │   │   ├── wayland-backend v0.3.11 (*)
+│   │   │   ├── wayland-client v0.31.11 (*)
+│   │   │   └── wayland-scanner v0.31.7 (proc-macro) (*)
+│   │   └── wayland-protocols-wlr v0.3.9
+│   │       ├── bitflags v2.9.1
+│   │       ├── wayland-backend v0.3.11 (*)
+│   │       ├── wayland-client v0.31.11 (*)
+│   │       ├── wayland-protocols v0.32.9 (*)
+│   │       └── wayland-scanner v0.31.7 (proc-macro) (*)
+│   └── x11rb v0.13.1
+│       ├── rustix v0.38.34
+│       │   ├── bitflags v2.9.1
+│       │   └── linux-raw-sys v0.4.14
+│       └── x11rb-protocol v0.13.1
+├── async-process v1.8.1
+│   ├── async-io v1.13.0
+│   │   ├── async-lock v2.8.0
+│   │   │   └── event-listener v2.5.3
+│   │   ├── cfg-if v1.0.0
+│   │   ├── concurrent-queue v2.5.0
+│   │   │   └── crossbeam-utils v0.8.20
+│   │   ├── futures-lite v1.13.0
+│   │   │   ├── fastrand v1.9.0
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── futures-io v0.3.31
+│   │   │   ├── memchr v2.7.4
+│   │   │   ├── parking v2.2.0
+│   │   │   ├── pin-project-lite v0.2.14
+│   │   │   └── waker-fn v1.2.0
+│   │   ├── log v0.4.22
+│   │   ├── parking v2.2.0
+│   │   ├── polling v2.8.0
+│   │   │   ├── cfg-if v1.0.0
+│   │   │   ├── libc v0.2.171
+│   │   │   └── log v0.4.22
+│   │   ├── rustix v0.37.27
+│   │   │   ├── bitflags v1.3.2
+│   │   │   ├── io-lifetimes v1.0.11
+│   │   │   │   └── libc v0.2.171
+│   │   │   └── linux-raw-sys v0.3.8
+│   │   ├── slab v0.4.9
+│   │   ├── socket2 v0.4.10
+│   │   │   └── libc v0.2.171
+│   │   └── waker-fn v1.2.0
+│   ├── async-lock v2.8.0 (*)
+│   ├── async-signal v0.2.8
+│   │   ├── async-io v2.3.3
+│   │   │   ├── async-lock v3.4.0
+│   │   │   │   ├── event-listener v5.3.1
+│   │   │   │   │   ├── concurrent-queue v2.5.0 (*)
+│   │   │   │   │   ├── parking v2.2.0
+│   │   │   │   │   └── pin-project-lite v0.2.14
+│   │   │   │   ├── event-listener-strategy v0.5.2
+│   │   │   │   │   ├── event-listener v5.3.1 (*)
+│   │   │   │   │   └── pin-project-lite v0.2.14
+│   │   │   │   └── pin-project-lite v0.2.14
+│   │   │   ├── cfg-if v1.0.0
+│   │   │   ├── concurrent-queue v2.5.0 (*)
+│   │   │   ├── futures-io v0.3.31
+│   │   │   ├── futures-lite v2.3.0
+│   │   │   │   ├── futures-core v0.3.31
+│   │   │   │   └── pin-project-lite v0.2.14
+│   │   │   ├── parking v2.2.0
+│   │   │   ├── polling v3.7.2
+│   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   ├── rustix v0.38.34 (*)
+│   │   │   │   └── tracing v0.1.41
+│   │   │   │       ├── log v0.4.22
+│   │   │   │       ├── pin-project-lite v0.2.14
+│   │   │   │       ├── tracing-attributes v0.1.29 (proc-macro)
+│   │   │   │       │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │       │   ├── quote v1.0.36 (*)
+│   │   │   │       │   └── syn v2.0.98 (*)
+│   │   │   │       └── tracing-core v0.1.34
+│   │   │   │           └── once_cell v1.19.0
+│   │   │   ├── rustix v0.38.34 (*)
+│   │   │   ├── slab v0.4.9
+│   │   │   └── tracing v0.1.41 (*)
+│   │   ├── cfg-if v1.0.0
+│   │   ├── futures-core v0.3.31
+│   │   ├── futures-io v0.3.31
+│   │   ├── rustix v0.38.34 (*)
+│   │   └── signal-hook-registry v1.4.2
+│   │       └── libc v0.2.171
+│   ├── cfg-if v1.0.0
+│   ├── event-listener v3.1.0
+│   │   ├── concurrent-queue v2.5.0 (*)
+│   │   ├── parking v2.2.0
+│   │   └── pin-project-lite v0.2.14
+│   ├── futures-lite v1.13.0 (*)
+│   └── rustix v0.38.34 (*)
+├── async-trait v0.1.80 (proc-macro)
+│   ├── proc-macro2 v1.0.93 (*)
+│   ├── quote v1.0.36 (*)
+│   └── syn v2.0.98 (*)
+├── base v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/base)
+│   ├── anyhow v1.0.98
+│   ├── backtrace v0.3.73
+│   │   ├── addr2line v0.22.0
+│   │   │   └── gimli v0.29.0
+│   │   ├── cfg-if v1.0.0
+│   │   ├── libc v0.2.171
+│   │   ├── miniz_oxide v0.7.4 (*)
+│   │   ├── object v0.36.1
+│   │   │   └── memchr v2.7.4
+│   │   └── rustc-demangle v0.1.24
+│   ├── bytes v1.11.1
+│   │   └── serde v1.0.228 (*)
+│   ├── filetime v0.2.23
+│   │   ├── cfg-if v1.0.0
+│   │   └── libc v0.2.171
+│   ├── hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common)
+│   │   ├── anyhow v1.0.98
+│   │   ├── async-recursion v1.1.1 (proc-macro)
+│   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   ├── quote v1.0.36 (*)
+│   │   │   └── syn v2.0.98 (*)
+│   │   ├── base64 v0.22.1
+│   │   ├── bytes v1.11.1 (*)
+│   │   ├── chrono v0.4.41
+│   │   │   ├── iana-time-zone v0.1.60
+│   │   │   └── num-traits v0.2.19
+│   │   ├── confy v0.4.0-2 (https://github.com/rustdesk-org/confy#83db9ec1)
+│   │   │   ├── directories-next v2.0.0
+│   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   └── dirs-sys-next v0.1.2
+│   │   │   │       └── libc v0.2.171
+│   │   │   ├── serde v1.0.228 (*)
+│   │   │   ├── thiserror v1.0.61
+│   │   │   │   └── thiserror-impl v1.0.61 (proc-macro)
+│   │   │   │       ├── proc-macro2 v1.0.93 (*)
+│   │   │   │       ├── quote v1.0.36 (*)
+│   │   │   │       └── syn v2.0.98 (*)
+│   │   │   └── toml v0.5.11
+│   │   │       └── serde v1.0.228 (*)
+│   │   ├── default_net v0.1.0 (https://github.com/rustdesk-org/default_net#78f8f70c)
+│   │   │   ├── anyhow v1.0.98
+│   │   │   └── regex v1.11.1
+│   │   │       ├── aho-corasick v1.1.3
+│   │   │       │   └── memchr v2.7.4
+│   │   │       ├── memchr v2.7.4
+│   │   │       ├── regex-automata v0.4.9
+│   │   │       │   ├── aho-corasick v1.1.3 (*)
+│   │   │       │   ├── memchr v2.7.4
+│   │   │       │   └── regex-syntax v0.8.5
+│   │   │       └── regex-syntax v0.8.5
+│   │   ├── directories-next v2.0.0 (*)
+│   │   ├── dirs-next v2.0.0
+│   │   │   ├── cfg-if v1.0.0
+│   │   │   └── dirs-sys-next v0.1.2 (*)
+│   │   ├── dlopen v0.1.8
+│   │   │   ├── dlopen_derive v0.1.4 (proc-macro)
+│   │   │   │   ├── libc v0.2.171
+│   │   │   │   ├── quote v0.6.13
+│   │   │   │   │   └── proc-macro2 v0.4.30
+│   │   │   │   │       └── unicode-xid v0.1.0
+│   │   │   │   └── syn v0.15.44
+│   │   │   │       ├── proc-macro2 v0.4.30 (*)
+│   │   │   │       ├── quote v0.6.13 (*)
+│   │   │   │       └── unicode-xid v0.1.0
+│   │   │   ├── lazy_static v1.5.0
+│   │   │   └── libc v0.2.171
+│   │   ├── env_logger v0.11.6
+│   │   │   ├── anstream v0.6.14
+│   │   │   │   ├── anstyle v1.0.13
+│   │   │   │   ├── anstyle-parse v0.2.4
+│   │   │   │   │   └── utf8parse v0.2.2
+│   │   │   │   ├── anstyle-query v1.1.0
+│   │   │   │   ├── colorchoice v1.0.1
+│   │   │   │   ├── is_terminal_polyfill v1.70.0
+│   │   │   │   └── utf8parse v0.2.2
+│   │   │   ├── anstyle v1.0.13
+│   │   │   ├── env_filter v0.1.3
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   └── regex v1.11.1 (*)
+│   │   │   ├── humantime v2.1.0
+│   │   │   └── log v0.4.22
+│   │   ├── flexi_logger v0.27.4
+│   │   │   ├── chrono v0.4.41 (*)
+│   │   │   ├── crossbeam-channel v0.5.13
+│   │   │   │   └── crossbeam-utils v0.8.20
+│   │   │   ├── crossbeam-queue v0.3.11
+│   │   │   │   └── crossbeam-utils v0.8.20
+│   │   │   ├── glob v0.3.1
+│   │   │   ├── is-terminal v0.4.16
+│   │   │   │   └── libc v0.2.171
+│   │   │   ├── lazy_static v1.5.0
+│   │   │   ├── log v0.4.22
+│   │   │   ├── nu-ansi-term v0.49.0
+│   │   │   ├── regex v1.11.1 (*)
+│   │   │   └── thiserror v1.0.61 (*)
+│   │   ├── futures v0.3.30
+│   │   │   ├── futures-channel v0.3.31
+│   │   │   │   ├── futures-core v0.3.31
+│   │   │   │   └── futures-sink v0.3.31
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── futures-executor v0.3.30
+│   │   │   │   ├── futures-core v0.3.31
+│   │   │   │   ├── futures-task v0.3.31
+│   │   │   │   └── futures-util v0.3.31
+│   │   │   │       ├── futures-channel v0.3.31 (*)
+│   │   │   │       ├── futures-core v0.3.31
+│   │   │   │       ├── futures-io v0.3.31
+│   │   │   │       ├── futures-macro v0.3.31 (proc-macro)
+│   │   │   │       │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │       │   ├── quote v1.0.36 (*)
+│   │   │   │       │   └── syn v2.0.98 (*)
+│   │   │   │       ├── futures-sink v0.3.31
+│   │   │   │       ├── futures-task v0.3.31
+│   │   │   │       ├── memchr v2.7.4
+│   │   │   │       ├── pin-project-lite v0.2.14
+│   │   │   │       ├── pin-utils v0.1.0
+│   │   │   │       └── slab v0.4.9
+│   │   │   ├── futures-io v0.3.31
+│   │   │   ├── futures-sink v0.3.31
+│   │   │   ├── futures-task v0.3.31
+│   │   │   └── futures-util v0.3.31 (*)
+│   │   ├── futures-util v0.3.31 (*)
+│   │   ├── httparse v1.10.1
+│   │   ├── lazy_static v1.5.0
+│   │   ├── libc v0.2.171
+│   │   ├── libloading v0.8.4
+│   │   │   └── cfg-if v1.0.0
+│   │   ├── log v0.4.22
+│   │   ├── mac_address v1.1.7
+│   │   │   └── nix v0.28.0
+│   │   │       ├── bitflags v2.9.1
+│   │   │       ├── cfg-if v1.0.0
+│   │   │       ├── libc v0.2.171
+│   │   │       └── memoffset v0.9.1
+│   │   ├── machine-uid v0.3.0 (https://github.com/rustdesk-org/machine-uid#381ff579)
+│   │   ├── percent-encoding v2.3.1
+│   │   ├── protobuf v3.7.2
+│   │   │   ├── bytes v1.11.1 (*)
+│   │   │   ├── once_cell v1.19.0
+│   │   │   ├── protobuf-support v3.7.2
+│   │   │   │   └── thiserror v1.0.61 (*)
+│   │   │   └── thiserror v1.0.61 (*)
+│   │   ├── rand v0.8.5
+│   │   │   ├── libc v0.2.171
+│   │   │   ├── rand_chacha v0.3.1
+│   │   │   │   ├── ppv-lite86 v0.2.17
+│   │   │   │   └── rand_core v0.6.4
+│   │   │   │       └── getrandom v0.2.15
+│   │   │   │           ├── cfg-if v1.0.0
+│   │   │   │           └── libc v0.2.171
+│   │   │   └── rand_core v0.6.4 (*)
+│   │   ├── regex v1.11.1 (*)
+│   │   ├── rustls-native-certs v0.8.1
+│   │   │   ├── openssl-probe v0.1.5
+│   │   │   └── rustls-pki-types v1.11.0
+│   │   ├── rustls-pki-types v1.11.0
+│   │   ├── rustls-platform-verifier v0.6.2
+│   │   │   ├── log v0.4.22
+│   │   │   ├── rustls v0.23.28
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   ├── once_cell v1.19.0
+│   │   │   │   ├── ring v0.17.14
+│   │   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   │   ├── getrandom v0.2.15 (*)
+│   │   │   │   │   └── untrusted v0.9.0
+│   │   │   │   ├── rustls-pki-types v1.11.0
+│   │   │   │   ├── rustls-webpki v0.103.3
+│   │   │   │   │   ├── ring v0.17.14 (*)
+│   │   │   │   │   ├── rustls-pki-types v1.11.0
+│   │   │   │   │   └── untrusted v0.9.0
+│   │   │   │   ├── subtle v2.6.1
+│   │   │   │   └── zeroize v1.8.1
+│   │   │   │       └── zeroize_derive v1.4.2 (proc-macro)
+│   │   │   │           ├── proc-macro2 v1.0.93 (*)
+│   │   │   │           ├── quote v1.0.36 (*)
+│   │   │   │           └── syn v2.0.98 (*)
+│   │   │   ├── rustls-native-certs v0.8.1 (*)
+│   │   │   └── rustls-webpki v0.103.3 (*)
+│   │   ├── serde v1.0.228 (*)
+│   │   ├── serde_derive v1.0.228 (proc-macro) (*)
+│   │   ├── serde_json v1.0.118
+│   │   │   ├── itoa v1.0.11
+│   │   │   ├── ryu v1.0.18
+│   │   │   └── serde v1.0.228 (*)
+│   │   ├── sha2 v0.10.8
+│   │   │   ├── cfg-if v1.0.0
+│   │   │   ├── cpufeatures v0.2.12
+│   │   │   └── digest v0.10.7
+│   │   │       ├── block-buffer v0.10.4
+│   │   │       │   └── generic-array v0.14.7
+│   │   │       │       ├── typenum v1.17.0
+│   │   │       │       └── zeroize v1.8.1 (*)
+│   │   │       ├── const-oid v0.9.6
+│   │   │       ├── crypto-common v0.1.6
+│   │   │       │   ├── generic-array v0.14.7 (*)
+│   │   │       │   ├── rand_core v0.6.4 (*)
+│   │   │       │   └── typenum v1.17.0
+│   │   │       └── subtle v2.6.1
+│   │   ├── socket2 v0.3.19
+│   │   │   ├── cfg-if v1.0.0
+│   │   │   └── libc v0.2.171
+│   │   ├── sodiumoxide v0.2.7
+│   │   │   ├── ed25519 v1.5.3
+│   │   │   │   └── signature v1.6.4
+│   │   │   ├── libc v0.2.171
+│   │   │   ├── libsodium-sys v0.2.7
+│   │   │   │   └── libc v0.2.171
+│   │   │   └── serde v1.0.228 (*)
+│   │   ├── sysinfo v0.29.10 (https://github.com/rustdesk-org/sysinfo?branch=rlim_max#90b1705d)
+│   │   │   ├── cfg-if v1.0.0
+│   │   │   ├── libc v0.2.171
+│   │   │   ├── once_cell v1.19.0
+│   │   │   └── rayon v1.10.0
+│   │   │       ├── either v1.13.0
+│   │   │       └── rayon-core v1.12.1
+│   │   │           ├── crossbeam-deque v0.8.5
+│   │   │           │   ├── crossbeam-epoch v0.9.20
+│   │   │           │   │   └── crossbeam-utils v0.8.20
+│   │   │           │   └── crossbeam-utils v0.8.20
+│   │   │           └── crossbeam-utils v0.8.20
+│   │   ├── thiserror v1.0.61 (*)
+│   │   ├── tokio v1.44.2
+│   │   │   ├── bytes v1.11.1 (*)
+│   │   │   ├── libc v0.2.171
+│   │   │   ├── mio v1.0.3
+│   │   │   │   └── libc v0.2.171
+│   │   │   ├── parking_lot v0.12.3 (*)
+│   │   │   ├── pin-project-lite v0.2.14
+│   │   │   ├── signal-hook-registry v1.4.2 (*)
+│   │   │   ├── socket2 v0.5.10
+│   │   │   │   └── libc v0.2.171
+│   │   │   └── tokio-macros v2.5.0 (proc-macro)
+│   │   │       ├── proc-macro2 v1.0.93 (*)
+│   │   │       ├── quote v1.0.36 (*)
+│   │   │       └── syn v2.0.98 (*)
+│   │   ├── tokio-native-tls v0.3.1
+│   │   │   ├── native-tls v0.2.12
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   ├── openssl v0.10.68
+│   │   │   │   │   ├── bitflags v2.9.1
+│   │   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   │   ├── foreign-types v0.3.2
+│   │   │   │   │   │   └── foreign-types-shared v0.1.1
+│   │   │   │   │   ├── libc v0.2.171
+│   │   │   │   │   ├── once_cell v1.19.0
+│   │   │   │   │   ├── openssl-macros v0.1.1 (proc-macro)
+│   │   │   │   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   │   │   ├── quote v1.0.36 (*)
+│   │   │   │   │   │   └── syn v2.0.98 (*)
+│   │   │   │   │   └── openssl-sys v0.9.104
+│   │   │   │   │       └── libc v0.2.171
+│   │   │   │   ├── openssl-probe v0.1.5
+│   │   │   │   └── openssl-sys v0.9.104 (*)
+│   │   │   └── tokio v1.44.2 (*)
+│   │   ├── tokio-rustls v0.26.0
+│   │   │   ├── rustls v0.23.28 (*)
+│   │   │   ├── rustls-pki-types v1.11.0
+│   │   │   └── tokio v1.44.2 (*)
+│   │   ├── tokio-socks v0.5.2-3 (https://github.com/rustdesk-org/tokio-socks#bdb9aa3d)
+│   │   │   ├── bytes v1.11.1 (*)
+│   │   │   ├── either v1.13.0
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── futures-sink v0.3.31
+│   │   │   ├── futures-util v0.3.31 (*)
+│   │   │   ├── pin-project v1.1.5
+│   │   │   │   └── pin-project-internal v1.1.5 (proc-macro)
+│   │   │   │       ├── proc-macro2 v1.0.93 (*)
+│   │   │   │       ├── quote v1.0.36 (*)
+│   │   │   │       └── syn v2.0.98 (*)
+│   │   │   ├── thiserror v2.0.17 (*)
+│   │   │   ├── tokio v1.44.2 (*)
+│   │   │   └── tokio-util v0.7.15
+│   │   │       ├── bytes v1.11.1 (*)
+│   │   │       ├── futures-core v0.3.31
+│   │   │       ├── futures-io v0.3.31
+│   │   │       ├── futures-sink v0.3.31
+│   │   │       ├── futures-util v0.3.31 (*)
+│   │   │       ├── pin-project-lite v0.2.14
+│   │   │       ├── slab v0.4.9
+│   │   │       └── tokio v1.44.2 (*)
+│   │   ├── tokio-tungstenite v0.29.0 (https://github.com/rustdesk-org/tokio-tungstenite?rev=c241b11b03de4881faf1ecd2fe6e867c92f3013b#c241b11b)
+│   │   │   ├── futures-util v0.3.31 (*)
+│   │   │   ├── log v0.4.22
+│   │   │   ├── native-tls v0.2.12 (*)
+│   │   │   ├── rustls v0.23.28 (*)
+│   │   │   ├── rustls-native-certs v0.8.1 (*)
+│   │   │   ├── rustls-pki-types v1.11.0
+│   │   │   ├── tokio v1.44.2 (*)
+│   │   │   ├── tokio-native-tls v0.3.1 (*)
+│   │   │   ├── tokio-rustls v0.26.0 (*)
+│   │   │   ├── tungstenite v0.29.0 (https://github.com/rustdesk-org/tungstenite-rs?rev=efce47e5364f00a63302cf07ab1fb13ded478914#efce47e5)
+│   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   ├── data-encoding v2.9.0
+│   │   │   │   ├── http v1.3.1
+│   │   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   │   ├── fnv v1.0.7
+│   │   │   │   │   └── itoa v1.0.11
+│   │   │   │   ├── httparse v1.10.1
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   ├── native-tls v0.2.12 (*)
+│   │   │   │   ├── rand v0.9.2
+│   │   │   │   │   ├── rand_chacha v0.9.0
+│   │   │   │   │   │   ├── ppv-lite86 v0.2.17
+│   │   │   │   │   │   └── rand_core v0.9.3
+│   │   │   │   │   │       └── getrandom v0.3.2
+│   │   │   │   │   │           ├── cfg-if v1.0.0
+│   │   │   │   │   │           └── libc v0.2.171
+│   │   │   │   │   └── rand_core v0.9.3 (*)
+│   │   │   │   ├── rustls v0.23.28 (*)
+│   │   │   │   ├── rustls-native-certs v0.8.1 (*)
+│   │   │   │   ├── rustls-pki-types v1.11.0
+│   │   │   │   ├── sha1 v0.10.6
+│   │   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   │   ├── cpufeatures v0.2.12
+│   │   │   │   │   └── digest v0.10.7 (*)
+│   │   │   │   ├── thiserror v2.0.17 (*)
+│   │   │   │   └── webpki-roots v0.26.11
+│   │   │   │       └── webpki-roots v1.0.9
+│   │   │   │           └── rustls-pki-types v1.11.0
+│   │   │   └── webpki-roots v0.26.11 (*)
+│   │   ├── tokio-util v0.7.15 (*)
+│   │   ├── toml v0.7.8
+│   │   │   ├── serde v1.0.228 (*)
+│   │   │   ├── serde_spanned v0.6.6
+│   │   │   │   └── serde v1.0.228 (*)
+│   │   │   ├── toml_datetime v0.6.3
+│   │   │   │   └── serde v1.0.228 (*)
+│   │   │   └── toml_edit v0.19.15
+│   │   │       ├── indexmap v2.2.6 (*)
+│   │   │       ├── serde v1.0.228 (*)
+│   │   │       ├── serde_spanned v0.6.6 (*)
+│   │   │       ├── toml_datetime v0.6.3 (*)
+│   │   │       └── winnow v0.5.40
+│   │   ├── tungstenite v0.29.0 (https://github.com/rustdesk-org/tungstenite-rs?rev=efce47e5364f00a63302cf07ab1fb13ded478914#efce47e5) (*)
+│   │   ├── url v2.5.2
+│   │   │   ├── form_urlencoded v1.2.1
+│   │   │   │   └── percent-encoding v2.3.1
+│   │   │   ├── idna v0.5.0
+│   │   │   │   ├── unicode-bidi v0.3.15
+│   │   │   │   └── unicode-normalization v0.1.23
+│   │   │   │       └── tinyvec v1.6.1
+│   │   │   │           └── tinyvec_macros v0.1.1
+│   │   │   ├── percent-encoding v2.3.1
+│   │   │   └── serde v1.0.228 (*)
+│   │   ├── users v0.11.0
+│   │   │   ├── libc v0.2.171
+│   │   │   └── log v0.4.22
+│   │   ├── uuid v1.16.0
+│   │   │   └── getrandom v0.3.2 (*)
+│   │   ├── webpki-roots v1.0.9 (*)
+│   │   ├── webrtc v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   ├── arc-swap v1.7.1
+│   │   │   ├── async-trait v0.1.80 (proc-macro) (*)
+│   │   │   ├── bytes v1.11.1 (*)
+│   │   │   ├── cfg-if v1.0.0
+│   │   │   ├── hex v0.4.3
+│   │   │   ├── interceptor v0.14.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   ├── async-trait v0.1.80 (proc-macro) (*)
+│   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   ├── portable-atomic v1.11.1
+│   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   ├── rtcp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   │       ├── async-trait v0.1.80 (proc-macro) (*)
+│   │   │   │   │       ├── bytes v1.11.1 (*)
+│   │   │   │   │       ├── ipnet v2.11.0
+│   │   │   │   │       ├── lazy_static v1.5.0
+│   │   │   │   │       ├── libc v0.2.171
+│   │   │   │   │       ├── log v0.4.22
+│   │   │   │   │       ├── nix v0.26.4
+│   │   │   │   │       │   ├── bitflags v1.3.2
+│   │   │   │   │       │   ├── cfg-if v1.0.0
+│   │   │   │   │       │   ├── libc v0.2.171
+│   │   │   │   │       │   ├── memoffset v0.7.1
+│   │   │   │   │       │   └── pin-utils v0.1.0
+│   │   │   │   │       ├── portable-atomic v1.11.1
+│   │   │   │   │       ├── rand v0.8.5 (*)
+│   │   │   │   │       ├── thiserror v1.0.61 (*)
+│   │   │   │   │       └── tokio v1.44.2 (*)
+│   │   │   │   ├── rtp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   │   ├── memchr v2.7.4
+│   │   │   │   │   ├── portable-atomic v1.11.1
+│   │   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   │   ├── serde v1.0.228 (*)
+│   │   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   ├── waitgroup v0.1.2
+│   │   │   │   │   └── atomic-waker v1.1.2
+│   │   │   │   ├── webrtc-srtp v0.15.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   │   ├── aead v0.5.2
+│   │   │   │   │   │   ├── crypto-common v0.1.6 (*)
+│   │   │   │   │   │   └── generic-array v0.14.7 (*)
+│   │   │   │   │   ├── aes v0.8.4
+│   │   │   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   │   │   ├── cipher v0.4.4
+│   │   │   │   │   │   │   ├── crypto-common v0.1.6 (*)
+│   │   │   │   │   │   │   └── inout v0.1.3
+│   │   │   │   │   │   │       ├── block-padding v0.3.3
+│   │   │   │   │   │   │       │   └── generic-array v0.14.7 (*)
+│   │   │   │   │   │   │       └── generic-array v0.14.7 (*)
+│   │   │   │   │   │   └── cpufeatures v0.2.12
+│   │   │   │   │   ├── aes-gcm v0.10.3
+│   │   │   │   │   │   ├── aead v0.5.2 (*)
+│   │   │   │   │   │   ├── aes v0.8.4 (*)
+│   │   │   │   │   │   ├── cipher v0.4.4 (*)
+│   │   │   │   │   │   ├── ctr v0.9.2
+│   │   │   │   │   │   │   └── cipher v0.4.4 (*)
+│   │   │   │   │   │   ├── ghash v0.5.1
+│   │   │   │   │   │   │   ├── opaque-debug v0.3.1
+│   │   │   │   │   │   │   └── polyval v0.6.2
+│   │   │   │   │   │   │       ├── cfg-if v1.0.0
+│   │   │   │   │   │   │       ├── cpufeatures v0.2.12
+│   │   │   │   │   │   │       ├── opaque-debug v0.3.1
+│   │   │   │   │   │   │       └── universal-hash v0.5.1
+│   │   │   │   │   │   │           ├── crypto-common v0.1.6 (*)
+│   │   │   │   │   │   │           └── subtle v2.6.1
+│   │   │   │   │   │   └── subtle v2.6.1
+│   │   │   │   │   ├── byteorder v1.5.0
+│   │   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   │   ├── ctr v0.9.2 (*)
+│   │   │   │   │   ├── hmac v0.12.1
+│   │   │   │   │   │   └── digest v0.10.7 (*)
+│   │   │   │   │   ├── log v0.4.22
+│   │   │   │   │   ├── rtcp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   │   ├── rtp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   │   ├── sha1 v0.10.6 (*)
+│   │   │   │   │   ├── subtle v2.6.1
+│   │   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── lazy_static v1.5.0
+│   │   │   ├── log v0.4.22
+│   │   │   ├── portable-atomic v1.11.1
+│   │   │   ├── rand v0.8.5 (*)
+│   │   │   ├── rcgen v0.13.2
+│   │   │   │   ├── pem v3.0.6
+│   │   │   │   │   └── base64 v0.22.1
+│   │   │   │   ├── ring v0.17.14 (*)
+│   │   │   │   ├── rustls-pki-types v1.11.0
+│   │   │   │   ├── time v0.3.36
+│   │   │   │   │   ├── deranged v0.3.11
+│   │   │   │   │   │   └── powerfmt v0.2.0
+│   │   │   │   │   ├── itoa v1.0.11
+│   │   │   │   │   ├── num-conv v0.1.0
+│   │   │   │   │   ├── powerfmt v0.2.0
+│   │   │   │   │   ├── time-core v0.1.2
+│   │   │   │   │   └── time-macros v0.2.18 (proc-macro)
+│   │   │   │   │       ├── num-conv v0.1.0
+│   │   │   │   │       └── time-core v0.1.2
+│   │   │   │   ├── x509-parser v0.16.0
+│   │   │   │   │   ├── asn1-rs v0.6.2
+│   │   │   │   │   │   ├── asn1-rs-derive v0.5.1 (proc-macro)
+│   │   │   │   │   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   │   │   │   ├── quote v1.0.36 (*)
+│   │   │   │   │   │   │   ├── syn v2.0.98 (*)
+│   │   │   │   │   │   │   └── synstructure v0.13.2
+│   │   │   │   │   │   │       ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   │   │   │       ├── quote v1.0.36 (*)
+│   │   │   │   │   │   │       └── syn v2.0.98 (*)
+│   │   │   │   │   │   ├── asn1-rs-impl v0.2.0 (proc-macro)
+│   │   │   │   │   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   │   │   │   ├── quote v1.0.36 (*)
+│   │   │   │   │   │   │   └── syn v2.0.98 (*)
+│   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro)
+│   │   │   │   │   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   │   │   │   ├── quote v1.0.36 (*)
+│   │   │   │   │   │   │   └── syn v2.0.98 (*)
+│   │   │   │   │   │   ├── nom v7.1.3 (*)
+│   │   │   │   │   │   ├── num-traits v0.2.19
+│   │   │   │   │   │   ├── rusticata-macros v4.1.0
+│   │   │   │   │   │   │   └── nom v7.1.3 (*)
+│   │   │   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   │   │   └── time v0.3.36 (*)
+│   │   │   │   │   ├── data-encoding v2.9.0
+│   │   │   │   │   ├── der-parser v9.0.0
+│   │   │   │   │   │   ├── asn1-rs v0.6.2 (*)
+│   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│   │   │   │   │   │   ├── nom v7.1.3 (*)
+│   │   │   │   │   │   ├── num-bigint v0.4.6
+│   │   │   │   │   │   │   ├── num-integer v0.1.46
+│   │   │   │   │   │   │   │   └── num-traits v0.2.19
+│   │   │   │   │   │   │   └── num-traits v0.2.19
+│   │   │   │   │   │   ├── num-traits v0.2.19
+│   │   │   │   │   │   └── rusticata-macros v4.1.0 (*)
+│   │   │   │   │   ├── lazy_static v1.5.0
+│   │   │   │   │   ├── nom v7.1.3 (*)
+│   │   │   │   │   ├── oid-registry v0.7.1
+│   │   │   │   │   │   └── asn1-rs v0.6.2 (*)
+│   │   │   │   │   ├── ring v0.17.14 (*)
+│   │   │   │   │   ├── rusticata-macros v4.1.0 (*)
+│   │   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   │   └── time v0.3.36 (*)
+│   │   │   │   └── yasna v0.5.2
+│   │   │   │       └── time v0.3.36 (*)
+│   │   │   ├── regex v1.11.1 (*)
+│   │   │   ├── ring v0.17.14 (*)
+│   │   │   ├── rtcp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── rtp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── rustls v0.23.28 (*)
+│   │   │   ├── sdp v0.8.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   ├── substring v1.4.5
+│   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   └── url v2.5.2 (*)
+│   │   │   ├── serde v1.0.228 (*)
+│   │   │   ├── serde_json v1.0.118 (*)
+│   │   │   ├── sha2 v0.10.8 (*)
+│   │   │   ├── smol_str v0.2.2
+│   │   │   │   └── serde v1.0.228 (*)
+│   │   │   ├── stun v0.8.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   ├── base64 v0.22.1
+│   │   │   │   ├── crc v3.3.0
+│   │   │   │   │   └── crc-catalog v2.4.0
+│   │   │   │   ├── lazy_static v1.5.0
+│   │   │   │   ├── md-5 v0.10.6
+│   │   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   │   └── digest v0.10.7 (*)
+│   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   ├── ring v0.17.14 (*)
+│   │   │   │   ├── subtle v2.6.1
+│   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   ├── url v2.5.2 (*)
+│   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   ├── time v0.3.36 (*)
+│   │   │   ├── tokio v1.44.2 (*)
+│   │   │   ├── turn v0.10.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   ├── async-trait v0.1.80 (proc-macro) (*)
+│   │   │   │   ├── base64 v0.22.1
+│   │   │   │   ├── futures v0.3.30 (*)
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   ├── md-5 v0.10.6 (*)
+│   │   │   │   ├── portable-atomic v1.11.1
+│   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   ├── ring v0.17.14 (*)
+│   │   │   │   ├── stun v0.8.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   ├── tokio-util v0.7.15 (*)
+│   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── url v2.5.2 (*)
+│   │   │   ├── waitgroup v0.1.2 (*)
+│   │   │   ├── webrtc-data v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   ├── portable-atomic v1.11.1
+│   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   ├── webrtc-sctp v0.12.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   │   ├── arc-swap v1.7.1
+│   │   │   │   │   ├── async-trait v0.1.80 (proc-macro) (*)
+│   │   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   │   ├── crc v3.3.0 (*)
+│   │   │   │   │   ├── log v0.4.22
+│   │   │   │   │   ├── portable-atomic v1.11.1
+│   │   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── webrtc-dtls v0.12.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   ├── aes v0.8.4 (*)
+│   │   │   │   ├── aes-gcm v0.10.3 (*)
+│   │   │   │   ├── async-trait v0.1.80 (proc-macro) (*)
+│   │   │   │   ├── bincode v1.3.3
+│   │   │   │   │   └── serde v1.0.228 (*)
+│   │   │   │   ├── byteorder v1.5.0
+│   │   │   │   ├── cbc v0.1.2
+│   │   │   │   │   └── cipher v0.4.4 (*)
+│   │   │   │   ├── ccm v0.5.0
+│   │   │   │   │   ├── aead v0.5.2 (*)
+│   │   │   │   │   ├── cipher v0.4.4 (*)
+│   │   │   │   │   ├── ctr v0.9.2 (*)
+│   │   │   │   │   └── subtle v2.6.1
+│   │   │   │   ├── der-parser v9.0.0 (*)
+│   │   │   │   ├── hkdf v0.12.4
+│   │   │   │   │   └── hmac v0.12.1 (*)
+│   │   │   │   ├── hmac v0.12.1 (*)
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   ├── p256 v0.13.2
+│   │   │   │   │   ├── ecdsa v0.16.9
+│   │   │   │   │   │   ├── der v0.7.10
+│   │   │   │   │   │   │   ├── const-oid v0.9.6
+│   │   │   │   │   │   │   ├── pem-rfc7468 v0.7.0
+│   │   │   │   │   │   │   │   └── base64ct v1.6.0
+│   │   │   │   │   │   │   └── zeroize v1.8.1 (*)
+│   │   │   │   │   │   ├── digest v0.10.7 (*)
+│   │   │   │   │   │   ├── elliptic-curve v0.13.8
+│   │   │   │   │   │   │   ├── base16ct v0.2.0
+│   │   │   │   │   │   │   ├── crypto-bigint v0.5.5
+│   │   │   │   │   │   │   │   ├── generic-array v0.14.7 (*)
+│   │   │   │   │   │   │   │   ├── rand_core v0.6.4 (*)
+│   │   │   │   │   │   │   │   ├── subtle v2.6.1
+│   │   │   │   │   │   │   │   └── zeroize v1.8.1 (*)
+│   │   │   │   │   │   │   ├── digest v0.10.7 (*)
+│   │   │   │   │   │   │   ├── ff v0.13.1
+│   │   │   │   │   │   │   │   ├── rand_core v0.6.4 (*)
+│   │   │   │   │   │   │   │   └── subtle v2.6.1
+│   │   │   │   │   │   │   ├── generic-array v0.14.7 (*)
+│   │   │   │   │   │   │   ├── group v0.13.0
+│   │   │   │   │   │   │   │   ├── ff v0.13.1 (*)
+│   │   │   │   │   │   │   │   ├── rand_core v0.6.4 (*)
+│   │   │   │   │   │   │   │   └── subtle v2.6.1
+│   │   │   │   │   │   │   ├── hkdf v0.12.4 (*)
+│   │   │   │   │   │   │   ├── pem-rfc7468 v0.7.0 (*)
+│   │   │   │   │   │   │   ├── pkcs8 v0.10.2
+│   │   │   │   │   │   │   │   ├── der v0.7.10 (*)
+│   │   │   │   │   │   │   │   └── spki v0.7.3
+│   │   │   │   │   │   │   │       └── der v0.7.10 (*)
+│   │   │   │   │   │   │   ├── rand_core v0.6.4 (*)
+│   │   │   │   │   │   │   ├── sec1 v0.7.3
+│   │   │   │   │   │   │   │   ├── base16ct v0.2.0
+│   │   │   │   │   │   │   │   ├── der v0.7.10 (*)
+│   │   │   │   │   │   │   │   ├── generic-array v0.14.7 (*)
+│   │   │   │   │   │   │   │   ├── pkcs8 v0.10.2 (*)
+│   │   │   │   │   │   │   │   ├── subtle v2.6.1
+│   │   │   │   │   │   │   │   └── zeroize v1.8.1 (*)
+│   │   │   │   │   │   │   ├── subtle v2.6.1
+│   │   │   │   │   │   │   └── zeroize v1.8.1 (*)
+│   │   │   │   │   │   ├── rfc6979 v0.4.0
+│   │   │   │   │   │   │   ├── hmac v0.12.1 (*)
+│   │   │   │   │   │   │   └── subtle v2.6.1
+│   │   │   │   │   │   ├── signature v2.2.0
+│   │   │   │   │   │   │   ├── digest v0.10.7 (*)
+│   │   │   │   │   │   │   └── rand_core v0.6.4 (*)
+│   │   │   │   │   │   └── spki v0.7.3 (*)
+│   │   │   │   │   ├── elliptic-curve v0.13.8 (*)
+│   │   │   │   │   ├── primeorder v0.13.6
+│   │   │   │   │   │   └── elliptic-curve v0.13.8 (*)
+│   │   │   │   │   └── sha2 v0.10.8 (*)
+│   │   │   │   ├── p384 v0.13.1
+│   │   │   │   │   ├── ecdsa v0.16.9 (*)
+│   │   │   │   │   ├── elliptic-curve v0.13.8 (*)
+│   │   │   │   │   ├── primeorder v0.13.6 (*)
+│   │   │   │   │   └── sha2 v0.10.8 (*)
+│   │   │   │   ├── portable-atomic v1.11.1
+│   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   ├── rand_core v0.6.4 (*)
+│   │   │   │   ├── rcgen v0.13.2 (*)
+│   │   │   │   ├── ring v0.17.14 (*)
+│   │   │   │   ├── rustls v0.23.28 (*)
+│   │   │   │   ├── sec1 v0.7.3 (*)
+│   │   │   │   ├── serde v1.0.228 (*)
+│   │   │   │   ├── sha1 v0.10.6 (*)
+│   │   │   │   ├── sha2 v0.10.8 (*)
+│   │   │   │   ├── subtle v2.6.1
+│   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   ├── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   ├── x25519-dalek v2.0.1
+│   │   │   │   │   ├── curve25519-dalek v4.1.3
+│   │   │   │   │   │   ├── cfg-if v1.0.0
+│   │   │   │   │   │   ├── cpufeatures v0.2.12
+│   │   │   │   │   │   ├── curve25519-dalek-derive v0.1.1 (proc-macro)
+│   │   │   │   │   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   │   │   │   ├── quote v1.0.36 (*)
+│   │   │   │   │   │   │   └── syn v2.0.98 (*)
+│   │   │   │   │   │   ├── subtle v2.6.1
+│   │   │   │   │   │   └── zeroize v1.8.1 (*)
+│   │   │   │   │   ├── rand_core v0.6.4 (*)
+│   │   │   │   │   └── zeroize v1.8.1 (*)
+│   │   │   │   └── x509-parser v0.16.0 (*)
+│   │   │   ├── webrtc-ice v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   ├── arc-swap v1.7.1
+│   │   │   │   ├── async-trait v0.1.80 (proc-macro) (*)
+│   │   │   │   ├── crc v3.3.0 (*)
+│   │   │   │   ├── ipnet v2.11.0
+│   │   │   │   ├── log v0.4.22
+│   │   │   │   ├── portable-atomic v1.11.1
+│   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   ├── serde v1.0.228 (*)
+│   │   │   │   ├── serde_json v1.0.118 (*)
+│   │   │   │   ├── stun v0.8.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   ├── turn v0.10.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   ├── url v2.5.2 (*)
+│   │   │   │   ├── uuid v1.16.0 (*)
+│   │   │   │   ├── waitgroup v0.1.2 (*)
+│   │   │   │   ├── webrtc-mdns v0.9.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   │   ├── log v0.4.22
+│   │   │   │   │   ├── socket2 v0.5.10 (*)
+│   │   │   │   │   ├── thiserror v1.0.61 (*)
+│   │   │   │   │   ├── tokio v1.44.2 (*)
+│   │   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── webrtc-mdns v0.9.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── webrtc-media v0.10.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8)
+│   │   │   │   ├── byteorder v1.5.0
+│   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   ├── rand v0.8.5 (*)
+│   │   │   │   ├── rtp v0.13.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   │   └── thiserror v1.0.61 (*)
+│   │   │   ├── webrtc-sctp v0.12.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   ├── webrtc-srtp v0.15.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   │   └── webrtc-util v0.11.0 (https://github.com/rustdesk-org/webrtc?rev=49c89bd8d30e6e62e4c1a96cee38fdc11f79ef63#49c89bd8) (*)
+│   │   ├── whoami v1.6.0
+│   │   ├── x11 v2.21.0
+│   │   │   └── libc v0.2.171
+│   │   └── zstd v0.13.1
+│   │       └── zstd-safe v7.1.0
+│   │           └── zstd-sys v2.0.11+zstd.1.5.6
+│   ├── lazy_static v1.5.0
+│   ├── libc v0.2.171
+│   ├── log v0.4.22
+│   ├── protobuf v3.7.2 (*)
+│   ├── serde v1.0.228 (*)
+│   ├── serde_derive v1.0.228 (proc-macro) (*)
+│   ├── serde_json v1.0.118 (*)
+│   ├── smithay-client-toolkit v0.20.0
+│   │   ├── bitflags v2.9.1
+│   │   ├── calloop v0.14.3
+│   │   │   ├── bitflags v2.9.1
+│   │   │   ├── polling v3.7.2 (*)
+│   │   │   ├── rustix v1.1.2 (*)
+│   │   │   ├── slab v0.4.9
+│   │   │   └── tracing v0.1.41 (*)
+│   │   ├── calloop-wayland-source v0.4.1
+│   │   │   ├── calloop v0.14.3 (*)
+│   │   │   ├── rustix v1.1.2 (*)
+│   │   │   ├── wayland-backend v0.3.11 (*)
+│   │   │   └── wayland-client v0.31.11 (*)
+│   │   ├── cursor-icon v1.2.0
+│   │   ├── libc v0.2.171
+│   │   ├── log v0.4.22
+│   │   ├── memmap2 v0.9.8
+│   │   │   └── libc v0.2.171
+│   │   ├── rustix v1.1.2 (*)
+│   │   ├── thiserror v2.0.17 (*)
+│   │   ├── wayland-backend v0.3.11 (*)
+│   │   ├── wayland-client v0.31.11 (*)
+│   │   ├── wayland-csd-frame v0.3.0
+│   │   │   ├── bitflags v2.9.1
+│   │   │   ├── cursor-icon v1.2.0
+│   │   │   └── wayland-backend v0.3.11 (*)
+│   │   ├── wayland-cursor v0.31.5
+│   │   │   ├── rustix v0.38.34 (*)
+│   │   │   ├── wayland-client v0.31.11 (*)
+│   │   │   └── xcursor v0.3.10
+│   │   ├── wayland-protocols v0.32.9 (*)
+│   │   ├── wayland-protocols-experimental v20250721.0.1
+│   │   │   ├── bitflags v2.9.1
+│   │   │   ├── wayland-backend v0.3.11 (*)
+│   │   │   ├── wayland-client v0.31.11 (*)
+│   │   │   ├── wayland-protocols v0.32.9 (*)
+│   │   │   └── wayland-scanner v0.31.7 (proc-macro) (*)
+│   │   ├── wayland-protocols-misc v0.3.9
+│   │   │   ├── bitflags v2.9.1
+│   │   │   ├── wayland-backend v0.3.11 (*)
+│   │   │   ├── wayland-client v0.31.11 (*)
+│   │   │   ├── wayland-protocols v0.32.9 (*)
+│   │   │   └── wayland-scanner v0.31.7 (proc-macro) (*)
+│   │   ├── wayland-protocols-wlr v0.3.9 (*)
+│   │   ├── wayland-scanner v0.31.7 (proc-macro) (*)
+│   │   └── xkeysym v0.2.1
+│   ├── tokio v1.44.2 (*)
+│   └── users v0.11.0 (*)
+├── bytemuck v1.23.2
+├── bytes v1.11.1 (*)
+├── cfg-if v1.0.0
+├── chrono v0.4.41 (*)
+├── cidr-utils v0.5.11
+│   ├── debug-helper v0.3.13
+│   ├── num-bigint v0.4.6 (*)
+│   ├── num-traits v0.2.19
+│   ├── once_cell v1.19.0
+│   └── regex v1.11.1 (*)
+├── clipboard v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/clipboard)
+│   ├── base v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/base) (*)
+│   ├── hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common) (*)
+│   ├── lazy_static v1.5.0
+│   ├── parking_lot v0.12.3 (*)
+│   ├── serde v1.0.228 (*)
+│   ├── serde_derive v1.0.228 (proc-macro) (*)
+│   └── thiserror v1.0.61 (*)
+├── clipboard-master v4.0.0-beta.6 (https://github.com/rustdesk-org/clipboard-master#522fafb6)
+│   ├── wayland-client v0.31.11 (*)
+│   ├── wayland-protocols v0.32.9 (*)
+│   ├── wayland-protocols-wlr v0.3.9 (*)
+│   ├── wl-clipboard-rs v0.9.3 (*)
+│   ├── x11-clipboard v0.9.2
+│   │   ├── libc v0.2.171
+│   │   └── x11rb v0.13.1 (*)
+│   └── x11rb v0.13.1 (*)
+├── crossbeam-queue v0.3.11 (*)
+├── ctrlc v3.4.4
+│   └── nix v0.28.0 (*)
+├── dasp v0.11.0
+│   ├── dasp_envelope v0.11.0
+│   │   ├── dasp_frame v0.11.0
+│   │   │   └── dasp_sample v0.11.0
+│   │   ├── dasp_peak v0.11.0
+│   │   │   ├── dasp_frame v0.11.0 (*)
+│   │   │   └── dasp_sample v0.11.0
+│   │   ├── dasp_ring_buffer v0.11.0
+│   │   ├── dasp_rms v0.11.0
+│   │   │   ├── dasp_frame v0.11.0 (*)
+│   │   │   ├── dasp_ring_buffer v0.11.0
+│   │   │   └── dasp_sample v0.11.0
+│   │   └── dasp_sample v0.11.0
+│   ├── dasp_frame v0.11.0 (*)
+│   ├── dasp_interpolate v0.11.0
+│   │   ├── dasp_frame v0.11.0 (*)
+│   │   ├── dasp_ring_buffer v0.11.0
+│   │   └── dasp_sample v0.11.0
+│   ├── dasp_peak v0.11.0 (*)
+│   ├── dasp_ring_buffer v0.11.0
+│   ├── dasp_rms v0.11.0 (*)
+│   ├── dasp_sample v0.11.0
+│   ├── dasp_signal v0.11.0
+│   │   ├── dasp_envelope v0.11.0 (*)
+│   │   ├── dasp_frame v0.11.0 (*)
+│   │   ├── dasp_interpolate v0.11.0 (*)
+│   │   ├── dasp_peak v0.11.0 (*)
+│   │   ├── dasp_ring_buffer v0.11.0
+│   │   ├── dasp_rms v0.11.0 (*)
+│   │   ├── dasp_sample v0.11.0
+│   │   └── dasp_window v0.11.1
+│   │       └── dasp_sample v0.11.0
+│   ├── dasp_slice v0.11.0
+│   │   ├── dasp_frame v0.11.0 (*)
+│   │   └── dasp_sample v0.11.0
+│   └── dasp_window v0.11.1 (*)
+├── dbus v0.9.7
+│   ├── libc v0.2.171
+│   └── libdbus-sys v0.2.5
+├── dbus-crossroads v0.5.2
+│   └── dbus v0.9.7 (*)
+├── default-net v0.14.1
+│   └── libc v0.2.171
+├── enigo v0.0.14 (/workspace/Build/Linux/src/rustdesk/libs/enigo)
+│   ├── base v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/base) (*)
+│   ├── hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common) (*)
+│   ├── libxdo-sys v0.11.0 (/workspace/Build/Linux/src/rustdesk/libs/libxdo-sys-stub)
+│   │   └── hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common) (*)
+│   ├── log v0.4.22
+│   ├── rdev v0.5.0-2 (https://github.com/rustdesk-org/rdev#a361d86a)
+│   │   ├── enum-map v2.7.3
+│   │   │   └── enum-map-derive v0.17.0 (proc-macro)
+│   │   │       ├── proc-macro2 v1.0.93 (*)
+│   │   │       ├── quote v1.0.36 (*)
+│   │   │       └── syn v2.0.98 (*)
+│   │   ├── epoll v4.3.3
+│   │   │   ├── bitflags v2.9.1
+│   │   │   └── libc v0.2.171
+│   │   ├── inotify v0.10.2
+│   │   │   ├── bitflags v1.3.2
+│   │   │   ├── inotify-sys v0.1.5
+│   │   │   │   └── libc v0.2.171
+│   │   │   └── libc v0.2.171
+│   │   ├── lazy_static v1.5.0
+│   │   ├── libc v0.2.171
+│   │   ├── log v0.4.22
+│   │   ├── mio v0.8.11
+│   │   │   ├── libc v0.2.171
+│   │   │   └── log v0.4.22
+│   │   ├── strum v0.24.1
+│   │   ├── strum_macros v0.24.3 (proc-macro)
+│   │   │   ├── heck v0.4.1
+│   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   ├── quote v1.0.36 (*)
+│   │   │   ├── rustversion v1.0.17 (proc-macro)
+│   │   │   └── syn v1.0.109
+│   │   │       ├── proc-macro2 v1.0.93 (*)
+│   │   │       ├── quote v1.0.36 (*)
+│   │   │       └── unicode-ident v1.0.12
+│   │   ├── widestring v1.1.0
+│   │   └── x11 v2.21.0 (*)
+│   ├── serde v1.0.228 (*)
+│   ├── serde_derive v1.0.228 (proc-macro) (*)
+│   └── tfc v0.7.0 (https://github.com/rustdesk-org/The-Fat-Controller?branch=history%2Frebase_upstream_20240722#78bb80a8)
+│       ├── anyhow v1.0.98
+│       └── x11 v2.19.0 (https://github.com/bjornsnoen/x11-rs#c2e9bfaa)
+│           └── libc v0.2.171
+├── errno v0.3.14
+│   └── libc v0.2.171
+├── evdev v0.11.5 (https://github.com/rustdesk-org/evdev#cec616e3)
+│   ├── bitvec v1.0.1
+│   │   ├── funty v2.0.0
+│   │   ├── radium v0.7.0
+│   │   ├── tap v1.0.1
+│   │   └── wyz v0.5.1
+│   │       └── tap v1.0.1
+│   ├── libc v0.2.171
+│   └── nix v0.23.2
+│       ├── bitflags v1.3.2
+│       ├── cfg-if v1.0.0
+│       ├── libc v0.2.171
+│       └── memoffset v0.6.5
+├── fon v0.6.0
+│   └── libm v0.2.8
+├── fontdb v0.23.0
+│   ├── fontconfig-parser v0.5.8
+│   │   └── roxmltree v0.20.0
+│   ├── log v0.4.22
+│   ├── memmap2 v0.9.8 (*)
+│   ├── slotmap v1.0.7
+│   ├── tinyvec v1.6.1 (*)
+│   └── ttf-parser v0.25.1
+│       └── core_maths v0.1.1
+│           └── libm v0.2.8
+├── hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common) (*)
+├── hex v0.4.3
+├── image v0.24.9
+│   ├── bytemuck v1.23.2
+│   ├── byteorder v1.5.0
+│   ├── color_quant v1.1.0
+│   ├── exr v1.72.0
+│   │   ├── bit_field v0.10.2
+│   │   ├── flume v0.11.0
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── futures-sink v0.3.31
+│   │   │   ├── nanorand v0.7.0
+│   │   │   │   └── getrandom v0.2.15 (*)
+│   │   │   └── spin v0.9.8
+│   │   │       └── lock_api v0.4.12 (*)
+│   │   ├── half v2.4.1
+│   │   │   └── cfg-if v1.0.0
+│   │   ├── lebe v0.5.2
+│   │   ├── miniz_oxide v0.7.4 (*)
+│   │   ├── rayon-core v1.12.1 (*)
+│   │   ├── smallvec v1.15.1
+│   │   └── zune-inflate v0.2.54
+│   │       └── simd-adler32 v0.3.7
+│   ├── gif v0.13.1
+│   │   ├── color_quant v1.1.0
+│   │   └── weezl v0.1.8
+│   ├── jpeg-decoder v0.3.1
+│   │   └── rayon v1.10.0 (*)
+│   ├── num-traits v0.2.19
+│   ├── png v0.17.13 (*)
+│   ├── qoi v0.4.1
+│   │   └── bytemuck v1.23.2
+│   └── tiff v0.9.1
+│       ├── flate2 v1.1.9 (*)
+│       ├── jpeg-decoder v0.3.1 (*)
+│       └── weezl v0.1.8
+├── kcp-sys v0.1.0 (https://github.com/rustdesk-org/kcp-sys?branch=rustdesk-patches#938eda3e)
+│   ├── anyhow v1.0.98
+│   ├── auto_impl v1.3.0 (proc-macro)
+│   │   ├── proc-macro2 v1.0.93 (*)
+│   │   ├── quote v1.0.36 (*)
+│   │   └── syn v2.0.98 (*)
+│   ├── bitflags v2.9.1
+│   ├── bytes v1.11.1 (*)
+│   ├── dashmap v6.1.0
+│   │   ├── cfg-if v1.0.0
+│   │   ├── crossbeam-utils v0.8.20
+│   │   ├── hashbrown v0.14.5
+│   │   ├── lock_api v0.4.12 (*)
+│   │   ├── once_cell v1.19.0
+│   │   └── parking_lot_core v0.9.10 (*)
+│   ├── log v0.4.22
+│   ├── parking_lot v0.12.3 (*)
+│   ├── rand v0.8.5 (*)
+│   ├── thiserror v2.0.17 (*)
+│   ├── tokio v1.44.2 (*)
+│   ├── tokio-util v0.7.15 (*)
+│   └── zerocopy v0.7.34
+│       ├── byteorder v1.5.0
+│       └── zerocopy-derive v0.7.34 (proc-macro)
+│           ├── proc-macro2 v1.0.93 (*)
+│           ├── quote v1.0.36 (*)
+│           └── syn v2.0.98 (*)
+├── keepawake v0.4.3 (https://github.com/rustdesk-org/keepawake-rs#64d56858)
+│   ├── anyhow v1.0.98
+│   ├── cfg-if v1.0.0
+│   └── zbus v3.15.2
+│       ├── async-broadcast v0.5.1
+│       │   ├── event-listener v2.5.3
+│       │   └── futures-core v0.3.31
+│       ├── async-executor v1.12.0
+│       │   ├── async-task v4.7.1
+│       │   ├── concurrent-queue v2.5.0 (*)
+│       │   ├── fastrand v2.1.0
+│       │   ├── futures-lite v2.3.0 (*)
+│       │   └── slab v0.4.9
+│       ├── async-fs v1.6.0
+│       │   ├── async-lock v2.8.0 (*)
+│       │   ├── blocking v1.6.1
+│       │   │   ├── async-channel v2.3.1
+│       │   │   │   ├── concurrent-queue v2.5.0 (*)
+│       │   │   │   ├── event-listener-strategy v0.5.2 (*)
+│       │   │   │   ├── futures-core v0.3.31
+│       │   │   │   └── pin-project-lite v0.2.14
+│       │   │   ├── async-task v4.7.1
+│       │   │   ├── futures-io v0.3.31
+│       │   │   ├── futures-lite v2.3.0 (*)
+│       │   │   └── piper v0.2.3
+│       │   │       ├── atomic-waker v1.1.2
+│       │   │       ├── fastrand v2.1.0
+│       │   │       └── futures-io v0.3.31
+│       │   └── futures-lite v1.13.0 (*)
+│       ├── async-io v1.13.0 (*)
+│       ├── async-lock v2.8.0 (*)
+│       ├── async-recursion v1.1.1 (proc-macro) (*)
+│       ├── async-task v4.7.1
+│       ├── async-trait v0.1.80 (proc-macro) (*)
+│       ├── blocking v1.6.1 (*)
+│       ├── byteorder v1.5.0
+│       ├── derivative v2.2.0 (proc-macro)
+│       │   ├── proc-macro2 v1.0.93 (*)
+│       │   ├── quote v1.0.36 (*)
+│       │   └── syn v1.0.109 (*)
+│       ├── enumflags2 v0.7.10
+│       │   ├── enumflags2_derive v0.7.10 (proc-macro)
+│       │   │   ├── proc-macro2 v1.0.93 (*)
+│       │   │   ├── quote v1.0.36 (*)
+│       │   │   └── syn v2.0.98 (*)
+│       │   └── serde v1.0.228 (*)
+│       ├── event-listener v2.5.3
+│       ├── futures-core v0.3.31
+│       ├── futures-sink v0.3.31
+│       ├── futures-util v0.3.31 (*)
+│       ├── hex v0.4.3
+│       ├── nix v0.26.4 (*)
+│       ├── once_cell v1.19.0
+│       ├── ordered-stream v0.2.0
+│       │   ├── futures-core v0.3.31
+│       │   └── pin-project-lite v0.2.14
+│       ├── rand v0.8.5 (*)
+│       ├── serde v1.0.228 (*)
+│       ├── serde_repr v0.1.19 (proc-macro)
+│       │   ├── proc-macro2 v1.0.93 (*)
+│       │   ├── quote v1.0.36 (*)
+│       │   └── syn v2.0.98 (*)
+│       ├── sha1 v0.10.6 (*)
+│       ├── static_assertions v1.1.0
+│       ├── tracing v0.1.41 (*)
+│       ├── xdg-home v1.2.0
+│       │   └── libc v0.2.171
+│       ├── zbus_macros v3.15.2 (proc-macro)
+│       │   ├── proc-macro-crate v1.3.1
+│       │   │   ├── once_cell v1.19.0
+│       │   │   └── toml_edit v0.19.15 (*)
+│       │   ├── proc-macro2 v1.0.93 (*)
+│       │   ├── quote v1.0.36 (*)
+│       │   ├── regex v1.11.1 (*)
+│       │   ├── syn v1.0.109 (*)
+│       │   └── zvariant_utils v1.0.1
+│       │       ├── proc-macro2 v1.0.93 (*)
+│       │       ├── quote v1.0.36 (*)
+│       │       └── syn v1.0.109 (*)
+│       ├── zbus_names v2.6.1
+│       │   ├── serde v1.0.228 (*)
+│       │   ├── static_assertions v1.1.0
+│       │   └── zvariant v3.15.2
+│       │       ├── byteorder v1.5.0
+│       │       ├── enumflags2 v0.7.10 (*)
+│       │       ├── libc v0.2.171
+│       │       ├── serde v1.0.228 (*)
+│       │       ├── static_assertions v1.1.0
+│       │       └── zvariant_derive v3.15.2 (proc-macro)
+│       │           ├── proc-macro-crate v1.3.1 (*)
+│       │           ├── proc-macro2 v1.0.93 (*)
+│       │           ├── quote v1.0.36 (*)
+│       │           ├── syn v1.0.109 (*)
+│       │           └── zvariant_utils v1.0.1 (*)
+│       └── zvariant v3.15.2 (*)
+├── lazy_static v1.5.0
+├── libpulse-binding v2.28.1
+│   ├── bitflags v1.3.2
+│   ├── libc v0.2.171
+│   ├── libpulse-sys v1.21.0
+│   │   ├── libc v0.2.171
+│   │   ├── num-derive v0.3.3 (proc-macro)
+│   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   ├── quote v1.0.36 (*)
+│   │   │   └── syn v1.0.109 (*)
+│   │   └── num-traits v0.2.19
+│   ├── num-derive v0.3.3 (proc-macro) (*)
+│   └── num-traits v0.2.19
+├── libpulse-simple-binding v2.28.1
+│   ├── libpulse-binding v2.28.1 (*)
+│   ├── libpulse-simple-sys v1.21.1
+│   │   └── libpulse-sys v1.21.0 (*)
+│   └── libpulse-sys v1.21.0 (*)
+├── libxdo-sys v0.11.0 (/workspace/Build/Linux/src/rustdesk/libs/libxdo-sys-stub) (*)
+├── mac_address v1.1.7 (*)
+├── magnum-opus v0.4.0 (https://github.com/rustdesk-org/magnum-opus#588c6e1f)
+├── nix v0.29.0
+│   ├── bitflags v2.9.1
+│   ├── cfg-if v1.0.0
+│   └── libc v0.2.171
+├── num_cpus v1.16.0
+│   └── libc v0.2.171
+├── openssl v0.10.68 (*)
+├── parity-tokio-ipc v0.7.3-6 (https://github.com/rustdesk-org/parity-tokio-ipc#d0ae39bf)
+│   ├── futures v0.3.30 (*)
+│   ├── libc v0.2.171
+│   ├── log v0.4.22
+│   ├── rand v0.8.5 (*)
+│   └── tokio v1.44.2 (*)
+├── portable-pty v0.8.1 (https://github.com/rustdesk-org/wezterm?branch=rustdesk%2Fpty_based_0.8.1#80174f80)
+│   ├── anyhow v1.0.98
+│   ├── downcast-rs v1.2.1
+│   ├── filedescriptor v0.8.2 (https://github.com/rustdesk-org/wezterm?branch=rustdesk%2Fpty_based_0.8.1#80174f80)
+│   │   ├── libc v0.2.171
+│   │   └── thiserror v1.0.61 (*)
+│   ├── libc v0.2.171
+│   ├── log v0.4.22
+│   ├── nix v0.25.1
+│   │   ├── bitflags v1.3.2
+│   │   ├── cfg-if v1.0.0
+│   │   ├── libc v0.2.171
+│   │   ├── memoffset v0.6.5
+│   │   └── pin-utils v0.1.0
+│   ├── serial v0.4.0
+│   │   ├── serial-core v0.4.0
+│   │   │   └── libc v0.2.171
+│   │   └── serial-unix v0.4.0
+│   │       ├── ioctl-rs v0.1.6
+│   │       │   └── libc v0.2.171
+│   │       ├── libc v0.2.171
+│   │       ├── serial-core v0.4.0 (*)
+│   │       └── termios v0.2.2
+│   │           └── libc v0.2.171
+│   └── shell-words v1.1.0
+├── qrcode-generator v4.1.9
+│   ├── html-escape v0.2.13
+│   │   └── utf8-width v0.1.7
+│   ├── image v0.24.9 (*)
+│   └── qrcodegen v1.8.0
+├── rdev v0.5.0-2 (https://github.com/rustdesk-org/rdev#a361d86a) (*)
+├── repng v0.2.2
+│   ├── byteorder v1.5.0
+│   └── flate2 v1.1.9 (*)
+├── reqwest v0.12.24
+│   ├── async-compression v0.4.32
+│   │   ├── compression-codecs v0.4.31
+│   │   │   ├── compression-core v0.4.29
+│   │   │   ├── flate2 v1.1.9 (*)
+│   │   │   ├── memchr v2.7.4
+│   │   │   ├── zstd v0.13.1 (*)
+│   │   │   └── zstd-safe v7.1.0 (*)
+│   │   ├── compression-core v0.4.29
+│   │   ├── futures-core v0.3.31
+│   │   ├── pin-project-lite v0.2.14
+│   │   └── tokio v1.44.2 (*)
+│   ├── base64 v0.22.1
+│   ├── bytes v1.11.1 (*)
+│   ├── futures-channel v0.3.31 (*)
+│   ├── futures-core v0.3.31
+│   ├── futures-util v0.3.31 (*)
+│   ├── http v1.3.1 (*)
+│   ├── http-body v1.0.1
+│   │   ├── bytes v1.11.1 (*)
+│   │   └── http v1.3.1 (*)
+│   ├── http-body-util v0.1.3
+│   │   ├── bytes v1.11.1 (*)
+│   │   ├── futures-core v0.3.31
+│   │   ├── http v1.3.1 (*)
+│   │   ├── http-body v1.0.1 (*)
+│   │   └── pin-project-lite v0.2.14
+│   ├── hyper v1.7.0
+│   │   ├── atomic-waker v1.1.2
+│   │   ├── bytes v1.11.1 (*)
+│   │   ├── futures-channel v0.3.31 (*)
+│   │   ├── futures-core v0.3.31
+│   │   ├── http v1.3.1 (*)
+│   │   ├── http-body v1.0.1 (*)
+│   │   ├── httparse v1.10.1
+│   │   ├── itoa v1.0.11
+│   │   ├── pin-project-lite v0.2.14
+│   │   ├── pin-utils v0.1.0
+│   │   ├── smallvec v1.15.1
+│   │   ├── tokio v1.44.2 (*)
+│   │   └── want v0.3.1
+│   │       └── try-lock v0.2.5
+│   ├── hyper-rustls v0.27.7
+│   │   ├── http v1.3.1 (*)
+│   │   ├── hyper v1.7.0 (*)
+│   │   ├── hyper-util v0.1.17
+│   │   │   ├── base64 v0.22.1
+│   │   │   ├── bytes v1.11.1 (*)
+│   │   │   ├── futures-channel v0.3.31 (*)
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── futures-util v0.3.31 (*)
+│   │   │   ├── http v1.3.1 (*)
+│   │   │   ├── http-body v1.0.1 (*)
+│   │   │   ├── hyper v1.7.0 (*)
+│   │   │   ├── ipnet v2.11.0
+│   │   │   ├── libc v0.2.171
+│   │   │   ├── percent-encoding v2.3.1
+│   │   │   ├── pin-project-lite v0.2.14
+│   │   │   ├── socket2 v0.5.10 (*)
+│   │   │   ├── tokio v1.44.2 (*)
+│   │   │   ├── tower-service v0.3.3
+│   │   │   └── tracing v0.1.41 (*)
+│   │   ├── rustls v0.23.28 (*)
+│   │   ├── rustls-native-certs v0.8.1 (*)
+│   │   ├── rustls-pki-types v1.11.0
+│   │   ├── tokio v1.44.2 (*)
+│   │   ├── tokio-rustls v0.26.0 (*)
+│   │   ├── tower-service v0.3.3
+│   │   └── webpki-roots v1.0.9 (*)
+│   ├── hyper-tls v0.6.0
+│   │   ├── bytes v1.11.1 (*)
+│   │   ├── http-body-util v0.1.3 (*)
+│   │   ├── hyper v1.7.0 (*)
+│   │   ├── hyper-util v0.1.17 (*)
+│   │   ├── native-tls v0.2.12 (*)
+│   │   ├── tokio v1.44.2 (*)
+│   │   ├── tokio-native-tls v0.3.1 (*)
+│   │   └── tower-service v0.3.3
+│   ├── hyper-util v0.1.17 (*)
+│   ├── log v0.4.22
+│   ├── native-tls v0.2.12 (*)
+│   ├── percent-encoding v2.3.1
+│   ├── pin-project-lite v0.2.14
+│   ├── rustls v0.23.28 (*)
+│   ├── rustls-native-certs v0.8.1 (*)
+│   ├── rustls-pki-types v1.11.0
+│   ├── serde v1.0.228 (*)
+│   ├── serde_json v1.0.118 (*)
+│   ├── serde_urlencoded v0.7.1
+│   │   ├── form_urlencoded v1.2.1 (*)
+│   │   ├── itoa v1.0.11
+│   │   ├── ryu v1.0.18
+│   │   └── serde v1.0.228 (*)
+│   ├── sync_wrapper v1.0.2
+│   │   └── futures-core v0.3.31
+│   ├── tokio v1.44.2 (*)
+│   ├── tokio-native-tls v0.3.1 (*)
+│   ├── tokio-rustls v0.26.0 (*)
+│   ├── tokio-util v0.7.15 (*)
+│   ├── tower v0.5.2
+│   │   ├── futures-core v0.3.31
+│   │   ├── futures-util v0.3.31 (*)
+│   │   ├── pin-project-lite v0.2.14
+│   │   ├── sync_wrapper v1.0.2 (*)
+│   │   ├── tokio v1.44.2 (*)
+│   │   ├── tower-layer v0.3.3
+│   │   └── tower-service v0.3.3
+│   ├── tower-http v0.6.6
+│   │   ├── bitflags v2.9.1
+│   │   ├── bytes v1.11.1 (*)
+│   │   ├── futures-util v0.3.31 (*)
+│   │   ├── http v1.3.1 (*)
+│   │   ├── http-body v1.0.1 (*)
+│   │   ├── iri-string v0.7.8
+│   │   ├── pin-project-lite v0.2.14
+│   │   ├── tower v0.5.2 (*)
+│   │   ├── tower-layer v0.3.3
+│   │   └── tower-service v0.3.3
+│   ├── tower-service v0.3.3
+│   ├── url v2.5.2 (*)
+│   └── webpki-roots v1.0.9 (*)
+├── rust-pulsectl v0.2.12 (https://github.com/rustdesk-org/pulsectl#aa34dde4)
+│   └── libpulse-binding v2.28.1 (*)
+├── scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+│   ├── base v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/base) (*)
+│   ├── cfg-if v1.0.0
+│   ├── dbus v0.9.7 (*)
+│   ├── gstreamer v0.16.7
+│   │   ├── bitflags v1.3.2
+│   │   ├── cfg-if v1.0.0
+│   │   ├── futures-channel v0.3.31 (*)
+│   │   ├── futures-core v0.3.31
+│   │   ├── futures-util v0.3.31 (*)
+│   │   ├── glib v0.10.3
+│   │   │   ├── bitflags v1.3.2
+│   │   │   ├── futures-channel v0.3.31 (*)
+│   │   │   ├── futures-core v0.3.31
+│   │   │   ├── futures-executor v0.3.30 (*)
+│   │   │   ├── futures-task v0.3.31
+│   │   │   ├── futures-util v0.3.31 (*)
+│   │   │   ├── glib-macros v0.10.1 (proc-macro)
+│   │   │   │   ├── anyhow v1.0.98
+│   │   │   │   ├── heck v0.3.3
+│   │   │   │   │   └── unicode-segmentation v1.11.0
+│   │   │   │   ├── itertools v0.9.0
+│   │   │   │   │   └── either v1.13.0
+│   │   │   │   ├── proc-macro-crate v0.1.5
+│   │   │   │   │   └── toml v0.5.11 (*)
+│   │   │   │   ├── proc-macro-error v1.0.4
+│   │   │   │   │   ├── proc-macro-error-attr v1.0.4 (proc-macro)
+│   │   │   │   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   │   │   └── quote v1.0.36 (*)
+│   │   │   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   │   ├── quote v1.0.36 (*)
+│   │   │   │   │   └── syn v1.0.109 (*)
+│   │   │   │   ├── proc-macro2 v1.0.93 (*)
+│   │   │   │   ├── quote v1.0.36 (*)
+│   │   │   │   └── syn v1.0.109 (*)
+│   │   │   ├── glib-sys v0.10.1
+│   │   │   │   └── libc v0.2.171
+│   │   │   ├── gobject-sys v0.10.0
+│   │   │   │   ├── glib-sys v0.10.1 (*)
+│   │   │   │   └── libc v0.2.171
+│   │   │   ├── libc v0.2.171
+│   │   │   └── once_cell v1.19.0
+│   │   ├── glib-sys v0.10.1 (*)
+│   │   ├── gobject-sys v0.10.0 (*)
+│   │   ├── gstreamer-sys v0.9.1
+│   │   │   ├── glib-sys v0.10.1 (*)
+│   │   │   ├── gobject-sys v0.10.0 (*)
+│   │   │   └── libc v0.2.171
+│   │   ├── libc v0.2.171
+│   │   ├── muldiv v0.2.1
+│   │   ├── num-rational v0.3.2
+│   │   │   ├── num-integer v0.1.46 (*)
+│   │   │   └── num-traits v0.2.19
+│   │   ├── once_cell v1.19.0
+│   │   ├── paste v1.0.15 (proc-macro)
+│   │   ├── pretty-hex v0.2.1
+│   │   └── thiserror v1.0.61 (*)
+│   ├── gstreamer-app v0.16.5
+│   │   ├── bitflags v1.3.2
+│   │   ├── futures-core v0.3.31
+│   │   ├── futures-sink v0.3.31
+│   │   ├── glib v0.10.3 (*)
+│   │   ├── glib-sys v0.10.1 (*)
+│   │   ├── gobject-sys v0.10.0 (*)
+│   │   ├── gstreamer v0.16.7 (*)
+│   │   ├── gstreamer-app-sys v0.9.1
+│   │   │   ├── glib-sys v0.10.1 (*)
+│   │   │   ├── gstreamer-base-sys v0.9.1
+│   │   │   │   ├── glib-sys v0.10.1 (*)
+│   │   │   │   ├── gobject-sys v0.10.0 (*)
+│   │   │   │   ├── gstreamer-sys v0.9.1 (*)
+│   │   │   │   └── libc v0.2.171
+│   │   │   ├── gstreamer-sys v0.9.1 (*)
+│   │   │   └── libc v0.2.171
+│   │   ├── gstreamer-base v0.16.5
+│   │   │   ├── bitflags v1.3.2
+│   │   │   ├── glib v0.10.3 (*)
+│   │   │   ├── glib-sys v0.10.1 (*)
+│   │   │   ├── gobject-sys v0.10.0 (*)
+│   │   │   ├── gstreamer v0.16.7 (*)
+│   │   │   ├── gstreamer-base-sys v0.9.1 (*)
+│   │   │   ├── gstreamer-sys v0.9.1 (*)
+│   │   │   └── libc v0.2.171
+│   │   ├── gstreamer-sys v0.9.1 (*)
+│   │   ├── libc v0.2.171
+│   │   └── once_cell v1.19.0
+│   ├── gstreamer-video v0.16.7
+│   │   ├── bitflags v1.3.2
+│   │   ├── futures-channel v0.3.31 (*)
+│   │   ├── futures-util v0.3.31 (*)
+│   │   ├── glib v0.10.3 (*)
+│   │   ├── glib-sys v0.10.1 (*)
+│   │   ├── gobject-sys v0.10.0 (*)
+│   │   ├── gstreamer v0.16.7 (*)
+│   │   ├── gstreamer-base v0.16.5 (*)
+│   │   ├── gstreamer-base-sys v0.9.1 (*)
+│   │   ├── gstreamer-sys v0.9.1 (*)
+│   │   ├── gstreamer-video-sys v0.9.1
+│   │   │   ├── glib-sys v0.10.1 (*)
+│   │   │   ├── gobject-sys v0.10.0 (*)
+│   │   │   ├── gstreamer-base-sys v0.9.1 (*)
+│   │   │   ├── gstreamer-sys v0.9.1 (*)
+│   │   │   └── libc v0.2.171
+│   │   ├── libc v0.2.171
+│   │   └── once_cell v1.19.0
+│   ├── hbb_common v0.1.0 (/workspace/Build/Linux/src/rustdesk/libs/hbb_common) (*)
+│   ├── hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+│   │   ├── log v0.4.22
+│   │   ├── serde v1.0.228 (*)
+│   │   ├── serde_derive v1.0.228 (proc-macro) (*)
+│   │   └── serde_json v1.0.118 (*)
+│   ├── lazy_static v1.5.0
+│   ├── nokhwa v0.10.7 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+│   │   ├── flume v0.11.0 (*)
+│   │   ├── image v0.25.1 (*)
+│   │   ├── nokhwa-bindings-linux v0.1.1 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+│   │   │   ├── nokhwa-core v0.1.5 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+│   │   │   │   ├── bytes v1.11.1 (*)
+│   │   │   │   ├── image v0.25.1 (*)
+│   │   │   │   ├── mozjpeg v0.10.11
+│   │   │   │   │   ├── arrayvec v0.7.6
+│   │   │   │   │   ├── bytemuck v1.23.2
+│   │   │   │   │   ├── libc v0.2.171
+│   │   │   │   │   ├── mozjpeg-sys v2.2.2
+│   │   │   │   │   │   └── libc v0.2.171
+│   │   │   │   │   └── rgb v0.8.50
+│   │   │   │   │       └── bytemuck v1.23.2
+│   │   │   │   └── thiserror v2.0.17 (*)
+│   │   │   └── v4l v0.14.0
+│   │   │       ├── bitflags v1.3.2
+│   │   │       ├── libc v0.2.171
+│   │   │       └── v4l2-sys-mit v0.3.0
+│   │   ├── nokhwa-bindings-macos v0.2.2 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+│   │   │   └── nokhwa-core v0.1.5 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662) (*)
+│   │   ├── nokhwa-bindings-windows v0.4.2 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662)
+│   │   │   ├── dlopen v0.1.8 (*)
+│   │   │   ├── lazy_static v1.5.0
+│   │   │   └── nokhwa-core v0.1.5 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662) (*)
+│   │   ├── nokhwa-core v0.1.5 (https://github.com/rustdesk-org/nokhwa.git?branch=fix_from_raw_parts#c2f74662) (*)
+│   │   ├── paste v1.0.15 (proc-macro)
+│   │   └── thiserror v2.0.17 (*)
+│   ├── num_cpus v1.16.0 (*)
+│   ├── serde v1.0.228 (*)
+│   ├── tracing v0.1.41 (*)
+│   ├── webm v1.1.0 (https://github.com/rustdesk-org/rust-webm#d2c4d3ac)
+│   │   └── webm-sys v1.0.4 (https://github.com/rustdesk-org/rust-webm#d2c4d3ac)
+│   ├── winapi v0.3.9
+│   └── zbus v3.15.2 (*)
+├── serde v1.0.228 (*)
+├── serde_derive v1.0.228 (proc-macro) (*)
+├── serde_json v1.0.118 (*)
+├── serde_repr v0.1.19 (proc-macro) (*)
+├── sha2 v0.10.8 (*)
+├── shutdown_hooks v0.1.0
+├── stunclient v0.4.1
+│   ├── bytecodec v0.4.15
+│   │   ├── byteorder v1.5.0
+│   │   └── trackable v0.2.24
+│   │       ├── trackable v1.3.0
+│   │       │   └── trackable_derive v1.0.0 (proc-macro)
+│   │       │       ├── quote v1.0.36 (*)
+│   │       │       └── syn v1.0.109 (*)
+│   │       └── trackable_derive v1.0.0 (proc-macro) (*)
+│   ├── rand v0.8.5 (*)
+│   ├── stun_codec v0.3.5
+│   │   ├── bytecodec v0.4.15 (*)
+│   │   ├── byteorder v1.5.0
+│   │   ├── crc v3.3.0 (*)
+│   │   ├── hmac v0.12.1 (*)
+│   │   ├── md5 v0.7.0
+│   │   ├── sha1 v0.10.6 (*)
+│   │   └── trackable v1.3.0 (*)
+│   └── tokio v1.44.2 (*)
+├── sys-locale v0.3.1
+├── system_shutdown v4.0.1
+│   └── zbus v3.15.2 (*)
+├── terminfo v0.8.0
+│   ├── dirs v4.0.0
+│   │   └── dirs-sys v0.3.7
+│   │       └── libc v0.2.171
+│   ├── fnv v1.0.7
+│   ├── nom v7.1.3 (*)
+│   └── phf v0.11.3
+│       └── phf_shared v0.11.3
+│           └── siphasher v1.0.1
+├── termios v0.3.3
+│   └── libc v0.2.171
+├── tiny-skia v0.11.4
+│   ├── arrayref v0.3.9
+│   ├── arrayvec v0.7.6
+│   ├── bytemuck v1.23.2
+│   ├── cfg-if v1.0.0
+│   ├── log v0.4.22
+│   ├── png v0.17.13 (*)
+│   └── tiny-skia-path v0.11.4
+│       ├── arrayref v0.3.9
+│       ├── bytemuck v1.23.2
+│       └── strict-num v0.1.1
+├── totp-rs v5.5.1
+│   ├── base32 v0.4.0
+│   ├── constant_time_eq v0.2.6
+│   ├── hmac v0.12.1 (*)
+│   ├── rand v0.8.5 (*)
+│   ├── sha1 v0.10.6 (*)
+│   ├── sha2 v0.10.8 (*)
+│   ├── url v2.5.2 (*)
+│   └── urlencoding v2.1.3
+├── ttf-parser v0.25.1 (*)
+├── url v2.5.2 (*)
+├── uuid v1.16.0 (*)
+├── wallpaper v3.2.0 (https://github.com/rustdesk-org/wallpaper.rs#ce4a0cd3)
+│   ├── dirs v5.0.1
+│   │   └── dirs-sys v0.4.1
+│   │       ├── libc v0.2.171
+│   │       └── option-ext v0.2.0
+│   ├── enquote v1.1.0
+│   │   └── thiserror v1.0.61 (*)
+│   ├── rust-ini v0.18.0
+│   │   ├── cfg-if v1.0.0
+│   │   └── ordered-multimap v0.4.3
+│   │       ├── dlv-list v0.3.0
+│   │       └── hashbrown v0.12.3
+│   │           └── ahash v0.7.8
+│   │               ├── getrandom v0.2.15 (*)
+│   │               └── once_cell v1.19.0
+│   └── thiserror v1.0.61 (*)
+├── wol-rs v1.0.1
+├── xxhash-rust v0.8.18
+└── zstd v0.13.1 (*)

@@ -1,0 +1,36 @@
+{
+  "pid": 66,
+  "start_ticks": 69723424,
+  "pss_kib": 147590,
+  "uss_kib": 124184,
+  "rss_kib": 188576,
+  "swap_pss_kib": 0,
+  "cpu_ticks": 549,
+  "threads": 57,
+  "fds": {
+    "0": "/dev/null",
+    "1": "/workspace/Build/Linux/native-lifecycle-smoke/20261017T061205Z/lifecycle-gui.log",
+    "2": "/workspace/Build/Linux/native-lifecycle-smoke/20261017T061205Z/lifecycle-gui.log",
+    "3": "anon_inode:[eventfd]",
+    "4": "anon_inode:[eventfd]",
+    "5": "socket:[58536334]",
+    "6": "anon_inode:[eventfd]",
+    "7": "socket:[58533658]",
+    "8": "/memfd:allocation fd (deleted)",
+    "9": "socket:[58534085]",
+    "10": "anon_inode:[eventfd]",
+    "11": "/run/farpane-native-test/user/state/farpane/native/viewer.lock",
+    "12": "/run/farpane-native-test/user/state/farpane/native/viewer.log",
+    "13": "socket:[58541643]",
+    "14": "socket:[58541645]",
+    "15": "socket:[58541647]",
+    "16": "/memfd:farpane-frame (deleted)"
+  },
+  "fd_count": 17,
+  "children": [
+    560
+  ],
+  "frame_mappings": [
+    "7edb28459000-7edb28585000 r--s 00000000 00:01 422812                     /memfd:farpane-frame (deleted)"
+  ]
+}

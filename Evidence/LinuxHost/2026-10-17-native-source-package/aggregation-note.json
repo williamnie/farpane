@@ -1,0 +1,8 @@
+{
+  "initial_aggregation_errors": [
+    "Compared packaged_binaries[name] metadata object directly with SHA string; corrected to metadata.sha256",
+    "Looked for standalone receipt file, but actual receipt is embedded in saved build.json"
+  ],
+  "tests_reexecuted": false,
+  "corrected_all_five_cases": "pass"
+}

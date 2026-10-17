@@ -1,0 +1,27 @@
+{
+  "checks": [
+    "file-only-authentication",
+    "wrong-password-retry",
+    "bounded-directory-pages",
+    "actual-next-page-button",
+    "upload",
+    "download",
+    "actual-host-consent-buttons",
+    "cancel-before-consent",
+    "worker-reaped",
+    "folder-upload-multiple-batches",
+    "one-folder-consent",
+    "unsupported-symlink-reported",
+    "multiple-files-one-task",
+    "empty-folder-upload",
+    "folder-download-multiple-batches",
+    "empty-folder-download",
+    "folder-download-symlink-reported",
+    "folder-download-overwrite-dialog"
+  ],
+  "host_confirmation_buttons": 8,
+  "password_attempts": 2,
+  "result": "pass",
+  "stage": 28,
+  "worker_reaped": true
+}

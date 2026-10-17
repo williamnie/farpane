@@ -1,0 +1,145 @@
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -1910,6 +1910,8 @@
+     fn try_start_clipboard(
+         _client_clip_ctx: Option<ClientClipboardContext>,
+     ) -> Option<UnboundedReceiver<()>> {
++        #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++        if hbb_common::config::farpane_viewer::is_active() { return None; }
+         let mut clipboard_lock = CLIPBOARD_STATE.lock().unwrap();
+         if clipboard_lock.running {
+             return None;
+@@ -3464,6 +3466,8 @@
+     }
+ 
+     pub fn get_supported_decoding(&self) -> SupportedDecoding {
++        #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++        if hbb_common::config::farpane_viewer::is_active() { return crate::farpane_native::viewer_media::supported(); }
+         Decoder::supported_decodings(
+             Some(&self.id),
+             use_texture_render(),
+@@ -3922,12 +3926,7 @@
+     }
+ 
+     pub fn update_supported_decodings(&self) -> Message {
+-        let decoding = scrap::codec::Decoder::supported_decodings(
+-            Some(&self.id),
+-            use_texture_render(),
+-            self.adapter_luid,
+-            &self.mark_unsupported,
+-        );
++        let decoding = self.get_supported_decoding();
+         let mut misc = Misc::new();
+         misc.set_option(OptionMessage {
+             supported_decoding: hbb_common::protobuf::MessageField::some(decoding),
+@@ -4986,6 +4985,8 @@
+ /// Data used by the client interface.
+ #[derive(Clone)]
+ pub enum Data {
++    #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++    NativeQueued(Box<Data>, std::sync::Arc<crate::farpane_native::viewer_queue::Credit>),
+     Close,
+     RejectInsecureConnection,
+     Login((String, String, String, bool)),
+@@ -5030,6 +5031,8 @@
+         "",
+     );
+     while let Some(data) = receiver.recv().await {
++        #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++        let (data, _credit) = crate::farpane_native::viewer_queue::unwrap(data);
+         match data {
+             Data::ContinueInsecureConnection => return true,
+             Data::RejectInsecureConnection => return false,
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -647,6 +647,8 @@
+ 
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
+     fn start_initial_clipboard_sync(&mut self) {
++        #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++        if hbb_common::config::farpane_viewer::is_active() { return; }
+         let peer_info = {
+             let lc = self.handler.lc.read().unwrap();
+             lc.peer_info
+@@ -722,6 +724,8 @@
+     }
+ 
+     async fn handle_msg_from_ui(&mut self, data: Data, peer: &mut Stream) -> bool {
++        #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++        let (data, _credit) = crate::farpane_native::viewer_queue::unwrap(data);
+         match data {
+             Data::Close => {
+                 self.send_close_reason(peer, "").await;
+@@ -1526,8 +1530,29 @@
+ 
+     async fn handle_msg_from_peer(&mut self, data: &[u8], peer: &mut Stream) -> bool {
+         if let Ok(msg_in) = Message::parse_from_bytes(&data) {
++            #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++            if hbb_common::config::farpane_viewer::is_active() {
++                if matches!(msg_in.union.as_ref(), Some(message::Union::FileAction(_))) {
++                    // Native file requests will be routed through the explicit
++                    // per-session transfer owner; never auto-print/open files.
++                    return true;
++                }
++                if let Some(message::Union::VoiceCallRequest(request)) = msg_in.union.as_ref() {
++                    if request.is_connect {
++                        let response = crate::client::new_voice_call_response(request.req_timestamp, false);
++                        let _ = peer.send(&response).await;
++                    }
++                    return true;
++                }
++            }
+             match msg_in.union {
+                 Some(message::Union::VideoFrame(vf)) => {
++                    #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++                    if hbb_common::config::farpane_viewer::is_active() {
++                        self.first_frame = true;
++                        self.video_format = CodecFormat::from(&vf);
++                        return crate::farpane_native::viewer_media::enqueue(vf);
++                    }
+                     if !self.first_frame {
+                         self.first_frame = true;
+                         self.handler.close_success();
+@@ -1681,6 +1706,8 @@
+                     self.handler.set_cursor_position(cp);
+                 }
+                 Some(message::Union::Clipboard(cb)) => {
++                    #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++                    if hbb_common::config::farpane_viewer::is_active() { crate::farpane_native::viewer_clipboard::receive(cb); return true; }
+                     let clipboard_allowed = {
+                         let lc = self.handler.lc.read().unwrap();
+                         !lc.disable_clipboard.v && !lc.view_only.v
+@@ -1719,6 +1746,8 @@
+                     }
+                 }
+                 Some(message::Union::MultiClipboards(_mcb)) => {
++                    #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++                    if hbb_common::config::farpane_viewer::is_active() { if let Some(cb) = _mcb.clipboards.into_iter().find(|cb| cb.format.enum_value().ok() == Some(ClipboardFormat::Text)) { crate::farpane_native::viewer_clipboard::receive(cb); } return true; }
+                     let clipboard_allowed = {
+                         let lc = self.handler.lc.read().unwrap();
+                         !lc.disable_clipboard.v && !lc.view_only.v
+--- a/src/ipc.rs
++++ b/src/ipc.rs
+@@ -2197,6 +2197,8 @@
+ #[cfg(target_os = "linux")]
+ #[tokio::main(flavor = "current_thread")]
+ pub async fn get_terminal_session_count() -> ResultType<usize> {
++    #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++    if hbb_common::config::farpane_viewer::is_active() { bail!("Viewer cannot access Host IPC"); }
+     let timeout_ms = 1_000;
+     let effective_uid = unsafe { hbb_common::libc::geteuid() as u32 };
+     let candidate_uids = terminal_count_candidate_uids(effective_uid);
+--- a/src/ui_session_interface.rs
++++ b/src/ui_session_interface.rs
+@@ -1782,6 +1782,11 @@
+ 
+     fn send(&self, data: Data) {
+         if let Some(sender) = self.sender.read().unwrap().as_ref() {
++            #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++            let data = if hbb_common::config::farpane_viewer::is_active() {
++                let Some(data) = crate::farpane_native::viewer_queue::wrap(data) else { return; };
++                data
++            } else { data };
+             sender.send(data).ok();
+         }
+     }

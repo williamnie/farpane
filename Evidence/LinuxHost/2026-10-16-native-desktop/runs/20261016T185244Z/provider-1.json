@@ -1,0 +1,36 @@
+{
+  "owner": ":1.2",
+  "registrations": [
+    {
+      "sender": ":1.0",
+      "name": "org.kde.StatusNotifierItem-20-1"
+    }
+  ],
+  "notifications": [
+    {
+      "id": 101,
+      "sender": ":1.0",
+      "arguments": [
+        "FarPane",
+        0,
+        "org.farpane.FarPane",
+        "\u6709\u8bbe\u5907\u8bf7\u6c42\u8fde\u63a5\u672c\u673a",
+        "Ubuntu \u00b7 1041265319\n\u8bf7\u5728 FarPane \u4e2d\u6279\u51c6\uff1b\u65e0\u4eba\u5904\u7406\u5c06\u81ea\u52a8\u62d2\u7edd\u3002",
+        [
+          "default",
+          "\u67e5\u770b\u8bf7\u6c42",
+          "review",
+          "\u67e5\u770b\u8bf7\u6c42"
+        ],
+        {
+          "urgency": 1,
+          "suppress-sound": true,
+          "desktop-entry": "org.farpane.FarPane"
+        },
+        30000
+      ]
+    }
+  ],
+  "closed": [],
+  "errors": []
+}

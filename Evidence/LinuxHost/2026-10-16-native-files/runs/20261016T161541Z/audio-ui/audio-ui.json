@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "source-catalog",
+    "legacy-source-requires-selection",
+    "microphone-consent-dialog",
+    "cancel-no-change",
+    "explicit-consent-persists",
+    "monitor-clears-consent",
+    "audio-off-on-persists"
+  ],
+  "result": "pass"
+}

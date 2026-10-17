@@ -1,0 +1,24 @@
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Activating service name='org.farpane.FarPane' requested by ':1.0' (uid=1000 pid=20 comm="/opt/farpane-native-test/releases/native-smoke-1/l" label="docker-default (enforce)")
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Successfully activated service 'org.farpane.FarPane'
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Activating service name='org.farpane.FarPane' requested by ':1.0' (uid=1000 pid=20 comm="/opt/farpane-native-test/releases/native-smoke-1/l" label="docker-default (enforce)")
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Successfully activated service 'org.farpane.FarPane'
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 455, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 253, in user_test
+    exercise_desktop(output,agent,start)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_desktop_smoke.py", line 180, in exercise_desktop
+    began=time.monotonic();viewer.wait(timeout=42);assert viewer.returncode==0
+                           ~~~~~~~~~~~^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1279, in wait
+    return self._wait(timeout=timeout)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 2076, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['dbus-run-session', '--', '/opt/farpane-native-test/releases/native-smoke-1/farpane']' timed out after 42 seconds

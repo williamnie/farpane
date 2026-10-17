@@ -1,0 +1,28 @@
+{
+  "timestamp_utc": "2026-10-16T08:25:36.808613+00:00",
+  "branch": "codex/linux-host-gpu-media",
+  "head": "b01c40bd7da588f0ec2add2947a9368289006792",
+  "scope": "U0 partial only; runtime not connected; no installation or service changes",
+  "files": {
+    "Build/Linux/target/release/farpane-core": {
+      "sha256": "bd370a69bfd9368032581ca4d2c2f1f61c6441a81b0bb8dddfc7127c34b5fd42",
+      "bytes": 397976
+    },
+    "Build/Linux/native-target/release/farpane": {
+      "sha256": "c9d75137e11d4722ff502952722772b2a141b25203c2803ea443ca3ec59f5eeb",
+      "bytes": 467704
+    },
+    "Linux/dependencies.lock.json": {
+      "sha256": "16f76c311edc96f9f8bd471a0251dad77dd08aacb122043d9a8aa003e7825b22",
+      "bytes": 7936
+    },
+    "Linux/gui/Cargo.lock": {
+      "sha256": "83996d66a4bf8aa3b85a1558429067d4ddcd2dccdc4fea4396fd9d33e48247e3",
+      "bytes": 17856
+    },
+    "Linux/native/protocol/Cargo.lock": {
+      "sha256": "26c4d6681ac9eea278c8f5ee6cba6ae8a728e87f73f9a23bf9c4c7d496f1734b",
+      "bytes": 2656
+    }
+  }
+}

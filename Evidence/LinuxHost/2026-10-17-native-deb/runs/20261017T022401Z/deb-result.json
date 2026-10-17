@@ -1,0 +1,20 @@
+{
+  "result": "pass",
+  "checks": [
+    "real_dpkg_install_declared_dependencies_and_private_staging",
+    "standalone_installer_commands_and_exact_sources",
+    "installed_deb_gui_two_real_video_sessions_and_worker_reaping",
+    "pending_maintenance_refuses_package_configuration_without_switching",
+    "real_dpkg_upgrade_and_configuration_retry_preserve_active_release",
+    "purge_removes_candidate_tools_preserves_release_process_units_and_configuration"
+  ],
+  "artifact_id": "farpane-native-dev-d0fb65c957b35a48743a82d2",
+  "packages": {
+    "farpane-native-candidate_0.1.0~dev.20261017.1_amd64.deb": "2557ea97b706c03dddc86b62f06c6db4221ea8afa9c643743ce44d3bb1ff5103",
+    "farpane-native-candidate_0.1.0~dev.20261017.2_amd64.deb": "9dad5b80e4226e2e672193f3879a3b3e33019db9a56a8333b9269928dd90d8f8"
+  },
+  "gpu": false,
+  "host_modified": false,
+  "systemd_activation_tested": false,
+  "preserved_process": "private shell blocked on a pipe, not an actual installed service"
+}

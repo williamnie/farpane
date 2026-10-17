@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 466, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 240, in user_test
+    exercise_auto_reconnect(output,agent,start)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_auto_reconnect_smoke.py", line 102, in exercise_auto_reconnect
+    cli({'type':'disconnect_inbound','data':{'connection':inbound[0]['id']}})
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_host_smoke.py", line 42, in cli
+    assert result.returncode==0,result.stderr
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: FarPane core: Command is unavailable offline
+

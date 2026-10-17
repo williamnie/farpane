@@ -1,0 +1,9 @@
+coreutils: unknown program 'farpane'
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_deb_smoke.py", line 67, in <module>
+    preserved()
+    ~~~~~~~~~^^
+  File "/workspace/Linux/tests/native_deb_smoke.py", line 57, in preserved
+    assert store.current() == old.name and sentinel.poll() is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

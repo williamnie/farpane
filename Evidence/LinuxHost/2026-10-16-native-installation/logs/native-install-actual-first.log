@@ -1,0 +1,29 @@
+test_crash_at_every_durable_phase (__main__.InstallTransactions.test_crash_at_every_durable_phase) ... ok
+test_crash_between_stage_permission_and_rename (__main__.InstallTransactions.test_crash_between_stage_permission_and_rename) ... ok
+test_crash_during_unit_write_and_current_switch (__main__.InstallTransactions.test_crash_during_unit_write_and_current_switch) ... ok
+test_first_install_failure_restores_absent_unit_and_links (__main__.InstallTransactions.test_first_install_failure_restores_absent_unit_and_links) ... ok
+test_missing_authorization_and_concurrent_lock (__main__.InstallTransactions.test_missing_authorization_and_concurrent_lock) ... ok
+test_process_identity_rejects_gui_service_and_deleted_executable (__main__.InstallTransactions.test_process_identity_rejects_gui_service_and_deleted_executable) ... ok
+test_readonly_plan_does_not_rewrite_installation (__main__.InstallTransactions.test_readonly_plan_does_not_rewrite_installation) ... ok
+test_recovery_rejects_modified_unit (__main__.InstallTransactions.test_recovery_rejects_modified_unit) ... ok
+test_stage_from_user_owned_source_normalizes_ownership (__main__.InstallTransactions.test_stage_from_user_owned_source_normalizes_ownership) ... ok
+test_stage_is_private_and_has_no_runtime_effect (__main__.InstallTransactions.test_stage_is_private_and_has_no_runtime_effect) ... ok
+test_stale_third_generation_is_refused_without_stopping (__main__.InstallTransactions.test_stale_third_generation_is_refused_without_stopping) ... ok
+test_startup_failure_restores_old_service (__main__.InstallTransactions.test_startup_failure_restores_old_service) ... ok
+test_systemd_parser_real_main_pid_and_override_refusal (__main__.InstallTransactions.test_systemd_parser_real_main_pid_and_override_refusal) ... ok
+test_tampered_copy_and_symlinks_are_rejected (__main__.InstallTransactions.test_tampered_copy_and_symlinks_are_rejected) ... ok
+test_uncooperative_user_is_not_killed (__main__.InstallTransactions.test_uncooperative_user_is_not_killed) ... ok
+test_unknown_role_and_expected_current_fail_without_stopping (__main__.InstallTransactions.test_unknown_role_and_expected_current_fail_without_stopping) ... ok
+test_upgrade_and_explicit_legacy_rollback (__main__.InstallTransactions.test_upgrade_and_explicit_legacy_rollback) ... ok
+test_user_bind_idempotent_and_full_legacy_restore (__main__.UserDesktopTransactions.test_user_bind_idempotent_and_full_legacy_restore) ... ok
+test_user_crashes_during_file_writes_and_commit (__main__.UserDesktopTransactions.test_user_crashes_during_file_writes_and_commit) ... ok
+test_user_custom_desktop_and_autostart_are_not_overwritten (__main__.UserDesktopTransactions.test_user_custom_desktop_and_autostart_are_not_overwritten) ... ok
+test_user_recovery_preserves_edits_and_wrong_system_generation (__main__.UserDesktopTransactions.test_user_recovery_preserves_edits_and_wrong_system_generation) ... ok
+test_user_symlink_parent_refused (__main__.UserDesktopTransactions.test_user_symlink_parent_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 3.850s
+
+OK
+
+Real bundle staging, private activation, user probes, icons/menu/D-Bus binding and GIO desktop parsing: PASS

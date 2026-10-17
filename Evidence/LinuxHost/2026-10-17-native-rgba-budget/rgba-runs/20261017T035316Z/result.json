@@ -1,0 +1,55 @@
+{
+  "result": "pass",
+  "checks": [
+    "worker_rgba_lossless_png_and_mid_encode_cancellation",
+    "maximum_7680x4320_rgba_conversion",
+    "sealed_mapping_to_actual_gdk_png_read",
+    "every_gdk_decoded_pixel_matches",
+    "four_stalled_gio_readers_and_fifth_refused",
+    "output_timeout_and_recovery",
+    "raw_rgba_provider_refused",
+    "third_retained_128_mib_png_refused",
+    "storage_recovers_after_release",
+    "svg_preference"
+  ],
+  "fixtures": {
+    "small": {
+      "every_decoded_pixel_matches": true,
+      "height": 1,
+      "png_bytes": 71,
+      "prepare_and_channel_seconds": 0.000474578,
+      "production_deadline_applied": true,
+      "result": "pass",
+      "rgba_bytes": 8,
+      "width": 2
+    },
+    "maximum": {
+      "every_decoded_pixel_matches": true,
+      "height": 4320,
+      "png_bytes": 4172903,
+      "prepare_and_channel_seconds": 0.62613174,
+      "production_deadline_applied": true,
+      "result": "pass",
+      "rgba_bytes": 132710400,
+      "width": 7680
+    }
+  },
+  "png_files": {
+    "small.png": {
+      "bytes": 71,
+      "sha256": "b24b0da1234e6ebabafc69c10151d911b8671815bcb9dd6874d2e882849849e7"
+    },
+    "maximum.png": {
+      "bytes": 4172903,
+      "sha256": "e96385ea33c0a6f74492b65c8931daf61fbcaf563c996384ebe781aa37894a40"
+    },
+    "max-bytes.png": {
+      "bytes": 134217728,
+      "sha256": "fd5be92a03f5f296fbd8ff19fcbbd3c5eb568d74f0d81222c8b5d75d5394591e"
+    }
+  },
+  "network": "none",
+  "display": "private-xvfb",
+  "gpu": "none",
+  "scope": "worker function plus actual sealed channel and GDK; not a remote RGBA network or desktop acceptance"
+}

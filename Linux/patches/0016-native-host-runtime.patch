@@ -1,0 +1,314 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -36,7 +36,7 @@
+ default = ["use_dasp", "legacy-ui"]
+ # Native builds use --no-default-features; legacy products keep their current UI.
+ legacy-ui = ["dep:gtk", "dep:sciter-rs", "dep:tao", "dep:tray-icon", "dep:winit", "dep:softbuffer"]
+-farpane-native = ["farpane-linux", "use_dasp"]
++farpane-native = ["farpane-linux", "use_dasp", "dep:farpane-protocol"]
+ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+ mediacodec = ["scrap/mediacodec"]
+@@ -60,6 +60,7 @@
+ # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+ 
+ [dependencies]
++farpane-protocol = { path = "../../native/protocol", optional = true }
+ async-trait = "0.1"
+ scrap = { path = "libs/scrap", features = ["wayland"] }
+ hbb_common = { path = "libs/hbb_common", features = ["webrtc"] }
+--- a/src/ui_cm_interface.rs
++++ b/src/ui_cm_interface.rs
+@@ -366,7 +366,8 @@
+ #[cfg(not(any(target_os = "ios")))]
+ pub fn authorize(id: i32) {
+     if let Some(client) = CLIENTS.write().unwrap().get_mut(&id) {
+-        client.authorized = true;
++        #[cfg(not(feature = "farpane-native"))]
++        { client.authorized = true; }
+         allow_err!(client.tx.send(Data::Authorize));
+     };
+ }
+@@ -564,6 +565,16 @@
+                                     }
+                                     self.running = true;
+                                     break;
++                                }
++                                #[cfg(feature = "farpane-native")]
++                                Data::NativeConnectionState { id, authorized, keyboard, clipboard, audio, file } => {
++                                    let mut clients = CLIENTS.write().unwrap();
++                                    if let Some(client) = clients.get_mut(&id) {
++                                        client.authorized = authorized; client.keyboard = keyboard;
++                                        client.clipboard = clipboard; client.audio = audio; client.file = file;
++                                    }
++                                    drop(clients);
++                                    crate::farpane_native::control::changed();
+                                 }
+                                 Data::Close => {
+                                     log::info!("cm ipc connection closed from connection request");
+@@ -813,6 +824,8 @@
+     }
+ 
+     async fn ipc_task(stream: Connection, cm: ConnectionManager<T>) {
++        #[cfg(feature = "farpane-native")]
++        let _file_owner = crate::farpane_native::activity::Guard::files();
+         log::debug!("ipc task begin");
+         let (tx, rx) = mpsc::unbounded_channel::<Data>();
+         let mut task_runner = Self {
+@@ -856,12 +869,17 @@
+     }
+     match ipc::new_listener("_cm").await {
+         Ok(mut incoming) => {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::cm::ready(true);
+             while let Some(result) = incoming.next().await {
+                 match result {
+                     Ok(stream) => {
++                        let stream = Connection::new(stream);
++                        #[cfg(feature = "farpane-native")]
++                        if !stream.native_same_process() { continue; }
+                         log::debug!("Got new connection");
+                         tokio::spawn(IpcTaskRunner::<T>::ipc_task(
+-                            Connection::new(stream),
++                            stream,
+                             cm.clone(),
+                         ));
+                     }
+@@ -1755,6 +1773,8 @@
+ 
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+ pub fn quit_cm() {
++    #[cfg(feature = "farpane-native")]
++    { crate::farpane_native::cm::ready(false); return; }
+     // in case of std::process::exit not work
+     log::info!("quit cm");
+     CLIENTS.write().unwrap().clear();
+@@ -1891,3 +1911,9 @@
+         let _ = fs::remove_dir_all(&base_dir);
+     }
+ }
++
++#[cfg(feature = "farpane-native")]
++pub(crate) fn native_clients() -> Vec<Client> { CLIENTS.read().unwrap().values().cloned().collect() }
++
++#[cfg(feature = "farpane-native")]
++impl Client { pub(crate) fn native_reject_voice(&self) { let _ = self.tx.send(Data::VoiceCallResponse(false)); } }
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -754,6 +754,8 @@
+                             if !conn.send_logon_response_and_keep_alive().await {
+                                 break;
+                             }
++                            #[cfg(feature = "farpane-native")]
++                            conn.send_native_permissions();
+                             if conn.port_forward_socket.is_some() {
+                                 break;
+                             }
+@@ -905,6 +907,8 @@
+                                 conn.privacy_mode = enabled;
+                                 conn.send_permission(Permission::PrivacyMode, enabled).await;
+                             }
++                            #[cfg(feature = "farpane-native")]
++                            conn.send_native_permissions();
+                         }
+                         ipc::Data::RawMessage(bytes) => {
+                             allow_err!(conn.stream.send_raw(bytes).await);
+@@ -2627,7 +2631,7 @@
+ 
+     #[inline]
+     pub fn is_permission_enabled_locally(enable_prefix_option: &str) -> bool {
+-        #[cfg(feature = "flutter")]
++        #[cfg(any(feature = "flutter", feature = "farpane-native"))]
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+         {
+             let access_mode = Config::get_option("access-mode");
+@@ -6334,6 +6338,7 @@
+     if let Ok(s) = crate::ipc::connect(1000, "_cm").await {
+         stream = Some(s);
+     }
++    #[cfg(not(feature = "farpane-native"))]
+     if stream.is_none() {
+         let args = vec!["--cm"];
+         let run_done;
+@@ -7965,3 +7970,12 @@
+         assert!(!replaced_by(&conn(3, remote, key(7, "other")), 2, &mine));
+     }
+ }
++
++#[cfg(feature = "farpane-native")]
++impl Connection {
++    fn send_native_permissions(&mut self) {
++        self.send_to_cm(ipc::Data::NativeConnectionState { id: self.inner.id,
++            authorized: self.authorized, keyboard: self.keyboard, clipboard: self.clipboard,
++            audio: self.audio, file: self.file });
++    }
++}
+--- a/src/ipc.rs
++++ b/src/ipc.rs
+@@ -492,6 +492,12 @@
+     ControllingSessionCount(usize),
+     #[cfg(target_os = "linux")]
+     TerminalSessionCount(usize),
++    #[cfg(feature = "farpane-native")]
++    NativeActivity(Option<farpane_protocol::supervision::Activity>),
++    #[cfg(feature = "farpane-native")]
++    NativeHealth(Option<bool>),
++    #[cfg(feature = "farpane-native")]
++    NativeConnectionState { id: i32, authorized: bool, keyboard: bool, clipboard: bool, audio: bool, file: bool },
+     #[cfg(target_os = "windows")]
+     PortForwardSessionCount(Option<usize>),
+     SocksWs(Option<Box<(Option<config::Socks5Server>, String)>>),
+@@ -598,6 +604,8 @@
+                 Ok(stream) => {
+                     let mut stream = Connection::new(stream);
+                     let postfix = postfix.to_owned();
++                    #[cfg(feature = "farpane-native")]
++                    if postfix.is_empty() && !stream.native_core_peer() { continue; }
+                     #[cfg(any(target_os = "linux", target_os = "macos"))]
+                     if config::is_service_ipc_postfix(&postfix) {
+                         if !authorize_service_scoped_ipc_connection(&stream, &postfix) {
+@@ -1053,6 +1061,8 @@
+             allow_err!(stream.send(&Data::NatType(Some(t))).await);
+         }
+         Data::SyncConfig(Some(configs)) => {
++            #[cfg(feature = "farpane-native")]
++            if !crate::platform::is_root() { return; }
+             let (config, config2) = *configs;
+             let _chk = CheckIfRestart::new();
+             Config::set(config);
+@@ -1143,6 +1153,15 @@
+         ))]
+         Data::ControllingSessionCount(count) => {
+             crate::updater::update_controlling_session_count(count);
++        }
++        #[cfg(target_os = "linux")]
++        #[cfg(feature = "farpane-native")]
++        Data::NativeActivity(_) => {
++            allow_err!(stream.send(&Data::NativeActivity(crate::farpane_native::activity::snapshot())).await);
++        }
++        #[cfg(feature = "farpane-native")]
++        Data::NativeHealth(_) => {
++            allow_err!(stream.send(&Data::NativeHealth(Some(crate::farpane_native::activity::CM_READY.load(Ordering::Acquire)))).await);
+         }
+         #[cfg(target_os = "linux")]
+         Data::TerminalSessionCount(_) => {
+--- a/src/server.rs
++++ b/src/server.rs
+@@ -674,6 +674,7 @@
+         std::thread::spawn(move || {
+             if let Err(err) = crate::ipc::start("") {
+                 log::error!("Failed to start ipc: {}", err);
++                #[cfg(not(feature = "farpane-native"))]
+                 if crate::is_server() {
+                     log::error!("ipc is occupied by another process, try kill it");
+                     std::thread::spawn(stop_main_window_process).join().ok();
+@@ -825,8 +826,8 @@
+ #[cfg(any(target_os = "macos", target_os = "linux"))]
+ async fn sync_and_watch_config_dir(sync_done_tx: Option<tokio::sync::oneshot::Sender<()>>) {
+     let mut cfg0 = (Config::get(), Config2::get());
+-    let mut synced = false;
+-    let mut is_root_config_empty = false;
++    let mut synced = cfg!(feature = "farpane-native");
++    let mut is_root_config_empty = cfg!(feature = "farpane-native");
+     let mut sync_done_tx = sync_done_tx;
+     let tries = if crate::is_server() { 30 } else { 3 };
+     log::debug!("#tries of ipc service connection: {}", tries);
+@@ -835,6 +836,8 @@
+         sleep(i as f32 * CONFIG_SYNC_INTERVAL_SECS).await;
+         match crate::ipc::connect_service(1000).await {
+             Ok(mut conn) => {
++                #[cfg(feature = "farpane-native")]
++                if let Some(tx) = sync_done_tx.take() { let _ = tx.send(()); }
+                 if !synced {
+                     if conn.send(&Data::SyncConfig(None)).await.is_ok() {
+                         if let Ok(Some(data)) = conn.next_timeout(1000).await {
+--- a/src/server/video_service.rs
++++ b/src/server/video_service.rs
+@@ -601,6 +601,8 @@
+ mod gpu_host;
+ 
+ fn run(vs: VideoService) -> ResultType<()> {
++    #[cfg(feature = "farpane-native")]
++    let _native_video_owner = crate::farpane_native::activity::Guard::video();
+     #[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
+     let gpu_run = gpu_host::Run::new(vs.gpu_state.clone(), vs.sp.clone(), vs.source.is_monitor());
+     let mut _raii = Raii::new(vs.idx, vs.sp.name());
+--- a/src/ipc/auth.rs
++++ b/src/ipc/auth.rs
+@@ -1035,3 +1035,26 @@
+         assert_eq!(parsed_uid, console_uid);
+     }
+ }
++
++#[cfg(feature = "farpane-native")]
++impl<T> ConnectionTmpl<T> where T: AsyncRead + AsyncWrite + Unpin + std::os::fd::AsRawFd {
++    pub(crate) fn native_same_process(&self) -> bool {
++        farpane_protocol::transport::Peer::from_fd_for_uid(self.inner.get_ref().as_raw_fd(), unsafe { libc::geteuid() }).map(|p| p.pid == std::process::id()).unwrap_or(false)
++    }
++    pub(crate) fn native_core_peer(&self) -> bool {
++        let Some(uid) = self.peer_uid() else { return false; };
++        if uid != 0 && uid != unsafe { libc::geteuid() } { return false; }
++        ["--server", "--service", "--check-hwcodec-config"].iter().any(|role| self.native_identity(uid, role).is_some())
++    }
++    fn native_identity(&self, uid: u32, role: &str) -> Option<crate::farpane_native::process::Process> {
++        let peer = farpane_protocol::transport::Peer::from_fd_for_uid(self.inner.get_ref().as_raw_fd(), uid).ok()?;
++        let exe = std::env::current_exe().and_then(std::fs::canonicalize).ok()?;
++        peer.verify_executable(&exe).ok()?;
++        let process = crate::farpane_native::process::Process::exact(peer.pid, &exe, Some(uid), role).ok()?;
++        peer.ensure_alive().ok()?;
++        Some(process)
++    }
++    pub(crate) fn native_server_identity(&self, uid: u32) -> Option<crate::farpane_native::process::Process> {
++        self.native_identity(uid, "--server")
++    }
++}
+--- a/src/platform/linux.rs
++++ b/src/platform/linux.rs
+@@ -885,6 +885,8 @@
+     match desktop {
+         Some(desktop) => {
+             let mut envs = vec![];
++            #[cfg(feature = "farpane-native")]
++            envs.push(("XDG_RUNTIME_DIR", format!("/run/user/{}", desktop.uid)));
+             if !desktop.display.is_empty() {
+                 envs.push(("DISPLAY", desktop.display.clone()));
+             }
+@@ -995,6 +997,8 @@
+ 
+ #[inline]
+ fn stop_rustdesk_servers() {
++    #[cfg(feature = "farpane-native")]
++    { crate::farpane_native::process::stop_servers(None); return; }
+     let _ = run_cmds(&format!(
+         r##"ps -ef | grep -E '{} +--server' | awk '{{print $2}}' | xargs -r kill -9"##,
+         crate::get_app_name().to_lowercase(),
+@@ -1010,6 +1014,8 @@
+     last_restart: &mut Instant,
+     server: &mut Option<Child>,
+ ) -> bool {
++    #[cfg(feature = "farpane-native")]
++    { if try_x11 && (is_display_changed || *uid != desktop.uid) { set_x11_env(desktop); } let Ok(next_uid) = desktop.uid.parse() else { return false; }; return crate::farpane_native::supervisor::should_start(next_uid, uid, is_display_changed, last_restart, server); }
+     let cm = get_cm();
+     let mut start_new = false;
+     let mut should_kill = false;
+@@ -1071,6 +1077,7 @@
+ }
+ 
+ pub fn start_os_service() {
++    #[cfg(not(feature = "farpane-native"))]
+     check_if_stop_service();
+     stop_rustdesk_servers();
+     start_uinput_service();
+@@ -1121,6 +1128,12 @@
+     while running.load(Ordering::SeqCst) {
+         desktop.refresh();
+         update_active_user_lookup_cache(&desktop);
++        #[cfg(feature = "farpane-native")]
++        if desktop.username == "root" || desktop.is_login_wayland() || desktop.username.is_empty() {
++            stop_server(&mut user_server); stop_server(&mut server);
++            crate::farpane_native::process::stop_servers(None);
++            sleep_millis(500); continue;
++        }
+ 
+         // Duplicate logic here with should_start_server.
+         if desktop.username == "root" || desktop.is_login_wayland() {

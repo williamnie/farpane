@@ -1,0 +1,126 @@
+[2026-10-17 07:12:12.246197 +00:00] INFO [src/common.rs:147] Private/public key written to id_ed25519/id_ed25519.pub
+[2026-10-17 07:12:12.246204 +00:00] DEBUG [src/common.rs:148] Public key: mJZQPbeC8CjMRfvRMzciWUgOo3m4JGKnaJ1bUBw2Nnc=
+[2026-10-17 07:12:12.246215 +00:00] INFO [src/rendezvous_server.rs:1251] Key: mJZQPbeC8CjMRfvRMzciWUgOo3m4JGKnaJ1bUBw2Nnc=
+[2026-10-17 07:12:12.246230 +00:00] INFO [src/peer.rs:84] DB_URL=./db_v2.sqlite3
+[2026-10-17 07:12:12.246240 +00:00] DEBUG [src/database.rs:58] MAX_DATABASE_CONNECTIONS=1
+[2026-10-17 07:12:12.246811 +00:00] DEBUG [<unnamed>:0] PRAGMA page_size = 4096; …; rows affected: 0, rows returned: 2, elapsed: 171.482µs
+
+PRAGMA page_size = 4096;
+PRAGMA locking_mode = NORMAL;
+PRAGMA journal_mode = WAL;
+PRAGMA foreign_keys = ON;
+PRAGMA synchronous = FULL;
+PRAGMA auto_vacuum = NONE;
+
+[2026-10-17 07:12:12.247233 +00:00] ERROR [libs/hbb_common/src/config.rs:568] Failed to generate new id
+[2026-10-17 07:12:12.247265 +00:00] ERROR [libs/hbb_common/src/config.rs:568] Failed to generate new id
+[2026-10-17 07:12:12.247287 +00:00] ERROR [libs/hbb_common/src/config.rs:568] Failed to generate new id
+[2026-10-17 07:12:12.247625 +00:00] DEBUG [<unnamed>:0] create table if not …; rows affected: 0, rows returned: 0, elapsed: 542.686µs
+
+create table if not exists peer (
+  guid blob primary key not null,
+  id varchar(100) not null,
+  uuid blob not null,
+  pk blob not null,
+  created_at datetime not null default(current_timestamp),
+  user blob,
+  status tinyint,
+  note varchar(300),
+  info text not null
+) without rowid;
+create unique index if not exists index_peer_id on peer (id);
+create index if not exists index_peer_user on peer (user);
+create index if not exists index_peer_created_at on peer (created_at);
+create index if not exists index_peer_status on peer (status);
+
+[2026-10-17 07:12:12.247654 +00:00] INFO [src/rendezvous_server.rs:107] serial=0
+[2026-10-17 07:12:12.247657 +00:00] INFO [src/common.rs:45] rendezvous-servers=[]
+[2026-10-17 07:12:12.247659 +00:00] INFO [src/rendezvous_server.rs:109] Listening on tcp/udp :21116
+[2026-10-17 07:12:12.247661 +00:00] INFO [src/rendezvous_server.rs:110] Listening on tcp :21115, extra port for NAT test
+[2026-10-17 07:12:12.247661 +00:00] INFO [src/rendezvous_server.rs:111] Listening on websocket :21118
+[2026-10-17 07:12:12.247674 +00:00] DEBUG [libs/hbb_common/src/udp.rs:36] Receive buf size of udp [::]:21116: Ok(212992)
+[2026-10-17 07:12:12.247707 +00:00] DEBUG [src/rendezvous_server.rs:1357] listen on udp Some([::]:21116)
+[2026-10-17 07:12:12.247726 +00:00] DEBUG [/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/neli-0.6.4/src/socket.rs:523] Message sent:
+Nlmsghdr { nl_len: 36, nl_type: Getroute, nl_flags: NlmFFlags(FlagBuffer(1, PhantomData<neli::consts::nl::NlmF>)), nl_seq: 0, nl_pid: 0, nl_payload: Payload(Rtmsg { rtm_family: Inet, rtm_dst_len: 0, rtm_src_len: 0, rtm_tos: 0, rtm_table: Unspec, rtm_protocol: Unspec, rtm_scope: Universe, rtm_type: Unspec, rtm_flags: RtmFFlags(FlagBuffer(0, PhantomData<neli::consts::rtnl::RtmF>)), rtattrs: RtBuffer([Rtattr { rta_len: 8, rta_type: Dst, rta_payload: Buffer }]) }) }
+[2026-10-17 07:12:12.247747 +00:00] DEBUG [/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/neli-0.6.4/src/socket.rs:600] Message received: Nlmsghdr { nl_len: 56, nl_type: UnrecognizedConst(2), nl_flags: NlmFFlags(FlagBuffer(0, PhantomData<neli::consts::nl::NlmF>)), nl_seq: 0, nl_pid: 2696797937, nl_payload: Err(Nlmsgerr { error: -101, nlmsg: NlmsghdrErr { nl_len: 36, nl_type: Getroute, nl_flags: NlmFFlags(FlagBuffer(1, PhantomData<neli::consts::nl::NlmF>)), nl_seq: 0, nl_pid: 0, nl_payload: Rtmsg { rtm_family: Inet, rtm_dst_len: 0, rtm_src_len: 0, rtm_tos: 0, rtm_table: Unspec, rtm_protocol: Unspec, rtm_scope: Universe, rtm_type: Unspec, rtm_flags: RtmFFlags(FlagBuffer(0, PhantomData<neli::consts::rtnl::RtmF>)), rtattrs: RtBuffer([Rtattr { rta_len: 8, rta_type: Dst, rta_payload: Buffer }]) } } }) }
+[2026-10-17 07:12:12.247796 +00:00] INFO [src/rendezvous_server.rs:146] mask: Some(Ipv4Network { addr: 127.0.0.0, prefix: 8 })
+[2026-10-17 07:12:12.247808 +00:00] INFO [src/rendezvous_server.rs:147] local-ip: ""
+[2026-10-17 07:12:12.247819 +00:00] INFO [src/common.rs:45] relay-servers=["127.0.0.1:21117"]
+[2026-10-17 07:12:12.247855 +00:00] DEBUG [src/rendezvous_server.rs:1369] listen on tcp Ok([::]:21116)
+[2026-10-17 07:12:12.247879 +00:00] DEBUG [src/rendezvous_server.rs:1369] listen on tcp Ok([::]:21115)
+[2026-10-17 07:12:12.247890 +00:00] DEBUG [src/rendezvous_server.rs:1369] listen on tcp Ok([::]:21118)
+[2026-10-17 07:12:12.247906 +00:00] INFO [src/rendezvous_server.rs:161] ALWAYS_USE_RELAY=N
+[2026-10-17 07:12:12.247924 +00:00] INFO [src/rendezvous_server.rs:193] Start
+[2026-10-17 07:12:12.247930 +00:00] DEBUG [libs/hbb_common/src/udp.rs:36] Receive buf size of udp [::]:0: Ok(212992)
+[2026-10-17 07:12:12.248942 +00:00] DEBUG [/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-0.14.32/src/client/connect/dns.rs:122] resolving host="api.rustdesk.com"
+[2026-10-17 07:12:12.326625 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:54308, ws: false
+[2026-10-17 07:12:12.326785 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:54308 closed
+[2026-10-17 07:12:15.475783 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:54324, ws: false
+[2026-10-17 07:12:15.475846 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:45087, ws: false
+[2026-10-17 07:12:15.475906 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:54324 closed
+[2026-10-17 07:12:15.475960 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:45087 closed
+[2026-10-17 07:12:15.477372 +00:00] DEBUG [<unnamed>:0] select guid, id, uuid, …; rows affected: 0, rows returned: 0, elapsed: 118.041µs
+
+select
+  guid,
+  id,
+  uuid,
+  pk,
+  user,
+  status,
+  info
+from
+  peer
+where
+  id = ?
+
+[2026-10-17 07:12:15.477402 +00:00] INFO [src/peer.rs:102] update_pk 1431374310 [::ffff:127.0.0.1]:37762 b"c03b977e2940aefda0412283746f8dd9" b"x\xf2-\xc4\xaaX\xef9\xeaK\x08\xdf8\x10}U\x95\xb2\x9401R\x7fP\xd7\xebD\x06\"\x067k"
+[2026-10-17 07:12:15.477629 +00:00] DEBUG [<unnamed>:0] insert into peer(guid, id, …; rows affected: 1, rows returned: 0, elapsed: 107.672µs
+
+insert into
+  peer(guid, id, uuid, pk, info)
+values
+(?, ?, ?, ?, ?)
+
+[2026-10-17 07:12:16.477389 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:41973, ws: false
+[2026-10-17 07:12:16.477655 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:41973 closed
+[2026-10-17 07:12:17.254188 +00:00] DEBUG [src/common.rs:200] error sending request for url (https://api.rustdesk.com/version/latest): error trying to connect: dns error: failed to lookup address information: Try again
+
+Caused by:
+    0: error trying to connect: dns error: failed to lookup address information: Try again
+    1: dns error: failed to lookup address information: Try again
+    2: failed to lookup address information: Try again, hbbs::common:src/common.rs:200:36
+[2026-10-17 07:12:18.241572 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:40693, ws: false
+[2026-10-17 07:12:18.241652 +00:00] DEBUG [src/rendezvous_server.rs:756] Fetch local addr "1431374310" [::ffff:127.0.0.1]:37762 request from [::ffff:127.0.0.1]:40693
+[2026-10-17 07:12:18.241848 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:42903, ws: false
+[2026-10-17 07:12:18.241890 +00:00] DEBUG [src/rendezvous_server.rs:658] TCP local addrs response to 127.0.0.1:40693 from [::ffff:127.0.0.1]:42903
+[2026-10-17 07:12:18.241913 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:42903 closed
+[2026-10-17 07:12:18.242016 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:40693 closed
+[2026-10-17 07:12:18.248332 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:45861, ws: false
+[2026-10-17 07:12:18.485422 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:35383, ws: false
+[2026-10-17 07:12:19.478947 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:34795, ws: false
+[2026-10-17 07:12:19.479189 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:34795 closed
+[2026-10-17 07:12:24.322030 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:33923, ws: false
+[2026-10-17 07:12:24.322161 +00:00] WARN [src/rendezvous_server.rs:691] Authentication failed from [::ffff:127.0.0.1]:33923 for peer 1431374310 - invalid key
+[2026-10-17 07:12:24.322414 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:33923 closed
+[2026-10-17 07:12:26.480480 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:35569, ws: false
+[2026-10-17 07:12:26.480708 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:35569 closed
+[2026-10-17 07:12:27.736447 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:36153, ws: false
+[2026-10-17 07:12:27.736548 +00:00] DEBUG [src/rendezvous_server.rs:756] Fetch local addr "1431374310" [::ffff:127.0.0.1]:37762 request from [::ffff:127.0.0.1]:36153
+[2026-10-17 07:12:27.736782 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:37739, ws: false
+[2026-10-17 07:12:27.736844 +00:00] DEBUG [src/rendezvous_server.rs:658] TCP local addrs response to 127.0.0.1:36153 from [::ffff:127.0.0.1]:37739
+[2026-10-17 07:12:27.736891 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:37739 closed
+[2026-10-17 07:12:27.737104 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:36153 closed
+[2026-10-17 07:12:27.737143 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:35787, ws: false
+[2026-10-17 07:12:27.737310 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:42127, ws: false
+[2026-10-17 07:12:27.737377 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:42127 closed
+[2026-10-17 07:12:27.737439 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:35787 closed
+[2026-10-17 07:12:36.250390 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:45861 closed
+[2026-10-17 07:12:36.487161 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:35383 closed
+[2026-10-17 07:12:36.494215 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:35301, ws: false
+[2026-10-17 07:12:41.481751 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:41027, ws: false
+[2026-10-17 07:12:41.481866 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:41027 closed
+[2026-10-17 07:12:46.257386 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:35023, ws: false
+[2026-10-17 07:12:47.974468 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:35301 closed
+[2026-10-17 07:12:47.974507 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:35023 closed
+[2026-10-17 07:12:47.979068 +00:00] INFO [src/common.rs:172] signal terminate

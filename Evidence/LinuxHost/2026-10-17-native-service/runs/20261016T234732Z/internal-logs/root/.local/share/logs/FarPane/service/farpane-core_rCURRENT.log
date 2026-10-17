@@ -1,0 +1,19 @@
+[2026-10-16 23:47:46.098627 +00:00] INFO [src/core_main.rs:400] start --service
+[2026-10-16 23:47:46.099270 +00:00] INFO [src/server/uinput.rs:1012] start uinput control service
+[2026-10-16 23:47:46.099372 +00:00] INFO [src/server/uinput.rs:998] start uinput keyboard service
+[2026-10-16 23:47:46.099385 +00:00] INFO [src/server/uinput.rs:1005] start uinput mouse service
+[2026-10-16 23:47:46.099595 +00:00] INFO [src/ipc/drm.rs:101] Started drm ipc server at path: /tmp/FarPane-service/ipc_drm
+[2026-10-16 23:47:46.099868 +00:00] INFO [src/ipc/drm.rs:728] drm: udev DRM-uevent listener started
+[2026-10-16 23:47:46.113824 +00:00] INFO [src/ipc.rs:738] Started ipc_uinput_mouse server at path: /tmp/FarPane-service/ipc_uinput_mouse
+[2026-10-16 23:47:46.114205 +00:00] INFO [src/ipc.rs:736] Started protected ipc service server: postfix=_service
+[2026-10-16 23:47:46.114274 +00:00] INFO [src/ipc.rs:738] Started ipc_uinput_keyboard server at path: /tmp/FarPane-service/ipc_uinput_keyboard
+[2026-10-16 23:47:46.129208 +00:00] INFO [src/ipc.rs:738] Started ipc_uinput_control server at path: /tmp/FarPane-service/ipc_uinput_control
+[2026-10-16 23:47:46.154708 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:47:46.154724 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1000/test.Xauthority
+[2026-10-16 23:48:16.103147 +00:00] INFO [src/ipc/drm.rs:773] drm: session still reads as X11 after 30s; skipping the pre-warm (the _drm listener still runs)
+[2026-10-16 23:48:49.407452 +00:00] ERROR [src/farpane_native/supervisor.rs:136] Native Host failed independent health probes for 60s; recovery may interrupt connections
+[2026-10-16 23:48:52.000729 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:48:52.000744 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-16 23:48:52.000749 +00:00] INFO [src/farpane_native/supervisor.rs:42] Native Host desktop user changed; ending the previous authorization context
+[2026-10-16 23:48:55.013099 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:48:55.013116 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1000/test.Xauthority

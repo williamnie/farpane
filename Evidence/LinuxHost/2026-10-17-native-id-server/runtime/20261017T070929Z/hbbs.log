@@ -1,0 +1,85 @@
+[2026-10-17 07:09:30.483757 +00:00] INFO [src/common.rs:147] Private/public key written to id_ed25519/id_ed25519.pub
+[2026-10-17 07:09:30.483763 +00:00] DEBUG [src/common.rs:148] Public key: q32kNLAsl3gE+0XLnGemwJ48ZNkxG9qdrBMj4kJhNc0=
+[2026-10-17 07:09:30.483766 +00:00] INFO [src/rendezvous_server.rs:1251] Key: q32kNLAsl3gE+0XLnGemwJ48ZNkxG9qdrBMj4kJhNc0=
+[2026-10-17 07:09:30.483768 +00:00] INFO [src/peer.rs:84] DB_URL=./db_v2.sqlite3
+[2026-10-17 07:09:30.483777 +00:00] DEBUG [src/database.rs:58] MAX_DATABASE_CONNECTIONS=1
+[2026-10-17 07:09:30.484778 +00:00] DEBUG [<unnamed>:0] PRAGMA page_size = 4096; …; rows affected: 0, rows returned: 2, elapsed: 372.627µs
+
+PRAGMA page_size = 4096;
+PRAGMA locking_mode = NORMAL;
+PRAGMA journal_mode = WAL;
+PRAGMA foreign_keys = ON;
+PRAGMA synchronous = FULL;
+PRAGMA auto_vacuum = NONE;
+
+[2026-10-17 07:09:30.485584 +00:00] ERROR [libs/hbb_common/src/config.rs:568] Failed to generate new id
+[2026-10-17 07:09:30.485615 +00:00] ERROR [libs/hbb_common/src/config.rs:568] Failed to generate new id
+[2026-10-17 07:09:30.485644 +00:00] ERROR [libs/hbb_common/src/config.rs:568] Failed to generate new id
+[2026-10-17 07:09:30.485838 +00:00] DEBUG [<unnamed>:0] create table if not …; rows affected: 0, rows returned: 0, elapsed: 739.525µs
+
+create table if not exists peer (
+  guid blob primary key not null,
+  id varchar(100) not null,
+  uuid blob not null,
+  pk blob not null,
+  created_at datetime not null default(current_timestamp),
+  user blob,
+  status tinyint,
+  note varchar(300),
+  info text not null
+) without rowid;
+create unique index if not exists index_peer_id on peer (id);
+create index if not exists index_peer_user on peer (user);
+create index if not exists index_peer_created_at on peer (created_at);
+create index if not exists index_peer_status on peer (status);
+
+[2026-10-17 07:09:30.485860 +00:00] INFO [src/rendezvous_server.rs:107] serial=0
+[2026-10-17 07:09:30.485863 +00:00] INFO [src/common.rs:45] rendezvous-servers=[]
+[2026-10-17 07:09:30.485865 +00:00] INFO [src/rendezvous_server.rs:109] Listening on tcp/udp :21116
+[2026-10-17 07:09:30.485881 +00:00] INFO [src/rendezvous_server.rs:110] Listening on tcp :21115, extra port for NAT test
+[2026-10-17 07:09:30.485882 +00:00] INFO [src/rendezvous_server.rs:111] Listening on websocket :21118
+[2026-10-17 07:09:30.485894 +00:00] DEBUG [libs/hbb_common/src/udp.rs:36] Receive buf size of udp [::]:21116: Ok(212992)
+[2026-10-17 07:09:30.485920 +00:00] DEBUG [src/rendezvous_server.rs:1357] listen on udp Some([::]:21116)
+[2026-10-17 07:09:30.485942 +00:00] DEBUG [/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/neli-0.6.4/src/socket.rs:523] Message sent:
+Nlmsghdr { nl_len: 36, nl_type: Getroute, nl_flags: NlmFFlags(FlagBuffer(1, PhantomData<neli::consts::nl::NlmF>)), nl_seq: 0, nl_pid: 0, nl_payload: Payload(Rtmsg { rtm_family: Inet, rtm_dst_len: 0, rtm_src_len: 0, rtm_tos: 0, rtm_table: Unspec, rtm_protocol: Unspec, rtm_scope: Universe, rtm_type: Unspec, rtm_flags: RtmFFlags(FlagBuffer(0, PhantomData<neli::consts::rtnl::RtmF>)), rtattrs: RtBuffer([Rtattr { rta_len: 8, rta_type: Dst, rta_payload: Buffer }]) }) }
+[2026-10-17 07:09:30.485960 +00:00] DEBUG [/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/neli-0.6.4/src/socket.rs:600] Message received: Nlmsghdr { nl_len: 56, nl_type: UnrecognizedConst(2), nl_flags: NlmFFlags(FlagBuffer(0, PhantomData<neli::consts::nl::NlmF>)), nl_seq: 0, nl_pid: 30, nl_payload: Err(Nlmsgerr { error: -101, nlmsg: NlmsghdrErr { nl_len: 36, nl_type: Getroute, nl_flags: NlmFFlags(FlagBuffer(1, PhantomData<neli::consts::nl::NlmF>)), nl_seq: 0, nl_pid: 0, nl_payload: Rtmsg { rtm_family: Inet, rtm_dst_len: 0, rtm_src_len: 0, rtm_tos: 0, rtm_table: Unspec, rtm_protocol: Unspec, rtm_scope: Universe, rtm_type: Unspec, rtm_flags: RtmFFlags(FlagBuffer(0, PhantomData<neli::consts::rtnl::RtmF>)), rtattrs: RtBuffer([Rtattr { rta_len: 8, rta_type: Dst, rta_payload: Buffer }]) } } }) }
+[2026-10-17 07:09:30.485979 +00:00] INFO [src/rendezvous_server.rs:146] mask: Some(Ipv4Network { addr: 127.0.0.0, prefix: 8 })
+[2026-10-17 07:09:30.485981 +00:00] INFO [src/rendezvous_server.rs:147] local-ip: ""
+[2026-10-17 07:09:30.485984 +00:00] INFO [src/common.rs:45] relay-servers=["127.0.0.1:21117"]
+[2026-10-17 07:09:30.485997 +00:00] DEBUG [src/rendezvous_server.rs:1369] listen on tcp Ok([::]:21116)
+[2026-10-17 07:09:30.486014 +00:00] DEBUG [src/rendezvous_server.rs:1369] listen on tcp Ok([::]:21115)
+[2026-10-17 07:09:30.486024 +00:00] DEBUG [src/rendezvous_server.rs:1369] listen on tcp Ok([::]:21118)
+[2026-10-17 07:09:30.486025 +00:00] INFO [src/rendezvous_server.rs:161] ALWAYS_USE_RELAY=N
+[2026-10-17 07:09:30.486029 +00:00] INFO [src/rendezvous_server.rs:193] Start
+[2026-10-17 07:09:30.486053 +00:00] DEBUG [libs/hbb_common/src/udp.rs:36] Receive buf size of udp [::]:0: Ok(212992)
+[2026-10-17 07:09:30.487312 +00:00] DEBUG [/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-0.14.32/src/client/connect/dns.rs:122] resolving host="api.rustdesk.com"
+[2026-10-17 07:09:30.564976 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:33806, ws: false
+[2026-10-17 07:09:30.565089 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:33806 closed
+[2026-10-17 07:09:33.715225 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:43547, ws: false
+[2026-10-17 07:09:33.715369 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:43547 closed
+[2026-10-17 07:09:33.715440 +00:00] DEBUG [src/rendezvous_server.rs:1143] Tcp connection from [::ffff:127.0.0.1]:33812, ws: false
+[2026-10-17 07:09:33.715476 +00:00] DEBUG [src/rendezvous_server.rs:1199] Tcp connection from [::ffff:127.0.0.1]:33812 closed
+[2026-10-17 07:09:33.717002 +00:00] DEBUG [<unnamed>:0] select guid, id, uuid, …; rows affected: 0, rows returned: 0, elapsed: 117.009µs
+
+select
+  guid,
+  id,
+  uuid,
+  pk,
+  user,
+  status,
+  info
+from
+  peer
+where
+  id = ?
+
+[2026-10-17 07:09:33.717030 +00:00] INFO [src/peer.rs:102] update_pk 1977474380 [::ffff:127.0.0.1]:37804 b"c03b977e2940aefda0412283746f8dd9" b"\x0f\xf7\xb8~k/\xa8S{[\x02\xef\x0c\x1dl\x14\x12\x99%\xaa\xfe\x80\x9a\x89usxHc\xafE\x9e"
+[2026-10-17 07:09:33.717286 +00:00] DEBUG [<unnamed>:0] insert into peer(guid, id, …; rows affected: 1, rows returned: 0, elapsed: 119.775µs
+
+insert into
+  peer(guid, id, uuid, pk, info)
+values
+(?, ?, ?, ?, ?)
+
+[2026-10-17 07:09:33.750409 +00:00] INFO [src/common.rs:172] signal terminate

@@ -1,0 +1,14 @@
+/workspace/Build/Linux/native-multidisplay-smoke/20261017T075038Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 519, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 288, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_multidisplay_smoke.py", line 120, in exercise
+    wait(lambda: '显示器目录：2 项，选择序号 0' in diagnostic.read_text(), 'Missing two-monitor catalog')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_multidisplay_smoke.py", line 86, in wait
+    raise AssertionError(message)
+AssertionError: Missing two-monitor catalog

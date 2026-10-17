@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 369, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 271, in user_test
+    exercise_audio(directory)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_audio_smoke.py", line 105, in exercise_audio
+    time.sleep(.3);expect(meter,False,'disabled-before-enable')
+                   ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_audio_smoke.py", line 99, in expect
+    sample=meter.measure()
+  File "/workspace/Linux/tests/native_audio_smoke.py", line 70, in measure
+    assert len(samples)>1000, 'Insufficient private sink samples'
+           ^^^^^^^^^^^^^^^^^
+AssertionError: Insufficient private sink samples

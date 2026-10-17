@@ -1,0 +1,26 @@
+{
+  "result": "pass",
+  "checks": [
+    "untagged_desktop_services_require_one_graphical_login",
+    "real_stop_permission_failure_blocks_new_user_context",
+    "root_adopted_matching_agent_and_retired_other_user",
+    "direct_spawn_without_sudo_sanitized_environment_and_credentials",
+    "root_observations_work_and_reject_commands_and_untrusted_users",
+    "x11_user_bus_connected",
+    "real_gui_open_close_keeps_supervised_agent",
+    "host_enable_disable_keeps_root_and_control_agent",
+    "user_bus_restart_reconnects_without_host_restart",
+    "failed_malformed_and_hung_session_queries_retain_host_and_recover",
+    "same_uid_new_login_ends_old_host_and_preserves_identity",
+    "parent_death_does_not_leave_orphan_agent",
+    "healthy_agent_survives_70s_without_false_recovery",
+    "sustained_60s_health_failure_recovers_real_agent",
+    "user_switch_ends_old_authorization_before_new_agent",
+    "no_desktop_session_stops_agents_but_keeps_service",
+    "root_exit_reaped_agent"
+  ],
+  "session_provider": "controlled loginctl; not real logind",
+  "root_core_real": true,
+  "host_touched": false,
+  "unresponsive_recovery_seconds": 64.18198694498278
+}

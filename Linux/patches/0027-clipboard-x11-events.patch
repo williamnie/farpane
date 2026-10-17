@@ -1,0 +1,43 @@
+--- a/src/master/x11.rs
++++ b/src/master/x11.rs
+@@ -83,6 +83,7 @@
+ 
+         let mut result = Ok(());
+         let mut ready_notified = false;
++        let mut registered_sequence = None;
+         'main: loop {
+             let selection = clipboard.getter.atoms.clipboard;
+ 
+@@ -98,6 +99,11 @@
+                 }
+             };
+ 
++            // Keep one subscription for this listener lifetime. Re-registering
++            // after every callback discarded changes queued during the sleep.
++            let sequence_number = if let Some(sequence) = registered_sequence {
++                sequence
++            } else {
+             // Clear selection sources...
+             let cookie = xfixes::select_selection_input(
+                 &clipboard.getter.connection,
+@@ -153,6 +159,10 @@
+                 }
+             };
+ 
++            registered_sequence = Some(sequence_number);
++            sequence_number
++            };
++
+             if !ready_notified {
+                 ready_notified = true;
+                 self.handler.on_clipboard_ready();
+@@ -160,7 +170,8 @@
+ 
+             'poll: loop {
+                 match clipboard.getter.connection.poll_for_event_with_sequence() {
+-                    Ok(Some((_, seq))) if seq >= sequence_number => {
++                    Ok(Some((x11rb::protocol::Event::XfixesSelectionNotify(event), seq)))
++                        if seq >= sequence_number && event.selection == selection => {
+                         match self.handler.on_clipboard_change() {
+                             CallbackResult::Next => break 'poll,
+                             CallbackResult::Stop => break 'main,

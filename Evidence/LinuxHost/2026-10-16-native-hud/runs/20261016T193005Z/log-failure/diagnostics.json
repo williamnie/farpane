@@ -1,0 +1,155 @@
+{
+  "component": "native-viewer",
+  "discarded_entries": 0,
+  "disk_dropped": 21,
+  "elapsed_ms": 16982,
+  "log_entries": [
+    {
+      "elapsed_ms": 0,
+      "message": "开始新的 Viewer 会话"
+    },
+    {
+      "elapsed_ms": 42,
+      "message": "会话状态：Connecting"
+    },
+    {
+      "elapsed_ms": 58,
+      "message": "音频状态更新，累计丢弃 0"
+    },
+    {
+      "elapsed_ms": 58,
+      "message": "会话状态：Authenticating"
+    },
+    {
+      "elapsed_ms": 58,
+      "message": "会话状态：PasswordRequired"
+    },
+    {
+      "elapsed_ms": 58,
+      "message": "权限：键鼠=true，剪贴板=false，音频=true，文件=true"
+    },
+    {
+      "elapsed_ms": 58,
+      "message": "权限：键鼠=true，剪贴板=false，音频=false，文件=true"
+    },
+    {
+      "elapsed_ms": 58,
+      "message": "权限：键鼠=true，剪贴板=false，音频=false，文件=false"
+    },
+    {
+      "elapsed_ms": 58,
+      "message": "音频状态更新，累计丢弃 0"
+    },
+    {
+      "elapsed_ms": 90,
+      "message": "会话状态：Authenticating"
+    },
+    {
+      "elapsed_ms": 106,
+      "message": "会话状态：PasswordRequired"
+    },
+    {
+      "elapsed_ms": 122,
+      "message": "会话状态：Authenticating"
+    },
+    {
+      "elapsed_ms": 138,
+      "message": "收到已认证设备信息（身份已隐藏）"
+    },
+    {
+      "elapsed_ms": 138,
+      "message": "显示器目录：1 项，选择序号 0"
+    },
+    {
+      "elapsed_ms": 138,
+      "message": "会话状态：AwaitingFrame"
+    },
+    {
+      "elapsed_ms": 138,
+      "message": "权限：键鼠=true，剪贴板=false，音频=false，文件=false"
+    },
+    {
+      "elapsed_ms": 138,
+      "message": "会话状态：AwaitingFrame"
+    },
+    {
+      "elapsed_ms": 157,
+      "message": "媒体后端：软件兼容"
+    },
+    {
+      "elapsed_ms": 201,
+      "message": "HUD 指标采样已开启"
+    },
+    {
+      "elapsed_ms": 4238,
+      "message": "HUD 指标采样已关闭"
+    },
+    {
+      "elapsed_ms": 10320,
+      "message": "HUD 指标采样已开启"
+    },
+    {
+      "elapsed_ms": 14537,
+      "message": "HUD 指标采样已关闭"
+    }
+  ],
+  "performance": {
+    "gpu_loans": 0,
+    "gui": {
+      "age_ms": 996,
+      "cpu_percent": 1.9890166521072388,
+      "fds": 13,
+      "pid": 169,
+      "private_hugetlb_kib": 0,
+      "pss_kib": 141705,
+      "rss_kib": 182696,
+      "sample": 8,
+      "swap_pss_kib": 0,
+      "threads": 56,
+      "uss_kib": 117188
+    },
+    "local_candidates_skipped": 0,
+    "present_fps": 0.0,
+    "presentation_wait_ms": null,
+    "worker": {
+      "backend": "software",
+      "channel_rejected_groups": 0,
+      "codec": "VP9",
+      "decode_call_ns": 9568217,
+      "decode_fps": 0.0,
+      "decode_ms": null,
+      "decoded_frames": 5,
+      "delay_age_ms": 308,
+      "delay_ms": 0,
+      "leases": 0,
+      "packet_rate": 0.0,
+      "queue_bytes": 0,
+      "queued_groups": 0,
+      "receive_kib_per_sec": 0.0,
+      "received_bytes": 40070,
+      "received_packets": 5,
+      "relay": false,
+      "resources": {
+        "age_ms": 986,
+        "cpu_percent": 0.0,
+        "fds": 13,
+        "pid": 217,
+        "private_hugetlb_kib": 0,
+        "pss_kib": 15936,
+        "rss_kib": 28604,
+        "sample": 8,
+        "swap_pss_kib": 0,
+        "threads": 5,
+        "uss_kib": 7764
+      },
+      "skipped_display_groups": 0
+    },
+    "worker_sample_age_ms": 974
+  },
+  "performance_age_ms": 3649,
+  "product": "FarPane",
+  "redaction": "allowlisted events; no peer/server identities, credentials, paths, input, clipboard or file contents",
+  "resource_scope": "GUI and this Viewer only; excludes Host, other workers and dedicated GPU memory",
+  "schema": 1,
+  "version": "0.1.0"
+}

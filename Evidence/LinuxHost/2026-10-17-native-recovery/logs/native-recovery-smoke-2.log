@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 462, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 240, in user_test
+    exercise_recovery(output,agent,start)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_recovery_smoke.py", line 130, in exercise_recovery
+    wait(lambda:read(directory/'viewer-progress.json').get('frames',0)>frames_before,'Video stopped presenting after registration recovery')
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_desktop_smoke.py", line 21, in wait
+    raise AssertionError(message)
+AssertionError: Video stopped presenting after registration recovery

@@ -1,0 +1,4 @@
+_XSERVTransmkdir: ERROR: euid != 0,directory /tmp/.X11-unix will not be created.
+_XSERVTransmkdir: ERROR: Cannot create /tmp/.X11-unix
+_XSERVTransSocketUNIXCreateListener: mkdir(/tmp/.X11-unix) failed, errno = 17
+_XSERVTransMakeAllCOTSServerListeners: failed to create listener for unix

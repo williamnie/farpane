@@ -1,0 +1,16 @@
+{"argv": ["dpkg", "--install", "/workspace/Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261017.1_amd64.deb"], "exit": 0}
+Selecting previously unselected package farpane-native-candidate.
+(Reading database ... 37084 files and directories currently installed.)
+Preparing to unpack .../farpane-native-candidate_0.1.0~dev.20261017.1_amd64.deb ...
+Unpacking farpane-native-candidate (0.1.0~dev.20261017.1) ...
+Setting up farpane-native-candidate (0.1.0~dev.20261017.1) ...
+{
+  "artifact_id": "farpane-native-dev-d0fb65c957b35a48743a82d2",
+  "staged": true,
+  "active": false,
+  "current": "farpane-retained-test"
+}
+FarPane candidate staged; active service and desktop are unchanged.
+See /usr/share/doc/farpane-native-candidate/README.Debian for maintenance activation.
+{"argv": ["dpkg-query", "-W", "-f=${Status}", "farpane-native-candidate"], "exit": 0}
+install ok installed

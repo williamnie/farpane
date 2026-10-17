@@ -1,0 +1,231 @@
+{
+  "authentication_visible": true,
+  "challenge": 2,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u6b63\u5728\u5efa\u7acb\u8fdc\u7a0b\u8fde\u63a5",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u97f3\u9891\u5df2\u5173\u95ed",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u4f20\u8f93\u5df2\u5efa\u7acb\uff0c\u7b49\u5f85\u8ba4\u8bc1",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u8bf7\u8f93\u5165\u8fdc\u7aef\u5bc6\u7801",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "policy": {
+            "image": {
+              "receive": false,
+              "send": false
+            },
+            "rich_text": {
+              "receive": false,
+              "send": false
+            },
+            "text": {
+              "receive": false,
+              "send": false
+            }
+          },
+          "revision": 1
+        },
+        "type": "clipboard_policy"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "audio": true,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 7,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 8,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 9,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u97f3\u9891\u5df2\u5173\u95ed",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 10,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u6b63\u5728\u9a8c\u8bc1\u5bc6\u7801",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 11,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 2,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 12,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u5bc6\u7801\u4e0d\u6b63\u786e\uff0c\u8bf7\u91cd\u65b0\u8f93\u5165",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 13,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u6b63\u5728\u9a8c\u8bc1\u5bc6\u7801",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 14,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 3,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 15,
+      "session": 7598859513991100185
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "\u8bf7\u8f93\u5165\u8fdc\u7aef\u8981\u6c42\u7684\u9a8c\u8bc1\u7801",
+          "insecure": false,
+          "two_factor": true
+        },
+        "type": "authentication_challenge"
+      },
+      "generation": 1,
+      "sequence": 16,
+      "session": 7598859513991100185
+    }
+  ],
+  "frames": 0,
+  "gpu_completed": 0,
+  "gpu_frames": 0,
+  "hud_enabled": false,
+  "password_attempts": 2,
+  "phase": "authenticating",
+  "presented": false,
+  "worker_reaped": false
+}

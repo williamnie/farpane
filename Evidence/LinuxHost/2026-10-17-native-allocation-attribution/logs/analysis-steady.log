@@ -1,0 +1,38 @@
+{
+  "symbol_files": 34,
+  "reports": [
+    {
+      "seconds": 20,
+      "live_requested_bytes": 22540535,
+      "live_chunks": 88467,
+      "quarantined_bytes": 14755819,
+      "shown_bytes": 21281774,
+      "shown_chunks": 63510,
+      "omitted_bytes": 1258761,
+      "omitted_chunks": 24957,
+      "coverage": 0.9441556733236367,
+      "bytes_by_first_non_asan_object": {
+        "/usr/lib/x86_64-linux-gnu/libgallium-26.0.8-1ubuntu0.3.so": 14219774,
+        "/usr/lib/x86_64-linux-gnu/libfreetype.so.6": 2210139,
+        "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0": 1870713,
+        "/usr/lib/x86_64-linux-gnu/libcairo.so.2": 801244,
+        "/usr/lib/x86_64-linux-gnu/libLLVM.so.21.1": 520671,
+        "/usr/lib/x86_64-linux-gnu/libfontconfig.so.1": 473017,
+        "/usr/lib/x86_64-linux-gnu/libpixman-1.so.0": 443740,
+        "/usr/lib/x86_64-linux-gnu/libharfbuzz.so.0": 188112,
+        "/usr/lib/x86_64-linux-gnu/libc.so.6": 182792,
+        "/usr/lib/x86_64-linux-gnu/libtasn1.so.6": 110571,
+        "/usr/lib/x86_64-linux-gnu/libstdc++.so.6": 73728,
+        "/usr/lib/x86_64-linux-gnu/libGLdispatch.so.0": 59584,
+        "/lib64/ld-linux-x86-64.so.2": 49315,
+        "/usr/lib/x86_64-linux-gnu/libEGL_mesa.so.0": 43928,
+        "/usr/lib/x86_64-linux-gnu/libwayland-client.so.0": 16384,
+        "/usr/lib/x86_64-linux-gnu/libdrm_amdgpu.so.1": 6416,
+        "/usr/lib/x86_64-linux-gnu/libEGL.so.1": 4119,
+        "/opt/farpane-native-test/releases/native-smoke-1/farpane": 3544,
+        "/usr/lib/x86_64-linux-gnu/libxkbcommon.so.0": 2184,
+        "/usr/lib/x86_64-linux-gnu/libGLX.so.0": 1799
+      }
+    }
+  ]
+}

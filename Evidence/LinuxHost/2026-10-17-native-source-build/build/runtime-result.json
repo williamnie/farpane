@@ -1,0 +1,55 @@
+{
+  "result": "pass",
+  "build_result_sha256": "c6dbcbaa7ff0866088465a1f178c58760affc85019ea5966cbdaf6476014561b",
+  "runs": {
+    "ubuntu2404": {
+      "directory": "runtime.IhtPGB2B",
+      "checks": [
+        "loopback-login",
+        "actual-video-decode",
+        "gtk-presentation",
+        "viewer-exit-reaped",
+        "second-session",
+        "host-retained",
+        "host-media-auth-network-preserved",
+        "successful-session-history",
+        "wrong-password-retry"
+      ],
+      "binaries": {
+        "farpane": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0",
+        "libexec/farpane-core": "74ec25af68e3ea487453e22b934973f153f027fa518f93891566f5bc2a5fc13d"
+      },
+      "presented_frames": [
+        1,
+        1
+      ],
+      "runtime_image": "sha256:b685afcc055147e1b7af1e160db2281a530096305ed6c9e5fec6a1b4d356eeb0"
+    },
+    "ubuntu2604": {
+      "directory": "runtime.ZbNmFUDZ",
+      "checks": [
+        "loopback-login",
+        "actual-video-decode",
+        "gtk-presentation",
+        "viewer-exit-reaped",
+        "second-session",
+        "host-retained",
+        "host-media-auth-network-preserved",
+        "successful-session-history",
+        "wrong-password-retry"
+      ],
+      "binaries": {
+        "farpane": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0",
+        "libexec/farpane-core": "74ec25af68e3ea487453e22b934973f153f027fa518f93891566f5bc2a5fc13d"
+      },
+      "presented_frames": [
+        2,
+        1
+      ],
+      "runtime_image": "sha256:9868299c8b775ccd60773a4fd06ea2a0f1da90deb01d0119e997501c4d776a91"
+    }
+  },
+  "real_desktop": false,
+  "gpu_tested": false,
+  "installed_application_modified": false
+}

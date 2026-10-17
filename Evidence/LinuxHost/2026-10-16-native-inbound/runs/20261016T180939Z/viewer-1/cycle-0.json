@@ -1,0 +1,783 @@
+{
+  "cycle": 0,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在建立远程连接",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "传输已建立，等待认证",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "请输入远端密码",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "receive": false,
+          "revision": 1,
+          "send": false
+        },
+        "type": "clipboard_policy"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "audio": true,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 7,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 8,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 9,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 10,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 11,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 2,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 12,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "密码不正确，请重新输入",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 13,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 14,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 3,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 15,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "name": "12b085c691f8"
+        },
+        "type": "peer"
+      },
+      "generation": 1,
+      "sequence": 16,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "displays": [
+            {
+              "height": 480,
+              "index": 0,
+              "name": "screen",
+              "width": 640,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "selected": 0
+        },
+        "type": "displays"
+      },
+      "generation": 1,
+      "sequence": 17,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "认证通过，等待第一帧",
+          "phase": "awaiting_frame"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 18,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 19,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "认证通过，等待第一帧",
+          "phase": "awaiting_frame"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 20,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "height": 16,
+          "hot_x": 7,
+          "hot_y": 7,
+          "id": 3540814733515180,
+          "premultiplied": true,
+          "rgba": "/////////////////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//////////////////////////8AAAD/AAAA/wAAAP//////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAP8AAAD/AAAA////////////AAAA/wAAAP8AAAD/AAAA//////8AAAAAAAAAAAAAAAAAAAAA/////wAAAP8AAAD/AAAA/wAAAP///////////wAAAP8AAAD/AAAA/wAAAP8AAAD//////wAAAAAAAAAA/////wAAAP8AAAD/AAAA/wAAAP8AAAD//////wAAAAD/////AAAA/wAAAP8AAAD/AAAA/wAAAP///////////wAAAP8AAAD/AAAA/wAAAP8AAAD//////wAAAAAAAAAAAAAAAP////8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD//////wAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD//////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/////AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD//////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA//////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD//////wAAAAAAAAAAAAAAAAAAAAAAAAAA/////wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP//////AAAAAAAAAAAAAAAA/////wAAAP8AAAD/AAAA/wAAAP8AAAD///////////8AAAD/AAAA/wAAAP8AAAD/AAAA//////8AAAAA/////wAAAP8AAAD/AAAA/wAAAP8AAAD//////wAAAAAAAAAA/////wAAAP8AAAD/AAAA/wAAAP8AAAD///////////8AAAD/AAAA/wAAAP8AAAD//////wAAAAAAAAAAAAAAAAAAAAD/////AAAA/wAAAP8AAAD/AAAA////////////AAAA/wAAAP8AAAD//////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP////8AAAD/AAAA/wAAAP///////////////////////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////////////////////w==",
+          "width": 16,
+          "x": 0,
+          "y": 0
+        },
+        "type": "cursor"
+      },
+      "generation": 1,
+      "sequence": 21,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "detail": "软件兼容模式：CPU 解码与颜色转换"
+        },
+        "type": "media"
+      },
+      "generation": 1,
+      "sequence": 22,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 4,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 23,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 5,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 24,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 6,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 25,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 7,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 26,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 8,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 27,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 9,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 28,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 10,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 29,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 11,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 30,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 12,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 31,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 13,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 32,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 14,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 33,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 15,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 34,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 16,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 35,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 17,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 36,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 18,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 37,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 19,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 38,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 20,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 39,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 21,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 40,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 22,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 41,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 23,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 42,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 24,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 43,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 25,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 44,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 26,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 45,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 27,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 46,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "cpu_percent": 0.0,
+          "decode_ms": 0.9758269786834717,
+          "delay_ms": 0,
+          "dropped": 0,
+          "present_fps": 0.0,
+          "pss_kib": 0,
+          "receive_fps": 0.0,
+          "relay": false
+        },
+        "type": "metrics"
+      },
+      "generation": 1,
+      "sequence": 47,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 28,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 48,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 29,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 49,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 30,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 50,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 31,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 51,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "cpu_percent": 0.0,
+          "decode_ms": 0.9758269786834717,
+          "delay_ms": 0,
+          "dropped": 0,
+          "present_fps": 0.0,
+          "pss_kib": 0,
+          "receive_fps": 0.0,
+          "relay": false
+        },
+        "type": "metrics"
+      },
+      "generation": 1,
+      "sequence": 52,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "cpu_percent": 0.0,
+          "decode_ms": 0.9758269786834717,
+          "delay_ms": 0,
+          "dropped": 0,
+          "present_fps": 0.0,
+          "pss_kib": 0,
+          "receive_fps": 0.0,
+          "relay": false
+        },
+        "type": "metrics"
+      },
+      "generation": 1,
+      "sequence": 53,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "cpu_percent": 0.0,
+          "decode_ms": 0.9758269786834717,
+          "delay_ms": 0,
+          "dropped": 0,
+          "present_fps": 0.0,
+          "pss_kib": 0,
+          "receive_fps": 0.0,
+          "relay": false
+        },
+        "type": "metrics"
+      },
+      "generation": 1,
+      "sequence": 54,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "cpu_percent": 0.0,
+          "decode_ms": 0.9758269786834717,
+          "delay_ms": 0,
+          "dropped": 0,
+          "present_fps": 0.0,
+          "pss_kib": 0,
+          "receive_fps": 0.0,
+          "relay": false
+        },
+        "type": "metrics"
+      },
+      "generation": 1,
+      "sequence": 55,
+      "session": 15770311752127343264
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "cpu_percent": 0.0,
+          "decode_ms": 0.9758269786834717,
+          "delay_ms": 0,
+          "dropped": 0,
+          "present_fps": 0.0,
+          "pss_kib": 0,
+          "receive_fps": 0.0,
+          "relay": false
+        },
+        "type": "metrics"
+      },
+      "generation": 1,
+      "sequence": 56,
+      "session": 15770311752127343264
+    }
+  ],
+  "frames": 1,
+  "gpu_completed": 0,
+  "gpu_frames": 0,
+  "password_attempts": 2,
+  "presented": true,
+  "session": 15770311752127343264,
+  "worker_reaped": true
+}

@@ -1,0 +1,28 @@
+{
+  "ffmpeg_static_archives_unchanged": {
+    "Build/Linux/vcpkg/installed/x64-linux/lib/libavcodec.a": {
+      "bytes": 31534240,
+      "mtime_ns": 1792121278710699112,
+      "sha256": "284d4dff29b22d721285865f31cfacf877fcdcff84ae7714e782a72c5493bb8f"
+    },
+    "Build/Linux/vcpkg/installed/x64-linux/lib/libavutil.a": {
+      "bytes": 5904506,
+      "mtime_ns": 1792121278774698908,
+      "sha256": "3c5cc0fa539db7794cbf55a84038f81d71fe3253d3ef62c62fa0a77d2afd6209"
+    },
+    "Build/Linux/vcpkg/installed/x64-linux/lib/libavfilter.a": {
+      "bytes": 1658098,
+      "mtime_ns": 1792121278546699635,
+      "sha256": "498a661081fe6faf956c5a1012184071a05a1291c029dc9e8420b5eff113caf0"
+    },
+    "Build/Linux/vcpkg/installed/x64-linux/lib/libavformat.a": {
+      "bytes": 6809446,
+      "mtime_ns": 1792121278592699488,
+      "sha256": "d2541ac5ff1c2f7be322f5c6c6475ffe80aad4de03293180bc304cc2dc90a443"
+    }
+  },
+  "branch": "codex/linux-host-gpu-media",
+  "head": "b01c40bd7da588f0ec2add2947a9368289006792",
+  "current": "releases/farpane-p1-445515cfa1ec-90876510-551585f0",
+  "services": "Id=farpane.service\nActiveState=active\nUnitFileState=disabled\nMainPID=3212867\n\nId=rustdesk.service\nActiveState=active\nUnitFileState=enabled\nMainPID=1880443\n"
+}

@@ -1,0 +1,54 @@
+
+Dynamic section at offset 0x2eb6620 contains 51 entries:
+  Tag        Type                         Name/Value
+ 0x0000000000000001 (NEEDED)             Shared library: [libX11.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libXfixes.so.3]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgobject-2.0.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpulse-simple.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpulse.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libxkbcommon.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libXtst.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [libxcb.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libxcb-shm.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libxcb-randr.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libva.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [libva-drm.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [libdrm.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgstvideo-1.0.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgstreamer-1.0.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libglib-2.0.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libz.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgstapp-1.0.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libdbus-1.so.3]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x000000000000001d (RUNPATH)            Library runpath: [$ORIGIN/../../../../../../toolchain/lib/rustlib/x86_64-unknown-linux-gnu/lib]
+ 0x000000000000000c (INIT)               0x1f8000
+ 0x000000000000000d (FINI)               0x26109b0
+ 0x0000000000000019 (INIT_ARRAY)         0x2d3cba8
+ 0x000000000000001b (INIT_ARRAYSZ)       16 (bytes)
+ 0x000000000000001a (FINI_ARRAY)         0x2d3cbb8
+ 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
+ 0x000000006ffffef5 (GNU_HASH)           0x3d8
+ 0x0000000000000005 (STRTAB)             0x49f8
+ 0x0000000000000006 (SYMTAB)             0xa38
+ 0x000000000000000a (STRSZ)              12005 (bytes)
+ 0x000000000000000b (SYMENT)             24 (bytes)
+ 0x0000000000000015 (DEBUG)              0x0
+ 0x0000000000000003 (PLTGOT)             0x2eb7990
+ 0x0000000000000002 (PLTRELSZ)           4944 (bytes)
+ 0x0000000000000014 (PLTREL)             RELA
+ 0x0000000000000017 (JMPREL)             0x1f5dd0
+ 0x0000000000000007 (RELA)               0x8180
+ 0x0000000000000008 (RELASZ)             2022480 (bytes)
+ 0x0000000000000009 (RELAENT)            24 (bytes)
+ 0x000000000000001e (FLAGS)              ORIGIN BIND_NOW
+ 0x000000006ffffffb (FLAGS_1)            Flags: NOW ORIGIN PIE
+ 0x000000006ffffffe (VERNEED)            0x7e30
+ 0x000000006fffffff (VERNEEDNUM)         10
+ 0x000000006ffffff0 (VERSYM)             0x78de
+ 0x000000006ffffff9 (RELACOUNT)          83834
+ 0x0000000000000000 (NULL)               0x0

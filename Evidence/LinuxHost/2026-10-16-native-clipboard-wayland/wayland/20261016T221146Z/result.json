@@ -1,0 +1,14 @@
+{
+  "result": "pass",
+  "mode": "unavailable",
+  "rounds": [
+    {
+      "milliseconds": 1,
+      "no_xwayland_fallback": true,
+      "read_error": "Wayland clipboard requires one unambiguous seat",
+      "result": "pass",
+      "write_error": "Wayland clipboard requires one unambiguous seat"
+    }
+  ],
+  "host_display_or_gpu": false
+}

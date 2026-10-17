@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/gui-work/verify-memory-source-archive.py", line 44, in <module>
+    assert set(core_changes) == {
+           ^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    }
+    ^
+AssertionError

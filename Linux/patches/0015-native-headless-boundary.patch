@@ -1,0 +1,357 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -20,15 +20,23 @@
+ name = "service"
+ path = "src/service.rs"
+ 
++[[bin]]
++name = "farpane-core"
++path = "src/farpane_native_main.rs"
++required-features = ["farpane-native"]
++
+ [features]
+ linux-gpu-media = ["farpane-linux", "drm", "hwcodec", "scrap/linux-gpu-media"]
+ inline = []
+ use_samplerate = ["samplerate", "libsamplerate-sys"]
+ use_rubato = ["rubato"]
+ use_dasp = ["dasp"]
+-flutter = ["flutter_rust_bridge"]
++flutter = ["flutter_rust_bridge", "legacy-ui"]
+ farpane-linux = ["scrap/farpane-linux"]
+-default = ["use_dasp"]
++default = ["use_dasp", "legacy-ui"]
++# Native builds use --no-default-features; legacy products keep their current UI.
++legacy-ui = ["dep:gtk", "dep:sciter-rs", "dep:tao", "dep:tray-icon", "dep:winit", "dep:softbuffer"]
++farpane-native = ["farpane-linux", "use_dasp"]
+ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+ mediacodec = ["scrap/mediacodec"]
+@@ -99,7 +107,7 @@
+ 
+ [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+ mac_address = "1.1"
+-sciter-rs = { git = "https://github.com/rustdesk-org/rust-sciter", branch = "dyn" }
++sciter-rs = { git = "https://github.com/rustdesk-org/rust-sciter", branch = "dyn", optional = true }
+ sys-locale = "0.3"
+ enigo = { path = "libs/enigo", features = [ "with_serde" ] }
+ clipboard = { path = "libs/clipboard" }
+@@ -171,8 +179,8 @@
+ foreign-types = "0.3"
+ 
+ [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
+-tray-icon = { git = "https://github.com/tauri-apps/tray-icon", version = "0.21.3" }
+-tao = { git = "https://github.com/rustdesk-org/tao", branch = "dev" }
++tray-icon = { git = "https://github.com/tauri-apps/tray-icon", version = "0.21.3", optional = true }
++tao = { git = "https://github.com/rustdesk-org/tao", branch = "dev", optional = true }
+ image = "0.24"
+ 
+ [target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
+@@ -181,7 +189,7 @@
+ [target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
+ wallpaper = { git = "https://github.com/rustdesk-org/wallpaper.rs" }
+ tiny-skia = "0.11"
+-softbuffer = "0.4"
++softbuffer = { version = "0.4", optional = true }
+ fontdb = "0.23"
+ bytemuck = "1.23"
+ ttf-parser = "0.25"
+@@ -200,10 +208,10 @@
+ percent-encoding = {version = "2.3", optional = true}
+ once_cell = {version = "1.18", optional = true}
+ nix = { version = "0.29", features = ["term", "process"]}
+-gtk = "0.18"
++gtk = { version = "0.18", optional = true }
+ termios = "0.3"
+ terminfo = "0.8"
+-winit = "0.30"
++winit = { version = "0.30", optional = true }
+ 
+ [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+ openssl = { version = "0.10", features = ["vendored"] }
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -26,7 +26,8 @@
+ #[cfg(not(any(
+     target_os = "android",
+     target_os = "ios",
+-    feature = "flutter"
++    feature = "flutter",
++    feature = "farpane-native"
+ )))]
+ pub mod ui;
+ mod version;
+@@ -50,9 +51,11 @@
+ mod port_forward_mux;
+ 
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[cfg(not(feature = "farpane-native"))]
+ mod tray;
+ 
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[cfg(not(feature = "farpane-native"))]
+ mod whiteboard;
+ 
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+@@ -73,3 +76,9 @@
+ pub mod virtual_display_manager;
+ 
+ mod kcp_stream;
++
++#[cfg(feature = "farpane-native")]
++pub mod farpane_native;
++
++#[cfg(all(feature = "farpane-native", feature = "legacy-ui"))]
++compile_error!("farpane-native requires --no-default-features and excludes legacy-ui");
+--- a/src/keyboard.rs
++++ b/src/keyboard.rs
+@@ -2,7 +2,7 @@
+ use crate::flutter;
+ #[cfg(target_os = "windows")]
+ use crate::platform::windows::{get_char_from_vk, get_unicode_from_vk};
+-#[cfg(not(feature = "flutter"))]
++#[cfg(not(any(feature = "flutter", feature = "farpane-native")))]
+ use crate::ui::CUR_SESSION;
+ use crate::ui_session_interface::{InvokeUiSession, Session};
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+@@ -469,7 +469,7 @@
+ 
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+ fn get_keyboard_mode() -> String {
+-    #[cfg(not(feature = "flutter"))]
++    #[cfg(not(any(feature = "flutter", feature = "farpane-native")))]
+     if let Some(session) = CUR_SESSION.lock().unwrap().as_ref() {
+         return session.get_keyboard_mode();
+     }
+@@ -991,7 +991,7 @@
+ }
+ 
+ pub fn send_key_event(key_event: &KeyEvent) {
+-    #[cfg(not(feature = "flutter"))]
++    #[cfg(not(any(feature = "flutter", feature = "farpane-native")))]
+     if let Some(session) = CUR_SESSION.lock().unwrap().as_ref() {
+         session.send_key_event(key_event);
+     }
+@@ -1003,7 +1003,7 @@
+ }
+ 
+ pub fn get_peer_platform() -> String {
+-    #[cfg(not(feature = "flutter"))]
++    #[cfg(not(any(feature = "flutter", feature = "farpane-native")))]
+     if let Some(session) = CUR_SESSION.lock().unwrap().as_ref() {
+         return session.peer_platform();
+     }
+--- a/src/client/file_trait.rs
++++ b/src/client/file_trait.rs
+@@ -36,6 +36,7 @@
+         target_os = "ios",
+         feature = "flutter"
+     )))]
++    #[cfg(not(feature = "farpane-native"))]
+     fn read_dir(&self, path: String, include_hidden: bool) -> sciter::Value {
+         match fs::read_dir(&fs::get_path(&path), include_hidden) {
+             Err(_) => sciter::Value::null(),
+--- a/src/platform/mod.rs
++++ b/src/platform/mod.rs
+@@ -20,7 +20,7 @@
+ #[cfg(target_os = "linux")]
+ pub mod linux;
+ 
+-#[cfg(target_os = "linux")]
++#[cfg(all(target_os = "linux", not(feature = "farpane-native")))]
+ pub mod gtk_sudo;
+ 
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+--- a/src/platform/linux.rs
++++ b/src/platform/linux.rs
+@@ -1,4 +1,6 @@
+-use super::{gtk_sudo, CursorData, ResultType};
++use super::{CursorData, ResultType};
++#[cfg(not(feature = "farpane-native"))]
++use super::gtk_sudo;
+ use desktop::Desktop;
+ #[cfg(feature = "farpane-linux")]
+ #[path = "linux/farpane.rs"]
+@@ -1770,13 +1772,16 @@
+     }
+ }
+ 
++#[cfg(not(feature = "farpane-native"))]
+ #[link(name = "gtk-3")]
+ extern "C" {
+     fn gtk_main_quit();
+ }
+ 
+ pub fn quit_gui() {
++    #[cfg(not(feature = "farpane-native"))]
+     unsafe { gtk_main_quit() };
++    // Native GUI is a separate process. Ending a UI component must not exit Host.
+ }
+ 
+ /*
+@@ -1786,8 +1791,13 @@
+ */
+ 
+ pub fn check_super_user_permission() -> ResultType<bool> {
+-    gtk_sudo::run(vec!["echo"])?;
+-    Ok(true)
++    #[cfg(not(feature = "farpane-native"))]
++    {
++        gtk_sudo::run(vec!["echo"])?;
++        Ok(true)
++    }
++    #[cfg(feature = "farpane-native")]
++    hbb_common::bail!("Install or upgrade FarPane using its system package installer")
+ }
+ 
+ /*
+@@ -1827,8 +1837,13 @@
+ }
+ */
+ 
++#[cfg(feature = "farpane-native")]
++pub fn get_double_click_time() -> u32 { 250 }
++
++#[cfg(not(feature = "farpane-native"))]
+ type GtkSettingsPtr = *mut c_void;
+ type GObjectPtr = *mut c_void;
++#[cfg(not(feature = "farpane-native"))]
+ #[link(name = "gtk-3")]
+ extern "C" {
+     // fn gtk_init(argc: *mut c_int, argv: *mut *mut c_char);
+@@ -1840,6 +1855,7 @@
+     fn g_object_get(object: GObjectPtr, first_property_name: *const c_char, ...);
+ }
+ 
++#[cfg(not(feature = "farpane-native"))]
+ pub fn get_double_click_time() -> u32 {
+     // GtkSettings *settings = gtk_settings_get_default ();
+     // g_object_get (settings, "gtk-double-click-time", &double_click_time, NULL);
+@@ -2638,7 +2654,10 @@
+ }
+ 
+ pub fn run_cmds_privileged(cmds: &str) -> bool {
+-    crate::platform::gtk_sudo::run(vec![cmds]).is_ok()
++    #[cfg(not(feature = "farpane-native"))]
++    { crate::platform::gtk_sudo::run(vec![cmds]).is_ok() }
++    #[cfg(feature = "farpane-native")]
++    { let _ = cmds; false }
+ }
+ 
+ /// Spawn the current executable after a delay.
+--- a/src/core_main.rs
++++ b/src/core_main.rs
+@@ -85,6 +85,7 @@
+         i += 1;
+     }
+     #[cfg(any(target_os = "linux", target_os = "windows"))]
++    #[cfg(not(feature = "farpane-native"))]
+     if args.is_empty() {
+         #[cfg(target_os = "linux")]
+         let should_check_start_tray = crate::check_process("--server", false);
+@@ -382,6 +383,7 @@
+                 return None;
+             }
+         } else if args[0] == "--tray" {
++            #[cfg(not(feature = "farpane-native"))]
+             if !crate::check_process("--tray", true) {
+                 crate::tray::start_tray();
+             }
+@@ -400,7 +402,7 @@
+             return None;
+         } else if args[0] == "--server" {
+             log::info!("start --server with user {}", crate::username());
+-            #[cfg(target_os = "linux")]
++            #[cfg(all(target_os = "linux", not(feature = "farpane-native")))]
+             {
+                 hbb_common::allow_err!(crate::platform::check_autostart_config());
+                 std::process::Command::new("pkill")
+@@ -721,12 +723,14 @@
+         } else if args[0] == "--whiteboard" {
+             #[cfg(not(any(target_os = "android", target_os = "ios")))]
+             {
++                #[cfg(not(feature = "farpane-native"))]
+                 crate::whiteboard::run();
+             }
+             return None;
+         } else if args[0] == "-gtk-sudo" {
+             // rustdesk service kill `rustdesk --` processes
+             #[cfg(target_os = "linux")]
++            #[cfg(not(feature = "farpane-native"))]
+             if args.len() > 2 {
+                 crate::platform::gtk_sudo::exec();
+             }
+--- a/src/ipc.rs
++++ b/src/ipc.rs
+@@ -498,6 +498,7 @@
+     #[cfg(target_os = "macos")]
+     HasNoActiveConns(Option<bool>),
+     #[cfg(not(any(target_os = "android", target_os = "ios")))]
++    #[cfg(not(feature = "farpane-native"))]
+     Whiteboard((String, crate::whiteboard::CustomEvent)),
+     ControlPermissionsRemoteModify(Option<bool>),
+     #[cfg(target_os = "windows")]
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -3,6 +3,7 @@
+ use super::*;
+ use crate::input::*;
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
++#[cfg(not(feature = "farpane-native"))]
+ use crate::whiteboard;
+ use base::message_proto::{
+     pointer_device_event::Union::TouchEvent, touch_event::Union::ScaleUpdate,
+@@ -1469,6 +1470,8 @@
+ 
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+ pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
++    #[cfg(not(feature = "farpane-native"))]
++    {
+     let buttons = evt.mask >> 3;
+     let evt_type = evt.mask & MOUSE_TYPE_MASK;
+     match evt_type {
+@@ -1511,6 +1514,8 @@
+         }
+         _ => {}
+     }
++}
++
+ }
+ 
+ #[cfg(target_os = "windows")]
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -5051,6 +5051,7 @@
+             }
+         }
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
++        #[cfg(not(feature = "farpane-native"))]
+         if let Ok(q) = o.show_my_cursor.enum_value() {
+             if q != BoolOption::NotSet {
+                 use crate::whiteboard;
+@@ -5093,6 +5094,18 @@
+                     }
+                 }
+             }
++        }
++        #[cfg(feature = "farpane-native")]
++        if o.show_my_cursor.enum_value() == Ok(BoolOption::Yes) {
++            self.show_my_cursor = false;
++            let mut msg = Message::new();
++            msg.set_message_box(MessageBox {
++                msgtype: "nook-nocancel-hasclose".into(),
++                title: "Show my cursor".into(),
++                text: "Remote cursor annotation is not supported by FarPane native Host.".into(),
++                ..Default::default()
++            });
++            self.send(msg).await;
+         }
+     }
+ 
+@@ -7006,6 +7019,7 @@
+             }
+             Self::check_wake_lock();
+             #[cfg(not(any(target_os = "android", target_os = "ios")))]
++            #[cfg(not(feature = "farpane-native"))]
+             {
+                 use crate::whiteboard;
+                 whiteboard::unregister_whiteboard(whiteboard::get_key_cursor(self.0));

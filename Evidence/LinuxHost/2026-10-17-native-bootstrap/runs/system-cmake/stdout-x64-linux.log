@@ -1,0 +1,13 @@
+-- Using cached /output/work/downloads/aom-03087864cf4bea6abb0d28f95cf7843511413d8f.tar.gz
+-- Extracting source /output/work/downloads/aom-03087864cf4bea6abb0d28f95cf7843511413d8f.tar.gz
+-- Applying patch aom-uninitialized-pointer.diff
+-- Using source at /output/work/vcpkg/buildtrees/aom/src/3511413d8f-ae57dc8de2.clean
+CMake Error at scripts/cmake/z_vcpkg_spdx.cmake:15 (string):
+  string sub-command JSON got an invalid mode 'STRING_ENCODE', expected one
+  of GET, TYPE, MEMBER, LENGTH, REMOVE, SET, EQUAL.
+Call Stack (most recent call first):
+  scripts/cmake/vcpkg_from_git.cmake:193 (z_vcpkg_add_spdx_resource)
+  /output/work/ports/aom/portfile.cmake:24 (vcpkg_from_git)
+  scripts/ports.cmake:209 (include)
+
+

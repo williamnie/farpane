@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "text_two_directions",
+    "text_64k_boundary_and_oversize_rejected",
+    "rich_default_disabled",
+    "rich_bundle_both_directions_with_text_fallback_and_incr",
+    "rich_grant_does_not_grant_plain_only",
+    "png_both_directions_above_control_limit_and_peer_alternatives",
+    "svg_both_directions_without_rasterizing",
+    "x11_notifications_survive_16_alternating_selections_without_settle_sleep",
+    "receive_revocation",
+    "focus_loss_pauses_send_and_refocus_reads_current_selection",
+    "all_disabled_does_not_send",
+    "video_continues",
+    "control_events_do_not_contain_selection_payload"
+  ]
+}

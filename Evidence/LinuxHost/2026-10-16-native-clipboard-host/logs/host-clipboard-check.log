@@ -1,0 +1,287 @@
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+   Compiling x11rb v0.12.0
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+    Checking x11rb-protocol v0.12.0
+    Checking gethostname v0.3.0
+    Checking clipboard-master v4.0.0-beta.6 (/workspace/Build/Linux/src/clipboard_master)
+warning: unexpected `cfg` condition value: `cargo-clippy`
+  --> /workspace/Build/Linux/src/clipboard_master/src/lib.rs:42:13
+   |
+42 | #![cfg_attr(feature = "cargo-clippy", allow(clippy::style))]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^ help: remove the condition
+   |
+   = note: no expected values for `feature`
+   = help: consider adding `cargo-clippy` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: `clipboard-master` (lib) generated 1 warning
+   Compiling rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+    Checking farpane-protocol v0.1.0 (/workspace/Build/Linux/native/protocol)
+    Checking scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `ClipboardSide` and `update_clipboard`
+  --> src/server/connection.rs:10:24
+   |
+10 | use crate::clipboard::{update_clipboard, ClipboardSide};
+   |                        ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: unused import: `uuid::Uuid`
+  --> src/ui_session_interface.rs:41:5
+   |
+41 | use uuid::Uuid;
+   |     ^^^^^^^^^^
+
+warning: unused import: `MultiClipboards`
+ --> src/farpane_native/host_clipboard.rs:4:47
+  |
+4 | use base::message_proto::{Clipboard, Message, MultiClipboards};
+  |                                               ^^^^^^^^^^^^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2212:51
+     |
+2212 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2227:47
+     |
+2227 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+  --> src/farpane_native/viewer_ui.rs:73:39
+   |
+73 |             rgba: hbb_common::base64::encode(cd.colors),
+   |                                       ^^^^^^
+
+warning: unreachable pattern
+    --> src/server/connection.rs:6590:21
+     |
+6590 |                     _ => {}
+     |                     ^ no value can reach this
+     |
+note: multiple earlier patterns match some of the same values
+    --> src/server/connection.rs:6590:21
+     |
+6556 |                     Err(err) => {
+     |                     -------- matches some of the same values
+...
+6559 |                     Ok(Some(data)) => {
+     |                     -------------- matches some of the same values
+...
+6589 |                     Ok(None) => bail!("Native connection manager disconnected"),
+     |                     -------- matches some of the same values
+6590 |                     _ => {}
+     |                     ^ collectively making this unreachable
+     = note: `#[warn(unreachable_patterns)]` on by default
+
+warning: unreachable statement
+    --> src/platform/linux.rs:1002:5
+     |
+1001 |       { crate::farpane_native::process::stop_servers(None); return; }
+     |                                                             ------ any code following this expression is unreachable
+1002 | /     let _ = run_cmds(&format!(
+1003 | |         r##"ps -ef | grep -E '{} +--server' | awk '{{print $2}}' | xargs -r kill -9"##,
+1004 | |         crate::get_app_name().to_lowercase(),
+1005 | |     ));
+     | |_______^ unreachable statement
+     |
+     = note: `#[warn(unreachable_code)]` on by default
+
+warning: unreachable statement
+    --> src/platform/linux.rs:1019:5
+     |
+1018 |     { if try_x11 && (is_display_changed || *uid != desktop.uid) { set_x11_env(desktop); } let Ok(next_uid) = desktop.uid.parse() else { return false; }; return crate::farpane_native::supervisor::should_start(next_uid, uid, is_display_changed, last_restart, server); }
+     |                                                                                                                                                          --------------------------------------------------------------------------------------------------------------- any code following this expression is unreachable
+1019 |     let cm = get_cm();
+     |     ^^^^^^^^^^^^^^^^^^ unreachable statement
+
+warning: unreachable statement
+    --> src/ui_cm_interface.rs:1779:5
+     |
+1777 |     { crate::farpane_native::cm::ready(false); return; }
+     |                                                ------ any code following this expression is unreachable
+1778 |     // in case of std::process::exit not work
+1779 |     log::info!("quit cm");
+     |     ^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+     |
+     = note: this warning originates in the macro `$crate::log` which comes from the expansion of the macro `log::info` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused variable: `is_press`
+   --> src/keyboard.rs:689:17
+    |
+689 |             let is_press = matches!(event.event_type, EventType::KeyPress(_));
+    |                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_press`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `key_event`
+   --> src/keyboard.rs:993:23
+    |
+993 | pub fn send_key_event(key_event: &KeyEvent) {
+    |                       ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_key_event`
+
+warning: unused variable: `cm0`
+    --> src/platform/linux.rs:1013:5
+     |
+1013 |     cm0: &mut bool,
+     |     ^^^ help: if this is intentional, prefix it with an underscore: `_cm0`
+
+warning: unused variable: `evt`
+    --> src/server/input_service.rs:1472:34
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_evt`
+
+warning: unused variable: `conn`
+    --> src/server/input_service.rs:1472:52
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                    ^^^^ help: if this is intentional, prefix it with an underscore: `_conn`
+
+warning: unused variable: `username`
+    --> src/server/input_service.rs:1472:63
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                               ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_username`
+
+warning: unused variable: `argb`
+    --> src/server/input_service.rs:1472:81
+     |
+1472 | pub fn handle_mouse_show_cursor_(evt: &MouseEvent, conn: i32, username: String, argb: u32) {
+     |                                                                                 ^^^^ help: if this is intentional, prefix it with an underscore: `_argb`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+error[E0597]: `parts` does not live long enough
+   --> src/farpane_native/clipboard_x11.rs:210:18
+    |
+205 |     pub fn set(&mut self, parts: Vec<Part<Bytes>>, valid: impl Fn() -> bool) -> ResultType<()> {
+    |                           ----- binding `parts` declared here
+...
+210 |         for p in &parts {
+    |                  ^^^^^^ borrowed value does not live long enough
+...
+217 |                 Format::Rgba => Data::Image(ImageData::rgba(p.width as usize, p.height as usize, Cow::Borrowed(p.bytes.as_ref()))),
+    |                                             ------------------------------------------------------------------------------------- argument requires that `parts` is borrowed for `'static`
+...
+224 |     }
+    |     - `parts` dropped here while still borrowed
+
+warning: unused variable: `lease`
+   --> src/farpane_native/viewer_media.rs:274:21
+    |
+274 |                     lease,
+    |                     ^^^^^ help: try ignoring the field: `lease: _`
+
+For more information about this error, try `rustc --explain E0597`.
+warning: `rustdesk` (lib) generated 25 warnings
+error: could not compile `rustdesk` (lib) due to 1 previous error; 25 warnings emitted

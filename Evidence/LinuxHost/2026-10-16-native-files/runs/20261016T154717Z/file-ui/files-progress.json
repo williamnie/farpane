@@ -1,0 +1,111 @@
+{
+  "approved": 0,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 14803117813678703716
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在建立远程连接",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 14803117813678703716
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "传输已建立，等待认证",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 14803117813678703716
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "请输入远端密码",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 14803117813678703716
+    },
+    {
+      "event": {
+        "data": {
+          "receive": false,
+          "revision": 1,
+          "send": false
+        },
+        "type": "clipboard_policy"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 14803117813678703716
+    },
+    {
+      "event": {
+        "data": {
+          "audio": true,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 14803117813678703716
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 7,
+      "session": 14803117813678703716
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "远程连接失败或已关闭",
+          "phase": "failed"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 8,
+      "session": 14803117813678703716
+    }
+  ],
+  "jobs": [],
+  "password_attempts": 0,
+  "stage": 1,
+  "status": "远程连接失败或已关闭"
+}

@@ -1,0 +1,15 @@
+GL=AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic) version=OpenGL ES 3.2 Mesa 26.0.8-1ubuntu0.3 EGL=Mesa Project
+EGL dma_import=1 modifiers=1 GL image=1
+advertised=67 R8=1 GR88=1
+format=0x20203852 query=1 count=0 error=0x3000
+format=0x38385247 query=1 count=0 error=0x3000
+EGL render path=/dev/dri/renderD128
+GBM linear 0x20203852 allocated=1 modifier=0xffffffffffffff
+GBM linear 0x38385247 allocated=1 modifier=0xffffffffffffff
+ffmpeg=9.0.2 GL=AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic) import_formats=2
+H264 objects=1 modifier=0xffffffffffffff pool=23 color=1/1/1
+H264 frames=4 RGB_max_error=0 completed_leases=4
+HEVC objects=1 modifier=0xffffffffffffff pool=23 color=1/1/1
+HEVC frames=4 RGB_max_error=0 completed_leases=4
+PASS canonical VAAPI decode -> DRM_PRIME -> EGL R8/GR88 -> color shader -> GLsync -> lease return
+{"result": "pass", "render_node": "renderD128", "dimensions": "256x128", "max_fps": 12, "before_connections": 0, "after_connections": 0, "idle_checks": 9, "seconds": 1.8076815729727969}

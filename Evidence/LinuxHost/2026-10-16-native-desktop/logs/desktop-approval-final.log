@@ -1,0 +1,37 @@
+{
+  "result": "pass",
+  "checks": [
+    "actual-viewer-local-connection-dialog",
+    "approve-before-first-frame",
+    "keyboard-revoke-reaches-peer",
+    "actual-disconnect-button",
+    "reject-no-frames",
+    "unanswered-request-expires",
+    "worker-reaped",
+    "host-retained",
+    "config-and-identity-preserved"
+  ],
+  "rounds": [
+    {
+      "action": "approve",
+      "elapsed_seconds": 5.805843118,
+      "result": "pass",
+      "stage": 9,
+      "timeout_dialog_closed": false
+    },
+    {
+      "action": "reject",
+      "elapsed_seconds": 4.405039285,
+      "result": "pass",
+      "stage": 9,
+      "timeout_dialog_closed": false
+    },
+    {
+      "action": "timeout",
+      "elapsed_seconds": 34.23277607,
+      "result": "pass",
+      "stage": 9,
+      "timeout_dialog_closed": true
+    }
+  ]
+}

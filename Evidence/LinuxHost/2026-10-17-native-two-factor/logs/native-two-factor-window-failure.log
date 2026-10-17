@@ -1,0 +1,13 @@
+/workspace/Build/Linux/native-two-factor-smoke/20261017T064654Z
+{"scenario": "cancel", "worker_pid": 128, "worker_reaped": true, "presented": false, "frames": 0, "host_survived": true, "totp_saved_as_password": false, "matching_remote_pixels": 0}
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 502, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 267, in user_test
+    exercise(output,start,agent,initial,private_secrets)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_two_factor_smoke.py", line 141, in exercise
+    assert cli({'type': 'snapshot'})['inbound'][0]['authorized']
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range

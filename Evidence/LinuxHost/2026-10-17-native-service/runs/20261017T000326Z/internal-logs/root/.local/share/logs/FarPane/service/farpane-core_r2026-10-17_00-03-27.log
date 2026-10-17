@@ -1,0 +1,28 @@
+[2026-10-17 00:03:27.442824 +00:00] INFO [src/core_main.rs:400] start --service
+[2026-10-17 00:03:27.443405 +00:00] INFO [src/server/uinput.rs:1012] start uinput control service
+[2026-10-17 00:03:27.443464 +00:00] INFO [src/server/uinput.rs:998] start uinput keyboard service
+[2026-10-17 00:03:27.443486 +00:00] INFO [src/server/uinput.rs:1005] start uinput mouse service
+[2026-10-17 00:03:27.443680 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_control server at path: /tmp/FarPane-service/ipc_uinput_control
+[2026-10-17 00:03:27.443630 +00:00] INFO [src/ipc.rs:742] Started protected ipc service server: postfix=_service
+[2026-10-17 00:03:27.443746 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_keyboard server at path: /tmp/FarPane-service/ipc_uinput_keyboard
+[2026-10-17 00:03:27.443725 +00:00] INFO [src/ipc/drm.rs:101] Started drm ipc server at path: /tmp/FarPane-service/ipc_drm
+[2026-10-17 00:03:27.443777 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_mouse server at path: /tmp/FarPane-service/ipc_uinput_mouse
+[2026-10-17 00:03:27.443941 +00:00] INFO [src/ipc/drm.rs:728] drm: udev DRM-uevent listener started
+[2026-10-17 00:03:27.495201 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-17 00:03:27.495219 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1000/test.Xauthority
+[2026-10-17 00:03:27.495953 +00:00] INFO [src/farpane_native/supervisor.rs:138] Native Host maintenance: RestartIdle
+[2026-10-17 00:03:27.496006 +00:00] ERROR [src/farpane_native/supervisor.rs:141] Native Host stop failed: Operation not permitted (os error 1)
+[2026-10-17 00:03:29.955741 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-17 00:03:29.955767 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-17 00:03:29.955782 +00:00] INFO [src/farpane_native/supervisor.rs:42] Native Host desktop user changed; ending the previous authorization context
+[2026-10-17 00:03:29.956068 +00:00] ERROR [src/farpane_native/supervisor.rs:48] Previous desktop Host did not stop; refusing a new authorization context: Operation not permitted (os error 1)
+[2026-10-17 00:03:30.274900 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-17 00:03:30.274922 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-17 00:03:30.790797 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-17 00:03:30.790816 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-17 00:03:31.310748 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-17 00:03:31.310786 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-17 00:03:31.831795 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-17 00:03:31.831814 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-17 00:03:32.351507 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-17 00:03:32.351551 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority

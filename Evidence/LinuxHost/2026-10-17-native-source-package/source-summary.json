@@ -1,0 +1,57 @@
+{
+  "binary_sha256": {
+    "native-core": "74ec25af68e3ea487453e22b934973f153f027fa518f93891566f5bc2a5fc13d",
+    "native-gui": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0"
+  },
+  "build_generated_sources": {
+    "Build/Linux/src/rustdesk/src/version.rs": "Captured current output of hbb_common::gen_version; build date is regenerated on builds/checks, not an original-release timestamp proof."
+  },
+  "compiled_source_build": {
+    "builder_image": "sha256:d0923a2040628a31f2048eb01704030bed22b5ae35e61726378565ff557b710d",
+    "native_dependency_manifest_sha256": "80d5c1ed47b3c31ddc4c91d2821969fb3d160cbdc72009092d64e3052e5556ad",
+    "source_build_result_sha256": "c6dbcbaa7ff0866088465a1f178c58760affc85019ea5966cbdaf6476014561b",
+    "source_manifest_sha256": "6464d1ae0ddf72e154ec4431b91816a75942a7557e00ce243abe89ce3a17aff3"
+  },
+  "complete_license_source_audit": false,
+  "fresh_full_build_verified": false,
+  "kind": "farpane-native-source-snapshot",
+  "prepared_comparison_excludes_legacy_build_outputs": [
+    "flutter/.dart_tool",
+    "flutter/build",
+    "flutter/.flutter-plugins",
+    "flutter/.flutter-plugins-dependencies",
+    "flutter/linux/flutter/ephemeral",
+    "flutter/windows/flutter/ephemeral",
+    "flutter/macos/Flutter/ephemeral",
+    "flutter/android/local.properties",
+    "flutter/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java",
+    "flutter/ios/Flutter/Generated.xcconfig",
+    "flutter/ios/Flutter/flutter_export_environment.sh",
+    "flutter/ios/Runner/GeneratedPluginRegistrant.h",
+    "flutter/ios/Runner/GeneratedPluginRegistrant.m",
+    "flutter/lib/generated_bridge.dart",
+    "flutter/lib/generated_bridge.freezed.dart",
+    "flutter/linux/flutter/generated_plugin_registrant.cc",
+    "flutter/linux/flutter/generated_plugin_registrant.h",
+    "flutter/linux/flutter/generated_plugins.cmake",
+    "flutter/windows/flutter/generated_plugin_registrant.cc",
+    "flutter/windows/flutter/generated_plugin_registrant.h",
+    "flutter/windows/flutter/generated_plugins.cmake",
+    "flutter/macos/Flutter/GeneratedPluginRegistrant.swift",
+    "src/bridge_generated.rs",
+    "src/bridge_generated.io.rs"
+  ],
+  "reconstructed_source_files": {
+    "clipboard_master": 14,
+    "ffmpeg-9.0.2": 10399,
+    "hwcodec": 461,
+    "libdrmtap": 101,
+    "rustdesk": 1081
+  },
+  "runtime_binaries_included": false,
+  "schema": 1,
+  "vendor_packages": 1082,
+  "verified_vendor_source_files": 60731,
+  "file_count": 88621,
+  "manifest_sha256": "514e82dfb17b17ebe68927259d81b6d6520e5429a1864d254130baa6dccd244b"
+}

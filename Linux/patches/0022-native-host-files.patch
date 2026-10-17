@@ -1,0 +1,249 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -36,7 +36,7 @@
+ default = ["use_dasp", "legacy-ui"]
+ # Native builds use --no-default-features; legacy products keep their current UI.
+ legacy-ui = ["dep:gtk", "dep:sciter-rs", "dep:tao", "dep:tray-icon", "dep:winit", "dep:softbuffer"]
+-farpane-native = ["farpane-linux", "use_dasp", "dep:farpane-protocol", "hbb_common/farpane-native", "scrap/native-viewer"]
++farpane-native = ["farpane-linux", "use_dasp", "dep:farpane-protocol", "dep:farpane-files", "hbb_common/farpane-native", "scrap/native-viewer"]
+ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+ mediacodec = ["scrap/mediacodec"]
+@@ -61,6 +61,7 @@
+ 
+ [dependencies]
+ farpane-protocol = { path = "../../native/protocol", optional = true }
++farpane-files = { path = "../../native/files", optional = true }
+ async-trait = "0.1"
+ scrap = { path = "libs/scrap", features = ["wayland"] }
+ hbb_common = { path = "libs/hbb_common", features = ["webrtc"] }
+--- a/libs/base/protos/message.proto
++++ b/libs/base/protos/message.proto
+@@ -56,6 +56,7 @@
+ message FileTransfer {
+   string dir = 1;
+   bool show_hidden = 2;
++  bool farpane_paged = 100;
+ }
+ 
+ message ViewCamera {}
+@@ -372,11 +373,18 @@
+   int32 id = 1;
+   string path = 2;
+   repeated FileEntry entries = 3;
++  bool farpane_paged = 100;
++  uint64 farpane_cursor = 101;
++  uint32 farpane_page = 102;
++  bool farpane_more = 103;
+ }
+ 
+ message ReadDir {
+   string path = 1;
+   bool include_hidden = 2;
++  bool farpane_paged = 100;
++  uint64 farpane_cursor = 101;
++  uint32 farpane_page = 102;
+ }
+ 
+ message ReadEmptyDirs {
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -3901,6 +3901,7 @@
+         };
+         match self.conn_type {
+             ConnType::FILE_TRANSFER => lr.set_file_transfer(FileTransfer {
++                farpane_paged: cfg!(feature = "farpane-native"),
+                 dir: self.get_remote_dir(),
+                 show_hidden: !self.get_option("remote_show_hidden").is_empty(),
+                 ..Default::default()
+--- a/libs/hbb_common/src/compress.rs
++++ b/libs/hbb_common/src/compress.rs
+@@ -38,8 +38,9 @@
+     decompress_with_limit(data, MAX_DECOMPRESSED_SIZE).unwrap_or_default()
+ }
+ 
+-fn decompress_with_limit(data: &[u8], limit: usize) -> io::Result<Vec<u8>> {
+-    let decoder = zstd::Decoder::new(data)?;
++pub fn decompress_with_limit(data: &[u8], limit: usize) -> io::Result<Vec<u8>> {
++    let mut decoder = zstd::Decoder::new(data)?;
++    if limit <= 128 * 1024 { decoder.window_log_max(23)?; }
+     let mut output = Vec::new();
+     decoder
+         .take(limit.saturating_add(1) as u64)
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -363,6 +363,12 @@
+     timer: crate::RustDeskInterval,
+     file_timer: crate::RustDeskInterval,
+     file_transfer: Option<(String, bool)>,
++    #[cfg(feature = "farpane-native")]
++    native_files: Option<crate::farpane_native::files::Link>,
++    #[cfg(feature = "farpane-native")]
++    native_file_out: mpsc::Sender<Message>,
++    #[cfg(feature = "farpane-native")]
++    native_file_paged: bool,
+     view_camera: bool,
+     terminal: bool,
+     port_forward_socket: Option<Framed<TcpStream, BytesCodec>>,
+@@ -561,6 +567,9 @@
+ 
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+         let tx_cloned = tx.clone();
++        let (tx_native_file, mut rx_native_file) = mpsc::channel::<Message>(4);
++        #[cfg(not(feature = "farpane-native"))]
++        let _keep_native_file_channel = tx_native_file;
+         let mut conn = Self {
+             inner: ConnInner {
+                 id,
+@@ -579,6 +588,12 @@
+             timer: crate::rustdesk_interval(time::interval(SEC30)),
+             file_timer: crate::rustdesk_interval(time::interval(SEC30)),
+             file_transfer: None,
++            #[cfg(feature = "farpane-native")]
++            native_files: None,
++            #[cfg(feature = "farpane-native")]
++            native_file_out: tx_native_file,
++            #[cfg(feature = "farpane-native")]
++            native_file_paged: false,
+             view_camera: false,
+             terminal: false,
+             port_forward_socket: None,
+@@ -746,6 +761,14 @@
+                     conn.on_close("Timeout", true).await;
+                     break;
+                 }
++                Some(file_message) = rx_native_file.recv() => {
++                    #[cfg(feature = "farpane-native")]
++                    if conn.authorized && conn.file && conn.native_files.as_ref().is_some_and(|f| f.valid()) {
++                        conn.send(file_message).await;
++                    }
++                    #[cfg(not(feature = "farpane-native"))]
++                    let _ = file_message;
++                }
+                 Some(data) = rx_from_cm.recv() => {
+                     match data {
+                         ipc::Data::Authorize => {
+@@ -844,6 +867,8 @@
+                                 }
+                             } else if &name == "file" {
+                                 conn.file = enabled;
++                                #[cfg(feature = "farpane-native")]
++                                if !enabled { conn.native_files.take(); }
+                                 conn.send_permission(Permission::File, enabled).await;
+                                 #[cfg(feature = "unix-file-copy-paste")]
+                                 if !enabled {
+@@ -1031,6 +1056,11 @@
+                             Ok(bytes) => {
+                                 last_recv_time = Instant::now();
+                                 conn.session_last_recv_time.as_mut().map(|t| *t.lock().unwrap() = Instant::now());
++                                #[cfg(feature = "farpane-native")]
++                                if conn.file_transfer.is_some() && bytes.len() > crate::farpane_native::files::PACKET_LIMIT {
++                                    conn.on_close("File packet exceeds limit", true).await;
++                                    break;
++                                }
+                                 if let Ok(msg_in) = Message::parse_from_bytes(&bytes) {
+                                     if !conn.on_message(msg_in).await {
+                                         break;
+@@ -1161,6 +1191,13 @@
+                     }
+                 }
+                 _ = second_timer.tick() => {
++                    #[cfg(feature = "farpane-native")]
++                    if conn.file_transfer.is_some() && conn.authorized &&
++                        (conn.native_files.as_ref().is_none_or(|f| !f.valid()) || !conn.file) {
++                        conn.send_close_reason_no_retry("File permission or storage worker is unavailable").await;
++                        conn.on_close("native file owner ended", true).await;
++                        break;
++                    }
+                     #[cfg(windows)]
+                     conn.portable_check();
+                     raii::AuthedConnID::check_wake_lock_on_setting_changed();
+@@ -2173,6 +2210,21 @@
+         self.update_scoped_login_options().await;
+         if let Some((dir, show_hidden)) = self.file_transfer.clone() {
+             self.keyboard = false;
++            #[cfg(feature = "farpane-native")]
++            {
++                let link = match crate::farpane_native::files::Link::start(self.inner.id(), self.native_file_out.clone()) {
++                    Ok(link) => link,
++                    Err(_) => { self.send_close_reason_no_retry("Shared folder is unavailable").await; return false; }
++                };
++                let mut action = FileAction::new();
++                action.set_read_dir(ReadDir { path: dir, include_hidden: show_hidden, farpane_paged: self.native_file_paged, ..Default::default() });
++                let mut request = Message::new(); request.set_file_action(action);
++                if link.submit(request).await.is_err() { return false; }
++                self.native_files = Some(link);
++                return true;
++            }
++            #[cfg(not(feature = "farpane-native"))]
++            {
+             let is_existing_dir = !dir.is_empty() && std::path::Path::new(&dir).is_dir();
+             let is_allowed_dir =
+                 is_existing_dir && crate::common::is_peer_path_allowed(&dir, false);
+@@ -2188,6 +2240,7 @@
+                 self.read_dir(dir, show_hidden);
+             } else {
+                 self.delayed_read_dir = Some((dir.to_owned(), show_hidden));
++            }
+             }
+         } else if self.terminal {
+             self.keyboard = false;
+@@ -2631,6 +2684,8 @@
+ 
+     #[inline]
+     pub fn is_permission_enabled_locally(enable_prefix_option: &str) -> bool {
++        #[cfg(feature = "farpane-native")]
++        if enable_prefix_option == "enable-file-transfer" { return crate::farpane_native::files::enabled(); }
+         #[cfg(all(target_os = "linux", feature = "farpane-native"))]
+         if enable_prefix_option == "enable-audio" {
+             match Config::get_option("farpane-audio-enabled").as_str() {
+@@ -2733,11 +2788,12 @@
+                 let FileTransfer {
+                     dir,
+                     show_hidden,
++                    farpane_paged,
+                     special_fields: _,
+                 } = ft;
+                 push(b"file_transfer");
+                 push(dir.as_bytes());
+-                push(&[*show_hidden as u8]);
++                push(&[*show_hidden as u8, *farpane_paged as u8]);
+             }
+             Some(login_request::Union::ViewCamera(vc)) => {
+                 let ViewCamera { special_fields: _ } = vc;
+@@ -2872,6 +2928,11 @@
+                 return self.handle_authorized_scope_violation(message).await;
+             }
+         }
++        #[cfg(feature = "farpane-native")]
++        if matches!(msg.union.as_ref(), Some(message::Union::FileAction(_)) | Some(message::Union::FileResponse(_))) {
++            if !self.authorized || self.file_transfer.is_none() || !self.file { return false; }
++            return if let Some(link) = &self.native_files { link.submit(msg).await.is_ok() } else { false };
++        }
+         // After handling CloseReason messages, proceed to process other message types
+         if let Some(message::Union::LoginRequest(lr)) = msg.union {
+             if !self.check_login_scope(&lr).await {
+@@ -2888,6 +2949,14 @@
+             }
+             match lr.union {
+                 Some(login_request::Union::FileTransfer(ft)) => {
++                    #[cfg(feature = "farpane-native")]
++                    {
++                        if !crate::farpane_native::files::enabled() {
++                            self.send_login_error("Select and enable a FarPane shared directory first").await;
++                            return false;
++                        }
++                        self.native_file_paged = ft.farpane_paged;
++                    }
+                     if !Self::permission(
+                         keys::OPTION_ENABLE_FILE_TRANSFER,
+                         &self.control_permissions,
+@@ -5259,6 +5328,8 @@
+     }
+ 
+     async fn on_close(&mut self, reason: &str, lock: bool) {
++        #[cfg(feature = "farpane-native")]
++        self.native_files.take();
+         if self.closed {
+             return;
+         }

@@ -1,0 +1,16 @@
+/workspace/Build/Linux/native-rgba-smoke/20261017T035210Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_clipboard_provider_smoke.py", line 23, in <module>
+    subprocess.run(['cargo','test','--offline','--locked','--no-default-features',
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    '--features','farpane-native,linux-gpu-media','--lib',
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+                   cwd='/workspace/Build/Linux/src/rustdesk',env=core_env,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                   stdout=log,stderr=subprocess.STDOUT,check=True,timeout=180)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['cargo', 'test', '--offline', '--locked', '--no-default-features', '--features', 'farpane-native,linux-gpu-media', '--lib', 'farpane_native::viewer_clipboard::tests::', '--', '--include-ignored', '--test-threads=1', '--nocapture']' returned non-zero exit status 101.

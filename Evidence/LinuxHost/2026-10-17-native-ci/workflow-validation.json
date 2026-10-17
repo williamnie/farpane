@@ -1,0 +1,19 @@
+{
+  "manual_only": true,
+  "permissions": {
+    "contents": "read"
+  },
+  "actions": {
+    "actions/checkout": {
+      "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "runtime": "node24",
+      "metadata_sha256": "d59219cb79590abdb877deaa14e3b65a00c05318bf5a6f3b989b9162b5d08c35"
+    },
+    "actions/upload-artifact": {
+      "commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+      "runtime": "node24",
+      "metadata_sha256": "c5979822866a72362e609844b6ebe77d4b7e759af68cc1c2c425dcf51481fab4"
+    }
+  },
+  "cloud_executed": false
+}

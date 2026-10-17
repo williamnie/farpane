@@ -1,0 +1,19 @@
+{
+  "version": "0.1.0~dev.20261017.11",
+  "artifact_id": "farpane-native-dev-e7508f297ef1d671172d7737",
+  "package_sha256": "5305789932d492224d21d726fcfa64308b77cd8c6b8816c43074f86981f517a8",
+  "bytes": 18714628,
+  "payload_exact_match": true,
+  "installer_sources_exact_match": {
+    "Scripts/linux/install-native.py": "4f82509c8e1c739b5278a4664bb2626784e858dafe6c2f3189150e736bfffb73",
+    "Scripts/linux/install-native-user.py": "aeb7257a1a284d09310a411a6404bbfd50f93593a05c57190b1b73d5be912d30",
+    "Scripts/linux/install-app.py": "160a71724bf36c1dc8d048684fa32b14f22ef51d67249ccb6d138dacb98fb792",
+    "Linux/packaging/native_bundle.py": "9a3eb72e2c6a295a82f920b81524677c99b5160827a0358a077fad4737aaff97",
+    "Linux/packaging/native_install.py": "65576f5792cb22c37c3d5534005ee4df09233c197ee3c57e3db45c93817f01e3",
+    "Linux/packaging/native_install_runtime.py": "29259d29687d2101b1a48d19bc2162c6cd3ddedf2b652bc111901841226d3c43",
+    "Linux/packaging/native_user_install.py": "01bb1178e84681a89d84c4acaf374820cceb9372ed0f20a203d32fc6be79fcee"
+  },
+  "full_dpkg_matrix_repeated": false,
+  "host_dpkg_install": false,
+  "application_or_media_rebuild": false
+}

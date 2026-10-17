@@ -1,0 +1,64 @@
+--- a/src/platform/linux.rs
++++ b/src/platform/linux.rs
+@@ -882,6 +882,13 @@
+ 
+ #[inline]
+ fn try_start_server_(desktop: Option<&Desktop>) -> ResultType<Option<Child>> {
++    #[cfg(feature = "farpane-native")]
++    {
++        let desktop = desktop.ok_or_else(|| anyhow!("Native Host requires a desktop user"))?;
++        return crate::farpane_native::session::spawn(&desktop.uid, &desktop.username,
++            &desktop.display, &desktop.xauth, &desktop.wl_display, &desktop.dbus,
++            &desktop.protocol).map(Some);
++    }
+     match desktop {
+         Some(desktop) => {
+             let mut envs = vec![];
+@@ -998,7 +1005,7 @@
+ #[inline]
+ fn stop_rustdesk_servers() {
+     #[cfg(feature = "farpane-native")]
+-    { crate::farpane_native::process::stop_servers(None); return; }
++    { allow_err!(crate::farpane_native::process::stop_servers(None)); return; }
+     let _ = run_cmds(&format!(
+         r##"ps -ef | grep -E '{} +--server' | awk '{{print $2}}' | xargs -r kill -9"##,
+         crate::get_app_name().to_lowercase(),
+@@ -1079,6 +1086,7 @@
+ pub fn start_os_service() {
+     #[cfg(not(feature = "farpane-native"))]
+     check_if_stop_service();
++    #[cfg(not(feature = "farpane-native"))]
+     stop_rustdesk_servers();
+     start_uinput_service();
+ 
+@@ -1130,8 +1138,7 @@
+         update_active_user_lookup_cache(&desktop);
+         #[cfg(feature = "farpane-native")]
+         if desktop.username == "root" || desktop.is_login_wayland() || desktop.username.is_empty() {
+-            stop_server(&mut user_server); stop_server(&mut server);
+-            crate::farpane_native::process::stop_servers(None);
++            crate::farpane_native::supervisor::stop_session(&mut uid, &mut user_server);
+             sleep_millis(500); continue;
+         }
+ 
+@@ -1202,6 +1209,7 @@
+                 &mut last_restart,
+                 &mut user_server,
+             ) {
++                #[cfg(not(feature = "farpane-native"))]
+                 force_stop_server();
+                 start_server(Some(&desktop), &mut user_server);
+             }
+@@ -1221,6 +1229,12 @@
+         sid = desktop.sid.clone();
+     }
+ 
++    #[cfg(feature = "farpane-native")]
++    {
++        crate::farpane_native::supervisor::stop_session(&mut uid, &mut user_server);
++        log::info!("Native service exit");
++        return;
++    }
+     if let Some(ps) = user_server.take().as_mut() {
+         allow_err!(ps.kill());
+     }

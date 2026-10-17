@@ -1,0 +1,82 @@
+{
+  "revision": 9,
+  "role": "agent",
+  "local_id": "1561542583",
+  "host_enabled": true,
+  "registered": false,
+  "authentication": "permanent",
+  "permanent_password_set": true,
+  "temporary_password": null,
+  "server": {
+    "rendezvous": "",
+    "relay": "",
+    "public_key": "",
+    "force_relay": false
+  },
+  "sharing": {
+    "permissions": {
+      "keyboard": true,
+      "clipboard": false,
+      "audio": true,
+      "file": false
+    },
+    "clipboard_to_peer": false,
+    "clipboard_from_peer": false,
+    "receive_directory": "",
+    "confirm_files": false,
+    "audio_source": "host_audio.monitor",
+    "microphone": false,
+    "background": false
+  },
+  "gpu_enabled": false,
+  "media_backend": "disabled",
+  "media_reason": "",
+  "inbound": [
+    {
+      "id": 1924,
+      "peer": "1561542583",
+      "name": "Ubuntu",
+      "authorized": true,
+      "permissions": {
+        "keyboard": true,
+        "clipboard": false,
+        "audio": true,
+        "file": false
+      }
+    }
+  ],
+  "capabilities": [
+    "configuration",
+    "host-authentication",
+    "host-gpu-control",
+    "inbound-approval"
+  ],
+  "unavailable": [],
+  "devices": [
+    {
+      "peer": "127.0.0.1:21118",
+      "alias": "",
+      "favorite": false,
+      "last_connected": 1792160789
+    }
+  ],
+  "audio_sources": [
+    {
+      "id": "host_audio.monitor",
+      "name": "Monitor of Null Output",
+      "microphone": false
+    },
+    {
+      "id": "viewer_audio.monitor",
+      "name": "Monitor of Null Output",
+      "microphone": false
+    },
+    {
+      "id": "synthetic_mic",
+      "name": "Remapped Monitor of Null Output",
+      "microphone": true
+    }
+  ],
+  "audio_error": "",
+  "audio_capture": "\u6b63\u5728\u5171\u4eab\u7cfb\u7edf\u97f3\u9891"
+}

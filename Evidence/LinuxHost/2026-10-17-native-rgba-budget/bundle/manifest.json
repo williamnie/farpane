@@ -1,0 +1,1853 @@
+{
+  "schema": 1,
+  "kind": "farpane-native",
+  "artifact_id": "farpane-native-dev-5449206e830476baad6031d4",
+  "features": [
+    "farpane-native",
+    "linux-gpu-media"
+  ],
+  "runtime_ready": false,
+  "release_accepted": false,
+  "files": [
+    {
+      "path": "README.txt",
+      "mode": 420,
+      "bytes": 928,
+      "sha256": "e62e0639dde0f2630a5df330008fa4a35373a57534d742937cca85ed6595e485"
+    },
+    {
+      "path": "build.json",
+      "mode": 420,
+      "bytes": 22123,
+      "sha256": "966a7996060a3b97266fd6aa7bd411daf2cca0345d2d54540e436d4b92936369"
+    },
+    {
+      "path": "dependencies.lock.json",
+      "mode": 420,
+      "bytes": 21892,
+      "sha256": "e6802674ae6afc890fb3ca09e5734d7137ce8306b8fe0bb5104dcc9a270c78fd"
+    },
+    {
+      "path": "farpane",
+      "mode": 493,
+      "bytes": 2384640,
+      "sha256": "ad09133606585f70d1983d765f4c7f3923cdd95867d9ad47677c12812774eb49"
+    },
+    {
+      "path": "lib/libdrmtap.so.0",
+      "symlink": "libdrmtap.so.0.5.8"
+    },
+    {
+      "path": "lib/libdrmtap.so.0.5.8",
+      "mode": 493,
+      "bytes": 111400,
+      "sha256": "f583791f617d5ad113c65a2247a84bcc15de235fd5c2459a10bbdddcc6a38f0d"
+    },
+    {
+      "path": "libexec/farpane-core",
+      "mode": 493,
+      "bytes": 50079120,
+      "sha256": "7c363f0e24fa7f71f0e6e16fb012b4a7c2942c646993025b4e3cc23dcb1c48b3"
+    },
+    {
+      "path": "licenses/FarPane.txt",
+      "mode": 420,
+      "bytes": 34523,
+      "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+    },
+    {
+      "path": "licenses/THIRD_PARTY_NOTICES.md",
+      "mode": 420,
+      "bytes": 2449,
+      "sha256": "e0a8a68dbe0ea3378ee852aa7a921fc93497061569e08700b58b5f96b9ead4e2"
+    },
+    {
+      "path": "licenses/ffmpeg.txt",
+      "mode": 420,
+      "bytes": 26517,
+      "sha256": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30"
+    },
+    {
+      "path": "licenses/libdrmtap.txt",
+      "mode": 420,
+      "bytes": 1079,
+      "sha256": "a6db0e06dbfbfcd2f0875c5790cccbf7cd20b7b4fef7947086926f127cde0052"
+    },
+    {
+      "path": "licenses/rustdesk.txt",
+      "mode": 420,
+      "bytes": 34523,
+      "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+    },
+    {
+      "path": "share/applications/org.farpane.FarPane.desktop",
+      "mode": 420,
+      "bytes": 442,
+      "sha256": "c09d35fe704605c40946430ca5903eca16bdcf0449c1c39c08b6d51220de65d1"
+    },
+    {
+      "path": "share/dbus-1/services/org.farpane.FarPane.service",
+      "mode": 420,
+      "bytes": 95,
+      "sha256": "5e93bff9211dc9799dfe47a9c6a3436d515ee7621204ff211b99b76d074ef21d"
+    },
+    {
+      "path": "share/icons/hicolor/1024x1024/apps/org.farpane.FarPane.png",
+      "mode": 420,
+      "bytes": 800377,
+      "sha256": "8e0cecdee4b759bfeb11d0f93d88b5ae5e77d39c88cf56e21352e6810ff6a8a5"
+    },
+    {
+      "path": "share/icons/hicolor/scalable/apps/org.farpane.FarPane.svg",
+      "mode": 420,
+      "bytes": 1010,
+      "sha256": "13d57cb67e227c04b3573de7f44d4a190ae9be0fad26ec53b13dffc14e4872f6"
+    },
+    {
+      "path": "source/Linux/Cargo.lock",
+      "mode": 420,
+      "bytes": 269351,
+      "sha256": "7bd70cc9fcab40a336b12fa7a480e724465a425ad8c542432705258ae4b7d48d"
+    },
+    {
+      "path": "source/Linux/docs/application-status.md",
+      "mode": 420,
+      "bytes": 8903,
+      "sha256": "213464b1a745ff2849df4ce6b56a8dc8a4abdd783f857cd05ec63962016aab64"
+    },
+    {
+      "path": "source/Linux/docs/clipboard-contract.md",
+      "mode": 420,
+      "bytes": 18060,
+      "sha256": "4a0a37208fce959934dfd4d6fe64772d27a9c8f6810f31fc81b875ff0623f901"
+    },
+    {
+      "path": "source/Linux/docs/clipboard-memory.md",
+      "mode": 420,
+      "bytes": 4291,
+      "sha256": "feb674a281cb817948034f89826b8ce1494e90a9c3e2eb17fbb12baabbf30b07"
+    },
+    {
+      "path": "source/Linux/docs/clipboard-rgba.md",
+      "mode": 420,
+      "bytes": 2768,
+      "sha256": "dedce38a77240f79f64bb4b6d2039c6650494be00db33c8aca8e4dc4ebf50fc6"
+    },
+    {
+      "path": "source/Linux/docs/credentials.md",
+      "mode": 420,
+      "bytes": 7007,
+      "sha256": "7e3725d8fa321713b5423c6cb5adfb46712dbb26818421a5d7dc4eb9ffc4c4b2"
+    },
+    {
+      "path": "source/Linux/docs/desktop-integration.md",
+      "mode": 420,
+      "bytes": 3792,
+      "sha256": "6dab2af45ee8b83654dffa67e0c9b6bc4648796c5a6bd9cb38fccae586901f60"
+    },
+    {
+      "path": "source/Linux/docs/file-transfer-protocol.md",
+      "mode": 420,
+      "bytes": 5627,
+      "sha256": "d8c09b239a361667823497b2e02e7436e69f43238d6f7e0aab36aac475aebcb6"
+    },
+    {
+      "path": "source/Linux/docs/gui-rewrite-plan.md",
+      "mode": 420,
+      "bytes": 50172,
+      "sha256": "ecf336ad86fd9de1236200be96acfce424e8560c6017d1fc0b36b36f51aec86e"
+    },
+    {
+      "path": "source/Linux/docs/gui-status.md",
+      "mode": 420,
+      "bytes": 56374,
+      "sha256": "3e35857844df98874af6f69844fad80c5be5634b743a651690757ef47a9f9662"
+    },
+    {
+      "path": "source/Linux/docs/implicit-layout.md",
+      "mode": 420,
+      "bytes": 4808,
+      "sha256": "5cb0dfa93c6a3121357f53357b5da67cb7bf1209c4a126be17eaf9e8149b02be"
+    },
+    {
+      "path": "source/Linux/docs/native-deb.md",
+      "mode": 420,
+      "bytes": 4948,
+      "sha256": "41cffa4fea57c789340d613debae58aefeda473e7173aa8790cb0a8018bf5e58"
+    },
+    {
+      "path": "source/Linux/docs/native-install.md",
+      "mode": 420,
+      "bytes": 7211,
+      "sha256": "21aa8c6b85ad0b28f3b8d5acaace32e7a8317f069e3f66e996662fb95d3f2f7a"
+    },
+    {
+      "path": "source/Linux/docs/native-package.md",
+      "mode": 420,
+      "bytes": 6521,
+      "sha256": "e62fdd647af6b47659c88a36a835f919e1028b7f0df788e54118b3388aaed435"
+    },
+    {
+      "path": "source/Linux/docs/native-service.md",
+      "mode": 420,
+      "bytes": 7044,
+      "sha256": "a3a6116cf745913d620069dc1b2bac161f46dbf412944a28c0dfb8ea20d07f85"
+    },
+    {
+      "path": "source/Linux/docs/native-source-bundle.md",
+      "mode": 420,
+      "bytes": 7305,
+      "sha256": "129fe7aade5543f167c955c54cb5962540c89d45d27ecac80ad052d7ee2f754d"
+    },
+    {
+      "path": "source/Linux/docs/native-source-materials.md",
+      "mode": 420,
+      "bytes": 5466,
+      "sha256": "44218701fa1f29f05a5cac2f2915a2aaa4487e59e240395c282092b0b06d1136"
+    },
+    {
+      "path": "source/Linux/docs/native-test-candidate.md",
+      "mode": 420,
+      "bytes": 4850,
+      "sha256": "0b7f52f2dcf6ef4b0be6d72978a4811e0719ee4f55b41605eb23d5b316d57332"
+    },
+    {
+      "path": "source/Linux/docs/network-identity.md",
+      "mode": 420,
+      "bytes": 3163,
+      "sha256": "eeaab74f57df6a2e545c6df473b8e41b009ee7491e1f06a1e4d65aac8aa8faad"
+    },
+    {
+      "path": "source/Linux/docs/p0-status.md",
+      "mode": 420,
+      "bytes": 9443,
+      "sha256": "9f5f9712de682e17f89e40c69be8e591b74155374a966d4a0c413eb2ccafb5ed"
+    },
+    {
+      "path": "source/Linux/docs/p1-integration-audit.md",
+      "mode": 420,
+      "bytes": 5992,
+      "sha256": "72c15e784663b53668f1d7bb2aba53a1ec3f542a3c13e5219baa351419108712"
+    },
+    {
+      "path": "source/Linux/docs/p1-status.md",
+      "mode": 420,
+      "bytes": 8279,
+      "sha256": "ba5ed168dcfb47066e51600c731bd937872fe59a0419de103c627d25a8ba2109"
+    },
+    {
+      "path": "source/Linux/docs/system-recovery.md",
+      "mode": 420,
+      "bytes": 4979,
+      "sha256": "b0ded826d48194d180059b805da6c318840f715504970b7ecceedb0bad2c068f"
+    },
+    {
+      "path": "source/Linux/docs/viewer-diagnostics.md",
+      "mode": 420,
+      "bytes": 6506,
+      "sha256": "52c385006c643bfc66ea3e5abaa3bab4dc833aceffd8353f91c80711680a7233"
+    },
+    {
+      "path": "source/Linux/docs/viewer-recovery.md",
+      "mode": 420,
+      "bytes": 3939,
+      "sha256": "306bf2f7c80d8371e62fd31a4a1075cde51f5ecedde00d4a150cb62bad1cc2fd"
+    },
+    {
+      "path": "source/Linux/gui/Cargo.lock",
+      "mode": 420,
+      "bytes": 17865,
+      "sha256": "b9156fae14b985f9756aebe5652e5393c4f20566b42bd9c5fd58aaea3cd39327"
+    },
+    {
+      "path": "source/Linux/gui/Cargo.toml",
+      "mode": 420,
+      "bytes": 560,
+      "sha256": "de011f0a1edcaf926bb0d7b501b85e7decdb38a3ccb59267922026f4fab3ac17"
+    },
+    {
+      "path": "source/Linux/gui/build.rs",
+      "mode": 420,
+      "bytes": 2640,
+      "sha256": "676fd844f6ab58ad68fb59a65fe100efa757abff18e4136fa6e3be3c0b1bf325"
+    },
+    {
+      "path": "source/Linux/gui/resources/README.md",
+      "mode": 420,
+      "bytes": 409,
+      "sha256": "35eb7069867c8b2611c027e32b0032756fca6cb6e5c6e88dffdb213fa47973ec"
+    },
+    {
+      "path": "source/Linux/gui/resources/farpane.gresource.xml",
+      "mode": 420,
+      "bytes": 245,
+      "sha256": "fca399b3d87b12b1023251572140effb55e817f8350c1c219f5fabad3f2d9e63"
+    },
+    {
+      "path": "source/Linux/gui/resources/org.farpane.FarPane.png",
+      "mode": 420,
+      "bytes": 800377,
+      "sha256": "8e0cecdee4b759bfeb11d0f93d88b5ae5e77d39c88cf56e21352e6810ff6a8a5"
+    },
+    {
+      "path": "source/Linux/gui/resources/org.farpane.FarPane.svg",
+      "mode": 420,
+      "bytes": 1010,
+      "sha256": "13d57cb67e227c04b3573de7f44d4a190ae9be0fad26ec53b13dffc14e4872f6"
+    },
+    {
+      "path": "source/Linux/gui/resources/style.css",
+      "mode": 420,
+      "bytes": 1475,
+      "sha256": "61fd0c920c715ddd7193f3f766fade291da9257151d7b49f0e665204bd99d55e"
+    },
+    {
+      "path": "source/Linux/gui/src/app.rs",
+      "mode": 420,
+      "bytes": 21366,
+      "sha256": "dc615e63f882c1e3f1940e12daf55469564573b55e60dd02f2a55490890df5c4"
+    },
+    {
+      "path": "source/Linux/gui/src/auth_secrets.rs",
+      "mode": 420,
+      "bytes": 9671,
+      "sha256": "3bd13e5dc393cc8ef78801081a16df2859db1054a152658cd8e6f8cde7d7f570"
+    },
+    {
+      "path": "source/Linux/gui/src/bridge.rs",
+      "mode": 420,
+      "bytes": 11786,
+      "sha256": "daaf54614ae0950b2b248b7363c88744b761de17fc1739c59945d2d22baa3c66"
+    },
+    {
+      "path": "source/Linux/gui/src/clipboard_provider.rs",
+      "mode": 420,
+      "bytes": 9213,
+      "sha256": "011fc5bdccc1fa562a18deef6ee61ba1dd804c110ac2eae96fb82553a8a45d2a"
+    },
+    {
+      "path": "source/Linux/gui/src/credentials.rs",
+      "mode": 420,
+      "bytes": 8434,
+      "sha256": "8c7334f4c5e050776861f0c745593bf8b423c1f7901d6470cd7afdb1c519ef06"
+    },
+    {
+      "path": "source/Linux/gui/src/desktop_smoke.rs",
+      "mode": 420,
+      "bytes": 4695,
+      "sha256": "4a31f48a870063d56327e03b9b574b8eef00e66a5cd03a1ca5f59e4226561bd9"
+    },
+    {
+      "path": "source/Linux/gui/src/devices.rs",
+      "mode": 420,
+      "bytes": 15154,
+      "sha256": "1323a50718a829225742b0296ea2b13bf2678f3c62904cc09ca66aec2784f08c"
+    },
+    {
+      "path": "source/Linux/gui/src/devices_smoke.rs",
+      "mode": 420,
+      "bytes": 11617,
+      "sha256": "c66f04d56de7569e7e6661460b88c8660f78c3dcafc91b8792412800b4cefac5"
+    },
+    {
+      "path": "source/Linux/gui/src/diagnostics.rs",
+      "mode": 420,
+      "bytes": 19985,
+      "sha256": "8bd5f0022940f96ebbfb4052eafb7d6ec48ca16cc5cc986696bb0e00777dbd16"
+    },
+    {
+      "path": "source/Linux/gui/src/file_smoke.rs",
+      "mode": 420,
+      "bytes": 23764,
+      "sha256": "d85fcfd470c1a2dc598ab550b60c02612684fdd08ae4a5d9a5bb6c1346524f83"
+    },
+    {
+      "path": "source/Linux/gui/src/file_view.rs",
+      "mode": 420,
+      "bytes": 27154,
+      "sha256": "75e8e7b8af655e91b991a793051f54d87e373e8d926dca60909e91552ae7b164"
+    },
+    {
+      "path": "source/Linux/gui/src/gpu_renderer.c",
+      "mode": 420,
+      "bytes": 18404,
+      "sha256": "3a66305786ed1818b49d113e11d64d11baf945447f8b2013a2563c1ca8b538f9"
+    },
+    {
+      "path": "source/Linux/gui/src/gpu_renderer.h",
+      "mode": 420,
+      "bytes": 1288,
+      "sha256": "0d13cc38bf1edf09d5406c780f489431727011880e992a8e0c6e73b60226fdb6"
+    },
+    {
+      "path": "source/Linux/gui/src/gpu_renderer.rs",
+      "mode": 420,
+      "bytes": 14956,
+      "sha256": "996cc5a96c4973555dd520f5e90dcba9d4a06ca26851ec433d3398701265bf7d"
+    },
+    {
+      "path": "source/Linux/gui/src/host.rs",
+      "mode": 420,
+      "bytes": 32391,
+      "sha256": "4fb2adf0ec27f2dbadac7e0c18c43cf0838c5c79886039ecb4f7a13b173c27b4"
+    },
+    {
+      "path": "source/Linux/gui/src/host_audio.rs",
+      "mode": 420,
+      "bytes": 7730,
+      "sha256": "67a1459a0f47d2e5d8d9b7ecb77c17f1e5e7ca096311fb6bb9879fd7998d2968"
+    },
+    {
+      "path": "source/Linux/gui/src/host_audio_smoke.rs",
+      "mode": 420,
+      "bytes": 8105,
+      "sha256": "da616d9d00ef13421f64c5e99bfd4f43360cf14031c820b3a4d6201d8a4b6de0"
+    },
+    {
+      "path": "source/Linux/gui/src/host_clipboard.rs",
+      "mode": 420,
+      "bytes": 6296,
+      "sha256": "197ae296200d82c0254b7c9439e756da821f37294538e4630e3f0926e85dc6f4"
+    },
+    {
+      "path": "source/Linux/gui/src/host_files.rs",
+      "mode": 420,
+      "bytes": 9347,
+      "sha256": "3a9c47b487dfce2ae52e64d3ff288e65ac979e838c519cb0fe1fdc5a45214180"
+    },
+    {
+      "path": "source/Linux/gui/src/hud_smoke.rs",
+      "mode": 420,
+      "bytes": 13467,
+      "sha256": "5847dcee2f88e3592f8b8df597851aea79469583a3596d0ecbd58883c6ba1434"
+    },
+    {
+      "path": "source/Linux/gui/src/inbound_smoke.rs",
+      "mode": 420,
+      "bytes": 8617,
+      "sha256": "2b553a483260f54cc99a044e4d5a4ea0bbd456b58be93e4a1faf09aa7494654a"
+    },
+    {
+      "path": "source/Linux/gui/src/main.rs",
+      "mode": 420,
+      "bytes": 2883,
+      "sha256": "babf234cb5fb1775cc48cd68e20d7c5eac929c5e96832117132c2ddc207c1449"
+    },
+    {
+      "path": "source/Linux/gui/src/memory.rs",
+      "mode": 420,
+      "bytes": 899,
+      "sha256": "256027a447ac9156ddbd28868e3c8bf68d26c9168b0dfce0db2d8de86853d266"
+    },
+    {
+      "path": "source/Linux/gui/src/model.rs",
+      "mode": 420,
+      "bytes": 3458,
+      "sha256": "fe893b6134b330a2dcd64347fb1deaf9fcfda7c60984c8c37d88548e0f9e06b1"
+    },
+    {
+      "path": "source/Linux/gui/src/secret_service.c",
+      "mode": 420,
+      "bytes": 5780,
+      "sha256": "6b8a37306a1b614173402a05797cdfe6e72f822d790d9c775db502cec0cbf1ec"
+    },
+    {
+      "path": "source/Linux/gui/src/secret_service.h",
+      "mode": 420,
+      "bytes": 236,
+      "sha256": "328392f954dbde7bd2015c7de753acea16515a74b359cfee9387ade3aa17dc50"
+    },
+    {
+      "path": "source/Linux/gui/src/viewer.rs",
+      "mode": 420,
+      "bytes": 56724,
+      "sha256": "2e862b2a1a17369c748b052cee4737d5e78955b03bed40ed74cf6c58ab54ef25"
+    },
+    {
+      "path": "source/Linux/gui/src/viewer_bridge.rs",
+      "mode": 420,
+      "bytes": 16707,
+      "sha256": "75da6899adf635dcdca57feb197c62655ea3af53d74356d7106d95c205f12cab"
+    },
+    {
+      "path": "source/Linux/gui/src/viewer_clipboard.rs",
+      "mode": 420,
+      "bytes": 21437,
+      "sha256": "72082144707eed7d47167d041dc1bc25b4b684b42dda2c036d22ead03279a27f"
+    },
+    {
+      "path": "source/Linux/gui/src/viewer_cursor.rs",
+      "mode": 420,
+      "bytes": 3194,
+      "sha256": "6fb341e2484877d3a25d86277244bd0eca2fc663e7becedca8e957f453929c11"
+    },
+    {
+      "path": "source/Linux/gui/src/viewer_hud.rs",
+      "mode": 420,
+      "bytes": 7411,
+      "sha256": "e2366780b8306e68034dc448a163b75dc4a60ec832b181e50660891371d713f1"
+    },
+    {
+      "path": "source/Linux/gui/src/viewer_input.rs",
+      "mode": 420,
+      "bytes": 18759,
+      "sha256": "6099cf806f5665c36d11433d3f709b522bddee82a6146ed6da14b88b61a70e69"
+    },
+    {
+      "path": "source/Linux/gui/src/viewer_recovery.rs",
+      "mode": 420,
+      "bytes": 6638,
+      "sha256": "81261a2dd29b3476211af30749ed154ef40997a6a1e03ebf3404c54abc5450a4"
+    },
+    {
+      "path": "source/Linux/native/activity.rs",
+      "mode": 420,
+      "bytes": 2130,
+      "sha256": "7f53423e7357139a572819817682d99582ce11f7bb6989d3e5a7831905b73bf9"
+    },
+    {
+      "path": "source/Linux/native/audio.rs",
+      "mode": 420,
+      "bytes": 8305,
+      "sha256": "631ab9fca56aae73db7f477b48dfc3963239d8c6a2b11590f6b34c9e47867ec1"
+    },
+    {
+      "path": "source/Linux/native/clipboard_platform.rs",
+      "mode": 420,
+      "bytes": 3379,
+      "sha256": "76a6911d5ce60a82f53389a8c410aa16e7c08ccbe8cca7d0026921c77e8ff2f1"
+    },
+    {
+      "path": "source/Linux/native/clipboard_wayland.rs",
+      "mode": 420,
+      "bytes": 29250,
+      "sha256": "a41d0b0f501667baf2810b7845c9a5cb4a43cc006d1efa5385f57dec038fb6f5"
+    },
+    {
+      "path": "source/Linux/native/clipboard_wayland_tests.rs",
+      "mode": 420,
+      "bytes": 14603,
+      "sha256": "da11a2e0231f5783c9d2be4ee793cf3f8591055d79f870604abd03ff47bddba0"
+    },
+    {
+      "path": "source/Linux/native/clipboard_wire.rs",
+      "mode": 420,
+      "bytes": 17049,
+      "sha256": "b51d68892a99edc3fcdf39744afc6becb390d395721095debf1562e72a1e0f62"
+    },
+    {
+      "path": "source/Linux/native/clipboard_x11.rs",
+      "mode": 420,
+      "bytes": 14624,
+      "sha256": "7080551c861e7c984731a1f0e9bf9a040721efb23734ee134ed412634d403d53"
+    },
+    {
+      "path": "source/Linux/native/clipboard_x11_writer.rs",
+      "mode": 420,
+      "bytes": 35215,
+      "sha256": "eeab4ac6dbbf28bca0af017080d4a1621b4a223269703bfa969679083f720e11"
+    },
+    {
+      "path": "source/Linux/native/cm.rs",
+      "mode": 420,
+      "bytes": 3701,
+      "sha256": "085e9fd9edccc1fabdfcd017aa28b65028a4baff4b5e7a48bce11d80e403b96b"
+    },
+    {
+      "path": "source/Linux/native/config.rs",
+      "mode": 420,
+      "bytes": 17469,
+      "sha256": "0af0acd1dda4ff44d4b0dff875a5e4cd13c2d65d37f71da4fe0886124b5a1be2"
+    },
+    {
+      "path": "source/Linux/native/control.rs",
+      "mode": 420,
+      "bytes": 19996,
+      "sha256": "76d41557a19c751bff498cc17ae2839ef93e8b34c3e8b4158e27bbd05230f0c8"
+    },
+    {
+      "path": "source/Linux/native/core_main.rs",
+      "mode": 420,
+      "bytes": 226,
+      "sha256": "1a08a7a7d26c818d76fafadd9c6f2bb1a6ad7c7e02c60342254942b5de5e0e56"
+    },
+    {
+      "path": "source/Linux/native/decode.rs",
+      "mode": 420,
+      "bytes": 14734,
+      "sha256": "9c7db7c84ac6b4d57a72b9e16eaf88a46d613f1dffb7f9cf76c2ff626c52c154"
+    },
+    {
+      "path": "source/Linux/native/desktop.rs",
+      "mode": 420,
+      "bytes": 20798,
+      "sha256": "b011eff556d7f09e3ea8970c19b714ae658e4536ca2cb793053a971aed607888"
+    },
+    {
+      "path": "source/Linux/native/desktop_menu.rs",
+      "mode": 420,
+      "bytes": 5690,
+      "sha256": "bd6639219437bddf460d0e8e597189985d7d46493dcc2f2c48ef96d653a73fe4"
+    },
+    {
+      "path": "source/Linux/native/discovery.rs",
+      "mode": 420,
+      "bytes": 22363,
+      "sha256": "691c1e8c51a8438c97993f901984c4e2c20b60ad3e551cbfe93bd9e640351c74"
+    },
+    {
+      "path": "source/Linux/native/file_host.rs",
+      "mode": 420,
+      "bytes": 36823,
+      "sha256": "e4b9f04ac7ae065e48838047ceb4412087b322de89ebf65149f238199b646ced"
+    },
+    {
+      "path": "source/Linux/native/file_viewer.rs",
+      "mode": 420,
+      "bytes": 51626,
+      "sha256": "04f78d4545b4fbaae95ae755fd9e5b7ef2a49e2f102217dfbbc981a8def36a05"
+    },
+    {
+      "path": "source/Linux/native/files/Cargo.lock",
+      "mode": 420,
+      "bytes": 375,
+      "sha256": "6a97c7211ea3e3f40a778e3a8c27080e61f0ee7662dd393d8d1e252816ee8501"
+    },
+    {
+      "path": "source/Linux/native/files/Cargo.toml",
+      "mode": 420,
+      "bytes": 163,
+      "sha256": "f57ca16f1ca5554e784aabb0679938165a7f8a7912de06cbd524847f1bfdfc3a"
+    },
+    {
+      "path": "source/Linux/native/files/README.md",
+      "mode": 420,
+      "bytes": 4915,
+      "sha256": "d38d7c2ebaac2e5aad1668baa7499811f157d8706be056845a9da94e5c554d87"
+    },
+    {
+      "path": "source/Linux/native/files/src/batch.rs",
+      "mode": 420,
+      "bytes": 6298,
+      "sha256": "82aa5ba4e57cfe142d215bc2873b2182d41fbe44b3aabd8a11dae88461dd4be2"
+    },
+    {
+      "path": "source/Linux/native/files/src/lib.rs",
+      "mode": 420,
+      "bytes": 22406,
+      "sha256": "78999cb1d191193a81578fd9f42e2b0f616d84fbed01c56312916cf5032c1647"
+    },
+    {
+      "path": "source/Linux/native/files/src/outgoing.rs",
+      "mode": 420,
+      "bytes": 6628,
+      "sha256": "4f720646206103ae5e75fb8a98ebe4c8e76f4afabd4b617c4e49e2a1d1c34b72"
+    },
+    {
+      "path": "source/Linux/native/files/src/owner.rs",
+      "mode": 420,
+      "bytes": 10808,
+      "sha256": "3820a7c0900f6aa9a6d0783433dcc218fa6cad8eeebf1a0912a0b8f9537124ae"
+    },
+    {
+      "path": "source/Linux/native/files/src/tests.rs",
+      "mode": 420,
+      "bytes": 23591,
+      "sha256": "8b3aa654426ad65fe45835ef5af26bb351146b91cb98829089a0ef1554df424e"
+    },
+    {
+      "path": "source/Linux/native/files.rs",
+      "mode": 420,
+      "bytes": 9828,
+      "sha256": "016336e9727fe6914e55a9c5de5b53686ed9164b494cc7d88fabebbde7ce40a3"
+    },
+    {
+      "path": "source/Linux/native/host_clipboard.rs",
+      "mode": 420,
+      "bytes": 22176,
+      "sha256": "07c6023fe8d74f5de68534f0f8a2cb1298271530af4e80e733f4a0a4b9727786"
+    },
+    {
+      "path": "source/Linux/native/input_retry.rs",
+      "mode": 420,
+      "bytes": 3151,
+      "sha256": "2ed0dd712223fdc971d1e10b8611536a90779beeb78fae2bb3fd6c195ff82e86"
+    },
+    {
+      "path": "source/Linux/native/mod.rs",
+      "mode": 420,
+      "bytes": 4719,
+      "sha256": "30e4ff596fe4ed03b3c438926ad9f2bab8ce6a26da4ef2753c0ca87047028a68"
+    },
+    {
+      "path": "source/Linux/native/process.rs",
+      "mode": 420,
+      "bytes": 6942,
+      "sha256": "bfe7ad12301f754cfa396437ce479bceb152612dfe2cb88afd6955ba860fd52d"
+    },
+    {
+      "path": "source/Linux/native/protocol/Cargo.lock",
+      "mode": 420,
+      "bytes": 2656,
+      "sha256": "26c4d6681ac9eea278c8f5ee6cba6ae8a728e87f73f9a23bf9c4c7d496f1734b"
+    },
+    {
+      "path": "source/Linux/native/protocol/Cargo.toml",
+      "mode": 420,
+      "bytes": 246,
+      "sha256": "57d8c3e6dd0d108c769dd37abeb97464d0989b281f84d07188ec51364aafe7f4"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/clipboard.rs",
+      "mode": 420,
+      "bytes": 15595,
+      "sha256": "45ee9ddd9c31a63c53116d6ec8cf30ae84e67d64830919713c4a8fe1af56dbf2"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/clipboard_link.rs",
+      "mode": 420,
+      "bytes": 20024,
+      "sha256": "747ed36981bad5b542e4ddaa170abf979708223e528b436d1e38f3f2acb64c7a"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/clipboard_socket.rs",
+      "mode": 420,
+      "bytes": 15173,
+      "sha256": "81c827e721d7554c1b2f8e0c45b2087e9b848e45a6b25fcc6f0314a3db03ea96"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/devices.rs",
+      "mode": 420,
+      "bytes": 10588,
+      "sha256": "63513b64cd89a43f995466009819e86ab1233315314c1b79763db0791562045c"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/event_queue.rs",
+      "mode": 420,
+      "bytes": 1845,
+      "sha256": "28e2bbeda4008ade6a2599b22f6cb8fa78e9ac62c51fce49b6c3a97bc10bfc7d"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/frame.rs",
+      "mode": 420,
+      "bytes": 7983,
+      "sha256": "1229693c16756693b2b95381738867d8b5be680f91b83b2a383ecb71170b683f"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/frame_socket.rs",
+      "mode": 420,
+      "bytes": 12381,
+      "sha256": "5a734e96603960a126af428ec2ee30636e2bf2216fd15c00b4c038905b5404d9"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/lib.rs",
+      "mode": 420,
+      "bytes": 15465,
+      "sha256": "3813dd728f1bb22a536ba0c94e29e3b56607f8f050acfa7bf39a38a253207d44"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/sealed.rs",
+      "mode": 420,
+      "bytes": 3842,
+      "sha256": "a821ca69f166c0d5c5b8c4956ae93d888fe8463c99bebfa674db39b9dbe2f865"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/supervision.rs",
+      "mode": 420,
+      "bytes": 6572,
+      "sha256": "0f45e30187940a8d583a9db95f848f7930f947b8c9a8e2555cea2a65cfec04f9"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/telemetry.rs",
+      "mode": 420,
+      "bytes": 8472,
+      "sha256": "5b300602ebd125493515ed6d88441cf257387f3fb7cbf3707bfc6015cd9e267b"
+    },
+    {
+      "path": "source/Linux/native/protocol/src/transport.rs",
+      "mode": 420,
+      "bytes": 12350,
+      "sha256": "898d81dcd873d0afabef41c0243b68b7eb84bfd6faf1c4a9b25de2df45849ce5"
+    },
+    {
+      "path": "source/Linux/native/recovery.rs",
+      "mode": 420,
+      "bytes": 16680,
+      "sha256": "4b3249c2d891ad3a0e56260c9a6d05d7ce6c39b9d09976287fca8dc7cc73367a"
+    },
+    {
+      "path": "source/Linux/native/session.rs",
+      "mode": 420,
+      "bytes": 6849,
+      "sha256": "308c8d08b06c277289a28b3b01ab58a5565266ad44cd59e09cdbc3a55256b60d"
+    },
+    {
+      "path": "source/Linux/native/supervisor.rs",
+      "mode": 420,
+      "bytes": 13131,
+      "sha256": "5eee162ddc83239f035f77dcac715b04e2cd89a2eb53334b065667281ea37640"
+    },
+    {
+      "path": "source/Linux/native/transport.rs",
+      "mode": 420,
+      "bytes": 3786,
+      "sha256": "598e56ead2d84c1861ee32b6db58a335c0d527cfa323814b36245ab82ba1a281"
+    },
+    {
+      "path": "source/Linux/native/viewer.rs",
+      "mode": 420,
+      "bytes": 23016,
+      "sha256": "7930c11429f3b795dcb4cd315f17ae24d3fd4edca85fcc128517bbd02b1cd1fb"
+    },
+    {
+      "path": "source/Linux/native/viewer_audio.rs",
+      "mode": 420,
+      "bytes": 8519,
+      "sha256": "c3c48e39711f69a2349b7ca3d1ebe0b99a1fd44a8ec9882813c989d08f8625b8"
+    },
+    {
+      "path": "source/Linux/native/viewer_boundary.rs",
+      "mode": 420,
+      "bytes": 4072,
+      "sha256": "c19ab5a1c046e34febe9cae66c6c7dd7cb373f0bd046d1c45fea2cbbc3ed798b"
+    },
+    {
+      "path": "source/Linux/native/viewer_clipboard.rs",
+      "mode": 420,
+      "bytes": 11024,
+      "sha256": "cd2153a89cc665413328dfa40ee34182ee86972080f5fb3d3e563d6d2789b4a0"
+    },
+    {
+      "path": "source/Linux/native/viewer_input.rs",
+      "mode": 420,
+      "bytes": 12790,
+      "sha256": "ebdc1ab06b3ecd0e330ddced7344f4721bad1360bccb68da3f9fd2c187a59186"
+    },
+    {
+      "path": "source/Linux/native/viewer_media.rs",
+      "mode": 420,
+      "bytes": 15384,
+      "sha256": "8c352cf520bec4e2e4bfb7afe847bec1a8e187386e47ee72ac7faaa0d1fe4720"
+    },
+    {
+      "path": "source/Linux/native/viewer_queue.rs",
+      "mode": 420,
+      "bytes": 8258,
+      "sha256": "f774a7eb8cefdc534ed5379a09c011d25ff42ce0c6fc49a9b4c01ecee2daaacf"
+    },
+    {
+      "path": "source/Linux/native/viewer_ui.rs",
+      "mode": 420,
+      "bytes": 12851,
+      "sha256": "2016b74eac12d58cd83bfb51c3160db9dc2d4ae2e4ab02cae2d70bed8cb57e76"
+    },
+    {
+      "path": "source/Linux/packaging/farpane-native.service.in",
+      "mode": 420,
+      "bytes": 311,
+      "sha256": "62e5c06a62b761d4d440263c09392562a417ecdbb7e2433a0740597522f8acc6"
+    },
+    {
+      "path": "source/Linux/packaging/farpane.service",
+      "mode": 420,
+      "bytes": 281,
+      "sha256": "fec51046adfc04b182850da92ea97c457e79384d51d5eb5c1a6fb2a809e090a7"
+    },
+    {
+      "path": "source/Linux/packaging/gui-test.Dockerfile",
+      "mode": 420,
+      "bytes": 360,
+      "sha256": "419650e8d07f4cf21bf355d874d8dd53118291ddf6ebb0da08447ca15120363e"
+    },
+    {
+      "path": "source/Linux/packaging/native-audio-test.Dockerfile",
+      "mode": 420,
+      "bytes": 387,
+      "sha256": "9eddd8b358b1567062f9b5f97d9a1b51800ad3adc36bfad5c6ac37b34fb38163"
+    },
+    {
+      "path": "source/Linux/packaging/native-builder.Dockerfile",
+      "mode": 420,
+      "bytes": 768,
+      "sha256": "7325a7ea7bf641b70cf8d35ad29a2f5e2f8b021e9274355bace3fb8b460b1665"
+    },
+    {
+      "path": "source/Linux/packaging/native-clipboard-test.Dockerfile",
+      "mode": 420,
+      "bytes": 450,
+      "sha256": "339cf500b079285e6914b2871f22219b46eb0956c7bf1e52dda4e05f87344af1"
+    },
+    {
+      "path": "source/Linux/packaging/native-deb-README.txt",
+      "mode": 420,
+      "bytes": 3219,
+      "sha256": "6c151f98ea87fab670b8511c92e2730499b05b5da7f093dc212e8c8153d0dd0f"
+    },
+    {
+      "path": "source/Linux/packaging/native-display-test.Dockerfile",
+      "mode": 420,
+      "bytes": 650,
+      "sha256": "0ddd09be31e3be1d5a58d89ce70097b17af5a14683e1c000b53ef90080418ef9"
+    },
+    {
+      "path": "source/Linux/packaging/native-runtime-ubuntu2404.Dockerfile",
+      "mode": 420,
+      "bytes": 739,
+      "sha256": "219593f64d977f2e7f869a05a15815665ba93046acd2a20168bf5e2207b292dd"
+    },
+    {
+      "path": "source/Linux/packaging/native-secret-builder.Dockerfile",
+      "mode": 420,
+      "bytes": 446,
+      "sha256": "5c9e2c1eb79936f25090c05ff51eb457c614719c3beeb99649a2d4ca17db325f"
+    },
+    {
+      "path": "source/Linux/packaging/native-secrets-test.Dockerfile",
+      "mode": 420,
+      "bytes": 388,
+      "sha256": "dc38f33cf9f15820e1ae8198045ced1d3acb8e9fef5d95291a20dec5790fdbc1"
+    },
+    {
+      "path": "source/Linux/packaging/native-source-README.md",
+      "mode": 420,
+      "bytes": 3863,
+      "sha256": "32087c34b12357067d1db492ed6371b78b90b9b041f388ad70bddce6ea2c81dd"
+    },
+    {
+      "path": "source/Linux/packaging/native_bundle.py",
+      "mode": 420,
+      "bytes": 5453,
+      "sha256": "9a3eb72e2c6a295a82f920b81524677c99b5160827a0358a077fad4737aaff97"
+    },
+    {
+      "path": "source/Linux/packaging/native_deb.py",
+      "mode": 420,
+      "bytes": 10014,
+      "sha256": "eec5e4549a8823c645935e509fd4391a39d4bee58a8da07466ae374c415c2bbd"
+    },
+    {
+      "path": "source/Linux/packaging/native_install.py",
+      "mode": 420,
+      "bytes": 24169,
+      "sha256": "65576f5792cb22c37c3d5534005ee4df09233c197ee3c57e3db45c93817f01e3"
+    },
+    {
+      "path": "source/Linux/packaging/native_install_runtime.py",
+      "mode": 420,
+      "bytes": 13287,
+      "sha256": "29259d29687d2101b1a48d19bc2162c6cd3ddedf2b652bc111901841226d3c43"
+    },
+    {
+      "path": "source/Linux/packaging/native_notice_supplements.py",
+      "mode": 420,
+      "bytes": 5845,
+      "sha256": "e602733c012c401fde65ff056ebaa0da90aa75f6a3d56210809c06977ae336b7"
+    },
+    {
+      "path": "source/Linux/packaging/native_receipt.py",
+      "mode": 420,
+      "bytes": 3128,
+      "sha256": "71a9b99240f99ff5873d9c1da04e7754c252d1140bc01f2cbe3106bbc3ecbb33"
+    },
+    {
+      "path": "source/Linux/packaging/native_source_bundle.py",
+      "mode": 420,
+      "bytes": 15906,
+      "sha256": "d6509f8654a4f9a0bd05670f2efefa528678869adba9640a73ca1720e073ad65"
+    },
+    {
+      "path": "source/Linux/packaging/native_sources.py",
+      "mode": 420,
+      "bytes": 10723,
+      "sha256": "e3153abc7f2e714aee86238ce69fcbe7c882c39ac45d4008474ec4419660b4c8"
+    },
+    {
+      "path": "source/Linux/packaging/native_user_install.py",
+      "mode": 420,
+      "bytes": 13163,
+      "sha256": "eae5bdc629fa988f397da80496aa4d04cee381558056eba0a68617f2ee278949"
+    },
+    {
+      "path": "source/Linux/packaging/org.farpane.FarPane.desktop.in",
+      "mode": 420,
+      "bytes": 442,
+      "sha256": "c09d35fe704605c40946430ca5903eca16bdcf0449c1c39c08b6d51220de65d1"
+    },
+    {
+      "path": "source/Linux/packaging/org.farpane.FarPane.service.in",
+      "mode": 420,
+      "bytes": 95,
+      "sha256": "5e93bff9211dc9799dfe47a9c6a3436d515ee7621204ff211b99b76d074ef21d"
+    },
+    {
+      "path": "source/Linux/patches/0001-output-buffer.patch",
+      "mode": 420,
+      "bytes": 14262,
+      "sha256": "2647a6c43bb9bac961916bede321526a01f1e49bb76d3937fd6aedc3ef29f300"
+    },
+    {
+      "path": "source/Linux/patches/0002-hwcodec-ffmpeg9.patch",
+      "mode": 420,
+      "bytes": 364,
+      "sha256": "620a4e1267d93a86ddb7a722411ad0f97d1db0fbbd2b5a474ab97fb419c933ea"
+    },
+    {
+      "path": "source/Linux/patches/0003-hwcodec-linux-link.patch",
+      "mode": 420,
+      "bytes": 447,
+      "sha256": "a7fd92d4e8f1cedc14e52ae0fb6634545c090021081fc17e2c2f135a739d2261"
+    },
+    {
+      "path": "source/Linux/patches/0004-linux-hwcodec-source.patch",
+      "mode": 420,
+      "bytes": 249,
+      "sha256": "6eaa6eca388061927ecdbb7fbde4bafc4fbcdbd180e42ed741173b9b09abc701"
+    },
+    {
+      "path": "source/Linux/patches/0005-hwcodec-ffmpeg9-profiles.patch",
+      "mode": 420,
+      "bytes": 386,
+      "sha256": "b4bf1837cd6d0d389a0588834e72cff757d9b053a4719791dde756d484d5fd31"
+    },
+    {
+      "path": "source/Linux/patches/0006-ffmpeg-vaapi-pool-limit.patch",
+      "mode": 420,
+      "bytes": 1383,
+      "sha256": "e0f36f7d234de06e8f64992490f8e9080548f344dbdc087c0c206c98060dccb9"
+    },
+    {
+      "path": "source/Linux/patches/0007-flutter-core-location.patch",
+      "mode": 420,
+      "bytes": 648,
+      "sha256": "90b7e91c90fd8712f29fd0dc25a369d187ea155fbb80dcf9e1ff9f4ba46ed2f6"
+    },
+    {
+      "path": "source/Linux/patches/0008-farpane-application-identity.patch",
+      "mode": 420,
+      "bytes": 3169,
+      "sha256": "00e4682d9325abbd828c887bca6ca388496cb28fe9bd4884c8950883256b62fc"
+    },
+    {
+      "path": "source/Linux/patches/0009-farpane-private-drmtap.patch",
+      "mode": 420,
+      "bytes": 1873,
+      "sha256": "9ab1d0c366b06284a0c00ecc4a502e41348558f0f8d4fe927ffd419e05495dd0"
+    },
+    {
+      "path": "source/Linux/patches/0010-linux-gpu-encoder.patch",
+      "mode": 420,
+      "bytes": 3576,
+      "sha256": "b5f7eb0894b323d729b6f1a45c98e55da09d117d5ecee82395cbf19008f507fa"
+    },
+    {
+      "path": "source/Linux/patches/0011-linux-gpu-capture-host.patch",
+      "mode": 420,
+      "bytes": 4229,
+      "sha256": "2c83fd1108c31e8acbd0d26da4d8317cecd838860d0de971a0590fd0fae9cdb8"
+    },
+    {
+      "path": "source/Linux/patches/0012-linux-gpu-settings.patch",
+      "mode": 420,
+      "bytes": 1919,
+      "sha256": "1a986802cbe0ee64580b9a0132341efcc49bf317d8993450d404d0bb28b594d4"
+    },
+    {
+      "path": "source/Linux/patches/0013-farpane-system-location.patch",
+      "mode": 420,
+      "bytes": 456,
+      "sha256": "916b7d499a52efae915e31ac6ba84c632b57cce4238875802ae4d133b66a7ab1"
+    },
+    {
+      "path": "source/Linux/patches/0014-farpane-network-identity.patch",
+      "mode": 420,
+      "bytes": 5550,
+      "sha256": "5de92871a8892c8066fa09c1ea377619b2601f88d7b1a0174c5dab3a57fc6c84"
+    },
+    {
+      "path": "source/Linux/patches/0015-native-headless-boundary.patch",
+      "mode": 420,
+      "bytes": 11916,
+      "sha256": "d0334c020438b9fbc8495b1ca3ac844f971cca7fb2780fbc07afcc92bcc8b2a2"
+    },
+    {
+      "path": "source/Linux/patches/0016-native-host-runtime.patch",
+      "mode": 420,
+      "bytes": 14201,
+      "sha256": "366f50ce7e36c098819042b9dda6ccd98c308126c1c165195e33a0a2b507b4db"
+    },
+    {
+      "path": "source/Linux/patches/0017-native-durable-configuration.patch",
+      "mode": 420,
+      "bytes": 1049,
+      "sha256": "99042df9fce40284471d24f66434c22ae2bcfea9360b0b840beff95610634d7a"
+    },
+    {
+      "path": "source/Linux/patches/0018-native-viewer-boundary.patch",
+      "mode": 420,
+      "bytes": 9384,
+      "sha256": "0ffdde43a9a5146c2b33ff77ff03d68d7402b6fd1cd93b0629f8714b23338f08"
+    },
+    {
+      "path": "source/Linux/patches/0019-native-viewer-worker.patch",
+      "mode": 420,
+      "bytes": 7239,
+      "sha256": "1920bbdf5515111daa5c5503c316b671ef3473310bdd5716ab0a6b3f1817c94e"
+    },
+    {
+      "path": "source/Linux/patches/0020-native-audio.patch",
+      "mode": 420,
+      "bytes": 2723,
+      "sha256": "4e6e794b51613706cb3deceb74c7458d46dd0261dd069a458e16497727673ba4"
+    },
+    {
+      "path": "source/Linux/patches/0021-native-cm-ready.patch",
+      "mode": 420,
+      "bytes": 1862,
+      "sha256": "9306f230d46b881599858ac69cee13104fe141869d8b52020bac1f71b167d168"
+    },
+    {
+      "path": "source/Linux/patches/0022-native-host-files.patch",
+      "mode": 420,
+      "bytes": 11138,
+      "sha256": "e87a2ef8dea5fec7de9432f25286563378b25d27d6fb6a8ac2cbaf941075ac71"
+    },
+    {
+      "path": "source/Linux/patches/0023-native-file-viewer.patch",
+      "mode": 420,
+      "bytes": 3310,
+      "sha256": "114a5e7cb9c0a171f0eea79f3946e91dff4c72b20d3f23895c2873effaeff95b"
+    },
+    {
+      "path": "source/Linux/patches/0024-native-folder-upload.patch",
+      "mode": 420,
+      "bytes": 540,
+      "sha256": "8b5c82541968302c0f4ff3b4ba75f03f209172174f0cbf4d29da13d807a7bd7d"
+    },
+    {
+      "path": "source/Linux/patches/0025-native-folder-download.patch",
+      "mode": 420,
+      "bytes": 712,
+      "sha256": "35f1dbc4585e89fcebe78b75e2f7de26ef34735cc8df26f2869d88e67848214a"
+    },
+    {
+      "path": "source/Linux/patches/0026-native-clipboard.patch",
+      "mode": 420,
+      "bytes": 2137,
+      "sha256": "2979c2a03b167bcf558f1b5d1b4108af85816f7a30aa9014880bf29dfb8474c8"
+    },
+    {
+      "path": "source/Linux/patches/0027-clipboard-x11-events.patch",
+      "mode": 420,
+      "bytes": 1642,
+      "sha256": "1053c046da7af100c764ae3d36ab9410481a558bf786fbdd28a3f5bb86c5bc75"
+    },
+    {
+      "path": "source/Linux/patches/0028-clipboard-source.patch",
+      "mode": 420,
+      "bytes": 395,
+      "sha256": "577543d426f50b62aa95e030dd297fa65939458393d9f6d84631bfb1297543a9"
+    },
+    {
+      "path": "source/Linux/patches/0029-native-host-clipboard.patch",
+      "mode": 420,
+      "bytes": 10012,
+      "sha256": "a528a1a67e35863575360fbf77d84d39431da6cee1020a141e082d5357e8c644"
+    },
+    {
+      "path": "source/Linux/patches/0030-native-clipboard-network-credit.patch",
+      "mode": 420,
+      "bytes": 704,
+      "sha256": "1734276227d63cd4c8a5410a00d558ab2f5718041401184382aa047b4f34c731"
+    },
+    {
+      "path": "source/Linux/patches/0031-native-wayland-clipboard.patch",
+      "mode": 420,
+      "bytes": 1291,
+      "sha256": "8c63dc5bd795a3eb1bee19ada5fa8048a76ed9f6a858da82f008f1eaf98de257"
+    },
+    {
+      "path": "source/Linux/patches/0032-native-release-media-library.patch",
+      "mode": 420,
+      "bytes": 5056,
+      "sha256": "8b74bf0854d680967a5da94e8ade1df2658004b40ebca7213e2cf416db56977c"
+    },
+    {
+      "path": "source/Linux/patches/0033-native-vaapi-runtime-compat.patch",
+      "mode": 420,
+      "bytes": 689,
+      "sha256": "54d977865943b6d41fc86678200049a9adc68b805c88689cea9283476a66ead5"
+    },
+    {
+      "path": "source/Linux/patches/0034-native-session-lifecycle.patch",
+      "mode": 420,
+      "bytes": 2415,
+      "sha256": "ea038df4730d4e5f83ded97021ba605bd21a5efe6d859b5619620b87a8121539"
+    },
+    {
+      "path": "source/Linux/patches/0035-native-supervision-probes.patch",
+      "mode": 420,
+      "bytes": 1701,
+      "sha256": "25b74e10e5ff07f2654672f712dcde5a34b80869fb0609ac90268eabe9aad01c"
+    },
+    {
+      "path": "source/Linux/patches/0036-native-session-discovery.patch",
+      "mode": 420,
+      "bytes": 6890,
+      "sha256": "e21293942b16d744cdee8a954bf49670ebf1d85030313b717ff02e310f1eed23"
+    },
+    {
+      "path": "source/Linux/patches/0037-native-input-reconnect.patch",
+      "mode": 420,
+      "bytes": 7730,
+      "sha256": "eccaf2479729508a0f4460b668c5dca261a89ecbb9aa62a75773dee995853c10"
+    },
+    {
+      "path": "source/Linux/patches/0038-native-service-session-auth.patch",
+      "mode": 420,
+      "bytes": 539,
+      "sha256": "108b764fa90f211ceee33d1316ffe5789ff65f6d2996ffe08def459e4a446343"
+    },
+    {
+      "path": "source/Linux/patches/0039-native-registration-recovery.patch",
+      "mode": 420,
+      "bytes": 2099,
+      "sha256": "f0435e7e7b3bcb141cd27e2bcdde449597b1c0ec3e8abc2d551ab92ac3e9c0c2"
+    },
+    {
+      "path": "source/Linux/patches/0040-native-clipboard-memory.patch",
+      "mode": 420,
+      "bytes": 4253,
+      "sha256": "35ce4c2cabd7de2889acaeb9aa44f09e76b696a47b2ed9b505797b2f7d0dc453"
+    },
+    {
+      "path": "source/Linux/src/app.rs",
+      "mode": 420,
+      "bytes": 2390,
+      "sha256": "d47ce9cf238edb133a671ab25fe80cf775eace5c72131b58617b22340db51a0d"
+    },
+    {
+      "path": "source/Linux/src/gpu_build.rs",
+      "mode": 420,
+      "bytes": 4019,
+      "sha256": "0b9370440a6f111b00e720a67d8b8971307a9aefed2c0ae0f36ac1e7a559f024"
+    },
+    {
+      "path": "source/Linux/src/gpu_capture.rs",
+      "mode": 420,
+      "bytes": 11077,
+      "sha256": "8cf88be2c227de8c8e56819778bcf875051b5f025689cf61f81f76a3cc7c0a86"
+    },
+    {
+      "path": "source/Linux/src/gpu_host.rs",
+      "mode": 420,
+      "bytes": 6109,
+      "sha256": "4b62cf55860f29914ef2bdbb6619afa1315fe4ed957d1bde1dd7e0256d1fe86d"
+    },
+    {
+      "path": "source/Linux/src/gpu_media.cpp",
+      "mode": 420,
+      "bytes": 15415,
+      "sha256": "efa7c745eccf59c5bd74011f5d2c94236ae822ff009080f6b7304634093b6ab6"
+    },
+    {
+      "path": "source/Linux/src/gpu_media.h",
+      "mode": 420,
+      "bytes": 1202,
+      "sha256": "6405efc5307de5c0760cc199ea8cd671c57fe97da5ba65db4a170b5a63f4bcf6"
+    },
+    {
+      "path": "source/Linux/src/gpu_settings.dart",
+      "mode": 420,
+      "bytes": 4467,
+      "sha256": "db71a3d316aced6aca41ca483d78ea614d59bb1d5cd3d581aa13241d3d391bd2"
+    },
+    {
+      "path": "source/Linux/src/gpu_status.rs",
+      "mode": 420,
+      "bytes": 1342,
+      "sha256": "eea7be5e828f811580eea8ce5d7c5a20836cf8e88ef3aab3287eac42ed2320fa"
+    },
+    {
+      "path": "source/Linux/src/linux_gpu.rs",
+      "mode": 420,
+      "bytes": 18653,
+      "sha256": "c4602576845cf0fa33214510d105b6f2c23b6ce143aa594588af23751a7c94fa"
+    },
+    {
+      "path": "source/Linux/src/native_audio_capture.rs",
+      "mode": 420,
+      "bytes": 3489,
+      "sha256": "7796ad2a43361531bcd8c5e3360ed7f86217d071aba9bfe0bbf84a6b52736fe5"
+    },
+    {
+      "path": "source/Linux/src/native_config_store.rs",
+      "mode": 420,
+      "bytes": 18157,
+      "sha256": "3096ee3f374800a1cc41691a9e17baa9c713fc2b20aaf0867d59638ca571b96d"
+    },
+    {
+      "path": "source/Linux/src/native_library_path.rs",
+      "mode": 420,
+      "bytes": 2016,
+      "sha256": "4dd03068becfd57caa10e17a26fcff9a041fa6645f63acd3f8f95d27de7b094e"
+    },
+    {
+      "path": "source/Linux/src/native_viewer_config.rs",
+      "mode": 420,
+      "bytes": 5829,
+      "sha256": "840a53cf8a2febf0013ce60a4a0aa8bf7c53942641b9289915daf1018c29645e"
+    },
+    {
+      "path": "source/Linux/src/vaapi_compat.c",
+      "mode": 420,
+      "bytes": 1067,
+      "sha256": "cbcb012ced213eca3730aab0c1fc59a175cafb1ef0c8fc30b3b20f81cc90b078"
+    },
+    {
+      "path": "source/Linux/src/viewer_decode.cpp",
+      "mode": 420,
+      "bytes": 20887,
+      "sha256": "31f1dbe40dccc4f4df3076a1f75025ddcc0c9b470e7c5d8e6bb70c0055f1282e"
+    },
+    {
+      "path": "source/Linux/src/viewer_decode.h",
+      "mode": 420,
+      "bytes": 2067,
+      "sha256": "2be9ff1f8272d84b7b2d2eba234f36002bcebf8dc3e76e21e739eda26749b7f8"
+    },
+    {
+      "path": "source/Linux/tests/app_identity.py",
+      "mode": 420,
+      "bytes": 1681,
+      "sha256": "2a61c7a30d86ac0acf4bf27011c297c95c6910ea724ee4f4e099058e9bd72a76"
+    },
+    {
+      "path": "source/Linux/tests/gpu_adapter.cpp",
+      "mode": 420,
+      "bytes": 9098,
+      "sha256": "d1c394a6eae49fe2deec8222a7a871c5fba74629724bc98b939a02055921ed48"
+    },
+    {
+      "path": "source/Linux/tests/gpu_renderer_test.c",
+      "mode": 420,
+      "bytes": 4628,
+      "sha256": "754674b83df838e7f1209333d3b78a5e0e4dd37109b77ed5233e7aa9dcbddf31"
+    },
+    {
+      "path": "source/Linux/tests/gui_settings.py",
+      "mode": 420,
+      "bytes": 1524,
+      "sha256": "644ee1387fffe81a17e92d86795cebf21a5eac9f69274523ca64d4451216b54a"
+    },
+    {
+      "path": "source/Linux/tests/native_audio_smoke.py",
+      "mode": 420,
+      "bytes": 9487,
+      "sha256": "422fa86bfa425bd0740742209a3513ed73003a6032e148adaa3af1534264e306"
+    },
+    {
+      "path": "source/Linux/tests/native_auto_reconnect_smoke.py",
+      "mode": 420,
+      "bytes": 10533,
+      "sha256": "906a7df9c2d9aa2c595ef2f14069e5f4dbd971f652311d5fa5d8aeaab9ee1907"
+    },
+    {
+      "path": "source/Linux/tests/native_clipboard_provider_smoke.py",
+      "mode": 420,
+      "bytes": 3649,
+      "sha256": "79390af0ee5e5f36563319df14810719dc1d2a9e84aec508cab85f8c54ceab4f"
+    },
+    {
+      "path": "source/Linux/tests/native_clipboard_smoke.py",
+      "mode": 420,
+      "bytes": 17217,
+      "sha256": "cf3ae95a9a16b30cdd8b749f990bcdae658a4b0be476f1f08e1cf7f21cf8265a"
+    },
+    {
+      "path": "source/Linux/tests/native_clipboard_writer_smoke.py",
+      "mode": 420,
+      "bytes": 5786,
+      "sha256": "f7441dacfcb0e99a2cf022bb1d914f01fb439c6e0faa2f88d6a79085686f63e0"
+    },
+    {
+      "path": "source/Linux/tests/native_config_smoke.py",
+      "mode": 420,
+      "bytes": 12992,
+      "sha256": "82de4f3a6faedde1b1b1ac9753bc169ddae5c8dec9c341f67a313739e1e2a53a"
+    },
+    {
+      "path": "source/Linux/tests/native_cursor_smoke.py",
+      "mode": 420,
+      "bytes": 5513,
+      "sha256": "a9864ebe7f326881d95f39f560ca69e6e360ccb564d3ae4c11655ac32c8c41b5"
+    },
+    {
+      "path": "source/Linux/tests/native_deb_smoke.py",
+      "mode": 420,
+      "bytes": 5817,
+      "sha256": "eca486b95cb499e51053281e79b2f739d07dab49323dc1cd750636480ec20e83"
+    },
+    {
+      "path": "source/Linux/tests/native_desktop_smoke.py",
+      "mode": 420,
+      "bytes": 16837,
+      "sha256": "369873139e07ddbd30a247e945ed5dba9b6064171a2b6f898badb7d3b50295e4"
+    },
+    {
+      "path": "source/Linux/tests/native_files_smoke.py",
+      "mode": 420,
+      "bytes": 11965,
+      "sha256": "104530c5acb567b0f38d314a968da0e5439bb8e873b9a7043d5eced20c38f9d4"
+    },
+    {
+      "path": "source/Linux/tests/native_gl_identity.c",
+      "mode": 420,
+      "bytes": 1784,
+      "sha256": "07c97c091f8a36e8f7d0c9086dab38f6d3cb501c36dd931e9801f4fc323f4537"
+    },
+    {
+      "path": "source/Linux/tests/native_gpu_viewer.cpp",
+      "mode": 420,
+      "bytes": 11994,
+      "sha256": "0b8cd64768e6e8ea70b58ab5bb1364df349f67de4f6cb35fb52ecaa19d46f96a"
+    },
+    {
+      "path": "source/Linux/tests/native_host_smoke.py",
+      "mode": 420,
+      "bytes": 9456,
+      "sha256": "40c612e3b299bf41594f87c4907e8e83d63cd3a4af9f02b3bb54008e6adcce0b"
+    },
+    {
+      "path": "source/Linux/tests/native_hud_smoke.py",
+      "mode": 420,
+      "bytes": 4947,
+      "sha256": "9d039ca4d5da981661e2b99d3132274a0d7808a29939179c6fa092be8f428f4d"
+    },
+    {
+      "path": "source/Linux/tests/native_inbound_smoke.py",
+      "mode": 420,
+      "bytes": 2460,
+      "sha256": "1d984952c3f0cdc6ef41771a642f046a6f8bcb5ca8373df77eea78005103645a"
+    },
+    {
+      "path": "source/Linux/tests/native_install_fixture.c",
+      "mode": 420,
+      "bytes": 302,
+      "sha256": "d7585f8f300e838190656cf683d59a5f3970eb35ff733b502a178c91cf705167"
+    },
+    {
+      "path": "source/Linux/tests/native_install_smoke.py",
+      "mode": 420,
+      "bytes": 32018,
+      "sha256": "f34fb63106d86a704f432275cfdac5ad877f0ca9cea5f65dbefaa1db8df46b30"
+    },
+    {
+      "path": "source/Linux/tests/native_package_smoke.py",
+      "mode": 420,
+      "bytes": 4831,
+      "sha256": "6f6a57caab3b1d669605abd2d8dbbec0f4c81180287dea9136ec1bace3ae574d"
+    },
+    {
+      "path": "source/Linux/tests/native_recovery_smoke.py",
+      "mode": 420,
+      "bytes": 13295,
+      "sha256": "4a0d81ce1c6d17a9ee1234160634d0693a6dd8f75636f7e2d1942b697cd81c67"
+    },
+    {
+      "path": "source/Linux/tests/native_secrets_smoke.py",
+      "mode": 420,
+      "bytes": 11295,
+      "sha256": "14077b9596a062c503e1f71c9a7c11839663a7cdc88206382d1e1572c3f0afe8"
+    },
+    {
+      "path": "source/Linux/tests/native_service_loginctl.py",
+      "mode": 493,
+      "bytes": 1861,
+      "sha256": "c5794952cef345b4baa3ee866404b87cbd8f8f34a20cc5d05823f9fef6534840"
+    },
+    {
+      "path": "source/Linux/tests/native_service_smoke.py",
+      "mode": 420,
+      "bytes": 18732,
+      "sha256": "f3f595ea95e9578e4ba9aae9aa47914b9e5664b9f55ffaee71faa965011ba806"
+    },
+    {
+      "path": "source/Linux/tests/native_source_smoke.py",
+      "mode": 420,
+      "bytes": 5023,
+      "sha256": "040b46d49ca155476e4aa3a0446c8237ab02ee22d89c1244fae2015c07c3cd97"
+    },
+    {
+      "path": "source/Linux/tests/native_viewer_smoke.py",
+      "mode": 420,
+      "bytes": 32894,
+      "sha256": "fa27cb1eb0e5c3d86c479ac5127b5416af722ad93d5e688da47f47c3b5a711c4"
+    },
+    {
+      "path": "source/Linux/tests/native_wayland_clipboard_smoke.py",
+      "mode": 420,
+      "bytes": 3621,
+      "sha256": "f19ea591983e039971301de5a00b33feac39fb84d0d1dadba10ce64ed5d235bc"
+    },
+    {
+      "path": "source/Linux/tests/p0_cpu.cpp",
+      "mode": 420,
+      "bytes": 5903,
+      "sha256": "44c708c9940832ef6fb8c6f967a4e505dadabf43d7b23649f3910a8d1b7b33bc"
+    },
+    {
+      "path": "source/Linux/tests/p0_load.c",
+      "mode": 420,
+      "bytes": 405,
+      "sha256": "94e8bdea053158ce9bdd2a1dfba4eca2641b3cfc0a8440ab08b9aee4a26b0abd"
+    },
+    {
+      "path": "source/Linux/tests/p0_media.cpp",
+      "mode": 420,
+      "bytes": 27843,
+      "sha256": "3808f6df006d1fffab5a92cf86ad24ee178b067a13ed74302f38d5bb7ca1a1d4"
+    },
+    {
+      "path": "source/Linux/tests/test_install.py",
+      "mode": 420,
+      "bytes": 4186,
+      "sha256": "50f972dfc5a179427bf7caaa3012af6aa39c16089c0b5bbd37b69913c985a728"
+    },
+    {
+      "path": "source/Linux/tests/test_native_bundle.py",
+      "mode": 420,
+      "bytes": 3614,
+      "sha256": "5defb96cf8c5926571e6b60f33247e308129ba01d3293f4358fc5046c91826a0"
+    },
+    {
+      "path": "source/Linux/tests/test_native_prepare.py",
+      "mode": 420,
+      "bytes": 3410,
+      "sha256": "9f8fb67fa8e6d3d1aef121493998556eb8412d0c1de48c54a85414c4170ee0e2"
+    },
+    {
+      "path": "source/Linux/tests/test_prepare.py",
+      "mode": 420,
+      "bytes": 2879,
+      "sha256": "18456cf3edd0f01ec51c13c33b64f1563c0c87defa34df3f7e335aa7304b0c14"
+    },
+    {
+      "path": "source/Linux/tests/vaapi_compat_stubs.c",
+      "mode": 420,
+      "bytes": 808,
+      "sha256": "d1214788d39c93a46a5d0a02922c8f185b79595a98276894504600ef963d9c8b"
+    },
+    {
+      "path": "source/Linux/tests/vaapi_compat_test.c",
+      "mode": 420,
+      "bytes": 1533,
+      "sha256": "6b7a36d252b96087d15954d860ce32bbb96c1dd5b5ce171b8e35908b69d2c3ee"
+    },
+    {
+      "path": "source/Linux/tests/viewer_color_contract.py",
+      "mode": 420,
+      "bytes": 1398,
+      "sha256": "4086ebfe819aaebacf9e525d01d49473b4e081d6f9352490586a8098fe1783ae"
+    },
+    {
+      "path": "source/Linux/tests/x11_clipboard_fixture.c",
+      "mode": 420,
+      "bytes": 7966,
+      "sha256": "d9146b819c2563f73777a1485c49e7a63ca4f0caf0baa1036f3fe7e24f8132dd"
+    },
+    {
+      "path": "source/Scripts/linux/audit-native-sources.py",
+      "mode": 493,
+      "bytes": 740,
+      "sha256": "b6caae9ef1888287644181701677412475a3f3911703d0bedb7daf8f97a073ac"
+    },
+    {
+      "path": "source/Scripts/linux/audit-native-sources.sh",
+      "mode": 493,
+      "bytes": 870,
+      "sha256": "ba6b1edcf4b8b3e6a7e9e6c4893fc92824a7afa2a3f5571a79b26a266cd403c0"
+    },
+    {
+      "path": "source/Scripts/linux/build-core.sh",
+      "mode": 493,
+      "bytes": 1230,
+      "sha256": "d84cb1c7f352e01dfaeaae14a5a622e5d29fb434c94c71b70bfbc32889041463"
+    },
+    {
+      "path": "source/Scripts/linux/build-drmtap.sh",
+      "mode": 493,
+      "bytes": 1878,
+      "sha256": "5513862f18841ff80e19a3cd4cf39d2b8eec93e8f46f8797d6cc75208386e774"
+    },
+    {
+      "path": "source/Scripts/linux/build-ffmpeg.sh",
+      "mode": 493,
+      "bytes": 1243,
+      "sha256": "39658bc14520994a2ea918ff421e50dcdf475d0c342911d505beb1b403e43b3a"
+    },
+    {
+      "path": "source/Scripts/linux/build-gpu-test.sh",
+      "mode": 420,
+      "bytes": 538,
+      "sha256": "96232476c6080d463ce340d135705fcdcc726335ed5337188e4c17d8ffecab1c"
+    },
+    {
+      "path": "source/Scripts/linux/build-gui.sh",
+      "mode": 493,
+      "bytes": 1805,
+      "sha256": "926eb3c73f6443929b4483e011953fe4f1e6fea6497146b40a130a0ccba4f301"
+    },
+    {
+      "path": "source/Scripts/linux/build-legacy-cpu.sh",
+      "mode": 493,
+      "bytes": 1879,
+      "sha256": "11b7eba44665c3fefbc97f5747d821bcbc3cd5e4ddf87e8e756ff5ad7a152069"
+    },
+    {
+      "path": "source/Scripts/linux/build-native-app.sh",
+      "mode": 493,
+      "bytes": 1298,
+      "sha256": "19143ceced30a9aa46123d12e60c15f2f96591d159294f996aa23425a12506df"
+    },
+    {
+      "path": "source/Scripts/linux/build-native-core.sh",
+      "mode": 493,
+      "bytes": 652,
+      "sha256": "8c5a7c9bab2a24f39a4232a2f4c1e980ae53857cf942b995bfc6869404f3228d"
+    },
+    {
+      "path": "source/Scripts/linux/build-native-gpu-test.sh",
+      "mode": 493,
+      "bytes": 754,
+      "sha256": "925784b942cc39ea6257c0786be00173fef12a4fcac637b22aed6c467686cac2"
+    },
+    {
+      "path": "source/Scripts/linux/build-p0.sh",
+      "mode": 493,
+      "bytes": 1539,
+      "sha256": "611134de61785bd54a4c6acfd8eaf0af74bf90e02c9128b7c715a64c5d568a1e"
+    },
+    {
+      "path": "source/Scripts/linux/container.sh",
+      "mode": 493,
+      "bytes": 996,
+      "sha256": "a7b6a3132eafba0519e908747072b81868daadc45696ea28f92f120417f99958"
+    },
+    {
+      "path": "source/Scripts/linux/generate-bridge.sh",
+      "mode": 493,
+      "bytes": 2259,
+      "sha256": "2830cb306172a796005890e2d223fc335a766e8109fd435af3a651bf1594b806"
+    },
+    {
+      "path": "source/Scripts/linux/install-app.py",
+      "mode": 493,
+      "bytes": 4994,
+      "sha256": "160a71724bf36c1dc8d048684fa32b14f22ef51d67249ccb6d138dacb98fb792"
+    },
+    {
+      "path": "source/Scripts/linux/install-native-user.py",
+      "mode": 493,
+      "bytes": 1229,
+      "sha256": "aeb7257a1a284d09310a411a6404bbfd50f93593a05c57190b1b73d5be912d30"
+    },
+    {
+      "path": "source/Scripts/linux/install-native.py",
+      "mode": 493,
+      "bytes": 1981,
+      "sha256": "4f82509c8e1c739b5278a4664bb2626784e858dafe6c2f3189150e736bfffb73"
+    },
+    {
+      "path": "source/Scripts/linux/install-system.py",
+      "mode": 420,
+      "bytes": 4997,
+      "sha256": "7c2f2db204a3dd8aa87a83cf475ef615a81e448f10cd38ea56140dc6c6b2f089"
+    },
+    {
+      "path": "source/Scripts/linux/native-container.sh",
+      "mode": 493,
+      "bytes": 1011,
+      "sha256": "2e01f57743fc1130336fe86957b4f24a521dfcd0d874c27955f53f7e76f20c23"
+    },
+    {
+      "path": "source/Scripts/linux/package-app.py",
+      "mode": 493,
+      "bytes": 4237,
+      "sha256": "6965e5920523ccaafdc22be2266d56f969062a1cd07e593662ee4dc91813530d"
+    },
+    {
+      "path": "source/Scripts/linux/package-core.py",
+      "mode": 420,
+      "bytes": 2508,
+      "sha256": "85d86b71041a848161055d148a25000e9070065484c0332af6f8549d3d40dd4d"
+    },
+    {
+      "path": "source/Scripts/linux/package-native-deb.py",
+      "mode": 493,
+      "bytes": 672,
+      "sha256": "d7d78a9e4c33a0ea9caead0b1672f2dfa395a38cca3b4ec6eefbf4af932ecba6"
+    },
+    {
+      "path": "source/Scripts/linux/package-native-source.py",
+      "mode": 493,
+      "bytes": 824,
+      "sha256": "04a617ecf712c4e1f161f51705071fcd7733bea618f21abb994a3a1a0f4fe327"
+    },
+    {
+      "path": "source/Scripts/linux/package-native.py",
+      "mode": 493,
+      "bytes": 10777,
+      "sha256": "4a7a2026caf4fa6370e697265ec1c6680e56932fa43050ff303ee0a9cf69ff92"
+    },
+    {
+      "path": "source/Scripts/linux/prepare-cache.sh",
+      "mode": 420,
+      "bytes": 1256,
+      "sha256": "987613d3834c819c07f66e2669ccaf6b39797709c9164d8b75af32032bcc8298"
+    },
+    {
+      "path": "source/Scripts/linux/prepare-native.py",
+      "mode": 493,
+      "bytes": 3530,
+      "sha256": "c84f20df50af7ced624717db4d78242495ea039f2e7251c31ce27eee47e806a7"
+    },
+    {
+      "path": "source/Scripts/linux/prepare.py",
+      "mode": 493,
+      "bytes": 10063,
+      "sha256": "c13148e88a1244594d0ebcaca6d6d1a1e33e809c94b42fe81e9e7322dff3d767"
+    },
+    {
+      "path": "source/Scripts/linux/run-native-gpu-test.py",
+      "mode": 420,
+      "bytes": 7319,
+      "sha256": "4b9d0cdfab2dd087de0ea1b90ce62f8fd3957d5e6614e844dec9798dbb842ff5"
+    },
+    {
+      "path": "source/Scripts/linux/run-p0.sh",
+      "mode": 493,
+      "bytes": 1697,
+      "sha256": "ac605b788ee20516fba231fd51a17099c7d9e9df83f2863b08a7c1b3590a957e"
+    },
+    {
+      "path": "source/Scripts/linux/sample-runtime.py",
+      "mode": 420,
+      "bytes": 4029,
+      "sha256": "383dc86e0d740a543c749cfee4f34f47c9f48f02748583c143f129d3ef9895d4"
+    },
+    {
+      "path": "source/Scripts/linux/stage-load-test.py",
+      "mode": 420,
+      "bytes": 2203,
+      "sha256": "c59d80a6791944adb854ce1eed9bd8cd444d869e5593f9383ff9c87e4ceef397"
+    },
+    {
+      "path": "source/Scripts/linux/supplement-native-notices.py",
+      "mode": 493,
+      "bytes": 641,
+      "sha256": "9d119eeca351d392319494f82d8ba1fc2c7ff4c4e1c479e1811d935fa83f6c6c"
+    },
+    {
+      "path": "source/Scripts/linux/test-clean-load.sh",
+      "mode": 493,
+      "bytes": 1124,
+      "sha256": "19973a463adb6aba207bceb60b3ef3778d6241d32420808fea9453a0f592f14a"
+    },
+    {
+      "path": "source/Scripts/linux/test-flutter.sh",
+      "mode": 493,
+      "bytes": 893,
+      "sha256": "2933804545f1879c12c92d0c1ffc0242303d7e18fe7fa9f6b8271d91d8ed7aaf"
+    },
+    {
+      "path": "source/Scripts/linux/test-gui.sh",
+      "mode": 493,
+      "bytes": 2827,
+      "sha256": "404df1937aadd3c9f8959535a385c7c90fd63dabb8f2e6ff0991fe45d4f90941"
+    },
+    {
+      "path": "source/Scripts/linux/test-identity.sh",
+      "mode": 493,
+      "bytes": 693,
+      "sha256": "4da061b9984e0ab7ecac20e215cbe0e9d806df1eb7850be9adea3d0584e3bc9d"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-deb.sh",
+      "mode": 493,
+      "bytes": 1337,
+      "sha256": "2818b469e93e18d15b69dac049aaa319d8463d8974caace5e10fb737304f1ba6"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-gui.sh",
+      "mode": 493,
+      "bytes": 2021,
+      "sha256": "0c9f1e24ccd3e914b3c01cb241154f246967d89cb3dc07d4f4a6bc4ee2f63fbd"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-host.sh",
+      "mode": 493,
+      "bytes": 891,
+      "sha256": "fbe5189756610e15cd0a81f5ed38ad21fe8a58726d89192b61881e9b12d037e6"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-install.sh",
+      "mode": 493,
+      "bytes": 1712,
+      "sha256": "ca5e2b057e7731d5bc75b1c34973a57b40c2265ee259a5418b857203c42fed16"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-package.sh",
+      "mode": 493,
+      "bytes": 1237,
+      "sha256": "19dc13570015eee2c915180f424c57a2b336691fe1f8e819dccac00dc602e8ef"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-renderer.sh",
+      "mode": 493,
+      "bytes": 651,
+      "sha256": "25270330a2a7a8f041076f45ed930881e5d4dae7bc794223c6815544989138ed"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-service.sh",
+      "mode": 493,
+      "bytes": 1224,
+      "sha256": "4892d050aad740bfb84edaa9639331f6a1ea30340b11b42636e3c9ab25c675dc"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-source.sh",
+      "mode": 493,
+      "bytes": 1508,
+      "sha256": "a807ba12809f84f44b9425b823c65e129ff9b6c483eaef30a8615e131bc76e0f"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-viewer.sh",
+      "mode": 493,
+      "bytes": 2125,
+      "sha256": "ee44277d5dd5336d46d9fc74721270a5d09cd1451a7a0e761cb42cac07cea261"
+    },
+    {
+      "path": "source/Scripts/linux/test-native-wayland-clipboard.sh",
+      "mode": 493,
+      "bytes": 1119,
+      "sha256": "d7161f1fcbd2f87d6464d66dd570e8769dbccf4f733259e641ef6f74daa30f47"
+    },
+    {
+      "path": "source/Scripts/linux/test-vaapi-compat.sh",
+      "mode": 493,
+      "bytes": 495,
+      "sha256": "5d5c7bbf16cda3cf6c0cfd4456af84a1a35fcc6214669d9ac9ddf8d8d7c2b15f"
+    },
+    {
+      "path": "source/Scripts/linux/verify-sources.py",
+      "mode": 420,
+      "bytes": 4230,
+      "sha256": "41413bcff62d777bc1217088517323a751219cdc756724751d3b2ea7fcc77a89"
+    },
+    {
+      "path": "systemd/farpane.service",
+      "mode": 420,
+      "bytes": 311,
+      "sha256": "62e5c06a62b761d4d440263c09392562a417ecdbb7e2433a0740597522f8acc6"
+    }
+  ]
+}

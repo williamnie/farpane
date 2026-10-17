@@ -1,0 +1,31 @@
+{
+  "result": "pass",
+  "runs_preserved": 7,
+  "product_binaries": {
+    "farpane": "c9be8ed4976da5f5659d5834b9b2a70d4a5612d72f098574d6b19767b6c8f659",
+    "libexec/farpane-core": "7c363f0e24fa7f71f0e6e16fb012b4a7c2942c646993025b4e3cc23dcb1c48b3"
+  },
+  "direct_tcp_endpoints_match": true,
+  "relay_tcp_endpoints_match": true,
+  "relay_pair_and_close_logged": true,
+  "no_net_admin_during_application": true,
+  "host_services_unchanged": true,
+  "existing_servers_running": true,
+  "candidate_and_source_archives_unchanged": true,
+  "ffmpeg_unchanged": true,
+  "canonical_sha256": {
+    "Linux/tests/native_id_server_smoke.py": "b1b3aa41d427253df57ec65734cad2b2da637299785b56d50ad4ed4818a04c1d",
+    "Linux/tests/native-id-server.lock.json": "c4eaacd6102c0ba124958dc6c0e5696aeecb61929236584b19846c50c0cc8a8d",
+    "Scripts/linux/prepare-native-id-server.py": "ed80b3d6961962e42ca76688553c1d7c8b504ea20a0bdfd257366b6e4c4f7341",
+    "Scripts/linux/test-native-id-server.sh": "184df2d02922e6811c3b60b2d86e19974f7491caa95c8375feb238e9f435e987",
+    "Linux/docs/id-server-connections.md": "fd5794a7de3174c11d0d30221e15b0ee9a202bfec6c366953efa12094ebf33e8",
+    "Linux/docs/gui-status.md": "b67fb74c64a6855838e3104bd0f10b87488005e55a39d76f3ed32696b6abd812",
+    "Linux/docs/native-test-candidate.md": "13b048a97e37c10577b49dbbcdc6ed2122fb73333460ff9e2cc8c55ed277b65d",
+    "Linux/README.md": "d2c0d1043df50b91d8e2da8e83f9aed2763043e8cf94d9c10252746fe262c656"
+  },
+  "doc_links_checked": 75,
+  "product_rebuilt": false,
+  "gpu_tested": false,
+  "installed": false,
+  "full_plan_acceptance": false
+}

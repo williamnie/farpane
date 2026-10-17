@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/audit-native-sources.py", line 18, in <module>
+    print(json.dumps(native_sources.inventory(args.core_metadata, args.gui_metadata, args.output), indent=2))
+                     ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Linux/packaging/native_sources.py", line 124, in inventory
+    notices = [retain(path) for path in notice_files(package, manifest, root)]
+               ~~~~~~^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Linux/packaging/native_sources.py", line 110, in retain
+    raise ValueError('Invalid notice/material file: ' + str(path))
+ValueError: Invalid notice/material file: /home/xiaobei/Documents/xiaobei/farpane/Build/Linux/cargo/git/checkouts/x11-rs-459111c1123bf6cc/c2e9bfa/x11/LICENSE-MIT

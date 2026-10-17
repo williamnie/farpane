@@ -1,0 +1,63 @@
+{
+  "result": "pass",
+  "measurement": "idle-home-no-viewer",
+  "allocator_probe": "allocations",
+  "samples": [
+    {
+      "seconds": 3.0324409540044144,
+      "pss_kib": 198340,
+      "uss_kib": 170376,
+      "rss_kib": 246372,
+      "swap_pss_kib": 0,
+      "cpu_ticks": 307,
+      "threads": 23,
+      "fd_count": 12,
+      "child_count": 0,
+      "drm_clients": {
+        "2824": "drm-driver:\tamdgpu\ndrm-client-id:\t2824\ndrm-pdev:\t0000:c4:00.0\ndrm-total-cpu:\t0\ndrm-shared-cpu:\t0\ndrm-resident-cpu:\t0\ndrm-purgeable-cpu:\t0\ndrm-total-gtt:\t30740 KiB\ndrm-shared-gtt:\t0\ndrm-resident-gtt:\t30740 KiB\ndrm-purgeable-gtt:\t0\ndrm-total-vram:\t27420 KiB\ndrm-shared-vram:\t0\ndrm-resident-vram:\t27420 KiB\ndrm-purgeable-vram:\t768 KiB\ndrm-total-gds:\t0\ndrm-shared-gds:\t0\ndrm-resident-gds:\t0\ndrm-purgeable-gds:\t0\ndrm-total-gws:\t0\ndrm-shared-gws:\t0\ndrm-resident-gws:\t0\ndrm-purgeable-gws:\t0\ndrm-total-oa:\t0\ndrm-shared-oa:\t0\ndrm-resident-oa:\t0\ndrm-purgeable-oa:\t0\ndrm-total-doorbell:\t0\ndrm-shared-doorbell:\t0\ndrm-resident-doorbell:\t0\ndrm-purgeable-doorbell:\t0\ndrm-total-mmioremap:\t0\ndrm-shared-mmioremap:\t0\ndrm-resident-mmioremap:\t0\ndrm-purgeable-mmioremap:\t0\ndrm-memory-vram:\t27420 KiB\ndrm-memory-gtt: \t30740 KiB\ndrm-memory-cpu: \t0 KiB\ndrm-engine-compute:\t83175 ns"
+      }
+    },
+    {
+      "seconds": 10.081964817014523,
+      "pss_kib": 363340,
+      "uss_kib": 334424,
+      "rss_kib": 412468,
+      "swap_pss_kib": 0,
+      "cpu_ticks": 946,
+      "threads": 25,
+      "fd_count": 12,
+      "child_count": 0,
+      "drm_clients": {
+        "2824": "drm-driver:\tamdgpu\ndrm-client-id:\t2824\ndrm-pdev:\t0000:c4:00.0\ndrm-total-cpu:\t0\ndrm-shared-cpu:\t0\ndrm-resident-cpu:\t0\ndrm-purgeable-cpu:\t0\ndrm-total-gtt:\t34836 KiB\ndrm-shared-gtt:\t0\ndrm-resident-gtt:\t34836 KiB\ndrm-purgeable-gtt:\t0\ndrm-total-vram:\t47868 KiB\ndrm-shared-vram:\t8112 KiB\ndrm-resident-vram:\t47868 KiB\ndrm-purgeable-vram:\t768 KiB\ndrm-total-gds:\t0\ndrm-shared-gds:\t0\ndrm-resident-gds:\t0\ndrm-purgeable-gds:\t0\ndrm-total-gws:\t0\ndrm-shared-gws:\t0\ndrm-resident-gws:\t0\ndrm-purgeable-gws:\t0\ndrm-total-oa:\t0\ndrm-shared-oa:\t0\ndrm-resident-oa:\t0\ndrm-purgeable-oa:\t0\ndrm-total-doorbell:\t0\ndrm-shared-doorbell:\t0\ndrm-resident-doorbell:\t0\ndrm-purgeable-doorbell:\t0\ndrm-total-mmioremap:\t0\ndrm-shared-mmioremap:\t0\ndrm-resident-mmioremap:\t0\ndrm-purgeable-mmioremap:\t0\ndrm-memory-vram:\t47868 KiB\ndrm-memory-gtt: \t34836 KiB\ndrm-memory-cpu: \t0 KiB\ndrm-engine-gfx:\t1700926 ns\ndrm-engine-compute:\t189564 ns"
+      }
+    },
+    {
+      "seconds": 30.059599111089483,
+      "pss_kib": 231816,
+      "uss_kib": 202900,
+      "rss_kib": 280944,
+      "swap_pss_kib": 0,
+      "cpu_ticks": 979,
+      "threads": 20,
+      "fd_count": 12,
+      "child_count": 0,
+      "drm_clients": {
+        "2824": "drm-driver:\tamdgpu\ndrm-client-id:\t2824\ndrm-pdev:\t0000:c4:00.0\ndrm-total-cpu:\t0\ndrm-shared-cpu:\t0\ndrm-resident-cpu:\t0\ndrm-purgeable-cpu:\t0\ndrm-total-gtt:\t34836 KiB\ndrm-shared-gtt:\t0\ndrm-resident-gtt:\t34836 KiB\ndrm-purgeable-gtt:\t0\ndrm-total-vram:\t47868 KiB\ndrm-shared-vram:\t8112 KiB\ndrm-resident-vram:\t47868 KiB\ndrm-purgeable-vram:\t768 KiB\ndrm-total-gds:\t0\ndrm-shared-gds:\t0\ndrm-resident-gds:\t0\ndrm-purgeable-gds:\t0\ndrm-total-gws:\t0\ndrm-shared-gws:\t0\ndrm-resident-gws:\t0\ndrm-purgeable-gws:\t0\ndrm-total-oa:\t0\ndrm-shared-oa:\t0\ndrm-resident-oa:\t0\ndrm-purgeable-oa:\t0\ndrm-total-doorbell:\t0\ndrm-shared-doorbell:\t0\ndrm-resident-doorbell:\t0\ndrm-purgeable-doorbell:\t0\ndrm-total-mmioremap:\t0\ndrm-shared-mmioremap:\t0\ndrm-resident-mmioremap:\t0\ndrm-purgeable-mmioremap:\t0\ndrm-memory-vram:\t47868 KiB\ndrm-memory-gtt: \t34836 KiB\ndrm-memory-cpu: \t0 KiB\ndrm-engine-gfx:\t1700926 ns\ndrm-engine-compute:\t189564 ns"
+      }
+    }
+  ],
+  "cpu_percent_one_core_3_to_30s": 24.86387936512806,
+  "memory_60_mib_target_met": null,
+  "cpu_half_percent_target_met": null,
+  "diagnostic_allocator_replaced": true,
+  "product_memory_cpu_measurement": false,
+  "gl_identity": {
+    "VENDOR": "AMD",
+    "RENDERER": "AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic)",
+    "VERSION": "OpenGL ES 3.2 Mesa 26.0.8-1ubuntu0.3"
+  },
+  "screenshots_exported": false,
+  "host_configuration_preserved": true,
+  "real_desktop_tested": false,
+  "product_changed": false
+}

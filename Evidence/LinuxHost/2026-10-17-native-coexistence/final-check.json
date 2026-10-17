@@ -1,0 +1,48 @@
+{
+  "result": "pass",
+  "canonical_sha256": {
+    "Linux/tests/native_coexistence_smoke.py": "96c05db92a48072c21e021dd45e96ee68ff6dd28bee7f1610ca21a814457d8f5",
+    "Linux/tests/native-coexistence-layout.json": "9f19d05b1be4de63ce75bb845d972d90e8aec8ca770ee6953e53ae1d44967789",
+    "Linux/tests/native_lifecycle_smoke.py": "795c4a9bf66083b6a8cbdd7e39c635f8a8d1d7ffb73cf38a2ffa741d7178a472",
+    "Linux/tests/native-lifecycle-layout.json": "be2a27c69a7f8df874635f0b80ba98d6b86fb3d8299c12de639d79f525c23e68",
+    "Linux/tests/native_host_smoke.py": "40c612e3b299bf41594f87c4907e8e83d63cd3a4af9f02b3bb54008e6adcce0b",
+    "Scripts/linux/test-native-coexistence.sh": "20184935c480f06970b072a85b0aa678f0eebb1f66e922edc704e56515adda01",
+    "Linux/docs/host-viewer-coexistence.md": "d73e60bda37e2c3009f990df3c418b78f60d5a967cf0aee8456113e4969059fc",
+    "Linux/docs/gui-status.md": "961b04a44fc86960142ebcaf89fd9a2d4db28abf15b07ff11388b7a27875acc6",
+    "Linux/docs/native-test-candidate.md": "584fe337d78763016b3a9f092eed86b0ace39779cc28e1698f512962a454955b"
+  },
+  "application_sources_unchanged": true,
+  "receipt_unchanged": true,
+  "raw_binaries": {
+    "native-core": "b518ffc5b37859b1ac9e0f6b0e7d4a39c8d3e6dc57c9e8bbdbf452e826b5de62",
+    "native-gui": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421"
+  },
+  "packaged_binaries": {
+    "farpane": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421",
+    "libexec/farpane-core": "2ae7709345c3a251dde76ea71db23506dd27e2c56e256b7aeaaf6c4dbbf7766e"
+  },
+  "private_coexistence_checks": [
+    "two-endpoints-each-inbound-and-outbound-present-new-frames",
+    "host-disable-stops-new-direct-connections",
+    "host-disable-preserves-existing-inbound-and-outbound-workers",
+    "host-reenable-preserves-both-streams",
+    "disconnect-inbound-does-not-kill-local-outbound",
+    "peer-reconnect-restores-coexistence",
+    "gui-close-reaps-own-outbound-but-retains-host-and-inbound-stream",
+    "reopened-home-attaches-same-host-with-live-inbound",
+    "both-guis-exit-workers-reaped-hosts-and-identities-preserved"
+  ],
+  "fixture_failures_preserved": 3,
+  "python_ast_passed": true,
+  "shell_syntax_passed": true,
+  "git_diff_check_passed": true,
+  "doc_links_checked": 82,
+  "deliverables_unchanged": true,
+  "services_current_ffmpeg_unchanged": true,
+  "test_containers_remaining": 0,
+  "product_rebuilt": false,
+  "gpu_tested": false,
+  "installed": false,
+  "new_diagnostics_in_frozen_source_archive": false,
+  "full_plan_acceptance": false
+}

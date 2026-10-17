@@ -1,0 +1,6 @@
+load-module module-native-protocol-unix socket=/run/farpane-native-test/user/test-pulse.sock auth-anonymous=1
+load-module module-null-sink sink_name=host_audio rate=48000 channels=2
+load-module module-null-sink sink_name=viewer_audio rate=48000 channels=2
+load-module module-remap-source source_name=synthetic_mic master=host_audio.monitor
+set-default-sink viewer_audio
+set-default-source synthetic_mic

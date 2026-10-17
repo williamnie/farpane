@@ -1,0 +1,12 @@
+[2026-10-17 00:44:33.441971 +00:00] INFO [src/core_main.rs:400] start --service
+[2026-10-17 00:44:33.442564 +00:00] INFO [src/server/uinput.rs:1095] start uinput control service
+[2026-10-17 00:44:33.442608 +00:00] INFO [src/server/uinput.rs:1088] start uinput mouse service
+[2026-10-17 00:44:33.442678 +00:00] INFO [src/server/uinput.rs:1081] start uinput keyboard service
+[2026-10-17 00:44:33.442881 +00:00] INFO [src/ipc/drm.rs:101] Started drm ipc server at path: /tmp/FarPane-service/ipc_drm
+[2026-10-17 00:44:33.443116 +00:00] INFO [src/ipc/drm.rs:728] drm: udev DRM-uevent listener started
+[2026-10-17 00:44:33.470843 +00:00] INFO [src/ipc.rs:742] Started protected ipc service server: postfix=_service
+[2026-10-17 00:44:33.471654 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_control server at path: /tmp/FarPane-service/ipc_uinput_control
+[2026-10-17 00:44:33.472102 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_mouse server at path: /tmp/FarPane-service/ipc_uinput_mouse
+[2026-10-17 00:44:33.473187 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_keyboard server at path: /tmp/FarPane-service/ipc_uinput_keyboard
+[2026-10-17 00:44:33.509279 +00:00] WARN [src/farpane_native/supervisor.rs:101] Native desktop context unavailable; privileged access suspended: Desktop environment is not ready for this login session
+[2026-10-17 00:44:43.901969 +00:00] WARN [src/farpane_native/supervisor.rs:101] Native desktop context unavailable; privileged access suspended: Desktop environment is not ready for this login session (x19)

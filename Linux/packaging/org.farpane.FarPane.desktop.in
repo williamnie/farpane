@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=FarPane
+GenericName=Remote Desktop
+GenericName[zh_CN]=远程桌面
+Comment=Connect to your devices and manage access to this computer
+Comment[zh_CN]=连接你的设备，管理访问本机的权限
+Exec=@FARPANE_RELEASE@/farpane
+Icon=org.farpane.FarPane
+Terminal=false
+DBusActivatable=true
+StartupNotify=true
+StartupWMClass=farpane
+Categories=Network;RemoteAccess;
+Keywords=remote;desktop;远程;桌面;

@@ -1,0 +1,13 @@
+Reconstructing pinned sources and checking complete prepared trees
+Traceback (most recent call last):
+  File "/home/xiaobei/Documents/xiaobei/farpane/Scripts/linux/package-native-source.py", line 19, in <module>
+    print(json.dumps(native_source_bundle.package(args.reference, args.vendor, args.vendor_config, args.output), indent=2))
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Linux/packaging/native_source_bundle.py", line 207, in package
+    comparisons = reconstructed(tree, reference)
+  File "/home/xiaobei/Documents/xiaobei/farpane/Linux/packaging/native_source_bundle.py", line 129, in reconstructed
+    expected, actual = index(sources / name, ignored), index(BUILD / 'src' / name, ignored)
+                                                       ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xiaobei/Documents/xiaobei/farpane/Linux/packaging/native_source_bundle.py", line 74, in index
+    raise ValueError('Source symlink escapes snapshot: ' + name)
+ValueError: Source symlink escapes snapshot: flutter/windows/flutter/ephemeral/.plugin_symlinks/desktop_drop

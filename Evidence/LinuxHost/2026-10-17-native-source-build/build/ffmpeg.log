@@ -1,0 +1,743 @@
+install prefix            /workspace/Build/Linux/vcpkg/installed/x64-linux
+source path               /workspace/Build/Linux/src/ffmpeg-9.0.2
+C compiler                gcc
+C library                 glibc
+ARCH                      x86 (generic)
+big-endian                no
+runtime cpu detection     yes
+standalone assembly       yes
+x86 assembler             nasm
+MMX enabled               yes
+MMXEXT enabled            yes
+SSE enabled               yes
+SSSE3 enabled             yes
+AESNI enabled             yes
+CLMUL enabled             yes
+AVX enabled               yes
+AVX2 enabled              yes
+AVX-512 enabled           yes
+AVX-512ICL enabled        yes
+XOP enabled               yes
+FMA3 enabled              yes
+FMA4 enabled              yes
+i686 features enabled     yes
+CMOV is fast              yes
+EBX available             yes
+EBP available             yes
+debug symbols             yes
+strip symbols             yes
+optimize for size         no
+optimizations             yes
+static                    yes
+shared                    no
+network support           no
+threading support         pthreads
+safe bitstream reader     yes
+texi2html enabled         no
+perl enabled              yes
+pod2man enabled           yes
+makeinfo enabled          no
+makeinfo supports HTML    no
+experimental features     yes
+xmllint enabled           no
+
+External libraries:
+iconv                   zlib
+
+External libraries providing hardware acceleration:
+amf                     libdrm                  vaapi
+cuda                    nvdec
+ffnvcodec               nvenc
+
+Libraries:
+avcodec                 avformat
+avfilter                avutil
+
+Programs:
+
+Enabled decoders:
+h264                    hevc
+
+Enabled encoders:
+h264_amf                h264_vaapi              hevc_nvenc
+h264_nvenc              hevc_amf                hevc_vaapi
+
+Enabled hwaccels:
+h264_nvdec              hevc_nvdec
+h264_vaapi              hevc_vaapi
+
+Enabled parsers:
+ac3                     h264                    hevc
+
+Enabled demuxers:
+
+Enabled muxers:
+mov                     mp4
+
+Enabled protocols:
+file
+
+Enabled filters:
+hwmap                   scale_vaapi
+
+Enabled bsfs:
+aac_adtstoasc           h264_mp4toannexb        hevc_mp4toannexb
+h264_metadata           hevc_metadata           vp9_superframe
+
+Enabled indevs:
+
+Enabled outdevs:
+
+License: LGPL version 2.1 or later
+GEN	libavutil/libavutil.version
+GEN	libavcodec/libavcodec.version
+GEN	libavformat/libavformat.version
+GEN	libavfilter/libavfilter.version
+CC	libavfilter/allfilters.o
+CC	libavfilter/audio.o
+CC	libavfilter/avfilter.o
+CC	libavfilter/avfiltergraph.o
+CC	libavfilter/buffersink.o
+CC	libavfilter/buffersrc.o
+CC	libavfilter/ccfifo.o
+CC	libavfilter/colorspace.o
+CC	libavfilter/drawutils.o
+CC	libavfilter/formats.o
+CC	libavfilter/framepool.o
+CC	libavfilter/framequeue.o
+CC	libavfilter/graphdump.o
+CC	libavfilter/graphparser.o
+CC	libavfilter/pthread.o
+CC	libavfilter/scale_eval.o
+CC	libavfilter/vaapi_vpp.o
+CC	libavfilter/version.o
+CC	libavfilter/vf_hwmap.o
+CC	libavfilter/vf_scale_vaapi.o
+CC	libavfilter/video.o
+GEN	libavfilter/libavfilter.pc
+CC	libavformat/allformats.o
+CC	libavformat/apv.o
+CC	libavformat/av1.o
+CC	libavformat/avc.o
+CC	libavformat/avformat.o
+CC	libavformat/avio.o
+CC	libavformat/aviobuf.o
+CC	libavformat/cbs.o
+CC	libavformat/cbs_apv.o
+CC	libavformat/cbs_av1.o
+CC	libavformat/codecstring.o
+CC	libavformat/demux.o
+CC	libavformat/demux_utils.o
+CC	libavformat/dovi_isom.o
+CC	libavformat/dump.o
+CC	libavformat/dv.o
+CC	libavformat/evc.o
+CC	libavformat/file.o
+CC	libavformat/format.o
+CC	libavformat/hevc.o
+CC	libavformat/iamf.o
+CC	libavformat/iamf_writer.o
+CC	libavformat/id3v1.o
+CC	libavformat/id3v2.o
+CC	libavformat/isom.o
+CC	libavformat/isom_tags.o
+CC	libavformat/lcevc.o
+CC	libavformat/metadata.o
+CC	libavformat/mov_chan.o
+CC	libavformat/movenc.o
+CC	libavformat/movenc_ttml.o
+CC	libavformat/movenccenc.o
+CC	libavformat/movenchint.o
+CC	libavformat/mux.o
+CC	libavformat/mux_utils.o
+CC	libavformat/nal.o
+CC	libavformat/options.o
+CC	libavformat/os_support.o
+CC	libavformat/packet_list.o
+CC	libavformat/protocols.o
+CC	libavformat/rawutils.o
+CC	libavformat/riff.o
+CC	libavformat/riffenc.o
+CC	libavformat/rtp.o
+CC	libavformat/rtpenc_chain.o
+CC	libavformat/sdp.o
+CC	libavformat/seek.o
+CC	libavformat/url.o
+CC	libavformat/urldecode.o
+CC	libavformat/utils.o
+CC	libavformat/version.o
+CC	libavformat/vpcc.o
+CC	libavformat/vvc.o
+GEN	libavformat/libavformat.pc
+CC	libavcodec/lcevctab.o
+CC	libavcodec/mpegaudiotabs.o
+CC	libavcodec/to_upper4.o
+GEN	libavcodec/libavcodec.pc
+GEN	libavutil/libavutil.pc
+AR	libavfilter/libavfilter.a
+CC	libavcodec/aac_ac3_parser.o
+CC	libavcodec/ac3_channel_layout_tab.o
+CC	libavcodec/ac3_parser.o
+CC	libavcodec/ac3tab.o
+CC	libavcodec/adts_header.o
+CC	libavcodec/adts_parser.o
+CC	libavcodec/allcodecs.o
+CC	libavcodec/amfdec.o
+CC	libavcodec/amfenc.o
+CC	libavcodec/amfenc_h264.o
+CC	libavcodec/amfenc_hevc.o
+CC	libavcodec/aom_film_grain.o
+CC	libavcodec/atsc_a53.o
+CC	libavcodec/avcodec.o
+CC	libavcodec/avdct.o
+CC	libavcodec/bitstream.o
+CC	libavcodec/bitstream_filters.o
+CC	libavcodec/bsf.o
+CC	libavcodec/bsf/aac_adtstoasc.o
+CC	libavcodec/bsf/h264_metadata.o
+CC	libavcodec/bsf/h264_mp4toannexb.o
+CC	libavcodec/bsf/h265_metadata.o
+CC	libavcodec/bsf/hevc_mp4toannexb.o
+CC	libavcodec/bsf/vp9_superframe.o
+CC	libavcodec/bswapdsp.o
+CC	libavcodec/cabac.o
+CC	libavcodec/cbs.o
+CC	libavcodec/cbs_bsf.o
+CC	libavcodec/cbs_h264.o
+CC	libavcodec/cbs_h2645.o
+CC	libavcodec/cbs_h265.o
+CC	libavcodec/cbs_sei.o
+CC	libavcodec/codec_desc.o
+CC	libavcodec/codec_par.o
+CC	libavcodec/d3d11va.o
+CC	libavcodec/decode.o
+CC	libavcodec/dirac.o
+CC	libavcodec/dovi_rpu.o
+CC	libavcodec/dovi_rpudec.o
+CC	libavcodec/dv_profile.o
+CC	libavcodec/dynamic_hdr_vivid.o
+CC	libavcodec/encode.o
+CC	libavcodec/error_resilience.o
+CC	libavcodec/exif.o
+CC	libavcodec/faandct.o
+CC	libavcodec/faanidct.o
+CC	libavcodec/fdctdsp.o
+CC	libavcodec/frame_thread_encoder.o
+CC	libavcodec/get_buffer.o
+CC	libavcodec/golomb.o
+CC	libavcodec/h2645_parse.o
+CC	libavcodec/h2645_sei.o
+CC	libavcodec/h2645_vui.o
+CC	libavcodec/h2645data.o
+CC	libavcodec/h264_cabac.o
+CC	libavcodec/h264_cavlc.o
+CC	libavcodec/h264_direct.o
+CC	libavcodec/h264_levels.o
+CC	libavcodec/h264_loopfilter.o
+CC	libavcodec/h264_mb.o
+CC	libavcodec/h264_parse.o
+CC	libavcodec/h264_parser.o
+CC	libavcodec/h264_picture.o
+CC	libavcodec/h264_ps.o
+CC	libavcodec/h264_refs.o
+CC	libavcodec/h264_sei.o
+CC	libavcodec/h264_slice.o
+CC	libavcodec/h264chroma.o
+CC	libavcodec/h264data.o
+CC	libavcodec/h264dec.o
+CC	libavcodec/h264dsp.o
+CC	libavcodec/h264idct.o
+CC	libavcodec/h264pred.o
+CC	libavcodec/h264qpel.o
+CC	libavcodec/h265_profile_level.o
+CC	libavcodec/h274.o
+CC	libavcodec/hevc/cabac.o
+CC	libavcodec/hevc/data.o
+CC	libavcodec/hevc/dsp.o
+CC	libavcodec/hevc/filter.o
+CC	libavcodec/hevc/hevcdec.o
+CC	libavcodec/hevc/mvs.o
+CC	libavcodec/hevc/parse.o
+CC	libavcodec/hevc/parser.o
+CC	libavcodec/hevc/pred.o
+CC	libavcodec/hevc/ps.o
+CC	libavcodec/hevc/refs.o
+CC	libavcodec/hevc/sei.o
+CC	libavcodec/hw_base_encode.o
+CC	libavcodec/hw_base_encode_h264.o
+CC	libavcodec/hw_base_encode_h265.o
+CC	libavcodec/idctdsp.o
+CC	libavcodec/imgconvert.o
+CC	libavcodec/itut35.o
+CC	libavcodec/jfdctfst.o
+CC	libavcodec/jfdctint.o
+CC	libavcodec/jni.o
+CC	libavcodec/jrevdct.o
+CC	libavcodec/mathtables.o
+CC	libavcodec/me_cmp.o
+CC	libavcodec/mediacodec.o
+CC	libavcodec/mpeg12framerate.o
+CC	libavcodec/mpeg4audio.o
+CC	libavcodec/mpeg4audio_sample_rates.o
+CC	libavcodec/nvdec.o
+CC	libavcodec/nvdec_h264.o
+CC	libavcodec/nvdec_hevc.o
+CC	libavcodec/nvenc.o
+CC	libavcodec/nvenc_h264.o
+CC	libavcodec/nvenc_hevc.o
+CC	libavcodec/options.o
+CC	libavcodec/packet.o
+CC	libavcodec/parser.o
+CC	libavcodec/profiles.o
+CC	libavcodec/parsers.o
+CC	libavcodec/pthread.o
+CC	libavcodec/pthread_frame.o
+CC	libavcodec/pthread_slice.o
+CC	libavcodec/qsv_api.o
+CC	libavcodec/raw.o
+CC	libavcodec/simple_idct.o
+CC	libavcodec/startcode.o
+CC	libavcodec/threadprogress.o
+CC	libavcodec/tiff_common.o
+CC	libavcodec/utils.o
+CC	libavcodec/vaapi_decode.o
+CC	libavcodec/vaapi_encode.o
+CC	libavcodec/vaapi_encode_h264.o
+CC	libavcodec/vaapi_encode_h265.o
+CC	libavcodec/vaapi_h264.o
+CC	libavcodec/vaapi_hevc.o
+CC	libavcodec/version.o
+CC	libavcodec/videodsp.o
+CC	libavcodec/vlc.o
+CC	libavcodec/vorbis_parser.o
+In function ‘add_level’,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘vlc_multi_gen’ at src/libavcodec/vlc.c:508:5,
+    inlined from ‘ff_vlc_init_multi_from_lengths’ at src/libavcodec/vlc.c:564:11:
+src/libavcodec/vlc.c:443:36: warning: array subscript 3 is above array bounds of ‘uint16_t[3]’ {aka ‘short unsigned int[3]’} [-Warray-bounds=]
+  443 |             if (is16bit) info.val16[curlevel] = sym;
+      |                          ~~~~~~~~~~^~~~~~~~~~
+In file included from src/libavcodec/vlc.c:39:
+src/libavcodec/vlc.h: In function ‘ff_vlc_init_multi_from_lengths’:
+src/libavcodec/vlc.h:59:18: note: while referencing ‘val16’
+   59 |         uint16_t val16[VLC_MULTI_MAX_SYMBOLS / 2];
+      |                  ^~~~~
+In function ‘add_level’,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘vlc_multi_gen’ at src/libavcodec/vlc.c:508:5,
+    inlined from ‘ff_vlc_init_multi_from_lengths’ at src/libavcodec/vlc.c:564:11:
+src/libavcodec/vlc.c:443:36: warning: array subscript 4 is above array bounds of ‘uint16_t[3]’ {aka ‘short unsigned int[3]’} [-Warray-bounds=]
+  443 |             if (is16bit) info.val16[curlevel] = sym;
+      |                          ~~~~~~~~~~^~~~~~~~~~
+src/libavcodec/vlc.h: In function ‘ff_vlc_init_multi_from_lengths’:
+src/libavcodec/vlc.h:59:18: note: while referencing ‘val16’
+   59 |         uint16_t val16[VLC_MULTI_MAX_SYMBOLS / 2];
+      |                  ^~~~~
+In function ‘add_level’,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘add_level’ at src/libavcodec/vlc.c:457:17,
+    inlined from ‘vlc_multi_gen’ at src/libavcodec/vlc.c:508:5,
+    inlined from ‘ff_vlc_init_multi_from_lengths’ at src/libavcodec/vlc.c:564:11:
+src/libavcodec/vlc.c:443:36: warning: array subscript 5 is above array bounds of ‘uint16_t[3]’ {aka ‘short unsigned int[3]’} [-Warray-bounds=]
+  443 |             if (is16bit) info.val16[curlevel] = sym;
+      |                          ~~~~~~~~~~^~~~~~~~~~
+src/libavcodec/vlc.h: In function ‘ff_vlc_init_multi_from_lengths’:
+src/libavcodec/vlc.h:59:18: note: while referencing ‘val16’
+   59 |         uint16_t val16[VLC_MULTI_MAX_SYMBOLS / 2];
+      |                  ^~~~~
+X86ASM	libavcodec/x86/bswapdsp.o
+CC	libavcodec/x86/bswapdsp_init.o
+CC	libavcodec/x86/constants.o
+STRIP	libavcodec/x86/bswapdsp.o
+CC	libavcodec/x86/fdct.o
+CC	libavcodec/x86/fdctdsp_init.o
+X86ASM	libavcodec/x86/fpel.o
+X86ASM	libavcodec/x86/h264_chromamc.o
+STRIP	libavcodec/x86/fpel.o
+X86ASM	libavcodec/x86/h264_chromamc_10bit.o
+X86ASM	libavcodec/x86/h264_deblock.o
+STRIP	libavcodec/x86/h264_chromamc_10bit.o
+X86ASM	libavcodec/x86/h264_deblock_10bit.o
+STRIP	libavcodec/x86/h264_chromamc.o
+X86ASM	libavcodec/x86/h264_idct.o
+STRIP	libavcodec/x86/h264_idct.o
+X86ASM	libavcodec/x86/h264_idct_10bit.o
+STRIP	libavcodec/x86/h264_deblock_10bit.o
+X86ASM	libavcodec/x86/h264_intrapred.o
+STRIP	libavcodec/x86/h264_idct_10bit.o
+X86ASM	libavcodec/x86/h264_intrapred_10bit.o
+STRIP	libavcodec/x86/h264_deblock.o
+CC	libavcodec/x86/h264_intrapred_init.o
+CC	libavcodec/x86/h264_qpel.o
+X86ASM	libavcodec/x86/h264_qpel_10bit.o
+STRIP	libavcodec/x86/h264_intrapred.o
+X86ASM	libavcodec/x86/h264_qpel_8bit.o
+STRIP	libavcodec/x86/h264_intrapred_10bit.o
+X86ASM	libavcodec/x86/h264_weight.o
+STRIP	libavcodec/x86/h264_weight.o
+X86ASM	libavcodec/x86/h264_weight_10bit.o
+CC	libavcodec/x86/h264chroma_init.o
+CC	libavcodec/x86/h264dsp_init.o
+X86ASM	libavcodec/x86/h26x/h2656_inter.o
+STRIP	libavcodec/x86/h264_weight_10bit.o
+CC	libavcodec/x86/h26x/h2656dsp.o
+STRIP	libavcodec/x86/h264_qpel_10bit.o
+X86ASM	libavcodec/x86/hevc/add_res.o
+STRIP	libavcodec/x86/hevc/add_res.o
+X86ASM	libavcodec/x86/hevc/deblock.o
+STRIP	libavcodec/x86/h264_qpel_8bit.o
+X86ASM	libavcodec/x86/hevc/dequant.o
+STRIP	libavcodec/x86/hevc/dequant.o
+CC	libavcodec/x86/hevc/dsp_init.o
+X86ASM	libavcodec/x86/hevc/idct.o
+STRIP	libavcodec/x86/hevc/idct.o
+X86ASM	libavcodec/x86/hevc/mc.o
+STRIP	libavcodec/x86/hevc/deblock.o
+X86ASM	libavcodec/x86/hevc/sao.o
+STRIP	libavcodec/x86/h26x/h2656_inter.o
+X86ASM	libavcodec/x86/hevc/sao_10bit.o
+STRIP	libavcodec/x86/hevc/sao.o
+X86ASM	libavcodec/x86/idctdsp.o
+STRIP	libavcodec/x86/idctdsp.o
+CC	libavcodec/x86/idctdsp_init.o
+X86ASM	libavcodec/x86/me_cmp.o
+STRIP	libavcodec/x86/me_cmp.o
+CC	libavcodec/x86/me_cmp_init.o
+X86ASM	libavcodec/x86/qpel.o
+STRIP	libavcodec/x86/qpel.o
+X86ASM	libavcodec/x86/simple_idct10.o
+STRIP	libavcodec/x86/hevc/mc.o
+X86ASM	libavcodec/x86/videodsp.o
+STRIP	libavcodec/x86/videodsp.o
+CC	libavcodec/x86/videodsp_init.o
+CC	libavcodec/xiph.o
+CC	libavutil/adler32.o
+CC	libavutil/aes.o
+STRIP	libavcodec/x86/hevc/sao_10bit.o
+CC	libavutil/aes_ctr.o
+CC	libavutil/ambient_viewing_environment.o
+CC	libavutil/audio_fifo.o
+CC	libavutil/avsscanf.o
+CC	libavutil/avstring.o
+CC	libavutil/base64.o
+CC	libavutil/blowfish.o
+CC	libavutil/bprint.o
+CC	libavutil/buffer.o
+CC	libavutil/camellia.o
+CC	libavutil/cast5.o
+STRIP	libavcodec/x86/simple_idct10.o
+CC	libavutil/channel_layout.o
+CC	libavutil/container_fifo.o
+CC	libavutil/cpu.o
+CC	libavutil/crc.o
+CC	libavutil/csp.o
+CC	libavutil/des.o
+CC	libavutil/detection_bbox.o
+CC	libavutil/dict.o
+CC	libavutil/display.o
+CC	libavutil/dovi_meta.o
+CC	libavutil/downmix_info.o
+CC	libavutil/encryption_info.o
+CC	libavutil/error.o
+CC	libavutil/eval.o
+CC	libavutil/executor.o
+CC	libavutil/fifo.o
+CC	libavutil/file.o
+CC	libavutil/file_open.o
+CC	libavutil/film_grain_params.o
+CC	libavutil/fixed_dsp.o
+CC	libavutil/float_dsp.o
+CC	libavutil/float_scalarproduct.o
+CC	libavutil/frame.o
+CC	libavutil/hash.o
+CC	libavutil/hdr_dynamic_metadata.o
+CC	libavutil/hdr_dynamic_vivid_metadata.o
+CC	libavutil/hmac.o
+CC	libavutil/hwcontext.o
+CC	libavutil/hwcontext_amf.o
+CC	libavutil/hwcontext_cuda.o
+CC	libavutil/hwcontext_drm.o
+CC	libavutil/hwcontext_stub.o
+CC	libavutil/hwcontext_vaapi.o
+CC	libavutil/iamf.o
+CC	libavutil/imgutils.o
+CC	libavutil/integer.o
+CC	libavutil/intmath.o
+CC	libavutil/lfg.o
+CC	libavutil/lls.o
+CC	libavutil/log.o
+CC	libavutil/log2_tab.o
+CC	libavutil/lzo.o
+CC	libavutil/mastering_display_metadata.o
+CC	libavutil/mathematics.o
+CC	libavutil/md5.o
+CC	libavutil/mem.o
+CC	libavutil/murmur3.o
+CC	libavutil/opt.o
+CC	libavutil/parseutils.o
+CC	libavutil/pixdesc.o
+CC	libavutil/pixelutils.o
+CC	libavutil/random_seed.o
+CC	libavutil/rational.o
+CC	libavutil/raw_color_params.o
+CC	libavutil/rc4.o
+CC	libavutil/refstruct.o
+CC	libavutil/reverse.o
+CC	libavutil/ripemd.o
+CC	libavutil/samplefmt.o
+CC	libavutil/sha.o
+CC	libavutil/sha512.o
+CC	libavutil/side_data.o
+CC	libavutil/slicethread.o
+CC	libavutil/spherical.o
+CC	libavutil/stereo3d.o
+CC	libavutil/tdrdi.o
+CC	libavutil/tea.o
+CC	libavutil/threadmessage.o
+CC	libavutil/time.o
+CC	libavutil/timecode.o
+CC	libavutil/timecode_internal.o
+CC	libavutil/timestamp.o
+CC	libavutil/tree.o
+CC	libavutil/twofish.o
+CC	libavutil/tx.o
+CC	libavutil/tx_double.o
+CC	libavutil/tx_float.o
+CC	libavutil/tx_int32.o
+CC	libavutil/utils.o
+CC	libavutil/uuid.o
+CC	libavutil/version.o
+CC	libavutil/video_enc_params.o
+CC	libavutil/video_hint.o
+X86ASM	libavutil/x86/aes.o
+STRIP	libavutil/x86/aes.o
+CC	libavutil/x86/aes_init.o
+CC	libavutil/x86/cpu.o
+X86ASM	libavutil/x86/cpuid.o
+STRIP	libavutil/x86/cpuid.o
+X86ASM	libavutil/x86/crc.o
+STRIP	libavutil/x86/crc.o
+X86ASM	libavutil/x86/fixed_dsp.o
+STRIP	libavutil/x86/fixed_dsp.o
+CC	libavutil/x86/fixed_dsp_init.o
+X86ASM	libavutil/x86/float_dsp.o
+STRIP	libavutil/x86/float_dsp.o
+CC	libavutil/x86/float_dsp_init.o
+X86ASM	libavutil/x86/imgutils.o
+STRIP	libavutil/x86/imgutils.o
+CC	libavutil/x86/imgutils_init.o
+X86ASM	libavutil/x86/lls.o
+STRIP	libavutil/x86/lls.o
+CC	libavutil/x86/lls_init.o
+X86ASM	libavutil/x86/tx_float.o
+CC	libavutil/x86/tx_float_init.o
+CC	libavutil/xga_font_data.o
+CC	libavutil/xtea.o
+AR	libavformat/libavformat.a
+AR	libavcodec/libavcodec.a
+STRIP	libavutil/x86/tx_float.o
+AR	libavutil/libavutil.a
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/avio_http_serve_files.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/avio_list_dir.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/avio_read_callback.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/decode_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/decode_filter_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/decode_filter_video.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/decode_video.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/demux_decode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/encode_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/encode_video.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/extract_mvs.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/filter_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/hw_decode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/mux.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/qsv_decode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/qsv_transcode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/remux.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/resample_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/scale_video.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/show_metadata.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/transcode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/transcode_aac.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/vaapi_encode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/vaapi_transcode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/README
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/Makefile
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/avio_http_serve_files.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/avio_list_dir.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/avio_read_callback.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/decode_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/decode_filter_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/decode_filter_video.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/decode_video.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/demux_decode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/encode_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/encode_video.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/extract_mvs.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/filter_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/hw_decode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/mux.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/qsv_decode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/qsv_transcode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/remux.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/resample_audio.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/scale_video.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/show_metadata.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/transcode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/transcode_aac.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/vaapi_encode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/vaapi_transcode.c
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/README
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/doc/examples/Makefile
+INSTALL	libavfilter/libavfilter.a
+INSTALL	libavformat/libavformat.a
+INSTALL	libavcodec/libavcodec.a
+INSTALL	libavutil/libavutil.a
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavfilter/avfilter.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavfilter/buffersink.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavfilter/buffersrc.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavfilter/version.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavfilter/version_major.h
+INSTALL	libavfilter/libavfilter.pc
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavformat/avformat.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavformat/avio.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavformat/version.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavformat/version_major.h
+INSTALL	libavformat/libavformat.pc
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/ac3_parser.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/adts_parser.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/avcodec.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/avdct.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/bsf.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/codec.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/codec_desc.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/codec_id.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/codec_par.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/d3d11va.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/defs.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/dirac.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/dv_profile.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/dxva2.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/exif.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/jni.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/mediacodec.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/packet.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/qsv.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/smpte_436m.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/vdpau.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/version.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/version_major.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/videotoolbox.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavcodec/vorbis_parser.h
+INSTALL	libavcodec/libavcodec.pc
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/adler32.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/aes.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/aes_ctr.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/ambient_viewing_environment.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/attributes.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/audio_fifo.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/avassert.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/avstring.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/avutil.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/base64.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/blowfish.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/bprint.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/bswap.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/buffer.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/cast5.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/camellia.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/channel_layout.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/common.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/container_fifo.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/cpu.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/crc.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/csp.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/des.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/detection_bbox.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/dict.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/display.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/dovi_meta.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/downmix_info.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/encryption_info.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/error.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/eval.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/executor.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/fifo.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/file.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/film_grain_params.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/frame.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hash.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hdr_dynamic_metadata.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hdr_dynamic_vivid_metadata.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hmac.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_cuda.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_d3d11va.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_d3d12va.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_drm.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_dxva2.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_amf.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_qsv.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_mediacodec.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_opencl.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_oh.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_vaapi.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_videotoolbox.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_vdpau.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/hwcontext_vulkan.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/iamf.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/imgutils.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/intfloat.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/intreadwrite.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/lfg.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/log.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/lzo.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/macros.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/mathematics.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/mastering_display_metadata.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/md5.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/mem.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/motion_vector.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/murmur3.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/opt.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/parseutils.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/pixdesc.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/pixelutils.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/pixfmt.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/random_seed.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/raw_color_params.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/rc4.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/rational.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/refstruct.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/replaygain.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/ripemd.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/samplefmt.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/sha.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/sha512.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/spherical.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/stereo3d.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/tdrdi.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/threadmessage.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/time.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/timecode.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/timestamp.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/tree.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/twofish.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/uuid.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/version.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/video_enc_params.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/xtea.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/tea.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/tx.h
+INSTALL	workspace/Build/Linux/src/ffmpeg-9.0.2/libavutil/video_hint.h
+INSTALL	libavutil/avconfig.h
+INSTALL	libavutil/ffversion.h
+INSTALL	libavutil/libavutil.pc

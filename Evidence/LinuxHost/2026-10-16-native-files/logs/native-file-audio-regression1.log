@@ -1,0 +1,3 @@
+Connection failure: Connection terminated
+Stream error: Connection terminated
+{"result": "pass", "checks": ["loopback-login", "wrong-password-retry", "actual-video-decode", "gtk-presentation", "viewer-exit-reaped", "second-session", "host-retained", "host-media-auth-network-preserved", "successful-session-history", "real-opus-playback-440hz", "disabled-no-tail", "reenable", "remote-audio-revocation", "monitor-source-not-default-microphone", "audio-service-failure-reported", "video-refresh-after-audio-failure"], "gpu": false, "network": "isolated-loopback", "display": "two-private-xvfb"}

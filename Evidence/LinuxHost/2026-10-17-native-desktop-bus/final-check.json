@@ -1,0 +1,47 @@
+{
+  "result": "pass",
+  "runtime": "Build/Linux/native-desktop-bus-smoke/20261017T093347Z",
+  "artifact_id": "farpane-native-dev-e7508f297ef1d671172d7737",
+  "checks": [
+    "host_on_independent_private_session_bus",
+    "bus_disconnection_clears_desktop_capabilities",
+    "pending_request_not_auto_authorized_during_outage",
+    "new_bus_identity_rebinds_tray_and_pending_notice_without_new_host",
+    "actual_gtk_approval_after_bus_recovery_presents_video",
+    "authorized_session_continues_presenting_during_bus_outage",
+    "restored_bus_does_not_replay_authorized_request",
+    "unanswered_request_times_out_without_bus_or_frames",
+    "expired_request_not_replayed_on_fourth_bus",
+    "host_identity_policy_and_process_preserved"
+  ],
+  "tests_executed_once": true,
+  "actual_software_video_sessions": 1,
+  "unanswered_sessions_with_zero_frames": 1,
+  "bus_instances": 4,
+  "bus_restart_count": 3,
+  "host_pid_in_private_container": 22,
+  "binaries": {
+    "farpane": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421",
+    "libexec/farpane-core": "2ae7709345c3a251dde76ea71db23506dd27e2c56e256b7aeaaf6c4dbbf7766e"
+  },
+  "application_sources_and_receipt_unchanged": true,
+  "canonical_sha256": {
+    "Linux/tests/native_desktop_bus_smoke.py": "ed8470c3e11c6065a4212d1ddeff338a4b51e305768bda505f19282be18062e1",
+    "Linux/tests/native_viewer_smoke.py": "c496e564eb360eb8ed43d93391bc6c3c5864783a806d652eca1811c94bd1bfb1",
+    "Scripts/linux/test-native-desktop-bus.sh": "57ccb703d3cc436a65c796e0beedc1a2fd97b8304e7c79302045b6e9ea09dd23",
+    "Linux/docs/desktop-bus-recovery.md": "c3515d9784c9327af060bf0dae5fe6c0b462ed6fb122cbb2cea79121e91a9642",
+    "Linux/docs/desktop-integration.md": "fae9e90c851888d93904e295cbad46145134691f403eaeeb6d09541f00155ed4",
+    "Linux/docs/gui-status.md": "17562eb6d7ead1d5bf6849b9dab3fbbe7fb14ef0a2e6cd9867e460b23b948f6e",
+    "Linux/docs/native-test-candidate.md": "94e7e407c4c49a249359d97619c0b949e3300dffc84dcc5b9e51cc5c341b3a5f"
+  },
+  "doc_links_checked": 92,
+  "host_services_containers_and_ffmpeg_unchanged": true,
+  "new_package": false,
+  "new_compilation": false,
+  "host_installation": false,
+  "gpu_test": false,
+  "gui_own_session_bus_failure_tested": false,
+  "real_desktop_tested": false,
+  "complete_license_source_audit": false,
+  "full_plan_acceptance": false
+}

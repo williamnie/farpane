@@ -1,0 +1,39 @@
+v2 最终核对（claude-288b5f14，只读）。plan SHA256 27a17b06…；README 采纳说明已读。
+
+结论：可实施，没有新的阻断点，可以按 v2 进入 U0。v2 对 HUP、GLsync context、210 拆分、vaSyncSurface、控制 IPC 与 DRM 身份区分这五处修正，我都同意。下面 6 条建议在 U0 定接口时就写进去，否则后面会返工。按返工代价从高到低排列。
+
+1. EGL 导入按平面分别导入，不要用 external sampler（§7.2、§7.3）。
+VAAPI 导出的 NV12 应拆成 R8（Y）和 GR88（UV）两个 EGLImage，各自导入后在自己的 shader 里做矩阵运算。如果整帧导入成单个 NV12 EGLImage 再用 GL_OES_EGL_image_external 采样，YUV→RGB 由驱动完成，矩阵、range 只能通过 EGL_YUV_COLOR_SPACE_HINT 去“请求”，§7.3 的 BT.601/709 加缺失 VUI 的默认规则就没法可靠控制。导出时用 VA_EXPORT_SURFACE_SEPARATE_LAYERS（FFmpeg 的 DRM_PRIME 映射也是按层给出）。
+数据面报文建议直接按 AVDRMFrameDescriptor 的形状定义，不要假设一帧只有一个 FD：
+  {generation, lease_id, pts, width, height, nb_objects≤4, objects[{fd 走 SCM_RIGHTS 的序号, size, modifier}], nb_layers, layers[{drm_format, nb_planes, planes[{object_index, offset, pitch}]}], color{matrix, range, primaries, transfer, chroma_loc, 来源: vui|default}}
+GUI 侧通过 gdk4-wayland / gdk4-x11 的 egl_display() 获取 EGLDisplay，并检查 EGL_EXT_image_dma_buf_import_modifiers 声明支持的 modifier 列表。worker 在协商阶段先拿到 GUI 可导入的格式和 modifier 列表；不匹配就直接进入兼容模式，不要逐帧导入失败。
+
+2. Viewer worker 会写配置，与 §6“Viewer 不直接改配置”冲突。
+client.rs:3068/3077/3348 的 LoginConfigHandler 会 PeerConfig::load，再 store(&self.id)，写 peers/<id>.toml。写入内容包括视图选项、键盘模式，以及“记住密码”时的密码哈希。
+修正：明确 worker 是本会话 peer 的 peers/<id>.toml 的唯一写者（只限该 id）。GUI 设备列表只读这些文件，或使用自己的轻量存储。使用 Secret Service 时，必须关闭 PeerConfig 的密码保存路径，否则就是 §6 禁止的“退回配置文件存密码”。U3 补一个测试：断开后 peers/<id>.toml 中不能出现 password 字段。
+
+3. 活动快照需要明确接口，包括“未知”状态的上限。
+可以直接复用 ipc.rs:2171 get_terminal_session_count 的模式：root 用 Config::ipc_path_for_uid(uid,"") 连接用户 server，新增一个 Data 变体，例如
+  HostActivity{schema, generation, inbound, pending_approvals, file_jobs, media_leases_outstanding, taken_at_monotonic}
+注意，现有调用点是 `.unwrap_or(0)`（linux.rs 在 should_start_server 中），这正是 v2 禁止的“失败按零处理”，需要在 patch 里改掉。
+另外要定上限：如果“未知”永远不重启，agent 一旦卡死就再也不会被每小时维护拉起来，而每小时重启原本就是为 DNS / X 显示获取问题准备的兜底。建议规则写成：
+- 快照为有效零活动：维持原有 60/3600 秒规则；
+- 快照有活动：推迟重启；
+- 连续未知超过 T（例如 2×3600 秒，或者进程已不响应 ipc）：视为卡死，允许重启。
+用虚拟时钟测试覆盖这三支。
+
+4. §4.1“显示 / xauth 变化优先重建采集代”在 U0 只能作为后续目标。
+should_start_server 在 is_display_changed 时 kill 掉 server，原因是 DISPLAY/XAUTHORITY 是在 try_start_server_ 启动子进程时以环境变量传入的（linux.rs 约 885 行）。进程内重建需要新增“下发新环境 + X 连接重建”的 IPC，范围不小。
+建议首版保留现有 kill 行为，作为已知限制：X11 环境变化会结束入站会话，Wayland/DRM 路径通常不受影响。U0 门槛只要求“定时维护不杀活动会话”，不要把显示变化也放进门槛，否则 U0 会被拖长。
+
+5. --config-command 与在线 agent 并发写配置。
+hbb_common 的 Config::store 没有文件锁，而 --server 会用内存中的配置覆盖写回。“在线时转交 agent”有检查后再使用的竞态：短进程判断 agent 不在，开始写，与此同时 agent 启动并加载旧值，随后回写把改动覆盖掉。
+修正：用一把 flock（建议放在 $XDG_CONFIG_HOME/farpane/.lock）。agent 启动时在加载配置前持有共享或独占锁，--config-command 写入时持有独占锁。这需要在 hbb_common 的 Config 加载和存储入口加一个薄 hook，U0 就要确定位置。
+
+6. --viewer 的参数和日志命名。
+core_main.rs:167 会把 argv[0] 去掉 "--" 后作为日志目录名，--viewer 会得到独立的 viewer 日志目录，这是好事。但要确认 headless 的分派表里，`--viewer` 先于任何“未知 -- 参数走旧 UI / connect”的兜底分支，并且 IS_SERVER/IS_CM 都为假，不会触发 --server 专有的 pkill tray、check_autostart_config。U0 加一个测试：`farpane-core --viewer` 启动后不创建 _cm、_service、_drm 连接，也不写 autostart。
+
+可选，不阻断：HUP 之后的完成证明。
+v2“无可信完成依据时停止整个 worker 代”是正确的保守做法。如果想在 GUI 崩溃后不必丢弃整个代，可以在 U0 顺便验证 DMA_BUF_IOCTL_EXPORT_SYNC_FILE（Linux ≥6.0，hermes 内核满足；flags=DMA_BUF_SYNC_WRITE 会取到所有读者的 fence）。前提是 radeonsi 的 EGL 导入确实把读 fence 挂到了 dma_resv 上（隐式同步驱动通常如此，需实测）。对该 fd poll 到 signaled 后才算完成的可信依据；验证不通过就维持 v2 的现行策略。
+
+其余部分（headless optional 依赖与 /proc/maps 复核、--server 保留、按精确身份停止、_cm 提前就绪、纯 D-Bus SNI、autostart 迁移、D-Bus 名称拆分、greeter 边界、codec 宣告、extra_hw_frames、500 ms watchdog、Debian 13+）我没有异议。以上第 1、2、3、5 条建议在 U0 写成接口定义或测试，第 4 条写进已知限制。

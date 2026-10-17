@@ -1,0 +1,44 @@
+{
+  "ffmpeg": {
+    "returncode": 0,
+    "seconds": 37.195,
+    "command": [
+      "bash",
+      "Scripts/linux/build-ffmpeg.sh"
+    ],
+    "log_sha256": "c03254a6549dadc37374620deae8a736059c27a303610812301cddc066277f68"
+  },
+  "drmtap": {
+    "returncode": 0,
+    "seconds": 1.617,
+    "command": [
+      "bash",
+      "Scripts/linux/build-drmtap.sh"
+    ],
+    "log_sha256": "dcccaaa0fb10f6d97ff06ed4616ebbe61f1755b3aac6663963b3b8987f81e2e2"
+  },
+  "core-release": {
+    "returncode": 0,
+    "seconds": 522.089,
+    "command": [
+      "bash",
+      "Scripts/linux/build-native-core.sh",
+      "release"
+    ],
+    "log_sha256": "a7d6a2fd42457edb89cb97d3c787635e47928fc96a8b925a1d5e3e62b9290480"
+  },
+  "gui-release": {
+    "returncode": 0,
+    "seconds": 59.863,
+    "command": [
+      "cargo",
+      "build",
+      "--offline",
+      "--locked",
+      "--release",
+      "--manifest-path",
+      "Build/Linux/gui/Cargo.toml"
+    ],
+    "log_sha256": "3850627115d5c1036f14199d14df6106e64d8b945760caae2efdcd1bfa2e48f9"
+  }
+}

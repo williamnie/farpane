@@ -1,0 +1,9 @@
+{"tools": "/home/xiaobei/Documents/xiaobei/farpane/Build/Linux/rendezvous-test-tools", "verified_existing": true, "image": "sha256:10818ec05b179039c6660f4d8e74b303f0db2858bbad2b18e24992ea22d54cd6"}
+/workspace/Build/Linux/native-id-server-smoke/20261017T071047Z
+{"mode": "direct", "force_relay": false, "worker_pid": 215, "worker_reaped": true, "remote_pixels": 157664, "host_retained": true, "actual_id_lookup": true, "direct_ip_server_disabled": true}
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_id_server_smoke.py", line 199, in <module>
+    ids=wait(viewer_children,'No Viewer worker')
+  File "/workspace/Linux/tests/native_id_server_smoke.py", line 81, in wait
+    raise AssertionError(message)
+AssertionError: No Viewer worker

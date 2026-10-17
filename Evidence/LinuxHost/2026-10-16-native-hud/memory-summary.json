@@ -1,0 +1,19 @@
+{
+  "samples": {
+    "normal": {
+      "gui_pss_mib": 143.4794921875,
+      "viewer_pss_mib": 15.93359375,
+      "export_age_ms": 3653,
+      "export_bytes": 3904
+    },
+    "log-failure": {
+      "gui_pss_mib": 134.208984375,
+      "viewer_pss_mib": 15.189453125,
+      "export_age_ms": 3554,
+      "export_bytes": 3806
+    }
+  },
+  "scope": "private Xvfb/Cairo, software decode, HUD enabled, synthetic refresh; individual process samples at different instants",
+  "includes_host_or_dedicated_gpu": false,
+  "budget_passed": false
+}

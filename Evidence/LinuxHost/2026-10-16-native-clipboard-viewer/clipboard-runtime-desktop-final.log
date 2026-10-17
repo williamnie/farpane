@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 435, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 307, in user_test
+    if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='clipboard':exercise_clipboard(directory,output/'clipboard-fixture')
+                                                               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 122, in exercise_clipboard
+    exercise(directory, helper)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_clipboard_smoke.py", line 111, in exercise
+    own(':92',[('UTF8_STRING',b'after-refocus')]);time.sleep(.5);assert read(':91')==b'no-receive'
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

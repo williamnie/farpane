@@ -1,0 +1,13 @@
+[2026-10-17 07:18:22.754368 +00:00] INFO [src/relay_server.rs:61] #blacklist(blacklist.txt): 0
+[2026-10-17 07:18:22.754376 +00:00] INFO [src/relay_server.rs:76] #blocklist(blocklist.txt): 0
+[2026-10-17 07:18:22.754377 +00:00] INFO [src/relay_server.rs:82] Listening on tcp :21117
+[2026-10-17 07:18:22.754378 +00:00] INFO [src/relay_server.rs:84] Listening on websocket :21119
+[2026-10-17 07:18:22.754379 +00:00] INFO [src/relay_server.rs:87] Start
+[2026-10-17 07:18:22.754419 +00:00] INFO [src/relay_server.rs:105] DOWNGRADE_THRESHOLD: 0.66
+[2026-10-17 07:18:22.754424 +00:00] INFO [src/relay_server.rs:115] DOWNGRADE_START_CHECK: 1800s
+[2026-10-17 07:18:22.754427 +00:00] INFO [src/relay_server.rs:125] LIMIT_SPEED: 32Mb/s
+[2026-10-17 07:18:22.754428 +00:00] INFO [src/relay_server.rs:136] TOTAL_BANDWIDTH: 1024Mb/s
+[2026-10-17 07:18:22.754429 +00:00] INFO [src/relay_server.rs:146] SINGLE_BANDWIDTH: 128Mb/s
+[2026-10-17 07:18:38.247725 +00:00] INFO [src/relay_server.rs:453] New relay request 122ba016-4c09-46ec-abdc-288cb9d835f3 from [::ffff:198.18.0.1]:45691
+[2026-10-17 07:18:38.247725 +00:00] INFO [src/relay_server.rs:453] New relay request 122ba016-4c09-46ec-abdc-288cb9d835f3 from [::ffff:198.18.0.1]:40239
+[2026-10-17 07:19:11.356383 +00:00] INFO [src/common.rs:172] signal terminate

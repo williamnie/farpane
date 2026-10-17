@@ -1,0 +1,45 @@
+{
+  "run": "Build/Linux/native-viewer-smoke/20261017T033007Z",
+  "rounds": {
+    "0": {
+      "samples": 21,
+      "seconds": 2.2638758580433205,
+      "peak_pss_kib": {
+        "gui": 274211,
+        "viewer": 398263,
+        "host": 608331
+      },
+      "peak_three_process_pss_kib": 826010,
+      "baseline_peak_kib": 1095666,
+      "reduction_kib": 269656,
+      "reduction_percent": 24.61,
+      "identical_payload_hashes_and_byte_counts": true,
+      "clipboard_checks": 22
+    },
+    "1": {
+      "samples": 21,
+      "seconds": 2.2757899690186605,
+      "peak_pss_kib": {
+        "gui": 276886,
+        "viewer": 398657,
+        "host": 643856
+      },
+      "peak_three_process_pss_kib": 848645,
+      "baseline_peak_kib": 1116417,
+      "reduction_kib": 267772,
+      "reduction_percent": 23.98,
+      "identical_payload_hashes_and_byte_counts": true,
+      "clipboard_checks": 22
+    }
+  },
+  "before_binaries": {
+    "farpane": "084241464d065df9df864c9828c46d866b530e99acaf2d239d499505eacb495e",
+    "libexec/farpane-core": "9a6cbbb4dca96c976356d634fab6ef60936f0247b2341ceeb22376a95d48ae1b"
+  },
+  "after_binaries": {
+    "farpane": "084241464d065df9df864c9828c46d866b530e99acaf2d239d499505eacb495e",
+    "libexec/farpane-core": "6af506c96c99e166b66621818927a6f67b91ed1f4d51cd17aeb48281dbb147e2"
+  },
+  "sampling_interval_seconds": 0.1,
+  "scope": "matched private 128 MiB two-pixel padded PNG transfer; three actual FarPane processes; not maximum pixels or a formal performance acceptance"
+}

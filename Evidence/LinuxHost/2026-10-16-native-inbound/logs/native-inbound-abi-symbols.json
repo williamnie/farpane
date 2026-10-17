@@ -1,0 +1,56 @@
+{
+  "Build/Linux/native-target/release/farpane": {
+    "sha256": "bcf096a8a74cd922af6565336494b57bf87acbb0372d523b896e971ff69d9f77",
+    "direct_glibc_versions": [
+      "GLIBC_2.2.5",
+      "GLIBC_2.3",
+      "GLIBC_2.3.4",
+      "GLIBC_2.4",
+      "GLIBC_2.9",
+      "GLIBC_2.14",
+      "GLIBC_2.15",
+      "GLIBC_2.16",
+      "GLIBC_2.17",
+      "GLIBC_2.18",
+      "GLIBC_2.25",
+      "GLIBC_2.28",
+      "GLIBC_2.29",
+      "GLIBC_2.32",
+      "GLIBC_2.33",
+      "GLIBC_2.34",
+      "GLIBC_2.39"
+    ],
+    "maximum_direct_glibc": "GLIBC_2.39"
+  },
+  "Build/Linux/target/release/farpane-core": {
+    "sha256": "7490cdf3d96a2f39be8c55d9d7a1037065a0d7a8f0bbd82cce46bcc905390209",
+    "direct_glibc_versions": [
+      "GLIBC_2.2.5",
+      "GLIBC_2.3",
+      "GLIBC_2.3.2",
+      "GLIBC_2.3.4",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.8",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.14",
+      "GLIBC_2.15",
+      "GLIBC_2.16",
+      "GLIBC_2.17",
+      "GLIBC_2.18",
+      "GLIBC_2.25",
+      "GLIBC_2.27",
+      "GLIBC_2.28",
+      "GLIBC_2.29",
+      "GLIBC_2.32",
+      "GLIBC_2.33",
+      "GLIBC_2.34",
+      "GLIBC_2.35",
+      "GLIBC_2.38",
+      "GLIBC_2.39"
+    ],
+    "maximum_direct_glibc": "GLIBC_2.39"
+  }
+}

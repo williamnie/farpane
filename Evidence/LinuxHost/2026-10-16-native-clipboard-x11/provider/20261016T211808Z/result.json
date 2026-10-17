@@ -1,0 +1,49 @@
+{
+  "checks": [
+    "rgba_png",
+    "png_128m_incr",
+    "png_buffer_not_copied",
+    "canceled_update_keeps_selection",
+    "four_request_limit",
+    "incr_old_selection_retained",
+    "dead_requestor_releases_slot",
+    "retained_payload_budget",
+    "stalled_reader_expiry",
+    "recovery_after_expiry",
+    "local_owner_releases_content",
+    "no_extra_threads",
+    "full_payload_sha256",
+    "rgba_alpha_pixel_decode",
+    "bounded_provider_pss"
+  ],
+  "maximum_payload": 134217728,
+  "result": "pass",
+  "retained_budget": 268435456,
+  "sha256": {
+    "max.png": {
+      "bytes": 134217728,
+      "sha256": "fd5be92a03f5f296fbd8ff19fcbbd3c5eb568d74f0d81222c8b5d75d5394591e"
+    },
+    "max-result.png": {
+      "bytes": 134217728,
+      "sha256": "fd5be92a03f5f296fbd8ff19fcbbd3c5eb568d74f0d81222c8b5d75d5394591e"
+    },
+    "small.png": {
+      "bytes": 74,
+      "sha256": "302314d9cfea8d071a28548889a0d86bf87620d2ede0a25ef5928ab1a6babb6b"
+    },
+    "after-timeout.png": {
+      "bytes": 74,
+      "sha256": "302314d9cfea8d071a28548889a0d86bf87620d2ede0a25ef5928ab1a6babb6b"
+    },
+    "rgba-result.png": {
+      "bytes": 74,
+      "sha256": "fe0e0ceb81285acd3b726203c029146c6f5d50e215cfcee137e5f3c499e6d764"
+    }
+  },
+  "pss_kib": {
+    "before": 23560,
+    "retained": 158921,
+    "after-transfer": 159113
+  }
+}

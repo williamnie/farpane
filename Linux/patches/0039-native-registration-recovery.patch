@@ -1,0 +1,38 @@
+--- a/src/rendezvous_mediator.rs
++++ b/src/rendezvous_mediator.rs
+@@ -365,6 +365,8 @@
+     }
+ 
+     pub async fn start_udp(server: ServerPtr, host: String) -> ResultType<()> {
++        #[cfg(feature = "farpane-native")]
++        let native_registration_epoch = crate::farpane_native::recovery::registration_epoch();
+         let host = check_port(&host, RENDEZVOUS_PORT);
+         log::info!("start udp: {host}");
+         let (mut socket, mut addr) = new_udp_for(&host, CONNECT_TIMEOUT).await?;
+@@ -421,6 +423,8 @@
+                     match n {
+                         Some(Ok((bytes, _))) => {
+                             if let Ok(msg) = Message::parse_from_bytes(&bytes) {
++                                #[cfg(feature = "farpane-native")]
++                                crate::farpane_native::recovery::registration_response(native_registration_epoch, &msg.union);
+                                 rz.handle_resp(msg.union, Sink::Framed(&mut socket, &addr), &server, &mut update_latency).await?;
+                             } else {
+                                 log::debug!("Non-protobuf message bytes received: {:?}", bytes);
+@@ -598,6 +602,8 @@
+     }
+ 
+     pub async fn start_tcp(server: ServerPtr, host: String) -> ResultType<()> {
++        #[cfg(feature = "farpane-native")]
++        let native_registration_epoch = crate::farpane_native::recovery::registration_epoch();
+         let host = check_port(&host, RENDEZVOUS_PORT);
+         log::info!("start tcp: {}", hbb_common::websocket::check_ws(&host));
+         let mut conn = connect_tcp(host.clone(), CONNECT_TIMEOUT).await?;
+@@ -633,6 +639,8 @@
+                         continue; // heartbeat
+                     }
+                     let msg = Message::parse_from_bytes(&bytes)?;
++                    #[cfg(feature = "farpane-native")]
++                    crate::farpane_native::recovery::registration_response(native_registration_epoch, &msg.union);
+                     rz.handle_resp(msg.union, Sink::Stream(&mut conn), &server, &mut update_latency).await?
+                 }
+                 _ = timer.tick() => {

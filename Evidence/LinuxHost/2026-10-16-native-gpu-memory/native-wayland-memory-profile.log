@@ -1,0 +1,3 @@
+private_viewer_output=/workspace/Build/Linux/native-viewer-smoke/20261016T124843Z
+{"result": "pass", "checks": ["loopback-login", "wrong-password-retry", "actual-video-decode", "gtk-presentation", "viewer-exit-reaped", "second-session", "host-retained", "host-configuration-unchanged", "vaapi-worker", "actual-gtk-dmabuf-render", "headless-wayland", "no-software-frame-fallback"], "gpu": true, "network": "isolated-loopback", "display": "private-headless-wayland-and-xvfb"}
+{"result": "pass", "render_node": "renderD128", "dimensions": "256x128", "fixture": "static-loopback-desktop", "virtual_output_fps": 12, "codec_probe_fps_cap": null, "before_connections": 0, "after_connections": 0, "idle_checks": 65, "seconds": 13.032033297931775}

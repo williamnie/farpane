@@ -1,0 +1,322 @@
+warning: type `useconds_t` should have an upper camel case name
+  --> libs/libxdo-sys-stub/src/lib.rs:31:10
+   |
+31 | pub type useconds_t = c_uint;
+   |          ^^^^^^^^^^ help: convert the identifier to upper camel case: `UsecondsT`
+   |
+   = note: `#[warn(non_camel_case_types)]` on by default
+
+warning: `libxdo-sys` (lib) generated 1 warning
+   Compiling hwcodec v0.7.1 (/workspace/Build/Linux/src/hwcodec)
+    Checking scrap v0.5.0 (/workspace/Build/Linux/src/rustdesk/libs/scrap)
+warning: unused import: `tokio`
+  --> libs/scrap/src/wayland/pipewire.rs:27:60
+   |
+27 | use hbb_common::{anyhow::anyhow, bail, config, serde_json, tokio, ResultType};
+   |                                                            ^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by default
+
+warning: method `available_source_types` is never used
+  --> libs/scrap/src/wayland/screencast_portal.rs:26:8
+   |
+8  | pub trait OrgFreedesktopPortalScreenCast {
+   |           ------------------------------ method in this trait
+...
+26 |     fn available_source_types(&self) -> Result<u32, dbus::Error>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: trait `OrgFreedesktopPortalRequest` is never used
+ --> libs/scrap/src/wayland/request_portal.rs:8:11
+  |
+8 | pub trait OrgFreedesktopPortalRequest {
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `2` is never read
+ --> libs/scrap/src/common/wayland.rs:9:49
+  |
+9 | pub struct Capturer(Display, Box<dyn Recorder>, Vec<u8>);
+  |            -------- field in this struct        ^^^^^^^
+  |
+  = help: consider removing this field
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> libs/scrap/src/wayland/pipewire.rs:662:25
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<&SyncConnection> {
+    |                         ^^^^^^^^^^^^^^^     ----------------------
+    |                         |                   |     |
+    |                         |                   |     the same lifetime is elided here
+    |                         |                   the same lifetime is hidden here
+    |                         the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+662 | pub fn get_portal(conn: &SyncConnection) -> Proxy<'_, &SyncConnection> {
+    |                                                   +++
+
+warning: `scrap` (lib) generated 5 warnings (run `cargo fix --lib -p scrap` to apply 1 suggestion)
+    Checking rustdesk v1.5.0 (/workspace/Build/Linux/src/rustdesk)
+warning: unused import: `allow_err`
+ --> src/server/wayland.rs:2:18
+  |
+2 | use hbb_common::{allow_err, anyhow};
+  |                  ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::clipboard_file::*`
+  --> src/server/connection.rs:12:5
+   |
+12 | use crate::clipboard_file::*;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `is_installed`
+  --> src/common.rs:40:69
+   |
+40 |     ui_interface::{get_api_server as ui_get_api_server, get_option, is_installed, set_option},
+   |                                                                     ^^^^^^^^^^^^
+
+warning: unused import: `ipc_drm::DrmConn`
+  --> src/ipc.rs:18:16
+   |
+18 | pub(crate) use ipc_drm::DrmConn;
+   |                ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Duration` and `path::PathBuf`
+  --> src/flutter_ffi.rs:27:5
+   |
+27 |     path::PathBuf,
+   |     ^^^^^^^^^^^^^
+...
+32 |     time::{Duration, SystemTime},
+   |            ^^^^^^^^
+
+warning: unused import: `bail`
+  --> src/ui_cm_interface.rs:23:16
+   |
+23 |     allow_err, bail,
+   |                ^^^^
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2212:51
+     |
+2212 |                     .replace(&hbb_common::whoami::hostname(), "");
+     |                                                   ^^^^^^^^
+     |
+     = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `hbb_common::whoami::hostname`: use `fallible::hostname()` instead
+    --> src/platform/linux.rs:2227:47
+     |
+2227 |                 .replace(&hbb_common::whoami::hostname(), "")
+     |                                               ^^^^^^^^
+
+warning: use of deprecated function `hbb_common::base64::encode`: Use Engine::encode
+   --> src/hbbs_http/sync.rs:188:52
+    |
+188 |                         hash = hbb_common::base64::encode(&res[..]);
+    |                                                    ^^^^^^
+
+warning: variable does not need to be mutable
+    --> src/flutter_ffi.rs:1085:9
+     |
+1085 |     let mut map: HashMap<String, String> = serde_json::from_str(&json).unwrap_or(HashMap::new());
+     |         ----^^^
+     |         |
+     |         help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/tray.rs:156:17
+    |
+156 |             let mut builder = TrayIconBuilder::new()
+    |                 ----^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/tray.rs:64:9
+   |
+64 |     let mut event_loop = EventLoopBuilder::new().build();
+   |         ----^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/privacy_mode.rs:140:13
+    |
+140 |         let mut map: HashMap<&'static str, PrivacyModeCreator> = HashMap::new();
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: type `server::video_service::CapturerInfo` is more private than the item `gpu::capture`
+   --> src/server/linux_gpu_capture.rs:92:1
+    |
+92  | / pub(crate) fn capture(eligible: Eligibility, generation: u64, failure: Failure)
+93  | |     -> ResultType<(super::super::video_service::CapturerInfo, Descriptor)> {
+    | |__________________________________________________________________________^ function `gpu::capture` is reachable at visibility `pub(crate)`
+    |
+note: but type `server::video_service::CapturerInfo` is only usable at visibility `pub(in crate::server)`
+   --> src/server/video_service.rs:429:1
+    |
+429 | pub(super) struct CapturerInfo {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: `#[warn(private_interfaces)]` on by default
+
+warning: function `is_opensuse` is never used
+    --> src/platform/linux.rs:1413:4
+     |
+1413 | fn is_opensuse() -> bool {
+     |    ^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` on by default
+
+warning: fields `0` and `1` are never read
+    --> src/platform/linux.rs:2613:21
+     |
+2613 | pub struct WakeLock(Option<keepawake::AwakeHandle>, Option<SessionIdleInhibit>);
+     |            -------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |            |
+     |            fields in this struct
+     |
+     = help: consider removing these fields
+
+warning: variants `Side`, `Extra`, `Back`, `Forward`, and `Task` are never constructed
+    --> src/server/uinput.rs:1135:9
+     |
+1132 |     pub enum MouseButton {
+     |              ----------- variants in this enum
+...
+1135 |         Side,
+     |         ^^^^
+1136 |         Extra,
+     |         ^^^^^
+1137 |         Right,
+1138 |         Back,
+     |         ^^^^
+1139 |         Forward,
+     |         ^^^^^^^
+1140 |         Task,
+     |         ^^^^
+     |
+     = note: `MouseButton` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Right` and `Left` are never constructed
+    --> src/server/uinput.rs:1147:9
+     |
+1144 |     pub enum ScrollDirection {
+     |              --------------- variants in this enum
+...
+1147 |         Right,
+     |         ^^^^^
+1148 |         Left,
+     |         ^^^^
+     |
+     = note: `ScrollDirection` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `resolution` is never read
+   --> src/server/rdp_input.rs:322:9
+    |
+318 |     pub struct RdpInputMouse {
+    |                ------------- field in this struct
+...
+322 |         resolution: (usize, usize),
+    |         ^^^^^^^^^^
+
+warning: constant `MOUSE_MOVE_PROTECTION_TIMEOUT` is never used
+   --> src/server/input_service.rs:634:7
+    |
+634 | const MOUSE_MOVE_PROTECTION_TIMEOUT: Duration = Duration::from_millis(1_000);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MOUSE_ACTIVE_DISTANCE` is never used
+   --> src/server/input_service.rs:636:7
+    |
+636 | const MOUSE_ACTIVE_DISTANCE: i32 = 5;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `enable_file_transfer` is never read
+   --> src/server/connection.rs:409:5
+    |
+356 | pub struct Connection {
+    |            ---------- field in this struct
+...
+409 |     enable_file_transfer: bool,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_capturer_mag_supported` is never used
+   --> src/server/display_service.rs:610:4
+    |
+610 | fn is_capturer_mag_supported() -> bool {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `message` is never used
+    --> src/ui_interface.rs:1066:12
+     |
+1065 | impl DeployResult {
+     | ----------------- method in this implementation
+1066 |     pub fn message(&self) -> String {
+     |            ^^^^^^^
+
+warning: field `finished` is never read
+  --> src/hbbs_http/downloader.rs:45:5
+   |
+38 | struct Downloader {
+   |        ---------- field in this struct
+...
+45 |     finished: bool,
+   |     ^^^^^^^^
+
+warning: function `download_file` is never used
+  --> src/hbbs_http/downloader.rs:50:8
+   |
+50 | pub fn download_file(
+   |        ^^^^^^^^^^^^^
+
+warning: function `do_download` is never used
+   --> src/hbbs_http/downloader.rs:163:10
+    |
+163 | async fn do_download(
+    |          ^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url` is never used
+   --> src/hbbs_http/http_client.rs:260:14
+    |
+260 | pub async fn create_http_client_async_with_url(url: &str) -> AsyncClient {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_strict` is never used
+   --> src/hbbs_http/http_client.rs:278:14
+    |
+278 | pub async fn create_http_client_async_with_url_strict(url: &str) -> ResultType<AsyncClient> {
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `create_http_client_async_with_url_` is never used
+   --> src/hbbs_http/http_client.rs:306:10
+    |
+306 | async fn create_http_client_async_with_url_(
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: module `pt_BR` should have a snake case name
+  --> src/lang.rs:36:5
+   |
+36 | mod pt_BR;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_br`
+   |
+   = note: `#[warn(non_snake_case)]` on by default
+
+warning: module `pt_PT` should have a snake case name
+  --> src/lang.rs:37:5
+   |
+37 | mod pt_PT;
+   |     ^^^^^ help: convert the identifier to snake case: `pt_pt`
+
+warning: `rustdesk` (lib) generated 32 warnings (run `cargo fix --lib -p rustdesk` to apply 10 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.76s

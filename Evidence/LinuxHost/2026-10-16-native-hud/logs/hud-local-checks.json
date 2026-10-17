@@ -1,0 +1,16 @@
+{
+  "native_prepare_tests": {
+    "tests": 5,
+    "result": "pass"
+  },
+  "syntax_checks": {
+    "files": [
+      "Linux/tests/native_hud_smoke.py",
+      "Linux/tests/native_viewer_smoke.py",
+      "Linux/tests/native_host_smoke.py"
+    ],
+    "result": "pass"
+  },
+  "git_diff_check": "pass",
+  "scope": "Checks observed in this turn; command logs for builds and integration tests stored separately"
+}

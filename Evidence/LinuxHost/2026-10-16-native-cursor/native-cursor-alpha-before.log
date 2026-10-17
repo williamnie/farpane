@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 359, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 266, in user_test
+    exercise_cursor(directory)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_cursor_smoke.py", line 79, in exercise_cursor
+    apply(translucent());alpha=expect(0x80800000,(5,7))
+                               ~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_cursor_smoke.py", line 70, in expect
+    assert time.monotonic()<deadline, f'Remote cursor did not reach native X cursor: {value}'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Remote cursor did not reach native X cursor: {'width': 32, 'height': 32, 'hotspot': [5, 7], 'first': 2151677952, 'last': 4278190335}

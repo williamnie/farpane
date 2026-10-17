@@ -1,0 +1,27 @@
+FARPANE_ALLOCATION_PROFILE_BEGIN=0
+Live Heap Allocations: 4195328 bytes in 2 chunks; quarantined: 96 bytes in 2 chunks; 8034 other chunks; total chunks: 8038; showing top 100% (at most 256 unique contexts)
+4194304 byte(s) (99%) in 1 allocation(s)
+    #0 0x7cd5f95fb60f  (/usr/lib/x86_64-linux-gnu/libasan.so.8+0x12b60f) (BuildId: 08dcc6b86c4bb4be16ff10eaffc19f20f7c8e37a)
+    #1 0x59a3b328b41a  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x141a) (BuildId: e2f9bf02c0178a9c3f60577adc7eb1e649c270b3)
+    #2 0x7cd5f92d0600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #3 0x7cd5f92d0717  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #4 0x59a3b328b4a4  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x14a4) (BuildId: e2f9bf02c0178a9c3f60577adc7eb1e649c270b3)
+
+1024 byte(s) (0%) in 1 allocation(s)
+    #0 0x7cd5f95fb60f  (/usr/lib/x86_64-linux-gnu/libasan.so.8+0x12b60f) (BuildId: 08dcc6b86c4bb4be16ff10eaffc19f20f7c8e37a)
+    #1 0x59a3b328b40d  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x140d) (BuildId: e2f9bf02c0178a9c3f60577adc7eb1e649c270b3)
+    #2 0x7cd5f92d0600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #3 0x7cd5f92d0717  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #4 0x59a3b328b4a4  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x14a4) (BuildId: e2f9bf02c0178a9c3f60577adc7eb1e649c270b3)
+
+FARPANE_ALLOCATION_PROFILE_END=0
+FARPANE_ALLOCATION_PROFILE_BEGIN=1
+Live Heap Allocations: 1024 bytes in 1 chunks; quarantined: 4194400 bytes in 3 chunks; 8034 other chunks; total chunks: 8038; showing top 100% (at most 256 unique contexts)
+1024 byte(s) (100%) in 1 allocation(s)
+    #0 0x7cd5f95fb60f  (/usr/lib/x86_64-linux-gnu/libasan.so.8+0x12b60f) (BuildId: 08dcc6b86c4bb4be16ff10eaffc19f20f7c8e37a)
+    #1 0x59a3b328b40d  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x140d) (BuildId: e2f9bf02c0178a9c3f60577adc7eb1e649c270b3)
+    #2 0x7cd5f92d0600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #3 0x7cd5f92d0717  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #4 0x59a3b328b4a4  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x14a4) (BuildId: e2f9bf02c0178a9c3f60577adc7eb1e649c270b3)
+
+FARPANE_ALLOCATION_PROFILE_END=1

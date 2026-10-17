@@ -1,0 +1,111 @@
+{
+  "read_only": true,
+  "identity_values_omitted": true,
+  "environment_values_omitted": true,
+  "candidates": [
+    {
+      "program": "gnome-keyring-d",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": false,
+      "has_x11_display": false
+    },
+    {
+      "program": "gnome-session-i",
+      "is_leader": false,
+      "matches_session_tag": true,
+      "matches_scope": true,
+      "has_wayland_display": false,
+      "has_x11_display": false
+    },
+    {
+      "program": "gnome-remote-de",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": false,
+      "has_x11_display": false
+    },
+    {
+      "program": "gnome-session-c",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": false,
+      "has_x11_display": false
+    },
+    {
+      "program": "gnome-session-s",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": false,
+      "has_x11_display": false
+    },
+    {
+      "program": "gnome-shell",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": false,
+      "has_x11_display": false
+    },
+    {
+      "program": "gnome-shell-cal",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": true,
+      "has_x11_display": true
+    },
+    {
+      "program": "ibus-daemon",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": true,
+      "has_x11_display": true
+    },
+    {
+      "program": "ibus-memconf",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": true,
+      "has_x11_display": true
+    },
+    {
+      "program": "ibus-extension-",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": true,
+      "has_x11_display": true
+    },
+    {
+      "program": "ibus-portal",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": true,
+      "has_x11_display": true
+    },
+    {
+      "program": "ibus-engine-sim",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": true,
+      "has_x11_display": true
+    },
+    {
+      "program": "ibus-x11",
+      "is_leader": false,
+      "matches_session_tag": false,
+      "matches_scope": false,
+      "has_wayland_display": true,
+      "has_x11_display": true
+    }
+  ]
+}

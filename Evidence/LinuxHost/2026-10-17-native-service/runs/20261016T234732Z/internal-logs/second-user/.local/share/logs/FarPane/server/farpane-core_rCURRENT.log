@@ -1,0 +1,10 @@
+[2026-10-16 23:48:53.993388 +00:00] INFO [src/core_main.rs:404] start --server with user farpane-second
+[2026-10-16 23:48:53.994130 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":92")
+[2026-10-16 23:48:53.994135 +00:00] INFO [src/server.rs:666] XAUTHORITY=Ok("/run/user/1001/test.Xauthority")
+[2026-10-16 23:48:53.994359 +00:00] DEBUG [src/server.rs:833] #tries of ipc service connection: 30
+[2026-10-16 23:48:54.014964 +00:00] INFO [src/ipc.rs:738] Started ipc server at path: /tmp/FarPane-1001/ipc
+[2026-10-16 23:48:54.296497 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-16 23:48:54.297516 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-16 23:48:54.297630 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-16 23:48:54.298168 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-16 23:48:54.375626 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.69, available memory: 25G, codec thread: 2

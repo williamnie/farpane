@@ -1,0 +1,452 @@
+{
+  "sinks": [
+    {
+      "index": 0,
+      "state": "RUNNING",
+      "name": "host_audio",
+      "description": "Null Output",
+      "driver": "module-null-sink.c",
+      "sample_specification": "s16le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "owner_module": 1,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "base_volume": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      },
+      "monitor_source": "host_audio.monitor",
+      "latency": {
+        "actual": 2270.0,
+        "configured": 10000.0
+      },
+      "flags": [
+        "DECIBEL_VOLUME",
+        "LATENCY",
+        "SET_FORMATS"
+      ],
+      "properties": {
+        "device.description": "Null Output",
+        "device.class": "abstract",
+        "device.icon_name": "audio-card"
+      },
+      "ports": [],
+      "active_port": null,
+      "formats": [
+        "pcm"
+      ]
+    },
+    {
+      "index": 1,
+      "state": "RUNNING",
+      "name": "viewer_audio",
+      "description": "Null Output",
+      "driver": "module-null-sink.c",
+      "sample_specification": "s16le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "owner_module": 2,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "base_volume": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      },
+      "monitor_source": "viewer_audio.monitor",
+      "latency": {
+        "actual": 204.0,
+        "configured": 10000.0
+      },
+      "flags": [
+        "DECIBEL_VOLUME",
+        "LATENCY",
+        "SET_FORMATS"
+      ],
+      "properties": {
+        "device.description": "Null Output",
+        "device.class": "abstract",
+        "device.icon_name": "audio-card"
+      },
+      "ports": [],
+      "active_port": null,
+      "formats": [
+        "pcm"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "index": 0,
+      "state": "RUNNING",
+      "name": "host_audio.monitor",
+      "description": "Monitor of Null Output",
+      "driver": "module-null-sink.c",
+      "sample_specification": "s16le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "owner_module": 1,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "base_volume": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      },
+      "monitor_source": "host_audio",
+      "latency": {
+        "actual": 0.0,
+        "configured": 10000.0
+      },
+      "flags": [
+        "DECIBEL_VOLUME",
+        "LATENCY"
+      ],
+      "properties": {
+        "device.description": "Monitor of Null Output",
+        "device.class": "monitor",
+        "device.icon_name": "audio-input-microphone"
+      },
+      "ports": [],
+      "active_port": null,
+      "formats": [
+        "pcm"
+      ]
+    },
+    {
+      "index": 1,
+      "state": "RUNNING",
+      "name": "viewer_audio.monitor",
+      "description": "Monitor of Null Output",
+      "driver": "module-null-sink.c",
+      "sample_specification": "s16le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "owner_module": 2,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "base_volume": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      },
+      "monitor_source": "viewer_audio",
+      "latency": {
+        "actual": 0.0,
+        "configured": 20000.0
+      },
+      "flags": [
+        "DECIBEL_VOLUME",
+        "LATENCY"
+      ],
+      "properties": {
+        "device.description": "Monitor of Null Output",
+        "device.class": "monitor",
+        "device.icon_name": "audio-input-microphone"
+      },
+      "ports": [],
+      "active_port": null,
+      "formats": [
+        "pcm"
+      ]
+    },
+    {
+      "index": 2,
+      "state": "IDLE",
+      "name": "synthetic_mic",
+      "description": "Remapped Monitor of Null Output",
+      "driver": "module-remap-source.c",
+      "sample_specification": "s16le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "owner_module": 3,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "base_volume": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      },
+      "monitor_source": "",
+      "latency": {
+        "actual": 0.0,
+        "configured": 2000000.0
+      },
+      "flags": [
+        "DECIBEL_VOLUME",
+        "LATENCY"
+      ],
+      "properties": {
+        "device.master_device": "host_audio.monitor",
+        "device.class": "filter",
+        "device.description": "Remapped Monitor of Null Output",
+        "device.icon_name": "audio-input-microphone"
+      },
+      "ports": [],
+      "active_port": null,
+      "formats": [
+        "pcm"
+      ]
+    }
+  ],
+  "sink-inputs": [
+    {
+      "index": 0,
+      "driver": "protocol-native.c",
+      "owner_module": "0",
+      "client": "1",
+      "sink": 0,
+      "sample_specification": "float32le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "format": "pcm, format.sample_format = \"\\\"float32le\\\"\"  format.rate = \"48000\"  format.channels = \"2\"  format.channel_map = \"\\\"front-left,front-right\\\"\"",
+      "corked": false,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "buffer_latency_usec": 1990000.0,
+      "sink_latency_usec": 5430.0,
+      "resample_method": "copy",
+      "properties": {
+        "application.name": "pacat",
+        "media.name": "/workspace/Build/Linux/native-viewer-smoke/20261016T142329Z/tone.f32",
+        "native-protocol.peer": "UNIX socket client",
+        "native-protocol.version": "35",
+        "application.process.id": "17",
+        "application.process.user": "ubuntu",
+        "application.process.host": "f402a9c060ff",
+        "application.process.binary": "pacat",
+        "application.language": "C",
+        "application.process.machine_id": "66059471ef7c4ea9ab9308bf8b2f17f5"
+      }
+    },
+    {
+      "index": 1,
+      "driver": "protocol-native.c",
+      "owner_module": "0",
+      "client": "7",
+      "sink": 1,
+      "sample_specification": "float32le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "format": "pcm, format.sample_format = \"\\\"float32le\\\"\"  format.rate = \"48000\"  format.channels = \"2\"  format.channel_map = \"\\\"front-left,front-right\\\"\"",
+      "corked": false,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "buffer_latency_usec": 20000.0,
+      "sink_latency_usec": 3437.0,
+      "resample_method": "copy",
+      "properties": {
+        "media.name": "FarPane remote playback",
+        "application.name": "FarPane",
+        "native-protocol.peer": "UNIX socket client",
+        "native-protocol.version": "35",
+        "application.process.id": "170",
+        "application.process.user": "ubuntu",
+        "application.process.host": "f402a9c060ff",
+        "application.process.binary": "farpane-core",
+        "application.language": "C",
+        "window.x11.display": ":92",
+        "application.process.machine_id": "66059471ef7c4ea9ab9308bf8b2f17f5"
+      }
+    }
+  ],
+  "source-outputs": [
+    {
+      "index": 0,
+      "driver": "module-remap-source.c",
+      "owner_module": "3",
+      "client": null,
+      "source": 0,
+      "sample_specification": "s16le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "format": "pcm, format.sample_format = \"\\\"s16le\\\"\"  format.rate = \"48000\"  format.channels = \"2\"  format.channel_map = \"\\\"front-left,front-right\\\"\"",
+      "corked": false,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "buffer_latency_usec": 0.0,
+      "source_latency_usec": 0.0,
+      "resample_method": "",
+      "properties": {
+        "media.name": "Remapped Stream",
+        "media.role": "filter"
+      }
+    },
+    {
+      "index": 1,
+      "driver": "protocol-native.c",
+      "owner_module": "0",
+      "client": "5",
+      "source": 1,
+      "sample_specification": "float32le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "format": "pcm, format.sample_format = \"\\\"float32le\\\"\"  format.rate = \"48000\"  format.channels = \"2\"  format.channel_map = \"\\\"front-left,front-right\\\"\"",
+      "corked": false,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "buffer_latency_usec": 0.0,
+      "source_latency_usec": 0.0,
+      "resample_method": "copy",
+      "properties": {
+        "application.name": "parec",
+        "media.name": "parec",
+        "native-protocol.peer": "UNIX socket client",
+        "native-protocol.version": "35",
+        "application.process.id": "201",
+        "application.process.user": "ubuntu",
+        "application.process.host": "f402a9c060ff",
+        "application.process.binary": "pacat",
+        "application.language": "C",
+        "application.process.machine_id": "66059471ef7c4ea9ab9308bf8b2f17f5"
+      }
+    },
+    {
+      "index": 2,
+      "driver": "protocol-native.c",
+      "owner_module": "0",
+      "client": "6",
+      "source": 0,
+      "sample_specification": "float32le 2ch 48000Hz",
+      "channel_map": "front-left,front-right",
+      "format": "pcm, format.sample_format = \"\\\"float32le\\\"\"  format.rate = \"48000\"  format.channels = \"2\"  format.channel_map = \"\\\"front-left,front-right\\\"\"",
+      "corked": false,
+      "mute": false,
+      "volume": {
+        "front-left": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        },
+        "front-right": {
+          "value": 65536,
+          "value_percent": "100%",
+          "db": "0.00 dB"
+        }
+      },
+      "balance": 0.0,
+      "buffer_latency_usec": 0.0,
+      "source_latency_usec": 0.0,
+      "resample_method": "copy",
+      "properties": {
+        "media.name": "FarPane system capture",
+        "application.name": "FarPane",
+        "native-protocol.peer": "UNIX socket client",
+        "native-protocol.version": "35",
+        "application.process.id": "27",
+        "application.process.user": "ubuntu",
+        "application.process.host": "f402a9c060ff",
+        "application.process.binary": "farpane-core",
+        "application.language": "C",
+        "window.x11.display": ":91",
+        "application.process.machine_id": "66059471ef7c4ea9ab9308bf8b2f17f5"
+      }
+    }
+  ],
+  "source_measurement": {
+    "rms": 0.1413893508348035,
+    "hz": 439.79057591623035,
+    "samples": 16808
+  }
+}

@@ -1,0 +1,245 @@
+{
+  "schema": 1,
+  "description": "Exact cached non-FFmpeg source/recipe materials, verified against pinned Git objects and vcpkg build ABI records. FFmpeg/AMF pins remain in dependencies.lock.json.",
+  "ports": {
+    "aom": {
+      "origin": "rustdesk",
+      "git_tree": "0f6b56da0bdd3a44c2a323dd71fcb3cffd082334",
+      "files": {
+        "aom-avx2.diff": "d96abb9942cb448e79133a75ae962b1bba66c8a48bf197f2bf2ad747131c9c50",
+        "aom-install.diff": "10de676ec84daf336658e4a371cb1f5dd73eb5daed4da07975253f2fe64bee0e",
+        "aom-uninitialized-pointer-3.9.1.diff": "d673f171a7c95c29de46aa6a9255b660146856eb8f54085b258774b878cd219b",
+        "aom-uninitialized-pointer.diff": "5a07138d20ac842bf1b491bdeaae17bf6fbae4c6c085e544361ef2d8cec6d2b0",
+        "portfile.cmake": "e43ce20fb1e7b108a563563054adf6d0081d4a06cdb7ef8c1da81bc7a640b249",
+        "vcpkg.json": "8a5da92655e3082dd177601036abb795fd14bc164f603eebe45cebabae4d7125"
+      },
+      "abi_record_sha256": "2e96d25e10779536cc9a8fc79d6ae02110f028905c9405268eb9731a0b8c32ee"
+    },
+    "libvpx": {
+      "origin": "rustdesk",
+      "git_tree": "979bd112575e024867e0e61dca018846276fbd18",
+      "files": {
+        "0003-add-uwp-v142-and-v143-support.patch": "91fa52aa8ef9c49a667e7f5de710fc47bdb1248f377132159bc610e70319ca8e",
+        "0004-remove-library-suffixes.patch": "3a7edcb553b1191b48696fc5a56ad5a43ae0cedb658ca42ba07473fa32bbc209",
+        "portfile.cmake": "11a4f47267cff61c8ac18c60091482c63df44bf0edea489c67608fdd53073316",
+        "unofficial-libvpx-config.cmake.in": "72681c6ae8cdda847854e728a8e7b4f1ebf6d7a83da2fbcf4ec66fa163850262",
+        "vcpkg.json": "05dc986d13aa44ac0d85f08bc2198efa25df707ba1ebbc6975cce9aaa7d7cc0a",
+        "vpx.pc.in": "acf70fc877efe7c3e0eded8ff9e16cb798bf5e56a127bc8c6e00bf231258095e"
+      },
+      "abi_record_sha256": "8a38cf211b3a43e93cfa400a9c646afb32f9c17cecf317690f8b48cc93784581"
+    },
+    "libyuv": {
+      "origin": "rustdesk",
+      "git_tree": "e548504892c8ee02fe8cf3e740951d97a3650915",
+      "files": {
+        "fix-cmakelists.patch": "6bd098fd9f139f4f31f1bd34f724559ec4bb3c5275f9ce6c1fa71b9fe5c8beb0",
+        "libyuv-config.cmake": "cdad93ddebb938e09680f76350a40f053e200522af483cbb1d9aa5ffa5ec1d1d",
+        "portfile.cmake": "913f366efcb377190083ad4ce5d86d16e7c4129468e295ab06ba6dd6cc91ba3d",
+        "usage": "5009c18383c097b889a82238f9ed2b1e168dd8723b8eb5cb8c419340695865a0",
+        "usage-msvc": "62ee200831d7272dde444e6260b2ce34cbe5d4a89627b71357db766ff20b46f7",
+        "vcpkg.json": "dab305a9a588db5997d6d009fadd9f786f2aa564566f71e5dffa836f82706b71"
+      },
+      "abi_record_sha256": "119f5297f3312d3244dd5a9402269beafedb477620b56383e886e64b6c367251"
+    },
+    "opus": {
+      "origin": "rustdesk",
+      "git_tree": "15f6cba0d0e75444d37e9a8e285a906e72a32cd8",
+      "files": {
+        "fix-pkgconfig-version.patch": "b1998186940daff04e5c332fbb7f27f756cf5c2227f6e8c3f37f2fb2e8222286",
+        "portfile.cmake": "01c46775db09ebf4978ee3ce1fa694adf13a0adb10a3b3badf77c3768937944c",
+        "vcpkg.json": "024bb3bdbf503bebb3033149127cff008e83de347efb17534ece30dfa2f10690"
+      },
+      "abi_record_sha256": "ab8212d9ae6e0a90323ea129553659f05ae3daa4863821a054dff486067a79ba"
+    },
+    "mfx-dispatch": {
+      "origin": "rustdesk",
+      "git_tree": "f44c06dfe3627f3a2ee4c4a384b7cb01b56bf70b",
+      "files": {
+        "0003-upgrade-cmake-3.14.patch": "93feecaa822beee08815a9353c05b1f5ef6dc85619dbb22c5011bfbee88ce787",
+        "fix-pkgconf.patch": "bac640bc13cdb9d74607aa45a1431aa15fa4a07ab5b5b6022a90e8a37b34f11d",
+        "fix-unresolved-symbol.patch": "6630ffd7d15a232aaaee1f3a6776823bc0205f4e6d975a650ff395b230e1aa90",
+        "portfile.cmake": "24f01a28a0078ec25fd294f7e371ddf847979fa51b0a8b5d84f31336fcf103b2",
+        "vcpkg.json": "5d83e0a3cc4b226a95b7342382d0d7fe6bfbd8ea376030592a4fcc32d1124885"
+      },
+      "abi_record_sha256": "9f34a5f85ffc62506611ea370cf06a1ae576cedc6500d032a0cc24a5a1f91fe2"
+    },
+    "libjpeg-turbo": {
+      "origin": "vcpkg",
+      "git_tree": "c7d2d8cbb868863a698862a0da02b4af225f3c72",
+      "files": {
+        "add-options-for-docs-headers.patch": "ca0974ee39b53aabbe2a1ee0fc02781cad5582d988b49e631b990c63019f770e",
+        "portfile.cmake": "7a3d4443ecb74757d6798e1280763da918b4ecee06a4e1c247fb2c3ec71994ff",
+        "usage": "431d1fd99d23de6d01df171baa9ab0edcccea16484d7c4ba0691d4ebc474de2d",
+        "vcpkg-cmake-wrapper.cmake": "d257c0a541dd60c4b6eb6f46a5e9f128a64a6ec40f3b8b5bc8ab753e7a935c61",
+        "vcpkg.json": "df7fbe43a017d5b93308e13b7945e95dc7851964c617287cdc877611b214d055",
+        "workaround_cmake_system_processor.patch": "d81f3b6d054e080fa16e52b1900785cf255de771277fa63dbc2c7e8b55776b5c"
+      },
+      "abi_record_sha256": "961ecd3900a59835326f534ca9db58a34bb68184bb2b1cf4a0f99eca954e1e77"
+    },
+    "ffnvcodec": {
+      "origin": "vcpkg",
+      "git_tree": "95b6f37a43dab098bf4be5c84e15e47a86cf7960",
+      "files": {
+        "LICENSE.txt": "e736bb04fc2623bdde9815578593ca163567bb9d5734f57edfa6ceb7f01550a2",
+        "build.sh": "f0a5c055a182ad2ffb97f771951630cd83c55ecd0b1faa7be6b5779a9c7fee90",
+        "copyright": "aa17bef6e76eddff732fcc06ca405eaa9056d480d2f95cf68b13450d47ab82ab",
+        "portfile.cmake": "64d87535e776c2ba9a06cb979c18ce13b3aa464911d3c0c87861ce3cf2467ecb",
+        "vcpkg.json": "af0a6e1e362471907157f259cc4fe6cd6eccbedee609c0215751403f82215eec"
+      },
+      "abi_record_sha256": "173132292c934782e73ed6a84b823efa02a78e492c12592691dc76207e166ec8"
+    },
+    "vcpkg-cmake": {
+      "origin": "vcpkg",
+      "git_tree": "e74aa1e8f93278a8e71372f1fa08c3df420eb840",
+      "files": {
+        "portfile.cmake": "a711531b7f13b7da16fa1f25d7c5737a423d4a126465dc9e6689a0f043fcc1aa",
+        "vcpkg-port-config.cmake": "f0a30f77c8f5e3ac40436fe2518a61ad067f2955c7ef3be6d6a0ca4b81cd2a45",
+        "vcpkg.json": "6fd546b781a1aa5df572bdd31672cf222e55698aa5bf7d3e5c11abf1ae56a45b",
+        "vcpkg_cmake_build.cmake": "6d1c27080fe3e768b5e7b968d6a28a37db154ebcb214297de25f10b6713511e1",
+        "vcpkg_cmake_configure.cmake": "a8bc92be2faf621d6183ed1f3eb2ac3b103f4418b95f8695cf0dc7f7c5e8f724",
+        "vcpkg_cmake_install.cmake": "3ae7886dc8434fac6f1e61190cc355fdec5fbd4f60758e2de20423cf49c91369"
+      },
+      "abi_record_sha256": "fd074fbc5cea4406a63ea4be74076da56a575646803ff22f51e526b4ada12af8"
+    },
+    "vcpkg-cmake-config": {
+      "origin": "vcpkg",
+      "git_tree": "51befcb03097f8d19c1c59f9ec3625e69d85322a",
+      "files": {
+        "copyright": "04b60f99a43bfd7fefdc8364b24aac704a2160cef969b75ba6a38b62dc4c4b70",
+        "portfile.cmake": "832b34e63f5af41ad1b2e4aa79c5bfa507a005b120b51548e674accc706837d7",
+        "vcpkg-port-config.cmake": "72bc3093337e633bdd19fe5d4dd1f38ca1918def49608d676a9c98c686d38b1e",
+        "vcpkg.json": "480420178eb38f67a7825d5e6776776ea072bcd14b1839e0f495344a529d9f58",
+        "vcpkg_cmake_config_fixup.cmake": "4866f6e995abcde8f9d7add69a3206205158119dbd0547be13076ae3c1456f6b"
+      },
+      "abi_record_sha256": "7435412cdd2c9fb74eabd5a302d3f8a2edde6ccc87fee0db5646f7b5ad569105"
+    },
+    "vcpkg-cmake-get-vars": {
+      "origin": "vcpkg",
+      "git_tree": "d6510f888dd526c7828f6b973349e7f30be51254",
+      "files": {
+        "cmake-get-vars.cmake.in": "2c9f7cdefba85c7a6df2e881888681e85fb4ab7593f1647ea9897d5c1df3ce66",
+        "cmake_get_vars/CMakeLists.txt": "33c9cdd0a0945e590ea1dd6b9744c86783e6a6ca1c070943b297bb383d15f134",
+        "portfile.cmake": "0a6c61926f6d1af5ed6e02b8df4dd8df81d3988a263c2849a38cef364e290e81",
+        "vcpkg-port-config.cmake": "4fd4c2e909bbdf069eb3c59b4b847b0b386cdb41840714e12b34b7eff41f9e22",
+        "vcpkg.json": "c63654032f0c0f79ffc9932cfade8a13d68fc607e823d3ea17cc4d24b4e76bac",
+        "vcpkg_cmake_get_vars.cmake": "f80132758a6a7d0930697814c0fd2b719a06ee092bf60fab96d3d9cfef0e4c2b"
+      },
+      "abi_record_sha256": "e8ac0eadb53c2e00e1cee8b33e90ce64682e5dd269beea2e59271a8411a2b9b7"
+    },
+    "vcpkg-pkgconfig-get-modules": {
+      "origin": "vcpkg",
+      "git_tree": "6845369c8cb7d3c318e8e3ae92fd2b7570a756ca",
+      "files": {
+        "portfile.cmake": "428b5ca9c0a3de8e486ee5b624c1fa58f8e77f91c6efc3b2c91b90ed125b6787",
+        "vcpkg-port-config.cmake": "af32777ec0921985699f91ee097b889e32813aede0bafc860521f11e47571cdc",
+        "vcpkg.json": "1ab83a963e761a37e14f35df5d0d34ddd4ddb474977a8a67e160134878e264f5",
+        "x_vcpkg_pkgconfig_get_modules.cmake": "322ee8af0f60819b32012525b7f7cc563addb0a32954206f66722a2af4139739"
+      },
+      "abi_record_sha256": "09883e3aec70baa441426ed77c08ec7ef8725bb4ce2dea41b332e21c72c70443"
+    },
+    "vcpkg-tool-meson": {
+      "origin": "vcpkg",
+      "git_tree": "86a0d388e3e72719eadc392e359ee80f2f8d8a16",
+      "files": {
+        "adjust-args.patch": "e5c08f37fce7aadd4f6f6ee1994508f0255004df9811ccadfd8c533c684d93bc",
+        "adjust-python-dep.patch": "b334a262ff9687da0d39a7b1aceda866db9fe9229964263939f37edcb2006bc7",
+        "install.cmake": "f7f6e1bc2c4573d60db625ea9cd7d68b90d20856402cfde7edacfa7dbd99d338",
+        "meson-56879d5.diff": "3eb1a8a98855991f653708211ae9acf7515a3cca6b7022bed8761bcde75d8d43",
+        "meson-intl.patch": "f4a9ef5f1f25ba8a496aa5379cda5c20562500ba237af38eba687d0c37bc37cd",
+        "meson.template.in": "3be3a07652e9dc4c3acfb3152ec6c099ff21c9570062ca7cbcc1dc2cc8be7590",
+        "portfile.cmake": "5d3b31886762f711434b9aca9fb680d7b76e9d78a9ab0669dc1f31f9c88dd451",
+        "remove-pkgconfig-specialization.patch": "5c6c35933b64c0ce18537e14cdb4773b3a873d0a80b739ff6caac1665c8d086b",
+        "vcpkg-port-config.cmake": "d3d323adba1894f14e16bfd0b50732e2e31fe40f1d36014038a20ae0c70e6159",
+        "vcpkg.json": "0b5193fab8e09c5c18a95d21c9c60e2a676873079d42d84a785ee74530a91432",
+        "vcpkg_configure_meson.cmake": "6bbe19827c0ffd5bb865fa8db78ba436cf149521ac66ad14be7c837c95b36aa5",
+        "vcpkg_install_meson.cmake": "cc77e0248f5e935134c9061e5d424bc6533b561eeeac6f72d1788837cd5d0384"
+      },
+      "abi_record_sha256": "478b4d6e8594d3d2b3000aabda42c8246b833f6b25b79f3d902eb3b79dd0aa4c"
+    },
+    "pkgconf": {
+      "origin": "vcpkg",
+      "git_tree": "767be39a6f55d757c60a42e0ef801c687e02e382",
+      "files": {
+        "portfile.cmake": "db749c5eeb8cf0bf6b8e5e47fb87534dd994b3bd8c7b2f2599c70d952257880f",
+        "vcpkg.json": "a2111014dbf3fec25ce3fbe80e766c60968ab0dcc9f69de9852d49a5d1d0ffb7"
+      },
+      "abi_record_sha256": "39873f29347ff06df3ab36387f69616ac7484600f2dbb1194836ccd4d8b3d8b5"
+    }
+  },
+  "archives": [
+    {
+      "port": "aom",
+      "filename": "aom-03087864cf4bea6abb0d28f95cf7843511413d8f.tar.gz",
+      "sha256": "ef8b7f42946f2ac4072ef3211ac3099212a9135af63ea0dbc7e73f545ee7104f",
+      "bytes": 6366139,
+      "verified_git_commit": "03087864cf4bea6abb0d28f95cf7843511413d8f"
+    },
+    {
+      "port": "libyuv",
+      "filename": "libyuv-0faf8dd0e004520a61a603a4d2996d5ecc80dc3f.tar.gz",
+      "sha256": "fc96c8887b0ee26ab28beb413a4c0f6b774bd21625fc21a725b944bc12e9d055",
+      "bytes": 566411,
+      "verified_git_commit": "0faf8dd0e004520a61a603a4d2996d5ecc80dc3f"
+    },
+    {
+      "port": "libvpx",
+      "filename": "webmproject-libvpx-v1.15.2.tar.gz",
+      "sha256": "26fcd3db88045dee380e581862a6ef106f49b74b6396ee95c2993a260b4636aa",
+      "bytes": 5630368,
+      "verified_recipe_sha512": "824fe8719e4115ec359ae0642f5e1cea051d458f09eb8c24d60858cf082f66e411215e23228173ab154044bafbdfbb2d93b589bb726f55b233939b91f928aae0"
+    },
+    {
+      "port": "opus",
+      "filename": "xiph-opus-v1.5.2.tar.gz",
+      "sha256": "9480e329e989f70d69886ded470c7f8cfe6c0667cc4196d4837ac9e668fb7404",
+      "bytes": 4183352,
+      "verified_recipe_sha512": "4ffefd9c035671024f9720c5129bfe395dea04f0d6b730041c2804e89b1db6e4d19633ad1ae58855afc355034233537361e707f26dc53adac916554830038fab"
+    },
+    {
+      "port": "mfx-dispatch",
+      "filename": "lu-zero-mfx_dispatch-1.35.1.tar.gz",
+      "sha256": "673636da98a4fd5c3e3dc5267da5429e986f53089ed6c33cdca5751f56d9416b",
+      "bytes": 151132,
+      "verified_recipe_sha512": "12517338342d3e653043a57e290eb9cffd190aede0c3a3948956f1c7f12f0ea859361cf3e534ab066b96b1c211f68409c67ef21fd6d76b68cc31daef541941b0"
+    },
+    {
+      "port": "mfx-dispatch",
+      "filename": "fix-missing-cstdint-import-d6241243f85a0d947bdfe813006686a930edef24.patch",
+      "sha256": "04eb9aa4d8cfe267b9996dbe68c9b28add884e778d8c6cf968b3074478127079",
+      "bytes": 2816,
+      "verified_recipe_sha512": "5d2ffc4ec2ba0e5859d01d2e072f75436ebc3e62e0f6580b5bb8b9f82fe588e7558a46a1fdfa0297a782c0eeb8f50322258d0dd9e41d927cc9be496727b61e44"
+    },
+    {
+      "port": "libjpeg-turbo",
+      "filename": "libjpeg-turbo-libjpeg-turbo-3.2.0.tar.gz",
+      "sha256": "980dd81f425082aa6d7c9e47fef27554ce7a9ffc8e2f6e863b97d263c5c50858",
+      "bytes": 2537858,
+      "verified_recipe_sha512": "1ce063e9e126d55019385da3a6ff4521a9a3958edeab15e2465ae3435026dac6e598277eea066173ada47da37159d0f7812b2227869c10dd141dcfe2ddeab720"
+    },
+    {
+      "port": "ffnvcodec",
+      "filename": "FFmpeg-nv-codec-headers-n12.1.14.0.tar.gz",
+      "sha256": "2fefaa227d2a3b4170797796425a59d1dd2ed5fd231db9b4244468ba327acd0b",
+      "bytes": 79598,
+      "verified_recipe_sha512": "3c7d06e6a859cab5b915035544cb0103b1b1413c69ac418bc668145445498e1f9cb6ec597c4071f6198e378f6cea60e5a7b0be44b0de3191d65609d50dfdad4a"
+    },
+    {
+      "port": "pkgconf",
+      "filename": "pkgconf-pkgconf-pkgconf-3.0.3.tar.gz",
+      "sha256": "90bb12369d296f2e0bea14832b421c4ba40d442e1519758e6e1e7855afab3149",
+      "bytes": 252030,
+      "verified_recipe_sha512": "4e49bb7b10c6fdebfa1175b4c33138b8aeca2582e49adb5c7ba66d08e8614771ef060b0c2673bd098c1aed821c8ade1a6dd276c1f4ac6e29bd7efcb8f4c0402e"
+    },
+    {
+      "port": "vcpkg-tool-meson",
+      "filename": "meson-1.9.0.tar.gz",
+      "sha256": "12ca5979a3a625c8944e093c17c32c4c2bd03a48c8877354d88a7077860ef740",
+      "bytes": 4925665,
+      "verified_recipe_sha512": "ecd69b6734be14c467f7db67dd88c0e57ebfad83ce3ddada131ff3e43ac964523e1083d7c7f3803033a9a76adbc32ad26dd2e3aca69884269000ca64130bde07"
+    }
+  ],
+  "upstream_commits": {
+    "rustdesk": "fada664df7a294d1d1a9ca3e7cd3637069122f17",
+    "vcpkg": "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  }
+}

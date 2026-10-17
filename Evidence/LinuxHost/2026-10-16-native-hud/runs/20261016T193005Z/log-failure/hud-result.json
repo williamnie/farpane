@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "no-hidden-initial-sampling",
+    "actual-hud-toggle",
+    "real-resource-counters",
+    "refresh-presented-fps",
+    "hidden-hud-stops-samples-and-events",
+    "idle-rate-zero",
+    "actual-diagnostic-window",
+    "cancel-export",
+    "actual-save-file-dialog",
+    "redacted-export",
+    "hidden-hud-keeps-aged-diagnostic-snapshot",
+    "write-failure-retains-stream"
+  ],
+  "elapsed_seconds": 17.331096129,
+  "metrics_after_hidden_drain": 4,
+  "result": "pass",
+  "samples_before_hidden": 5
+}

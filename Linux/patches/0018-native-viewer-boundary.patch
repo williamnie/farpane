@@ -1,0 +1,267 @@
+--- a/libs/hbb_common/src/config.rs
++++ b/libs/hbb_common/src/config.rs
+@@ -1,6 +1,16 @@
+ #[cfg(all(target_os = "linux", feature = "farpane-native"))]
+ #[path = "farpane_config.rs"]
+ pub mod farpane;
++#[cfg(all(target_os = "linux", feature = "farpane-native"))]
++#[path = "farpane_viewer_config.rs"]
++pub mod farpane_viewer;
++#[inline]
++fn native_viewer_read_only() -> bool {
++    #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++    { return farpane_viewer::access_is_read_only(); }
++    #[cfg(not(all(target_os = "linux", feature = "farpane-native")))]
++    { false }
++}
+ 
+ use std::{
+     collections::{HashMap, HashSet},
+@@ -559,6 +569,7 @@
+ pub fn load_path<T: serde::Serialize + serde::de::DeserializeOwned + Default + std::fmt::Debug>(
+     file: PathBuf,
+ ) -> T {
++        if native_viewer_read_only() { return T::default(); }
+     let cfg = match confy::load_path(&file) {
+         Ok(config) => config,
+         Err(err) => {
+@@ -576,6 +587,7 @@
+ 
+ #[inline]
+ pub fn store_path<T: serde::Serialize>(path: PathBuf, cfg: T) -> crate::ResultType<()> {
++        if native_viewer_read_only() { crate::bail!("Viewer configuration is read-only"); }
+     #[cfg(not(windows))]
+     {
+         use std::os::unix::fs::PermissionsExt;
+@@ -604,6 +616,7 @@
+     }
+ 
+     fn store_<T: serde::Serialize>(config: &T, suffix: &str) {
++        if native_viewer_read_only() { return; }
+         let file = Self::file_(suffix);
+         if let Err(err) = store_path(file, config) {
+             log::error!("Failed to store {suffix} config: {err}");
+@@ -611,6 +624,7 @@
+     }
+ 
+     fn load() -> Config {
++        if native_viewer_read_only() { return Config::default(); }
+         let mut config = Config::load_::<Config>("");
+         let mut store = false;
+         if let Err(err) = Self::validate_or_decrypt_permanent_password_storage(&mut config) {
+@@ -1704,6 +1718,7 @@
+ 
+ impl PeerConfig {
+     pub fn load(id: &str) -> PeerConfig {
++        if native_viewer_read_only() { return PeerConfig::default(); }
+         let _lock = CONFIG.read().unwrap();
+         match confy::load_path(Self::path(id)) {
+             Ok(config) => {
+@@ -1744,6 +1759,7 @@
+     }
+ 
+     fn store_(&self, id: &str) {
++        if native_viewer_read_only() { return; }
+         let mut config = self.clone();
+         config.password =
+             encrypt_vec_or_original(&config.password, PASSWORD_ENC_VERSION, ENCRYPT_MAX_LEN);
+@@ -1759,6 +1775,7 @@
+     }
+ 
+     pub fn remove(id: &str) {
++        if native_viewer_read_only() { return; }
+         fs::remove_file(Self::path(id)).ok();
+     }
+ 
+@@ -1790,6 +1807,7 @@
+     pub fn get_vec_id_modified_time_path(
+         id_filters: &Option<Vec<String>>,
+     ) -> Vec<(String, SystemTime, PathBuf)> {
++        if native_viewer_read_only() { return Vec::new(); }
+         if let Ok(peers) = Config::path(PEERS).read_dir() {
+             let mut vec_id_modified_time_path = peers
+                 .into_iter()
+@@ -1900,6 +1918,7 @@
+         from: usize,
+         to: Option<usize>,
+     ) -> (Vec<(String, SystemTime, PeerConfig)>, usize) {
++        if native_viewer_read_only() { return (Vec::new(), 0); }
+         if from >= all.len() {
+             return (vec![], 0);
+         }
+@@ -2307,6 +2326,7 @@
+ 
+ impl LanPeers {
+     pub fn load() -> LanPeers {
++        if native_viewer_read_only() { return LanPeers::default(); }
+         let _lock = CONFIG.read().unwrap();
+         match confy::load_path(Config::file_("_lan_peers")) {
+             Ok(peers) => peers,
+@@ -2543,6 +2563,7 @@
+     }
+ 
+     pub fn store(json: String) {
++        if native_viewer_read_only() { return; }
+         if let Ok(mut file) = std::fs::File::create(Self::path()) {
+             let data = compress(json.as_bytes());
+             let max_len = 64 * 1024 * 1024;
+@@ -2558,6 +2579,7 @@
+     }
+ 
+     pub fn load() -> Ab {
++        if native_viewer_read_only() { return Ab::default(); }
+         if let Ok(mut file) = std::fs::File::open(Self::path()) {
+             let mut data = vec![];
+             if file.read_to_end(&mut data).is_ok() {
+@@ -2574,7 +2596,8 @@
+     }
+ 
+     pub fn remove() {
+-        std::fs::remove_file(Self::path()).ok();
++
++        if native_viewer_read_only() { return; }        std::fs::remove_file(Self::path()).ok();
+     }
+ }
+ 
+@@ -2673,6 +2696,7 @@
+     }
+ 
+     pub fn store(json: String) {
++        if native_viewer_read_only() { return; }
+         if let Ok(mut file) = std::fs::File::create(Self::path()) {
+             let data = compress(json.as_bytes());
+             let max_len = 64 * 1024 * 1024;
+@@ -2687,6 +2711,7 @@
+     }
+ 
+     pub fn load() -> Self {
++        if native_viewer_read_only() { return Self::default(); }
+         if let Ok(mut file) = std::fs::File::open(Self::path()) {
+             let mut data = vec![];
+             if file.read_to_end(&mut data).is_ok() {
+@@ -2704,7 +2729,8 @@
+     }
+ 
+     pub fn remove() {
+-        std::fs::remove_file(Self::path()).ok();
++
++        if native_viewer_read_only() { return; }        std::fs::remove_file(Self::path()).ok();
+     }
+ }
+ 
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -3065,6 +3065,10 @@
+     /// Load [`PeerConfig`].
+     pub fn load_config(&self) -> PeerConfig {
+         debug_assert!(self.id.len() > 0);
++        #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++        if config::farpane_viewer::is_active() {
++            return self.config.clone();
++        }
+         PeerConfig::load(&self.id)
+     }
+ 
+@@ -3074,6 +3078,14 @@
+     ///
+     /// * `config` - [`PeerConfig`] to save.
+     pub fn save_config(&mut self, config: PeerConfig) {
++        #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++        if config::farpane_viewer::is_active() {
++            let mut config = config;
++            config.password.clear();
++            self.remember = false;
++            self.config = config;
++            return;
++        }
+         config.store(&self.id);
+         self.config = config;
+     }
+@@ -4216,6 +4228,8 @@
+ }
+ 
+ fn get_hwcodec_config() {
++    #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++    if config::farpane_viewer::is_active() { return; }
+     // for sciter and unilink
+     #[cfg(feature = "hwcodec")]
+     #[cfg(any(target_os = "windows", target_os = "linux"))]
+--- a/src/common.rs
++++ b/src/common.rs
+@@ -799,6 +799,10 @@
+ #[inline]
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+ async fn get_rendezvous_server_(ms_timeout: u64) -> (String, Vec<String>) {
++    #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++    if config::farpane_viewer::is_active() {
++        return (Config::get_rendezvous_server(), Config::get_rendezvous_servers());
++    }
+     crate::ipc::get_rendezvous_server(ms_timeout).await
+ }
+ 
+@@ -811,6 +815,8 @@
+ #[inline]
+ #[cfg(not(any(target_os = "android", target_os = "ios")))]
+ pub async fn get_nat_type(ms_timeout: u64) -> i32 {
++    #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++    if config::farpane_viewer::is_active() { return Config::get_nat_type(); }
+     crate::ipc::get_nat_type(ms_timeout).await
+ }
+ 
+@@ -2007,6 +2013,11 @@
+ }
+ 
+ pub async fn get_key(sync: bool) -> String {
++    #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++    if config::farpane_viewer::is_active() {
++        let key = Config::get_option("key");
++        return if key.is_empty() { config::RS_PUB_KEY.to_owned() } else { key };
++    }
+     #[cfg(windows)]
+     if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
+         if !lic.key.is_empty() {
+--- a/src/ipc.rs
++++ b/src/ipc.rs
+@@ -685,6 +685,10 @@
+ }
+ 
+ pub async fn new_listener(postfix: &str) -> ResultType<Incoming> {
++    #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++    if hbb_common::config::farpane_viewer::is_active() {
++        bail!("Viewer cannot access Host IPC");
++    }
+     let path = Config::ipc_path(postfix);
+     #[cfg(any(target_os = "linux", target_os = "macos"))]
+     let should_scrub_parent_entries = ensure_secure_ipc_parent_dir(&path, postfix)?;
+@@ -1389,6 +1393,10 @@
+ 
+ #[inline]
+ async fn connect_with_path(ms_timeout: u64, path: &str) -> ResultType<ConnectionTmpl<ConnClient>> {
++    #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++    if hbb_common::config::farpane_viewer::is_active() {
++        bail!("Viewer cannot access Host IPC");
++    }
+     let client = timeout(ms_timeout, Endpoint::connect(path)).await??;
+     Ok(ConnectionTmpl::new(client))
+ }
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -36,7 +36,7 @@
+ default = ["use_dasp", "legacy-ui"]
+ # Native builds use --no-default-features; legacy products keep their current UI.
+ legacy-ui = ["dep:gtk", "dep:sciter-rs", "dep:tao", "dep:tray-icon", "dep:winit", "dep:softbuffer"]
+-farpane-native = ["farpane-linux", "use_dasp", "dep:farpane-protocol", "hbb_common/farpane-native"]
++farpane-native = ["farpane-linux", "use_dasp", "dep:farpane-protocol", "hbb_common/farpane-native", "scrap/native-viewer"]
+ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+ mediacodec = ["scrap/mediacodec"]
+--- a/libs/scrap/Cargo.toml
++++ b/libs/scrap/Cargo.toml
+@@ -10,6 +10,7 @@
+ edition = "2018"
+ 
+ [features]
++native-viewer = []
+ farpane-linux = []
+ wayland = ["gstreamer", "gstreamer-app", "gstreamer-video", "dbus", "tracing", "zbus"]
+ # `drm` is a pure runtime-dlopen backend: rustdesk loads `libdrmtap.so.0` at runtime (`drmtap_dl.rs`)

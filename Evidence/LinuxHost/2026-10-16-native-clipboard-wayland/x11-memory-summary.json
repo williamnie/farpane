@@ -1,0 +1,26 @@
+{
+  "rounds": {
+    "0": {
+      "samples": 21,
+      "seconds": 2.3208673680201173,
+      "peak_pss_kib": {
+        "gui": 270653,
+        "viewer": 375478,
+        "host": 671631
+      },
+      "peak_three_process_pss_kib": 1105087
+    },
+    "1": {
+      "samples": 21,
+      "seconds": 2.36374620499555,
+      "peak_pss_kib": {
+        "gui": 273701,
+        "viewer": 373783,
+        "host": 694424
+      },
+      "peak_three_process_pss_kib": 1126125
+    }
+  },
+  "budget_passed": false,
+  "scope": "X11 regression with maximum byte PNG; not Wayland network, maximum pixels or memory acceptance"
+}

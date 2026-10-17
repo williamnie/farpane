@@ -1,0 +1,21 @@
+FARPANE_ALLOCATION_PROFILE_BEGIN=0
+Live Heap Allocations: 4194304 bytes in 1 chunks; quarantined: 96 bytes in 2 chunks; 7831 other chunks; total chunks: 7834; showing top 100% (at most 256 unique contexts)
+4194304 byte(s) (100%) in 1 allocation(s)
+    #0 0x7a50b728060f  (/usr/lib/x86_64-linux-gnu/libasan.so.8+0x12b60f) (BuildId: 08dcc6b86c4bb4be16ff10eaffc19f20f7c8e37a)
+    #1 0x615997fbf408  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x1408) (BuildId: 986ca9fa5fc186ad77cd8f5206b2b7e0dc8df509)
+    #2 0x7a50b6f55600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #3 0x7a50b6f55717  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #4 0x615997fbf474  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x1474) (BuildId: 986ca9fa5fc186ad77cd8f5206b2b7e0dc8df509)
+
+FARPANE_ALLOCATION_PROFILE_END=0
+FARPANE_ALLOCATION_PROFILE_BEGIN=1
+AddressSanitizer: CHECK failed: asan_memory_profile.cpp:54 "((total_allocated_user_size_)) != (0)" (0x0, 0x0) (tid=1)
+    #0 0x7a50b728de8d  (/usr/lib/x86_64-linux-gnu/libasan.so.8+0x138e8d) (BuildId: 08dcc6b86c4bb4be16ff10eaffc19f20f7c8e37a)
+    #1 0x7a50b72b8cd0  (/usr/lib/x86_64-linux-gnu/libasan.so.8+0x163cd0) (BuildId: 08dcc6b86c4bb4be16ff10eaffc19f20f7c8e37a)
+    #2 0x7a50b7281558  (/usr/lib/x86_64-linux-gnu/libasan.so.8+0x12c558) (BuildId: 08dcc6b86c4bb4be16ff10eaffc19f20f7c8e37a)
+    #3 0x615997fbf56e  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x156e) (BuildId: 986ca9fa5fc186ad77cd8f5206b2b7e0dc8df509)
+    #4 0x615997fbf43b  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x143b) (BuildId: 986ca9fa5fc186ad77cd8f5206b2b7e0dc8df509)
+    #5 0x7a50b6f55600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #6 0x7a50b6f55717  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)
+    #7 0x615997fbf474  (/workspace/Build/Linux/native-allocation-profile/profile-self-test+0x1474) (BuildId: 986ca9fa5fc186ad77cd8f5206b2b7e0dc8df509)
+

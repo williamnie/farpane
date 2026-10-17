@@ -1,0 +1,501 @@
+{
+  "patched_files": [
+    {
+      "target": "rustdesk",
+      "file": "Cargo.toml",
+      "sha256": "4824da3fe423d2c1bdb66f8ffc611f0079977907cfd3fa2ac365492fbb6a73d7"
+    },
+    {
+      "target": "rustdesk",
+      "file": "build.rs",
+      "sha256": "d286d1cf91bcbc18972b16a26f32f4b1c0dc5ba6cceb2e96a4c023aec4ec0686"
+    },
+    {
+      "target": "rustdesk",
+      "file": "flutter/lib/desktop/pages/desktop_setting_page.dart",
+      "sha256": "768c9462c2045d672d20fd33b1ffa213b55b74f5b4101421563ea346bc8bc638"
+    },
+    {
+      "target": "rustdesk",
+      "file": "flutter/linux/CMakeLists.txt",
+      "sha256": "4bab9b2090ba195fcac08d36976f3268b189d46f6aca50700155d3fc9a9c488d"
+    },
+    {
+      "target": "rustdesk",
+      "file": "flutter/linux/my_application.cc",
+      "sha256": "0c2f5fd6419fdd6939e9241496257b56441e9a9bcc3ac8227e55479a7b2b1fab"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/base/protos/message.proto",
+      "sha256": "d583331a16e6a06031f68d512715a2fdf8d8be3e1b9f0a45621e973703383a95"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/hbb_common/Cargo.toml",
+      "sha256": "3e4cabf1e7d47d550eeb33c6961e6e60e27953f16c7656494d103186fb5557c3"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/hbb_common/src/compress.rs",
+      "sha256": "c965239ed2cf29976e00d619ddc4470d32187918a1559bf8283f22575a5662b6"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/hbb_common/src/config.rs",
+      "sha256": "9e7f6c97940df0a61638eefabce4786a93840b11d3bbd3587166b746256cf231"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/Cargo.toml",
+      "sha256": "ce18583e2c59c37c7554df8287ecd1c4bf9616d6e601baa6bdbfc0ac20c3fd76"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/build.rs",
+      "sha256": "3480b6517420cf3dd3db0938bda22dbbdba1242878e1c650c8a23838dec4c1fc"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/codec.rs",
+      "sha256": "027ce44bc06d5408684446a17f3d58158edfd6e49a1323657acabfe5a3c66846"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/drm_render.rs",
+      "sha256": "c2a036b0b08da7647b0a130c4a2a89c7426461242e5371b2552b77a73eb476ea"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/drmtap_dl.rs",
+      "sha256": "81e3e0cae537df0d5fe76e709ee2f0f820f0950a37135b7705a64aaa20edfae3"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/mod.rs",
+      "sha256": "9fcb13d25b177130850c01ac6dd4165db14e1a459c4d2491a2d16bf86c122453"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/client.rs",
+      "sha256": "f31985f86a494d648eeb7a2af6b6ba4577c211a6f7ad4abae3ab4fcb62562480"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/client/file_trait.rs",
+      "sha256": "6d5d12dd0b764ceff3be025e44134010014bddf6048bf9a8b7891535af8603ec"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/client/io_loop.rs",
+      "sha256": "49f3b77f73f13bc91dedb800e29acd347348fa5c154faf58786a38d3b0e7bec6"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/common.rs",
+      "sha256": "8f674152ca7e6c7d56f00d66477b1b033fbb8a183e67ac323c4317c0bce0f6f7"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/core_main.rs",
+      "sha256": "c1012d7fa96bc44d506b594ffe115c23f2875a4481c9d14f51f8a60af016243f"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/flutter_ffi.rs",
+      "sha256": "64c7674e523b967ec89f48750a7bbe750cf74654bc2135446ef92add83e1ee89"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/hbbs_http/sync.rs",
+      "sha256": "33446813eaac400d2b86a5799865adc5a67c43e562de5752d48e482c1f3ab8a5"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/ipc.rs",
+      "sha256": "f7974388f0cd00746f2fcaaed92bc850f82cea961dc677e7cc348b87e285f617"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/ipc/auth.rs",
+      "sha256": "ed50fdce374517709cd12fe65c8f98c077db4894cc37e8a3a1589ade7b9808b0"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/keyboard.rs",
+      "sha256": "0887374dc2687ab0a39fdd3395ffecf5ce3c689adbedab7f7258d3ecf582bfbf"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/lib.rs",
+      "sha256": "3333d6b531a30aae7c8f8af19725cb6e9b1690d9738408b80428af0b201b2eb4"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/platform/linux.rs",
+      "sha256": "b0c0a10e9d80ef81dd1935b987b87a614a11526657c527276b65a42f48ef211e"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/platform/mod.rs",
+      "sha256": "823107d00c7daa5c1964d2ab7d319b59d6bcab4b6bef82114b0a3d3e32205e6e"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/rendezvous_mediator.rs",
+      "sha256": "411d6ff0533f91f0cfbd0721b38f0a3a30456dffd452456f393de2edd50efa9f"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server.rs",
+      "sha256": "94bf46e2016489e900e846e79981970de100abb3d3c7150671f79f923580d456"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/audio_service.rs",
+      "sha256": "e860f7be5fc9f04576e182c3b41d3d7f565128c0baa1a8db77b6dd5d9a22aa1a"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/connection.rs",
+      "sha256": "b7aa464ea422b5d4598918a1a4f0688e864de2f4e023e86895913c69759cb132"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/dbus.rs",
+      "sha256": "9a84c1cfaf1e89c79337cec760a985bdf0fe0408bd9fb4837f9a2175717e3a00"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/drm_capturer.rs",
+      "sha256": "c0f95f2b6b841510ae50ec81b24bbf4047e48480191a06b3e427814b7d9de800"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/input_service.rs",
+      "sha256": "a7f1f19dab329147461a8ac7a0b85c66c1e37c7765ad414941bc72b216d54d40"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/uinput.rs",
+      "sha256": "5bb99f020d4d4d0418840341b46058ba8d3981e680690ecdba66d42a66bd0675"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/video_service.rs",
+      "sha256": "e68b25be2b03738f26dba7f1c75c3cff529633c0f7e1a9438c745774a7c15bfb"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/ui_cm_interface.rs",
+      "sha256": "13052d41ede32ebf63d33e7813b065bd7b349b586b1c1bdfd79f67bf7484d2b5"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/ui_interface.rs",
+      "sha256": "1bff93199f321404f1e2e4d127516f707969dff9e303d52aa9dcbf65f1144e1e"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/ui_session_interface.rs",
+      "sha256": "0cf5b9406d857ab9621a0eb53d461949969f31f68b5d39e872abcc07d5769691"
+    },
+    {
+      "target": "hwcodec",
+      "file": "build.rs",
+      "sha256": "b26f120570772ba2133a292abecf122ec463fc520f9f0b8e463673b61b7dea46"
+    },
+    {
+      "target": "hwcodec",
+      "file": "cpp/common/util.cpp",
+      "sha256": "d1f58f39e84264de1ce414267382441ed2c98ecc369bae9622cbc0b5a1dd10cf"
+    },
+    {
+      "target": "hwcodec",
+      "file": "cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp",
+      "sha256": "d092a951c4175bebd5b525489ccc51e2f77646e646064c64082e86d58ebb63d7"
+    },
+    {
+      "target": "ffmpeg",
+      "file": "libavfilter/vaapi_vpp.c",
+      "sha256": "0ce39b212bba5930f8958ccd8a9d9c4fe70c6f409b44d887eacfc2950e3cf6b2"
+    },
+    {
+      "target": "ffmpeg",
+      "file": "libavfilter/vaapi_vpp.h",
+      "sha256": "96d15d06c519c743c584a96659567e1dc4e44a323dd341d7d882f15e6f1e398b"
+    },
+    {
+      "target": "ffmpeg",
+      "file": "libavfilter/vf_scale_vaapi.c",
+      "sha256": "be42fe22bb5fc3afd3860d15334e1def40d94fcc3bbb0a08540d938aa61a2e75"
+    },
+    {
+      "target": "clipboard_master",
+      "file": "src/master/x11.rs",
+      "sha256": "fcb1804d6d1dd36752efdc7f3364847efd8e1c30dce37ce7786f45fddc4d123e"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/platform/linux/farpane.rs",
+      "sha256": "d47ce9cf238edb133a671ab25fe80cf775eace5c72131b58617b22340db51a0d"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/linux_gpu_build.rs",
+      "sha256": "0b9370440a6f111b00e720a67d8b8971307a9aefed2c0ae0f36ac1e7a559f024"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/linux_gpu/gpu_media.cpp",
+      "sha256": "efa7c745eccf59c5bd74011f5d2c94236ae822ff009080f6b7304634093b6ab6"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/linux_gpu/gpu_media.h",
+      "sha256": "6405efc5307de5c0760cc199ea8cd671c57fe97da5ba65db4a170b5a63f4bcf6"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/linux_gpu.rs",
+      "sha256": "c4602576845cf0fa33214510d105b6f2c23b6ce143aa594588af23751a7c94fa"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/linux_gpu_capture.rs",
+      "sha256": "8cf88be2c227de8c8e56819778bcf875051b5f025689cf61f81f76a3cc7c0a86"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/linux_gpu_host.rs",
+      "sha256": "4b62cf55860f29914ef2bdbb6619afa1315fe4ed957d1bde1dd7e0256d1fe86d"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/platform/linux/gpu_status.rs",
+      "sha256": "eea7be5e828f811580eea8ce5d7c5a20836cf8e88ef3aab3287eac42ed2320fa"
+    },
+    {
+      "target": "rustdesk",
+      "file": "flutter/lib/desktop/widgets/farpane_gpu_settings.dart",
+      "sha256": "db71a3d316aced6aca41ca483d78ea614d59bb1d5cd3d581aa13241d3d391bd2"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native_main.rs",
+      "sha256": "1a08a7a7d26c818d76fafadd9c6f2bb1a6ad7c7e02c60342254942b5de5e0e56"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/mod.rs",
+      "sha256": "30e4ff596fe4ed03b3c438926ad9f2bab8ce6a26da4ef2753c0ca87047028a68"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/activity.rs",
+      "sha256": "7f53423e7357139a572819817682d99582ce11f7bb6989d3e5a7831905b73bf9"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/cm.rs",
+      "sha256": "085e9fd9edccc1fabdfcd017aa28b65028a4baff4b5e7a48bce11d80e403b96b"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/config.rs",
+      "sha256": "0af0acd1dda4ff44d4b0dff875a5e4cd13c2d65d37f71da4fe0886124b5a1be2"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/control.rs",
+      "sha256": "76d41557a19c751bff498cc17ae2839ef93e8b34c3e8b4158e27bbd05230f0c8"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/process.rs",
+      "sha256": "bfe7ad12301f754cfa396437ce479bceb152612dfe2cb88afd6955ba860fd52d"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/supervisor.rs",
+      "sha256": "5eee162ddc83239f035f77dcac715b04e2cd89a2eb53334b065667281ea37640"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/hbb_common/src/farpane_viewer_config.rs",
+      "sha256": "840a53cf8a2febf0013ce60a4a0aa8bf7c53942641b9289915daf1018c29645e"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/hbb_common/src/farpane_config.rs",
+      "sha256": "3096ee3f374800a1cc41691a9e17baa9c713fc2b20aaf0867d59638ca571b96d"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/linux_gpu/viewer_decode.h",
+      "sha256": "2be9ff1f8272d84b7b2d2eba234f36002bcebf8dc3e76e21e739eda26749b7f8"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/linux_gpu/viewer_decode.cpp",
+      "sha256": "31f1dbe40dccc4f4df3076a1f75025ddcc0c9b470e7c5d8e6bb70c0055f1282e"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/decode.rs",
+      "sha256": "9c7db7c84ac6b4d57a72b9e16eaf88a46d613f1dffb7f9cf76c2ff626c52c154"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/viewer_boundary.rs",
+      "sha256": "c19ab5a1c046e34febe9cae66c6c7dd7cb373f0bd046d1c45fea2cbbc3ed798b"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/viewer.rs",
+      "sha256": "7930c11429f3b795dcb4cd315f17ae24d3fd4edca85fcc128517bbd02b1cd1fb"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/viewer_ui.rs",
+      "sha256": "2016b74eac12d58cd83bfb51c3160db9dc2d4ae2e4ab02cae2d70bed8cb57e76"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/viewer_media.rs",
+      "sha256": "8c352cf520bec4e2e4bfb7afe847bec1a8e187386e47ee72ac7faaa0d1fe4720"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/viewer_input.rs",
+      "sha256": "ebdc1ab06b3ecd0e330ddced7344f4721bad1360bccb68da3f9fd2c187a59186"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/viewer_queue.rs",
+      "sha256": "f774a7eb8cefdc534ed5379a09c011d25ff42ce0c6fc49a9b4c01ecee2daaacf"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/viewer_clipboard.rs",
+      "sha256": "3a934a82580332ae7b5f7c914abc4405d6ffdff85bad4fe7d6532586fc3e5248"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/audio.rs",
+      "sha256": "631ab9fca56aae73db7f477b48dfc3963239d8c6a2b11590f6b34c9e47867ec1"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/viewer_audio.rs",
+      "sha256": "c3c48e39711f69a2349b7ca3d1ebe0b99a1fd44a8ec9882813c989d08f8625b8"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/server/native_audio_capture.rs",
+      "sha256": "7796ad2a43361531bcd8c5e3360ed7f86217d071aba9bfe0bbf84a6b52736fe5"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/files.rs",
+      "sha256": "016336e9727fe6914e55a9c5de5b53686ed9164b494cc7d88fabebbde7ce40a3"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/file_host.rs",
+      "sha256": "e4b9f04ac7ae065e48838047ceb4412087b322de89ebf65149f238199b646ced"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/file_viewer.rs",
+      "sha256": "04f78d4545b4fbaae95ae755fd9e5b7ef2a49e2f102217dfbbc981a8def36a05"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/desktop.rs",
+      "sha256": "b011eff556d7f09e3ea8970c19b714ae658e4536ca2cb793053a971aed607888"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/desktop_menu.rs",
+      "sha256": "bd6639219437bddf460d0e8e597189985d7d46493dcc2f2c48ef96d653a73fe4"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/desktop-icon.png",
+      "sha256": "8e0cecdee4b759bfeb11d0f93d88b5ae5e77d39c88cf56e21352e6810ff6a8a5"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/clipboard_wire.rs",
+      "sha256": "b51d68892a99edc3fcdf39744afc6becb390d395721095debf1562e72a1e0f62"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/host_clipboard.rs",
+      "sha256": "07c6023fe8d74f5de68534f0f8a2cb1298271530af4e80e733f4a0a4b9727786"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/clipboard_x11.rs",
+      "sha256": "7080551c861e7c984731a1f0e9bf9a040721efb23734ee134ed412634d403d53"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/clipboard_x11_writer.rs",
+      "sha256": "eeab4ac6dbbf28bca0af017080d4a1621b4a223269703bfa969679083f720e11"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/clipboard_wayland.rs",
+      "sha256": "a41d0b0f501667baf2810b7845c9a5cb4a43cc006d1efa5385f57dec038fb6f5"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/clipboard_platform.rs",
+      "sha256": "76a6911d5ce60a82f53389a8c410aa16e7c08ccbe8cca7d0026921c77e8ff2f1"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/clipboard_wayland_tests.rs",
+      "sha256": "da11a2e0231f5783c9d2be4ee793cf3f8591055d79f870604abd03ff47bddba0"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/native_library_path.rs",
+      "sha256": "4dd03068becfd57caa10e17a26fcff9a041fa6645f63acd3f8f95d27de7b094e"
+    },
+    {
+      "target": "rustdesk",
+      "file": "libs/scrap/src/common/linux_gpu/vaapi_compat.c",
+      "sha256": "cbcb012ced213eca3730aab0c1fc59a175cafb1ef0c8fc30b3b20f81cc90b078"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/session.rs",
+      "sha256": "308c8d08b06c277289a28b3b01ab58a5565266ad44cd59e09cdbc3a55256b60d"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/discovery.rs",
+      "sha256": "691c1e8c51a8438c97993f901984c4e2c20b60ad3e551cbfe93bd9e640351c74"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/input_retry.rs",
+      "sha256": "2ed0dd712223fdc971d1e10b8611536a90779beeb78fae2bb3fd6c195ff82e86"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/recovery.rs",
+      "sha256": "4b3249c2d891ad3a0e56260c9a6d05d7ce6c39b9d09976287fca8dc7cc73367a"
+    },
+    {
+      "target": "rustdesk",
+      "file": "src/farpane_native/transport.rs",
+      "sha256": "598e56ead2d84c1861ee32b6db58a335c0d527cfa323814b36245ab82ba1a281"
+    }
+  ],
+  "lockfiles": "match",
+  "result": "PASS"
+}

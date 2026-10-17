@@ -1,0 +1,55 @@
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -207,6 +207,8 @@
+         .await
+         {
+             Ok(((mut peer, direct, pk, kcp, stream_type), (feedback, rendezvous_server))) => {
++                #[cfg(feature = "farpane-native")]
++                if self.handler.is_file_transfer() { peer.set_max_packet_length(crate::farpane_native::files::PACKET_LIMIT + 1024); }
+                 self.handler
+                     .connection_round_state
+                     .lock()
+@@ -1535,14 +1537,15 @@
+     }
+ 
+     async fn handle_msg_from_peer(&mut self, data: &[u8], peer: &mut Stream) -> bool {
++        #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++        if self.handler.is_file_transfer() && data.len() > crate::farpane_native::files::PACKET_LIMIT { return false; }
+         if let Ok(msg_in) = Message::parse_from_bytes(&data) {
+             #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
+             if hbb_common::config::farpane_viewer::is_active() {
+-                if matches!(msg_in.union.as_ref(), Some(message::Union::FileAction(_))) {
+-                    // Native file requests will be routed through the explicit
+-                    // per-session transfer owner; never auto-print/open files.
+-                    return true;
+-                }
++                if matches!(msg_in.union.as_ref(), Some(message::Union::FileAction(_)) | Some(message::Union::FileResponse(_))) {
++                    return if self.handler.is_file_transfer() { crate::farpane_native::file_viewer::enqueue(msg_in).await } else { false };
++                }
++                if self.handler.is_file_transfer() && matches!(msg_in.union.as_ref(), Some(message::Union::VideoFrame(_)) | Some(message::Union::AudioFrame(_))) { return false; }
+                 if let Some(message::Union::VoiceCallRequest(request)) = msg_in.union.as_ref() {
+                     if request.is_connect {
+                         let response = crate::client::new_voice_call_response(request.req_timestamp, false);
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -1926,6 +1926,8 @@
+         // narrows it again for its own framing (`port_forward_mux::cap_packet_size`), so that
+         // call has to come after this one, not before.
+         self.stream.set_max_packet_length(usize::MAX);
++        #[cfg(feature = "farpane-native")]
++        if self.file_transfer.is_some() { self.stream.set_max_packet_length(crate::farpane_native::files::PACKET_LIMIT + 1024); }
+         if !self.connect_port_forward_if_needed().await {
+             return false;
+         }
+@@ -2098,6 +2100,11 @@
+         }
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+         if self.file_transfer.is_some() {
++            // Native file access is scoped to this ordinary-user agent's
++            // explicitly configured private root, not the seat0 console user.
++            #[cfg(feature = "farpane-native")]
++            { username = format!("uid:{}", unsafe { hbb_common::libc::geteuid() }); }
++            #[cfg(not(feature = "farpane-native"))]
+             if crate::platform::is_prelogin() {
+                 // }|| self.tx_to_cm.send(ipc::Data::Test).is_err() {
+                 username = "".to_owned();

@@ -1,0 +1,110 @@
+[
+  {
+    "job": 1,
+    "connection": 117,
+    "name": "upload.bin",
+    "upload": true,
+    "done": 393233,
+    "total": 393233,
+    "status": "completed",
+    "detail": "\u6587\u4ef6\u5df2\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 2,
+    "connection": 117,
+    "name": "upload.bin",
+    "upload": false,
+    "done": 393233,
+    "total": 393233,
+    "status": "sent",
+    "detail": "\u5df2\u53d1\u9001\uff1b\u6b64\u534f\u8bae\u672a\u786e\u8ba4\u8fdc\u7aef\u843d\u76d8",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 3,
+    "connection": 117,
+    "name": "cancel.bin",
+    "upload": true,
+    "done": 0,
+    "total": 17408,
+    "status": "cancelled",
+    "detail": "\u8fdc\u7aef\u53d6\u6d88\u4e86\u4f20\u8f93",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 4,
+    "connection": 117,
+    "name": "tree",
+    "upload": true,
+    "done": 45199,
+    "total": 45199,
+    "status": "completed",
+    "detail": "\u6587\u4ef6\u5df2\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 5,
+    "connection": 117,
+    "name": "3 \u4e2a\u9879\u76ee \u00b7 /",
+    "upload": true,
+    "done": 131103,
+    "total": 131103,
+    "status": "completed",
+    "detail": "\u6587\u4ef6\u5df2\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 6,
+    "connection": 117,
+    "name": "empty-folder",
+    "upload": true,
+    "done": 0,
+    "total": 0,
+    "status": "completed",
+    "detail": "\u6587\u4ef6\u5df2\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 7,
+    "connection": 117,
+    "name": "tree",
+    "upload": false,
+    "done": 45199,
+    "total": 45199,
+    "status": "completed_with_skips",
+    "detail": "\u8fdc\u7aef\u5df2\u786e\u8ba4\u76ee\u5f55\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 8,
+    "connection": 117,
+    "name": "empty-folder",
+    "upload": false,
+    "done": 0,
+    "total": 0,
+    "status": "completed",
+    "detail": "\u8fdc\u7aef\u5df2\u786e\u8ba4\u76ee\u5f55\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 9,
+    "connection": 117,
+    "name": "tree",
+    "upload": false,
+    "done": 45199,
+    "total": 45199,
+    "status": "completed_with_skips",
+    "detail": "\u8fdc\u7aef\u5df2\u786e\u8ba4\u76ee\u5f55\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  }
+]

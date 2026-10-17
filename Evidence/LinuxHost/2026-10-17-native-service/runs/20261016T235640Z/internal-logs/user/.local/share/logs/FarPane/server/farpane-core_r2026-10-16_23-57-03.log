@@ -1,0 +1,22 @@
+[2026-10-16 23:57:03.459815 +00:00] INFO [src/core_main.rs:404] start --server with user ubuntu
+[2026-10-16 23:57:03.460806 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":92")
+[2026-10-16 23:57:03.460818 +00:00] INFO [src/server.rs:666] XAUTHORITY=Ok("/run/user/1000/test.Xauthority")
+[2026-10-16 23:57:03.461078 +00:00] DEBUG [src/server.rs:833] #tries of ipc service connection: 30
+[2026-10-16 23:57:03.479566 +00:00] INFO [src/ipc.rs:738] Started ipc server at path: /tmp/FarPane-1000/ipc
+[2026-10-16 23:57:03.763324 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-16 23:57:03.763609 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-16 23:57:03.764164 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-16 23:57:03.764491 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-16 23:57:03.896429 +00:00] INFO [libs/scrap/src/common/codec.rs:1056] skip test av1
+[2026-10-16 23:57:04.764626 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-16 23:57:04.765412 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-16 23:57:04.794004 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0
+[2026-10-16 23:57:07.503068 +00:00] INFO [src/server/drm_capturer.rs:1897] drm: consumer cache warm found no producer at startup (will probe lazily)
+[2026-10-16 23:57:07.766211 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-16 23:57:07.767087 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-16 23:57:14.767226 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-16 23:57:14.767998 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-16 23:57:29.768168 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-16 23:57:29.769048 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-16 23:58:00.769204 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-16 23:58:00.769881 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution

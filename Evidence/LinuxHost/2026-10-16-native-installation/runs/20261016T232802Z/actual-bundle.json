@@ -1,0 +1,50 @@
+{
+  "artifact": "farpane-native-dev-51d4c2b0bb05647cc5f5494f",
+  "probes": {
+    "farpane:--build-info": {
+      "component": "native-gui",
+      "gtk_minimum": "4.14",
+      "libadwaita_minimum": "1.5",
+      "product": "FarPane",
+      "protocol": 1,
+      "runtime_ready": false,
+      "version": "0.1.0"
+    },
+    "libexec/farpane-core:--build-info": {
+      "component": "native-core",
+      "gpu_host_compiled": true,
+      "legacy_ui": false,
+      "product": "FarPane",
+      "protocol": 1,
+      "runtime_ready": false
+    },
+    "libexec/farpane-core:--check-bundled-media": {
+      "component": "native-core",
+      "device_opened": false,
+      "libdrmtap_version": [
+        0,
+        5,
+        8
+      ]
+    }
+  },
+  "desktop": {
+    "result": {
+      "release": "farpane-native-dev-51d4c2b0bb05647cc5f5494f",
+      "desktop_installed": true,
+      "processes_started": false,
+      "backup": "2b7476f046144a75b457856497a87970"
+    },
+    "gio_desktop_parser": "pass"
+  },
+  "system_state": {
+    "schema": 1,
+    "active": "farpane-native-dev-51d4c2b0bb05647cc5f5494f",
+    "previous": null,
+    "user_integration_required": true,
+    "runtime_ready": false
+  },
+  "root_service_started": false,
+  "host_modified": false,
+  "source_unchanged": true
+}

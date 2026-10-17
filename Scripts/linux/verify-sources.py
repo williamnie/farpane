@@ -24,10 +24,14 @@ hw = list((reference / 'cache/cargo/git/checkouts').glob('hwcodec-*/' + LOCK['hw
 if len(hw) != 1:
     raise SystemExit('Expected exactly one pinned read-only hwcodec object cache')
 origins = {'rustdesk': reference / 'rustdesk', 'hwcodec': hw[0]}
+clipboard_pin = LOCK['clipboard_master']['commit'][:7]
+clipboard_caches = list((BUILD / 'cargo/git/checkouts').glob('clipboard-master-*/' + clipboard_pin))
+clipboard_caches += list((reference / 'cache/cargo/git/checkouts').glob('clipboard-master-*/' + clipboard_pin))
+origins['clipboard_master'] = next(iter(clipboard_caches), BUILD / 'git/clipboard_master')
 ffmpeg_name = 'ffmpeg-' + LOCK['ffmpeg']['version']
 report = []
 with tempfile.TemporaryDirectory(dir=BUILD) as temp:
-    for target in ('rustdesk', 'hwcodec', 'ffmpeg'):
+    for target in ('rustdesk', 'hwcodec', 'ffmpeg', 'clipboard_master'):
         entries = [e for e in LOCK['patches'] if e.get('target', 'rustdesk') == target]
         paths = set()
         for entry in entries:
@@ -44,8 +48,16 @@ with tempfile.TemporaryDirectory(dir=BUILD) as temp:
                     data = archive.extractfile(ffmpeg_name + '/' + name).read()
             else:
                 origin = origins[target]
+                revision = LOCK[target]['commit']
+                object_path = name
+                # hbb_common is a separately pinned submodule, populated before
+                # applying the RustDesk-tree patches by prepare.py.
+                if target == 'rustdesk' and name.startswith('libs/hbb_common/'):
+                    origin = reference / 'rustdesk/libs/hbb_common'
+                    revision = LOCK['hbb_common']['commit']
+                    object_path = name.removeprefix('libs/hbb_common/')
                 data = subprocess.check_output(['git', '-c', f'safe.directory={origin}', '-C', str(origin),
-                                                'show', LOCK[target]['commit'] + ':' + name])
+                                                'show', revision + ':' + object_path])
             file.write_bytes(data)
         for entry in entries:
             prepare.apply_patch(tree, ROOT / entry['path'])

@@ -1,0 +1,123 @@
+[2026-10-17 00:08:25.653042 +00:00] INFO [src/core_main.rs:404] start --server with user ubuntu
+[2026-10-17 00:08:25.653616 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":92")
+[2026-10-17 00:08:25.653622 +00:00] INFO [src/server.rs:666] XAUTHORITY=Ok("/run/user/1000/test.Xauthority")
+[2026-10-17 00:08:25.653897 +00:00] DEBUG [src/server.rs:833] #tries of ipc service connection: 30
+[2026-10-17 00:08:25.673136 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-1000/ipc
+[2026-10-17 00:08:25.799602 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:25.807529 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:25.956006 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-17 00:08:25.956368 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-17 00:08:25.956600 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:08:25.958769 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:08:25.963199 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:523] set hwcodec config
+[2026-10-17 00:08:25.963210 +00:00] DEBUG [libs/scrap/src/common/hwcodec.rs:524] HwCodecConfig { signature: 0, ram_encode: [], ram_decode: [CodecInfo { name: "h264", mc_name: None, format: H264, priority: 3, hwdevice: AV_HWDEVICE_TYPE_NONE }, CodecInfo { name: "hevc", mc_name: None, format: H265, priority: 3, hwdevice: AV_HWDEVICE_TYPE_NONE }] }
+[2026-10-17 00:08:26.090869 +00:00] INFO [libs/scrap/src/common/codec.rs:1056] skip test av1
+[2026-10-17 00:08:26.958901 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-17 00:08:26.959677 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:08:26.986361 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0
+[2026-10-17 00:08:29.693487 +00:00] INFO [src/server/drm_capturer.rs:1897] drm: consumer cache warm found no producer at startup (will probe lazily)
+[2026-10-17 00:08:29.959862 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-17 00:08:29.960752 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:08:31.021511 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:31.043644 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:31.050582 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:31.080596 +00:00] INFO [src/rendezvous_mediator.rs:271] server restart
+[2026-10-17 00:08:31.080672 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-17 00:08:31.080803 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:31.716100 +00:00] INFO [src/rendezvous_mediator.rs:271] server restart
+[2026-10-17 00:08:31.716325 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:31.983962 +00:00] INFO [src/server.rs:896] config updated, sync to root
+[2026-10-17 00:08:32.323340 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:32.333990 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:32.436298 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:32.447045 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:32.550367 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:32.558167 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:32.659543 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:32.667813 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:32.769455 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:32.780045 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:32.881574 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:32.891107 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:32.992483 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.002822 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.104218 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.115208 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.217017 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.225641 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.327099 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.336070 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.438145 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.449130 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.550672 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.558716 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.659965 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.671275 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.773104 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.784365 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.887352 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:33.896505 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:33.998067 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.009620 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:34.111238 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.121405 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:34.222940 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.231560 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:34.333208 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.343643 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:34.445039 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.453786 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:34.555322 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.563387 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:34.664831 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.675470 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:34.778895 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.790213 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:34.891855 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:34.900302 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.001797 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.012427 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.114024 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.124952 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.226481 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.234905 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.336233 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.346617 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.448621 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.459681 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.561092 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.572474 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.675293 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.686237 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.788025 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.797874 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:35.899261 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:35.909202 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.011349 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.022810 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.124590 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.132910 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.234147 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.241978 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.343515 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.354839 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.457028 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.465174 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.566497 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.576381 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.677920 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.688933 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.791184 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.800292 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.902293 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:36.910844 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:36.960894 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-17 00:08:36.961778 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 00:08:37.012197 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:37.021177 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:37.122519 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:37.133104 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:37.234570 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:37.243457 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 00:08:37.344840 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:08:37.354876 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
