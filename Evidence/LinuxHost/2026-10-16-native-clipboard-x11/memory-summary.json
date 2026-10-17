@@ -1,0 +1,98 @@
+{
+  "rounds": {
+    "0": {
+      "samples": 21,
+      "seconds": 2.25752978597302,
+      "peak_pss_kib": {
+        "gui": 271259,
+        "viewer": 387986,
+        "host": 657096
+      },
+      "peak_three_process_pss_kib": 1100239,
+      "first": {
+        "monotonic": 667016.458692452,
+        "gui": {
+          "Rss": 182520,
+          "Pss": 138913,
+          "Private_Dirty": 63912
+        },
+        "viewer": {
+          "Rss": 28536,
+          "Pss": 15979,
+          "Private_Dirty": 7584
+        },
+        "host": {
+          "Rss": 135392,
+          "Pss": 121262,
+          "Private_Dirty": 111400
+        }
+      },
+      "last": {
+        "monotonic": 667018.716222238,
+        "gui": {
+          "Rss": 314860,
+          "Pss": 271259,
+          "Private_Dirty": 196252
+        },
+        "viewer": {
+          "Rss": 290852,
+          "Pss": 278293,
+          "Private_Dirty": 269900
+        },
+        "host": {
+          "Rss": 564812,
+          "Pss": 550687,
+          "Private_Dirty": 540820
+        }
+      }
+    },
+    "1": {
+      "samples": 21,
+      "seconds": 2.285393856000155,
+      "peak_pss_kib": {
+        "gui": 273694,
+        "viewer": 385857,
+        "host": 691898
+      },
+      "peak_three_process_pss_kib": 1123013,
+      "first": {
+        "monotonic": 667037.642683132,
+        "gui": {
+          "Rss": 183108,
+          "Pss": 140358,
+          "Private_Dirty": 64796
+        },
+        "viewer": {
+          "Rss": 27656,
+          "Pss": 14905,
+          "Private_Dirty": 6336
+        },
+        "host": {
+          "Rss": 173100,
+          "Pss": 158756,
+          "Private_Dirty": 148644
+        }
+      },
+      "last": {
+        "monotonic": 667039.928076988,
+        "gui": {
+          "Rss": 316444,
+          "Pss": 273694,
+          "Private_Dirty": 198132
+        },
+        "viewer": {
+          "Rss": 290280,
+          "Pss": 277529,
+          "Private_Dirty": 268960
+        },
+        "host": {
+          "Rss": 586132,
+          "Pss": 571790,
+          "Private_Dirty": 561676
+        }
+      }
+    }
+  },
+  "scope": "private Xvfb, software media, 128 MiB PNG bytes with two decoded pixels; not maximum pixel RGBA or GPU budget acceptance",
+  "budget_passed": false
+}

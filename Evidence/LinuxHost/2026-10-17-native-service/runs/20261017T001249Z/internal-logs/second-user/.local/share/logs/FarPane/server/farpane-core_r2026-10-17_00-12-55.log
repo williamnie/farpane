@@ -1,0 +1,7 @@
+[2026-10-17 00:12:55.077179 +00:00] INFO [src/core_main.rs:404] start --server with user farpane-second
+[2026-10-17 00:12:55.077599 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":92")
+[2026-10-17 00:12:55.077604 +00:00] INFO [src/server.rs:666] XAUTHORITY=Ok("/run/user/1001/test.Xauthority")
+[2026-10-17 00:12:55.078004 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-1001/ipc
+[2026-10-17 00:12:55.078044 +00:00] DEBUG [src/server.rs:833] #tries of ipc service connection: 30
+[2026-10-17 00:12:55.170015 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: peer UID mismatch
+[2026-10-17 00:12:55.179955 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file

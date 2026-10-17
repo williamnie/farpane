@@ -1,0 +1,6 @@
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+
+(farpane:128): GLib-GIO-CRITICAL **: 21:46:10.691: g_task_return_error: assertion 'error != NULL' failed
+
+(farpane:128): GLib-GIO-CRITICAL **: 21:46:10.691: GTask g_output_stream_flush_async (source object: 0x55dc9a4554d0, source tag: 0x763f34f0cc40) finalized without ever returning (using g_task_return_*()). This potentially indicates a bug in the program.

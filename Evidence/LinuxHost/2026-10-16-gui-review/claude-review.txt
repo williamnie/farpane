@@ -1,0 +1,88 @@
+FarPane Linux GUI 重构方案只读评审（claude-288b5f14）
+对象：Linux/docs/gui-rewrite-plan.md（SHA256 9c8be4aa… 已核对一致）、runtime-sample.json；HEAD b01c40b。源码依据为 Build/Linux/src/rustdesk（pin fada664 + Linux/patches）以及 Linux/src。全程只读，未改、未编译、未启停任何东西。
+
+## 结论
+方向可行（Rust+GTK4/libadwaita、GUI 与核心进程分离、Host GPU 链路不动）。但 §4/§6 的进程模型和 root 服务现有的监管逻辑有直接冲突，§3 的 headless 边界低估了 Cargo 层改动，§7.2 把“复用现有 VAAPI 解码”写成了既有能力，而 Linux 现在只有解码到内存的路径。下面 B1–B4 不解决，U2/U3 无法按文中门槛完成。预算方面 §2 表内数字自相矛盾，需要先给出推导。
+
+## 阻塞
+B1. root 服务按“是否有 --cm 进程”来决定是否杀掉 --server；CM 并入 agent 后，这个判断会每小时杀一次 agent。
+- 依据：src/platform/linux.rs 中 should_start_server()（约 1010–1040 行）：`!cm && ((cm0 && elapsed>60) || elapsed>3600)` 时 kill 掉 user server；get_cm()（1259 行）通过匹配 "<exe> --cm" 的 cmdline 判断。另外 is_display_changed 或 uid 变化时也会无条件 kill。
+- 后果：§4“GUI 退出不影响已授权入站 Host”在第 60 秒 / 第 3600 秒失效；如果 Viewer 也在 agent 里，出站会话会随显示器热插拔、xauth 变化或每小时重启一起断掉。
+- 修订：U0 必须加一个薄 patch，把 get_cm() 换成 agent 自报的活动状态（经已有 _service/ipc 查询 入站会话数+出站会话数+文件任务数，参照现有 get_terminal_session_count 的写法），并加回归测试：有会话时 >3600s 不重启。§4/§9 的 U2 门槛补一条“root 监管策略不杀活动会话”。
+
+B2. 核心可执行文件改名或改 argv 会让 root 的进程管理全部失配。
+- 依据：stop_rustdesk_servers()（linux.rs:995）用 `ps -ef | grep -E '{app_name} +--server' | xargs kill -9`；common.rs:103 用 `IS_SERVER = argv[1]=="--server"`；ipc.rs:1422 的 running_server_uids_for_current_exe 要求 cmd[1]=="--server"；get_cm 和 check_process 都按 current_exe 路径匹配。
+- §4/§8 写的 `farpane-core --agent`，以及“/opt/farpane/farpane 留给 GUI、新增私有 core 入口”，都会让正则 'farpane +--server' 匹配不到（"farpane-core --server" 也匹配不到），结果是残留重复 agent、强制停止失效。
+- 修订：root 拉起的 agent 继续用 argv `--server`。core 改名的话，同一个 patch 里改 stop_rustdesk_servers 的匹配：改成按 /proc/<pid>/exe 规范路径 + argv 匹配，不再用 grep 正则。在 §8“服务身份”里补上这一条。
+
+B3. Viewer 放进 root 监管的 agent，会同时和 B1 以及“只用 Viewer 时不启动 root 采集”冲突。
+- Host 关闭（stop-service=Y）时 root 不会拉起 --server，所以 Viewer agent 只能由 GUI 拉起。之后 Host 一开启，root 的 force_stop_server() 会 kill -9 所有 'farpane +--server'，正在进行的 Viewer 会话随之被杀。反过来，如果 GUI 拉起的进程不叫 --server，就会出现两个 agent，和“3 个进程”的目标矛盾。
+- DRM 身份：src/ipc/auth.rs ensure_peer_executable_matches_current_by_pid 在 Linux 上比较的是 /proc/<pid>/exe 的 canonicalize 结果与 root 自身 current_exe 是否严格相等。升级后 root 还是旧 release，GUI 却从新的 /opt/farpane 入口拉起 agent，这时 _drm 会被拒绝，悄悄回退 CPU，或者两个版本混跑。
+- 修订（二选一，U0 定案）：
+  (a) 推荐：出站 Viewer 由 GUI 按会话拉起独立的 `farpane-core --viewer` 子进程（同一 core 文件，不连 _drm/_service），生命周期跟随窗口，崩溃和被杀的范围与 Host 隔离。代价是 Host+Viewer 并存时多一个进程，需要单独计入预算。
+  (b) 保留合并方案：agent 只能由 root 拉起；GUI 只能通过 root 的 _service 请求拉起；root 监管必须感知出站会话（扩展 B1 的 patch）；Host 关闭时 agent 以“仅 Viewer”模式运行，不能被 force_stop 误杀。
+  §4 的进程表和 mermaid 图需要按所选方案重画。“进程数 3/2”不要作为目标写进去。
+
+B4. headless 不是 cfg 能解决的问题：GTK3、tao、tray-icon、sciter、winit 都是 Linux 上的无条件依赖。
+- 依据：Cargo.toml 中 `[target.'cfg(target_os="linux")'.dependencies] gtk = "0.18"`、`winit = "0.30"`；`cfg(not android/ios)` 下有 `sciter-rs`；`cfg(any(macos,linux,windows))` 下有 `tray-icon`、`tao`（两者在 Linux 上都依赖 GTK3 和 libappindicator）。lib.rs 无条件编译 `mod tray;`、`mod whiteboard;`（tiny-skia/softbuffer/winit）；src/platform/gtk_sudo.rs 是 GTK3 写的提权对话框（core_main.rs:727 `-gtk-sudo`，linux.rs:1789/2641 调用）；main.rs 在非 flutter 分支执行 `ui::start(args)`（sciter）。flutter cfg 分布约 250 处：ui_interface.rs 59、client/io_loop.rs 38、client.rs 36、keyboard.rs 20、ui_session_interface.rs 19、connection.rs 17、ipc.rs 17 等。
+- 修订：§3 补一句“farpane-headless 必须把 gtk/tao/tray-icon/sciter-rs/winit/softbuffer 改为 optional dep，并 cfg 掉 tray、whiteboard、gtk_sudo、ui 模块”，否则 root 服务和 agent 仍会 DT_NEEDED libgtk-3。U0 门槛改成可机检的形式：对 core 执行 `readelf -d`/`lddtree`，不得出现 libgtk-3/libgdk-3/libappindicator/libsciter；对 GUI 不得出现 libgtk-3，因为 GTK4 进程里同时有 GTK3 符号会直接 abort。GUI crate 不能依赖 rustdesk crate（会把 gtk 0.18 带进来），控制协议放进一个独立的小 crate。
+- gtk_sudo 的替代要写清楚：pkexec/polkit agent，还是去掉 GUI 内提权、改由安装器处理。
+
+## 高
+H1. CM 迁入 agent 的接点不止 InvokeUiCM。
+- connection.rs:6308 start_ipc()：连不上 "_cm" 就 run_me/run_as_user(["--cm"])，root 进程下会重试 10 次。headless 下必须确保 agent 内的 _cm listener 先于首个入站连接就绪，并把这条拉起路径 cfg 掉，否则会拉起不存在的 --cm，或拉起 GUI 二进制。
+- ui_cm_interface.rs:847 的 start_ipc 是 `#[tokio::main(flavor="current_thread")]`，自建 runtime。放进 agent 时只能放在独立 std 线程上，不能在 agent 的 runtime 里调用（AGENTS.md 禁止嵌套 runtime）。
+- CM 不只负责 UI：ui_cm_interface.rs:607 起的 `Data::FS` → handle_fs 由 CM 执行被控端的文件读写任务（write_jobs/read_jobs、5ms 定时器）；Data::Authorize / SwitchPermission / Close 也在这里。
+- 建议用最小改动：保留 _cm IPC 协议不变，agent 内实现一个 InvokeUiCM，把 add_connection/remove_connection/file_transfer_log 等转成控制 socket 的语义事件。§6 的“Host”接口域补 voice_call、show_elevation、new_message 的处置说明（聊天不做也要显式拒绝或忽略）。
+
+H2. 托盘不能复用 tray-icon。
+- src/tray.rs 依赖 tao 事件循环 + tray-icon，Linux 后端是 GTK3 + libappindicator。§4“agent 内 SNI”需要改用纯 D-Bus 实现（例如 ksni/zbus），并计入 agent 的 PSS。
+- 兼容问题：`--server` 启动时会 pkill 再 run_me(["--tray"])（core_main.rs:401–411），无参启动时也会补拉 --tray（86–101）。check_autostart_config() 会写 ~/.config/autostart。升级时必须清理或改写旧的 autostart desktop 项，否则登录后新 GUI 会带着 --tray 参数启动。§8“安装与升级”补这一项。
+
+H3. Viewer 硬解链路目前不存在，需要新写。
+- Linux 解码只有 HwRamDecoder（libs/scrap/src/common/codec.rs）。hwcodec/cpp/ffmpeg_ram/ffmpeg_ram_decode.cpp:200 用 av_hwframe_transfer_data 把帧拷回内存；vram 特性只有 Windows/D3D11。§7.2“既有 FFmpeg/VAAPI 硬解”应改成“新增 VAAPI→DRM_PRIME 导出解码器”。可参考 Linux/src/gpu_media.cpp 中 Host 侧的 DRM_PRIME/hw_frames_ctx 用法，但方向相反。
+- 出借给 GUI 的帧必须持有 AVFrame 引用直到 ACK，所以要设置 `AVCodecContext.extra_hw_frames ≥ 出借租约数`，否则解码器 surface 池会耗尽或复用正在显示的 surface。§7.3 的“3 份租约”要和 DPB 一起计算。
+- 导出前要保证解码完成：av_hwframe_map(DRM_PRIME) 或 vaExportSurfaceHandle 加 vaSyncSurface，或者用显式 sync fd。U0 要测 radeonsi（linux-host 是 AMD 1002:1900）在隐式同步下的行为，不能凭推断。
+
+H4. 颜色：协商源不止 H.264，矩阵也不固定。
+- Linux Host 输出 BT.601 limited（gpu_media.cpp:131–166：smpte170m、out_range=limited）。Mac 着色器用的是 BT.709 系数，Linux/tests/viewer_color_contract.py 自己也标了 "OPEN"。Linux Viewer 必须按每帧的 VUI（AVFrame colorspace/range/chroma_location）选矩阵；VUI 缺失时的默认值要明确写出并测试。
+- 对端是上游 RustDesk 或软编码时，默认可能是 VP9/AV1/VP8。兼容模式是 CPU 解码 + 上传，必须单独列预算，并说明协商策略：没有硬解时是否声明 H.264 能力。
+- GTK 4.14（Ubuntu 24.04）没有 DmabufTextureBuilder 的 color-state（4.16+），所以 24.04 上必须走 GLArea 着色器路径。这一点支持方案的主选。
+
+H5. GLArea 互操作和 fence 的风险偏低估。
+- GLArea 的 render 返回后，用 glFenceSync + EGL_ANDROID_native_fence_sync 导出 sync_file 回传 agent，或者在 GUI 侧的独立线程上 glClientWaitSync 之后再 ACK。§7.3 写了原则，没写机制。
+- GTK 新版本在部分后端可能默认用 Vulkan GSK renderer，GLArea 内容要经过 GL→dmabuf→Vulkan 再导入一次。哪个版本、哪个后端默认什么 renderer，按目标 GTK 版本实测，不要凭记忆。
+- X11 下 GTK4 的 GL 上下文必须是 EGL，GLX 没有 EGL_EXT_image_dma_buf_import。
+- U0 还要对比 GdkDmabufTexture + GtkGraphicsOffload（4.14+）：在 Wayland 上有机会直接交给合成器做子表面，拷贝和内存可能更少，但释放时机由 GTK 的 destroy notify 决定，需要验证它是否晚于 GPU 读完成。
+- 异常生命周期：GUI 崩溃时 agent 侧以 socket HUP 为准，收回全部租约（unref AVFrame），并让当前解码代失效、请求关键帧。agent 崩溃时 GUI 侧要销毁 EGLImage 并关闭 FD。两边都要做 kill -9 注入测试（§7.3 已写“恰好一次”，补上触发方式）。
+
+## 中
+M1. §2 预算自相矛盾：“Host 会话、GUI 退出 ≤150” + “首页 GUI ≤70” = 220，但同场景要求 ≤210；“降 35%”对应 330×0.65=214.5。需要写出 210 的来源，以及共享库 PSS 摊薄的假设；否则改成 ≤220 或下调某一项。
+- GTK4 空窗口会加载 GL/Vulkan 驱动（radeonsi 可能带 libLLVM，RADV 则不带），首页 70 MiB 是否可达取决于 renderer 和合成器是否共享这些库。U0 的 hello-world libadwaita 实测必须作为预算定稿的前置，不要预先承诺。
+- 基线问题：样本中的 Flutter 主窗口是“用户打开着”的状态。旧版关掉主窗口后合计约 223 MiB，对照组要写明同一 UI 状态。
+- 隐藏成本：agent 新增 SNI/zbus、Secret Service 客户端、CM 文件任务和 Viewer 解码（或方案 (a) 的独立 viewer 进程），都要单列。GPU 内存用 /proc/<pid>/fdinfo 的 drm-memory-vram/gtt（amdgpu 支持），合成器增量取 gnome-shell/kwin 的 PSS 与 fdinfo 差值。现有 Scripts/linux/sample-runtime.py 只读 smaps_rollup 的 Pss，需要扩展 USS/SwapPss/fdinfo；5 秒单次样本只能作参考。
+- 进程启动方式：run_as_user 通过 sudo -E 拉起 agent（linux.rs:1407 起），不在用户 systemd slice 里，按 cgroup 统计会漏掉它，应按 exe 路径枚举进程。
+
+M2. Wayland 差异：
+- 剪贴板：Host 侧 agent 在后台运行，arboard 的 wayland-data-control 依赖 data-control 协议。KDE/wlroots 有，GNOME/Mutter 是否支持按目标版本实测。Viewer 侧剪贴板应放在 GUI 进程，用 GdkClipboard（有焦点），经 IPC 转给 agent，而不是像 §4 那样全放 agent。
+- 独占键盘：GTK4 用 gdk_toplevel_inhibit_system_shortcuts（Wayland 走 keyboard-shortcuts-inhibit，GNOME 会弹授权）。X11 后端是否实现需要验证。GTK4 去掉了公开的 seat grab。
+- 相对鼠标/指针锁定：GTK4 没有公开的 pointer-constraints API，如果要对齐 RustDesk 的相对鼠标模式需要自己绑定 Wayland 协议，否则在矩阵里标为不支持。
+- 通知审批：用 org.freedesktop.Notifications 的 actions，点击后通过 D-Bus 激活 GUI（desktop 文件 DBusActivatable=true）。勿扰或锁屏时只能等超时拒绝，矩阵里写明。agent 不要占用 org.farpane.FarPane 这个 GApplication 名，改用 org.farpane.FarPane.Agent 之类，避免与 GUI 的唯一实例冲突。
+- 托盘：原生 GNOME 没有 SNI；Ubuntu 默认带 appindicator 扩展，Fedora 没有。§4 已写可从菜单打开，可以接受。
+- 登录界面/greeter：linux.rs 在 greeter Wayland 下以 greeter uid 运行 --server，那里没有会话总线、托盘和 GUI。agent 在 greeter 模式必须禁用 SNI、通知和 Secret Service，审批策略要写明（只允许密码认证？）。§4 目前没有覆盖。
+
+M3. Mac 对标遗漏（Sources/RustDeskNative）：
+HostAgentSleepWake*/HostAgentNetworkPath*（休眠唤醒与网络切换恢复；Linux 对应 logind PrepareForSleep 和 NetworkManager/netlink）、HostAudioInputDeviceCatalog + HostMicrophoneAuthorizationAuthority（音频输入设备选择；Linux 对应 PulseAudio/PipeWire source 列表）、HostAgentBackgroundRegistration*（后台常驻注册；Linux 对应 autostart/systemd --user，与 H2 的 autostart 清理合并处理）、ViewerWindowSizer（按远端分辨率调整窗口）、ViewerSessionLiveLog/HostTelemetry（实时日志）、ViewerInput/ScrollDeltaMapper（滚动增量和高精度滚轮映射；GTK4 有 GtkEventControllerScroll 的 kinetic/unit 区分）。建议把这些逐项加进 §1 的表，没实现的标为未完成。
+
+M4. 兼容与打包：
+- Ubuntu 24.04 是 GTK 4.14.2 / libadwaita 1.5.0，与下限吻合。Debian 12 是 GTK 4.8 / adw 1.2，不满足，§8“随后扩展 Debian”应限定为 Debian 13+。gtk4-rs/libadwaita-rs 只开启 v4_14/v1_5 特性，在 CI 里用 24.04 镜像实编实跑。
+- 升级是原子切换，但 root 服务和 agent 的 /proc exe 路径必须同版本（B3）。安装器在切换后要同时重启 root 服务，并确认旧 --server 已退出，再算切换完成。
+- 阶段顺序：B1/B2/B4 的 patch 和二进制依赖检查放进 U0。U2（Host+CM）之前先做 B1 的监管 patch，否则 U2 的“关闭 GUI 保持 Host”门槛会在 1 小时长测里失败。U3 的硬解导出（H3）建议单独作为 U0 探针，在 GUI 之外先用离线码流测 VAAPI→DRM_PRIME→EGL 导入、颜色和 fence，再接入 GUI。
+- 回退：旧 Flutter 版本保留到 U4 完成，desktop/autostart/服务单元在两版之间能幂等切换，并补测试（对应 Linux/tests/test_install.py）。
+
+## 可直接改进的地方（无争议）
+- §6 控制 socket：SO_PEERCRED 校验 uid 即可。“安装来源”校验不要复用 /proc exe 严格相等（GUI 和 core 是不同文件），改为“exe 位于同一 root-owned release 目录”，并说明理由。
+- §7.3 补“租约 ACK 超时值、超时后的动作（作废当前代+请求关键帧）”的具体数字，由 U0 实测确定。
+- §2 的 CPU ≤0.5% 目标要求 GLArea 在无新帧时不重绘（只在新帧到达时 queue_render），HUD 隐藏时不订阅指标。
+
+以上结论都来自源码阅读。性能和内存部分只指出了口径和风险，没有做任何数值承诺。

@@ -1,0 +1,280 @@
+# FarPane Linux GPU 媒体重构（linux-host）：原生 GUI 重构方案
+
+日期：2026-10-16（Asia/Shanghai）。状态：实施方案，尚未开始替换运行中的应用。
+
+按用户决定重写 Linux GUI，对标本仓库 Mac 版的首页和远程会话体验。采用 **Rust + GTK4 + libadwaita**，复用现有 Rust 网络与 Host GPU 媒体核心；目标是一个 GUI 进程、一个主窗口、两种主要视图，并消除独立常驻的 Flutter 主窗口、Flutter 连接管理窗口和托盘进程。功能、安全和会话稳定性与内存目标一起验收。
+
+首个交付范围是完整 Linux Host + 单会话 Viewer。远程画面显示、输入、音频、剪贴板和文件传输均属于方案范围，不能只完成首页后称为重构完成。Linux GPU Host 当前支持范围继续以 [P1 状态](p1-status.md) 为准；GUI 跨发行版运行不等于所有 GPU、显示器和会话类型都已通过媒体验收。
+
+## 1. Mac 版实际对标范围
+
+Mac 版确实复用同一个 `NSWindow`：`showHomeUI()` 设置首页，`launchViewer()` 换成会话视图。返回首页会停止 Viewer 音频、剪贴板、文件传输及定时器，释放解码器和渲染器。**两种主要视图不代表只有两个功能页面**：首页还有“设备”“授权与安全”“共享设置”三个分区，并使用按需打开的设置和密码对话框。
+
+只读对标依据为本地基线 `b01c40bd7da588f0ec2add2947a9368289006792` 的 Mac 源码，本方案不修改 Mac 实现。
+
+| 能力 | Mac 版依据 | Linux 重构要求 |
+| --- | --- | --- |
+| 首页与会话切换 | [AppDelegate+Home.swift](../../Sources/RustDeskNative/AppDelegate+Home.swift)、[AppDelegate+Viewer.swift](../../Sources/RustDeskNative/AppDelegate+Viewer.swift) | 复用一个窗口；切换时释放离开视图的资源，不隐藏保留两棵完整界面树 |
+| 设备管理 | [HomeView+Devices.swift](../../Sources/RustDeskNative/HomeView+Devices.swift) | 快速连接、最近连接、收藏、别名、搜索、忘记设备；列表虚拟化 |
+| 自建服务器与密码 | [ConnectionDialogs.swift](../../Sources/RustDeskNative/ConnectionDialogs.swift) | ID/Relay、公钥、强制中继；密码错误可重试；可选安全保存远端密码 |
+| 被控 Host | [HomeView+ConnectionControls.swift](../../Sources/RustDeskNative/HomeView+ConnectionControls.swift) | 允许被控、本机 ID、当前认证方式、临时密码状态、永久密码设置及清除 |
+| 入站审批与撤权 | [HomeView+SessionBanners.swift](../../Sources/RustDeskNative/HomeView+SessionBanners.swift) | 显示请求者与能力；允许、拒绝、超时；连接中撤销权限和断开 |
+| 共享能力 | [HomeView+SharingSettings.swift](../../Sources/RustDeskNative/HomeView+SharingSettings.swift) | 音频、剪贴板类型与方向、文件接收根目录及逐次确认；能力不支持时明确说明 |
+| 远程会话 | [ViewerUI.swift](../../Sources/RustDeskNative/ViewerUI.swift) | 画面、状态、键鼠与输入法、独占键盘、多显示器选择、发送/接收文件、音频状态、全屏、断开 |
+| HUD | [ViewerHUDPanel.swift](../../Sources/RustDeskNative/ViewerHUDPanel.swift) | 按需显示 FPS、延迟、丢帧、CPU、内存和媒体后端；本地工具条/HUD 操作不发送为远端输入 |
+| 品牌 | [HomeBrand.swift](../../Sources/RustDeskNative/HomeBrand.swift)、[HomeModels.swift](../../Sources/RustDeskNative/HomeModels.swift)、[App/Brand](../../App/Brand) | 沿用 FarPane 双窗标志、深色背景、青绿色操作强调；适配 Linux 的系统控件与无障碍 |
+
+Linux 的权限页显示本机实际会话、采集/输入权限与可用后端，不照搬 macOS 的 TCC 设置项。Wayland 独占键盘、剪贴板及后台授权需要逐桌面验证；能力不足时禁用对应入口并解释原因。
+
+首版仅允许一个出站 Viewer；收到第二次连接请求时提示替换或取消，明确结束旧会话后再创建新会话。目标同时支持一个入站 Host 会话与一个出站 Viewer，会话和权限状态互相独立，组合场景单列验收。聊天、远程终端、白板、端口转发、账户/通讯录云服务不加入这次 GUI，后端已有能力不因此自动删除。
+
+## 2. 内存基线与目标
+
+2026-10-16 15:22:29 的 5 秒只读采样中，一条入站连接全程保持 `backend=gpu`、generation=3，五个 PID 稳定。安装版本为 `farpane-p1-445515cfa1ec-90876510-551585f0`。原始记录见 [runtime-sample.json](../../Evidence/LinuxHost/2026-10-16-gui-plan/runtime-sample.json)。
+
+| 角色 | 实测 PSS KiB | 换算 MiB |
+| --- | ---: | ---: |
+| 系统服务 | 46,605 | 45.5 |
+| 用户媒体服务 | 55,804 | 54.5 |
+| Flutter 主窗口 | 109,737 | 107.2 |
+| Flutter 连接管理窗口 | 99,659 | 97.3 |
+| 托盘 | 26,129 | 25.5 |
+| 合计 | 337,934 | 330.0 |
+
+两项界面进程合计约 204.5 MiB，占总 PSS 的 62%；其中含共享库、业务状态与图形资源，不能全部视为可删除开销。这是规划基线，不是正式 A/B。PSS 分摊共享驻留页，但不完整覆盖 GPU 内存；另行记录 USS、SwapPss、GPU/共享缓冲与 FD，防止通过换统计口径或增加显存掩盖内存消耗。
+
+以下是**工程验收目标，尚未达到**，均以 linux-host、Release 构建、固定桌面环境为基准：
+
+| 场景 | PSS 预算与要求 |
+| --- | --- |
+| 无会话，仅首页 | GUI 进程稳态不超过 70 MiB；不创建视频解码器和帧池 |
+| Host 已开启，GUI 已退出，无连接 | 系统服务 + 用户 agent 合计不超过 120 MiB |
+| 单路 2560×1440 H.264 GPU Host，GUI 已退出 | 全部 FarPane 进程合计不超过 150 MiB |
+| 相同 Host 会话，首页打开 | 全部 FarPane 进程合计不超过 210 MiB，且相对同条件旧版至少下降 35% |
+| 单路 2560×1440 硬解 Viewer，Host 关闭 | agent + GUI 合计目标不超过 240 MiB；首次原型锁定解码 DPB 和 GPU 分配预算，单独报告 |
+| 反复连接与断开 | 20 轮后，空闲 PSS 相对预热基线增加不超过 10 MiB，FD/帧租约回到稳定平台，无逐轮增长 |
+
+GUI 静止时目标 CPU 不超过单核 0.5%；Host 总 CPU、帧率和延迟不因重构回退。未达到目标时优先查明重复状态、队列、图形资源和常驻进程；不能通过隐藏审批、关闭权限校验、减少必需功能或降低画面参数达标。
+
+## 3. 技术选择与核心边界
+
+GUI 使用 Rust、gtk4-rs 和 libadwaita，布局采用 GtkBuilder 资源与少量 Rust 自定义组件，资源编入 GResource。新 GUI 不使用 Flutter、Dart、Sciter、WebView 或 Go 运行时。现有 FFmpeg 9.0.2 静态库、Host GPU 媒体适配器和网络身份修复继续复用。
+
+现有 Linux 核心有 `gtk = "0.18"`（GTK3）依赖，`lib.rs` 的非 Flutter 分支会启用旧 `ui` 模块。因此必须增加明确的 headless 构建分支，抽出 UI 回调与业务逻辑；**不能把去掉 `--features flutter` 当作无界面核心，也不把旧核心动态加载进 GTK4 GUI 进程**。
+
+拟新增 `farpane-headless` 特性，与 Flutter/旧 UI 入口互斥。保持 `farpane-linux`、`linux-gpu-media` 的原能力开关；原有构建仍可生成回退版本。根服务与用户 agent 使用同一个 root-owned 核心可执行文件，继续满足原 DRM IPC 的可执行身份校验。
+
+核心接点先审计 `ui_cm_interface` 的 `InvokeUiCM`、`ui_session_interface`、`ui_interface`、`core_main` 和托盘入口。业务逻辑迁入 headless 适配层，UI 回调变为语义事件；既有 Flutter 专属的 cfg 需要逐处拆分，不能依靠空实现吞掉授权、文件或断线事件。独立的 Linux crate/overlay 与薄 patch 承担改动，原平台构建继续回归。
+
+GUI 最低 API 暂定 GTK 4.14、libadwaita 1.5；U0 在隔离构建环境里锁定兼容 Rust 1.89 的 crate 版本与 Cargo.lock。若实际依赖需要调整，先给出最低环境和依赖闭包证据，不安装宿主开发包或静默升级整个媒体工具链。
+
+[GTK 官方概览](https://docs.gtk.org/gtk4/overview.html)说明了其窗口与渲染后端；[gtk4-rs](https://gtk-rs.org/gtk4-rs/stable/latest/book/)提供 Rust 绑定；[libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/)提供对话框、设置与自适应组件。运行库和实际使用的 API 必须一并锁定，不能直接依赖网站最新文档中的全部特性。
+
+## 4. 进程与职责
+
+```mermaid
+flowchart LR
+    UI["farpane GUI<br/>GTK4 单窗口<br/>首页或远程会话"]
+    Agent["farpane-core 用户 agent<br/>网络与会话 / CM 业务<br/>Host 编码 / Viewer 解码<br/>托盘与通知"]
+    Root["farpane-core 系统服务<br/>既有特权采集与输入"]
+    Peer["远端设备与 ID Relay 服务"]
+    UI <-->|"本地鉴权控制 IPC"| Agent
+    Agent -->|"Viewer DMA-BUF 与元数据"| UI
+    UI -->|"呈现完成与帧租约归还"| Agent
+    Agent <-->|"既有 DRM 与服务 IPC"| Root
+    Agent <-->|"既有协议"| Peer
+```
+
+| 进程 | 生命周期 | 资源所有权 |
+| --- | --- | --- |
+| `farpane` GUI | 用户打开时启动；关闭最后窗口可完全退出 | GTK、首页控件或一个视频显示组件、少量呈现帧、输入法状态 |
+| `farpane-core --agent` | Host 开启或 Viewer 会话存在时运行 | 单份配置写入、认证/连接/CM 状态、媒体与文件任务、状态通知、可选 SNI 托盘 |
+| `farpane-core --service` | 沿用独立系统服务管理 | 原 root 采集与必要输入能力；不初始化 GUI |
+
+Host 活跃且 GUI 打开时目标为 3 个进程；GUI 退出后为 2 个。只使用 Viewer 时不为它额外启动 root 采集服务。禁止以进程数替代实际总内存测量。
+
+连接管理 CM 的授权、权限切换、剪贴板/文件任务和断线清理迁入 agent，独立 Flutter `--cm` 进程退出产品架构。托盘使用 agent 内的 StatusNotifierItem/通知适配器，不再启动 `--tray` GUI。没有托盘支持的桌面仍可从菜单打开 GUI，不要求安装桌面扩展。
+
+GUI 退出不影响已授权的入站 Host，会话权限仍由 agent 执行。需要人工批准的新连接由 agent 发送通知，用户打开 GUI 后处理；不可无人应答地自动批准。审批超时由 agent 拒绝。GUI 崩溃时取消未决 UI 操作，保持原权限，不改变密码与认证方式。
+
+Viewer 窗口关闭时结束出站会话并释放解码/呈现资源；最小化时仍保留会话，但暂停无意义重绘，停止积累待呈现帧。首版不提供隐藏窗口仍保持出站控制的模式。Host 与 Viewer 共存时，退出 Viewer 不停止 Host。
+
+GUI 必须与 agent 分离的原因除了生命周期，还包括 GTK3 与 GTK4 边界。U0 审计核心残留 GTK3 调用；系统服务目标完全无 GTK/Flutter/Sciter，用户 agent 若某项系统集成暂时仍需 GTK3，必须记录加载原因和 PSS，且不得因此重新生成隐藏窗口或第二个 UI。GTK4 GUI 的依赖闭包不含 GTK3。
+
+## 5. 两种主要视图与交互
+
+### 5.1 首页
+
+默认进入“设备”分区。左侧保留与 Mac 一致的“设备”“授权与安全”“共享设置”入口；它们都是同一窗口的轻量内容分区，按访问创建。服务器设置、密码设置、关于和文件任务使用临时对话框或抽屉，不形成常驻新窗口。
+
+```text
+┌ FarPane                                      服务器状态  设置 ┐
+│ 设备          │ 输入远端 ID                 [连接] [发送文件] │
+│ 授权与安全    │ 本次接收音频 ○                                  │
+│ 共享设置      │                                                │
+│               │ 允许连接本机 ○   本机 ID [复制]                 │
+│               │ 认证方式 / 临时密码状态 / 永久密码已设置        │
+│               │ 待审批请求或当前入站会话                        │
+│               │                                                │
+│               │ 最近连接 / 收藏                  搜索          │
+│               │ 设备名称、别名、ID、最近连接、快捷操作          │
+│ 版本 / 状态   │                                                │
+└───────────────────────────────────────────────────────────────┘
+```
+
+授权页显示有效权限和入站会话撤权操作；共享页集中音频、剪贴板、接收目录、GPU 开关/状态与可折叠诊断。首屏只显示“GPU 工作中”“兼容模式”“等待连接”等用户状态；设备节点、modifier 和原始后端参数放入诊断详情。
+
+“连接中”展示可理解的阶段：查找设备、建立连接、等待认证、等待第一帧、已连接。密码错误回到密码输入，网络故障提供重试与返回；认证成功不直接显示“已收到画面”。直连/中继状态来自实际会话，服务器配置页区分注册在线与远端媒体已连接。
+
+本机现有永久密码模式保持不变。临时密码未启用时明确显示“未启用”，不把后端返回的临时值当作可用密码。永久密码只显示“已设置/未设置”，不能读回原文。
+
+### 5.2 远程会话
+
+主体为画面，顶部可折叠工具条对齐 Mac：连接状态、独占键盘、显示器选择、音频状态、发送/接收文件、HUD、全屏和断开。普通工具条使用不透明轻量背景，避免整屏模糊或持续背景动画。
+
+显示器切换只选择远端已有显示器，不改变远端显示模式。分辨率、DPI、aspect-fit 黑边、光标热点和输入坐标使用同一份显示变换。进入工具条、弹窗、失焦和会话结束时可靠释放已按下的键及鼠标按钮；IME 提交文本与按键事件避免重复发送。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Home
+    Home --> Connecting: 输入 ID 或选择设备
+    Connecting --> Authenticating: 建立传输
+    Authenticating --> AwaitingFrame: 认证通过
+    AwaitingFrame --> Session: 第一帧成功呈现
+    Connecting --> Home: 取消或失败
+    Authenticating --> Home: 取消或失败
+    AwaitingFrame --> Home: 超时或断开
+    Session --> Recovering: 可恢复连接错误
+    Recovering --> Session: 新代第一帧呈现
+    Recovering --> Home: 取消或恢复失败
+    Session --> Home: 断开并释放资源
+```
+
+重连使用有限次数与退避，并保留用户取消入口。旧会话迟到的状态、帧和授权结果不得覆盖新会话。文件传输完成或失败回到会话/首页的原上下文，错误不会关闭正常的 Host。
+
+### 5.3 图标与桌面身份
+
+从已有 `App/Brand/FarPane-Mark.svg` 和应用图标读取品牌资产，在 `Linux/gui/resources/` 保存 Linux 所需副本及来源说明，不修改 Mac 资产。提供多尺寸菜单图标、symbolic 托盘图标与无障碍名称。
+
+统一 `org.farpane.FarPane` 的 GTK Application ID、D-Bus 名称、Wayland app_id、desktop 文件名和图标名；验证 X11 WM_CLASS、任务栏归组、Alt-Tab、菜单搜索及通知图标。保留已有 FarPane 网络身份和配置路径，不通过更换 ID 来解决外观问题。[GTK 迁移指南](https://docs.gtk.org/gtk4/migrating-3to4.html)也要求应用 ID 与 desktop 身份一致。
+
+## 6. GUI 与核心接口
+
+使用独立的、本机用户级、版本化 Unix socket 控制接口。GUI 不直接访问 root DRM socket，不扩大现有 root 接受的可执行文件范围。agent 与 root 的接口和租约校验保持原设计；二者必须来自同一安装版本的同一个核心可执行文件。
+
+控制 socket 放在该用户 `XDG_RUNTIME_DIR/farpane/`，目录 0700、socket 0600；校验对端 UID、安装来源和会话身份。协议带版本、请求 ID、会话 ID、generation 和配置 revision。只开放列举的业务命令，不提供任意配置键写入、命令执行或任意文件读取接口。
+
+| 接口域 | 命令与事件 | 权威状态 |
+| --- | --- | --- |
+| 应用 | 能力协商、订阅状态、诊断快照 | agent 返回实际能力与构建版本 |
+| 连接 | Connect、Cancel、Disconnect、Retry、会话事件 | 核心持有认证和连接状态；密码只走受保护请求，不进入日志 |
+| Host | 开关、认证方式、设置密码、批准/拒绝、逐项撤权 | 核心执行并回执；UI 禁止乐观显示授权已生效 |
+| 配置与设备 | 服务器配置、设备增改删、收藏、最近连接 | agent 单写者，原子保存，失败保留旧配置 |
+| 媒体 | 后端状态、显示器目录与选择、刷新帧、指标订阅 | 显示器和帧事件带 generation；GPU 开关与实际使用分开 |
+| 文件与共享 | 选择后的传输请求、取消、进度、确认与权限变更 | 核心持续校验范围与权限；GUI 不持有整个文件内容 |
+
+控制报文上限 64 KiB，较大目录/设备列表分页；单订阅队列初始上限 128 条。指标合并为最新值，授权/撤权/结束事件可靠交付，队列饱和时重取快照而不无限扩容。慢 GUI 不阻塞网络和 Host 编码线程。
+
+配置仍使用 FarPane 自己的身份、服务器、密钥和永久密码存储。升级幂等且有版本标记，不导入 RustDesk 配置、不重新生成网络 UUID、不触发服务端 ID 重命名。远端保存密码对齐 Mac Keychain 语义，Linux 使用可用的 Secret Service；钥匙环不可用或锁定时提供“不保存继续连接”，不退回明文配置。
+
+现有固定密码、GPU 开关及用户已选择的共享权限升级时保留。全新安装的音频、剪贴板和文件共享默认关闭；首版受限 Host GPU 的默认策略沿用产品能力门槛，本机已授权开启的状态不重置。
+
+## 7. 远程画面与低内存实现
+
+### 7.1 Host 媒体保持既有所有权
+
+GUI 重构不重做已工作的 DRM → VAAPI 转换 → H.264 编码链路。现有帧租约、有界 NV12 池、完成确认、持续回退原因和重试语义继续由 agent 的媒体线程持有，UI 只收状态。新界面不订阅本机全帧缩略图，不新增整帧截图轮询。
+
+### 7.2 Linux Viewer 单独实现与验收
+
+Mac 的 VideoToolbox/Metal 不能搬到 Linux。Linux Viewer 使用现有核心的协议、认证、编解码协商和输入发送，增加 Linux 原生显示适配。H.264 为基本通路；H.265 按解码能力协商。与 Mac 的能力对齐不意味着此次把 Linux Host GPU 编码范围扩为 H.265。
+
+首选链路：agent 接收压缩包并用既有 FFmpeg 9.0.2/VAAPI 硬解，持有解码帧；通过独立数据 socket 和 SCM_RIGHTS 把 DMA-BUF FD、格式、modifier、stride、offset、PTS、色彩与 generation 发给 GUI。GUI 的 GtkGLArea 用 EGL 导入并在 shader 中完成必要的 YUV → RGB，画面不经 JSON、PNG 或 CPU RGBA 整帧中转。
+
+GtkGLArea 将自身 GL framebuffer 纳入 GTK 场景，因此目标表述为“避免 CPU 整帧读回”，不承诺合成器全链路零拷贝。首个原型验证 GTK GL 上下文、EGL 扩展、VAAPI 导出、同设备导入、色彩与完成同步；不支持时显示明确的兼容模式，使用受限软件解码/渲染并单独计量，不算 GPU 性能目标通过。[GtkGLArea 官方说明](https://docs.gtk.org/gtk4/class.GLArea.html)。
+
+同时测量 GtkGLArea 与所选 GSK renderer 的互操作成本和额外缓冲。U0 依据目标驱动实测固定应用内渲染策略，不改用户全局图形环境；有额外 GPU 拷贝或系统内存分配时如实记入预算。
+
+`GdkDmabufTextureBuilder` 从 GTK 4.14 起可用，可作为后续减少显示胶水代码的备选；实际支持的格式需查询，色彩接口有更高版本要求。不能仅凭存在此 API 就宣称 NV12、所有 modifier 和全部颜色矩阵可正确显示。[DMA-BUF API](https://docs.gtk.org/gdk4/class.DmabufTextureBuilder.html)、[构建与 FD 生命周期](https://docs.gtk.org/gdk4/method.DmabufTextureBuilder.build.html)。
+
+### 7.3 帧池和释放规则
+
+- Viewer 呈现租约最多 3 份：至多 2 份在使用、1 份待呈现；未提交的旧候选可由新帧替换。解码参考帧 DPB 单独按实际码流需求计算并设置有限预算，不能把 Host 的 4 帧池照搬成所有解码器上限。
+- 数据面使用有界背压，不能任意丢弃参考压缩包；落后超限时明确清理当前解码代并请求关键帧。像素、FD 和压缩包按所有权释放。
+- GUI 在 GPU 读取完成后才归还呈现租约。`render` 回调返回、队列提交或 UI 取消都不等于 GPU 完成；使用已验证的完成 fence/确认机制。超时停止该呈现代，不提前让解码器复用帧。
+- FD 采用 owned/CLOEXEC 语义。导入失败、窗口关闭、崩溃、断线和旧代迟到 ACK 均有恰好一次释放测试；GUI 异常退出时先完成或隔离资源，不通过杀 agent 破坏入站 Host。
+- 显示切换停止旧代提交，完成清理后创建新尺寸资源；不为每一帧重新分配纹理和整帧缓冲。颜色矩阵、range、chroma 与传输特性按帧元数据处理，包含 BT.601/709 与 limited/full 测试。
+- 未来 4K、HDR 和多路会话需要独立预算；首版不靠无界增加池大小来兼容。
+
+### 7.4 GUI 空闲与任务资源
+
+首页不初始化视频 context/解码器，不预加载另一棵会话界面。GtkGLArea、HUD 和文件任务列表按需创建；退出会话后释放 GPU 资源，设备列表只保留轻量数据模型。HUD 开启时 1 Hz 合并指标，隐藏后停止高成本采样；普通状态使用事件，必要的兼容轮询最多 1 Hz，窗口关闭后取消。
+
+文件按块读写，目录分页；不把整个文件或整个远端目录放入内存。剪贴板按类型和方向限额，图片/富文本仅显式启用后按需分配。日志使用轮转文件，GUI 日志展示最多 2,000 条且最多 1 MiB，不为长会话累计无限历史。
+
+## 8. Linux 交付与兼容
+
+发布的是**完整带 GUI 的 FarPane 安装包**，包含原生 GUI、headless 核心、媒体适配器、资源、图标、服务单元、版本和许可证。用户不需要安装原版 RustDesk、编译 RustDesk 源码或安装宿主 FFmpeg。系统图形驱动及明确声明的 GTK/桌面运行依赖仍由发行环境提供。
+
+先做 x86_64；linux-host 当前为 Ubuntu 26.04.1。兼容目标为 Ubuntu 24.04/26.04 的原生 deb，随后扩展 Debian 与 Fedora/RPM 验证。GTK 4.14/libadwaita 1.5 是初始 API 下限，glibc/GLib/图形依赖必须在最低目标镜像实编、干净环境启动后才能列为支持。Arch、其他发行版和 ARM64 不凭框架支持自动标记已支持。
+
+| 交付检查 | 要求 |
+| --- | --- |
+| 二进制组成 | 正式包没有 Flutter engine、Dart AOT、Sciter；图标和桌面菜单齐全 |
+| 安装与升级 | 原子切换 root-owned release；保留 FarPane ID、密钥、密码与设置；保留可回退版本 |
+| 服务身份 | 根服务与用户 agent 同一核心 executable；新旧版本不得一端升级一端遗留 |
+| 依赖 | 生成 ELF 依赖清单；FFmpeg 自带库加载验证；无 `/usr/local`、构建路径或宿主缓存隐式依赖 |
+| 桌面 | GNOME Wayland、KDE Wayland、X11 分别验证启动、缩放、输入法、窗口与托盘行为 |
+| 媒体 | UI 兼容与 Host/Viewer 硬件能力分表；未通过硬件场景显示明确回退或不可用状态 |
+| Release | Linux CI 构建、测试、打包、校验和及附件上传；不能只创建 Release 页面 |
+
+现有 [.github/workflows/release.yml](../../.github/workflows/release.yml)只有 Mac 构建和预发布创建。后续增加独立 Linux workflow，沿用现有 Mac 流程，发布附件至少包含安装包、SHA256SUMS、依赖与功能说明及可复现源码入口。具体依赖的许可证/对应源码交付要求随现有项目发布检查执行。
+
+现有 `package-app.py` 和安装器只识别 Flutter bundle/feature 清单。U5 必须增加原生产物类型、GUI/core 分离路径、服务入口及完整 manifest 校验，继续拒绝不一致或被篡改的产物；不能只给旧包换文件名。`/opt/farpane/farpane` 保留为用户 GUI 入口，新增私有 core 入口供服务和 agent 共用；旧 CLI 管理能力需有明确兼容入口及升级说明。
+
+Flatpak GUI 可后续研究；特权 Host 仍需独立宿主组件，首版不把它作为降低集成成本的捷径。AppImage 也不自动解决服务安装与驱动兼容。
+
+## 9. 代码布局与迁移顺序
+
+```text
+Linux/
+  gui/                    # 新 Rust GTK4 应用、锁文件、UI 资源与图标
+  native/                 # agent 适配、控制协议、CM 业务和 Viewer 显示接口
+  src/                    # 保留现有 Host GPU/身份等 canonical overlay
+  patches/                # headless feature、薄接点和必要的 Linux 限定补丁
+  packaging/              # 服务、desktop、AppStream、deb/rpm 元数据
+  tests/                  # 生命周期、协议、权限、资源和安装回归
+  docs/gui-rewrite-plan.md
+Scripts/linux/            # 准备、构建、打包、验证入口
+Build/Linux/              # 生成 checkout、缓存、构建与临时日志
+Evidence/LinuxHost/       # 版本化验收记录
+```
+
+所有生产源码、patch、pin 留在 `Linux/`。原始 Mac/CoreBridge 只读参考，不把 Mac patch 整包应用到不同 pin 的 Linux 核心，也不修改 Mac/xuanwu 目录。既有 FFmpeg 静态库只在有具体必要时重建。
+
+| 阶段 | 实际交付 | 完成门槛 |
+| --- | --- | --- |
+| U0 核心和显示原型 | headless 依赖审计；GTK4 空窗口/列表；合成视频 DMA-BUF 导入、颜色、fence 与释放探针；锁文件 | 证明可去除 Flutter/Sciter；确认 GTK3 边界；确认 root/user 同 executable；列出 PSS、依赖和 Viewer 帧池预算 |
+| U1 首页与控制接口 | 品牌、两种视图状态机、设备管理、服务器/密码对话框、版本化 IPC 和 mock 后端 | 无真实桌面的交互验收通过；所有动作有明确回执、错误与取消；无假“已连接”状态 |
+| U2 原生 Host 与 CM | agent 接入既有 Host GPU；迁移授权、撤权、文件/剪贴板任务与托盘；移除独立 CM/tray UI | 隔离集成测试通过；维护窗口内固定密码实连、关闭 GUI 保持 Host、审批超时、撤权与回退验证通过 |
+| U3 Linux Viewer | 单出站会话、H.264/H.265 能力协商、硬解/显示、键鼠/IME、全屏、显示器切换、断线恢复和 HUD | 两端实际出画面与输入；颜色、延迟、按键释放、分辨率代际、队列和 FD 检查通过 |
+| U4 Mac 功能对齐 | 音频、各类剪贴板、双向文件、接收目录、钥匙环、入站/出站共存和不可用能力提示 | 功能矩阵逐项勾验；原权限不扩大，关闭/崩溃/取消不造成绕过或资源泄漏 |
+| U5 性能与发布 | 配对 A/B、长稳、跨桌面/发行版、完整安装包和 Linux Release workflow | 内存目标和全部功能门槛通过；安装/升级/回退证据完整，形成可发布产物 |
+
+U0/U1 默认使用 mock、离线码流、隔离 Xvfb/嵌套合成器，不注册第二套线上 FarPane 身份。U2 之前旧安装继续服务。中间版本可作为明确标注的开发产物，不能把缺失 Viewer/共享功能的 Host 面板作为完整替代版发布。
+
+部署切换时先准备并验证完整产物，再在维护窗口内停止独立 FarPane 的旧会话、协调 root/user 两端切换，最后由用户连接验收。失败可恢复当前已修复身份与 GPU 的版本；禁止把缺少网络身份修复的旧 B0 作为线上回退。
+
+## 10. 验收方法与工作边界
+
+功能测试覆盖设备/配置/凭据、真实 Direct/Relay、错误密码、取消、断线重连、入站审批、逐项撤权、音频、各剪贴板类型及方向、文件上传/下载/取消/越界拒绝、多显示器选择、键鼠/IME、缩放、窗口关闭和 GUI 崩溃恢复。Linux 未实现的能力必须在矩阵中标为未完成，不能只把按钮隐藏后算作对标通过。
+
+内存 A/B 使用同一硬件、桌面、画面负载、分辨率、编码器、帧率、码率和功能开关，预热后每种场景采样至少 120 秒、重复 3 轮并交错旧新版。报告全部 FarPane 进程的 PSS/USS/SwapPss、GPU 缓冲、FD、CPU及实际呈现帧率；记录桌面合成器增量，禁止把资源移到辅助进程后漏计。对照新版与当前已修复 GPU 的版本，不使用旧 CPU 路径夸大 GUI 收益。
+
+30 分钟连接与 20 轮重连检查资源趋势，发布前补 24 小时长稳。Host 同参数总 CPU 与端到端延迟中位数目标不比旧版恶化超过 10%，帧率、画质和输入正确性不得下降；小于测量分辨率的差异不作结论。Viewer 的性能单独建立 Linux 基线，不把不同硬件上的 Mac 数值当作降幅。
+
+自动检查包括 headless 构建、特性互斥、旧路径回归、IPC 权限/版本/容量、CM 语义、GUI 资源释放、凭据不入日志、帧租约/完成顺序以及安装包依赖。图形与输入验收在隔离环境中先完成；实际桌面和硬件结果另记，不能相互替代。
+
+本方案制定期间只读取源码和 FarPane 进程状态，未重启服务或修改密码、ID、桌面和显示。实施继续遵守：不触碰原 RustDesk 服务/进程/配置，不运行旧实验切换脚本，不调用其他代理，不安装宿主 FFmpeg，不写宿主 `/usr`；构建复用隔离缓存，约 4 核/12 GiB。GPU 探针只使用限定 render 节点和单路低负载；不能与现有媒体流叠加探针。真实 A/B、服务切换、双向并发、锁屏和显示变化需安排维护窗口。
+
+当前分支为 `codex/linux-host-gpu-media`。本次只交付方案与只读采样记录；不执行 GUI 重写构建、安装、commit、push 或发布操作。

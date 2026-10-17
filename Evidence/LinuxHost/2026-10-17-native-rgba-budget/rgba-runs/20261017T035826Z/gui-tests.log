@@ -1,0 +1,15 @@
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.99s
+     Running unittests src/main.rs (/workspace/Build/Linux/native-target/debug/deps/farpane-36b0ed4f00ba5d12)
+
+running 1 test
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+PASS: actual GIO byte output, four blocked pipes, fifth rejected, timeout cancellation and recovery
+PASS: worker small RGBA -> actual memfd -> GDK PNG read -> every decoded pixel
+PASS: worker maximum RGBA -> actual memfd -> GDK PNG read -> every decoded pixel
+PASS: raw RGBA refused, third retained 128 MiB PNG refused, storage recovers after release
+test viewer_clipboard::tests::rgba_is_preconverted_and_png_provider_is_bounded ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 4.68s
+

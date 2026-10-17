@@ -1,0 +1,16 @@
+{
+  "baseline": "Build/Linux/source-audit/native-source-audit-d61fef7c1139d1de35d0f39f/report.json",
+  "current": "Build/Linux/source-audit/native-source-audit-2c5e96ba12a57a7b1aa6eda0/report.json",
+  "current_sha256": "2c5e96ba12a57a7b1aa6eda0c22d9b9a4c42ba46440d8581d3028ec382846d19",
+  "changed_report_keys": [
+    "binary_sha256",
+    "materials"
+  ],
+  "changed_materials": [
+    "Build/Linux/native-build.json"
+  ],
+  "dependency_materials_unchanged": true,
+  "packages": 712,
+  "issues": 45,
+  "complete_license_source_audit": false
+}

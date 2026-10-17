@@ -1,0 +1,40 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -2829,10 +2829,12 @@
+     fn try_start_cm_ipc(&mut self) {
+         if let Some(p) = self.start_cm_ipc_para.take() {
+             tokio::spawn(async move {
+-                #[cfg(windows)]
++                #[cfg(any(windows, feature = "farpane-native"))]
+                 let tx_from_cm_clone = p.tx_from_cm.clone();
+                 if let Err(err) = start_ipc(p.rx_to_cm, p.tx_from_cm).await {
+                     log::warn!("ipc to connection manager exit: {}", err);
++                    #[cfg(feature = "farpane-native")]
++                    { let _ = tx_from_cm_clone.send(Data::CmErr(err.to_string())); }
+                     // https://github.com/rustdesk/rustdesk-server-pro/discussions/382#discussioncomment-10525725, cm may start failed
+                     #[cfg(windows)]
+                     if !crate::platform::is_prelogin()
+@@ -6336,6 +6338,14 @@
+ ) -> ResultType<()> {
+     use hbb_common::anyhow::anyhow;
+ 
++    // Native CM is already in this user agent. Its readiness and same-process
++    // socket check are authoritative; a logind/prelogin probe can remain true
++    // on a valid private/headless user desktop and must not stall this link.
++    #[cfg(feature = "farpane-native")]
++    if !crate::farpane_native::activity::CM_READY.load(std::sync::atomic::Ordering::Acquire) {
++        bail!("Native connection manager is unavailable");
++    }
++    #[cfg(not(feature = "farpane-native"))]
+     loop {
+         if !crate::platform::is_prelogin() {
+             break;
+@@ -6432,6 +6442,8 @@
+                             }
+                         }
+                     }
++                    #[cfg(feature = "farpane-native")]
++                    Ok(None) => bail!("Native connection manager disconnected"),
+                     _ => {}
+                 }
+             }

@@ -1,0 +1,82 @@
+[
+  {
+    "Command": "\"hbbs -r pan.cicadac…\"",
+    "CreatedAt": "2026-09-30 05:49:33 -0700 PDT",
+    "ID": "664ad5c484e3",
+    "Image": "rustdesk/rustdesk-server:1.1.15",
+    "Labels": "com.docker.compose.config-hash=a7e2e374d07181fab6b410398298d6cd5a29ad8d60f7fc239a760f77c0705e5e,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:10818ec05b179039c6660f4d8e74b303f0db2858bbad2b18e24992ea22d54cd6,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/user/services/rustdesk-server/compose.yml,com.docker.compose.project.working_dir=/home/user/services/rustdesk-server,com.docker.compose.project=rustdesk-server,com.docker.compose.replace=rustdesk-hbbs,com.docker.compose.service=hbbs,com.docker.compose.version=2.40.3,org.opencontainers.image.created=2026-01-13T02:31:17.114Z,org.opencontainers.image.description=RustDesk Server Program,org.opencontainers.image.licenses=AGPL-3.0,org.opencontainers.image.revision=bd3e73fd5168f099969788c50d3188537f9d4792,org.opencontainers.image.source=https://github.com/rustdesk-org/rustdesk-server,org.opencontainers.image.title=rustdesk-server,org.opencontainers.image.url=https://github.com/rustdesk-org/rustdesk-server,org.opencontainers.image.version=1.1.15",
+    "LocalVolumes": "0",
+    "Mounts": "/home/user/…",
+    "Names": "rustdesk-hbbs",
+    "Networks": "host",
+    "Platform": {
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    "Ports": "",
+    "RunningFor": "2 weeks ago",
+    "Size": "4.1kB (virtual 13.1MB)",
+    "State": "running",
+    "Status": "Up 8 days"
+  },
+  {
+    "Command": "\"hbbr\"",
+    "CreatedAt": "2026-08-01 21:51:31 -0700 PDT",
+    "ID": "6109e28eced8",
+    "Image": "rustdesk/rustdesk-server:1.1.15",
+    "Labels": "com.docker.compose.config-hash=afa8d3b11654e4e6dc8492631308ba81921f42f138c87cf55d9da970f479f0d8,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:10818ec05b179039c6660f4d8e74b303f0db2858bbad2b18e24992ea22d54cd6,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/user/services/rustdesk-server/compose.yml,com.docker.compose.project.working_dir=/home/user/services/rustdesk-server,com.docker.compose.project=rustdesk-server,com.docker.compose.service=hbbr,com.docker.compose.version=2.40.3,org.opencontainers.image.created=2026-01-13T02:31:17.114Z,org.opencontainers.image.description=RustDesk Server Program,org.opencontainers.image.licenses=AGPL-3.0,org.opencontainers.image.revision=bd3e73fd5168f099969788c50d3188537f9d4792,org.opencontainers.image.source=https://github.com/rustdesk-org/rustdesk-server,org.opencontainers.image.title=rustdesk-server,org.opencontainers.image.url=https://github.com/rustdesk-org/rustdesk-server,org.opencontainers.image.version=1.1.15",
+    "LocalVolumes": "0",
+    "Mounts": "/home/user/…",
+    "Names": "rustdesk-hbbr",
+    "Networks": "host",
+    "Platform": {
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    "Ports": "",
+    "RunningFor": "2 months ago",
+    "Size": "4.1kB (virtual 13.1MB)",
+    "State": "running",
+    "Status": "Up 8 days"
+  },
+  {
+    "Command": "\"docker-entrypoint.s…\"",
+    "CreatedAt": "2026-07-16 22:31:30 -0700 PDT",
+    "ID": "76bad3cec0f5",
+    "Image": "postgres:16-alpine",
+    "Labels": "com.docker.compose.config-hash=731781181899db8989f6f38b700e0e8cdb15c270fdb5244dc6d189289cbfa7de,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/user/services/app-dev-deps/docker-compose.yml,com.docker.compose.project.environment_file=/home/user/services/app-dev-deps/.env,com.docker.compose.project.working_dir=/home/user/services/app-dev-deps,com.docker.compose.project=app-dev-deps,com.docker.compose.service=postgres,com.docker.compose.version=2.40.3",
+    "LocalVolumes": "1",
+    "Mounts": "app-dev-postg…",
+    "Names": "app-dev-postgres",
+    "Networks": "app-dev-deps_default",
+    "Platform": {
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    "Ports": "192.0.2.10:5432->5432/tcp",
+    "RunningFor": "3 months ago",
+    "Size": "20.5kB (virtual 303MB)",
+    "State": "running",
+    "Status": "Up 8 days (healthy)"
+  },
+  {
+    "Command": "\"docker-entrypoint.s…\"",
+    "CreatedAt": "2026-07-16 22:31:30 -0700 PDT",
+    "ID": "558fb41a6f05",
+    "Image": "valkey/valkey:8-alpine",
+    "Labels": "com.docker.compose.config-hash=83191e903cf8785237ac2d95f2955bfcd29673da776994f062e7700ffaf265ab,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:94365b275456ae14621001c03556c732b1d93a0cdeacc317d1bdd52eba680885,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=/home/user/services/app-dev-deps/docker-compose.yml,com.docker.compose.project.environment_file=/home/user/services/app-dev-deps/.env,com.docker.compose.project.working_dir=/home/user/services/app-dev-deps,com.docker.compose.project=app-dev-deps,com.docker.compose.service=valkey,com.docker.compose.version=2.40.3,org.opencontainers.image.source=https://github.com/valkey-io/valkey",
+    "LocalVolumes": "1",
+    "Mounts": "app-dev-valke…",
+    "Names": "app-dev-valkey",
+    "Networks": "app-dev-deps_default",
+    "Platform": {
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    "Ports": "192.0.2.10:6379->6379/tcp",
+    "RunningFor": "3 months ago",
+    "Size": "4.1kB (virtual 44MB)",
+    "State": "running",
+    "Status": "Up 8 days (healthy)"
+  }
+]

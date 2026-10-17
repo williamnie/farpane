@@ -1,0 +1,59 @@
+The Meson build system
+Version: 1.9.1
+Source dir: /workspace/Build/Linux/src/libdrmtap
+Build dir: /workspace/Build/Linux/drmtap-build
+Build type: native build
+Project name: libdrmtap
+Project version: 0.5.8
+C compiler for the host machine: cc (gcc 13.3.0 "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0")
+C linker for the host machine: cc ld.bfd 2.42
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Found pkg-config: YES (/usr/bin/pkg-config) 1.8.1
+Run-time dependency libdrm found: YES 2.4.125
+Checking for type "struct hdr_output_metadata" with dependency libdrm: YES 
+Run-time dependency threads found: YES
+Run-time dependency libva found: YES 1.20.0
+Run-time dependency libva-drm found: YES 1.20.0
+Run-time dependency egl found: YES 1.5
+Run-time dependency glesv2 found: YES 3.2
+Library m found: YES
+Message: VAAPI backends: enabled (Intel/AMD GPU-accelerated)
+Library dl found: YES
+Has header "EGL/egl.h" : YES 
+Has header "EGL/eglext.h" : YES 
+Has header "GLES2/gl2.h" : YES 
+Has header "GLES2/gl2ext.h" : YES 
+Message: EGL backend: enabled (GPU-universal detiling, lazy dlopen)
+Message: drmtap-helper: disabled; the library gets no fork/exec path
+Compiler for C supports link arguments -Wl,--version-script,/workspace/Build/Linux/src/libdrmtap/libdrmtap.map: YES 
+Compiler for C supports link arguments -Wl,-z,relro: YES 
+Compiler for C supports link arguments -Wl,-z,now: YES 
+Found CMake: /usr/bin/cmake (3.28.3)
+Run-time dependency libvncserver found: NO (tried pkgconfig and cmake)
+Build targets in project: 17
+
+libdrmtap 0.5.8
+
+  User defined options
+    buildtype: release
+    egl      : enabled
+    helper   : disabled
+
+Found ninja-1.11.1 at /usr/bin/ninja
+ninja: Entering directory `/workspace/Build/Linux/drmtap-build'
+[1/12] Compiling C object libdrmtap.so.0.5.8.p/src_gpu_generic.c.o
+[2/12] Compiling C object libdrmtap.so.0.5.8.p/src_drm_enumerate.c.o
+[3/12] Compiling C object libdrmtap.so.0.5.8.p/src_gpu_intel.c.o
+[4/12] Compiling C object libdrmtap.so.0.5.8.p/src_gpu_amd.c.o
+[5/12] Compiling C object libdrmtap.so.0.5.8.p/src_drmtap.c.o
+[6/12] Compiling C object libdrmtap.so.0.5.8.p/src_gpu_nvidia.c.o
+[7/12] Compiling C object libdrmtap.so.0.5.8.p/src_cursor.c.o
+[8/12] Compiling C object libdrmtap.so.0.5.8.p/src_privilege_helper_stub.c.o
+[9/12] Compiling C object libdrmtap.so.0.5.8.p/src_pixel_convert.c.o
+[10/12] Compiling C object libdrmtap.so.0.5.8.p/src_gpu_egl.c.o
+[11/12] Compiling C object libdrmtap.so.0.5.8.p/src_drm_grab.c.o
+[12/12] Linking target libdrmtap.so.0.5.8
+INFO: autodetecting backend as ninja
+INFO: calculating backend command to run: /usr/bin/ninja -C /workspace/Build/Linux/drmtap-build -j 4 libdrmtap.so.0.5.8
+{"path": "Build/Linux/drmtap-build/libdrmtap.so.0.5.8", "version": "0.5.8", "sha256": "bf4eedcee4f6049c6bf2eddf0d5e37f20123ea427769ea7287b9fafa5581b185", "helper_disabled": true, "split_api": true}

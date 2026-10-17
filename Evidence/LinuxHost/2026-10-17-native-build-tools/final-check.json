@@ -1,0 +1,26 @@
+{
+  "result": "pass",
+  "ast": [
+    "Linux/packaging/native_build_tools.py",
+    "Scripts/linux/prepare-native-tools.py",
+    "Linux/packaging/native_source_build.py",
+    "Linux/tests/native_source_smoke.py",
+    "Linux/tests/test_native_build_tools.py"
+  ],
+  "bash_syntax": true,
+  "doc_links": 90,
+  "canonical_sha256": {
+    "Linux/native-build-tools.lock.json": "2626098fda264dd550cb6b15fce8867a8b98f96959787137e9f97e2b2adb4ec0",
+    "Linux/docs/native-build-tools.md": "47afa387939aa7e0b49d84d4e5ef8d456922a362f56509067ec40d2d4ba1b08e",
+    "Linux/tests/native_source_smoke.py": "69fc84fa1052bd99f0d51ab1615721f19a72971c79a7a494d602c77395aa3e01",
+    "Linux/tests/test_native_build_tools.py": "b3695a5fb76a2aa15f0572071957cc8bcc3b5d4ef3555726802ff92d95ddf37e",
+    "Linux/packaging/native_source_build.py": "7b9848a162fb464de4650188bbd7e6280ca357d680784f37a9217fb2918bac19",
+    "Linux/packaging/native_build_tools.py": "c8edbc8cbd5b78e8033e7a4a2d398123cfd71deb4a579e22062a7becc0dae10b",
+    "Linux/packaging/native-source-README.md": "e1a0a5180d4103db38e6dc5ca8dff76e88cd63641c30497e99f88757f5d1c22e",
+    "Scripts/linux/build-native-source.sh": "d49835f4f0bd35abc845fa5b68ae84561212565661c31c1b6d6bea72d3810118",
+    "Scripts/linux/prepare-native-tools.py": "675df17175a4f5e7237664a56fffbd905f9a07aea2a01c2c4fefc8e9a3c08ba9",
+    "Scripts/linux/test-native-source.sh": "67126031e8a415b71de2379a4b594d70535e5d87c829c6b993f05a4e4d049d65"
+  },
+  "host_unchanged": true,
+  "candidate_unchanged": true
+}

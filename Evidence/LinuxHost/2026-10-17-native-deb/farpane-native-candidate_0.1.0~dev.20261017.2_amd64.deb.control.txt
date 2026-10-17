@@ -1,0 +1,16 @@
+Package: farpane-native-candidate
+Version: 0.1.0~dev.20261017.2
+Architecture: amd64
+Section: net
+Priority: optional
+Maintainer: FarPane contributors <noreply@users.noreply.github.com>
+Homepage: https://github.com/williamnie/farpane
+Installed-Size: 55520
+Depends: libadwaita-1-0 (>= 1.5), libc6 (>= 2.39), libdbus-1-3, libdrm2, libegl1, libgbm1, libgcc-s1, libgles2, libglib2.0-0t64 (>= 2.80), libgraphene-1.0-0, libgstreamer-plugins-base1.0-0, libgstreamer1.0-0, libgtk-4-1 (>= 4.14), libpango-1.0-0, libpulse0, libsecret-1-0, libstdc++6 (>= 5), libva-drm2 (>= 2.20), libva2 (>= 2.20), libx11-6, libxcb-randr0, libxcb-shm0, libxcb1, libxfixes3, libxkbcommon0, libxtst6, python3 (>= 3.11), zlib1g
+Recommends: systemd, dbus-user-session, gnome-keyring
+Description: FarPane native remote desktop GUI test candidate
+ Includes the GTK4 GUI, native core, static FFmpeg, icons and maintenance tools.
+ Installation stages a candidate without changing the active service or desktop.
+ Activation requires an explicit maintenance window on a systemd desktop.
+ Removal retains activated releases, service configuration and user data.
+ This development candidate has not passed the complete release acceptance gates.

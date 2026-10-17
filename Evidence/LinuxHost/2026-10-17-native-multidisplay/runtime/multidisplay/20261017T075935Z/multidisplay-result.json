@@ -1,0 +1,150 @@
+{
+  "result": "pass",
+  "monitors": [
+    {
+      "name": "Left",
+      "primary": true,
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480,
+      "outputs": 1
+    },
+    {
+      "name": "Right",
+      "primary": false,
+      "x": 640,
+      "y": 80,
+      "width": 320,
+      "height": 400,
+      "outputs": 0
+    }
+  ],
+  "switches": [
+    {
+      "step": 0,
+      "selected": 0,
+      "rendered_pixels": 380160,
+      "frame_bounds": [
+        150,
+        138,
+        872,
+        678
+      ],
+      "local_click": [
+        330,
+        543
+      ],
+      "expected_remote": [
+        160,
+        360
+      ],
+      "actual_remote": [
+        160,
+        360
+      ],
+      "letterbox": [
+        142,
+        408
+      ]
+    },
+    {
+      "step": 1,
+      "selected": 1,
+      "rendered_pixels": 228096,
+      "frame_bounds": [
+        294,
+        138,
+        726,
+        678
+      ],
+      "local_click": [
+        402,
+        543
+      ],
+      "expected_remote": [
+        720,
+        380
+      ],
+      "actual_remote": [
+        720,
+        380
+      ],
+      "letterbox": [
+        286,
+        408
+      ]
+    },
+    {
+      "step": 2,
+      "selected": 0,
+      "rendered_pixels": 380160,
+      "frame_bounds": [
+        150,
+        138,
+        872,
+        678
+      ],
+      "local_click": [
+        330,
+        543
+      ],
+      "expected_remote": [
+        160,
+        360
+      ],
+      "actual_remote": [
+        160,
+        360
+      ],
+      "letterbox": [
+        142,
+        408
+      ]
+    },
+    {
+      "step": 3,
+      "selected": 1,
+      "rendered_pixels": 228096,
+      "frame_bounds": [
+        294,
+        138,
+        726,
+        678
+      ],
+      "local_click": [
+        402,
+        543
+      ],
+      "expected_remote": [
+        720,
+        380
+      ],
+      "actual_remote": [
+        720,
+        380
+      ],
+      "letterbox": [
+        286,
+        408
+      ]
+    }
+  ],
+  "worker_reaped": true,
+  "host_retained": true,
+  "checks": [
+    "actual-two-monitor-catalog",
+    "dropdown-switches-0-1-0-1",
+    "distinct-remote-pixels",
+    "per-monitor-aspect-ratio",
+    "nonzero-origin-pointer-mapping",
+    "letterbox-input-rejected",
+    "worker-retained-during-switch",
+    "disconnect-reaps-worker",
+    "gui-close-retains-host"
+  ],
+  "private_x11": true,
+  "gpu": false,
+  "physical_displays": false,
+  "host_allocator_check": false
+}

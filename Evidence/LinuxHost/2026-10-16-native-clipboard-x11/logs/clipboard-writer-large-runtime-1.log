@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 457, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 318, in user_test
+    if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='clipboard':exercise_clipboard(directory,output/'clipboard-fixture')
+                                                               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 122, in exercise_clipboard
+    exercise(directory, helper)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_clipboard_smoke.py", line 147, in exercise
+    own(':91',[('image/png',other)]);expect(':92',other,'image/png')
+                                     ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_clipboard_smoke.py", line 73, in expect
+    raise AssertionError(f'Clipboard {mime} did not arrive on private display {display} ({len(data)} bytes)')
+AssertionError: Clipboard image/png did not arrive on private display :92 (134217727 bytes)

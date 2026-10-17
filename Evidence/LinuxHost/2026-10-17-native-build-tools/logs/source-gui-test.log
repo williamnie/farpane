@@ -1,0 +1,7 @@
+Extracting checksum-verified source archive
+Verifying every extracted source entry
+Running offline Cargo core-metadata
+Running offline Cargo gui-metadata
+Running offline Cargo protocol-tests
+Running offline Cargo gui-release
+{"result": "pass", "checks": ["archive_sha256_and_complete_extracted_source_manifest", "empty_cargo_home_offline_core_graph_inside_snapshot", "empty_cargo_home_offline_gui_graph_inside_snapshot", "fresh_target_compilation_and_38_actual_protocol_tests", "offline_full_gui_release_build_and_headless_component_probe"], "archive_sha256": "a4ac71805d46eb123313859ab5081fbde547814fac8780ca40f4e06786589af6", "source_entries": 88621, "cargo_graph_packages": {"core": 666, "gui": 71}, "gui_sha256": "686759427990833a512426e97129bfbdb399c768d4fe6579267d536812d52e3d", "full_gui_release_build": true, "compiler": "rustc 1.89.0 (29483883e 2025-08-04)", "rust_sdk": {"rustc_sha256": "c6ac0142c05a60b0f6c15e1a118bd5ac3bd04924cd6dc0c328f501c5f86e4142", "cargo_sha256": "5b32bd53b8a08d8e206daed51f3fce40cdc0729038ff96bd0ca845596a2c1019", "receipt_sha256": "adbd762eb3ea1beb1829d03a4a3f8611ff7a3cde261c1113cd6783e47e98a929"}, "repository_mounted": false, "compiler_cache_mounted": false, "network": "none", "full_native_media_build": false, "complete_license_source_audit": false, "host_modified": false}

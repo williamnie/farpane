@@ -1,0 +1,23 @@
+{
+  "result": "pass",
+  "canonical_sha256": {
+    "Linux/tests/native_object_observer.c": "ed47d21634cedc76e245a5f88d5b8418429320624212722c31bd53b128115f42",
+    "Linux/tests/native_lifecycle_smoke.py": "c8dc4d25cc50e887121e91901eb0cde38fe65751a2bea7f81ce40a91ba83b947",
+    "Linux/tests/native_viewer_smoke.py": "208ae921cd488193d49180e770ba38b843741866557ef69ec08329db0c5a0ecb",
+    "Scripts/linux/test-native-lifecycle.sh": "52bee10ddade1c4ce0103b27a1f8591c32b0d7a89d2e5b54203872b68f11ebdf",
+    "Scripts/linux/analyze-native-allocator.py": "4c1185efae48b7822ff614abdf129fec1d2ea670ce1aacf1830c4dad11cc2c73",
+    "Linux/docs/viewer-lifecycle.md": "916e46d866a8b1518198c9a34939df518c1398f59046dbeed59f935a979e5c7b",
+    "Linux/docs/gui-status.md": "4aee9f755693c44b3844aba8faba9c1a03fba7165259ffc7b4d4979304f9b6d5"
+  },
+  "ast_and_shell_syntax": true,
+  "doc_links": 4,
+  "allocator_reports_checked": 23,
+  "gobject_counts_consistent": true,
+  "actual_executable_hashes_verified": true,
+  "host_unchanged": true,
+  "candidate_unchanged": true,
+  "source8295_unchanged": true,
+  "original_receipt_and_isolated_source_build_valid": true,
+  "no_application_rebuild": true,
+  "full_lifecycle_and_memory_acceptance": false
+}

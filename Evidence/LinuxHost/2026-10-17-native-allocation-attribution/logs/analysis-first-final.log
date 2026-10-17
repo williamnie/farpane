@@ -1,0 +1,57 @@
+{
+  "symbol_files": 30,
+  "reports": [
+    {
+      "seconds": 8,
+      "live_requested_bytes": 26317100,
+      "live_chunks": 90516,
+      "quarantined_bytes": 14838218,
+      "shown_bytes": 16300477,
+      "shown_chunks": 16949,
+      "omitted_bytes": 10016623,
+      "omitted_chunks": 73567,
+      "coverage": 0.6193872805134304,
+      "bytes_by_first_non_asan_object": {
+        "/usr/lib/x86_64-linux-gnu/libgallium-26.0.8-1ubuntu0.3.so": 11019308,
+        "/usr/lib/x86_64-linux-gnu/libfreetype.so.6": 2132820,
+        "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0": 1263073,
+        "/usr/lib/x86_64-linux-gnu/libcairo.so.2": 623636,
+        "/usr/lib/x86_64-linux-gnu/libpixman-1.so.0": 382940,
+        "/usr/lib/x86_64-linux-gnu/libLLVM.so.21.1": 313740,
+        "/usr/lib/x86_64-linux-gnu/libfontconfig.so.1": 158342,
+        "/usr/lib/x86_64-linux-gnu/libtasn1.so.6": 109120,
+        "/usr/lib/x86_64-linux-gnu/libharfbuzz.so.0": 109024,
+        "/usr/lib/x86_64-linux-gnu/libstdc++.so.6": 73728,
+        "/usr/lib/x86_64-linux-gnu/libGLdispatch.so.0": 59584,
+        "/usr/lib/x86_64-linux-gnu/libEGL_mesa.so.0": 33792,
+        "/lib64/ld-linux-x86-64.so.2": 21370
+      }
+    },
+    {
+      "seconds": 20,
+      "live_requested_bytes": 22538651,
+      "live_chunks": 88462,
+      "quarantined_bytes": 13975916,
+      "shown_bytes": 13897126,
+      "shown_chunks": 17331,
+      "omitted_bytes": 8641525,
+      "omitted_chunks": 71131,
+      "coverage": 0.6165908509786144,
+      "bytes_by_first_non_asan_object": {
+        "/usr/lib/x86_64-linux-gnu/libgallium-26.0.8-1ubuntu0.3.so": 8220704,
+        "/usr/lib/x86_64-linux-gnu/libfreetype.so.6": 2155092,
+        "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0": 1359041,
+        "/usr/lib/x86_64-linux-gnu/libcairo.so.2": 726540,
+        "/usr/lib/x86_64-linux-gnu/libpixman-1.so.0": 430428,
+        "/usr/lib/x86_64-linux-gnu/libLLVM.so.21.1": 377684,
+        "/usr/lib/x86_64-linux-gnu/libfontconfig.so.1": 213963,
+        "/usr/lib/x86_64-linux-gnu/libtasn1.so.6": 109120,
+        "/usr/lib/x86_64-linux-gnu/libharfbuzz.so.0": 109024,
+        "/usr/lib/x86_64-linux-gnu/libstdc++.so.6": 73728,
+        "/usr/lib/x86_64-linux-gnu/libGLdispatch.so.0": 59584,
+        "/usr/lib/x86_64-linux-gnu/libEGL_mesa.so.0": 33792,
+        "/lib64/ld-linux-x86-64.so.2": 28426
+      }
+    }
+  ]
+}

@@ -119,13 +119,17 @@ def main():
     candidates = list((reference / 'cache/cargo/git/checkouts').glob('hwcodec-*/*/.git'))
     hwcodec = next((p.parent for p in candidates if p.parent.name == LOCK['hwcodec']['commit'][:7]), BUILD / 'git/hwcodec')
     export_git('hwcodec', hwcodec, source / 'hwcodec')
+    clipboard_pin = LOCK['clipboard_master']['commit'][:7]
+    clipboard_caches = list((BUILD / 'cargo/git/checkouts').glob('clipboard-master-*/' + clipboard_pin))
+    clipboard_caches += list((reference / 'cache/cargo/git/checkouts').glob('clipboard-master-*/' + clipboard_pin))
+    export_git('clipboard_master', next(iter(clipboard_caches), BUILD / 'git/clipboard_master'), source / 'clipboard_master')
     export_git('hwcodec_externals', hwcodec / 'externals', source / 'hwcodec/externals')
     export_git('libdrmtap', BUILD / 'git/libdrmtap', source / 'libdrmtap')
     for entry in LOCK['patches']:
         patch = ROOT / entry['path']
         checked_file(patch, entry['sha256'])
         target = entry.get('target', 'rustdesk')
-        if target not in ('rustdesk', 'hwcodec', 'ffmpeg'):
+        if target not in ('rustdesk', 'hwcodec', 'ffmpeg', 'clipboard_master'):
             raise RuntimeError(f'Unknown patch target: {target}')
         target_dir = source / (f"ffmpeg-{ffmpeg['version']}" if target == 'ffmpeg' else target)
         apply_patch(target_dir, patch)

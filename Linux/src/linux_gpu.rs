@@ -4,7 +4,7 @@ use hbb_common::{anyhow::anyhow, bail, bytes::Bytes, log, ResultType};
 use std::{
     ffi::{c_char, c_void, CStr, CString},
     os::fd::{AsRawFd, OwnedFd},
-    sync::{atomic::{AtomicBool, Ordering}, mpsc, Arc, Mutex},
+    sync::{atomic::{AtomicBool, AtomicU32, Ordering}, mpsc, Arc, Mutex},
     time::{Duration, Instant},
 };
 
@@ -43,12 +43,21 @@ struct Lease {
     acknowledge: Box<dyn Fn() + Send + Sync>,
 }
 
+static LIVE_SOURCES: AtomicU32 = AtomicU32::new(0);
+
+/// Includes sources and retiring driver work after the network session ends.
+/// A false value is only one part of the supervisor's complete idle snapshot.
+pub fn has_live_resources() -> bool {
+    LIVE_SOURCES.load(Ordering::Acquire) != 0 || MEDIA_BUSY.load(Ordering::Acquire)
+}
+
 impl Lease {
     fn complete(&self) {
         let fd = self.source.lock().unwrap().take();
         if let Some(fd) = fd {
             drop(fd);
             (self.acknowledge)();
+            LIVE_SOURCES.fetch_sub(1, Ordering::AcqRel);
         }
     }
 }
@@ -72,6 +81,7 @@ impl LinuxGpuFrame {
         if unsafe { fp_gpu_validate(&descriptor) } != 1 {
             bail!("invalid Linux GPU descriptor");
         }
+        LIVE_SOURCES.fetch_add(1, Ordering::AcqRel);
         Ok(Self { lease: Arc::new(Lease {
             source: Mutex::new(Some(fd)), claimed: AtomicBool::new(false), descriptor,
             acknowledge: Box::new(acknowledge),
@@ -376,6 +386,7 @@ mod tests {
     #[test]
     fn source_credit_is_returned_once_after_last_owner_or_explicit_completion() {
         for complete in [false, true] {
+            let baseline = LIVE_SOURCES.load(Ordering::Acquire);
             let path = std::env::temp_dir().join(format!("farpane-lease-{}-{complete}", std::process::id()));
             let file = OpenOptions::new().read(true).write(true).create_new(true).open(&path).unwrap();
             std::fs::remove_file(path).unwrap();
@@ -386,6 +397,7 @@ mod tests {
                 fd: -1, width: 16, height: 16, fourcc: u32::from_le_bytes(*b"XR24"),
                 pitch: 64, offset: 0, size: 1024, modifier: 0,
             }, 42, move || { callback_count.fetch_add(1, Ordering::SeqCst); }).unwrap();
+            assert_eq!(LIVE_SOURCES.load(Ordering::Acquire), baseline + 1);
             let retained = frame.clone();
             drop(frame);
             assert_eq!(count.load(Ordering::SeqCst), 0);
@@ -396,9 +408,11 @@ mod tests {
                 assert!(!retained.valid());
                 assert!(retained.descriptor().is_err());
                 assert_eq!(count.load(Ordering::SeqCst), 1);
+                assert_eq!(LIVE_SOURCES.load(Ordering::Acquire), baseline);
             }
             drop(retained);
             assert_eq!(count.load(Ordering::SeqCst), 1);
+            assert_eq!(LIVE_SOURCES.load(Ordering::Acquire), baseline);
         }
     }
 

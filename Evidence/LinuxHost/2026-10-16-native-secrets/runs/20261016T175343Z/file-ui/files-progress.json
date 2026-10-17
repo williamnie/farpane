@@ -1,0 +1,2080 @@
+{
+  "approved": 2,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在建立远程连接",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "传输已建立，等待认证",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "请输入远端密码",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "receive": false,
+          "revision": 1,
+          "send": false
+        },
+        "type": "clipboard_policy"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "audio": true,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 7,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 8,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 2,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 9,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "密码不正确，请重新输入",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 10,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 11,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 3,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 12,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "name": "7cf54afec29e"
+        },
+        "type": "peer"
+      },
+      "generation": 1,
+      "sequence": 13,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "displays": [],
+          "selected": 0
+        },
+        "type": "displays"
+      },
+      "generation": 1,
+      "sequence": 14,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 15,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "文件连接已建立",
+          "phase": "files_ready"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 16,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "entries": [
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0999.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0998.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0997.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0996.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0995.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0994.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0993.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0992.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0991.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0990.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0989.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0988.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0987.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0986.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0985.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0984.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0983.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0982.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0981.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0980.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0979.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0978.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0977.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0976.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0975.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0974.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0973.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0972.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0971.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0970.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0969.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0968.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0967.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0966.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0965.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0964.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0963.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0962.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0961.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0960.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0959.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0958.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0957.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0956.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0955.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0954.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0953.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0952.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0951.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0950.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0949.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0948.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0947.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0946.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0945.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0944.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0943.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0942.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0941.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0940.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0939.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0938.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0937.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0936.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0935.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0934.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0933.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0932.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0931.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0930.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0929.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0928.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0927.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0926.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0925.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0924.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0923.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0922.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0921.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0920.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0919.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0918.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0917.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0916.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0915.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0914.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0913.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0912.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0911.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0910.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0909.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0908.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0907.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0906.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0905.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0904.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0903.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0902.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0901.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0900.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0899.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0898.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0897.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0896.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0895.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0894.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0893.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0892.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0891.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0890.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0889.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0888.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0887.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0886.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0885.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0884.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0883.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0882.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0881.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0880.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0879.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0878.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0877.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0876.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0875.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0874.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0873.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0872.txt",
+              "size": 0
+            }
+          ],
+          "more": true,
+          "page": 0,
+          "path": "/"
+        },
+        "type": "directory"
+      },
+      "generation": 1,
+      "sequence": 17,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 4,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 18,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "entries": [
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0871.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0870.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0869.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0868.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0867.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0866.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0865.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0864.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0863.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0862.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0861.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0860.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0859.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0858.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0857.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0856.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0855.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0854.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0853.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0852.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0851.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0850.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0849.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0848.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0847.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0846.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0845.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0844.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0843.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0842.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0841.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0840.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0839.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0838.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0837.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0836.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0835.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0834.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0833.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0832.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0831.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0830.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0829.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0828.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0827.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0826.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0825.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0824.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0823.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0822.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0821.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0820.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0819.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0818.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0817.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0816.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0815.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0814.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0813.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0812.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0811.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0810.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0809.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0808.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0807.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0806.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0805.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0804.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0803.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0802.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0801.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0800.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0799.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0798.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0797.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0796.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0795.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0794.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0793.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0792.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0791.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0790.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0789.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0788.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0787.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0786.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0785.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0784.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0783.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0782.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0781.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0780.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0779.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0778.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0777.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0776.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0775.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0774.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0773.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0772.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0771.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0770.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0769.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0768.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0767.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0766.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0765.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0764.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0763.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0762.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0761.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0760.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0759.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0758.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0757.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0756.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0755.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0754.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0753.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0752.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0751.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0750.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0749.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0748.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0747.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0746.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0745.txt",
+              "size": 0
+            },
+            {
+              "directory": false,
+              "modified": 1792173223,
+              "name": "entry-0744.txt",
+              "size": 0
+            }
+          ],
+          "more": true,
+          "page": 1,
+          "path": "/"
+        },
+        "type": "directory"
+      },
+      "generation": 1,
+      "sequence": 19,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 5,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 20,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 0,
+          "job": 1,
+          "name": "所选文件",
+          "needs_confirmation": false,
+          "status": "scanning",
+          "total": 0
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 21,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 0,
+          "job": 1,
+          "name": "/upload.bin",
+          "needs_confirmation": false,
+          "status": "waiting",
+          "total": 393233
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 22,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 131072,
+          "job": 1,
+          "name": "/upload.bin",
+          "needs_confirmation": false,
+          "status": "sending",
+          "total": 393233
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 23,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 393233,
+          "job": 1,
+          "name": "/upload.bin",
+          "needs_confirmation": false,
+          "status": "completed",
+          "total": 393233
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 24,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 6,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 25,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 0,
+          "job": 2,
+          "name": "/upload.bin",
+          "needs_confirmation": false,
+          "status": "waiting",
+          "total": 0
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 26,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 0,
+          "job": 2,
+          "name": "/upload.bin",
+          "needs_confirmation": false,
+          "status": "receiving",
+          "total": 393233
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 27,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 131072,
+          "job": 2,
+          "name": "/upload.bin",
+          "needs_confirmation": false,
+          "status": "receiving",
+          "total": 393233
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 28,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 393233,
+          "job": 2,
+          "name": "/upload.bin",
+          "needs_confirmation": false,
+          "status": "completed",
+          "total": 393233
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 29,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 7,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 30,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 0,
+          "job": 3,
+          "name": "所选文件",
+          "needs_confirmation": false,
+          "status": "scanning",
+          "total": 0
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 31,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 0,
+          "job": 3,
+          "name": "/cancel.bin",
+          "needs_confirmation": false,
+          "status": "waiting",
+          "total": 17408
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 32,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 8,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 33,
+      "session": 14076224430603958253
+    },
+    {
+      "event": {
+        "data": {
+          "done": 0,
+          "job": 3,
+          "name": "/cancel.bin",
+          "needs_confirmation": false,
+          "status": "cancelled",
+          "total": 17408
+        },
+        "type": "transfer"
+      },
+      "generation": 1,
+      "sequence": 34,
+      "session": 14076224430603958253
+    }
+  ],
+  "host_tasks": [
+    {
+      "connection": 19,
+      "detail": "文件已保存",
+      "done": 393233,
+      "job": 1,
+      "name": "upload.bin",
+      "needs_confirmation": false,
+      "overwrite_required": false,
+      "status": "completed",
+      "total": 393233,
+      "upload": true
+    },
+    {
+      "connection": 19,
+      "detail": "已发送；此协议未确认远端落盘",
+      "done": 393233,
+      "job": 2,
+      "name": "upload.bin",
+      "needs_confirmation": false,
+      "overwrite_required": false,
+      "status": "sent",
+      "total": 393233,
+      "upload": false
+    },
+    {
+      "connection": 19,
+      "detail": "远端取消了传输",
+      "done": 0,
+      "job": 3,
+      "name": "cancel.bin",
+      "needs_confirmation": false,
+      "overwrite_required": false,
+      "status": "cancelled",
+      "total": 17408,
+      "upload": true
+    }
+  ],
+  "jobs": [
+    [
+      1,
+      "/upload.bin",
+      "completed",
+      393233,
+      393233,
+      false
+    ],
+    [
+      2,
+      "/upload.bin",
+      "completed",
+      393233,
+      393233,
+      false
+    ],
+    [
+      3,
+      "/cancel.bin",
+      "cancelled",
+      0,
+      17408,
+      false
+    ]
+  ],
+  "password_attempts": 2,
+  "stage": 7,
+  "status": "第 2 页 · 128 项"
+}

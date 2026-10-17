@@ -1,0 +1,18 @@
+/workspace/Build/Linux/native-lifecycle-smoke/20261017T062936Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 495, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 264, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_lifecycle_smoke.py", line 245, in exercise
+    object_counts(output)
+    ~~~~~~~~~~~~~^^^^^^^^
+  File "/workspace/Linux/tests/native_lifecycle_smoke.py", line 221, in object_counts
+    free = total(heap, 'total', 'fast') + total(heap, 'total', 'rest')
+           ~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_lifecycle_smoke.py", line 216, in total
+    assert len(values) == 1
+           ^^^^^^^^^^^^^^^^
+AssertionError

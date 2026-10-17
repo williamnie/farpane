@@ -1,0 +1,10 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -306,3 +306,7 @@
+ # Linux build uses one FFmpeg ABI and the reviewed local compatibility patch.
+ [patch."https://github.com/rustdesk-org/hwcodec"]
+ hwcodec = { path = "../hwcodec" }
++
++# Preserve X11 clipboard events between listener callbacks.
++[patch."https://github.com/rustdesk-org/clipboard-master"]
++clipboard-master = { path = "../clipboard_master" }

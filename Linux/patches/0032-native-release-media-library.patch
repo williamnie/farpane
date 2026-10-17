@@ -1,0 +1,97 @@
+--- a/libs/scrap/src/common/drmtap_dl.rs
++++ b/libs/scrap/src/common/drmtap_dl.rs
+@@ -3,6 +3,10 @@
+ use hbb_common::{libloading::Library, log};
+ use std::os::raw::{c_char, c_int, c_void};
+ use std::sync::OnceLock;
++
++#[cfg(feature = "native-viewer")]
++#[path = "native_library_path.rs"]
++mod native_library_path;
+ 
+ // C ABI structs: must match libdrmtap include/drmtap.h.
+ 
+@@ -255,38 +259,55 @@
+ 
+ impl DrmtapLib {
+     fn load() -> Option<Self> {
+-        // Absolute path FIRST: the deb bundles the .so privately under /usr/lib/rustdesk and does NOT register that dir with ld.so.
+-        #[cfg(not(feature = "farpane-linux"))]
+-        const INSTALLED: &str = "/usr/lib/rustdesk/libdrmtap.so.0";
+-        #[cfg(feature = "farpane-linux")]
+-        const INSTALLED: &str = "/opt/farpane/lib/libdrmtap.so.0";
+-        // Bare sonames exist so an unpackaged development build can load a locally built .so from
+-        // the normal ld.so search path. They are NOT offered when running as root: this is the one
+-        // place where which file happens to be on the load path decides what gets mapped into the
+-        // CAP_SYS_ADMIN process, and the packaged service always finds the absolute path first
+-        // anyway. A root process that reaches the fallback has no bundled library, which is the
+-        // PipeWire-fallback case, not a reason to search.
+-        const DEV_ONLY: [&str; 2] = ["libdrmtap.so.0", "libdrmtap.so"];
+-        let is_root = unsafe { hbb_common::libc::geteuid() } == 0;
+-        let candidates: Vec<&str> = if is_root {
+-            vec![INSTALLED]
+-        } else {
+-            std::iter::once(INSTALLED).chain(DEV_ONLY).collect()
++        #[cfg(not(feature = "native-viewer"))]
++        let candidates: Vec<String> = {
++            // Absolute path FIRST: the deb bundles the .so privately under /usr/lib/rustdesk and does NOT register that dir with ld.so.
++            #[cfg(not(feature = "farpane-linux"))]
++            const INSTALLED: &str = "/usr/lib/rustdesk/libdrmtap.so.0";
++            #[cfg(feature = "farpane-linux")]
++            const INSTALLED: &str = "/opt/farpane/lib/libdrmtap.so.0";
++            // Bare sonames exist so an unpackaged development build can load a locally built .so from
++            // the normal ld.so search path. They are NOT offered when running as root: this is the one
++            // place where which file happens to be on the load path decides what gets mapped into the
++            // CAP_SYS_ADMIN process, and the packaged service always finds the absolute path first
++            // anyway. A root process that reaches the fallback has no bundled library, which is the
++            // PipeWire-fallback case, not a reason to search.
++            const DEV_ONLY: [&str; 2] = ["libdrmtap.so.0", "libdrmtap.so"];
++            let is_root = unsafe { hbb_common::libc::geteuid() } == 0;
++            let candidates: Vec<&str> = if is_root {
++                vec![INSTALLED]
++            } else {
++                std::iter::once(INSTALLED).chain(DEV_ONLY).collect()
++            };
++            #[cfg(feature = "farpane-linux")]
++            let bundled = std::env::current_exe().ok().and_then(|exe| {
++                exe.parent().map(|dir| dir.join("lib/libdrmtap.so.0"))
++            });
++            #[cfg(feature = "farpane-linux")]
++            let candidates: Vec<&str> = if is_root {
++                candidates
++            } else {
++                bundled.as_ref().and_then(|p| p.to_str()).into_iter().chain(candidates).collect()
++            };
++            candidates.into_iter().map(str::to_owned).collect()
+         };
+-        #[cfg(feature = "farpane-linux")]
+-        let bundled = std::env::current_exe().ok().and_then(|exe| {
+-            exe.parent().map(|dir| dir.join("lib/libdrmtap.so.0"))
+-        });
+-        #[cfg(feature = "farpane-linux")]
+-        let candidates: Vec<&str> = if is_root {
+-            candidates
+-        } else {
+-            bundled.as_ref().and_then(|p| p.to_str()).into_iter().chain(candidates).collect()
++        #[cfg(feature = "native-viewer")]
++        let candidates: Vec<String> = match std::env::current_exe()
++            .and_then(|path| native_library_path::drmtap(&path))
++            .and_then(|path| path.into_os_string().into_string().map_err(|_| {
++                std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid media library path")
++            }))
++        {
++            Ok(path) => vec![path],
++            Err(error) => {
++                log::warn!("Native bundled media library rejected: {error}");
++                return None;
++            }
+         };
+         unsafe {
+             let mut errs = Vec::new();
+-            let found = candidates.iter().find_map(|n| match Library::new(*n) {
+-                Ok(l) => Some((l, *n)),
++            let found = candidates.iter().find_map(|n| match Library::new(n.as_str()) {
++                Ok(l) => Some((l, n.as_str())),
+                 Err(e) => {
+                     errs.push(format!("{n}: {e}"));
+                     None

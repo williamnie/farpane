@@ -1,0 +1,51 @@
+{
+  "standard": {
+    "pages_pss_kib": [
+      122094,
+      130730,
+      132610
+    ],
+    "home_top_pss_kib": {
+      "/usr/lib/x86_64-linux-gnu/libLLVM.so.21.1": 36878,
+      "[heap]": 21548,
+      "/usr/lib/x86_64-linux-gnu/libgallium-26.0.8-1ubuntu0.3.so": 10180,
+      "/usr/lib/x86_64-linux-gnu/libgtk-4.so.1.2200.4": 8092,
+      "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc": 4940,
+      "[anonymous]": 4164,
+      "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc": 3264,
+      "/usr/lib/x86_64-linux-gnu/libadwaita-1.so.0": 2340,
+      "/usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.8800.0": 1756,
+      "/usr/lib/x86_64-linux-gnu/libcrypto.so.3": 1748,
+      "/usr/lib/x86_64-linux-gnu/libcairo.so.2.11804.4": 1252,
+      "/usr/lib/x86_64-linux-gnu/libharfbuzz.so.0.61232.0": 1196,
+      "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0.8800.0": 1196,
+      "/usr/lib/x86_64-linux-gnu/libgnutls.so.30.41.1": 952,
+      "/usr/lib/x86_64-linux-gnu/libepoxy.so.0.0.0": 860
+    }
+  },
+  "no-graphics": {
+    "pages_pss_kib": [
+      56121,
+      64950,
+      66862
+    ],
+    "home_top_pss_kib": {
+      "/usr/lib/x86_64-linux-gnu/libgtk-4.so.1.2200.4": 7648,
+      "[heap]": 7372,
+      "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc": 4888,
+      "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc": 3280,
+      "/usr/lib/x86_64-linux-gnu/libadwaita-1.so.0": 2348,
+      "[anonymous]": 1816,
+      "/usr/lib/x86_64-linux-gnu/libcrypto.so.3": 1776,
+      "/usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.8800.0": 1712,
+      "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0.8800.0": 1228,
+      "/usr/lib/x86_64-linux-gnu/libharfbuzz.so.0.61232.0": 1196,
+      "/usr/lib/x86_64-linux-gnu/libcairo.so.2.11804.4": 1112,
+      "/usr/lib/x86_64-linux-gnu/libgnutls.so.30.41.1": 924,
+      "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.35": 814,
+      "/usr/lib/x86_64-linux-gnu/libX11.so.6.4.0": 810,
+      "/usr/lib/x86_64-linux-gnu/libfreetype.so.6.20.5": 716
+    }
+  },
+  "scope": "Isolated Xvfb/Cairo; no host desktop or GPU. no-graphics disables GDK GL/Vulkan and cannot validate Viewer. Later page samples can include allocator retention from prior screenshot export."
+}

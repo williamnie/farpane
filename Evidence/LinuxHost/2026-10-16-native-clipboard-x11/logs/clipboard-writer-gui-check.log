@@ -1,0 +1,12 @@
+    Checking farpane-protocol v0.1.0 (/workspace/Build/Linux/native/protocol)
+    Checking farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+warning: unused import: `gdk::subclass::prelude::*`
+ --> src/clipboard_provider.rs:3:5
+  |
+3 | use gdk::subclass::prelude::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `farpane-gui` (bin "farpane") generated 1 warning (run `cargo fix --bin "farpane"` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.75s

@@ -1,0 +1,56 @@
+{
+  "head": "b01c40bd7da588f0ec2add2947a9368289006792",
+  "branch": "codex/linux-host-gpu-media",
+  "sources": {
+    "Linux/Cargo.lock": "d2759cd9441c36ac2f70391f3cabfcf2a0cb7c432e0595b37793d6d0df07d831",
+    "Linux/dependencies.lock.json": "4acb75139611bd56264b292d6544e866b581a14d81b0304674dbe1e8c5537086",
+    "Linux/gui/Cargo.lock": "83996d66a4bf8aa3b85a1558429067d4ddcd2dccdc4fea4396fd9d33e48247e3",
+    "Linux/gui/Cargo.toml": "c3a81be5f56e3b26a312e64c633298fe1c3acabf87d3b2c5ae6166cee4510bc1",
+    "Linux/gui/build.rs": "496fdd76556c083994f8ba2b8fbf72195348be8be27cfb7a6b59526541f6b806",
+    "Linux/gui/resources/README.md": "af9198e00a786282b7c775e2d372f6d43e420db0e806bde7943893e5580658ad",
+    "Linux/gui/resources/farpane.gresource.xml": "fca399b3d87b12b1023251572140effb55e817f8350c1c219f5fabad3f2d9e63",
+    "Linux/gui/resources/org.farpane.FarPane.png": "8e0cecdee4b759bfeb11d0f93d88b5ae5e77d39c88cf56e21352e6810ff6a8a5",
+    "Linux/gui/resources/org.farpane.FarPane.svg": "13d57cb67e227c04b3573de7f44d4a190ae9be0fad26ec53b13dffc14e4872f6",
+    "Linux/gui/resources/style.css": "61fd0c920c715ddd7193f3f766fade291da9257151d7b49f0e665204bd99d55e",
+    "Linux/gui/src/app.rs": "e7eb85b59ac178bea673064f22c1b3bf2ad58ca41869c11c975ecda14835a3a9",
+    "Linux/gui/src/bridge.rs": "93f6cc74bb25db1abe6e22dffe5d83b9c697ae35c844674e9791cd9a91cbbe1b",
+    "Linux/gui/src/host.rs": "91ae1d65824441e392e5a98831ffe2cd3df1dad35bc04222e2395d30caf2de2a",
+    "Linux/gui/src/main.rs": "c5ec6715302e3025a5159d6092f0f31b70898475d03de360c38a6927b4d34265",
+    "Linux/gui/src/model.rs": "fe893b6134b330a2dcd64347fb1deaf9fcfda7c60984c8c37d88548e0f9e06b1",
+    "Linux/native/activity.rs": "7f53423e7357139a572819817682d99582ce11f7bb6989d3e5a7831905b73bf9",
+    "Linux/native/cm.rs": "085e9fd9edccc1fabdfcd017aa28b65028a4baff4b5e7a48bce11d80e403b96b",
+    "Linux/native/config.rs": "a85942e509f47ec7d424b7229cfd6d1009866f860d0f8f88712a9d6973eac88f",
+    "Linux/native/control.rs": "3769cf7ed16d4eb205347ee4d1a890f001f6e478bf46ded778ecc5ce9466d501",
+    "Linux/native/core_main.rs": "1a08a7a7d26c818d76fafadd9c6f2bb1a6ad7c7e02c60342254942b5de5e0e56",
+    "Linux/native/mod.rs": "094a724f53a4e157d03deff339068861fabb512436c710c2fcb6165101838fb4",
+    "Linux/native/process.rs": "76c2fba5dd53bec1bee8d3859582616aa8f642456b681f1ddf99552dee9fd7b6",
+    "Linux/native/protocol/Cargo.lock": "26c4d6681ac9eea278c8f5ee6cba6ae8a728e87f73f9a23bf9c4c7d496f1734b",
+    "Linux/native/protocol/Cargo.toml": "57d8c3e6dd0d108c769dd37abeb97464d0989b281f84d07188ec51364aafe7f4",
+    "Linux/native/protocol/src/frame.rs": "26bdfa2b295093a2b2389b684329103010e1924b8d3ace3dbb8e36eb5d5fb4b0",
+    "Linux/native/protocol/src/lib.rs": "0e2a5f6df32deef1e9f3f3f529cdeb7d32ab2ee6a13a6ad8ffe4d56c4639bb7f",
+    "Linux/native/protocol/src/supervision.rs": "0f45e30187940a8d583a9db95f848f7930f947b8c9a8e2555cea2a65cfec04f9",
+    "Linux/native/protocol/src/transport.rs": "898d81dcd873d0afabef41c0243b68b7eb84bfd6faf1c4a9b25de2df45849ce5",
+    "Linux/native/supervisor.rs": "0b7d783a79bf165e4a8269dfacceeb2be2d6dd4fa6a6c208e79379da302f1c4e",
+    "Linux/patches/0015-native-headless-boundary.patch": "d0334c020438b9fbc8495b1ca3ac844f971cca7fb2780fbc07afcc92bcc8b2a2",
+    "Linux/patches/0016-native-host-runtime.patch": "366f50ce7e36c098819042b9dda6ccd98c308126c1c165195e33a0a2b507b4db",
+    "Linux/src/linux_gpu.rs": "c4602576845cf0fa33214510d105b6f2c23b6ce143aa594588af23751a7c94fa",
+    "Linux/tests/native_config_smoke.py": "32c32d41d2db64a50435a934d28d0f8693893984751dd6d8d03a1266a08fc67b",
+    "Linux/tests/native_host_smoke.py": "ac917fcde3c1cd97750ffb715221d3d9d22cd10b3189950ca1555483d5bd7048",
+    "Scripts/linux/build-native-core.sh": "8c5a7c9bab2a24f39a4232a2f4c1e980ae53857cf942b995bfc6869404f3228d",
+    "Scripts/linux/native-container.sh": "2e01f57743fc1130336fe86957b4f24a521dfcd0d874c27955f53f7e76f20c23",
+    "Scripts/linux/prepare-native.py": "45450e7c3520ba2db145b208e5e9943406fa97919fd6c42481355ecf89eb0156",
+    "Scripts/linux/test-native-host.sh": "fbe5189756610e15cd0a81f5ed38ad21fe8a58726d89192b61881e9b12d037e6"
+  },
+  "artifacts": {
+    "Build/Linux/target/release/farpane-core": {
+      "sha256": "2edd4c9eee11ab1307dbe8045f0766b76704fa96875bafec42246ff68dfe146c",
+      "size": 45679024
+    },
+    "Build/Linux/native-target/release/farpane": {
+      "sha256": "d50055b5320fbadecd877d244306cf20893a9e372d34741224fd5979702538f7",
+      "size": 987904
+    }
+  },
+  "complete_product": false,
+  "host_installed": false
+}

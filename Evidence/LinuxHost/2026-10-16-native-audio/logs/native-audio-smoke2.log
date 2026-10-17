@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 369, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 198, in user_test
+    setup_audio(output,start)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_audio_smoke.py", line 38, in setup_audio
+    assert any(s['name']=='synthetic_mic' and s['monitor_of_sink'] is None for s in sources), sources
+           ^^^
+  File "/workspace/Linux/tests/native_audio_smoke.py", line 38, in <genexpr>
+    assert any(s['name']=='synthetic_mic' and s['monitor_of_sink'] is None for s in sources), sources
+                                              ~^^^^^^^^^^^^^^^^^^^
+KeyError: 'monitor_of_sink'

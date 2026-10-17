@@ -1,0 +1,572 @@
+{
+  "schema": 1,
+  "target": "x86_64-unknown-linux-gnu",
+  "rustdesk": {
+    "url": "https://github.com/rustdesk/rustdesk.git",
+    "commit": "fada664df7a294d1d1a9ca3e7cd3637069122f17"
+  },
+  "hbb_common": {
+    "url": "https://github.com/rustdesk/hbb_common.git",
+    "commit": "229b904508364c8997aad0fb5af57effac859f60"
+  },
+  "hwcodec": {
+    "url": "https://github.com/rustdesk-org/hwcodec.git",
+    "commit": "778df1f99597722473b29443bac22ae6c23946fe"
+  },
+  "libdrmtap": {
+    "version": "0.5.8",
+    "commit": "95d4d74549631aa5c39461300acfd2e106583cc9",
+    "url": "https://github.com/rustdesk-org/libdrmtap.git"
+  },
+  "vcpkg": {
+    "commit": "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  },
+  "ffmpeg": {
+    "version": "9.0.2",
+    "url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+    "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+    "signer": "FCF986EA15E6E293A5644F10B4322F04D67658D8",
+    "abi": {
+      "avutil": 61,
+      "avcodec": 63,
+      "avformat": 63,
+      "avfilter": 12
+    }
+  },
+  "builder": {
+    "image": "sha256:17d91d2b9bc68621d5c8ab51aeb7e7cf7589d96ae5f1caddc0c7598f4bf01841",
+    "label": "farpane-linux-builder:20260930",
+    "rust": "1.89.0",
+    "jobs": 4,
+    "memory": "12g"
+  },
+  "patches": [
+    {
+      "path": "Linux/patches/0001-output-buffer.patch",
+      "sha256": "2647a6c43bb9bac961916bede321526a01f1e49bb76d3937fd6aedc3ef29f300"
+    },
+    {
+      "path": "Linux/patches/0002-hwcodec-ffmpeg9.patch",
+      "target": "hwcodec",
+      "sha256": "620a4e1267d93a86ddb7a722411ad0f97d1db0fbbd2b5a474ab97fb419c933ea"
+    },
+    {
+      "path": "Linux/patches/0003-hwcodec-linux-link.patch",
+      "target": "hwcodec",
+      "sha256": "a7fd92d4e8f1cedc14e52ae0fb6634545c090021081fc17e2c2f135a739d2261"
+    },
+    {
+      "path": "Linux/patches/0004-linux-hwcodec-source.patch",
+      "target": "rustdesk",
+      "sha256": "6eaa6eca388061927ecdbb7fbde4bafc4fbcdbd180e42ed741173b9b09abc701"
+    },
+    {
+      "path": "Linux/patches/0005-hwcodec-ffmpeg9-profiles.patch",
+      "target": "hwcodec",
+      "sha256": "b4bf1837cd6d0d389a0588834e72cff757d9b053a4719791dde756d484d5fd31"
+    },
+    {
+      "path": "Linux/patches/0006-ffmpeg-vaapi-pool-limit.patch",
+      "target": "ffmpeg",
+      "sha256": "e0f36f7d234de06e8f64992490f8e9080548f344dbdc087c0c206c98060dccb9"
+    },
+    {
+      "path": "Linux/patches/0007-flutter-core-location.patch",
+      "target": "rustdesk",
+      "sha256": "90b7e91c90fd8712f29fd0dc25a369d187ea155fbb80dcf9e1ff9f4ba46ed2f6"
+    },
+    {
+      "path": "Linux/patches/0008-farpane-application-identity.patch",
+      "target": "rustdesk",
+      "sha256": "00e4682d9325abbd828c887bca6ca388496cb28fe9bd4884c8950883256b62fc"
+    },
+    {
+      "path": "Linux/patches/0009-farpane-private-drmtap.patch",
+      "target": "rustdesk",
+      "sha256": "9ab1d0c366b06284a0c00ecc4a502e41348558f0f8d4fe927ffd419e05495dd0"
+    },
+    {
+      "path": "Linux/patches/0010-linux-gpu-encoder.patch",
+      "target": "rustdesk",
+      "sha256": "b5f7eb0894b323d729b6f1a45c98e55da09d117d5ecee82395cbf19008f507fa"
+    },
+    {
+      "path": "Linux/patches/0011-linux-gpu-capture-host.patch",
+      "target": "rustdesk",
+      "sha256": "2c83fd1108c31e8acbd0d26da4d8317cecd838860d0de971a0590fd0fae9cdb8"
+    },
+    {
+      "path": "Linux/patches/0012-linux-gpu-settings.patch",
+      "target": "rustdesk",
+      "sha256": "1a986802cbe0ee64580b9a0132341efcc49bf317d8993450d404d0bb28b594d4"
+    },
+    {
+      "path": "Linux/patches/0013-farpane-system-location.patch",
+      "target": "rustdesk",
+      "sha256": "916b7d499a52efae915e31ac6ba84c632b57cce4238875802ae4d133b66a7ab1"
+    },
+    {
+      "path": "Linux/patches/0014-farpane-network-identity.patch",
+      "target": "rustdesk",
+      "sha256": "5de92871a8892c8066fa09c1ea377619b2601f88d7b1a0174c5dab3a57fc6c84"
+    },
+    {
+      "path": "Linux/patches/0015-native-headless-boundary.patch",
+      "target": "rustdesk",
+      "sha256": "d0334c020438b9fbc8495b1ca3ac844f971cca7fb2780fbc07afcc92bcc8b2a2"
+    },
+    {
+      "path": "Linux/patches/0016-native-host-runtime.patch",
+      "target": "rustdesk",
+      "sha256": "366f50ce7e36c098819042b9dda6ccd98c308126c1c165195e33a0a2b507b4db"
+    },
+    {
+      "path": "Linux/patches/0017-native-durable-configuration.patch",
+      "target": "rustdesk",
+      "sha256": "99042df9fce40284471d24f66434c22ae2bcfea9360b0b840beff95610634d7a"
+    },
+    {
+      "path": "Linux/patches/0018-native-viewer-boundary.patch",
+      "target": "rustdesk",
+      "sha256": "0ffdde43a9a5146c2b33ff77ff03d68d7402b6fd1cd93b0629f8714b23338f08"
+    },
+    {
+      "path": "Linux/patches/0019-native-viewer-worker.patch",
+      "target": "rustdesk",
+      "sha256": "1920bbdf5515111daa5c5503c316b671ef3473310bdd5716ab0a6b3f1817c94e"
+    },
+    {
+      "path": "Linux/patches/0020-native-audio.patch",
+      "target": "rustdesk",
+      "sha256": "4e6e794b51613706cb3deceb74c7458d46dd0261dd069a458e16497727673ba4"
+    },
+    {
+      "path": "Linux/patches/0021-native-cm-ready.patch",
+      "target": "rustdesk",
+      "sha256": "9306f230d46b881599858ac69cee13104fe141869d8b52020bac1f71b167d168"
+    },
+    {
+      "path": "Linux/patches/0022-native-host-files.patch",
+      "sha256": "e87a2ef8dea5fec7de9432f25286563378b25d27d6fb6a8ac2cbaf941075ac71"
+    },
+    {
+      "path": "Linux/patches/0023-native-file-viewer.patch",
+      "sha256": "114a5e7cb9c0a171f0eea79f3946e91dff4c72b20d3f23895c2873effaeff95b"
+    },
+    {
+      "path": "Linux/patches/0024-native-folder-upload.patch",
+      "sha256": "8b5c82541968302c0f4ff3b4ba75f03f209172174f0cbf4d29da13d807a7bd7d"
+    },
+    {
+      "path": "Linux/patches/0025-native-folder-download.patch",
+      "target": "rustdesk",
+      "sha256": "35f1dbc4585e89fcebe78b75e2f7de26ef34735cc8df26f2869d88e67848214a"
+    },
+    {
+      "path": "Linux/patches/0026-native-clipboard.patch",
+      "target": "rustdesk",
+      "sha256": "2979c2a03b167bcf558f1b5d1b4108af85816f7a30aa9014880bf29dfb8474c8"
+    },
+    {
+      "path": "Linux/patches/0027-clipboard-x11-events.patch",
+      "target": "clipboard_master",
+      "sha256": "1053c046da7af100c764ae3d36ab9410481a558bf786fbdd28a3f5bb86c5bc75"
+    },
+    {
+      "path": "Linux/patches/0028-clipboard-source.patch",
+      "target": "rustdesk",
+      "sha256": "577543d426f50b62aa95e030dd297fa65939458393d9f6d84631bfb1297543a9"
+    },
+    {
+      "path": "Linux/patches/0029-native-host-clipboard.patch",
+      "sha256": "a528a1a67e35863575360fbf77d84d39431da6cee1020a141e082d5357e8c644"
+    },
+    {
+      "path": "Linux/patches/0030-native-clipboard-network-credit.patch",
+      "sha256": "1734276227d63cd4c8a5410a00d558ab2f5718041401184382aa047b4f34c731"
+    },
+    {
+      "path": "Linux/patches/0031-native-wayland-clipboard.patch",
+      "sha256": "8c63dc5bd795a3eb1bee19ada5fa8048a76ed9f6a858da82f008f1eaf98de257"
+    },
+    {
+      "path": "Linux/patches/0032-native-release-media-library.patch",
+      "sha256": "8b74bf0854d680967a5da94e8ade1df2658004b40ebca7213e2cf416db56977c"
+    },
+    {
+      "path": "Linux/patches/0033-native-vaapi-runtime-compat.patch",
+      "sha256": "54d977865943b6d41fc86678200049a9adc68b805c88689cea9283476a66ead5"
+    },
+    {
+      "path": "Linux/patches/0034-native-session-lifecycle.patch",
+      "sha256": "ea038df4730d4e5f83ded97021ba605bd21a5efe6d859b5619620b87a8121539"
+    },
+    {
+      "path": "Linux/patches/0035-native-supervision-probes.patch",
+      "sha256": "25b74e10e5ff07f2654672f712dcde5a34b80869fb0609ac90268eabe9aad01c"
+    },
+    {
+      "path": "Linux/patches/0036-native-session-discovery.patch",
+      "sha256": "e21293942b16d744cdee8a954bf49670ebf1d85030313b717ff02e310f1eed23"
+    },
+    {
+      "path": "Linux/patches/0037-native-input-reconnect.patch",
+      "sha256": "eccaf2479729508a0f4460b668c5dca261a89ecbb9aa62a75773dee995853c10"
+    },
+    {
+      "path": "Linux/patches/0038-native-service-session-auth.patch",
+      "sha256": "108b764fa90f211ceee33d1316ffe5789ff65f6d2996ffe08def459e4a446343"
+    },
+    {
+      "path": "Linux/patches/0039-native-registration-recovery.patch",
+      "sha256": "f0435e7e7b3bcb141cd27e2bcdde449597b1c0ec3e8abc2d551ab92ac3e9c0c2"
+    },
+    {
+      "path": "Linux/patches/0040-native-clipboard-memory.patch",
+      "sha256": "35ce4c2cabd7de2889acaeb9aa44f09e76b696a47b2ed9b505797b2f7d0dc453"
+    },
+    {
+      "path": "Linux/patches/0041-x11-monitor-reply-lifetime.patch",
+      "target": "rustdesk",
+      "sha256": "5b1eaa279c9dc20203cba617cf2b6baf19efa30b74fb7ab9da038ce20f549f34"
+    }
+  ],
+  "hwcodec_externals": {
+    "url": "https://github.com/rustdesk-org/externals.git",
+    "commit": "8903740a1f47884906a6e347ad3d8d56304d9771"
+  },
+  "amf_headers": {
+    "version": "1.5.2",
+    "commit": "eadd00804d5f7e5cd8c85d540073198312870776",
+    "url": "https://codeload.github.com/GPUOpen-LibrariesAndSDKs/AMF/tar.gz/refs/tags/v1.5.2",
+    "sha256": "8a70b6dc85261e6e6e57769bd81ac1e09c0a4c96bbd5e358ffbc2dee51e8e50a",
+    "tag_object": "eae4a4b7efc35f8b0a3977a0984c0d642efc4e63"
+  },
+  "bridge_generator": {
+    "version": "1.80.1",
+    "image_path": "/root/.cargo/bin/flutter_rust_bridge_codegen",
+    "flutter": "3.24.5",
+    "dart": "3.5.4"
+  },
+  "lockfiles": [
+    {
+      "path": "Linux/Cargo.lock",
+      "sha256": "7bd70cc9fcab40a336b12fa7a480e724465a425ad8c542432705258ae4b7d48d"
+    },
+    {
+      "path": "Linux/flutter-pubspec.lock",
+      "sha256": "e4f87b5c7a0d9217ad0589dc9e60fb39b277f8bd1744ab663f06902e852c1008"
+    }
+  ],
+  "overlays": [
+    {
+      "path": "Linux/src/app.rs",
+      "target": "src/platform/linux/farpane.rs",
+      "sha256": "d47ce9cf238edb133a671ab25fe80cf775eace5c72131b58617b22340db51a0d"
+    },
+    {
+      "path": "Linux/src/gpu_build.rs",
+      "target": "libs/scrap/linux_gpu_build.rs",
+      "sha256": "0b9370440a6f111b00e720a67d8b8971307a9aefed2c0ae0f36ac1e7a559f024"
+    },
+    {
+      "path": "Linux/src/gpu_media.cpp",
+      "target": "libs/scrap/src/common/linux_gpu/gpu_media.cpp",
+      "sha256": "efa7c745eccf59c5bd74011f5d2c94236ae822ff009080f6b7304634093b6ab6"
+    },
+    {
+      "path": "Linux/src/gpu_media.h",
+      "target": "libs/scrap/src/common/linux_gpu/gpu_media.h",
+      "sha256": "6405efc5307de5c0760cc199ea8cd671c57fe97da5ba65db4a170b5a63f4bcf6"
+    },
+    {
+      "path": "Linux/src/linux_gpu.rs",
+      "target": "libs/scrap/src/common/linux_gpu.rs",
+      "sha256": "c4602576845cf0fa33214510d105b6f2c23b6ce143aa594588af23751a7c94fa"
+    },
+    {
+      "path": "Linux/src/gpu_capture.rs",
+      "target": "src/server/linux_gpu_capture.rs",
+      "sha256": "8cf88be2c227de8c8e56819778bcf875051b5f025689cf61f81f76a3cc7c0a86"
+    },
+    {
+      "path": "Linux/src/gpu_host.rs",
+      "target": "src/server/linux_gpu_host.rs",
+      "sha256": "4b62cf55860f29914ef2bdbb6619afa1315fe4ed957d1bde1dd7e0256d1fe86d"
+    },
+    {
+      "path": "Linux/src/gpu_status.rs",
+      "target": "src/platform/linux/gpu_status.rs",
+      "sha256": "eea7be5e828f811580eea8ce5d7c5a20836cf8e88ef3aab3287eac42ed2320fa"
+    },
+    {
+      "path": "Linux/src/gpu_settings.dart",
+      "target": "flutter/lib/desktop/widgets/farpane_gpu_settings.dart",
+      "sha256": "db71a3d316aced6aca41ca483d78ea614d59bb1d5cd3d581aa13241d3d391bd2"
+    },
+    {
+      "path": "Linux/native/core_main.rs",
+      "target": "src/farpane_native_main.rs",
+      "sha256": "1a08a7a7d26c818d76fafadd9c6f2bb1a6ad7c7e02c60342254942b5de5e0e56"
+    },
+    {
+      "path": "Linux/native/mod.rs",
+      "target": "src/farpane_native/mod.rs",
+      "sha256": "30e4ff596fe4ed03b3c438926ad9f2bab8ce6a26da4ef2753c0ca87047028a68"
+    },
+    {
+      "path": "Linux/native/activity.rs",
+      "target": "src/farpane_native/activity.rs",
+      "sha256": "7f53423e7357139a572819817682d99582ce11f7bb6989d3e5a7831905b73bf9"
+    },
+    {
+      "path": "Linux/native/cm.rs",
+      "target": "src/farpane_native/cm.rs",
+      "sha256": "085e9fd9edccc1fabdfcd017aa28b65028a4baff4b5e7a48bce11d80e403b96b"
+    },
+    {
+      "path": "Linux/native/config.rs",
+      "target": "src/farpane_native/config.rs",
+      "sha256": "0af0acd1dda4ff44d4b0dff875a5e4cd13c2d65d37f71da4fe0886124b5a1be2"
+    },
+    {
+      "path": "Linux/native/control.rs",
+      "target": "src/farpane_native/control.rs",
+      "sha256": "76d41557a19c751bff498cc17ae2839ef93e8b34c3e8b4158e27bbd05230f0c8"
+    },
+    {
+      "path": "Linux/native/process.rs",
+      "target": "src/farpane_native/process.rs",
+      "sha256": "bfe7ad12301f754cfa396437ce479bceb152612dfe2cb88afd6955ba860fd52d"
+    },
+    {
+      "path": "Linux/native/supervisor.rs",
+      "target": "src/farpane_native/supervisor.rs",
+      "sha256": "5eee162ddc83239f035f77dcac715b04e2cd89a2eb53334b065667281ea37640"
+    },
+    {
+      "path": "Linux/src/native_viewer_config.rs",
+      "target": "libs/hbb_common/src/farpane_viewer_config.rs",
+      "sha256": "840a53cf8a2febf0013ce60a4a0aa8bf7c53942641b9289915daf1018c29645e"
+    },
+    {
+      "path": "Linux/src/native_config_store.rs",
+      "target": "libs/hbb_common/src/farpane_config.rs",
+      "sha256": "3096ee3f374800a1cc41691a9e17baa9c713fc2b20aaf0867d59638ca571b96d"
+    },
+    {
+      "path": "Linux/src/viewer_decode.h",
+      "target": "libs/scrap/src/common/linux_gpu/viewer_decode.h",
+      "sha256": "2be9ff1f8272d84b7b2d2eba234f36002bcebf8dc3e76e21e739eda26749b7f8"
+    },
+    {
+      "path": "Linux/src/viewer_decode.cpp",
+      "target": "libs/scrap/src/common/linux_gpu/viewer_decode.cpp",
+      "sha256": "31f1dbe40dccc4f4df3076a1f75025ddcc0c9b470e7c5d8e6bb70c0055f1282e"
+    },
+    {
+      "path": "Linux/native/decode.rs",
+      "target": "src/farpane_native/decode.rs",
+      "sha256": "9c7db7c84ac6b4d57a72b9e16eaf88a46d613f1dffb7f9cf76c2ff626c52c154"
+    },
+    {
+      "path": "Linux/native/viewer_boundary.rs",
+      "target": "src/farpane_native/viewer_boundary.rs",
+      "sha256": "c19ab5a1c046e34febe9cae66c6c7dd7cb373f0bd046d1c45fea2cbbc3ed798b"
+    },
+    {
+      "path": "Linux/native/viewer.rs",
+      "target": "src/farpane_native/viewer.rs",
+      "sha256": "7930c11429f3b795dcb4cd315f17ae24d3fd4edca85fcc128517bbd02b1cd1fb"
+    },
+    {
+      "path": "Linux/native/viewer_ui.rs",
+      "target": "src/farpane_native/viewer_ui.rs",
+      "sha256": "2016b74eac12d58cd83bfb51c3160db9dc2d4ae2e4ab02cae2d70bed8cb57e76"
+    },
+    {
+      "path": "Linux/native/viewer_media.rs",
+      "target": "src/farpane_native/viewer_media.rs",
+      "sha256": "8c352cf520bec4e2e4bfb7afe847bec1a8e187386e47ee72ac7faaa0d1fe4720"
+    },
+    {
+      "path": "Linux/native/viewer_input.rs",
+      "target": "src/farpane_native/viewer_input.rs",
+      "sha256": "ebdc1ab06b3ecd0e330ddced7344f4721bad1360bccb68da3f9fd2c187a59186"
+    },
+    {
+      "path": "Linux/native/viewer_queue.rs",
+      "target": "src/farpane_native/viewer_queue.rs",
+      "sha256": "f774a7eb8cefdc534ed5379a09c011d25ff42ce0c6fc49a9b4c01ecee2daaacf"
+    },
+    {
+      "path": "Linux/native/viewer_clipboard.rs",
+      "target": "src/farpane_native/viewer_clipboard.rs",
+      "sha256": "cd2153a89cc665413328dfa40ee34182ee86972080f5fb3d3e563d6d2789b4a0"
+    },
+    {
+      "path": "Linux/native/audio.rs",
+      "target": "src/farpane_native/audio.rs",
+      "sha256": "631ab9fca56aae73db7f477b48dfc3963239d8c6a2b11590f6b34c9e47867ec1"
+    },
+    {
+      "path": "Linux/native/viewer_audio.rs",
+      "target": "src/farpane_native/viewer_audio.rs",
+      "sha256": "c3c48e39711f69a2349b7ca3d1ebe0b99a1fd44a8ec9882813c989d08f8625b8"
+    },
+    {
+      "path": "Linux/src/native_audio_capture.rs",
+      "target": "src/server/native_audio_capture.rs",
+      "sha256": "7796ad2a43361531bcd8c5e3360ed7f86217d071aba9bfe0bbf84a6b52736fe5"
+    },
+    {
+      "path": "Linux/native/files.rs",
+      "target": "src/farpane_native/files.rs",
+      "sha256": "016336e9727fe6914e55a9c5de5b53686ed9164b494cc7d88fabebbde7ce40a3"
+    },
+    {
+      "path": "Linux/native/file_host.rs",
+      "target": "src/farpane_native/file_host.rs",
+      "sha256": "e4b9f04ac7ae065e48838047ceb4412087b322de89ebf65149f238199b646ced"
+    },
+    {
+      "path": "Linux/native/file_viewer.rs",
+      "target": "src/farpane_native/file_viewer.rs",
+      "sha256": "04f78d4545b4fbaae95ae755fd9e5b7ef2a49e2f102217dfbbc981a8def36a05"
+    },
+    {
+      "path": "Linux/native/desktop.rs",
+      "target": "src/farpane_native/desktop.rs",
+      "sha256": "b011eff556d7f09e3ea8970c19b714ae658e4536ca2cb793053a971aed607888"
+    },
+    {
+      "path": "Linux/native/desktop_menu.rs",
+      "target": "src/farpane_native/desktop_menu.rs",
+      "sha256": "bd6639219437bddf460d0e8e597189985d7d46493dcc2f2c48ef96d653a73fe4"
+    },
+    {
+      "path": "Linux/gui/resources/org.farpane.FarPane.png",
+      "target": "src/farpane_native/desktop-icon.png",
+      "sha256": "8e0cecdee4b759bfeb11d0f93d88b5ae5e77d39c88cf56e21352e6810ff6a8a5"
+    },
+    {
+      "path": "Linux/native/clipboard_wire.rs",
+      "target": "src/farpane_native/clipboard_wire.rs",
+      "sha256": "b51d68892a99edc3fcdf39744afc6becb390d395721095debf1562e72a1e0f62"
+    },
+    {
+      "path": "Linux/native/host_clipboard.rs",
+      "target": "src/farpane_native/host_clipboard.rs",
+      "sha256": "07c6023fe8d74f5de68534f0f8a2cb1298271530af4e80e733f4a0a4b9727786"
+    },
+    {
+      "path": "Linux/native/clipboard_x11.rs",
+      "target": "src/farpane_native/clipboard_x11.rs",
+      "sha256": "7080551c861e7c984731a1f0e9bf9a040721efb23734ee134ed412634d403d53"
+    },
+    {
+      "path": "Linux/native/clipboard_x11_writer.rs",
+      "target": "src/farpane_native/clipboard_x11_writer.rs",
+      "sha256": "eeab4ac6dbbf28bca0af017080d4a1621b4a223269703bfa969679083f720e11"
+    },
+    {
+      "path": "Linux/native/clipboard_wayland.rs",
+      "target": "src/farpane_native/clipboard_wayland.rs",
+      "sha256": "a41d0b0f501667baf2810b7845c9a5cb4a43cc006d1efa5385f57dec038fb6f5"
+    },
+    {
+      "path": "Linux/native/clipboard_platform.rs",
+      "target": "src/farpane_native/clipboard_platform.rs",
+      "sha256": "76a6911d5ce60a82f53389a8c410aa16e7c08ccbe8cca7d0026921c77e8ff2f1"
+    },
+    {
+      "path": "Linux/native/clipboard_wayland_tests.rs",
+      "target": "src/farpane_native/clipboard_wayland_tests.rs",
+      "sha256": "da11a2e0231f5783c9d2be4ee793cf3f8591055d79f870604abd03ff47bddba0"
+    },
+    {
+      "path": "Linux/src/native_library_path.rs",
+      "target": "libs/scrap/src/common/native_library_path.rs",
+      "sha256": "4dd03068becfd57caa10e17a26fcff9a041fa6645f63acd3f8f95d27de7b094e"
+    },
+    {
+      "path": "Linux/src/vaapi_compat.c",
+      "target": "libs/scrap/src/common/linux_gpu/vaapi_compat.c",
+      "sha256": "cbcb012ced213eca3730aab0c1fc59a175cafb1ef0c8fc30b3b20f81cc90b078"
+    },
+    {
+      "path": "Linux/native/session.rs",
+      "target": "src/farpane_native/session.rs",
+      "sha256": "308c8d08b06c277289a28b3b01ab58a5565266ad44cd59e09cdbc3a55256b60d"
+    },
+    {
+      "path": "Linux/native/discovery.rs",
+      "target": "src/farpane_native/discovery.rs",
+      "sha256": "691c1e8c51a8438c97993f901984c4e2c20b60ad3e551cbfe93bd9e640351c74"
+    },
+    {
+      "path": "Linux/native/input_retry.rs",
+      "target": "src/farpane_native/input_retry.rs",
+      "sha256": "2ed0dd712223fdc971d1e10b8611536a90779beeb78fae2bb3fd6c195ff82e86"
+    },
+    {
+      "path": "Linux/native/recovery.rs",
+      "target": "src/farpane_native/recovery.rs",
+      "sha256": "4b3249c2d891ad3a0e56260c9a6d05d7ce6c39b9d09976287fca8dc7cc73367a"
+    },
+    {
+      "path": "Linux/native/transport.rs",
+      "target": "src/farpane_native/transport.rs",
+      "sha256": "598e56ead2d84c1861ee32b6db58a335c0d527cfa323814b36245ab82ba1a281"
+    }
+  ],
+  "meson": {
+    "version": "1.9.1",
+    "url": "https://files.pythonhosted.org/packages/9c/07/b48592d325cb86682829f05216e4efb2dc881762b8f1bafb48b57442307a/meson-1.9.1-py3-none-any.whl",
+    "filename": "meson-1.9.1-py3-none-any.whl",
+    "sha256": "f824ab770c041a202f532f69e114c971918ed2daff7ea56583d80642564598d0"
+  },
+  "gui_test": {
+    "image": "sha256:393e1132b0f83b7a245488e7f3138511f13e1d84b8a6e59858c05edca0621f8d",
+    "dockerfile": "Linux/packaging/gui-test.Dockerfile"
+  },
+  "native_builder": {
+    "image": "sha256:9868299c8b775ccd60773a4fd06ea2a0f1da90deb01d0119e997501c4d776a91",
+    "dockerfile": "Linux/packaging/native-secret-builder.Dockerfile",
+    "gtk_api": "4.14",
+    "libadwaita_api": "1.5",
+    "rust": "1.89.0",
+    "baseline": "linux-host Ubuntu 26.04; Ubuntu 24.04 ABI validation pending"
+  },
+  "native_display_test": {
+    "image": "sha256:e107f6ec93417a8d8e71ed60889972e236d94101e79de8fd2a026de8378460c1",
+    "dockerfile": "Linux/packaging/native-display-test.Dockerfile",
+    "purpose": "isolated headless Wayland/GLArea testing; never a host or product dependency"
+  },
+  "native_audio_test": {
+    "image": "sha256:675971119b947d8e61627c93f480e032d9c27632a38fdaf280273c93854f1422",
+    "dockerfile": "Linux/packaging/native-audio-test.Dockerfile",
+    "purpose": "private PulseAudio null sinks; no host audio service or devices"
+  },
+  "native_secrets_test": {
+    "image": "sha256:ffd462dac2ba2a9c4e8143900cadf3b4d176ae9a9f39e8dd2b217c334504980e",
+    "dockerfile": "Linux/packaging/native-secrets-test.Dockerfile",
+    "purpose": "private D-Bus and GNOME Keyring; no host bus, credentials, desktop or service mounts"
+  },
+  "clipboard_master": {
+    "url": "https://github.com/rustdesk-org/clipboard-master",
+    "commit": "522fafb65edfe7939cf63fa797f916569ecab595"
+  },
+  "native_clipboard_test": {
+    "image": "sha256:817c9fd770763d2fd4a0b03fc646f43c33e92a907b887fbb9662b3daf4ad3a73",
+    "dockerfile": "Linux/packaging/native-clipboard-test.Dockerfile",
+    "purpose": "private headless Sway/pixman data-control clipboard tests; no host display, service or GPU"
+  },
+  "native_runtime_ubuntu2404": {
+    "image": "sha256:b685afcc055147e1b7af1e160db2281a530096305ed6c9e5fec6a1b4d356eeb0",
+    "label": "farpane-native-runtime-ubuntu2404:20261016",
+    "base": "ubuntu@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3",
+    "jobs": 4,
+    "memory": "12g"
+  }
+}

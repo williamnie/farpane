@@ -1,0 +1,167 @@
+[
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "monitoring",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 0,
+      "attempt": 0,
+      "detail": "\u6b63\u5728\u76d1\u542c\u7cfb\u7edf\u6062\u590d\u4e8b\u4ef6"
+    }
+  },
+  {
+    "registered": true,
+    "recovery": {
+      "phase": "monitoring",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 0,
+      "attempt": 0,
+      "detail": "\u6b63\u5728\u76d1\u542c\u7cfb\u7edf\u6062\u590d\u4e8b\u4ef6"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "waiting_network",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 0,
+      "attempt": 0,
+      "detail": "\u7b49\u5f85\u7f51\u7edc\u6062\u590d"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "waiting",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 1,
+      "attempt": 0,
+      "detail": "\u7f51\u7edc\u6216\u7cfb\u7edf\u5df2\u6062\u590d\uff0c\u51c6\u5907\u91cd\u65b0\u6ce8\u518c"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "registering",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 1,
+      "attempt": 1,
+      "detail": "\u6b63\u5728\u6062\u590d\u540e\u53f0\u6ce8\u518c\uff0c\u73b0\u6709\u4f1a\u8bdd\u4fdd\u6301\u8fd0\u884c"
+    }
+  },
+  {
+    "registered": true,
+    "recovery": {
+      "phase": "ready",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 1,
+      "attempt": 1,
+      "detail": "\u540e\u53f0\u6ce8\u518c\u6b63\u5e38"
+    }
+  },
+  {
+    "registered": true,
+    "recovery": {
+      "phase": "ready",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 1,
+      "attempt": 0,
+      "detail": "\u540e\u53f0\u6ce8\u518c\u6b63\u5e38"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "suspended",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 1,
+      "attempt": 0,
+      "detail": "\u7cfb\u7edf\u51c6\u5907\u4f11\u7720\uff0c\u6062\u590d\u5c06\u5728\u5524\u9192\u540e\u8fdb\u884c"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "waiting",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 2,
+      "attempt": 0,
+      "detail": "\u7f51\u7edc\u6216\u7cfb\u7edf\u5df2\u6062\u590d\uff0c\u51c6\u5907\u91cd\u65b0\u6ce8\u518c"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "registering",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 2,
+      "attempt": 1,
+      "detail": "\u6b63\u5728\u6062\u590d\u540e\u53f0\u6ce8\u518c\uff0c\u73b0\u6709\u4f1a\u8bdd\u4fdd\u6301\u8fd0\u884c"
+    }
+  },
+  {
+    "registered": true,
+    "recovery": {
+      "phase": "ready",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 2,
+      "attempt": 1,
+      "detail": "\u540e\u53f0\u6ce8\u518c\u6b63\u5e38"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "waiting_network",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 2,
+      "attempt": 1,
+      "detail": "\u7b49\u5f85\u7f51\u7edc\u6062\u590d"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "waiting",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 3,
+      "attempt": 0,
+      "detail": "\u7f51\u7edc\u6216\u7cfb\u7edf\u5df2\u6062\u590d\uff0c\u51c6\u5907\u91cd\u65b0\u6ce8\u518c"
+    }
+  },
+  {
+    "registered": false,
+    "recovery": {
+      "phase": "registering",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 3,
+      "attempt": 1,
+      "detail": "\u6b63\u5728\u6062\u590d\u540e\u53f0\u6ce8\u518c\uff0c\u73b0\u6709\u4f1a\u8bdd\u4fdd\u6301\u8fd0\u884c"
+    }
+  },
+  {
+    "registered": true,
+    "recovery": {
+      "phase": "ready",
+      "sleep_monitor": true,
+      "network_monitor": true,
+      "epoch": 3,
+      "attempt": 1,
+      "detail": "\u540e\u53f0\u6ce8\u518c\u6b63\u5e38"
+    }
+  }
+]

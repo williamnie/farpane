@@ -1,0 +1,147 @@
+[
+  {
+    "index": 0,
+    "state": "RUNNING",
+    "name": "host_audio.monitor",
+    "description": "Monitor of Null Output",
+    "driver": "module-null-sink.c",
+    "sample_specification": "s16le 2ch 48000Hz",
+    "channel_map": "front-left,front-right",
+    "owner_module": 1,
+    "mute": false,
+    "volume": {
+      "front-left": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      },
+      "front-right": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      }
+    },
+    "balance": 0.0,
+    "base_volume": {
+      "value": 65536,
+      "value_percent": "100%",
+      "db": "0.00 dB"
+    },
+    "monitor_source": "host_audio",
+    "latency": {
+      "actual": 0.0,
+      "configured": 2000000.0
+    },
+    "flags": [
+      "DECIBEL_VOLUME",
+      "LATENCY"
+    ],
+    "properties": {
+      "device.description": "Monitor of Null Output",
+      "device.class": "monitor",
+      "device.icon_name": "audio-input-microphone"
+    },
+    "ports": [],
+    "active_port": null,
+    "formats": [
+      "pcm"
+    ]
+  },
+  {
+    "index": 1,
+    "state": "IDLE",
+    "name": "viewer_audio.monitor",
+    "description": "Monitor of Null Output",
+    "driver": "module-null-sink.c",
+    "sample_specification": "s16le 2ch 48000Hz",
+    "channel_map": "front-left,front-right",
+    "owner_module": 2,
+    "mute": false,
+    "volume": {
+      "front-left": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      },
+      "front-right": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      }
+    },
+    "balance": 0.0,
+    "base_volume": {
+      "value": 65536,
+      "value_percent": "100%",
+      "db": "0.00 dB"
+    },
+    "monitor_source": "viewer_audio",
+    "latency": {
+      "actual": 0.0,
+      "configured": 2000000.0
+    },
+    "flags": [
+      "DECIBEL_VOLUME",
+      "LATENCY"
+    ],
+    "properties": {
+      "device.description": "Monitor of Null Output",
+      "device.class": "monitor",
+      "device.icon_name": "audio-input-microphone"
+    },
+    "ports": [],
+    "active_port": null,
+    "formats": [
+      "pcm"
+    ]
+  },
+  {
+    "index": 2,
+    "state": "IDLE",
+    "name": "synthetic_mic",
+    "description": "Remapped Monitor of Null Output",
+    "driver": "module-remap-source.c",
+    "sample_specification": "s16le 2ch 48000Hz",
+    "channel_map": "front-left,front-right",
+    "owner_module": 3,
+    "mute": false,
+    "volume": {
+      "front-left": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      },
+      "front-right": {
+        "value": 65536,
+        "value_percent": "100%",
+        "db": "0.00 dB"
+      }
+    },
+    "balance": 0.0,
+    "base_volume": {
+      "value": 65536,
+      "value_percent": "100%",
+      "db": "0.00 dB"
+    },
+    "monitor_source": "",
+    "latency": {
+      "actual": 0.0,
+      "configured": 2000000.0
+    },
+    "flags": [
+      "DECIBEL_VOLUME",
+      "LATENCY"
+    ],
+    "properties": {
+      "device.master_device": "host_audio.monitor",
+      "device.class": "filter",
+      "device.description": "Remapped Monitor of Null Output",
+      "device.icon_name": "audio-input-microphone"
+    },
+    "ports": [],
+    "active_port": null,
+    "formats": [
+      "pcm"
+    ]
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "checks": [
+    "file-only-authentication",
+    "wrong-password-retry",
+    "bounded-directory-pages",
+    "actual-next-page-button",
+    "upload",
+    "download",
+    "actual-host-consent-buttons",
+    "cancel-before-consent",
+    "worker-reaped",
+    "host-overwrite-not-preapproved",
+    "actual-host-reject-button",
+    "actual-host-overwrite-checkbox",
+    "actual-local-overwrite-dialog",
+    "actual-file-revoke-button",
+    "active-write-revoked",
+    "exited-worker-has-no-active-ui-tasks"
+  ],
+  "host_confirmation_buttons": 5,
+  "password_attempts": 2,
+  "result": "pass",
+  "stage": 17,
+  "worker_reaped": true
+}

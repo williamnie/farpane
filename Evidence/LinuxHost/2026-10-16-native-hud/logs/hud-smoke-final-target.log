@@ -1,0 +1,50 @@
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Activating service name='ca.desrt.dconf' requested by ':1.1' (uid=1000 pid=64 comm="/opt/farpane-native-test/releases/native-smoke-1/f" label="docker-default (enforce)")
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Successfully activated service 'ca.desrt.dconf'
+{
+  "result": "pass",
+  "rounds": [
+    {
+      "mode": "normal",
+      "checks": [
+        "no-hidden-initial-sampling",
+        "actual-hud-toggle",
+        "real-resource-counters",
+        "refresh-presented-fps",
+        "hidden-hud-stops-samples-and-events",
+        "idle-rate-zero",
+        "actual-diagnostic-window",
+        "cancel-export",
+        "actual-save-file-dialog",
+        "redacted-export",
+        "hidden-hud-keeps-aged-diagnostic-snapshot",
+        "write-failure-retains-stream"
+      ],
+      "elapsed_seconds": 17.33091451,
+      "metrics_after_hidden_drain": 4,
+      "result": "pass",
+      "samples_before_hidden": 5
+    },
+    {
+      "mode": "log-failure",
+      "checks": [
+        "no-hidden-initial-sampling",
+        "actual-hud-toggle",
+        "real-resource-counters",
+        "refresh-presented-fps",
+        "hidden-hud-stops-samples-and-events",
+        "idle-rate-zero",
+        "actual-diagnostic-window",
+        "cancel-export",
+        "actual-save-file-dialog",
+        "redacted-export",
+        "hidden-hud-keeps-aged-diagnostic-snapshot",
+        "write-failure-retains-stream"
+      ],
+      "elapsed_seconds": 17.240121752,
+      "metrics_after_hidden_drain": 3,
+      "result": "pass",
+      "samples_before_hidden": 5
+    }
+  ],
+  "scope": "private Xvfb, real loopback, actual GTK widgets and save dialog; no host services/GPU"
+}

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 247, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 187, in user_test
+    if input_test:exercise_input(directory)
+                  ~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 59, in exercise_input
+    assert not held(control), 'Deactivating GUI left remote Ctrl pressed'
+           ^^^^^^^^^^^^^^^^^
+AssertionError: Deactivating GUI left remote Ctrl pressed

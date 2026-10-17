@@ -1,0 +1,269 @@
+--- session-phase/Linux/native/mod.rs
++++ Linux/native/mod.rs
+@@ -20,6 +20,7 @@
+ pub(crate) mod host_clipboard;
+ pub(crate) mod input_retry;
+ pub(crate) mod process;
++pub(crate) mod recovery;
+ pub(crate) mod session;
+ pub(crate) mod supervisor;
+ #[cfg(feature = "linux-gpu-media")]
+@@ -98,6 +99,9 @@
+                 host_clipboard::start()?;
+                 audio::start_catalog()?;
+                 desktop::start();
++                if let Err(error) = recovery::start() {
++                    hbb_common::log::warn!("System recovery monitor could not start: {error}");
++                }
+                 let listener = control::bind()?;
+                 std::thread::Builder::new()
+                     .name("native-listener".into())
+--- session-phase/Linux/native/config.rs
++++ Linux/native/config.rs
+@@ -1,5 +1,6 @@
+ use farpane_protocol::{
+-    Authentication, Command, Permissions, Role, ServerSettings, SharingSettings, Snapshot,
++    Authentication, Command, Permissions, RecoveryPhase, Role, ServerSettings, SharingSettings,
++    Snapshot,
+ };
+ use hbb_common::{
+     bail,
+@@ -173,6 +174,16 @@
+     }
+     if role == Role::Agent {
+         result.desktop = super::desktop::status();
++        result.recovery = super::recovery::status();
++        result.registered &= result.host_enabled
++            && !matches!(
++                result.recovery.phase,
++                RecoveryPhase::Suspended
++                    | RecoveryPhase::WaitingNetwork
++                    | RecoveryPhase::Waiting
++                    | RecoveryPhase::Registering
++                    | RecoveryPhase::WaitingServer
++            );
+         let audio = super::audio::status();
+         result.audio_sources = audio.sources;
+         result.audio_error = audio.error;
+@@ -191,6 +202,19 @@
+         result.media_backend = "unavailable".into();
+     }
+     result
++}
++
++pub fn recover_registration(expected_revision: u64) -> bool {
++    let _transaction = TRANSACTION.lock().unwrap();
++    if revision() != expected_revision
++        || Config::get_option("stop-service") == "Y"
++        || !super::recovery::begin_registration()
++    {
++        return false;
++    }
++    Config::reset_online();
++    crate::RendezvousMediator::restart();
++    true
+ }
+ 
+ pub fn apply(command: &Command, role: Role) -> ResultType<u64> {
+--- session-phase/Linux/native/protocol/src/lib.rs
++++ Linux/native/protocol/src/lib.rs
+@@ -481,6 +481,46 @@
+     pub audio_needs_selection: bool,
+     #[serde(default)]
+     pub file_tasks: Vec<FileTask>,
++    #[serde(default)]
++    pub recovery: RecoveryStatus,
++}
++
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case")]
++pub enum RecoveryPhase {
++    #[default]
++    Unavailable,
++    Disabled,
++    Monitoring,
++    Suspended,
++    WaitingNetwork,
++    Waiting,
++    Registering,
++    Ready,
++    WaitingServer,
++}
++
++#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++pub struct RecoveryStatus {
++    pub phase: RecoveryPhase,
++    pub sleep_monitor: bool,
++    pub network_monitor: bool,
++    pub epoch: u64,
++    pub attempt: u8,
++    pub detail: String,
++}
++impl Default for RecoveryStatus {
++    fn default() -> Self {
++        Self {
++            phase: RecoveryPhase::Unavailable,
++            sleep_monitor: false,
++            network_monitor: false,
++            epoch: 0,
++            attempt: 0,
++            detail: "系统事件监听不可用，核心仍会自行重试连接".into(),
++        }
++    }
+ }
+ 
+ #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+--- session-phase/Linux/gui/src/host.rs
++++ Linux/gui/src/host.rs
+@@ -93,8 +93,29 @@
+         let model = self.model.borrow();
+         if let Some(status) = status {
+             status.set_text(match model.snapshot.role {
++                Some(Role::Agent) if !model.snapshot.host_enabled => "已关闭被控",
++                Some(Role::Agent)
++                    if model.snapshot.recovery.phase
++                        == farpane_protocol::RecoveryPhase::Suspended =>
++                {
++                    "准备休眠"
++                }
++                Some(Role::Agent)
++                    if model.snapshot.recovery.phase
++                        == farpane_protocol::RecoveryPhase::WaitingNetwork =>
++                {
++                    "等待网络"
++                }
++                Some(Role::Agent)
++                    if matches!(
++                        model.snapshot.recovery.phase,
++                        farpane_protocol::RecoveryPhase::Waiting
++                            | farpane_protocol::RecoveryPhase::Registering
++                    ) =>
++                {
++                    "正在恢复后台"
++                }
+                 Some(Role::Agent) if model.snapshot.registered => "后台在线",
+-                Some(Role::Agent) if !model.snapshot.host_enabled => "已关闭被控",
+                 Some(Role::Agent) => "等待服务器",
+                 Some(Role::Config) => "后台未运行",
+                 _ => "后台未连接",
+@@ -384,6 +405,15 @@
+                 String::new()
+             }
+         }));
++        let recovery = self.text("muted", |s| {
++            if s.role == Some(Role::Agent) {
++                s.recovery.detail.clone()
++            } else {
++                String::new()
++            }
++        });
++        recovery.set_widget_name("host-recovery");
++        host.append(&recovery);
+         page.append(&host);
+         page.append(&self.sessions());
+         page.append(&crate::devices::list(self));
+--- session-phase/Linux/gui/src/viewer.rs
++++ Linux/gui/src/viewer.rs
+@@ -893,7 +893,14 @@
+                     }
+                 }
+             }
+-            if smoke.last_report != smoke.events.len() {
++            let report_serial = smoke.events.len().saturating_add(
++                if std::env::var("FARPANE_NATIVE_TEST_MODE").as_deref() == Ok("recovery") {
++                    smoke.frames as usize
++                } else {
++                    0
++                },
++            );
++            if smoke.last_report != report_serial {
+                 let report = serde_json::json!({"events":smoke.events,"password_attempts":smoke.passwords,"frames":smoke.frames,"gpu_frames":smoke.gpu_frames,"gpu_completed":self.gpu.completed(),
+                     "presented":smoke.first_paint.is_some(),"worker_reaped":self.exited.get(),"phase":self.model.borrow().phase,
+                     "authentication_visible":self.authentication.is_visible(),"challenge":self.challenge.get(),"hud_enabled":self.hud.enabled()});
+@@ -901,7 +908,7 @@
+                     smoke.directory.join("viewer-progress.json"),
+                     serde_json::to_vec_pretty(&report).unwrap(),
+                 );
+-                smoke.last_report = smoke.events.len();
++                smoke.last_report = report_serial;
+             }
+             if self.challenge.get() == 1
+                 && !matches!(
+@@ -1041,6 +1048,7 @@
+                                 Ok("audio") => 25,
+                                 Ok("approval") => 38,
+                                 Ok("hud") => 48,
++                                Ok("recovery") => 120,
+                                 _ => 3,
+                             },
+                         )
+--- session-phase/Linux/gui/src/desktop_smoke.rs
++++ Linux/gui/src/desktop_smoke.rs
+@@ -39,6 +39,7 @@
+         let report = serde_json::json!({
+             "pid":std::process::id(), "main_windows":window.application().map(|a|a.windows().len()),
+             "connected":state.role.is_some(), "desktop":state.desktop, "inbound":state.inbound,
++            "recovery":state.recovery, "recovery_label":recovery_label(window.upcast_ref()),
+             "dialogs":dialogs.iter().map(|d|d.heading().map(|s|s.to_string())).collect::<Vec<_>>(),
+         });
+         let temporary = directory.join("desktop-progress.tmp");
+@@ -94,3 +95,19 @@
+         glib::ControlFlow::Continue
+     });
+ }
++
++fn recovery_label(widget: &gtk::Widget) -> Option<String> {
++    if widget.widget_name() == "host-recovery" {
++        return widget
++            .downcast_ref::<gtk::Label>()
++            .map(|label| label.text().to_string());
++    }
++    let mut child = widget.first_child();
++    while let Some(widget) = child {
++        if let Some(value) = recovery_label(&widget) {
++            return Some(value);
++        }
++        child = widget.next_sibling();
++    }
++    None
++}
+--- session-phase/Linux/tests/native_viewer_smoke.py
++++ Linux/tests/native_viewer_smoke.py
+@@ -144,6 +144,9 @@
+ 
+ 
+ def user_test(output):
++    if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='recovery':
++        # The private bus supplies fixture system names; no host bus is mounted.
++        os.environ['DBUS_SYSTEM_BUS_ADDRESS']=os.environ['DBUS_SESSION_BUS_ADDRESS']
+     gpu_test = gpu_mode()
+     xwayland = os.environ.get('FARPANE_NATIVE_TEST_MODE')=='gpu-x11'
+     core = RELEASE/'libexec/farpane-core'
+@@ -231,6 +234,10 @@
+         if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='hud':
+             from native_hud_smoke import exercise_hud
+             exercise_hud(output,agent,start)
++            return
++        if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='recovery':
++            from native_recovery_smoke import exercise_recovery
++            exercise_recovery(output,agent,start)
+             return
+         if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='desktop':
+             from native_desktop_smoke import exercise_desktop
+--- session-phase/Scripts/linux/test-native-viewer.sh
++++ Scripts/linux/test-native-viewer.sh
+@@ -6,11 +6,11 @@
+ mode=${1:-video}
+ large_clipboard=0
+ if [[ "$mode" == clipboard-large ]]; then mode=clipboard; large_clipboard=1; fi
+-case "$mode" in video|approval|desktop|hud|input|clipboard|retry|cursor|audio|secrets|secrets-locked|secrets-boundary|secrets-unavailable|files|files-empty|files-matrix|files-tree|files-tree-fault|files-secrets) ;; *) echo 'Usage: test-native-viewer.sh [video|approval|desktop|hud|input|clipboard|clipboard-large|retry|cursor|audio|secrets|secrets-locked|secrets-boundary|secrets-unavailable|files|files-empty|files-matrix|files-tree|files-tree-fault|files-secrets]' >&2; exit 2;; esac
++case "$mode" in video|recovery|approval|desktop|hud|input|clipboard|retry|cursor|audio|secrets|secrets-locked|secrets-boundary|secrets-unavailable|files|files-empty|files-matrix|files-tree|files-tree-fault|files-secrets) ;; *) echo 'Usage: test-native-viewer.sh [video|recovery|approval|desktop|hud|input|clipboard|clipboard-large|retry|cursor|audio|secrets|secrets-locked|secrets-boundary|secrets-unavailable|files|files-empty|files-matrix|files-tree|files-tree-fault|files-secrets]' >&2; exit 2;; esac
+ if [[ "$mode" == audio || "$mode" == secrets-unavailable ]]; then
+   image=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["native_audio_test"]["image"])' "$repo/Linux/dependencies.lock.json")
+ fi
+-if [[ "$mode" == desktop || "$mode" == secrets || "$mode" == secrets-boundary || "$mode" == secrets-locked || "$mode" == files-secrets ]]; then
++if [[ "$mode" == recovery || "$mode" == desktop || "$mode" == secrets || "$mode" == secrets-boundary || "$mode" == secrets-locked || "$mode" == files-secrets ]]; then
+   image=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["native_secrets_test"]["image"])' "$repo/Linux/dependencies.lock.json")
+ fi
+ # Loopback only, two private X servers, no GPU/host desktop/service/config mounts.

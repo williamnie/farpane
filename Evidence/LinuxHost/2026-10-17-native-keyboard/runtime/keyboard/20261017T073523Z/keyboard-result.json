@@ -1,0 +1,18 @@
+{
+  "result": "pass",
+  "remote_pixels": 269216,
+  "worker_reaped": true,
+  "host_retained": true,
+  "checks": [
+    "timeout-destroys-pending-inhibitor",
+    "delayed-desktop-confirmation",
+    "actual-grant",
+    "user-cancel",
+    "compositor-revocation",
+    "old-timeout-cannot-cancel-new-request",
+    "window-deactivation",
+    "disconnect"
+  ],
+  "private_wayland": true,
+  "gpu": false
+}

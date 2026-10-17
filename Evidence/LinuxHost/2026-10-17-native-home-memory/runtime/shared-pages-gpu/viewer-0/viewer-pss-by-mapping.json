@@ -1,0 +1,479 @@
+{
+  "pss_kib": 25076,
+  "mappings": [
+    {
+      "path": "/opt/farpane-native-test/releases/native-smoke-1/libexec/farpane-core",
+      "Pss": 9076,
+      "Private_Dirty": 3280,
+      "Anonymous": 1568
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libLLVM.so.21.1",
+      "Pss": 6395,
+      "Private_Dirty": 2192,
+      "Anonymous": 2192
+    },
+    {
+      "path": "[anonymous]",
+      "Pss": 4240,
+      "Private_Dirty": 4240,
+      "Anonymous": 4240
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgallium-26.0.8-1ubuntu0.3.so",
+      "Pss": 1625,
+      "Private_Dirty": 996,
+      "Anonymous": 996
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.35",
+      "Pss": 444,
+      "Private_Dirty": 72,
+      "Anonymous": 72
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+      "Pss": 252,
+      "Private_Dirty": 24,
+      "Anonymous": 24
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libGLdispatch.so.0.0.0",
+      "Pss": 232,
+      "Private_Dirty": 116,
+      "Anonymous": 116
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libvorbisenc.so.2.0.12",
+      "Pss": 168,
+      "Private_Dirty": 116,
+      "Anonymous": 116
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgstvideo-1.0.so.0.2802.0",
+      "Pss": 157,
+      "Private_Dirty": 84,
+      "Anonymous": 84
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0.8800.0",
+      "Pss": 137,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgstreamer-1.0.so.0.2802.0",
+      "Pss": 126,
+      "Private_Dirty": 36,
+      "Anonymous": 36
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libva.so.2.2300.0",
+      "Pss": 108,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/liborc-0.4.so.0.42.0",
+      "Pss": 102,
+      "Private_Dirty": 36,
+      "Anonymous": 36
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/pulseaudio/libpulsecommon-17.0.so",
+      "Pss": 102,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libsystemd.so.0.42.0",
+      "Pss": 84,
+      "Private_Dirty": 36,
+      "Anonymous": 36
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxml2.so.16.1.2",
+      "Pss": 81,
+      "Private_Dirty": 36,
+      "Anonymous": 36
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libpulse.so.0.24.3",
+      "Pss": 78,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgstbase-1.0.so.0.2802.0",
+      "Pss": 74,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0.8800.0",
+      "Pss": 73,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libsndfile.so.1.0.37",
+      "Pss": 70,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "[heap]",
+      "Pss": 64,
+      "Private_Dirty": 64,
+      "Anonymous": 64
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libopus.so.0.11.1",
+      "Pss": 64,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libmvec.so.1",
+      "Pss": 62,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libmp3lame.so.0.0.0",
+      "Pss": 62,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libtinfo.so.6.6",
+      "Pss": 59,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libFLAC.so.14.0.0",
+      "Pss": 56,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgstapp-1.0.so.0.2802.0",
+      "Pss": 56,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libX11.so.6.4.0",
+      "Pss": 52,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libmpg123.so.0.49.4",
+      "Pss": 50,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+      "Pss": 46,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libvorbis.so.0.4.9",
+      "Pss": 40,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libdbus-1.so.3.38.3",
+      "Pss": 38,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libdrm_intel.so.1.131.0",
+      "Pss": 33,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libedit.so.2.0.76",
+      "Pss": 32,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libexpat.so.1.11.2",
+      "Pss": 31,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libapparmor.so.1.30.7",
+      "Pss": 31,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libelf-0.194.so",
+      "Pss": 30,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libGLESv2.so.2.1.0",
+      "Pss": 30,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "Pss": 30,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxkbcommon.so.0.13.1",
+      "Pss": 28,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgcc_s.so.1",
+      "Pss": 26,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxcb.so.1.1.0",
+      "Pss": 26,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libzstd.so.1.5.7",
+      "Pss": 24,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libbsd.so.0.12.2",
+      "Pss": 22,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libsensors.so.5.0.0",
+      "Pss": 22,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libdrm.so.2.131.0",
+      "Pss": 22,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxcb-randr.so.0.1.0",
+      "Pss": 22,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libXtst.so.6.1.0",
+      "Pss": 20,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "[stack]",
+      "Pss": 20,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libdrm_amdgpu.so.1.131.0",
+      "Pss": 19,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libogg.so.0.8.6",
+      "Pss": 18,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libasyncns.so.0.3.1",
+      "Pss": 18,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libpulse-simple.so.0.1.1",
+      "Pss": 18,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libpciaccess.so.0.11.1",
+      "Pss": 17,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgstallocators-1.0.so.0.2802.0",
+      "Pss": 17,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libXext.so.6.4.0",
+      "Pss": 17,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libz.so.1.3.1",
+      "Pss": 17,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libmd.so.0.1.0",
+      "Pss": 16,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxcb-xfixes.so.0.0.0",
+      "Pss": 16,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.14.0",
+      "Pss": 16,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxcb-sync.so.1.0.0",
+      "Pss": 15,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libva-drm.so.2.2300.0",
+      "Pss": 14,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libXfixes.so.3.1.0",
+      "Pss": 14,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/workspace/Build/Linux/native-viewer-smoke/20261017T053425Z/gl-identity.so",
+      "Pss": 14,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxcb-dri3.so.0.1.0",
+      "Pss": 13,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libatomic.so.1.2.0",
+      "Pss": 12,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libffi.so.8.2.0",
+      "Pss": 12,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxshmfence.so.1.0.0",
+      "Pss": 11,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxcb-present.so.0.0.0",
+      "Pss": 11,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libX11-xcb.so.1.0.0",
+      "Pss": 11,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libXdmcp.so.6.0.0",
+      "Pss": 11,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgmodule-2.0.so.0.8800.0",
+      "Pss": 10,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libXau.so.6.0.0",
+      "Pss": 9,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libxcb-shm.so.0.0.0",
+      "Pss": 8,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/dev/dri/renderD128",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[vvar]",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[vvar_vclock]",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[vdso]",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[vsyscall]",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "result": "pass",
+  "actual_source_build": {
+    "source_manifest_sha256": "6464d1ae0ddf72e154ec4431b91816a75942a7557e00ce243abe89ce3a17aff3",
+    "source_build_result_sha256": "c6dbcbaa7ff0866088465a1f178c58760affc85019ea5966cbdaf6476014561b",
+    "native_dependency_manifest_sha256": "80d5c1ed47b3c31ddc4c91d2821969fb3d160cbdc72009092d64e3052e5556ad",
+    "builder_image": "sha256:d0923a2040628a31f2048eb01704030bed22b5ae35e61726378565ff557b710d"
+  },
+  "actual_binaries": {
+    "native-core": "74ec25af68e3ea487453e22b934973f153f027fa518f93891566f5bc2a5fc13d",
+    "native-gui": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0"
+  },
+  "stale_canonical_rejected": "Packaging sources differ from the compiled application sources",
+  "nested_source_identity": {
+    "kind": "source-snapshot",
+    "manifest_sha256": "6464d1ae0ddf72e154ec4431b91816a75942a7557e00ce243abe89ce3a17aff3"
+  },
+  "main_product_receipt_valid": true,
+  "main_product_binaries": {
+    "native-core": "b9c87fe3fb1279a186ad3560ccc9d29bf671b512675ce648efa2b51b69b9acdb",
+    "native-gui": "ad09133606585f70d1983d765f4c7f3923cdd95867d9ad47677c12812774eb49"
+  }
+}

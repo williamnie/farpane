@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_package_smoke.py", line 39, in <module>
+    core_info=probe(core,'--build-info');gui_info=probe(gui,'--build-info')
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_package_smoke.py", line 36, in probe
+    assert (result.returncode==0)==ok,(arg,user,result.stdout,result.stderr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('--build-info', False, '', '/opt/farpane-package-test/releases/probe/libexec/farpane-core: symbol lookup error: /opt/farpane-package-test/releases/probe/libexec/farpane-core: undefined symbol: vaMapBuffer2\n')

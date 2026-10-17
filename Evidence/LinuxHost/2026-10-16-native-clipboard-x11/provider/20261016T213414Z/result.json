@@ -1,0 +1,60 @@
+{
+  "checks": [
+    "rgba_png",
+    "png_128m_incr",
+    "png_buffer_not_copied",
+    "canceled_update_keeps_selection",
+    "four_request_limit",
+    "incr_old_selection_retained",
+    "dead_requestor_releases_slot",
+    "retained_payload_budget",
+    "stalled_reader_expiry",
+    "recovery_after_expiry",
+    "local_owner_releases_content",
+    "no_extra_threads",
+    "targets_and_timestamp",
+    "multiple_partial_failure_and_bounds",
+    "incr_completes_after_ownership_lost",
+    "full_payload_sha256",
+    "rgba_alpha_pixel_decode",
+    "bounded_provider_pss"
+  ],
+  "maximum_payload": 134217728,
+  "result": "pass",
+  "retained_budget": 268435456,
+  "sha256": {
+    "max.png": {
+      "bytes": 134217728,
+      "sha256": "fd5be92a03f5f296fbd8ff19fcbbd3c5eb568d74f0d81222c8b5d75d5394591e"
+    },
+    "max-result.png": {
+      "bytes": 134217728,
+      "sha256": "fd5be92a03f5f296fbd8ff19fcbbd3c5eb568d74f0d81222c8b5d75d5394591e"
+    },
+    "small.png": {
+      "bytes": 74,
+      "sha256": "302314d9cfea8d071a28548889a0d86bf87620d2ede0a25ef5928ab1a6babb6b"
+    },
+    "after-timeout.png": {
+      "bytes": 74,
+      "sha256": "302314d9cfea8d071a28548889a0d86bf87620d2ede0a25ef5928ab1a6babb6b"
+    },
+    "rgba-result.png": {
+      "bytes": 74,
+      "sha256": "fe0e0ceb81285acd3b726203c029146c6f5d50e215cfcee137e5f3c499e6d764"
+    },
+    "medium.png": {
+      "bytes": 2097152,
+      "sha256": "679fd83bc17e9f2b6e706884b08c6fd80195b23cec991732446471caa1e8f5e5"
+    },
+    "lost-owner-result.png": {
+      "bytes": 2097152,
+      "sha256": "679fd83bc17e9f2b6e706884b08c6fd80195b23cec991732446471caa1e8f5e5"
+    }
+  },
+  "pss_kib": {
+    "before": 23919,
+    "retained": 159206,
+    "after-transfer": 159334
+  }
+}

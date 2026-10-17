@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/workspace/Scripts/linux/analyze-native-allocations.py", line 110, in <module>
+    analyze(args.run, args.artifact)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Scripts/linux/analyze-native-allocations.py", line 73, in analyze
+    assert path.is_relative_to('/usr/lib') or path.is_relative_to('/lib') or path.is_relative_to(run), name
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: /lib64/ld-linux-x86-64.so.2

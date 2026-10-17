@@ -1,0 +1,26 @@
+[
+  {
+    "ID": "558fb41a6f05",
+    "Image": "valkey/valkey:8-alpine",
+    "Names": "app-dev-valkey",
+    "State": "running"
+  },
+  {
+    "ID": "6109e28eced8",
+    "Image": "rustdesk/rustdesk-server:1.1.15",
+    "Names": "rustdesk-hbbr",
+    "State": "running"
+  },
+  {
+    "ID": "664ad5c484e3",
+    "Image": "rustdesk/rustdesk-server:1.1.15",
+    "Names": "rustdesk-hbbs",
+    "State": "running"
+  },
+  {
+    "ID": "76bad3cec0f5",
+    "Image": "postgres:16-alpine",
+    "Names": "app-dev-postgres",
+    "State": "running"
+  }
+]

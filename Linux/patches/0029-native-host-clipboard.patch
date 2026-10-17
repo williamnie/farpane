@@ -1,0 +1,185 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -36,7 +36,7 @@
+ default = ["use_dasp", "legacy-ui"]
+ # Native builds use --no-default-features; legacy products keep their current UI.
+ legacy-ui = ["dep:gtk", "dep:sciter-rs", "dep:tao", "dep:tray-icon", "dep:winit", "dep:softbuffer"]
+-farpane-native = ["farpane-linux", "use_dasp", "dep:farpane-protocol", "dep:farpane-files", "hbb_common/farpane-native", "scrap/native-viewer"]
++farpane-native = ["dep:x11rb", "farpane-linux", "use_dasp", "dep:farpane-protocol", "dep:farpane-files", "hbb_common/farpane-native", "scrap/native-viewer"]
+ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+ mediacodec = ["scrap/mediacodec"]
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -369,6 +369,8 @@
+     native_file_out: mpsc::Sender<Message>,
+     #[cfg(feature = "farpane-native")]
+     native_file_paged: bool,
++    #[cfg(feature = "farpane-native")]
++    native_clipboard: Option<crate::farpane_native::host_clipboard::Link>,
+     view_camera: bool,
+     terminal: bool,
+     port_forward_socket: Option<Framed<TcpStream, BytesCodec>>,
+@@ -570,6 +572,8 @@
+         let (tx_native_file, mut rx_native_file) = mpsc::channel::<Message>(4);
+         #[cfg(not(feature = "farpane-native"))]
+         let _keep_native_file_channel = tx_native_file;
++        #[cfg(feature = "farpane-native")]
++        let (tx_native_clipboard, mut rx_native_clipboard) = tokio::sync::watch::channel(None);
+         let mut conn = Self {
+             inner: ConnInner {
+                 id,
+@@ -594,6 +598,8 @@
+             native_file_out: tx_native_file,
+             #[cfg(feature = "farpane-native")]
+             native_file_paged: false,
++            #[cfg(feature = "farpane-native")]
++            native_clipboard: crate::farpane_native::host_clipboard::Link::new(id, tx_native_clipboard.clone()),
+             view_camera: false,
+             terminal: false,
+             port_forward_socket: None,
+@@ -761,6 +767,35 @@
+                     conn.on_close("Timeout", true).await;
+                     break;
+                 }
++                _ = async {
++                    #[cfg(feature = "farpane-native")]
++                    { let _ = rx_native_clipboard.changed().await; }
++                    #[cfg(not(feature = "farpane-native"))]
++                    std::future::pending::<()>().await;
++                } => {
++                    #[cfg(feature = "farpane-native")]
++                    {
++                        let value = rx_native_clipboard.borrow_and_update().clone();
++                        if let Some(value) = value {
++                            if conn.native_clipboard.as_ref().is_some_and(|link| link.valid(&value)) {
++                                let mut message = &value.message;
++                                let fallback;
++                                if !crate::clipboard::is_support_multi_clipboard(&conn.lr.version, &conn.lr.my_platform) {
++                                    let values = match &message.union {
++                                        Some(message::Union::Clipboard(c)) => std::slice::from_ref(c),
++                                        Some(message::Union::MultiClipboards(c)) => c.clipboards.as_slice(),
++                                        _ => continue,
++                                    };
++                                    let Some(text) = values.iter().find(|c| c.format.enum_value() == Ok(ClipboardFormat::Text)) else { continue; };
++                                    let mut m = Message::new(); m.set_clipboard(text.clone()); fallback = m; message = &fallback;
++                                }
++                                if let Err(error) = conn.stream.send(message).await {
++                                    conn.on_close(&error.to_string(), false).await; break;
++                                }
++                            }
++                        }
++                    }
++                }
+                 Some(file_message) = rx_native_file.recv() => {
+                     #[cfg(feature = "farpane-native")]
+                     if conn.authorized && conn.file && conn.native_files.as_ref().is_some_and(|f| f.valid()) {
+@@ -824,6 +859,8 @@
+                             log::info!("Change permission {} -> {}", name, enabled);
+                             if &name == "keyboard" {
+                                 conn.keyboard = enabled;
++                                #[cfg(feature = "farpane-native")]
++                                conn.sync_native_clipboard();
+                                 conn.send_permission(Permission::Keyboard, enabled).await;
+                                 if let Some(s) = conn.server.upgrade() {
+                                     s.write().unwrap().subscribe(
+@@ -841,6 +878,8 @@
+                                 }
+                             } else if &name == "clipboard" {
+                                 conn.clipboard = enabled;
++                                #[cfg(feature = "farpane-native")]
++                                conn.sync_native_clipboard();
+                                 conn.send_permission(Permission::Clipboard, enabled).await;
+                                 if let Some(s) = conn.server.upgrade() {
+                                     s.write().unwrap().subscribe(
+@@ -2215,6 +2254,8 @@
+         msg_out.set_login_response(res);
+         self.send(msg_out).await;
+         self.update_scoped_login_options().await;
++        #[cfg(feature = "farpane-native")]
++        self.sync_native_clipboard();
+         if let Some((dir, show_hidden)) = self.file_transfer.clone() {
+             self.keyboard = false;
+             #[cfg(feature = "farpane-native")]
+@@ -2382,9 +2423,21 @@
+ 
+     #[inline]
+     fn can_sub_clipboard_service(&self) -> bool {
+-        self.clipboard_enabled()
++        #[cfg(feature = "farpane-native")]
++        { return false; }
++        #[cfg(not(feature = "farpane-native"))]
++        { self.clipboard_enabled()
+             && self.peer_keyboard_enabled()
+-            && crate::get_builtin_option(keys::OPTION_ONE_WAY_CLIPBOARD_REDIRECTION) != "Y"
++            && crate::get_builtin_option(keys::OPTION_ONE_WAY_CLIPBOARD_REDIRECTION) != "Y" }
++    }
++
++    #[cfg(feature = "farpane-native")]
++    fn sync_native_clipboard(&self) {
++        if let Some(link) = &self.native_clipboard {
++            let permitted = self.authorized && self.should_handle_text_clipboard_message() && self.clipboard_enabled();
++            link.configure(permitted && self.peer_keyboard_enabled()
++                && crate::get_builtin_option(keys::OPTION_ONE_WAY_CLIPBOARD_REDIRECTION) != "Y", permitted);
++        }
+     }
+ 
+     fn audio_enabled(&self) -> bool {
+@@ -2691,6 +2744,8 @@
+ 
+     #[inline]
+     pub fn is_permission_enabled_locally(enable_prefix_option: &str) -> bool {
++        #[cfg(feature = "farpane-native")]
++        if enable_prefix_option == "enable-clipboard" { return crate::farpane_native::host_clipboard::enabled(); }
+         #[cfg(feature = "farpane-native")]
+         if enable_prefix_option == "enable-file-transfer" { return crate::farpane_native::files::enabled(); }
+         #[cfg(all(target_os = "linux", feature = "farpane-native"))]
+@@ -3435,7 +3490,9 @@
+                 }
+                 Some(message::Union::Clipboard(cb)) => {
+                     if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {
+-                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                        #[cfg(feature = "farpane-native")]
++                        if let Some(link) = &self.native_clipboard { link.receive(vec![cb]); }
++                        #[cfg(all(not(feature = "farpane-native"), not(any(target_os = "android", target_os = "ios"))))]
+                         update_clipboard(vec![cb], ClipboardSide::Host);
+                         // ios as the controlled side is actually not supported for now.
+                         // The following code is only used to preserve the logic of handling text clipboard on mobile.
+@@ -3463,7 +3520,9 @@
+                 }
+                 Some(message::Union::MultiClipboards(_mcb)) => {
+                     if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {
+-                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
++                        #[cfg(feature = "farpane-native")]
++                        if let Some(link) = &self.native_clipboard { link.receive(_mcb.clipboards); }
++                        #[cfg(all(not(feature = "farpane-native"), not(any(target_os = "android", target_os = "ios"))))]
+                         update_clipboard(_mcb.clipboards, ClipboardSide::Host);
+                         #[cfg(target_os = "android")]
+                         crate::clipboard::handle_msg_multi_clipboards(_mcb);
+@@ -5060,6 +5119,8 @@
+         if let Ok(q) = o.disable_clipboard.enum_value() {
+             if q != BoolOption::NotSet {
+                 self.disable_clipboard = q == BoolOption::Yes;
++                #[cfg(feature = "farpane-native")]
++                self.sync_native_clipboard();
+                 if let Some(s) = self.server.upgrade() {
+                     s.write().unwrap().subscribe(
+                         super::clipboard_service::NAME,
+@@ -5072,6 +5133,8 @@
+         if let Ok(q) = o.disable_keyboard.enum_value() {
+             if q != BoolOption::NotSet {
+                 self.disable_keyboard = q == BoolOption::Yes;
++                #[cfg(feature = "farpane-native")]
++                self.sync_native_clipboard();
+                 if let Some(s) = self.server.upgrade() {
+                     s.write().unwrap().subscribe(
+                         super::clipboard_service::NAME,
+@@ -5335,6 +5398,8 @@
+     }
+ 
+     async fn on_close(&mut self, reason: &str, lock: bool) {
++        #[cfg(feature = "farpane-native")]
++        self.native_clipboard.take();
+         #[cfg(feature = "farpane-native")]
+         self.native_files.take();
+         if self.closed {

@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/home/user/farpane/Scripts/linux/verify-sources.py", line 75, in <module>
+    prepare.checked_file(ROOT / entry['path'], entry['sha256'])
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/farpane/Scripts/linux/prepare.py", line 30, in checked_file
+    raise RuntimeError(f'Checksum mismatch: {path.name}')
+RuntimeError: Checksum mismatch: mod.rs

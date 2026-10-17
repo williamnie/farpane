@@ -1,0 +1,31 @@
+{
+  "result": "pass",
+  "changed_application_sources": [
+    "Linux/gui/src/viewer_input.rs"
+  ],
+  "canonical_sha256": {
+    "Linux/gui/src/viewer_input.rs": "72af1569b19a440bd518e6272aaf946c64c2ec5b30fdda63d3cc8457b9c7483d",
+    "Linux/tests/native_wayland_fixture.py": "280c8e7df7810b791acda466d7a2a41b33e306a26327b6b72b0fbfa6ac3882b5",
+    "Linux/tests/native_keyboard_smoke.py": "9cf644298bb56023795d8a9b0ba6d52db4ff9b8bfdecdd670107f9ef55785116",
+    "Linux/tests/native_viewer_smoke.py": "247655a5cedd076ceb57c03ae66251e2924114b5578dc8239599edca00f1af37",
+    "Scripts/linux/test-native-keyboard.sh": "9d4fa28388502a78f69209e55360f96f5dcc7cf6a957812051ef8d0a613c18e9",
+    "Linux/docs/keyboard-shortcuts.md": "dd35cf2c532c6632f9a10786977420a2c418d50af11eef82469e090aa3aff5b9",
+    "Linux/docs/gui-status.md": "14f6c09566f25efa56860fbf30c18b2c0dd2cfbd30eb09b53101fb0bd5804c1b",
+    "Linux/docs/native-test-candidate.md": "b658c74930342f9386df471691cdfd12b53701f1df92f9fb72ae6e3bc43a2f50",
+    "Linux/docs/id-server-connections.md": "d8d76ade05c2c6b5ceb1e0c0552f41ba316e57f5998d328434a88d65d4184f86",
+    "Linux/README.md": "105b3fb0f79d3eefb9ff0b759a2b26dfe7986feda94749cffe47bbd4e4352d6c",
+    "Linux/native-notice-supplements.json": "0924eb07456914a3006f83b7a3a3ccd7ebca82e4d5a12140e956e2528938c39e"
+  },
+  "gui_built": true,
+  "core_and_ffmpeg_rebuilt": false,
+  "wayland_checks": 8,
+  "x11_input_ime_passed": true,
+  "two_distro_deb_upgrade_passed": true,
+  "source_tar_entries_verified": 88654,
+  "old_deliverables_unchanged": true,
+  "host_unchanged": true,
+  "doc_links_checked": 76,
+  "installed": false,
+  "gpu_tested": false,
+  "full_plan_acceptance": false
+}

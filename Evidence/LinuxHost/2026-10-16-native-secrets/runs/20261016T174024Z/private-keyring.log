@@ -1,0 +1,5 @@
+GNOME_KEYRING_CONTROL=/run/farpane-native-test/user/keyring-control
+
+** (gnome-keyring-daemon:13): WARNING **: 17:40:47.007: asked to register item /org/freedesktop/secrets/collection/login/3, but it's already registered
+
+** (gnome-keyring-daemon:13): WARNING **: 17:40:50.338: asked to register item /org/freedesktop/secrets/collection/login/3, but it's already registered

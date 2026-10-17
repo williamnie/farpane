@@ -1,0 +1,16 @@
+--- a/build.rs
++++ b/build.rs
+@@ -93,6 +93,13 @@
+     #[cfg(windows)]
+     build_windows();
+     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
++    if target_os == "linux" && std::env::var_os("CARGO_FEATURE_FARPANE_NATIVE").is_some()
++        && std::env::var_os("CARGO_FEATURE_LINUX_GPU_MEDIA").is_some()
++    {
++        // Resolve the optional libva 1.21 API at runtime, retaining the exact
++        // FFmpeg fallback on older libva. Extract the shim from scrap's archive.
++        println!("cargo:rustc-link-arg=-Wl,--undefined=__wrap_vaMapBuffer2,--wrap=vaMapBuffer2");
++    }
+     if target_os == "macos" {
+         #[cfg(target_os = "macos")]
+         build_mac();

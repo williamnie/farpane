@@ -1,0 +1,72 @@
+{
+  "result": "pass",
+  "source_manifest_sha256": "6464d1ae0ddf72e154ec4431b91816a75942a7557e00ce243abe89ce3a17aff3",
+  "native_dependency_manifest_sha256": "80d5c1ed47b3c31ddc4c91d2821969fb3d160cbdc72009092d64e3052e5556ad",
+  "source_entries": 88608,
+  "compiler": "rustc 1.89.0 (29483883e 2025-08-04)",
+  "binaries": {
+    "native-core": "74ec25af68e3ea487453e22b934973f153f027fa518f93891566f5bc2a5fc13d",
+    "native-gui": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0"
+  },
+  "ffmpeg_static_sha256": {
+    "avcodec": "8f9ffaf50657b7b4340fa8965ef52b472d74b177000e52919b0fcc3a43fd552f",
+    "avutil": "c13fe86981c95217beba087b42e79250ce741617b2f943545873149527363f72",
+    "avformat": "5a3e8d18e996ceab9b5251a400cf3007265dee161b8a2eb3b448eee5c164d6d8",
+    "avfilter": "0d52ddb9aa0bcce5da7dc51d59295e2ca6b4ebf23165d1a6b41a0bf4a45c18e5"
+  },
+  "drmtap_sha256": "bf4eedcee4f6049c6bf2eddf0d5e37f20123ea427769ea7287b9fafa5581b185",
+  "stages": {
+    "ffmpeg": {
+      "returncode": 0,
+      "seconds": 37.195,
+      "command": [
+        "bash",
+        "Scripts/linux/build-ffmpeg.sh"
+      ],
+      "log_sha256": "c03254a6549dadc37374620deae8a736059c27a303610812301cddc066277f68"
+    },
+    "drmtap": {
+      "returncode": 0,
+      "seconds": 1.617,
+      "command": [
+        "bash",
+        "Scripts/linux/build-drmtap.sh"
+      ],
+      "log_sha256": "dcccaaa0fb10f6d97ff06ed4616ebbe61f1755b3aac6663963b3b8987f81e2e2"
+    },
+    "core-release": {
+      "returncode": 0,
+      "seconds": 522.089,
+      "command": [
+        "bash",
+        "Scripts/linux/build-native-core.sh",
+        "release"
+      ],
+      "log_sha256": "a7d6a2fd42457edb89cb97d3c787635e47928fc96a8b925a1d5e3e62b9290480"
+    },
+    "gui-release": {
+      "returncode": 0,
+      "seconds": 59.863,
+      "command": [
+        "cargo",
+        "build",
+        "--offline",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "Build/Linux/gui/Cargo.toml"
+      ],
+      "log_sha256": "3850627115d5c1036f14199d14df6106e64d8b945760caae2efdcd1bfa2e48f9"
+    }
+  },
+  "network": "none",
+  "cargo_cache_initially_empty": true,
+  "compiler_target_initially_empty": true,
+  "nonffmpeg_dependencies_freshly_built": true,
+  "full_native_media_core_gui_build": true,
+  "runtime_integration_verified": false,
+  "verification_only_after_completed_stages": true,
+  "toolchain_built_from_source": false,
+  "complete_license_source_audit": false,
+  "installed_application_modified": false
+}

@@ -1,0 +1,31 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -36,7 +36,7 @@
+ default = ["use_dasp", "legacy-ui"]
+ # Native builds use --no-default-features; legacy products keep their current UI.
+ legacy-ui = ["dep:gtk", "dep:sciter-rs", "dep:tao", "dep:tray-icon", "dep:winit", "dep:softbuffer"]
+-farpane-native = ["farpane-linux", "use_dasp", "dep:farpane-protocol"]
++farpane-native = ["farpane-linux", "use_dasp", "dep:farpane-protocol", "hbb_common/farpane-native"]
+ hwcodec = ["scrap/hwcodec"]
+ vram = ["scrap/vram"]
+ mediacodec = ["scrap/mediacodec"]
+--- a/libs/hbb_common/Cargo.toml
++++ b/libs/hbb_common/Cargo.toml
+@@ -7,6 +7,7 @@
+ # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+ 
+ [features]
++farpane-native = []
+ default = []
+ webrtc = ["dep:webrtc"]
+ 
+--- a/libs/hbb_common/src/config.rs
++++ b/libs/hbb_common/src/config.rs
+@@ -1,3 +1,7 @@
++#[cfg(all(target_os = "linux", feature = "farpane-native"))]
++#[path = "farpane_config.rs"]
++pub mod farpane;
++
+ use std::{
+     collections::{HashMap, HashSet},
+     fs,

@@ -1,0 +1,10 @@
+Reconstructing pinned sources and checking complete prepared trees
+Traceback (most recent call last):
+  File "/home/user/farpane/Scripts/linux/package-native-source.py", line 19, in <module>
+    print(json.dumps(native_source_bundle.package(args.reference, args.vendor, args.vendor_config, args.output), indent=2))
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_source_bundle.py", line 208, in package
+    comparisons = reconstructed(tree, reference)
+  File "/home/user/farpane/Linux/packaging/native_source_bundle.py", line 133, in reconstructed
+    raise ValueError('Generated source has changes outside canonical reconstruction: ' + name + ' ' + repr(changed[:30]))
+ValueError: Generated source has changes outside canonical reconstruction: rustdesk ['flutter/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java', 'flutter/android/local.properties', 'flutter/ios/Flutter/Generated.xcconfig', 'flutter/ios/Flutter/flutter_export_environment.sh', 'flutter/ios/Runner/GeneratedPluginRegistrant.h', 'flutter/ios/Runner/GeneratedPluginRegistrant.m', 'flutter/lib/generated_bridge.dart', 'flutter/lib/generated_bridge.freezed.dart', 'flutter/linux/flutter/generated_plugin_registrant.cc', 'flutter/linux/flutter/generated_plugin_registrant.h', 'flutter/linux/flutter/generated_plugins.cmake', 'flutter/macos/Flutter/GeneratedPluginRegistrant.swift', 'flutter/macos/Flutter/ephemeral/Flutter-Generated.xcconfig', 'flutter/macos/Flutter/ephemeral/flutter_export_environment.sh', 'flutter/windows/flutter/generated_plugin_registrant.cc', 'flutter/windows/flutter/generated_plugin_registrant.h', 'flutter/windows/flutter/generated_plugins.cmake', 'src/bridge_generated.io.rs', 'src/bridge_generated.rs']

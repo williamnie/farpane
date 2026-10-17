@@ -1,0 +1,10 @@
+/home/user/farpane/Build/Linux/native-bootstrap/dependencies.7PNuDe24
+Verified sources and tool; building aom, ffnvcodec, libjpeg-turbo, libvpx, libyuv, mfx-dispatch, opus, pkgconf, vcpkg-cmake, vcpkg-cmake-config, vcpkg-cmake-get-vars, vcpkg-pkgconfig-get-modules, vcpkg-tool-meson
+Traceback (most recent call last):
+  File "/inputs/build.py", line 125, in <module>
+    main()
+  File "/inputs/build.py", line 98, in main
+    require(result.returncode == 0, 'Dependency build failed; see dependencies.log')
+  File "/inputs/build.py", line 20, in require
+    raise RuntimeError(message)
+RuntimeError: Dependency build failed; see dependencies.log

@@ -1,0 +1,52 @@
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Activating service name='org.farpane.FarPane' requested by ':1.0' (uid=1000 pid=20 comm="/opt/farpane-native-test/releases/native-smoke-1/l" label="docker-default (enforce)")
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Successfully activated service 'org.farpane.FarPane'
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Activating service name='org.farpane.FarPane' requested by ':1.0' (uid=1000 pid=20 comm="/opt/farpane-native-test/releases/native-smoke-1/l" label="docker-default (enforce)")
+dbus-daemon[8]: [session uid=1000 pid=8 pidfd=5] Successfully activated service 'org.farpane.FarPane'
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+{
+  "result": "pass",
+  "checks": [
+    "late-provider-registration",
+    "argb-tray-icon",
+    "typed-dbusmenu",
+    "x11-application-identity",
+    "service-auto-activation",
+    "single-gui-owner",
+    "secondary-activation",
+    "context-menu",
+    "dbusmenu-event",
+    "gui-close-host-retained",
+    "closed-gui-inbound-notice",
+    "sender-and-id-filter",
+    "provider-restart-recovery",
+    "retired-owner-ignored",
+    "notification-opens-controls-only",
+    "actual-approval-presents-video",
+    "no-stale-password-prompt",
+    "notice-closed-on-authorize",
+    "stale-action-ignored",
+    "freedesktop-watcher-fallback",
+    "notification-without-actions",
+    "provider-disappearance",
+    "unanswered-timeout-no-frames",
+    "no-retained-host-gui",
+    "host-no-toolkit",
+    "identity-policy-preserved"
+  ],
+  "gui_pids": [
+    77,
+    200
+  ],
+  "host_pid": 20,
+  "desktop": {
+    "connected": true,
+    "tray_registered": false,
+    "notifications_available": false,
+    "notification_actions": false,
+    "detail": "\u5f53\u524d\u684c\u9762\u6ca1\u6709\u53ef\u7528\u901a\u77e5\u670d\u52a1\uff0c\u53ef\u4ece\u5e94\u7528\u83dc\u5355\u67e5\u770b\u8bf7\u6c42"
+  },
+  "timeout_after_provider_loss_seconds": 29.394187389989384
+}

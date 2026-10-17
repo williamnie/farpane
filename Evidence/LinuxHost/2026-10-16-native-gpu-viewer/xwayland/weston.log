@@ -1,0 +1,73 @@
+Date: 2026-10-16 UTC
+[12:39:30.633] weston 14.0.2
+               https://wayland.freedesktop.org
+               Bug reports to: https://gitlab.freedesktop.org/wayland/weston/issues/
+               Build: 14.0.2
+[12:39:30.633] Command line: weston --backend=headless --renderer=gl --width=1020 --height=720 --refresh-rate=12000 --socket=farpane-test-wayland --no-config --idle-time=0 --xwayland
+[12:39:30.633] OS: Linux, 7.0.0-38-generic, #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026, x86_64
+[12:39:30.633] Flight recorder: enabled
+[12:39:30.633] Starting with no config file.
+[12:39:30.633] Output repaint window is 7 ms maximum.
+[12:39:30.633] Loading module '/usr/lib/x86_64-linux-gnu/libweston-14/headless-backend.so'
+[12:39:30.636] Loading module '/usr/lib/x86_64-linux-gnu/libweston-14/gl-renderer.so'
+[12:39:30.662] Using rendering device: /dev/dri/renderD128
+[12:39:30.665] EGL version: 1.5
+[12:39:30.665] EGL vendor: Mesa Project
+[12:39:30.665] EGL client APIs: OpenGL OpenGL_ES 
+[12:39:30.665] EGL features:
+               EGL Wayland extension: no
+               context priority: yes
+               buffer age: no
+               partial update: no
+               swap buffers with damage: no
+               configless context: yes
+               surfaceless context: yes
+               dmabuf support: modifiers
+[12:39:30.667] GL version: OpenGL ES 3.2 Mesa 26.0.8-1ubuntu0.3
+[12:39:30.667] GLSL version: OpenGL ES GLSL ES 3.20
+[12:39:30.667] GL vendor: AMD
+[12:39:30.667] GL renderer: AMD Radeon 780M Graphics (radeonsi, phoenix, ACO, DRM 3.64, 7.0.0-38-generic)
+[12:39:30.674] GL ES 3.2 - renderer features:
+               read-back format: ARGB8888
+               glReadPixels supports y-flip: yes
+               glReadPixels supports PBO: yes
+               wl_shm 10 bpc formats: yes
+               wl_shm 16 bpc formats: yes
+               wl_shm half-float formats: yes
+               internal R and RG formats: yes
+               OES_EGL_image_external: yes
+[12:39:30.674] Using GL renderer
+[12:39:30.674] Registered plugin API 'weston_windowed_output_api_headless_v2' of size 16
+[12:39:30.674] Color manager: no-op
+                 protocol support: no
+[12:39:30.674] Output 'headless' attempts EOTF mode SDR and colorimetry mode default.
+[12:39:30.674] Output 'headless' using color profile: stock sRGB color profile
+[12:39:30.676] Output 'headless' enabled with head(s) headless
+[12:39:30.676] Compositor capabilities:
+               arbitrary surface rotation: yes
+               screen capture uses y-flip: yes
+               cursor planes: no
+               arbitrary resolutions: no
+               view mask clipping: yes
+               explicit sync: yes
+               color operations: yes
+               presentation clock: CLOCK_MONOTONIC_RAW, id 4
+               presentation clock resolution: 0.000000001 s
+[12:39:30.677] Loading module '/usr/lib/x86_64-linux-gnu/weston/desktop-shell.so'
+[12:39:30.677] Loading module '/usr/lib/x86_64-linux-gnu/libweston-14/xwayland.so'
+[12:39:30.677] Registered plugin API 'weston_xwayland_v3' of size 32
+[12:39:30.677] Registered plugin API 'weston_xwayland_surface_v2' of size 24
+[12:39:30.677] xserver listening on display :0
+[12:39:30.677] launching '/usr/libexec/weston-keyboard'
+[12:39:30.679] launching '/usr/libexec/weston-desktop-shell'
+could not load cursor 'dnd-copy'
+could not load cursor 'dnd-none'
+could not load cursor 'dnd-copy'
+could not load cursor 'dnd-none'
+[12:39:33.822] launching '/usr/bin/Xwayland'
+[12:39:33.891] xfixes version: 6.0
+[12:39:33.895] created wm, root 833
+[12:39:43.398] caught signal 15
+(EE) failed to read Wayland events: Broken pipe
+[12:39:43.398] xserver exited, will restart on demand
+[12:39:43.399] BUG: finalizing a layer with views still on it.

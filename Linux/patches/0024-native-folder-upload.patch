@@ -1,0 +1,21 @@
+--- a/libs/base/protos/message.proto
++++ b/libs/base/protos/message.proto
+@@ -377,6 +377,7 @@
+   uint64 farpane_cursor = 101;
+   uint32 farpane_page = 102;
+   bool farpane_more = 103;
++  bool farpane_upload_batches = 104;
+ }
+ 
+ message ReadDir {
+@@ -499,6 +500,10 @@
+   repeated FileEntry files = 3;
+   int32 file_num = 4;
+   uint64 total_size = 5;
++  // Optional streaming folder upload, only after capability negotiation.
++  bool farpane_tree = 100;
++  uint32 farpane_page = 101;
++  bool farpane_more = 102;
+ }
+ 
+ message FileRemoveDir {

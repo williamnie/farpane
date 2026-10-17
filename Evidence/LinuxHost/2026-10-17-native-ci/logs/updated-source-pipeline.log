@@ -1,0 +1,20 @@
+ci_output=/home/user/farpane/Build/Linux/native-ci/run.3_u9fy_8
+Verifying and extracting the source archive
+Running inspect-builder
+Running inspect-runtime
+Running tools
+Running bundle
+Running deb-installcheck
+Running deb-candidate
+Running bundle-unit-tests
+Running tools-unit-tests
+Running protocol-tests
+Running package-runtime
+Running deb-runtime
+{
+  "result": "pass",
+  "output": "/home/user/farpane/Build/Linux/native-ci/run.3_u9fy_8",
+  "deliverables": "/home/user/farpane/Build/Linux/native-ci/run.3_u9fy_8/deliverables",
+  "full_build_executed_this_run": false,
+  "published": false
+}

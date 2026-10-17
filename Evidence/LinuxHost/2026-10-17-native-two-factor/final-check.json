@@ -1,0 +1,37 @@
+{
+  "result": "pass",
+  "changed_application_sources": [
+    "Linux/gui/src/auth_secrets.rs",
+    "Linux/gui/src/file_smoke.rs",
+    "Linux/gui/src/file_view.rs",
+    "Linux/gui/src/viewer.rs"
+  ],
+  "canonical_sha256": {
+    "Linux/gui/src/auth_secrets.rs": "13a9d2f9e5b9ddc3a3d938ddd20727d4b47adaa4665e97108c6cac1363f7d7ab",
+    "Linux/gui/src/viewer.rs": "7ed3f487a4383878d3768db1aaf9dd4c576b853fe438575b108fbe4126003c22",
+    "Linux/gui/src/file_view.rs": "51c7e1d884e55a1f229cf694f54a95fd26d398e5c47194ddd127b5e5ee072fe5",
+    "Linux/gui/src/file_smoke.rs": "a8b742b4892e09f93f7e68d4c7f323c361b2601bb259ba2e3bac774cbb6bdd27",
+    "Linux/tests/native_two_factor_smoke.py": "306038790ba62967c4ea3cda3063ad77435b203aaeeb0b0651017c6bba2f6ce6",
+    "Linux/tests/native_viewer_smoke.py": "cf247747cd6d2e01b37428220ad06e02d173bded27405434eb045ff2835f3208",
+    "Linux/tests/native_files_smoke.py": "36982e24efa9bb0774e33c46854901712aedd2ad3003bdbcd669163d0be01c67",
+    "Scripts/linux/test-native-two-factor.sh": "e56c2546a11c17e54219d6835ca00a4f2d166eb2f8b876224c695fa6d5a35a3d",
+    "Linux/native-notice-supplements.json": "19710efd5145acbd9738b9d14fca297a1310872587b2239b310a6bc0508b1f8e",
+    "Linux/docs/two-factor-authentication.md": "31f9d2d33eb72c6e404c26d3f433d5f937680f9f803bbe54d58d37ac694839c6",
+    "Linux/docs/native-test-candidate.md": "7454a24a0638cb674d15210bff7fe114d0cad580dccfcfbfb170a78a452643ab",
+    "Linux/docs/gui-status.md": "38168b8458b9a3995fc3eb2fcc738c0a5ff1ce390275802e0b3df4d31dca9fa3",
+    "Linux/README.md": "f4a3607ddd54e91514edb39ec62a4db43ea00ab0aa1b426e8d81a7e0953700b8"
+  },
+  "host_unchanged": true,
+  "old_candidates_unchanged": true,
+  "prior_independent_source_build_preserved": true,
+  "core_sources_and_binary_reused": true,
+  "gui_rebuilt": true,
+  "ffmpeg_rebuilt": false,
+  "video_and_file_totp_passed": true,
+  "two_distro_package_and_upgrade_passed": true,
+  "source_archive_entries_verified": 88645,
+  "doc_links_checked": 72,
+  "installed": false,
+  "gpu_tested_this_turn": false,
+  "full_plan_acceptance": false
+}

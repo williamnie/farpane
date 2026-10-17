@@ -1,0 +1,86 @@
+[
+  {
+    "job": 1,
+    "connection": 1396,
+    "name": "upload.bin",
+    "upload": true,
+    "done": 393233,
+    "total": 393233,
+    "status": "completed",
+    "detail": "\u6587\u4ef6\u5df2\u4fdd\u5b58",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 2,
+    "connection": 1396,
+    "name": "upload.bin",
+    "upload": false,
+    "done": 393233,
+    "total": 393233,
+    "status": "sent",
+    "detail": "\u5df2\u53d1\u9001\uff1b\u6b64\u534f\u8bae\u672a\u786e\u8ba4\u8fdc\u7aef\u843d\u76d8",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 3,
+    "connection": 1396,
+    "name": "cancel.bin",
+    "upload": true,
+    "done": 0,
+    "total": 17408,
+    "status": "cancelled",
+    "detail": "\u8fdc\u7aef\u53d6\u6d88\u4e86\u4f20\u8f93",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 4,
+    "connection": 1396,
+    "name": "changing",
+    "upload": false,
+    "done": 3276800,
+    "total": 33554432,
+    "status": "failed",
+    "detail": "Upload source changed during transfer",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 5,
+    "connection": 1396,
+    "name": "cancel-tree",
+    "upload": false,
+    "done": 3276800,
+    "total": 33554432,
+    "status": "cancelled",
+    "detail": "\u8fdc\u7aef\u53d6\u6d88\u4e86\u4f20\u8f93",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 6,
+    "connection": 1396,
+    "name": "upload-changing.bin",
+    "upload": true,
+    "done": 6422528,
+    "total": 33554432,
+    "status": "cancelled",
+    "detail": "\u8fdc\u7aef\u53d6\u6d88\u4e86\u4f20\u8f93",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  },
+  {
+    "job": 7,
+    "connection": 1396,
+    "name": "upload.bin",
+    "upload": false,
+    "done": 393233,
+    "total": 393233,
+    "status": "sent",
+    "detail": "\u5df2\u53d1\u9001\uff1b\u6b64\u534f\u8bae\u672a\u786e\u8ba4\u8fdc\u7aef\u843d\u76d8",
+    "needs_confirmation": false,
+    "overwrite_required": false
+  }
+]

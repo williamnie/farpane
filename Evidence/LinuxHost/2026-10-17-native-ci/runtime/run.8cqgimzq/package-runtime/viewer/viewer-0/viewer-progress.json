@@ -1,0 +1,352 @@
+{
+  "authentication_visible": false,
+  "challenge": 0,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在建立远程连接",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "传输已建立，等待认证",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "请输入远端密码",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "policy": {
+            "image": {
+              "receive": false,
+              "send": false
+            },
+            "rich_text": {
+              "receive": false,
+              "send": false
+            },
+            "text": {
+              "receive": false,
+              "send": false
+            }
+          },
+          "revision": 1
+        },
+        "type": "clipboard_policy"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "audio": true,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 7,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 8,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 9,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 10,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 11,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 2,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 12,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "密码不正确，请重新输入",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 13,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 14,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 3,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 15,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "name": "8d0ed5c32aa1"
+        },
+        "type": "peer"
+      },
+      "generation": 1,
+      "sequence": 16,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "displays": [
+            {
+              "height": 480,
+              "index": 0,
+              "name": "screen",
+              "width": 640,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "selected": 0
+        },
+        "type": "displays"
+      },
+      "generation": 1,
+      "sequence": 17,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "认证通过，等待第一帧",
+          "phase": "awaiting_frame"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 18,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 19,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "认证通过，等待第一帧",
+          "phase": "awaiting_frame"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 20,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "displays": [
+            {
+              "height": 480,
+              "index": 0,
+              "name": "screen",
+              "width": 640,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "selected": 0
+        },
+        "type": "displays"
+      },
+      "generation": 1,
+      "sequence": 21,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "height": 24,
+          "hot_x": 11,
+          "hot_y": 12,
+          "id": 8311190037788981,
+          "premultiplied": true,
+          "rgba": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAABQAAAAwAAAANAAAACgAAAAUAAAAFAAAACQAAAA0AAAAMAAAABwAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAF7+/v9P/////4+Pj8xcXF3WxsbITGxsbb+fn5/P/////v7+/2AAAAIwAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL/////wAAAP8HBwf/TU1N/7y8vPlNTU3/BwcH/wAAAP//////AAAASgAAABIAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM7+/v9v/////4+Pj+d3d3/AAAAP94eHj8+Pj4/v/////v7+/5AAAATwAAABMAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHAAAAIwAAAEwVFRVu9/f3/QAAAP/4+Pj+FRUVjAAAAGQAAABRAAAALgAAAAsAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAACAAAABMAAAAi/////wAAAP//////AAAAZAAAACkAAAAUAAAACwAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAP/////wAAAP//////AAAAWQAAABYAAAACAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAO/////wAAAP//////AAAAWQAAABYAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAABQAAAA0WFhYv9/f3/AAAAP/4+Pj+FRUVbgAAACIAAAANAAAABwAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAF7+/v9P/////39/f8dnZ2+wAAAP93d3f89/f3/f/////v7+/2AAAAIwAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAL/////wAAAP8HBwf/Tk5O/7y8vPpOTk7/BwcH/wAAAP//////AAAASgAAABIAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM7+/v9v/////4+Pj9xMTE6WpqarPExMTo+Pj4/f/////v7+/5AAAATwAAABMAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHAAAAIwAAAEwAAABWAAAASwAAADcAAAA0AAAARwAAAFYAAABQAAAALgAAAAsAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAACAAAABMAAAAVAAAAEQAAAAoAAAAJAAAAEAAAABQAAAATAAAACwAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "width": 24,
+          "x": 0,
+          "y": 0
+        },
+        "type": "cursor"
+      },
+      "generation": 1,
+      "sequence": 22,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "detail": "软件兼容模式：CPU 解码与颜色转换"
+        },
+        "type": "media"
+      },
+      "generation": 1,
+      "sequence": 23,
+      "session": 6875294293988937354
+    },
+    {
+      "event": {
+        "data": {
+          "available": false,
+          "detail": "剪贴板通道不可用；画面继续，重新连接后可重试"
+        },
+        "type": "clipboard_status"
+      },
+      "generation": 1,
+      "sequence": 24,
+      "session": 6875294293988937354
+    }
+  ],
+  "frames": 1,
+  "gpu_completed": 0,
+  "gpu_frames": 0,
+  "hud_enabled": false,
+  "password_attempts": 2,
+  "phase": "streaming",
+  "presented": true,
+  "worker_reaped": false
+}

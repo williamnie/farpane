@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 372, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 271, in user_test
+    exercise_audio(directory,private_audio,fault=index==1)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_audio_smoke.py", line 137, in exercise_audio
+    assert len(connections)==1,connections
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: []

@@ -1,0 +1,29 @@
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -734,6 +734,8 @@
+     async fn handle_msg_from_ui(&mut self, data: Data, peer: &mut Stream) -> bool {
+         #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
+         let (data, _credit) = crate::farpane_native::viewer_queue::unwrap(data);
++        #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++        if _credit.as_ref().is_some_and(|credit| !credit.valid()) { return true; }
+         match data {
+             Data::Close => {
+                 self.send_close_reason(peer, "").await;
+@@ -1716,7 +1718,7 @@
+                 }
+                 Some(message::Union::Clipboard(cb)) => {
+                     #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
+-                    if hbb_common::config::farpane_viewer::is_active() { crate::farpane_native::viewer_clipboard::receive(cb); return true; }
++                    if hbb_common::config::farpane_viewer::is_active() { crate::farpane_native::viewer_clipboard::receive(vec![cb]); return true; }
+                     let clipboard_allowed = {
+                         let lc = self.handler.lc.read().unwrap();
+                         !lc.disable_clipboard.v && !lc.view_only.v
+@@ -1756,7 +1758,7 @@
+                 }
+                 Some(message::Union::MultiClipboards(_mcb)) => {
+                     #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
+-                    if hbb_common::config::farpane_viewer::is_active() { if let Some(cb) = _mcb.clipboards.into_iter().find(|cb| cb.format.enum_value().ok() == Some(ClipboardFormat::Text)) { crate::farpane_native::viewer_clipboard::receive(cb); } return true; }
++                    if hbb_common::config::farpane_viewer::is_active() { crate::farpane_native::viewer_clipboard::receive(_mcb.clipboards); return true; }
+                     let clipboard_allowed = {
+                         let lc = self.handler.lc.read().unwrap();
+                         !lc.disable_clipboard.v && !lc.view_only.v

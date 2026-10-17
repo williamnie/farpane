@@ -1,0 +1,17 @@
+{
+  "baseline": "Build/Linux/source-audit/native-source-audit-922c135abe0f176e0d2fb25f/report.json",
+  "current": "/home/user/farpane/Build/Linux/source-audit/native-source-audit-d61fef7c1139d1de35d0f39f/report.json",
+  "baseline_sha256": "922c135abe0f176e0d2fb25fd22e1220c32953c5046a2067d13b3ebe865ac183",
+  "current_sha256": "d61fef7c1139d1de35d0f39f8c7712ded7485f34582c69802d76176b7918eecc",
+  "unchanged_packages": 712,
+  "unchanged_issue_records": 45,
+  "changed_report_keys": [
+    "binary_sha256",
+    "materials"
+  ],
+  "full_legal_audit_completed": false,
+  "changed_materials": [
+    "Build/Linux/native-build.json"
+  ],
+  "dependency_materials_unchanged": true
+}

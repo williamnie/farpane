@@ -1,0 +1,39 @@
+{
+  "viewer": [
+    {
+      "family": "tcp",
+      "local_hex": "0100007F:979B",
+      "remote_hex": "0100007F:8621",
+      "local_port": 38811,
+      "remote_port": 34337,
+      "inode": "58796407"
+    }
+  ],
+  "host": [
+    {
+      "family": "tcp",
+      "local_hex": "0100007F:8621",
+      "remote_hex": "0100007F:979B",
+      "local_port": 34337,
+      "remote_port": 38811,
+      "inode": "58800312"
+    },
+    {
+      "family": "tcp",
+      "local_hex": "0100007F:8A47",
+      "remote_hex": "0100007F:527C",
+      "local_port": 35399,
+      "remote_port": 21116,
+      "inode": "58801478"
+    },
+    {
+      "family": "tcp",
+      "local_hex": "0100007F:8E39",
+      "remote_hex": "0100007F:527C",
+      "local_port": 36409,
+      "remote_port": 21116,
+      "inode": "58801492"
+    }
+  ],
+  "hbbr": []
+}

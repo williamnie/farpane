@@ -1,0 +1,202 @@
+[2026-10-17 07:19:38.623529 +00:00] INFO [src/core_main.rs:404] start --server with user farpane-test-host
+[2026-10-17 07:19:38.623940 +00:00] WARN [src/farpane_native/recovery.rs:84] System recovery monitor unavailable; core retries remain active: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory
+[2026-10-17 07:19:38.624073 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":91")
+[2026-10-17 07:19:38.624079 +00:00] INFO [src/server.rs:666] XAUTHORITY=Err(NotPresent)
+[2026-10-17 07:19:38.624250 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-2101/ipc
+[2026-10-17 07:19:38.624253 +00:00] DEBUG [src/server.rs:833] #tries of ipc service connection: 30
+[2026-10-17 07:19:38.624284 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:38.713879 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:38.805363 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:38.898142 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:38.925705 +00:00] INFO [src/server.rs:919] #1 try: failed to connect to ipc_service
+[2026-10-17 07:19:38.989974 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.079950 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.172702 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.265771 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.356536 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.445734 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.526807 +00:00] INFO [src/server.rs:919] #2 try: failed to connect to ipc_service
+[2026-10-17 07:19:39.537341 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.629368 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.720046 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.811545 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.901544 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:39.993654 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.085473 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.176392 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.266118 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.356390 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.427381 +00:00] INFO [src/server.rs:919] #3 try: failed to connect to ipc_service
+[2026-10-17 07:19:40.446345 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.538661 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.630423 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.720844 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.813703 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.906041 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:40.998459 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:41.088147 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:41.181182 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:41.274613 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:41.369966 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:41.463278 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:41.554481 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:41.625325 +00:00] WARN [src/server.rs:818] timed out waiting 3s for initial config sync, continue startup and keep syncing in background
+[2026-10-17 07:19:41.625527 +00:00] INFO [src/server/drm_capturer.rs:1897] drm: consumer cache warm found no producer at startup (will probe lazily)
+[2026-10-17 07:19:41.626482 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-17 07:19:41.626797 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of 198.18.0.1:21116
+[2026-10-17 07:19:41.626773 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-17 07:19:41.627128 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-17 07:19:41.627240 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: 198.18.0.1:21116
+[2026-10-17 07:19:41.627371 +00:00] DEBUG [libs/hbb_common/src/udp.rs:36] Receive buf size of udp 0.0.0.0:0: Ok(212992)
+[2026-10-17 07:19:41.627802 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.71, available memory: 25G, codec thread: 2
+[2026-10-17 07:19:41.627926 +00:00] DEBUG [src/common.rs:734] Got nat response from 198.18.0.1:21116: port=35689
+[2026-10-17 07:19:41.628078 +00:00] DEBUG [src/common.rs:734] Got nat response from 198.18.0.1:21115: port=35689
+[2026-10-17 07:19:41.628199 +00:00] INFO [src/common.rs:760] Tested nat type: ASYMMETRIC in 1.34519ms
+[2026-10-17 07:19:41.628488 +00:00] INFO [src/rendezvous_mediator.rs:1317] register_pk of 198.18.0.1:21116 due to key not confirmed
+[2026-10-17 07:19:41.628521 +00:00] INFO [src/server.rs:919] #4 try: failed to connect to ipc_service
+[2026-10-17 07:19:41.628547 +00:00] INFO [libs/hbb_common/src/config.rs:1143] Generated new keypair for id: 
+[2026-10-17 07:19:41.629420 +00:00] DEBUG [libs/hbb_common/src/config.rs:995] Update rendezvous_server in config to 198.18.0.1:21116
+[2026-10-17 07:19:41.629470 +00:00] DEBUG [libs/hbb_common/src/config.rs:996] {"198.18.0.1:21116": 941}
+[2026-10-17 07:19:41.629658 +00:00] DEBUG [src/rendezvous_mediator.rs:417] Latency of 198.18.0.1:21116: 0.941ms
+[2026-10-17 07:19:41.645202 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:41.743232 +00:00] INFO [libs/scrap/src/common/codec.rs:1150] av1 time: key: 19.061496ms, non-key: 6.949043ms, consume: 112.140863ms
+[2026-10-17 07:19:42.657014 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0
+[2026-10-17 07:19:43.129753 +00:00] INFO [src/server.rs:919] #5 try: failed to connect to ipc_service
+[2026-10-17 07:19:44.381650 +00:00] DEBUG [src/rendezvous_mediator.rs:838] Handle intranet from 198.18.0.1:37681
+[2026-10-17 07:19:44.381887 +00:00] INFO [src/server.rs:193] Server listening on: 198.18.0.1:42369
+[2026-10-17 07:19:44.382595 +00:00] DEBUG [src/server/connection.rs:1584] #1684 Connection opened from 198.18.0.1:37681.
+[2026-10-17 07:19:44.387610 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.24/src/connect.rs:882] starting new connection: http://198.18.0.1:21114/
+[2026-10-17 07:19:44.387627 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-util-0.1.17/src/client/legacy/connect/http.rs:768] connecting to 198.18.0.1:21114
+[2026-10-17 07:19:44.388130 +00:00] WARN [src/common.rs:1583] HTTP POST to http://198.18.0.1:21114/api/audit/conn failed or 5xx (result: Err("reqwest::Error { kind: Request, url: \"http://198.18.0.1:21114/api/audit/conn\", source: hyper_util::client::legacy::Error(Connect, ConnectError(\"tcp connect error\", 198.18.0.1:21114, Os { code: 111, kind: ConnectionRefused, message: \"Connection refused\" })) }")), trying TCP proxy fallback
+[2026-10-17 07:19:44.388195 +00:00] DEBUG [src/common.rs:1341] Sending POST /api/audit/conn via TCP proxy to 198.18.0.1:21116
+[2026-10-17 07:19:44.388988 +00:00] DEBUG [src/ui_cm_interface.rs:880] Got new connection
+[2026-10-17 07:19:44.389050 +00:00] DEBUG [src/ui_cm_interface.rs:829] ipc task begin
+[2026-10-17 07:19:44.389097 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1684
+[2026-10-17 07:19:44.638709 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.24/src/connect.rs:882] starting new connection: http://198.18.0.1:21114/
+[2026-10-17 07:19:44.638762 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-util-0.1.17/src/client/legacy/connect/http.rs:768] connecting to 198.18.0.1:21114
+[2026-10-17 07:19:44.639333 +00:00] WARN [src/common.rs:1504] HTTP POST to http://198.18.0.1:21114/api/sysinfo failed or 5xx (result: Err("reqwest::Error { kind: Request, url: \"http://198.18.0.1:21114/api/sysinfo\", source: hyper_util::client::legacy::Error(Connect, ConnectError(\"tcp connect error\", 198.18.0.1:21114, Os { code: 111, kind: ConnectionRefused, message: \"Connection refused\" })) }")), trying TCP proxy fallback
+[2026-10-17 07:19:44.639411 +00:00] DEBUG [src/common.rs:1341] Sending POST /api/sysinfo via TCP proxy to 198.18.0.1:21116
+[2026-10-17 07:19:44.930944 +00:00] INFO [src/server.rs:919] #6 try: failed to connect to ipc_service
+[2026-10-17 07:19:45.566551 +00:00] INFO [src/platform/mod.rs:112] new wakelock, require display on: true
+[2026-10-17 07:19:45.566919 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:382] perform;
+[2026-10-17 07:19:45.566965 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Auth(Some(External), Some([50, 49, 48, 49]))
+[2026-10-17 07:19:45.567002 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;
+[2026-10-17 07:19:45.567092 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=NegotiateUnixFD
+[2026-10-17 07:19:45.567111 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;
+[2026-10-17 07:19:45.567175 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Begin
+[2026-10-17 07:19:45.567333 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/socket_reader.rs:33] socket reader;
+[2026-10-17 07:19:45.568233 +00:00] INFO [src/platform/linux.rs:2654] wakelock: keepawake could not take the inhibit (org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.ScreenSaver was not provided by any .service files)
+[2026-10-17 07:19:45.568279 +00:00] INFO [src/platform/linux.rs:2667] wakelock: the logind idle/sleep inhibit did not come back either (I/O error: No such file or directory (os error 2))
+[2026-10-17 07:19:45.568965 +00:00] INFO [src/platform/linux.rs:2614] wakelock: no session idle inhibitor answered, so the compositor may still blank this screen (org.gnome.SessionManager: The name org.gnome.SessionManager was not provided by any .service files; org.freedesktop.PowerManagement: The name org.freedesktop.PowerManagement was not provided by any .service files)
+[2026-10-17 07:19:45.573240 +00:00] INFO [src/server/connection.rs:2210] peer info supported_encoding: SupportedEncoding { h264: false, h265: false, vp8: true, av1: true, i444: MessageField(Some(CodecAbility { vp8: false, vp9: true, av1: true, h264: false, h265: false, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
+[2026-10-17 07:19:45.577386 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Update(1684, SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })
+[2026-10-17 07:19:45.577499 +00:00] INFO [libs/scrap/src/common/codec.rs:320] usable: vp8=true, av1=false, h264=false, h265=false
+[2026-10-17 07:19:45.577502 +00:00] INFO [libs/scrap/src/common/codec.rs:323] connection count: 1, used preference: Auto, encoder: VP9
+[2026-10-17 07:19:45.577543 +00:00] INFO [src/server/connection.rs:5012] Option update: OptionMessage { image_quality: NotSet, lock_after_session_end: NotSet, show_remote_cursor: Yes, privacy_mode: NotSet, block_input: NotSet, custom_image_quality: 0, disable_audio: Yes, disable_clipboard: Yes, enable_file_transfer: NotSet, supported_decoding: MessageField(Some(SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), custom_fps: 0, disable_keyboard: NotSet, follow_remote_cursor: NotSet, follow_remote_window: NotSet, disable_camera: NotSet, terminal_persistent: NotSet, show_my_cursor: NotSet, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
+[2026-10-17 07:19:45.577549 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Update(1684, SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })
+[2026-10-17 07:19:45.577603 +00:00] INFO [libs/scrap/src/common/codec.rs:320] usable: vp8=true, av1=false, h264=false, h265=false
+[2026-10-17 07:19:45.577605 +00:00] INFO [libs/scrap/src/common/codec.rs:323] connection count: 1, used preference: Auto, encoder: VP9
+[2026-10-17 07:19:45.577758 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1684
+[2026-10-17 07:19:45.578161 +00:00] INFO [libs/libxdo-sys-stub/src/lib.rs:114] libxdo-sys Loaded libxdo.so.3
+[2026-10-17 07:19:45.578196 +00:00] DEBUG [src/server/service.rs:305] Enter monitor0 service inner loop
+[2026-10-17 07:19:45.578263 +00:00] INFO [src/server/video_service.rs:1047] new video service: monitor0
+[2026-10-17 07:19:45.579140 +00:00] INFO [src/platform/linux.rs:303] xdo context created successfully
+[2026-10-17 07:19:45.579417 +00:00] DEBUG [src/server/video_service.rs:489] #displays=1, current=0, origin: (0, 0), width=640, height=480, cpus=8/4, name:screen
+[2026-10-17 07:19:45.579423 +00:00] DEBUG [src/server/video_service.rs:518] Try create capturer with capturer privacy mode id 0
+[2026-10-17 07:19:45.579429 +00:00] DEBUG [src/server/video_service.rs:367] Create capturer from scrap
+[2026-10-17 07:19:45.579448 +00:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: VPX(VpxEncoderConfig { width: 640, height: 480, quality: 0.67, codec: VP9, keyframe_interval: None }), i444: false
+[2026-10-17 07:19:45.579833 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.65, available memory: 25G, codec thread: 2
+[2026-10-17 07:19:45.590216 +00:00] INFO [src/server/video_service.rs:736] initial quality: 0.67
+[2026-10-17 07:19:45.592548 +00:00] INFO [src/server/service.rs:196] Call snapshot of monitor0 service
+[2026-10-17 07:19:45.606167 +00:00] DEBUG [src/server/service.rs:305] Enter display service inner loop
+[2026-10-17 07:19:45.606245 +00:00] INFO [src/server/service.rs:196] Call snapshot of display service
+[2026-10-17 07:19:45.606784 +00:00] INFO [src/server/display_service.rs:721] Displays changed
+[2026-10-17 07:19:45.609931 +00:00] INFO [src/server/service.rs:196] Call snapshot of mouse_cursor service
+[2026-10-17 07:19:45.657374 +00:00] INFO [src/server/video_service.rs:783] switch to refresh
+[2026-10-17 07:19:45.658946 +00:00] INFO [src/server/video_service.rs:1059] stop video service: monitor0
+[2026-10-17 07:19:45.658954 +00:00] ERROR [src/server/service.rs:308] Error of monitor0 service: SWITCH
+[2026-10-17 07:19:45.726559 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:45.749160 +00:00] DEBUG [src/server/service.rs:305] Enter monitor0 service inner loop
+[2026-10-17 07:19:45.749186 +00:00] INFO [src/server/video_service.rs:1047] new video service: monitor0
+[2026-10-17 07:19:45.749967 +00:00] DEBUG [src/server/video_service.rs:489] #displays=1, current=0, origin: (0, 0), width=640, height=480, cpus=8/4, name:screen
+[2026-10-17 07:19:45.749976 +00:00] DEBUG [src/server/video_service.rs:518] Try create capturer with capturer privacy mode id 0
+[2026-10-17 07:19:45.749978 +00:00] DEBUG [src/server/video_service.rs:367] Create capturer from scrap
+[2026-10-17 07:19:45.750006 +00:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: VPX(VpxEncoderConfig { width: 640, height: 480, quality: 0.67, codec: VP9, keyframe_interval: None }), i444: false
+[2026-10-17 07:19:45.752019 +00:00] INFO [src/server/video_service.rs:736] initial quality: 0.67
+[2026-10-17 07:19:45.809894 +00:00] INFO [src/server/connection.rs:2985] receive close reason: 
+[2026-10-17 07:19:45.809956 +00:00] INFO [src/server/connection.rs:5425] #1684 Connection closed: Peer close
+[2026-10-17 07:19:45.809993 +00:00] INFO [src/server/connection.rs:1323] #1684 connection loop exited
+[2026-10-17 07:19:45.810100 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Remove(1684)
+[2026-10-17 07:19:45.810331 +00:00] INFO [src/server/connection.rs:6784] drop wakelock
+[2026-10-17 07:19:45.810373 +00:00] INFO [src/ui_cm_interface.rs:580] cm ipc connection closed from connection request
+[2026-10-17 07:19:45.810379 +00:00] WARN [src/server/connection.rs:2959] ipc to connection manager exit: expected
+[2026-10-17 07:19:45.810387 +00:00] DEBUG [src/ui_cm_interface.rs:854] ipc task end
+[2026-10-17 07:19:45.811403 +00:00] INFO [libs/enigo/src/linux/xdo.rs:100] xdo context created successfully
+[2026-10-17 07:19:45.811646 +00:00] INFO [libs/enigo/src/linux/xdo.rs:72] X11 pointer has 10 buttons, side buttons supported
+[2026-10-17 07:19:45.811650 +00:00] DEBUG [src/server/connection.rs:1401] Input thread exited
+[2026-10-17 07:19:45.819664 +00:00] INFO [src/server/video_service.rs:1059] stop video service: monitor0
+[2026-10-17 07:19:45.819689 +00:00] DEBUG [src/server/service.rs:321] Exit monitor0 service inner loop
+[2026-10-17 07:19:45.906873 +00:00] DEBUG [src/server/service.rs:321] Exit display service inner loop
+[2026-10-17 07:19:45.982030 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:47.032557 +00:00] INFO [src/server.rs:919] #7 try: failed to connect to ipc_service
+[2026-10-17 07:19:48.964299 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:49.434085 +00:00] INFO [src/server.rs:919] #8 try: failed to connect to ipc_service
+[2026-10-17 07:19:52.135664 +00:00] INFO [src/server.rs:919] #9 try: failed to connect to ipc_service
+[2026-10-17 07:19:52.213953 +00:00] DEBUG [src/rendezvous_mediator.rs:838] Handle intranet from 198.18.0.1:41389
+[2026-10-17 07:19:52.214052 +00:00] INFO [src/server.rs:193] Server listening on: 198.18.0.1:46307
+[2026-10-17 07:19:52.214421 +00:00] INFO [src/rendezvous_mediator.rs:720] create_relay requested from 198.18.0.1:36871, relay_server: 198.18.0.1:21117, uuid: cd33836d-e345-495e-be93-5596040e66a9, secure: true
+[2026-10-17 07:19:52.214900 +00:00] WARN [src/server.rs:363] Failed to accept connection from 198.18.0.1:41389: Connection reset by peer (os error 104)
+[2026-10-17 07:19:52.215236 +00:00] DEBUG [src/server/connection.rs:1584] #1686 Connection opened from 198.18.0.1:36871.
+[2026-10-17 07:19:52.218398 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.24/src/connect.rs:882] starting new connection: http://198.18.0.1:21114/
+[2026-10-17 07:19:52.218409 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hyper-util-0.1.17/src/client/legacy/connect/http.rs:768] connecting to 198.18.0.1:21114
+[2026-10-17 07:19:52.218839 +00:00] WARN [src/common.rs:1583] HTTP POST to http://198.18.0.1:21114/api/audit/conn failed or 5xx (result: Err("reqwest::Error { kind: Request, url: \"http://198.18.0.1:21114/api/audit/conn\", source: hyper_util::client::legacy::Error(Connect, ConnectError(\"tcp connect error\", 198.18.0.1:21114, Os { code: 111, kind: ConnectionRefused, message: \"Connection refused\" })) }")), trying TCP proxy fallback
+[2026-10-17 07:19:52.218907 +00:00] DEBUG [src/common.rs:1341] Sending POST /api/audit/conn via TCP proxy to 198.18.0.1:21116
+[2026-10-17 07:19:52.219385 +00:00] DEBUG [src/ui_cm_interface.rs:880] Got new connection
+[2026-10-17 07:19:52.219416 +00:00] DEBUG [src/ui_cm_interface.rs:829] ipc task begin
+[2026-10-17 07:19:52.219453 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1686
+[2026-10-17 07:19:53.409274 +00:00] INFO [src/platform/mod.rs:112] new wakelock, require display on: true
+[2026-10-17 07:19:53.409459 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:382] perform;
+[2026-10-17 07:19:53.409479 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Auth(Some(External), Some([50, 49, 48, 49]))
+[2026-10-17 07:19:53.409491 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;
+[2026-10-17 07:19:53.409613 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=NegotiateUnixFD
+[2026-10-17 07:19:53.409627 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;
+[2026-10-17 07:19:53.409699 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Begin
+[2026-10-17 07:19:53.409793 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/socket_reader.rs:33] socket reader;
+[2026-10-17 07:19:53.410767 +00:00] INFO [src/platform/linux.rs:2654] wakelock: keepawake could not take the inhibit (org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.ScreenSaver was not provided by any .service files)
+[2026-10-17 07:19:53.410852 +00:00] INFO [src/platform/linux.rs:2667] wakelock: the logind idle/sleep inhibit did not come back either (I/O error: No such file or directory (os error 2))
+[2026-10-17 07:19:53.411305 +00:00] INFO [src/platform/linux.rs:2614] wakelock: no session idle inhibitor answered, so the compositor may still blank this screen (org.gnome.SessionManager: The name org.gnome.SessionManager was not provided by any .service files; org.freedesktop.PowerManagement: The name org.freedesktop.PowerManagement was not provided by any .service files)
+[2026-10-17 07:19:53.413959 +00:00] INFO [src/server/connection.rs:2210] peer info supported_encoding: SupportedEncoding { h264: false, h265: false, vp8: true, av1: true, i444: MessageField(Some(CodecAbility { vp8: false, vp9: true, av1: true, h264: false, h265: false, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
+[2026-10-17 07:19:53.418740 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Update(1686, SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })
+[2026-10-17 07:19:53.418855 +00:00] INFO [libs/scrap/src/common/codec.rs:320] usable: vp8=true, av1=false, h264=false, h265=false
+[2026-10-17 07:19:53.418859 +00:00] INFO [libs/scrap/src/common/codec.rs:323] connection count: 1, used preference: Auto, encoder: VP9
+[2026-10-17 07:19:53.418897 +00:00] INFO [src/server/connection.rs:5012] Option update: OptionMessage { image_quality: NotSet, lock_after_session_end: NotSet, show_remote_cursor: Yes, privacy_mode: NotSet, block_input: NotSet, custom_image_quality: 0, disable_audio: Yes, disable_clipboard: Yes, enable_file_transfer: NotSet, supported_decoding: MessageField(Some(SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), custom_fps: 0, disable_keyboard: NotSet, follow_remote_cursor: NotSet, follow_remote_window: NotSet, disable_camera: NotSet, terminal_persistent: NotSet, show_my_cursor: NotSet, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
+[2026-10-17 07:19:53.418904 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Update(1686, SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })
+[2026-10-17 07:19:53.418970 +00:00] INFO [libs/scrap/src/common/codec.rs:320] usable: vp8=true, av1=false, h264=false, h265=false
+[2026-10-17 07:19:53.418973 +00:00] INFO [libs/scrap/src/common/codec.rs:323] connection count: 1, used preference: Auto, encoder: VP9
+[2026-10-17 07:19:53.419036 +00:00] DEBUG [src/server/service.rs:305] Enter monitor0 service inner loop
+[2026-10-17 07:19:53.419061 +00:00] INFO [src/server/video_service.rs:1047] new video service: monitor0
+[2026-10-17 07:19:53.419061 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1686
+[2026-10-17 07:19:53.419639 +00:00] DEBUG [src/server/video_service.rs:489] #displays=1, current=0, origin: (0, 0), width=640, height=480, cpus=8/4, name:screen
+[2026-10-17 07:19:53.419644 +00:00] DEBUG [src/server/video_service.rs:518] Try create capturer with capturer privacy mode id 0
+[2026-10-17 07:19:53.419646 +00:00] DEBUG [src/server/video_service.rs:367] Create capturer from scrap
+[2026-10-17 07:19:53.419667 +00:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: VPX(VpxEncoderConfig { width: 640, height: 480, quality: 0.67, codec: VP9, keyframe_interval: None }), i444: false
+[2026-10-17 07:19:53.420009 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.68, available memory: 25G, codec thread: 2
+[2026-10-17 07:19:53.421325 +00:00] INFO [src/server/video_service.rs:736] initial quality: 0.67
+[2026-10-17 07:19:53.423133 +00:00] INFO [src/server/service.rs:196] Call snapshot of monitor0 service
+[2026-10-17 07:19:53.433714 +00:00] INFO [src/server/service.rs:196] Call snapshot of mouse_cursor service
+[2026-10-17 07:19:53.446919 +00:00] DEBUG [src/server/service.rs:305] Enter display service inner loop
+[2026-10-17 07:19:53.446960 +00:00] INFO [src/server/service.rs:196] Call snapshot of display service
+[2026-10-17 07:19:53.564486 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-17 07:19:53.649071 +00:00] INFO [src/server/connection.rs:2985] receive close reason: 
+[2026-10-17 07:19:53.649113 +00:00] INFO [src/server/connection.rs:5425] #1686 Connection closed: Peer close
+[2026-10-17 07:19:53.649137 +00:00] INFO [src/server/connection.rs:1323] #1686 connection loop exited
+[2026-10-17 07:19:53.649223 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Remove(1686)
+[2026-10-17 07:19:53.649232 +00:00] DEBUG [src/server/connection.rs:1401] Input thread exited
+[2026-10-17 07:19:53.649407 +00:00] INFO [src/server/connection.rs:6784] drop wakelock
+[2026-10-17 07:19:53.649472 +00:00] INFO [src/ui_cm_interface.rs:580] cm ipc connection closed from connection request
+[2026-10-17 07:19:53.649477 +00:00] WARN [src/server/connection.rs:2959] ipc to connection manager exit: expected
+[2026-10-17 07:19:53.649479 +00:00] DEBUG [src/ui_cm_interface.rs:854] ipc task end
+[2026-10-17 07:19:53.689857 +00:00] INFO [src/server/video_service.rs:1059] stop video service: monitor0
+[2026-10-17 07:19:53.689886 +00:00] DEBUG [src/server/service.rs:321] Exit monitor0 service inner loop
+[2026-10-17 07:19:53.747394 +00:00] DEBUG [src/server/service.rs:321] Exit display service inner loop
+[2026-10-17 07:19:53.821476 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file

@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "image": "sha256:10818ec05b179039c6660f4d8e74b303f0db2858bbad2b18e24992ea22d54cd6",
+  "version": "1.1.15",
+  "upstream_revision": "bd3e73fd5168f099969788c50d3188537f9d4792",
+  "purpose": "isolated loopback ID/relay test fixtures only; never installed service inputs",
+  "files": {
+    "hbbr": {
+      "image_path": "usr/bin/hbbr",
+      "bytes": 3372192,
+      "sha256": "a82b1bfd83c463180c6f6ee7e8a1fbd1fc3ac0ae0a19eac65784617cd21106d0"
+    },
+    "hbbs": {
+      "image_path": "usr/bin/hbbs",
+      "bytes": 9690736,
+      "sha256": "2f6a808ce7cd523d46d05cb697c974f17c4c1e6d41d4132ed921ed6142c873f4"
+    }
+  }
+}

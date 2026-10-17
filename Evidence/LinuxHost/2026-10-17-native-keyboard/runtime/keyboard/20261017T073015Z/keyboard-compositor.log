@@ -1,0 +1,351 @@
+00:00:00.000 [INFO] [sway/main.c:321] Sway version 1.11
+00:00:00.000 [INFO] [sway/main.c:322] wlroots version 0.19.1
+00:00:00.003 [INFO] [sway/main.c:78] Linux 2f685d126e52 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64 GNU/Linux
+00:00:00.004 [INFO] [sway/main.c:94] Contents of /etc/lsb-release:
+00:00:00.004 [INFO] [sway/main.c:78] DISTRIB_ID=Ubuntu
+00:00:00.004 [INFO] [sway/main.c:78] DISTRIB_RELEASE=26.04
+00:00:00.004 [INFO] [sway/main.c:78] DISTRIB_CODENAME=resolute
+00:00:00.004 [INFO] [sway/main.c:78] DISTRIB_DESCRIPTION="Ubuntu 26.04.1 LTS"
+00:00:00.004 [INFO] [sway/main.c:94] Contents of /etc/os-release:
+00:00:00.004 [INFO] [sway/main.c:78] PRETTY_NAME="Ubuntu 26.04.1 LTS"
+00:00:00.004 [INFO] [sway/main.c:78] NAME="Ubuntu"
+00:00:00.004 [INFO] [sway/main.c:78] VERSION_ID="26.04"
+00:00:00.004 [INFO] [sway/main.c:78] VERSION="26.04.1 LTS (Resolute Raccoon)"
+00:00:00.004 [INFO] [sway/main.c:78] VERSION_CODENAME=resolute
+00:00:00.004 [INFO] [sway/main.c:78] ID=ubuntu
+00:00:00.004 [INFO] [sway/main.c:78] ID_LIKE=debian
+00:00:00.004 [INFO] [sway/main.c:78] HOME_URL="https://www.ubuntu.com/"
+00:00:00.004 [INFO] [sway/main.c:78] SUPPORT_URL="https://help.ubuntu.com/"
+00:00:00.004 [INFO] [sway/main.c:78] BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+00:00:00.004 [INFO] [sway/main.c:78] PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+00:00:00.004 [INFO] [sway/main.c:78] UBUNTU_CODENAME=resolute
+00:00:00.004 [INFO] [sway/main.c:78] LOGO=ubuntu-logo
+00:00:00.004 [INFO] [sway/main.c:94] Contents of /etc/debian_version:
+00:00:00.004 [INFO] [sway/main.c:78] forky/sid
+00:00:00.004 [INFO] [sway/main.c:66] LD_LIBRARY_PATH=
+00:00:00.004 [INFO] [sway/main.c:66] LD_PRELOAD=
+00:00:00.004 [INFO] [sway/main.c:66] PATH=/opt/flutter/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+00:00:00.004 [INFO] [sway/main.c:66] SWAYSOCK=
+00:00:00.004 [INFO] [sway/main.c:351] Starting sway version 1.11
+00:00:00.004 [DEBUG] [sway/server.c:236] Initializing Wayland server
+00:00:00.004 [INFO] [wlr] [backend/backend.c:342] Loading user-specified backends due to WLR_BACKENDS: headless
+00:00:00.004 [INFO] [wlr] [backend/headless/backend.c:60] Creating headless backend
+00:00:00.004 [INFO] [wlr] [util/env.c:25] Loading WLR_RENDERER option: pixman
+00:00:00.004 [INFO] [wlr] [render/pixman/renderer.c:328] Creating pixman renderer
+00:00:00.004 [DEBUG] [wlr] [render/allocator/allocator.c:132] Trying to create shm allocator
+00:00:00.004 [DEBUG] [wlr] [render/allocator/shm.c:118] Created shm allocator
+00:00:00.004 [DEBUG] [wlr] [types/wlr_drm_lease_v1.c:679] No DRM backend supplied, failed to create wlr_drm_lease_v1_manager
+00:00:00.004 [DEBUG] [sway/server.c:380] Failed to create wlr_drm_lease_device_v1
+00:00:00.004 [INFO] [sway/server.c:381] VR will not be available
+00:00:00.004 [INFO] [wlr] [backend/headless/backend.c:60] Creating headless backend
+00:00:00.006 [INFO] [sway/config.c:422] Loading config from /workspace/Build/Linux/native-keyboard-smoke/20261017T073015Z/sway.conf
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 1: xwayland disable
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: xwayland disable
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: xwayland disable
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 2: output HEADLESS-1 resolution 1020x720
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: output HEADLESS-1 resolution 1020x720
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: output HEADLESS-1 resolution 1020x720
+00:00:00.006 [DEBUG] [sway/commands.c:436] Subcommand: resolution 1020x720
+00:00:00.006 [DEBUG] [sway/config/output.c:272] Config stored for output HEADLESS-1 (enabled: -1) (1020x720@-1.000000Hz position 2147483647,2147483647 scale -1.000000 subpixel unknown transform -1) (bg (null) (null)) (power -1) (max render time: -1) (allow tearing: -1)
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 3: seat seat0 fallback true
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: seat seat0 fallback true
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: seat seat0 fallback true
+00:00:00.006 [DEBUG] [sway/commands.c:436] Subcommand: fallback true
+00:00:00.006 [DEBUG] [sway/config/seat.c:65] Adding non-wildcard seat config
+00:00:00.006 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 4: seat seat0 shortcuts_inhibitor disable
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: seat seat0 shortcuts_inhibitor disable
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: seat seat0 shortcuts_inhibitor disable
+00:00:00.006 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor disable
+00:00:00.006 [DEBUG] [sway/config/seat.c:59] Merging on top of existing seat config
+00:00:00.006 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 5: default_border none
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: default_border none
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: default_border none
+00:00:00.006 [DEBUG] [sway/config.c:781] Read line 6: focus_follows_mouse no
+00:00:00.006 [INFO] [sway/commands.c:381] Config command: focus_follows_mouse no
+00:00:00.006 [INFO] [sway/commands.c:404] After replacement: focus_follows_mouse no
+00:00:00.012 [DEBUG] [sway/input/input-manager.c:637] applying seat config for seat seat0
+00:00:00.012 [DEBUG] [sway/config/output.c:1150] spawn_swaybg cmd[0] = swaybg
+00:00:00.013 [INFO] [sway/realtime.c:35] Failed to set scheduling priority to 1
+00:00:00.013 [INFO] [sway/server.c:538] Starting backend on wayland display 'wayland-1'
+00:00:00.013 [INFO] [wlr] [backend/headless/backend.c:17] Starting headless backend
+00:00:00.013 [DEBUG] [sway/desktop/output.c:534] New output 0x564b5840dbc0: HEADLESS-1 (non-desktop: 0)
+00:00:00.013 [INFO] [wlr] [backend/headless/backend.c:17] Starting headless backend
+00:00:00.013 [DEBUG] [sway/config/output.c:880] Committing 1 outputs
+00:00:00.013 [DEBUG] [sway/config/output.c:643] Output state for HEADLESS-1
+00:00:00.013 [DEBUG] [sway/config/output.c:645]     enabled:       yes
+00:00:00.013 [DEBUG] [sway/config/output.c:649]     render_format: XR24
+00:00:00.013 [DEBUG] [sway/config/output.c:654]     custom mode:   1020x720@0mHz
+00:00:00.013 [DEBUG] [sway/config/output.c:667]     scale:         1.000000
+00:00:00.013 [DEBUG] [sway/config/output.c:670]     subpixel:      unknown
+00:00:00.013 [DEBUG] [wlr] [types/wlr_output_swapchain_manager.c:160] Preparing test commit for 1 outputs with explicit modifiers
+00:00:00.013 [DEBUG] [wlr] [render/swapchain.c:101] Allocating new swapchain buffer
+00:00:00.013 [DEBUG] [wlr] [types/wlr_output_swapchain_manager.c:181] Test commit for 1 outputs succeeded
+00:00:00.013 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 1020x720
+00:00:00.014 [DEBUG] [sway/config/output.c:940] Commit of 1 outputs succeeded
+00:00:00.014 [DEBUG] [sway/config/output.c:946] Finalizing config for HEADLESS-1
+00:00:00.014 [DEBUG] [sway/tree/workspace.c:294] Workspace: Generating new workspace name for output HEADLESS-1
+00:00:00.014 [DEBUG] [sway/tree/output.c:163] Creating default workspace 1
+00:00:00.014 [DEBUG] [sway/tree/workspace.c:65] Adding workspace 1 for output HEADLESS-1
+00:00:00.014 [DEBUG] [sway/desktop/layer_shell.c:96] Usable area changed, rearranging output
+00:00:00.014 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:00.014 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:00.014 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:00.014 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:00.014 [DEBUG] [sway/desktop/transaction.c:821] Transaction 0x564b58425a50 committing with 2 instructions
+00:00:00.014 [DEBUG] [sway/desktop/transaction.c:717] Applying transaction 0x564b58425a50
+00:00:00.019 [DEBUG] [wlr] [xcursor/wlr_xcursor.c:224] Loaded cursor theme 'default' at size 24 (63 available cursors)
+00:00:00.019 [INFO] [sway/server.c:550] Running compositor on wayland display 'wayland-1'
+2026-10-17 07:30:18 - [main.c:278] Could not find config for output HEADLESS-1 ((null))
+00:00:00.045 [DEBUG] [sway/input/input-manager.c:421] adding virtual pointer: '0:0:wlr_virtual_pointer_v1'
+00:00:00.045 [DEBUG] [sway/input/seat.c:945] adding device 0:0:wlr_virtual_pointer_v1 to seat seat0
+00:00:00.045 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:00.045 [DEBUG] [wlr] [render/swapchain.c:101] Allocating new swapchain buffer
+00:00:00.045 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 24x24
+00:00:00.045 [DEBUG] [sway/input/input-manager.c:389] adding virtual keyboard: '0:0:wlr_virtual_keyboard_v1'
+00:00:00.045 [DEBUG] [sway/input/seat.c:945] adding device 0:0:wlr_virtual_keyboard_v1 to seat seat0
+00:00:00.051 [DEBUG] [sway/ipc-server.c:196] New client: fd 20
+00:00:00.051 [INFO] [sway/ipc-server.c:570] IPC Client 20 disconnected
+00:00:00.071 [DEBUG] [wlr] [types/wlr_compositor.c:786] New wlr_surface 0x564b584b8130 (res 0x564b5855ffa0)
+00:00:00.133 [DEBUG] [sway/ipc-server.c:196] New client: fd 23
+00:00:00.133 [INFO] [sway/ipc-server.c:570] IPC Client 23 disconnected
+00:00:00.185 [DEBUG] [wlr] [types/wlr_compositor.c:786] New wlr_surface 0x564b584b12d0 (res 0x564b5856ad40)
+00:00:00.185 [DEBUG] [wlr] [types/xdg_shell/wlr_xdg_surface.c:441] new xdg_surface 0x564b584436d0 (res 0x564b5856a9e0)
+00:00:00.185 [DEBUG] [sway/desktop/xdg_shell.c:543] New xdg_shell toplevel title='(null)' app_id='(null)'
+00:00:00.185 [DEBUG] [wlr] [types/wlr_xdg_activation_v1.c:113] Rejecting token commit request: serial 0 was never given to client
+00:00:00.185 [DEBUG] [wlr] [types/wlr_xdg_activation_v1.c:308] Rejecting activate request: unknown token
+00:00:00.210 [DEBUG] [sway/tree/view.c:466] View 0x564b584744e0 updated CSD to 1
+00:00:00.210 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:00.210 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:00.210 [DEBUG] [sway/tree/arrange.c:76] Arranging 0x7ffed2a2e4b0 horizontally
+00:00:00.210 [DEBUG] [sway/desktop/transaction.c:821] Transaction 0x564b584438c0 committing with 3 instructions
+00:00:00.215 [DEBUG] [sway/ipc-server.c:196] New client: fd 25
+00:00:00.215 [DEBUG] [sway/desktop/transaction.c:907] Transaction 0x564b584438c0 is ready
+00:00:00.215 [DEBUG] [sway/desktop/transaction.c:717] Applying transaction 0x564b584438c0
+00:00:00.215 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:00.215 [INFO] [sway/ipc-server.c:570] IPC Client 25 disconnected
+00:00:01.216 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:01.216 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:01.216 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:01.219 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:01.234 [DEBUG] [sway/ipc-server.c:196] New client: fd 25
+00:00:01.234 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 430 252'
+00:00:01.234 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 430 252
+00:00:01.234 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:01.234 [INFO] [sway/ipc-server.c:570] IPC Client 25 disconnected
+00:00:01.236 [DEBUG] [sway/ipc-server.c:196] New client: fd 25
+00:00:01.236 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.236 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.236 [INFO] [sway/ipc-server.c:570] IPC Client 25 disconnected
+00:00:01.237 [DEBUG] [wlr] [render/swapchain.c:101] Allocating new swapchain buffer
+00:00:01.237 [DEBUG] [wlr] [render/pixman/renderer.c:186] Created pixman buffer 24x24
+00:00:01.237 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.237 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.237 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.237 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.237 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.237 [INFO] [sway/input/text_input.c:252] Enabling text input when input method is gone
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.389 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.389 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.389 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.389 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.389 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.389 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.389 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.390 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.390 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 824 252'
+00:00:01.390 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 824 252
+00:00:01.390 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.390 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.391 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.391 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.391 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.391 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.391 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.391 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.392 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.392 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.392 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.393 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.506 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.506 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.506 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.546 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.546 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 485 233'
+00:00:01.546 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 485 233
+00:00:01.546 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.547 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.547 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.547 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.548 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.549 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.549 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.549 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.549 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.549 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.549 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.549 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.550 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.550 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.550 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.701 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.701 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.701 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.701 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.701 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.701 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.701 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.701 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.701 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.701 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.701 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.701 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.701 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.701 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.701 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.702 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 510 387'
+00:00:01.702 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 510 387
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.702 [DEBUG] [wlr] [types/wlr_text_input_v3.c:190] Text input commit received without focus
+00:00:01.702 [DEBUG] [sway/input/text_input.c:267] Text input committed update
+00:00:01.702 [INFO] [sway/input/text_input.c:269] Text input committed, but input method is gone
+00:00:01.703 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.703 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.703 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.703 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.704 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.704 [DEBUG] [sway/ipc-server.c:196] New client: fd 26
+00:00:01.704 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.705 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.705 [INFO] [sway/ipc-server.c:570] IPC Client 26 disconnected
+00:00:01.855 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:01.855 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:01.855 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:01.859 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:01.867 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:01.872 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:01.875 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:01.888 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:01.888 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor set 573 77'
+00:00:01.888 [DEBUG] [sway/commands.c:436] Subcommand: cursor set 573 77
+00:00:01.888 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:01.888 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:01.889 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:01.889 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor press button1'
+00:00:01.889 [DEBUG] [sway/commands.c:436] Subcommand: cursor press button1
+00:00:01.889 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:01.890 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:01.890 [INFO] [sway/commands.c:261] Handling command 'seat seat0 cursor release button1'
+00:00:01.890 [DEBUG] [sway/commands.c:436] Subcommand: cursor release button1
+00:00:01.890 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:01.891 [DEBUG] [sway/input/input-manager.c:313] Adding keyboard shortcuts inhibitor
+00:00:03.291 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:03.291 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:03.291 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:03.294 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:03.309 [DEBUG] [sway/ipc-server.c:196] New client: fd 28
+00:00:03.309 [INFO] [sway/commands.c:261] Handling command 'seat seat0 shortcuts_inhibitor activate'
+00:00:03.309 [DEBUG] [sway/commands.c:436] Subcommand: shortcuts_inhibitor activate
+00:00:03.309 [DEBUG] [sway/commands/seat/shortcuts_inhibitor.c:48] Activated keyboard shortcuts inhibitor
+00:00:03.309 [DEBUG] [sway/config/seat.c:59] Merging on top of existing seat config
+00:00:03.309 [DEBUG] [sway/config/seat.c:82] Config stored for seat seat0
+00:00:03.309 [DEBUG] [sway/input/input-manager.c:637] applying seat config for seat seat0
+00:00:03.309 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:03.309 [DEBUG] [sway/input/seat.c:694] Applying input mapping to 0:0:wlr_virtual_pointer_v1
+00:00:03.310 [INFO] [sway/ipc-server.c:570] IPC Client 28 disconnected
+00:00:03.311 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:03.460 [DEBUG] [wlr] [types/output/render.c:142] Disabling direct scan-out on output 'HEADLESS-1' (locks: 1)
+00:00:03.472 [DEBUG] [wlr] [types/output/output.c:972] Direct scan-out disabled by lock
+00:00:03.472 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:03.476 [DEBUG] [wlr] [types/output/render.c:142] Enabling direct scan-out on output 'HEADLESS-1' (locks: 0)
+00:00:03.489 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out enabled
+00:00:03.491 [DEBUG] [sway/input/input-manager.c:208] removing device: '0:0:wlr_virtual_pointer_v1'
+00:00:03.491 [DEBUG] [sway/input/seat.c:965] removing device 0:0:wlr_virtual_pointer_v1 from seat seat0
+00:00:03.491 [DEBUG] [sway/input/input-manager.c:208] removing device: '0:0:wlr_virtual_keyboard_v1'
+00:00:03.491 [DEBUG] [sway/input/seat.c:965] removing device 0:0:wlr_virtual_keyboard_v1 from seat seat0
+00:00:03.499 [DEBUG] [sway/input/text_input.c:278] Disabling text input, but input method is gone
+00:00:03.499 [DEBUG] [sway/tree/arrange.c:274] Usable area for ws: 1020x720@0,0
+00:00:03.499 [DEBUG] [sway/tree/arrange.c:308] Arranging workspace '1' at 0.000000, 0.000000
+00:00:03.499 [DEBUG] [sway/desktop/transaction.c:821] Transaction 0x564b5850cce0 committing with 2 instructions
+00:00:03.499 [DEBUG] [sway/desktop/transaction.c:717] Applying transaction 0x564b5850cce0
+00:00:03.499 [DEBUG] [sway/input/input-manager.c:298] Removing keyboard shortcuts inhibitor
+00:00:03.505 [DEBUG] [wlr] [types/scene/wlr_scene.c:2189] Direct scan-out disabled
+00:00:03.506 [INFO] [sway/main.c:398] Shutting down sway
+00:00:03.506 [DEBUG] [sway/tree/output.c:286] Disabling output 'HEADLESS-1'
+00:00:03.506 [DEBUG] [sway/tree/workspace.c:162] Destroying workspace '1'
+00:00:03.506 [DEBUG] [sway/tree/output.c:302] Destroying output 'HEADLESS-1'

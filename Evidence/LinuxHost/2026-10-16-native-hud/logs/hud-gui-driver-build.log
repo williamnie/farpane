@@ -1,0 +1,82 @@
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+warning: use of deprecated struct `gtk4::FileChooserDialog`: Since 4.10
+  --> src/hud_smoke.rs:86:51
+   |
+86 |                 .filter_map(|w| w.downcast::<gtk::FileChooserDialog>().ok())
+   |                                                   ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `libadwaita::prelude::DialogExt::response`: Since 4.10
+   --> src/hud_smoke.rs:195:38
+    |
+195 |                     chooser.unwrap().response(gtk::ResponseType::Cancel);
+    |                                      ^^^^^^^^
+
+warning: use of deprecated method `libadwaita::prelude::FileChooserExtManual::set_current_folder`: Since 4.10
+   --> src/hud_smoke.rs:212:26
+    |
+212 |                         .set_current_folder(Some(&gio::File::for_path(&directory)))
+    |                          ^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated method `libadwaita::prelude::FileChooserExt::set_current_name`: Since 4.10
+   --> src/hud_smoke.rs:214:29
+    |
+214 |                     chooser.set_current_name("diagnostics.json");
+    |                             ^^^^^^^^^^^^^^^^
+
+warning: use of deprecated method `libadwaita::prelude::DialogExt::response`: Since 4.10
+   --> src/hud_smoke.rs:219:38
+    |
+219 |                     chooser.unwrap().response(gtk::ResponseType::Accept);
+    |                                      ^^^^^^^^
+
+warning: `farpane-gui` (bin "farpane" test) generated 5 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.51s
+     Running unittests src/main.rs (/workspace/Build/Linux/native-target/debug/deps/farpane-36b0ed4f00ba5d12)
+
+running 6 tests
+test model::tests::authentication_does_not_claim_picture_and_old_events_cannot_replace_new_session ... ok
+test bridge::tests::stale_approval_is_not_sent_to_a_new_agent_generation ... ok
+test model::tests::stale_generation_replayed_sequence_and_frames_after_cancel_are_rejected ... ok
+test viewer_input::tests::letterbox_hidpi_and_negative_monitor_origin_map_to_remote_coordinates ... ok
+test diagnostics::tests::event_summaries_never_copy_sensitive_payloads ... ok
+test diagnostics::tests::disk_rotation_is_bounded_and_preserves_unknown_and_symlink_targets ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+warning: use of deprecated struct `gtk4::FileChooserDialog`: Since 4.10
+  --> src/hud_smoke.rs:86:51
+   |
+86 |                 .filter_map(|w| w.downcast::<gtk::FileChooserDialog>().ok())
+   |                                                   ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `libadwaita::prelude::DialogExt::response`: Since 4.10
+   --> src/hud_smoke.rs:195:38
+    |
+195 |                     chooser.unwrap().response(gtk::ResponseType::Cancel);
+    |                                      ^^^^^^^^
+
+warning: use of deprecated method `libadwaita::prelude::FileChooserExtManual::set_current_folder`: Since 4.10
+   --> src/hud_smoke.rs:212:26
+    |
+212 |                         .set_current_folder(Some(&gio::File::for_path(&directory)))
+    |                          ^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated method `libadwaita::prelude::FileChooserExt::set_current_name`: Since 4.10
+   --> src/hud_smoke.rs:214:29
+    |
+214 |                     chooser.set_current_name("diagnostics.json");
+    |                             ^^^^^^^^^^^^^^^^
+
+warning: use of deprecated method `libadwaita::prelude::DialogExt::response`: Since 4.10
+   --> src/hud_smoke.rs:219:38
+    |
+219 |                     chooser.unwrap().response(gtk::ResponseType::Accept);
+    |                                      ^^^^^^^^
+
+warning: `farpane-gui` (bin "farpane") generated 5 warnings
+    Finished `release` profile [optimized] target(s) in 18.06s

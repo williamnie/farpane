@@ -1,0 +1,24 @@
+/workspace/Build/Linux/native-lifecycle-smoke/20261017T063156Z
+{"cycle": 0, "warmup": true, "gui_pss_kib": 122648, "host_pss_kib": 123723, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 1, "warmup": true, "gui_pss_kib": 122948, "host_pss_kib": 125187, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 2, "warmup": false, "gui_pss_kib": 123140, "host_pss_kib": 125207, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 3, "warmup": false, "gui_pss_kib": 123276, "host_pss_kib": 125247, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 4, "warmup": false, "gui_pss_kib": 123424, "host_pss_kib": 125255, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 5, "warmup": false, "gui_pss_kib": 123540, "host_pss_kib": 125687, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 6, "warmup": false, "gui_pss_kib": 123672, "host_pss_kib": 126015, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 7, "warmup": false, "gui_pss_kib": 123788, "host_pss_kib": 126023, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 8, "warmup": false, "gui_pss_kib": 123880, "host_pss_kib": 126027, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 9, "warmup": false, "gui_pss_kib": 123968, "host_pss_kib": 126027, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 10, "warmup": false, "gui_pss_kib": 124144, "host_pss_kib": 126027, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 11, "warmup": false, "gui_pss_kib": 124160, "host_pss_kib": 126027, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 12, "warmup": false, "gui_pss_kib": 124184, "host_pss_kib": 126031, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 13, "warmup": false, "gui_pss_kib": 124204, "host_pss_kib": 126035, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 14, "warmup": false, "gui_pss_kib": 124252, "host_pss_kib": 126035, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 15, "warmup": false, "gui_pss_kib": 124332, "host_pss_kib": 126035, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 16, "warmup": false, "gui_pss_kib": 124452, "host_pss_kib": 126071, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 17, "warmup": false, "gui_pss_kib": 124484, "host_pss_kib": 126099, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 18, "warmup": false, "gui_pss_kib": 124572, "host_pss_kib": 126103, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 19, "warmup": false, "gui_pss_kib": 124592, "host_pss_kib": 126103, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 20, "warmup": false, "gui_pss_kib": 124596, "host_pss_kib": 126103, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"cycle": 21, "warmup": false, "gui_pss_kib": 124584, "host_pss_kib": 126103, "gui_fd": 13, "host_fd": 40, "worker_reaped": true}
+{"result": "pass", "rounds": 20, "warmup_rounds": 2, "same_gui_pid": 72, "same_host_pid": 26, "unique_workers_reaped": 22, "max_idle_growth_kib": {"gui": 1648, "host": 916}, "max_combined_idle_growth_kib": 2564, "stable_idle_fd_counts": true, "gpu_tested": false, "real_desktop_tested": false, "product_test_hooks": false, "gobject_observer_enabled": true, "memory_budget_accepted_with_observer": false, "gui_window_closed": true, "host_survived_gui_exit": true}

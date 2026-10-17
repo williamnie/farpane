@@ -1,0 +1,7 @@
+{"tools": "/home/user/farpane/Build/Linux/rendezvous-test-tools", "verified_existing": true, "image": "sha256:10818ec05b179039c6660f4d8e74b303f0db2858bbad2b18e24992ea22d54cd6"}
+/workspace/Build/Linux/native-id-server-smoke/20261017T070815Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_id_server_smoke.py", line 138, in <module>
+    assert not listen(21118),'Direct-IP server must remain disabled; use rendezvous ID'
+           ^^^^^^^^^^^^^^^^^
+AssertionError: Direct-IP server must remain disabled; use rendezvous ID

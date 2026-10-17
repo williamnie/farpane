@@ -1,0 +1,31 @@
+/workspace/Linux/tests/x11_clipboard_fixture.c: In function ‘main’:
+/workspace/Linux/tests/x11_clipboard_fixture.c:43:9: error: this ‘if’ clause does not guard... [-Werror=misleading-indentation]
+   43 |         if(argc<5||argc>9||(argc-3)%2)return 5;setting=1;
+      |         ^~
+/workspace/Linux/tests/x11_clipboard_fixture.c:43:48: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   43 |         if(argc<5||argc>9||(argc-3)%2)return 5;setting=1;
+      |                                                ^~~~~~~
+/workspace/Linux/tests/x11_clipboard_fixture.c:46:9: error: this ‘if’ clause does not guard... [-Werror=misleading-indentation]
+   46 |         if(argc!=5)return 5;output=fopen(argv[4],"wb");if(!output)return 5;
+      |         ^~
+/workspace/Linux/tests/x11_clipboard_fixture.c:46:29: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   46 |         if(argc!=5)return 5;output=fopen(argv[4],"wb");if(!output)return 5;
+      |                             ^~~~~~
+/workspace/Linux/tests/x11_clipboard_fixture.c:101:13: error: this ‘if’ clause does not guard... [-Werror=misleading-indentation]
+  101 |             if(fwrite(bytes,1,n,output)!=n)return 8;total+=n;if(bytes)XFree(bytes);XFlush(d);
+      |             ^~
+/workspace/Linux/tests/x11_clipboard_fixture.c:101:53: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+  101 |             if(fwrite(bytes,1,n,output)!=n)return 8;total+=n;if(bytes)XFree(bytes);XFlush(d);
+      |                                                     ^~~~~
+cc1: all warnings being treated as errors
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 436, in <module>
+    else: setup(Path(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
+          ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 418, in setup
+    subprocess.run(['cc','-std=c11','-D_POSIX_C_SOURCE=200809L','-Wall','-Wextra','-Werror','/workspace/Linux/tests/x11_clipboard_fixture.c','-lX11','-o',str(output/'clipboard-fixture')],check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['cc', '-std=c11', '-D_POSIX_C_SOURCE=200809L', '-Wall', '-Wextra', '-Werror', '/workspace/Linux/tests/x11_clipboard_fixture.c', '-lX11', '-o', '/workspace/Build/Linux/native-viewer-smoke/20261016T202359Z/clipboard-fixture']' returned non-zero exit status 1.

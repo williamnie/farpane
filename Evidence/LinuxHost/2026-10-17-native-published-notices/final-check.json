@@ -1,0 +1,33 @@
+{
+  "result": "pass",
+  "canonical_sha256": {
+    "Linux/native-published-notices.json": "e94dd07cfd7008d8502323e276d149f4141252023bc16b535db8eeb942a44830",
+    "Linux/packaging/native_published_notices.py": "552785d8d03f0278f2a5236fc55a856aebf99eff264e60f37fa19e462af2a72b",
+    "Scripts/linux/verify-published-notices.py": "6ab8d2d0c2f6218ad57b06596db12342351bc3f3a42ea4812d7634e133c7fd6a",
+    "Linux/docs/published-crate-notices.md": "b9980c4db286002c38be76deba66844b6b0ffc87bc634eb35f30a7cb153ccad1",
+    "Linux/docs/native-source-materials.md": "731f390fc135753f5fd95d167854b8201b2feaffeb76dbcc4ffb13a0951c8090",
+    "Linux/docs/gui-status.md": "08c6f1fb713180b872501199071dbee4fb87235519dee33899732e6e30a23cee",
+    "Linux/notices/published-sources/szymonwieloch/rust-dlopen/26b70292744db1052403378d4a01075b6171e3d1/tree.json": "974d49c81997041e1e94838a28840226e2e19d66ccb16d5c07edca3144122490",
+    "Linux/notices/published-sources/dcuddeback/serial-rs/7ed6540c2789b7c7365cd7a89fcb7bac7c567de8/tree.json": "9c258fdc90f49c6d0970d7f7f963e3f7c0764825940eb274f891e0ced83b7c7c"
+  },
+  "source_match_file_counts": [
+    6,
+    6,
+    9
+  ],
+  "new_notice_followups": 2,
+  "full_notice_location_followups_including_addendum": 28,
+  "baseline_records_without_full_notice_followup": 17,
+  "copied_crate_validation_cases": 7,
+  "doc_links_checked": 77,
+  "candidate_deliverables_unchanged": true,
+  "application_sources_and_binaries_unchanged": true,
+  "existing_supplement_pins_and_original_audit_unchanged": true,
+  "host_services_containers_and_ffmpeg_unchanged": true,
+  "core_gui_media_rebuilt": false,
+  "new_binary_package": false,
+  "product_executed": false,
+  "installed": false,
+  "complete_license_source_audit": false,
+  "full_plan_acceptance": false
+}

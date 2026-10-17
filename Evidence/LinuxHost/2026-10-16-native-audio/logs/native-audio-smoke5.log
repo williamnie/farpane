@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 369, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 271, in user_test
+    exercise_audio(directory)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_audio_smoke.py", line 106, in exercise_audio
+    toggle(True);expect(meter,True,'decoded-440hz')
+                 ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_audio_smoke.py", line 101, in expect
+    assert time.monotonic()<deadline,(label,sample)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('decoded-440hz', {'rms': 0.0, 'hz': 0.0, 'samples': 17100})

@@ -1,0 +1,8 @@
+GNOME_KEYRING_CONTROL=/run/farpane-native-test/user/keyring-control
+
+** (gnome-keyring-daemon:13): WARNING **: 17:41:41.286: asked to register item /org/freedesktop/secrets/collection/login/3, but it's already registered
+
+** (gnome-keyring-daemon:13): WARNING **: 17:41:44.666: asked to register item /org/freedesktop/secrets/collection/login/3, but it's already registered
+**
+ERROR:../daemon/dbus/gkd-secret-unlock.c:243:perform_next_unlock: assertion failed: (!self->current)
+Bail out! ERROR:../daemon/dbus/gkd-secret-unlock.c:243:perform_next_unlock: assertion failed: (!self->current)

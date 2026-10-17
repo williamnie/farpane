@@ -1,0 +1,37 @@
+[
+  {
+    "case": "valid",
+    "result": "pass",
+    "files": 6
+  },
+  {
+    "case": "modified-manifest",
+    "result": "rejected-as-expected",
+    "reason": "Published manifest differs"
+  },
+  {
+    "case": "modified-source",
+    "result": "rejected-as-expected",
+    "reason": "Published source differs from upstream: src/lib.rs"
+  },
+  {
+    "case": "missing-source",
+    "result": "rejected-as-expected",
+    "reason": "Published source file set differs"
+  },
+  {
+    "case": "added-source",
+    "result": "rejected-as-expected",
+    "reason": "Published source file set differs"
+  },
+  {
+    "case": "source-symlink",
+    "result": "rejected-as-expected",
+    "reason": "Unexpected published source symlink"
+  },
+  {
+    "case": "wrong-upstream-tree",
+    "result": "rejected-as-expected",
+    "reason": "Upstream tree identity differs"
+  }
+]

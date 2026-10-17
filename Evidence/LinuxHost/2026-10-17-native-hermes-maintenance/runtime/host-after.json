@@ -1,0 +1,30 @@
+{
+  "utc": "2026-10-17T13:14:47.112193+00:00",
+  "current": "releases/farpane-native-dev-e7508f297ef1d671172d7737",
+  "services": {
+    "farpane.service": {
+      "ActiveState": "active",
+      "UnitFileState": "disabled",
+      "MainPID": "1413675",
+      "NRestarts": "0"
+    },
+    "rustdesk.service": {
+      "ActiveState": "inactive",
+      "UnitFileState": "disabled",
+      "MainPID": "0",
+      "NRestarts": "0"
+    }
+  },
+  "gui": {
+    "ActiveState": "active",
+    "MainPID": "1434762",
+    "NRestarts": "0"
+  },
+  "rustdesk_stopped_by_user": true,
+  "icons_modes": {
+    "/home/user/.local/share/icons": "0o775",
+    "/home/user/.local/share/icons/hicolor": "0o775"
+  },
+  "git_branch": "codex/linux-host-gpu-media",
+  "git_head": "b01c40bd7da588f0ec2add2947a9368289006792"
+}

@@ -1,0 +1,66 @@
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -73,7 +73,10 @@
+ 
+ pub struct Remote<T: InvokeUiSession> {
+     handler: Session<T>,
++    #[cfg(not(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media")))]
+     audio_sender: MediaSender,
++    #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++    audio_sender: crate::farpane_native::viewer_audio::Sender,
+     receiver: mpsc::UnboundedReceiver<Data>,
+     sender: mpsc::UnboundedSender<Data>,
+     // Stop sending local audio to remote client.
+@@ -129,7 +132,10 @@
+     ) -> Self {
+         Self {
+             handler,
++            #[cfg(not(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media")))]
+             audio_sender: crate::client::start_audio_thread(),
++            #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
++            audio_sender: crate::farpane_native::viewer_audio::Sender::start(),
+             receiver,
+             sender,
+             read_jobs: Vec::new(),
+--- a/src/server/audio_service.rs
++++ b/src/server/audio_service.rs
+@@ -38,6 +38,9 @@
+ #[cfg(any(target_os = "linux", target_os = "android"))]
+ pub fn new() -> GenericService {
+     let svc = EmptyExtraFieldService::new(NAME.to_owned(), true);
++    #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++    GenericService::run(&svc.clone(), native_capture::run);
++    #[cfg(not(all(target_os = "linux", feature = "farpane-native")))]
+     GenericService::run(&svc.clone(), pa_impl::run);
+     svc.sp
+ }
+@@ -77,7 +80,11 @@
+     RESTARTING.store(true, Ordering::SeqCst);
+ }
+ 
+-#[cfg(any(target_os = "linux", target_os = "android"))]
++#[cfg(all(target_os = "linux", feature = "farpane-native"))]
++#[path = "native_audio_capture.rs"]
++mod native_capture;
++
++#[cfg(all(any(target_os = "linux", target_os = "android"), not(all(target_os = "linux", feature = "farpane-native"))))]
+ mod pa_impl {
+     use super::*;
+ 
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -2631,6 +2631,14 @@
+ 
+     #[inline]
+     pub fn is_permission_enabled_locally(enable_prefix_option: &str) -> bool {
++        #[cfg(all(target_os = "linux", feature = "farpane-native"))]
++        if enable_prefix_option == "enable-audio" {
++            match Config::get_option("farpane-audio-enabled").as_str() {
++                "Y" => return true,
++                "N" => return false,
++                _ => {}, // Preserve inherited access-mode until the user changes audio.
++            }
++        }
+         #[cfg(any(feature = "flutter", feature = "farpane-native"))]
+         #[cfg(not(any(target_os = "android", target_os = "ios")))]
+         {

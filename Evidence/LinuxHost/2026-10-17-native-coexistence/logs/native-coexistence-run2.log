@@ -1,0 +1,10 @@
+/workspace/Build/Linux/native-coexistence-smoke/20261017T082816Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_coexistence_smoke.py", line 208, in <module>
+    cli('a',{'type':'disconnect_inbound','data':{'connection':state['inbound'][0]['id']}})
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_coexistence_smoke.py", line 67, in cli
+    assert result.returncode==0,result.stderr
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: FarPane core: Command is unavailable offline
+

@@ -1,0 +1,44 @@
+[
+  {
+    "run": "private-pages-gpu",
+    "sample": "viewer-0",
+    "total_pss_kib": 107319,
+    "selected_file_pss_kib": 51604,
+    "heap_and_anonymous_pss_kib": 32672
+  },
+  {
+    "run": "private-pages-gpu",
+    "sample": "viewer-1",
+    "total_pss_kib": 101203,
+    "selected_file_pss_kib": 45754,
+    "heap_and_anonymous_pss_kib": 32468
+  },
+  {
+    "run": "shared-pages-gpu",
+    "sample": "viewer-0",
+    "total_pss_kib": 80853,
+    "selected_file_pss_kib": 25430,
+    "heap_and_anonymous_pss_kib": 32568
+  },
+  {
+    "run": "shared-pages-gpu",
+    "sample": "viewer-1",
+    "total_pss_kib": 79991,
+    "selected_file_pss_kib": 24310,
+    "heap_and_anonymous_pss_kib": 32876
+  },
+  {
+    "run": "mmap128k-gpu",
+    "sample": "viewer-0",
+    "total_pss_kib": 77389,
+    "selected_file_pss_kib": 24950,
+    "heap_and_anonymous_pss_kib": 29696
+  },
+  {
+    "run": "mmap128k-gpu",
+    "sample": "viewer-1",
+    "total_pss_kib": 76561,
+    "selected_file_pss_kib": 24062,
+    "heap_and_anonymous_pss_kib": 29504
+  }
+]

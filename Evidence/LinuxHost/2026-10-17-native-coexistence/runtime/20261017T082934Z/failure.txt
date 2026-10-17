@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_coexistence_smoke.py", line 212, in <module>
+    wait(positions.exists,'Private dialog calibration was not supplied',60)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_coexistence_smoke.py", line 100, in wait
+    raise AssertionError(message)
+AssertionError: Private dialog calibration was not supplied

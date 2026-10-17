@@ -1,0 +1,23 @@
+{
+  "result": "pass",
+  "canonical_sha256": {
+    "Linux/tests/native_lifecycle_smoke.py": "52862493f44670e99f9b187b8e4c61ae50129e0aa1410d627f22244918e322c3",
+    "Linux/tests/native_viewer_smoke.py": "208ae921cd488193d49180e770ba38b843741866557ef69ec08329db0c5a0ecb",
+    "Linux/tests/native_object_observer.c": "89aea7346919d96ef2d09a941f56aa8809586c11f3a4b27152f0977e7cd5bfd4",
+    "Linux/tests/native-lifecycle-layout.json": "be2a27c69a7f8df874635f0b80ba98d6b86fb3d8299c12de639d79f525c23e68",
+    "Scripts/linux/test-native-lifecycle.sh": "52bee10ddade1c4ce0103b27a1f8591c32b0d7a89d2e5b54203872b68f11ebdf",
+    "Scripts/linux/analyze-native-lifecycle.py": "7065449bdc4717e1918b1d53375b6efe8bab6a0672beb52af853334cbaed4900",
+    "Linux/docs/viewer-lifecycle.md": "ad2bf034b1ed2fd27bb79912508b4f1ce17866f1057a7a2a530112f9be9f0bd9",
+    "Linux/docs/gui-status.md": "132dd59ae32d38524ff8761d21343c9d553864242c7a91ae78edef562784d25c",
+    "Linux/README.md": "8c0cc883b7330282e4b5a14cb654541dbb48d75f1bf10925e366022ed00d164a"
+  },
+  "ast_and_shell_syntax": true,
+  "doc_links": 29,
+  "actual_executable_hashes_verified": true,
+  "host_unchanged": true,
+  "candidate_unchanged": true,
+  "source8295_unchanged": true,
+  "original_receipt_and_isolated_source_build_valid": true,
+  "no_application_rebuild": true,
+  "full_lifecycle_and_memory_acceptance": false
+}

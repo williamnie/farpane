@@ -1,0 +1,35 @@
+_XSERVTransmkdir: ERROR: euid != 0,directory /tmp/.X11-unix will not be created.
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.07s
+     Running unittests src/main.rs (/workspace/Build/Linux/native-target/debug/deps/farpane-36b0ed4f00ba5d12)
+
+running 1 test
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+PASS: actual GIO byte output, four blocked pipes, fifth rejected, timeout cancellation and recovery
+
+thread 'viewer_clipboard::tests::rgba_mapping_survives_provider_and_actual_png_serialization' panicked at src/viewer_clipboard.rs:572:17:
+third retained maximum RGBA image bypassed provider storage limit
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test viewer_clipboard::tests::rgba_mapping_survives_provider_and_actual_png_serialization ... FAILED
+
+failures:
+
+failures:
+    viewer_clipboard::tests::rgba_mapping_survives_provider_and_actual_png_serialization
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 3.37s
+
+error: test failed, to rerun pass `--bin farpane`
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_clipboard_provider_smoke.py", line 21, in <module>
+    subprocess.run(['cargo','test','--offline','--locked',
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    'viewer_clipboard::tests::rgba_mapping_survives_provider_and_actual_png_serialization',
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    '--','--exact','--ignored','--nocapture'],cwd='/workspace/Build/Linux/gui',env=env,check=True,timeout=60)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['cargo', 'test', '--offline', '--locked', 'viewer_clipboard::tests::rgba_mapping_survives_provider_and_actual_png_serialization', '--', '--exact', '--ignored', '--nocapture']' returned non-zero exit status 101.

@@ -1,0 +1,13 @@
+/workspace/Linux/tests/native_auto_reconnect_smoke.py:4: PyGIWarning: Secret was imported without specifying a version first. Use gi.require_version('Secret', '1') before import to ensure that the right version gets loaded.
+  from gi.repository import GLib,Secret
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 466, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 240, in user_test
+    exercise_auto_reconnect(output,agent,start)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_auto_reconnect_smoke.py", line 103, in exercise_auto_reconnect
+    time.sleep(1);assert len(proxy.records)==baseline and progress()['enabled']
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

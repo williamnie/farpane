@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/home/user/farpane/Build/Linux/gui-work/probe-native-source-pins.py", line 46, in <module>
+    value=sha(source,'sha512');assert value in text,(name,'SHA512 missing from pinned recipe')
+                                      ^^^^^^^^^^^^^
+AssertionError: ('meson-1.9.0.tar.gz', 'SHA512 missing from pinned recipe')

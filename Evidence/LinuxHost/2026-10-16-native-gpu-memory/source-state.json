@@ -1,0 +1,38 @@
+{
+  "head": "b01c40bd7da588f0ec2add2947a9368289006792",
+  "tested_staged_source_map": {
+    "gui/Cargo.lock": "b9156fae14b985f9756aebe5652e5393c4f20566b42bd9c5fd58aaea3cd39327",
+    "gui/Cargo.toml": "de011f0a1edcaf926bb0d7b501b85e7decdb38a3ccb59267922026f4fab3ac17",
+    "gui/build.rs": "14506e876f673ed78f3268460f2c4e29f4bd3c248bb191907be514073df04589",
+    "gui/resources/README.md": "af9198e00a786282b7c775e2d372f6d43e420db0e806bde7943893e5580658ad",
+    "gui/resources/farpane.gresource.xml": "fca399b3d87b12b1023251572140effb55e817f8350c1c219f5fabad3f2d9e63",
+    "gui/resources/org.farpane.FarPane.png": "8e0cecdee4b759bfeb11d0f93d88b5ae5e77d39c88cf56e21352e6810ff6a8a5",
+    "gui/resources/org.farpane.FarPane.svg": "13d57cb67e227c04b3573de7f44d4a190ae9be0fad26ec53b13dffc14e4872f6",
+    "gui/resources/style.css": "61fd0c920c715ddd7193f3f766fade291da9257151d7b49f0e665204bd99d55e",
+    "gui/src/app.rs": "a708ac857e0dc23d4a75b1b2f62d4d1b697c665a6a84093c77d27171bbe06ada",
+    "gui/src/bridge.rs": "48b0241ef15cf6e4c8b662983825f7869a5275cf9089a94eace18bfde2ade16a",
+    "gui/src/gpu_renderer.c": "3a66305786ed1818b49d113e11d64d11baf945447f8b2013a2563c1ca8b538f9",
+    "gui/src/gpu_renderer.h": "0d13cc38bf1edf09d5406c780f489431727011880e992a8e0c6e73b60226fdb6",
+    "gui/src/gpu_renderer.rs": "46de38ee9000fac28ba17d453f82aac73072ff56dbb08007f89d589fa706cb43",
+    "gui/src/host.rs": "f6b6911473ae304d64c1014fefbb1ab30bf9af7961a786e013569bc5eb307542",
+    "gui/src/main.rs": "4fea7bbe7caca48451141fa4a79fd55721f19638b39189f6c82939b74ac03739",
+    "gui/src/memory.rs": "256027a447ac9156ddbd28868e3c8bf68d26c9168b0dfce0db2d8de86853d266",
+    "gui/src/model.rs": "fe893b6134b330a2dcd64347fb1deaf9fcfda7c60984c8c37d88548e0f9e06b1",
+    "gui/src/viewer.rs": "bfb4128fed6591ef1fc410e7237f6ee0038f022f192e87b685be02becda691bd",
+    "gui/src/viewer_bridge.rs": "3f16057f82fff2595d953673d34b8438d3e713f981daa86bbe2e846075551432",
+    "gui/src/viewer_clipboard.rs": "1114aa7d4b7af25eed0f5d5077f1f4f23ca643963176f8dc1ae4c73833c2115d",
+    "gui/src/viewer_input.rs": "6099cf806f5665c36d11433d3f709b522bddee82a6146ed6da14b88b61a70e69",
+    "native/protocol/Cargo.lock": "26c4d6681ac9eea278c8f5ee6cba6ae8a728e87f73f9a23bf9c4c7d496f1734b",
+    "native/protocol/Cargo.toml": "57d8c3e6dd0d108c769dd37abeb97464d0989b281f84d07188ec51364aafe7f4",
+    "native/protocol/src/frame.rs": "1229693c16756693b2b95381738867d8b5be680f91b83b2a383ecb71170b683f",
+    "native/protocol/src/frame_socket.rs": "934e3f48d5737a72586623564cc104362b183138f92b609dd1ed554f062efee7",
+    "native/protocol/src/lib.rs": "45a822cb8bfa16f8a5a6f3a5b4569d1443809c0f716e9e2dad90b34a9f10fc5d",
+    "native/protocol/src/sealed.rs": "a13288e3f766adfcdb664c919893421feac367174ca0aa7c850f8f61df4c9953",
+    "native/protocol/src/supervision.rs": "0f45e30187940a8d583a9db95f848f7930f947b8c9a8e2555cea2a65cfec04f9",
+    "native/protocol/src/transport.rs": "898d81dcd873d0afabef41c0243b68b7eb84bfd6faf1c4a9b25de2df45849ce5"
+  },
+  "artifacts": {
+    "Build/Linux/native-target/release/farpane": "4fd1b0c44d4beb960aafaedc523e3a0fd3ec5791f770f9b46ddfb2af09a327d4",
+    "Build/Linux/target/release/farpane-core": "62361fe699d2d17708b1df6ebc0ed9f090f4dc5fcc4c6ccb170169b1d2ca435a"
+  }
+}

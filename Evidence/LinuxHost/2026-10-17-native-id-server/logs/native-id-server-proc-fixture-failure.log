@@ -1,0 +1,13 @@
+{"tools": "/home/user/farpane/Build/Linux/rendezvous-test-tools", "verified_existing": true, "image": "sha256:10818ec05b179039c6660f4d8e74b303f0db2858bbad2b18e24992ea22d54cd6"}
+/workspace/Build/Linux/native-id-server-smoke/20261017T070929Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_id_server_smoke.py", line 141, in <module>
+    assert not any(c['local_port']==21118 for c in sockets(agent.pid,'0A'))
+                                                   ~~~~~~~^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_id_server_smoke.py", line 88, in sockets
+    target=str(p.readlink())
+               ~~~~~~~~~~^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 976, in readlink
+    return self.with_segments(os.readlink(self))
+                              ~~~~~~~~~~~^^^^^^
+PermissionError: [Errno 13] Permission denied: '/proc/58/fd/0'

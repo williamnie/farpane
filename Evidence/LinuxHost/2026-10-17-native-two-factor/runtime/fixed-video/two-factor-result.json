@@ -1,0 +1,41 @@
+{
+  "result": "pass",
+  "checks": [
+    "real-host-totp-challenge",
+    "cancel-before-totp-no-video",
+    "cancel-reaps-worker",
+    "wrong-numeric-code-retry",
+    "correct-code-real-presentation",
+    "no-password-save-before-totp",
+    "save-password-not-otp",
+    "auth-panel-cleared",
+    "host-identity-preserved"
+  ],
+  "rounds": [
+    {
+      "scenario": "cancel",
+      "worker_pid": 124,
+      "worker_reaped": true,
+      "presented": false,
+      "frames": 0,
+      "host_survived": true,
+      "totp_saved_as_password": false,
+      "matching_remote_pixels": 0
+    },
+    {
+      "scenario": "wrong-then-correct",
+      "worker_pid": 198,
+      "worker_reaped": true,
+      "presented": true,
+      "frames": 2,
+      "host_survived": true,
+      "totp_saved_as_password": false,
+      "matching_remote_pixels": 157664
+    }
+  ],
+  "gpu_tested": false,
+  "real_desktop_tested": false,
+  "test_runner_rebuilds_product": false,
+  "malformed_code_retry_tested": true,
+  "host_2fa_enrollment_ui_tested": false
+}

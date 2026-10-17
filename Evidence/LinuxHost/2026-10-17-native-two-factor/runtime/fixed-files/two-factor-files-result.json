@@ -1,0 +1,14 @@
+{
+  "result": "pass",
+  "real_host_totp": true,
+  "wrong_code_retry": true,
+  "malformed_code_form_retained": true,
+  "oversized_code_form_retained": true,
+  "no_listing_before_totp": true,
+  "saved_password_not_otp": true,
+  "ordinary_file_roundtrip_and_consent_checks": true,
+  "gui_and_worker_exited": true,
+  "host_survived": true,
+  "gpu_tested": false,
+  "real_desktop_tested": false
+}

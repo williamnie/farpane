@@ -1,0 +1,14 @@
+--- a/src/ipc/auth.rs
++++ b/src/ipc/auth.rs
+@@ -510,6 +510,11 @@
+     fd: RawFd,
+     postfix: &str,
+ ) -> ResultType<()> {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { libc::geteuid() } == 0 {
++        let uid = peer_uid_from_fd(fd).ok_or_else(|| anyhow::anyhow!("Missing service peer UID"))?;
++        crate::farpane_native::discovery::authorize_root_peer(fd, uid)?;
++    }
+     let peer_pid = peer_pid_from_fd(fd).ok_or_else(|| {
+         anyhow::anyhow!("Failed to resolve peer pid on ipc channel '{}'", postfix)
+     })?;

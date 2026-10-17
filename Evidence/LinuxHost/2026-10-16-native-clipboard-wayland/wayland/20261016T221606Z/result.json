@@ -1,0 +1,14 @@
+{
+  "result": "pass",
+  "mode": "unavailable",
+  "rounds": [
+    {
+      "milliseconds": 0,
+      "no_xwayland_fallback": true,
+      "read_error": "Wayland compositor does not grant data-control",
+      "result": "pass",
+      "write_error": "Wayland compositor does not grant data-control"
+    }
+  ],
+  "host_display_or_gpu": false
+}

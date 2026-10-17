@@ -1,0 +1,39 @@
+   Compiling farpane-protocol v0.1.0 (/workspace/Build/Linux/native/protocol)
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+warning: fields `session`, `generation`, `sequence`, `phase`, `detail`, and `needs_snapshot` are never read
+  --> src/model.rs:6:9
+   |
+4  | pub struct Model {
+   |            ----- fields in this struct
+5  |     pub snapshot: Snapshot,
+6  |     pub session: u64,
+   |         ^^^^^^^
+7  |     pub generation: u64,
+   |         ^^^^^^^^^^
+8  |     pub sequence: u64,
+   |         ^^^^^^^^
+9  |     pub phase: Phase,
+   |         ^^^^^
+10 |     pub detail: String,
+   |         ^^^^^^
+11 |     pub needs_snapshot: bool,
+   |         ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: methods `start_session`, `apply`, and `presented` are never used
+  --> src/model.rs:15:12
+   |
+14 | impl Model {
+   | ---------- methods in this implementation
+15 |     pub fn start_session(&mut self, session: u64) {
+   |            ^^^^^^^^^^^^^
+...
+22 |     pub fn apply(&mut self, event: Event) -> bool {
+   |            ^^^^^
+...
+55 |     pub fn presented(&mut self, session: u64, generation: u64) -> bool {
+   |            ^^^^^^^^^
+
+warning: `farpane-gui` (bin "farpane") generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 3.72s

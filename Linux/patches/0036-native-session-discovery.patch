@@ -1,0 +1,138 @@
+--- a/src/platform/linux.rs
++++ b/src/platform/linux.rs
+@@ -1116,6 +1116,9 @@
+              this boot and the consumer falls back to PipeWire/X11"
+         );
+     }
++
++    #[cfg(feature = "farpane-native")]
++    { crate::farpane_native::supervisor::run_service(); return; }
+ 
+     let running = Arc::new(AtomicBool::new(true));
+     let r = running.clone();
+@@ -1248,6 +1251,8 @@
+ /// Returns the cached active `(uid, username)` snapshot when available.
+ /// Callers that require a fresh seat0 lookup should call `get_values_of_seat0` directly.
+ pub fn get_active_user_id_name() -> (String, String) {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| (s.key.uid.to_string(), s.username)).unwrap_or_default(); }
+     if let Some(id_name) = get_active_user_id_name_from_cache() {
+         return id_name;
+     }
+@@ -1259,6 +1264,8 @@
+ /// Returns the cached active uid when available.
+ /// Callers that require a fresh seat0 lookup should call `get_values_of_seat0` directly.
+ pub fn get_active_userid() -> String {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| s.key.uid.to_string()).unwrap_or_default(); }
+     if let Some((uid, _)) = get_active_user_id_name_from_cache() {
+         return uid;
+     }
+@@ -1268,6 +1275,8 @@
+ #[inline]
+ /// Returns the active uid from a fresh seat0 lookup, bypassing the service-loop cache.
+ pub fn get_active_userid_fresh() -> String {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| s.key.uid.to_string()).unwrap_or_default(); }
+     // A Wayland greeter owns seat0 while it is up and the DRM backend serves it, so a uid gate that
+     // cannot see it rejects the greeter's own `--server`. `Desktop::refresh` reads it the same way.
+     #[cfg(feature = "drm")]
+@@ -1282,6 +1291,8 @@
+ /// runtime thread and on a hot path (e.g. per-frame re-auth): a cache miss returns `None` for the
+ /// caller to treat as "active session momentarily unknown" rather than stalling on a subprocess.
+ pub fn get_active_userid_cached() -> Option<u32> {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| s.key.uid); }
+     get_active_user_id_name_from_cache().and_then(|(uid, _)| uid.parse::<u32>().ok())
+ }
+ 
+@@ -1334,6 +1345,8 @@
+ /// Returns the cached active username when available.
+ /// Callers that require a fresh seat0 lookup should call `get_values_of_seat0` directly.
+ pub fn get_active_username() -> String {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| s.username).unwrap_or_default(); }
+     if let Some((_, username)) = get_active_user_id_name_from_cache() {
+         return username;
+     }
+--- a/src/ipc/auth.rs
++++ b/src/ipc/auth.rs
+@@ -1041,6 +1041,11 @@
+     pub(crate) fn native_same_process(&self) -> bool {
+         farpane_protocol::transport::Peer::from_fd_for_uid(self.inner.get_ref().as_raw_fd(), unsafe { libc::geteuid() }).map(|p| p.pid == std::process::id()).unwrap_or(false)
+     }
++    pub(crate) fn native_input_context(&self) -> Option<crate::farpane_native::discovery::Key> {
++        let session = crate::farpane_native::discovery::active()?;
++        let uid = self.peer_uid()?;
++        (uid == 0 || uid == session.key.uid).then_some(session.key)
++    }
+     pub(crate) fn native_root_probe_peer(&self) -> Option<farpane_protocol::transport::Peer> {
+         if unsafe { libc::geteuid() } == 0 { return None; }
+         farpane_protocol::transport::Peer::from_fd_for_uid(self.inner.get_ref().as_raw_fd(), 0).ok()
+--- a/src/server/uinput.rs
++++ b/src/server/uinput.rs
+@@ -789,6 +789,8 @@
+ 
+     fn spawn_keyboard_handler(mut stream: Connection) {
+         log::debug!("spawn_keyboard_handler: new keyboard handler connection");
++        #[cfg(feature = "farpane-native")]
++        let native_context = stream.native_input_context();
+         tokio::spawn(async move {
+             let mut keyboard = match create_uinput_keyboard() {
+                 Ok(keyboard) => {
+@@ -802,7 +804,12 @@
+             };
+             loop {
+                 tokio::select! {
+-                    res = stream.next() => {
++                    res = async {
++                        #[cfg(feature = "farpane-native")]
++                        { crate::farpane_native::discovery::guarded_input(&mut stream, &native_context).await }
++                        #[cfg(not(feature = "farpane-native"))]
++                        { stream.next().await }
++                    } => {
+                         match res {
+                             Err(err) => {
+                                 log::info!("UInput keyboard ipc connection closed: {}", err);
+@@ -833,6 +840,8 @@
+         }
+         let rng_x = resolution.0.clone();
+         let rng_y = resolution.1.clone();
++        #[cfg(feature = "farpane-native")]
++        let native_context = stream.native_input_context();
+         tokio::spawn(async move {
+             log::info!(
+                 "Create uinput mouce with rng_x: ({}, {}), rng_y: ({}, {})",
+@@ -850,7 +859,12 @@
+             };
+             loop {
+                 tokio::select! {
+-                    res = stream.next() => {
++                    res = async {
++                        #[cfg(feature = "farpane-native")]
++                        { crate::farpane_native::discovery::guarded_input(&mut stream, &native_context).await }
++                        #[cfg(not(feature = "farpane-native"))]
++                        { stream.next().await }
++                    } => {
+                         match res {
+                             Err(err) => {
+                                 log::info!("UInput mouse ipc connection closed: {}", err);
+@@ -903,10 +917,17 @@
+     }
+ 
+     fn spawn_controller_handler(mut stream: ipc::Connection) {
++        #[cfg(feature = "farpane-native")]
++        let native_context = stream.native_input_context();
+         tokio::spawn(async move {
+             loop {
+                 tokio::select! {
+-                    res = stream.next() => {
++                    res = async {
++                        #[cfg(feature = "farpane-native")]
++                        { crate::farpane_native::discovery::guarded_input(&mut stream, &native_context).await }
++                        #[cfg(not(feature = "farpane-native"))]
++                        { stream.next().await }
++                    } => {
+                         match res {
+                             Err(_err) => {
+                                 // log::info!("UInput controller ipc connection closed: {}", err);

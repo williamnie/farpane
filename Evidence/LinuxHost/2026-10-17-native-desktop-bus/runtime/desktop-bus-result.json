@@ -1,0 +1,27 @@
+{
+  "result": "pass",
+  "checks": [
+    "host_on_independent_private_session_bus",
+    "bus_disconnection_clears_desktop_capabilities",
+    "pending_request_not_auto_authorized_during_outage",
+    "new_bus_identity_rebinds_tray_and_pending_notice_without_new_host",
+    "actual_gtk_approval_after_bus_recovery_presents_video",
+    "authorized_session_continues_presenting_during_bus_outage",
+    "restored_bus_does_not_replay_authorized_request",
+    "unanswered_request_times_out_without_bus_or_frames",
+    "expired_request_not_replayed_on_fourth_bus",
+    "host_identity_policy_and_process_preserved"
+  ],
+  "host_pid": 22,
+  "bus_ids": [
+    "7315846397d50ad587f89f1b6ad340fd",
+    "9c30d21631c7daa1fab20f836ad34109",
+    "d07023a90daacdfaf732d6fc6ad34110",
+    "802da5b9914b1e48c4e5f08c6ad34137"
+  ],
+  "approval_timeout_seconds_after_bus_loss": 30.111962378025055,
+  "scope": "Host desktop adapter; GUI and Viewer use unaffected private buses",
+  "gpu": false,
+  "display": "two-private-xvfb",
+  "network": "private-loopback"
+}

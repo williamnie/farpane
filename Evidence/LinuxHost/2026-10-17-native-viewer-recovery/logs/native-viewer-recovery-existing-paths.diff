@@ -1,0 +1,467 @@
+--- registration-phase/Linux/gui/src/app.rs
++++ Linux/gui/src/app.rs
+@@ -91,7 +91,13 @@
+                         .and_then(|bytes| std::fs::write(directory.join(target), bytes));
+                 }
+             }
+-            shell.connect("127.0.0.1:21118".into(), false);
++            let target =
++                if std::env::var("FARPANE_NATIVE_TEST_MODE").as_deref() == Ok("auto-reconnect") {
++                    "127.0.0.1:21119"
++                } else {
++                    "127.0.0.1:21118"
++                };
++            shell.connect(target.into(), false);
+             glib::ControlFlow::Break
+         });
+     }
+@@ -179,6 +185,7 @@
+     peer: String,
+     audio: bool,
+     configuration: farpane_protocol::ViewerConfiguration,
++    recovery: Rc<crate::viewer_recovery::Recovery>,
+ }
+ impl Shell {
+     pub(crate) fn present(&self) {
+@@ -248,13 +255,16 @@
+         if snapshot.role.is_none() || snapshot.local_id.is_empty() {
+             return;
+         }
++        let configuration = farpane_protocol::ViewerConfiguration {
++            local_id: snapshot.local_id,
++            server: snapshot.server,
++        };
++        let recovery = Rc::new(crate::viewer_recovery::Recovery::new(&peer, &configuration));
+         let request = Connection {
+             peer,
+             audio,
+-            configuration: farpane_protocol::ViewerConfiguration {
+-                local_id: snapshot.local_id,
+-                server: snapshot.server,
+-            },
++            configuration,
++            recovery,
+         };
+         if self.viewer.borrow().is_some() || self.pending.borrow().is_some() {
+             let Some(window) = self.window.upgrade() else {
+@@ -336,6 +346,7 @@
+             request.peer,
+             request.audio,
+             request.configuration,
++            request.recovery,
+             &self.ui,
+             move |name| {
+                 if let Some(ui) = history_ui.upgrade() {
+@@ -346,9 +357,16 @@
+                     );
+                 }
+             },
+-            move || {
++            move |automatic| {
+                 if let Some(shell) = retry_shell.upgrade() {
+-                    shell.replace(retry_request.clone());
++                    let mut request = retry_request.clone();
++                    if !automatic {
++                        request.recovery = Rc::new(crate::viewer_recovery::Recovery::new(
++                            &request.peer,
++                            &request.configuration,
++                        ));
++                    }
++                    shell.replace(request);
+                 }
+             },
+             move || {
+--- registration-phase/Linux/gui/src/diagnostics.rs
++++ Linux/gui/src/diagnostics.rs
+@@ -47,6 +47,7 @@
+ }
+ fn summary(event: &EventKind) -> Option<String> {
+     Some(match event {
++        EventKind::ConnectionEnded { retryable } => format!("连接结束，核心允许重试={retryable}"),
+         EventKind::Phase { phase, .. } => format!("会话状态：{phase:?}"),
+         EventKind::Peer { .. } => "收到已认证设备信息（身份已隐藏）".into(),
+         EventKind::AuthenticationChallenge {
+--- registration-phase/Linux/gui/src/main.rs
++++ Linux/gui/src/main.rs
+@@ -24,6 +24,7 @@
+ mod viewer_cursor;
+ mod viewer_hud;
+ mod viewer_input;
++mod viewer_recovery;
+ 
+ use adw::prelude::*;
+ use gtk::{gio, glib};
+--- registration-phase/Linux/gui/src/viewer.rs
++++ Linux/gui/src/viewer.rs
+@@ -12,7 +12,7 @@
+ use gtk::{gdk, glib};
+ use std::{
+     cell::{Cell, RefCell},
+-    rc::Rc,
++    rc::{Rc, Weak},
+     time::Duration,
+ };
+ 
+@@ -50,7 +50,13 @@
+     peer: String,
+     remembered: Cell<bool>,
+     retry: gtk::Button,
+-    reconnect: Box<dyn Fn()>,
++    reconnect: Box<dyn Fn(bool)>,
++    recovery: Rc<crate::viewer_recovery::Recovery>,
++    recovery_toggle: gtk::CheckButton,
++    recovery_lookup: RefCell<Option<crate::credentials::Operation>>,
++    recovery_password_attempted: Cell<bool>,
++    retryable: Cell<bool>,
++    host: Weak<crate::host::Ui>,
+     input: RefCell<Option<Rc<crate::viewer_input::Controls>>>,
+     permissions: RefCell<farpane_protocol::Permissions>,
+     audio: gtk::ToggleButton,
+@@ -113,15 +119,17 @@
+         peer: String,
+         audio: bool,
+         configuration: ViewerConfiguration,
++        recovery: Rc<crate::viewer_recovery::Recovery>,
+         host: &Rc<crate::host::Ui>,
+         connected: impl Fn(&str) + 'static,
+-        reconnect: impl Fn() + 'static,
++        reconnect: impl Fn(bool) + 'static,
+         home: impl Fn() + 'static,
+     ) -> Result<Rc<Self>, Box<dyn std::error::Error + Send + Sync>> {
+         let file_configuration = configuration.clone();
+         let secret_key = crate::credentials::Key::new(&peer, &configuration.server);
+         let file_peer = peer.clone();
+         let bridge = Bridge::start(peer.clone(), audio, configuration)?;
++        recovery.bind(bridge.session);
+         let mut model = Model::default();
+         model.start_session(bridge.session);
+         let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
+@@ -197,6 +205,14 @@
+         let diagnostics = crate::diagnostics::Log::new();
+         toolbar.append(&diagnostics.button());
+         root.append(&toolbar);
++        let recovery_toggle =
++            gtk::CheckButton::with_label("断线后使用系统密码库自动重连（最多 4 次）");
++        recovery_toggle.set_widget_name("viewer-auto-reconnect");
++        recovery_toggle.set_margin_start(12);
++        recovery_toggle.set_margin_bottom(6);
++        recovery_toggle.set_tooltip_text(Some("仅对当前设备和服务器生效。没有已保存密码、密码库锁定或需要再次确认时停止；取消勾选可随时关闭。"));
++        recovery_toggle.set_active(recovery.enabled());
++        root.append(&recovery_toggle);
+         let authentication = gtk::Box::new(gtk::Orientation::Vertical, 12);
+         authentication.add_css_class("card");
+         authentication.set_halign(gtk::Align::Center);
+@@ -271,6 +287,12 @@
+             remembered: Cell::new(false),
+             retry: retry.clone(),
+             reconnect: Box::new(reconnect),
++            recovery,
++            recovery_toggle: recovery_toggle.clone(),
++            recovery_lookup: RefCell::new(None),
++            recovery_password_attempted: Cell::new(false),
++            retryable: Cell::new(false),
++            host: Rc::downgrade(host),
+             input: RefCell::new(None),
+             permissions: RefCell::new(farpane_protocol::Permissions::default()),
+             audio: sound.clone(),
+@@ -350,8 +372,19 @@
+                 if !v.closing.get()
+                     && matches!(v.model.borrow().phase, Phase::Ended | Phase::Failed)
+                 {
+-                    (v.reconnect)();
+-                }
++                    (v.reconnect)(false);
++                }
++            }
++        });
++        let weak = Rc::downgrade(&view);
++        recovery_toggle.connect_toggled(move |button| {
++            if let Some(v) = weak.upgrade() {
++                v.recovery_lookup.borrow_mut().take();
++                v.recovery.enable(
++                    v.bridge.session,
++                    button.is_active(),
++                    v.model.borrow().phase == Phase::Streaming,
++                );
+             }
+         });
+         let weak = Rc::downgrade(&view);
+@@ -452,6 +485,7 @@
+                                 && v.model.borrow_mut().presented(v.bridge.session, generation)
+                             {
+                                 v.hud.presented(received);
++                                v.recovery.presented(v.bridge.session);
+                                 v.status.set_text("已连接 · 画面正常");
+                                 if !v.remembered.replace(true) {
+                                     (v.connected)(&v.peer_name.borrow());
+@@ -486,6 +520,8 @@
+         Ok(view)
+     }
+     pub fn close(&self) {
++        self.recovery.cancel(self.bridge.session);
++        self.recovery_lookup.borrow_mut().take();
+         self.hud.enable(false);
+         self.diagnostics.mark("用户请求结束会话");
+         self.secrets.stop();
+@@ -519,6 +555,12 @@
+         }
+     }
+     fn authenticate(&self) {
++        self.authenticate_with_recovery(false);
++    }
++    fn authenticate_with_recovery(&self, automatic: bool) {
++        if !automatic && self.recovery.attempt(self.bridge.session) {
++            self.stop_recovery("已改为手动认证");
++        }
+         let text = self.password.text().to_string();
+         if self.challenge.get() != 3 && (text.is_empty() || text.len() > 4096) {
+             return;
+@@ -579,6 +621,7 @@
+             }
+             self.diagnostics.record(&event.event);
+             match event.event {
++                EventKind::ConnectionEnded { retryable } => self.retryable.set(retryable),
+                 EventKind::Peer { name } => {
+                     self.title.set_subtitle(&if name.is_empty() {
+                         self.peer.clone()
+@@ -598,6 +641,7 @@
+                         self.secrets.challenge(false);
+                     }
+                     if phase == Phase::AwaitingFrame {
++                        self.recovery_lookup.borrow_mut().take();
+                         self.challenge.set(0);
+                         self.password.set_text("");
+                         self.authentication.set_visible(false);
+@@ -616,8 +660,24 @@
+                     );
+                     if phase == Phase::PasswordRequired {
+                         self.challenge(1, &detail);
++                        if self.recovery.attempt(self.bridge.session) {
++                            if self.recovery_password_attempted.replace(true) {
++                                self.stop_recovery("已保存密码未通过验证，请手动输入");
++                            } else {
++                                match self.recovery.lookup(self.bridge.session) {
++                                    Ok(operation) => {
++                                        *self.recovery_lookup.borrow_mut() = Some(operation);
++                                        self.status.set_text("自动重连：正在读取已保存密码…");
++                                    }
++                                    Err(error) => self.stop_recovery(error),
++                                }
++                            }
++                        }
+                     }
+                     if matches!(phase, Phase::Failed | Phase::Ended) {
++                        self.recovery_lookup.borrow_mut().take();
++                        self.recovery
++                            .terminal(self.bridge.session, self.retryable.replace(false));
+                         self.challenge.set(0);
+                         self.password.set_text("");
+                         self.secrets.stop();
+@@ -639,6 +699,7 @@
+                     insecure,
+                     detail,
+                 } => {
++                    self.stop_recovery("需要用户确认，自动重连已停止");
+                     if two_factor {
+                         self.challenge(2, &detail);
+                     } else if insecure {
+@@ -802,6 +863,9 @@
+             (self.home)();
+             return;
+         }
++        if self.poll_recovery() {
++            return;
++        }
+         if !self.closing.get()
+             && self.has_exited()
+             && self.model.borrow().phase == Phase::Failed
+@@ -814,6 +878,23 @@
+         let mut authenticate = None;
+         let mut close = false;
+         if let Some(smoke) = self.smoke.borrow_mut().as_mut() {
++            if std::env::var("FARPANE_NATIVE_TEST_MODE").as_deref() == Ok("auto-reconnect") {
++                for (name, value) in [("auto-enable", true), ("auto-disable", false)] {
++                    let path = smoke.directory.join(name);
++                    if path.exists() {
++                        let _ = std::fs::remove_file(path);
++                        self.recovery_toggle.set_active(value);
++                    }
++                }
++                let report = serde_json::json!({"session":self.bridge.session,"cycle":smoke.cycle,
++                    "phase":self.model.borrow().phase,"presented":smoke.first_paint.is_some(),"frames":smoke.frames,
++                    "enabled":self.recovery.enabled(),"lookup":self.recovery_lookup.borrow().is_some(),
++                    "challenge":self.challenge.get(),"status":self.status.text().as_str()});
++                let temporary = smoke.directory.join("auto-progress.tmp");
++                let _ = std::fs::write(&temporary, report.to_string()).and_then(|_| {
++                    std::fs::rename(temporary, smoke.directory.join("auto-progress.json"))
++                });
++            }
+             if std::env::var("FARPANE_NATIVE_TEST_MODE").as_deref() == Ok("clipboard") {
+                 if smoke.first_paint.is_some() && !smoke.clipboard_configured {
+                     smoke.clipboard_configured = true;
+@@ -911,6 +992,8 @@
+                 smoke.last_report = report_serial;
+             }
+             if self.challenge.get() == 1
++                && !(std::env::var("FARPANE_NATIVE_TEST_MODE").as_deref() == Ok("auto-reconnect")
++                    && smoke.cycle > 0)
+                 && !matches!(
+                     std::env::var("FARPANE_NATIVE_TEST_MODE").as_deref(),
+                     Ok("approval" | "desktop")
+@@ -1049,6 +1132,7 @@
+                                 Ok("approval") => 38,
+                                 Ok("hud") => 48,
+                                 Ok("recovery") => 120,
++                                Ok("auto-reconnect") => 180,
+                                 _ => 3,
+                             },
+                         )
+@@ -1065,7 +1149,79 @@
+             self.close();
+         }
+     }
++    fn stop_recovery(&self, detail: &str) {
++        self.recovery.cancel(self.bridge.session);
++        self.recovery_lookup.borrow_mut().take();
++        self.recovery_toggle.set_active(false);
++        self.status.set_text(detail);
++    }
++    fn poll_recovery(&self) -> bool {
++        if self.closing.get() {
++            return false;
++        }
++        if !self.recovery.enabled() {
++            self.recovery_toggle.set_active(false);
++            return false;
++        }
++        let (valid, network_wait) = self.host.upgrade().map_or((false, false), |host| {
++            let model = host.model.borrow();
++            (
++                self.recovery.valid(&model.snapshot),
++                matches!(
++                    model.snapshot.recovery.phase,
++                    farpane_protocol::RecoveryPhase::Suspended
++                        | farpane_protocol::RecoveryPhase::WaitingNetwork
++                ),
++            )
++        });
++        if !valid {
++            self.stop_recovery("设备或服务器设置已变化，自动重连已停止");
++            return false;
++        }
++        if self.recovery.expired(self.bridge.session) {
++            self.fail_with_recovery("自动重连等待画面超时", true);
++        }
++        let result = self
++            .recovery_lookup
++            .borrow_mut()
++            .as_mut()
++            .and_then(|op| op.poll());
++        if let Some(result) = result {
++            self.recovery_lookup.borrow_mut().take();
++            if self.recovery.attempt(self.bridge.session) && self.challenge.get() == 1 {
++                match result {
++                    Ok(crate::credentials::Outcome::Password(Some(password))) => {
++                        self.password.set_text(&password.value().0);
++                        self.authenticate_with_recovery(true);
++                    }
++                    Ok(_) => self.stop_recovery("没有可用的已保存密码，请手动输入"),
++                    Err(error) => self.stop_recovery(error),
++                }
++            }
++        }
++        if let Some(attempt) = self.recovery.waiting(self.bridge.session) {
++            self.status.set_text(&if network_wait {
++                "等待系统或网络恢复，可取消自动重连".into()
++            } else {
++                format!("连接中断，准备自动重连（{attempt}/4），可取消")
++            });
++            if !network_wait
++                && self
++                    .recovery
++                    .take_due(self.bridge.session, self.has_exited())
++            {
++                (self.reconnect)(true);
++                return true;
++            }
++        }
++        false
++    }
+     fn fail(&self, error: &str) {
++        self.fail_with_recovery(error, false);
++    }
++    fn fail_with_recovery(&self, error: &str, retryable: bool) {
++        self.recovery_lookup.borrow_mut().take();
++        self.recovery.terminal(self.bridge.session, retryable);
+         self.cursors.clear();
+         self.status.set_text(error);
+         self.retry.set_visible(true);
+--- registration-phase/Linux/native/protocol/src/lib.rs
++++ Linux/native/protocol/src/lib.rs
+@@ -352,6 +352,9 @@
+     deny_unknown_fields
+ )]
+ pub enum EventKind {
++    ConnectionEnded {
++        retryable: bool,
++    },
+     Peer {
+         name: String,
+     },
+--- registration-phase/Linux/native/viewer_ui.rs
++++ Linux/native/viewer_ui.rs
+@@ -257,7 +257,7 @@
+     fn on_rgba(&self, _display: usize, _rgba: &mut scrap::ImageRgb) {
+         self.0.fail("Unexpected legacy Viewer pixel callback");
+     }
+-    fn msgbox(&self, kind: &str, title: &str, text: &str, _link: &str, _retry: bool) {
++    fn msgbox(&self, kind: &str, title: &str, text: &str, _link: &str, retry: bool) {
+         if kind.contains("input-password") {
+             self.0.auth_challenge.store(1, Ordering::Release);
+             self.0.phase(
+@@ -298,6 +298,7 @@
+             } else {
+                 "远程连接失败或已关闭"
+             };
++            self.0.emit(EventKind::ConnectionEnded { retryable: retry });
+             self.0.phase(Phase::Failed, detail);
+         }
+     }
+--- registration-phase/Linux/tests/native_viewer_smoke.py
++++ Linux/tests/native_viewer_smoke.py
+@@ -144,7 +144,7 @@
+ 
+ 
+ def user_test(output):
+-    if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='recovery':
++    if os.environ.get('FARPANE_NATIVE_TEST_MODE') in ('recovery','auto-reconnect'):
+         # The private bus supplies fixture system names; no host bus is mounted.
+         os.environ['DBUS_SYSTEM_BUS_ADDRESS']=os.environ['DBUS_SESSION_BUS_ADDRESS']
+     gpu_test = gpu_mode()
+@@ -234,6 +234,10 @@
+         if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='hud':
+             from native_hud_smoke import exercise_hud
+             exercise_hud(output,agent,start)
++            return
++        if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='auto-reconnect':
++            from native_auto_reconnect_smoke import exercise_auto_reconnect
++            exercise_auto_reconnect(output,agent,start)
+             return
+         if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='recovery':
+             from native_recovery_smoke import exercise_recovery
+--- registration-phase/Scripts/linux/test-native-viewer.sh
++++ Scripts/linux/test-native-viewer.sh
+@@ -6,11 +6,11 @@
+ mode=${1:-video}
+ large_clipboard=0
+ if [[ "$mode" == clipboard-large ]]; then mode=clipboard; large_clipboard=1; fi
+-case "$mode" in video|recovery|approval|desktop|hud|input|clipboard|retry|cursor|audio|secrets|secrets-locked|secrets-boundary|secrets-unavailable|files|files-empty|files-matrix|files-tree|files-tree-fault|files-secrets) ;; *) echo 'Usage: test-native-viewer.sh [video|recovery|approval|desktop|hud|input|clipboard|clipboard-large|retry|cursor|audio|secrets|secrets-locked|secrets-boundary|secrets-unavailable|files|files-empty|files-matrix|files-tree|files-tree-fault|files-secrets]' >&2; exit 2;; esac
++case "$mode" in video|recovery|auto-reconnect|approval|desktop|hud|input|clipboard|retry|cursor|audio|secrets|secrets-locked|secrets-boundary|secrets-unavailable|files|files-empty|files-matrix|files-tree|files-tree-fault|files-secrets) ;; *) echo 'Usage: test-native-viewer.sh [video|recovery|auto-reconnect|approval|desktop|hud|input|clipboard|clipboard-large|retry|cursor|audio|secrets|secrets-locked|secrets-boundary|secrets-unavailable|files|files-empty|files-matrix|files-tree|files-tree-fault|files-secrets]' >&2; exit 2;; esac
+ if [[ "$mode" == audio || "$mode" == secrets-unavailable ]]; then
+   image=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["native_audio_test"]["image"])' "$repo/Linux/dependencies.lock.json")
+ fi
+-if [[ "$mode" == recovery || "$mode" == desktop || "$mode" == secrets || "$mode" == secrets-boundary || "$mode" == secrets-locked || "$mode" == files-secrets ]]; then
++if [[ "$mode" == auto-reconnect || "$mode" == recovery || "$mode" == desktop || "$mode" == secrets || "$mode" == secrets-boundary || "$mode" == secrets-locked || "$mode" == files-secrets ]]; then
+   image=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["native_secrets_test"]["image"])' "$repo/Linux/dependencies.lock.json")
+ fi
+ # Loopback only, two private X servers, no GPU/host desktop/service/config mounts.

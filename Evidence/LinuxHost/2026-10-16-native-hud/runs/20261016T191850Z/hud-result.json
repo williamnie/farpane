@@ -1,0 +1,46 @@
+{
+  "result": "pass",
+  "rounds": [
+    {
+      "mode": "normal",
+      "checks": [
+        "no-hidden-initial-sampling",
+        "actual-hud-toggle",
+        "real-resource-counters",
+        "refresh-presented-fps",
+        "hidden-hud-stops-samples-and-events",
+        "idle-rate-zero",
+        "actual-diagnostic-window",
+        "cancel-export",
+        "actual-save-file-dialog",
+        "redacted-export",
+        "write-failure-retains-stream"
+      ],
+      "elapsed_seconds": 16.442096401,
+      "metrics_after_hidden_drain": 4,
+      "result": "pass",
+      "samples_before_hidden": 5
+    },
+    {
+      "mode": "log-failure",
+      "checks": [
+        "no-hidden-initial-sampling",
+        "actual-hud-toggle",
+        "real-resource-counters",
+        "refresh-presented-fps",
+        "hidden-hud-stops-samples-and-events",
+        "idle-rate-zero",
+        "actual-diagnostic-window",
+        "cancel-export",
+        "actual-save-file-dialog",
+        "redacted-export",
+        "write-failure-retains-stream"
+      ],
+      "elapsed_seconds": 16.53712601,
+      "metrics_after_hidden_drain": 4,
+      "result": "pass",
+      "samples_before_hidden": 5
+    }
+  ],
+  "scope": "private Xvfb, real loopback, actual GTK widgets and save dialog; no host services/GPU"
+}

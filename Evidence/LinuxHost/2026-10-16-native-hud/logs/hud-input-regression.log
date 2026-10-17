@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 459, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 327, in user_test
+    if input_test:exercise_input(directory)
+                  ~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 97, in exercise_input
+    assert held(control), 'Remote Ctrl was not held before disconnect'
+           ~~~~^^^^^^^^^
+AssertionError: Remote Ctrl was not held before disconnect

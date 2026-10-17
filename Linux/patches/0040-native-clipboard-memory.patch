@@ -1,0 +1,75 @@
+--- a/src/server/connection.rs
++++ b/src/server/connection.rs
+@@ -793,6 +793,7 @@
+                                 if let Err(error) = conn.stream.send(message).await {
+                                     conn.on_close(&error.to_string(), false).await; break;
+                                 }
++                                crate::farpane_native::transport::release_large_write_buffer(&mut conn.stream, message);
+                             }
+                         }
+                     }
+@@ -1101,7 +1102,11 @@
+                                     conn.on_close("File packet exceeds limit", true).await;
+                                     break;
+                                 }
+-                                if let Ok(msg_in) = Message::parse_from_bytes(&bytes) {
++                                #[cfg(feature = "farpane-native")]
++                                let parsed = crate::farpane_native::transport::decode(bytes.freeze());
++                                #[cfg(not(feature = "farpane-native"))]
++                                let parsed = Message::parse_from_bytes(&bytes);
++                                if let Ok(msg_in) = parsed {
+                                     if !conn.on_message(msg_in).await {
+                                         break;
+                                     }
+--- a/src/client/io_loop.rs
++++ b/src/client/io_loop.rs
+@@ -287,13 +287,17 @@
+                                         self.handler.on_establish_connection_error(err.to_string());
+                                         break;
+                                     }
+-                                    Ok(ref bytes) => {
++                                    Ok(bytes) => {
+                                         last_recv_time = Instant::now();
+                                         if !received {
+                                             received = true;
+                                             self.handler.update_received(true);
+                                         }
+                                         self.data_count.fetch_add(bytes.len(), Ordering::Relaxed);
++                                        #[cfg(feature = "farpane-native")]
++                                        let bytes = bytes.freeze();
++                                        #[cfg(not(feature = "farpane-native"))]
++                                        let bytes = &bytes;
+                                         if !self.handle_msg_from_peer(bytes, &mut peer).await {
+                                             break
+                                         }
+@@ -816,6 +820,8 @@
+                     _ => {}
+                 }
+                 allow_err!(peer.send(&msg).await);
++                #[cfg(feature = "farpane-native")]
++                crate::farpane_native::transport::release_large_write_buffer(peer, &msg);
+             }
+             Data::SendFiles((id, r#type, path, to, file_num, include_hidden, is_remote)) => {
+                 log::info!("send files, is remote {}", is_remote);
+@@ -1538,10 +1544,19 @@
+         return false;
+     }
+ 
+-    async fn handle_msg_from_peer(&mut self, data: &[u8], peer: &mut Stream) -> bool {
++    async fn handle_msg_from_peer(
++        &mut self,
++        #[cfg(feature = "farpane-native")] data: bytes::Bytes,
++        #[cfg(not(feature = "farpane-native"))] data: &[u8],
++        peer: &mut Stream,
++    ) -> bool {
+         #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
+         if self.handler.is_file_transfer() && data.len() > crate::farpane_native::files::PACKET_LIMIT { return false; }
+-        if let Ok(msg_in) = Message::parse_from_bytes(&data) {
++        #[cfg(feature = "farpane-native")]
++        let parsed = crate::farpane_native::transport::decode(data);
++        #[cfg(not(feature = "farpane-native"))]
++        let parsed = Message::parse_from_bytes(&data);
++        if let Ok(msg_in) = parsed {
+             #[cfg(all(target_os = "linux", feature = "farpane-native", feature = "linux-gpu-media"))]
+             if hbb_common::config::farpane_viewer::is_active() {
+                 if matches!(msg_in.union.as_ref(), Some(message::Union::FileAction(_)) | Some(message::Union::FileResponse(_))) {

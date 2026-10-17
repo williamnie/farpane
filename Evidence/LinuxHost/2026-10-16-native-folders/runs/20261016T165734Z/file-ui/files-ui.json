@@ -1,0 +1,22 @@
+{
+  "checks": [
+    "file-only-authentication",
+    "wrong-password-retry",
+    "bounded-directory-pages",
+    "actual-next-page-button",
+    "upload",
+    "download",
+    "actual-host-consent-buttons",
+    "cancel-before-consent",
+    "worker-reaped",
+    "directory-source-change-fails-only-task",
+    "cancel-active-directory-download",
+    "upload-source-change-fails-only-task",
+    "same-file-worker-recovery-transfer"
+  ],
+  "host_confirmation_buttons": 6,
+  "password_attempts": 2,
+  "result": "pass",
+  "stage": 35,
+  "worker_reaped": true
+}

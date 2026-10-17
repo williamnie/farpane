@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "result": "pass",
+  "artifact_id": "farpane-native-dev-e7508f297ef1d671172d7737",
+  "pins_sha256": "e94dd07cfd7008d8502323e276d149f4141252023bc16b535db8eeb942a44830",
+  "baseline_audit_sha256": "0558b85b9088b7fad3561b1b14ff5815806c4475b38cf948b3ce55842e6f0804",
+  "source_archive_sha256": "ad3e09c3618d986e693d3d8462a5500fea4b86ea09098ab71cc62df2b8a7ba03",
+  "new_followups": [
+    {
+      "package_id": "registry+https://github.com/rust-lang/crates.io-index#dlopen_derive@0.1.4",
+      "published_files_verified": 6,
+      "upstream_commit": "26b70292744db1052403378d4a01075b6171e3d1",
+      "notice_sha256": "062e40ee707f6ab1ca0955624ccfa78d666250a2e821f892705f455cf70dc28a",
+      "existing_material": "Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen-0.1.8/LICENSE",
+      "already_in_candidate": true,
+      "all_published_sources_already_delivered": true
+    },
+    {
+      "package_id": "registry+https://github.com/rust-lang/crates.io-index#serial@0.4.0",
+      "published_files_verified": 6,
+      "upstream_commit": "7ed6540c2789b7c7365cd7a89fcb7bac7c567de8",
+      "notice_sha256": "871afd9d691846de71e0b83812ba9c7ff00bc7b3ad102dedcaa109f2246d52ad",
+      "existing_material": "Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serial-core-0.4.0/LICENSE",
+      "already_in_candidate": true,
+      "all_published_sources_already_delivered": true
+    }
+  ],
+  "full_notice_location_followups_including_addendum": 28,
+  "baseline_records_without_full_notice_followup": 17,
+  "original_reports_modified": false,
+  "new_binary_package_needed_for_notice_bytes": false,
+  "complete_license_source_audit": false
+}

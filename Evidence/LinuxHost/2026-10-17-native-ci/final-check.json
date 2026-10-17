@@ -1,0 +1,26 @@
+{
+  "result": "pass",
+  "ast_and_shell_syntax": true,
+  "workflow_action_inputs_verified": true,
+  "doc_links": 35,
+  "canonical_sha256": {
+    ".github/workflows/linux-native.yml": "7878c21c5c0cf027f2edf826c80cfa59b576a7ea89a6f3c3a583e8508783a616",
+    "Scripts/linux/ci-native-source.py": "cafbabf5278e85808221cd2a333766c1cc1faa3e7deb8f3a6a4e59e860226ef4",
+    "Scripts/linux/package-native.py": "8512779880d19cda0c52f7d201bbc34ab8d1415403a11ebc027508ac14d09560",
+    "Scripts/linux/test-native-package.sh": "fa2cc0a17d35e1670efd416a7754205c8373b1f9797b9e17f0f6933e63ac3e4c",
+    "Scripts/linux/test-native-deb.sh": "937a9da1978860dadb2baef5abd1372d6ebb1ad446172a7a4c4bd39ca43994d8",
+    "Linux/packaging/native_ci.py": "ed9ea323ee1e7cafe453f4a4a0c372d52b14940bf5dab4aff25146b309c587e1",
+    "Linux/packaging/native_package_source.py": "25e4a5ecb8ee1982983362605b97894eb4fca885a8dc314b1a9ce6a9e3e9bdd8",
+    "Linux/packaging/native_source_bundle.py": "df703f7e35d339084406a1eceeb898ecbc87d0945af94efaaf377f8fde4e397d",
+    "Linux/packaging/native-source-README.md": "af029c9e4f3b13167f3d8f4b446b3e3bf12a81b25dfdcec84d17e85c076a057b",
+    "Linux/docs/native-ci.md": "79aeeeebc971f5a4c8b10d5c73adcbdbd537ca642fb20d2de4a873973e9dd9a2",
+    "Linux/docs/native-build-tools.md": "abef6e1e0fedc4af37785b78e2ca3735c0628752405851a8018fbdee27928cae",
+    "Linux/docs/gui-status.md": "635b5d89e421fba3691c23a3bd462e85a9f0d22f81303d9b8124290cb1a8eb47",
+    "Linux/README.md": "b985ac775fcd0260336cdadacec5dec441699d0bc2aec1ea0b01301edf2b57df",
+    "Linux/native-build-tools.lock.json": "2626098fda264dd550cb6b15fce8867a8b98f96959787137e9f97e2b2adb4ec0"
+  },
+  "host_unchanged": true,
+  "candidate_unchanged": true,
+  "original_product_receipt_valid": true,
+  "source_manifest_entries": 88635
+}

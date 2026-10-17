@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_service_smoke.py", line 112, in main
+    adopted=launch('preexisting-agent',user_command(1000,CORE,'--server'),user_env(1000));wait_for(lambda:agent_state(1000))
+                                                                                          ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_service_smoke.py", line 27, in wait_for
+    raise TimeoutError('Service fixture condition did not arrive')
+TimeoutError: Service fixture condition did not arrive

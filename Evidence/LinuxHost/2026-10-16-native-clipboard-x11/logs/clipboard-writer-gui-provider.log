@@ -1,0 +1,15 @@
+_XSERVTransmkdir: ERROR: euid != 0,directory /tmp/.X11-unix will not be created.
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.78s
+     Running unittests src/main.rs (/workspace/Build/Linux/native-target/debug/deps/farpane-36b0ed4f00ba5d12)
+
+running 1 test
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+PASS: actual GIO byte output, four blocked pipes, fifth rejected, timeout cancellation and recovery
+test viewer_clipboard::tests::rgba_mapping_survives_provider_and_actual_png_serialization ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 3.08s
+
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui)
+    Finished `release` profile [optimized] target(s) in 19.04s

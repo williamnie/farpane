@@ -1,0 +1,11 @@
+{
+  "host_configuration": "Legacy user FarPane directory mode 0775 was rejected by the native configuration owner; product directory alone tightened to 0700, identity fields preserved. Root product directory also tightened from 0755 to 0700.",
+  "desktop_binding": "Initial user bind refused user-private-group icons directory 0775; exact traceback retained as user-bind.stderr. Fixed owning-group verification and explicit ACL rejection; unrelated directory permissions unchanged.",
+  "unit_test_fixture": "An early new-directory test constructed UserIntegration without state; fixed the fixture. Eight tests then passed; final ten include ACL tests.",
+  "installer_test_fixture": {
+    "run": "20261017T130905Z",
+    "tool_session": 6727,
+    "result": "24 transaction tests passed; real bundle assertion failed",
+    "reason": "New assertion checked config/farpane although directly constructed UserIntegration uses .config/farpane. Corrected test path, retained diagnostic-probe no-XDG-config assertion; subsequent 25 transactions and real bundle binding passed."
+  }
+}

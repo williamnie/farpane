@@ -1,0 +1,200 @@
+EEEEEEEEEEEEEEE
+======================================================================
+ERROR: test_added_file (__main__.BundleIntegrity.test_added_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_changed_binary (__main__.BundleIntegrity.test_changed_binary)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_directory_symlink (__main__.BundleIntegrity.test_directory_symlink)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_duplicate_entry (__main__.BundleIntegrity.test_duplicate_entry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_exact_bundle (__main__.BundleIntegrity.test_exact_bundle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_external_symlink (__main__.BundleIntegrity.test_external_symlink)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_fifo (__main__.BundleIntegrity.test_fifo)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_hardlink (__main__.BundleIntegrity.test_hardlink)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_identity (__main__.BundleIntegrity.test_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_manifest_symlink (__main__.BundleIntegrity.test_manifest_symlink)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_missing_required_even_if_resealed (__main__.BundleIntegrity.test_missing_required_even_if_resealed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_path_traversal (__main__.BundleIntegrity.test_path_traversal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_promoted_acceptance (__main__.BundleIntegrity.test_promoted_acceptance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_writable_binary (__main__.BundleIntegrity.test_writable_binary)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+======================================================================
+ERROR: test_writable_directory (__main__.BundleIntegrity.test_writable_directory)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/farpane/Linux/tests/test_native_bundle.py", line 25, in setUp
+    self.manifest=bundle.seal(self.root)
+                  ~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 74, in seal
+    entries = file_index(directory)
+  File "/home/user/farpane/Linux/packaging/native_bundle.py", line 45, in file_index
+    raise ValueError('Unexpected bundle directory mode: ' + name)
+ValueError: Unexpected bundle directory mode: lib
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.023s
+
+FAILED (errors=15)

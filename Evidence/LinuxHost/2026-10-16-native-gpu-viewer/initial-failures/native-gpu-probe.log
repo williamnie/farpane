@@ -1,0 +1,8 @@
+FAIL No DMA-BUF plane formats
+Traceback (most recent call last):
+  File "/home/user/farpane/Scripts/linux/run-native-gpu-test.py", line 87, in <module>
+    main()
+    ~~~~^^
+  File "/home/user/farpane/Scripts/linux/run-native-gpu-test.py", line 72, in main
+    raise RuntimeError(f'GPU probe exited {process.returncode}')
+RuntimeError: GPU probe exited 1

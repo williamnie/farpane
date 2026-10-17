@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "text_two_directions",
+    "text_64k_boundary_and_oversize_rejected",
+    "rich_default_disabled",
+    "host_text_limit_before_incr_allocation",
+    "stalled_host_owner_has_total_timeout_and_control_video_survive",
+    "rich_bundle_both_directions_with_text_fallback_and_incr",
+    "rich_grant_does_not_grant_plain_only",
+    "png_both_directions_above_control_limit_and_peer_alternatives"
+  ],
+  "host_policy_transactions": 0,
+  "policy_revisions": []
+}

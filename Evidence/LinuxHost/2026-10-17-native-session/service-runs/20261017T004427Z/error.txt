@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_service_smoke.py", line 176, in main
+    wait_for(lambda:agent_pid(1000) not in (None,adopted.pid),seconds=12)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_service_smoke.py", line 31, in wait_for
+    raise TimeoutError('Service fixture condition did not arrive')
+TimeoutError: Service fixture condition did not arrive

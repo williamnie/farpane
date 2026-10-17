@@ -1,0 +1,33 @@
+{
+  "context": "Isolated Xvfb/Cairo; no network, GPU, root service or media connection. Agent sampled after closing both online GUI runs; not a simultaneous combined PSS budget.",
+  "kib": {
+    "agent-memory.txt": {
+      "Rss": 62084,
+      "Pss": 58498,
+      "Private_Clean": 3688,
+      "Private_Dirty": 53072,
+      "SwapPss": 0
+    },
+    "gui-0/page-0-memory.txt": {
+      "Rss": 147592,
+      "Pss": 117238,
+      "Private_Clean": 55068,
+      "Private_Dirty": 34708,
+      "SwapPss": 0
+    },
+    "gui-1/page-0-memory.txt": {
+      "Rss": 138648,
+      "Pss": 109590,
+      "Private_Clean": 52584,
+      "Private_Dirty": 30888,
+      "SwapPss": 0
+    },
+    "gui-offline/page-0-memory.txt": {
+      "Rss": 138924,
+      "Pss": 110255,
+      "Private_Clean": 52940,
+      "Private_Dirty": 30756,
+      "SwapPss": 0
+    }
+  }
+}

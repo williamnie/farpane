@@ -1305,7 +1305,6 @@ dependencies = [
 [[package]]
 name = "clipboard-master"
 version = "4.0.0-beta.6"
-source = "git+https://github.com/rustdesk-org/clipboard-master#522fafb65edfe7939cf63fa797f916569ecab595"
 dependencies = [
  "objc",
  "objc-foundation",
@@ -2707,6 +2706,22 @@ dependencies = [
  "rayon-core",
  "smallvec",
  "zune-inflate",
+]
+
+[[package]]
+name = "farpane-files"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "farpane-protocol"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "serde 1.0.228",
+ "serde_json 1.0.118",
 ]
 
 [[package]]
@@ -7117,6 +7132,8 @@ dependencies = [
  "enigo",
  "errno",
  "evdev",
+ "farpane-files",
+ "farpane-protocol",
  "flutter_rust_bridge",
  "fon",
  "fontdb",
@@ -7186,6 +7203,9 @@ dependencies = [
  "uuid",
  "virtual_display",
  "wallpaper",
+ "wayland-client",
+ "wayland-protocols",
+ "wayland-protocols-wlr",
  "winapi 0.3.9",
  "windows 0.61.1",
  "windows-service",

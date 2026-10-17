@@ -1,0 +1,25 @@
+{
+  "result": "pass",
+  "checks": [
+    "archive_sha256_and_complete_extracted_source_manifest",
+    "empty_cargo_home_offline_core_graph_inside_snapshot",
+    "empty_cargo_home_offline_gui_graph_inside_snapshot",
+    "fresh_target_compilation_and_38_actual_protocol_tests",
+    "offline_full_gui_release_build_and_headless_component_probe"
+  ],
+  "archive_sha256": "6570f087109378d1b17286f7afb73ebe7d991a7386ad8138f20581a0bff35e94",
+  "source_entries": 88608,
+  "cargo_graph_packages": {
+    "core": 666,
+    "gui": 71
+  },
+  "gui_sha256": "3ffb9f4e42f63016eeb43a2b6ddda63ab8bb0ab05b23d2e67a6fa2075fb8338e",
+  "full_gui_release_build": true,
+  "compiler": "rustc 1.89.0 (29483883e 2025-08-04)",
+  "repository_mounted": false,
+  "compiler_cache_mounted": false,
+  "network": "none",
+  "full_native_media_build": false,
+  "complete_license_source_audit": false,
+  "host_modified": false
+}

@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.farpane.FarPane
+Exec=@FARPANE_RELEASE@/farpane --gapplication-service

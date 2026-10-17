@@ -1,0 +1,59 @@
+{
+  "before_gui_pid": 1418597,
+  "before": {
+    "registered": true,
+    "gpu_enabled": true,
+    "media_backend": "gpu",
+    "media_reason": "",
+    "inbound": [
+      {
+        "id": 1956,
+        "authorized": true
+      }
+    ],
+    "utc": "2026-10-17T13:11:56.954315+00:00"
+  },
+  "action": "stop and reopen only FarPane GUI; keep supervisor and Host running",
+  "while_closed": {
+    "registered": true,
+    "gpu_enabled": true,
+    "media_backend": "gpu",
+    "media_reason": "",
+    "inbound": [
+      {
+        "id": 1956,
+        "authorized": true
+      }
+    ],
+    "utc": "2026-10-17T13:11:56.994469+00:00"
+  },
+  "after_closed_sample": {
+    "registered": true,
+    "gpu_enabled": true,
+    "media_backend": "gpu",
+    "media_reason": "",
+    "inbound": [
+      {
+        "id": 1956,
+        "authorized": true
+      }
+    ],
+    "utc": "2026-10-17T13:12:07.057590+00:00"
+  },
+  "reopen_exit": 0,
+  "reopen_detail": "Running as unit: farpane-native-gui.service; invocation ID: 90589a397ce144e6b8d4bd39ee039c5f",
+  "after_gui_pid": 1434762,
+  "after": {
+    "registered": true,
+    "gpu_enabled": true,
+    "media_backend": "gpu",
+    "media_reason": "",
+    "inbound": [
+      {
+        "id": 1956,
+        "authorized": true
+      }
+    ],
+    "utc": "2026-10-17T13:12:07.092346+00:00"
+  }
+}

@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 462, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 240, in user_test
+    exercise_recovery(output,agent,start)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_recovery_smoke.py", line 136, in exercise_recovery
+    wait(lambda:recovery()['phase']=='waiting_server','Rejected registration was reported as ready',28)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_desktop_smoke.py", line 21, in wait
+    raise AssertionError(message)
+AssertionError: Rejected registration was reported as ready

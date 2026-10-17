@@ -1,0 +1,13 @@
+test_actual_directory_modes_and_symlink (test_native_user_install.PrivateGroupTests.test_actual_directory_modes_and_symlink) ... ok
+test_config_permissions_migrate_without_content_changes (test_native_user_install.PrivateGroupTests.test_config_permissions_migrate_without_content_changes) ... ok
+test_new_configuration_private_and_shared_group_rejected (test_native_user_install.PrivateGroupTests.test_new_configuration_private_and_shared_group_rejected) ... ok
+test_other_primary_member_refused (test_native_user_install.PrivateGroupTests.test_other_primary_member_refused) ... ok
+test_private_primary_group (test_native_user_install.PrivateGroupTests.test_private_primary_group) ... ok
+test_shared_or_nonprimary_group_refused (test_native_user_install.PrivateGroupTests.test_shared_or_nonprimary_group_refused) ... ok
+test_supplementary_other_member_refused (test_native_user_install.PrivateGroupTests.test_supplementary_other_member_refused) ... ok
+test_unknown_group_refused (test_native_user_install.PrivateGroupTests.test_unknown_group_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.011s
+
+OK

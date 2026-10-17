@@ -1,0 +1,27 @@
+[2026-10-16 23:56:41.654110 +00:00] INFO [src/core_main.rs:400] start --service
+[2026-10-16 23:56:41.654562 +00:00] INFO [src/server/uinput.rs:1012] start uinput control service
+[2026-10-16 23:56:41.654619 +00:00] INFO [src/server/uinput.rs:1005] start uinput mouse service
+[2026-10-16 23:56:41.654618 +00:00] INFO [src/server/uinput.rs:998] start uinput keyboard service
+[2026-10-16 23:56:41.654830 +00:00] INFO [src/ipc.rs:738] Started ipc_uinput_control server at path: /tmp/FarPane-service/ipc_uinput_control
+[2026-10-16 23:56:41.654816 +00:00] INFO [src/ipc/drm.rs:101] Started drm ipc server at path: /tmp/FarPane-service/ipc_drm
+[2026-10-16 23:56:41.654858 +00:00] INFO [src/ipc.rs:738] Started ipc_uinput_mouse server at path: /tmp/FarPane-service/ipc_uinput_mouse
+[2026-10-16 23:56:41.654888 +00:00] INFO [src/ipc.rs:738] Started ipc_uinput_keyboard server at path: /tmp/FarPane-service/ipc_uinput_keyboard
+[2026-10-16 23:56:41.654929 +00:00] INFO [src/ipc.rs:736] Started protected ipc service server: postfix=_service
+[2026-10-16 23:56:41.655060 +00:00] INFO [src/ipc/drm.rs:728] drm: udev DRM-uevent listener started
+[2026-10-16 23:56:41.705099 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:56:41.705111 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1000/test.Xauthority
+[2026-10-16 23:56:41.705563 +00:00] INFO [src/farpane_native/supervisor.rs:129] Native display environment changed; retaining the active/unknown Host
+[2026-10-16 23:56:44.159665 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:56:44.159681 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-16 23:56:44.159685 +00:00] INFO [src/farpane_native/supervisor.rs:42] Native Host desktop user changed; ending the previous authorization context
+[2026-10-16 23:56:44.159831 +00:00] ERROR [src/farpane_native/supervisor.rs:48] Previous desktop Host did not stop; refusing a new authorization context: Operation not permitted (os error 1)
+[2026-10-16 23:56:44.481469 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:56:44.481491 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-16 23:56:44.998829 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:56:44.998848 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-16 23:56:45.519612 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:56:45.519655 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-16 23:56:46.037166 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:56:46.037186 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority
+[2026-10-16 23:56:46.559653 +00:00] INFO [src/platform/linux.rs:995] DISPLAY: :92
+[2026-10-16 23:56:46.559685 +00:00] INFO [src/platform/linux.rs:996] XAUTHORITY: /run/user/1001/test.Xauthority

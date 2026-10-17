@@ -1,0 +1,21 @@
+{
+  "current": "releases/farpane-p1-445515cfa1ec-90876510-551585f0",
+  "farpane.service": {
+    "returncode": 0,
+    "properties": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "disabled",
+      "MainPID": "3212867"
+    }
+  },
+  "rustdesk.service": {
+    "returncode": 0,
+    "properties": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "enabled",
+      "MainPID": "1880443"
+    }
+  }
+}

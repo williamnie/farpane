@@ -1,0 +1,38 @@
+{
+  "role": "agent",
+  "local_id": "1000000000",
+  "registered": true,
+  "host_enabled": true,
+  "authentication": "permanent",
+  "permanent_password_set": true,
+  "gpu_enabled": true,
+  "media_backend": "gpu",
+  "media_reason": "",
+  "desktop": {
+    "connected": true,
+    "tray_registered": true,
+    "notifications_available": true,
+    "notification_actions": true,
+    "detail": "\u901a\u77e5\u53ef\u7528\uff1b\u6258\u76d8\u9879\u5df2\u6ce8\u518c"
+  },
+  "recovery": {
+    "phase": "ready",
+    "sleep_monitor": true,
+    "network_monitor": true,
+    "epoch": 0,
+    "attempt": 0,
+    "detail": "\u540e\u53f0\u6ce8\u518c\u6b63\u5e38"
+  },
+  "inbound": [
+    {
+      "id": 1956,
+      "authorized": true,
+      "permissions": {
+        "keyboard": true,
+        "clipboard": true,
+        "audio": true,
+        "file": false
+      }
+    }
+  ]
+}

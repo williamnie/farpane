@@ -1,0 +1,40 @@
+{
+  "result": "pass",
+  "changed_application_sources": [
+    "Linux/dependencies.lock.json",
+    "Linux/patches/0041-x11-monitor-reply-lifetime.patch"
+  ],
+  "canonical_sha256": {
+    "Linux/patches/0041-x11-monitor-reply-lifetime.patch": "5b1eaa279c9dc20203cba617cf2b6baf19efa30b74fb7ab9da038ce20f549f34",
+    "Linux/dependencies.lock.json": "355deb9da9aa7f401975d019e6ae1f7c18edf2cae7f5c9e4e676460f338fba79",
+    "Linux/tests/native_multidisplay_smoke.py": "57e911d65f84301ae3690362208a08efbbf9900af30b248d6676a0cf449f3a37",
+    "Linux/tests/native_viewer_smoke.py": "efd5bdc6a51eec3c5103ce8f2ae5fa950c988ec01090038afd32bf90431eec03",
+    "Scripts/linux/test-native-multidisplay.sh": "8bd31c4e7e7728889e5fcb1939f9e4a5b25953cafa84089e35c025f934193d54",
+    "Linux/docs/multiple-displays.md": "8cf79c14489ac7fbb6dcb2621f7b2c228f49ed0e04e88a04339cdd111a6c1758",
+    "Linux/docs/gui-status.md": "ff4c7ac249f333730ca0863e8462bf4196ec588bb50570d9709b364419ad9f00",
+    "Linux/docs/native-test-candidate.md": "34792b74a89bff993100edc6604d13311af4e8ebcb1864262a724fba2def4641",
+    "Linux/README.md": "25da0c412dbc30f863299f94821cdb5af68aeea971644b6486778be2395c6516",
+    "Linux/native-notice-supplements.json": "79be31fa06f71e5cc73e426381df3441e59463af275189e6e0c64b4eb3666db9"
+  },
+  "core_built": true,
+  "gui_and_ffmpeg_rebuilt": false,
+  "raw_binaries": {
+    "farpane": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421",
+    "libexec/farpane-core": "b518ffc5b37859b1ac9e0f6b0e7d4a39c8d3e6dc57c9e8bbdbf452e826b5de62"
+  },
+  "packaged_binaries": {
+    "farpane": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421",
+    "libexec/farpane-core": "2ae7709345c3a251dde76ea71db23506dd27e2c56e256b7aeaaf6c4dbbf7766e"
+  },
+  "private_multidisplay_checks": 9,
+  "old_allocator_exit_reproduced": true,
+  "new_allocator_checks_passed": true,
+  "two_distro_deb_upgrade_passed": true,
+  "source_tar_entries_verified": 88658,
+  "old_deliverables_unchanged": true,
+  "host_unchanged": true,
+  "doc_links_checked": 77,
+  "installed": false,
+  "gpu_tested": false,
+  "full_plan_acceptance": false
+}

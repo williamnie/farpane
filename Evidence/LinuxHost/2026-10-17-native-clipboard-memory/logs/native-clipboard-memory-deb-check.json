@@ -1,0 +1,15 @@
+{
+  "package": "Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261017.3_amd64.deb",
+  "sha256": "220fa3fe1dd072e9b5e6524c3a7389aa279ba8c88d437026e5895acde2dad549",
+  "bytes": 17170724,
+  "artifact": "farpane-native-dev-90b070cf48653dfd5e5c4e24",
+  "result": "pass",
+  "checks": [
+    "entire-extracted-payload-matches-verified-bundle",
+    "installer-source-hashes-match-current",
+    "actual-release-version-in-maintenance-readme",
+    "bundle-build-receipt-matches-current-products"
+  ],
+  "installed": false,
+  "runtime_ready": false
+}

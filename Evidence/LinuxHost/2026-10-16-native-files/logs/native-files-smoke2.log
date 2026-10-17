@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 379, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 231, in user_test
+    exercise_files(output,agent)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_files_smoke.py", line 27, in exercise_files
+    assert time.monotonic()<deadline,'File GUI test timed out'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: File GUI test timed out

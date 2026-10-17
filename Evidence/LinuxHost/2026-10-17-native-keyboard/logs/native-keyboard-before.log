@@ -1,0 +1,15 @@
+/workspace/Build/Linux/native-keyboard-smoke/20261017T073015Z
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 510, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 279, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_keyboard_smoke.py", line 94, in exercise
+    no_inhibitor('late-authorization-after-timeout')
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_keyboard_smoke.py", line 76, in no_inhibitor
+    assert not ok, label + ': compositor still has a cancelled inhibitor'
+           ^^^^^^
+AssertionError: late-authorization-after-timeout: compositor still has a cancelled inhibitor

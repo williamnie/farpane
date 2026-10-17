@@ -1,0 +1,307 @@
+Computing installation plan...
+The following packages will be built and installed:
+    aom:x64-linux@3.14.1
+    ffnvcodec:x64-linux@12.1.14.0
+    libjpeg-turbo:x64-linux@3.2.0
+    libvpx:x64-linux@1.15.2
+    libyuv:x64-linux@1857
+    mfx-dispatch:x64-linux@1.35.1#5
+    opus:x64-linux@1.5.2
+    pkgconf:x64-linux@3.0.3
+    vcpkg-cmake:x64-linux@2024-04-23
+    vcpkg-cmake-config:x64-linux@2026-07-21
+    vcpkg-cmake-get-vars:x64-linux@2025-05-29
+    vcpkg-pkgconfig-get-modules:x64-linux@2024-04-03
+    vcpkg-tool-meson:x64-linux@1.9.0#10
+Detecting compiler hash for triplet x64-linux...
+Compiler found: /usr/bin/c++
+Installing 1/13 vcpkg-cmake:x64-linux@2024-04-23...
+vcpkg-cmake:x64-linux@2024-04-23 package ABI: 93234fb9e357507bb5c92fef24e9a2e78dc100b68e23354a4b158ab57706b1b1
+Building vcpkg-cmake:x64-linux@2024-04-23...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/vcpkg_cmake_configure.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/vcpkg_cmake_build.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/vcpkg_cmake_install.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/vcpkg-port-config.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake_x64-linux/share/vcpkg-cmake/copyright
+-- Performing post-build validation
+Elapsed time to handle vcpkg-cmake:x64-linux: 12.9 ms
+Installing 2/13 vcpkg-cmake-config:x64-linux@2026-07-21...
+vcpkg-cmake-config:x64-linux@2026-07-21 package ABI: 7e650b5b0e472690c771958e37e6563e6bb240fa4f9d99ec4f9963cfe7403544
+Building vcpkg-cmake-config:x64-linux@2026-07-21...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-config_x64-linux/share/vcpkg-cmake-config/vcpkg_cmake_config_fixup.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-config_x64-linux/share/vcpkg-cmake-config/vcpkg-port-config.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-config_x64-linux/share/vcpkg-cmake-config/copyright
+-- Skipping post-build validation due to VCPKG_POLICY_EMPTY_PACKAGE
+Elapsed time to handle vcpkg-cmake-config:x64-linux: 13.4 ms
+Installing 3/13 aom:x64-linux@3.14.1...
+aom:x64-linux@3.14.1 package ABI: 85f9ce43903dc9184eac266d96240240ff18f6e9549de768adf323bbd1d3ab26
+Building aom:x64-linux@3.14.1...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Using cached /output/work/downloads/aom-03087864cf4bea6abb0d28f95cf7843511413d8f.tar.gz
+-- Extracting source /output/work/downloads/aom-03087864cf4bea6abb0d28f95cf7843511413d8f.tar.gz
+-- Applying patch aom-uninitialized-pointer.diff
+-- Using source at /output/work/vcpkg/buildtrees/aom/src/3511413d8f-ae57dc8de2.clean
+-- Configuring x64-linux
+-- Building x64-linux-rel
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/aom_x64-linux/lib/pkgconfig/aom.pc
+-- Installing: /output/work/vcpkg/packages/aom_x64-linux/share/aom/copyright
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/aom_x64-linux/lib/pkgconfig/aom.pc
+-- Performing post-build validation
+Elapsed time to handle aom:x64-linux: 42 s
+Installing 4/13 ffnvcodec:x64-linux@12.1.14.0...
+ffnvcodec:x64-linux@12.1.14.0 package ABI: 3a9e67e05d91f9ac85667cf14f99453ebd3ae175e028712d1af20e38de40d80c
+Building ffnvcodec:x64-linux@12.1.14.0...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Using cached FFmpeg-nv-codec-headers-n12.1.14.0.tar.gz
+-- Extracting source /output/work/downloads/FFmpeg-nv-codec-headers-n12.1.14.0.tar.gz
+-- Using source at /output/work/vcpkg/buildtrees/ffnvcodec/src/n12.1.14.0-fd4b5ee7ec.clean
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/lib/pkgconfig/ffnvcodec.pc
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/debug/lib/pkgconfig/ffnvcodec.pc
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/ffnvcodec_x64-linux/lib/pkgconfig/ffnvcodec.pc
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/include
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/include/ffnvcodec
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/include/ffnvcodec/dynlink_cuviddec.h
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/include/ffnvcodec/dynlink_cuda.h
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/include/ffnvcodec/dynlink_loader.h
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/include/ffnvcodec/dynlink_nvcuvid.h
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/include/ffnvcodec/nvEncodeAPI.h
+-- Installing: /output/work/vcpkg/packages/ffnvcodec_x64-linux/share/ffnvcodec/copyright
+-- Performing post-build validation
+Elapsed time to handle ffnvcodec:x64-linux: 34.2 ms
+Installing 5/13 libjpeg-turbo:x64-linux@3.2.0...
+libjpeg-turbo:x64-linux@3.2.0 package ABI: c24327b93ece56a8545aa94a11aa3634663677d627ba48fc6431622f37859b2a
+Building libjpeg-turbo:x64-linux@3.2.0...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Using cached libjpeg-turbo-libjpeg-turbo-3.2.0.tar.gz
+-- Extracting source /output/work/downloads/libjpeg-turbo-libjpeg-turbo-3.2.0.tar.gz
+-- Applying patch add-options-for-docs-headers.patch
+-- Applying patch workaround_cmake_system_processor.patch
+-- Using source at /output/work/vcpkg/buildtrees/libjpeg-turbo/src/3.2.0-3cdbbb0a83.clean
+-- Configuring x64-linux
+CMake Warning at installed/x64-linux/share/vcpkg-cmake/vcpkg_cmake_configure.cmake:344 (message):
+  The following variables are not used in CMakeLists.txt:
+
+      NEON_INTRINSICS
+
+  Please recheck them and remove the unnecessary options from the
+  `vcpkg_cmake_configure` call.
+
+  If these options should still be passed for whatever reason, please use the
+  `MAYBE_UNUSED_VARIABLES` argument.
+Call Stack (most recent call first):
+  /output/work/ports/libjpeg-turbo/portfile.cmake:45 (vcpkg_cmake_configure)
+  scripts/ports.cmake:209 (include)
+
+
+-- Building x64-linux-rel
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/libjpeg-turbo_x64-linux/lib/pkgconfig/libjpeg.pc
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/libjpeg-turbo_x64-linux/lib/pkgconfig/libturbojpeg.pc
+-- Installing: /output/work/vcpkg/packages/libjpeg-turbo_x64-linux/share/libjpeg-turbo/copyright
+-- Performing post-build validation
+Elapsed time to handle libjpeg-turbo:x64-linux: 9.4 s
+Installing 6/13 vcpkg-cmake-get-vars:x64-linux@2025-05-29...
+vcpkg-cmake-get-vars:x64-linux@2025-05-29 package ABI: 5282880c8331eff47f0c07fdc548ae67e3a6b5fb7c2e0dd69d96d02a267feba3
+Building vcpkg-cmake-get-vars:x64-linux@2025-05-29...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-get-vars_x64-linux/share/vcpkg-cmake-get-vars/vcpkg_cmake_get_vars.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-get-vars_x64-linux/share/vcpkg-cmake-get-vars/cmake_get_vars
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-get-vars_x64-linux/share/vcpkg-cmake-get-vars/cmake_get_vars/CMakeLists.txt
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-get-vars_x64-linux/share/vcpkg-cmake-get-vars/cmake-get-vars.cmake.in
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-get-vars_x64-linux/share/vcpkg-cmake-get-vars/vcpkg-port-config.cmake
+-- Installing: /output/work/vcpkg/packages/vcpkg-cmake-get-vars_x64-linux/share/vcpkg-cmake-get-vars/copyright
+-- Performing post-build validation
+Elapsed time to handle vcpkg-cmake-get-vars:x64-linux: 14.6 ms
+Installing 7/13 libvpx:x64-linux@1.15.2...
+libvpx:x64-linux@1.15.2 package ABI: 138cbf7ec8a88b99104b9b53cdaec17a621750ef8dbafd8a6b52b25574e9870e
+Building libvpx:x64-linux@1.15.2...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Using cached webmproject-libvpx-v1.15.2.tar.gz
+-- Extracting source /output/work/downloads/webmproject-libvpx-v1.15.2.tar.gz
+-- Applying patch 0003-add-uwp-v142-and-v143-support.patch
+-- Applying patch 0004-remove-library-suffixes.patch
+-- Using source at /output/work/vcpkg/buildtrees/libvpx/src/v1.15.2-0f523e7cb7.clean
+-- Getting CMake variables for x64-linux
+-- Loading CMake variables from /output/work/vcpkg/buildtrees/libvpx/cmake-get-vars_C_CXX-x64-linux.cmake.log
+-- Build info. Target: x86_64-linux-gcc; Options: --disable-examples --disable-tools --disable-docs --disable-unit-tests --enable-pic --enable-static --disable-shared
+-- Configuring libvpx for Release
+-- Building libvpx for Release
+-- Installing libvpx for Release
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/libvpx_x64-linux/lib/pkgconfig/vpx.pc
+-- Installing: /output/work/vcpkg/packages/libvpx_x64-linux/share/libvpx/copyright
+-- Performing post-build validation
+Elapsed time to handle libvpx:x64-linux: 15 s
+Installing 8/13 libyuv:x64-linux@1857...
+libyuv:x64-linux@1857 package ABI: 1f88553352408bb9defaaa37d823f5b37bb5ca0746a12361ac714bf320c1b13e
+Building libyuv:x64-linux@1857...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Using cached /output/work/downloads/libyuv-0faf8dd0e004520a61a603a4d2996d5ecc80dc3f.tar.gz
+-- Extracting source /output/work/downloads/libyuv-0faf8dd0e004520a61a603a4d2996d5ecc80dc3f.tar.gz
+-- Applying patch fix-cmakelists.patch
+-- Using source at /output/work/vcpkg/buildtrees/libyuv/src/5ecc80dc3f-992dc86b90.clean
+-- Getting CMake variables for x64-linux
+-- Loading CMake variables from /output/work/vcpkg/buildtrees/libyuv/cmake-get-vars_C_CXX-x64-linux.cmake.log
+-- Configuring x64-linux-rel
+-- Building x64-linux-rel
+-- Installing: /output/work/vcpkg/packages/libyuv_x64-linux/share/libyuv/copyright
+-- Installing: /output/work/vcpkg/packages/libyuv_x64-linux/share/libyuv/usage
+-- Adjusted RPATH of '/output/work/vcpkg/packages/libyuv_x64-linux/tools/yuvconvert' (From '' -> To '$ORIGIN:$ORIGIN/../lib')
+-- Performing post-build validation
+Elapsed time to handle libyuv:x64-linux: 5.3 s
+Installing 9/13 mfx-dispatch:x64-linux@1.35.1#5...
+mfx-dispatch:x64-linux@1.35.1#5 package ABI: 13b52c0e304e2bcac39b6840e3dbb6dc37733ff868535538fce57806626a45bd
+Building mfx-dispatch:x64-linux@1.35.1#5...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Using cached fix-missing-cstdint-import-d6241243f85a0d947bdfe813006686a930edef24.patch
+-- Using cached lu-zero-mfx_dispatch-1.35.1.tar.gz
+-- Extracting source /output/work/downloads/lu-zero-mfx_dispatch-1.35.1.tar.gz
+-- Applying patch fix-unresolved-symbol.patch
+-- Applying patch fix-pkgconf.patch
+-- Applying patch 0003-upgrade-cmake-3.14.patch
+-- Applying patch /output/work/downloads/fix-missing-cstdint-import-d6241243f85a0d947bdfe813006686a930edef24.patch
+-- Using source at /output/work/vcpkg/buildtrees/mfx-dispatch/src/1.35.1-3914ad8155.clean
+-- Getting CMake variables for x64-linux-rel
+-- Generating configure for x64-linux
+-- Finished generating configure for x64-linux
+-- Configuring x64-linux-rel
+-- Building x64-linux-rel
+-- Installing x64-linux-rel
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/mfx-dispatch_x64-linux/lib/pkgconfig/libmfx.pc
+-- Installing: /output/work/vcpkg/packages/mfx-dispatch_x64-linux/share/mfx-dispatch/copyright
+-- Performing post-build validation
+Elapsed time to handle mfx-dispatch:x64-linux: 6.3 s
+Installing 10/13 opus:x64-linux@1.5.2...
+opus:x64-linux@1.5.2 package ABI: 529808b14106c6f6eb8db975eaa7c988c40867e4f17e78868e467fbfee6faf4b
+Building opus:x64-linux@1.5.2...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Using cached xiph-opus-v1.5.2.tar.gz
+-- Extracting source /output/work/downloads/xiph-opus-v1.5.2.tar.gz
+-- Applying patch fix-pkgconfig-version.patch
+-- Using source at /output/work/vcpkg/buildtrees/opus/src/v1.5.2-81ed242155.clean
+-- Configuring x64-linux
+-- Building x64-linux-rel
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/opus_x64-linux/lib/pkgconfig/opus.pc
+-- Installing: /output/work/vcpkg/packages/opus_x64-linux/share/opus/copyright
+-- Performing post-build validation
+Elapsed time to handle opus:x64-linux: 4.7 s
+Installing 11/13 vcpkg-tool-meson:x64-linux@1.9.0#10...
+vcpkg-tool-meson:x64-linux@1.9.0#10 package ABI: 67bb909c29d36d2341f5e4f51b4580b48039b9be95355eef7a6d071da37dd060
+Building vcpkg-tool-meson:x64-linux@1.9.0#10...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Installing: /output/work/vcpkg/packages/vcpkg-tool-meson_x64-linux/share/vcpkg-tool-meson/copyright
+-- Using cached meson-1.9.0.tar.gz
+-- Applying patch /output/work/vcpkg/packages/vcpkg-tool-meson_x64-linux/share/vcpkg-tool-meson/meson-intl.patch
+-- Applying patch /output/work/vcpkg/packages/vcpkg-tool-meson_x64-linux/share/vcpkg-tool-meson/adjust-python-dep.patch
+-- Applying patch /output/work/vcpkg/packages/vcpkg-tool-meson_x64-linux/share/vcpkg-tool-meson/adjust-args.patch
+-- Applying patch /output/work/vcpkg/packages/vcpkg-tool-meson_x64-linux/share/vcpkg-tool-meson/remove-pkgconfig-specialization.patch
+-- Applying patch /output/work/vcpkg/packages/vcpkg-tool-meson_x64-linux/share/vcpkg-tool-meson/meson-56879d5.diff
+-- Found Python version '3.12.3 at /usr/bin/python3'
+-- Using meson: /output/work/downloads/tools/meson-1.9.0-633807/meson.py
+-- Performing post-build validation
+Elapsed time to handle vcpkg-tool-meson:x64-linux: 86.9 ms
+Installing 12/13 pkgconf:x64-linux@3.0.3...
+pkgconf:x64-linux@3.0.3 package ABI: 603c27d4e8b4035916f79c5f8ce85b3e1811954575f2647a5230701db5f4d127
+Building pkgconf:x64-linux@3.0.3...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Found Python version '3.12.3 at /usr/bin/python3'
+-- Using meson: /output/work/downloads/tools/meson-1.9.0-633807/meson.py
+-- Using cached pkgconf-pkgconf-pkgconf-3.0.3.tar.gz
+-- Extracting source /output/work/downloads/pkgconf-pkgconf-pkgconf-3.0.3.tar.gz
+-- Using source at /output/work/vcpkg/buildtrees/pkgconf/src/conf-3.0.3-bff6744efe.clean
+-- Configuring x64-linux-rel
+-- Getting CMake variables for x64-linux
+-- Loading CMake variables from /output/work/vcpkg/buildtrees/pkgconf/cmake-get-vars_C_CXX-x64-linux.cmake.log
+-- Configuring x64-linux-rel done
+-- Package x64-linux-rel
+-- Fixing pkgconfig file: /output/work/vcpkg/packages/pkgconf_x64-linux/lib/pkgconfig/libpkgconf.pc
+-- Installing: /output/work/vcpkg/packages/pkgconf_x64-linux/share/pkgconf/copyright
+-- Adjusted RPATH of '/output/work/vcpkg/packages/pkgconf_x64-linux/tools/pkgconf/bomtool' (From '' -> To '$ORIGIN:$ORIGIN/../../lib')
+-- Adjusted RPATH of '/output/work/vcpkg/packages/pkgconf_x64-linux/tools/pkgconf/pccritic' (From '' -> To '$ORIGIN:$ORIGIN/../../lib')
+-- Adjusted RPATH of '/output/work/vcpkg/packages/pkgconf_x64-linux/tools/pkgconf/pkgconf' (From '' -> To '$ORIGIN:$ORIGIN/../../lib')
+-- Adjusted RPATH of '/output/work/vcpkg/packages/pkgconf_x64-linux/tools/pkgconf/spdxtool' (From '' -> To '$ORIGIN:$ORIGIN/../../lib')
+-- Performing post-build validation
+Elapsed time to handle pkgconf:x64-linux: 3.3 s
+Installing 13/13 vcpkg-pkgconfig-get-modules:x64-linux@2024-04-03...
+vcpkg-pkgconfig-get-modules:x64-linux@2024-04-03 package ABI: 10d893c1e839eb43a5cd3682094dcc5207914ac0b9693b1681fa567bbc4d3d33
+Building vcpkg-pkgconfig-get-modules:x64-linux@2024-04-03...
+/output/work/triplets/x64-linux.cmake: info: loaded overlay triplet from here
+-- Installing: /output/work/vcpkg/packages/vcpkg-pkgconfig-get-modules_x64-linux/share/vcpkg-pkgconfig-get-modules/copyright
+-- Performing post-build validation
+Elapsed time to handle vcpkg-pkgconfig-get-modules:x64-linux: 14.4 ms
+Total install time: 1.4 min
+Installed contents are licensed to you by owners. Microsoft is not responsible for, nor does it grant any licenses to, third-party packages.
+Some packages did not declare an SPDX license. Check the `copyright` file for each package for more information about their licensing.
+Packages installed in this vcpkg installation declare the following licenses:
+Apache-2.0
+BSD-2-Clause
+BSD-3-Clause
+MIT
+aom provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(AOM CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE AOM::aom)
+
+aom provides pkg-config modules:
+
+  # Alliance for Open Media AV1 codec library v3.14.1.
+  aom
+
+ffnvcodec is header-only and can be used from CMake via:
+
+  find_path(FFNVCODEC_INCLUDE_DIRS "ffnvcodec/dynlink_cuda.h")
+  target_include_directories(main PRIVATE ${FFNVCODEC_INCLUDE_DIRS})
+
+ffnvcodec provides pkg-config modules:
+
+  # FFmpeg version of Nvidia Codec SDK headers
+  ffnvcodec
+
+libjpeg-turbo is compatible with built-in implementation-agnostic CMake targets:
+
+    find_package(JPEG REQUIRED)
+    target_link_libraries(main PRIVATE JPEG::JPEG)
+
+libjpeg-turbo provides CMake targets for the TurboJPEG C API:
+
+    find_package(libjpeg-turbo CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE $<IF:$<TARGET_EXISTS:libjpeg-turbo::turbojpeg>,libjpeg-turbo::turbojpeg,libjpeg-turbo::turbojpeg-static>)
+
+libvpx provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(unofficial-libvpx CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE unofficial::libvpx::libvpx)
+
+libvpx provides pkg-config modules:
+
+  # WebM Project VPx codec implementation
+  vpx
+
+libyuv provides CMake targets:
+
+    find_package(libyuv CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE yuv)
+mfx-dispatch provides pkg-config modules:
+
+  # Intel Media SDK Dispatched static library
+  libmfx
+
+opus provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(Opus CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE Opus::opus)
+
+opus provides pkg-config modules:
+
+  # Opus IETF audio codec ( build)
+  opus
+
+pkgconf provides pkg-config modules:
+
+  # a library for accessing and manipulating development framework configuration
+  libpkgconf
+
+All requested installations completed successfully in: 1.4 min

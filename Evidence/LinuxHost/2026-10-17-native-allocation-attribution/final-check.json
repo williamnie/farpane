@@ -1,0 +1,27 @@
+{
+  "result": "pass",
+  "canonical_sha256": {
+    "Linux/tests/native_allocation_profile.c": "9d30f6788784909f5bbb141639a6fa7df9c049c1f2a2fbf78527e80d7407807f",
+    "Linux/tests/native_home_memory.py": "2fed749da66362d701462d24148e6a305bdb60055a3fcdc02d50bb6dad16291e",
+    "Linux/tests/native_viewer_smoke.py": "d299c44cba98c273b5836e93c7a825594e99de00001dbffad727884cd326d324",
+    "Scripts/linux/run-native-gpu-test.py": "c49b275851b42a93a23f41db2a658442b25aaaa6c2fb39f65d58decda9b94d52",
+    "Scripts/linux/analyze-native-allocations.py": "a91552eb5a72153bfc5b53cbd3043ef3dd5080c453ab7576b7e45bd8e8ea8594",
+    "Linux/docs/allocation-attribution.md": "5e9d393fef93edf54d6a39e2641fa51996fb8da294b87e89cf024a8399214c14",
+    "Linux/docs/home-memory.md": "709938633865c60d4e1f11b1db093dbe28383c2db5119a4fb0af2fa48f405814",
+    "Linux/docs/gui-status.md": "a571e85868b5d570379483407525a6a78133345ed31502a2d3b1a47789dd7f1e",
+    "Linux/docs/native-test-candidate.md": "57fdb6550e9d7e24f898fdd0838a0607fbfb98bccba10f925c9a95cc836d54ae"
+  },
+  "live_requested_bytes": 22540535,
+  "shown_bytes": 21281774,
+  "coverage": 0.9441556733236367,
+  "contexts": 4096,
+  "verified_symbol_elfs": 34,
+  "exact_release_self_test": true,
+  "truncated_report_rejected": true,
+  "product_changed": false,
+  "product_performance_measurement": false,
+  "memory_target_accepted": false,
+  "unchanged_host_and_deliverables": true,
+  "doc_links_checked": 81,
+  "full_goal_acceptance": false
+}

@@ -1,0 +1,49 @@
+{
+  "checks": [
+    "text_two_directions",
+    "text_64k_boundary_and_oversize_rejected",
+    "rich_default_disabled",
+    "host_text_limit_before_incr_allocation",
+    "stalled_host_owner_has_total_timeout_and_control_video_survive",
+    "rich_bundle_both_directions_with_text_fallback_and_incr",
+    "rich_grant_does_not_grant_plain_only",
+    "png_both_directions_above_control_limit_and_peer_alternatives",
+    "actual_large_png_both_directions",
+    "svg_both_directions_without_rasterizing",
+    "x11_notifications_survive_16_alternating_selections_without_settle_sleep",
+    "host_policy_rejects_formats_before_reading_payload",
+    "host_rejects_ungranted_incoming_rich_text",
+    "host_independent_send_and_receive_revocation",
+    "receive_revocation",
+    "focus_loss_pauses_send_and_refocus_reads_current_selection",
+    "all_disabled_does_not_send",
+    "video_continues",
+    "control_events_do_not_contain_selection_payload",
+    "actual_host_connection_revoke_stops_both_directions_and_preserves_video",
+    "host_all_off_persists",
+    "host_all_off_idle_thread_and_no_platform_payload_reads"
+  ],
+  "host_policy_transactions": 5,
+  "policy_revisions": [
+    {
+      "before": 24,
+      "after": 25
+    },
+    {
+      "before": 25,
+      "after": 26
+    },
+    {
+      "before": 26,
+      "after": 27
+    },
+    {
+      "before": 27,
+      "after": 28
+    },
+    {
+      "before": 28,
+      "after": 29
+    }
+  ]
+}

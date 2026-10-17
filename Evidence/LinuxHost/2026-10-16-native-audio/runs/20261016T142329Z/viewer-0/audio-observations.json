@@ -1,0 +1,30 @@
+[
+  {
+    "rms": 0.0,
+    "hz": 0.0,
+    "samples": 1920,
+    "label": "disabled-before-enable",
+    "audible": false
+  },
+  {
+    "rms": 0.1410259387927998,
+    "hz": 441.6666666666667,
+    "samples": 17280,
+    "label": "decoded-440hz",
+    "audible": true
+  },
+  {
+    "rms": 0.0,
+    "hz": 0.0,
+    "samples": 24960,
+    "label": "disabled-no-tail",
+    "audible": false
+  },
+  {
+    "rms": 0.14130586430528355,
+    "hz": 437.8378378378378,
+    "samples": 17760,
+    "label": "reenabled-440hz",
+    "audible": true
+  }
+]

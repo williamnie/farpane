@@ -1,0 +1,8 @@
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+
+(farpane:61): Gtk-CRITICAL **: 11:20:37.778: gtk_widget_get_settings: assertion 'GTK_IS_WIDGET (widget)' failed
+
+(farpane:61): GLib-GObject-CRITICAL **: 11:20:37.778: invalid (NULL) pointer instance
+
+(farpane:61): GLib-GObject-CRITICAL **: 11:20:37.778: g_signal_handlers_disconnect_matched: assertion 'G_TYPE_CHECK_INSTANCE (instance)' failed

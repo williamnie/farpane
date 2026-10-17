@@ -1,0 +1,42 @@
+{
+  "result": "pass",
+  "rounds": 20,
+  "warmup_rounds": 2,
+  "same_gui_pid": 66,
+  "same_host_pid": 20,
+  "unique_workers_reaped": 22,
+  "max_idle_growth_kib": {
+    "gui": 1702,
+    "host": 728
+  },
+  "max_combined_idle_growth_kib": 2430,
+  "stable_idle_fd_counts": true,
+  "gpu_tested": false,
+  "real_desktop_tested": false,
+  "product_test_hooks": false,
+  "gui_window_closed": true,
+  "host_survived_gui_exit": true,
+  "scope": "20 software connections through external XTest; same GUI and Host",
+  "last_ten_rounds_growth_kib": {
+    "gui": 598,
+    "host": 16
+  },
+  "persistent_growth_ruled_out": false,
+  "complete_plan_acceptance": false,
+  "object_observer": {
+    "output": "Build/Linux/native-lifecycle-smoke/20261017T061853Z",
+    "counts_scope": "intercepted public GObject constructors",
+    "baseline_alive": 2682,
+    "final_alive": 2677,
+    "final_created": 96840,
+    "final_destroyed": 94163,
+    "type_deltas": {
+      "GdkMemoryTexture": -1,
+      "GtkIconPaintable": -4
+    },
+    "positive_type_growth": {},
+    "overflow": 0,
+    "memory_budget_accepted": false,
+    "not_a_complete_heap_inventory": true
+  }
+}

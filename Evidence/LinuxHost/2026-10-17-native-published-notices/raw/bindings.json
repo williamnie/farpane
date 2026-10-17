@@ -1,0 +1,248 @@
+[
+  {
+    "name": "dlopen_derive",
+    "version": "0.1.4",
+    "repository": "szymonwieloch/rust-dlopen",
+    "revision": "26b70292744db1052403378d4a01075b6171e3d1",
+    "package_path": "rust-dlopen-derive",
+    "root": "Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/dlopen_derive-0.1.4",
+    "published_files": [
+      {
+        "local_path": "Cargo.toml.orig",
+        "upstream_path": "rust-dlopen-derive/Cargo.toml",
+        "resolved_upstream_path": "rust-dlopen-derive/Cargo.toml",
+        "symlink_chain": [],
+        "bytes": 266,
+        "sha256": "958588360dfb7e4419b26e7268268539d0ed02b5fd7f79cee3da9633f46d1a7c",
+        "git_blob_sha1": "969ea82047f1b0f5c8991bdd7848a755533242a1"
+      },
+      {
+        "local_path": "src/api.rs",
+        "upstream_path": "rust-dlopen-derive/src/api.rs",
+        "resolved_upstream_path": "rust-dlopen-derive/src/api.rs",
+        "symlink_chain": [],
+        "bytes": 1167,
+        "sha256": "ce3e14bf1398609ada2863d749b766ee5e32a346c4dd33e68e3f63bde7631e9c",
+        "git_blob_sha1": "cb87ef6d944ee6f2c7d4d5e52b5e6424eb039a49"
+      },
+      {
+        "local_path": "src/common.rs",
+        "upstream_path": "rust-dlopen-derive/src/common.rs",
+        "resolved_upstream_path": "rust-dlopen-derive/src/common.rs",
+        "symlink_chain": [],
+        "bytes": 1773,
+        "sha256": "241bc4c4dce36d111ed50a44448dfd7d36598b7baa9f41e90eab157fc0c1a983",
+        "git_blob_sha1": "6963a09e94735754177259bd9de1b500a7590989"
+      },
+      {
+        "local_path": "src/lib.rs",
+        "upstream_path": "rust-dlopen-derive/src/lib.rs",
+        "resolved_upstream_path": "rust-dlopen-derive/src/lib.rs",
+        "symlink_chain": [],
+        "bytes": 1331,
+        "sha256": "f7e9af048e68ff900ab41a1b5eba28d51fffde2cc5435b4abc852caf837f974c",
+        "git_blob_sha1": "f5233a3b6645e600d2ecc2f2df61ea0ebd21b083"
+      },
+      {
+        "local_path": "src/multi_api.rs",
+        "upstream_path": "rust-dlopen-derive/src/multi_api.rs",
+        "resolved_upstream_path": "rust-dlopen-derive/src/multi_api.rs",
+        "symlink_chain": [],
+        "bytes": 1060,
+        "sha256": "ad4e7ce169640502946f94037397c8e71baba2f9cf2499fe4a143fb4c2f80d11",
+        "git_blob_sha1": "d7f97c8aa5e706c5f06a4775fe96d7c71653f785"
+      },
+      {
+        "local_path": "src/wrapper.rs",
+        "upstream_path": "rust-dlopen-derive/src/wrapper.rs",
+        "resolved_upstream_path": "rust-dlopen-derive/src/wrapper.rs",
+        "symlink_chain": [],
+        "bytes": 5459,
+        "sha256": "8d6b87bf7bfe32439b8195ce9b0ba368247988faf2e63de12ddac534cddb9b4b",
+        "git_blob_sha1": "bf58c513984b0dbd8de78101cdecd1674aa9baed"
+      }
+    ],
+    "mismatches": [],
+    "notices": [
+      {
+        "upstream_path": "LICENSE",
+        "bytes": 1071,
+        "sha256": "062e40ee707f6ab1ca0955624ccfa78d666250a2e821f892705f455cf70dc28a",
+        "git_blob_sha1": "06d65cd3bb642617eca8f800c095a54d7f8b3cc7",
+        "url": "https://raw.githubusercontent.com/szymonwieloch/rust-dlopen/26b70292744db1052403378d4a01075b6171e3d1/LICENSE",
+        "cached": "Build/Linux/legacy-notices/files/szymonwieloch/rust-dlopen/26b70292744db1052403378d4a01075b6171e3d1/LICENSE"
+      }
+    ],
+    "tree_sha256": "974d49c81997041e1e94838a28840226e2e19d66ccb16d5c07edca3144122490"
+  },
+  {
+    "name": "serial",
+    "version": "0.4.0",
+    "repository": "dcuddeback/serial-rs",
+    "revision": "7ed6540c2789b7c7365cd7a89fcb7bac7c567de8",
+    "package_path": "serial",
+    "root": "Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serial-0.4.0",
+    "published_files": [
+      {
+        "local_path": "Cargo.toml",
+        "upstream_path": "serial/Cargo.toml",
+        "resolved_upstream_path": "serial/Cargo.toml",
+        "symlink_chain": [],
+        "bytes": 743,
+        "sha256": "004b18acbd586d62ee32e3847d558f8993411ec37f332a6119bff2b669f4ff29",
+        "git_blob_sha1": "db5856faf3a96a84445ddcca1b96debfc52404d1"
+      },
+      {
+        "local_path": "README.md",
+        "upstream_path": "serial/README.md",
+        "resolved_upstream_path": "serial/README.md",
+        "symlink_chain": [],
+        "bytes": 2447,
+        "sha256": "40c5f9b91270c1ac368c3ce74c3e9910d6b335e877d5f25299099b81201923f9",
+        "git_blob_sha1": "6a9567a365872699838cf4cae170211978b669c0"
+      },
+      {
+        "local_path": "examples/open_port.rs",
+        "upstream_path": "serial/examples/open_port.rs",
+        "resolved_upstream_path": "serial/examples/open_port.rs",
+        "symlink_chain": [],
+        "bytes": 360,
+        "sha256": "7751c805617ddeb1111c9aac24cdb68c95d6c2fbbb1fb8e319bffca483034810",
+        "git_blob_sha1": "78f8f6c7177c19b7bf1314e481a6b481908855b2"
+      },
+      {
+        "local_path": "examples/probe_pins.rs",
+        "upstream_path": "serial/examples/probe_pins.rs",
+        "resolved_upstream_path": "serial/examples/probe_pins.rs",
+        "symlink_chain": [],
+        "bytes": 1398,
+        "sha256": "a1ec57ffba91dbde63a45450f77bdef2b8ca65263842f79f471ca6d64b3be34a",
+        "git_blob_sha1": "0e974b50030a1445e03fa4592fc9f9643016a61f"
+      },
+      {
+        "local_path": "examples/read_write.rs",
+        "upstream_path": "serial/examples/read_write.rs",
+        "resolved_upstream_path": "serial/examples/read_write.rs",
+        "symlink_chain": [],
+        "bytes": 898,
+        "sha256": "fc72f79c61ea306eee86023cea9b6d8cc4432daca3c1dc77d47b8a3e56936407",
+        "git_blob_sha1": "4670611be215367e9f5dd389e111c3fe82fa6838"
+      },
+      {
+        "local_path": "src/lib.rs",
+        "upstream_path": "serial/src/lib.rs",
+        "resolved_upstream_path": "serial/src/lib.rs",
+        "symlink_chain": [],
+        "bytes": 3402,
+        "sha256": "cc29084f5b75a4f44f8e78a62084a2f6c186acc4a64d0e6c61ea3e08195fb609",
+        "git_blob_sha1": "07623dccb58d98db8b6348e80cc4f18602a3bdb0"
+      }
+    ],
+    "mismatches": [],
+    "notices": [
+      {
+        "upstream_path": "LICENSE",
+        "bytes": 1059,
+        "sha256": "871afd9d691846de71e0b83812ba9c7ff00bc7b3ad102dedcaa109f2246d52ad",
+        "git_blob_sha1": "19f28b12c2ba3f910c7872777604d3afa287bb33",
+        "url": "https://raw.githubusercontent.com/dcuddeback/serial-rs/7ed6540c2789b7c7365cd7a89fcb7bac7c567de8/LICENSE",
+        "cached": "Build/Linux/legacy-notices/files/dcuddeback/serial-rs/7ed6540c2789b7c7365cd7a89fcb7bac7c567de8/LICENSE"
+      }
+    ],
+    "tree_sha256": "9c258fdc90f49c6d0970d7f7f963e3f7c0764825940eb274f891e0ced83b7c7c"
+  },
+  {
+    "name": "target_build_utils",
+    "version": "0.3.1",
+    "repository": "nagisa/target_build_utils.rs",
+    "revision": "7ccd5c913b65fdc1cab1d96814b2e2c8cb432e91",
+    "package_path": "",
+    "root": "Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/target_build_utils-0.3.1",
+    "published_files": [
+      {
+        "local_path": ".gitignore",
+        "upstream_path": ".gitignore",
+        "resolved_upstream_path": ".gitignore",
+        "symlink_chain": [],
+        "bytes": 18,
+        "sha256": "f9b1ca6ae27d1c18215265024629a8960c31379f206d9ed20f64e0b2dcf79805",
+        "git_blob_sha1": "a9d37c560c6ab8d4afbf47eda643e8c42e857716"
+      },
+      {
+        "local_path": ".travis.yml",
+        "upstream_path": ".travis.yml",
+        "resolved_upstream_path": ".travis.yml",
+        "symlink_chain": [],
+        "bytes": 336,
+        "sha256": "02df647902259080d6402c92a8d0afb29d31df155329f04d601ab0d76d55c913",
+        "git_blob_sha1": "a4da5870b4b5382e5bd7423a2539cffc458b2e32"
+      },
+      {
+        "local_path": "Cargo.toml",
+        "upstream_path": "Cargo.toml",
+        "resolved_upstream_path": "Cargo.toml",
+        "symlink_chain": [],
+        "bytes": 573,
+        "sha256": "91fb05f84fda62f2f1f6271f91077fc860349d17289a3056892419189f948818",
+        "git_blob_sha1": "8955c277201a1a25db7d968d344645e6c34e2be6"
+      },
+      {
+        "local_path": "README.md",
+        "upstream_path": "README.md",
+        "resolved_upstream_path": "README.md",
+        "symlink_chain": [],
+        "bytes": 1910,
+        "sha256": "6f54aa0c069383caf076e5e3417949bc3f0d2a317927f5a0d619402af59ac16b",
+        "git_blob_sha1": "c3e128c94d0066ba7e277d6821f6449feaa6b77b"
+      },
+      {
+        "local_path": "appveyor.yml",
+        "upstream_path": "appveyor.yml",
+        "resolved_upstream_path": "appveyor.yml",
+        "symlink_chain": [],
+        "bytes": 681,
+        "sha256": "97fce4e40fb26ccb8cebeb24bcb86074a2e8aa650e9fec56c08cac0838f80f31",
+        "git_blob_sha1": "ee4ba67856ca2701e61e7d1fcc4e1e0fad141203"
+      },
+      {
+        "local_path": "build.rs",
+        "upstream_path": "build.rs",
+        "resolved_upstream_path": "build.rs",
+        "symlink_chain": [],
+        "bytes": 4260,
+        "sha256": "5aa55162b40e43d1141a0346758b9dfbcc6b821d44dc1598e24921f6438ebf04",
+        "git_blob_sha1": "23d234227d2c6ebcd2c33a6f623f33e1551dbeed"
+      },
+      {
+        "local_path": "src/changelog.rs",
+        "upstream_path": "src/changelog.rs",
+        "resolved_upstream_path": "src/changelog.rs",
+        "symlink_chain": [],
+        "bytes": 1785,
+        "sha256": "3ef2a084251ed575f6d4e350c02918a77665db988c9f41d010c29648faede01b",
+        "git_blob_sha1": "2b278761d494dc23b3a28da7c87dfcccd6cd9e98"
+      },
+      {
+        "local_path": "src/lib.rs",
+        "upstream_path": "src/lib.rs",
+        "resolved_upstream_path": "src/lib.rs",
+        "symlink_chain": [],
+        "bytes": 21935,
+        "sha256": "627fedc2347b4cb1fc61bc97d54825f4a6be08ba4363ff579d96859c57ab7b11",
+        "git_blob_sha1": "78c7bc397d7af47f56cedc1ebed24ecea0b48eea"
+      },
+      {
+        "local_path": "src/my-great-target.json",
+        "upstream_path": "src/my-great-target.json",
+        "resolved_upstream_path": "src/my-great-target.json",
+        "symlink_chain": [],
+        "bytes": 377,
+        "sha256": "4be6fbe16c9c8e643972a3343687395fdb1dde5e65f741a0c5ae734e3f316347",
+        "git_blob_sha1": "c24c8e192f0fbc4d507b359c6cdbfb1d2c2edc5d"
+      }
+    ],
+    "mismatches": [],
+    "notices": [],
+    "tree_sha256": "f4affc740156c6ff30b81b98fd8376b020f60d48869a59fe9c885adc77a73230"
+  }
+]

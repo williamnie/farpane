@@ -1,0 +1,166 @@
+[
+  {
+    "run": "run.8cqgimzq",
+    "inputs": {
+      "archive_sha256": "6570f087109378d1b17286f7afb73ebe7d991a7386ad8138f20581a0bff35e94",
+      "source_manifest_sha256": "6464d1ae0ddf72e154ec4431b91816a75942a7557e00ce243abe89ce3a17aff3",
+      "source_entries": 88608,
+      "version": "0.1.0~ci.20261017.1",
+      "ci_checkout": {
+        "kind": "git",
+        "head": "b01c40bd7da588f0ec2add2947a9368289006792"
+      },
+      "reuse_build": true,
+      "reuse_images": true
+    },
+    "artifact_id": "farpane-native-dev-5faded3060b7bdea1fd59d25",
+    "source_build_result_sha256": "c6dbcbaa7ff0866088465a1f178c58760affc85019ea5966cbdaf6476014561b",
+    "stage_count": 11,
+    "products": {
+      "README.txt": {
+        "bytes": 498,
+        "sha256": "f9552b2319b40ce02d6529d49556ae893fbc216dd6a5eebd1dd6a1dd8e89c4c5"
+      },
+      "build-result.json": {
+        "bytes": 12770,
+        "sha256": "f34aa305271b4540b0c30b486ffb374a26de4afdacb1658d2430363764b52589"
+      },
+      "dependencies.lock.json": {
+        "bytes": 21892,
+        "sha256": "e6802674ae6afc890fb3ca09e5734d7137ce8306b8fe0bb5104dcc9a270c78fd"
+      },
+      "farpane-native-candidate_0.1.0~ci.20261017.1_amd64.deb": {
+        "bytes": 16987000,
+        "sha256": "a7d11eff2ca58bca3b49cd1639d45332d1dcaa23f0a4aa2ff1d1176ed3240de9"
+      },
+      "farpane-native-dev-5faded3060b7bdea1fd59d25.tar.gz": {
+        "bytes": 23518488,
+        "sha256": "93006ecd15d5642bf3d719d1addd1f12b95149e5b17cab88897253508ad30516"
+      },
+      "farpane-native-source-input.tar.gz": {
+        "bytes": 761002170,
+        "sha256": "6570f087109378d1b17286f7afb73ebe7d991a7386ad8138f20581a0bff35e94"
+      },
+      "native-build-tools.lock.json": {
+        "bytes": 2158,
+        "sha256": "2626098fda264dd550cb6b15fce8867a8b98f96959787137e9f97e2b2adb4ec0"
+      }
+    },
+    "runtime": {
+      "package-runtime": {
+        "output": "/home/user/farpane/Build/Linux/native-package-smoke/20261017T055438Z",
+        "checks": [
+          "headless_build_probes",
+          "same_release_media_root_and_user",
+          "missing_library_no_installed_or_search_fallback",
+          "cross_release_alias_rejected",
+          "writable_library_rejected",
+          "symlink_library_directory_rejected",
+          "probes_leave_configuration_and_runtime_untouched",
+          "resolved_elf_closure_no_build_or_legacy_gui_dependencies"
+        ],
+        "binaries": {
+          "farpane": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0",
+          "libexec/farpane-core": "4e0ac6b78fcc2e630aa52fe2485dc727bd1a5f45c3597e8b3daf970264cf3ced"
+        }
+      },
+      "deb-runtime": {
+        "output": "/home/user/farpane/Build/Linux/native-deb-smoke/20261017T055455Z",
+        "checks": [
+          "real_dpkg_install_declared_dependencies_and_private_staging",
+          "standalone_installer_commands_and_exact_sources",
+          "pending_maintenance_refuses_package_configuration_without_switching",
+          "real_dpkg_upgrade_and_configuration_retry_preserve_active_release",
+          "upgraded_deb_gui_two_real_video_sessions_and_worker_reaping",
+          "purge_removes_candidate_tools_preserves_release_process_units_and_configuration"
+        ],
+        "binaries": {
+          "farpane": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0",
+          "libexec/farpane-core": "4e0ac6b78fcc2e630aa52fe2485dc727bd1a5f45c3597e8b3daf970264cf3ced"
+        }
+      }
+    }
+  },
+  {
+    "run": "run.3_u9fy_8",
+    "inputs": {
+      "archive_sha256": "48b636dcb95024117d1043943e82a31642bb9d5f854c818a0951bf67719eb666",
+      "source_manifest_sha256": "8295fb93c1455505cafbf75863ad9c9037e46820888aeb4d46b7d4f022db400d",
+      "source_entries": 88635,
+      "version": "0.1.0~ci.20261017.2",
+      "ci_checkout": {
+        "kind": "git",
+        "head": "b01c40bd7da588f0ec2add2947a9368289006792"
+      },
+      "reuse_build": true,
+      "reuse_images": true
+    },
+    "artifact_id": "farpane-native-dev-a4d03fc41d09a7122cb555fe",
+    "source_build_result_sha256": "c6dbcbaa7ff0866088465a1f178c58760affc85019ea5966cbdaf6476014561b",
+    "stage_count": 11,
+    "products": {
+      "README.txt": {
+        "bytes": 498,
+        "sha256": "f9552b2319b40ce02d6529d49556ae893fbc216dd6a5eebd1dd6a1dd8e89c4c5"
+      },
+      "build-result.json": {
+        "bytes": 12769,
+        "sha256": "b3ad9e74d6f0f24f86142c9b72c9fb96ac699ba85a8796812f2edfc9d58b80aa"
+      },
+      "dependencies.lock.json": {
+        "bytes": 21892,
+        "sha256": "e6802674ae6afc890fb3ca09e5734d7137ce8306b8fe0bb5104dcc9a270c78fd"
+      },
+      "farpane-native-candidate_0.1.0~ci.20261017.2_amd64.deb": {
+        "bytes": 16988136,
+        "sha256": "f677e94f0f87f6a882837034e4358daf44f512d4d16cb44f1242da1607cb514c"
+      },
+      "farpane-native-dev-a4d03fc41d09a7122cb555fe.tar.gz": {
+        "bytes": 23521074,
+        "sha256": "696a37a09414ff872a52818c240d3f7ac62f023b07f1bb9d337ad59fbb700103"
+      },
+      "farpane-native-source-input.tar.gz": {
+        "bytes": 761034571,
+        "sha256": "48b636dcb95024117d1043943e82a31642bb9d5f854c818a0951bf67719eb666"
+      },
+      "native-build-tools.lock.json": {
+        "bytes": 2158,
+        "sha256": "2626098fda264dd550cb6b15fce8867a8b98f96959787137e9f97e2b2adb4ec0"
+      }
+    },
+    "runtime": {
+      "package-runtime": {
+        "output": "/home/user/farpane/Build/Linux/native-package-smoke/20261017T060146Z",
+        "checks": [
+          "headless_build_probes",
+          "same_release_media_root_and_user",
+          "missing_library_no_installed_or_search_fallback",
+          "cross_release_alias_rejected",
+          "writable_library_rejected",
+          "symlink_library_directory_rejected",
+          "probes_leave_configuration_and_runtime_untouched",
+          "resolved_elf_closure_no_build_or_legacy_gui_dependencies"
+        ],
+        "binaries": {
+          "farpane": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0",
+          "libexec/farpane-core": "4e0ac6b78fcc2e630aa52fe2485dc727bd1a5f45c3597e8b3daf970264cf3ced"
+        }
+      },
+      "deb-runtime": {
+        "output": "/home/user/farpane/Build/Linux/native-deb-smoke/20261017T060203Z",
+        "checks": [
+          "real_dpkg_install_declared_dependencies_and_private_staging",
+          "standalone_installer_commands_and_exact_sources",
+          "pending_maintenance_refuses_package_configuration_without_switching",
+          "real_dpkg_upgrade_and_configuration_retry_preserve_active_release",
+          "upgraded_deb_gui_two_real_video_sessions_and_worker_reaping",
+          "purge_removes_candidate_tools_preserves_release_process_units_and_configuration"
+        ],
+        "binaries": {
+          "farpane": "482a3d8d69a31199de48b2d4a368c21101d79a1bb902404223282990f6221cc0",
+          "libexec/farpane-core": "4e0ac6b78fcc2e630aa52fe2485dc727bd1a5f45c3597e8b3daf970264cf3ced"
+        }
+      }
+    }
+  }
+]
