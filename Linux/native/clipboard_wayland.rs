@@ -31,6 +31,8 @@ use wayland_protocols_wlr::data_control::v1::client::{
 const CHUNK: usize = 64 * 1024;
 const IDLE: Duration = Duration::from_secs(3);
 const TOTAL: Duration = Duration::from_secs(30);
+/// Compositors such as GNOME/Mutter expose neither data-control protocol.
+pub const NO_DATA_CONTROL: &str = "Wayland compositor does not grant data-control";
 const MAX_TRANSFERS: usize = 4;
 const RETAINED_LIMIT: usize = 2 * clipboard::IMAGE_LIMIT;
 const OWNER: &str = "application/x-farpane-clipboard";
@@ -525,7 +527,7 @@ impl Client {
                 "ext_data_control_manager_v1" | "zwlr_data_control_manager_v1"
             )
         }) {
-            hbb_common::bail!("Wayland compositor does not grant data-control");
+            hbb_common::bail!(NO_DATA_CONTROL);
         }
         let seats: Vec<_> = state.globals.iter().filter(|v| v.1 == "wl_seat").collect();
         // Do not silently share between seats when no seat was selected by the
@@ -552,7 +554,7 @@ impl Client {
             state.used_globals.push(*id);
             Manager::Wlr(registry.bind(*id, (*version).min(2), &qh, ()))
         } else {
-            hbb_common::bail!("Wayland compositor does not grant data-control");
+            hbb_common::bail!(NO_DATA_CONTROL);
         };
         let device = match &manager {
             Manager::Ext(v) => Device::Ext(v.get_data_device(&seat, &qh, ())),

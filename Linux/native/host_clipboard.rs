@@ -339,6 +339,7 @@ impl Owner {
         let mut reader = None;
         let mut writer = None;
         let mut retry = Instant::now();
+        let (mut reader_error, mut writer_error) = (String::new(), String::new());
         loop {
             let (pending, sending) = {
                 let s = self.state.lock().unwrap();
@@ -416,7 +417,9 @@ impl Owner {
                         || self.receive_valid(input.id, input.epoch, input.revision, category);
                     if valid() {
                         if writer.is_none() {
-                            writer = clipboard_platform::Writer::new().ok();
+                            writer = clipboard_platform::Writer::new()
+                                .map_err(|e| report(&mut writer_error, "writer", e))
+                                .ok();
                         }
                         // Set applying before the final validity check so control ACK
                         // cannot race between the check and the platform side effect.
@@ -440,7 +443,9 @@ impl Owner {
                 continue;
             }
             if reader.is_none() && Instant::now() >= retry {
-                reader = clipboard_platform::Reader::new().ok();
+                reader = clipboard_platform::Reader::new()
+                    .map_err(|e| report(&mut reader_error, "reader", e))
+                    .ok();
                 retry = Instant::now() + Duration::from_secs(5);
                 refresh = true;
                 if reader.is_none() {
@@ -511,6 +516,16 @@ impl Owner {
                 })));
             }
         }
+    }
+}
+
+/// Backend failures used to be dropped silently; log each distinct one once so
+/// the 5 s reader retry does not flood the log.
+fn report(last: &mut String, side: &str, error: hbb_common::anyhow::Error) {
+    let message = format!("Host clipboard {side} unavailable: {error}");
+    if *last != message {
+        hbb_common::log::warn!("{message}");
+        *last = message;
     }
 }
 

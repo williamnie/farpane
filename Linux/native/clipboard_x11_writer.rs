@@ -57,7 +57,7 @@ pub struct Writer {
 }
 impl Writer {
     pub fn new() -> ResultType<Self> {
-        let (connection, screen) = RustConnection::connect(None)?;
+        let (connection, screen) = super::clipboard_x11::connect()?;
         let window = connection.generate_id()?;
         connection
             .create_window(

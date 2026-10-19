@@ -330,7 +330,7 @@ Host Wayland、最大像素/RGBA 跨网络、Mac/旧版互操作、实际慢网�
 
 ## Wayland 后台剪贴板检查点
 
-Host 现通过独立平台层选用 ext-data-control 或 wlr-data-control，在既有线程中处理 CLIPBOARD，不创建窗口或使用 Xwayland 回退。具名 socket/初始化均有期限；仅支持单个明确 seat，继承 WAYLAND_SOCKET 明确拒绝且不消费 FD 或修改环境。读取只请求获准格式；输出复用原字节和有界 RGBA 编码，最多四路传输、256 MiB 独立 selection 保留，替换后旧传输可完成，卡住/关闭读者会释放。界面显示实际后台状态，保存的策略开关不代表合成器已授权。
+Host 现通过独立平台层选用 ext-data-control 或 wlr-data-control，在既有线程中处理 CLIPBOARD，不创建窗口；仅当合成器两种 data-control 都不提供（如 GNOME）且有 `DISPLAY` 时回退 Xwayland，见[剪贴板接口](clipboard-contract.md#gnome-xwayland-回退2026-10-18)。具名 socket/初始化均有期限；仅支持单个明确 seat，继承 WAYLAND_SOCKET 明确拒绝且不消费 FD 或修改环境。读取只请求获准格式；输出复用原字节和有界 RGBA 编码，最多四路传输、256 MiB 独立 selection 保留，替换后旧传输可完成，卡住/关闭读者会释放。界面显示实际后台状态，保存的策略开关不代表合成器已授权。
 
 [本轮证据](../../Evidence/LinuxHost/2026-10-16-native-clipboard-wayland/README.md)包含私有 Sway 两种协议各 24 项、Weston 缺失 data-control 的拒绝、沉默合成器约三秒初始化退出、继承 FD 保留、透明 RGBA 与最大字节 PNG。新 core Release、Host 三项测试和旧 Flutter/GPU check 通过；两轮实际 X11 连接仍通过各 22 项剪贴板检查及最大字节双向传输，两轮输入回归通过。GUI 二进制未变。全部在隔离容器完成，没有访问宿主桌面、GPU 或服务，没有重建 FFmpeg。
 

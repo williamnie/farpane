@@ -1,17 +1,55 @@
-//! Explicit native desktop selection. Wayland never falls back to Xwayland.
+//! Explicit native desktop selection. Wayland prefers data-control; only when
+//! the compositor grants neither protocol (GNOME/Mutter) and Xwayland is
+//! reachable does it use the X11 CLIPBOARD that the compositor bridges.
 use super::{clipboard_wayland as wl, clipboard_x11 as x11};
 use bytes::Bytes;
 use farpane_protocol::clipboard::{Part, Policy};
 use hbb_common::{libc, ResultType};
-use std::{os::fd::RawFd, time::Instant};
+use std::{
+    os::fd::RawFd,
+    sync::atomic::{AtomicBool, Ordering},
+    time::Instant,
+};
+
+static XWAYLAND: AtomicBool = AtomicBool::new(false);
 
 fn wayland() -> bool {
     std::env::var_os("WAYLAND_DISPLAY").is_some()
         || std::env::var_os("WAYLAND_SOCKET").is_some()
         || std::env::var("XDG_SESSION_TYPE").is_ok_and(|v| v.eq_ignore_ascii_case("wayland"))
 }
+fn select<T>(
+    wayland_new: impl FnOnce() -> ResultType<T>,
+    x11_new: impl FnOnce() -> ResultType<T>,
+) -> ResultType<T> {
+    if !wayland() {
+        return x11_new();
+    }
+    match wayland_new() {
+        Err(error)
+            if error.to_string() == wl::NO_DATA_CONTROL
+                && std::env::var_os("DISPLAY").is_some() =>
+        {
+            let value = x11_new().map_err(|x| {
+                hbb_common::anyhow::anyhow!("{error}; Xwayland fallback failed: {x}")
+            })?;
+            if !XWAYLAND.swap(true, Ordering::Relaxed) {
+                hbb_common::log::info!("Wayland data-control unavailable; using Xwayland clipboard");
+            }
+            Ok(value)
+        }
+        result => {
+            if result.is_ok() {
+                XWAYLAND.store(false, Ordering::Relaxed);
+            }
+            result
+        }
+    }
+}
 pub fn ready() -> &'static str {
-    if wayland() {
+    if wayland() && XWAYLAND.load(Ordering::Relaxed) {
+        "Wayland 剪贴板共享就绪（经 Xwayland）"
+    } else if wayland() {
         "Wayland 剪贴板共享就绪"
     } else {
         "X11 剪贴板共享就绪"
@@ -30,11 +68,10 @@ pub enum Reader {
 }
 impl Reader {
     pub fn new() -> ResultType<Self> {
-        Ok(if wayland() {
-            Self::Wayland(wl::Reader::new()?)
-        } else {
-            Self::X11(x11::Reader::new()?)
-        })
+        select(
+            || Ok(Self::Wayland(wl::Reader::new()?)),
+            || Ok(Self::X11(x11::Reader::new()?)),
+        )
     }
     pub fn fd(&self) -> RawFd {
         match self {
@@ -72,11 +109,10 @@ pub enum Writer {
 }
 impl Writer {
     pub fn new() -> ResultType<Self> {
-        Ok(if wayland() {
-            Self::Wayland(wl::Writer::new()?)
-        } else {
-            Self::X11(x11::Writer::new()?)
-        })
+        select(
+            || Ok(Self::Wayland(wl::Writer::new()?)),
+            || Ok(Self::X11(x11::Writer::new()?)),
+        )
     }
     pub fn more(&self) -> bool {
         match self {

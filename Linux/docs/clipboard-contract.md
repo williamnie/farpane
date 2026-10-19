@@ -77,7 +77,7 @@ X11 使用独立未映射窗口与一次 XFixes 订阅，不显示窗口或改�
 
 出站每连接仅保留最新 watch 候选，所有 Host 连接共享一份网络发送额度，覆盖实际 protobuf 序列化及 TCP 发送。未获额度的连接保留最新值，额度释放后通知重新检查；serial 防止重复发送。相同一轮候选的 Bytes 共享存储，不给每个连接复制图片。权限变化清除排队候选，实际网络发送前再次检查。已经交给平台或网络的操作不能撤回；控制响应等待已开始的本机写入结束，最多 4 秒，超时报告未确认，而非伪称撤权完成。
 
-没有获准发送的连接时不创建/保留 reader；全关没有平台内容轮询。当前写入 provider 为保持用户已复制内容而保留，必须计入 Host 内存成本。Wayland 使用下述独立适配，不通过 Xwayland 假装覆盖整个 Wayland 桌面。本文的接入描述不替代实际测试或跨平台验收；完整 GUI 目标仍在进行。
+没有获准发送的连接时不创建/保留 reader；全关没有平台内容轮询。当前写入 provider 为保持用户已复制内容而保留，必须计入 Host 内存成本。Wayland 优先使用下述独立适配；合成器不提供任何 data-control 协议时，见下文 Xwayland 回退。本文的接入描述不替代实际测试或跨平台验收；完整 GUI 目标仍在进行。
 
 ## X11 原生输出与事件驱动
 
@@ -99,4 +99,12 @@ Reader 先筛掉文件类型和自身标记，仅对获准格式请求内容；�
 
 事件循环等待 Wayland/传输 FD 和实际期限；没有来源时不扫描内容。合成器连接异常或输出背压导致明确失败，再由 Host 的有界重试恢复；不在 GTK 主线程阻塞。共享页显示后端状态，六个开关仍表示用户保存的策略，并非合成器授予能力的证明。尚未增加供远端显示的独立动态能力字段；平台接受 selection 也不代表目标应用完成粘贴。
 
-`test-native-wayland-clipboard.sh supported` 在无宿主桌面/GPU 的私有 Sway 中逐一覆盖 ext 和 wlr 实际协议，各 24 项，包括 UTF-8、富文本、SVG、透明 RGBA、128 MiB PNG、四路/额度/取消、替换后旧传输完成、超时恢复、继承 FD 保留和卡住合成器的初始化期限。wlr 分支通过仅在测试构建启用的筛选模拟 ext 不可用；生产构建始终按真实能力协商。`unavailable` 使用不提供 data-control 的私有 Weston，Reader/Writer 均明确拒绝，不回落 Xwayland。它们是后台适配测试，尚不是 GNOME/KDE、真实 Host Wayland 采集或完整网络会话验收。
+`test-native-wayland-clipboard.sh supported` 在无宿主桌面/GPU 的私有 Sway 中逐一覆盖 ext 和 wlr 实际协议，各 24 项，包括 UTF-8、富文本、SVG、透明 RGBA、128 MiB PNG、四路/额度/取消、替换后旧传输完成、超时恢复、继承 FD 保留和卡住合成器的初始化期限。wlr 分支通过仅在测试构建启用的筛选模拟 ext 不可用；生产构建始终按真实能力协商。`unavailable` 使用不提供 data-control 的私有 Weston，该环境没有 `DISPLAY`，Reader/Writer 均明确拒绝，不回落 Xwayland。它们是后台适配测试，尚不是 GNOME/KDE、真实 Host Wayland 采集或完整网络会话验收。
+
+### GNOME Xwayland 回退（2026-10-18）
+
+GNOME Shell 50.1（Mutter）只公开 `wl_data_device_manager`，不提供 ext/wlr data-control。原实现在这种情况下 Reader/Writer 构造失败且被静默丢弃，Mac 复制的内容无法到达 Ubuntu Host，Host 侧复制也不会发出。现在 `clipboard_platform` 仅在 Wayland 合成器明确缺少 data-control（`clipboard_wayland::NO_DATA_CONTROL`）且存在 `DISPLAY` 时改用 X11 Reader/Writer，经 Mutter 在 Xwayland CLIPBOARD 与 Wayland selection 之间的桥接同步；超时、继承 socket、多 seat 等其他 Wayland 错误仍直接失败。状态显示“Wayland 剪贴板共享就绪（经 Xwayland）”，首次回退记录一条 info 日志；Host 的 Reader/Writer 初始化失败按方向各记录一次 warn，不再静默。
+
+Mutter 给托管服务的 `DISPLAY` 是 `unix:/tmp/.X11-unix/X<n>`，固定 x11rb 0.12 无法解析（首次安装即报 `Display parsing error`）；X11 Reader/Writer 改为对该形式只连接文件系统 socket 并按显示号读取 XAUTHORITY，其他形式仍交给 x11rb。不得改用抽象命名空间 `@/tmp/.X11-unix/X<n>`：GNOME 上它由 gnome-shell 监听且不 accept，实测会让握手无限期阻塞并冻结整个 Host 剪贴板线程。
+
+限制：该路径依赖合成器的 Xwayland selection 桥接，类型以 Mutter 转发的 MIME 为准；不是 KDE 或其他无 data-control 合成器的验收。

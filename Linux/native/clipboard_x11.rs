@@ -12,9 +12,35 @@ use std::{
 use x11rb::{
     connection::Connection,
     protocol::{xfixes, xproto::*, Event},
-    rust_connection::RustConnection,
+    reexports::x11rb_protocol::xauth::get_auth,
+    rust_connection::{DefaultStream, RustConnection},
     CURRENT_TIME, NONE,
 };
+
+/// x11rb 0.12 cannot parse the `unix:/tmp/.X11-unix/X<n>` DISPLAY that Mutter
+/// gives managed services, so connect to that socket directly. Only the
+/// filesystem path is used: GNOME's abstract `@/tmp/.X11-unix/X<n>` listener
+/// belongs to gnome-shell, never accepts, and would hang the X11 handshake.
+pub(super) fn connect() -> ResultType<(RustConnection, usize)> {
+    let display = std::env::var("DISPLAY").unwrap_or_default();
+    let Some(socket) = display.strip_prefix("unix:").filter(|v| v.starts_with('/')) else {
+        return Ok(RustConnection::connect(None)?);
+    };
+    let number: u16 = socket
+        .rsplit_once("/X")
+        .and_then(|(_, n)| n.parse().ok())
+        .ok_or_else(|| hbb_common::anyhow::anyhow!("Unsupported X11 display socket"))?;
+    let stream = std::os::unix::net::UnixStream::connect(socket)?;
+    let stream = DefaultStream::from_unix_stream(stream)?;
+    let (family, address) = stream.peer_addr()?;
+    let (name, data) = get_auth(family, &address, number)
+        .unwrap_or(None)
+        .unwrap_or_default();
+    Ok((
+        RustConnection::connect_to_stream_with_auth_info(stream, 0, name, data)?,
+        0,
+    ))
+}
 
 const CHUNK: usize = 64 * 1024;
 const METADATA_LIMIT: usize = 4096;
@@ -34,11 +60,9 @@ pub struct Reader {
 }
 impl Reader {
     pub fn new() -> ResultType<Self> {
-        // Xwayland does not provide a complete Wayland selection backend.
-        if std::env::var_os("WAYLAND_DISPLAY").is_some() {
-            hbb_common::bail!("Native Wayland clipboard backend is unavailable");
-        }
-        let (connection, screen) = RustConnection::connect(None)?;
+        // Wayland sessions reach this only through clipboard_platform's
+        // explicit Xwayland fallback when data-control is not granted.
+        let (connection, screen) = connect()?;
         let window = connection.generate_id()?;
         connection
             .create_window(
