@@ -1,28 +1,66 @@
-@define-color accent_color #59ddc6;
-@define-color accent_bg_color #238d7e;
+@define-color accent_color #5ee0c9;
+@define-color accent_bg_color #1f8a7a;
 @define-color accent_fg_color #ffffff;
-@define-color window_bg_color #141a1d;
-@define-color view_bg_color #1a2226;
-@define-color headerbar_bg_color #141a1d;
-@define-color sidebar_bg_color #10171a;
+@define-color window_bg_color #12171a;
+@define-color window_fg_color #e4ecef;
+@define-color view_bg_color #171e22;
+@define-color headerbar_bg_color #12171a;
+@define-color sidebar_bg_color #0e1316;
+@define-color card_bg_color #1a2227;
+@define-color card_fg_color #e4ecef;
+@define-color dialog_bg_color #1a2227;
+@define-color popover_bg_color #1e282d;
+@define-color warning_color #f2c25c;
+@define-color line_color alpha(#ffffff, 0.07);
 
 window { font-size: 14px; }
-.sidebar { background: @sidebar_bg_color; padding: 16px 12px; }
-.sidebar row { padding: 4px; margin: 3px 0; border-radius: 9px; }
-.sidebar row:selected { background: alpha(@accent_color, 0.12); color: @accent_color; }
-.brand { font-size: 23px; font-weight: 700; letter-spacing: -0.5px; }
-.brand-subtitle { font-size: 11px; color: #92a4ac; }
-.page-title { font-size: 26px; font-weight: 700; }
-.page-subtitle { color: #9aaeb7; }
-.content-page { padding: 28px 32px; }
-.card { background: @view_bg_color; border: 1px solid #2b373d; border-radius: 12px; padding: 20px; }
+
+/* Sidebar */
+.sidebar { background: @sidebar_bg_color; border-right: 1px solid @line_color; padding: 20px 12px 12px; }
+.brand { font-size: 21px; font-weight: 800; letter-spacing: -0.4px; }
+.brand-subtitle { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; color: alpha(@window_fg_color, 0.45); margin: 2px 0 10px 4px; }
+.home-nav { background: transparent; }
+.home-nav > row { padding: 10px 12px; margin: 2px 0; border-radius: 8px; color: alpha(@window_fg_color, 0.78); }
+.home-nav > row:hover { background: alpha(@window_fg_color, 0.05); }
+.home-nav > row:selected { background: alpha(@accent_color, 0.13); color: @accent_color; font-weight: 600; }
+.sidebar-footer { padding: 8px 4px 0; border-top: 1px solid @line_color; }
+.sidebar-footer label { font-size: 12px; }
+
+/* Header status */
+.status-pill { background: alpha(@window_fg_color, 0.07); color: alpha(@window_fg_color, 0.7); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; }
+.status-pill.online { background: alpha(@accent_color, 0.14); color: @accent_color; }
+.status-pill.warning { background: alpha(@warning_color, 0.14); color: @warning_color; }
+
+/* Pages */
+.content-page { padding: 32px 36px 48px; }
+.page-title { font-size: 26px; font-weight: 800; }
+.page-subtitle { color: alpha(@window_fg_color, 0.6); }
+.card { background: @card_bg_color; border: 1px solid @line_color; border-radius: 12px; padding: 20px; box-shadow: none; }
 .card-title { font-size: 15px; font-weight: 700; }
-.local-id { font-family: monospace; font-size: 30px; font-weight: 700; letter-spacing: 2px; }
-.status-pill { background: #243138; border-radius: 12px; padding: 4px 10px; font-size: 12px; }
-.status-good { color: @accent_color; }
-.muted { color: #91a4ad; }
-.section-title { font-size: 18px; font-weight: 700; }
-.connect-entry { font-size: 17px; padding: 9px; }
-.connect-button { padding: 10px 24px; font-weight: 700; }
+.caption-label { font-size: 12px; color: alpha(@window_fg_color, 0.55); }
+.muted { color: alpha(@window_fg_color, 0.6); }
+.section-title { font-size: 15px; font-weight: 700; }
+.placeholder-label { padding: 18px; color: alpha(@window_fg_color, 0.55); }
+
+/* Connect */
+.connect-row > entry, .connect-row > button { min-height: 42px; }
+.connect-entry { font-size: 16px; padding: 0 12px; }
+.connect-button { padding: 0 26px; font-weight: 700; }
+.local-id { font-family: monospace; font-size: 30px; font-weight: 700; letter-spacing: 3px; }
+
+/* Recent devices */
+.device-frame { background: @card_bg_color; border: 1px solid @line_color; border-radius: 12px; }
+.device-list { background: transparent; }
+.device-list > row { padding: 10px 14px; border-bottom: 1px solid @line_color; }
+.device-list > row:last-child { border-bottom: none; }
+.device-list > row:hover { background: alpha(@window_fg_color, 0.03); }
+.device-avatar { background: alpha(@accent_color, 0.12); color: @accent_color; border-radius: 10px; min-width: 38px; min-height: 38px; }
+.device-title { font-weight: 700; }
+.device-list button.starred { color: @warning_color; }
+
+/* Diagnostics */
+.diagnostic-text { padding: 12px 14px; font-family: monospace; font-size: 12px; }
+
+/* Viewer */
 .viewer-background { background: #090c0e; }
 .viewer-hud { font-family: monospace; background: #182126; padding: 12px; border-radius: 8px; }

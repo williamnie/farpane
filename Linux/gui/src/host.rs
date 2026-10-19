@@ -92,7 +92,7 @@ impl Ui {
         }
         let model = self.model.borrow();
         if let Some(status) = status {
-            status.set_text(match model.snapshot.role {
+            let text = match model.snapshot.role {
                 Some(Role::Agent) if !model.snapshot.host_enabled => "已关闭被控",
                 Some(Role::Agent)
                     if model.snapshot.recovery.phase
@@ -119,7 +119,20 @@ impl Ui {
                 Some(Role::Agent) => "等待服务器",
                 Some(Role::Config) => "后台未运行",
                 _ => "后台未连接",
-            });
+            };
+            status.set_text(text);
+            let state = match text {
+                "后台在线" => "online",
+                "后台未运行" | "后台未连接" => "",
+                _ => "warning",
+            };
+            for class in ["online", "warning"] {
+                if class == state {
+                    status.add_css_class(class);
+                } else {
+                    status.remove_css_class(class);
+                }
+            }
         }
         self.updating.set(true);
         let ready = model.snapshot.role.is_some() && !self.busy.get();
@@ -261,7 +274,9 @@ impl Ui {
         let weak = label.downgrade();
         self.bind(move |snapshot, _| {
             if let Some(label) = weak.upgrade() {
-                label.set_text(&value(snapshot));
+                let text = value(snapshot);
+                label.set_visible(!text.is_empty());
+                label.set_text(&text);
             }
         });
         label
@@ -270,6 +285,7 @@ impl Ui {
         let page = page("你的设备", "连接另一台设备，或安全地共享这台电脑。");
         let connect = card("连接远端设备");
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        row.add_css_class("connect-row");
         let entry = gtk::Entry::builder()
             .placeholder_text("输入远端设备 ID")
             .hexpand(true)
@@ -352,6 +368,9 @@ impl Ui {
         page.append(&connect);
         let host = card("共享这台电脑");
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        let identity = gtk::Box::new(gtk::Orientation::Vertical, 4);
+        identity.set_hexpand(true);
+        identity.append(&label("本机设备 ID", "caption-label"));
         let id = self.text("local-id", |s| {
             if s.local_id.is_empty() {
                 "— — —".into()
@@ -360,10 +379,11 @@ impl Ui {
             }
         });
         id.set_selectable(true);
-        id.set_hexpand(true);
-        row.append(&id);
+        identity.append(&id);
+        row.append(&identity);
         let copy = gtk::Button::from_icon_name("edit-copy-symbolic");
         copy.set_tooltip_text(Some("复制本机 ID"));
+        copy.set_valign(gtk::Align::Center);
         let ui = self.clone();
         copy.connect_clicked(move |button| {
             button
@@ -378,7 +398,10 @@ impl Ui {
         });
         row.append(&copy);
         host.append(&row);
-        host.append(&self.switch(
+        let list = gtk::ListBox::new();
+        list.set_selection_mode(gtk::SelectionMode::None);
+        list.add_css_class("boxed-list");
+        list.append(&self.switch(
             "允许连接本机",
             "关闭后停止接受新连接，当前会话可在授权页断开",
             |s| s.host_enabled,
@@ -387,17 +410,26 @@ impl Ui {
                 revision: s.revision,
             },
         ));
-        host.append(&self.text("muted", |s| {
-            format!(
-                "{} · {}",
-                authentication(s.authentication),
-                if s.permanent_password_set {
-                    "固定密码已设置"
-                } else {
-                    "固定密码未设置"
-                }
-            )
-        }));
+        let auth = adw::ActionRow::builder()
+            .title("连接认证")
+            .subtitle("正在读取…")
+            .build();
+        let weak = auth.downgrade();
+        self.bind(move |s, _| {
+            if let Some(row) = weak.upgrade() {
+                row.set_subtitle(&format!(
+                    "{} · {}",
+                    authentication(s.authentication),
+                    if s.permanent_password_set {
+                        "固定密码已设置"
+                    } else {
+                        "固定密码未设置"
+                    }
+                ));
+            }
+        });
+        list.append(&auth);
+        host.append(&list);
         host.append(&self.text("muted", |s| {
             if s.role == Some(Role::Config) {
                 "设置已保存在本机；后台运行后才能接受连接。".into()
@@ -438,7 +470,7 @@ impl Ui {
                 });
             }
         });
-        let desktop_group = adw::PreferencesGroup::new();
+        let desktop_group = adw::PreferencesGroup::builder().title("桌面集成").build();
         desktop_group.add(&desktop);
         page.append(&desktop_group);
         let group = adw::PreferencesGroup::builder().title("连接认证").build();
@@ -571,10 +603,17 @@ impl Ui {
         dialog.set_child(Some(&body));
         dialog.present(Some(parent));
     }
-    fn sessions(self: &Rc<Self>) -> gtk::Box {
-        let section = card("连接请求与有效权限");
-        let rows = gtk::Box::new(gtk::Orientation::Vertical, 12);
-        section.append(&rows);
+    fn sessions(self: &Rc<Self>) -> adw::PreferencesGroup {
+        let section = adw::PreferencesGroup::builder()
+            .title("连接请求与有效权限")
+            .build();
+        let rows = gtk::ListBox::new();
+        rows.set_selection_mode(gtk::SelectionMode::None);
+        rows.add_css_class("boxed-list");
+        let empty = label("暂无连接请求或活动会话", "placeholder-label");
+        empty.set_xalign(0.5);
+        rows.set_placeholder(Some(&empty));
+        section.add(&rows);
         let weak = rows.downgrade();
         let ui = Rc::downgrade(self);
         let previous = RefCell::new(String::new());
@@ -590,24 +629,44 @@ impl Ui {
             let (Some(rows), Some(ui)) = (weak.upgrade(), ui.upgrade()) else {
                 return;
             };
-            while let Some(child) = rows.first_child() {
-                rows.remove(&child);
-            }
-            if s.inbound.is_empty() {
-                rows.append(&label("暂无连接请求或活动会话", "muted"));
-            }
+            rows.remove_all();
             for connection in &s.inbound {
-                let box_ = gtk::Box::new(gtk::Orientation::Vertical, 8);
-                box_.append(&label(
-                    &format!("{} · {}", connection.name, connection.peer),
-                    "card-title",
-                ));
-                let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+                let p = &connection.permissions;
+                let granted = [
+                    ("键鼠", p.keyboard),
+                    ("剪贴板", p.clipboard),
+                    ("音频", p.audio),
+                    ("文件", p.file),
+                ]
+                .into_iter()
+                .filter_map(|(name, enabled)| enabled.then_some(name))
+                .collect::<Vec<_>>();
+                let entry = adw::ExpanderRow::builder()
+                    .title(&connection.name)
+                    .subtitle(format!(
+                        "{} · {} · {}",
+                        connection.peer,
+                        if connection.authorized {
+                            "已连接"
+                        } else {
+                            "等待批准"
+                        },
+                        if granted.is_empty() {
+                            "无权限".into()
+                        } else {
+                            granted.join("、")
+                        }
+                    ))
+                    // Pending requests show what they ask for; active ones stay compact.
+                    .expanded(!connection.authorized)
+                    .build();
+                entry.set_use_markup(false);
                 let id = connection.id;
                 if !connection.authorized {
                     let accept = gtk::Button::with_label("允许连接");
                     accept.set_widget_name(&format!("inbound-approve-{id}"));
                     accept.add_css_class("suggested-action");
+                    accept.set_valign(gtk::Align::Center);
                     accept.set_sensitive(ready);
                     let permissions = connection.permissions.clone();
                     let ui = ui.clone();
@@ -617,13 +676,17 @@ impl Ui {
                             permissions: permissions.clone(),
                         })
                     });
-                    actions.append(&accept);
+                    entry.add_suffix(&accept);
                 }
                 let close = gtk::Button::with_label(if connection.authorized {
                     "断开"
                 } else {
                     "拒绝"
                 });
+                close.set_valign(gtk::Align::Center);
+                if connection.authorized {
+                    close.add_css_class("destructive-action");
+                }
                 close.set_sensitive(ready);
                 close.set_widget_name(&format!(
                     "inbound-{}-{id}",
@@ -642,8 +705,7 @@ impl Ui {
                         Command::Reject { connection: id }
                     })
                 });
-                actions.append(&close);
-                box_.append(&actions);
+                entry.add_suffix(&close);
                 for (title, permission, enabled) in [
                     (
                         "键鼠",
@@ -658,13 +720,12 @@ impl Ui {
                     ("音频", Permission::Audio, connection.permissions.audio),
                     ("文件", Permission::File, connection.permissions.file),
                 ] {
-                    let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-                    row.append(&label(
-                        &format!("{title}：{}", if enabled { "允许" } else { "关闭" }),
-                        "muted",
-                    ));
+                    let row = adw::ActionRow::builder().title(title).build();
+                    row.add_suffix(&label(if enabled { "允许" } else { "关闭" }, "muted"));
                     if connection.authorized && enabled {
                         let revoke = gtk::Button::with_label("撤销");
+                        revoke.set_valign(gtk::Align::Center);
+                        revoke.add_css_class("flat");
                         if permission == Permission::Audio {
                             revoke.set_widget_name(&format!("inbound-revoke-audio-{id}"));
                         } else if permission == Permission::File {
@@ -682,11 +743,11 @@ impl Ui {
                                 permission,
                             })
                         });
-                        row.append(&revoke);
+                        row.add_suffix(&revoke);
                     }
-                    box_.append(&row);
+                    entry.add_row(&row);
                 }
-                rows.append(&box_);
+                rows.append(&entry);
             }
         });
         section
@@ -722,6 +783,7 @@ impl Ui {
         });
         media.add(&backend);
         let retry = gtk::Button::with_label("重新尝试 GPU");
+        retry.set_valign(gtk::Align::Center);
         let weak = retry.downgrade();
         self.bind(move |s, ready| {
             if let Some(button) = weak.upgrade() {
@@ -737,7 +799,7 @@ impl Ui {
                 revision,
             });
         });
-        media.add(&retry);
+        backend.add_suffix(&retry);
         page.append(&media);
         page.append(&crate::host_audio::group(self));
         page.append(&crate::host_clipboard::group(self));
@@ -747,11 +809,13 @@ impl Ui {
         for (title, value) in [("键鼠", 0), ("音频", 1), ("剪贴板", 2), ("文件传输", 3)]
         {
             let row = adw::ActionRow::builder().title(title).build();
-            let weak = row.downgrade();
+            let state = label("正在读取…", "muted");
+            row.add_suffix(&state);
+            let weak = state.downgrade();
             self.bind(move |s, _| {
-                if let Some(row) = weak.upgrade() {
+                if let Some(state) = weak.upgrade() {
                     let p = &s.sharing.permissions;
-                    row.set_subtitle(if [p.keyboard, p.audio, p.clipboard, p.file][value] {
+                    state.set_text(if [p.keyboard, p.audio, p.clipboard, p.file][value] {
                         "已启用"
                     } else {
                         "已关闭"
@@ -761,11 +825,19 @@ impl Ui {
             group.add(&row);
         }
         page.append(&group);
-        let detail = adw::ExpanderRow::builder().title("诊断详情").build();
+        let diagnostics = adw::PreferencesGroup::new();
+        let detail = adw::ExpanderRow::builder()
+            .title("诊断详情")
+            .subtitle("媒体后端选择原因")
+            .build();
         let reason = self.text("muted", |s| s.media_reason.clone());
+        reason.add_css_class("diagnostic-text");
         reason.set_wrap(true);
+        reason.set_wrap_mode(gtk::pango::WrapMode::WordChar);
+        reason.set_selectable(true);
         detail.add_row(&reason);
-        page.append(&detail);
+        diagnostics.add(&detail);
+        page.append(&diagnostics);
         page
     }
     pub fn server_dialog(self: &Rc<Self>, window: &adw::ApplicationWindow) {

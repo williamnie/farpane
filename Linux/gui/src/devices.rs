@@ -177,7 +177,7 @@ fn forget(ui: &Rc<Ui>, parent: &gtk::Button, value: Device) {
 
 pub fn list(ui: &Rc<Ui>) -> gtk::Box {
     let root = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    let header = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    let header = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     let heading = label("最近设备", "section-title");
     heading.set_hexpand(true);
     let search = gtk::SearchEntry::builder()
@@ -193,6 +193,9 @@ pub fn list(ui: &Rc<Ui>) -> gtk::Box {
         "muted",
     );
     empty.set_wrap(true);
+    empty.set_xalign(0.5);
+    empty.add_css_class("placeholder-label");
+    empty.add_css_class("device-frame");
     root.append(&empty);
     let store = gio::ListStore::new::<glib::BoxedAnyObject>();
     let query = Rc::new(RefCell::new(String::new()));
@@ -226,12 +229,16 @@ pub fn list(ui: &Rc<Ui>) -> gtk::Box {
         let Some(item) = object.downcast_ref::<gtk::ListItem>() else {
             return;
         };
-        let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-        row.set_margin_top(8);
-        row.set_margin_bottom(8);
-        let text = gtk::Box::new(gtk::Orientation::Vertical, 4);
+        let row = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        let avatar = gtk::Image::from_icon_name("computer-symbolic");
+        avatar.add_css_class("device-avatar");
+        avatar.set_valign(gtk::Align::Center);
+        avatar.set_margin_end(8);
+        row.append(&avatar);
+        let text = gtk::Box::new(gtk::Orientation::Vertical, 3);
         text.set_hexpand(true);
-        let title = label("", "card-title");
+        text.set_valign(gtk::Align::Center);
+        let title = label("", "device-title");
         title.set_ellipsize(gtk::pango::EllipsizeMode::End);
         let subtitle = label("", "muted");
         subtitle.set_ellipsize(gtk::pango::EllipsizeMode::End);
@@ -241,10 +248,20 @@ pub fn list(ui: &Rc<Ui>) -> gtk::Box {
         for (icon, tooltip, action) in [
             ("non-starred-symbolic", "收藏 / 取消收藏", 0),
             ("document-edit-symbolic", "编辑设备别名", 1),
-            ("edit-delete-symbolic", "忘记设备", 2),
-            ("network-connect-symbolic", "连接此设备", 3),
+            ("user-trash-symbolic", "忘记设备", 2),
+            ("", "连接此设备", 3),
         ] {
-            let button = gtk::Button::from_icon_name(icon);
+            let button = if action == 3 {
+                let button = gtk::Button::with_label("连接");
+                button.set_margin_start(6);
+                button
+            } else {
+                let button = gtk::Button::from_icon_name(icon);
+                button.add_css_class("flat");
+                button.add_css_class("circular");
+                button
+            };
+            button.set_valign(gtk::Align::Center);
             button.set_tooltip_text(Some(tooltip));
             let weak_item = item.downgrade();
             let weak = weak.clone();
@@ -280,7 +297,12 @@ pub fn list(ui: &Rc<Ui>) -> gtk::Box {
             return;
         };
         let row = item.child().unwrap().downcast::<gtk::Box>().unwrap();
-        let text = row.first_child().unwrap().downcast::<gtk::Box>().unwrap();
+        let text = row
+            .first_child()
+            .and_then(|avatar| avatar.next_sibling())
+            .unwrap()
+            .downcast::<gtk::Box>()
+            .unwrap();
         let title = text
             .first_child()
             .unwrap()
@@ -317,6 +339,11 @@ pub fn list(ui: &Rc<Ui>) -> gtk::Box {
         } else {
             "non-starred-symbolic"
         });
+        if value.favorite {
+            star.add_css_class("starred");
+        } else {
+            star.remove_css_class("starred");
+        }
         let mut child = Some(star.upcast::<gtk::Widget>());
         for action in ["star", "edit", "forget", "connect"] {
             if let Some(button) = child {
@@ -327,7 +354,7 @@ pub fn list(ui: &Rc<Ui>) -> gtk::Box {
     });
     let selection = gtk::NoSelection::new(Some(filtered.clone()));
     let view = gtk::ListView::new(Some(selection), Some(factory));
-    view.add_css_class("boxed-list");
+    view.add_css_class("device-list");
     let weak = Rc::downgrade(ui);
     let items = filtered.clone();
     view.connect_activate(move |_, index| {
@@ -340,12 +367,20 @@ pub fn list(ui: &Rc<Ui>) -> gtk::Box {
     });
     let scroll = gtk::ScrolledWindow::builder()
         .child(&view)
-        .height_request(280)
+        .propagate_natural_height(true)
+        .max_content_height(440)
         .hscrollbar_policy(gtk::PolicyType::Never)
+        .visible(false)
         .build();
+    scroll.add_css_class("device-frame");
+    scroll.set_overflow(gtk::Overflow::Hidden);
     root.append(&scroll);
     let weak = empty.downgrade();
+    let weak_scroll = scroll.downgrade();
     filtered.connect_items_changed(move |model, _, _, _| {
+        if let Some(scroll) = weak_scroll.upgrade() {
+            scroll.set_visible(model.n_items() > 0);
+        }
         if let Some(empty) = weak.upgrade() {
             empty.set_visible(model.n_items() == 0);
             empty.set_text("当前没有匹配的设备。连接成功后会自动记录；也可以调整搜索或收藏筛选。");

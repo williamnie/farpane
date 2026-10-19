@@ -421,12 +421,14 @@ fn home(
 
     let body = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     body.set_vexpand(true);
-    let sidebar = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    let sidebar = gtk::Box::new(gtk::Orientation::Vertical, 6);
     sidebar.add_css_class("sidebar");
-    sidebar.set_width_request(180);
+    sidebar.set_width_request(208);
+    sidebar.set_hexpand(false);
     let brand_row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    brand_row.set_margin_start(4);
     let icon = gtk::Image::from_icon_name("org.farpane.FarPane");
-    icon.set_pixel_size(40);
+    icon.set_pixel_size(36);
     brand_row.append(&icon);
     brand_row.append(&label("FarPane", "brand"));
     sidebar.append(&brand_row);
@@ -434,15 +436,13 @@ fn home(
     let nav = gtk::ListBox::new();
     nav.set_widget_name("home-navigation");
     nav.add_css_class("navigation-sidebar");
+    nav.add_css_class("home-nav");
     for (icon, name) in [
         ("computer-symbolic", "设备"),
         ("security-high-symbolic", "授权与安全"),
         ("preferences-system-sharing-symbolic", "共享设置"),
     ] {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-        row.set_margin_top(9);
-        row.set_margin_bottom(9);
-        row.set_margin_start(10);
         row.append(&gtk::Image::from_icon_name(icon));
         row.append(&label(name, ""));
         nav.append(&row);
@@ -454,13 +454,19 @@ fn home(
     let core_version = crate::installed_version().core_build.as_deref()
         .map(|build| format!("主机核心 {build}"))
         .unwrap_or_else(|| "构建未标识".into());
+    let footer = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    footer.add_css_class("sidebar-footer");
     let core_version = label(&core_version, "muted");
     core_version.set_widget_name("installed-core-version");
     core_version.set_selectable(true);
+    core_version.set_hexpand(true);
+    core_version.set_ellipsize(gtk::pango::EllipsizeMode::Middle);
     core_version.set_tooltip_text(Some("本机 Linux 核心构建。后台连接成功时，界面与后台已核对为同一安装构建。"));
-    sidebar.append(&core_version);
-    let about = gtk::Button::with_label("关于 FarPane");
+    footer.append(&core_version);
+    let about = gtk::Button::from_icon_name("help-about-symbolic");
+    about.set_tooltip_text(Some("关于 FarPane"));
     about.add_css_class("flat");
+    about.add_css_class("circular");
     let weak_window = window.downgrade();
     about.connect_clicked(move |_| {
         if let Some(window) = weak_window.upgrade() {
@@ -474,7 +480,8 @@ fn home(
             dialog.present(Some(&window));
         }
     });
-    sidebar.append(&about);
+    footer.append(&about);
+    sidebar.append(&footer);
     body.append(&sidebar);
     let scroll = gtk::ScrolledWindow::builder()
         .hexpand(true)
@@ -490,7 +497,12 @@ fn home(
         let index = row.map(|r| r.index()).unwrap_or(0);
         let page = page_ui.select(index);
         // Replace and release the old page; do not retain hidden page trees.
-        scroll.set_child(Some(&page));
+        let clamp = adw::Clamp::builder()
+            .maximum_size(880)
+            .tightening_threshold(640)
+            .child(&page)
+            .build();
+        scroll.set_child(Some(&clamp));
     });
     body.append(&scroll);
     root.append(&body);
@@ -565,16 +577,16 @@ pub(crate) fn label(text: &str, class: &str) -> gtk::Label {
     label
 }
 pub(crate) fn page(title: &str, subtitle: &str) -> gtk::Box {
-    let page = gtk::Box::new(gtk::Orientation::Vertical, 22);
+    let page = gtk::Box::new(gtk::Orientation::Vertical, 28);
     page.add_css_class("content-page");
-    let heading = gtk::Box::new(gtk::Orientation::Vertical, 8);
+    let heading = gtk::Box::new(gtk::Orientation::Vertical, 6);
     heading.append(&label(title, "page-title"));
     heading.append(&label(subtitle, "page-subtitle"));
     page.append(&heading);
     page
 }
 pub(crate) fn card(title: &str) -> gtk::Box {
-    let card = gtk::Box::new(gtk::Orientation::Vertical, 14);
+    let card = gtk::Box::new(gtk::Orientation::Vertical, 16);
     card.add_css_class("card");
     card.append(&label(title, "card-title"));
     card

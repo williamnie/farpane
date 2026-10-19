@@ -1,6 +1,7 @@
 use crate::host::Ui;
 use adw::prelude::*;
 use farpane_protocol::Command;
+use gtk::glib;
 use std::{
     cell::{Cell, RefCell},
     collections::HashSet,
@@ -23,7 +24,12 @@ pub fn group(ui: &Rc<Ui>) -> adw::PreferencesGroup {
         .active(true)
         .build();
     let save = gtk::Button::with_label("应用文件共享");
+    save.add_css_class("suggested-action");
     save.set_widget_name("host-files-save");
+    let actions = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    actions.set_halign(gtk::Align::End);
+    actions.set_margin_top(12);
+    actions.append(&save);
     enabled.set_widget_name("host-files-enabled");
     directory.set_widget_name("host-files-root");
     confirm.set_widget_name("host-files-confirm");
@@ -31,7 +37,7 @@ pub fn group(ui: &Rc<Ui>) -> adw::PreferencesGroup {
         enabled.upcast_ref::<gtk::Widget>(),
         directory.upcast_ref(),
         confirm.upcast_ref(),
-        save.upcast_ref(),
+        actions.upcast_ref(),
     ] {
         group.add(row);
     }
@@ -101,7 +107,12 @@ pub fn group(ui: &Rc<Ui>) -> adw::PreferencesGroup {
 
 pub fn tasks(ui: &Rc<Ui>) -> adw::PreferencesGroup {
     let group = adw::PreferencesGroup::builder().title("文件任务").build();
-    let rows = gtk::Box::new(gtk::Orientation::Vertical, 8);
+    let rows = gtk::ListBox::new();
+    rows.set_selection_mode(gtk::SelectionMode::None);
+    rows.add_css_class("boxed-list");
+    let empty = crate::app::label("暂无文件任务", "placeholder-label");
+    empty.set_xalign(0.5);
+    rows.set_placeholder(Some(&empty));
     group.add(&rows);
     let weak = rows.downgrade();
     let ui = Rc::downgrade(ui);
@@ -125,9 +136,7 @@ pub fn tasks(ui: &Rc<Ui>) -> adw::PreferencesGroup {
                 .iter()
                 .any(|t| t.job == *token && t.needs_confirmation && t.overwrite_required)
         });
-        while let Some(child) = rows.first_child() {
-            rows.remove(&child);
-        }
+        rows.remove_all();
         for task in snapshot.file_tasks.iter().rev() {
             let row = adw::ActionRow::builder().title(&task.name).build();
             row.set_use_markup(false);
@@ -149,9 +158,20 @@ pub fn tasks(ui: &Rc<Ui>) -> adw::PreferencesGroup {
             row.set_subtitle(&format!(
                 "{status} · {}{}",
                 if task.total == 0 && task.done > 0 {
-                    format!("已传输 {} 字节（总大小待确定）", task.done)
+                    format!("已传输 {}（总大小待确定）", glib::format_size(task.done))
+                } else if task.done < task.total && task.done > 0 {
+                    format!(
+                        "{} / {}（{}%）",
+                        glib::format_size(task.done),
+                        glib::format_size(task.total),
+                        task.done * 100 / task.total
+                    )
                 } else {
-                    format!("{} / {} 字节", task.done, task.total)
+                    format!(
+                        "{} / {}",
+                        glib::format_size(task.done),
+                        glib::format_size(task.total)
+                    )
                 },
                 if task.detail.is_empty() {
                     String::new()
@@ -194,6 +214,7 @@ pub fn tasks(ui: &Rc<Ui>) -> adw::PreferencesGroup {
                     }
                 });
                 row.add_suffix(&allow);
+                allow.add_css_class("suggested-action");
                 let reject = gtk::Button::with_label("拒绝");
                 reject.set_widget_name(&format!("file-reject-{token}"));
                 reject.set_valign(gtk::Align::Center);
