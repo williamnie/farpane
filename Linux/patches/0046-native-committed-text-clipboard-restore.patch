@@ -1,0 +1,109 @@
+--- a/src/clipboard.rs
++++ b/src/clipboard.rs
+@@ -302,6 +302,36 @@
+     clipboard_ctx.set_with_owner_marker_for_linux(&data)
+ }
+ 
++#[cfg(all(target_os = "linux", feature = "farpane-native"))]
++pub struct ClipboardSnapshot(Vec<ClipboardData>);
++
++#[cfg(all(target_os = "linux", feature = "farpane-native"))]
++pub fn snapshot_for_paste_restore() -> Option<ClipboardSnapshot> {
++    let mut ctx = CLIPBOARD_CTX.lock().unwrap();
++    if ctx.is_none() {
++        *ctx = ClipboardContext::new().ok();
++    }
++    let data = ctx.as_mut()?.get(ClipboardSide::Host, true).ok()?;
++    (!data.is_empty()).then(|| ClipboardSnapshot(data))
++}
++
++/// Restores only while CLIPBOARD still holds exactly the text the Host pasted,
++/// so content copied meanwhile (locally or from the peer) is never overwritten.
++/// The owner marker keeps the restored copy from being synced back to the peer.
++#[cfg(all(target_os = "linux", feature = "farpane-native"))]
++pub fn restore_after_paste(snapshot: ClipboardSnapshot, typed: &str) -> ResultType<bool> {
++    let mut ctx = CLIPBOARD_CTX.lock().unwrap();
++    let Some(ctx) = ctx.as_mut() else {
++        return Ok(false);
++    };
++    let current = ctx.get(ClipboardSide::Host, true)?;
++    if !matches!(current.as_slice(), [ClipboardData::Text(text)] if text == typed) {
++        return Ok(false);
++    }
++    ctx.set_with_owner_marker_for_linux(&append_owner_marker(snapshot.0, ClipboardSide::Host))?;
++    Ok(true)
++}
++
+ #[cfg(not(target_os = "android"))]
+ pub fn update_clipboard(multi_clipboards: Vec<Clipboard>, side: ClipboardSide) {
+     std::thread::spawn(move || {
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -2205,6 +2205,8 @@
+     let record = record_wayland_clipboard_input_for_sync_filter(text);
+     #[cfg(feature = "farpane-native")]
+     let started = Instant::now();
++    #[cfg(feature = "farpane-native")]
++    paste_restore::track(text);
+     if !set_clipboard_content(text) {
+         if let Some(record) = record {
+             rollback_wayland_clipboard_input_record(record);
+@@ -2219,6 +2221,58 @@
+     true
+ }
+ 
++/// Pasting committed text borrows CLIPBOARD. Snapshot the user's content when
++/// a typing run starts and put it back once input has been quiet long enough
++/// for the target to have read the last paste.
++#[cfg(all(target_os = "linux", feature = "farpane-native"))]
++mod paste_restore {
++    use crate::clipboard::{restore_after_paste, snapshot_for_paste_restore, ClipboardSnapshot};
++    use hbb_common::log;
++    use std::{
++        sync::{
++            atomic::{AtomicU64, Ordering},
++            Mutex,
++        },
++        time::Duration,
++    };
++
++    const QUIET: Duration = Duration::from_millis(1500);
++    static GENERATION: AtomicU64 = AtomicU64::new(0);
++    static SAVED: Mutex<Option<ClipboardSnapshot>> = Mutex::new(None);
++
++    pub(super) fn track(text: &str) {
++        let mut saved = SAVED.lock().unwrap();
++        if saved.is_none() {
++            *saved = snapshot_for_paste_restore();
++        }
++        if saved.is_none() {
++            return;
++        }
++        let generation = GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
++        drop(saved);
++        let typed = text.to_owned();
++        let spawned = std::thread::Builder::new()
++            .name("paste-restore".into())
++            .spawn(move || {
++                std::thread::sleep(QUIET);
++                let mut saved = SAVED.lock().unwrap();
++                if GENERATION.load(Ordering::Relaxed) != generation {
++                    return;
++                }
++                let Some(snapshot) = saved.take() else {
++                    return;
++                };
++                match restore_after_paste(snapshot, &typed) {
++                    Ok(restored) => log::debug!("Native committed text: clipboard restored={restored}"),
++                    Err(error) => log::warn!("Native committed text: clipboard restore failed: {error}"),
++                }
++            });
++        if let Err(error) = spawned {
++            log::warn!("Native committed text: clipboard restore unavailable: {error}");
++        }
++    }
++}
++
+ /// Check if a character is ASCII printable (0x20-0x7E).
+ #[cfg(target_os = "linux")]
+ #[inline]

@@ -131,3 +131,14 @@ Scripts/linux/test-native-gnome-input.sh Build/Linux/target/debug/deps/librustde
 进一步已建立真实 GNOME/logind 的私有 VM：原始 `.3` GUI、网络、Host、root 特权 IPC、内核键盘与 Wayland 应用连成完整链路，VTE PTY 和 Chrome 均实际收到“中文测试”，旁读 evdev 的四次粘贴序列完整且无重复。GTK4 结果、六项入口保护和全部环境失败记录集中于[真实 GNOME 回归证据](../../Evidence/LinuxHost/2026-10-18-native-input-vm-desktop/README.md)。未替换按键后端，未直接写目标文本；未安装新候选。Linux GTK 逐字 Seq 不等于 Mac 多字单次 `input_string`：后者及残留修饰键的完整网络对照、Warp 和用户实际连接仍待验证，缺陷保持打开。
 
 随后已补齐 [Mac 式整段 Seq 与旧版对照](native-input-vm.md#mac-式-seq-与旧版对照)：正常多字 Seq 在 `.1` 可用；Control 被真实内核确认按下后，`.1` 的 GTK4/Chrome 有焦点却不增加文字，VTE 则仍能粘贴但留下 Control。`.3` 在三类目标均先释放 Control，再准确粘贴整段中文及混合 emoji/Latin-1，无重复。这是原始包的实际认证 TCP→Host→root/uinput→GNOME 对照，未用虚拟键盘替代生产输入；测试端复制 Mac 的消息构造，没有运行 Mac GUI。仍缺用户实机失败瞬间的按键状态，故不宣称唯一根因或已完成 Mac/Warp 验收。8 项入口保护、3 项协议检查通过；本轮不修改产品，也未激活 `.3`。
+
+## 2026-10-18 输入后恢复剪贴板（0046）
+
+剪贴板路径输入中文时，每次提交都会把文字写进 CLIPBOARD 再发送粘贴键，上游刻意不恢复原内容，用户此前复制的内容（包括 Mac 同步过来的内容）因此被最后一个输入的字覆盖。`0046-native-committed-text-clipboard-restore.patch` 仅在 `farpane-native` 构建中：
+
+- 一段连续输入开始时，用 `ClipboardContext::get` 读取 CLIPBOARD 的全部已支持格式作为快照；读取失败或为空时不恢复。
+- 最后一次提交后静默 1.5 秒再恢复；期间新的提交顺延，不在连续输入中途换回旧内容，避免目标应用读到旧剪贴板。
+- 仅当 CLIPBOARD 仍然恰好是 Host 刚粘贴的那段文字时才写回，期间本机或远端复制的新内容不会被覆盖。
+- 写回内容带 RustDesk owner 标记，Host 剪贴板 Reader 照常排除，不会回发给远端。
+
+限制：1.5 秒是经验值，目标应用若在静默期后才读取剪贴板，仍会读到恢复后的内容；文件 URI 剪贴板不在快照格式内，不会恢复。
