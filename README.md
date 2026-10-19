@@ -69,6 +69,26 @@ FarPane 已支持完整的 Viewer 与 Host 产品链：这台 Mac 既可以连�
 - Host Mode 代码开发已完成，但双机、Direct/Relay、睡眠/网络/显示切换及不同硬件上的完整发布验收仍需按场景继续补充，见 [`docs/host-mode-design.md`](docs/host-mode-design.md)。
 - Release 预览包尚未经过 Apple notarization；源码和本地构建不受此限制。
 
+### Linux 端（预览）
+
+`Linux/` 下是同一产品的 Linux 原生版本：GTK4/libadwaita 首页与远程会话界面、原生 Host 核心（基于修改后的 RustDesk 核心）、VAAPI/DRM GPU 媒体管线和独立安装器，不需要另装 RustDesk 或系统 FFmpeg。目前在一台 Ubuntu GNOME Wayland 主机上完成了 Mac mini 入站画面、键鼠和中文输入的实机验证；构建、补丁与各项证据见 [`Linux/README.md`](Linux/README.md)。
+
+最近更新（v0.2.9）：
+
+- Mac 输入法提交的中文改为经 IBus 直接交给焦点应用，不再占用剪贴板、不依赖粘贴快捷键；Chrome、Zed、GNOME 文本编辑器实测正常。不接 IBus 的应用（如 Warp）自动回退为剪贴板粘贴，Warp 使用 Ctrl+Shift+V。
+- 剪贴板粘贴路径会在一段输入结束后恢复用户原有的剪贴板内容；GNOME Wayland 下剪贴板经 Xwayland 读写。
+- 首页窗口样式和小窗口布局修正，会话工具条可收起，提供 Debian/RPM 测试候选的打包工具。
+
+已知问题与限制：
+
+- **验证范围有限**：只在 GNOME Wayland 实机验证。KDE 等其他桌面、X11 会话、多显示器、多用户、锁屏/休眠/重启、24 小时长稳、Linux 发起连接到 Mac 的出站会话，以及音频、文件、富剪贴板与 Mac 的互操作都没有完整验收。
+- **内核要求**：控制接口需要 Linux 6.5+（`SO_PEERPIDFD`），不会降级为不安全的 PID 检查。
+- **中文输入**：IBus 提交只覆盖运行 IBus 的会话，fcitx 或未运行 IBus 时回退剪贴板粘贴；回退时除 Warp 外都发送 Shift+Insert，GNOME 屏幕阅读器 Orca 开启时会截走 Insert，导致这些应用收不到文字。连续输入期间及其后 1.5 秒内，IBus 表情面板（Ctrl+.）不可用。Mac 端“Ubuntu 中文兼容输入”开关应保持关闭，否则会重复输入。密码框、重连后和长时间使用尚未专门验收。
+- **GPU**：VAAPI/DRM 硬件路径只在一种显卡配置上实测，不支持时回退软件编码，性能取决于硬件。
+- **资源占用**：首页 GUI 实测约 130 MiB PSS，未达到 60 MiB 的目标。
+- **桌面集成**：GNOME 概览第一次打开时可能显示通用图标，关闭再打开概览后恢复。
+- **发布状态**：安装包属于测试候选（包名 `farpane-native-candidate`，`runtime_ready=false`），依赖许可来源审计还有 17 条记录未完成；安装和切换需按 [`Linux/docs/native-install.md`](Linux/docs/native-install.md) 在维护窗口进行。
+
 ### 架构
 
 | 层 | 职责 |
@@ -247,6 +267,26 @@ Current boundaries:
 - Audio, clipboard, and file transfer are default-off and require explicit user opt-in; individual capabilities can be revoked during a session.
 - Host Mode development is complete, while the full cross-device, Direct/Relay, sleep/network/display-transition, and hardware release-acceptance matrix remains pending; see [`docs/host-mode-design.md`](docs/host-mode-design.md).
 - Preview release binaries are not yet Apple-notarized; this does not affect source or local builds.
+
+### Linux (preview)
+
+`Linux/` holds the native Linux edition of the same product: a GTK4/libadwaita home and session UI, a native Host core (built on a modified RustDesk core), a VAAPI/DRM GPU media pipeline and a dedicated installer; RustDesk and a system FFmpeg are not required. Inbound video, keyboard/mouse and Chinese input from a Mac mini have been verified on one Ubuntu GNOME Wayland host. Build steps, patches and evidence are in [`Linux/README.md`](Linux/README.md).
+
+Recent changes (v0.2.9):
+
+- Text committed by the Mac input method is handed to the focused application through IBus, without touching the clipboard or relying on a paste shortcut; verified in Chrome, Zed and GNOME Text Editor. Applications that are not IBus clients (such as Warp) fall back to a clipboard paste, using Ctrl+Shift+V for Warp.
+- The clipboard paste path restores the user's previous clipboard after a typing run; on GNOME Wayland the clipboard is accessed through Xwayland.
+- Polished home window styling and small-window layouts, a collapsible session toolbar, and Debian/RPM test-candidate packaging tools.
+
+Known issues and limitations:
+
+- **Limited verification**: only GNOME Wayland has been tested on real hardware. Other desktops such as KDE, X11 sessions, multiple monitors, multiple users, lock/sleep/reboot, 24-hour stability, outbound sessions from Linux to a Mac, and audio, file and rich-clipboard interoperability with the Mac are not fully accepted.
+- **Kernel**: the control channel requires Linux 6.5+ (`SO_PEERPIDFD`) and does not fall back to an unsafe PID check.
+- **Chinese input**: IBus commits only work in sessions running IBus; with fcitx or without IBus the clipboard paste is used. That fallback sends Shift+Insert to every application except Warp, and the GNOME screen reader Orca captures Insert when enabled, so those applications then receive no text. The IBus emoji panel (Ctrl+.) is unavailable while typing and for 1.5 s afterwards. Keep the Mac "Ubuntu Chinese compatibility input" switch off, or text is entered twice. Password fields, reconnection and long sessions have not been specifically tested.
+- **GPU**: the VAAPI/DRM hardware path has been measured on one GPU configuration; unsupported systems fall back to software encoding, and performance depends on hardware.
+- **Resource use**: the home GUI measured about 130 MiB PSS, above the 60 MiB target.
+- **Desktop integration**: the GNOME overview may show a generic icon the first time; it recovers after closing and reopening the overview.
+- **Release status**: packages are test candidates (package name `farpane-native-candidate`, `runtime_ready=false`), and 17 records in the dependency license-source audit are still open. Install and switch over in a maintenance window as described in [`Linux/docs/native-install.md`](Linux/docs/native-install.md).
 
 ### Architecture
 
