@@ -51,6 +51,17 @@ class FrozenCoreBoundary(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.layer_slot({'gui_layer_history': [first]})
 
+    def test_core_hotfix_overlays_apply_but_never_to_gui_inputs(self):
+        build = {'build_receipt': {}, 'hotfix': {'gui_rebuilt': False,
+                 'changed_overlays': {'Linux/native/mod.rs': 'patched'}}}
+        self.assertEqual(module.core_overlays(build), {'Linux/native/mod.rs': 'patched'})
+        for record in [{'gui_rebuilt': True, 'changed_overlays': {'Linux/native/mod.rs': 'x'}},
+                       {'gui_rebuilt': False, 'changed_overlays': {'Linux/gui/src/app.rs': 'x'}},
+                       {'gui_rebuilt': False,
+                        'changed_overlays': {'Linux/native/protocol/src/lib.rs': 'x'}}]:
+            with self.subTest(record=record), self.assertRaises(ValueError):
+                module.core_overlays({'hotfix': record})
+
     def test_added_and_missing_inputs_rejected(self):
         for operation in ['add', 'remove']:
             with self.subTest(operation=operation), self.assertRaises(ValueError):

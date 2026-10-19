@@ -41,6 +41,19 @@ def gui_delta(parent_sources, compiled):
     return changed
 
 
+def core_overlays(build):
+    """Core-only hotfix records replace packaged sources without rebinding the receipt."""
+    overlays = {}
+    for record in build.values():
+        if isinstance(record, dict) and 'changed_overlays' in record:
+            if record.get('gui_rebuilt') is not False or any(
+                    k.startswith(('Linux/gui/', 'Linux/native/protocol/'))
+                    for k in record['changed_overlays']):
+                raise ValueError('Hotfix overlay touches GUI compilation inputs')
+            overlays.update(record['changed_overlays'])
+    return overlays
+
+
 def layer_slot(build):
     """Return the earlier layer records and the proof directory for the next layer."""
     history = list(build.get('gui_layer_history', []))
@@ -93,7 +106,8 @@ def package(base, update, version, reason):
     if [k.removeprefix('Linux/gui/') for k in original_changes] != receipt['changed_gui_sources']:
         raise ValueError('GUI build source delta differs')
     sources = dict(build['build_receipt']['sources'])
-    for name, sha in sources.items():
+    overlays = core_overlays(build)
+    for name, sha in {**sources, **overlays}.items():
         path = base / ('dependencies.lock.json' if name == 'Linux/dependencies.lock.json' else 'source/' + name)
         if bundle.digest(path) != sha:
             raise ValueError('Parent source differs: ' + name)
@@ -147,7 +161,7 @@ def package(base, update, version, reason):
                 raise ValueError('Packaged binary differs: ' + name)
             if name != 'farpane' and bundle.digest(staged / name) != bundle.digest(base / name):
                 raise ValueError('Core/media changed')
-        for name, sha in sources.items():
+        for name, sha in {**sources, **overlays}.items():
             path = staged / ('dependencies.lock.json' if name == 'Linux/dependencies.lock.json' else 'source/' + name)
             if bundle.digest(path) != sha:
                 raise ValueError('Packaged source differs: ' + name)
