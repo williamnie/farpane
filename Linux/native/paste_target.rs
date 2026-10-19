@@ -69,7 +69,17 @@ pub fn current() -> Shortcut {
             let mut connection = None;
             while let Ok(request) = receive.recv() {
                 if Instant::now() >= request.deadline { continue; }
-                if connection.is_none() { connection = RustConnection::connect(None).ok().map(|v| v.0); }
+                if connection.is_none() {
+                    // Mutter hands services a DISPLAY that x11rb cannot parse.
+                    connection = match super::clipboard_x11::connect() {
+                        Ok((connection, _)) => Some(connection),
+                        Err(error) => {
+                            hbb_common::throttled_log!(Duration::from_secs(60), warn,
+                                "Native paste target: X11 focus unavailable: {error}");
+                            None
+                        }
+                    };
+                }
                 let result = connection.as_ref().map(focused_shortcut);
                 let shortcut = match result {
                     Some(Ok(shortcut)) => shortcut,

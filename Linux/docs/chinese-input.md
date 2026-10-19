@@ -1,5 +1,7 @@
 # FarPane Linux GPU 媒体重构（linux-host）：Mac 中文输入修复
 
+**2026-10-19 根因与修复（默认模式）：** 实机被动追踪证明默认模式失败的根因是 GNOME 屏幕阅读器 Orca 截走 Insert：Host 的 Shift+Insert 只有 Shift 到达应用。用户确认 Orca 并非有意开启，关闭后 Chrome 默认模式正常。按用户决定恢复 `0044` Warp 白名单，并修正其 X11 连接（复用 `clipboard_x11::connect()`）；已安装 `farpane-native-dev-12a7610123e68eed56441923`，兼容开关关闭时 Warp/Chrome 均实测正常。Mac 兼容开关打开会与 Host 粘贴叠加，建议保持关闭。不靠粘贴快捷键的提交方式继续调研。见[粘贴送达追踪](../../Evidence/LinuxHost/2026-10-19-native-paste-delivery/README.md)。以下为历史记录。
+
 **2026-10-19 兼容模式实机结果：** 原版对照结束并恢复 FarPane 后，用户确认 Mac 的“编辑 → Ubuntu 中文兼容输入”可点击且未勾选；原版成功那次的开关状态不确定。只勾选现有开关后，用户反馈“我打开后，中文输入正常了，warp也正常了”，即当前 FarPane 的 Chrome/Warp 中文在兼容模式下可用。本次没有新安装或产品改动，仍是 GUI `0.1.0-dev.20261019.1`、`.8` 核心 `c403acbf…`；FarPane active、原版 inactive。用户可先保留该设置使用。
 
 这验证了可用的兼容路径，**没有关闭默认模式中文失败的缺陷**。Mac 仓库源码在非 ASCII `sendText` 成功后补发 Ctrl+Shift+V，与原版捕获到的额外 Shift/Ctrl 形态吻合，但原版开关、字母 V 和实际 Mac 二进制未核对，不能把原版成功完全归因于此。没有专门验收连续提交、重复文字或重连后偏好持久化；源码按设备 UUID 保存偏好，未保存设备的快速连接可能换 UUID。后续应讨论统一文字提交及兼容设置的行为，暂停的 `0044` 应用名特判不因此恢复。证据见[对照与开关结果](../../Evidence/LinuxHost/2026-10-19-original-input-ab/README.md)，已通过 OCS seq38 交给 Claude。以下为历史修复与诊断记录。
