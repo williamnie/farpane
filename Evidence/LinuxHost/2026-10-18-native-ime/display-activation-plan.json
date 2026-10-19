@@ -1,0 +1,25 @@
+{
+  "current": "farpane-native-dev-e7508f297ef1d671172d7737",
+  "target": "farpane-native-dev-bfc1befc221061266d5f50da",
+  "service": {
+    "active": true,
+    "loaded": true,
+    "enabled": false
+  },
+  "processes": [
+    {
+      "pid": 32727,
+      "uid": 0,
+      "role": "service",
+      "start_ticks": "140772"
+    },
+    {
+      "pid": 32795,
+      "uid": 1000,
+      "role": "server",
+      "start_ticks": "140998"
+    }
+  ],
+  "configuration_touched": false,
+  "maintenance_required": true
+}

@@ -1,0 +1,18 @@
+Codex 只读核查（尚未与 Claude 达成结论）
+
+已确定：
+- 现有 Mac 正常输入路径已分离 IME 提交和按键：ViewerMetalView.insertText -> ViewerTextCommitSender -> rdn_client_send_text -> session.input_string -> Legacy Seq。Seq 没有按下字段并非漏发 down；它本就是文字提交消息。
+- .1 DISPLAY 修正与 .3 的 0043 都有独立复现证据。用户当前仍运行 .1，不能将未安装候选的结果归给当前服务。
+- 0043 在 Wayland 非 ASCII 文字的粘贴前清理修饰键，并不证明所有 Seq/所有客户端/所有应用正确。
+- 兼容开关的补 Ctrl+Shift+V 没有目标应用确认。旧端先发文字、新端自动粘贴、客户端再补发，能产生重复；它不适合作为新统一输入协议的默认实现。
+- 菜单禁用条件与三项会话对象有关。正常连接入口会设置 UUID，不能把灰色菜单归为未保存设备。实际 Mac 二进制及启动路径还未验证。
+- 文字入队、剪贴板设置返回、IPC 写入、内核注入和应用消费是不同阶段。现有 key_down 返回 Ok 不代表 IPC 或内核成功，queued 日志不代表上屏。
+- get_key_state 在 uinput 服务侧读取其 VirtualDevice。不得未经证明就说 0043 会释放宿主物理键盘；X11/Wayland 与多连接状态边界仍需区分。
+- 看到 release_shift_for_char_input 名称时怀疑 Ctrl+Shift+V 的 Shift 被丢弃，但继续读函数确认其有 hotkey modifier 保护，这个怀疑不成立，不列为已发现缺陷。
+
+建议评审方向：
+- 保留 committed-text 与物理按键两类语义，Linux 统一决定实际注入方式；客户端不盲补第二次粘贴。
+- 不按应用名为中文提交扩展规则。若暂时依赖剪贴板，明确它是受限的兼容后端，并说明不支持情况、剪贴板竞争和不自动重放。
+- 原生文本后端必须用本项目可运行的完整链路证明，不把理论上的 IME/Wayland 接口直接当成通用方案。
+- 最小诊断用事务序号、版本、路径、权限/修饰键状态和阶段结果；不记录正文、正文哈希或剪贴板内容。
+- 最终 Chrome 与 Warp 验收必须包括实际 Mac IME、实际已激活的确切 core、无重复、随后英文及快捷键正常，目标消费由测试目标或用户确认。

@@ -1,0 +1,36 @@
+[
+  [
+    "deb",
+    [
+      "python3",
+      "-B",
+      "Scripts/linux/package-native-deb.py",
+      "Build/Linux/artifacts/farpane-native-dev-58e533b081afae50b9c8e8a5",
+      "--version",
+      "0.1.0~dev.20261018.7"
+    ]
+  ],
+  [
+    "rpm",
+    [
+      "python3",
+      "-B",
+      "Scripts/linux/package-native-rpm.py",
+      "Build/Linux/artifacts/farpane-native-dev-58e533b081afae50b9c8e8a5",
+      "--version",
+      "0.1.0~dev.20261018.7"
+    ]
+  ],
+  [
+    "source",
+    [
+      "python3",
+      "-B",
+      "Scripts/linux/package-native-gui-source.py",
+      "Build/Linux/artifacts/farpane-native-dev-58e533b081afae50b9c8e8a5",
+      "Build/Linux/source-bundles/farpane-native-source-704f37fe999ad9f837832f79",
+      "--parent-manifest-sha256",
+      "704f37fe999ad9f837832f79b31e242b51e8322651136c0ee6f82b68785b4bc0"
+    ]
+  ]
+]

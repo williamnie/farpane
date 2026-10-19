@@ -41,6 +41,39 @@ def index(root):
     return result
 
 
+def gui_source_baseline(sources, update):
+    """Reuse dependency materials only for an existing GUI Rust-file delta.
+
+    Cargo manifests/locks, C bridges, core and dependency sources must remain
+    byte-identical. This does not close any outstanding license audit item.
+    """
+    if not update:
+        return sources
+    baseline = update.get('base_sources', {})
+    if update.get('schema') != 1 or baseline.keys() != sources.keys():
+        raise ValueError('GUI notice update changed the source inventory')
+    changed = sorted(k for k in sources if baseline[k] != sources[k])
+    if (not changed or changed != update.get('changed_sources')
+            or any(not k.startswith('Linux/gui/src/') or not k.endswith('.rs') for k in changed)):
+        raise ValueError('GUI notice update changed dependency or non-GUI sources')
+    return baseline
+
+
+def rebind_gui_sources(directory, sources, pins_sha256):
+    directory = Path(directory)
+    baseline = json.loads((directory/'inventory/materials/Build/Linux/native-build.json').read_text())['sources']
+    before = verify(directory, baseline, pins_sha256)
+    if before.get('gui_source_update'):
+        raise ValueError('GUI notice updates require the original baseline')
+    update = {'schema': 1, 'base_sources': baseline,
+              'changed_sources': sorted(k for k in sources if baseline.get(k) != sources[k])}
+    gui_source_baseline(sources, update)
+    before['gui_source_update'] = update
+    before['application_source_map_sha256'] = source_digest(sources)
+    (directory/'manifest.json').write_text(json.dumps(before, indent=2)+'\n')
+    return verify(directory, sources, pins_sha256)
+
+
 def verify(directory, sources, pins_sha256):
     directory = Path(directory)
     if directory.is_symlink() or (directory/'manifest.json').is_symlink():
@@ -65,7 +98,8 @@ def verify(directory, sources, pins_sha256):
             or supplement['pins_sha256'] != pins_sha256
             or supplement['binary_sha256'] != audit['binary_sha256']):
         raise ValueError('Notice delivery report provenance differs')
-    if (json.loads((directory/'inventory/materials/Build/Linux/native-build.json').read_text())['sources'] != sources):
+    baseline = gui_source_baseline(sources, manifest.get('gui_source_update'))
+    if (json.loads((directory/'inventory/materials/Build/Linux/native-build.json').read_text())['sources'] != baseline):
         raise ValueError('Notice inventory describes different application sources')
     for name, entry in audit['materials'].items():
         if manifest['files'].get('inventory/materials/'+str(relative(name))) != entry:

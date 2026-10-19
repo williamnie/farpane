@@ -1,0 +1,18 @@
+{"sample": 0, "continuous_seconds": 0.0, "pss_kib": {"gui": 158483, "host": 119839, "viewer": 15990}, "fds": {"gui": 17, "host": 44, "viewer": 15}}
+{"sample": 1, "continuous_seconds": 20.13, "pss_kib": {"gui": 158419, "host": 121431, "viewer": 16610}, "fds": {"gui": 17, "host": 44, "viewer": 15}}
+{"sample": 2, "continuous_seconds": 40.13, "pss_kib": {"gui": 158419, "host": 121439, "viewer": 16642}, "fds": {"gui": 17, "host": 44, "viewer": 15}}
+{"sample": 3, "continuous_seconds": 60.13, "pss_kib": {"gui": 158419, "host": 121767, "viewer": 16642}, "fds": {"gui": 17, "host": 44, "viewer": 15}}
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 542, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 298, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_sustained_smoke.py", line 161, in exercise
+    challenge(index, window_id, identity, inbound_id)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_sustained_smoke.py", line 89, in challenge
+    assert colored_pixels(screen.capture(), color) < 1000, 'Challenge color already present'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Challenge color already present

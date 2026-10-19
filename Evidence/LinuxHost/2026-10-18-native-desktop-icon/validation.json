@@ -1,0 +1,65 @@
+{
+  "result": "diagnostic-completed",
+  "product_fixed": false,
+  "full_gui_acceptance": false,
+  "host_installed": false,
+  "chinese_input_tested": false,
+  "gpu_tested": false,
+  "observer_rows": 39,
+  "association_preview_mismatches": [
+    {
+      "seconds": 32.519769,
+      "pid": 839,
+      "sequence": 1,
+      "wm_class": "org.farpane.FarPane",
+      "gtk_app_id": "org.farpane.FarPane",
+      "app_id": "org.farpane.FarPane.desktop",
+      "window_backed": false,
+      "app_icon": "org.farpane.FarPane",
+      "preview_icon": "application-x-executable"
+    },
+    {
+      "seconds": 32.522689,
+      "pid": 839,
+      "sequence": 1,
+      "wm_class": "org.farpane.FarPane",
+      "gtk_app_id": "org.farpane.FarPane",
+      "app_id": "org.farpane.FarPane.desktop",
+      "window_backed": false,
+      "app_icon": "org.farpane.FarPane",
+      "preview_icon": "application-x-executable"
+    }
+  ],
+  "runs": [
+    {
+      "directory": "immediate-1",
+      "session_id": 93293,
+      "exit_code": 0,
+      "delay": 0,
+      "shell_observer": false,
+      "launches_passed": 6,
+      "png_verified": 8,
+      "sources_verified": 21
+    },
+    {
+      "directory": "settled-2",
+      "session_id": 28717,
+      "exit_code": 0,
+      "delay": 7,
+      "shell_observer": false,
+      "launches_passed": 6,
+      "png_verified": 8,
+      "sources_verified": 21
+    },
+    {
+      "directory": "observed-3",
+      "session_id": 38273,
+      "exit_code": 0,
+      "delay": 0,
+      "shell_observer": true,
+      "launches_passed": 6,
+      "png_verified": 8,
+      "sources_verified": 23
+    }
+  ]
+}

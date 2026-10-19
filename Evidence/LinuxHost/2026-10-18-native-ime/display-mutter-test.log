@@ -1,0 +1,22 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_gnome_input_smoke.py", line 152, in <module>
+    exercise(Path(sys.argv[1]),Path(sys.argv[2]) if len(sys.argv)>2 else None)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_gnome_input_smoke.py", line 131, in exercise
+    result=subprocess.run([str(binary),
+        'farpane_native::discovery::tests::private_mutter_xwayland_chinese_paste',
+        '--exact','--ignored','--nocapture'],env=env,capture_output=True,text=True,timeout=30)
+  File "/usr/lib/python3.14/subprocess.py", line 557, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1221, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 2154, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1268, in _check_timeout
+    raise TimeoutExpired(
+    ...<2 lines>...
+            stderr=b''.join(stderr_seq) if stderr_seq else None)
+subprocess.TimeoutExpired: Command '['/workspace/Build/Linux/target/debug/deps/librustdesk-092117bf2c9dd4c1', 'farpane_native::discovery::tests::private_mutter_xwayland_chinese_paste', '--exact', '--ignored', '--nocapture']' timed out after 30 seconds

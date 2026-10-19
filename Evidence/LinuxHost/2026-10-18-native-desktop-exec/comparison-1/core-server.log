@@ -1,0 +1,50 @@
+[2026-10-18 12:08:08.615583 +00:00] INFO [src/core_main.rs:404] start --server with user ubuntu
+[2026-10-18 12:08:08.616296 +00:00] INFO [src/server.rs:665] DISPLAY=Ok("unix:/tmp/.X11-unix/X1")
+[2026-10-18 12:08:08.616317 +00:00] INFO [src/server.rs:666] XAUTHORITY=Ok("/run/user/1000/.mutter-Xwaylandauth.8PLKX3")
+[2026-10-18 12:08:08.616434 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-1000/ipc
+[2026-10-18 12:08:08.617052 +00:00] INFO [src/server/input_service.rs:760] UInput keyboard created
+[2026-10-18 12:08:08.617350 +00:00] INFO [src/server/input_service.rs:762] UInput mouse created
+[2026-10-18 12:08:08.627298 +00:00] INFO [src/server/drm_capturer.rs:1890] drm: consumer cache warmed (1 displays) at startup
+[2026-10-18 12:08:08.628626 +00:00] INFO [libs/libxdo-sys-stub/src/lib.rs:254] libxdo-sys libxdo not found, xdo functions will be disabled
+[2026-10-18 12:08:08.628634 +00:00] WARN [libs/enigo/src/linux/xdo.rs:98] Failed to create xdo context, xdo functions will be disabled
+[2026-10-18 12:08:08.628729 +00:00] DEBUG [src/server.rs:833] #tries of ipc service connection: 30
+[2026-10-18 12:08:08.693968 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-18 12:08:08.929835 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-18 12:08:08.930127 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 12:08:08.931588 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:08:08.933474 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:08:08.950053 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 12:08:08.950348 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.6, available memory: 5G, codec thread: 2
+[2026-10-18 12:08:08.950615 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 12:08:08.950996 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:08:09.096010 +00:00] INFO [libs/scrap/src/common/codec.rs:1150] av1 time: key: 21.208129ms, non-key: 7.702466ms, consume: 143.419316ms
+[2026-10-18 12:08:09.230354 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root
+[2026-10-18 12:08:09.933579 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 12:08:09.934598 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:08:09.959923 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0
+[2026-10-18 12:08:12.934821 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 12:08:12.936255 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:08:19.936455 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 12:08:19.937533 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:08:25.017482 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-18 12:08:26.951702 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 12:08:26.952072 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 12:08:26.952581 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:08:34.937721 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 12:08:34.938556 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:08:41.068880 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-18 12:08:43.953366 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 12:08:43.954150 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 12:08:43.955177 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:09:00.957075 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 12:09:00.957874 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 12:09:00.958478 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:09:05.938772 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 12:09:05.940017 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:09:13.223735 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file
+[2026-10-18 12:09:17.959996 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 12:09:17.960489 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 12:09:17.961510 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 12:09:34.962618 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 12:09:34.962864 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 12:09:34.963397 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution

@@ -1,0 +1,30 @@
+{
+  "result": "pass",
+  "scope": "kernel and root-Host startup plus Viewer permission-notice regression",
+  "artifact": "farpane-native-dev-d393fd0cff634416807feae5",
+  "deb": "farpane-native-candidate_0.1.0~dev.20261018.3_amd64.deb",
+  "deb_sha256": "476f189cac60495be8b54fad2e0c8070bf904cdfa3420af7af1baa72f68bea64",
+  "deb_bytes": 18819724,
+  "packaged_binaries": {
+    "farpane": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421",
+    "libexec/farpane-core": "c57fc5dd5755c2caf6e7780d5bf2cc33459b1629949079d2d9eedb17fcf62f6b",
+    "lib/libdrmtap.so.0.5.8": "f583791f617d5ad113c65a2247a84bcc15de235fd5c2459a10bbdddcc6a38f0d"
+  },
+  "unit_tests": {
+    "viewer_notice": 2,
+    "guest_entry_guards": 3
+  },
+  "package_checks": 8,
+  "deb_groups": 6,
+  "private_software_video_sessions": 4,
+  "source_archive_sha256": "88bcdffdf6d246e02a7979e5653bfe111ace4c7e730f69bf66efeca1ddda09ba",
+  "source_entries": 91478,
+  "archive_matches_built_application": true,
+  "full_source_recompiled": false,
+  "real_network_chinese_to_wayland_app_tested": false,
+  "mac_warp_accepted": false,
+  "gpu_retested": false,
+  "memory_target_met": false,
+  "installed": false,
+  "committed_or_pushed": false
+}

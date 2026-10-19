@@ -1,0 +1,23 @@
+{
+  "current_release": "releases/farpane-native-dev-bfc1befc221061266d5f50da",
+  "services": {
+    "farpane.service": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "disabled",
+      "MainPID": "64215"
+    },
+    "rustdesk.service": {
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "UnitFileState": "disabled",
+      "MainPID": "0"
+    }
+  },
+  "candidate_activated_by_this_check": false,
+  "build_receipt_valid": true,
+  "candidate_sha256": {
+    "Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.1_amd64.deb": "9960dfb15c170d66c23677c006f9c37633f4c9ccf47cd72ab0e1809e8fc353e9",
+    "Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.2_amd64.deb": "986b9c13d94347d88069351f951e1c96ea8abb2701a86c3cbeecb64c4482d148"
+  }
+}

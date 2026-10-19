@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-18",
+  "timezone": "Asia/Shanghai",
+  "branch": "codex/linux-host-gpu-media",
+  "base_head": "0b7381291f84637cb5eea557a498aced16ed5dd4",
+  "installed_release": "farpane-native-dev-bfc1befc221061266d5f50da",
+  "real_user_acceptance": "failed_warp_and_chrome",
+  "reproduced": "held Control changes Shift+Insert; clipboard updates but focused target text does not",
+  "actual_linux-host_trigger_confirmed": false,
+  "host_keyboard_injected": false,
+  "host_clipboard_changed": false,
+  "host_text_recorded": false,
+  "private_targets": [
+    "GTK4 Entry",
+    "GTK3 VTE PTY",
+    "Chrome 155 Wayland input"
+  ],
+  "test_boundary": "production paste function and uinput key mapping; final device replaced by private Mutter keyboard; no network/root uinput device exercised",
+  "canonical": {
+    "Linux/native/input_tests.rs": "570df6717818ce715f571c5ca712a8a1b4f62861d1920a65ed4c5e5f4dee6b75",
+    "Linux/patches/0042-native-paste-regression.patch": "d4dbce7687aece2f851716c5bb007ff7b3eae1773fefe6b54d1222e254ea61f1",
+    "Linux/patches/0043-native-committed-text-modifiers.patch": "84dfc06dc402874b82d9ee2522f296379475fb16bd7c52ae5c8c53d02550aeca"
+  }
+}

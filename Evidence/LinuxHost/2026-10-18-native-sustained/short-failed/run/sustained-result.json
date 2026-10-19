@@ -1,0 +1,13 @@
+{
+  "result": "fail",
+  "requested_seconds": 60,
+  "thirty_minute_gate": false,
+  "gpu_tested": false,
+  "root_service_tested": false,
+  "real_desktop_tested": false,
+  "product_test_hooks": false,
+  "software_only": true,
+  "network": "private-loopback",
+  "error": "AssertionError: Challenge color already present",
+  "samples": 0
+}

@@ -1,0 +1,25 @@
+
+RPM build errors:
+error: error creating temporary file /var/tmp/rpm-tmp.mUYG0B: Read-only file system
+error: Unable to open temp file: Read-only file system
+error: failed to create package build directory /workspace/Build/Linux/rpm/.native-rpm-hjnxzprw/BUILD/farpane-native-candidate-0.1.0_dev.20261018.3-build: Read-only file system
+    error creating temporary file /var/tmp/rpm-tmp.mUYG0B: Read-only file system
+    Unable to open temp file: Read-only file system
+    failed to create package build directory /workspace/Build/Linux/rpm/.native-rpm-hjnxzprw/BUILD/farpane-native-candidate-0.1.0_dev.20261018.3-build: Read-only file system
+Traceback (most recent call last):
+  File "/workspace/Scripts/linux/package-native-rpm.py", line 54, in <module>
+    main()
+    ~~~~^^
+  File "/workspace/Scripts/linux/package-native-rpm.py", line 27, in main
+    result = native_rpm.build(artifact, args.version, args.release, output)
+  File "/workspace/Linux/packaging/native_rpm.py", line 122, in build
+    subprocess.run(['rpmbuild', '-bb', '--define', '_topdir ' + str(top),
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    '--define', '_buildhost farpane-isolated', str(spec_path)],
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                   env=dict(os.environ, SOURCE_DATE_EPOCH='0'), check=True, timeout=180)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['rpmbuild', '-bb', '--define', '_topdir /workspace/Build/Linux/rpm/.native-rpm-hjnxzprw', '--define', '_buildhost farpane-isolated', '/workspace/Build/Linux/rpm/.native-rpm-hjnxzprw/candidate.spec']' returned non-zero exit status 1.

@@ -1,0 +1,61 @@
+{
+  "result": "pass",
+  "requested_seconds": 1800,
+  "thirty_minute_gate": true,
+  "gpu_tested": false,
+  "root_service_tested": false,
+  "real_desktop_tested": false,
+  "product_test_hooks": false,
+  "software_only": true,
+  "network": "private-loopback",
+  "continuous_seconds": 1800.1123749489998,
+  "samples": 91,
+  "resources_after_40_seconds": {
+    "gui": {
+      "baseline_pss_kib": 157532,
+      "max_pss_growth_kib": 0,
+      "final_pss_growth_kib": -12,
+      "fd_min": 17,
+      "fd_max": 17,
+      "thread_min": 52,
+      "thread_max": 57
+    },
+    "host": {
+      "baseline_pss_kib": 107580,
+      "max_pss_growth_kib": 2180,
+      "final_pss_growth_kib": 2180,
+      "fd_min": 44,
+      "fd_max": 44,
+      "thread_min": 32,
+      "thread_max": 33
+    },
+    "viewer": {
+      "baseline_pss_kib": 16241,
+      "max_pss_growth_kib": 616,
+      "final_pss_growth_kib": 616,
+      "fd_min": 15,
+      "fd_max": 15,
+      "thread_min": 5,
+      "thread_max": 5
+    }
+  },
+  "same_processes": {
+    "gui": [
+      62,
+      2968683
+    ],
+    "host": [
+      21,
+      2968379
+    ],
+    "viewer": [
+      121,
+      2969063
+    ]
+  },
+  "stable_fd_counts": true,
+  "worker_reaped": true,
+  "home_frame_mappings": 0,
+  "host_survived_gui_exit": true,
+  "all_memory_budgets_accepted": false
+}

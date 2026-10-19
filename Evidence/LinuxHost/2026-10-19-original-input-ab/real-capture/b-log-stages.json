@@ -1,0 +1,21 @@
+{
+  "window_start_utc": "2026-10-19T02:09:11.937883+00:00",
+  "window_end_utc": "2026-10-19T02:09:44.937883+00:00",
+  "alignment": "exit time minus 30 seconds with -2/+1 second margin; no transaction ID claim",
+  "sources": [
+    {
+      "role": "root",
+      "found": true,
+      "inode_matched": true,
+      "bytes_examined": 601
+    },
+    {
+      "role": "host",
+      "found": true,
+      "inode_matched": true,
+      "bytes_examined": 59447
+    }
+  ],
+  "stages": [],
+  "parser_correction": "Original timestamps have whitespace before UTC offset; initial parser rejected them. Normalized this syntax, then re-extracted; initial empty result is not evidence of absent log stages."
+}

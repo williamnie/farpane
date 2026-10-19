@@ -1,0 +1,46 @@
+{
+  "comparisons": [
+    {
+      "target": "entry",
+      "baseline": "wire-baseline-entry",
+      "candidate": "wire-entry-final",
+      "test_sources_identical": true,
+      "baseline_whole_seq": "pass",
+      "baseline_held_control_text": "中文测试",
+      "baseline_control_still_held": true,
+      "candidate_three_cases": "pass",
+      "candidate_control_released_before_paste": true
+    },
+    {
+      "target": "terminal",
+      "baseline": "wire-baseline-terminal",
+      "candidate": "wire-terminal",
+      "test_sources_identical": true,
+      "baseline_whole_seq": "pass",
+      "baseline_held_control_text": "中文测试控制提交",
+      "baseline_control_still_held": true,
+      "candidate_three_cases": "pass",
+      "candidate_control_released_before_paste": true
+    },
+    {
+      "target": "browser",
+      "baseline": "wire-baseline-browser",
+      "candidate": "wire-browser",
+      "test_sources_identical": true,
+      "baseline_whole_seq": "pass",
+      "baseline_held_control_text": "中文测试",
+      "baseline_control_still_held": true,
+      "candidate_three_cases": "pass",
+      "candidate_control_released_before_paste": true
+    }
+  ],
+  "core_sha256": {
+    "farpane-native-dev-bfc1befc221061266d5f50da": "bd6d8c376299fe8c5313daa06d79a1820ebfe2f9f9ef32d06b758bccfae259e3",
+    "farpane-native-dev-d393fd0cff634416807feae5": "c57fc5dd5755c2caf6e7780d5bf2cc33459b1629949079d2d9eedb17fcf62f6b"
+  },
+  "candidate_deb_sha256": "476f189cac60495be8b54fad2e0c8070bf904cdfa3420af7af1baa72f68bea64",
+  "product_changed": false,
+  "product_installed": false,
+  "mac_gui_tested": false,
+  "warp_tested": false
+}

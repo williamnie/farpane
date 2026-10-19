@@ -1,0 +1,451 @@
+{
+  "result": "pass",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+  "guest": {
+    "schema": 1,
+    "scope": "private-gnome-desktop-launch",
+    "result": "pass",
+    "full_farpane_input_tested": false,
+    "host_input_exposed": false,
+    "kernel": "7.0.0-38-generic",
+    "boot_id": "caa2458f-e91f-41a5-bde1-4406cf18222f",
+    "machine": "Standard PC (Q35 + ICH9, 2009)",
+    "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3",
+    "checks": [
+      "real_systemd_logind_gnome_session"
+    ],
+    "generations": [
+      {
+        "release": "farpane-native-dev-ec305482eaacd98258e28587",
+        "processes": [
+          {
+            "pid": 749,
+            "uid": 0,
+            "role": "--service",
+            "start": "2787"
+          },
+          {
+            "pid": 780,
+            "uid": 1000,
+            "role": "--server",
+            "start": "3007"
+          }
+        ]
+      }
+    ],
+    "logind": {
+      "Id": "c1",
+      "User": "1000",
+      "Active": "yes",
+      "Type": "wayland",
+      "Class": "user",
+      "Seat": "seat0",
+      "Leader": "231"
+    },
+    "desktop_launch": {
+      "result": "pass",
+      "methods": [
+        {
+          "method": "cli",
+          "cold": true,
+          "launch": {
+            "exit": 0,
+            "output_file": "desktop-launch-trace-command-cli.log"
+          },
+          "timeline": [
+            {
+              "seconds": 0.008,
+              "gui": [
+                {
+                  "pid": 860,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "3042"
+                }
+              ],
+              "bus_pid": null
+            },
+            {
+              "seconds": 0.165,
+              "gui": [
+                {
+                  "pid": 860,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "3042"
+                }
+              ],
+              "bus_pid": 860
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-cli.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "527774f1b0f669e38722944d4c1bb4e787bfad1c615630d6bc5d0aa242218781",
+            "fb_id": 54,
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-cli.log",
+          "wayland_identity": {
+            "source": "desktop-launch-trace-command-cli.log",
+            "app_ids": [
+              "org.farpane.FarPane"
+            ],
+            "titles": [
+              "FarPane"
+            ]
+          },
+          "capture_comparison": {
+            "shell": {
+              "file": "launch-shell-cli.png",
+              "seconds": 46.557302,
+              "width": 1024,
+              "height": 768,
+              "x": 0,
+              "y": 0,
+              "capture": "GNOME Shell.Screenshot; cursor excluded; no flash",
+              "sha256": "1713d8d36e9126a78e3d43f9e4eb654da75e1ac03add67b28dbcb263e03febff"
+            },
+            "vkms_after": {
+              "file": "launch-after-shell-cli.png",
+              "width": 1024,
+              "height": 768,
+              "format": "XR24",
+              "sha256": "527774f1b0f669e38722944d4c1bb4e787bfad1c615630d6bc5d0aa242218781",
+              "fb_id": 54,
+              "capture": "guest-only VKMS mapped frame"
+            }
+          },
+          "sample_monotonic_seconds": 46.574557856
+        },
+        {
+          "method": "dbus",
+          "cold": true,
+          "launch": {
+            "exit": 0,
+            "stdout": "()\n",
+            "stderr": ""
+          },
+          "timeline": [
+            {
+              "seconds": 0.212,
+              "gui": [
+                {
+                  "pid": 1451,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "4659"
+                }
+              ],
+              "bus_pid": 1451
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-dbus.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "3dda712f29860563adb56ffc5cdad7bccb9f5c53047a04dad39e0fb5b40f3cde",
+            "fb_id": 54,
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-dbus.log",
+          "wayland_identity": {
+            "source": "desktop-launch-trace-dbus.log",
+            "app_ids": [
+              "org.farpane.FarPane"
+            ],
+            "titles": [
+              "FarPane"
+            ]
+          },
+          "capture_comparison": {
+            "shell": {
+              "file": "launch-shell-dbus.png",
+              "seconds": 62.714033,
+              "width": 1024,
+              "height": 768,
+              "x": 0,
+              "y": 0,
+              "capture": "GNOME Shell.Screenshot; cursor excluded; no flash",
+              "sha256": "0c36261a58f9a0cdb196fd6a6be4f96652a7fed5bd9d005bc61aa674e38499e4"
+            },
+            "vkms_after": {
+              "file": "launch-after-shell-dbus.png",
+              "width": 1024,
+              "height": 768,
+              "format": "XR24",
+              "sha256": "3dda712f29860563adb56ffc5cdad7bccb9f5c53047a04dad39e0fb5b40f3cde",
+              "fb_id": 54,
+              "capture": "guest-only VKMS mapped frame"
+            }
+          },
+          "sample_monotonic_seconds": 62.733609454
+        },
+        {
+          "method": "cli-late",
+          "cold": true,
+          "launch": {
+            "exit": 0,
+            "output_file": "desktop-launch-trace-command-cli-late.log"
+          },
+          "timeline": [
+            {
+              "seconds": 0.008,
+              "gui": [
+                {
+                  "pid": 1939,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "6274"
+                }
+              ],
+              "bus_pid": null
+            },
+            {
+              "seconds": 0.165,
+              "gui": [
+                {
+                  "pid": 1939,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "6274"
+                }
+              ],
+              "bus_pid": 1939
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-cli-late.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "1d9875c65a97fbf36b6ee24394d9d1510b7a6357f27c68b6ce789bd1ed6a5f54",
+            "fb_id": 55,
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-cli-late.log",
+          "wayland_identity": {
+            "source": "desktop-launch-trace-command-cli-late.log",
+            "app_ids": [
+              "org.farpane.FarPane"
+            ],
+            "titles": [
+              "FarPane"
+            ]
+          },
+          "capture_comparison": {
+            "shell": {
+              "file": "launch-shell-cli-late.png",
+              "seconds": 78.94215,
+              "width": 1024,
+              "height": 768,
+              "x": 0,
+              "y": 0,
+              "capture": "GNOME Shell.Screenshot; cursor excluded; no flash",
+              "sha256": "711060777fd5f032ca5b5a069c41549d122d69ca06cf180ff3d575d9029ad9ab"
+            },
+            "vkms_after": {
+              "file": "launch-after-shell-cli-late.png",
+              "width": 1024,
+              "height": 768,
+              "format": "XR24",
+              "sha256": "1d9875c65a97fbf36b6ee24394d9d1510b7a6357f27c68b6ce789bd1ed6a5f54",
+              "fb_id": 55,
+              "capture": "guest-only VKMS mapped frame"
+            }
+          },
+          "sample_monotonic_seconds": 78.962982452
+        },
+        {
+          "method": "gio",
+          "cold": true,
+          "launch": {
+            "exit": 0,
+            "output_file": "desktop-launch-trace-command-gio.log"
+          },
+          "timeline": [
+            {
+              "seconds": 2.122,
+              "gui": [
+                {
+                  "pid": 2441,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "7905"
+                }
+              ],
+              "bus_pid": 2441
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-gio.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "1d9875c65a97fbf36b6ee24394d9d1510b7a6357f27c68b6ce789bd1ed6a5f54",
+            "fb_id": 55,
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-gio.log",
+          "wayland_identity": {
+            "source": "desktop-launch-trace-command-gio.log",
+            "app_ids": [
+              "org.farpane.FarPane"
+            ],
+            "titles": [
+              "FarPane"
+            ]
+          },
+          "capture_comparison": null,
+          "sample_monotonic_seconds": 95.018046033
+        },
+        {
+          "method": "cli-warm",
+          "cold": false,
+          "launch": {
+            "exit": 0,
+            "output_file": "desktop-launch-trace-command-cli-warm.log"
+          },
+          "timeline": [
+            {
+              "seconds": 0.008,
+              "gui": [
+                {
+                  "pid": 2441,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "7905"
+                },
+                {
+                  "pid": 2874,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "9502"
+                }
+              ],
+              "bus_pid": 2441
+            },
+            {
+              "seconds": 0.166,
+              "gui": [
+                {
+                  "pid": 2441,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "7905"
+                }
+              ],
+              "bus_pid": 2441
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-cli-warm.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "1d9875c65a97fbf36b6ee24394d9d1510b7a6357f27c68b6ce789bd1ed6a5f54",
+            "fb_id": 55,
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-cli-warm.log",
+          "wayland_identity": null,
+          "capture_comparison": null,
+          "sample_monotonic_seconds": 111.202964697
+        },
+        {
+          "method": "menu",
+          "cold": true,
+          "launch": {
+            "input_device": "/dev/input/event4",
+            "action": "GNOME overview search farpane, Enter"
+          },
+          "timeline": [
+            {
+              "seconds": 2.439,
+              "gui": [
+                {
+                  "pid": 3460,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "11358"
+                }
+              ],
+              "bus_pid": 3460
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-menu.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "ae224553dbe00d29cf0370cd2a1d6598c8d9c422140576c64e447125b550f001",
+            "fb_id": 54,
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-menu.log",
+          "wayland_identity": null,
+          "capture_comparison": null,
+          "sample_monotonic_seconds": 127.273223337
+        }
+      ],
+      "extra_captures": [
+        {
+          "file": "launch-before.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "fb717a0c980778e649e8fce0c73457271ac30a63847bae3332a693094321186a",
+          "fb_id": 55,
+          "capture": "guest-only VKMS mapped frame"
+        },
+        {
+          "file": "launch-search.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "fb5b5228374988cb55272ce02be7dd775b595c6aabdeddb74083ca726c1b1457",
+          "fb_id": 55,
+          "capture": "guest-only VKMS mapped frame"
+        }
+      ],
+      "host_generation_unchanged": true,
+      "desktop_comparison": {
+        "transport": "original",
+        "original_sha256": "11c96d5d77788b6b9304a47a5d6f74f1723cb1117b1179804dafb98d224e2438",
+        "temporary_user_entry_only": false,
+        "tested_sha256": "11c96d5d77788b6b9304a47a5d6f74f1723cb1117b1179804dafb98d224e2438",
+        "original_user_entry_restored": true
+      },
+      "first_launch_delay_seconds": 0,
+      "shell_observer_enabled": true,
+      "all_launch_methods_required": true,
+      "chinese_input_tested": false,
+      "screen": "private GNOME/VKMS; no host desktop",
+      "diagnostic_activation_environment": {
+        "G_DBUS_DEBUG": "message",
+        "WAYLAND_DEBUG": "client"
+      },
+      "cli_or_gio_failure_is_recorded_not_reclassified": true
+    },
+    "real_remote_connection_tested": false,
+    "input_text_tested": false,
+    "gpu_tested": false
+  },
+  "separate_kernel_verified": true,
+  "network": "none",
+  "host_devices_exposed": [
+    "/dev/kvm"
+  ],
+  "host_display": false,
+  "real_farpane_input_accepted": false
+}

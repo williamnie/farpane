@@ -1,0 +1,43 @@
+signal time=1792327325.471247 sender=org.freedesktop.DBus -> destination=:1.40 serial=2 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameAcquired
+   string ":1.40"
+signal time=1792327325.471264 sender=org.freedesktop.DBus -> destination=:1.40 serial=4 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameLost
+   string ":1.40"
+signal time=1792327332.715946 sender=org.freedesktop.DBus -> destination=(null destination) serial=30 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ""
+   string ":1.44"
+signal time=1792327348.729744 sender=org.freedesktop.DBus -> destination=(null destination) serial=238 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ":1.44"
+   string ""
+signal time=1792327348.756689 sender=org.freedesktop.DBus -> destination=(null destination) serial=244 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ""
+   string ":1.146"
+method call time=1792327348.757090 sender=:1.145 -> destination=org.farpane.FarPane serial=3 path=/org/farpane/FarPane; interface=org.freedesktop.Application; member=Activate
+   array [
+   ]
+signal time=1792327364.870966 sender=org.freedesktop.DBus -> destination=(null destination) serial=457 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ":1.146"
+   string ""
+signal time=1792327364.900137 sender=org.freedesktop.DBus -> destination=(null destination) serial=466 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ""
+   string ":1.250"
+signal time=1792327380.917092 sender=org.freedesktop.DBus -> destination=(null destination) serial=674 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ":1.250"
+   string ""
+signal time=1792327380.994970 sender=org.freedesktop.DBus -> destination=(null destination) serial=680 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ""
+   string ":1.352"
+signal time=1792327413.136312 sender=org.freedesktop.DBus -> destination=(null destination) serial=1083 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ":1.352"
+   string ""
+signal time=1792327415.529151 sender=org.freedesktop.DBus -> destination=(null destination) serial=147 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ""
+   string ":1.547"

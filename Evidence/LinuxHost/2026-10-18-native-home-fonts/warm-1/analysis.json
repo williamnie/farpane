@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "measurement": "private-software-home-fonts",
+  "artifact": "farpane-native-dev-ec305482eaacd98258e28587",
+  "manifest_sha256": "ea282757ad9874d244c84fac80d72ea8ecf66c9c06126e42d3f29e54cb312db3",
+  "font_probe_sha256": "292dac1edbc6544a70a397a1b2551e396deca6fcdf441743910e5c7ca3e4168b",
+  "warmups": [
+    {
+      "variant": "baseline",
+      "gui_pid": 79,
+      "seconds": 5.025750709006388
+    },
+    {
+      "variant": "subset",
+      "gui_pid": 127,
+      "seconds": 5.021374243995524
+    }
+  ],
+  "steady_20s": [
+    {
+      "index": 0,
+      "variant": "baseline",
+      "pss_kib": 164409,
+      "uss_kib": 137536,
+      "font_pss_kib": 15088,
+      "fd_count": 10
+    },
+    {
+      "index": 1,
+      "variant": "subset",
+      "pss_kib": 152167,
+      "uss_kib": 125832,
+      "font_pss_kib": 3844,
+      "fd_count": 10
+    },
+    {
+      "index": 2,
+      "variant": "subset",
+      "pss_kib": 153161,
+      "uss_kib": 126720,
+      "font_pss_kib": 3876,
+      "fd_count": 10
+    },
+    {
+      "index": 3,
+      "variant": "baseline",
+      "pss_kib": 164585,
+      "uss_kib": 137816,
+      "font_pss_kib": 14944,
+      "fd_count": 10
+    }
+  ],
+  "paired_differences": [
+    {
+      "baseline_index": 0,
+      "subset_index": 1,
+      "pss_kib_reduction": 12242,
+      "uss_kib_reduction": 11704,
+      "font_pss_kib_reduction": 11244
+    },
+    {
+      "baseline_index": 3,
+      "subset_index": 2,
+      "pss_kib_reduction": 11424,
+      "uss_kib_reduction": 11096,
+      "font_pss_kib_reduction": 11068
+    }
+  ],
+  "pango_cases": 16,
+  "pango_missing_glyphs": 0,
+  "fallback_shaping_preserved": true,
+  "pango_sizes": {
+    "baseline": {
+      "ui_corpus_regular": [
+        8805,
+        28
+      ],
+      "ui_corpus_bold": [
+        8805,
+        28
+      ],
+      "mixed_regular": [
+        378,
+        28
+      ],
+      "mixed_bold": [
+        397,
+        28
+      ],
+      "spacing_regular": [
+        258,
+        28
+      ],
+      "spacing_bold": [
+        263,
+        28
+      ],
+      "fallback_regular": [
+        77,
+        28
+      ],
+      "fallback_bold": [
+        80,
+        28
+      ]
+    },
+    "subset": {
+      "ui_corpus_regular": [
+        8805,
+        28
+      ],
+      "ui_corpus_bold": [
+        8805,
+        28
+      ],
+      "mixed_regular": [
+        378,
+        28
+      ],
+      "mixed_bold": [
+        397,
+        28
+      ],
+      "spacing_regular": [
+        258,
+        28
+      ],
+      "spacing_bold": [
+        263,
+        28
+      ],
+      "fallback_regular": [
+        77,
+        28
+      ],
+      "fallback_bold": [
+        80,
+        28
+      ]
+    }
+  },
+  "hardware_memory_target_evaluated": false,
+  "product_font_changed": false,
+  "real_desktop_tested": false,
+  "chinese_input_tested": false
+}

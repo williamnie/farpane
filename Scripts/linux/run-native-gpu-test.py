@@ -10,11 +10,13 @@ import time
 import uuid
 import argparse
 import importlib.util
+import select
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def connection_count():
+def legacy_connection_count():
     # Read-only legacy IPC query. Never read credentials or alter configuration.
     payload = b'{"t":"VideoConnCount","c":null}'
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as stream:
@@ -42,6 +44,67 @@ def connection_count():
         return value['c']
 
 
+class ActivityMonitor:
+    """One bounded root observer; no repeated core/config-helper processes."""
+    def __init__(self, legacy=False):
+        self.legacy = legacy
+        self.process = None
+        self.last = None
+
+    def __enter__(self):
+        if not self.legacy:
+            if os.getuid() == 0:
+                raise RuntimeError('Run the GPU harness as the desktop user, not root')
+            release = Path('/opt/farpane/current').resolve(strict=True)
+            self.process = subprocess.Popen(
+                ['sudo', '-n', '--', sys.executable, '-I', '-B',
+                 str(ROOT / 'Scripts/linux/observe-native-activity.py'),
+                 '--uid', str(os.getuid()), '--release', str(release), '--watch'],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        return self
+
+    def count(self):
+        if self.legacy:
+            return legacy_connection_count()
+        process = self.process
+        if process is None or process.poll() is not None:
+            raise RuntimeError('Native activity observer unavailable; GPU probe refused')
+        process.stdin.write(b'observe\n')
+        process.stdin.flush()
+        deadline = time.monotonic() + 2
+        data = bytearray()
+        while b'\n' not in data:
+            ready, _, _ = select.select([process.stdout], [], [], max(0, deadline - time.monotonic()))
+            if not ready:
+                raise RuntimeError('Native activity observer timed out; GPU probe refused')
+            chunk = os.read(process.stdout.fileno(), 4097 - len(data))
+            if not chunk or len(data) + len(chunk) > 4096:
+                raise RuntimeError('Native activity observer returned invalid data')
+            data.extend(chunk)
+        value = json.loads(data)
+        if (type(value) is not dict or 'error' in value or value.get('schema') != 1
+                or value.get('uid') != os.getuid() or type(value.get('busy_count')) is not int
+                or value['busy_count'] < 0 or value.get('idle') is not (value['busy_count'] == 0)
+                or type(value.get('activity')) is not dict):
+            raise RuntimeError('Native activity unavailable; GPU probe refused')
+        observed = value['activity'].get('observed_ms')
+        if type(observed) is not int or not 0 <= int(time.monotonic() * 1000) - observed <= 3000:
+            raise RuntimeError('Native activity became stale; GPU probe refused')
+        self.last = value
+        return value['busy_count']
+
+    def __exit__(self, *_):
+        if self.process is not None:
+            self.process.stdin.close()
+            try:
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.process.terminate()
+                self.process.wait(timeout=2)
+            finally:
+                self.process.stdout.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--viewer', action='store_true', help='Actual GTK Viewer in a private headless Wayland compositor')
@@ -51,6 +114,8 @@ def main():
     parser.add_argument('--shared-runtime-pages', action='store_true',
                         help='Diagnostic only: read-only, byte-identical system libraries/fonts for PSS attribution')
     parser.add_argument('--home-memory', action='store_true', help='Measure idle Home at 3/10/30 seconds, without a Viewer')
+    parser.add_argument('--legacy-host', action='store_true',
+                        help='Explicitly use the pre-native Host video-count query; never a fallback')
     args = parser.parse_args()
     if args.x11 and not args.viewer: parser.error('--x11 requires --viewer')
     if args.memory_probe!='baseline' and not args.viewer: parser.error('--memory-probe requires --viewer')
@@ -69,11 +134,11 @@ def main():
         spec = importlib.util.spec_from_file_location('native_bundle', ROOT / 'Linux/packaging/native_bundle.py')
         bundle = importlib.util.module_from_spec(spec); spec.loader.exec_module(bundle)
         bundle.verify(artifact)
-    with (ROOT / 'Build/Linux/.gpu-test.lock').open('a') as lock:
+    with (ROOT / 'Build/Linux/.gpu-test.lock').open('a') as lock, ActivityMonitor(args.legacy_host) as monitor:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        before = connection_count()
+        before = monitor.count()
         if before != 0:
-            raise RuntimeError(f'Probe deferred: installed FarPane has {before} video connection(s)')
+            raise RuntimeError(f'Probe deferred: installed FarPane has {before} active connection/task/media owner(s)')
         lockfile = json.loads((ROOT / 'Linux/dependencies.lock.json').read_text())
         image = lockfile['native_display_test' if args.viewer else 'native_builder']['image']
         name = 'farpane-native-gpu-probe-' + uuid.uuid4().hex[:12]
@@ -121,15 +186,15 @@ def main():
         samples = 0
         try:
             while process.poll() is None:
-                if connection_count() != 0:
-                    raise RuntimeError('New video connection detected; stopping only the synthetic probe')
+                if monitor.count() != 0:
+                    raise RuntimeError('Installed FarPane became busy; stopping only the synthetic probe')
                 samples += 1
                 if time.monotonic() - started > (90 if args.viewer else 30):
                     raise RuntimeError('Synthetic GPU test exceeded its runtime budget')
                 time.sleep(.2)
             if process.returncode:
                 raise RuntimeError(f'GPU probe exited {process.returncode}')
-            after = connection_count()
+            after = monitor.count()
             if after != 0:
                 raise RuntimeError('Installed FarPane became active at probe completion')
             if shared_pages:
@@ -142,7 +207,9 @@ def main():
                               'shared_runtime_pages': args.shared_runtime_pages,
                               'virtual_output_fps': 12 if args.viewer else None,
                               'codec_probe_fps_cap': None if args.viewer else 12,
-                              'before_connections': before, 'after_connections': after,
+                              'guard': 'legacy-video-count' if args.legacy_host else 'native-activity',
+                              'last_native_observation': monitor.last,
+                              'before_activity_count': before, 'after_activity_count': after,
                               'idle_checks': samples, 'seconds': time.monotonic() - started}))
         finally:
             if process.poll() is None:

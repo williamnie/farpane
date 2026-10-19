@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-19T00:57:39.173616+00:00",
+  "release": "farpane-native-dev-79e6fd6f2505d006beeb4e71",
+  "user_result": "仍然没有中文",
+  "file_integrity": [
+    {
+      "role": "service",
+      "same_file_and_not_truncated": true,
+      "bytes_since_start": 1319
+    },
+    {
+      "role": "host",
+      "same_file_and_not_truncated": true,
+      "bytes_since_start": 29007
+    }
+  ],
+  "events": [
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:04.218724 -07:00",
+      "level": "INFO",
+      "stage": "committed_text",
+      "seq": 1,
+      "chars": 2,
+      "ascii": false,
+      "released_modifiers": 0
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:04.219644 -07:00",
+      "level": "INFO",
+      "stage": "clipboard_written",
+      "duration_ms": 0
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:04.270410 -07:00",
+      "level": "DEBUG",
+      "stage": "clipboard_ready"
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:04.271472 -07:00",
+      "level": "DEBUG",
+      "stage": "paste_queued"
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:06.385226 -07:00",
+      "level": "INFO",
+      "stage": "committed_text",
+      "seq": 2,
+      "chars": 3,
+      "ascii": false,
+      "released_modifiers": 0
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:06.385698 -07:00",
+      "level": "INFO",
+      "stage": "clipboard_written",
+      "duration_ms": 0
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:06.436388 -07:00",
+      "level": "DEBUG",
+      "stage": "clipboard_ready"
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:06.437666 -07:00",
+      "level": "DEBUG",
+      "stage": "paste_queued"
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:08.115724 -07:00",
+      "level": "DEBUG",
+      "stage": "uinput_sequence_call",
+      "utf8_bytes": 1
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:08.212527 -07:00",
+      "level": "DEBUG",
+      "stage": "uinput_sequence_call",
+      "utf8_bytes": 1
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:08.275800 -07:00",
+      "level": "DEBUG",
+      "stage": "uinput_sequence_call",
+      "utf8_bytes": 1
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:08.513145 -07:00",
+      "level": "DEBUG",
+      "stage": "uinput_sequence_call",
+      "utf8_bytes": 1
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:09.932664 -07:00",
+      "level": "INFO",
+      "stage": "committed_text",
+      "seq": 7,
+      "chars": 6,
+      "ascii": false,
+      "released_modifiers": 0
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:09.933171 -07:00",
+      "level": "INFO",
+      "stage": "clipboard_written",
+      "duration_ms": 0
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:09.983259 -07:00",
+      "level": "DEBUG",
+      "stage": "clipboard_ready"
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:09.984318 -07:00",
+      "level": "DEBUG",
+      "stage": "paste_queued"
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:10.920921 -07:00",
+      "level": "DEBUG",
+      "stage": "clipboard_ready"
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:10.922305 -07:00",
+      "level": "DEBUG",
+      "stage": "paste_queued"
+    },
+    {
+      "role": "host",
+      "timestamp": "2026-10-18 17:57:12.513839 -07:00",
+      "level": "DEBUG",
+      "stage": "uinput_sequence_call",
+      "utf8_bytes": 1
+    }
+  ],
+  "ordinary_input_or_clipboard_body_saved": false,
+  "throttling_limits_negative_inferences": true
+}

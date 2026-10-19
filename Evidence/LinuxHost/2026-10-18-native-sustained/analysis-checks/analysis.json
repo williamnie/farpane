@@ -1,0 +1,103 @@
+{
+  "result": "pass",
+  "requested_seconds": 60,
+  "thirty_minute_gate": false,
+  "gpu_tested": false,
+  "root_service_tested": false,
+  "real_desktop_tested": false,
+  "product_test_hooks": false,
+  "software_only": true,
+  "network": "private-loopback",
+  "continuous_seconds": 60.112166405997414,
+  "samples": 91,
+  "same_processes": {
+    "gui": [
+      62,
+      2959707
+    ],
+    "host": [
+      21,
+      2959404
+    ],
+    "viewer": [
+      119,
+      2960087
+    ]
+  },
+  "stable_fd_counts": true,
+  "worker_reaped": true,
+  "home_frame_mappings": 0,
+  "host_survived_gui_exit": true,
+  "all_memory_budgets_accepted": false,
+  "clock_ticks_per_second": 100,
+  "cpu_scope": "single-core percentage; counters sampled consecutively per cycle",
+  "sampled_roles": [
+    "gui",
+    "host",
+    "viewer"
+  ],
+  "full_product_memory_accepted": false,
+  "persistent_growth_ruled_out": false,
+  "twenty_four_hours_tested": false,
+  "network_latency_measured": false,
+  "resources": {
+    "gui": {
+      "baseline_seconds": 40.11253158799809,
+      "baseline_pss_kib": 157833,
+      "final_pss_kib": 157833,
+      "final_uss_kib": 128724,
+      "max_pss_growth_kib": 0,
+      "final_pss_growth_kib": 0,
+      "tail_span_seconds": 9.33421301999988,
+      "tail_pss_growth_kib": 0,
+      "cpu_single_core_percent": 2.050037431838541,
+      "fd_min": 17,
+      "fd_max": 17,
+      "threads_min": 57,
+      "threads_max": 57,
+      "max_swap_pss_kib": 0,
+      "max_frame_mappings": 1
+    },
+    "host": {
+      "baseline_seconds": 40.11253158799809,
+      "baseline_pss_kib": 177813,
+      "final_pss_kib": 177825,
+      "final_uss_kib": 168684,
+      "max_pss_growth_kib": 12,
+      "final_pss_growth_kib": 12,
+      "tail_span_seconds": 9.33421301999988,
+      "tail_pss_growth_kib": 12,
+      "cpu_single_core_percent": 2.500045648583587,
+      "fd_min": 44,
+      "fd_max": 44,
+      "threads_min": 32,
+      "threads_max": 33,
+      "max_swap_pss_kib": 0,
+      "max_frame_mappings": 0
+    },
+    "viewer": {
+      "baseline_seconds": 40.11253158799809,
+      "baseline_pss_kib": 17111,
+      "final_pss_kib": 17111,
+      "final_uss_kib": 9120,
+      "max_pss_growth_kib": 0,
+      "final_pss_growth_kib": 0,
+      "tail_span_seconds": 9.33421301999988,
+      "tail_pss_growth_kib": 0,
+      "cpu_single_core_percent": 0.5000091297167174,
+      "fd_min": 15,
+      "fd_max": 15,
+      "threads_min": 5,
+      "threads_max": 5,
+      "max_swap_pss_kib": 0,
+      "max_frame_mappings": 0
+    }
+  },
+  "artifact": "farpane-native-dev-d393fd0cff634416807feae5",
+  "manifest_sha256": "7ec4f7e64dc80688225c5398f99d3f2931f9f2e6346f115469a64defb4b69ebd",
+  "image": "sha256:9868299c8b775ccd60773a4fd06ea2a0f1da90deb01d0119e997501c4d776a91",
+  "test_binaries": {
+    "farpane": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421",
+    "libexec/farpane-core": "c57fc5dd5755c2caf6e7780d5bf2cc33459b1629949079d2d9eedb17fcf62f6b"
+  }
+}

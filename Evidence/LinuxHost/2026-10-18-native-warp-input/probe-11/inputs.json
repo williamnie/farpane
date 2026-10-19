@@ -1,0 +1,35 @@
+{
+  "image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "program": {
+    "version": "0.2026.10.14.08.27.stable.01",
+    "program_manifest_sha256": "c1d7268af47cb6dcaeb5d55fc8b90d3f28b4ae5826d5402cfac06ace55d0bff3",
+    "purpose": "private offline Warp compatibility test; no user profile",
+    "files": [
+      {
+        "source": "/opt/warpdotdev/warp-terminal/warp",
+        "destination": "/opt/warpdotdev/warp-terminal/warp",
+        "sha256": "3029e54fddcc4c4d2f3d9a6364f95a4f347cc3a61837f28f388d3ddcef6e39af",
+        "bytes": 369284480
+      },
+      {
+        "source": "/usr/lib/x86_64-linux-gnu/libxkbcommon-x11.so.0.13.1",
+        "destination": "/opt/farpane-warp-libs/libxkbcommon-x11.so.0",
+        "sha256": "b6df348078e99c8ba85f4aa4203fecff6a1e3e2b668c5bc815f6dad686560c51",
+        "bytes": 39928
+      },
+      {
+        "source": "/usr/lib/x86_64-linux-gnu/libxcb-xkb.so.1.0.0",
+        "destination": "/opt/farpane-warp-libs/libxcb-xkb.so.1",
+        "sha256": "8bd1f0d28e17c99b45c30f72fdc048c5ea511b359abe20a92c8da9c2d39d7bfe",
+        "bytes": 121144
+      },
+      {
+        "source": "/usr/share/ca-certificates/mozilla/SSL.com_TLS_RSA_Root_CA_2022.crt",
+        "destination": "/opt/farpane-warp-libs/root.pem",
+        "sha256": "e1c93696d4de9125e49f6a12b97a1cbcf8ce7331bc8268f1fe7b6ab447cc14cf",
+        "bytes": 1980
+      }
+    ]
+  },
+  "test_sha256": "f536df9c8a95c5133db48fd1b2be24c1657fc867708b9170e01800b19cef30e9"
+}

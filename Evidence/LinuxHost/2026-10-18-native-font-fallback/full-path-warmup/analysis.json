@@ -1,0 +1,362 @@
+{
+  "schema": 1,
+  "measurement": "private-software-home-fonts",
+  "artifact": "farpane-native-dev-ec305482eaacd98258e28587",
+  "manifest_sha256": "ea282757ad9874d244c84fac80d72ea8ecf66c9c06126e42d3f29e54cb312db3",
+  "font_probe_sha256": "292dac1edbc6544a70a397a1b2551e396deca6fcdf441743910e5c7ca3e4168b",
+  "warmups": [
+    {
+      "variant": "baseline",
+      "gui_pid": 85,
+      "seconds": 21.328487309001503,
+      "dynamic_path_completed": true
+    },
+    {
+      "variant": "subset",
+      "gui_pid": 146,
+      "seconds": 21.31328492499597,
+      "dynamic_path_completed": true
+    }
+  ],
+  "steady_20s": [
+    {
+      "index": 0,
+      "variant": "baseline",
+      "pss_kib": 164547,
+      "uss_kib": 137252,
+      "font_pss_kib": 14952,
+      "fd_count": 10
+    },
+    {
+      "index": 1,
+      "variant": "subset",
+      "pss_kib": 152393,
+      "uss_kib": 125824,
+      "font_pss_kib": 3940,
+      "fd_count": 10
+    },
+    {
+      "index": 2,
+      "variant": "subset",
+      "pss_kib": 152161,
+      "uss_kib": 125808,
+      "font_pss_kib": 3976,
+      "fd_count": 10
+    },
+    {
+      "index": 3,
+      "variant": "baseline",
+      "pss_kib": 164966,
+      "uss_kib": 137560,
+      "font_pss_kib": 15464,
+      "fd_count": 10
+    }
+  ],
+  "paired_differences": [
+    {
+      "baseline_index": 0,
+      "subset_index": 1,
+      "pss_kib_reduction": 12154,
+      "uss_kib_reduction": 11428,
+      "font_pss_kib_reduction": 11012
+    },
+    {
+      "baseline_index": 3,
+      "subset_index": 2,
+      "pss_kib_reduction": 12805,
+      "uss_kib_reduction": 11752,
+      "font_pss_kib_reduction": 11488
+    }
+  ],
+  "dynamic_text": {
+    "records": [
+      {
+        "index": 0,
+        "variant": "baseline",
+        "samples": [
+          {
+            "phase": "alias",
+            "pss_kib": 166103,
+            "uss_kib": 138808,
+            "font_pss_kib": 15816,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          },
+          {
+            "phase": "edit",
+            "pss_kib": 185521,
+            "uss_kib": 158160,
+            "font_pss_kib": 17216,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          },
+          {
+            "phase": "returned",
+            "pss_kib": 183255,
+            "uss_kib": 155892,
+            "font_pss_kib": 17272,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          }
+        ],
+        "alias_font_runs": [
+          "Noto Sans CJK JP Bold 11.25",
+          "Noto Sans CJK JP Bold 11.25",
+          "DejaVu Sans Bold 11.25",
+          "DejaVu Sans Bold 11.25"
+        ]
+      },
+      {
+        "index": 1,
+        "variant": "subset",
+        "samples": [
+          {
+            "phase": "alias",
+            "pss_kib": 158541,
+            "uss_kib": 131012,
+            "font_pss_kib": 7140,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          },
+          {
+            "phase": "edit",
+            "pss_kib": 178314,
+            "uss_kib": 150644,
+            "font_pss_kib": 8596,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          },
+          {
+            "phase": "returned",
+            "pss_kib": 177588,
+            "uss_kib": 149916,
+            "font_pss_kib": 8596,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          }
+        ],
+        "alias_font_runs": [
+          "Noto Sans CJK JP Bold 11.25",
+          "Noto Sans CJK JP Bold 11.25",
+          "DejaVu Sans Bold 11.25",
+          "DejaVu Sans Bold 11.25"
+        ]
+      },
+      {
+        "index": 2,
+        "variant": "subset",
+        "samples": [
+          {
+            "phase": "alias",
+            "pss_kib": 157085,
+            "uss_kib": 129772,
+            "font_pss_kib": 7112,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          },
+          {
+            "phase": "edit",
+            "pss_kib": 176734,
+            "uss_kib": 149224,
+            "font_pss_kib": 8584,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          },
+          {
+            "phase": "returned",
+            "pss_kib": 175448,
+            "uss_kib": 147936,
+            "font_pss_kib": 8584,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          }
+        ],
+        "alias_font_runs": [
+          "Noto Sans CJK JP Bold 11.25",
+          "Noto Sans CJK JP Bold 11.25",
+          "DejaVu Sans Bold 11.25",
+          "DejaVu Sans Bold 11.25"
+        ]
+      },
+      {
+        "index": 3,
+        "variant": "baseline",
+        "samples": [
+          {
+            "phase": "alias",
+            "pss_kib": 167010,
+            "uss_kib": 139540,
+            "font_pss_kib": 16536,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          },
+          {
+            "phase": "edit",
+            "pss_kib": 186478,
+            "uss_kib": 159008,
+            "font_pss_kib": 18160,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          },
+          {
+            "phase": "returned",
+            "pss_kib": 185040,
+            "uss_kib": 157568,
+            "font_pss_kib": 18328,
+            "fd_count": 10,
+            "child_count": 0,
+            "swap_pss_kib": 0
+          }
+        ],
+        "alias_font_runs": [
+          "Noto Sans CJK JP Bold 11.25",
+          "Noto Sans CJK JP Bold 11.25",
+          "DejaVu Sans Bold 11.25",
+          "DejaVu Sans Bold 11.25"
+        ]
+      }
+    ],
+    "paired_differences": [
+      {
+        "phase": "alias",
+        "baseline_index": 0,
+        "subset_index": 1,
+        "pss_kib_reduction": 7562,
+        "uss_kib_reduction": 7796,
+        "font_pss_kib_reduction": 8676
+      },
+      {
+        "phase": "alias",
+        "baseline_index": 3,
+        "subset_index": 2,
+        "pss_kib_reduction": 9925,
+        "uss_kib_reduction": 9768,
+        "font_pss_kib_reduction": 9424
+      },
+      {
+        "phase": "edit",
+        "baseline_index": 0,
+        "subset_index": 1,
+        "pss_kib_reduction": 7207,
+        "uss_kib_reduction": 7516,
+        "font_pss_kib_reduction": 8620
+      },
+      {
+        "phase": "edit",
+        "baseline_index": 3,
+        "subset_index": 2,
+        "pss_kib_reduction": 9744,
+        "uss_kib_reduction": 9784,
+        "font_pss_kib_reduction": 9576
+      },
+      {
+        "phase": "returned",
+        "baseline_index": 0,
+        "subset_index": 1,
+        "pss_kib_reduction": 5667,
+        "uss_kib_reduction": 5976,
+        "font_pss_kib_reduction": 8676
+      },
+      {
+        "phase": "returned",
+        "baseline_index": 3,
+        "subset_index": 2,
+        "pss_kib_reduction": 9592,
+        "uss_kib_reduction": 9632,
+        "font_pss_kib_reduction": 9744
+      }
+    ],
+    "actual_label_missing_glyphs": 0,
+    "editor_buffer_matches": true,
+    "diagnostic_observer_loaded_in_gui": true,
+    "editable_layout_not_introspected": true
+  },
+  "pango_cases": 16,
+  "pango_missing_glyphs": 0,
+  "fallback_shaping_preserved": true,
+  "pango_sizes": {
+    "baseline": {
+      "ui_corpus_regular": [
+        8805,
+        28
+      ],
+      "ui_corpus_bold": [
+        8805,
+        28
+      ],
+      "mixed_regular": [
+        378,
+        28
+      ],
+      "mixed_bold": [
+        397,
+        28
+      ],
+      "spacing_regular": [
+        258,
+        28
+      ],
+      "spacing_bold": [
+        263,
+        28
+      ],
+      "fallback_regular": [
+        77,
+        28
+      ],
+      "fallback_bold": [
+        80,
+        28
+      ]
+    },
+    "subset": {
+      "ui_corpus_regular": [
+        8805,
+        28
+      ],
+      "ui_corpus_bold": [
+        8805,
+        28
+      ],
+      "mixed_regular": [
+        378,
+        28
+      ],
+      "mixed_bold": [
+        397,
+        28
+      ],
+      "spacing_regular": [
+        258,
+        28
+      ],
+      "spacing_bold": [
+        263,
+        28
+      ],
+      "fallback_regular": [
+        77,
+        28
+      ],
+      "fallback_bold": [
+        80,
+        28
+      ]
+    }
+  },
+  "hardware_memory_target_evaluated": false,
+  "product_font_changed": false,
+  "real_desktop_tested": false,
+  "chinese_input_tested": false
+}

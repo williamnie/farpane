@@ -1,0 +1,21 @@
+[2026-10-18 11:28:35.895415 +00:00] INFO [src/core_main.rs:400] start --service
+[2026-10-18 11:28:35.895847 +00:00] INFO [src/server/uinput.rs:1088] start uinput mouse service
+[2026-10-18 11:28:35.895869 +00:00] INFO [src/server/uinput.rs:1081] start uinput keyboard service
+[2026-10-18 11:28:35.895943 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_mouse server at path: /tmp/FarPane-service/ipc_uinput_mouse
+[2026-10-18 11:28:35.896001 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_keyboard server at path: /tmp/FarPane-service/ipc_uinput_keyboard
+[2026-10-18 11:28:35.895981 +00:00] INFO [src/ipc.rs:742] Started protected ipc service server: postfix=_service
+[2026-10-18 11:28:35.896051 +00:00] INFO [src/ipc/drm.rs:101] Started drm ipc server at path: /tmp/FarPane-service/ipc_drm
+[2026-10-18 11:28:35.896202 +00:00] INFO [src/server/uinput.rs:1095] start uinput control service
+[2026-10-18 11:28:35.896274 +00:00] INFO [src/ipc/drm.rs:728] drm: udev DRM-uevent listener started
+[2026-10-18 11:28:35.896305 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_control server at path: /tmp/FarPane-service/ipc_uinput_control
+[2026-10-18 11:28:35.905044 +00:00] INFO [libs/scrap/src/common/drmtap_dl.rs:401] libdrmtap loaded: /opt/farpane/releases/farpane-native-dev-d393fd0cff634416807feae5/lib/libdrmtap.so.0.5.8 (v0.5.8)
+[2026-10-18 11:28:35.905346 +00:00] INFO [src/ipc/drm.rs:659] drm: display cache refreshed (topology changed)
+[2026-10-18 11:28:35.905434 +00:00] INFO [src/ipc/drm.rs:790] drm: pre-warm framebuffer primed in 629.297µs
+[2026-10-18 11:28:38.030663 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_control
+[2026-10-18 11:28:38.030878 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_keyboard
+[2026-10-18 11:28:38.030889 +00:00] DEBUG [src/server/uinput.rs:853] spawn_keyboard_handler: new keyboard handler connection
+[2026-10-18 11:28:38.033550 +00:00] DEBUG [src/server/uinput.rs:859] UInput keyboard device created successfully
+[2026-10-18 11:28:38.034065 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_mouse
+[2026-10-18 11:28:38.034081 +00:00] INFO [src/server/uinput.rs:908] Create uinput mouce with rng_x: (0, 1920), rng_y: (0, 1080)
+[2026-10-18 11:28:38.040555 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer
+[2026-10-18 11:28:38.647683 +00:00] INFO [src/rendezvous_mediator.rs:271] server restart

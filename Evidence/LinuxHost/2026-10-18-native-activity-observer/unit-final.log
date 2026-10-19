@@ -1,0 +1,14 @@
+test_counts_reject_bool_negative_float_and_overflow (test_native_activity_observer.ActivityTest.test_counts_reject_bool_negative_float_and_overflow) ... ok
+test_missing_unsupported_and_malformed_wire_are_errors (test_native_activity_observer.ActivityTest.test_missing_unsupported_and_malformed_wire_are_errors) ... ok
+test_only_fresh_same_owner_zero_counters_are_idle (test_native_activity_observer.ActivityTest.test_only_fresh_same_owner_zero_counters_are_idle) ... ok
+test_partial_peer_cannot_extend_absolute_deadline (test_native_activity_observer.ActivityTest.test_partial_peer_cannot_extend_absolute_deadline) ... ok
+test_unknown_stale_future_and_wrong_owner_are_errors (test_native_activity_observer.ActivityTest.test_unknown_stale_future_and_wrong_owner_are_errors) ... ok
+test_wire_roundtrip_then_activity_validation (test_native_activity_observer.ActivityTest.test_wire_roundtrip_then_activity_validation) ... ok
+test_busy_or_unknown_before_start_never_launches_container (test_native_activity_observer.RunnerGuardTest.test_busy_or_unknown_before_start_never_launches_container) ... ok
+test_busy_or_unknown_during_probe_stops_only_owned_container (test_native_activity_observer.RunnerGuardTest.test_busy_or_unknown_during_probe_stops_only_owned_container) ... ok
+test_native_observer_failure_never_falls_back_to_legacy_query (test_native_activity_observer.RunnerGuardTest.test_native_observer_failure_never_falls_back_to_legacy_query) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.035s
+
+OK

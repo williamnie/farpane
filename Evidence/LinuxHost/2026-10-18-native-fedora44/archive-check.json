@@ -1,0 +1,22 @@
+{
+  "result": "pass",
+  "archives": [
+    {
+      "name": "bundle",
+      "source": "Build/Linux/native-package-smoke/20261018T102001Z",
+      "archive": "bundle-raw.tar.gz",
+      "files_verified": 55,
+      "sha256": "7f7c6f0fc15a18df493b8b8d61faa19ffb01de5884a384e4df1da9a6c32c35e9",
+      "size": 408222
+    },
+    {
+      "name": "rpm",
+      "source": "Build/Linux/native-rpm-smoke/run-t0ayg7m9",
+      "archive": "rpm-raw.tar.gz",
+      "files_verified": 58,
+      "sha256": "707f6e91021dce4f1878f305113307e197b92eaec33dcc249de2972dd69ef053",
+      "size": 404814
+    }
+  ],
+  "full_goal_complete": false
+}

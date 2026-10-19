@@ -19,6 +19,7 @@ pub(crate) mod file_viewer;
 pub(crate) mod files;
 pub(crate) mod host_clipboard;
 pub(crate) mod input_retry;
+pub(crate) mod paste_target;
 pub(crate) mod process;
 pub(crate) mod recovery;
 pub(crate) mod session;

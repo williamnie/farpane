@@ -1,0 +1,170 @@
+{
+  "window_start_utc": "2026-10-19T02:07:04.162950+00:00",
+  "window_end_utc": "2026-10-19T02:07:37.162950+00:00",
+  "alignment": "exit time minus 30 seconds, with -2/+1 second margin; no transaction ID claim",
+  "sources": [
+    {
+      "role": "root",
+      "found": true,
+      "inode_matched": true,
+      "bytes_examined": 0
+    },
+    {
+      "role": "host",
+      "found": true,
+      "inode_matched": true,
+      "bytes_examined": 21633
+    }
+  ],
+  "stages": [
+    {
+      "time_utc": "2026-10-19T02:07:13.386454+00:00",
+      "role": "host",
+      "category": "native_committed_text",
+      "serial": 79,
+      "chars": 2,
+      "ascii": false,
+      "released_modifiers": 0
+    },
+    {
+      "time_utc": "2026-10-19T02:07:13.386961+00:00",
+      "role": "host",
+      "category": "native_clipboard_written"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:13.437177+00:00",
+      "role": "host",
+      "category": "native_clipboard_ready"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:13.438845+00:00",
+      "role": "host",
+      "category": "native_paste_queued"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:15.319513+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:15.388164+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:16.647152+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:16.742698+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:16.982945+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:17.180637+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:17.419537+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:21.220199+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:21.361041+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:21.520366+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:21.738535+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:21.959733+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:22.276278+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:23.143112+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:24.297018+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:24.427408+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:24.743796+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:24.845018+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:25.143614+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:25.406595+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:25.522770+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:25.611301+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:25.842972+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:26.053446+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    },
+    {
+      "time_utc": "2026-10-19T02:07:27.676228+00:00",
+      "role": "host",
+      "category": "uinput_sequence"
+    }
+  ]
+}

@@ -229,6 +229,23 @@
       "path": "Linux/patches/0041-x11-monitor-reply-lifetime.patch",
       "target": "rustdesk",
       "sha256": "5b1eaa279c9dc20203cba617cf2b6baf19efa30b74fb7ab9da038ce20f549f34"
+    },
+    {
+      "path": "Linux/patches/0042-native-paste-regression.patch",
+      "sha256": "d4dbce7687aece2f851716c5bb007ff7b3eae1773fefe6b54d1222e254ea61f1"
+    },
+    {
+      "path": "Linux/patches/0043-native-committed-text-modifiers.patch",
+      "sha256": "84dfc06dc402874b82d9ee2522f296379475fb16bd7c52ae5c8c53d02550aeca"
+    },
+    {
+      "path": "Linux/patches/0044-native-warp-paste-shortcut.patch",
+      "sha256": "5d6b2070472e88001dd748a6242b4aa2894bc10b1507f0b03aadafea4eb2e78f"
+    }
+,
+    {
+      "path": "Linux/patches/0045-native-committed-text-state.patch",
+      "sha256": "e5041c24caeddb48405bb37c83b3bbf6a5fcfa9dea94c6135e732e87e2e660b9"
     }
   ],
   "hwcodec_externals": {
@@ -312,7 +329,7 @@
     {
       "path": "Linux/native/mod.rs",
       "target": "src/farpane_native/mod.rs",
-      "sha256": "30e4ff596fe4ed03b3c438926ad9f2bab8ce6a26da4ef2753c0ca87047028a68"
+      "sha256": "c85bf59ee2a5190603d68b50f7f824635def47e2225468a86c1cfae6a856d710"
     },
     {
       "path": "Linux/native/activity.rs",
@@ -382,7 +399,7 @@
     {
       "path": "Linux/native/viewer_ui.rs",
       "target": "src/farpane_native/viewer_ui.rs",
-      "sha256": "2016b74eac12d58cd83bfb51c3160db9dc2d4ae2e4ab02cae2d70bed8cb57e76"
+      "sha256": "7e219ae2cb5deaf41fb9a4396bd1afea5e954420f301732400a34b5199ac836a"
     },
     {
       "path": "Linux/native/viewer_media.rs",
@@ -502,7 +519,7 @@
     {
       "path": "Linux/native/discovery.rs",
       "target": "src/farpane_native/discovery.rs",
-      "sha256": "691c1e8c51a8438c97993f901984c4e2c20b60ad3e551cbfe93bd9e640351c74"
+      "sha256": "168b0f382faad552524e7a2a9c735e8680e1fa3cbebb93f05e94d92bd494c1d1"
     },
     {
       "path": "Linux/native/input_retry.rs",
@@ -518,6 +535,16 @@
       "path": "Linux/native/transport.rs",
       "target": "src/farpane_native/transport.rs",
       "sha256": "598e56ead2d84c1861ee32b6db58a335c0d527cfa323814b36245ab82ba1a281"
+    },
+    {
+      "path": "Linux/native/input_tests.rs",
+      "target": "src/farpane_native/input_tests.rs",
+      "sha256": "5c0bd3acb97d7d87cfe44887586fa7c196cc0944a27dd1b36b99bbdeb2ca4ad9"
+    },
+    {
+      "path": "Linux/native/paste_target.rs",
+      "target": "src/farpane_native/paste_target.rs",
+      "sha256": "3cbbfc0f847311623fdd39e08bb64e2988afabd2ec1ccaa6d177ea786be9a8f9"
     }
   ],
   "meson": {
@@ -568,5 +595,10 @@
     "base": "ubuntu@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3",
     "jobs": 4,
     "memory": "12g"
+  },
+  "native_gnome_input_test": {
+    "image": "sha256:cb7d885287a92a8b3a276fdfcf58d553ccdfcaaf192ee6977c5220c635e77859",
+    "dockerfile": "Linux/packaging/native-gnome-input-test.Dockerfile",
+    "purpose": "private headless Mutter/Xwayland Chinese paste regression; no host display/input/GPU/bus mounts"
   }
 }

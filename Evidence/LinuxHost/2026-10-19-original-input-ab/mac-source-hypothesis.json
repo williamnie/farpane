@@ -1,0 +1,23 @@
+{
+  "observed_at_utc": "2026-10-19T02:18:56.105597+00:00",
+  "source_only": true,
+  "mac_binary_version_verified": false,
+  "mac_preferences_read": false,
+  "source_sha256": {
+    "Sources/ViewerInput/ViewerTextCommitSender.swift": "f9e2b9f355a69fc373187c7c9559641f6853326c8ce3e72b73358a945a1cc536",
+    "Sources/RustDeskNative/AppDelegate+ViewerTextInput.swift": "fb88e2f00d2e63262aad89ed597cf5980700bcc552b1e4da204eef6df3a4fa46",
+    "Sources/RustDeskNative/AppDelegate+Viewer.swift": "d20a0983945a1824f16c898b6d4d4b41cb6db65f6c530af6dbbe89e1f55bcfb2",
+    "Sources/RustDeskNative/RustDeskNativeApp.swift": "6fc8838b4048c1d1a093eff5e53cf04c25aa73b47293a9f8959198b632ee4eb2"
+  },
+  "hypothesis": "Per-device Ubuntu paste compatibility sends V with Control+Shift after successful non-ASCII sendText; observed B modifier order and 20ms server serialization are consistent with this. Actual Mac preference state and ordinary V events were not captured.",
+  "menu_source_conditions": [
+    "viewerView != nil",
+    "coreClient != nil",
+    "viewerRecoveryDeviceID != nil"
+  ],
+  "limits": [
+    "User reported Chinese appeared normally; duplicate count was not asked or measured.",
+    "Cannot conclude original Shift+Insert failed, that client fallback was solely responsible, or that native server has no other regression.",
+    "No Mac or Linux product sources were modified."
+  ]
+}

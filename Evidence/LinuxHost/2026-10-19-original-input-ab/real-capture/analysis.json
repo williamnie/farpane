@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "user_result": {
+    "a": "no Chinese; spaces visible",
+    "b": "Chinese appeared normally"
+  },
+  "limitations": [
+    "Only nine modifier/Insert codes were observed. No ordinary letters or text were captured.",
+    "Original connection was user-confirmed; no NativeActivity authentication assertion.",
+    "Event shape differs; added Shift/Control sequence is not proven to be a paste shortcut or the root cause."
+  ],
+  "sides": {
+    "a": {
+      "device": "event7",
+      "events": 6,
+      "initially_down": [],
+      "finally_down": [],
+      "shift_insert": [
+        {
+          "index": 0,
+          "start_us": 0,
+          "duration_us": 66
+        }
+      ],
+      "following_shift_control": [],
+      "exit_code": 0
+    },
+    "b": {
+      "device": "event6",
+      "events": 16,
+      "initially_down": [],
+      "finally_down": [],
+      "shift_insert": [
+        {
+          "index": 0,
+          "start_us": 0,
+          "duration_us": 57
+        },
+        {
+          "index": 8,
+          "start_us": 19432124,
+          "duration_us": 81
+        }
+      ],
+      "following_shift_control": [
+        {
+          "index": 4,
+          "start_us": 20603,
+          "duration_us": 147,
+          "since_previous_chord_start_us": 20603
+        },
+        {
+          "index": 12,
+          "start_us": 19452726,
+          "duration_us": 249,
+          "since_previous_chord_start_us": 20602
+        }
+      ],
+      "exit_code": 0
+    }
+  },
+  "restoration": {
+    "farpane_root": 1604687,
+    "farpane_host": 1604822,
+    "original_service": "inactive",
+    "release_and_core_gui_hashes_unchanged": true,
+    "autostart_settings_unchanged": true,
+    "original_window_utc_start": "2026-10-19T02:08:14.727512+00:00",
+    "original_window_utc_end": "2026-10-19T02:11:33.829199+00:00",
+    "original_gui_lifecycle": "Pre-window GUI1360261 disappeared during original startup. New --no-server GUI1598067 was stopped by original ExecStop after exact process identity validation. No unrelated matching processes."
+  }
+}

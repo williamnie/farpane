@@ -1,0 +1,10 @@
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -2869,3 +2869,7 @@
+         assert_eq!(last_peer_abs_sample(), None, "the move of this process came last");
+     }
+ }
++
++#[cfg(all(test, feature = "farpane-native"))]
++#[path = "../farpane_native/input_tests.rs"]
++mod native_paste_tests;

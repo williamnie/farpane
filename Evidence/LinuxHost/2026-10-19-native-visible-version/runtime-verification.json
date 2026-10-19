@@ -1,0 +1,116 @@
+{
+  "release": "farpane-native-dev-9a76a6c2af66e3955470ea24",
+  "visible_version": "0.1.0-dev.20261019.1",
+  "core_build": "c403acbf",
+  "processes": [
+    {
+      "pid": 1497504,
+      "uid": 0,
+      "role": "service",
+      "sha256": "c403acbf2caa5d49d531f1f8cff30ebc248605a0e852c8367d4b14f9eeb4ee01",
+      "start_ticks": "8530981"
+    },
+    {
+      "pid": 1497613,
+      "uid": 1000,
+      "role": "server",
+      "sha256": "c403acbf2caa5d49d531f1f8cff30ebc248605a0e852c8367d4b14f9eeb4ee01",
+      "start_ticks": "8531204"
+    }
+  ],
+  "previous_processes": [
+    {
+      "pid": 1474136,
+      "role": "service",
+      "exited": true
+    },
+    {
+      "pid": 1476403,
+      "role": "server",
+      "exited": true
+    },
+    {
+      "pid": 1479920,
+      "role": "gui",
+      "exited": true
+    }
+  ],
+  "configuration_preserved": {
+    "root": {
+      "all_equal": true,
+      "fields": [
+        {
+          "file": "FarPane.toml",
+          "field": "enc_id",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "password",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "salt",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "key_pair",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options",
+          "equal": true
+        }
+      ]
+    },
+    "user": {
+      "all_equal": true,
+      "fields": [
+        {
+          "file": "FarPane.toml",
+          "field": "enc_id",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "password",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "salt",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "key_pair",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options",
+          "equal": true
+        }
+      ]
+    }
+  },
+  "services": {
+    "farpane.service": {
+      "ActiveState": "active",
+      "UnitFileState": "disabled",
+      "MainPID": "1497504",
+      "NRestarts": "0"
+    },
+    "rustdesk.service": {
+      "ActiveState": "inactive",
+      "UnitFileState": "disabled",
+      "MainPID": "0",
+      "NRestarts": "0"
+    }
+  },
+  "rustdesk_service_unchanged": true,
+  "previous_release_retained": true
+}

@@ -1,0 +1,11 @@
+
+(test.py:7): dbind-WARNING **: 09:09:43.786: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+WARNING: Glycin running without sandbox.
+Traceback (most recent call last):
+  File "/test.py", line 139, in <module>
+    if __name__=='__main__':exercise()
+                            ~~~~~~~~^^
+  File "/test.py", line 98, in exercise
+    assert len(large)==1,windows
+           ^^^^^^^^^^^^^
+AssertionError: [{'xid': 12582913, 'visible': False, 'geometry': [10, 10, 10, 10]}]

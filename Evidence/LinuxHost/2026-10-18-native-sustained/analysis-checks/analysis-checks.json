@@ -1,0 +1,15 @@
+{
+  "result": "pass",
+  "checks": [
+    "actual_short_run_accepted_as_short_only",
+    "missing_final_sample_rejected",
+    "short_run_cannot_claim_30_minutes",
+    "worker_identity_replacement_rejected",
+    "stale_color_replay_rejected",
+    "nan_timing_rejected",
+    "unreaped_worker_rejected",
+    "fd_growth_cannot_claim_stable"
+  ],
+  "source_records_modified": false,
+  "product_executed": false
+}

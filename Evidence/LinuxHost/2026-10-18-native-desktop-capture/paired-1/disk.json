@@ -1,0 +1,69 @@
+{
+  "artifact": "farpane-native-dev-ec305482eaacd98258e28587",
+  "disk_bytes": 8589934592,
+  "stage": "desktop",
+  "scenario": "maintenance",
+  "maintenance_packages": [
+    {
+      "file": "0.deb",
+      "source": "/workspace/Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.1_amd64.deb",
+      "sha256": "9960dfb15c170d66c23677c006f9c37633f4c9ccf47cd72ab0e1809e8fc353e9"
+    },
+    {
+      "file": "1.deb",
+      "source": "/workspace/Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.5_amd64.deb",
+      "sha256": "ef1ff54fa554e5d0bbfb1d8e0433bc686f3fabcecd6c99f9712c002461d34448"
+    }
+  ],
+  "desktop_launch_probe": true,
+  "desktop_lifecycle_probe": false,
+  "desktop_index_settle_seconds": 0,
+  "desktop_launch_transport": "original",
+  "desktop_shell_observer": true,
+  "guest_shell_observer_sha256": {
+    "desktop-observer.js": "7912c8b13cc44a67e8dc441f7597d5fe92a2ff31778df4b5429f2aea79f58594",
+    "desktop-observer-metadata.json": "b5d0bb8fc19b3e1deee9163ce016767050a797d5fef2b343ea54ac38ea05c448"
+  },
+  "target": "entry",
+  "browser_program_manifest_sha256": null,
+  "input_driver": "gtk",
+  "wire_reference_sources": [],
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "guest_modules": [
+    {
+      "file": "vkms.ko.zst",
+      "kernel_path": "kernel/drivers/gpu/drm/vkms/vkms.ko.zst",
+      "sha256": "115626b3be697524ccd702efd89ad61ffe1289f67dc042f6f94a3289d65a5e91",
+      "bytes": 41789,
+      "purpose": "software virtual display in the guest kernel only"
+    }
+  ],
+  "guest_unit_sha256": {
+    "pam-session": "cfd56978b702dfbf5f473b3b3c97bdf40428cd787c0e24366c8b62ed327252cc",
+    "farpane-input-test.service": "fa3d6eb6f61fd97c4d6898e461f6fa3b862d02db082914ca09495ab7e566d47f",
+    "farpane-input-session.service": "f554c422c9ac5742a4c0211f9df19aa35527fed7305b73621a1e430342f1c1ef",
+    "farpane-input-test.target": "3e48fe9e28c70048720212d292659c2583a428e72bf27c634d5536222a8a3e14"
+  },
+  "guest_mutter_rules_sha256": "dee09027cf2b44aef1949fbe739f34e7e66039e4d293bdfcdb4afa45f9cea566",
+  "guest_init_sha256": "a7e1efb8510ed773ebc3d5dd279b92c229e4a609de3fd1b72c8836f4e7acf2fe",
+  "guest_test_sha256": {
+    "native_gnome_input_smoke.py": "61ef7d4f8213d74e3491dbb292f2ab041e04fcbfbaffd99d7887a93c790cd216",
+    "native_desktop_launch_vm.py": "e2e0e100b91947b5b391ec2c7a43471675686cba16855107b6df468d39ed20e3",
+    "native_input_vm_network.py": "ab6bd5fd2fe75f012fbe66489fdb430ee84b7aa26cd8601e9790655309c2b257",
+    "native_maintenance_vm.py": "c89c502748acf242b500425b2db744386a48726574ef6bf93e5c418fb448354e",
+    "init.py": "a7e1efb8510ed773ebc3d5dd279b92c229e4a609de3fd1b72c8836f4e7acf2fe",
+    "native_input_vm_service.py": "ede517ffa3921051c14424b4111a9025e613686326b548cda0bc441a0a193bcc",
+    "native_input_vm_wire.py": "85150d08cfec8ebed6d81ff9c66214c5d051ef297083112eded2a331edf6c148",
+    "native_input_vm_desktop.py": "661b35479d135c05b71a3a37e0aa5cfe18bc3a103b5a8163b683a12a70d9c961",
+    "native_desktop_lifecycle_vm.py": "27c3103b433b02cfe7764339e009c9a0cf43ba31b770dc99d47e206816d79298"
+  },
+  "guest_actual_unit_sha256": {
+    "farpane-input-test.target": "3e48fe9e28c70048720212d292659c2583a428e72bf27c634d5536222a8a3e14",
+    "farpane-input-test.service": "8286daaae49235ba945495a9cd2895031e76e1f939dcf04b1fd44ce007820879",
+    "farpane-input-session.service": "320aa181509a070b150ec025e4904d5bb21ce74cb6a4f8616b8b8d2ef70e8f98"
+  },
+  "loginctl_sha256": "12fddb11d3ad4ef1d3a3e82151f4ce0c6d298b24382f634202973d2929672bb9",
+  "loginctl_provider": "systemd",
+  "rootfs_source_sha256": "3cf53170b9a686a78918ee34519fb38966cb36770a9989f8cfe91f19b4de775f",
+  "no_host_mount_or_input_device": true
+}

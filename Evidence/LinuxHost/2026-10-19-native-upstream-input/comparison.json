@@ -1,0 +1,35 @@
+{
+  "pin": "fada664df7a294d1d1a9ca3e7cd3637069122f17",
+  "files": [
+    {
+      "file": "libs/enigo/src/linux/nix_impl.rs",
+      "upstream_sha256": "dcfb0e92063897d6ba0929b0a66ee87cea667ec623dc8104bc44f1416e236d57",
+      "candidate_sha256": "dcfb0e92063897d6ba0929b0a66ee87cea667ec623dc8104bc44f1416e236d57",
+      "equal": true
+    },
+    {
+      "file": "src/platform/linux.rs",
+      "upstream_sha256": "0b1c51fa6e3d025ce86df12c8b05096e1665eb5b0c494f40d579137817bbba9c",
+      "candidate_sha256": "b0c0a10e9d80ef81dd1935b987b87a614a11526657c527276b65a42f48ef211e",
+      "equal": false
+    },
+    {
+      "file": "src/server/input_service.rs",
+      "upstream_sha256": "53527b1bd3f52b1db74df86659f31d5b6de9a5702cad24ef9b410060a0534679",
+      "candidate_sha256": "c9588acc806728cf0f4f324ae474c907517feedacc9573d707c0ce731d499750",
+      "equal": false
+    },
+    {
+      "file": "src/server/uinput.rs",
+      "upstream_sha256": "851942c3bed8ccb2d6219633bacce234256cf6b6c660df2484f2bcede9d5a261",
+      "candidate_sha256": "c78a32ba41c8a7010bcc47d317955500a2b97795e9643c31904f3302750b3710",
+      "equal": false
+    },
+    {
+      "file": "src/server/rdp_input.rs",
+      "upstream_sha256": "1d4bc648b503e2c8457a98f3765879ce9a5561bb85485a1e07346a656a1ff317",
+      "candidate_sha256": "1d4bc648b503e2c8457a98f3765879ce9a5561bb85485a1e07346a656a1ff317",
+      "equal": true
+    }
+  ]
+}

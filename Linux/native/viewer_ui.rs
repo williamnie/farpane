@@ -285,6 +285,14 @@ impl InvokeUiSession for NativeUi {
         } else if kind.starts_with("wait-remote-accept") {
             self.0.auth_challenge.store(0, Ordering::Release);
             self.0.phase(Phase::Authenticating, "等待远端允许连接…");
+        } else if kind == "nook-nocancel-hasclose"
+            && title == "Wayland"
+            && text == "Please Select the screen to be shared(Operate on the peer side)."
+        {
+            // This upstream notice precedes the portal selection and login
+            // response. `hasclose` describes the dialog, not a lost connection.
+            // Keep authentication/permissions unchanged until PeerInfo arrives.
+            self.0.phase(Phase::Authenticating, "请在远端选择要共享的屏幕，等待授权…");
         } else if kind == "success" {
             self.0.phase(Phase::AwaitingFrame, "认证通过，等待第一帧");
         } else if kind.contains("error") || kind.contains("hasclose") {
@@ -344,5 +352,39 @@ impl InvokeUiSession for NativeUi {
     }
     fn handle_terminal_response(&self, _response: TerminalResponse) {
         self.unavailable("远端终端");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wayland_screen_selection_notice_does_not_end_or_authorize_connection() {
+        let state = Arc::new(State::default());
+        let ui = NativeUi(state.clone());
+        ui.msgbox("nook-nocancel-hasclose", "Wayland",
+                  "Please Select the screen to be shared(Operate on the peer side).", "", false);
+        assert_eq!(state.phase.lock().unwrap().0, Phase::Authenticating);
+        assert!(state.phase.lock().unwrap().1.contains("选择"));
+        assert!(!state.authenticated.load(Ordering::Acquire));
+        assert!(!state.stopped.load(Ordering::Acquire));
+        // A later error must still terminate the visible connection state.
+        ui.msgbox("error", "Wayland", "Screen sharing failed", "", false);
+        assert_eq!(state.phase.lock().unwrap().0, Phase::Failed);
+    }
+
+    #[test]
+    fn other_wayland_close_messages_are_not_treated_as_permission_prompts() {
+        for (kind, title, text) in [
+            ("nook-nocancel-hasclose", "Wayland", "Screen sharing permission denied"),
+            ("error", "Wayland", "Please Select the screen to be shared(Operate on the peer side)."),
+            ("nook-nocancel-hasclose", "Connection Error", "Please Select the screen to be shared(Operate on the peer side)."),
+        ] {
+            let state = Arc::new(State::default());
+            NativeUi(state.clone()).msgbox(kind, title, text, "", false);
+            assert_eq!(state.phase.lock().unwrap().0, Phase::Failed);
+            assert!(!state.authenticated.load(Ordering::Acquire));
+        }
     }
 }

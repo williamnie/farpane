@@ -1,0 +1,31 @@
+{
+  "result": "pass",
+  "checks": [
+    "held-key-released",
+    "toolbar-hidden",
+    "picture-expanded",
+    "disconnect-remains-visible",
+    "fresh-video-while-collapsed",
+    "expand-restores-layout",
+    "pointer-mapping-after-both-resizes",
+    "worker-failure-reveals-retry",
+    "return-home-preserves-host"
+  ],
+  "original_picture": [
+    0.0,
+    132.0,
+    1010.0,
+    541.0
+  ],
+  "collapsed_picture": [
+    0.0,
+    47.0,
+    1010.0,
+    626.0
+  ],
+  "software_only": true,
+  "host_preserved": true,
+  "real_desktop_tested": false,
+  "chinese_input_tested": false,
+  "memory_optimization": false
+}

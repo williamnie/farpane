@@ -1,0 +1,12 @@
+[Unit]
+Description=Private VM regression controller
+After=multi-user.target systemd-logind.service dbus.service
+Requires=systemd-logind.service dbus.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -B /opt/farpane-input-test/native_input_vm_desktop.py
+TimeoutStartSec=140
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/ttyS0

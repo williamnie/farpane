@@ -1,0 +1,180 @@
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.freedesktop.DBus'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   >>>> SENT D-Bus message (320 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-call
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   none
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  194
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='/org/freedesktop/DBus',arg0='org.freedesktop.DBus'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   <<<< RECEIVED D-Bus message (72 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-return
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   no-reply-expected
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  295
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     reply-serial -> uint32 193
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> ':1.440'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     sender -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ()
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   >>>> SENT D-Bus message (254 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-call
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   none
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  195
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',path='/org/freedesktop/DBus'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   >>>> SENT D-Bus message (311 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-call
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   none
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  196
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.gnome.Settings',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='/org/gnome/Settings',arg0='org.gtk.Actions'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   >>>> SENT D-Bus message (245 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-call
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   none
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  197
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.gnome.Settings',interface='org.gtk.Actions',path='/org/gnome/Settings'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   >>>> SENT D-Bus message (306 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-call
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   none
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  198
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.gnome.Settings'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   >>>> SENT D-Bus message (321 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-call
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   none
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  199
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.gnome.DiskUtility',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='/org/gnome/DiskUtility',arg0='org.gtk.Application'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   >>>> SENT D-Bus message (255 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-call
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   none
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  200
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.gnome.DiskUtility',interface='org.gtk.Application',path='/org/gnome/DiskUtility'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   >>>> SENT D-Bus message (309 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-call
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   none
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  201
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     path -> objectpath '/org/freedesktop/DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     interface -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     member -> 'RemoveMatch'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     signature -> signature 's'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.gnome.DiskUtility'",)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   <<<< RECEIVED D-Bus message (72 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-return
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   no-reply-expected
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  296
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     reply-serial -> uint32 194
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> ':1.440'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     sender -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ()
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: ========================================================================
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]: GDBus-debug:Message:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   <<<< RECEIVED D-Bus message (72 bytes)
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Type:    method-return
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Flags:   no-reply-expected
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Version: 0
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Serial:  297
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Headers:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     reply-serial -> uint32 195
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     destination -> ':1.440'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     sender -> 'org.freedesktop.DBus'
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   Body: ()
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:   UNIX File Descriptors:
+Oct 18 12:14:31 farpane-input-vm dbus-run-session[2901]:     (none)
+Oct 18 12:14:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Monitoring connection :1.40 closed.

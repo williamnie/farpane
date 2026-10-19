@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_gnome_input_smoke.py", line 243, in <module>
+    exercise(Path(sys.argv[1]),Path(sys.argv[2]) if len(sys.argv)>2 else None)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_gnome_input_smoke.py", line 223, in exercise
+    assert result.returncode==0,'Core Unicode test failed; see core-input-test.log'
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: Core Unicode test failed; see core-input-test.log

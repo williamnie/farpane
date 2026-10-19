@@ -1,0 +1,17 @@
+private_input_vm_output=/home/user/farpane/Build/Linux/native-input-vm/run.4o7a7gfs
+Traceback (most recent call last):
+  File "/home/user/farpane/Scripts/linux/run-native-input-vm.py", line 92, in <module>
+    main()
+    ~~~~^^
+  File "/home/user/farpane/Scripts/linux/run-native-input-vm.py", line 77, in main
+    guest = json.loads(matches[0])
+  File "/usr/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/usr/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/json/decoder.py", line 361, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ~~~~~~~~~~~~~~^^^^^^^^
+json.decoder.JSONDecodeError: Unterminated string starting at: line 1 column 686 (char 685)

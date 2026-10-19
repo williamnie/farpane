@@ -1,0 +1,17 @@
+{
+  "decision": "paused_pending_user_design_discussion",
+  "reason": "User questions application-specific Warp shortcut workaround and requests recording for later discussion.",
+  "canonical_sha256_json": "Historical snapshot before final stale-response check; retained unchanged.",
+  "canonical_at_pause_sha256_json": "Draft source at pause; only debug unit build completed on this last snapshot. Earlier integration results were not rerun.",
+  "last_debug_build": {
+    "passed": 2,
+    "failed": 0,
+    "ignored": 1
+  },
+  "new_tests_after_pause": false,
+  "draft_still_in_active_pin": true,
+  "installed_version_changed": false,
+  "existing_candidate_changed": false,
+  "commit_push_or_deploy": false,
+  "real_mac_bug_resolved": false
+}

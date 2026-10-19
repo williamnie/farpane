@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "purpose": "private VM input regression; never a product or host kernel installation",
+  "image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "label": "farpane-native-input-vm:20261018",
+  "dockerfile": "Linux/packaging/native-input-vm.Dockerfile",
+  "dockerfile_sha256": "9d40607068508b5211a43be48d8e76ae63da95d3bbc5c9c00f1fd22d26268c17",
+  "base": "ubuntu@sha256:da6fc2be547864451aa253836dd926da33623312df4a9a243e35dc877c378a78",
+  "kernel": {
+    "version": "7.0.0-38-generic",
+    "source": "installed distribution vmlinuz and explicitly pinned VKMS module; no initramfs or host configuration",
+    "sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+    "config_sha256": "6cb18717c6914d4947489eedf8cb69ac23db3faa8ef9b9f563ff02c346dcd32d"
+  },
+  "apt_snapshot_pinned": false,
+  "browser_program_manifest_sha256": "aacb672df40b69bb6d4780b112ae15fcc46754b4a0d49b3f25abd3ea60784746",
+  "wire_reference_sources": [
+    {
+      "path": "Build/Linux/src/rustdesk/libs/base/protos/message.proto",
+      "sha256": "d583331a16e6a06031f68d512715a2fdf8d8be3e1b9f0a45621e973703383a95"
+    },
+    {
+      "path": "Build/Linux/src/rustdesk/libs/hbb_common/src/bytes_codec.rs",
+      "sha256": "7c5fe622b8a6576f6b0a3ed016c89a2443f0256b87d9fea2ef15caf65cdc5a18"
+    },
+    {
+      "path": "Build/Linux/src/rustdesk/src/ui_session_interface.rs",
+      "sha256": "0cf5b9406d857ab9621a0eb53d461949969f31f68b5d39e872abcc07d5769691"
+    },
+    {
+      "path": "CoreBridge/RustDeskPatch/rdn_bridge/input.rs",
+      "sha256": "56ce9c144ca31e58f16b0b8234da65d14d16b7d1a494846d162f32ed1b258894"
+    }
+  ],
+  "guest_modules": [
+    {
+      "file": "vkms.ko.zst",
+      "kernel_path": "kernel/drivers/gpu/drm/vkms/vkms.ko.zst",
+      "sha256": "115626b3be697524ccd702efd89ad61ffe1289f67dc042f6f94a3289d65a5e91",
+      "bytes": 41789,
+      "purpose": "software virtual display in the guest kernel only"
+    }
+  ],
+  "cpus": 4,
+  "guest_memory_mib": 6144,
+  "container_memory": "10g",
+  "wall_seconds": 180
+}

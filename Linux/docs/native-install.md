@@ -40,6 +40,10 @@ python3 -B Scripts/linux/install-native-user.py bind NEW_RELEASE --previous OLD_
 
 首次安装的 previous 为 `none`。用户安装器核对系统 current/安装记录和完整 native manifest，再安装 FarPane desktop、两个图标和 D-Bus 激活入口，绑定同一不可变 release。默认遵循 passwd home 和绝对 XDG data/config/state 目录；拒绝路径中的符号链接、非本用户条目、硬链接和其他用户可写的祖先目录。它不使用 sudo，也不启动 GUI、Host 或用户总线。
 
+`.5` 包内 desktop 改为 Exec 启动（`DBusActivatable=false`），显式 D-Bus 激活服务保持原样；用户安装器仍按完整模板事务绑定同一 release，不增加刷新或启动辅助进程。具体已验收范围与补充来源见[入口冷启动修复](native-desktop-exec.md)。旧冻结包保留其原模板。
+
+首次绑定后，GNOME 的应用索引可能尚未更新：私有 VM 的立即搜索显示 No results，但不刷新缓存、不修改桌面文件，再次搜索便能打开原生首页。加入 `update-desktop-database` 的实验包 `.20261018.4` 仍然复现首次失败，已否决，不能安装该包作为修复。此次缓存辅助命令、依赖与结果字段已从当前安装器撤下；原 `.3` 包保持不变。原始失败与无写入对照见[桌面生命周期证据](../../Evidence/LinuxHost/2026-10-18-native-desktop-lifecycle/README.md)，不能再把“刷新后成功”当成刷新操作的因果证据。
+
 旧系统安装器写出的精确 FarPane 菜单可迁移；后续 native 文件须匹配本用户安装记录的哈希。只有已知旧 FarPane tray 内容或精确受管理的 FarPane autostart 才移除，不创建隐藏 GUI 自启动。陌生菜单/autostart 原样保留并报错，RustDesk 文件从不纳入操作集合。没有托盘支持时仍可从应用菜单打开 FarPane。
 
 每次更新先保存包含原字节的私有 journal，再逐项原子写入；提交后保留独立 backup，不递归嵌套历史。重复 bind 同一 release 幂等。中断后用 `install-native-user.py recover` 恢复原文件或完成已提交事务；系统已回退至前一版本后用 `install-native-user.py rollback` 恢复该版本的菜单/autostart/图标和上一份记录。用户在安装后自行改过的文件不会被回退覆盖。
@@ -58,4 +62,8 @@ bind 会创建或收紧本产品配置目录为 0700，保留配置文件字节�
 Scripts/linux/test-native-install.sh ARTIFACT ubuntu-24.04 Build/Linux/native-install-smoke/RUN/process-fixture
 ```
 
-这些隔离测试不替代重启/登录/后台启用、多用户会话、桌面通知/托盘交互或回退后的真实连接。Debian 候选与完整应用源码包现已提供，linux-host 基本切换和用户入站验收已完成；RPM、完整依赖许可审计、内存目标与完整 GUI/媒体矩阵仍未完成。
+新增[真实 systemd 私有 VM 验收](native-maintenance-vm.md)：冻结 `.1 → .3 → .1` 的安装、服务/Host/GUI 切换、用户入口回退、配置字段保留和卸载后继续运行，连续两轮各六组检查通过。实际 logind/GNOME 会话、systemctl 与包内安装命令没有替身；GUI 通过同步 D-Bus Activate 核对，早期 `gio launch` 时序失败另有记录。它不包含真实远程会话中的升级或回退。
+
+另已通过[真实 GNOME 菜单启动](native-desktop-launch.md)的两轮隔离观察：搜索图标、回车打开首页、GUI 总线身份与后台代际保留。冷 `gio launch` 返回成功而未显示窗口的现象仍保留；安装验证不能只以该命令退出 0 判断 GUI 已就绪。菜单成功不代表全部桌面、实际宿主或冷 CLI 路径都通过。
+
+这些隔离测试不替代重启恢复/后台启用、多用户会话、桌面通知/托盘交互或回退后的真实连接。Debian、[Fedora/RPM 开发候选](native-rpm.md)与配套应用源码已有分项证据，linux-host 基本切换和用户入站验收已完成；完整依赖许可审计、内存目标与完整 GUI/媒体矩阵仍未完成。上述新验收只更新文档和测试，已有冻结安装包/源码归档不被重写。

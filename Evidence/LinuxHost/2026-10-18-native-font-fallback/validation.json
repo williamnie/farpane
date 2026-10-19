@@ -1,0 +1,26 @@
+{
+  "result": "pass",
+  "runs": [
+    {
+      "run": "run-_8501rx1",
+      "archive": "observer-compile-failure",
+      "source_hashes_verified": 13,
+      "returncode": 1
+    },
+    {
+      "run": "run-nguv3e9t",
+      "archive": "exploratory-home-only-warmup",
+      "source_hashes_verified": 13,
+      "returncode": 0
+    },
+    {
+      "run": "run-crzugzjg",
+      "archive": "full-path-warmup",
+      "source_hashes_verified": 13,
+      "returncode": 0
+    }
+  ],
+  "generated_observer_excluded": true,
+  "product_modified": false,
+  "chinese_input_tested": false
+}

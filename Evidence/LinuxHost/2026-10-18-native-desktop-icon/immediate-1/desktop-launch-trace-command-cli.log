@@ -1,0 +1,1625 @@
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (128 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  1
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'Hello'
+    destination -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (90 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  1
+  Headers:
+    reply-serial -> uint32 1
+    destination -> ':1.42'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.42',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (170 bytes)
+  Type:    signal
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  2
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'NameAcquired'
+    destination -> ':1.42'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.42',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (312 bytes)
+  Type:    signal
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  2
+  Headers:
+    path -> objectpath '/org/gtk/gio/DesktopAppInfo'
+    interface -> 'org.gtk.gio.DesktopAppInfo'
+    member -> 'Launched'
+    signature -> signature 'aysxasa{sv}'
+  Body: (b'/home/ubuntu/.local/share/applications/org.farpane.FarPane.desktop', '', int64 845, @as [], {'origin-prgname': <b'gio launch'>, 'origin-pid': <int64 840>})
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (128 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  1
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'Hello'
+    destination -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (90 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  1
+  Headers:
+    reply-serial -> uint32 1
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.44',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (170 bytes)
+  Type:    signal
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  2
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'NameAcquired'
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.44',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (172 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  2
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'RequestName'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 'su'
+  Body: ('org.farpane.FarPane', uint32 4)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (184 bytes)
+  Type:    signal
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  3
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'NameAcquired'
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ('org.farpane.FarPane',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (84 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  4
+  Headers:
+    reply-serial -> uint32 2
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 'u'
+  Body: (uint32 1,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (144 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  3
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'ListActivatableNames'
+    destination -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (1665 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  5
+  Headers:
+    reply-serial -> uint32 3
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 'as'
+  Body: (['org.freedesktop.DBus', 'org.freedesktop.LocalSearch3.Writeback', 'org.freedesktop.impl.portal.desktop.gtk', 'org.gnome.Shell.Screencast', 'org.gnome.OnlineAccounts', 'org.gnome.ScreenSaver', 'org.freedesktop.impl.portal.desktop.gnome', 'org.freedesktop.portal.Desktop', 'org.gnome.Shell.Notifications', 'org.gnome.evolution.dataserver.Sources5', 'org.gtk.vfs.UDisks2VolumeMonitor', 'org.gnome.evolution.dataserver.Calendar8', 'org.freedesktop.systemd1', 'org.gtk.vfs.Metadata', 'org.freedesktop.MalcontentControl', 'org.gnome.Shell.HotplugSniffer', 'org.gnome.Identity', 'org.freedesktop.impl.portal.PermissionStore', 'org.gnome.evolution.dataserver.AddressBook10', 'org.gnome.Shell.CalendarServer', 'org.gtk.vfs.AfcVolumeMonitor', 'org.freedesktop.LocalSearch3.Control', 'org.freedesktop.FileManager1', 'org.freedesktop.LocalSearch3', 'org.gnome.Settings.GlobalShortcutsProvider', 'org.freedesktop.ColorHelper', 'org.gtk.vfs.Daemon', 'org.gnome.Shell.Extensions', 'org.gnome.Settings', 'org.gnome.Nautilus', 'org.freedesktop.Tracker3.Writeback', 'org.gnome.Settings.SearchProvider', 'org.gtk.GLib.PACRunner', 'org.freedesktop.Tracker3.Miner.Files.Control', 'org.gtk.vfs.GoaVolumeMonitor', 'org.gtk.vfs.MTPVolumeMonitor', 'org.gnome.Extensions', 'org.freedesktop.Tracker3.Miner.Files', 'org.freedesktop.portal.Documents', 'org.gnome.evolution.dataserver.UserPrompter0', 'org.freedesktop.portal.Tracker', 'ca.desrt.dconf', 'org.gtk.vfs.GPhoto2VolumeMonitor'],)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (216 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  4
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.DBus.Properties'
+    member -> 'Get'
+    destination -> 'org.freedesktop.portal.Desktop'
+    signature -> signature 'ss'
+  Body: ('org.freedesktop.host.portal.Registry', 'version')
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  149
+  Headers:
+    reply-serial -> uint32 4
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'v'
+  Body: (<uint32 1>,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (216 bytes)
+  Type:    method-call
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  5
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.host.portal.Registry'
+    member -> 'Register'
+    destination -> 'org.freedesktop.portal.Desktop'
+    signature -> signature 'sa{sv}'
+  Body: ('org.farpane.FarPane', @a{sv} {})
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (320 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  6
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'AddMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.freedesktop.portal.Documents'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (181 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  7
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'GetNameOwner'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ('org.freedesktop.portal.Documents',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  6
+  Headers:
+    reply-serial -> uint32 6
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (217 bytes)
+  Type:    error
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  7
+  Headers:
+    error-name -> 'org.freedesktop.DBus.Error.NameHasNoOwner'
+    reply-serial -> uint32 7
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("Could not get owner of name 'org.freedesktop.portal.Documents': no such name",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (320 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  8
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'RemoveMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.freedesktop.portal.Documents'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (208 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  9
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.DBus.Properties'
+    member -> 'Get'
+    destination -> 'org.freedesktop.portal.Desktop'
+    signature -> signature 'ss'
+  Body: ('org.freedesktop.portal.Settings', 'version')
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  8
+  Headers:
+    reply-serial -> uint32 8
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  152
+  Headers:
+    reply-serial -> uint32 9
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'v'
+  Body: (<uint32 2>,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (318 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  10
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'AddMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.freedesktop.portal.Desktop'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (179 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  11
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'GetNameOwner'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ('org.freedesktop.portal.Desktop',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (351 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  12
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'AddMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.portal.Desktop',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='/org/freedesktop/portal/desktop',arg0='org.freedesktop.portal.Settings'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  9
+  Headers:
+    reply-serial -> uint32 10
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (90 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  10
+  Headers:
+    reply-serial -> uint32 11
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.17',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  11
+  Headers:
+    reply-serial -> uint32 12
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (285 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  13
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'AddMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.portal.Desktop',interface='org.freedesktop.portal.Settings',path='/org/freedesktop/portal/desktop'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (192 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  14
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'StartServiceByName'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 'su'
+  Body: ('org.freedesktop.portal.Desktop', uint32 0)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  12
+  Headers:
+    reply-serial -> uint32 13
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (84 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  13
+  Headers:
+    reply-serial -> uint32 14
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 'u'
+  Body: (uint32 2,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (179 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  15
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'GetNameOwner'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ('org.freedesktop.portal.Desktop',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (90 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  14
+  Headers:
+    reply-serial -> uint32 15
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.17',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (172 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  16
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.DBus.Properties'
+    member -> 'GetAll'
+    destination -> ':1.17'
+    signature -> signature 's'
+  Body: ('org.freedesktop.portal.Settings',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (100 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  153
+  Headers:
+    reply-serial -> uint32 16
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'a{sv}'
+  Body: ({'version': <uint32 2>},)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (187 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  17
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.portal.Settings'
+    member -> 'ReadAll'
+    destination -> ':1.17'
+    signature -> signature 'as'
+  Body: (['org.gnome.*', 'org.freedesktop.appearance'],)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (4744 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  156
+  Headers:
+    reply-serial -> uint32 17
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'a{sa{sv}}'
+  Body: ({'org.gnome.fontconfig': {'serial': <0>}, 'org.gnome.desktop.privacy': {'disable-microphone': <false>, 'disable-camera': <false>, 'old-files-age': <uint32 30>, 'remember-recent-files': <true>, 'disable-sound-output': <false>, 'send-software-usage-stats': <false>, 'report-technical-problems': <false>, 'remove-old-trash-files': <false>, 'remove-old-temp-files': <false>, 'privacy-screen': <false>, 'usb-protection': <true>, 'usb-protection-level': <'lockscreen'>, 'remember-app-usage': <true>, 'show-full-name-in-top-bar': <true>, 'hide-identity': <false>, 'recent-files-max-age': <-1>}, 'org.gnome.desktop.a11y.interface': {'reduced-motion': <'no-preference'>, 'show-status-shapes': <false>, 'high-contrast': <false>}, 'org.gnome.desktop.a11y': {'always-show-universal-access-status': <false>, 'always-show-text-caret': <false>}, 'org.gnome.desktop.interface': {'toolkit-accessibility': <false>, 'gtk-color-palette': <'black:white:gray50:red:purple:blue:light blue:green:yellow:orange:lavender:brown:goldenrod4:dodger blue:pink:light green:gray10:gray30:gray75:gray90'>, 'can-change-accels': <false>, 'document-font-name': <'Adwaita Sans 12'>, 'enable-animations': <false>, 'cursor-blink': <true>, 'clock-show-weekday': <false>, 'icon-theme': <'Adwaita'>, 'gtk-im-preedit-style': <'callback'>, 'scaling-factor': <uint32 0>, 'menus-have-tearoff': <false>, 'cursor-size': <24>, 'clock-show-seconds': <false>, 'gtk-im-module': <''>, 'gtk-timeout-initial': <200>, 'accent-color': <'blue'>, 'gtk-theme': <'Adwaita'>, 'gtk-color-scheme': <''>, 'clock-show-date': <true>, 'cursor-blink-time': <1200>, 'toolbar-icons-size': <'large'>, 'font-antialiasing': <'grayscale'>, 'toolbar-style': <'both-horiz'>, 'enable-hot-corners': <true>, 'monospace-font-name': <'Monospace 11'>, 'gtk-timeout-repeat': <20>, 'overlay-scrolling': <true>, 'cursor-blink-timeout': <10>, 'gtk-key-theme': <'Default'>, 'toolbar-detachable': <false>, 'font-rendering': <'automatic'>, 'cursor-theme': <'Adwaita'>, 'avatar-directories': <@as []>, 'gtk-im-status-style': <'callback'>, 'menubar-detachable': <false>, 'text-scaling-factor': <1.0>, 'show-battery-percentage': <false>, 'clock-format': <'24h'>, 'menubar-accel': <'F10'>, 'gtk-enable-primary-paste': <false>, 'color-scheme': <'default'>, 'locate-pointer': <false>, 'font-rgba-order': <'rgb'>, 'font-hinting': <'slight'>, 'font-name': <'Adwaita Sans 11'>}, 'org.gnome.desktop.sound': {'theme-name': <'freedesktop'>, 'event-sounds': <true>, 'input-feedback-sounds': <false>, 'allow-volume-above-100-percent': <false>}, 'org.gnome.desktop.peripherals.mouse': {'left-handed': <false>, 'double-click': <400>, 'natural-scroll': <false>, 'middle-click-emulation': <false>, 'speed': <0.0>, 'accel-profile': <'default'>, 'drag-threshold': <8>}, 'org.freedesktop.appearance': {'contrast': <uint32 0>, 'color-scheme': <uint32 0>, 'reduced-motion': <uint32 0>, 'accent-color': <(0.20784313976764679, 0.51764708757400513, 0.89411765336990356)>}, 'org.gnome.desktop.input-sources': {'sources': <@a(ss) []>, 'mru-sources': <@a(ss) []>, 'show-all-sources': <false>, 'current': <uint32 0>, 'xkb-options': <@as []>, 'xkb-model': <'pc105+inet'>, 'per-window': <false>}, 'org.gnome.desktop.calendar': {'show-weekdate': <false>, 'week-start-day': <'default'>}, 'org.gnome.desktop.wm.preferences': {'theme': <'Adwaita'>, 'focus-new-windows': <'smart'>, 'disable-workarounds': <false>, 'num-workspaces': <4>, 'titlebar-uses-system-font': <true>, 'raise-on-click': <true>, 'titlebar-font': <'Adwaita Sans Bold 11'>, 'resize-with-right-button': <false>, 'auto-raise': <false>, 'action-right-click-titlebar': <'menu'>, 'mouse-button-modifier': <'<Super>'>, 'action-double-click-titlebar': <'toggle-maximize'>, 'workspace-names': <@as []>, 'visual-bell-type': <'fullscreen-flash'>, 'action-middle-click-titlebar': <'none'>, 'focus-mode': <'click'>, 'button-layout': <'appmenu:close'>, 'auto-raise-delay': <500>, 'audible-bell': <true>, 'visual-bell': <false>}, 'org.gnome.settings-daemon.plugins.xsettings': {'overrides': <@a{sv} {}>, 'disabled-gtk-modules': <@as []>, 'enabled-gtk-modules': <@as []>}},)
+  UNIX File Descriptors:
+    (none)
+[2893245.655] {Default Queue}  -> wl_display#1.get_registry(new id wl_registry#2)
+[2893245.661] {Default Queue}  -> wl_display#1.sync(new id wl_callback#3)
+[2893245.734] {Display Queue} wl_display#1.delete_id(3)
+[2893245.742] {Default Queue} wl_registry#2.global(1, "wl_compositor", 6)
+[2893245.745] {Default Queue}  -> wl_registry#2.bind(1, "wl_compositor", 6, new id [unknown]#4)
+[2893245.747] {Default Queue} wl_registry#2.global(2, "wl_shm", 2)
+[2893245.749] {Default Queue}  -> wl_registry#2.bind(2, "wl_shm", 1, new id [unknown]#5)
+[2893245.751] {Default Queue} wl_registry#2.global(3, "wl_output", 4)
+[2893245.753] {Default Queue}  -> wl_registry#2.bind(3, "wl_output", 4, new id [unknown]#6)
+[2893245.784] {Default Queue}  -> wl_display#1.sync(new id wl_callback#7)
+[2893245.786] {Default Queue} wl_registry#2.global(4, "zxdg_output_manager_v1", 3)
+[2893245.788] {Default Queue}  -> wl_registry#2.bind(4, "zxdg_output_manager_v1", 3, new id [unknown]#8)
+[2893245.793] {Default Queue}  -> zxdg_output_manager_v1#8.get_xdg_output(new id zxdg_output_v1#9, wl_output#6)
+[2893245.795] {Default Queue}  -> wl_display#1.sync(new id wl_callback#10)
+[2893245.797] {Default Queue} wl_registry#2.global(5, "wl_data_device_manager", 3)
+[2893245.798] {Default Queue}  -> wl_registry#2.bind(5, "wl_data_device_manager", 3, new id [unknown]#11)
+[2893245.800] {Default Queue} wl_registry#2.global(6, "xdg_toplevel_drag_manager_v1", 1)
+[2893245.802] {Default Queue} wl_registry#2.global(7, "zwp_primary_selection_device_manager_v1", 1)
+[2893245.803] {Default Queue}  -> wl_registry#2.bind(7, "zwp_primary_selection_device_manager_v1", 1, new id [unknown]#12)
+[2893245.805] {Default Queue} wl_registry#2.global(8, "wl_subcompositor", 1)
+[2893245.807] {Default Queue}  -> wl_registry#2.bind(8, "wl_subcompositor", 1, new id [unknown]#13)
+[2893245.809] {Default Queue} wl_registry#2.global(9, "xdg_wm_base", 7)
+[2893245.810] {Default Queue} wl_registry#2.global(10, "gtk_shell1", 7)
+[2893245.812] {Default Queue}  -> wl_registry#2.bind(10, "gtk_shell1", 7, new id [unknown]#14)
+[2893245.813] {Default Queue} wl_registry#2.global(11, "wp_viewporter", 1)
+[2893245.815] {Default Queue}  -> wl_registry#2.bind(11, "wp_viewporter", 1, new id [unknown]#15)
+[2893245.818] {Default Queue} wl_registry#2.global(12, "wp_fractional_scale_manager_v1", 1)
+[2893245.820] {Default Queue}  -> wl_registry#2.bind(12, "wp_fractional_scale_manager_v1", 1, new id [unknown]#16)
+[2893245.821] {Default Queue} wl_registry#2.global(13, "zwp_pointer_gestures_v1", 3)
+[2893245.823] {Default Queue}  -> wl_registry#2.bind(13, "zwp_pointer_gestures_v1", 3, new id [unknown]#17)
+[2893245.825] {Default Queue} wl_registry#2.global(14, "zwp_tablet_manager_v2", 2)
+[2893245.826] {Default Queue}  -> wl_registry#2.bind(14, "zwp_tablet_manager_v2", 2, new id [unknown]#18)
+[2893245.828] {Default Queue} wl_registry#2.global(15, "wp_pointer_warp_v1", 1)
+[2893245.830] {Default Queue} wl_registry#2.global(16, "wl_seat", 10)
+[2893245.832] {Default Queue} wl_registry#2.global(17, "zwp_relative_pointer_manager_v1", 1)
+[2893245.833] {Default Queue} wl_registry#2.global(18, "zwp_pointer_constraints_v1", 1)
+[2893245.835] {Default Queue} wl_registry#2.global(19, "zxdg_exporter_v2", 1)
+[2893245.837] {Default Queue}  -> wl_registry#2.bind(19, "zxdg_exporter_v2", 1, new id [unknown]#19)
+[2893245.838] {Default Queue} wl_registry#2.global(20, "zxdg_importer_v2", 1)
+[2893245.840] {Default Queue}  -> wl_registry#2.bind(20, "zxdg_importer_v2", 1, new id [unknown]#20)
+[2893245.841] {Default Queue} wl_registry#2.global(21, "zxdg_exporter_v1", 1)
+[2893245.843] {Default Queue}  -> wl_registry#2.bind(21, "zxdg_exporter_v1", 1, new id [unknown]#21)
+[2893245.845] {Default Queue} wl_registry#2.global(22, "zxdg_importer_v1", 1)
+[2893245.846] {Default Queue}  -> wl_registry#2.bind(22, "zxdg_importer_v1", 1, new id [unknown]#22)
+[2893245.848] {Default Queue} wl_registry#2.global(23, "zwp_linux_dmabuf_v1", 3)
+[2893245.849] {Default Queue} wl_registry#2.global(24, "wp_single_pixel_buffer_manager_v1", 1)
+[2893245.851] {Default Queue}  -> wl_registry#2.bind(24, "wp_single_pixel_buffer_manager_v1", 1, new id [unknown]#23)
+[2893245.853] {Default Queue} wl_registry#2.global(25, "zwp_keyboard_shortcuts_inhibit_manager_v1", 1)
+[2893245.854] {Default Queue}  -> wl_registry#2.bind(25, "zwp_keyboard_shortcuts_inhibit_manager_v1", 1, new id [unknown]#24)
+[2893245.856] {Default Queue} wl_registry#2.global(26, "zwp_text_input_manager_v3", 1)
+[2893245.858] {Default Queue} wl_registry#2.global(27, "wp_presentation", 2)
+[2893245.859] {Default Queue}  -> wl_registry#2.bind(27, "wp_presentation", 1, new id [unknown]#25)
+[2893245.861] {Default Queue} wl_registry#2.global(28, "xdg_activation_v1", 1)
+[2893245.862] {Default Queue}  -> wl_registry#2.bind(28, "xdg_activation_v1", 1, new id [unknown]#26)
+[2893245.864] {Default Queue} wl_registry#2.global(29, "zwp_idle_inhibit_manager_v1", 1)
+[2893245.866] {Default Queue}  -> wl_registry#2.bind(29, "zwp_idle_inhibit_manager_v1", 1, new id [unknown]#27)
+[2893245.869] {Default Queue} wl_registry#2.global(30, "xdg_wm_dialog_v1", 1)
+[2893245.870] {Default Queue}  -> wl_registry#2.bind(30, "xdg_wm_dialog_v1", 1, new id [unknown]#28)
+[2893245.872] {Default Queue} wl_registry#2.global(31, "wp_color_manager_v1", 2)
+[2893245.874] {Default Queue} wl_registry#2.global(32, "xdg_system_bell_v1", 1)
+[2893245.876] {Default Queue}  -> wl_registry#2.bind(32, "xdg_system_bell_v1", 1, new id [unknown]#29)
+[2893245.878] {Default Queue} wl_registry#2.global(33, "xdg_toplevel_tag_manager_v1", 1)
+[2893245.879] {Default Queue} wl_registry#2.global(34, "wp_drm_lease_device_v1", 1)
+[2893245.881] {Default Queue} wl_registry#2.global(35, "wp_commit_timing_manager_v1", 1)
+[2893245.883] {Default Queue} wl_registry#2.global(36, "wp_fifo_manager_v1", 1)
+[2893245.884] {Default Queue} wl_registry#2.global(37, "wp_cursor_shape_manager_v1", 2)
+[2893245.886] {Default Queue}  -> wl_registry#2.bind(37, "wp_cursor_shape_manager_v1", 1, new id [unknown]#30)
+[2893245.888] {Default Queue} wl_registry#2.global(38, "wp_color_representation_manager_v1", 1)
+[2893245.890] {Default Queue}  -> wl_registry#2.bind(38, "wp_color_representation_manager_v1", 1, new id [unknown]#31)
+[2893245.891] {Default Queue} wl_registry#2.global(39, "wl_fixes", 1)
+[2893245.893] {Default Queue} wl_callback#3.done(0)
+[2893245.895] {Default Queue}  -> wl_registry#2.bind(16, "wl_seat", 10, new id [unknown]#3)
+[2893247.289] {Default Queue}  -> zwp_primary_selection_device_manager_v1#12.get_device(new id zwp_primary_selection_device_v1#32, wl_seat#3)
+[2893247.295] {Default Queue}  -> wl_data_device_manager#11.get_data_device(new id wl_data_device#33, wl_seat#3)
+[2893247.322] {Default Queue}  -> wl_compositor#4.create_surface(new id wl_surface#34)
+[2893247.324] {Default Queue}  -> wp_viewporter#15.get_viewport(new id wp_viewport#35, wl_surface#34)
+[2893247.326] {Default Queue}  -> wp_fractional_scale_manager_v1#16.get_fractional_scale(new id wp_fractional_scale_v1#36, wl_surface#34)
+[2893247.328] {Default Queue}  -> zwp_tablet_manager_v2#18.get_tablet_seat(new id zwp_tablet_seat_v2#37, wl_seat#3)
+[2893247.331] {Default Queue}  -> wl_display#1.sync(new id wl_callback#38)
+[2893247.423] {Display Queue} wl_display#1.delete_id(7)
+[2893247.426] {Display Queue} wl_display#1.delete_id(10)
+[2893247.427] {Display Queue} wl_display#1.delete_id(38)
+[2893247.429] {Default Queue} wl_shm#5.format(0)
+[2893247.430] {Default Queue} wl_shm#5.format(1)
+[2893247.431] {Default Queue} wl_shm#5.format(875708993)
+[2893247.433] {Default Queue} wl_shm#5.format(875709016)
+[2893247.434] {Default Queue} wl_shm#5.format(909199186)
+[2893247.435] {Default Queue} wl_shm#5.format(808669761)
+[2893247.436] {Default Queue} wl_shm#5.format(808669784)
+[2893247.438] {Default Queue} wl_shm#5.format(808665665)
+[2893247.439] {Default Queue} wl_shm#5.format(808665688)
+[2893247.440] {Default Queue} wl_shm#5.format(1211388481)
+[2893247.441] {Default Queue} wl_shm#5.format(1211388504)
+[2893247.443] {Default Queue} wl_shm#5.format(1211384385)
+[2893247.444] {Default Queue} wl_shm#5.format(1211384408)
+[2893247.445] {Default Queue} wl_shm#5.format(1448695129)
+[2893247.446] {Default Queue} wl_shm#5.format(842094158)
+[2893247.448] {Default Queue} wl_shm#5.format(808530000)
+[2893247.449] {Default Queue} wl_shm#5.format(842093913)
+[2893247.450] {Default Queue} wl_shm#5.format(909202777)
+[2893247.451] {Default Queue} wl_shm#5.format(875713881)
+[2893247.453] {Default Queue} wl_output#6.geometry(0, 0, 0, 0, 0, "unknown", "unknown", 0)
+[2893247.457] {Default Queue} wl_output#6.mode(3, 1024, 768, 60003)
+[2893247.459] {Default Queue} wl_output#6.scale(1)
+[2893247.461] {Default Queue} wl_output#6.name("Virtual-1")
+[2893247.495] {Default Queue} wl_output#6.description("Unknown Display")
+[2893247.497] {Default Queue} wl_output#6.done()
+[2893247.498] {Default Queue} wl_callback#7.done(0)
+[2893247.500] {Default Queue} zxdg_output_v1#9.logical_position(0, 0)
+[2893247.502] {Default Queue} zxdg_output_v1#9.logical_size(1024, 768)
+[2893247.503] {Default Queue} zxdg_output_v1#9.name("Virtual-1")
+[2893247.507] {Default Queue} zxdg_output_v1#9.description("Unknown Display")
+[2893247.508] {Default Queue} wl_output#6.done()
+[2893247.510] {Default Queue} wl_callback#10.done(0)
+[2893247.511] {Default Queue} gtk_shell1#14.capabilities(0)
+[2893247.520] {Default Queue} discarded wp_presentation#25.clock_id(1)
+[2893247.522] {Default Queue} wp_color_representation_manager_v1#31.supported_alpha_mode(0)
+[2893247.523] {Default Queue} wp_color_representation_manager_v1#31.supported_alpha_mode(2)
+[2893247.525] {Default Queue} wp_color_representation_manager_v1#31.supported_coefficients_and_ranges(1, 1)
+[2893247.526] {Default Queue} wp_color_representation_manager_v1#31.supported_coefficients_and_ranges(1, 2)
+[2893247.528] {Default Queue} wp_color_representation_manager_v1#31.supported_coefficients_and_ranges(2, 1)
+[2893247.552] {Default Queue} wp_color_representation_manager_v1#31.supported_coefficients_and_ranges(2, 2)
+[2893247.554] {Default Queue} wp_color_representation_manager_v1#31.supported_coefficients_and_ranges(4, 1)
+[2893247.555] {Default Queue} wp_color_representation_manager_v1#31.supported_coefficients_and_ranges(4, 2)
+[2893247.557] {Default Queue} wp_color_representation_manager_v1#31.supported_coefficients_and_ranges(6, 1)
+[2893247.558] {Default Queue} wp_color_representation_manager_v1#31.supported_coefficients_and_ranges(6, 2)
+[2893247.559] {Default Queue} wp_color_representation_manager_v1#31.done()
+[2893247.561] {Default Queue} wl_seat#3.name("seat0")
+[2893247.563] {Default Queue} wl_seat#3.capabilities(3)
+[2893247.565] {Default Queue}  -> wl_seat#3.get_pointer(new id wl_pointer#10)
+[2893247.569] {Default Queue}  -> zwp_pointer_gestures_v1#17.get_swipe_gesture(new id zwp_pointer_gesture_swipe_v1#7, wl_pointer#10)
+[2893247.578] {Default Queue}  -> zwp_pointer_gestures_v1#17.get_pinch_gesture(new id zwp_pointer_gesture_pinch_v1#39, wl_pointer#10)
+[2893247.580] {Default Queue}  -> zwp_pointer_gestures_v1#17.get_hold_gesture(new id zwp_pointer_gesture_hold_v1#40, wl_pointer#10)
+[2893247.582] {Default Queue}  -> wp_cursor_shape_manager_v1#30.get_pointer(new id wp_cursor_shape_device_v1#41, wl_pointer#10)
+[2893247.585] {Default Queue}  -> wl_seat#3.get_keyboard(new id wl_keyboard#42)
+[2893247.588] {Default Queue} wl_callback#38.done(0)
+[2893247.590] {Default Queue}  -> wl_registry#2.bind(9, "xdg_wm_base", 7, new id [unknown]#38)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (208 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  18
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.DBus.Properties'
+    member -> 'Get'
+    destination -> 'org.freedesktop.portal.Desktop'
+    signature -> signature 'ss'
+  Body: ('org.freedesktop.portal.Inhibit', 'version')
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  157
+  Headers:
+    reply-serial -> uint32 18
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'v'
+  Body: (<uint32 3>,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (350 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  19
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'AddMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.portal.Desktop',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',path='/org/freedesktop/portal/desktop',arg0='org.freedesktop.portal.Inhibit'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  15
+  Headers:
+    reply-serial -> uint32 19
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (284 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  20
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'AddMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.portal.Desktop',interface='org.freedesktop.portal.Inhibit',path='/org/freedesktop/portal/desktop'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  16
+  Headers:
+    reply-serial -> uint32 20
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (192 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  21
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'StartServiceByName'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 'su'
+  Body: ('org.freedesktop.portal.Desktop', uint32 0)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (84 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  17
+  Headers:
+    reply-serial -> uint32 21
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 'u'
+  Body: (uint32 2,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (179 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  22
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'GetNameOwner'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ('org.freedesktop.portal.Desktop',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (90 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  18
+  Headers:
+    reply-serial -> uint32 22
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.17',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (171 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  23
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.DBus.Properties'
+    member -> 'GetAll'
+    destination -> ':1.17'
+    signature -> signature 's'
+  Body: ('org.freedesktop.portal.Inhibit',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (100 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  158
+  Headers:
+    reply-serial -> uint32 23
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'a{sv}'
+  Body: ({'version': <uint32 3>},)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (213 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  24
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.portal.Inhibit'
+    member -> 'CreateMonitor'
+    destination -> ':1.17'
+    signature -> signature 'sa{sv}'
+  Body: ('', {'session_handle_token': <'gtk207345758'>})
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (115 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  168
+  Headers:
+    reply-serial -> uint32 24
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'o'
+  Body: (objectpath '/org/freedesktop/portal/desktop/request/1_44/t',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (278 bytes)
+  Type:    signal
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  169
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop/request/1_44/t'
+    interface -> 'org.freedesktop.portal.Request'
+    member -> 'Response'
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'ua{sv}'
+  Body: (uint32 0, {'session_handle': <'/org/freedesktop/portal/desktop/session/1_44/gtk207345758'>})
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (306 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  25
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'AddMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.gtk.vfs.Daemon'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (180 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  26
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'StartServiceByName'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 'su'
+  Body: ('org.gtk.vfs.Daemon', uint32 0)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  19
+  Headers:
+    reply-serial -> uint32 25
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (84 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  20
+  Headers:
+    reply-serial -> uint32 26
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 'u'
+  Body: (uint32 2,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (300 bytes)
+  Type:    signal
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  171
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.portal.Inhibit'
+    member -> 'StateChanged'
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'oa{sv}'
+  Body: (objectpath '/org/freedesktop/portal/desktop/session/1_44/gtk207345758', {'screensaver-active': <false>, 'session-state': <uint32 1>})
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (167 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  27
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'GetNameOwner'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ('org.gtk.vfs.Daemon',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (89 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  21
+  Headers:
+    reply-serial -> uint32 27
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.5',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (152 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  28
+  Headers:
+    path -> objectpath '/org/gtk/vfs/mounttracker'
+    interface -> 'org.gtk.vfs.MountTracker'
+    member -> 'ListMountableInfo'
+    destination -> ':1.5'
+    signature -> signature ''
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (1228 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  21
+  Headers:
+    reply-serial -> uint32 28
+    destination -> ':1.44'
+    sender -> ':1.5'
+    signature -> signature 'a(ssasib)'
+  Body: ([('gphoto2', 'gphoto2', @as [], 0, false), ('http', 'http', [], 0, false), ('trash', 'trash', [], 0, false), ('smb-share', 'smb', [], 0, false), ('afp-server', 'afp', [], 548, true), ('smb-server', 'smb', [], 0, false), ('smb-network', 'smb', [], 0, false), ('ftpis', 'ftpis', [], 990, true), ('sftp', 'sftp', ['ssh'], 22, true), ('network', 'network', [], 0, false), ('localtest', 'localtest', [], 0, false), ('computer', 'computer', [], 0, false), ('davs', 'davs', [], 0, false), ('dav', 'dav', [], 0, false), ('ftps', 'ftps', [], 21, true), ('admin', 'admin', [], 0, false), ('wsdd', 'wsdd', [], 0, false), ('dns-sd', 'dns-sd', [], 0, false), ('recent', 'recent', [], 0, false), ('onedrive', 'onedrive', [], 0, false), ('afp-volume', 'afp', [], 548, true), ('afc', 'afc', [], 1, false), ('mtp', 'mtp', [], 0, false), ('nfs', 'nfs', [], 0, false), ('archive', 'archive', [], 0, false), ('ftp', 'ftp', [], 21, true), ('davs+sd', 'davs+sd', [], 0, false), ('dav+sd', 'dav+sd', [], 0, false), ('cdda', 'cdda', [], 0, false)],)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (306 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  29
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'RemoveMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.gtk.vfs.Daemon'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  22
+  Headers:
+    reply-serial -> uint32 29
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (192 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  30
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'StartServiceByName'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 'su'
+  Body: ('org.freedesktop.portal.Desktop', uint32 0)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (84 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  23
+  Headers:
+    reply-serial -> uint32 30
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 'u'
+  Body: (uint32 2,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (179 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  31
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'GetNameOwner'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ('org.freedesktop.portal.Desktop',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (90 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  24
+  Headers:
+    reply-serial -> uint32 31
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: (':1.17',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (172 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  32
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.DBus.Properties'
+    member -> 'GetAll'
+    destination -> ':1.17'
+    signature -> signature 's'
+  Body: ('org.freedesktop.portal.Settings',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (100 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  172
+  Headers:
+    reply-serial -> uint32 32
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'a{sv}'
+  Body: ({'version': <uint32 2>},)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (185 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  33
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.portal.Settings'
+    member -> 'Read'
+    destination -> ':1.17'
+    signature -> signature 'ss'
+  Body: ('org.freedesktop.appearance', 'color-scheme')
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (76 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  174
+  Headers:
+    reply-serial -> uint32 33
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'v'
+  Body: (<<uint32 0>>,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (181 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  34
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.portal.Settings'
+    member -> 'Read'
+    destination -> ':1.17'
+    signature -> signature 'ss'
+  Body: ('org.freedesktop.appearance', 'contrast')
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (76 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  176
+  Headers:
+    reply-serial -> uint32 34
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'v'
+  Body: (<<uint32 0>>,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (185 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  35
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.portal.Settings'
+    member -> 'Read'
+    destination -> ':1.17'
+    signature -> signature 'ss'
+  Body: ('org.freedesktop.appearance', 'accent-color')
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (104 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  178
+  Headers:
+    reply-serial -> uint32 35
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'v'
+  Body: (<<(0.20784313976764679, 0.51764708757400513, 0.89411765336990356)>>,)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (182 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  36
+  Headers:
+    path -> objectpath '/org/freedesktop/portal/desktop'
+    interface -> 'org.freedesktop.portal.Settings'
+    member -> 'Read'
+    destination -> ':1.17'
+    signature -> signature 'ss'
+  Body: ('org.gnome.desktop.interface', 'gtk-theme')
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (272 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  37
+  Headers:
+    path -> objectpath '/org/freedesktop/DBus'
+    interface -> 'org.freedesktop.DBus'
+    member -> 'AddMatch'
+    destination -> 'org.freedesktop.DBus'
+    signature -> signature 's'
+  Body: ("type='signal',interface='ca.desrt.dconf.Writer',path='/ca/desrt/dconf/Writer/user',arg0path='/org/gnome/desktop/interface/'",)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (72 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  25
+  Headers:
+    reply-serial -> uint32 37
+    destination -> ':1.44'
+    sender -> 'org.freedesktop.DBus'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (84 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  180
+  Headers:
+    reply-serial -> uint32 36
+    destination -> ':1.44'
+    sender -> ':1.17'
+    signature -> signature 'v'
+  Body: (<<'Adwaita'>>,)
+  UNIX File Descriptors:
+    (none)
+[2893345.793] {Default Queue}  -> wl_compositor#4.create_surface(new id wl_surface#43)
+[2893345.802] {Default Queue}  -> wp_fractional_scale_manager_v1#16.get_fractional_scale(new id wp_fractional_scale_v1#44, wl_surface#43)
+[2893345.806] {Default Queue}  -> wp_viewporter#15.get_viewport(new id wp_viewport#45, wl_surface#43)
+[2893346.128] {Default Queue}  -> xdg_wm_base#38.get_xdg_surface(new id xdg_surface#46, wl_surface#43)
+[2893346.132]  -> xdg_surface#46.get_toplevel(new id xdg_toplevel#47)
+[2893346.135]  -> xdg_toplevel#47.set_parent(nil)
+[2893346.137]  -> xdg_toplevel#47.set_title("FarPane")
+[2893346.138]  -> xdg_toplevel#47.set_app_id("org.farpane.FarPane")
+[2893346.140] {Default Queue}  -> gtk_shell1#14.get_gtk_surface(new id gtk_surface1#48, wl_surface#43)
+[2893346.143]  -> gtk_surface1#48.set_dbus_properties("org.farpane.FarPane", nil, nil, "/org/farpane/FarPane/window/1", "/org/farpane/FarPane", ":1.44")
+[2893346.146] {Default Queue}  -> xdg_wm_dialog_v1#28.get_xdg_dialog(new id xdg_dialog_v1#49, xdg_toplevel#47)
+[2893346.148] {Default Queue}  -> xdg_dialog_v1#49.unset_modal()
+[2893346.150]  -> wl_surface#43.commit()
+[2893348.639] {Default Queue}  -> xdg_activation_v1#26.get_activation_token(new id xdg_activation_token_v1#50)
+[2893348.648]  -> xdg_activation_token_v1#50.set_serial(0, wl_seat#3)
+[2893348.651]  -> xdg_activation_token_v1#50.commit()
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (128 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  312
+  Headers:
+    path -> objectpath '/org/farpane/FarPane'
+    interface -> 'org.gtk.Actions'
+    member -> 'DescribeAll'
+    destination -> ':1.44'
+    sender -> ':1.11'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (168 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  316
+  Headers:
+    path -> objectpath '/org/farpane/FarPane'
+    interface -> 'org.freedesktop.DBus.Properties'
+    member -> 'GetAll'
+    destination -> ':1.44'
+    sender -> ':1.11'
+    signature -> signature 's'
+  Body: ('org.gtk.Application',)
+  UNIX File Descriptors:
+    (none)
+[2893360.495] xdg_activation_token_v1#50.done("c60232ae-8877-4bf0-ab29-7a8518d7cf77_TIME0")
+[2893360.506]  -> xdg_activation_token_v1#50.destroy()
+[2893360.509] {Default Queue}  -> xdg_activation_v1#26.activate("c60232ae-8877-4bf0-ab29-7a8518d7cf77_TIME0", wl_surface#43)
+[2893360.560] {Default Queue} wl_keyboard#42.keymap(1, fd 10, 36351)
+[2893361.175] {Default Queue} wl_keyboard#42.repeat_info(0, 0)
+[2893361.179] {Default Queue} wp_fractional_scale_v1#44.preferred_scale(120)
+[2893361.182] wl_surface#43.preferred_buffer_scale(1)
+[2893361.184] gtk_surface1#48.configure(array[0])
+[2893361.185] gtk_surface1#48.configure_edges(array[16])
+[2893361.187] xdg_toplevel#47.configure_bounds(1024, 736)
+[2893361.189] xdg_toplevel#47.wm_capabilities(array[16])
+[2893361.202] xdg_toplevel#47.configure(0, 0, array[0])
+[2893361.204] xdg_surface#46.configure(1)
+[2893361.215]  -> xdg_surface#46.ack_configure(1)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (164 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  38
+  Headers:
+    reply-serial -> uint32 312
+    destination -> ':1.11'
+    signature -> signature 'a{s(bgav)}'
+  Body: ({'show-home': (true, signature '', @av []), 'show-connections': (true, '', []), 'tray-menu': (true, '', [])},)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (80 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  39
+  Headers:
+    reply-serial -> uint32 316
+    destination -> ':1.11'
+    signature -> signature 'a{sv}'
+  Body: ({'Busy': <false>},)
+  UNIX File Descriptors:
+    (none)
+[2893427.251]  -> xdg_toplevel#47.set_min_size(560, 466)
+[2893427.262]  -> xdg_toplevel#47.set_max_size(0, 0)
+[2893431.093] {Default Queue}  -> wl_shm#5.create_pool(new id wl_shm_pool#51, fd 11, 3295600)
+[2893431.105] {Default Queue}  -> wl_shm_pool#51.create_buffer(new id wl_buffer#52, 0, 1070, 770, 4280, 0)
+[2893444.435]  -> xdg_toplevel#47.set_min_size(510, 416)
+[2893444.445]  -> xdg_toplevel#47.set_max_size(0, 0)
+[2893444.448]  -> xdg_surface#46.set_window_geometry(25, 25, 1020, 720)
+[2893444.451] {Default Queue}  -> wl_compositor#4.create_region(new id wl_region#53)
+[2893444.453] {Default Queue}  -> wl_region#53.add(40, 25, 990, 720)
+[2893444.455]  -> wl_surface#43.set_opaque_region(wl_region#53)
+[2893444.457] {Default Queue}  -> wl_region#53.destroy()
+[2893444.458] {Default Queue}  -> wl_compositor#4.create_region(new id wl_region#54)
+[2893444.460] {Default Queue}  -> wl_region#54.add(13, 13, 1044, 744)
+[2893444.461]  -> wl_surface#43.set_input_region(wl_region#54)
+[2893444.463] {Default Queue}  -> wl_region#54.destroy()
+[2893444.465] {Default Queue}  -> wp_viewport#45.set_destination(1070, 770)
+[2893444.467]  -> wl_surface#43.attach(wl_buffer#52, 0, 0)
+[2893444.468]  -> wl_surface#43.damage_buffer(0, 0, 1070, 770)
+[2893444.470]  -> wl_surface#43.frame(new id wl_callback#55)
+[2893444.474] {Default Queue}  -> wp_presentation#25.feedback(wl_surface#43, new id wp_presentation_feedback#56)
+[2893444.477]  -> wl_surface#43.commit()
+[2893448.430] {Display Queue} wl_display#1.delete_id(50)
+[2893448.443] {Display Queue} wl_display#1.delete_id(53)
+[2893448.448] {Display Queue} wl_display#1.delete_id(54)
+[2893448.451] {Default Queue} wl_buffer#52.release()
+[2893468.812] {Display Queue} wl_display#1.delete_id(55)
+[2893468.824] {Default Queue} wl_callback#55.done(29646)
+[2893468.839] wl_surface#43.enter(wl_output#6)
+[2893469.013] gtk_surface1#48.configure(array[16])
+[2893469.015] gtk_surface1#48.configure_edges(array[0])
+[2893469.017] xdg_toplevel#47.configure_bounds(1024, 736)
+[2893469.019] xdg_toplevel#47.configure(1024, 736, array[36])
+[2893469.021] xdg_surface#46.configure(2)
+[2893469.024]  -> xdg_surface#46.ack_configure(2)
+[2893483.360]  -> xdg_toplevel#47.set_min_size(460, 366)
+[2893483.368]  -> xdg_toplevel#47.set_max_size(0, 0)
+[2893483.377] {Default Queue}  -> wl_buffer#52.destroy()
+[2893483.379] {Default Queue}  -> wl_shm_pool#51.destroy()
+[2893483.637]  -> xdg_toplevel#47.set_min_size(510, 416)
+[2893483.640]  -> xdg_toplevel#47.set_max_size(0, 0)
+[2893483.968] {Default Queue}  -> wl_shm#5.create_pool(new id wl_shm_pool#55, fd 11, 3014656)
+[2893483.975] {Default Queue}  -> wl_shm_pool#55.create_buffer(new id wl_buffer#54, 0, 1024, 736, 4096, 0)
+[2893487.614]  -> xdg_surface#46.set_window_geometry(0, 0, 1024, 736)
+[2893487.623] {Default Queue}  -> wl_compositor#4.create_region(new id wl_region#53)
+[2893487.626] {Default Queue}  -> wl_region#53.add(0, 0, 1024, 736)
+[2893487.628]  -> wl_surface#43.set_opaque_region(wl_region#53)
+[2893487.630] {Default Queue}  -> wl_region#53.destroy()
+[2893487.632] {Default Queue}  -> wl_compositor#4.create_region(new id wl_region#50)
+[2893487.633] {Default Queue}  -> wl_region#50.add(-12, -12, 1048, 760)
+[2893487.635]  -> wl_surface#43.set_input_region(wl_region#50)
+[2893487.636] {Default Queue}  -> wl_region#50.destroy()
+[2893487.638] {Default Queue}  -> wp_viewport#45.set_destination(1024, 736)
+[2893487.640]  -> wl_surface#43.attach(wl_buffer#54, 0, 0)
+[2893487.642]  -> wl_surface#43.damage_buffer(0, 0, 1024, 736)
+[2893487.644]  -> wl_surface#43.frame(new id wl_callback#57)
+[2893487.646] {Default Queue}  -> wp_presentation#25.feedback(wl_surface#43, new id wp_presentation_feedback#58)
+[2893487.649]  -> wl_surface#43.commit()
+[2893504.030] {Display Queue} wl_display#1.delete_id(56)
+[2893504.042] {Default Queue} wp_presentation_feedback#56.sync_output(wl_output#6)
+[2893504.045] {Default Queue} wp_presentation_feedback#56.presented(0, 29, 649570000, 16665600, 0, 1, 7)
+[2893510.677] {Display Queue} wl_display#1.delete_id(52)
+[2893510.685] {Display Queue} wl_display#1.delete_id(51)
+[2893510.688] {Display Queue} wl_display#1.delete_id(53)
+[2893510.691] {Display Queue} wl_display#1.delete_id(50)
+[2893510.694] {Default Queue} wl_buffer#54.release()
+[2893528.985] {Display Queue} wl_display#1.delete_id(57)
+[2893528.997] {Default Queue} wl_callback#57.done(29706)
+[2893538.922] {Display Queue} wl_display#1.delete_id(58)
+[2893538.931] {Default Queue} wp_presentation_feedback#58.sync_output(wl_output#6)
+[2893538.935] {Default Queue} wp_presentation_feedback#58.presented(0, 29, 716232000, 16665600, 0, 5, 7)
+[2893622.825]  -> xdg_toplevel#47.set_min_size(531, 416)
+[2893622.835]  -> xdg_toplevel#47.set_max_size(0, 0)
+[2893626.139]  -> wl_surface#43.attach(wl_buffer#54, 0, 0)
+[2893626.149]  -> wl_surface#43.damage_buffer(908, 17, 60, 12)
+[2893626.152]  -> wl_surface#43.damage_buffer(795, 221, 76, 52)
+[2893626.155]  -> wl_surface#43.damage_buffer(202, 351, 800, 385)
+[2893626.158]  -> wl_surface#43.frame(new id wl_callback#58)
+[2893626.162] {Default Queue}  -> wp_presentation#25.feedback(wl_surface#43, new id wp_presentation_feedback#57)
+[2893626.166]  -> wl_surface#43.commit()
+[2893627.027] {Default Queue} wl_buffer#54.release()
+[2893633.288] {Display Queue} wl_display#1.delete_id(58)
+[2893633.296] {Default Queue} wl_callback#58.done(29810)
+[2893638.927] {Display Queue} wl_display#1.delete_id(57)
+[2893638.940] {Default Queue} wp_presentation_feedback#57.sync_output(wl_output#6)
+[2893638.946] {Default Queue} wp_presentation_feedback#57.presented(0, 29, 816226000, 16665600, 0, 11, 7)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (128 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  355
+  Headers:
+    path -> objectpath '/org/farpane/FarPane'
+    interface -> 'org.gtk.Actions'
+    member -> 'DescribeAll'
+    destination -> ':1.44'
+    sender -> ':1.11'
+  Body: ()
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  <<<< RECEIVED D-Bus message (168 bytes)
+  Type:    method-call
+  Flags:   none
+  Version: 0
+  Serial:  359
+  Headers:
+    path -> objectpath '/org/farpane/FarPane'
+    interface -> 'org.freedesktop.DBus.Properties'
+    member -> 'GetAll'
+    destination -> ':1.44'
+    sender -> ':1.11'
+    signature -> signature 's'
+  Body: ('org.gtk.Application',)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (164 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  40
+  Headers:
+    reply-serial -> uint32 355
+    destination -> ':1.11'
+    signature -> signature 'a{s(bgav)}'
+  Body: ({'show-home': (true, signature '', @av []), 'show-connections': (true, '', []), 'tray-menu': (true, '', [])},)
+  UNIX File Descriptors:
+    (none)
+========================================================================
+GDBus-debug:Message:
+  >>>> SENT D-Bus message (80 bytes)
+  Type:    method-return
+  Flags:   no-reply-expected
+  Version: 0
+  Serial:  41
+  Headers:
+    reply-serial -> uint32 359
+    destination -> ':1.11'
+    signature -> signature 'a{sv}'
+  Body: ({'Busy': <false>},)
+  UNIX File Descriptors:
+    (none)

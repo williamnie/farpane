@@ -1,0 +1,83 @@
+{
+  "result": "fail",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+  "guest": {
+    "schema": 1,
+    "scope": "private-native-gnome-root-input-startup",
+    "result": "fail",
+    "full_farpane_input_tested": false,
+    "host_input_exposed": false,
+    "kernel": "7.0.0-38-generic",
+    "boot_id": "5dabc605-342c-420a-8d26-fd47f8c90e23",
+    "machine": "Standard PC (Q35 + ICH9, 2009)",
+    "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3",
+    "uinput": {
+      "device_name": "FarPane private VM kernel probe",
+      "events": [
+        [
+          1,
+          30,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          30,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "input_kernel": "private-guest"
+    },
+    "guest_drm": [
+      {
+        "card": "card0",
+        "device": "/sys/devices/faux/vkms",
+        "driver": "/sys/bus/faux/drivers/faux_driver"
+      }
+    ],
+    "guest_drm_properties": {
+      "DEVPATH": "/devices/faux/vkms/drm/card0",
+      "TAGS": ":uaccess:master-of-seat:seat:",
+      "CURRENT_TAGS": ":uaccess:master-of-seat:seat:"
+    },
+    "logind": {
+      "Id": "c1",
+      "User": "1000",
+      "Active": "yes",
+      "Type": "wayland",
+      "Class": "user",
+      "Seat": "seat0",
+      "Leader": "231"
+    },
+    "native_desktop": {
+      "renderer": "guest VKMS/software Mesa",
+      "gnome_pid": 290,
+      "product_keyboard": "/dev/input/event2",
+      "input_fds": [
+        60
+      ],
+      "session_provider": "real-systemd-logind",
+      "host_enabled": true,
+      "input_text_sent": false,
+      "host_input_exposed": false
+    },
+    "failure": "Traceback (most recent call last):\n  File \"/opt/farpane-input-test/native_input_vm_desktop.py\", line 190, in controller\n    result['network_input']=exercise(core,env,account,device)\n                            ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/farpane-input-test/native_input_vm_wire.py\", line 193, in exercise\n    until(lambda:state()['active'] and state()['focused'],'Private target did not receive focus')\n    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/farpane-input-test/native_input_vm_wire.py\", line 165, in until\n    return wait(check,message,seconds)\n  File \"/opt/farpane-input-test/native_input_vm_desktop.py\", line 36, in wait\n    raise TimeoutError(message)\nTimeoutError: Private target did not receive focus\n"
+  },
+  "separate_kernel_verified": true,
+  "network": "none",
+  "host_devices_exposed": [
+    "/dev/kvm"
+  ],
+  "host_display": false,
+  "real_farpane_input_accepted": false
+}

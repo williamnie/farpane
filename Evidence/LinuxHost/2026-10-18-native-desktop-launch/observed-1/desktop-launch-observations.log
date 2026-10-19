@@ -1,0 +1,131 @@
+{
+  "methods": [
+    {
+      "method": "cli",
+      "launch": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "timeline": [
+        {
+          "seconds": 0.006,
+          "gui": [
+            {
+              "pid": 867,
+              "uid": 1000,
+              "role": "gui",
+              "start": "2952"
+            }
+          ],
+          "bus_pid": null
+        },
+        {
+          "seconds": 0.163,
+          "gui": [
+            {
+              "pid": 867,
+              "uid": 1000,
+              "role": "gui",
+              "start": "2952"
+            }
+          ],
+          "bus_pid": 867
+        },
+        {
+          "seconds": 10.112,
+          "gui": [],
+          "bus_pid": null
+        }
+      ],
+      "gui_alive_at_16_seconds": false,
+      "capture": {
+        "file": "launch-cli.png",
+        "width": 1024,
+        "height": 768,
+        "format": "XR24",
+        "sha256": "8c119dd43985f8eb9f1c047aeb7fb47933bd8cec8fb30a98cb255521a9c8c900",
+        "capture": "guest-only VKMS mapped frame"
+      }
+    },
+    {
+      "method": "gio",
+      "launch": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "<string>:3: PyGIDeprecationWarning: Gio.DesktopAppInfo is deprecated; use GioUnix.DesktopAppInfo instead\n"
+      },
+      "timeline": [
+        {
+          "seconds": 2.091,
+          "gui": [
+            {
+              "pid": 1425,
+              "uid": 1000,
+              "role": "gui",
+              "start": "4565"
+            }
+          ],
+          "bus_pid": 1425
+        }
+      ],
+      "gui_alive_at_16_seconds": true,
+      "capture": {
+        "file": "launch-gio.png",
+        "width": 1024,
+        "height": 768,
+        "format": "XR24",
+        "sha256": "2cdf5746d1ac07a6d7c9c40de86dd8bc79a6b91ce463ba466daaf45c7ebd2f01",
+        "capture": "guest-only VKMS mapped frame"
+      }
+    },
+    {
+      "method": "menu",
+      "launch": {
+        "input_device": "/dev/input/event4",
+        "action": "GNOME overview search farpane, Enter"
+      },
+      "timeline": [
+        {
+          "seconds": 2.448,
+          "gui": [
+            {
+              "pid": 1974,
+              "uid": 1000,
+              "role": "gui",
+              "start": "6401"
+            }
+          ],
+          "bus_pid": 1974
+        }
+      ],
+      "gui_alive_at_16_seconds": true,
+      "capture": {
+        "file": "launch-menu.png",
+        "width": 1024,
+        "height": 768,
+        "format": "XR24",
+        "sha256": "90616e7be7e742bf08f6f4f27cf6d62f074fcde22db070fa10d0bd964c5a0fab",
+        "capture": "guest-only VKMS mapped frame"
+      }
+    }
+  ],
+  "extra_captures": [
+    {
+      "file": "launch-before.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "1982d27da2ec3e9b3d1c5771ec50850a4248b16cfc9f53ef81a1b2d0b5ebe0ec",
+      "capture": "guest-only VKMS mapped frame"
+    },
+    {
+      "file": "launch-search.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "3d64af782628efe1c7a76a229f115b24735902eb4da45250adadd9d23472548d",
+      "capture": "guest-only VKMS mapped frame"
+    }
+  ]
+}

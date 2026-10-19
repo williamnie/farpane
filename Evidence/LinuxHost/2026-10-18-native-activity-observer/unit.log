@@ -1,0 +1,11 @@
+test_counts_reject_bool_negative_float_and_overflow (test_native_activity_observer.ActivityTest.test_counts_reject_bool_negative_float_and_overflow) ... ok
+test_missing_unsupported_and_malformed_wire_are_errors (test_native_activity_observer.ActivityTest.test_missing_unsupported_and_malformed_wire_are_errors) ... ok
+test_only_fresh_same_owner_zero_counters_are_idle (test_native_activity_observer.ActivityTest.test_only_fresh_same_owner_zero_counters_are_idle) ... ok
+test_partial_peer_cannot_extend_absolute_deadline (test_native_activity_observer.ActivityTest.test_partial_peer_cannot_extend_absolute_deadline) ... ok
+test_unknown_stale_future_and_wrong_owner_are_errors (test_native_activity_observer.ActivityTest.test_unknown_stale_future_and_wrong_owner_are_errors) ... ok
+test_wire_roundtrip_then_activity_validation (test_native_activity_observer.ActivityTest.test_wire_roundtrip_then_activity_validation) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.031s
+
+OK

@@ -1,0 +1,100 @@
+[2026-10-18 13:43:32.144927 +00:00] INFO [src/core_main.rs:404] start --server with user ubuntu
+[2026-10-18 13:43:32.145451 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":91")
+[2026-10-18 13:43:32.145456 +00:00] INFO [src/server.rs:666] XAUTHORITY=Err(NotPresent)
+[2026-10-18 13:43:32.145659 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-1000/ipc
+[2026-10-18 13:43:32.447586 +00:00] INFO [src/server.rs:919] #1 try: failed to connect to ipc_service
+[2026-10-18 13:43:33.049137 +00:00] INFO [src/server.rs:919] #2 try: failed to connect to ipc_service
+[2026-10-18 13:43:33.949748 +00:00] INFO [src/server.rs:919] #3 try: failed to connect to ipc_service
+[2026-10-18 13:43:35.147184 +00:00] WARN [src/server.rs:818] timed out waiting 3s for initial config sync, continue startup and keep syncing in background
+[2026-10-18 13:43:35.147283 +00:00] INFO [src/server/drm_capturer.rs:1897] drm: consumer cache warm found no producer at startup (will probe lazily)
+[2026-10-18 13:43:35.147838 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-18 13:43:35.148496 +00:00] INFO [src/rendezvous_mediator.rs:1375] Direct server listening on: Some(Ok([::]:21118))
+[2026-10-18 13:43:35.148536 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:43:35.148571 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 13:43:35.148900 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:43:35.148991 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:43:35.149226 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:43:35.149255 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:43:35.149478 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.36, available memory: 26G, codec thread: 2
+[2026-10-18 13:43:35.151364 +00:00] INFO [src/server.rs:919] #4 try: failed to connect to ipc_service
+[2026-10-18 13:43:35.247505 +00:00] INFO [src/rendezvous_mediator.rs:1404] direct access from [::ffff:127.0.0.1]:53262
+[2026-10-18 13:43:35.247667 +00:00] INFO [libs/hbb_common/src/config.rs:1143] Generated new keypair for id: 
+[2026-10-18 13:43:35.248200 +00:00] INFO [src/server/connection.rs:5425] #529 Connection closed: Reset by the peer
+[2026-10-18 13:43:35.248212 +00:00] INFO [src/server/connection.rs:1323] #529 connection loop exited
+[2026-10-18 13:43:35.249731 +00:00] INFO [libs/libxdo-sys-stub/src/lib.rs:114] libxdo-sys Loaded libxdo.so.3
+[2026-10-18 13:43:35.250072 +00:00] INFO [libs/enigo/src/linux/xdo.rs:100] xdo context created successfully
+[2026-10-18 13:43:35.250224 +00:00] INFO [libs/enigo/src/linux/xdo.rs:72] X11 pointer has 10 buttons, side buttons supported
+[2026-10-18 13:43:35.254922 +00:00] INFO [libs/scrap/src/common/codec.rs:1150] av1 time: key: 18.624041ms, non-key: 6.159029ms, consume: 102.159159ms
+[2026-10-18 13:43:36.149353 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 13:43:36.150259 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:43:36.178233 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0
+[2026-10-18 13:43:36.652897 +00:00] INFO [src/server.rs:919] #5 try: failed to connect to ipc_service
+[2026-10-18 13:43:38.454329 +00:00] INFO [src/server.rs:919] #6 try: failed to connect to ipc_service
+[2026-10-18 13:43:39.150366 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 13:43:39.151088 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:43:40.556139 +00:00] INFO [src/server.rs:919] #7 try: failed to connect to ipc_service
+[2026-10-18 13:43:42.957452 +00:00] INFO [src/server.rs:919] #8 try: failed to connect to ipc_service
+[2026-10-18 13:43:45.659177 +00:00] INFO [src/server.rs:919] #9 try: failed to connect to ipc_service
+[2026-10-18 13:43:46.151492 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 13:43:46.152555 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:43:48.660234 +00:00] INFO [src/server.rs:919] #10 try: failed to connect to ipc_service
+[2026-10-18 13:43:51.961146 +00:00] INFO [src/server.rs:919] #11 try: failed to connect to ipc_service
+[2026-10-18 13:43:53.149969 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:43:53.150742 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:43:53.151512 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:43:55.562315 +00:00] INFO [src/server.rs:919] #12 try: failed to connect to ipc_service
+[2026-10-18 13:43:59.463790 +00:00] INFO [src/server.rs:919] #13 try: failed to connect to ipc_service
+[2026-10-18 13:44:01.152733 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 13:44:01.153653 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:44:03.665016 +00:00] INFO [src/server.rs:919] #14 try: failed to connect to ipc_service
+[2026-10-18 13:44:08.165983 +00:00] INFO [src/server.rs:919] #15 try: failed to connect to ipc_service
+[2026-10-18 13:44:10.152839 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:44:10.153243 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:44:10.154019 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:44:12.966811 +00:00] INFO [src/server.rs:919] #16 try: failed to connect to ipc_service
+[2026-10-18 13:44:18.068506 +00:00] INFO [src/server.rs:919] #17 try: failed to connect to ipc_service
+[2026-10-18 13:44:23.470185 +00:00] INFO [src/server.rs:919] #18 try: failed to connect to ipc_service
+[2026-10-18 13:44:27.154735 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:44:27.154945 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:44:27.155605 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:44:29.171566 +00:00] INFO [src/server.rs:919] #19 try: failed to connect to ipc_service
+[2026-10-18 13:44:32.147060 +00:00] WARN [src/farpane_native/recovery.rs:84] System recovery monitor unavailable; core retries remain active: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory (x12)
+[2026-10-18 13:44:32.153812 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 13:44:32.154786 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:44:35.173292 +00:00] INFO [src/server.rs:919] #20 try: failed to connect to ipc_service
+[2026-10-18 13:44:41.475228 +00:00] INFO [src/server.rs:919] #21 try: failed to connect to ipc_service
+[2026-10-18 13:44:45.156796 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:44:45.157043 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:44:45.157660 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:44:48.076070 +00:00] INFO [src/server.rs:919] #22 try: failed to connect to ipc_service
+[2026-10-18 13:44:54.977094 +00:00] INFO [src/server.rs:919] #23 try: failed to connect to ipc_service
+[2026-10-18 13:45:02.177682 +00:00] INFO [src/server.rs:919] #24 try: failed to connect to ipc_service
+[2026-10-18 13:45:03.159374 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:45:03.159716 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:45:03.160562 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:45:09.679032 +00:00] INFO [src/server.rs:919] #25 try: failed to connect to ipc_service
+[2026-10-18 13:45:17.479717 +00:00] INFO [src/server.rs:919] #26 try: failed to connect to ipc_service
+[2026-10-18 13:45:20.162369 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:45:20.162795 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:45:20.163589 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:45:25.581570 +00:00] INFO [src/server.rs:919] #27 try: failed to connect to ipc_service
+[2026-10-18 13:45:32.150572 +00:00] WARN [src/farpane_native/recovery.rs:84] System recovery monitor unavailable; core retries remain active: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory (x12)
+[2026-10-18 13:45:33.983173 +00:00] INFO [src/server.rs:919] #28 try: failed to connect to ipc_service
+[2026-10-18 13:45:35.154976 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 13:45:35.156082 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:45:37.165732 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:45:37.166113 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:45:37.166828 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:45:42.684037 +00:00] INFO [src/server.rs:919] #29 try: failed to connect to ipc_service
+[2026-10-18 13:45:51.685448 +00:00] INFO [src/server.rs:919] #30 try: failed to connect to ipc_service
+[2026-10-18 13:45:51.685497 +00:00] WARN [src/server.rs:927] skipped config sync
+[2026-10-18 13:45:54.167820 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:45:54.168192 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:45:54.168934 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:46:11.170105 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:46:11.170556 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:46:11.171409 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:46:28.173245 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 13:46:28.173623 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 13:46:28.174458 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 13:46:32.154316 +00:00] WARN [src/farpane_native/recovery.rs:84] System recovery monitor unavailable; core retries remain active: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory (x12)

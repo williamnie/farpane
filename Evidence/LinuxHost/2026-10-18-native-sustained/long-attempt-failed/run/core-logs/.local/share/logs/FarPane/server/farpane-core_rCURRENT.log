@@ -1,0 +1,107 @@
+[2026-10-18 09:35:04.882922 +00:00] INFO [src/core_main.rs:404] start --server with user ubuntu
+[2026-10-18 09:35:04.883389 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":91")
+[2026-10-18 09:35:04.883394 +00:00] INFO [src/server.rs:666] XAUTHORITY=Err(NotPresent)
+[2026-10-18 09:35:04.883831 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-1000/ipc
+[2026-10-18 09:35:05.185332 +00:00] INFO [src/server.rs:919] #1 try: failed to connect to ipc_service
+[2026-10-18 09:35:05.787029 +00:00] INFO [src/server.rs:919] #2 try: failed to connect to ipc_service
+[2026-10-18 09:35:06.688225 +00:00] INFO [src/server.rs:919] #3 try: failed to connect to ipc_service
+[2026-10-18 09:35:07.884779 +00:00] WARN [src/server.rs:818] timed out waiting 3s for initial config sync, continue startup and keep syncing in background
+[2026-10-18 09:35:07.885076 +00:00] INFO [src/server/drm_capturer.rs:1897] drm: consumer cache warm found no producer at startup (will probe lazily)
+[2026-10-18 09:35:07.885575 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-18 09:35:07.886479 +00:00] INFO [src/rendezvous_mediator.rs:1375] Direct server listening on: Some(Ok([::]:21118))
+[2026-10-18 09:35:07.886646 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 09:35:07.886782 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 09:35:07.886902 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:07.887109 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 09:35:07.887347 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:07.887430 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:07.887531 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.08, available memory: 26G, codec thread: 2
+[2026-10-18 09:35:07.888452 +00:00] INFO [src/server.rs:919] #4 try: failed to connect to ipc_service
+[2026-10-18 09:35:07.889393 +00:00] INFO [src/rendezvous_mediator.rs:1404] direct access from [::ffff:127.0.0.1]:48590
+[2026-10-18 09:35:07.889502 +00:00] INFO [libs/hbb_common/src/config.rs:1143] Generated new keypair for id: 
+[2026-10-18 09:35:07.889950 +00:00] INFO [src/server/connection.rs:5425] #1787 Connection closed: Reset by the peer
+[2026-10-18 09:35:07.889966 +00:00] INFO [src/server/connection.rs:1323] #1787 connection loop exited
+[2026-10-18 09:35:07.891357 +00:00] INFO [libs/libxdo-sys-stub/src/lib.rs:114] libxdo-sys Loaded libxdo.so.3
+[2026-10-18 09:35:07.891886 +00:00] INFO [libs/enigo/src/linux/xdo.rs:100] xdo context created successfully
+[2026-10-18 09:35:07.892115 +00:00] INFO [libs/enigo/src/linux/xdo.rs:72] X11 pointer has 10 buttons, side buttons supported
+[2026-10-18 09:35:08.000897 +00:00] INFO [libs/scrap/src/common/codec.rs:1150] av1 time: key: 18.22883ms, non-key: 6.793118ms, consume: 110.118593ms
+[2026-10-18 09:35:08.887611 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 09:35:08.889013 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:08.916135 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0
+[2026-10-18 09:35:09.390335 +00:00] INFO [src/server.rs:919] #5 try: failed to connect to ipc_service
+[2026-10-18 09:35:11.191846 +00:00] INFO [src/server.rs:919] #6 try: failed to connect to ipc_service
+[2026-10-18 09:35:11.715019 +00:00] INFO [src/rendezvous_mediator.rs:1404] direct access from [::ffff:127.0.0.1]:38045
+[2026-10-18 09:35:11.889414 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 09:35:11.890371 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:13.293145 +00:00] INFO [src/server.rs:919] #7 try: failed to connect to ipc_service
+[2026-10-18 09:35:13.477257 +00:00] INFO [src/platform/mod.rs:112] new wakelock, require display on: true
+[2026-10-18 09:35:13.477576 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:382] perform;
+[2026-10-18 09:35:13.477588 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Auth(Some(External), Some([49, 48, 48, 48]))
+[2026-10-18 09:35:13.477608 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;
+[2026-10-18 09:35:13.477651 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=NegotiateUnixFD
+[2026-10-18 09:35:13.477657 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;
+[2026-10-18 09:35:13.477690 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Begin
+[2026-10-18 09:35:13.477788 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/socket_reader.rs:33] socket reader;
+[2026-10-18 09:35:13.478513 +00:00] INFO [src/platform/linux.rs:2654] wakelock: keepawake could not take the inhibit (org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.ScreenSaver was not provided by any .service files)
+[2026-10-18 09:35:13.478563 +00:00] INFO [src/platform/linux.rs:2667] wakelock: the logind idle/sleep inhibit did not come back either (I/O error: No such file or directory (os error 2))
+[2026-10-18 09:35:13.479089 +00:00] INFO [src/platform/linux.rs:2614] wakelock: no session idle inhibitor answered, so the compositor may still blank this screen (org.gnome.SessionManager: The name org.gnome.SessionManager was not provided by any .service files; org.freedesktop.PowerManagement: The name org.freedesktop.PowerManagement was not provided by any .service files)
+[2026-10-18 09:35:13.483722 +00:00] INFO [src/server/connection.rs:2210] peer info supported_encoding: SupportedEncoding { h264: false, h265: false, vp8: true, av1: true, i444: MessageField(Some(CodecAbility { vp8: false, vp9: true, av1: true, h264: false, h265: false, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
+[2026-10-18 09:35:13.488750 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Update(1788, SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })
+[2026-10-18 09:35:13.488930 +00:00] INFO [libs/scrap/src/common/codec.rs:320] usable: vp8=true, av1=false, h264=false, h265=false
+[2026-10-18 09:35:13.488937 +00:00] INFO [libs/scrap/src/common/codec.rs:323] connection count: 1, used preference: Auto, encoder: VP9
+[2026-10-18 09:35:13.488980 +00:00] INFO [src/server/connection.rs:5012] Option update: OptionMessage { image_quality: NotSet, lock_after_session_end: NotSet, show_remote_cursor: Yes, privacy_mode: NotSet, block_input: NotSet, custom_image_quality: 0, disable_audio: Yes, disable_clipboard: Yes, enable_file_transfer: NotSet, supported_decoding: MessageField(Some(SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), custom_fps: 0, disable_keyboard: NotSet, follow_remote_cursor: NotSet, follow_remote_window: NotSet, disable_camera: NotSet, terminal_persistent: NotSet, show_my_cursor: NotSet, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
+[2026-10-18 09:35:13.488994 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Update(1788, SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })
+[2026-10-18 09:35:13.489110 +00:00] INFO [libs/scrap/src/common/codec.rs:320] usable: vp8=true, av1=false, h264=false, h265=false
+[2026-10-18 09:35:13.489114 +00:00] INFO [libs/scrap/src/common/codec.rs:323] connection count: 1, used preference: Auto, encoder: VP9
+[2026-10-18 09:35:13.489222 +00:00] INFO [src/server/video_service.rs:1047] new video service: monitor0
+[2026-10-18 09:35:13.489600 +00:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: VPX(VpxEncoderConfig { width: 640, height: 480, quality: 0.67, codec: VP9, keyframe_interval: None }), i444: false
+[2026-10-18 09:35:13.490094 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.16, available memory: 26G, codec thread: 2
+[2026-10-18 09:35:13.490236 +00:00] INFO [src/platform/linux.rs:303] xdo context created successfully
+[2026-10-18 09:35:13.495381 +00:00] INFO [src/server/service.rs:196] Call snapshot of mouse_cursor service
+[2026-10-18 09:35:13.499587 +00:00] INFO [src/server/service.rs:196] Call snapshot of display service
+[2026-10-18 09:35:13.499901 +00:00] INFO [src/server/display_service.rs:721] Displays changed
+[2026-10-18 09:35:13.501389 +00:00] INFO [src/server/video_service.rs:736] initial quality: 0.67
+[2026-10-18 09:35:13.503094 +00:00] INFO [src/server/service.rs:196] Call snapshot of monitor0 service
+[2026-10-18 09:35:13.716223 +00:00] INFO [src/server/connection.rs:5850] update supported encoding: SupportedEncoding { h264: false, h265: false, vp8: true, av1: false, i444: MessageField(Some(CodecAbility { vp8: false, vp9: true, av1: true, h264: false, h265: false, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
+[2026-10-18 09:35:15.694550 +00:00] INFO [src/server.rs:919] #8 try: failed to connect to ipc_service
+[2026-10-18 09:35:18.396377 +00:00] INFO [src/server.rs:919] #9 try: failed to connect to ipc_service
+[2026-10-18 09:35:18.890778 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 09:35:18.891639 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:21.398409 +00:00] INFO [src/server.rs:919] #10 try: failed to connect to ipc_service
+[2026-10-18 09:35:24.699599 +00:00] INFO [src/server.rs:919] #11 try: failed to connect to ipc_service
+[2026-10-18 09:35:25.888885 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 09:35:25.889636 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 09:35:25.890477 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:28.300968 +00:00] INFO [src/server.rs:919] #12 try: failed to connect to ipc_service
+[2026-10-18 09:35:32.201791 +00:00] INFO [src/server.rs:919] #13 try: failed to connect to ipc_service
+[2026-10-18 09:35:33.891806 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 09:35:33.892747 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:36.403518 +00:00] INFO [src/server.rs:919] #14 try: failed to connect to ipc_service
+[2026-10-18 09:35:40.905072 +00:00] INFO [src/server.rs:919] #15 try: failed to connect to ipc_service
+[2026-10-18 09:35:42.892187 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 09:35:42.892527 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 09:35:42.893362 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:35:45.705595 +00:00] INFO [src/server.rs:919] #16 try: failed to connect to ipc_service
+[2026-10-18 09:35:50.806826 +00:00] INFO [src/server.rs:919] #17 try: failed to connect to ipc_service
+[2026-10-18 09:35:56.207571 +00:00] INFO [src/server.rs:919] #18 try: failed to connect to ipc_service
+[2026-10-18 09:35:59.894681 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 09:35:59.895403 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 09:35:59.896152 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:36:01.909353 +00:00] INFO [src/server.rs:919] #19 try: failed to connect to ipc_service
+[2026-10-18 09:36:04.885952 +00:00] WARN [src/farpane_native/recovery.rs:84] System recovery monitor unavailable; core retries remain active: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory (x12)
+[2026-10-18 09:36:04.892847 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 09:36:04.893571 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:36:07.911023 +00:00] INFO [src/server.rs:919] #20 try: failed to connect to ipc_service
+[2026-10-18 09:36:14.212174 +00:00] INFO [src/server.rs:919] #21 try: failed to connect to ipc_service
+[2026-10-18 09:36:16.896740 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 09:36:16.896965 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 09:36:16.897668 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 09:36:20.813468 +00:00] INFO [src/server.rs:919] #22 try: failed to connect to ipc_service
+[2026-10-18 09:36:27.715510 +00:00] INFO [src/server.rs:919] #23 try: failed to connect to ipc_service
+[2026-10-18 09:36:33.805041 +00:00] INFO [src/server/connection.rs:2985] receive close reason: 
+[2026-10-18 09:36:33.805084 +00:00] INFO [src/server/connection.rs:5425] #1788 Connection closed: Peer close
+[2026-10-18 09:36:33.805102 +00:00] INFO [src/server/connection.rs:1323] #1788 connection loop exited
+[2026-10-18 09:36:33.805177 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Remove(1788)
+[2026-10-18 09:36:33.805380 +00:00] INFO [src/server/connection.rs:6784] drop wakelock
+[2026-10-18 09:36:33.805419 +00:00] WARN [src/server/connection.rs:2959] ipc to connection manager exit: expected
+[2026-10-18 09:36:33.805418 +00:00] INFO [src/ui_cm_interface.rs:580] cm ipc connection closed from connection request

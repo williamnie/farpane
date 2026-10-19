@@ -1,0 +1,114 @@
+{
+  "artifact": "farpane-native-dev-d393fd0cff634416807feae5",
+  "product_changed": false,
+  "product_installed": false,
+  "final": [
+    {
+      "target": "native-Wayland-terminal",
+      "run": "desktop-terminal-4",
+      "result": "pass",
+      "text": "中文测试",
+      "events": 72,
+      "host_devices": [
+        "/dev/kvm"
+      ],
+      "linux-host_acceptance": false
+    },
+    {
+      "target": "native-Wayland-browser",
+      "run": "desktop-browser",
+      "result": "pass",
+      "text": "中文测试",
+      "events": 72,
+      "host_devices": [
+        "/dev/kvm"
+      ],
+      "linux-host_acceptance": false
+    },
+    {
+      "target": "native-Wayland-entry",
+      "run": "desktop-entry-final",
+      "result": "pass",
+      "text": "中文测试",
+      "events": 72,
+      "host_devices": [
+        "/dev/kvm"
+      ],
+      "linux-host_acceptance": false
+    }
+  ],
+  "runs": [
+    {
+      "label": "desktop-run-2",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.ty6sfohx",
+      "result": "fail",
+      "scope": "private-native-gnome-root-input-startup"
+    },
+    {
+      "label": "desktop-run-3",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.3gntj7fs",
+      "result": "fail",
+      "scope": "private-native-gnome-root-input-startup"
+    },
+    {
+      "label": "desktop-run-4",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.4o7a7gfs",
+      "result": "runner-parse-failed",
+      "scope": null
+    },
+    {
+      "label": "desktop-run-5",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.xjk1mjz4",
+      "result": "pass",
+      "scope": "private-native-gnome-root-input-startup"
+    },
+    {
+      "label": "desktop-run-6",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.gysdd5f5",
+      "result": "fail",
+      "scope": "private-native-gnome-root-input-startup"
+    },
+    {
+      "label": "desktop-run-7",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.9sn_n6gn",
+      "result": "pass",
+      "scope": "private-native-gnome-network-input"
+    },
+    {
+      "label": "desktop-terminal",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.utn3vh6j",
+      "result": "fail",
+      "scope": "private-native-gnome-root-input-startup"
+    },
+    {
+      "label": "desktop-terminal-2",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.eh1rsn0y",
+      "result": "fail",
+      "scope": "private-native-gnome-root-input-startup"
+    },
+    {
+      "label": "desktop-terminal-3",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.7z7f0dh5",
+      "result": "fail",
+      "scope": "private-native-gnome-root-input-startup"
+    },
+    {
+      "label": "desktop-terminal-4",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.p0tr518k",
+      "result": "pass",
+      "scope": "private-native-gnome-network-input"
+    },
+    {
+      "label": "desktop-browser",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.cl5kj2l7",
+      "result": "pass",
+      "scope": "private-native-gnome-network-input"
+    },
+    {
+      "label": "desktop-entry-final",
+      "build_directory": "/home/user/farpane/Build/Linux/native-input-vm/run.5vzgzqow",
+      "result": "pass",
+      "scope": "private-native-gnome-network-input"
+    }
+  ]
+}

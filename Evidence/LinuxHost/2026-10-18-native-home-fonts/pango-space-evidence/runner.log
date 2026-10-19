@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 549, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 289, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_home_fonts.py", line 65, in exercise
+    assert case['unknown_glyphs'] == 0, (variant, label, case['unknown_glyphs'])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('subset', 'mixed_regular', 1)

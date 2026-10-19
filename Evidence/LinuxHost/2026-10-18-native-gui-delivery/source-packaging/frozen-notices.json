@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "result": "pass",
+  "mode": "frozen-candidate-and-source-snapshot",
+  "artifact_id": "farpane-native-dev-532627a818c8f7d0e65df626",
+  "artifact_manifest_sha256": "75755d20ef5912cbd186f8f502857ea3ec9d9957b05fa5f8170438e718038dce",
+  "source_manifest_sha256": "5eeb539adb09e93b4985767462a65e4f43a1af44a63f494239eabca7621effb7",
+  "source_entries_verified": 91491,
+  "archived_proof_pins_sha256": "e94dd07cfd7008d8502323e276d149f4141252023bc16b535db8eeb942a44830",
+  "original_proof_candidate": "farpane-native-dev-e7508f297ef1d671172d7737",
+  "new_followups": [
+    {
+      "package_id": "registry+https://github.com/rust-lang/crates.io-index#dlopen_derive@0.1.4",
+      "published_files_verified": 6,
+      "upstream_commit": "26b70292744db1052403378d4a01075b6171e3d1",
+      "notice_sha256": "062e40ee707f6ab1ca0955624ccfa78d666250a2e821f892705f455cf70dc28a",
+      "already_in_candidate": true,
+      "vendored_sources_verified": true
+    },
+    {
+      "package_id": "registry+https://github.com/rust-lang/crates.io-index#serial@0.4.0",
+      "published_files_verified": 6,
+      "upstream_commit": "7ed6540c2789b7c7365cd7a89fcb7bac7c567de8",
+      "notice_sha256": "871afd9d691846de71e0b83812ba9c7ff00bc7b3ad102dedcaa109f2246d52ad",
+      "already_in_candidate": true,
+      "vendored_sources_verified": true
+    }
+  ],
+  "full_notice_location_followups_including_addendum": 28,
+  "baseline_records_without_full_notice_followup": 17,
+  "active_build_receipt_used": false,
+  "active_cargo_cache_used": false,
+  "original_reports_modified": false,
+  "new_binary_package_needed_for_notice_bytes": false,
+  "source_archive_bytes_verified": false,
+  "fresh_full_build_verified": false,
+  "complete_license_source_audit": false
+}

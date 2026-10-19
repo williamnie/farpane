@@ -1,0 +1,75 @@
+{"argv": ["dpkg", "--install", "/workspace/Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.3_amd64.deb"], "exit": 0}
+Selecting previously unselected package farpane-native-candidate.
+(Reading database ... 22050 files and directories currently installed.)
+Preparing to unpack .../farpane-native-candidate_0.1.0~dev.20261018.3_amd64.deb ...
+Unpacking farpane-native-candidate (0.1.0~dev.20261018.3) ...
+Setting up farpane-native-candidate (0.1.0~dev.20261018.3) ...
+{
+  "artifact_id": "farpane-native-dev-d393fd0cff634416807feae5",
+  "staged": true,
+  "active": false,
+  "current": "farpane-retained-test"
+}
+FarPane candidate staged; active service and desktop are unchanged.
+See /usr/share/doc/farpane-native-candidate/README.Debian for maintenance activation.
+{"argv": ["dpkg-query", "-W", "-f=${Status}", "farpane-native-candidate"], "exit": 0}
+install ok installed{"argv": ["/usr/bin/farpane-maintenance", "--help"], "exit": 0}
+usage: install-native.py [-h] {stage,plan,activate,recover} ...
+
+Stage/inspect a native release; activate or recover only in a maintenance
+window.
+
+positional arguments:
+  {stage,plan,activate,recover}
+
+options:
+  -h, --help            show this help message and exit
+{"argv": ["/usr/bin/farpane-user-integration", "--help"], "exit": 0}
+usage: install-native-user.py [-h] {bind,recover,rollback} ...
+
+Bind this user's FarPane menu/icons/D-Bus after system activation; never
+launch.
+
+positional arguments:
+  {bind,recover,rollback}
+
+options:
+  -h, --help            show this help message and exit
+{"argv": ["dpkg", "--install", "/workspace/Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.5_amd64.deb"], "exit": 1}
+(Reading database ... 26139 files and directories currently installed.)
+Preparing to unpack .../farpane-native-candidate_0.1.0~dev.20261018.5_amd64.deb ...
+Unpacking farpane-native-candidate (0.1.0~dev.20261018.5) over (0.1.0~dev.20261018.3) ...
+Setting up farpane-native-candidate (0.1.0~dev.20261018.5) ...
+Traceback (most recent call last):
+  File "/usr/lib/farpane-native-candidate/control/Scripts/linux/install-native.py", line 40, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/usr/lib/farpane-native-candidate/control/Scripts/linux/install-native.py", line 30, in main
+    if args.command=='stage':result=store.stage(args.artifact.absolute())
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/farpane-native-candidate/control/Linux/packaging/native_install.py", line 242, in stage
+    self.no_pending()
+  File "/usr/lib/farpane-native-candidate/control/Linux/packaging/native_install.py", line 238, in no_pending
+    if self.journal.exists() or self.journal.is_symlink():raise ValueError('An installation transaction requires recovery')
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: An installation transaction requires recovery
+dpkg: error processing package farpane-native-candidate (--install):
+ installed farpane-native-candidate package post-installation script subprocess returned error exit status 1
+Errors were encountered while processing:
+ farpane-native-candidate
+{"argv": ["dpkg", "--configure", "farpane-native-candidate"], "exit": 0}
+Setting up farpane-native-candidate (0.1.0~dev.20261018.5) ...
+{
+  "artifact_id": "farpane-native-dev-ec305482eaacd98258e28587",
+  "staged": true,
+  "active": false,
+  "current": "farpane-retained-test"
+}
+FarPane candidate staged; active service and desktop are unchanged.
+See /usr/share/doc/farpane-native-candidate/README.Debian for maintenance activation.
+{"argv": ["dpkg-query", "-W", "-f=${Version}", "farpane-native-candidate"], "exit": 0}
+0.1.0~dev.20261018.5{"argv": ["dpkg-deb", "-f", "/workspace/Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.5_amd64.deb", "Version"], "exit": 0}
+0.1.0~dev.20261018.5
+{"argv": ["dpkg", "--purge", "farpane-native-candidate"], "exit": 0}
+(Reading database ... 26140 files and directories currently installed.)
+Removing farpane-native-candidate (0.1.0~dev.20261018.5) ...

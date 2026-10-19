@@ -1,0 +1,9 @@
+/home/user/farpane/Build/Linux/native-input-vm/warp-bootstrap.obxxx0p8
+Traceback (most recent call last):
+  File "/home/user/farpane/Scripts/linux/probe-native-warp.py", line 68, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/home/user/farpane/Scripts/linux/probe-native-warp.py", line 64, in main
+    assert code==0, f'Probe failed; see {output}/runner.log'
+           ^^^^^^^
+AssertionError: Probe failed; see /home/user/farpane/Build/Linux/native-input-vm/warp-bootstrap.obxxx0p8/runner.log

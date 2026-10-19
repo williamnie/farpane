@@ -1,0 +1,23 @@
+test_desktop_controller_refuses_host_boot_before_systemctl_or_reboot (test_native_input_vm_guards.GuestBoundary.test_desktop_controller_refuses_host_boot_before_systemctl_or_reboot) ... ok
+test_desktop_user_session_refuses_host_boot (test_native_input_vm_guards.GuestBoundary.test_desktop_user_session_refuses_host_boot) ... ok
+test_input_probe_refuses_before_opening_device (test_native_input_vm_guards.GuestBoundary.test_input_probe_refuses_before_opening_device) ... ok
+test_mount_entry_refuses_non_guest_pid (test_native_input_vm_guards.GuestBoundary.test_mount_entry_refuses_non_guest_pid) ... ok
+test_network_input_refuses_host_before_device_or_gui (test_native_input_vm_guards.GuestBoundary.test_network_input_refuses_host_before_device_or_gui) ... ok
+test_service_fixture_refuses_before_starting_processes (test_native_input_vm_guards.GuestBoundary.test_service_fixture_refuses_before_starting_processes) ... ok
+test_wire_driver_refuses_host_before_device_open (test_native_input_vm_guards.GuestBoundary.test_wire_driver_refuses_host_before_device_open) ... ok
+test_wire_peer_refuses_host_before_network_connect (test_native_input_vm_guards.GuestBoundary.test_wire_peer_refuses_host_before_network_connect) ... ok
+test_host_boot_rejected_before_writes_and_commands (test_native_maintenance_vm_guard.MaintenanceBoundary.test_host_boot_rejected_before_writes_and_commands) ... ok
+test_input_guest_is_not_maintenance_authority (test_native_maintenance_vm_guard.MaintenanceBoundary.test_input_guest_is_not_maintenance_authority) ... ok
+test_capture_refuses_host_before_loading_library (test_native_desktop_launch_vm_guard.DesktopLaunchBoundary.test_capture_refuses_host_before_loading_library) ... ok
+test_keyboard_refuses_host_before_open (test_native_desktop_launch_vm_guard.DesktopLaunchBoundary.test_keyboard_refuses_host_before_open) ... ok
+test_launch_refuses_host_before_process_or_bus (test_native_desktop_launch_vm_guard.DesktopLaunchBoundary.test_launch_refuses_host_before_process_or_bus) ... ok
+test_transport_comparison_refuses_other_profile_before_writes (test_native_desktop_launch_vm_guard.DesktopLaunchBoundary.test_transport_comparison_refuses_other_profile_before_writes) ... ok
+test_unknown_transport_refused_before_writes (test_native_desktop_launch_vm_guard.DesktopLaunchBoundary.test_unknown_transport_refused_before_writes) ... ok
+test_host_refused_before_keyboard_gui_or_bus (test_native_desktop_lifecycle_vm_guard.LifecycleBoundary.test_host_refused_before_keyboard_gui_or_bus) ... ok
+test_other_maintenance_profile_refused_before_capture_guard (test_native_desktop_lifecycle_vm_guard.LifecycleBoundary.test_other_maintenance_profile_refused_before_capture_guard) ... ok
+test_unbounded_index_wait_refused_before_capture_guard (test_native_desktop_lifecycle_vm_guard.LifecycleBoundary.test_unbounded_index_wait_refused_before_capture_guard) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.003s
+
+OK

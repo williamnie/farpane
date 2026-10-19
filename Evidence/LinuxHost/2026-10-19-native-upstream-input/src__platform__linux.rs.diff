@@ -1,0 +1,235 @@
+--- upstream/src/platform/linux.rs
++++ installed-8-source/src/platform/linux.rs
+@@ -1,5 +1,10 @@
+-use super::{gtk_sudo, CursorData, ResultType};
++use super::{CursorData, ResultType};
++#[cfg(not(feature = "farpane-native"))]
++use super::gtk_sudo;
+ use desktop::Desktop;
++#[cfg(feature = "farpane-linux")]
++#[path = "linux/farpane.rs"]
++pub(crate) mod farpane;
+ pub use base::platform::linux::*;
+ 
+ #[cfg(feature = "drm")]
+@@ -877,9 +882,18 @@
+ 
+ #[inline]
+ fn try_start_server_(desktop: Option<&Desktop>) -> ResultType<Option<Child>> {
++    #[cfg(feature = "farpane-native")]
++    {
++        let desktop = desktop.ok_or_else(|| anyhow!("Native Host requires a desktop user"))?;
++        return crate::farpane_native::session::spawn(&desktop.uid, &desktop.username,
++            &desktop.display, &desktop.xauth, &desktop.wl_display, &desktop.dbus,
++            &desktop.protocol).map(Some);
++    }
+     match desktop {
+         Some(desktop) => {
+             let mut envs = vec![];
++            #[cfg(feature = "farpane-native")]
++            envs.push(("XDG_RUNTIME_DIR", format!("/run/user/{}", desktop.uid)));
+             if !desktop.display.is_empty() {
+                 envs.push(("DISPLAY", desktop.display.clone()));
+             }
+@@ -990,6 +1004,8 @@
+ 
+ #[inline]
+ fn stop_rustdesk_servers() {
++    #[cfg(feature = "farpane-native")]
++    { allow_err!(crate::farpane_native::process::stop_servers(None)); return; }
+     let _ = run_cmds(&format!(
+         r##"ps -ef | grep -E '{} +--server' | awk '{{print $2}}' | xargs -r kill -9"##,
+         crate::get_app_name().to_lowercase(),
+@@ -1005,6 +1021,8 @@
+     last_restart: &mut Instant,
+     server: &mut Option<Child>,
+ ) -> bool {
++    #[cfg(feature = "farpane-native")]
++    { if try_x11 && (is_display_changed || *uid != desktop.uid) { set_x11_env(desktop); } let Ok(next_uid) = desktop.uid.parse() else { return false; }; return crate::farpane_native::supervisor::should_start(next_uid, uid, is_display_changed, last_restart, server); }
+     let cm = get_cm();
+     let mut start_new = false;
+     let mut should_kill = false;
+@@ -1066,7 +1084,9 @@
+ }
+ 
+ pub fn start_os_service() {
++    #[cfg(not(feature = "farpane-native"))]
+     check_if_stop_service();
++    #[cfg(not(feature = "farpane-native"))]
+     stop_rustdesk_servers();
+     start_uinput_service();
+ 
+@@ -1097,6 +1117,9 @@
+         );
+     }
+ 
++    #[cfg(feature = "farpane-native")]
++    { crate::farpane_native::supervisor::run_service(); return; }
++
+     let running = Arc::new(AtomicBool::new(true));
+     let r = running.clone();
+     let (mut display, mut xauth): (String, String) = ("".to_owned(), "".to_owned());
+@@ -1116,6 +1139,11 @@
+     while running.load(Ordering::SeqCst) {
+         desktop.refresh();
+         update_active_user_lookup_cache(&desktop);
++        #[cfg(feature = "farpane-native")]
++        if desktop.username == "root" || desktop.is_login_wayland() || desktop.username.is_empty() {
++            crate::farpane_native::supervisor::stop_session(&mut uid, &mut user_server);
++            sleep_millis(500); continue;
++        }
+ 
+         // Duplicate logic here with should_start_server.
+         if desktop.username == "root" || desktop.is_login_wayland() {
+@@ -1184,6 +1212,7 @@
+                 &mut last_restart,
+                 &mut user_server,
+             ) {
++                #[cfg(not(feature = "farpane-native"))]
+                 force_stop_server();
+                 start_server(Some(&desktop), &mut user_server);
+             }
+@@ -1203,6 +1232,12 @@
+         sid = desktop.sid.clone();
+     }
+ 
++    #[cfg(feature = "farpane-native")]
++    {
++        crate::farpane_native::supervisor::stop_session(&mut uid, &mut user_server);
++        log::info!("Native service exit");
++        return;
++    }
+     if let Some(ps) = user_server.take().as_mut() {
+         allow_err!(ps.kill());
+     }
+@@ -1216,6 +1251,8 @@
+ /// Returns the cached active `(uid, username)` snapshot when available.
+ /// Callers that require a fresh seat0 lookup should call `get_values_of_seat0` directly.
+ pub fn get_active_user_id_name() -> (String, String) {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| (s.key.uid.to_string(), s.username)).unwrap_or_default(); }
+     if let Some(id_name) = get_active_user_id_name_from_cache() {
+         return id_name;
+     }
+@@ -1227,6 +1264,8 @@
+ /// Returns the cached active uid when available.
+ /// Callers that require a fresh seat0 lookup should call `get_values_of_seat0` directly.
+ pub fn get_active_userid() -> String {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| s.key.uid.to_string()).unwrap_or_default(); }
+     if let Some((uid, _)) = get_active_user_id_name_from_cache() {
+         return uid;
+     }
+@@ -1236,6 +1275,8 @@
+ #[inline]
+ /// Returns the active uid from a fresh seat0 lookup, bypassing the service-loop cache.
+ pub fn get_active_userid_fresh() -> String {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| s.key.uid.to_string()).unwrap_or_default(); }
+     // A Wayland greeter owns seat0 while it is up and the DRM backend serves it, so a uid gate that
+     // cannot see it rejects the greeter's own `--server`. `Desktop::refresh` reads it the same way.
+     #[cfg(feature = "drm")]
+@@ -1250,6 +1291,8 @@
+ /// runtime thread and on a hot path (e.g. per-frame re-auth): a cache miss returns `None` for the
+ /// caller to treat as "active session momentarily unknown" rather than stalling on a subprocess.
+ pub fn get_active_userid_cached() -> Option<u32> {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| s.key.uid); }
+     get_active_user_id_name_from_cache().and_then(|(uid, _)| uid.parse::<u32>().ok())
+ }
+ 
+@@ -1302,6 +1345,8 @@
+ /// Returns the cached active username when available.
+ /// Callers that require a fresh seat0 lookup should call `get_values_of_seat0` directly.
+ pub fn get_active_username() -> String {
++    #[cfg(feature = "farpane-native")]
++    if unsafe { hbb_common::libc::geteuid() } == 0 { return crate::farpane_native::discovery::active().map(|s| s.username).unwrap_or_default(); }
+     if let Some((_, username)) = get_active_user_id_name_from_cache() {
+         return username;
+     }
+@@ -1544,6 +1589,10 @@
+ 
+ pub fn is_installed() -> bool {
+     if let Ok(p) = std::env::current_exe() {
++        #[cfg(feature = "farpane-linux")]
++        if std::fs::canonicalize("/opt/farpane/farpane").ok().as_ref() == Some(&p) {
++            return true;
++        }
+         p.to_str().unwrap_or_default().starts_with("/usr")
+             || p.to_str().unwrap_or_default().starts_with("/nix/store")
+     } else {
+@@ -1763,13 +1812,16 @@
+     }
+ }
+ 
++#[cfg(not(feature = "farpane-native"))]
+ #[link(name = "gtk-3")]
+ extern "C" {
+     fn gtk_main_quit();
+ }
+ 
+ pub fn quit_gui() {
++    #[cfg(not(feature = "farpane-native"))]
+     unsafe { gtk_main_quit() };
++    // Native GUI is a separate process. Ending a UI component must not exit Host.
+ }
+ 
+ /*
+@@ -1779,8 +1831,13 @@
+ */
+ 
+ pub fn check_super_user_permission() -> ResultType<bool> {
+-    gtk_sudo::run(vec!["echo"])?;
+-    Ok(true)
++    #[cfg(not(feature = "farpane-native"))]
++    {
++        gtk_sudo::run(vec!["echo"])?;
++        Ok(true)
++    }
++    #[cfg(feature = "farpane-native")]
++    hbb_common::bail!("Install or upgrade FarPane using its system package installer")
+ }
+ 
+ /*
+@@ -1820,8 +1877,13 @@
+ }
+ */
+ 
++#[cfg(feature = "farpane-native")]
++pub fn get_double_click_time() -> u32 { 250 }
++
++#[cfg(not(feature = "farpane-native"))]
+ type GtkSettingsPtr = *mut c_void;
+ type GObjectPtr = *mut c_void;
++#[cfg(not(feature = "farpane-native"))]
+ #[link(name = "gtk-3")]
+ extern "C" {
+     // fn gtk_init(argc: *mut c_int, argv: *mut *mut c_char);
+@@ -1833,6 +1895,7 @@
+     fn g_object_get(object: GObjectPtr, first_property_name: *const c_char, ...);
+ }
+ 
++#[cfg(not(feature = "farpane-native"))]
+ pub fn get_double_click_time() -> u32 {
+     // GtkSettings *settings = gtk_settings_get_default ();
+     // g_object_get (settings, "gtk-double-click-time", &double_click_time, NULL);
+@@ -2631,7 +2694,10 @@
+ }
+ 
+ pub fn run_cmds_privileged(cmds: &str) -> bool {
+-    crate::platform::gtk_sudo::run(vec![cmds]).is_ok()
++    #[cfg(not(feature = "farpane-native"))]
++    { crate::platform::gtk_sudo::run(vec![cmds]).is_ok() }
++    #[cfg(feature = "farpane-native")]
++    { let _ = cmds; false }
+ }
+ 
+ /// Spawn the current executable after a delay.
+@@ -2963,3 +3029,7 @@
+         }
+     }
+ }
++
++#[cfg(all(target_os = "linux", feature = "linux-gpu-media"))]
++#[path = "linux/gpu_status.rs"]
++pub(crate) mod gpu_status;

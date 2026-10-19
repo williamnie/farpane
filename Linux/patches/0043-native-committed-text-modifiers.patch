@@ -1,0 +1,28 @@
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -2091,6 +2091,16 @@
+         return;
+     }
+ 
++    #[cfg(feature = "farpane-native")]
++    log::debug!("Native committed text: clipboard ready; preparing paste");
++
++    // A committed text sequence is literal text, not a keyboard shortcut.
++    // The legacy seq event has down=false, so sync_modifiers() does not clear
++    // modifiers left by an IME/input-source shortcut. Ctrl/Alt/Meta would turn
++    // Shift+Insert into another shortcut and silently lose the committed text.
++    #[cfg(feature = "farpane-native")]
++    fix_modifiers(&[], en, -1);
++
+     // Use ENIGO's custom_keyboard directly to avoid creating new IPC connections
+     // which would cause excessive logging and keyboard device creation/destruction
+     if en.key_down(Key::Shift).is_err() {
+@@ -2104,6 +2114,8 @@
+     }
+     en.key_up(Key::Raw(XKB_KEY_INSERT));
+     en.key_up(Key::Shift);
++    #[cfg(feature = "farpane-native")]
++    log::debug!("Native committed text: paste key sequence queued");
+ 
+     // Brief delay to allow the target application to process the paste event.
+     // Empirical value — no reliable synchronization mechanism exists on Wayland.

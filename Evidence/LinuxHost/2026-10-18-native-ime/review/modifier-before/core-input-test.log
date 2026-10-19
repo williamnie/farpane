@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'server::input_service::native_paste_tests::private_mutter_production_paste' panicked at src/server/../farpane_native/input_tests.rs:79:13:
+Production paste did not reach focused target; emitted [(42, true), (110, true), (110, false), (42, false), (29, true), (42, true), (110, true), (110, false), (42, false)]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test server::input_service::native_paste_tests::private_mutter_production_paste ... FAILED
+
+failures:
+
+failures:
+    server::input_service::native_paste_tests::private_mutter_production_paste
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 452 filtered out; finished in 3.22s
+

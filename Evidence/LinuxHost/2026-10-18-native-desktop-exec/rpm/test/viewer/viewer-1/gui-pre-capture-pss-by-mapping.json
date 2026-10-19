@@ -1,0 +1,1043 @@
+{
+  "pss_kib": 124172,
+  "mappings": [
+    {
+      "path": "[heap]",
+      "Pss": 38476,
+      "Private_Dirty": 38476,
+      "Anonymous": 38476
+    },
+    {
+      "path": "/usr/lib64/libLLVM.so.22.1",
+      "Pss": 17242,
+      "Private_Dirty": 2200,
+      "Anonymous": 2200
+    },
+    {
+      "path": "/usr/lib64/libgallium-26.2.4.so",
+      "Pss": 10496,
+      "Private_Dirty": 1584,
+      "Anonymous": 1584
+    },
+    {
+      "path": "/usr/lib64/libgtk-4.so.1.2200.5",
+      "Pss": 7604,
+      "Private_Dirty": 232,
+      "Anonymous": 232
+    },
+    {
+      "path": "/usr/share/fonts/google-noto-sans-cjk-fonts/NotoSansCJK-Regular.ttc",
+      "Pss": 6736,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[anonymous]",
+      "Pss": 5112,
+      "Private_Dirty": 5112,
+      "Anonymous": 5112
+    },
+    {
+      "path": "/usr/share/fonts/google-noto-sans-cjk-fonts/NotoSansCJK-Bold.ttc",
+      "Pss": 4416,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/opt/farpane-native-test/releases/native-smoke-1/farpane",
+      "Pss": 2144,
+      "Private_Dirty": 2144,
+      "Anonymous": 72
+    },
+    {
+      "path": "/SYSV00000000 (deleted)",
+      "Pss": 2064,
+      "Private_Dirty": 4,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libadwaita-1.so.0",
+      "Pss": 1868,
+      "Private_Dirty": 32,
+      "Anonymous": 32
+    },
+    {
+      "path": "/usr/lib64/libgio-2.0.so.0.8800.4",
+      "Pss": 1736,
+      "Private_Dirty": 40,
+      "Anonymous": 40
+    },
+    {
+      "path": "/usr/lib64/libgnutls.so.30.42.0",
+      "Pss": 1236,
+      "Private_Dirty": 88,
+      "Anonymous": 88
+    },
+    {
+      "path": "/memfd:farpane-frame (deleted)",
+      "Pss": 1200,
+      "Private_Dirty": 1200,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libharfbuzz.so.0.61410.0",
+      "Pss": 1110,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libcairo.so.2.11806.6",
+      "Pss": 1044,
+      "Private_Dirty": 24,
+      "Anonymous": 24
+    },
+    {
+      "path": "/usr/lib64/libepoxy.so.0.0.0",
+      "Pss": 1012,
+      "Private_Dirty": 60,
+      "Anonymous": 60
+    },
+    {
+      "path": "/usr/lib64/libcrypto.so.3.5.9",
+      "Pss": 722,
+      "Private_Dirty": 488,
+      "Anonymous": 488
+    },
+    {
+      "path": "/usr/lib64/libglib-2.0.so.0.8800.4",
+      "Pss": 717,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libfreetype.so.6.20.6",
+      "Pss": 674,
+      "Private_Dirty": 32,
+      "Anonymous": 32
+    },
+    {
+      "path": "/usr/lib64/libglycin-2.so.0",
+      "Pss": 528,
+      "Private_Dirty": 112,
+      "Anonymous": 112
+    },
+    {
+      "path": "/usr/lib64/libxml2.so.2.12.10",
+      "Pss": 527,
+      "Private_Dirty": 48,
+      "Anonymous": 48
+    },
+    {
+      "path": "/usr/lib64/libstemmer.so.0.0.0",
+      "Pss": 508,
+      "Private_Dirty": 352,
+      "Anonymous": 352
+    },
+    {
+      "path": "/usr/lib64/libssh.so.4.12.0",
+      "Pss": 464,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/share/fonts/google-noto-vf/NotoSans[wght].ttf",
+      "Pss": 462,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libpango-1.0.so.0.5701.0",
+      "Pss": 444,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/lib64/libstdc++.so.6.0.36",
+      "Pss": 390,
+      "Private_Dirty": 72,
+      "Anonymous": 72
+    },
+    {
+      "path": "/usr/lib64/libappstream.so.1.1.3",
+      "Pss": 372,
+      "Private_Dirty": 60,
+      "Anonymous": 60
+    },
+    {
+      "path": "/usr/lib64/libp11-kit.so.0.4.11",
+      "Pss": 364,
+      "Private_Dirty": 128,
+      "Anonymous": 128
+    },
+    {
+      "path": "/usr/lib64/libEGL_mesa.so.0.0.0",
+      "Pss": 344,
+      "Private_Dirty": 56,
+      "Anonymous": 56
+    },
+    {
+      "path": "/usr/lib64/libfontconfig.so.1.16.0",
+      "Pss": 332,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libkrb5.so.3.3",
+      "Pss": 312,
+      "Private_Dirty": 64,
+      "Anonymous": 64
+    },
+    {
+      "path": "/usr/lib64/libvulkan.so.1.4.341",
+      "Pss": 300,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libssl.so.3.5.9",
+      "Pss": 296,
+      "Private_Dirty": 56,
+      "Anonymous": 56
+    },
+    {
+      "path": "/usr/lib64/libmount.so.1.1.0",
+      "Pss": 292,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libX11.so.6.4.0",
+      "Pss": 271,
+      "Private_Dirty": 28,
+      "Anonymous": 28
+    },
+    {
+      "path": "/usr/lib64/libpixman-1.so.0.46.2",
+      "Pss": 254,
+      "Private_Dirty": 36,
+      "Anonymous": 36
+    },
+    {
+      "path": "/usr/lib64/libtinysparql-3.0.so.0.1101.0",
+      "Pss": 248,
+      "Private_Dirty": 64,
+      "Anonymous": 64
+    },
+    {
+      "path": "/usr/lib64/libm.so.6",
+      "Pss": 245,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libzstd.so.1.5.7",
+      "Pss": 236,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgstvideo-1.0.so.0.2808.0",
+      "Pss": 223,
+      "Private_Dirty": 84,
+      "Anonymous": 84
+    },
+    {
+      "path": "/usr/lib64/libSPIRV-Tools.so",
+      "Pss": 220,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib64/libhogweed.so.6.10",
+      "Pss": 216,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgstgl-1.0.so.0.2808.0",
+      "Pss": 216,
+      "Private_Dirty": 28,
+      "Anonymous": 28
+    },
+    {
+      "path": "/usr/lib64/libnettle.so.8.10",
+      "Pss": 204,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libsqlite3.so.3.51.2",
+      "Pss": 204,
+      "Private_Dirty": 32,
+      "Anonymous": 32
+    },
+    {
+      "path": "/usr/lib64/liblcms2.so.2.0.16",
+      "Pss": 200,
+      "Private_Dirty": 24,
+      "Anonymous": 24
+    },
+    {
+      "path": "/usr/lib64/libevent-2.1.so.7.0.2",
+      "Pss": 196,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libc.so.6",
+      "Pss": 194,
+      "Private_Dirty": 24,
+      "Anonymous": 24
+    },
+    {
+      "path": "/usr/lib64/libcups.so.2",
+      "Pss": 192,
+      "Private_Dirty": 44,
+      "Anonymous": 44
+    },
+    {
+      "path": "/usr/lib64/libldap.so.2.0.200",
+      "Pss": 188,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib64/libgstpbutils-1.0.so.0.2808.0",
+      "Pss": 188,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/lib64/libcurl.so.4.8.0",
+      "Pss": 188,
+      "Private_Dirty": 32,
+      "Anonymous": 32
+    },
+    {
+      "path": "/usr/lib64/libjpeg.so.62.4.0",
+      "Pss": 188,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libunistring.so.5.0.0",
+      "Pss": 176,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/lib64/libseccomp.so.2.6.1",
+      "Pss": 176,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgsttag-1.0.so.0.2808.0",
+      "Pss": 176,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib64/libgdk_pixbuf-2.0.so.0.4400.4",
+      "Pss": 176,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libcrypt.so.2.0.0",
+      "Pss": 172,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libcolord.so.2.0.5",
+      "Pss": 168,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib64/libgssapi_krb5.so.2.2",
+      "Pss": 164,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib64/libtiff.so.6.3.0",
+      "Pss": 164,
+      "Private_Dirty": 24,
+      "Anonymous": 24
+    },
+    {
+      "path": "/usr/lib64/libGLdispatch.so.0.0.0",
+      "Pss": 163,
+      "Private_Dirty": 116,
+      "Anonymous": 116
+    },
+    {
+      "path": "/usr/lib64/libgstreamer-1.0.so.0.2808.0",
+      "Pss": 162,
+      "Private_Dirty": 36,
+      "Anonymous": 36
+    },
+    {
+      "path": "/usr/lib64/libgstaudio-1.0.so.0.2808.0",
+      "Pss": 160,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/lib64/libidn2.so.0.4.0",
+      "Pss": 160,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libfyaml.so.0.0.0",
+      "Pss": 160,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "[stack]",
+      "Pss": 160,
+      "Private_Dirty": 160,
+      "Anonymous": 160
+    },
+    {
+      "path": "/usr/lib64/libgmp.so.10.5.0",
+      "Pss": 156,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libpng16.so.16.58.0",
+      "Pss": 156,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libudev.so.1.7.12",
+      "Pss": 152,
+      "Private_Dirty": 24,
+      "Anonymous": 24
+    },
+    {
+      "path": "/usr/lib64/libblkid.so.1.1.0",
+      "Pss": 148,
+      "Private_Dirty": 28,
+      "Anonymous": 28
+    },
+    {
+      "path": "/usr/lib64/libwebp.so.7.2.0",
+      "Pss": 148,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libharfbuzz-subset.so.0.61410.0",
+      "Pss": 148,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libnghttp2.so.14.29.2",
+      "Pss": 144,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib64/libngtcp2.so.16.8.1",
+      "Pss": 144,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libLerc.so.4",
+      "Pss": 144,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libfido2.so.1.16.0",
+      "Pss": 140,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libxmlb.so.2.0.0",
+      "Pss": 140,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgobject-2.0.so.0.8800.4",
+      "Pss": 138,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib64/libnghttp3.so.9.9.0",
+      "Pss": 136,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libjson-glib-1.0.so.0.1000.8",
+      "Pss": 136,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libgstplay-1.0.so.0.2808.0",
+      "Pss": 128,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libdrm_intel.so.1.134.0",
+      "Pss": 120,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libfribidi.so.0.4.0",
+      "Pss": 120,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libsasl2.so.3.0.0",
+      "Pss": 112,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libcairo-script-interpreter.so.2.11806.6",
+      "Pss": 112,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libgraphene-1.0.so.0.1000.8",
+      "Pss": 112,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libpangoft2-1.0.so.0.5701.0",
+      "Pss": 108,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libelf-0.196.so",
+      "Pss": 96,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib/fontconfig/cache/11813aa27819adc86a2bd907df52c0c9-le64.cache-9",
+      "Pss": 92,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libk5crypto.so.3.1",
+      "Pss": 92,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libtasn1.so.6.6.5",
+      "Pss": 88,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/liblzo2.so.2.0.0",
+      "Pss": 88,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/liborc-0.4.so.0.41.0",
+      "Pss": 85,
+      "Private_Dirty": 28,
+      "Anonymous": 28
+    },
+    {
+      "path": "/usr/lib64/libavahi-client.so.3.2.9",
+      "Pss": 80,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libpsl.so.5.3.5",
+      "Pss": 76,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libpangocairo-1.0.so.0.5701.0",
+      "Pss": 76,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libcbor.so.0.13.0",
+      "Pss": 72,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/liblber.so.2.0.200",
+      "Pss": 72,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libsystemd.so.0.42.0",
+      "Pss": 71,
+      "Private_Dirty": 44,
+      "Anonymous": 44
+    },
+    {
+      "path": "/usr/lib64/libexpat.so.1.12.5",
+      "Pss": 69,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libresolv.so.2",
+      "Pss": 68,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libkrb5support.so.0.1",
+      "Pss": 68,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libEGL.so.1.1.0",
+      "Pss": 68,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libwayland-client.so.0.26.0",
+      "Pss": 64,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libxkbcommon.so.0.13.1",
+      "Pss": 62,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libedit.so.0.0.78",
+      "Pss": 60,
+      "Private_Dirty": 16,
+      "Anonymous": 16
+    },
+    {
+      "path": "/usr/lib64/libsensors.so.4.5.0",
+      "Pss": 60,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libavahi-common.so.3.5.4",
+      "Pss": 60,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgstbase-1.0.so.0.2808.0",
+      "Pss": 60,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libxcb-render.so.0.0.0",
+      "Pss": 60,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libGLESv2.so.2.1.0",
+      "Pss": 60,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libjbig.so.2.1",
+      "Pss": 56,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgudev-1.0.so.0.3.0",
+      "Pss": 56,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libtinfo.so.6.6",
+      "Pss": 55,
+      "Private_Dirty": 20,
+      "Anonymous": 20
+    },
+    {
+      "path": "/usr/lib64/libdrm_amdgpu.so.1.134.0",
+      "Pss": 52,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libngtcp2_crypto_ossl.so.0.2.0",
+      "Pss": 52,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libXrandr.so.2.2.0",
+      "Pss": 52,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libdbus-1.so.3.38.3",
+      "Pss": 48,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libthai.so.0.3.2",
+      "Pss": 48,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/share/glib-2.0/schemas/gschemas.compiled",
+      "Pss": 44,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libz.so.1.3.1.zlib-ng",
+      "Pss": 44,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/share/icons/Adwaita/icon-theme.cache",
+      "Pss": 40,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libpciaccess.so.0.11.1",
+      "Pss": 40,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libwayland-cursor.so.0.26.0",
+      "Pss": 40,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libGLX.so.0.0.0",
+      "Pss": 40,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libselinux.so.1",
+      "Pss": 38,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgcc_s-16-20260819.so.1",
+      "Pss": 38,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libxcb-xfixes.so.0.0.0",
+      "Pss": 36,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libbrotlicommon.so.1.2.0",
+      "Pss": 36,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libxcb.so.1.1.0",
+      "Pss": 36,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgraphite2.so.3.2.1",
+      "Pss": 35,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libpcre2-8.so.0.15.0",
+      "Pss": 35,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/locale/C.utf8/LC_CTYPE",
+      "Pss": 33,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libxcb-sync.so.1.0.0",
+      "Pss": 32,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libsharpyuv.so.0.1.2",
+      "Pss": 32,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libdatrie.so.1.4.1",
+      "Pss": 32,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libcairo-gobject.so.2.11806.6",
+      "Pss": 32,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/liblzma.so.5.8.2",
+      "Pss": 31,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libXrender.so.1.3.0",
+      "Pss": 30,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libXi.so.6.1.0",
+      "Pss": 30,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/share/icons/AdwaitaLegacy/icon-theme.cache",
+      "Pss": 28,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libxcb-randr.so.0.1.0",
+      "Pss": 28,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/ld-linux-x86-64.so.2",
+      "Pss": 28,
+      "Private_Dirty": 12,
+      "Anonymous": 12
+    },
+    {
+      "path": "/usr/lib64/libXcursor.so.1.0.2",
+      "Pss": 26,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libxcb-dri3.so.0.1.0",
+      "Pss": 24,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libcom_err.so.2.1",
+      "Pss": 24,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libbz2.so.1.0.8",
+      "Pss": 21,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib/fontconfig/cache/d63f98f14a274bd69a5425fc33aaac6b-le64.cache-9",
+      "Pss": 20,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libxcb-present.so.0.0.0",
+      "Pss": 20,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libkeyutils.so.1.10",
+      "Pss": 20,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libbrotlidec.so.1.2.0",
+      "Pss": 20,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libdrm.so.2.134.0",
+      "Pss": 19,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libXext.so.6.4.0",
+      "Pss": 18,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libxshmfence.so.1.0.0",
+      "Pss": 16,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libXinerama.so.1.0.0",
+      "Pss": 16,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libffi.so.8.2.0",
+      "Pss": 15,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libXfixes.so.3.1.0",
+      "Pss": 14,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgstallocators-1.0.so.0.2808.0",
+      "Pss": 14,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib/fontconfig/cache/18f520a508f13854f77176faf7889ae9-le64.cache-9",
+      "Pss": 12,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/libX11-xcb.so.1.0.0",
+      "Pss": 12,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libXdamage.so.1.1.0",
+      "Pss": 12,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libwayland-egl.so.1.26.0",
+      "Pss": 12,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/usr/lib64/libgmodule-2.0.so.0.8800.4",
+      "Pss": 12,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libgbm.so.1.0.0",
+      "Pss": 12,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libxcb-shm.so.0.0.0",
+      "Pss": 10,
+      "Private_Dirty": 8,
+      "Anonymous": 8
+    },
+    {
+      "path": "/usr/lib64/libXau.so.6.0.0",
+      "Pss": 5,
+      "Private_Dirty": 4,
+      "Anonymous": 4
+    },
+    {
+      "path": "/run/farpane-native-test/user/cache/mesa_shader_cache/index",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "/usr/lib64/gconv/gconv-modules.cache",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[vvar]",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[vvar_vclock]",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[vdso]",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    },
+    {
+      "path": "[vsyscall]",
+      "Pss": 0,
+      "Private_Dirty": 0,
+      "Anonymous": 0
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+   Compiling farpane-protocol v0.1.0 (/workspace/Build/Linux/gui-updates/run-so3dj_lw/source/Linux/native/protocol)
+   Compiling farpane-gui v0.1.0 (/workspace/Build/Linux/gui-updates/run-so3dj_lw/source/Linux/gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.11s
+     Running unittests src/main.rs (/workspace/Build/Linux/native-target/debug/deps/farpane-45b91db389a0c75a)
+
+running 10 tests
+test bridge::tests::stale_approval_is_not_sent_to_a_new_agent_generation ... ok
+test model::tests::authentication_does_not_claim_picture_and_old_events_cannot_replace_new_session ... ok
+test viewer_clipboard::tests::rgba_is_preconverted_and_png_provider_is_bounded ... ignored, requires the isolated Xvfb test container and core-generated PNG fixtures
+test model::tests::stale_generation_replayed_sequence_and_frames_after_cancel_are_rejected ... ok
+test viewer_input::tests::letterbox_hidpi_and_negative_monitor_origin_map_to_remote_coordinates ... ok
+test viewer_recovery::tests::first_connection_and_nonretryable_close_require_user_action ... ok
+test viewer_recovery::tests::four_delays_require_reaping_and_old_view_cannot_cancel_replacement ... ok
+test viewer_recovery::tests::only_presentation_resets_budget_and_cancel_removes_deadline ... ok
+test diagnostics::tests::event_summaries_never_copy_sensitive_payloads ... ok
+test diagnostics::tests::disk_rotation_is_bounded_and_preserves_unknown_and_symlink_targets ... ok
+
+test result: ok. 9 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

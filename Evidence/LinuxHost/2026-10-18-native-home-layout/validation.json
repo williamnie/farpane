@@ -1,0 +1,37 @@
+{
+  "runs": [
+    {
+      "run": "run-pdcyab97",
+      "exit": {
+        "returncode": 1
+      },
+      "container_removed": true,
+      "source_hashes_verified": 10
+    },
+    {
+      "run": "run-i1i044yv",
+      "exit": {
+        "returncode": 0
+      },
+      "container_removed": true,
+      "source_hashes_verified": 10
+    }
+  ],
+  "geometry_snapshots_checked": 28,
+  "horizontal_overflow": false,
+  "unknown_label_glyphs": false,
+  "guard_unit_tests": {
+    "methods": 2,
+    "result": "pass",
+    "raw_stdout": "tool output only; not separately archived"
+  },
+  "manually_viewed_pngs": [
+    "run-pdcyab97/run/layout-1x-1020x720/server.png",
+    "run-pdcyab97/run/layout-1x-1020x720/about.png",
+    "run-i1i044yv/run/layout-1x-800x600/home.png",
+    "run-i1i044yv/run/layout-1x-800x600/server.png",
+    "run-i1i044yv/run/layout-2x-800x600/server.png",
+    "run-i1i044yv/run/layout-2x-800x600/footer.png"
+  ],
+  "installed_release": "releases/farpane-native-dev-bfc1befc221061266d5f50da"
+}

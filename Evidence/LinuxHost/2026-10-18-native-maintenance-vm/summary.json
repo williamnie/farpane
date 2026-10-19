@@ -1,0 +1,325 @@
+{
+  "result": "pass",
+  "successful_independent_boots": [
+    {
+      "run": "run.k60ifgcg",
+      "checks": [
+        "real_systemd_logind_gnome_session",
+        "real_deb_initial_activation_user_bind_and_gui_bus_owner",
+        "deb_upgrade_stages_without_touching_real_live_generation",
+        "real_systemd_upgrade_replaces_root_host_gui_preserves_identity_and_entries",
+        "real_systemd_and_user_entry_rollback_restores_previous_generation",
+        "real_package_purge_retains_running_generation_credentials_and_unrelated_unit"
+      ],
+      "boot_id": "8a83a027-2fbc-4546-a40c-7cf98e75c211",
+      "generations": [
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "processes": [
+            {
+              "pid": 739,
+              "uid": 0,
+              "role": "--service",
+              "start": "2697"
+            },
+            {
+              "pid": 770,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2919"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "processes": [
+            {
+              "pid": 739,
+              "uid": 0,
+              "role": "--service",
+              "start": "2697"
+            },
+            {
+              "pid": 770,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2919"
+            },
+            {
+              "pid": 823,
+              "uid": 1000,
+              "role": "gui",
+              "start": "2927"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-d393fd0cff634416807feae5",
+          "processes": [
+            {
+              "pid": 1098,
+              "uid": 0,
+              "role": "--service",
+              "start": "5048"
+            },
+            {
+              "pid": 1136,
+              "uid": 1000,
+              "role": "--server",
+              "start": "5263"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-d393fd0cff634416807feae5",
+          "processes": [
+            {
+              "pid": 1098,
+              "uid": 0,
+              "role": "--service",
+              "start": "5048"
+            },
+            {
+              "pid": 1136,
+              "uid": 1000,
+              "role": "--server",
+              "start": "5263"
+            },
+            {
+              "pid": 1219,
+              "uid": 1000,
+              "role": "gui",
+              "start": "5326"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "processes": [
+            {
+              "pid": 1301,
+              "uid": 0,
+              "role": "--service",
+              "start": "5722"
+            },
+            {
+              "pid": 1340,
+              "uid": 1000,
+              "role": "--server",
+              "start": "5937"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "processes": [
+            {
+              "pid": 1301,
+              "uid": 0,
+              "role": "--service",
+              "start": "5722"
+            },
+            {
+              "pid": 1340,
+              "uid": 1000,
+              "role": "--server",
+              "start": "5937"
+            },
+            {
+              "pid": 1396,
+              "uid": 1000,
+              "role": "gui",
+              "start": "5966"
+            }
+          ]
+        }
+      ],
+      "credential_fields_compared": [
+        "enc_id",
+        "key_pair",
+        "password",
+        "salt"
+      ],
+      "activation": [
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "method": "org.freedesktop.Application.Activate",
+          "bus_owner_pid": 823
+        },
+        {
+          "release": "farpane-native-dev-d393fd0cff634416807feae5",
+          "method": "org.freedesktop.Application.Activate",
+          "bus_owner_pid": 1219
+        },
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "method": "org.freedesktop.Application.Activate",
+          "bus_owner_pid": 1396
+        }
+      ]
+    },
+    {
+      "run": "run.7qibqyoe",
+      "checks": [
+        "real_systemd_logind_gnome_session",
+        "real_deb_initial_activation_user_bind_and_gui_bus_owner",
+        "deb_upgrade_stages_without_touching_real_live_generation",
+        "real_systemd_upgrade_replaces_root_host_gui_preserves_identity_and_entries",
+        "real_systemd_and_user_entry_rollback_restores_previous_generation",
+        "real_package_purge_retains_running_generation_credentials_and_unrelated_unit"
+      ],
+      "boot_id": "76a22423-a479-47a1-ad38-f73bf5c3d76b",
+      "generations": [
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2678"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2898"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2678"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2898"
+            },
+            {
+              "pid": 836,
+              "uid": 1000,
+              "role": "gui",
+              "start": "2908"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-d393fd0cff634416807feae5",
+          "processes": [
+            {
+              "pid": 1109,
+              "uid": 0,
+              "role": "--service",
+              "start": "4989"
+            },
+            {
+              "pid": 1147,
+              "uid": 1000,
+              "role": "--server",
+              "start": "5203"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-d393fd0cff634416807feae5",
+          "processes": [
+            {
+              "pid": 1109,
+              "uid": 0,
+              "role": "--service",
+              "start": "4989"
+            },
+            {
+              "pid": 1147,
+              "uid": 1000,
+              "role": "--server",
+              "start": "5203"
+            },
+            {
+              "pid": 1230,
+              "uid": 1000,
+              "role": "gui",
+              "start": "5264"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "processes": [
+            {
+              "pid": 1311,
+              "uid": 0,
+              "role": "--service",
+              "start": "5661"
+            },
+            {
+              "pid": 1350,
+              "uid": 1000,
+              "role": "--server",
+              "start": "5877"
+            }
+          ]
+        },
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "processes": [
+            {
+              "pid": 1311,
+              "uid": 0,
+              "role": "--service",
+              "start": "5661"
+            },
+            {
+              "pid": 1350,
+              "uid": 1000,
+              "role": "--server",
+              "start": "5877"
+            },
+            {
+              "pid": 1406,
+              "uid": 1000,
+              "role": "gui",
+              "start": "5905"
+            }
+          ]
+        }
+      ],
+      "credential_fields_compared": [
+        "enc_id",
+        "key_pair",
+        "password",
+        "salt"
+      ],
+      "activation": [
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "method": "org.freedesktop.Application.Activate",
+          "bus_owner_pid": 836
+        },
+        {
+          "release": "farpane-native-dev-d393fd0cff634416807feae5",
+          "method": "org.freedesktop.Application.Activate",
+          "bus_owner_pid": 1230
+        },
+        {
+          "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+          "method": "org.freedesktop.Application.Activate",
+          "bus_owner_pid": 1406
+        }
+      ]
+    }
+  ],
+  "desktop_menu_click_tested": false,
+  "pixel_presentation_tested": false,
+  "physical_host_changed": false,
+  "input_tested": false,
+  "gpu_tested": false,
+  "full_goal_complete": false
+}

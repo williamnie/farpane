@@ -1,0 +1,168 @@
+{
+  "observed_at_utc": "2026-10-19T01:50:00.956087+00:00",
+  "method": "Read-only /proc metadata; selected X11 paths and arguments only. No socket connection, clipboard access or input device opened.",
+  "processes": [
+    {
+      "pid": 2262,
+      "comm": "gnome-shell",
+      "selected_argv": [],
+      "x_socket_fds": [
+        {
+          "fd": 35,
+          "path": "@/tmp/.X11-unix/X1",
+          "state": "01",
+          "flags": "00010000"
+        }
+      ]
+    },
+    {
+      "pid": 3858,
+      "comm": "Xwayland",
+      "selected_argv": [
+        [
+          ":0"
+        ],
+        [
+          "-listenfd",
+          "4"
+        ],
+        [
+          "-listenfd",
+          "5"
+        ],
+        [
+          "-initfd",
+          "7"
+        ]
+      ],
+      "x_socket_fds": [
+        {
+          "fd": 4,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "01",
+          "flags": "00010000"
+        },
+        {
+          "fd": 5,
+          "path": "/tmp/.X11-unix/X0",
+          "state": "01",
+          "flags": "00010000"
+        },
+        {
+          "fd": 6,
+          "path": "/tmp/.X11-unix/X1",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 7,
+          "path": "/tmp/.X11-unix/X1",
+          "state": "01",
+          "flags": "00010000"
+        },
+        {
+          "fd": 14,
+          "path": "/tmp/.X11-unix/X1",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 15,
+          "path": "/tmp/.X11-unix/X1",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 16,
+          "path": "/tmp/.X11-unix/X1",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 17,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 18,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 19,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 20,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 21,
+          "path": "/tmp/.X11-unix/X1",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 22,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 23,
+          "path": "/tmp/.X11-unix/X1",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 24,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 25,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 26,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 27,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 28,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 29,
+          "path": "/tmp/.X11-unix/X1",
+          "state": "03",
+          "flags": "00000000"
+        },
+        {
+          "fd": 30,
+          "path": "@/tmp/.X11-unix/X0",
+          "state": "03",
+          "flags": "00000000"
+        }
+      ]
+    }
+  ]
+}

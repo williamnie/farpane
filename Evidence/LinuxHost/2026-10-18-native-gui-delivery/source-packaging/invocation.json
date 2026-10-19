@@ -1,0 +1,11 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "Scripts/linux/package-native-gui-source.py",
+    "Build/Linux/artifacts/farpane-native-dev-532627a818c8f7d0e65df626",
+    "Build/Linux/source-bundles/farpane-native-source-704f37fe999ad9f837832f79",
+    "--parent-manifest-sha256",
+    "704f37fe999ad9f837832f79b31e242b51e8322651136c0ee6f82b68785b4bc0"
+  ]
+}

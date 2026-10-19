@@ -1,0 +1,15 @@
+{
+  "scope": "new log offsets from original startup through stop; not restricted to the 30-second key window",
+  "stages": [
+    {
+      "timestamp_as_logged": "2026-10-18 19:10:02.555940 -07:00",
+      "category": "clipboard_update_on_host_log",
+      "exact_expected_prefix": true
+    },
+    {
+      "timestamp_as_logged": "2026-10-18 19:10:10.440087 -07:00",
+      "category": "clipboard_update_on_host_log",
+      "exact_expected_prefix": true
+    }
+  ]
+}

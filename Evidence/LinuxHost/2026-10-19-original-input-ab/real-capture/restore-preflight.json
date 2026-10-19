@@ -1,0 +1,48 @@
+{
+  "utc": "2026-10-19T02:10:11.464131+00:00",
+  "matches": [
+    {
+      "pid": 1597708,
+      "uid": 0,
+      "start_ticks": 8902809,
+      "allowed_new_original_process": true,
+      "role": "--service"
+    },
+    {
+      "pid": 1597933,
+      "uid": 0,
+      "start_ticks": 8902917,
+      "allowed_new_original_process": false,
+      "role": "unknown"
+    },
+    {
+      "pid": 1597935,
+      "uid": 1000,
+      "start_ticks": 8902918,
+      "allowed_new_original_process": true,
+      "role": "--server"
+    },
+    {
+      "pid": 1597943,
+      "uid": 1000,
+      "start_ticks": 8902923,
+      "allowed_new_original_process": true,
+      "role": "--tray"
+    },
+    {
+      "pid": 1598067,
+      "uid": 1000,
+      "start_ticks": 8902929,
+      "allowed_new_original_process": false,
+      "role": "unknown"
+    },
+    {
+      "pid": 1599138,
+      "uid": 1000,
+      "start_ticks": 8907592,
+      "allowed_new_original_process": true,
+      "role": "--cm"
+    }
+  ],
+  "old_gui_pid_present": false
+}

@@ -1,0 +1,8 @@
+{
+  "observed_at_utc": "2026-10-19T01:50:22.638966+00:00",
+  "release": "/opt/farpane/releases/farpane-native-dev-9a76a6c2af66e3955470ea24",
+  "service_status": "Id=farpane.service\nLoadState=loaded\nActiveState=active\nSubState=running\nUnitFileState=disabled\nMainPID=1497504\nNRestarts=0\n\nId=rustdesk.service\nLoadState=loaded\nActiveState=inactive\nSubState=dead\nUnitFileState=disabled\nMainPID=0\nNRestarts=0\n",
+  "services_changed": false,
+  "new_input_capture": false,
+  "note": "Earlier lookup of farpane-native.service used the wrong unit name; discarded. Authoritative unit is farpane.service as verified in observer CLI."
+}

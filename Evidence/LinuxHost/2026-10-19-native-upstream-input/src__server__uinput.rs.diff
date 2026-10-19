@@ -1,0 +1,232 @@
+--- upstream/src/server/uinput.rs
++++ installed-8-source/src/server/uinput.rs
+@@ -22,20 +22,39 @@
+     pub struct UInputKeyboard {
+         conn: Connection,
+         rt: Runtime,
++        #[cfg(feature = "farpane-native")]
++        native_retry: std::time::Instant,
+     }
+ 
+     impl UInputKeyboard {
+         pub async fn new() -> ResultType<Self> {
+             let conn = ipc::connect(IPC_CONN_TIMEOUT, IPC_POSTFIX_KEYBOARD).await?;
+             let rt = Runtime::new()?;
+-            Ok(Self { conn, rt })
++            Ok(Self { conn, rt,
++                #[cfg(feature = "farpane-native")]
++                native_retry: std::time::Instant::now() - std::time::Duration::from_secs(1),
++            })
+         }
+ 
+         fn send(&mut self, data: Data) -> ResultType<()> {
++            #[cfg(feature = "farpane-native")]
++            { return self.rt.block_on(crate::farpane_native::input_retry::send(
++                &mut self.conn, &data, &mut self.native_retry, IPC_POSTFIX_KEYBOARD)); }
++            #[cfg(not(feature = "farpane-native"))]
+             self.rt.block_on(self.conn.send(&data))
+         }
+ 
++        /// Like `get_key_state`, but a failed query is an error instead of "up".
++        #[cfg(feature = "farpane-native")]
++        pub fn try_key_state(&mut self, key: Key) -> ResultType<bool> {
++            self.send_get_key_state(Data::Keyboard(DataKeyboard::GetKeyState(key)))
++        }
++
+         fn send_get_key_state(&mut self, data: Data) -> ResultType<bool> {
++            #[cfg(feature = "farpane-native")]
++            self.rt.block_on(crate::farpane_native::input_retry::send(
++                &mut self.conn, &data, &mut self.native_retry, IPC_POSTFIX_KEYBOARD))?;
++            #[cfg(not(feature = "farpane-native"))]
+             self.rt.block_on(self.conn.send(&data))?;
+ 
+             match self
+@@ -83,6 +102,9 @@
+                 Ok(state) => state,
+                 Err(e) => {
+                     // unreachable!()
++                    #[cfg(feature = "farpane-native")]
++                    hbb_common::throttled_log!(std::time::Duration::from_secs(10), warn, "Native input key-state query failed: {e}");
++                    #[cfg(not(feature = "farpane-native"))]
+                     log::error!("Failed to get key state {}", &e);
+                     false
+                 }
+@@ -97,18 +119,30 @@
+                 "UInputKeyboard::key_sequence called (len={})",
+                 sequence.len()
+             );
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Keyboard(DataKeyboard::Sequence(sequence.to_string()))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Keyboard(DataKeyboard::Sequence(sequence.to_string()))));
+         }
+ 
+         // TODO: handle error???
+         fn key_down(&mut self, key: Key) -> enigo::ResultType {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Keyboard(DataKeyboard::KeyDown(key))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Keyboard(DataKeyboard::KeyDown(key))));
+             Ok(())
+         }
+         fn key_up(&mut self, key: Key) {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Keyboard(DataKeyboard::KeyUp(key))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Keyboard(DataKeyboard::KeyUp(key))));
+         }
+         fn key_click(&mut self, key: Key) {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Keyboard(DataKeyboard::KeyClick(key))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Keyboard(DataKeyboard::KeyClick(key))));
+         }
+     }
+@@ -116,20 +150,33 @@
+     pub struct UInputMouse {
+         conn: Connection,
+         rt: Runtime,
++        #[cfg(feature = "farpane-native")]
++        native_retry: std::time::Instant,
+     }
+ 
+     impl UInputMouse {
+         pub async fn new() -> ResultType<Self> {
+             let conn = ipc::connect(IPC_CONN_TIMEOUT, IPC_POSTFIX_MOUSE).await?;
+             let rt = Runtime::new()?;
+-            Ok(Self { conn, rt })
++            Ok(Self { conn, rt,
++                #[cfg(feature = "farpane-native")]
++                native_retry: std::time::Instant::now() - std::time::Duration::from_secs(1),
++            })
+         }
+ 
+         fn send(&mut self, data: Data) -> ResultType<()> {
++            #[cfg(feature = "farpane-native")]
++            { return self.rt.block_on(crate::farpane_native::input_retry::send(
++                &mut self.conn, &data, &mut self.native_retry, IPC_POSTFIX_MOUSE)); }
++            #[cfg(not(feature = "farpane-native"))]
+             self.rt.block_on(self.conn.send(&data))
+         }
+ 
+         pub fn send_refresh(&mut self) -> ResultType<()> {
++            #[cfg(feature = "farpane-native")]
++            self.rt.block_on(crate::farpane_native::input_retry::send(
++                &mut self.conn, &Data::Mouse(DataMouse::Refresh), &mut self.native_retry, IPC_POSTFIX_MOUSE))?;
++            #[cfg(not(feature = "farpane-native"))]
+             self.rt
+                 .block_on(self.conn.send(&Data::Mouse(DataMouse::Refresh)))?;
+             // Wait for the service to confirm it recreated the device, so a
+@@ -153,26 +200,47 @@
+         }
+ 
+         fn mouse_move_to(&mut self, x: i32, y: i32) {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Mouse(DataMouse::MoveTo(x, y))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Mouse(DataMouse::MoveTo(x, y))));
+         }
+         fn mouse_move_relative(&mut self, x: i32, y: i32) {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Mouse(DataMouse::MoveRelative(x, y))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Mouse(DataMouse::MoveRelative(x, y))));
+         }
+         // TODO: handle error???
+         fn mouse_down(&mut self, button: MouseButton) -> enigo::ResultType {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Mouse(DataMouse::Down(button))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Mouse(DataMouse::Down(button))));
+             Ok(())
+         }
+         fn mouse_up(&mut self, button: MouseButton) {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Mouse(DataMouse::Up(button))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Mouse(DataMouse::Up(button))));
+         }
+         fn mouse_click(&mut self, button: MouseButton) {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Mouse(DataMouse::Click(button))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Mouse(DataMouse::Click(button))));
+         }
+         fn mouse_scroll_x(&mut self, length: i32) {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Mouse(DataMouse::ScrollX(length))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Mouse(DataMouse::ScrollX(length))));
+         }
+         fn mouse_scroll_y(&mut self, length: i32) {
++            #[cfg(feature = "farpane-native")]
++            crate::farpane_native::input_retry::record(self.send(Data::Mouse(DataMouse::ScrollY(length))));
++            #[cfg(not(feature = "farpane-native"))]
+             allow_err!(self.send(Data::Mouse(DataMouse::ScrollY(length))));
+         }
+     }
+@@ -789,6 +857,8 @@
+ 
+     fn spawn_keyboard_handler(mut stream: Connection) {
+         log::debug!("spawn_keyboard_handler: new keyboard handler connection");
++        #[cfg(feature = "farpane-native")]
++        let native_context = stream.native_input_context();
+         tokio::spawn(async move {
+             let mut keyboard = match create_uinput_keyboard() {
+                 Ok(keyboard) => {
+@@ -802,7 +872,12 @@
+             };
+             loop {
+                 tokio::select! {
+-                    res = stream.next() => {
++                    res = async {
++                        #[cfg(feature = "farpane-native")]
++                        { crate::farpane_native::discovery::guarded_input(&mut stream, &native_context).await }
++                        #[cfg(not(feature = "farpane-native"))]
++                        { stream.next().await }
++                    } => {
+                         match res {
+                             Err(err) => {
+                                 log::info!("UInput keyboard ipc connection closed: {}", err);
+@@ -833,6 +908,8 @@
+         }
+         let rng_x = resolution.0.clone();
+         let rng_y = resolution.1.clone();
++        #[cfg(feature = "farpane-native")]
++        let native_context = stream.native_input_context();
+         tokio::spawn(async move {
+             log::info!(
+                 "Create uinput mouce with rng_x: ({}, {}), rng_y: ({}, {})",
+@@ -850,7 +927,12 @@
+             };
+             loop {
+                 tokio::select! {
+-                    res = stream.next() => {
++                    res = async {
++                        #[cfg(feature = "farpane-native")]
++                        { crate::farpane_native::discovery::guarded_input(&mut stream, &native_context).await }
++                        #[cfg(not(feature = "farpane-native"))]
++                        { stream.next().await }
++                    } => {
+                         match res {
+                             Err(err) => {
+                                 log::info!("UInput mouse ipc connection closed: {}", err);
+@@ -903,10 +985,17 @@
+     }
+ 
+     fn spawn_controller_handler(mut stream: ipc::Connection) {
++        #[cfg(feature = "farpane-native")]
++        let native_context = stream.native_input_context();
+         tokio::spawn(async move {
+             loop {
+                 tokio::select! {
+-                    res = stream.next() => {
++                    res = async {
++                        #[cfg(feature = "farpane-native")]
++                        { crate::farpane_native::discovery::guarded_input(&mut stream, &native_context).await }
++                        #[cfg(not(feature = "farpane-native"))]
++                        { stream.next().await }
++                    } => {
+                         match res {
+                             Err(_err) => {
+                                 // log::info!("UInput controller ipc connection closed: {}", err);

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "created_utc": "2026-10-19T00:12:51.927167+00:00",
+  "branch": "codex/linux-host-gpu-media",
+  "mac_version_user_reported": "v2.0.8",
+  "source_hashes": {
+    "Scripts/linux/observe-native-input.py": "e6e390abf12982ffa7317d498e85b3cd79ef72f4c920026b3952b1ec9ac82ffb",
+    "Linux/tests/test_native_input_observer.py": "194d17f91da7dcc7356f5e969f16d7592bd5bd752201486085e741ea40274c44",
+    "Scripts/linux/observe-native-activity.py": "885a4e1cfb1cf113094e3c4b45178f0ef98a90fc70cef79f4768546679b435c5"
+  },
+  "duration_seconds": 600,
+  "scope": "existing_log_error_categories_and_activity_only",
+  "seq_receipt_observed": false,
+  "clipboard_observed": false,
+  "kernel_input_observed": false,
+  "application_consumption_observed": false,
+  "service_replaced": false
+}

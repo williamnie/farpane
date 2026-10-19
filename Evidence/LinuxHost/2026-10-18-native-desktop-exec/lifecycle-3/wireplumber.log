@@ -1,0 +1,11 @@
+W 12:18:55.568635             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown
+W 12:18:55.568664             mod.rt ../src/modules/module-rt.c:993:do_rtkit_setup: RTKit does not give us MaxRealtimePriority, using 1
+W 12:18:55.568774             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown
+W 12:18:55.568779             mod.rt ../src/modules/module-rt.c:998:do_rtkit_setup: RTKit does not give us MinNiceLevel, using 0
+W 12:18:55.568904             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown
+W 12:18:55.568908             mod.rt ../src/modules/module-rt.c:1003:do_rtkit_setup: RTKit does not give us RTTimeUSecMax, using -1
+W 12:18:55.578796 m-snapd-permission ../modules/module-snapd-permission-prompting.c:458:check_apparmor_prompting_available: <WpAudioPermissionPrompting:0x5ace13074000> Failed to connect to snapd: No such file or directory
+E 12:18:55.609112            default ../spa/plugins/bluez5/upower.c:54:upower_get_percentage_properties_reply: Failed to get percentage from UPower: org.freedesktop.DBus.Error.NameHasNoOwner
+W 12:18:55.609796         spa.bluez5 ../spa/plugins/bluez5/bluez5-dbus.c:6546:get_managed_objects_reply: BlueZ system service is not available
+N 12:18:55.614728          wp-device ../lib/wp/device.c:710:wp_spa_device_new_from_spa_factory: SPA handle 'api.libcamera.enum.manager' could not be loaded; is it installed?
+N 12:18:55.614739 s-monitors-libcame enumerate-device.lua:30:chunk: PipeWire's libcamera SPA plugin is missing or broken. Some camera types may not be supported.

@@ -1,0 +1,74 @@
+{"argv": ["modprobe", "vkms"], "user": false, "exit": 0}
+
+{"argv": ["udevadm", "settle", "--timeout=5"], "user": false, "exit": 0}
+
+{"argv": ["systemctl", "stop", "getty@tty1.service"], "user": false, "exit": 0}
+
+{"argv": ["systemctl", "start", "--no-block", "farpane-input-session.service"], "user": false, "exit": 0}
+
+{"argv": ["systemctl", "daemon-reload"], "user": false, "exit": 0}
+
+{"argv": ["systemctl", "start", "farpane-unrelated-test.service"], "user": false, "exit": 0}
+
+{"argv": ["systemctl", "show", "farpane-unrelated-test.service", "-p", "MainPID", "--value"], "user": false, "exit": 0}
+373
+
+{"argv": ["dpkg", "--install", "/opt/farpane-input-test/packages/1.deb"], "user": false, "exit": 0}
+Selecting previously unselected package farpane-native-candidate.
+(Reading database ... 25173 files and directories currently installed.)
+Preparing to unpack .../packages/1.deb ...
+Unpacking farpane-native-candidate (0.1.0~dev.20261018.5) ...
+Setting up farpane-native-candidate (0.1.0~dev.20261018.5) ...
+{
+  "artifact_id": "farpane-native-dev-ec305482eaacd98258e28587",
+  "staged": true,
+  "active": false,
+  "current": null
+}
+FarPane candidate staged; active service and desktop are unchanged.
+See /usr/share/doc/farpane-native-candidate/README.Debian for maintenance activation.
+
+{"argv": ["farpane-maintenance", "plan", "farpane-native-dev-ec305482eaacd98258e28587", "--expect-current", "none"], "user": false, "exit": 0}
+{
+  "current": null,
+  "target": "farpane-native-dev-ec305482eaacd98258e28587",
+  "service": {
+    "active": false,
+    "loaded": false,
+    "enabled": false
+  },
+  "processes": [],
+  "configuration_touched": false,
+  "maintenance_required": true
+}
+
+{"argv": ["farpane-maintenance", "activate", "farpane-native-dev-ec305482eaacd98258e28587", "--expect-current", "none", "--maintenance-window"], "user": false, "exit": 0}
+{
+  "schema": 1,
+  "active": "farpane-native-dev-ec305482eaacd98258e28587",
+  "previous": null,
+  "user_integration_required": true,
+  "runtime_ready": false
+}
+
+{"argv": ["farpane-user-integration", "bind", "farpane-native-dev-ec305482eaacd98258e28587", "--previous", "none"], "user": true, "exit": 0}
+{
+  "release": "farpane-native-dev-ec305482eaacd98258e28587",
+  "desktop_installed": true,
+  "processes_started": false,
+  "backup": "47185cca730c477e8ef55a71b081d9f7"
+}
+
+{"argv": ["/opt/farpane/releases/farpane-native-dev-ec305482eaacd98258e28587/libexec/farpane-core", "--config-cli"], "user": true, "exit": 0}
+{"argv": ["/opt/farpane/releases/farpane-native-dev-ec305482eaacd98258e28587/libexec/farpane-core", "--config-cli"], "user": true, "exit": 0}
+{"argv": ["/opt/farpane/releases/farpane-native-dev-ec305482eaacd98258e28587/libexec/farpane-core", "--config-cli"], "user": true, "exit": 0}
+{"argv": ["/opt/farpane/releases/farpane-native-dev-ec305482eaacd98258e28587/libexec/farpane-core", "--config-cli"], "user": true, "exit": 0}
+{"argv": ["systemctl", "start", "farpane.service"], "user": false, "exit": 0}
+
+{"argv": ["systemctl", "show", "farpane.service", "-p", "MainPID", "--value"], "user": false, "exit": 0}
+756
+
+{"argv": ["systemctl", "is-enabled", "farpane.service"], "user": false, "exit": 1}
+disabled
+
+{"argv": ["/opt/farpane/releases/farpane-native-dev-ec305482eaacd98258e28587/libexec/farpane-core", "--config-cli"], "user": true, "exit": 0}

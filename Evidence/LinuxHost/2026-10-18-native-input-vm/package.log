@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/home/user/farpane/Scripts/linux/package-native.py", line 208, in <module>
+    package(args.source_build)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/user/farpane/Scripts/linux/package-native.py", line 107, in package
+    native_notice_delivery.prepare(ROOT, receipt['sources'], staged / 'licenses/dependencies')
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_notice_delivery.py", line 154, in prepare
+    collected = native_notice_supplements.collect(audit, Path(temporary))
+  File "/home/user/farpane/Linux/packaging/native_notice_supplements.py", line 108, in collect
+    raise ValueError('Baseline inventory does not describe current product binaries')
+ValueError: Baseline inventory does not describe current product binaries

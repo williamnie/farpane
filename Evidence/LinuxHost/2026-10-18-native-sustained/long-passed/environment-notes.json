@@ -1,0 +1,10 @@
+{
+  "parallel_private_gui_checks": [
+    "20261018T094124Z",
+    "20261018T094225Z"
+  ],
+  "effect": "Shared system-library and font pages affected PSS during the first four minutes; smaps comparison is in shared-page-dip.json.",
+  "isolated_performance_benchmark": false,
+  "software_frame_change_interval_seconds": 20,
+  "scope": "Continuous connection and teardown; no full performance or memory-budget acceptance."
+}

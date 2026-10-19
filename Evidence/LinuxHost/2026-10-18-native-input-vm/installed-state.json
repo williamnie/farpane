@@ -1,0 +1,23 @@
+{
+  "current": "releases/farpane-native-dev-bfc1befc221061266d5f50da",
+  "farpane.service": {
+    "is-active": "active",
+    "is-enabled": "disabled",
+    "main_pid": 64215
+  },
+  "rustdesk.service": {
+    "is-active": "inactive",
+    "is-enabled": "disabled",
+    "main_pid": 0
+  },
+  "64215": {
+    "exists": true,
+    "start_ticks": 246733,
+    "executable": "root exe link not readable by desktop user"
+  },
+  "70886": {
+    "exists": true,
+    "start_ticks": 275555,
+    "executable": "/opt/farpane/releases/farpane-native-dev-bfc1befc221061266d5f50da/libexec/farpane-core"
+  }
+}

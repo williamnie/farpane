@@ -1,0 +1,86 @@
+[
+  {
+    "path": "Linux/tests/input-vm/farpane-input-session.service",
+    "sha256": "f554c422c9ac5742a4c0211f9df19aa35527fed7305b73621a1e430342f1c1ef"
+  },
+  {
+    "path": "Linux/tests/input-vm/farpane-input-test.service",
+    "sha256": "fa3d6eb6f61fd97c4d6898e461f6fa3b862d02db082914ca09495ab7e566d47f"
+  },
+  {
+    "path": "Linux/tests/input-vm/farpane-input-test.target",
+    "sha256": "3e48fe9e28c70048720212d292659c2583a428e72bf27c634d5536222a8a3e14"
+  },
+  {
+    "path": "Linux/tests/input-vm/pam-session",
+    "sha256": "cfd56978b702dfbf5f473b3b3c97bdf40428cd787c0e24366c8b62ed327252cc"
+  },
+  {
+    "path": "Linux/tests/native-input-vm.lock.json",
+    "sha256": "006f1512e01a80520a622657b3e48c272acb078d3e5b0936ca3cec1a2288ee71"
+  },
+  {
+    "path": "Linux/tests/native_desktop_launch_vm.py",
+    "sha256": "47d6b8f845c81ff94ea8d3036b6bb9916d01e44dddacb8639b0405d237995a42"
+  },
+  {
+    "path": "Linux/tests/native_desktop_lifecycle_vm.py",
+    "sha256": "c1916d108df8044f5deb9a116165ebf9513269da15b3f6624f9bd5bc27f29b18"
+  },
+  {
+    "path": "Linux/tests/native_gnome_input_smoke.py",
+    "sha256": "61ef7d4f8213d74e3491dbb292f2ab041e04fcbfbaffd99d7887a93c790cd216"
+  },
+  {
+    "path": "Linux/tests/native_input_vm_desktop.py",
+    "sha256": "cb80a26f71a7c5b298862eb55f296c912e95f5ebc7a34298038d071ac4e2b1a8"
+  },
+  {
+    "path": "Linux/tests/native_input_vm_init.py",
+    "sha256": "a7e1efb8510ed773ebc3d5dd279b92c229e4a609de3fd1b72c8836f4e7acf2fe"
+  },
+  {
+    "path": "Linux/tests/native_input_vm_network.py",
+    "sha256": "ab6bd5fd2fe75f012fbe66489fdb430ee84b7aa26cd8601e9790655309c2b257"
+  },
+  {
+    "path": "Linux/tests/native_input_vm_prepare.py",
+    "sha256": "990947d9e3e2492babfbe16eb055214f880ea4746730d9679c2b0cdfa33ca7d1"
+  },
+  {
+    "path": "Linux/tests/native_input_vm_service.py",
+    "sha256": "ede517ffa3921051c14424b4111a9025e613686326b548cda0bc441a0a193bcc"
+  },
+  {
+    "path": "Linux/tests/native_input_vm_wire.py",
+    "sha256": "85150d08cfec8ebed6d81ff9c66214c5d051ef297083112eded2a331edf6c148"
+  },
+  {
+    "path": "Linux/tests/native_maintenance_vm.py",
+    "sha256": "8d50fa8541f3f8d4729f54025aa9cc0589ba3c332b52101794d2b26b13d56c72"
+  },
+  {
+    "path": "Linux/tests/test_native_desktop_launch_vm_guard.py",
+    "sha256": "6dba0ba825baf67fe0abbf16b8559280a9c81796b28c3482d90bc4ab6c58dc4a"
+  },
+  {
+    "path": "Linux/tests/test_native_desktop_lifecycle_vm_guard.py",
+    "sha256": "4a63d70375fa1e1fbca295f128e5a1e8750ea79454b5e79c08a01e34d3d3983b"
+  },
+  {
+    "path": "Linux/tests/test_native_input_vm_guards.py",
+    "sha256": "7e41e7eeb38a32a225ca87b381b41baf6d27d6ce0f6242e3d65b024c40b668e7"
+  },
+  {
+    "path": "Linux/tests/test_native_maintenance_vm_guard.py",
+    "sha256": "1d775ed08062ca6494ce7db8b43de104c63ea222299871625c7324d75633e015"
+  },
+  {
+    "path": "Scripts/linux/prepare-native-input-vm.py",
+    "sha256": "6d40b6be70f51f0efa1c4d42dac17b88c020212fe9b60c87f786056705b66ffa"
+  },
+  {
+    "path": "Scripts/linux/run-native-input-vm.py",
+    "sha256": "dfc4599ace17b3c933bb11ebf2846a11999728445e009f9c3531ee65da675a99"
+  }
+]

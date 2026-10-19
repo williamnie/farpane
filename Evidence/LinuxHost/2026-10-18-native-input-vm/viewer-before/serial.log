@@ -1,0 +1,701 @@
+[    0.000000] Linux version 7.0.0-38-generic (buildd@lcy02-amd64-070) (x86_64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0, GNU ld (GNU Binutils for Ubuntu) 2.46) #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 (Ubuntu 7.0.0-38.38-generic 7.0.14)
+[    0.000000] Command line: root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1
+[    0.000000] KERNEL supported cpus:
+[    0.000000]   Intel GenuineIntel
+[    0.000000]   AMD AuthenticAMD
+[    0.000000]   Hygon HygonGenuine
+[    0.000000]   Centaur CentaurHauls
+[    0.000000]   zhaoxin   Shanghai  
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000000a0000-0x00000000000effff]
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000007ffdcfff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007ffdd000-0x000000007fffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x0000000080000000-0x00000000afffffff]
+[    0.000000] BIOS-e820: [mem 0x00000000b0000000-0x00000000bfffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000c0000000-0x00000000fed1bfff]
+[    0.000000] BIOS-e820: [mem 0x00000000fed1c000-0x00000000fed1ffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000fed20000-0x00000000feffbfff]
+[    0.000000] BIOS-e820: [mem 0x00000000feffc000-0x00000000feffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000ff000000-0x00000000fffbffff]
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000100000000-0x00000001ffffffff]  System RAM
+[    0.000000] BIOS-e820: [gap 0x0000000200000000-0x000000fcffffffff]
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff]  device reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.17.0-debian-1.17.0-1ubuntu1 04/01/2014
+[    0.000000] DMI: Memory slots populated: 1/1
+[    0.000000] Hypervisor detected: KVM
+[    0.000000] last_pfn = 0x7ffdd max_arch_pfn = 0x400000000
+[    0.000000] kvm-clock: Using msrs 4b564d01 and 4b564d00
+[    0.000000] kvm-clock: using sched offset of 123872360 cycles
+[    0.000002] clocksource: kvm-clock: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
+[    0.000004] tsc: Detected 3792.832 MHz processor
+[    0.000237] last_pfn = 0x200000 max_arch_pfn = 0x400000000
+[    0.000274] MTRR map: 4 entries (3 fixed + 1 variable; max 19), built from 8 variable MTRRs
+[    0.000276] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    0.000323] last_pfn = 0x7ffdd max_arch_pfn = 0x400000000
+[    0.002018] found SMP MP-table at [mem 0x000f5460-0x000f546f]
+[    0.002031] Using GB pages for direct mapping
+[    0.002140] ACPI: Early table checksum verification disabled
+[    0.002142] ACPI: RSDP 0x00000000000F5270 000014 (v00 BOCHS )
+[    0.002145] ACPI: RSDT 0x000000007FFE2408 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002149] ACPI: FACP 0x000000007FFE21E8 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002152] ACPI: DSDT 0x000000007FFE0040 0021A8 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002154] ACPI: FACS 0x000000007FFE0000 000040
+[    0.002155] ACPI: APIC 0x000000007FFE22DC 000090 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002157] ACPI: HPET 0x000000007FFE236C 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002158] ACPI: MCFG 0x000000007FFE23A4 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002159] ACPI: WAET 0x000000007FFE23E0 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002160] ACPI: Reserving FACP table memory at [mem 0x7ffe21e8-0x7ffe22db]
+[    0.002161] ACPI: Reserving DSDT table memory at [mem 0x7ffe0040-0x7ffe21e7]
+[    0.002162] ACPI: Reserving FACS table memory at [mem 0x7ffe0000-0x7ffe003f]
+[    0.002162] ACPI: Reserving APIC table memory at [mem 0x7ffe22dc-0x7ffe236b]
+[    0.002163] ACPI: Reserving HPET table memory at [mem 0x7ffe236c-0x7ffe23a3]
+[    0.002163] ACPI: Reserving MCFG table memory at [mem 0x7ffe23a4-0x7ffe23df]
+[    0.002164] ACPI: Reserving WAET table memory at [mem 0x7ffe23e0-0x7ffe2407]
+[    0.002578] No NUMA configuration found
+[    0.002579] Faking a node at [mem 0x0000000000000000-0x00000001ffffffff]
+[    0.002586] NODE_DATA(0) allocated [mem 0x1fffd5280-0x1ffffffff]
+[    0.003218] ACPI: PM-Timer IO Port: 0x608
+[    0.003228] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.003251] IOAPIC[0]: apic_id 0, version 17, address 0xfec00000, GSI 0-23
+[    0.003253] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.003254] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.003255] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.003256] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.003256] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.003258] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.003259] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.003261] TSC deadline timer available
+[    0.003263] CPU topo: Max. logical packages:   1
+[    0.003263] CPU topo: Max. logical nodes:      1
+[    0.003264] CPU topo: Num. nodes per package:  1
+[    0.003265] CPU topo: Max. logical dies:       1
+[    0.003265] CPU topo: Max. dies per package:   1
+[    0.003268] CPU topo: Max. threads per core:   1
+[    0.003268] CPU topo: Num. cores per package:     4
+[    0.003269] CPU topo: Num. threads per package:   4
+[    0.003269] CPU topo: Allowing 4 present CPUs plus 0 hotplug CPUs
+[    0.003280] kvm-guest: APIC: eoi() replaced with kvm_guest_apic_eoi_write()
+[    0.003290] kvm-guest: KVM setup pv remote TLB flush
+[    0.003293] kvm-guest: setup PV sched yield
+[    0.003298] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.003299] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]
+[    0.003300] PM: hibernation: Registered nosave memory: [mem 0x7ffdd000-0xffffffff]
+[    0.003301] [gap 0xc0000000-0xfed1bfff] available for PCI devices
+[    0.003302] Booting paravirtualized kernel on KVM
+[    0.003303] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.003319] Zone ranges:
+[    0.003320]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.003322]   DMA32    [mem 0x0000000001000000-0x00000000ffffffff]
+[    0.003323]   Normal   [mem 0x0000000100000000-0x00000001ffffffff]
+[    0.003325]   Device   empty
+[    0.003325] Movable zone start for each node
+[    0.003327] Early memory node ranges
+[    0.003327]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+[    0.003328]   node   0: [mem 0x0000000000100000-0x000000007ffdcfff]
+[    0.003329]   node   0: [mem 0x0000000100000000-0x00000001ffffffff]
+[    0.003330] Initmem setup node 0 [mem 0x0000000000001000-0x00000001ffffffff]
+[    0.003412] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.003421] On node 0, zone DMA: 97 pages in unavailable ranges
+[    0.009776] On node 0, zone Normal: 35 pages in unavailable ranges
+[    0.009791] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:4 nr_cpu_ids:4 nr_node_ids:1
+[    0.009939] percpu: Embedded 85 pages/cpu s225280 r8192 d114688 u524288
+[    0.009987] kvm-guest: PV spinlocks enabled
+[    0.009988] PV qspinlock hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.009990] Kernel command line: root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1
+[    0.010227] random: crng init done
+[    0.010227] printk: log buffer data + meta data: 262144 + 1114112 = 1376256 bytes
+[    0.010623] Dentry cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    0.010818] Inode-cache hash table entries: 524288 (order: 10, 4194304 bytes, linear)
+[    0.010853] software IO TLB: area num 4.
+[    0.017249] Fallback order for Node 0: 0 
+[    0.017255] Built 1 zonelists, mobility grouping on.  Total pages: 1572731
+[    0.017257] Policy zone: Normal
+[    0.017266] mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    0.025219] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=4, Nodes=1
+[    0.035639] ftrace: allocating 63997 entries in 252 pages
+[    0.035641] ftrace: allocated 252 pages with 6 groups
+[    0.036149] Dynamic Preempt: lazy
+[    0.036274] rcu: Preemptible hierarchical RCU implementation.
+[    0.036275] rcu: 	RCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=4.
+[    0.036276] 	Trampoline variant of Tasks RCU enabled.
+[    0.036277] 	Rude variant of Tasks RCU enabled.
+[    0.036277] 	Tracing variant of Tasks RCU enabled.
+[    0.036278] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.036278] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=4
+[    0.036286] RCU Tasks: Setting shift to 2 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=4.
+[    0.036287] RCU Tasks Rude: Setting shift to 2 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=4.
+[    0.039472] NR_IRQS: 524544, nr_irqs: 456, preallocated irqs: 16
+[    0.039672] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.039679] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    0.039888] Console: colour *CGA 80x25
+[    0.039947] printk: console [ttyS0] enabled
+[    0.195101] ACPI: Core revision 20251212
+[    0.195985] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.197762] APIC: Switch to symmetric I/O mode setup
+[    0.198835] x2apic enabled
+[    0.199577] APIC: Switched APIC routing to: physical x2apic
+[    0.200649] kvm-guest: APIC: send_IPI_mask() replaced with kvm_send_ipi_mask()
+[    0.202012] kvm-guest: APIC: send_IPI_mask_allbutself() replaced with kvm_send_ipi_mask_allbutself()
+[    0.203678] kvm-guest: setup PV IPIs
+[    0.205296] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.206416] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x6d57c9d7720, max_idle_ns: 881590404252 ns
+[    0.208351] Calibrating delay loop (skipped) preset value.. 7585.66 BogoMIPS (lpj=3792832)
+[    0.209468] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.210496] Last level iTLB entries: 4KB 512, 2MB 255, 4MB 127
+[    0.211351] Last level dTLB entries: 4KB 512, 2MB 255, 4MB 127, 1GB 0
+[    0.212358] mitigations: Enabled attack vectors: user_kernel, user_user, guest_host, guest_guest, SMT mitigations: auto
+[    0.213351] Speculative Store Bypass: Mitigation: Speculative Store Bypass disabled via prctl
+[    0.214351] Transient Scheduler Attacks: Mitigation: Clear CPU buffers
+[    0.215351] Spectre V2 : Mitigation: Enhanced / Automatic IBRS
+[    0.216351] Speculative Return Stack Overflow: Mitigation: Safe RET
+[    0.217351] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.218357] Spectre V2 : Enabling IBPB for BPF
+[    0.219352] Spectre V2 : mitigation: Enabling conditional Indirect Branch Prediction Barrier
+[    0.220351] active return thunk: srso_alias_return_thunk
+[    0.221373] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.222351] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.223351] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.224351] x86/fpu: Supporting XSAVE feature 0x020: 'AVX-512 opmask'
+[    0.225351] x86/fpu: Supporting XSAVE feature 0x040: 'AVX-512 Hi256'
+[    0.226351] x86/fpu: Supporting XSAVE feature 0x080: 'AVX-512 ZMM_Hi256'
+[    0.227351] x86/fpu: Supporting XSAVE feature 0x200: 'Protection Keys User registers'
+[    0.228351] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.229351] x86/fpu: xstate_offset[5]:  832, xstate_sizes[5]:   64
+[    0.230351] x86/fpu: xstate_offset[6]:  896, xstate_sizes[6]:  512
+[    0.231351] x86/fpu: xstate_offset[7]: 1408, xstate_sizes[7]: 1024
+[    0.232351] x86/fpu: xstate_offset[9]: 2432, xstate_sizes[9]:    8
+[    0.233351] x86/fpu: Enabled xstate features 0x2e7, context size is 2440 bytes, using 'compacted' format.
+[    0.261416] Freeing SMP alternatives memory: 56K
+[    0.262277] pid_max: default: 32768 minimum: 301
+[    0.262483] landlock: Up and running.
+[    0.263351] Yama: becoming mindful.
+[    0.264473] AppArmor: AppArmor initialized
+[    0.265351] AppArmor: AppArmor secmark mediation reserved: ready to be enabled
+[    0.266442] Mount-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.267355] Mountpoint-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.268435] VFS: Finished mounting rootfs on nullfs
+[    0.269672] smpboot: CPU0: AMD Ryzen 7 8745HS w/ Radeon 780M Graphics (family: 0x19, model: 0x75, stepping: 0x2)
+[    0.270539] Performance Events: Fam17h+ core perfctr, AMD PMU driver.
+[    0.271360] ... version:                   2
+[    0.272161] ... bit width:                 48
+[    0.272352] ... generic counters:          6
+[    0.273150] ... generic bitmap:            000000000000003f
+[    0.273352] ... fixed-purpose counters:    0
+[    0.274148] ... fixed-purpose bitmap:      0000000000000000
+[    0.274352] ... value mask:                0000ffffffffffff
+[    0.275352] ... max period:                00007fffffffffff
+[    0.276352] ... global_ctrl mask:          000000000000003f
+[    0.277441] signal: max sigframe size: 3376
+[    0.278267] rcu: Hierarchical SRCU implementation.
+[    0.278268] rcu: 	Max phase no-delay instances is 400.
+[    0.279328] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.284325] smp: Bringing up secondary CPUs ...
+[    0.284471] smpboot: x86: Booting SMP configuration:
+[    0.284476] .... node  #0, CPUs:      #1 #2 #3
+[    0.286392] smp: Brought up 1 node, 4 CPUs
+[    0.286392] smpboot: Total of 4 processors activated (30342.65 BogoMIPS)
+[    0.288418] Memory: 5245340K/6290924K available (23836K kernel code, 4957K rwdata, 16776K rodata, 5304K init, 5840K bss, 1037272K reserved, 0K cma-reserved)
+[    0.289483] devtmpfs: initialized
+[    0.289483] x86/mm: Memory block size: 128MB
+[    0.291492] posixtimers hash table entries: 2048 (order: 3, 32768 bytes, linear)
+[    0.291492] futex hash table entries: 1024 (65536 bytes on 1 NUMA nodes, total 64 KiB, linear).
+[    0.291726] PM: RTC time: 07:49:38, date: 2026-10-18
+[    0.295440] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.295699] DMA: preallocated 1024 KiB GFP_KERNEL pool for atomic allocations
+[    0.295739] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    0.295780] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    0.295791] audit: initializing netlink subsys (disabled)
+[    0.295819] audit: type=2000 audit(1792309778.606:1): state=initialized audit_enabled=0 res=1
+[    0.295819] thermal_sys: Registered thermal governor 'fair_share'
+[    0.295819] thermal_sys: Registered thermal governor 'bang_bang'
+[    0.295819] thermal_sys: Registered thermal governor 'step_wise'
+[    0.295819] thermal_sys: Registered thermal governor 'user_space'
+[    0.295819] thermal_sys: Registered thermal governor 'power_allocator'
+[    0.296358] cpuidle: using governor ladder
+[    0.297360] cpuidle: using governor menu
+[    0.305228] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    0.305495] PCI: ECAM [mem 0xb0000000-0xbfffffff] (base 0xb0000000) for domain 0000 [bus 00-ff]
+[    0.305499] PCI: ECAM [mem 0xb0000000-0xbfffffff] reserved as E820 entry
+[    0.305518] PCI: Using configuration type 1 for base access
+[    0.306396] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    0.309428] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    0.309430] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    0.309431] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.309432] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.323450] ACPI: Added _OSI(Module Device)
+[    0.323457] ACPI: Added _OSI(Processor Device)
+[    0.323460] ACPI: Added _OSI(Processor Aggregator Device)
+[    0.325259] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    0.327368] ACPI: \_SB_: platform _OSC: OS support mask [006e7eff]
+[    0.328362] ACPI: Interpreter enabled
+[    0.328376] ACPI: PM: (supports S0 S3 S4 S5)
+[    0.328377] ACPI: Using IOAPIC for interrupt routing
+[    0.328519] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    0.328520] PCI: Using E820 reservations for host bridge windows
+[    0.328659] ACPI: Enabled 2 GPEs in block 00 to 3F
+[    0.331809] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    0.331815] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI EDR HPX-Type3]
+[    0.331878] acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug LTR DPC]
+[    0.331978] acpi PNP0A08:00: _OSC: OS now controls [SHPCHotplug PME AER PCIeCapability]
+[    0.332159] PCI host bridge to bus 0000:00
+[    0.332162] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    0.332164] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    0.332166] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    0.332167] pci_bus 0000:00: root bus resource [mem 0x80000000-0xafffffff window]
+[    0.332168] pci_bus 0000:00: root bus resource [mem 0xc0000000-0xfebfffff window]
+[    0.332169] pci_bus 0000:00: root bus resource [mem 0xe0000000000-0xe07ffffffff window]
+[    0.332175] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    0.332249] pci 0000:00:00.0: [8086:29c0] type 00 class 0x060000 conventional PCI endpoint
+[    0.333609] pci 0000:00:01.0: [1af4:1001] type 00 class 0x010000 conventional PCI endpoint
+[    0.335153] pci 0000:00:01.0: BAR 0 [io  0xc000-0xc07f]
+[    0.335174] pci 0000:00:01.0: BAR 1 [mem 0xfebfe000-0xfebfefff]
+[    0.335240] pci 0000:00:01.0: BAR 4 [mem 0xe0000000000-0xe0000003fff 64bit pref]
+[    0.343641] pci 0000:00:1f.0: [8086:2918] type 00 class 0x060100 conventional PCI endpoint
+[    0.344481] pci 0000:00:1f.0: quirk: [io  0x0600-0x067f] claimed by ICH6 ACPI/GPIO/TCO
+[    0.344967] pci 0000:00:1f.2: [8086:2922] type 00 class 0x010601 conventional PCI endpoint
+[    0.346082] pci 0000:00:1f.2: BAR 4 [io  0xc0c0-0xc0df]
+[    0.346095] pci 0000:00:1f.2: BAR 5 [mem 0xfebff000-0xfebfffff]
+[    0.346914] pci 0000:00:1f.3: [8086:2930] type 00 class 0x0c0500 conventional PCI endpoint
+[    0.347774] pci 0000:00:1f.3: BAR 4 [io  0x0700-0x073f]
+[    0.349998] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    0.350141] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    0.350288] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    0.350430] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    0.350550] ACPI: PCI: Interrupt link LNKE configured for IRQ 10
+[    0.350667] ACPI: PCI: Interrupt link LNKF configured for IRQ 10
+[    0.350785] ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    0.350902] ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    0.350946] ACPI: PCI: Interrupt link GSIA configured for IRQ 16
+[    0.350958] ACPI: PCI: Interrupt link GSIB configured for IRQ 17
+[    0.350967] ACPI: PCI: Interrupt link GSIC configured for IRQ 18
+[    0.350977] ACPI: PCI: Interrupt link GSID configured for IRQ 19
+[    0.350986] ACPI: PCI: Interrupt link GSIE configured for IRQ 20
+[    0.350995] ACPI: PCI: Interrupt link GSIF configured for IRQ 21
+[    0.351005] ACPI: PCI: Interrupt link GSIG configured for IRQ 22
+[    0.351014] ACPI: PCI: Interrupt link GSIH configured for IRQ 23
+[    0.351507] iommu: Default domain type: Translated
+[    0.351507] iommu: DMA domain TLB invalidation policy: lazy mode
+[    0.352354] SCSI subsystem initialized
+[    0.352386] ACPI: bus type USB registered
+[    0.352405] usbcore: registered new interface driver usbfs
+[    0.352412] usbcore: registered new interface driver hub
+[    0.352419] usbcore: registered new device driver usb
+[    0.352440] pps_core: LinuxPPS API ver. 1 registered
+[    0.352440] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.352443] PTP clock support registered
+[    0.352471] EDAC MC: Ver: 3.0.0
+[    0.354993] NetLabel: Initializing
+[    0.354994] NetLabel:  domain hash size = 128
+[    0.354995] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    0.355013] NetLabel:  unlabeled traffic allowed by default
+[    0.355031] mctp: management component transport protocol core
+[    0.355031] NET: Registered PF_MCTP protocol family
+[    0.355031] PCI: Using ACPI for IRQ routing
+[    0.515600] e820: register RAM buffer resource [mem 0x0009fc00-0x0009ffff]
+[    0.515609] e820: register RAM buffer resource [mem 0x7ffdd000-0x7fffffff]
+[    0.515651] vgaarb: loaded
+[    0.515651] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    0.515651] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    0.519835] clocksource: Switched to clocksource kvm-clock
+[    0.520141] VFS: Disk quotas dquot_6.6.0
+[    0.520155] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    0.521605] AppArmor: AppArmor Filesystem Enabled
+[    0.521646] acpi PNP0C01:00: Reserved [mem 0xb0000000-0xbfffffff]
+[    0.521686] pnp: PnP ACPI init
+[    0.522253] pnp: PnP ACPI: found 4 devices
+[    0.528606] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    0.528714] NET: Registered PF_INET protocol family
+[    0.528766] IP idents hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.540978] tcp_listen_portaddr_hash hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.540997] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.541022] TCP established hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    0.541145] TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, linear)
+[    0.541200] TCP: Hash tables configured (established 65536 bind 65536)
+[    0.541247] MPTCP token hash table entries: 8192 (order: 6, 196608 bytes, linear)
+[    0.541267] UDP hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    0.541285] UDP-Lite hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    0.541329] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.541334] NET: Registered PF_XDP protocol family
+[    0.541344] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    0.541347] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    0.541348] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    0.541350] pci_bus 0000:00: resource 7 [mem 0x80000000-0xafffffff window]
+[    0.541351] pci_bus 0000:00: resource 8 [mem 0xc0000000-0xfebfffff window]
+[    0.541352] pci_bus 0000:00: resource 9 [mem 0xe0000000000-0xe07ffffffff window]
+[    0.541505] PCI: CLS 0 bytes, default 64
+[    0.541606] PCI-DMA: Using software bounce buffering for IO (SWIOTLB)
+[    0.541608] software IO TLB: mapped [mem 0x000000007bfdd000-0x000000007ffdd000] (64MB)
+[    0.541665] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x6d57c9d7720, max_idle_ns: 881590404252 ns
+[    0.542195] Initialise system trusted keyrings
+[    0.542203] Key type blacklist registered
+[    0.542336] workingset: timestamp_bits=36 max_order=21 bucket_order=0
+[    0.542715] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.542883] fuse: init (API version 7.45)
+[    0.551480] integrity: Platform Keyring initialized
+[    0.551484] integrity: Machine keyring initialized
+[    0.559242] Key type asymmetric registered
+[    0.559244] Asymmetric key parser 'x509' registered
+[    0.559261] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 242)
+[    0.559346] io scheduler mq-deadline registered
+[    0.560797] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.560949] input: Power Button as /devices/platform/LNXPWRBN:00/input/input0
+[    0.561019] ACPI: button: Power Button [PWRF]
+[    0.562807] ACPI: \_SB_.GSIF: Enabled at IRQ 21
+[    0.564639] Serial: 8250/16550 driver, 32 ports, IRQ sharing enabled
+[    0.591754] 00:02: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    0.599258] Linux agpgart interface v0.103
+[    0.604048] loop: module loaded
+[    0.604365] virtio_blk virtio0: 4/0/0 default/read/poll queues
+[    0.606600] virtio_blk virtio0: [vda] 16777216 512-byte logical blocks (8.59 GB/8.00 GiB)
+[    0.607522] ACPI: bus type drm_connector registered
+[    0.607713] tun: Universal TUN/TAP device driver, 1.6
+[    0.607773] PPP generic driver version 2.4.2
+[    0.607895] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    0.609688] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    0.609694] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    0.609806] mousedev: PS/2 mouse device common for all mice
+[    0.610295] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1
+[    0.610323] rtc_cmos 00:03: RTC can wake from S4
+[    0.611488] rtc_cmos 00:03: registered as rtc0
+[    0.611716] rtc_cmos 00:03: setting system clock to 2026-10-18T07:49:38 UTC (1792309778)
+[    0.611819] rtc_cmos 00:03: alarms up to one day, y3k, 242 bytes nvram, hpet irqs
+[    0.611834] i2c_dev: i2c /dev entries driver
+[    0.611852] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    0.611863] device-mapper: uevent: version 1.0.3
+[    0.611917] device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+[    0.611920] amd_pstate: The CPPC feature is supported but currently disabled by the BIOS.
+[    0.611920] Please enable it if your BIOS has the CPPC option.
+[    0.611921] amd_pstate: the _CPC object is not present in SBIOS or ACPI disabled
+[    0.611952] drop_monitor: Initializing network drop monitor service
+[    0.612038] NET: Registered PF_INET6 protocol family
+[    0.612313] Segment Routing with IPv6
+[    0.612320] In-situ OAM (IOAM) with IPv6
+[    0.612334] NET: Registered PF_PACKET protocol family
+[    0.612386] Key type dns_resolver registered
+[    0.615500] IPI shorthand broadcast: enabled
+[    0.618291] sched_clock: Marking stable (456001908, 161670220)->(641924914, -24252786)
+[    0.622082] registered taskstats version 1
+[    0.625597] Loading compiled-in X.509 certificates
+[    0.626056] Loaded X.509 cert 'Build time autogenerated kernel key: 6b2b0d62fc3a1216c49fda2b061b13d4dbf474bd'
+[    0.626317] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing 2025 Kmod: d541cef61dc7e793b7eb7e899970a2eef0b5dc8c'
+[    0.626582] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing: 14df34d1a87cf37625abec039ef2bf521249b969'
+[    0.627185] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing 2025 Kmod: 4627603d2357a2a3f81006370894c221175893e9'
+[    0.627746] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing: 88f752e560a1e0737e31163a466ad7b70a850c19'
+[    0.627748] blacklist: Loading compiled-in revocation X.509 certificates
+[    0.627758] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing: 61482aa2830d0ab2ad5af10b7250da9033ddcef0'
+[    0.627766] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2017): 242ade75ac4a15e50d50c84b0d45ff3eae707a03'
+[    0.627775] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (ESM 2018): 365188c1d374d6b07c3c8f240f8ef722433d6a8b'
+[    0.627783] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2019): c0746fd6c5da3ae827864651ad66ae47fe24b3e8'
+[    0.627791] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v1): a8d54bbb3825cfb94fa13c9f8a594a195c107b8d'
+[    0.627798] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v2): 4cf046892d6fd3c9a5b03f98d845f90851dc6a8c'
+[    0.627805] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v3): 100437bb6de6e469b581e61cd66bce3ef4ed53af'
+[    0.627816] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (Ubuntu Core 2019): c1d57b8f6b743f23ee41f4f7ee292f06eecadfb9'
+[    0.633824] Demotion targets for Node 0: null
+[    0.633961] Key type .fscrypt registered
+[    0.633962] Key type fscrypt-provisioning registered
+[    0.634018] Key type big_key registered
+[    0.634577] Key type encrypted registered
+[    0.634579] AppArmor: AppArmor sha256 policy hashing enabled
+[    0.634581] ima: No TPM chip found, activating TPM-bypass!
+[    0.634583] Loading compiled-in module X.509 certificates
+[    0.634863] Loaded X.509 cert 'Build time autogenerated kernel key: 6b2b0d62fc3a1216c49fda2b061b13d4dbf474bd'
+[    0.634865] ima: Allocated hash algorithm: sha256
+[    0.634872] ima: No architecture policies found
+[    0.634888] evm: Initialising EVM extended attributes:
+[    0.634888] evm: security.selinux
+[    0.634889] evm: security.SMACK64
+[    0.634890] evm: security.SMACK64EXEC
+[    0.634890] evm: security.SMACK64TRANSMUTE
+[    0.634891] evm: security.SMACK64MMAP
+[    0.634891] evm: security.apparmor
+[    0.634892] evm: security.ima
+[    0.634892] evm: security.capability
+[    0.634893] evm: HMAC attrs: 0x1
+[    0.635092] PM:   Magic number: 14:904:824
+[    0.635254] RAS: Correctable Errors collector initialized.
+[    0.635438] clk: Disabling unused clocks
+[    0.635440] PM: genpd: Disabling unused power domains
+[    0.641360] md: Waiting for all devices to be available before autodetect
+[    0.641361] md: If you don't use raid, use raid=noautodetect
+[    0.641362] md: Autodetecting RAID arrays.
+[    0.641363] md: autorun ...
+[    0.641363] md: ... autorun DONE.
+[    0.674339] EXT4-fs (vda): mounted filesystem cbfac5ff-a489-4350-8b51-82d99bff2012 r/w with ordered data mode. Quota mode: none.
+[    0.674350] VFS: Mounted root (ext4 filesystem) on device 253:0.
+[    0.674388] devtmpfs: mounted
+[    0.674721] VFS: Pivoted into new rootfs
+[    0.677484] Freeing unused decrypted memory: 2028K
+[    0.679218] Freeing unused kernel image (initmem) memory: 5304K
+[    0.679229] Write protecting the kernel read-only data: 43008k
+[    0.681922] Freeing unused kernel image (text/rodata gap) memory: 736K
+[    0.684263] Freeing unused kernel image (rodata/data gap) memory: 1656K
+[    0.723883] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    0.723893] Run /opt/farpane-input-test/init.py as init process
+[    0.768779] input: FarPane private VM kernel probe as /devices/virtual/input/input3
+[    4.554237] input: mouce-library-fake-mouse as /devices/virtual/input/input5
+[    4.554416] input: RustDesk UInput Keyboard as /devices/virtual/input/input4
+[    8.295294] input: mouce-library-fake-mouse as /devices/virtual/input/input6
+VM_LOG desktop-environment.log ""
+VM_LOG mutter.log "libmutter-Message: 07:49:39.170: Running Mutter (using mutter 50.1) as a Wayland display server\n\n(mutter:130): libmutter-WARNING **: 07:49:39.190: Unknown experimental feature 'scale-monitor-framebuffer'\n\n(mutter:130): libmutter-WARNING **: 07:49:39.190: Unknown experimental feature 'xwayland-native-scaling'\nlibmutter-Message: 07:49:39.309: Created surfaceless renderer without GPU\nlibmutter-Message: 07:49:39.333: Added virtual monitor Meta-0\nlibmutter-Message: 07:49:39.335: Using public X11 display :0, (using unix:/tmp/.X11-unix/X1 for managed services)\nlibmutter-Message: 07:49:39.335: Using Wayland display name 'wayland-0'\n\n(mutter:130): mutter-WARNING **: 07:49:39.357: Failed to acquire org.freedesktop.locale1 proxy: Error calling StartServiceByName for org.freedesktop.locale1: Launch helper exited with unknown return code 1\nXwayland glamor: GBM Wayland interfaces not available\nFailed to initialize glamor, falling back to sw\nlibmutter-Message: 07:49:46.347: Removed virtual monitor Meta-0\n"
+VM_LOG pipewire.log "[W][07:49:39.460970] mod.rt       | [     module-rt.c:  329 translate_error()] RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\n[W][07:49:39.461007] mod.rt       | [     module-rt.c:  993 do_rtkit_setup()] RTKit does not give us MaxRealtimePriority, using 1\n[W][07:49:39.461486] mod.rt       | [     module-rt.c:  329 translate_error()] RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\n[W][07:49:39.461490] mod.rt       | [     module-rt.c:  998 do_rtkit_setup()] RTKit does not give us MinNiceLevel, using 0\n[W][07:49:39.461585] mod.rt       | [     module-rt.c:  329 translate_error()] RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\n[W][07:49:39.461588] mod.rt       | [     module-rt.c: 1003 do_rtkit_setup()] RTKit does not give us RTTimeUSecMax, using -1\n"
+VM_LOG root-service.log "Cannot load libcuda.so.1\nCannot load libcuda.so.1\n"
+VM_LOG system-bus.log "dbus[99]: Unknown username \"malcontent-timer-ext-agent\" in message bus configuration file\ndbus[99]: Unknown username \"malcontent-timerd\" in message bus configuration file\ndbus[99]: Unknown username \"malcontent-webd\" in message bus configuration file\ndbus[99]: Unknown username \"malcontent-timerd\" in message bus configuration file\ndbus-daemon[99]: [system] Activating service name='org.freedesktop.locale1' requested by ':1.0' (uid=1000 pid=130 comm=\"mutter --headless --wayland --virtual-monitor=640x\" label=\"unconfined\") (using servicehelper)\ndbus-daemon[99]: [system] Activated service 'org.freedesktop.locale1' failed: Launch helper exited with unknown return code 1\ndbus-daemon[99]: [system] Activating service name='org.freedesktop.ColorManager' requested by ':1.0' (uid=1000 pid=130 comm=\"mutter --headless --wayland --virtual-monitor=640x\" label=\"unconfined\") (using servicehelper)\ndbus-daemon[99]: [system] Successfully activated service 'org.freedesktop.ColorManager'\ndbus-daemon[99]: [system] Activating service name='org.freedesktop.login1' requested by ':1.14' (uid=1000 pid=292 comm=\"/opt/farpane-native-test/releases/farpane-native-d\" label=\"unconfined\") (using servicehelper)\ndbus-daemon[99]: [system] Activated service 'org.freedesktop.login1' failed: Launch helper exited with unknown return code 1\n"
+VM_LOG target.log ""
+VM_LOG udev.log "Failed to allocate memory pressure watch, ignoring: No data available\nUsing default interface naming scheme 'v259'.\n"
+VM_LOG user-bus.log "dbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Activating service name='org.gtk.vfs.Daemon' requested by ':1.0' (uid=1000 pid=130 comm=\"mutter --headless --wayland --virtual-monitor=640x\" label=\"unconfined\")\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Successfully activated service 'org.gtk.vfs.Daemon'\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.11' (uid=1000 pid=173 comm=\"/usr/libexec/mutter-x11-frames\" label=\"unconfined\")\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.12' (uid=1000 pid=204 comm=\"/usr/libexec/xdg-desktop-portal\" label=\"unconfined\")\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Activating service name='org.freedesktop.portal.Documents' requested by ':1.12' (uid=1000 pid=204 comm=\"/usr/libexec/xdg-desktop-portal\" label=\"unconfined\")\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Successfully activated service 'org.freedesktop.portal.Documents'\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.561: Choosing gnome.portal for org.freedesktop.impl.portal.Lockdown via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.561: The preferred method to match portal implementations to desktop environments is to use the portals.conf(5) configuration file\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Activating service name='org.freedesktop.impl.portal.desktop.gnome' requested by ':1.12' (uid=1000 pid=204 comm=\"/usr/libexec/xdg-desktop-portal\" label=\"unconfined\")\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Activating service name='org.gnome.Settings.GlobalShortcutsProvider' requested by ':1.17' (uid=1000 pid=229 comm=\"/usr/libexec/xdg-desktop-portal-gnome\" label=\"unconfined\")\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Successfully activated service 'org.gnome.Settings.GlobalShortcutsProvider'\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Successfully activated service 'org.freedesktop.impl.portal.desktop.gnome'\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.708: Choosing gnome.portal for org.freedesktop.impl.portal.Access via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.716: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.716: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.716: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.716: Choosing gnome.portal for org.freedesktop.impl.portal.Settings via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.716: Choosing gtk.portal for org.freedesktop.impl.portal.Settings via the deprecated UseIn key\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.12' (uid=1000 pid=204 comm=\"/usr/libexec/xdg-desktop-portal\" label=\"unconfined\")\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.758: Choosing gnome.portal for org.freedesktop.impl.portal.FileChooser via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.759: Choosing gnome.portal for org.freedesktop.impl.portal.AppChooser via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.759: Choosing gnome.portal for org.freedesktop.impl.portal.Print via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.760: Choosing gnome.portal for org.freedesktop.impl.portal.Notification via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.760: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.763: Choosing gnome.portal for org.freedesktop.impl.portal.Screenshot via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.763: Choosing gnome.portal for org.freedesktop.impl.portal.Background via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.764: Choosing gnome.portal for org.freedesktop.impl.portal.Wallpaper via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.765: Choosing gnome.portal for org.freedesktop.impl.portal.Account via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.765: Choosing gtk.portal for org.freedesktop.impl.portal.Email via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.765: Choosing gnome.portal for org.freedesktop.impl.portal.GlobalShortcuts via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.765: Choosing gnome.portal for org.freedesktop.impl.portal.DynamicLauncher via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.766: Choosing gnome.portal for org.freedesktop.impl.portal.ScreenCast via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.766: Choosing gnome.portal for org.freedesktop.impl.portal.RemoteDesktop via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.766: Choosing gnome.portal for org.freedesktop.impl.portal.Clipboard via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.767: Choosing gnome.portal for org.freedesktop.impl.portal.InputCapture via the deprecated UseIn key\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:39.767: Choosing gnome.portal for org.freedesktop.impl.portal.Usb via the deprecated UseIn key\ndbus-daemon[127]: [session uid=1000 pid=127 pidfd=4] Successfully activated service 'org.freedesktop.portal.Desktop'\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:46.333: Caught PipeWire error: connection error\nGdk-Message: 07:49:46.338: Lost connection to Wayland compositor.\nGdk-Message: 07:49:46.338: Lost connection to Wayland compositor.\nGdk-Message: 07:49:46.339: Error reading events from display: Broken pipe\nA connection to the bus can't be made\n\n(/usr/libexec/xdg-desktop-portal:204): xdg-desktop-portal-WARNING **: 07:49:46.369: Failed connect to PipeWire: Couldn't connect to PipeWire\n"
+VM_LOG viewer-display.log "_XSERVTransmkdir: Owner of /tmp/.X11-unix should be set to root\n"
+VM_LOG viewer.log ""
+VM_LOG wireplumber.log "W 07:49:39.469943             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nW 07:49:39.469989             mod.rt ../src/modules/module-rt.c:993:do_rtkit_setup: RTKit does not give us MaxRealtimePriority, using 1\nW 07:49:39.470545             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nW 07:49:39.470556             mod.rt ../src/modules/module-rt.c:998:do_rtkit_setup: RTKit does not give us MinNiceLevel, using 0\nW 07:49:39.470645             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nW 07:49:39.470648             mod.rt ../src/modules/module-rt.c:1003:do_rtkit_setup: RTKit does not give us RTTimeUSecMax, using -1\nW 07:49:39.482313 m-snapd-permission ../modules/module-snapd-permission-prompting.c:458:check_apparmor_prompting_available: <WpAudioPermissionPrompting:0x5f79fbf7df00> Failed to connect to snapd: No such file or directory\nN 07:49:39.503532 wp-internal-comp-l ../lib/wp/private/internal-comp-loader.c:588:on_component_loaded: <WpCore:0x5f79fbeb91f0> optional component 'support.logind [module: libwireplumber-module-logind]' failed to load: failed to start systemd logind monitor: -2 (No such file or directory)\nN 07:49:39.503543 wp-internal-comp-l ../lib/wp/private/internal-comp-loader.c:640:wp_component_array_load_task_execute_step: <WpCore:0x5f79fbeb91f0> skipping component 'monitor.bluez.seat-monitoring [virtual]' because some of its dependencies were not loaded\nE 07:49:39.514884            default ../spa/plugins/bluez5/upower.c:54:upower_get_percentage_properties_reply: Failed to get percentage from UPower: org.freedesktop.DBus.Error.NameHasNoOwner\nW 07:49:39.515437         spa.bluez5 ../spa/plugins/bluez5/bluez5-dbus.c:6546:get_managed_objects_reply: BlueZ system service is not available\nN 07:49:39.519046          wp-device ../lib/wp/device.c:710:wp_spa_device_new_from_spa_factory: SPA handle 'api.libcamera.enum.manager' could not be loaded; is it installed?\nN 07:49:39.519056 s-monitors-libcame enumerate-device.lua:30:chunk: PipeWire's libcamera SPA plugin is missing or broken. Some camera types may not be supported.\nW 07:49:46.326862            pw.core ../src/pipewire/core.c:199:destroy_proxy: 0x5f79fbf5a400: leaked proxy 0x5f79fc09cb40 id:3\n"
+VM_GUI_REPORT viewer-progress.json {
+  "authentication_visible": false,
+  "challenge": 0,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在建立远程连接",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "传输已建立，等待认证",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "请输入远端密码",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "policy": {
+            "image": {
+              "receive": false,
+              "send": false
+            },
+            "rich_text": {
+              "receive": false,
+              "send": false
+            },
+            "text": {
+              "receive": false,
+              "send": false
+            }
+          },
+          "revision": 1
+        },
+        "type": "clipboard_policy"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "audio": true,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 7,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 8,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 9,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 10,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 11,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 2,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 12,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "密码不正确，请重新输入",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 13,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 14,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 3,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 15,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "retryable": false
+        },
+        "type": "connection_ended"
+      },
+      "generation": 1,
+      "sequence": 16,
+      "session": 7905016849974874624
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "远程连接失败或已关闭",
+          "phase": "failed"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 17,
+      "session": 7905016849974874624
+    }
+  ],
+  "frames": 0,
+  "gpu_completed": 0,
+  "gpu_frames": 0,
+  "hud_enabled": false,
+  "password_attempts": 2,
+  "phase": "failed",
+  "presented": false,
+  "worker_reaped": false
+}
+VM_CORE_LOG /root/.local/share/logs/FarPane/service/farpane-core_rCURRENT.log "[2026-10-18 07:49:40.144475 +00:00] INFO [src/core_main.rs:400] start --service\n[2026-10-18 07:49:40.145050 +00:00] INFO [src/server/uinput.rs:1081] start uinput keyboard service\n[2026-10-18 07:49:40.145058 +00:00] INFO [src/server/uinput.rs:1095] start uinput control service\n[2026-10-18 07:49:40.145068 +00:00] INFO [src/server/uinput.rs:1088] start uinput mouse service\n[2026-10-18 07:49:40.145192 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_mouse server at path: /tmp/FarPane-service/ipc_uinput_mouse\n[2026-10-18 07:49:40.145216 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_keyboard server at path: /tmp/FarPane-service/ipc_uinput_keyboard\n[2026-10-18 07:49:40.145238 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_control server at path: /tmp/FarPane-service/ipc_uinput_control\n[2026-10-18 07:49:40.145464 +00:00] INFO [src/ipc/drm.rs:101] Started drm ipc server at path: /tmp/FarPane-service/ipc_drm\n[2026-10-18 07:49:40.145562 +00:00] INFO [src/ipc.rs:742] Started protected ipc service server: postfix=_service\n[2026-10-18 07:49:40.145672 +00:00] INFO [src/ipc/drm.rs:728] drm: udev DRM-uevent listener started\n[2026-10-18 07:49:40.210941 +00:00] INFO [libs/scrap/src/common/drmtap_dl.rs:401] libdrmtap loaded: /opt/farpane-native-test/releases/farpane-native-dev-67f5d1594e8961809614f4e1/lib/libdrmtap.so.0.5.8 (v0.5.8)\n[2026-10-18 07:49:40.211046 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:40.211049 +00:00] INFO [src/ipc/drm.rs:792] drm: pre-warm skipped (no reader; cache refresh requested)\n[2026-10-18 07:49:40.211095 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:40.211140 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:40.211216 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:42.441512 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_control\n[2026-10-18 07:49:42.442194 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_keyboard\n[2026-10-18 07:49:42.442236 +00:00] DEBUG [src/server/uinput.rs:853] spawn_keyboard_handler: new keyboard handler connection\n[2026-10-18 07:49:42.442414 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_mouse\n[2026-10-18 07:49:42.442451 +00:00] INFO [src/server/uinput.rs:908] Create uinput mouce with rng_x: (0, 1920), rng_y: (0, 1080)\n[2026-10-18 07:49:42.445040 +00:00] DEBUG [src/server/uinput.rs:859] UInput keyboard device created successfully\n[2026-10-18 07:49:42.502006 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:42.502036 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:42.502069 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:42.502160 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:42.877115 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:42.877148 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:42.877177 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:42.877255 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:43.106811 +00:00] INFO [src/rendezvous_mediator.rs:271] server restart\n[2026-10-18 07:49:43.242833 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:43.242867 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:43.242903 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:43.242997 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:43.607472 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:43.607508 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:43.607537 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:43.607626 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:43.970409 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:43.970445 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:43.970474 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:43.970560 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:44.334071 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:44.334106 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:44.334135 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:44.334217 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:44.697631 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:44.697663 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:44.697691 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:44.697777 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:45.062398 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:45.062447 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:45.062509 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:45.062648 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:45.425681 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:45.425715 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:45.425744 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:45.425831 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:45.788025 +00:00] DEBUG [src/ipc/drm.rs:352] drm: cannot read /dev/dri to enumerate cards: No such file or directory (os error 2)\n[2026-10-18 07:49:45.788066 +00:00] INFO [src/ipc/drm.rs:367] drm: enumerated /dev/dri directly (0 card path(s)): 0 active display(s), 0 connected but undriven\n[2026-10-18 07:49:45.788100 +00:00] INFO [libs/scrap/src/common/drm_reader.rs:412] drmtap_open failed; DRM capture unavailable\n[2026-10-18 07:49:45.788203 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 07:49:46.183272 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_control\n[2026-10-18 07:49:46.183471 +00:00] INFO [src/server/uinput.rs:943] Refresh uinput mouce with rng_x: (0, 640), rng_y: (0, 480)\n"
+VM_CORE_LOG /home/ubuntu/.local/share/logs/FarPane/server/farpane-core_rCURRENT.log "[2026-10-18 07:49:42.440366 +00:00] INFO [src/core_main.rs:404] start --server with user ubuntu\n[2026-10-18 07:49:42.440916 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(\"unix:/tmp/.X11-unix/X1\")\n[2026-10-18 07:49:42.440927 +00:00] INFO [src/server.rs:666] XAUTHORITY=Ok(\"/run/user/1000/.mutter-Xwaylandauth.3FD9W3\")\n[2026-10-18 07:49:42.441456 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-1000/ipc\n[2026-10-18 07:49:42.442276 +00:00] INFO [src/server/input_service.rs:760] UInput keyboard created\n[2026-10-18 07:49:42.444517 +00:00] INFO [src/server/input_service.rs:762] UInput mouse created\n[2026-10-18 07:49:42.504506 +00:00] INFO [libs/libxdo-sys-stub/src/lib.rs:254] libxdo-sys libxdo not found, xdo functions will be disabled\n[2026-10-18 07:49:42.504516 +00:00] WARN [libs/enigo/src/linux/xdo.rs:98] Failed to create xdo context, xdo functions will be disabled\n[2026-10-18 07:49:42.504585 +00:00] DEBUG [src/server.rs:833] #tries of ipc service connection: 30\n[2026-10-18 07:49:42.805497 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)\n[2026-10-18 07:49:42.810584 +00:00] INFO [src/common.rs:706] Testing nat ...\n[2026-10-18 07:49:42.810804 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 07:49:42.815025 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 07:49:42.818720 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:523] set hwcodec config\n[2026-10-18 07:49:42.818736 +00:00] DEBUG [libs/scrap/src/common/hwcodec.rs:524] HwCodecConfig { signature: 0, ram_encode: [], ram_decode: [CodecInfo { name: \"h264\", mc_name: None, format: H264, priority: 3, hwdevice: AV_HWDEVICE_TYPE_NONE }, CodecInfo { name: \"hevc\", mc_name: None, format: H265, priority: 3, hwdevice: AV_HWDEVICE_TYPE_NONE }] }\n[2026-10-18 07:49:42.938885 +00:00] INFO [src/rendezvous_mediator.rs:1375] Direct server listening on: Some(Ok([::]:21118))\n[2026-10-18 07:49:42.938905 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com\n[2026-10-18 07:49:42.939091 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0, available memory: 5G, codec thread: 2\n[2026-10-18 07:49:42.939525 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116\n[2026-10-18 07:49:42.939980 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 07:49:43.095604 +00:00] INFO [libs/scrap/src/common/codec.rs:1150] av1 time: key: 37.651593ms, non-key: 7.369111ms, consume: 154.490187ms\n[2026-10-18 07:49:43.106240 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root\n[2026-10-18 07:49:43.815149 +00:00] INFO [src/common.rs:706] Testing nat ...\n[2026-10-18 07:49:43.815930 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 07:49:43.835496 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0\n[2026-10-18 07:49:45.869832 +00:00] INFO [src/rendezvous_mediator.rs:1404] direct access from [::ffff:127.0.0.1]:42029\n[2026-10-18 07:49:45.869921 +00:00] INFO [libs/hbb_common/src/config.rs:1143] Generated new keypair for id: \n[2026-10-18 07:49:45.870028 +00:00] DEBUG [src/server/connection.rs:1584] #1702 Connection opened from 127.0.0.1:42029.\n[2026-10-18 07:49:45.870502 +00:00] DEBUG [src/ui_cm_interface.rs:880] Got new connection\n[2026-10-18 07:49:45.870526 +00:00] DEBUG [src/ui_cm_interface.rs:829] ipc task begin\n[2026-10-18 07:49:45.870549 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1702\n[2026-10-18 07:49:45.909732 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1702\n[2026-10-18 07:49:45.939646 +00:00] INFO [src/platform/mod.rs:112] new wakelock, require display on: true\n[2026-10-18 07:49:45.939886 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:382] perform;\n[2026-10-18 07:49:45.939916 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Auth(Some(External), Some([49, 48, 48, 48]))\n[2026-10-18 07:49:45.939931 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;\n[2026-10-18 07:49:45.940000 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=NegotiateUnixFD\n[2026-10-18 07:49:45.940015 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;\n[2026-10-18 07:49:45.940121 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Begin\n[2026-10-18 07:49:45.940219 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/socket_reader.rs:33] socket reader;\n[2026-10-18 07:49:45.941058 +00:00] INFO [src/platform/linux.rs:2654] wakelock: keepawake could not take the inhibit (org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.ScreenSaver was not provided by any .service files)\n[2026-10-18 07:49:45.941128 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:382] perform;\n[2026-10-18 07:49:45.941136 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Auth(Some(External), Some([49, 48, 48, 48]))\n[2026-10-18 07:49:45.941143 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;\n[2026-10-18 07:49:45.941243 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=NegotiateUnixFD\n[2026-10-18 07:49:45.941254 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;\n[2026-10-18 07:49:45.941319 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Begin\n[2026-10-18 07:49:45.941497 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/socket_reader.rs:33] socket reader;\n[2026-10-18 07:49:45.946819 +00:00] INFO [src/platform/linux.rs:2667] wakelock: the logind idle/sleep inhibit did not come back either (org.freedesktop.DBus.Error.Spawn.ChildExited: Launch helper exited with unknown return code 1)\n[2026-10-18 07:49:45.947734 +00:00] INFO [src/platform/linux.rs:2614] wakelock: no session idle inhibitor answered, so the compositor may still blank this screen (org.gnome.SessionManager: The name org.gnome.SessionManager was not provided by any .service files; org.freedesktop.PowerManagement: The name org.freedesktop.PowerManagement was not provided by any .service files)\n[2026-10-18 07:49:46.088270 +00:00] INFO [src/server/drm_capturer.rs:1897] drm: consumer cache warm found no producer at startup (will probe lazily)\n[2026-10-18 07:49:46.133586 +00:00] INFO [src/server/connection.rs:2210] peer info supported_encoding: SupportedEncoding { h264: false, h265: false, vp8: true, av1: true, i444: MessageField(Some(CodecAbility { vp8: false, vp9: true, av1: true, h264: false, h265: false, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }\n[2026-10-18 07:49:46.133903 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:463] Bound new global [3] wl_output v4\n[2026-10-18 07:49:46.133923 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:503] Bound new global [4] zxdg_output_manager_v1 v3\n[2026-10-18 07:49:46.182926 +00:00] INFO [src/server/wayland.rs:497] update mouse resolution: (0, 640), (0, 480)\n[2026-10-18 07:49:46.183006 +00:00] INFO [src/server.rs:896] config updated, sync to root\n[2026-10-18 07:49:46.230572 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file\n"
+FARPANE_INPUT_VM_RESULT={"schema": 1, "scope": "isolated-kernel-bootstrap", "result": "fail", "full_farpane_input_tested": false, "host_input_exposed": false, "kernel": "7.0.0-38-generic", "boot_id": "8559c058-4f6f-4285-9eef-53e04c121056", "machine": "Standard PC (Q35 + ICH9, 2009)", "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1", "uinput": {"device_name": "FarPane private VM kernel probe", "events": [[1, 30, 1], [0, 0, 0], [1, 30, 0], [0, 0, 0]], "input_kernel": "private-guest"}, "failure": "Traceback (most recent call last):\n  File \"/opt/farpane-input-test/init.py\", line 102, in main\n    result['service'] = exercise()\n                        ~~~~~~~~^^\n  File \"/opt/farpane-input-test/native_input_vm_service.py\", line 185, in exercise\n    progress=wait(viewer_ready,'Private Viewer did not receive a frame',seconds=25)\n  File \"/opt/farpane-input-test/native_input_vm_service.py\", line 65, in wait\n    value = predicate()\n  File \"/opt/farpane-input-test/native_input_vm_service.py\", line 182, in viewer_ready\n    raise RuntimeError('Private Viewer ended before a frame: '+str(value))\nRuntimeError: Private Viewer ended before a frame: {'authentication_visible': False, 'challenge': 0, 'events': [{'event': {'data': {'error': None, 'request': 1, 'revision': 0}, 'type': 'reply'}, 'generation': 1, 'sequence': 1, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u6b63\u5728\u5efa\u7acb\u8fdc\u7a0b\u8fde\u63a5', 'phase': 'connecting'}, 'type': 'phase'}, 'generation': 1, 'sequence': 2, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u97f3\u9891\u5df2\u5173\u95ed', 'dropped': 0, 'status': 'disabled'}, 'type': 'audio'}, 'generation': 1, 'sequence': 3, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u4f20\u8f93\u5df2\u5efa\u7acb\uff0c\u7b49\u5f85\u8ba4\u8bc1', 'phase': 'authenticating'}, 'type': 'phase'}, 'generation': 1, 'sequence': 4, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u8bf7\u8f93\u5165\u8fdc\u7aef\u5bc6\u7801', 'phase': 'password_required'}, 'type': 'phase'}, 'generation': 1, 'sequence': 5, 'session': 7905016849974874624}, {'event': {'data': {'policy': {'image': {'receive': False, 'send': False}, 'rich_text': {'receive': False, 'send': False}, 'text': {'receive': False, 'send': False}}, 'revision': 1}, 'type': 'clipboard_policy'}, 'generation': 1, 'sequence': 6, 'session': 7905016849974874624}, {'event': {'data': {'audio': True, 'clipboard': False, 'file': True, 'keyboard': True}, 'type': 'permissions'}, 'generation': 1, 'sequence': 7, 'session': 7905016849974874624}, {'event': {'data': {'audio': False, 'clipboard': False, 'file': True, 'keyboard': True}, 'type': 'permissions'}, 'generation': 1, 'sequence': 8, 'session': 7905016849974874624}, {'event': {'data': {'audio': False, 'clipboard': False, 'file': False, 'keyboard': True}, 'type': 'permissions'}, 'generation': 1, 'sequence': 9, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u97f3\u9891\u5df2\u5173\u95ed', 'dropped': 0, 'status': 'disabled'}, 'type': 'audio'}, 'generation': 1, 'sequence': 10, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u6b63\u5728\u9a8c\u8bc1\u5bc6\u7801', 'phase': 'authenticating'}, 'type': 'phase'}, 'generation': 1, 'sequence': 11, 'session': 7905016849974874624}, {'event': {'data': {'error': None, 'request': 2, 'revision': 0}, 'type': 'reply'}, 'generation': 1, 'sequence': 12, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u5bc6\u7801\u4e0d\u6b63\u786e\uff0c\u8bf7\u91cd\u65b0\u8f93\u5165', 'phase': 'password_required'}, 'type': 'phase'}, 'generation': 1, 'sequence': 13, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u6b63\u5728\u9a8c\u8bc1\u5bc6\u7801', 'phase': 'authenticating'}, 'type': 'phase'}, 'generation': 1, 'sequence': 14, 'session': 7905016849974874624}, {'event': {'data': {'error': None, 'request': 3, 'revision': 0}, 'type': 'reply'}, 'generation': 1, 'sequence': 15, 'session': 7905016849974874624}, {'event': {'data': {'retryable': False}, 'type': 'connection_ended'}, 'generation': 1, 'sequence': 16, 'session': 7905016849974874624}, {'event': {'data': {'detail': '\u8fdc\u7a0b\u8fde\u63a5\u5931\u8d25\u6216\u5df2\u5173\u95ed', 'phase': 'failed'}, 'type': 'phase'}, 'generation': 1, 'sequence': 17, 'session': 7905016849974874624}], 'frames': 0, 'gpu_completed': 0, 'gpu_frames': 0, 'hud_enabled': False, 'password_attempts': 2, 'phase': 'failed', 'presented': False, 'worker_reaped': False}\n"}
+[    9.021000] ACPI: PM: Preparing to enter system sleep state S5
+[    9.022312] reboot: Power down

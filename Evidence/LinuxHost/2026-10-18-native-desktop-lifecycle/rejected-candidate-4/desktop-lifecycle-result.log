@@ -1,0 +1,339 @@
+{
+  "result": "fail",
+  "checks": [
+    "gnome_menu_opens_one_native_gui_attached_to_host",
+    "repeated_gnome_menu_keeps_same_gui_generation",
+    "direct_executable_reuses_one_wayland_toplevel_and_app_id",
+    "real_alt_tab_switches_between_companion_and_farpane",
+    "alt_f4_destroys_window_removes_gui_and_bus_owner_preserves_host",
+    "menu_reopens_new_gui_on_original_host_and_identity",
+    "reopened_gui_remains_single_instance_and_exits_without_hidden_process"
+  ],
+  "states": [
+    {
+      "phase": "initial-menu",
+      "processes": [
+        {
+          "pid": 756,
+          "uid": 0,
+          "role": "--service",
+          "start": "2677"
+        },
+        {
+          "pid": 787,
+          "uid": 1000,
+          "role": "--server",
+          "start": "2897"
+        },
+        {
+          "pid": 1116,
+          "uid": 1000,
+          "role": "gui",
+          "start": "4398"
+        }
+      ],
+      "identity_unchanged": true
+    },
+    {
+      "phase": "repeated-menu",
+      "processes": [
+        {
+          "pid": 756,
+          "uid": 0,
+          "role": "--service",
+          "start": "2677"
+        },
+        {
+          "pid": 787,
+          "uid": 1000,
+          "role": "--server",
+          "start": "2897"
+        },
+        {
+          "pid": 1116,
+          "uid": 1000,
+          "role": "gui",
+          "start": "4398"
+        }
+      ],
+      "identity_unchanged": true
+    },
+    {
+      "phase": "direct-entry-existing-instance",
+      "processes": [
+        {
+          "pid": 756,
+          "uid": 0,
+          "role": "--service",
+          "start": "2677"
+        },
+        {
+          "pid": 787,
+          "uid": 1000,
+          "role": "--server",
+          "start": "2897"
+        },
+        {
+          "pid": 1116,
+          "uid": 1000,
+          "role": "gui",
+          "start": "4398"
+        }
+      ],
+      "identity_unchanged": true
+    },
+    {
+      "phase": "alt-tab-returned",
+      "processes": [
+        {
+          "pid": 756,
+          "uid": 0,
+          "role": "--service",
+          "start": "2677"
+        },
+        {
+          "pid": 787,
+          "uid": 1000,
+          "role": "--server",
+          "start": "2897"
+        },
+        {
+          "pid": 1116,
+          "uid": 1000,
+          "role": "gui",
+          "start": "4398"
+        }
+      ],
+      "identity_unchanged": true
+    },
+    {
+      "phase": "first-close",
+      "processes": [
+        {
+          "pid": 756,
+          "uid": 0,
+          "role": "--service",
+          "start": "2677"
+        },
+        {
+          "pid": 787,
+          "uid": 1000,
+          "role": "--server",
+          "start": "2897"
+        }
+      ],
+      "identity_unchanged": true
+    },
+    {
+      "phase": "reopened",
+      "processes": [
+        {
+          "pid": 756,
+          "uid": 0,
+          "role": "--service",
+          "start": "2677"
+        },
+        {
+          "pid": 787,
+          "uid": 1000,
+          "role": "--server",
+          "start": "2897"
+        },
+        {
+          "pid": 1242,
+          "uid": 1000,
+          "role": "gui",
+          "start": "5630"
+        }
+      ],
+      "identity_unchanged": true
+    },
+    {
+      "phase": "final-close",
+      "processes": [
+        {
+          "pid": 756,
+          "uid": 0,
+          "role": "--service",
+          "start": "2677"
+        },
+        {
+          "pid": 787,
+          "uid": 1000,
+          "role": "--server",
+          "start": "2897"
+        }
+      ],
+      "identity_unchanged": true
+    }
+  ],
+  "captures": [
+    {
+      "file": "launch-life-initial-search.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "fe7711679e8016673b0ebc5901ebad143fcef38e2716137c4968d1a9c793015c",
+      "capture": "guest-only VKMS mapped frame"
+    },
+    {
+      "file": "launch-life-cold-menu-failure.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "fe7711679e8016673b0ebc5901ebad143fcef38e2716137c4968d1a9c793015c",
+      "capture": "guest-only VKMS mapped frame"
+    },
+    {
+      "file": "launch-life-menu.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "c0a154f71ed1c4b3b4c38cfd101c89fa6587487a1f5a9709c47bc6dda196d33d",
+      "capture": "guest-only VKMS mapped frame"
+    },
+    {
+      "file": "launch-life-repeat.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "c0a154f71ed1c4b3b4c38cfd101c89fa6587487a1f5a9709c47bc6dda196d33d",
+      "capture": "guest-only VKMS mapped frame"
+    },
+    {
+      "file": "launch-life-switcher.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "c4f13e625d2fa3b7cb51233393f2221454a5283c6e9687fd4c7013ca35fc1b26",
+      "capture": "guest-only VKMS mapped frame"
+    },
+    {
+      "file": "launch-life-returned.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "c0a154f71ed1c4b3b4c38cfd101c89fa6587487a1f5a9709c47bc6dda196d33d",
+      "capture": "guest-only VKMS mapped frame"
+    },
+    {
+      "file": "launch-life-closed.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "4a8ae4da366c9b63926a63ba3cb931f79610b7fa589e0fa0f76844afb2240169",
+      "capture": "guest-only VKMS mapped frame"
+    },
+    {
+      "file": "launch-life-reopened.png",
+      "width": 1024,
+      "height": 768,
+      "format": "XR24",
+      "sha256": "177a8d4e2995fe5248052a3630d930fbccce41d1106ab9700b52d2c3315db773",
+      "capture": "guest-only VKMS mapped frame"
+    }
+  ],
+  "traces": [
+    {
+      "pid": 1116,
+      "file": "desktop-lifecycle-wayland-1116-open.log",
+      "toplevels_created": 1,
+      "app_id": "org.farpane.FarPane",
+      "destroyed": false
+    },
+    {
+      "pid": 1116,
+      "file": "desktop-lifecycle-wayland-1116-closed.log",
+      "toplevels_created": 1,
+      "app_id": "org.farpane.FarPane",
+      "destroyed": true
+    },
+    {
+      "pid": 1242,
+      "file": "desktop-lifecycle-wayland-1242-closed.log",
+      "toplevels_created": 1,
+      "app_id": "org.farpane.FarPane",
+      "destroyed": true
+    }
+  ],
+  "cold_menu_without_refresh": false,
+  "discovery_before_refresh": {
+    "app_by_id": "/home/ubuntu/.local/share/applications/org.farpane.FarPane.desktop",
+    "search": [
+      [
+        "org.farpane.FarPane.desktop"
+      ]
+    ],
+    "listed": [
+      "org.farpane.FarPane.desktop"
+    ],
+    "directories": {
+      "/home/ubuntu/.local/share": {
+        "inode_hex": "0x20011",
+        "exists": true
+      },
+      "/home/ubuntu/.local/share/applications": {
+        "inode_hex": "0x22074",
+        "exists": true
+      }
+    },
+    "gnome_inotify": [
+      "inotify wd:f ino:2000c sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:0c000200c3898dac",
+      "inotify wd:e ino:22074 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:742002007eb81727",
+      "inotify wd:b ino:2003f sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:3f00020016c44a78",
+      "inotify wd:9 ino:20032 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:32000200fd2dd7fe",
+      "inotify wd:8 ino:17 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:1700000000000000",
+      "inotify wd:7 ino:3066 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:6630000000000000",
+      "inotify wd:6 ino:2e17 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:172e000000000000",
+      "inotify wd:4 ino:22b sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:2b02000000000000",
+      "inotify wd:2 ino:3d82 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:823d000000000000",
+      "inotify wd:1 ino:20016 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:16000200b4247ea9"
+    ]
+  },
+  "diagnostic_refresh": "update-desktop-database on private user applications directory",
+  "menu_after_refresh": true,
+  "discovery_after_refresh": {
+    "app_by_id": "/home/ubuntu/.local/share/applications/org.farpane.FarPane.desktop",
+    "search": [
+      [
+        "org.farpane.FarPane.desktop"
+      ]
+    ],
+    "listed": [
+      "org.farpane.FarPane.desktop"
+    ],
+    "directories": {
+      "/home/ubuntu/.local/share": {
+        "inode_hex": "0x20011",
+        "exists": true
+      },
+      "/home/ubuntu/.local/share/applications": {
+        "inode_hex": "0x22074",
+        "exists": true
+      }
+    },
+    "gnome_inotify": [
+      "inotify wd:10 ino:22074 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:742002007eb81727",
+      "inotify wd:f ino:2000c sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:0c000200c3898dac",
+      "inotify wd:b ino:2003f sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:3f00020016c44a78",
+      "inotify wd:9 ino:20032 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:32000200fd2dd7fe",
+      "inotify wd:8 ino:17 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:1700000000000000",
+      "inotify wd:7 ino:3066 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:6630000000000000",
+      "inotify wd:6 ino:2e17 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:172e000000000000",
+      "inotify wd:4 ino:22b sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:2b02000000000000",
+      "inotify wd:2 ino:3d82 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:823d000000000000",
+      "inotify wd:1 ino:20016 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:16000200b4247ea9"
+    ]
+  },
+  "close_seconds": [
+    0.132,
+    0.131
+  ],
+  "host_generation_unchanged": true,
+  "input_text_tested": false,
+  "remote_connection_tested": false,
+  "diagnostic_activation_environment": {
+    "WAYLAND_DEBUG": "client"
+  },
+  "memory_budget_tested": false
+}

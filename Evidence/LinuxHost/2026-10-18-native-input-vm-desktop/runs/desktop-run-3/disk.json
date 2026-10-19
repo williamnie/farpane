@@ -1,0 +1,32 @@
+{
+  "artifact": "farpane-native-dev-d393fd0cff634416807feae5",
+  "disk_bytes": 8589934592,
+  "stage": "desktop",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "guest_modules": [
+    {
+      "file": "vkms.ko.zst",
+      "kernel_path": "kernel/drivers/gpu/drm/vkms/vkms.ko.zst",
+      "sha256": "115626b3be697524ccd702efd89ad61ffe1289f67dc042f6f94a3289d65a5e91",
+      "bytes": 41789,
+      "purpose": "software virtual display in the guest kernel only"
+    }
+  ],
+  "guest_unit_sha256": {
+    "pam-session": "cfd56978b702dfbf5f473b3b3c97bdf40428cd787c0e24366c8b62ed327252cc",
+    "farpane-input-test.service": "fa3d6eb6f61fd97c4d6898e461f6fa3b862d02db082914ca09495ab7e566d47f",
+    "farpane-input-session.service": "b88795320b3b1cb441d6aaa0b344c48a9d61a63b5a1025abe37185d206ac6ace",
+    "farpane-input-test.target": "3e48fe9e28c70048720212d292659c2583a428e72bf27c634d5536222a8a3e14"
+  },
+  "guest_init_sha256": "eb2e9c573ec38a130fceee0b3caaf117a254b531ee92b554950e12004602e3d8",
+  "guest_test_sha256": {
+    "native_gnome_input_smoke.py": "61ef7d4f8213d74e3491dbb292f2ab041e04fcbfbaffd99d7887a93c790cd216",
+    "init.py": "eb2e9c573ec38a130fceee0b3caaf117a254b531ee92b554950e12004602e3d8",
+    "native_input_vm_service.py": "ede517ffa3921051c14424b4111a9025e613686326b548cda0bc441a0a193bcc",
+    "native_input_vm_desktop.py": "828a71c2d66eee16dd503fcb3d464970ed862294832e0a994610dbf8872a0606"
+  },
+  "loginctl_sha256": "12fddb11d3ad4ef1d3a3e82151f4ce0c6d298b24382f634202973d2929672bb9",
+  "loginctl_provider": "systemd",
+  "rootfs_source_sha256": "3cf53170b9a686a78918ee34519fb38966cb36770a9989f8cfe91f19b4de775f",
+  "no_host_mount_or_input_device": true
+}

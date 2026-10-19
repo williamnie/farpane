@@ -1,0 +1,21 @@
+{
+  "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/src/clipboard.rs",
+  "sha256": "6d9264f6574102d9b6dd8249fc374395a3b8c2734043759b511f61d234f1b4fd",
+  "sections": [
+    {
+      "name": "pub fn set_text_clipboard_with_owner_sync",
+      "line": 292,
+      "source": "pub fn set_text_clipboard_with_owner_sync(text: &str, side: ClipboardSide) -> ResultType<()> {\n    let mut ctx = CLIPBOARD_CTX.lock().unwrap();\n    if ctx.is_none() {\n        *ctx = Some(ClipboardContext::new()?);\n    }\n    let clipboard_ctx = match ctx.as_mut() {\n        Some(ctx) => ctx,\n        None => bail!(\"Failed to create clipboard context\"),\n    };\n    let data = append_owner_marker(vec![ClipboardData::Text(text.to_owned())], side);\n    clipboard_ctx.set_with_owner_marker_for_linux(&data)\n}"
+    },
+    {
+      "name": "fn set_with_owner_marker_for_linux",
+      "line": 457,
+      "source": "fn set_with_owner_marker_for_linux(&mut self, data: &[ClipboardData]) -> ResultType<()> {\n        let _lock = ARBOARD_MTX.lock().unwrap();\n        self.inner\n            .set()\n            .clipboard(LinuxClipboardKind::Clipboard)\n            .formats(data)?;\n        if let Err(e) = self\n            .inner\n            .set()\n            .clipboard(LinuxClipboardKind::Primary)\n            .formats(data)\n        {\n            log::warn!(\"Failed to set PRIMARY clipboard with owner marker: {}\", e);\n        }\n        Ok(())\n    }"
+    }
+  ],
+  "conclusions": [
+    "CLIPBOARD formats error propagates to caller.",
+    "PRIMARY formats attempted after CLIPBOARD success; error logs warning but function returns Ok.",
+    "Caller success alone does not prove PRIMARY success or target consumption."
+  ]
+}

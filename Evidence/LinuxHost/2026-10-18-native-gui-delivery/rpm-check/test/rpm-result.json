@@ -1,0 +1,24 @@
+{
+  "result": "pass",
+  "checks": [
+    "real_rpm_install_enforces_dependencies_without_staging_or_activation",
+    "standalone_maintenance_tools_and_exact_payload_sources",
+    "explicit_staging_preserves_current_process_units_and_configuration",
+    "rpm_upgrade_preserves_pending_transaction_and_explicit_stage_refuses",
+    "explicit_upgrade_staging_retains_both_verified_candidates",
+    "rpm_gui_two_real_video_sessions_and_worker_reaping",
+    "rpm_erase_removes_candidate_and_retains_active_process_units_and_data"
+  ],
+  "artifact_id": "farpane-native-dev-532627a818c8f7d0e65df626",
+  "initial_artifact_id": "farpane-native-dev-ec305482eaacd98258e28587",
+  "installed_version": "0.1.0~dev.20261018.6-1.fc44",
+  "packages": {
+    "farpane-native-candidate-0.1.0~dev.20261018.5-1.fc44.x86_64.rpm": "075c5bbca66816541a18d2fb45b14f2a9c2c41ac4ef2f1b5020c847abd9b3ab7",
+    "farpane-native-candidate-0.1.0~dev.20261018.6-1.fc44.x86_64.rpm": "11ab42c5f7ce62dc015fdc7d6861e1afd8d14509b9e8bcbc0fe4b96a3062bbe7"
+  },
+  "gpu": false,
+  "host_modified": false,
+  "systemd_activation_tested": false,
+  "selinux_desktop_tested": false,
+  "preserved_process": "private shell blocked on a pipe, not an actual installed service"
+}

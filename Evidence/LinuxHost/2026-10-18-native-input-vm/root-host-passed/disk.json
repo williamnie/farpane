@@ -1,0 +1,13 @@
+{
+  "artifact": "farpane-native-dev-67f5d1594e8961809614f4e1",
+  "disk_bytes": 8589934592,
+  "guest_init_sha256": "36abb3a62f4ff51b49a39e0ef0dd4453fe424d093ef06056b3657e448cfde36d",
+  "guest_test_sha256": {
+    "native_gnome_input_smoke.py": "61ef7d4f8213d74e3491dbb292f2ab041e04fcbfbaffd99d7887a93c790cd216",
+    "init.py": "36abb3a62f4ff51b49a39e0ef0dd4453fe424d093ef06056b3657e448cfde36d",
+    "native_input_vm_service.py": "24fd36da47cae683cdf1e2384c183f05edb0e14897f9682f5b7ad2c595fffdb8"
+  },
+  "loginctl_fixture_sha256": "c5794952cef345b4baa3ee866404b87cbd8f8f34a20cc5d05823f9fef6534840",
+  "rootfs_source_sha256": "72c1f518e2c14fde5a4fe61e1f3c54e9a90b58d803e9addfeef331a876b0a3b1",
+  "no_host_mount_or_input_device": true
+}

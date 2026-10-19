@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "purpose": "isolated runtime compatibility fixtures; not application build dependencies",
+  "debian13": {
+    "image": "sha256:51e070245b4871c7202d3a4e0dabe4fa77b5f4e65a6a6e2845bf2cc5a3313ff4",
+    "label": "farpane-native-runtime-debian13:20261018",
+    "base": "debian@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+    "dockerfile": "Linux/packaging/native-runtime-debian13.Dockerfile",
+    "dockerfile_sha256": "a79cb844d000e701a14bde361d893e5e9871b8ea8b5e5acf5842bb6eb59d7a46",
+    "architecture": "amd64",
+    "jobs": 4,
+    "memory": "12g",
+    "apt_snapshot_pinned": false
+  },
+  "fedora44": {
+    "image": "sha256:ce8a98a1236e36755827266880578164a31bf7ef528f157c2a46358e686d2757",
+    "label": "farpane-native-runtime-fedora44:20261018",
+    "base": "registry.fedoraproject.org/fedora@sha256:4a78eff1423dcce55cf68b8fd66e7cdca61c85978283db3ecc3089a8419fbbc0",
+    "dockerfile": "Linux/packaging/native-runtime-fedora44.Dockerfile",
+    "dockerfile_sha256": "92ab10be159b62c31a2767070d8a37f107ea006540ea39ad57fd17a969919288",
+    "architecture": "amd64",
+    "jobs": 4,
+    "memory": "12g",
+    "dnf_snapshot_pinned": false
+  },
+  "fedora44_rpm_builder": {
+    "image": "sha256:6a82c3217281d54e04442c318cc709f3805b88802661bc7d3ac5192531557263",
+    "label": "farpane-native-rpm-builder-fedora44:20261018",
+    "base": "sha256:ce8a98a1236e36755827266880578164a31bf7ef528f157c2a46358e686d2757",
+    "dockerfile": "Linux/packaging/native-rpm-builder-fedora44.Dockerfile",
+    "dockerfile_sha256": "3ca493925205d575ad2ee5892de8ad6ca1c9ce0f3214cceda5443eb454c87481",
+    "architecture": "amd64",
+    "jobs": 4,
+    "memory": "12g",
+    "dnf_snapshot_pinned": false
+  }
+}

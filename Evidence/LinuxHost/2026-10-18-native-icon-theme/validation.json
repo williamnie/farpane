@@ -1,0 +1,21 @@
+{
+  "result": "pass",
+  "runs": [
+    {
+      "name": "lookup-before-later-windows",
+      "sources_verified": 23,
+      "images": 14,
+      "launch_cases": 6,
+      "rgb_pairs": 9
+    },
+    {
+      "name": "lookup-after-overview-cycle",
+      "sources_verified": 23,
+      "images": 18,
+      "launch_cases": 6,
+      "rgb_pairs": 12
+    }
+  ],
+  "product_changed": false,
+  "real_desktop_acceptance": false
+}

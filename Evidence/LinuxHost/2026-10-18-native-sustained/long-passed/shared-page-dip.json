@@ -1,0 +1,329 @@
+{
+  "baseline_index": 2,
+  "low_index": 10,
+  "low_seconds": 200.1125559559987,
+  "baseline_gui_pss_kib": 157532,
+  "low_gui_pss_kib": 97821,
+  "largest_changes": [
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libLLVM.so.21.1",
+      "pss_delta_kib": -18875,
+      "baseline": {
+        "Pss": 30544,
+        "Shared_Clean": 59472,
+        "Private_Clean": 7728,
+        "Private_Dirty": 2192
+      },
+      "low_sample": {
+        "Pss": 11669,
+        "Shared_Clean": 67200,
+        "Private_Clean": 0,
+        "Private_Dirty": 2192
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgallium-26.0.8-1ubuntu0.3.so",
+      "pss_delta_kib": -8052,
+      "baseline": {
+        "Pss": 13072,
+        "Shared_Clean": 0,
+        "Private_Clean": 12076,
+        "Private_Dirty": 996
+      },
+      "low_sample": {
+        "Pss": 5020,
+        "Shared_Clean": 12076,
+        "Private_Clean": 0,
+        "Private_Dirty": 996
+      }
+    },
+    {
+      "path": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+      "pss_delta_kib": -5930,
+      "baseline": {
+        "Pss": 9240,
+        "Shared_Clean": 2176,
+        "Private_Clean": 8152,
+        "Private_Dirty": 0
+      },
+      "low_sample": {
+        "Pss": 3310,
+        "Shared_Clean": 10032,
+        "Private_Clean": 296,
+        "Private_Dirty": 0
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgtk-4.so.1.2200.4",
+      "pss_delta_kib": -5695,
+      "baseline": {
+        "Pss": 8868,
+        "Shared_Clean": 0,
+        "Private_Clean": 8636,
+        "Private_Dirty": 232
+      },
+      "low_sample": {
+        "Pss": 3173,
+        "Shared_Clean": 8636,
+        "Private_Clean": 0,
+        "Private_Dirty": 232
+      }
+    },
+    {
+      "path": "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+      "pss_delta_kib": -4178,
+      "baseline": {
+        "Pss": 7368,
+        "Shared_Clean": 2176,
+        "Private_Clean": 6280,
+        "Private_Dirty": 0
+      },
+      "low_sample": {
+        "Pss": 3190,
+        "Shared_Clean": 7384,
+        "Private_Clean": 1072,
+        "Private_Dirty": 0
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libadwaita-1.so.0",
+      "pss_delta_kib": -2132,
+      "baseline": {
+        "Pss": 3324,
+        "Shared_Clean": 0,
+        "Private_Clean": 3300,
+        "Private_Dirty": 24
+      },
+      "low_sample": {
+        "Pss": 1192,
+        "Shared_Clean": 3300,
+        "Private_Clean": 0,
+        "Private_Dirty": 24
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgio-2.0.so.0.8800.0",
+      "pss_delta_kib": -1141,
+      "baseline": {
+        "Pss": 1760,
+        "Shared_Clean": 0,
+        "Private_Clean": 1720,
+        "Private_Dirty": 40
+      },
+      "low_sample": {
+        "Pss": 619,
+        "Shared_Clean": 1720,
+        "Private_Clean": 0,
+        "Private_Dirty": 40
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libcairo.so.2.11804.4",
+      "pss_delta_kib": -791,
+      "baseline": {
+        "Pss": 1264,
+        "Shared_Clean": 0,
+        "Private_Clean": 1240,
+        "Private_Dirty": 24
+      },
+      "low_sample": {
+        "Pss": 473,
+        "Shared_Clean": 1240,
+        "Private_Clean": 0,
+        "Private_Dirty": 24
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libharfbuzz.so.0.61232.0",
+      "pss_delta_kib": -751,
+      "baseline": {
+        "Pss": 1132,
+        "Shared_Clean": 0,
+        "Private_Clean": 1124,
+        "Private_Dirty": 8
+      },
+      "low_sample": {
+        "Pss": 381,
+        "Shared_Clean": 1124,
+        "Private_Clean": 0,
+        "Private_Dirty": 8
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libepoxy.so.0.0.0",
+      "pss_delta_kib": -701,
+      "baseline": {
+        "Pss": 1136,
+        "Shared_Clean": 0,
+        "Private_Clean": 1076,
+        "Private_Dirty": 60
+      },
+      "low_sample": {
+        "Pss": 435,
+        "Shared_Clean": 1076,
+        "Private_Clean": 0,
+        "Private_Dirty": 60
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgnutls.so.30.41.1",
+      "pss_delta_kib": -593,
+      "baseline": {
+        "Pss": 992,
+        "Shared_Clean": 0,
+        "Private_Clean": 916,
+        "Private_Dirty": 76
+      },
+      "low_sample": {
+        "Pss": 399,
+        "Shared_Clean": 916,
+        "Private_Clean": 0,
+        "Private_Dirty": 76
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libfreetype.so.6.20.5",
+      "pss_delta_kib": -456,
+      "baseline": {
+        "Pss": 718,
+        "Shared_Clean": 172,
+        "Private_Clean": 612,
+        "Private_Dirty": 36
+      },
+      "low_sample": {
+        "Pss": 262,
+        "Shared_Clean": 784,
+        "Private_Clean": 0,
+        "Private_Dirty": 36
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0.8800.0",
+      "pss_delta_kib": -452,
+      "baseline": {
+        "Pss": 679,
+        "Shared_Clean": 812,
+        "Private_Clean": 380,
+        "Private_Dirty": 8
+      },
+      "low_sample": {
+        "Pss": 227,
+        "Shared_Clean": 1192,
+        "Private_Clean": 0,
+        "Private_Dirty": 8
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libp11-kit.so.0.4.8",
+      "pss_delta_kib": -369,
+      "baseline": {
+        "Pss": 704,
+        "Shared_Clean": 0,
+        "Private_Clean": 572,
+        "Private_Dirty": 132
+      },
+      "low_sample": {
+        "Pss": 335,
+        "Shared_Clean": 572,
+        "Private_Clean": 0,
+        "Private_Dirty": 132
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libcrypto.so.3",
+      "pss_delta_kib": -358,
+      "baseline": {
+        "Pss": 1114,
+        "Shared_Clean": 1140,
+        "Private_Clean": 32,
+        "Private_Dirty": 512
+      },
+      "low_sample": {
+        "Pss": 756,
+        "Shared_Clean": 1172,
+        "Private_Clean": 0,
+        "Private_Dirty": 512
+      }
+    },
+    {
+      "path": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+      "pss_delta_kib": -352,
+      "baseline": {
+        "Pss": 520,
+        "Shared_Clean": 512,
+        "Private_Clean": 264,
+        "Private_Dirty": 0
+      },
+      "low_sample": {
+        "Pss": 168,
+        "Shared_Clean": 776,
+        "Private_Clean": 0,
+        "Private_Dirty": 0
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libglycin-2.so.0",
+      "pss_delta_kib": -294,
+      "baseline": {
+        "Pss": 560,
+        "Shared_Clean": 0,
+        "Private_Clean": 448,
+        "Private_Dirty": 112
+      },
+      "low_sample": {
+        "Pss": 266,
+        "Shared_Clean": 448,
+        "Private_Clean": 0,
+        "Private_Dirty": 112
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libpango-1.0.so.0.5700.0",
+      "pss_delta_kib": -284,
+      "baseline": {
+        "Pss": 444,
+        "Shared_Clean": 0,
+        "Private_Clean": 424,
+        "Private_Dirty": 20
+      },
+      "low_sample": {
+        "Pss": 160,
+        "Shared_Clean": 424,
+        "Private_Clean": 0,
+        "Private_Dirty": 20
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libvulkan.so.1.4.341",
+      "pss_delta_kib": -269,
+      "baseline": {
+        "Pss": 432,
+        "Shared_Clean": 0,
+        "Private_Clean": 424,
+        "Private_Dirty": 8
+      },
+      "low_sample": {
+        "Pss": 163,
+        "Shared_Clean": 424,
+        "Private_Clean": 0,
+        "Private_Dirty": 8
+      }
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libstemmer.so.0d.0.0",
+      "pss_delta_kib": -258,
+      "baseline": {
+        "Pss": 736,
+        "Shared_Clean": 0,
+        "Private_Clean": 384,
+        "Private_Dirty": 352
+      },
+      "low_sample": {
+        "Pss": 478,
+        "Shared_Clean": 384,
+        "Private_Clean": 0,
+        "Private_Dirty": 352
+      }
+    }
+  ]
+}

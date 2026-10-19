@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_font_shapes.py", line 7, in <module>
+    gi.require_version('Pango', '1.0')
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'gi' has no attribute 'require_version'
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 549, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 289, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_home_fonts.py", line 59, in exercise
+    result = subprocess.check_output([sys.executable, '-B',
+        '/workspace/Linux/tests/native_font_shapes.py'], env=env, text=True, timeout=15)
+  File "/usr/lib/python3.14/subprocess.py", line 473, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/usr/bin/python3', '-B', '/workspace/Linux/tests/native_font_shapes.py']' returned non-zero exit status 1.

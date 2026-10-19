@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 576, in <module>
+    if sys.argv[1]=='--user': user_test(Path(sys.argv[2]))
+                              ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_smoke.py", line 293, in user_test
+    exercise(output,start,agent,initial)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_toolbar.py", line 149, in exercise
+    settle(gui,agent);rows=phase('failed');assert reveal(rows)
+                           ~~~~~^^^^^^^^^^
+  File "/workspace/Linux/tests/native_viewer_toolbar.py", line 58, in phase
+    assert actual==[0,0,physical_width,physical_height], ('Unexpected window resize',name,actual)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('Unexpected window resize', 'failed', [0, 0, 865, 600])

@@ -80,4 +80,4 @@ python3 -B Scripts/linux/analyze-native-lifecycle.py \
 
 本轮仅增加测试与分析入口，未重新构建 FFmpeg、core 或 GUI；`.5` bundle/Deb、旧源码归档和现有安装保持不变。新测试入口生成于 `8295fb93…` 源码归档之后，不能声称旧归档已包含它们。
 
-完整证据见[生命周期检查记录](../../Evidence/LinuxHost/2026-10-17-native-lifecycle/README.md)。GPU 租约/fence、真实桌面、30 分钟/24 小时长稳、多种功能并发及持续内存增长排查仍未完成；首页 60 MiB 门槛保持不变。
+完整证据见[生命周期检查记录](../../Evidence/LinuxHost/2026-10-17-native-lifecycle/README.md)。后续冻结 `.20261018.3` 已完成[30 分钟隔离软件连续连接](viewer-sustained.md)，包含 91 次实际新画面、固定进程/FD 和退出回收；它不替代本轮二十次重连，也不包含硬件或真实桌面。GPU 租约/fence、真实桌面、24 小时长稳、多种功能并发及更长期内存增长排查仍未完成；首页 60 MiB 门槛保持不变。

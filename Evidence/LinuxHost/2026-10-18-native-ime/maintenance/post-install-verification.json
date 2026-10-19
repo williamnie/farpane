@@ -1,0 +1,129 @@
+{
+  "identity_configuration": {
+    "user": {
+      "all_equal": true,
+      "directory_mode": "0o700",
+      "fields": [
+        {
+          "file": "FarPane.toml",
+          "field": "enc_id",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "password",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "salt",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "key_pair",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.custom-rendezvous-server",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.relay-server",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.key",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.approve-mode",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.verification-method",
+          "equal": true
+        }
+      ]
+    },
+    "root": {
+      "all_equal": true,
+      "directory_mode": "0o700",
+      "fields": [
+        {
+          "file": "FarPane.toml",
+          "field": "enc_id",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "password",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "salt",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "key_pair",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.custom-rendezvous-server",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.relay-server",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.key",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.approve-mode",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options.verification-method",
+          "equal": true
+        }
+      ]
+    }
+  },
+  "processes": [
+    {
+      "pid": 64215,
+      "uid": 0,
+      "role": "service"
+    },
+    {
+      "pid": 64441,
+      "uid": 1000,
+      "role": "server",
+      "display_environment": {
+        "DISPLAY": "unix:/tmp/.X11-unix/X1",
+        "WAYLAND_DISPLAY": "wayland-0",
+        "XDG_SESSION_ID": "2",
+        "XDG_SESSION_TYPE": "wayland"
+      },
+      "xauthority_present": true,
+      "render_nodes": [
+        "/dev/dri/renderD128"
+      ]
+    }
+  ],
+  "service": "ActiveState=active\nUnitFileState=disabled\nMainPID=64215\nNRestarts=0\n"
+}

@@ -1,0 +1,9 @@
+private_input_vm_output=/home/user/farpane/Build/Linux/native-input-vm/run.ty6sfohx
+{"result": "fail", "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51", "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e", "guest": {"schema": 1, "scope": "private-native-gnome-root-input-startup", "result": "fail", "full_farpane_input_tested": false, "host_input_exposed": false, "kernel": "7.0.0-38-generic", "boot_id": "89d65969-cef2-41cd-8970-1c6c56997bce", "machine": "Standard PC (Q35 + ICH9, 2009)", "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1", "uinput": {"device_name": "FarPane private VM kernel probe", "events": [[1, 30, 1], [0, 0, 0], [1, 30, 0], [0, 0, 0]], "input_kernel": "private-guest"}, "failure": "Traceback (most recent call last):\n  File \"/opt/farpane-input-test/native_input_vm_desktop.py\", line 115, in controller\n    assert len(cards)==1 and (cards[0]/'device/driver/module').resolve().name=='vkms'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"}, "separate_kernel_verified": true, "network": "none", "host_devices_exposed": ["/dev/kvm"], "host_display": false, "real_farpane_input_accepted": false}
+Traceback (most recent call last):
+  File "/home/user/farpane/Scripts/linux/run-native-input-vm.py", line 92, in <module>
+    main()
+    ~~~~^^
+  File "/home/user/farpane/Scripts/linux/run-native-input-vm.py", line 88, in main
+    raise RuntimeError('Private VM regression failed; inspect result.json and serial.log')
+RuntimeError: Private VM regression failed; inspect result.json and serial.log

@@ -1,0 +1,14 @@
+{
+  "utc_date": "2026-10-18",
+  "branch": "codex/linux-host-gpu-media",
+  "base_head": "0b7381291f84637cb5eea557a498aced16ed5dd4",
+  "installed_release_before_fix": "farpane-native-dev-e7508f297ef1d671172d7737",
+  "host_clipboard_error_lines_observed": 3,
+  "tests": {
+    "private_mutter": "50.1",
+    "entry": "GTK4 Wayland",
+    "terminal": "GTK3 VTE 2.91, private PTY",
+    "no_host_display_bus_input_or_gpu": true,
+    "real_network_ime_acceptance": false
+  }
+}

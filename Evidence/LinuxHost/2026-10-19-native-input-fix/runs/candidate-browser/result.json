@@ -1,0 +1,647 @@
+{
+  "result": "pass",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+  "guest": {
+    "schema": 1,
+    "scope": "private-native-gnome-network-input",
+    "result": "pass",
+    "full_farpane_input_tested": true,
+    "host_input_exposed": false,
+    "kernel": "7.0.0-38-generic",
+    "boot_id": "7d027a85-2cf0-4bbe-8adb-490493e29cf5",
+    "machine": "Standard PC (Q35 + ICH9, 2009)",
+    "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3",
+    "uinput": {
+      "device_name": "FarPane private VM kernel probe",
+      "events": [
+        [
+          1,
+          30,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          30,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "input_kernel": "private-guest"
+    },
+    "guest_drm": [
+      {
+        "card": "card0",
+        "device": "/sys/devices/faux/vkms",
+        "driver": "/sys/bus/faux/drivers/faux_driver"
+      }
+    ],
+    "guest_drm_properties": {
+      "DEVPATH": "/devices/faux/vkms/drm/card0",
+      "TAGS": ":uaccess:seat:master-of-seat:",
+      "CURRENT_TAGS": ":uaccess:seat:master-of-seat:"
+    },
+    "logind": {
+      "Id": "c1",
+      "User": "1000",
+      "Active": "yes",
+      "Type": "wayland",
+      "Class": "user",
+      "Seat": "seat0",
+      "Leader": "229"
+    },
+    "native_desktop": {
+      "renderer": "guest VKMS/software Mesa",
+      "gnome_pid": 288,
+      "product_keyboard": "/dev/input/event2",
+      "input_fds": [
+        57
+      ],
+      "session_provider": "real-systemd-logind",
+      "host_enabled": true,
+      "input_text_sent": true,
+      "host_input_exposed": false
+    },
+    "network_input": {
+      "result": "pass",
+      "transport": "private-direct-TCP-protocol-peer",
+      "seq_flags": {
+        "down": false,
+        "press": false,
+        "mode": "Legacy",
+        "modifiers": []
+      },
+      "target": "browser",
+      "video_packets": 17,
+      "message_boxes": 0,
+      "cases": [
+        {
+          "name": "whole-seq",
+          "text": "\u4e2d\u6587\u6d4b\u8bd5",
+          "held_control": false,
+          "before": {
+            "text": "",
+            "active": true,
+            "focused": true,
+            "clipboard": null
+          },
+          "event_start": 8,
+          "message_hex": "7a0e320ce4b8ade69687e6b58be8af95",
+          "after": {
+            "text": "\u4e2d\u6587\u6d4b\u8bd5",
+            "active": true,
+            "focused": true,
+            "clipboard": null
+          },
+          "control_after": false,
+          "events": [
+            [
+              1,
+              42,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              110,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              110,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              42,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "result": "pass"
+        },
+        {
+          "name": "held-control",
+          "text": "\u63a7\u5236\u63d0\u4ea4",
+          "held_control": true,
+          "before": {
+            "text": "\u4e2d\u6587\u6d4b\u8bd5",
+            "active": true,
+            "focused": true,
+            "clipboard": null
+          },
+          "event_start": 16,
+          "control_confirmed_before": true,
+          "message_hex": "7a0e320ce68ea7e588b6e68f90e4baa4",
+          "after": {
+            "text": "\u4e2d\u6587\u6d4b\u8bd5\u63a7\u5236\u63d0\u4ea4",
+            "active": true,
+            "focused": true,
+            "clipboard": null
+          },
+          "control_after": false,
+          "events": [
+            [
+              1,
+              29,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              29,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              42,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              110,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              110,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              42,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "result": "pass"
+        },
+        {
+          "name": "mixed-after-release",
+          "text": "\u6df7\u5408A1\uff0c\ud83d\ude42\u00e9",
+          "held_control": false,
+          "before": {
+            "text": "\u4e2d\u6587\u6d4b\u8bd5\u63a7\u5236\u63d0\u4ea4",
+            "active": true,
+            "focused": true,
+            "clipboard": null
+          },
+          "event_start": 28,
+          "message_hex": "7a133211e6b7b7e590884131efbc8cf09f9982c3a9",
+          "after": {
+            "text": "\u4e2d\u6587\u6d4b\u8bd5\u63a7\u5236\u63d0\u4ea4\u6df7\u5408A1\uff0c\ud83d\ude42\u00e9",
+            "active": true,
+            "focused": true,
+            "clipboard": null
+          },
+          "control_after": false,
+          "events": [
+            [
+              1,
+              42,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              110,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              110,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              42,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "result": "pass"
+        },
+        {
+          "name": "ascii-held-control",
+          "text": "abc",
+          "held_control": true,
+          "before": {
+            "text": "\u4e2d\u6587\u6d4b\u8bd5\u63a7\u5236\u63d0\u4ea4\u6df7\u5408A1\uff0c\ud83d\ude42\u00e9",
+            "active": true,
+            "focused": true,
+            "clipboard": null
+          },
+          "event_start": 36,
+          "control_confirmed_before": true,
+          "message_hex": "7a053203616263",
+          "after": {
+            "text": "\u4e2d\u6587\u6d4b\u8bd5\u63a7\u5236\u63d0\u4ea4\u6df7\u5408A1\uff0c\ud83d\ude42\u00e9abc",
+            "active": true,
+            "focused": true,
+            "clipboard": null
+          },
+          "control_after": false,
+          "events": [
+            [
+              1,
+              29,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              29,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              30,
+              1
+            ],
+            [
+              1,
+              30,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              48,
+              1
+            ],
+            [
+              1,
+              48,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              46,
+              1
+            ],
+            [
+              1,
+              46,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "result": "pass"
+        }
+      ],
+      "events": [
+        [
+          1,
+          56,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          15,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          15,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          56,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          29,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          29,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          29,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          29,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          30,
+          1
+        ],
+        [
+          1,
+          30,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          48,
+          1
+        ],
+        [
+          1,
+          48,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          46,
+          1
+        ],
+        [
+          1,
+          46,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "host_input_exposed": false,
+      "mac_gui_tested": false,
+      "incorrect_password_rejected": true,
+      "authenticated": true
+    }
+  },
+  "separate_kernel_verified": true,
+  "network": "none",
+  "host_devices_exposed": [
+    "/dev/kvm"
+  ],
+  "host_display": false,
+  "real_farpane_input_accepted": false
+}

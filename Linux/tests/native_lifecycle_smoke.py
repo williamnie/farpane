@@ -91,8 +91,9 @@ class Display:
             if shift:
                 self.key(0xffe1, False)
 
-    def capture(self, path=None):
-        image = self.x.XGetImage(self.display, self.root, 0, 0, 1020, 720, C.c_ulong(-1).value, 2)
+    def capture(self, path=None, *, width=1020, height=720):
+        assert 1 <= width <= 2560 and 1 <= height <= 1600
+        image = self.x.XGetImage(self.display, self.root, 0, 0, width, height, C.c_ulong(-1).value, 2)
         assert image
         try:
             info = image.contents

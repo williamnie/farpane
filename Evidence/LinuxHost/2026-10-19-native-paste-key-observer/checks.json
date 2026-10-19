@@ -1,0 +1,14 @@
+{
+  "paste_keys_unittests": {
+    "passed": 11,
+    "command": "python3 -B -m unittest Linux/tests/test_native_paste_keys.py"
+  },
+  "vm_guard_tests": {
+    "passed": 8,
+    "command": "python3 -B -m unittest discover -s Linux/tests -p test_native_input_vm_guards.py"
+  },
+  "initial_vm_guard_import_invocation_failed": true,
+  "isolated_kernel": "pass",
+  "host_evdev_opened": false,
+  "real_farpane_cli_capture_tested": false
+}

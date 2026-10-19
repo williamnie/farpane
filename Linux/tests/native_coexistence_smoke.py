@@ -30,6 +30,9 @@ core = RELEASE/'libexec/farpane-core'
     hashlib.file_digest(p.open('rb'), 'sha256').hexdigest() for p in (RELEASE/'farpane', core)}, indent=2)+'\n')
 accounts, agents, guis, screens, desktops, patterns, states = {}, {}, {}, {}, {}, {}, {}
 processes, logs, checks, stages = [], [], [], []
+gui_bus_fault = os.environ.get('FARPANE_COEXIST_MODE') == 'gui-bus'
+gui_bus_process = None
+gui_bus_ids = []
 layout = json.loads(Path('/workspace/Linux/tests/native-lifecycle-layout.json').read_text())
 for index, role in enumerate(('a', 'b')):
     uid = 2201 + index
@@ -117,11 +120,28 @@ def window(role):
 def gui(role, label):
     a=accounts[role]
     env=dict(a['env'],DISPLAY=a['gui_display'],GSK_RENDERER='cairo',GTK_A11Y='none',GTK_IM_MODULE='gtk-im-context-simple')
+    if gui_bus_fault and role == 'a':
+        env['DBUS_SESSION_BUS_ADDRESS'] = 'unix:path=' + str(Path(a['env']['XDG_RUNTIME_DIR']) / 'gui-bus')
     assert not any(k.startswith('FARPANE_') and ('SMOKE_DIR' in k or 'SMOKE_EXIT' in k or 'SMOKE_REPORT' in k) for k in env)
     p=start(label,role,[str(RELEASE/'farpane')],env);guis[role]=p
     w=wait(lambda:window(role),'Missing GUI '+role);time.sleep(1)
     screens[role].focus(w)
     return p
+
+
+def start_gui_bus(label):
+    a = accounts['a']
+    path = Path(a['env']['XDG_RUNTIME_DIR']) / 'gui-bus'
+    path.unlink(missing_ok=True)
+    address = 'unix:path=' + str(path)
+    process = start(label, 'a', ['dbus-daemon', '--session', '--nofork', '--address=' + address])
+    wait(path.is_socket, 'Private GUI-only bus did not start')
+    identity = subprocess.check_output(['gdbus', 'call', '--address', address,
+        '--dest', 'org.freedesktop.DBus', '--object-path', '/org/freedesktop/DBus',
+        '--method', 'org.freedesktop.DBus.GetId'], env=a['env'], user=a['uid'], group=a['gid'],
+        extra_groups=[], text=True, timeout=3).strip()
+    gui_bus_ids.append(identity)
+    return process
 
 
 def connect(role, peer, label):
@@ -186,6 +206,8 @@ try:
         wait(lambda:listening(role),'Missing direct listener '+role)
         states[role]=cli(role,{'type':'snapshot'})
     assert states['a']['local_id']!=states['b']['local_id']
+    if gui_bus_fault:
+        gui_bus_process = start_gui_bus('a-private-gui-bus-1')
     for role in ('a','b'):gui(role,role+'-gui')
     worker_a=connect('a','b','connect-a-to-b')
     worker_b=connect('b','a','connect-b-to-a')
@@ -227,13 +249,39 @@ try:
     worker_b2=connect('b','a','reconnect-b-to-a');assert worker_b2['pid']!=worker_b['pid']
     fresh_both('peer-reconnected',(0x904060,0x407040));checks.append('peer-reconnect-restores-coexistence')
 
-    screens['a'].click(layout['close']);assert guis['a'].wait(timeout=10)==0
+    gui_exit_on_bus_loss = None
+    if gui_bus_fault:
+        # Only the GUI/its disposable Viewer inherit this bus. Host and the
+        # reverse direction use independent still-live buses and processes.
+        inbound_before = cli('a', {'type': 'snapshot'})['inbound'][0]['id']
+        lost_at = time.monotonic()
+        gui_bus_process.terminate()
+        assert gui_bus_process.wait(timeout=5) == 0
+        gui_exit_on_bus_loss = guis['a'].wait(timeout=10)
+        stages.append({'stage': 'gui-private-bus-lost', 'gui_pid': guis['a'].pid,
+                       'gui_returncode': gui_exit_on_bus_loss, 'inbound_id': inbound_before,
+                       'seconds_to_gui_exit': time.monotonic() - lost_at})
+        checks.append('gui-own-bus-loss-exits-within-bound')
+    else:
+        screens['a'].click(layout['close']);assert guis['a'].wait(timeout=10)==0
     wait(lambda:info('a',worker_a['pid']) is None,'Closed GUI retained outgoing worker')
+    if gui_bus_fault:
+        # An exited orphan's /proc/exe also disappears while it is still a
+        # zombie. The container init must actually reap it before we pass.
+        wait(lambda:not Path(f'/proc/{worker_a["pid"]}').exists(), 'Orphaned Viewer was not reaped')
+        checks.append('orphaned-viewer-absent-from-proc-after-gui-exit')
     wait(lambda:not cli('b',{'type':'snapshot'})['inbound'],'Remote retained closed outgoing session')
     color('a',0x3060a0);visible('b',0x3060a0,'gui-a-closed-inbound-alive')
     assert info('b',worker_b2['pid'])==worker_b2
     assert len(cli('a',{'type':'snapshot'})['inbound'])==1
-    checks.append('gui-close-reaps-own-outbound-but-retains-host-and-inbound-stream')
+    if gui_bus_fault:
+        assert cli('a', {'type': 'snapshot'})['inbound'][0]['id'] == inbound_before
+        checks.append('gui-bus-loss-reaps-outbound-and-preserves-same-inbound-with-fresh-pixels')
+        gui_bus_process = start_gui_bus('a-private-gui-bus-2')
+        assert len(set(gui_bus_ids)) == 2
+        checks.append('replacement-gui-bus-has-new-identity')
+    else:
+        checks.append('gui-close-reaps-own-outbound-but-retains-host-and-inbound-stream')
     old_gui=guis['a'].pid;gui('a','a-gui-reopened');assert guis['a'].pid!=old_gui
     assert not info('a',guis['a'].pid)['children']
     screens['a'].capture(output/'reopened-home.png')
@@ -251,6 +299,8 @@ try:
     checks.append('both-guis-exit-workers-reaped-hosts-and-identities-preserved')
     result=dict(result='pass',checks=checks,host_pids={r:p.pid for r,p in agents.items()},
                 private_uids={r:a['uid'] for r,a in accounts.items()},gpu=False,
+                gui_bus_fault=gui_bus_fault, gui_exit_on_bus_loss=gui_exit_on_bus_loss,
+                gui_bus_ids=gui_bus_ids,
                 host_switch_control='authenticated config-cli',inbound_disconnect='actual GUI button',gui_controls='external XTest',
                 system_service_tested=False,real_desktop_tested=False)
     (output/'coexistence-result.json').write_text(json.dumps(result,indent=2)+'\n')

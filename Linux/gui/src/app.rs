@@ -399,7 +399,11 @@ fn home(
 ) -> (gtk::Box, gtk::Label, gtk::ListBox) {
     let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let header = adw::HeaderBar::new();
-    let title = adw::WindowTitle::new("FarPane", "安全、轻量的远程连接");
+    let title = adw::WindowTitle::new(
+        "FarPane",
+        &format!("Linux · v{}", crate::installed_version().version),
+    );
+    title.set_widget_name("installed-version-title");
     header.set_title_widget(Some(&title));
     let status = label("后台未连接", "status-pill");
     header.pack_end(&status);
@@ -447,7 +451,14 @@ fn home(
     let spacer = gtk::Box::new(gtk::Orientation::Vertical, 0);
     spacer.set_vexpand(true);
     sidebar.append(&spacer);
-    sidebar.append(&label("原生界面开发预览", "muted"));
+    let core_version = crate::installed_version().core_build.as_deref()
+        .map(|build| format!("主机核心 {build}"))
+        .unwrap_or_else(|| "构建未标识".into());
+    let core_version = label(&core_version, "muted");
+    core_version.set_widget_name("installed-core-version");
+    core_version.set_selectable(true);
+    core_version.set_tooltip_text(Some("本机 Linux 核心构建。后台连接成功时，界面与后台已核对为同一安装构建。"));
+    sidebar.append(&core_version);
     let about = gtk::Button::with_label("关于 FarPane");
     about.add_css_class("flat");
     let weak_window = window.downgrade();
@@ -456,7 +467,7 @@ fn home(
             let dialog = adw::AboutDialog::builder()
                 .application_name("FarPane")
                 .application_icon("org.farpane.FarPane")
-                .version(env!("CARGO_PKG_VERSION"))
+                .version(&crate::installed_version().version)
                 .developer_name("FarPane")
                 .comments("原生 Linux 远程桌面")
                 .build();

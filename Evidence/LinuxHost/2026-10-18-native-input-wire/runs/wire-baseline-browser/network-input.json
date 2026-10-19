@@ -1,0 +1,297 @@
+{
+  "result": "fail",
+  "transport": "private-direct-TCP-protocol-peer",
+  "seq_flags": {
+    "down": false,
+    "press": false,
+    "mode": "Legacy",
+    "modifiers": []
+  },
+  "target": "browser",
+  "video_packets": 25,
+  "message_boxes": 0,
+  "cases": [
+    {
+      "name": "whole-seq",
+      "text": "中文测试",
+      "held_control": false,
+      "before": {
+        "text": "",
+        "active": true,
+        "focused": true,
+        "clipboard": null
+      },
+      "event_start": 6,
+      "message_hex": "7a0e320ce4b8ade69687e6b58be8af95",
+      "after": {
+        "text": "中文测试",
+        "active": true,
+        "focused": true,
+        "clipboard": null
+      },
+      "control_after": false,
+      "events": [
+        [
+          1,
+          56,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "held-control",
+      "text": "控制提交",
+      "held_control": true,
+      "before": {
+        "text": "中文测试",
+        "active": true,
+        "focused": true,
+        "clipboard": null
+      },
+      "event_start": 16,
+      "control_confirmed_before": true,
+      "message_hex": "7a0e320ce68ea7e588b6e68f90e4baa4",
+      "after": {
+        "text": "中文测试",
+        "active": true,
+        "focused": true,
+        "clipboard": null
+      },
+      "control_after": true,
+      "events": [
+        [
+          1,
+          29,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          110,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          42,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "events": [
+    [
+      1,
+      56,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      15,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      15,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      56,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      42,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      110,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      110,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      42,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      29,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      42,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      110,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      110,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      42,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ]
+  ],
+  "host_input_exposed": false,
+  "mac_gui_tested": false,
+  "incorrect_password_rejected": true,
+  "authenticated": true
+}

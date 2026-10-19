@@ -1,0 +1,45 @@
+libmutter-Message: 01:43:47.701: Running Mutter (using mutter 50.1) as a Wayland display server
+
+(mutter:10): libmutter-WARNING **: 01:43:47.702: Unknown experimental feature 'scale-monitor-framebuffer'
+
+(mutter:10): libmutter-WARNING **: 01:43:47.702: Unknown experimental feature 'xwayland-native-scaling'
+libmutter-Message: 01:43:47.758: Created surfaceless renderer without GPU
+libmutter-Message: 01:43:47.777: Added virtual monitor Meta-0
+libmutter-Message: 01:43:47.780: Using public X11 display :0, (using unix:/tmp/.X11-unix/X1 for managed services)
+libmutter-Message: 01:43:47.780: Using Wayland display name 'wayland-0'
+
+(mutter:10): mutter-WARNING **: 01:43:47.788: Failed to retrieve locale properties: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.locale1 was not provided by any .service files
+
+(mutter:10): libmutter-WARNING **: 01:43:47.836: There is no colord server available
+Xwayland glamor: GBM Wayland interfaces not available
+Failed to initialize glamor, falling back to sw
+The XKEYBOARD keymap compiler (xkbcomp) reports:
+> Warning:          Unsupported maximum keycode 708, clipping.
+>                   X11 cannot support keycodes above 255.
+> Warning:          Virtual modifier Hyper multiply defined
+>                   Using 0, ignoring 0
+> Warning:          Virtual modifier ScrollLock multiply defined
+>                   Using 0, ignoring 0
+Errors from xkbcomp are not fatal to the X server
+
+(mutter:10): libmutter-WARNING **: 01:43:50.774: No keycode found for keyval 1004e2d in current group
+
+(mutter:10): libmutter-WARNING **: 01:43:50.774: No keycode found for keyval 1004e2d in current group
+
+(mutter:10): libmutter-WARNING **: 01:43:50.774: No keycode found for keyval 1006587 in current group
+
+(mutter:10): libmutter-WARNING **: 01:43:50.774: No keycode found for keyval 1006587 in current group
+The XKEYBOARD keymap compiler (xkbcomp) reports:
+> Warning:          Unsupported maximum keycode 708, clipping.
+>                   X11 cannot support keycodes above 255.
+> Warning:          Virtual modifier Hyper multiply defined
+>                   Using 0, ignoring 0
+> Warning:          Virtual modifier ScrollLock multiply defined
+>                   Using 0, ignoring 0
+Errors from xkbcomp are not fatal to the X server
+
+(mutter:10): libmutter-WARNING **: 01:43:53.815: Connection to xwayland lost
+
+(mutter:10): libmutter-WARNING **: 01:43:53.815: Xwayland terminated, exiting since it was mandatory
+
+(mutter:10): libmutter-WARNING **: 01:43:53.815: (../src/core/meta-context.c:527):meta_context_terminate: runtime check failed: (g_main_loop_is_running (priv->main_loop))

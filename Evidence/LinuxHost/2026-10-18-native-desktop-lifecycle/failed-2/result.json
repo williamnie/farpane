@@ -1,0 +1,55 @@
+{
+  "result": "fail",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+  "guest": {
+    "schema": 1,
+    "scope": "private-systemd-native-maintenance",
+    "result": "fail",
+    "full_farpane_input_tested": false,
+    "host_input_exposed": false,
+    "kernel": "7.0.0-38-generic",
+    "boot_id": "c9ec2e25-a922-4052-89c9-384b96c20c0a",
+    "machine": "Standard PC (Q35 + ICH9, 2009)",
+    "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3",
+    "checks": [
+      "real_systemd_logind_gnome_session"
+    ],
+    "generations": [
+      {
+        "release": "farpane-native-dev-d393fd0cff634416807feae5",
+        "processes": [
+          {
+            "pid": 753,
+            "uid": 0,
+            "role": "--service",
+            "start": "2688"
+          },
+          {
+            "pid": 784,
+            "uid": 1000,
+            "role": "--server",
+            "start": "2908"
+          }
+        ]
+      }
+    ],
+    "logind": {
+      "Id": "c1",
+      "User": "1000",
+      "Active": "yes",
+      "Type": "wayland",
+      "Class": "user",
+      "Seat": "seat0",
+      "Leader": "232"
+    },
+    "failure": "Traceback (most recent call last):\n  File \"/opt/farpane-input-test/native_maintenance_vm.py\", line 163, in controller\n    result['desktop_lifecycle']=exercise(env,first,ready['gnome_pid'])\n                                ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/farpane-input-test/native_desktop_lifecycle_vm.py\", line 122, in exercise\n    first = menu(); record('initial-menu', first); picture('menu')\n  File \"/opt/farpane-input-test/native_desktop_lifecycle_vm.py\", line 72, in menu\n    current = wait(gui, 'GNOME menu did not start the native GUI', 10)\n  File \"/opt/farpane-input-test/native_input_vm_desktop.py\", line 36, in wait\n    raise TimeoutError(message)\nTimeoutError: GNOME menu did not start the native GUI\n"
+  },
+  "separate_kernel_verified": true,
+  "network": "none",
+  "host_devices_exposed": [
+    "/dev/kvm"
+  ],
+  "host_display": false,
+  "real_farpane_input_accepted": false
+}

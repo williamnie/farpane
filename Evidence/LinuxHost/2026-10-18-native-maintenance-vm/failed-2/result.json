@@ -1,0 +1,79 @@
+{
+  "result": "fail",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+  "guest": {
+    "schema": 1,
+    "scope": "private-systemd-native-maintenance",
+    "result": "fail",
+    "full_farpane_input_tested": false,
+    "host_input_exposed": false,
+    "kernel": "7.0.0-38-generic",
+    "boot_id": "c0403d06-cdd8-4320-998d-e03965390f18",
+    "machine": "Standard PC (Q35 + ICH9, 2009)",
+    "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3",
+    "checks": [
+      "real_systemd_logind_gnome_session",
+      "real_deb_initial_activation_user_bind_and_gui_bus_owner"
+    ],
+    "generations": [
+      {
+        "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+        "processes": [
+          {
+            "pid": 754,
+            "uid": 0,
+            "role": "--service",
+            "start": "2706"
+          },
+          {
+            "pid": 785,
+            "uid": 1000,
+            "role": "--server",
+            "start": "2925"
+          }
+        ]
+      },
+      {
+        "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+        "processes": [
+          {
+            "pid": 754,
+            "uid": 0,
+            "role": "--service",
+            "start": "2706"
+          },
+          {
+            "pid": 785,
+            "uid": 1000,
+            "role": "--server",
+            "start": "2925"
+          },
+          {
+            "pid": 839,
+            "uid": 1000,
+            "role": "gui",
+            "start": "2936"
+          }
+        ]
+      }
+    ],
+    "logind": {
+      "Id": "c1",
+      "User": "1000",
+      "Active": "yes",
+      "Type": "wayland",
+      "Class": "user",
+      "Seat": "seat0",
+      "Leader": "231"
+    },
+    "failure": "Traceback (most recent call last):\n  File \"/opt/farpane-input-test/native_maintenance_vm.py\", line 163, in controller\n    assert processes(first)==original, 'Package installation changed live generation'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Package installation changed live generation\n"
+  },
+  "separate_kernel_verified": true,
+  "network": "none",
+  "host_devices_exposed": [
+    "/dev/kvm"
+  ],
+  "host_display": false,
+  "real_farpane_input_accepted": false
+}

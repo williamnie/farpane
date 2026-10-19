@@ -1,0 +1,52 @@
+{
+  "recorded_at_utc": "2026-10-19T02:24:29.386129+00:00",
+  "kind": "user_reported_manual_compatibility_toggle",
+  "source": "User replies in this development thread; not application or clipboard capture",
+  "menu_before": {
+    "available": true,
+    "checked": false,
+    "user_report": "菜单可以点击，目前未勾选"
+  },
+  "original_rustdesk_b_menu_state": {
+    "known": false,
+    "user_report": "不确定，没有看"
+  },
+  "action": "User enabled existing Mac FarPane Edit > Ubuntu Chinese compatibility input for restored FarPane connection",
+  "user_result": "我打开后，中文输入正常了，warp也正常了",
+  "targets_reported_working": [
+    "Ubuntu Chrome input field",
+    "Ubuntu Warp terminal"
+  ],
+  "installed_release": "/opt/farpane/releases/farpane-native-dev-9a76a6c2af66e3955470ea24",
+  "installed_sha256": {
+    "libexec/farpane-core": "c403acbf2caa5d49d531f1f8cff30ebc248605a0e852c8367d4b14f9eeb4ee01",
+    "farpane": "cef5148a1ea52255ee24c5ffa8a6b7199a7e89b619ded884232eb5d59db3c0dd"
+  },
+  "service_state_read_only": {
+    "farpane.service": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "1604687",
+      "NRestarts": "0"
+    },
+    "rustdesk.service": {
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "MainPID": "0",
+      "NRestarts": "0"
+    }
+  },
+  "new_package_installed_for_toggle_test": false,
+  "product_source_changed_for_toggle_test": false,
+  "new_key_capture_for_toggle_test": false,
+  "service_switch_for_toggle_test": false,
+  "clipboard_content_read_for_toggle_test": false,
+  "compatibility_mode_user_verified": true,
+  "default_mode_bug_closed": false,
+  "original_b_compatibility_causation_proven": false,
+  "dedicated_repetition_or_duplicate_test_performed": false,
+  "reconnection_preference_persistence_tested": false,
+  "mac_binary_verified": false,
+  "ocs_result_message_seq": 38,
+  "next_scope": "Keep compatibility available for current use; discuss unified text input and preference persistence; paused per-application shortcut patch remains paused"
+}

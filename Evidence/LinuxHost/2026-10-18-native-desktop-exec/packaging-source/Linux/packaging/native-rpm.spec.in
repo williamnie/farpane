@@ -1,0 +1,45 @@
+# Wrap an immutable development bundle. Preserve every payload byte/mode;
+# ordinary distro stripping/byte-compilation would invalidate its manifest.
+%global debug_package %{nil}
+%global __os_install_post %{nil}
+%global _build_id_links none
+%global use_source_date_epoch_as_buildtime 1
+
+Name: farpane-native-candidate
+Version: @VERSION@
+Release: @RELEASE@
+Summary: FarPane native remote desktop GUI test candidate
+License: AGPL-3.0-only
+URL: https://github.com/williamnie/farpane
+BuildArch: x86_64
+# Dependencies are derived from the verified ELF build record, with API floors.
+# Private media libraries must not advertise system-wide shared-library provides.
+AutoReqProv: no
+@REQUIRES@
+Recommends: systemd
+Recommends: dbus-daemon
+Recommends: gnome-keyring
+
+%description
+Includes the GTK4 GUI, native core, static FFmpeg, icons and maintenance tools.
+Installation places a test candidate and does not change active services or
+desktop integration. Explicit staging and activation use the maintenance tools.
+Removal retains independently activated releases, configuration and user data.
+This candidate has not passed all release acceptance or license audit gates.
+Third-party materials and their original declarations are included in payload.
+
+%prep
+
+%build
+
+%install
+mkdir -p "%{buildroot}"
+cp -a "%{_sourcedir}/root/." "%{buildroot}/"
+
+%files
+%defattr(-,root,root,-)
+/usr/bin/farpane-maintenance
+/usr/bin/farpane-user-integration
+/usr/lib64/farpane-native-candidate
+%doc /usr/share/doc/farpane-native-candidate
+%license /usr/share/licenses/farpane-native-candidate

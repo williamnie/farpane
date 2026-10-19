@@ -1,0 +1,11 @@
+{
+  "authorized": true,
+  "started_utc": "2026-10-19T02:07:06.012338+00:00",
+  "release": "/opt/farpane/releases/farpane-native-dev-9a76a6c2af66e3955470ea24",
+  "root_pid": 1497504,
+  "host_pid": 1497613,
+  "services_before": "Id=farpane.service\nActiveState=active\nUnitFileState=disabled\nMainPID=1497504\n\nId=rustdesk.service\nActiveState=inactive\nUnitFileState=disabled\nMainPID=0\n",
+  "core_sha256": "c403acbf2caa5d49d531f1f8cff30ebc248605a0e852c8367d4b14f9eeb4ee01",
+  "gui_sha256": "cef5148a1ea52255ee24c5ffa8a6b7199a7e89b619ded884232eb5d59db3c0dd",
+  "preparation_retry": "Initial metadata wrapper assumed bin/; failed before capture or service operation. Corrected to manifest path farpane."
+}

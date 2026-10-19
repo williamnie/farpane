@@ -1,0 +1,210 @@
+{
+  "result": "pass",
+  "records": [
+    {
+      "variant": "baseline",
+      "gui_pid": 181,
+      "samples": [
+        {
+          "seconds": 3.0332975019991864,
+          "pss_kib": 165140,
+          "uss_kib": 138196,
+          "font_pss_kib": 15000,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        },
+        {
+          "seconds": 10.028372519998811,
+          "pss_kib": 165140,
+          "uss_kib": 138196,
+          "font_pss_kib": 15000,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        },
+        {
+          "seconds": 20.02946273899579,
+          "pss_kib": 165124,
+          "uss_kib": 138180,
+          "font_pss_kib": 15000,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        }
+      ]
+    },
+    {
+      "variant": "subset",
+      "gui_pid": 228,
+      "samples": [
+        {
+          "seconds": 3.0303273040044587,
+          "pss_kib": 151989,
+          "uss_kib": 125436,
+          "font_pss_kib": 3892,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        },
+        {
+          "seconds": 10.020206727000186,
+          "pss_kib": 151993,
+          "uss_kib": 125440,
+          "font_pss_kib": 3892,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        },
+        {
+          "seconds": 20.02589417999843,
+          "pss_kib": 151925,
+          "uss_kib": 125372,
+          "font_pss_kib": 3892,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        }
+      ]
+    },
+    {
+      "variant": "subset",
+      "gui_pid": 279,
+      "samples": [
+        {
+          "seconds": 3.0326284960028715,
+          "pss_kib": 152436,
+          "uss_kib": 125828,
+          "font_pss_kib": 3924,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        },
+        {
+          "seconds": 10.028247633999854,
+          "pss_kib": 152440,
+          "uss_kib": 125832,
+          "font_pss_kib": 3924,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        },
+        {
+          "seconds": 20.029709570000705,
+          "pss_kib": 152396,
+          "uss_kib": 125788,
+          "font_pss_kib": 3924,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        }
+      ]
+    },
+    {
+      "variant": "baseline",
+      "gui_pid": 330,
+      "samples": [
+        {
+          "seconds": 3.033812169000157,
+          "pss_kib": 163518,
+          "uss_kib": 136244,
+          "font_pss_kib": 14968,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        },
+        {
+          "seconds": 10.033548924999195,
+          "pss_kib": 163518,
+          "uss_kib": 136244,
+          "font_pss_kib": 14968,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        },
+        {
+          "seconds": 20.040651499002706,
+          "pss_kib": 163438,
+          "uss_kib": 136164,
+          "font_pss_kib": 14968,
+          "swap_pss_kib": 0,
+          "fd_count": 10
+        }
+      ]
+    }
+  ],
+  "warmups": [
+    {
+      "variant": "baseline",
+      "gui_pid": 79,
+      "seconds": 5.0180260370034375
+    },
+    {
+      "variant": "subset",
+      "gui_pid": 129,
+      "seconds": 5.0190379900013795
+    }
+  ],
+  "software_only": true,
+  "renderer": "GL requested, llvmpipe forced, no device access",
+  "hardware_memory_target_evaluated": false,
+  "product_font_changed": false,
+  "chinese_input_tested": false,
+  "font_matching_checks": {
+    "baseline": {
+      "ui_regular": {
+        "file": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "ui_bold": {
+        "file": "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "latin": {
+        "file": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "greek": {
+        "file": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "cjk_fallback": {
+        "file": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "korean_fallback": {
+        "file": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "face": 0,
+        "contains_codepoint": true
+      }
+    },
+    "subset": {
+      "ui_regular": {
+        "file": "/fonts/fonts/FarPaneUIProbe-Regular.otf",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "ui_bold": {
+        "file": "/fonts/fonts/FarPaneUIProbe-Bold.otf",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "latin": {
+        "file": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "greek": {
+        "file": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "cjk_fallback": {
+        "file": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "face": 0,
+        "contains_codepoint": true
+      },
+      "korean_fallback": {
+        "file": "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "face": 0,
+        "contains_codepoint": true
+      }
+    }
+  },
+  "pango_missing_glyphs": 0,
+  "fallback_shaping_preserved": true
+}

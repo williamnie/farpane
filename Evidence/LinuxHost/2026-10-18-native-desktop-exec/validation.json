@@ -1,0 +1,51 @@
+{
+  "runs": [
+    {
+      "run": "comparison-1",
+      "launch_methods": 5,
+      "result": "pass"
+    },
+    {
+      "run": "package-2",
+      "launch_methods": 5,
+      "result": "pass"
+    },
+    {
+      "run": "lifecycle-3",
+      "lifecycle_checks": 7,
+      "result": "pass",
+      "pre_search_wait_seconds": 7,
+      "close_seconds": [
+        0.13,
+        0.13
+      ]
+    },
+    {
+      "run": "debian",
+      "package_checks": 6,
+      "software_sessions": 2,
+      "result": "pass"
+    },
+    {
+      "run": "rpm",
+      "package_checks": 7,
+      "software_sessions": 2,
+      "result": "pass"
+    }
+  ],
+  "vm_png_hashes_verified": 21,
+  "test_source_records_verified": 75,
+  "recipe_source_files_verified": 20,
+  "parent_compiled_source_receipt_unchanged": true,
+  "compiled_source_files": 160,
+  "all_three_binary_records_unchanged": true,
+  "parent_manifest_sha256": "7ec4f7e64dc80688225c5398f99d3f2931f9f2e6346f115469a64defb4b69ebd",
+  "derived_manifest_sha256": "ea282757ad9874d244c84fac80d72ea8ecf66c9c06126e42d3f29e54cb312db3",
+  "host_current": "releases/farpane-native-dev-bfc1befc221061266d5f50da",
+  "branch": "codex/linux-host-gpu-media",
+  "guard_tests": 18,
+  "host_installed": false,
+  "gpu_tested": false,
+  "chinese_scheme_tested": false,
+  "complete_gui_acceptance": false
+}

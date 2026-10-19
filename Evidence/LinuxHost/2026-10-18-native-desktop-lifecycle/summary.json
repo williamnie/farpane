@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "runs": [
+    {
+      "folder": "failed-1",
+      "raw_result": "fail",
+      "first_menu_success": null,
+      "pre_search_settle_seconds": 0,
+      "lifecycle_checks_passed": 0,
+      "close_seconds": [],
+      "screenshots": 0,
+      "input_tested": false,
+      "real_remote_connection_tested": false
+    },
+    {
+      "folder": "failed-2",
+      "raw_result": "fail",
+      "first_menu_success": null,
+      "pre_search_settle_seconds": 0,
+      "lifecycle_checks_passed": 0,
+      "close_seconds": [],
+      "screenshots": 2,
+      "input_tested": false,
+      "real_remote_connection_tested": false
+    },
+    {
+      "folder": "diagnostic-3",
+      "raw_result": "fail",
+      "first_menu_success": false,
+      "pre_search_settle_seconds": 0,
+      "lifecycle_checks_passed": 7,
+      "close_seconds": [
+        0.131,
+        0.131
+      ],
+      "screenshots": 8,
+      "input_tested": false,
+      "real_remote_connection_tested": false
+    },
+    {
+      "folder": "rejected-candidate-4",
+      "raw_result": "fail",
+      "first_menu_success": false,
+      "pre_search_settle_seconds": 0,
+      "lifecycle_checks_passed": 7,
+      "close_seconds": [
+        0.132,
+        0.131
+      ],
+      "screenshots": 8,
+      "input_tested": false,
+      "real_remote_connection_tested": false
+    },
+    {
+      "folder": "control-5",
+      "raw_result": "fail",
+      "first_menu_success": false,
+      "pre_search_settle_seconds": 0,
+      "lifecycle_checks_passed": 7,
+      "close_seconds": [
+        0.131,
+        0.131
+      ],
+      "screenshots": 8,
+      "input_tested": false,
+      "real_remote_connection_tested": false
+    },
+    {
+      "folder": "settled-6",
+      "raw_result": "pass",
+      "first_menu_success": true,
+      "pre_search_settle_seconds": 7,
+      "lifecycle_checks_passed": 7,
+      "close_seconds": [
+        0.131,
+        0.131
+      ],
+      "screenshots": 7,
+      "input_tested": false,
+      "real_remote_connection_tested": false
+    }
+  ],
+  "source_records_verified": 138,
+  "rejected_package": "0.1.0~dev.20261018.4",
+  "candidate_retained": "0.1.0~dev.20261018.3",
+  "host_activation_performed": false,
+  "immediate_discovery_passed": false,
+  "scope": "GNOME lifecycle on private VKMS; explicit seven-second pre-search wait in run 6"
+}

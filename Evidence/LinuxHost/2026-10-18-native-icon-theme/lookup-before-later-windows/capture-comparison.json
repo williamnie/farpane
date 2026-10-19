@@ -1,0 +1,119 @@
+{
+  "all_rgb_pairs_equal": true,
+  "icon_correctness_evaluated": false,
+  "product_acceptance": false,
+  "scope": "bounded private Shell/VKMS triples; optional same-window overview cycle",
+  "comparisons": [
+    {
+      "method": "cli",
+      "files": [
+        "launch-cli.png",
+        "launch-shell-cli.png",
+        "launch-after-shell-cli.png"
+      ],
+      "image_size": [
+        1024,
+        768
+      ],
+      "vkms_before_fb_id": 54,
+      "vkms_after_fb_id": 54,
+      "comparisons": [
+        {
+          "a": "launch-cli.png",
+          "b": "launch-shell-cli.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        },
+        {
+          "a": "launch-shell-cli.png",
+          "b": "launch-after-shell-cli.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        },
+        {
+          "a": "launch-cli.png",
+          "b": "launch-after-shell-cli.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        }
+      ]
+    },
+    {
+      "method": "dbus",
+      "files": [
+        "launch-dbus.png",
+        "launch-shell-dbus.png",
+        "launch-after-shell-dbus.png"
+      ],
+      "image_size": [
+        1024,
+        768
+      ],
+      "vkms_before_fb_id": 55,
+      "vkms_after_fb_id": 55,
+      "comparisons": [
+        {
+          "a": "launch-dbus.png",
+          "b": "launch-shell-dbus.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        },
+        {
+          "a": "launch-shell-dbus.png",
+          "b": "launch-after-shell-dbus.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        },
+        {
+          "a": "launch-dbus.png",
+          "b": "launch-after-shell-dbus.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        }
+      ]
+    },
+    {
+      "method": "cli-late",
+      "files": [
+        "launch-cli-late.png",
+        "launch-shell-cli-late.png",
+        "launch-after-shell-cli-late.png"
+      ],
+      "image_size": [
+        1024,
+        768
+      ],
+      "vkms_before_fb_id": 55,
+      "vkms_after_fb_id": 55,
+      "comparisons": [
+        {
+          "a": "launch-cli-late.png",
+          "b": "launch-shell-cli-late.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        },
+        {
+          "a": "launch-shell-cli-late.png",
+          "b": "launch-after-shell-cli-late.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        },
+        {
+          "a": "launch-cli-late.png",
+          "b": "launch-after-shell-cli-late.png",
+          "changed_pixels": 0,
+          "difference_bounds": null,
+          "rgb_equal": true
+        }
+      ]
+    }
+  ]
+}

@@ -144,6 +144,12 @@ def sample_processes(directory, gui, agent):
 
 
 def user_test(output):
+    if os.environ.get('FARPANE_NATIVE_TEST_MODE') in ('home-layout', 'viewer-toolbar'):
+        from native_home_layout import guard
+        guard()
+    if os.environ.get('FARPANE_NATIVE_TEST_MODE') == 'home-fonts':
+        from native_home_fonts import guard
+        guard()  # Reject host displays/devices before configuration or processes.
     if os.environ.get('FARPANE_NATIVE_TEST_MODE') in ('recovery','auto-reconnect'):
         # The private bus supplies fixture system names; no host bus is mounted.
         os.environ['DBUS_SYSTEM_BUS_ADDRESS']=os.environ['DBUS_SESSION_BUS_ADDRESS']
@@ -203,7 +209,8 @@ def user_test(output):
             start('weston', ['weston','--backend=headless','--renderer=gl','--width=1020','--height=720',
                             '--refresh-rate=12000','--socket=farpane-test-wayland','--no-config','--idle-time=0']+(['--xwayland'] if xwayland else []))
         else:
-            start('gui-xvfb', ['Xvfb', ':92', '-screen', '0', '1020x720x24', '-nolisten', 'tcp'])
+            gui_size = '2560x1600x24' if os.environ.get('FARPANE_NATIVE_TEST_MODE') in ('home-layout', 'viewer-toolbar') else '1020x720x24'
+            start('gui-xvfb', ['Xvfb', ':92', '-screen', '0', gui_size, '-nolisten', 'tcp'])
         deadline = time.monotonic()+5
         paths = [Path('/tmp/.X11-unix/X91'), RUNTIME/'farpane-test-wayland' if gpu_test else Path('/tmp/.X11-unix/X92')]
         while not all(path.exists() for path in paths):
@@ -281,6 +288,18 @@ def user_test(output):
             exercise_host_ui(output)
         initial = cli({'type': 'snapshot'})
         assert initial['role']=='agent' and initial['host_enabled']
+        if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='viewer-toolbar':
+            from native_viewer_toolbar import exercise
+            exercise(output,start,agent,initial)
+            return
+        if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='home-layout':
+            from native_home_layout import exercise
+            exercise(output,start,agent,initial)
+            return
+        if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='home-fonts':
+            from native_home_fonts import exercise
+            exercise(output,start,agent,initial)
+            return
         if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='two-factor':
             from native_two_factor_smoke import exercise
             exercise(output,start,agent,initial,private_secrets)
@@ -291,6 +310,10 @@ def user_test(output):
             return
         if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='lifecycle':
             from native_lifecycle_smoke import exercise
+            exercise(output,start,agent,initial)
+            return
+        if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='sustained':
+            from native_sustained_smoke import exercise
             exercise(output,start,agent,initial)
             return
         if os.environ.get('FARPANE_NATIVE_TEST_MODE')=='keyboard':
@@ -501,6 +524,21 @@ def setup(output, uid, gid):
     binaries={str(p.relative_to(RELEASE)):hashlib.file_digest(p.open('rb'),'sha256').hexdigest()
               for p in [RELEASE/'farpane',RELEASE/'libexec/farpane-core']}
     (output/'test-binaries.json').write_text(json.dumps(binaries,indent=2)+'\n')
+    if os.environ.get('FARPANE_NATIVE_TEST_MODE') in ('home-layout', 'viewer-toolbar'):
+        flags = subprocess.check_output(['pkg-config', '--cflags', '--libs', 'gtk4'], text=True).split()
+        subprocess.run(['cc', '-std=c11', '-shared', '-fPIC', '-O2', '-Wall', '-Wextra', '-Werror',
+                        '/workspace/Linux/tests/native_layout_widgets.c', *flags,
+                        '-o', str(output / 'layout-widgets.so')], check=True)
+        binaries['diagnostic/layout-widgets.so'] = hashlib.sha256((output / 'layout-widgets.so').read_bytes()).hexdigest()
+        (output/'test-binaries.json').write_text(json.dumps(binaries,indent=2)+'\n')
+    if os.environ.get('FARPANE_NATIVE_FONT_DYNAMIC') == '1':
+        assert os.environ.get('FARPANE_NATIVE_TEST_MODE') == 'home-fonts'
+        flags = subprocess.check_output(['pkg-config', '--cflags', '--libs', 'gtk4'], text=True).split()
+        subprocess.run(['cc', '-std=c11', '-shared', '-fPIC', '-O2', '-Wall', '-Wextra', '-Werror',
+                        '/workspace/Linux/tests/native_font_widgets.c', *flags,
+                        '-o', str(output / 'font-widgets.so')], check=True)
+        binaries['diagnostic/font-widgets.so'] = hashlib.sha256((output / 'font-widgets.so').read_bytes()).hexdigest()
+        (output / 'test-binaries.json').write_text(json.dumps(binaries, indent=2) + '\n')
     if os.environ.get('FARPANE_LIFECYCLE_OBJECTS')=='1':
         flags=subprocess.check_output(['pkg-config','--cflags','--libs','gobject-2.0'],text=True).split()
         subprocess.run(['cc','-std=c11','-shared','-fPIC','-O2','-Wall','-Wextra','-Werror',

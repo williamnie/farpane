@@ -1,0 +1,55 @@
+/home/user/farpane/Build/Linux/native-input-vm/warp-bootstrap.gw8hyoxn
+{
+  "warp_exit_code": null,
+  "profile": "new-empty-private",
+  "network": "none",
+  "host_display_used": false,
+  "input_tested": true,
+  "input_scope": "local private X11 clipboard and keyboard; no FarPane network",
+  "cases": [
+    {
+      "name": "shift-insert",
+      "expected": "中文测试混合A1，🙂é",
+      "actual": null,
+      "primary_pasted": false,
+      "result": "fail"
+    },
+    {
+      "name": "ctrl-shift-v",
+      "expected": "中文测试混合A1，🙂é",
+      "actual": "中文测试混合A1，🙂é",
+      "primary_pasted": false,
+      "result": "pass"
+    }
+  ],
+  "production": {
+    "returncode": 0
+  },
+  "fixture_profile": {
+    "sha256": "69bf12240214b880a23ec4458d969b7199860d08a8d3246dc8bbfa60fd3c7779",
+    "bytes": 378880,
+    "files": [
+      {
+        "path": "config/warp-terminal/settings.toml",
+        "bytes": 1245,
+        "sha256": "877b465e58deb72f79b16d596af9af214f56e2f5b39e2c7880e9b912a328065a"
+      },
+      {
+        "path": "config/warp-terminal/user_preferences.json",
+        "bytes": 417,
+        "sha256": "5310a8db8cde5905cafdb7c32960e46e68783ecac4c822beeedcb6010f2ab917"
+      },
+      {
+        "path": "state/warp-terminal/warp.log.recovery",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "state/warp-terminal/warp.sqlite",
+        "bytes": 360448,
+        "sha256": "cee1b3c02f11fa3a9a8f06ce8611f4245ddee35f8360db8a66970fbcb4342ea9"
+      }
+    ]
+  }
+}
+

@@ -1,0 +1,28 @@
+@define-color accent_color #59ddc6;
+@define-color accent_bg_color #238d7e;
+@define-color accent_fg_color #ffffff;
+@define-color window_bg_color #141a1d;
+@define-color view_bg_color #1a2226;
+@define-color headerbar_bg_color #141a1d;
+@define-color sidebar_bg_color #10171a;
+
+window { font-size: 14px; }
+.sidebar { background: @sidebar_bg_color; padding: 16px 12px; }
+.sidebar row { padding: 4px; margin: 3px 0; border-radius: 9px; }
+.sidebar row:selected { background: alpha(@accent_color, 0.12); color: @accent_color; }
+.brand { font-size: 23px; font-weight: 700; letter-spacing: -0.5px; }
+.brand-subtitle { font-size: 11px; color: #92a4ac; }
+.page-title { font-size: 26px; font-weight: 700; }
+.page-subtitle { color: #9aaeb7; }
+.content-page { padding: 28px 32px; }
+.card { background: @view_bg_color; border: 1px solid #2b373d; border-radius: 12px; padding: 20px; }
+.card-title { font-size: 15px; font-weight: 700; }
+.local-id { font-family: monospace; font-size: 30px; font-weight: 700; letter-spacing: 2px; }
+.status-pill { background: #243138; border-radius: 12px; padding: 4px 10px; font-size: 12px; }
+.status-good { color: @accent_color; }
+.muted { color: #91a4ad; }
+.section-title { font-size: 18px; font-weight: 700; }
+.connect-entry { font-size: 17px; padding: 9px; }
+.connect-button { padding: 10px 24px; font-weight: 700; }
+.viewer-background { background: #090c0e; }
+.viewer-hud { font-family: monospace; background: #182126; padding: 12px; border-radius: 8px; }

@@ -1,0 +1,235 @@
+{
+  "result": "pass",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+  "guest": {
+    "schema": 1,
+    "scope": "private-gnome-desktop-launch",
+    "result": "pass",
+    "full_farpane_input_tested": false,
+    "host_input_exposed": false,
+    "kernel": "7.0.0-38-generic",
+    "boot_id": "c99e724d-e298-42df-9376-6c271fc8cee9",
+    "machine": "Standard PC (Q35 + ICH9, 2009)",
+    "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3",
+    "checks": [
+      "real_systemd_logind_gnome_session"
+    ],
+    "generations": [
+      {
+        "release": "farpane-native-dev-d393fd0cff634416807feae5",
+        "processes": [
+          {
+            "pid": 763,
+            "uid": 0,
+            "role": "--service",
+            "start": "2686"
+          },
+          {
+            "pid": 794,
+            "uid": 1000,
+            "role": "--server",
+            "start": "2906"
+          }
+        ]
+      }
+    ],
+    "logind": {
+      "Id": "c1",
+      "User": "1000",
+      "Active": "yes",
+      "Type": "wayland",
+      "Class": "user",
+      "Seat": "seat0",
+      "Leader": "229"
+    },
+    "desktop_launch": {
+      "result": "pass",
+      "methods": [
+        {
+          "method": "cli",
+          "cold": true,
+          "launch": {
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "timeline": [
+            {
+              "seconds": 0.008,
+              "gui": [
+                {
+                  "pid": 879,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "2941"
+                }
+              ],
+              "bus_pid": null
+            },
+            {
+              "seconds": 0.165,
+              "gui": [
+                {
+                  "pid": 879,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "2941"
+                }
+              ],
+              "bus_pid": 879
+            },
+            {
+              "seconds": 10.098,
+              "gui": [],
+              "bus_pid": null
+            }
+          ],
+          "gui_alive_at_16_seconds": false,
+          "capture": {
+            "file": "launch-cli.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "421dd3a2c09132c58a69d603e7fe97aba7b4a17820722188eaf5ba6ba9494d46",
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-cli.log"
+        },
+        {
+          "method": "gio",
+          "cold": true,
+          "launch": {
+            "exit": 0,
+            "stdout": "",
+            "stderr": "<string>:3: PyGIDeprecationWarning: Gio.DesktopAppInfo is deprecated; use GioUnix.DesktopAppInfo instead\n"
+          },
+          "timeline": [
+            {
+              "seconds": 2.094,
+              "gui": [
+                {
+                  "pid": 1436,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "4552"
+                }
+              ],
+              "bus_pid": 1436
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-gio.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "4790f52d83d57a9d7055957edff33d34e4a7a45f398c55699b7af4f1845d1cb1",
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-gio.log"
+        },
+        {
+          "method": "cli-warm",
+          "cold": false,
+          "launch": {
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "timeline": [
+            {
+              "seconds": 0.006,
+              "gui": [
+                {
+                  "pid": 1436,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "4552"
+                }
+              ],
+              "bus_pid": 1436
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-cli-warm.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "0610b798ce0f9d12d428a05f85ed309aab87a53ee506b766e43377c8b079985a",
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-cli-warm.log"
+        },
+        {
+          "method": "menu",
+          "cold": true,
+          "launch": {
+            "input_device": "/dev/input/event4",
+            "action": "GNOME overview search farpane, Enter"
+          },
+          "timeline": [
+            {
+              "seconds": 2.441,
+              "gui": [
+                {
+                  "pid": 2466,
+                  "uid": 1000,
+                  "role": "gui",
+                  "start": "7993"
+                }
+              ],
+              "bus_pid": 2466
+            }
+          ],
+          "gui_alive_at_16_seconds": true,
+          "capture": {
+            "file": "launch-menu.png",
+            "width": 1024,
+            "height": 768,
+            "format": "XR24",
+            "sha256": "812d9aaefb39c993153327cde0c3c1b7177a1d2c851cf981f425535dc83aa0ca",
+            "capture": "guest-only VKMS mapped frame"
+          },
+          "gui_dbus_trace": "desktop-launch-trace-menu.log"
+        }
+      ],
+      "extra_captures": [
+        {
+          "file": "launch-before.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "86843d8fa061b915973e4bfbc433029817e96102b0d8d4c10cbf58fb20aeaa23",
+          "capture": "guest-only VKMS mapped frame"
+        },
+        {
+          "file": "launch-search.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "b78ee4a00db0b6d865133c9d94b2773b89a5f4fd80ca33a4209cf99f51c85be0",
+          "capture": "guest-only VKMS mapped frame"
+        }
+      ],
+      "host_generation_unchanged": true,
+      "chinese_input_tested": false,
+      "screen": "private GNOME/VKMS; no host desktop",
+      "diagnostic_activation_environment": {
+        "G_DBUS_DEBUG": "message"
+      },
+      "cli_or_gio_failure_is_recorded_not_reclassified": true
+    },
+    "real_remote_connection_tested": false,
+    "input_text_tested": false,
+    "gpu_tested": false
+  },
+  "separate_kernel_verified": true,
+  "network": "none",
+  "host_devices_exposed": [
+    "/dev/kvm"
+  ],
+  "host_display": false,
+  "real_farpane_input_accepted": false
+}

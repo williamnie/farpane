@@ -1,0 +1,24 @@
+{
+  "bundle": "farpane-native-dev-532627a818c8f7d0e65df626",
+  "manifest_sha256": "75755d20ef5912cbd186f8f502857ea3ec9d9957b05fa5f8170438e718038dce",
+  "package": "Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.6_amd64.deb",
+  "gui_sha256": "cc8f618215193e31ee87c18e93db7534050c1787bca2dca70a1d154bc9dfeb50",
+  "core_sha256": "c57fc5dd5755c2caf6e7780d5bf2cc33459b1629949079d2d9eedb17fcf62f6b",
+  "unit_tests": {
+    "gui_passed": 9,
+    "gui_ignored": 1,
+    "notice_delivery_passed": 14,
+    "gui_notice_boundary_passed": 4,
+    "display_guard_passed": 2
+  },
+  "unit_stdout": "GUI raw logs archived; Python unit stdout is in tool output only",
+  "first_packaging_failure": "Unexpected bundle directory mode: source/gui-update; raw traceback is in tool output only; corrected by normalizing directory permissions",
+  "installed": false,
+  "installed_release": "releases/farpane-native-dev-bfc1befc221061266d5f50da",
+  "core_rebuilt": false,
+  "media_rebuilt": false,
+  "input_special_case_included": false,
+  "complete_source_archive_updated": false,
+  "real_desktop_accepted": false,
+  "package_sha256": "a38580fef4d74b9a42fe1a57b7b880249853ffa48259debf5949c892548507e9"
+}

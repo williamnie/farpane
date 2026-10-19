@@ -1,0 +1,99 @@
+{
+  "archive": "Build/Linux/source-bundles/farpane-native-desktop-recipe-20261018.5.tar.gz",
+  "sha256": "fea0b91195ffa92f4a75d9bbc3e5a0c91c7f8cba6a7003c0514efcb78bc16529",
+  "source_files": 20,
+  "record": {
+    "schema": 1,
+    "kind": "farpane-native-desktop-packaging-recipe",
+    "parent_artifact": "farpane-native-dev-d393fd0cff634416807feae5",
+    "parent_manifest_sha256": "7ec4f7e64dc80688225c5398f99d3f2931f9f2e6346f115469a64defb4b69ebd",
+    "application_source_archive": "farpane-native-source-704f37fe999ad9f837832f79.tar.gz",
+    "application_source_sha256": "88bcdffdf6d246e02a7979e5653bfe111ace4c7e730f69bf66efeca1ddda09ba",
+    "derived_artifact": "farpane-native-dev-ec305482eaacd98258e28587",
+    "derived_manifest_sha256": "ea282757ad9874d244c84fac80d72ea8ecf66c9c06126e42d3f29e54cb312db3",
+    "files": {
+      "Scripts/linux/repackage-native-desktop.py": {
+        "sha256": "dff5cb79055be715663a42ca890ebbedff6934fa239e64aa4fd496e59e202354",
+        "mode": 493
+      },
+      "Scripts/linux/package-native-deb.py": {
+        "sha256": "d7d78a9e4c33a0ea9caead0b1672f2dfa395a38cca3b4ec6eefbf4af932ecba6",
+        "mode": 509
+      },
+      "Scripts/linux/package-native-rpm.py": {
+        "sha256": "b31201cff12f23a523d24e87eb2b3705dc29cf55b886008c8980b008ec7ef5d2",
+        "mode": 436
+      },
+      "Scripts/linux/install-native.py": {
+        "sha256": "4f82509c8e1c739b5278a4664bb2626784e858dafe6c2f3189150e736bfffb73",
+        "mode": 493
+      },
+      "Scripts/linux/install-native-user.py": {
+        "sha256": "aeb7257a1a284d09310a411a6404bbfd50f93593a05c57190b1b73d5be912d30",
+        "mode": 493
+      },
+      "Scripts/linux/install-app.py": {
+        "sha256": "160a71724bf36c1dc8d048684fa32b14f22ef51d67249ccb6d138dacb98fb792",
+        "mode": 509
+      },
+      "Linux/packaging/native_bundle.py": {
+        "sha256": "9a3eb72e2c6a295a82f920b81524677c99b5160827a0358a077fad4737aaff97",
+        "mode": 436
+      },
+      "Linux/packaging/native_deb.py": {
+        "sha256": "eec5e4549a8823c645935e509fd4391a39d4bee58a8da07466ae374c415c2bbd",
+        "mode": 436
+      },
+      "Linux/packaging/native_rpm.py": {
+        "sha256": "519e009092a57f3572047b2e1d197dcea503faa40ca37eab9cb7b48d195a19f8",
+        "mode": 436
+      },
+      "Linux/packaging/native_install.py": {
+        "sha256": "65576f5792cb22c37c3d5534005ee4df09233c197ee3c57e3db45c93817f01e3",
+        "mode": 436
+      },
+      "Linux/packaging/native_install_runtime.py": {
+        "sha256": "29259d29687d2101b1a48d19bc2162c6cd3ddedf2b652bc111901841226d3c43",
+        "mode": 436
+      },
+      "Linux/packaging/native_user_install.py": {
+        "sha256": "01bb1178e84681a89d84c4acaf374820cceb9372ed0f20a203d32fc6be79fcee",
+        "mode": 436
+      },
+      "Linux/packaging/org.farpane.FarPane.desktop.in": {
+        "sha256": "6fcff770d4d01f713a55bb87a5f73bb13e8b20f2a788a661c8d624cbfa252486",
+        "mode": 436
+      },
+      "Linux/packaging/native-rpm.spec.in": {
+        "sha256": "36783a23d308aa227196a9d589f908d530a0d3fe0a253f8db300b1455aac12f8",
+        "mode": 436
+      },
+      "Linux/packaging/native-rpm-README.txt": {
+        "sha256": "67140dbc5ee11b61bf386779a577585726f39b49de43d5bcc0c09bbf17e80982",
+        "mode": 436
+      },
+      "Linux/packaging/native-deb-README.txt": {
+        "sha256": "46d1610d42af58b55baf6553bcdd9f9d94ede7c93ba38ae6d91d972eb020abc0",
+        "mode": 436
+      },
+      "Linux/packaging/native-rpm-builder-fedora44.Dockerfile": {
+        "sha256": "3ca493925205d575ad2ee5892de8ad6ca1c9ce0f3214cceda5443eb454c87481",
+        "mode": 436
+      },
+      "Linux/tests/native-runtime-images.lock.json": {
+        "sha256": "0fa4d0640992b0b723b994615fe64448248c90f5846863a45be4fa883c8aad85",
+        "mode": 436
+      },
+      "Linux/docs/native-install.md": {
+        "sha256": "354dca611c5e1e174569377888174a3436b7db3eeae646579f2fa91c3c77f5cd",
+        "mode": 436
+      },
+      "LICENSE": {
+        "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+        "mode": 436
+      }
+    },
+    "full_application_rebuilt": false,
+    "complete_license_source_audit": false
+  }
+}

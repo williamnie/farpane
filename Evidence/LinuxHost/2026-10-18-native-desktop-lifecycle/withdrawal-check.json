@@ -1,0 +1,49 @@
+{
+  "installer_restored": {
+    "Linux/packaging/native_user_install.py": {
+      "sha256": "01bb1178e84681a89d84c4acaf374820cceb9372ed0f20a203d32fc6be79fcee",
+      "equals_head": true
+    },
+    "Scripts/linux/install-native-user.py": {
+      "sha256": "aeb7257a1a284d09310a411a6404bbfd50f93593a05c57190b1b73d5be912d30",
+      "equals_head": true
+    },
+    "Linux/packaging/native_deb.py": {
+      "sha256": "eec5e4549a8823c645935e509fd4391a39d4bee58a8da07466ae374c415c2bbd",
+      "equals_head": true
+    },
+    "Linux/packaging/native-deb-README.txt": {
+      "sha256": "46d1610d42af58b55baf6553bcdd9f9d94ede7c93ba38ae6d91d972eb020abc0",
+      "equals_head": true
+    },
+    "Linux/packaging/native_rpm.py": {
+      "sha256": "519e009092a57f3572047b2e1d197dcea503faa40ca37eab9cb7b48d195a19f8",
+      "matching_frozen_source": [
+        "Evidence/LinuxHost/2026-10-18-native-fedora44/source/Linux/packaging/native_rpm.py"
+      ]
+    },
+    "Linux/packaging/native-rpm-README.txt": {
+      "sha256": "67140dbc5ee11b61bf386779a577585726f39b49de43d5bcc0c09bbf17e80982",
+      "matching_frozen_source": [
+        "Evidence/LinuxHost/2026-10-18-native-fedora44/source/Linux/packaging/native-rpm-README.txt"
+      ]
+    }
+  },
+  "packages": {
+    "1": {
+      "sha256": "9960dfb15c170d66c23677c006f9c37633f4c9ccf47cd72ab0e1809e8fc353e9",
+      "disposition": "unchanged"
+    },
+    "3": {
+      "sha256": "476f189cac60495be8b54fad2e0c8070bf904cdfa3420af7af1baa72f68bea64",
+      "disposition": "unchanged"
+    },
+    "4": {
+      "sha256": "e1bbdc32012603ed3af8805537ac15da24f6ab97977a1c559f541aa98cdb5dcf",
+      "disposition": "rejected-cache-refresh-experiment"
+    }
+  },
+  "cache_test_retained_in_rejected_evidence": true,
+  "application_rebuilt": false,
+  "host_current": "releases/farpane-native-dev-bfc1befc221061266d5f50da"
+}

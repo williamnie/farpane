@@ -1,0 +1,144 @@
+{
+  "observed_at_utc": "2026-10-19T01:54:30.371347+00:00",
+  "installed_core_sha256": "c403acbf2caa5d49d531f1f8cff30ebc248605a0e852c8367d4b14f9eeb4ee01",
+  "kind": "static source review, not a runtime or race reproduction",
+  "files": [
+    {
+      "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/src/farpane_native/mod.rs",
+      "sha256": "30e4ff596fe4ed03b3c438926ad9f2bab8ce6a26da4ef2753c0ca87047028a68",
+      "excerpts": [
+        {
+          "first_line": 88,
+          "last_line": 104,
+          "text": "        [arg] if arg == \"--server\" || arg == \"--service\" => {\n            let root = unsafe { hbb_common::libc::geteuid() } == 0;\n            if (arg == \"--service\") != root {\n                hbb_common::bail!(\n                    \"The service requires root; the Host agent requires a desktop user\"\n                );\n            }\n            control::verify_release()?;\n            let _owner = config::OwnerLock::acquire()?;\n            config::initialize()?;\n            if !root {\n                cm::start()?;\n                host_clipboard::start()?;\n                audio::start_catalog()?;\n                desktop::start();\n                if let Err(error) = recovery::start() {\n                    hbb_common::log::warn!(\"System recovery monitor could not start: {error}\");"
+        }
+      ],
+      "canonical": "Linux/native/mod.rs",
+      "canonical_matches": false
+    },
+    {
+      "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/src/server/connection.rs",
+      "sha256": "b7aa464ea422b5d4598918a1a4f0688e864de2f4e023e86895913c69759cb132",
+      "excerpts": [
+        {
+          "first_line": 2426,
+          "last_line": 2448,
+          "text": "    fn clipboard_enabled(&self) -> bool {\n        self.clipboard && !self.disable_clipboard\n    }\n\n    #[inline]\n    fn can_sub_clipboard_service(&self) -> bool {\n        #[cfg(feature = \"farpane-native\")]\n        { return false; }\n        #[cfg(not(feature = \"farpane-native\"))]\n        { self.clipboard_enabled()\n            && self.peer_keyboard_enabled()\n            && crate::get_builtin_option(keys::OPTION_ONE_WAY_CLIPBOARD_REDIRECTION) != \"Y\" }\n    }\n\n    #[cfg(feature = \"farpane-native\")]\n    fn sync_native_clipboard(&self) {\n        if let Some(link) = &self.native_clipboard {\n            let permitted = self.authorized && self.should_handle_text_clipboard_message() && self.clipboard_enabled();\n            link.configure(permitted && self.peer_keyboard_enabled()\n                && crate::get_builtin_option(keys::OPTION_ONE_WAY_CLIPBOARD_REDIRECTION) != \"Y\", permitted);\n        }\n    }\n"
+        },
+        {
+          "first_line": 3497,
+          "last_line": 3534,
+          "text": "                Some(message::Union::Clipboard(cb)) => {\n                    if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {\n                        #[cfg(feature = \"farpane-native\")]\n                        if let Some(link) = &self.native_clipboard { link.receive(vec![cb]); }\n                        #[cfg(all(not(feature = \"farpane-native\"), not(any(target_os = \"android\", target_os = \"ios\"))))]\n                        update_clipboard(vec![cb], ClipboardSide::Host);\n                        // ios as the controlled side is actually not supported for now.\n                        // The following code is only used to preserve the logic of handling text clipboard on mobile.\n                        #[cfg(target_os = \"ios\")]\n                        {\n                            let content = if cb.compress {\n                                hbb_common::compress::decompress(&cb.content)\n                            } else {\n                                cb.content.into()\n                            };\n                            if let Ok(content) = String::from_utf8(content) {\n                                let data =\n                                    HashMap::from([(\"name\", \"clipboard\"), (\"content\", &content)]);\n                                if let Ok(data) = serde_json::to_string(&data) {\n                                    let _ = crate::flutter::push_global_event(\n                                        crate::flutter::APP_TYPE_MAIN,\n                                        data,\n                                    );\n                                }\n                            }\n                        }\n                        #[cfg(target_os = \"android\")]\n                        crate::clipboard::handle_msg_clipboard(cb);\n                    }\n                }\n                Some(message::Union::MultiClipboards(_mcb)) => {\n                    if self.should_handle_text_clipboard_message() && self.clipboard_enabled() {\n                        #[cfg(feature = \"farpane-native\")]\n                        if let Some(link) = &self.native_clipboard { link.receive(_mcb.clipboards); }\n                        #[cfg(all(not(feature = \"farpane-native\"), not(any(target_os = \"android\", target_os = \"ios\"))))]\n                        update_clipboard(_mcb.clipboards, ClipboardSide::Host);\n                        #[cfg(target_os = \"android\")]\n                        crate::clipboard::handle_msg_multi_clipboards(_mcb);"
+        }
+      ]
+    },
+    {
+      "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/src/farpane_native/host_clipboard.rs",
+      "sha256": "07c6023fe8d74f5de68534f0f8a2cb1298271530af4e80e733f4a0a4b9727786",
+      "excerpts": [
+        {
+          "first_line": 245,
+          "last_line": 261,
+          "text": "    pub fn receive(&self, values: Vec<Clipboard>) {\n        let mut s = self.owner.state.lock().unwrap();\n        let Some(e) = s.entries.get(&self.id).filter(|e| e.receive) else {\n            return;\n        };\n        let epoch = e.epoch;\n        let Ok(values) = clipboard_wire::select(values, s.policy, Direction::Receive) else {\n            return;\n        };\n        s.pending = Some(Input {\n            id: self.id,\n            epoch,\n            revision: s.revision,\n            values,\n        });\n        self.owner.signal.notify();\n    }"
+        },
+        {
+          "first_line": 408,
+          "last_line": 438,
+          "text": "            if let Some(input) = input {\n                let parts = clipboard_wire::decode(input.values, policy, Direction::Receive);\n                if let Ok(parts) = parts {\n                    let category = farpane_protocol::clipboard::category(\n                        &parts.iter().map(|p| p.format).collect::<Vec<_>>(),\n                    )\n                    .unwrap();\n                    let valid =\n                        || self.receive_valid(input.id, input.epoch, input.revision, category);\n                    if valid() {\n                        if writer.is_none() {\n                            writer = clipboard_platform::Writer::new().ok();\n                        }\n                        // Set applying before the final validity check so control ACK\n                        // cannot race between the check and the platform side effect.\n                        self.state.lock().unwrap().applying = true;\n                        let success = writer.as_mut().is_some_and(|w| w.set(parts, valid).is_ok());\n                        let mut s = self.state.lock().unwrap();\n                        s.applying = false;\n                        s.detail = if success {\n                            clipboard_platform::ready()\n                        } else if writer.is_none() {\n                            clipboard_platform::unavailable()\n                        } else {\n                            \"剪贴板写入失败或已撤权\"\n                        };\n                        self.wake.notify_all();\n                    }\n                }\n            }\n            if !active {"
+        }
+      ],
+      "canonical": "Linux/native/host_clipboard.rs",
+      "canonical_matches": true
+    },
+    {
+      "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/src/farpane_native/clipboard_platform.rs",
+      "sha256": "76a6911d5ce60a82f53389a8c410aa16e7c08ccbe8cca7d0026921c77e8ff2f1",
+      "excerpts": [
+        {
+          "first_line": 1,
+          "last_line": 16,
+          "text": "//! Explicit native desktop selection. Wayland never falls back to Xwayland.\nuse super::{clipboard_wayland as wl, clipboard_x11 as x11};\nuse bytes::Bytes;\nuse farpane_protocol::clipboard::{Part, Policy};\nuse hbb_common::{libc, ResultType};\nuse std::{os::fd::RawFd, time::Instant};\n\nfn wayland() -> bool {\n    std::env::var_os(\"WAYLAND_DISPLAY\").is_some()\n        || std::env::var_os(\"WAYLAND_SOCKET\").is_some()\n        || std::env::var(\"XDG_SESSION_TYPE\").is_ok_and(|v| v.eq_ignore_ascii_case(\"wayland\"))\n}\npub fn ready() -> &'static str {\n    if wayland() {\n        \"Wayland 剪贴板共享就绪\"\n    } else {"
+        },
+        {
+          "first_line": 80,
+          "last_line": 91,
+          "text": "    }\n    pub fn more(&self) -> bool {\n        match self {\n            Self::X11(v) => v.more(),\n            Self::Wayland(v) => v.more(),\n        }\n    }\n    pub fn empty(&self) -> bool {\n        match self {\n            Self::X11(v) => v.empty(),\n            Self::Wayland(v) => v.empty(),\n        }"
+        }
+      ],
+      "canonical": "Linux/native/clipboard_platform.rs",
+      "canonical_matches": true
+    },
+    {
+      "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/src/farpane_native/clipboard_wayland.rs",
+      "sha256": "a41d0b0f501667baf2810b7845c9a5cb4a43cc006d1efa5385f57dec038fb6f5",
+      "excerpts": [
+        {
+          "first_line": 523,
+          "last_line": 535,
+          "text": "            matches!(\n                v.1.as_str(),\n                \"ext_data_control_manager_v1\" | \"zwlr_data_control_manager_v1\"\n            )\n        }) {\n            hbb_common::bail!(\"Wayland compositor does not grant data-control\");\n        }\n        let seats: Vec<_> = state.globals.iter().filter(|v| v.1 == \"wl_seat\").collect();\n        // Do not silently share between seats when no seat was selected by the\n        // product. Single-seat capability is explicit; no focus workaround.\n        if seats.len() != 1 {\n            hbb_common::bail!(\"Wayland clipboard requires one unambiguous seat\");\n        }"
+        },
+        {
+          "first_line": 654,
+          "last_line": 673,
+          "text": "        }\n        let Some(offer) = self.0.state.current.as_ref() else {\n            return Ok(Vec::new());\n        };\n        if offer.invalid\n            || [\n                OWNER,\n                \"dyn.com.rustdesk.owner\",\n                \"text/uri-list\",\n                \"x-special/gnome-copied-files\",\n            ]\n            .iter()\n            .any(|v| offer.mimes.iter().any(|m| m == v))\n        {\n            return Ok(Vec::new());\n        }\n        let available = |format| {\n            FORMATS\n                .iter()\n                .find(|(f, mime)| *f == format && offer.mimes.iter().any(|v| v == mime))"
+        }
+      ],
+      "canonical": "Linux/native/clipboard_wayland.rs",
+      "canonical_matches": true
+    },
+    {
+      "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/src/farpane_native/clipboard_wire.rs",
+      "sha256": "b51d68892a99edc3fcdf39744afc6becb390d395721095debf1562e72a1e0f62",
+      "excerpts": [
+        {
+          "first_line": 109,
+          "last_line": 125,
+          "text": "        return Err(io::ErrorKind::PermissionDenied.into());\n    }\n    for (value, format) in values.iter().zip(formats) {\n        let width = u32::try_from(value.width).map_err(|_| invalid())?;\n        let height = u32::try_from(value.height).map_err(|_| invalid())?;\n        if !value.special_name.is_empty()\n            || value.content.is_empty()\n            || value.content.len() > format.limit()\n            || (format == Format::Png && value.compress)\n            || (format != Format::Rgba && (width != 0 || height != 0))\n        {\n            return Err(invalid());\n        }\n        if format == Format::Rgba {\n            clipboard::pixels(width, height)?;\n        }\n    }"
+        },
+        {
+          "first_line": 164,
+          "last_line": 178,
+          "text": "            // above 8 MiB is rejected even if the final payload is tiny.\n            decoder.window_log_max(23).map_err(|_| invalid())?;\n            let mut bytes = Vec::new();\n            decoder\n                .take((limit + 1) as u64)\n                .read_to_end(&mut bytes)\n                .map_err(|_| invalid())?;\n            if bytes.is_empty() || bytes.len() > limit {\n                return Err(invalid());\n            }\n            Bytes::from(bytes)\n        } else {\n            value.content\n        };\n        result.push(Part {"
+        }
+      ],
+      "canonical": "Linux/native/clipboard_wire.rs",
+      "canonical_matches": true
+    },
+    {
+      "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/src/clipboard.rs",
+      "sha256": "6d9264f6574102d9b6dd8249fc374395a3b8c2734043759b511f61d234f1b4fd",
+      "excerpts": [
+        {
+          "first_line": 252,
+          "last_line": 280,
+          "text": "    if to_update_data.is_empty() {\n        return;\n    }\n    do_update_clipboard_(to_update_data, side);\n}\n\n#[cfg(not(target_os = \"android\"))]\nfn do_update_clipboard_(mut to_update_data: Vec<ClipboardData>, side: ClipboardSide) {\n    let mut ctx = CLIPBOARD_CTX.lock().unwrap();\n    if ctx.is_none() {\n        match ClipboardContext::new() {\n            Ok(x) => {\n                *ctx = Some(x);\n            }\n            Err(e) => {\n                log::error!(\"Failed to create clipboard context: {}\", e);\n                return;\n            }\n        }\n    }\n    if let Some(ctx) = ctx.as_mut() {\n        to_update_data = append_owner_marker(to_update_data, side);\n        if let Err(e) = ctx.set(&to_update_data) {\n            log::debug!(\"Failed to set clipboard: {}\", e);\n        } else {\n            log::debug!(\"{} updated on {}\", CLIPBOARD_NAME, side);\n        }\n    }\n}"
+        }
+      ]
+    },
+    {
+      "source": "Build/Linux/core-updates/run-0q_7wu96/rustdesk/libs/base/protos/message.proto",
+      "sha256": "d583331a16e6a06031f68d512715a2fdf8d8be3e1b9f0a45621e973703383a95",
+      "excerpts": [
+        {
+          "first_line": 690,
+          "last_line": 708,
+          "text": "message OptionMessage {\n  enum BoolOption {\n    NotSet = 0;\n    No = 1;\n    Yes = 2;\n  }\n  ImageQuality image_quality = 1;\n  BoolOption lock_after_session_end = 2;\n  BoolOption show_remote_cursor = 3;\n  BoolOption privacy_mode = 4;\n  BoolOption block_input = 5;\n  int32 custom_image_quality = 6;\n  BoolOption disable_audio = 7;\n  BoolOption disable_clipboard = 8;\n  BoolOption enable_file_transfer = 9;\n  SupportedDecoding supported_decoding = 10;\n  int32 custom_fps = 11;\n  BoolOption disable_keyboard = 12;\n// Position 13 is used for Resolution. Remove later."
+        }
+      ]
+    }
+  ],
+  "patches": {
+    "Linux/patches/0029-native-host-clipboard.patch": "a528a1a67e35863575360fbf77d84d39431da6cee1020a141e082d5357e8c644",
+    "Linux/patches/0040-native-clipboard-memory.patch": "35ce4c2cabd7de2889acaeb9aa44f09e76b696a47b2ed9b505797b2f7d0dc453"
+  },
+  "wire_fixture_at_initial_review": {
+    "source": "Linux/tests/native_input_vm_wire.py",
+    "snippet": "number(8,2)",
+    "meaning": "OptionMessage.disable_clipboard = Yes. Initial four input cases do not exercise incoming clipboard synchronization. Claude owns subsequent fixture changes."
+  },
+  "unverified": [
+    "Actual Host data-control capability and permission at failed submission",
+    "Whether actual Mac sent Clipboard messages near the failed submission",
+    "Whether any such message successfully replaced the selection before application consumption"
+  ]
+}

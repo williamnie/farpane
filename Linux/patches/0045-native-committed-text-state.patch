@@ -1,0 +1,199 @@
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -1927,6 +1927,11 @@
+     // - any non-ASCII present: input whole sequence via clipboard to preserve order
+     #[cfg(target_os = "linux")]
+     if !crate::platform::linux::is_x11() && wayland_use_uinput() {
++        // A legacy Seq is committed text, never a shortcut, on both branches.
++        #[cfg(feature = "farpane-native")]
++        if !native_literal_text::prepare(en, sequence) {
++            return;
++        }
+         if sequence.chars().all(is_ascii_printable) {
+             en.key_sequence(sequence);
+         } else {
+@@ -1938,6 +1943,150 @@
+     en.key_sequence(&sequence);
+ }
+ 
++/// Committed text must not combine with Ctrl/Alt/Meta that a separate key
++/// event left down on FarPane's own virtual keyboard. Logs never carry text.
++#[cfg(all(target_os = "linux", feature = "farpane-native"))]
++mod native_literal_text {
++    use super::*;
++    use std::sync::atomic::{AtomicU64, Ordering};
++
++    static COMMITS: AtomicU64 = AtomicU64::new(0);
++
++    // The root service reports each left/right pair through the left key.
++    // An up event for a key that is not down is dropped by the input core.
++    const MODIFIERS: [(Key, [Key; 2]); 3] = [
++        (Key::Control, [Key::Control, Key::RightControl]),
++        (Key::Alt, [Key::Alt, Key::RightAlt]),
++        (Key::Meta, [Key::Meta, Key::RWin]),
++    ];
++
++    fn query(en: &mut Enigo, key: Key) -> ResultType<bool> {
++        if let Some(keyboard) = en.get_custom_keyboard() {
++            if let Some(keyboard) = keyboard
++                .as_mut_any()
++                .downcast_mut::<super::super::uinput::client::UInputKeyboard>()
++            {
++                return keyboard.try_key_state(key);
++            }
++        }
++        Ok(en.get_key_state(key))
++    }
++
++    /// Queries every modifier before changing any: an unknown state leaves the
++    /// keyboard untouched. Returns the released set (bit 0 Ctrl, 1 Alt, 2 Meta).
++    pub(super) fn release_modifiers<K: KeyboardControllable + ?Sized>(
++        keyboard: &mut K,
++        mut query: impl FnMut(&mut K, Key) -> ResultType<bool>,
++    ) -> ResultType<u8> {
++        let mut pressed = 0u8;
++        for (bit, (key, _)) in MODIFIERS.iter().enumerate() {
++            if query(keyboard, *key)? {
++                pressed |= 1 << bit;
++            }
++        }
++        for (bit, (_, keys)) in MODIFIERS.iter().enumerate() {
++            if pressed & (1 << bit) != 0 {
++                for key in keys {
++                    keyboard.key_up(*key);
++                }
++            }
++        }
++        Ok(pressed)
++    }
++
++    /// False drops this commit: its modifier state could not be established,
++    /// and failed input is never replayed later.
++    pub(super) fn prepare(en: &mut Enigo, text: &str) -> bool {
++        let id = COMMITS.fetch_add(1, Ordering::Relaxed) + 1;
++        let chars = text.chars().count();
++        let ascii = text.chars().all(is_ascii_printable);
++        // Separate call sites keep separate throttles: a release is never
++        // folded into the count of an ordinary commit.
++        match release_modifiers(en, query) {
++            Ok(released) if released != 0 => {
++                hbb_common::throttled_log!(Duration::from_secs(1), info,
++                    "Native committed text #{id}: chars={chars} ascii={ascii} released_modifiers={released:#05b}");
++                true
++            }
++            Ok(_) if !ascii => {
++                hbb_common::throttled_log!(Duration::from_secs(1), info,
++                    "Native committed text #{id}: chars={chars} ascii=false released_modifiers=0b000");
++                true
++            }
++            Ok(_) => {
++                log::trace!("Native committed text #{id}: chars={chars} ascii=true");
++                true
++            }
++            Err(error) => {
++                hbb_common::throttled_log!(Duration::from_secs(1), warn,
++                    "Native committed text #{id} dropped: chars={chars} ascii={ascii}; modifier state unknown: {error}");
++                false
++            }
++        }
++    }
++
++    #[cfg(test)]
++    mod tests {
++        use super::*;
++        use hbb_common::anyhow::anyhow;
++
++        #[derive(Default)]
++        struct Keys {
++            down: Vec<Key>,
++            ups: Vec<Key>,
++        }
++
++        impl KeyboardControllable for Keys {
++            fn as_any(&self) -> &dyn std::any::Any { self }
++            fn as_mut_any(&mut self) -> &mut dyn std::any::Any { self }
++            fn key_sequence(&mut self, _: &str) { unreachable!() }
++            fn key_down(&mut self, key: Key) -> enigo::ResultType { self.down.push(key); Ok(()) }
++            fn key_up(&mut self, key: Key) { self.down.retain(|k| *k != key); self.ups.push(key); }
++            fn key_click(&mut self, _: Key) { unreachable!() }
++            fn get_key_state(&mut self, key: Key) -> bool { self.down.contains(&key) }
++        }
++
++        fn state(keys: &mut Keys, key: Key) -> ResultType<bool> {
++            // Mirrors the root service: a pair is reported through its left key.
++            let pair = MODIFIERS.iter().find(|(k, _)| *k == key).unwrap().1;
++            Ok(pair.iter().any(|k| keys.down.contains(k)))
++        }
++
++        #[test]
++        fn held_modifiers_are_released_before_committed_text() {
++            let mut keys = Keys::default();
++            keys.key_down(Key::Control).unwrap();
++            keys.key_down(Key::RWin).unwrap();
++            keys.key_down(Key::Shift).unwrap();
++            assert_eq!(release_modifiers(&mut keys, state).unwrap(), 0b101);
++            assert_eq!(keys.down, vec![Key::Shift], "Shift is not a shortcut modifier for text");
++            assert_eq!(keys.ups, vec![Key::Control, Key::RightControl, Key::Meta, Key::RWin]);
++        }
++
++        #[test]
++        fn idle_keyboard_is_untouched() {
++            let mut keys = Keys::default();
++            assert_eq!(release_modifiers(&mut keys, state).unwrap(), 0);
++            assert!(keys.ups.is_empty());
++        }
++
++        #[test]
++        fn unknown_state_changes_nothing() {
++            let mut keys = Keys::default();
++            keys.key_down(Key::Control).unwrap();
++            let mut calls = 0;
++            let result = release_modifiers(&mut keys, |keys, key| {
++                calls += 1;
++                if key == Key::Meta { Err(anyhow!("root keyboard unavailable")) } else { state(keys, key) }
++            });
++            assert!(result.is_err());
++            assert_eq!(calls, 3);
++            assert!(keys.ups.is_empty(), "a held Control must not be released on a partial answer");
++            assert_eq!(keys.down, vec![Key::Control]);
++        }
++    }
++}
++
+ /// Delay in milliseconds to wait for clipboard to sync on Wayland.
+ /// This is an empirical value — Wayland provides no callback or event to confirm
+ /// clipboard content has been received by the compositor. Under heavy system load,
+@@ -2054,12 +2203,18 @@
+ #[inline]
+ pub(super) fn set_clipboard_for_paste_sync(text: &str) -> bool {
+     let record = record_wayland_clipboard_input_for_sync_filter(text);
++    #[cfg(feature = "farpane-native")]
++    let started = Instant::now();
+     if !set_clipboard_content(text) {
+         if let Some(record) = record {
+             rollback_wayland_clipboard_input_record(record);
+         }
+         return false;
+     }
++    // Ownership was taken; it does not prove that the target will read it.
++    #[cfg(feature = "farpane-native")]
++    hbb_common::throttled_log!(Duration::from_secs(1), info,
++        "Native paste clipboard written in {} ms", started.elapsed().as_millis());
+     std::thread::sleep(std::time::Duration::from_millis(CLIPBOARD_SYNC_DELAY_MS));
+     true
+ }
+--- a/src/server/uinput.rs
++++ b/src/server/uinput.rs
+@@ -44,6 +44,12 @@
+             self.rt.block_on(self.conn.send(&data))
+         }
+ 
++        /// Like `get_key_state`, but a failed query is an error instead of "up".
++        #[cfg(feature = "farpane-native")]
++        pub fn try_key_state(&mut self, key: Key) -> ResultType<bool> {
++            self.send_get_key_state(Data::Keyboard(DataKeyboard::GetKeyState(key)))
++        }
++
+         fn send_get_key_state(&mut self, data: Data) -> ResultType<bool> {
+             #[cfg(feature = "farpane-native")]
+             self.rt.block_on(crate::farpane_native::input_retry::send(

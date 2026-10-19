@@ -1,0 +1,40 @@
+Verifying complete parent source inventory
+Copying frozen sources and dependencies into a new snapshot
+Compressing verified complete snapshot: /home/user/farpane/Build/Linux/source-bundles/farpane-native-source-d013ab8e2fa2bb25564b0c91
+{
+  "snapshot": "/home/user/farpane/Build/Linux/source-bundles/farpane-native-source-d013ab8e2fa2bb25564b0c91",
+  "manifest_sha256": "d013ab8e2fa2bb25564b0c910cc01deae3162d17725c088a25e227f922f337fd",
+  "archive": "/home/user/farpane/Build/Linux/source-bundles/farpane-native-source-d013ab8e2fa2bb25564b0c91.tar.gz",
+  "sha256": "dbe0e861a6f1fa966d2b4476a7424be0ad0e6c2acdbe1cc67ea927f37bc9e119",
+  "files": 91491,
+  "vendor_packages": 1082,
+  "changed_paths": [
+    "Build/Linux/gui/src/viewer.rs",
+    "Build/Linux/native-source-map.json",
+    "Linux/gui/src/viewer.rs",
+    "Linux/packaging/native_notice_delivery.py",
+    "Linux/packaging/native_published_notices.py",
+    "Linux/packaging/org.farpane.FarPane.desktop.in",
+    "Linux/tests/native_source_smoke.py",
+    "Linux/tests/test_native_gui_notices.py",
+    "Linux/tests/test_native_gui_source.py",
+    "Linux/tests/test_native_notice_delivery.py",
+    "Scripts/linux/build-native-gui-update.py",
+    "Scripts/linux/package-native-gui-source.py",
+    "Scripts/linux/repackage-native-desktop.py",
+    "Scripts/linux/repackage-native-gui.py",
+    "Scripts/linux/test-native-source.sh",
+    "Scripts/linux/verify-published-notices.py",
+    "binary-build-receipt.json",
+    "gui-update/README.md",
+    "gui-update/artifact-build.json",
+    "gui-update/build-native-gui-update.py",
+    "gui-update/inputs.json",
+    "gui-update/receipt.json",
+    "gui-update/release.log",
+    "gui-update/test.log",
+    "native-dependencies/notice-delivery/manifest.json"
+  ],
+  "fresh_full_build_verified": false,
+  "complete_license_source_audit": false
+}

@@ -1,0 +1,192 @@
+{
+  "result": "pass",
+  "matrix": [
+    {
+      "run": "run-zhgsuhmg",
+      "result": "pass",
+      "checks": [
+        "held-key-released",
+        "toolbar-hidden",
+        "picture-expanded",
+        "disconnect-remains-visible",
+        "fresh-video-while-collapsed",
+        "expand-restores-layout",
+        "pointer-mapping-after-both-resizes",
+        "worker-failure-reveals-retry",
+        "return-home-preserves-host"
+      ],
+      "original_picture": [
+        0.0,
+        184.0,
+        790.0,
+        369.0
+      ],
+      "logical_size": [
+        800,
+        600
+      ],
+      "scale": 1,
+      "physical_geometry": [
+        0,
+        0,
+        800,
+        600
+      ],
+      "collapsed_picture": [
+        0.0,
+        47.0,
+        790.0,
+        506.0
+      ],
+      "software_only": true,
+      "host_preserved": true,
+      "real_desktop_tested": false,
+      "chinese_input_tested": false,
+      "memory_optimization": false
+    },
+    {
+      "run": "run-47hf677w",
+      "result": "pass",
+      "checks": [
+        "held-key-released",
+        "toolbar-hidden",
+        "picture-expanded",
+        "disconnect-remains-visible",
+        "fresh-video-while-collapsed",
+        "expand-restores-layout",
+        "pointer-mapping-after-both-resizes",
+        "worker-failure-reveals-retry",
+        "return-home-preserves-host"
+      ],
+      "original_picture": [
+        0.0,
+        138.0,
+        1010.0,
+        535.0
+      ],
+      "logical_size": [
+        1020,
+        720
+      ],
+      "scale": 1,
+      "physical_geometry": [
+        0,
+        0,
+        1020,
+        720
+      ],
+      "collapsed_picture": [
+        0.0,
+        47.0,
+        1010.0,
+        626.0
+      ],
+      "software_only": true,
+      "host_preserved": true,
+      "real_desktop_tested": false,
+      "chinese_input_tested": false,
+      "memory_optimization": false
+    },
+    {
+      "run": "run-1p54py87",
+      "result": "pass",
+      "checks": [
+        "keyboard-navigation-between-controls",
+        "held-key-released",
+        "toolbar-hidden",
+        "picture-expanded",
+        "disconnect-remains-visible",
+        "fresh-video-while-collapsed",
+        "expand-restores-layout",
+        "pointer-mapping-after-both-resizes",
+        "worker-failure-reveals-retry",
+        "return-home-preserves-host"
+      ],
+      "original_picture": [
+        0.0,
+        184.0,
+        790.0,
+        369.0
+      ],
+      "logical_size": [
+        800,
+        600
+      ],
+      "scale": 2,
+      "physical_geometry": [
+        0,
+        0,
+        1600,
+        1200
+      ],
+      "collapsed_picture": [
+        0.0,
+        47.0,
+        790.0,
+        506.0
+      ],
+      "software_only": true,
+      "host_preserved": true,
+      "real_desktop_tested": false,
+      "chinese_input_tested": false,
+      "memory_optimization": false
+    },
+    {
+      "run": "run-q6b9931y",
+      "result": "pass",
+      "checks": [
+        "keyboard-navigation-between-controls",
+        "held-key-released",
+        "toolbar-hidden",
+        "picture-expanded",
+        "disconnect-remains-visible",
+        "fresh-video-while-collapsed",
+        "expand-restores-layout",
+        "pointer-mapping-after-both-resizes",
+        "worker-failure-reveals-retry",
+        "return-home-preserves-host"
+      ],
+      "original_picture": [
+        0.0,
+        138.0,
+        1010.0,
+        535.0
+      ],
+      "logical_size": [
+        1020,
+        720
+      ],
+      "scale": 2,
+      "physical_geometry": [
+        0,
+        0,
+        2040,
+        1440
+      ],
+      "collapsed_picture": [
+        0.0,
+        47.0,
+        1010.0,
+        626.0
+      ],
+      "software_only": true,
+      "host_preserved": true,
+      "real_desktop_tested": false,
+      "chinese_input_tested": false,
+      "memory_optimization": false
+    }
+  ],
+  "previous_version_regression": "run-oypo2gv2",
+  "first_exploratory_run": "run-c1hcptc3",
+  "guard_tests": 2,
+  "guard_stdout_location": "tool history; no raw log file",
+  "screenshots_reviewed": [
+    "run-zhgsuhmg/streaming",
+    "run-zhgsuhmg/failed",
+    "run-47hf677w/streaming",
+    "run-1p54py87/streaming"
+  ],
+  "host_changed": false,
+  "memory_optimization": false,
+  "chinese_input_tested": false
+}

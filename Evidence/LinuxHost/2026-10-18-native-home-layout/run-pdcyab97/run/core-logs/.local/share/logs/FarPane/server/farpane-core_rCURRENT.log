@@ -1,0 +1,40 @@
+[2026-10-18 14:22:54.764536 +00:00] INFO [src/core_main.rs:404] start --server with user ubuntu
+[2026-10-18 14:22:54.765017 +00:00] INFO [src/server.rs:665] DISPLAY=Ok(":91")
+[2026-10-18 14:22:54.765022 +00:00] INFO [src/server.rs:666] XAUTHORITY=Err(NotPresent)
+[2026-10-18 14:22:54.765411 +00:00] INFO [src/ipc.rs:744] Started ipc server at path: /tmp/FarPane-1000/ipc
+[2026-10-18 14:22:54.765463 +00:00] WARN [src/farpane_native/recovery.rs:84] System recovery monitor unavailable; core retries remain active: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory
+[2026-10-18 14:22:55.066199 +00:00] INFO [src/server.rs:919] #1 try: failed to connect to ipc_service
+[2026-10-18 14:22:55.668331 +00:00] INFO [src/server.rs:919] #2 try: failed to connect to ipc_service
+[2026-10-18 14:22:56.569294 +00:00] INFO [src/server.rs:919] #3 try: failed to connect to ipc_service
+[2026-10-18 14:22:57.766427 +00:00] WARN [src/server.rs:818] timed out waiting 3s for initial config sync, continue startup and keep syncing in background
+[2026-10-18 14:22:57.766874 +00:00] INFO [src/server/drm_capturer.rs:1897] drm: consumer cache warm found no producer at startup (will probe lazily)
+[2026-10-18 14:22:57.767191 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)
+[2026-10-18 14:22:57.768286 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 14:22:57.768331 +00:00] INFO [src/rendezvous_mediator.rs:1375] Direct server listening on: Some(Ok([::]:21118))
+[2026-10-18 14:22:57.768328 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com
+[2026-10-18 14:22:57.768598 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 14:22:57.768905 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116
+[2026-10-18 14:22:57.769197 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 14:22:57.769370 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 14:22:57.769380 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.25, available memory: 26G, codec thread: 2
+[2026-10-18 14:22:57.770428 +00:00] INFO [src/server.rs:919] #4 try: failed to connect to ipc_service
+[2026-10-18 14:22:57.771573 +00:00] INFO [src/rendezvous_mediator.rs:1404] direct access from [::ffff:127.0.0.1]:44096
+[2026-10-18 14:22:57.771684 +00:00] INFO [libs/hbb_common/src/config.rs:1143] Generated new keypair for id: 
+[2026-10-18 14:22:57.772099 +00:00] INFO [src/server/connection.rs:5425] #925 Connection closed: Reset by the peer
+[2026-10-18 14:22:57.772123 +00:00] INFO [src/server/connection.rs:1323] #925 connection loop exited
+[2026-10-18 14:22:57.774042 +00:00] INFO [libs/libxdo-sys-stub/src/lib.rs:114] libxdo-sys Loaded libxdo.so.3
+[2026-10-18 14:22:57.774541 +00:00] INFO [libs/enigo/src/linux/xdo.rs:100] xdo context created successfully
+[2026-10-18 14:22:57.774762 +00:00] INFO [libs/enigo/src/linux/xdo.rs:72] X11 pointer has 10 buttons, side buttons supported
+[2026-10-18 14:22:57.877959 +00:00] INFO [libs/scrap/src/common/codec.rs:1150] av1 time: key: 17.308693ms, non-key: 6.501977ms, consume: 105.029069ms
+[2026-10-18 14:22:58.769468 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 14:22:58.770264 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 14:22:58.798521 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0
+[2026-10-18 14:22:59.272252 +00:00] INFO [src/server.rs:919] #5 try: failed to connect to ipc_service
+[2026-10-18 14:23:01.073355 +00:00] INFO [src/server.rs:919] #6 try: failed to connect to ipc_service
+[2026-10-18 14:23:01.770655 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 14:23:01.771740 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution
+[2026-10-18 14:23:03.174246 +00:00] INFO [src/server.rs:919] #7 try: failed to connect to ipc_service
+[2026-10-18 14:23:05.576124 +00:00] INFO [src/server.rs:919] #8 try: failed to connect to ipc_service
+[2026-10-18 14:23:08.277579 +00:00] INFO [src/server.rs:919] #9 try: failed to connect to ipc_service
+[2026-10-18 14:23:08.771954 +00:00] INFO [src/common.rs:706] Testing nat ...
+[2026-10-18 14:23:08.773032 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution

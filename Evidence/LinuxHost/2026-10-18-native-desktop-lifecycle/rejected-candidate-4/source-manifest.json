@@ -1,0 +1,134 @@
+[
+  {
+    "path": "source/Linux/tests/input-vm/farpane-input-session.service",
+    "sha256": "f554c422c9ac5742a4c0211f9df19aa35527fed7305b73621a1e430342f1c1ef"
+  },
+  {
+    "path": "source/Linux/tests/input-vm/farpane-input-test.service",
+    "sha256": "fa3d6eb6f61fd97c4d6898e461f6fa3b862d02db082914ca09495ab7e566d47f"
+  },
+  {
+    "path": "source/Linux/tests/input-vm/farpane-input-test.target",
+    "sha256": "3e48fe9e28c70048720212d292659c2583a428e72bf27c634d5536222a8a3e14"
+  },
+  {
+    "path": "source/Linux/tests/input-vm/pam-session",
+    "sha256": "cfd56978b702dfbf5f473b3b3c97bdf40428cd787c0e24366c8b62ed327252cc"
+  },
+  {
+    "path": "source/Linux/tests/native-input-vm.lock.json",
+    "sha256": "006f1512e01a80520a622657b3e48c272acb078d3e5b0936ca3cec1a2288ee71"
+  },
+  {
+    "path": "source/Linux/tests/native_desktop_launch_vm.py",
+    "sha256": "47d6b8f845c81ff94ea8d3036b6bb9916d01e44dddacb8639b0405d237995a42"
+  },
+  {
+    "path": "source/Linux/tests/native_desktop_lifecycle_vm.py",
+    "sha256": "8cf6ae5530b657583d66c14f2398c3e777c01176a2a3afe86b0c200a72183622"
+  },
+  {
+    "path": "source/Linux/tests/native_gnome_input_smoke.py",
+    "sha256": "61ef7d4f8213d74e3491dbb292f2ab041e04fcbfbaffd99d7887a93c790cd216"
+  },
+  {
+    "path": "source/Linux/tests/native_input_vm_desktop.py",
+    "sha256": "cb80a26f71a7c5b298862eb55f296c912e95f5ebc7a34298038d071ac4e2b1a8"
+  },
+  {
+    "path": "source/Linux/tests/native_input_vm_init.py",
+    "sha256": "a7e1efb8510ed773ebc3d5dd279b92c229e4a609de3fd1b72c8836f4e7acf2fe"
+  },
+  {
+    "path": "source/Linux/tests/native_input_vm_network.py",
+    "sha256": "ab6bd5fd2fe75f012fbe66489fdb430ee84b7aa26cd8601e9790655309c2b257"
+  },
+  {
+    "path": "source/Linux/tests/native_input_vm_prepare.py",
+    "sha256": "990947d9e3e2492babfbe16eb055214f880ea4746730d9679c2b0cdfa33ca7d1"
+  },
+  {
+    "path": "source/Linux/tests/native_input_vm_service.py",
+    "sha256": "ede517ffa3921051c14424b4111a9025e613686326b548cda0bc441a0a193bcc"
+  },
+  {
+    "path": "source/Linux/tests/native_input_vm_wire.py",
+    "sha256": "85150d08cfec8ebed6d81ff9c66214c5d051ef297083112eded2a331edf6c148"
+  },
+  {
+    "path": "source/Linux/tests/native_maintenance_vm.py",
+    "sha256": "10dbde3317b93f9709db675171e1ca40fd3a9624d8a953beaadbfff171dbd0b4"
+  },
+  {
+    "path": "source/Linux/tests/test_native_desktop_launch_vm_guard.py",
+    "sha256": "6dba0ba825baf67fe0abbf16b8559280a9c81796b28c3482d90bc4ab6c58dc4a"
+  },
+  {
+    "path": "source/Linux/tests/test_native_desktop_lifecycle_vm_guard.py",
+    "sha256": "4a63d70375fa1e1fbca295f128e5a1e8750ea79454b5e79c08a01e34d3d3983b"
+  },
+  {
+    "path": "source/Linux/tests/test_native_input_vm_guards.py",
+    "sha256": "7e41e7eeb38a32a225ca87b381b41baf6d27d6ce0f6242e3d65b024c40b668e7"
+  },
+  {
+    "path": "source/Linux/tests/test_native_maintenance_vm_guard.py",
+    "sha256": "1d775ed08062ca6494ce7db8b43de104c63ea222299871625c7324d75633e015"
+  },
+  {
+    "path": "source/Scripts/linux/prepare-native-input-vm.py",
+    "sha256": "6d40b6be70f51f0efa1c4d42dac17b88c020212fe9b60c87f786056705b66ffa"
+  },
+  {
+    "path": "source/Scripts/linux/run-native-input-vm.py",
+    "sha256": "f28fe2b59553380dda99bb912e37bd62aef78949589a0be6b11b1e13678b28ac"
+  },
+  {
+    "path": "attempted-installer-source/Linux/packaging/native-deb-README.txt",
+    "sha256": "e32391518e19377c19c2c858382023373aadd5876e1eee4576baa3ecf4f7a7ad"
+  },
+  {
+    "path": "attempted-installer-source/Linux/packaging/native-rpm-README.txt",
+    "sha256": "0861db03b064800dbbcb3c4894924742e38b1e413fc9b07b1bb957e72f9fe9f8"
+  },
+  {
+    "path": "attempted-installer-source/Linux/packaging/native_bundle.py",
+    "sha256": "9a3eb72e2c6a295a82f920b81524677c99b5160827a0358a077fad4737aaff97"
+  },
+  {
+    "path": "attempted-installer-source/Linux/packaging/native_deb.py",
+    "sha256": "c17f4fee2259fe577a94592200f6396f91dcc18c8af133a431a8cfb44764e779"
+  },
+  {
+    "path": "attempted-installer-source/Linux/packaging/native_install.py",
+    "sha256": "65576f5792cb22c37c3d5534005ee4df09233c197ee3c57e3db45c93817f01e3"
+  },
+  {
+    "path": "attempted-installer-source/Linux/packaging/native_install_runtime.py",
+    "sha256": "29259d29687d2101b1a48d19bc2162c6cd3ddedf2b652bc111901841226d3c43"
+  },
+  {
+    "path": "attempted-installer-source/Linux/packaging/native_rpm.py",
+    "sha256": "02995882bd4a643544f3ef270d042142617e34ebc11ef51806dfb37c8897920b"
+  },
+  {
+    "path": "attempted-installer-source/Linux/packaging/native_user_install.py",
+    "sha256": "4843232d21aef7e87d8b286d558b1f503873e6092e43337846981288e3572b83"
+  },
+  {
+    "path": "attempted-installer-source/Linux/tests/test_native_desktop_cache.py",
+    "sha256": "0d540ca265c6a6771c1c4319df71ac7c6045f0a3fabf79c1fabb312eb5959b44"
+  },
+  {
+    "path": "attempted-installer-source/Scripts/linux/install-app.py",
+    "sha256": "160a71724bf36c1dc8d048684fa32b14f22ef51d67249ccb6d138dacb98fb792"
+  },
+  {
+    "path": "attempted-installer-source/Scripts/linux/install-native-user.py",
+    "sha256": "4f7c6c34b92c1b4f71454e2c41a4844ca4809375a96240af12a3b092f72691d1"
+  },
+  {
+    "path": "attempted-installer-source/Scripts/linux/install-native.py",
+    "sha256": "4f82509c8e1c739b5278a4664bb2626784e858dafe6c2f3189150e736bfffb73"
+  }
+]

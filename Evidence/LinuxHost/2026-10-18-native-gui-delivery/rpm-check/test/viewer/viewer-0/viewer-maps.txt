@@ -1,0 +1,230 @@
+5c8ccab8d000-5c8ccad89000 r--p 00000000 00:71 8168                       /opt/farpane-native-test/releases/native-smoke-1/libexec/farpane-core
+5c8ccad89000-5c8ccd294000 r-xp 001fc000 00:71 8168                       /opt/farpane-native-test/releases/native-smoke-1/libexec/farpane-core
+5c8ccd294000-5c8ccd9c2000 r--p 02707000 00:71 8168                       /opt/farpane-native-test/releases/native-smoke-1/libexec/farpane-core
+5c8ccd9c2000-5c8ccdb42000 r--p 02e34000 00:71 8168                       /opt/farpane-native-test/releases/native-smoke-1/libexec/farpane-core
+5c8ccdb42000-5c8ccdb51000 rw-p 02fb4000 00:71 8168                       /opt/farpane-native-test/releases/native-smoke-1/libexec/farpane-core
+5c8ccdb51000-5c8ccdc7b000 rw-p 00000000 00:00 0 
+5c8d02837000-5c8d02879000 rw-p 00000000 00:00 0                          [heap]
+711ec0000000-711ec0021000 rw-p 00000000 00:00 0 
+711ec0021000-711ec4000000 ---p 00000000 00:00 0 
+711ec8000000-711ec8021000 rw-p 00000000 00:00 0 
+711ec8021000-711ecc000000 ---p 00000000 00:00 0 
+711ecc000000-711ecc07c000 rw-p 00000000 00:00 0 
+711ecc07c000-711ed0000000 ---p 00000000 00:00 0 
+711ed0000000-711ed005b000 rw-p 00000000 00:00 0 
+711ed005b000-711ed4000000 ---p 00000000 00:00 0 
+711ed6a58000-711ed6b49000 rw-p 00000000 00:00 0 
+711ed6b49000-711ed6b9a000 r-xp 00000000 00:58 46140166                   /usr/lib64/libnss_systemd.so.2
+711ed6b9a000-711ed6bb6000 r--p 00051000 00:58 46140166                   /usr/lib64/libnss_systemd.so.2
+711ed6bb6000-711ed6bbd000 r--p 0006c000 00:58 46140166                   /usr/lib64/libnss_systemd.so.2
+711ed6bbd000-711ed6bbe000 rw-p 00073000 00:58 46140166                   /usr/lib64/libnss_systemd.so.2
+711ed6bc4000-711ed6bc5000 ---p 00000000 00:00 0 
+711ed6bc5000-711ed6dc8000 rw-p 00000000 00:00 0 
+711ed6dc8000-711ed6dc9000 ---p 00000000 00:00 0 
+711ed6dc9000-711ed6dcb000 rw-p 00000000 00:00 0 
+711ed6dcb000-711ed6dcc000 ---p 00000000 00:00 0 
+711ed6dcc000-711ed6ff0000 rw-p 00000000 00:00 0 
+711ed6ff0000-711ed6ff1000 ---p 00000000 00:00 0 
+711ed6ff1000-711ed71f4000 rw-p 00000000 00:00 0 
+711ed71f4000-711ed71ff000 rw-p 00000000 00:00 0 
+711ed71ff000-711ed7234000 r-xp 00000000 00:58 46156007                   /usr/lib64/libmp3lame.so.0.0.0
+711ed7234000-711ed7249000 r--p 00035000 00:58 46156007                   /usr/lib64/libmp3lame.so.0.0.0
+711ed7249000-711ed724b000 r--p 00049000 00:58 46156007                   /usr/lib64/libmp3lame.so.0.0.0
+711ed724b000-711ed7279000 rw-p 00000000 00:00 0 
+711ed7279000-711ed72b8000 r-xp 00000000 00:58 46156011                   /usr/lib64/libmpg123.so.0.48.3
+711ed72b8000-711ed72d6000 r--p 0003f000 00:58 46156011                   /usr/lib64/libmpg123.so.0.48.3
+711ed72d6000-711ed72d7000 r--p 0005d000 00:58 46156011                   /usr/lib64/libmpg123.so.0.48.3
+711ed72d7000-711ed72d8000 rw-p 0005e000 00:58 46156011                   /usr/lib64/libmpg123.so.0.48.3
+711ed72d8000-711ed72db000 r-xp 00000000 00:58 46156015                   /usr/lib64/libogg.so.0.8.6
+711ed72db000-711ed72e0000 r--p 00003000 00:58 46156015                   /usr/lib64/libogg.so.0.8.6
+711ed72e0000-711ed72e1000 r--p 00007000 00:58 46156015                   /usr/lib64/libogg.so.0.8.6
+711ed72e1000-711ed72e2000 rw-p 00000000 00:00 0 
+711ed72e2000-711ed733e000 r-xp 00000000 00:58 46156024                   /usr/lib64/libopus.so.0.11.0
+711ed733e000-711ed7354000 r--p 0005c000 00:58 46156024                   /usr/lib64/libopus.so.0.11.0
+711ed7354000-711ed7355000 r--p 00072000 00:58 46156024                   /usr/lib64/libopus.so.0.11.0
+711ed7355000-711ed7356000 rw-p 00000000 00:00 0 
+711ed7356000-711ed7359000 r-xp 00000000 00:58 46156120                   /usr/lib64/libvorbisenc.so.2.0.12
+711ed7359000-711ed73d1000 r--p 00003000 00:58 46156120                   /usr/lib64/libvorbisenc.so.2.0.12
+711ed73d1000-711ed73ed000 r--p 0007a000 00:58 46156120                   /usr/lib64/libvorbisenc.so.2.0.12
+711ed73ed000-711ed73ee000 rw-p 00096000 00:58 46156120                   /usr/lib64/libvorbisenc.so.2.0.12
+711ed73ee000-711ed73f0000 rw-p 00000000 00:00 0 
+711ed73f0000-711ed740b000 r-xp 00000000 00:58 46156118                   /usr/lib64/libvorbis.so.0.4.9
+711ed740b000-711ed741f000 r--p 0001b000 00:58 46156118                   /usr/lib64/libvorbis.so.0.4.9
+711ed741f000-711ed7420000 r--p 0002e000 00:58 46156118                   /usr/lib64/libvorbis.so.0.4.9
+711ed7420000-711ed7421000 rw-p 00000000 00:00 0 
+711ed7421000-711ed7464000 r-xp 00000000 00:58 46155681                   /usr/lib64/libFLAC.so.14.0.0
+711ed7464000-711ed7475000 r--p 00043000 00:58 46155681                   /usr/lib64/libFLAC.so.14.0.0
+711ed7475000-711ed7476000 r--p 00054000 00:58 46155681                   /usr/lib64/libFLAC.so.14.0.0
+711ed7476000-711ed7477000 rw-p 00055000 00:58 46155681                   /usr/lib64/libFLAC.so.14.0.0
+711ed7477000-711ed7481000 r-xp 00000000 00:58 46155854                   /usr/lib64/libgsm.so.1.0.24
+711ed7481000-711ed7483000 r--p 0000a000 00:58 46155854                   /usr/lib64/libgsm.so.1.0.24
+711ed7483000-711ed7484000 r--p 0000c000 00:58 46155854                   /usr/lib64/libgsm.so.1.0.24
+711ed7484000-711ed7485000 rw-p 0000d000 00:58 46155854                   /usr/lib64/libgsm.so.1.0.24
+711ed7485000-711ed7488000 r-xp 00000000 00:58 46155766                   /usr/lib64/libasyncns.so.0.3.1
+711ed7488000-711ed748a000 r--p 00003000 00:58 46155766                   /usr/lib64/libasyncns.so.0.3.1
+711ed748a000-711ed748b000 r--p 00004000 00:58 46155766                   /usr/lib64/libasyncns.so.0.3.1
+711ed748b000-711ed748c000 rw-p 00000000 00:00 0 
+711ed748c000-711ed74e9000 r-xp 00000000 00:58 46156072                   /usr/lib64/libsndfile.so.1.0.37
+711ed74e9000-711ed7507000 r--p 0005d000 00:58 46156072                   /usr/lib64/libsndfile.so.1.0.37
+711ed7507000-711ed750a000 r--p 0007b000 00:58 46156072                   /usr/lib64/libsndfile.so.1.0.37
+711ed750a000-711ed750b000 rw-p 0007e000 00:58 46156072                   /usr/lib64/libsndfile.so.1.0.37
+711ed750b000-711ed750f000 rw-p 00000000 00:00 0 
+711ed750f000-711ed75df000 r-xp 00000000 00:58 46140232                   /usr/lib64/libsystemd.so.0.42.0
+711ed75df000-711ed763d000 r--p 000d0000 00:58 46140232                   /usr/lib64/libsystemd.so.0.42.0
+711ed763d000-711ed7647000 r--p 0012d000 00:58 46140232                   /usr/lib64/libsystemd.so.0.42.0
+711ed7647000-711ed7648000 rw-p 00137000 00:58 46140232                   /usr/lib64/libsystemd.so.0.42.0
+711ed7648000-711ed7649000 rw-p 00000000 00:00 0 
+711ed7649000-711ed76ca000 r-xp 00000000 00:58 46140182                   /usr/lib64/libpcre2-8.so.0.15.0
+711ed76ca000-711ed76f8000 r--p 00081000 00:58 46140182                   /usr/lib64/libpcre2-8.so.0.15.0
+711ed76f8000-711ed76f9000 r--p 000ae000 00:58 46140182                   /usr/lib64/libpcre2-8.so.0.15.0
+711ed76f9000-711ed76fa000 rw-p 000af000 00:58 46140182                   /usr/lib64/libpcre2-8.so.0.15.0
+711ed76fa000-711ed76fc000 r-xp 00000000 00:58 46140077                   /usr/lib64/libgmodule-2.0.so.0.8800.4
+711ed76fc000-711ed76fe000 r--p 00002000 00:58 46140077                   /usr/lib64/libgmodule-2.0.so.0.8800.4
+711ed76fe000-711ed76ff000 r--p 00003000 00:58 46140077                   /usr/lib64/libgmodule-2.0.so.0.8800.4
+711ed76ff000-711ed7700000 rw-p 00004000 00:58 46140077                   /usr/lib64/libgmodule-2.0.so.0.8800.4
+711ed7700000-711ed7773000 r-xp 00000000 00:58 46156026                   /usr/lib64/liborc-0.4.so.0.41.0
+711ed7773000-711ed779c000 r--p 00073000 00:58 46156026                   /usr/lib64/liborc-0.4.so.0.41.0
+711ed779c000-711ed779f000 r--p 0009b000 00:58 46156026                   /usr/lib64/liborc-0.4.so.0.41.0
+711ed779f000-711ed77a3000 rw-p 0009e000 00:58 46156026                   /usr/lib64/liborc-0.4.so.0.41.0
+711ed77a3000-711ed7800000 r-xp 00000000 00:58 46155870                   /usr/lib64/libgstbase-1.0.so.0.2808.0
+711ed7800000-711ed7829000 r--p 0005d000 00:58 46155870                   /usr/lib64/libgstbase-1.0.so.0.2808.0
+711ed7829000-711ed782b000 r--p 00085000 00:58 46155870                   /usr/lib64/libgstbase-1.0.so.0.2808.0
+711ed782b000-711ed782e000 rw-p 00000000 00:00 0 
+711ed782e000-711ed7832000 r-xp 00000000 00:58 46155860                   /usr/lib64/libgstallocators-1.0.so.0.2808.0
+711ed7832000-711ed7836000 r--p 00004000 00:58 46155860                   /usr/lib64/libgstallocators-1.0.so.0.2808.0
+711ed7836000-711ed7837000 r--p 00007000 00:58 46155860                   /usr/lib64/libgstallocators-1.0.so.0.2808.0
+711ed7837000-711ed7838000 rw-p 00000000 00:00 0 
+711ed7838000-711ed783a000 r-xp 00000000 00:58 46155718                   /usr/lib64/libXau.so.6.0.0
+711ed783a000-711ed783b000 r--p 00002000 00:58 46155718                   /usr/lib64/libXau.so.6.0.0
+711ed783b000-711ed783c000 r--p 00003000 00:58 46155718                   /usr/lib64/libXau.so.6.0.0
+711ed783c000-711ed783d000 rw-p 00000000 00:00 0 
+711ed783d000-711ed784a000 r-xp 00000000 00:58 46155737                   /usr/lib64/libXi.so.6.1.0
+711ed784a000-711ed784e000 r--p 0000d000 00:58 46155737                   /usr/lib64/libXi.so.6.1.0
+711ed784e000-711ed784f000 r--p 00011000 00:58 46155737                   /usr/lib64/libXi.so.6.1.0
+711ed784f000-711ed7850000 rw-p 00012000 00:58 46155737                   /usr/lib64/libXi.so.6.1.0
+711ed7850000-711ed785c000 r-xp 00000000 00:58 46155729                   /usr/lib64/libXext.so.6.4.0
+711ed785c000-711ed7862000 r--p 0000c000 00:58 46155729                   /usr/lib64/libXext.so.6.4.0
+711ed7862000-711ed7863000 r--p 00011000 00:58 46155729                   /usr/lib64/libXext.so.6.4.0
+711ed7863000-711ed7864000 rw-p 00012000 00:58 46155729                   /usr/lib64/libXext.so.6.4.0
+711ed7864000-711ed78b3000 r-xp 00000000 00:58 46156216                   /usr/lib64/pulseaudio/libpulsecommon-17.0.so
+711ed78b3000-711ed78e6000 r--p 0004f000 00:58 46156216                   /usr/lib64/pulseaudio/libpulsecommon-17.0.so
+711ed78e6000-711ed78e9000 r--p 00081000 00:58 46156216                   /usr/lib64/pulseaudio/libpulsecommon-17.0.so
+711ed78e9000-711ed78ea000 rw-p 00084000 00:58 46156216                   /usr/lib64/pulseaudio/libpulsecommon-17.0.so
+711ed78ea000-711ed78ec000 rw-p 00000000 00:00 0 
+711ed78ec000-711ed78f7000 r-xp 00000000 00:58 46140052                   /usr/lib64/libffi.so.8.2.0
+711ed78f7000-711ed78fa000 r--p 0000b000 00:58 46140052                   /usr/lib64/libffi.so.8.2.0
+711ed78fa000-711ed78fb000 r--p 0000e000 00:58 46140052                   /usr/lib64/libffi.so.8.2.0
+711ed78fb000-711ed78fc000 rw-p 0000f000 00:58 46140052                   /usr/lib64/libffi.so.8.2.0
+711ed78fc000-711ed7920000 r-xp 00000000 00:58 46140062                   /usr/lib64/libgcc_s-16-20260819.so.1
+711ed7920000-711ed7927000 r--p 00024000 00:58 46140062                   /usr/lib64/libgcc_s-16-20260819.so.1
+711ed7927000-711ed7928000 r--p 0002b000 00:58 46140062                   /usr/lib64/libgcc_s-16-20260819.so.1
+711ed7928000-711ed7929000 rw-p 00000000 00:00 0 
+711ed7929000-711ed795f000 r-xp 00000000 00:58 46155808                   /usr/lib64/libdbus-1.so.3.38.3
+711ed795f000-711ed797e000 r--p 00036000 00:58 46155808                   /usr/lib64/libdbus-1.so.3.38.3
+711ed797e000-711ed7980000 r--p 00054000 00:58 46155808                   /usr/lib64/libdbus-1.so.3.38.3
+711ed7980000-711ed7981000 rw-p 00056000 00:58 46155808                   /usr/lib64/libdbus-1.so.3.38.3
+711ed7981000-711ed798f000 r-xp 00000000 00:58 46155864                   /usr/lib64/libgstapp-1.0.so.0.2808.0
+711ed798f000-711ed7998000 r--p 0000e000 00:58 46155864                   /usr/lib64/libgstapp-1.0.so.0.2808.0
+711ed7998000-711ed7999000 r--p 00017000 00:58 46155864                   /usr/lib64/libgstapp-1.0.so.0.2808.0
+711ed7999000-711ed799a000 rw-p 00018000 00:58 46155864                   /usr/lib64/libgstapp-1.0.so.0.2808.0
+711ed799a000-711ed79b7000 r-xp 00000000 00:58 46140288                   /usr/lib64/libz.so.1.3.1.zlib-ng
+711ed79b7000-711ed79c2000 r--p 0001d000 00:58 46140288                   /usr/lib64/libz.so.1.3.1.zlib-ng
+711ed79c2000-711ed79c3000 r--p 00027000 00:58 46140288                   /usr/lib64/libz.so.1.3.1.zlib-ng
+711ed79c3000-711ed79c4000 rw-p 00028000 00:58 46140288                   /usr/lib64/libz.so.1.3.1.zlib-ng
+711ed79c4000-711ed7a71000 r-xp 00000000 00:58 46140075                   /usr/lib64/libglib-2.0.so.0.8800.4
+711ed7a71000-711ed7b23000 r--p 000ad000 00:58 46140075                   /usr/lib64/libglib-2.0.so.0.8800.4
+711ed7b23000-711ed7b24000 r--p 0015f000 00:58 46140075                   /usr/lib64/libglib-2.0.so.0.8800.4
+711ed7b24000-711ed7b25000 rw-p 00160000 00:58 46140075                   /usr/lib64/libglib-2.0.so.0.8800.4
+711ed7b25000-711ed7b28000 rw-p 00000000 00:00 0 
+711ed7b28000-711ed7c0c000 r-xp 00000000 00:58 46155910                   /usr/lib64/libgstreamer-1.0.so.0.2808.0
+711ed7c0c000-711ed7c91000 r--p 000e4000 00:58 46155910                   /usr/lib64/libgstreamer-1.0.so.0.2808.0
+711ed7c91000-711ed7c98000 r--p 00168000 00:58 46155910                   /usr/lib64/libgstreamer-1.0.so.0.2808.0
+711ed7c98000-711ed7c9a000 rw-p 0016f000 00:58 46155910                   /usr/lib64/libgstreamer-1.0.so.0.2808.0
+711ed7c9a000-711ed7c9b000 rw-p 00000000 00:00 0 
+711ed7c9b000-711ed7d25000 r-xp 00000000 00:58 46155929                   /usr/lib64/libgstvideo-1.0.so.0.2808.0
+711ed7d25000-711ed7d64000 r--p 0008a000 00:58 46155929                   /usr/lib64/libgstvideo-1.0.so.0.2808.0
+711ed7d64000-711ed7d78000 r--p 000c8000 00:58 46155929                   /usr/lib64/libgstvideo-1.0.so.0.2808.0
+711ed7d78000-711ed7d79000 rw-p 000dc000 00:58 46155929                   /usr/lib64/libgstvideo-1.0.so.0.2808.0
+711ed7d79000-711ed7d7a000 rw-p 00000000 00:00 0 
+711ed7d7a000-711ed7e09000 r-xp 00000000 00:58 46140129                   /usr/lib64/libm.so.6
+711ed7e09000-711ed7e8f000 r--p 0008f000 00:58 46140129                   /usr/lib64/libm.so.6
+711ed7e8f000-711ed7e90000 r--p 00114000 00:58 46140129                   /usr/lib64/libm.so.6
+711ed7e90000-711ed7e91000 rw-p 00115000 00:58 46140129                   /usr/lib64/libm.so.6
+711ed7e91000-711ed8002000 r-xp 00000000 00:58 46140230                   /usr/lib64/libstdc++.so.6.0.36
+711ed8002000-711ed812d000 r--p 00171000 00:58 46140230                   /usr/lib64/libstdc++.so.6.0.36
+711ed812d000-711ed813e000 r--p 0029c000 00:58 46140230                   /usr/lib64/libstdc++.so.6.0.36
+711ed813e000-711ed813f000 rw-p 002ad000 00:58 46140230                   /usr/lib64/libstdc++.so.6.0.36
+711ed813f000-711ed8143000 rw-p 00000000 00:00 0 
+711ed8143000-711ed814f000 r-xp 00000000 00:58 46155812                   /usr/lib64/libdrm.so.2.134.0
+711ed814f000-711ed8157000 r--p 0000c000 00:58 46155812                   /usr/lib64/libdrm.so.2.134.0
+711ed8157000-711ed8158000 r--p 00014000 00:58 46155812                   /usr/lib64/libdrm.so.2.134.0
+711ed8158000-711ed8159000 rw-p 00000000 00:00 0 
+711ed8159000-711ed815a000 r-xp 00000000 00:58 46156104                   /usr/lib64/libva-drm.so.2.2300.0
+711ed815a000-711ed815b000 r--p 00001000 00:58 46156104                   /usr/lib64/libva-drm.so.2.2300.0
+711ed815b000-711ed815c000 r--p 00001000 00:58 46156104                   /usr/lib64/libva-drm.so.2.2300.0
+711ed815c000-711ed815f000 rw-p 00000000 00:00 0 
+711ed815f000-711ed8180000 r-xp 00000000 00:58 46156112                   /usr/lib64/libva.so.2.2300.0
+711ed8180000-711ed8195000 r--p 00021000 00:58 46156112                   /usr/lib64/libva.so.2.2300.0
+711ed8195000-711ed8196000 r--p 00036000 00:58 46156112                   /usr/lib64/libva.so.2.2300.0
+711ed8196000-711ed8197000 rw-p 00037000 00:58 46156112                   /usr/lib64/libva.so.2.2300.0
+711ed8197000-711ed819d000 r-xp 00000000 00:58 46156156                   /usr/lib64/libxcb-randr.so.0.1.0
+711ed819d000-711ed81a7000 r--p 00006000 00:58 46156156                   /usr/lib64/libxcb-randr.so.0.1.0
+711ed81a7000-711ed81a8000 r--p 00010000 00:58 46156156                   /usr/lib64/libxcb-randr.so.0.1.0
+711ed81a8000-711ed81a9000 rw-p 00011000 00:58 46156156                   /usr/lib64/libxcb-randr.so.0.1.0
+711ed81a9000-711ed81aa000 r-xp 00000000 00:58 46156168                   /usr/lib64/libxcb-shm.so.0.0.0
+711ed81aa000-711ed81ab000 r--p 00001000 00:58 46156168                   /usr/lib64/libxcb-shm.so.0.0.0
+711ed81ab000-711ed81ac000 r--p 00002000 00:58 46156168                   /usr/lib64/libxcb-shm.so.0.0.0
+711ed81ac000-711ed81ad000 rw-p 00003000 00:58 46156168                   /usr/lib64/libxcb-shm.so.0.0.0
+711ed81ad000-711ed81c1000 r-xp 00000000 00:58 46156190                   /usr/lib64/libxcb.so.1.1.0
+711ed81c1000-711ed81d5000 r--p 00014000 00:58 46156190                   /usr/lib64/libxcb.so.1.1.0
+711ed81d5000-711ed81d6000 r--p 00028000 00:58 46156190                   /usr/lib64/libxcb.so.1.1.0
+711ed81d6000-711ed81d7000 rw-p 00029000 00:58 46156190                   /usr/lib64/libxcb.so.1.1.0
+711ed81d7000-711ed8349000 r-xp 00000000 00:58 46140011                   /usr/lib64/libc.so.6
+711ed8349000-711ed83c2000 r--p 00172000 00:58 46140011                   /usr/lib64/libc.so.6
+711ed83c2000-711ed83c6000 r--p 001eb000 00:58 46140011                   /usr/lib64/libc.so.6
+711ed83c6000-711ed83c8000 rw-p 001ef000 00:58 46140011                   /usr/lib64/libc.so.6
+711ed83c8000-711ed83d0000 rw-p 00000000 00:00 0 
+711ed83d0000-711ed83d4000 r-xp 00000000 00:58 46155753                   /usr/lib64/libXtst.so.6.1.0
+711ed83d4000-711ed83d6000 r--p 00004000 00:58 46155753                   /usr/lib64/libXtst.so.6.1.0
+711ed83d6000-711ed83d7000 r--p 00005000 00:58 46155753                   /usr/lib64/libXtst.so.6.1.0
+711ed83d7000-711ed83d8000 rw-p 00006000 00:58 46155753                   /usr/lib64/libXtst.so.6.1.0
+711ed83d8000-711ed83da000 rw-p 00000000 00:00 0 
+711ed83da000-711ed840a000 r-xp 00000000 00:58 46156192                   /usr/lib64/libxkbcommon.so.0.13.1
+711ed840a000-711ed8436000 r--p 00030000 00:58 46156192                   /usr/lib64/libxkbcommon.so.0.13.1
+711ed8436000-711ed8438000 r--p 0005b000 00:58 46156192                   /usr/lib64/libxkbcommon.so.0.13.1
+711ed8438000-711ed8439000 rw-p 0005d000 00:58 46156192                   /usr/lib64/libxkbcommon.so.0.13.1
+711ed8439000-711ed846d000 r-xp 00000000 00:58 46156053                   /usr/lib64/libpulse.so.0.24.3
+711ed846d000-711ed848a000 r--p 00034000 00:58 46156053                   /usr/lib64/libpulse.so.0.24.3
+711ed848a000-711ed848c000 r--p 00050000 00:58 46156053                   /usr/lib64/libpulse.so.0.24.3
+711ed848c000-711ed848d000 rw-p 00052000 00:58 46156053                   /usr/lib64/libpulse.so.0.24.3
+711ed848d000-711ed848f000 r-xp 00000000 00:58 46156051                   /usr/lib64/libpulse-simple.so.0.1.1
+711ed848f000-711ed8491000 r--p 00002000 00:58 46156051                   /usr/lib64/libpulse-simple.so.0.1.1
+711ed8491000-711ed8492000 r--p 00003000 00:58 46156051                   /usr/lib64/libpulse-simple.so.0.1.1
+711ed8492000-711ed8493000 rw-p 00000000 00:00 0 
+711ed8493000-711ed84cc000 r-xp 00000000 00:58 46140083                   /usr/lib64/libgobject-2.0.so.0.8800.4
+711ed84cc000-711ed84f0000 r--p 00039000 00:58 46140083                   /usr/lib64/libgobject-2.0.so.0.8800.4
+711ed84f0000-711ed84f3000 r--p 0005d000 00:58 46140083                   /usr/lib64/libgobject-2.0.so.0.8800.4
+711ed84f3000-711ed84f4000 rw-p 00060000 00:58 46140083                   /usr/lib64/libgobject-2.0.so.0.8800.4
+711ed84f4000-711ed84f8000 r-xp 00000000 00:58 46155731                   /usr/lib64/libXfixes.so.3.1.0
+711ed84f8000-711ed84fa000 r--p 00004000 00:58 46155731                   /usr/lib64/libXfixes.so.3.1.0
+711ed84fa000-711ed84fb000 r--p 00006000 00:58 46155731                   /usr/lib64/libXfixes.so.3.1.0
+711ed84fb000-711ed84fc000 rw-p 00007000 00:58 46155731                   /usr/lib64/libXfixes.so.3.1.0
+711ed84fc000-711ed85a1000 r-xp 00000000 00:58 46155716                   /usr/lib64/libX11.so.6.4.0
+711ed85a1000-711ed864a000 r--p 000a5000 00:58 46155716                   /usr/lib64/libX11.so.6.4.0
+711ed864a000-711ed864d000 r--p 0014d000 00:58 46155716                   /usr/lib64/libX11.so.6.4.0
+711ed864d000-711ed8651000 rw-p 00150000 00:58 46155716                   /usr/lib64/libX11.so.6.4.0
+711ed8652000-711ed8653000 rw-p 00000000 00:00 0 
+711ed8653000-711ed8654000 rw-p 00000000 00:00 0 
+711ed8654000-711ed8655000 ---p 00000000 00:00 0 
+711ed8655000-711ed8657000 rw-p 00000000 00:00 0 
+711ed8657000-711ed8659000 rw-p 00000000 00:00 0 
+711ed8659000-711ed865d000 r--p 00000000 00:00 0                          [vvar]
+711ed865d000-711ed865f000 r--p 00000000 00:00 0                          [vvar_vclock]
+711ed865f000-711ed8661000 r-xp 00000000 00:00 0                          [vdso]
+711ed8661000-711ed868c000 r-xp 00000000 00:58 46139980                   /usr/lib64/ld-linux-x86-64.so.2
+711ed868c000-711ed8698000 r--p 0002b000 00:58 46139980                   /usr/lib64/ld-linux-x86-64.so.2
+711ed8698000-711ed869a000 r--p 00037000 00:58 46139980                   /usr/lib64/ld-linux-x86-64.so.2
+711ed869a000-711ed869b000 rw-p 00039000 00:58 46139980                   /usr/lib64/ld-linux-x86-64.so.2
+711ed869b000-711ed869c000 rw-p 00000000 00:00 0 
+7ffff02e4000-7ffff0305000 rw-p 00000000 00:00 0                          [stack]
+ffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]

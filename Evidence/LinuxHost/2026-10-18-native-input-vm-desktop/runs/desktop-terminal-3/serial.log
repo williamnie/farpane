@@ -1,0 +1,1176 @@
+P+q6E616D65\[6n[32766;32766H[6n[!p]104\[0m[?7h[1G[0J]3008;start=d0e65a031d744544b4330eb51d9c87c7;user=root;hostname=farpane-input-vm;machineid=ca2d7c2ae8984d209eeb796e814e37a0;bootid=68e656270c414585a1347d0da6cc4f84;pid=1;pidfdid=1;comm=systemd;type=boot\P+q6E616D65\VM_STAGE=starting-real-gnome-login
+VM_STAGE=graphical-login-ready
+VM_LOG gnome.log "libmutter-Message: 08:30:51.682: Running GNOME Shell (using mutter 50.1) as a Wayland display server\n\n(gnome-shell:289): libmutter-WARNING **: 08:30:51.684: Unknown experimental feature 'scale-monitor-framebuffer'\n\n(gnome-shell:289): libmutter-WARNING **: 08:30:51.684: Unknown experimental feature 'xwayland-native-scaling'\n\n(gnome-shell:289): libmutter-WARNING **: 08:30:51.829: Failed to make thread 'KMS thread' high priority scheduled: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name \"org.freedesktop.RealtimeKit1\" does not exist\n\n(gnome-shell:289): libmutter-WARNING **: 08:30:51.829: Failed to make thread 'KMS thread' high priority scheduled: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name \"org.freedesktop.RealtimeKit1\" does not exist\nlibmutter-Message: 08:30:51.829: Thread 'KMS thread' will be using high priority scheduling\nlibmutter-Message: 08:30:51.876: Added device '/dev/dri/card0' (vkms) using atomic mode setting.\nlibmutter-Message: 08:30:51.879: Failed to initialize accelerated iGPU/dGPU framebuffer sharing: Not hardware accelerated\nlibmutter-Message: 08:30:51.879: Created gbm renderer for '/dev/dri/card0'\nlibmutter-Message: 08:30:51.879: GPU /dev/dri/card0 selected as primary\nlibmutter-Message: 08:30:51.918: Using public X11 display :0, (using unix:/tmp/.X11-unix/X1 for managed services)\nlibmutter-Message: 08:30:51.918: Using Wayland display name 'wayland-0'\nXwayland glamor: GBM Wayland interfaces not available\nFailed to initialize glamor, falling back to sw\nGNOME Shell-Message: 08:30:52.315: Registering session with GDM\nGNOME Shell-Message: 08:30:52.334: Error loading calendars: Error calling StartServiceByName for org.gnome.Shell.CalendarServer: Process org.gnome.Shell.CalendarServer exited with status 1\nGNOME Shell-Message: 08:30:52.335: Error registering session with GDM: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.DisplayManager was not provided by any .service files\nGNOME Shell-Message: 08:30:52.342: Failed to launch ibus-daemon: Failed to execute child process \u201cibus-daemon\u201d (No such file or directory)\nGNOME Shell-Message: 08:30:52.388: Error looking up permission: GDBus.Error:org.freedesktop.portal.Error.NotFound: No entry for geolocation\n\n(gnome-shell:289): libmutter-WARNING **: 08:30:52.684: Failed to make thread 'KMS thread' high priority scheduled: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Name \"org.freedesktop.RealtimeKit1\" does not exist\nGNOME Shell-Message: 08:30:52.688: GNOME Shell started at Sun Oct 18 2026 08:30:52 GMT+0000 (Coordinated Universal Time)\nGNOME Shell-Message: 08:30:52.688: Registering display with GDM\nGNOME Shell-Message: 08:30:52.708: Error registering display with GDM: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.gnome.DisplayManager was not provided by any .service files\nGNOME Shell-Message: 08:30:52.708: No permission to control network connections: Polkit.Error: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.NetworkManager.network-control is not registered\nGNOME Shell-Message: 08:30:52.714: Failed to launch ibus-daemon: Failed to execute child process \u201cibus-daemon\u201d (No such file or directory)\nGNOME Shell-Message: 08:30:52.742: Failed to get PolKit permission: Polkit.Error: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.bolt.enroll is not registered\nThe XKEYBOARD keymap compiler (xkbcomp) reports:\n> Warning:          Unsupported maximum keycode 708, clipping.\n>                   X11 cannot support keycodes above 255.\n> Warning:          Virtual modifier Hyper multiply defined\n>                   Using 0, ignoring 0\n> Warning:          Virtual modifier ScrollLock multiply defined\n>                   Using 0, ignoring 0\nErrors from xkbcomp are not fatal to the X server\n(EE) could not connect to wayland server\n"
+VM_LOG pipewire.log "[W][08:30:51.611652] mod.rt       | [     module-rt.c:  329 translate_error()] RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\n[W][08:30:51.611709] mod.rt       | [     module-rt.c:  993 do_rtkit_setup()] RTKit does not give us MaxRealtimePriority, using 1\n[W][08:30:51.611894] mod.rt       | [     module-rt.c:  329 translate_error()] RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\n[W][08:30:51.611905] mod.rt       | [     module-rt.c:  998 do_rtkit_setup()] RTKit does not give us MinNiceLevel, using 0\n[W][08:30:51.612031] mod.rt       | [     module-rt.c:  329 translate_error()] RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\n[W][08:30:51.612039] mod.rt       | [     module-rt.c: 1003 do_rtkit_setup()] RTKit does not give us RTTimeUSecMax, using -1\n"
+VM_LOG root-service.log "Cannot load libcuda.so.1\nCannot load libcuda.so.1\n"
+VM_LOG sandbox-probe.log "{\"returncode\": 0, \"stdout\": \"\", \"stderr\": \"\", \"capabilities\": [\"Uid:\\t1000\\t1000\\t1000\\t1000\", \"Gid:\\t1000\\t1000\\t1000\\t1000\", \"CapInh:\\t0000000000000000\", \"CapPrm:\\t0000000000000000\", \"CapEff:\\t0000000000000000\", \"CapBnd:\\t0000000000000000\", \"CapAmb:\\t0000000000000000\", \"NoNewPrivs:\\t1\"], \"userns_max\": \"20524\\n\", \"apparmor_userns\": \"0\\n\"}"
+VM_LOG target.log ""
+VM_LOG viewer-display.log ""
+VM_LOG viewer.log ""
+VM_LOG wireplumber.log "W 08:30:51.612288             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nW 08:30:51.612310             mod.rt ../src/modules/module-rt.c:993:do_rtkit_setup: RTKit does not give us MaxRealtimePriority, using 1\nW 08:30:51.612404             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nW 08:30:51.612407             mod.rt ../src/modules/module-rt.c:998:do_rtkit_setup: RTKit does not give us MinNiceLevel, using 0\nW 08:30:51.612489             mod.rt ../src/modules/module-rt.c:329:translate_error: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nW 08:30:51.612493             mod.rt ../src/modules/module-rt.c:1003:do_rtkit_setup: RTKit does not give us RTTimeUSecMax, using -1\nW 08:30:51.623062 m-snapd-permission ../modules/module-snapd-permission-prompting.c:458:check_apparmor_prompting_available: <WpAudioPermissionPrompting:0x60416a0d6d20> Failed to connect to snapd: No such file or directory\nE 08:30:51.648508            default ../spa/plugins/bluez5/upower.c:54:upower_get_percentage_properties_reply: Failed to get percentage from UPower: org.freedesktop.DBus.Error.NameHasNoOwner\nW 08:30:51.649057         spa.bluez5 ../spa/plugins/bluez5/bluez5-dbus.c:6546:get_managed_objects_reply: BlueZ system service is not available\nN 08:30:51.652580          wp-device ../lib/wp/device.c:710:wp_spa_device_new_from_spa_factory: SPA handle 'api.libcamera.enum.manager' could not be loaded; is it installed?\nN 08:30:51.652587 s-monitors-libcame enumerate-device.lua:30:chunk: PipeWire's libcamera SPA plugin is missing or broken. Some camera types may not be supported.\nW 08:31:05.669905            pw.core ../src/pipewire/core.c:199:destroy_proxy: 0x60416a0b2e80: leaked proxy 0x60416a1f4c90 id:3\n"
+VM_TEST_REPORT network-input.json {"result": "fail", "text": "\u4e2d\u6587\u6d4b\u8bd5", "transport": "packaged-GTK-Viewer/TCP-loopback", "input_backend": "product-root-uinput", "target": "native-Wayland-terminal", "device": "/dev/input/event2", "events": [[0, 3, 0], [0, 0, 0], [1, 42, 1], [0, 0, 0], [1, 110, 1], [0, 0, 0], [1, 110, 0], [0, 0, 0], [1, 42, 0], [0, 0, 0]], "viewer_phase": "awaiting_frame", "viewer_presented": true, "target_before": {"text": "", "clipboard": null, "seeded": false, "active": false, "focused": false}, "target_focus": {"text": "", "clipboard": null, "seeded": false, "active": true, "focused": true}, "target_after": {"text": "\u4e2d\u6587\u6d4b\u8bd5", "clipboard": "\u8bd5", "seeded": false, "active": true, "focused": true}}
+VM_TEST_REPORT entry.json {"text": "中文测试", "clipboard": "试", "seeded": false, "active": true, "focused": true}
+VM_TEST_REPORT viewer-progress.json {
+  "authentication_visible": false,
+  "challenge": 0,
+  "events": [
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 1,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 1,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在建立远程连接",
+          "phase": "connecting"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 2,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 3,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "传输已建立，等待认证",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 4,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "请输入远端密码",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 5,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "policy": {
+            "image": {
+              "receive": false,
+              "send": false
+            },
+            "rich_text": {
+              "receive": false,
+              "send": false
+            },
+            "text": {
+              "receive": false,
+              "send": false
+            }
+          },
+          "revision": 1
+        },
+        "type": "clipboard_policy"
+      },
+      "generation": 1,
+      "sequence": 6,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "audio": true,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 7,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": true,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 8,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 9,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "音频已关闭",
+          "dropped": 0,
+          "status": "disabled"
+        },
+        "type": "audio"
+      },
+      "generation": 1,
+      "sequence": 10,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 11,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 2,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 12,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "密码不正确，请重新输入",
+          "phase": "password_required"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 13,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "正在验证密码",
+          "phase": "authenticating"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 14,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 3,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 15,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "name": "farpane-input-vm"
+        },
+        "type": "peer"
+      },
+      "generation": 1,
+      "sequence": 16,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "displays": [
+            {
+              "height": 768,
+              "index": 0,
+              "name": "Virtual-1",
+              "width": 1024,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "selected": 0
+        },
+        "type": "displays"
+      },
+      "generation": 1,
+      "sequence": 17,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "认证通过，等待第一帧",
+          "phase": "awaiting_frame"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 18,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "audio": false,
+          "clipboard": false,
+          "file": false,
+          "keyboard": true
+        },
+        "type": "permissions"
+      },
+      "generation": 1,
+      "sequence": 19,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "detail": "认证通过，等待第一帧",
+          "phase": "awaiting_frame"
+        },
+        "type": "phase"
+      },
+      "generation": 1,
+      "sequence": 20,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "height": 24,
+          "hot_x": 3,
+          "hot_y": 1,
+          "id": 7320969207751513,
+          "premultiplied": true,
+          "rgba": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACQUFBRQAAAAMAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAJ9fX190FBQUsAAAAEAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAV/////+rq6vdBQUFOAAAABAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAa/////zw8PP/p6en3Q0NDUAAAAAQAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP88PDz/6enp90NDQ1AAAAAEAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/PDw8/+np6fdDQ0NQAAAABAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/AAAA/zw8PP/p6en3Q0NDUAAAAAQAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/AAAA/wAAAP88PDz/6enp90NDQ1AAAAAEAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/AAAA/wAAAP8AAAD/PDw8/+np6fdDQ0NQAAAABAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/zw8PP/p6en3Q0NDUAAAAAQAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP88PDz/6enp90NDQ1AAAAAEAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/PDw8/+np6fdDQ0NQAAAABAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/AAAA/wAAAP8AAAD/wcHB/f/////////////////////19fX4QUFBTAAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP8AAAD/QUFB/0BAQP8AAAD/TU1N/8vLy+gAAABfAAAAWQAAAFQAAAA/AAAAGgAAAAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////wAAAP9BQUH/8/Pz/Lq6uvcAAAD/AQEB/9bW1vdBQUFlAAAAHgAAABoAAAAVAAAACQAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////z09Pf/p6en5RkZGkOHh4fQyMjL/AAAA/2JiYv61tbXNAAAADgAAAAQAAAACAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAb/////+rq6vlAQECCAAAAQ3Nzc6WlpaX5AAAA/wcHB//l5eX4LCwsPgAAAAMAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAa9PT0+UBAQH8AAAAwAAAAHg4ODkbr6+v4Hx8f/wAAAP94eHj9n5+ftwAAAAkAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAVQEBAbwAAAC0AAAARAAAACgAAACGJiYm0jo6O+wAAAP8QEBD/8PDw+QcHBxkAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAJAAAAGQAAAA0AAAAEAAAAAwAAABEaGhpS7Ozs+R8fH/8gICD/8PDw+gYGBh4AAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAABQAAAAMAAAABAAAAAQAAAAcAAAAjY2NjmfDw8Prw8PD6YmJilgAAABcAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAPAAAAMQUFBVMFBQVSAAAAMQAAAA4AAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAEAAAADgAAABcAAAAXAAAADgAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "width": 24,
+          "x": 0,
+          "y": 0
+        },
+        "type": "cursor"
+      },
+      "generation": 1,
+      "sequence": 21,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "displays": [
+            {
+              "height": 768,
+              "index": 0,
+              "name": "Virtual-1",
+              "width": 1024,
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "selected": 0
+        },
+        "type": "displays"
+      },
+      "generation": 1,
+      "sequence": 22,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "backend": "software",
+          "detail": "软件兼容模式：CPU 解码与颜色转换"
+        },
+        "type": "media"
+      },
+      "generation": 1,
+      "sequence": 23,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 4,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 24,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 5,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 25,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 6,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 26,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 7,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 27,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 8,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 28,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 9,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 29,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 10,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 30,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 11,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 31,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 12,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 32,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 13,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 33,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 14,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 34,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 15,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 35,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 16,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 36,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 17,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 37,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 18,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 38,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 19,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 39,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 20,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 40,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 21,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 41,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 22,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 42,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 23,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 43,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 24,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 44,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 25,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 45,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 26,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 46,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 27,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 47,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 28,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 48,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 29,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 49,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 30,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 50,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 31,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 51,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 32,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 52,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 33,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 53,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 34,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 54,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 35,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 55,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 36,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 56,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 37,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 57,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 38,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 58,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 39,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 59,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 40,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 60,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 41,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 61,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 42,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 62,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 43,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 63,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 44,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 64,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 45,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 65,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 46,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 66,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 47,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 67,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 48,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 68,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 49,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 69,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 50,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 70,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 51,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 71,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 52,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 72,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 53,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 73,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 54,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 74,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 55,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 75,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 56,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 76,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 57,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 77,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 58,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 78,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 59,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 79,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 60,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 80,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 61,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 81,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 62,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 82,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 63,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 83,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 64,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 84,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 65,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 85,
+      "session": 12123396114717925449
+    },
+    {
+      "event": {
+        "data": {
+          "error": null,
+          "request": 66,
+          "revision": 0
+        },
+        "type": "reply"
+      },
+      "generation": 1,
+      "sequence": 86,
+      "session": 12123396114717925449
+    }
+  ],
+  "frames": 137,
+  "gpu_completed": 0,
+  "gpu_frames": 0,
+  "hud_enabled": false,
+  "password_attempts": 2,
+  "phase": "streaming",
+  "presented": true,
+  "worker_reaped": false
+}
+VM_SYSTEM_JOURNAL="Oct 18 08:30:50 farpane-input-vm qemu-kvm-init[164]: modprobe: FATAL: Module kvm_amd not found in directory /lib/modules/7.0.0-38-generic\nOct 18 08:30:50 farpane-input-vm systemd[1]: Finished qemu-kvm.service - QEMU KVM preparation - module, ksm, hugepages.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Finished systemd-tmpfiles-setup.service - Create System Files and Directories.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Starting ldconfig.service - Rebuild Dynamic Linker Cache...\nOct 18 08:30:50 farpane-input-vm systemd[1]: systemd-firstboot.service - Initial Setup skipped, unmet condition check ConditionFirstBoot=yes\nOct 18 08:30:50 farpane-input-vm systemd[1]: first-boot-complete.target - First Boot Complete skipped, unmet condition check ConditionFirstBoot=yes\nOct 18 08:30:50 farpane-input-vm systemd[1]: Starting systemd-journal-catalog-update.service - Rebuild Journal Catalog...\nOct 18 08:30:50 farpane-input-vm systemd[1]: systemd-machine-id-commit.service - Save Transient machine-id to Disk skipped, unmet condition check ConditionPathIsMountPoint=/etc/machine-id\nOct 18 08:30:50 farpane-input-vm systemd-udevd[155]: Using default interface naming scheme 'v259'.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Finished systemd-journal-catalog-update.service - Rebuild Journal Catalog.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started systemd-udevd.service - Rule-based Manager for Device Events and Files.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Finished systemd-udev-trigger.service - Coldplug All udev Devices.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Finished ldconfig.service - Rebuild Dynamic Linker Cache.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Starting systemd-update-done.service - Update is Completed...\nOct 18 08:30:50 farpane-input-vm systemd[1]: Finished systemd-update-done.service - Update is Completed.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Reached target sysinit.target - System Initialization.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started apt-daily.timer - Daily apt download activities.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started apt-daily-upgrade.timer - Daily apt upgrade and clean activities.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started dpkg-db-backup.timer - Daily dpkg database backup timer.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started e2scrub_all.timer - Periodic ext4 Online Metadata Check for All Filesystems.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started fstrim.timer - Discard unused filesystem blocks once a week.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started motd-news.timer - Message of the Day.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started systemd-tmpfiles-clean.timer - Daily Cleanup of Temporary Directories.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Reached target timers.target - Timer Units.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Listening on dbus.socket - D-Bus System Message Bus Socket.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Listening on polkit-agent-helper.socket - Authorization Manager Agent Helper.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Listening on systemd-hostnamed.socket - Hostname Service Socket.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Listening on systemd-logind-varlink.socket - User Login Management Varlink Socket.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Reached target sockets.target - Socket Units.\nOct 18 08:30:50 farpane-input-vm systemd[1]: systemd-pcrphase-sysinit.service - TPM PCR Barrier (Initialization) skipped, unmet condition check ConditionSecurity=measured-uki\nOct 18 08:30:50 farpane-input-vm systemd[1]: Reached target basic.target - Basic System.\nOct 18 08:30:50 farpane-input-vm systemd[1]: System is tainted: unmerged-bin\nOct 18 08:30:50 farpane-input-vm systemd[1]: Starting dbus.service - D-Bus System Message Bus...\nOct 18 08:30:50 farpane-input-vm systemd[1]: Starting e2scrub_reap.service - Remove Stale Online ext4 Metadata Check Snapshots...\nOct 18 08:30:50 farpane-input-vm systemd[1]: getty-static.service - getty on tty2-tty6 if dbus and logind are not available skipped, unmet condition check ConditionPathExists=!/usr/bin/dbus-daemon\nOct 18 08:30:50 farpane-input-vm systemd[1]: Starting systemd-logind.service - User Login Management...\nOct 18 08:30:50 farpane-input-vm systemd[1]: systemd-pcrphase.service - TPM PCR Barrier (User) skipped, unmet condition check ConditionSecurity=measured-uki\nOct 18 08:30:50 farpane-input-vm dbus-daemon[206]: dbus[206]: Unknown username \"malcontent-timerd\" in message bus configuration file\nOct 18 08:30:50 farpane-input-vm dbus-daemon[206]: dbus[206]: Unknown username \"malcontent-webd\" in message bus configuration file\nOct 18 08:30:50 farpane-input-vm systemd[1]: Starting systemd-user-sessions.service - Permit User Sessions...\nOct 18 08:30:50 farpane-input-vm dbus-daemon[206]: dbus[206]: Unknown username \"malcontent-timer-ext-agent\" in message bus configuration file\nOct 18 08:30:50 farpane-input-vm dbus-daemon[206]: dbus[206]: Unknown username \"malcontent-timerd\" in message bus configuration file\nOct 18 08:30:50 farpane-input-vm dbus-daemon[206]: [system] AppArmor D-Bus mediation is enabled\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started dbus.service - D-Bus System Message Bus.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Finished systemd-user-sessions.service - Permit User Sessions.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started getty@tty1.service - Getty on tty1.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Reached target getty.target - Login Prompts.\nOct 18 08:30:50 farpane-input-vm systemd-logind[208]: Watching system buttons on /dev/input/event0 (Power Button)\nOct 18 08:30:50 farpane-input-vm systemd-logind[208]: Watching system buttons on /dev/input/event1 (AT Translated Set 2 keyboard)\nOct 18 08:30:50 farpane-input-vm systemd[1]: e2scrub_reap.service: Deactivated successfully.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Finished e2scrub_reap.service - Remove Stale Online ext4 Metadata Check Snapshots.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Listening on systemd-rfkill.socket - Load/Save RF Kill Switch Status /dev/rfkill Watch.\nOct 18 08:30:50 farpane-input-vm systemd-logind[208]: New seat seat0.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Started systemd-logind.service - User Login Management.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Reached target multi-user.target - Multi-User System.\nOct 18 08:30:50 farpane-input-vm systemd[1]: Starting farpane-input-test.service - Private VM regression controller...\nOct 18 08:30:51 farpane-input-vm kernel: [drm] Initialized vkms 1.0.0 for vkms on minor 0\nOct 18 08:30:51 farpane-input-vm kernel: Console: switching to colour frame buffer device 128x48\nOct 18 08:30:51 farpane-input-vm kernel: faux_driver vkms: [drm] fb0: vkmsdrmfb frame buffer device\nOct 18 08:30:51 farpane-input-vm systemd[1]: Stopping getty@tty1.service - Getty on tty1...\nOct 18 08:30:51 farpane-input-vm systemd[1]: getty@tty1.service: Deactivated successfully.\nOct 18 08:30:51 farpane-input-vm systemd[1]: Stopped getty@tty1.service - Getty on tty1.\nOct 18 08:30:51 farpane-input-vm systemd[1]: Started farpane-input-session.service - Private GNOME login session.\nOct 18 08:30:51 farpane-input-vm (dbus-run-session)[230]: pam_unix(farpane-input-test:session): session opened for user ubuntu(uid=1000) by (uid=0)\nOct 18 08:30:51 farpane-input-vm systemd[1]: Created slice user-1000.slice - User Slice of UID 1000.\nOct 18 08:30:51 farpane-input-vm systemd[1]: Starting user-runtime-dir@1000.service - User Runtime Directory /run/user/1000...\nOct 18 08:30:51 farpane-input-vm systemd-logind[208]: New session 'c1' of user 'ubuntu' with class 'user' and type 'wayland'.\nOct 18 08:30:51 farpane-input-vm systemd-user-runtime-dir[232]: Successfully configured disk quota for UID 1000 on /tmp to 2.3G\nOct 18 08:30:51 farpane-input-vm systemd-user-runtime-dir[232]: Successfully configured disk quota for UID 1000 on /dev/shm to 2.3G\nOct 18 08:30:51 farpane-input-vm systemd[1]: Finished user-runtime-dir@1000.service - User Runtime Directory /run/user/1000.\nOct 18 08:30:51 farpane-input-vm systemd[1]: Starting user@1000.service - User Manager for UID 1000...\nOct 18 08:30:51 farpane-input-vm (systemd)[235]: pam_unix(systemd-user:session): session opened for user ubuntu(uid=1000) by ubuntu(uid=0)\nOct 18 08:30:51 farpane-input-vm systemd-logind[208]: New session '1' of user 'ubuntu' with class 'manager' and type 'unspecified'.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Queued start job for default target default.target.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Created slice app.slice - User Application Slice.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Created slice session.slice - User Core Session Slice.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Reached target paths.target - Paths.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Reached target timers.target - Timers.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on dirmngr.socket - GnuPG network certificate management daemon.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on gpg-agent-browser.socket - GnuPG cryptographic agent and passphrase cache (access for web browsers).\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on gpg-agent-extra.socket - GnuPG cryptographic agent and passphrase cache (restricted).\nOct 18 08:30:51 farpane-input-vm systemd[235]: Starting gpg-agent-ssh.socket - GnuPG cryptographic agent (ssh-agent emulation)...\nOct 18 08:30:51 farpane-input-vm systemd[235]: Starting gpg-agent.socket - GnuPG cryptographic agent and passphrase cache...\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on keyboxd.socket - GnuPG public key management service.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on pipewire-pulse.socket - PipeWire PulseAudio.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on pipewire.socket - PipeWire Multimedia System Sockets.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on systemd-ask-password.socket - Query the User Interactively for a Password.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on gpg-agent.socket - GnuPG cryptographic agent and passphrase cache.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Listening on gpg-agent-ssh.socket - GnuPG cryptographic agent (ssh-agent emulation).\nOct 18 08:30:51 farpane-input-vm systemd[235]: Reached target sockets.target - Sockets.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Reached target basic.target - Basic System.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Reached target default.target - Main User Target.\nOct 18 08:30:51 farpane-input-vm systemd[235]: Startup finished in 52ms.\nOct 18 08:30:51 farpane-input-vm systemd[1]: Started user@1000.service - User Manager for UID 1000.\nOct 18 08:30:51 farpane-input-vm systemd[1]: Started session-c1.scope - Session c1 of User ubuntu.\nOct 18 08:30:51 farpane-input-vm pipewire[259]: mod.rt: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nOct 18 08:30:51 farpane-input-vm pipewire[259]: mod.rt: RTKit does not give us MaxRealtimePriority, using 1\nOct 18 08:30:51 farpane-input-vm pipewire[259]: mod.rt: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nOct 18 08:30:51 farpane-input-vm pipewire[259]: mod.rt: RTKit does not give us MinNiceLevel, using 0\nOct 18 08:30:51 farpane-input-vm pipewire[259]: mod.rt: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown\nOct 18 08:30:51 farpane-input-vm pipewire[259]: mod.rt: RTKit does not give us RTTimeUSecMax, using -1\nOct 18 08:30:51 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.ColorManager' unit='colord.service' requested by ':1.9' (uid=1000 pid=289 comm=\"gnome-shell --wayland --display-server\" label=\"unconfined\")\nOct 18 08:30:51 farpane-input-vm systemd[1]: Starting colord.service - Manage, Install and Generate Color Profiles...\nOct 18 08:30:51 farpane-input-vm colord[319]: failed to get edid data: EDID length is too small\nOct 18 08:30:51 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.ColorManager'\nOct 18 08:30:51 farpane-input-vm systemd[1]: Started colord.service - Manage, Install and Generate Color Profiles.\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.Accounts' unit='accounts-daemon.service' requested by ':1.9' (uid=1000 pid=289 comm=\"gnome-shell --wayland --display-server\" label=\"unconfined\")\nOct 18 08:30:52 farpane-input-vm systemd[1]: Starting accounts-daemon.service - Accounts Service...\nOct 18 08:30:52 farpane-input-vm accounts-daemon[369]: Couldn't get validated language: Child process exited with code 1\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.PolicyKit1' unit='polkit.service' requested by ':1.14' (uid=0 pid=369 comm=\"/usr/libexec/accounts-daemon\" label=\"unconfined\")\nOct 18 08:30:52 farpane-input-vm systemd[1]: Starting polkit.service - Authorization Manager...\nOct 18 08:30:52 farpane-input-vm polkitd[378]: Started polkitd version 127\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.PolicyKit1'\nOct 18 08:30:52 farpane-input-vm systemd[1]: Started polkit.service - Authorization Manager.\nOct 18 08:30:52 farpane-input-vm accounts-daemon[369]: started daemon version 23.13.9\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.Accounts'\nOct 18 08:30:52 farpane-input-vm systemd[1]: Started accounts-daemon.service - Accounts Service.\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.UPower' unit='upower.service' requested by ':1.9' (uid=1000 pid=289 comm=\"gnome-shell --wayland --display-server\" label=\"unconfined\")\nOct 18 08:30:52 farpane-input-vm systemd[1]: Starting upower.service - Daemon for power management...\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.UPower'\nOct 18 08:30:52 farpane-input-vm systemd[1]: Started upower.service - Daemon for power management.\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.UDisks2' unit='udisks2.service' requested by ':1.18' (uid=1000 pid=458 comm=\"/usr/libexec/gvfs-udisks2-volume-monitor\" label=\"unconfined\")\nOct 18 08:30:52 farpane-input-vm systemd[1]: Starting udisks2.service - Disk Manager...\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.UDisks2'\nOct 18 08:30:52 farpane-input-vm systemd[1]: Started udisks2.service - Disk Manager.\nOct 18 08:30:52 farpane-input-vm systemd[235]: pipewire-pulse.socket: Failed to queue service startup job: Unit dbus.service not found.\nOct 18 08:30:52 farpane-input-vm systemd[235]: pipewire-pulse.socket: Failed with result 'resources'.\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.GeoClue2' unit='geoclue.service' requested by ':1.9' (uid=1000 pid=289 comm=\"gnome-shell --wayland --display-server\" label=\"unconfined\")\nOct 18 08:30:52 farpane-input-vm systemd[1]: Starting geoclue.service - Location Lookup Service...\nOct 18 08:30:52 farpane-input-vm geoclue[614]: Failed to connect to avahi service: Daemon not running\nOct 18 08:30:52 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.GeoClue2'\nOct 18 08:30:52 farpane-input-vm systemd[1]: Started geoclue.service - Location Lookup Service.\nOct 18 08:30:55 farpane-input-vm kernel: input: RustDesk UInput Keyboard as /devices/virtual/input/input4\nOct 18 08:30:55 farpane-input-vm kernel: input: mouce-library-fake-mouse as /devices/virtual/input/input5\nOct 18 08:30:55 farpane-input-vm systemd-logind[208]: Watching system buttons on /dev/input/event2 (RustDesk UInput Keyboard)\nOct 18 08:30:59 farpane-input-vm kernel: input: mouce-library-fake-mouse as /devices/virtual/input/input6\nOct 18 08:31:05 farpane-input-vm systemd[1]: Stopping farpane-input-session.service - Private GNOME login session...\nOct 18 08:31:05 farpane-input-vm systemd[1]: farpane-input-session.service: Deactivated successfully.\nOct 18 08:31:05 farpane-input-vm systemd[1]: Stopped farpane-input-session.service - Private GNOME login session.\nOct 18 08:31:05 farpane-input-vm systemd-logind[208]: Session c1 logged out. Waiting for processes to exit.\n"
+VM_CORE_LOG /root/.local/share/logs/FarPane/service/farpane-core_rCURRENT.log "[2026-10-18 08:30:53.584277 +00:00] INFO [src/core_main.rs:400] start --service\n[2026-10-18 08:30:53.584963 +00:00] INFO [src/server/uinput.rs:1095] start uinput control service\n[2026-10-18 08:30:53.585063 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_control server at path: /tmp/FarPane-service/ipc_uinput_control\n[2026-10-18 08:30:53.585172 +00:00] INFO [src/server/uinput.rs:1081] start uinput keyboard service\n[2026-10-18 08:30:53.585231 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_keyboard server at path: /tmp/FarPane-service/ipc_uinput_keyboard\n[2026-10-18 08:30:53.586456 +00:00] INFO [src/server/uinput.rs:1088] start uinput mouse service\n[2026-10-18 08:30:53.586512 +00:00] INFO [src/ipc.rs:744] Started ipc_uinput_mouse server at path: /tmp/FarPane-service/ipc_uinput_mouse\n[2026-10-18 08:30:53.586548 +00:00] INFO [src/ipc/drm.rs:101] Started drm ipc server at path: /tmp/FarPane-service/ipc_drm\n[2026-10-18 08:30:53.586567 +00:00] INFO [src/ipc.rs:742] Started protected ipc service server: postfix=_service\n[2026-10-18 08:30:53.586653 +00:00] INFO [src/ipc/drm.rs:728] drm: udev DRM-uevent listener started\n[2026-10-18 08:30:53.598851 +00:00] INFO [libs/scrap/src/common/drmtap_dl.rs:401] libdrmtap loaded: /opt/farpane-native-test/releases/farpane-native-dev-d393fd0cff634416807feae5/lib/libdrmtap.so.0.5.8 (v0.5.8)\n[2026-10-18 08:30:53.608824 +00:00] INFO [src/ipc/drm.rs:790] drm: pre-warm framebuffer primed in 11.48964ms\n[2026-10-18 08:30:53.608942 +00:00] INFO [src/ipc/drm.rs:659] drm: display cache refreshed (topology changed)\n[2026-10-18 08:30:55.720593 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_control\n[2026-10-18 08:30:55.720826 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_keyboard\n[2026-10-18 08:30:55.720839 +00:00] DEBUG [src/server/uinput.rs:853] spawn_keyboard_handler: new keyboard handler connection\n[2026-10-18 08:30:55.723012 +00:00] DEBUG [src/server/uinput.rs:859] UInput keyboard device created successfully\n[2026-10-18 08:30:55.723341 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_mouse\n[2026-10-18 08:30:55.723380 +00:00] INFO [src/server/uinput.rs:908] Create uinput mouce with rng_x: (0, 1920), rng_y: (0, 1080)\n[2026-10-18 08:30:55.732410 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 08:30:56.336385 +00:00] INFO [src/rendezvous_mediator.rs:271] server restart\n[2026-10-18 08:30:59.320418 +00:00] INFO [src/ipc/drm.rs:821] drm ipc connection ended: drm: socket closed by peer\n[2026-10-18 08:30:59.402929 +00:00] DEBUG [src/server/uinput.rs:1063] Got new connection of uinput ipc _uinput_control\n[2026-10-18 08:30:59.403232 +00:00] INFO [src/server/uinput.rs:943] Refresh uinput mouce with rng_x: (0, 1024), rng_y: (0, 768)\n[2026-10-18 08:30:59.730583 +00:00] DEBUG [src/ipc/drm.rs:1151] drm: capture reader for crtc 44 opened in 74.851\u00b5s\n[2026-10-18 08:30:59.735982 +00:00] DEBUG [src/ipc/drm.rs:1225] drm: first frame for crtc 44 in 6.699826ms (cpu path)\n"
+VM_CORE_LOG /home/ubuntu/.local/share/logs/FarPane/server/farpane-core_rCURRENT.log " ipc service connection: 30\n[2026-10-18 08:30:55.822062 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file\n[2026-10-18 08:30:56.035306 +00:00] WARN [src/common.rs:2702] Failed to bind IPv6 socket: Network is unreachable (os error 101)\n[2026-10-18 08:30:56.036104 +00:00] ERROR [src/common.rs:2754] Failed to get public IPv6 address: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 08:30:56.038138 +00:00] INFO [src/common.rs:706] Testing nat ...\n[2026-10-18 08:30:56.038960 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 08:30:56.047574 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:523] set hwcodec config\n[2026-10-18 08:30:56.047597 +00:00] DEBUG [libs/scrap/src/common/hwcodec.rs:524] HwCodecConfig { signature: 0, ram_encode: [], ram_decode: [CodecInfo { name: \"h264\", mc_name: None, format: H264, priority: 3, hwdevice: AV_HWDEVICE_TYPE_NONE }, CodecInfo { name: \"hevc\", mc_name: None, format: H265, priority: 3, hwdevice: AV_HWDEVICE_TYPE_NONE }] }\n[2026-10-18 08:30:56.053582 +00:00] INFO [src/rendezvous_mediator.rs:667] start rendezvous mediator of rs-ny.rustdesk.com\n[2026-10-18 08:30:56.053819 +00:00] INFO [src/rendezvous_mediator.rs:371] start udp: rs-ny.rustdesk.com:21116\n[2026-10-18 08:30:56.053861 +00:00] INFO [src/rendezvous_mediator.rs:1375] Direct server listening on: Some(Ok([::]:21118))\n[2026-10-18 08:30:56.053984 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0, available memory: 5G, codec thread: 2\n[2026-10-18 08:30:56.055966 +00:00] ERROR [src/rendezvous_mediator.rs:330] rendezvous mediator error: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 08:30:56.269332 +00:00] INFO [libs/scrap/src/common/codec.rs:1150] av1 time: key: 34.601491ms, non-key: 8.908277ms, consume: 194.682161ms\n[2026-10-18 08:30:56.335378 +00:00] INFO [src/server.rs:894] root config is empty, sync our config to root\n[2026-10-18 08:30:57.039164 +00:00] INFO [src/common.rs:706] Testing nat ...\n[2026-10-18 08:30:57.040536 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 08:30:57.065690 +00:00] INFO [libs/scrap/src/common/hwcodec.rs:742] Check hwcodec config, exit with: exit status: 0\n[2026-10-18 08:30:59.215810 +00:00] INFO [src/rendezvous_mediator.rs:1404] direct access from [::ffff:127.0.0.1]:36029\n[2026-10-18 08:30:59.215918 +00:00] INFO [libs/hbb_common/src/config.rs:1143] Generated new keypair for id: \n[2026-10-18 08:30:59.217447 +00:00] DEBUG [src/server/connection.rs:1584] #1834 Connection opened from 127.0.0.1:36029.\n[2026-10-18 08:30:59.218226 +00:00] DEBUG [src/ui_cm_interface.rs:880] Got new connection\n[2026-10-18 08:30:59.218281 +00:00] DEBUG [src/ui_cm_interface.rs:829] ipc task begin\n[2026-10-18 08:30:59.218338 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1834\n[2026-10-18 08:30:59.255699 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1834\n[2026-10-18 08:30:59.286233 +00:00] INFO [src/platform/mod.rs:112] new wakelock, require display on: true\n[2026-10-18 08:30:59.286826 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:382] perform;\n[2026-10-18 08:30:59.286889 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Auth(Some(External), Some([49, 48, 48, 48]))\n[2026-10-18 08:30:59.286935 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;\n[2026-10-18 08:30:59.287035 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=NegotiateUnixFD\n[2026-10-18 08:30:59.287056 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;\n[2026-10-18 08:30:59.287115 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Begin\n[2026-10-18 08:30:59.287238 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/socket_reader.rs:33] socket reader;\n[2026-10-18 08:30:59.288170 +00:00] INFO [src/platform/linux.rs:2654] wakelock: keepawake could not take the inhibit (org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.ScreenSaver was not provided by any .service files)\n[2026-10-18 08:30:59.288233 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:382] perform;\n[2026-10-18 08:30:59.288242 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Auth(Some(External), Some([49, 48, 48, 48]))\n[2026-10-18 08:30:59.288249 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;\n[2026-10-18 08:30:59.288368 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=NegotiateUnixFD\n[2026-10-18 08:30:59.288378 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:953] read_command;\n[2026-10-18 08:30:59.288418 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/handshake.rs:935] write_command; command=Begin\n[2026-10-18 08:30:59.288448 +00:00] INFO [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zbus-3.15.2/src/socket_reader.rs:33] socket reader;\n[2026-10-18 08:30:59.294002 +00:00] INFO [src/platform/linux.rs:2614] wakelock: no session idle inhibitor answered, so the compositor may still blank this screen (org.gnome.SessionManager: The name org.gnome.SessionManager was not provided by any .service files; org.freedesktop.PowerManagement: The name org.freedesktop.PowerManagement was not provided by any .service files)\n[2026-10-18 08:30:59.319928 +00:00] INFO [src/server/connection.rs:2210] peer info supported_encoding: SupportedEncoding { h264: false, h265: false, vp8: true, av1: true, i444: MessageField(Some(CodecAbility { vp8: false, vp9: true, av1: true, h264: false, h265: false, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }\n[2026-10-18 08:30:59.320405 +00:00] DEBUG [src/server/drm_capturer.rs:1923] drm: login display refresh -> 1 display(s) in 443.116\u00b5s\n[2026-10-18 08:30:59.320584 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:463] Bound new global [3] wl_output v4\n[2026-10-18 08:30:59.320609 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:503] Bound new global [4] zxdg_output_manager_v1 v3\n[2026-10-18 08:30:59.346538 +00:00] INFO [src/server.rs:896] config updated, sync to root\n[2026-10-18 08:30:59.362311 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Update(1834, SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })\n[2026-10-18 08:30:59.362392 +00:00] INFO [libs/scrap/src/common/codec.rs:320] usable: vp8=true, av1=false, h264=false, h265=false\n[2026-10-18 08:30:59.362395 +00:00] INFO [libs/scrap/src/common/codec.rs:323] connection count: 1, used preference: Auto, encoder: VP9\n[2026-10-18 08:30:59.362435 +00:00] INFO [src/server/connection.rs:5012] Option update: OptionMessage { image_quality: NotSet, lock_after_session_end: NotSet, show_remote_cursor: Yes, privacy_mode: NotSet, block_input: NotSet, custom_image_quality: 0, disable_audio: Yes, disable_clipboard: Yes, enable_file_transfer: NotSet, supported_decoding: MessageField(Some(SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), custom_fps: 0, disable_keyboard: NotSet, follow_remote_cursor: NotSet, follow_remote_window: NotSet, disable_camera: NotSet, terminal_persistent: NotSet, show_my_cursor: NotSet, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }\n[2026-10-18 08:30:59.362442 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Update(1834, SupportedDecoding { ability_vp9: 1, ability_h264: 1, ability_h265: 1, prefer: H264, ability_vp8: 1, ability_av1: 0, i444: MessageField(None), prefer_chroma: I420, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })\n[2026-10-18 08:30:59.362481 +00:00] INFO [libs/scrap/src/common/codec.rs:320] usable: vp8=true, av1=false, h264=false, h265=false\n[2026-10-18 08:30:59.362483 +00:00] INFO [libs/scrap/src/common/codec.rs:323] connection count: 1, used preference: Auto, encoder: VP9\n[2026-10-18 08:30:59.362542 +00:00] WARN [src/platform/linux.rs:301] Failed to create xdo context, xdo functions will be disabled\n[2026-10-18 08:30:59.362584 +00:00] DEBUG [src/server/service.rs:305] Enter monitor0 service inner loop\n[2026-10-18 08:30:59.362603 +00:00] INFO [src/server/video_service.rs:1047] new video service: monitor0\n[2026-10-18 08:30:59.362603 +00:00] DEBUG [src/ui_cm_interface.rs:559] conn_id: 1834\n[2026-10-18 08:30:59.362832 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:463] Bound new global [3] wl_output v4\n[2026-10-18 08:30:59.362866 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:503] Bound new global [4] zxdg_output_manager_v1 v3\n[2026-10-18 08:30:59.379807 +00:00] DEBUG [src/server/service.rs:305] Enter display service inner loop\n[2026-10-18 08:30:59.379888 +00:00] INFO [src/server/service.rs:196] Call snapshot of display service\n[2026-10-18 08:30:59.393602 +00:00] INFO [src/server/service.rs:196] Call snapshot of mouse_cursor service\n[2026-10-18 08:30:59.402323 +00:00] INFO [src/server/display_service.rs:721] Displays changed\n[2026-10-18 08:30:59.402513 +00:00] INFO [src/server/wayland.rs:416] update mouse resolution: (0, 1024), (0, 768)\n[2026-10-18 08:30:59.402571 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:463] Bound new global [3] wl_output v4\n[2026-10-18 08:30:59.402604 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:503] Bound new global [4] zxdg_output_manager_v1 v3\n[2026-10-18 08:30:59.730170 +00:00] INFO [libs/scrap/src/common/drmtap_dl.rs:401] libdrmtap loaded: /opt/farpane-native-test/releases/farpane-native-dev-d393fd0cff634416807feae5/lib/libdrmtap.so.0.5.8 (v0.5.8)\n[2026-10-18 08:30:59.730414 +00:00] INFO [libs/scrap/src/common/drm_render.rs:61] drmtap_open_render(NULL) failed; no usable DRM render node\n[2026-10-18 08:30:59.730418 +00:00] INFO [src/server/drm_capturer.rs:670] drm: requesting the CPU-converted frame path for display 0 (no render-node convert context: libdrmtap did not load here, or drmtap_open_render found no usable /dev/dri/renderD*)\n[2026-10-18 08:30:59.730465 +00:00] INFO [src/server/drm_capturer.rs:406] drm: cursor calibration for display 0 (Virtual-1): Ok(CalContext { rect: (0, 0, 1024, 768), physical_size: (1024, 768), built_gen: 0 })\n[2026-10-18 08:30:59.730503 +00:00] INFO [libs/scrap/src/common/codec.rs:137] new encoder: VPX(VpxEncoderConfig { width: 1024, height: 768, quality: 0.67, codec: VP9, keyframe_interval: None }), i444: false\n[2026-10-18 08:30:59.730729 +00:00] INFO [libs/scrap/src/common/codec.rs:1037] cpu num: 4, cpu loadavg: 0.08, available memory: 5G, codec thread: 2\n[2026-10-18 08:30:59.772922 +00:00] INFO [src/server/video_service.rs:736] initial quality: 0.67\n[2026-10-18 08:30:59.774825 +00:00] INFO [src/server/service.rs:196] Call snapshot of monitor0 service\n[2026-10-18 08:30:59.948479 +00:00] INFO [src/server.rs:896] config updated, sync to root\n[2026-10-18 08:31:00.040742 +00:00] INFO [src/common.rs:706] Testing nat ...\n[2026-10-18 08:31:00.041789 +00:00] ERROR [src/common.rs:686] test nat: failed to lookup address information: Temporary failure in name resolution\n[2026-10-18 08:31:00.218983 +00:00] INFO [src/server/connection.rs:5850] update supported encoding: SupportedEncoding { h264: false, h265: false, vp8: true, av1: false, i444: MessageField(Some(CodecAbility { vp8: false, vp9: true, av1: true, h264: false, h265: false, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })), special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }\n[2026-10-18 08:31:00.939283 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:463] Bound new global [3] wl_output v4\n[2026-10-18 08:31:00.939325 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:503] Bound new global [4] zxdg_output_manager_v1 v3\n[2026-10-18 08:31:02.358877 +00:00] WARN [/workspace/Build/Linux/cargo/git/checkouts/arboard-b4499e050d3f1316/c7d5781/src/platform/linux/mod.rs:96] Tried to initialize the wayland data control protocol clipboard, but failed. Falling back to the X11 clipboard protocol. The error was: arboard: failed to check is_primary_selection_supported, A required Wayland protocol (ext-data-control, or wlr-data-control version 1) is not supported by the compositor\n[2026-10-18 08:31:02.409529 +00:00] DEBUG [src/server/input_service.rs:2095] Native committed text: clipboard ready; preparing paste\n[2026-10-18 08:31:02.409849 +00:00] DEBUG [src/server/input_service.rs:2118] Native committed text: paste key sequence queued\n[2026-10-18 08:31:02.441163 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:463] Bound new global [3] wl_output v4\n[2026-10-18 08:31:02.441202 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:503] Bound new global [4] zxdg_output_manager_v1 v3\n[2026-10-18 08:31:03.370508 +00:00] DEBUG [src/server/input_service.rs:2095] Native committed text: clipboard ready; preparing paste\n[2026-10-18 08:31:03.371006 +00:00] DEBUG [src/server/input_service.rs:2118] Native committed text: paste key sequence queued\n[2026-10-18 08:31:03.942102 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:463] Bound new global [3] wl_output v4\n[2026-10-18 08:31:03.942138 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:503] Bound new global [4] zxdg_output_manager_v1 v3\n[2026-10-18 08:31:04.326119 +00:00] DEBUG [src/server/input_service.rs:2095] Native committed text: clipboard ready; preparing paste\n[2026-10-18 08:31:04.327547 +00:00] DEBUG [src/server/input_service.rs:2118] Native committed text: paste key sequence queued\n[2026-10-18 08:31:05.295674 +00:00] DEBUG [src/server/input_service.rs:2095] Native committed text: clipboard ready; preparing paste\n[2026-10-18 08:31:05.296494 +00:00] DEBUG [src/server/input_service.rs:2118] Native committed text: paste key sequence queued\n[2026-10-18 08:31:05.443520 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:463] Bound new global [3] wl_output v4\n[2026-10-18 08:31:05.443556 +00:00] DEBUG [/workspace/Build/Linux/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/registry.rs:503] Bound new global [4] zxdg_output_manager_v1 v3\n[2026-10-18 08:31:05.572078 +00:00] INFO [src/server/connection.rs:2985] receive close reason: \n[2026-10-18 08:31:05.572130 +00:00] INFO [src/server/connection.rs:5425] #1834 Connection closed: Peer close\n[2026-10-18 08:31:05.572148 +00:00] INFO [src/server/connection.rs:1323] #1834 connection loop exited\n[2026-10-18 08:31:05.572231 +00:00] INFO [libs/scrap/src/common/codec.rs:178] update:Remove(1834)\n[2026-10-18 08:31:05.572251 +00:00] DEBUG [src/server/connection.rs:1401] Input thread exited\n[2026-10-18 08:31:05.572386 +00:00] DEBUG [src/server/connection.rs:1408] post_seq_loop exited\n[2026-10-18 08:31:05.572417 +00:00] WARN [src/server/connection.rs:2959] ipc to connection manager exit: expected\n[2026-10-18 08:31:05.572413 +00:00] INFO [src/server/connection.rs:6784] drop wakelock\n[2026-10-18 08:31:05.572471 +00:00] INFO [src/ui_cm_interface.rs:580] cm ipc connection closed from connection request\n[2026-10-18 08:31:05.572483 +00:00] DEBUG [src/ui_cm_interface.rs:854] ipc task end\n[2026-10-18 08:31:05.572520 +00:00] DEBUG [src/farpane_native/control.rs:183] Native control connection ended: unexpected end of file\n"
+FARPANE_INPUT_VM_RESULT={"schema": 1, "scope": "private-native-gnome-root-input-startup", "result": "fail", "full_farpane_input_tested": false, "host_input_exposed": false, "kernel": "7.0.0-38-generic", "boot_id": "68e65627-0c41-4585-a134-7d0da6cc4f84", "machine": "Standard PC (Q35 + ICH9, 2009)", "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3", "uinput": {"device_name": "FarPane private VM kernel probe", "events": [[1, 30, 1], [0, 0, 0], [1, 30, 0], [0, 0, 0]], "input_kernel": "private-guest"}, "guest_drm": [{"card": "card0", "device": "/sys/devices/faux/vkms", "driver": "/sys/bus/faux/drivers/faux_driver"}], "guest_drm_properties": {"DEVPATH": "/devices/faux/vkms/drm/card0", "TAGS": ":master-of-seat:seat:uaccess:", "CURRENT_TAGS": ":master-of-seat:seat:uaccess:"}, "logind": {"Id": "c1", "User": "1000", "Active": "yes", "Type": "wayland", "Class": "user", "Seat": "seat0", "Leader": "230"}, "native_desktop": {"renderer": "guest VKMS/software Mesa", "gnome_pid": 289, "product_keyboard": "/dev/input/event2", "input_fds": [59], "session_provider": "real-systemd-logind", "host_enabled": true, "input_text_sent": false, "host_input_exposed": false}, "failure": "Traceback (most recent call last):\n  File \"/opt/farpane-input-test/native_input_vm_desktop.py\", line 187, in controller\n    result['network_input']=exercise(core,env,account,device)\n                            ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/farpane-input-test/native_input_vm_network.py\", line 109, in exercise\n    assert sum(keys[i:i+4]==expected for i in range(len(keys)-3))==len(text),keys\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: [[1, 42, 1], [1, 110, 1], [1, 110, 0], [1, 42, 0]]\n"}
+]3008;end=d0e65a031d744544b4330eb51d9c87c7\[   17.683695] reboot: Power down

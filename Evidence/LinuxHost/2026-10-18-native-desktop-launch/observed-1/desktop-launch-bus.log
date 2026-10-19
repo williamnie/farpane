@@ -1,0 +1,41 @@
+signal time=1792321499.476214 sender=org.freedesktop.DBus -> destination=:1.38 serial=2 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameAcquired
+   string ":1.38"
+signal time=1792321499.476236 sender=org.freedesktop.DBus -> destination=:1.38 serial=4 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameLost
+   string ":1.38"
+method call time=1792321499.706338 sender=:1.40 -> destination=org.farpane.FarPane serial=2 path=/org/farpane/FarPane; interface=org.freedesktop.Application; member=Activate
+   array [
+   ]
+signal time=1792321499.725459 sender=org.freedesktop.DBus -> destination=(null destination) serial=25 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ""
+   string ":1.42"
+signal time=1792321509.798558 sender=org.freedesktop.DBus -> destination=(null destination) serial=156 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ":1.42"
+   string ""
+method call time=1792321515.836234 sender=:1.143 -> destination=org.farpane.FarPane serial=2 path=/org/farpane/FarPane; interface=org.freedesktop.Application; member=Activate
+   array [
+   ]
+signal time=1792321515.855132 sender=org.freedesktop.DBus -> destination=(null destination) serial=239 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ""
+   string ":1.144"
+signal time=1792321531.818360 sender=org.freedesktop.DBus -> destination=(null destination) serial=424 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ":1.144"
+   string ""
+method call time=1792321534.188750 sender=:1.11 -> destination=org.farpane.FarPane serial=387 path=/org/farpane/FarPane; interface=org.freedesktop.Application; member=Activate
+   array [
+      dict entry(
+         string "desktop-startup-id"
+         variant             string "gnome-shell/FarPane/288-0-farpane-input-vm_TIME64008"
+      )
+      dict entry(
+         string "activation-token"
+         variant             string "gnome-shell/FarPane/288-0-farpane-input-vm_TIME64008"
+      )
+   ]
+signal time=1792321534.207459 sender=org.freedesktop.DBus -> destination=(null destination) serial=147 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string "org.farpane.FarPane"
+   string ""
+   string ":1.236"

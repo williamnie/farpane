@@ -240,6 +240,13 @@ pub fn query() -> ResultType<Option<Session>> {
 }
 
 fn local_display(value: &str) -> Option<String> {
+    // Mutter also gives managed services a private Xwayland listener in this
+    // Unix-socket form. Preserve it as a local display instead of silently
+    // removing DISPLAY from the desktop Host's environment.
+    if let Some(number) = value.strip_prefix("unix:/tmp/.X11-unix/X") {
+        return (!number.is_empty() && number.bytes().all(|b| b.is_ascii_digit()))
+            .then(|| value.to_owned());
+    }
     let hostname = hbb_common::whoami::hostname();
     let value = value.strip_prefix(&hostname).unwrap_or(value);
     let number = value.strip_prefix(':')?;
@@ -586,6 +593,78 @@ mod tests {
         assert!(properties("ActiveSession=c1\nActiveSession=c2\n").is_err());
         assert_eq!(local_display(":12.0"), Some(":12.0".into()));
         assert_eq!(local_display("localhost:10.0"), None);
+    }
+    #[test]
+    fn mutter_managed_xwayland_socket_remains_a_local_display() {
+        for display in ["unix:/tmp/.X11-unix/X1", "unix:/tmp/.X11-unix/X12"] {
+            assert_eq!(local_display(display), Some(display.into()));
+        }
+        for invalid in [
+            "unix:/tmp/.X11-unix/X", "unix:/tmp/.X11-unix/X1/../../other",
+            "unix:/tmp/.X11-unix/X1.0", "unix:/elsewhere/X1",
+            "remote:1", "tcp/localhost:1", "unix:/tmp/.X11-unix/X-1",
+        ] {
+            assert_eq!(local_display(invalid), None, "{invalid}");
+        }
+    }
+    #[test]
+    #[ignore = "requires test-native-gnome-input.sh's private Mutter and focused entry"]
+    fn private_mutter_xwayland_chinese_paste() {
+        use dbus::blocking::Connection;
+        assert!(Path::new("/.dockerenv").is_file());
+        assert_ne!(unsafe { libc::geteuid() }, 0);
+        assert!(!Path::new("/dev/uinput").exists());
+        let directory = std::path::PathBuf::from(
+            std::env::var_os("FARPANE_GNOME_INPUT_TEST_DIR").unwrap(),
+        );
+        assert!(directory.starts_with("/workspace/Build/Linux/native-gnome-input-smoke"));
+        let raw = std::env::var("FARPANE_GNOME_MANAGED_DISPLAY").unwrap();
+        assert!(raw.starts_with("unix:/tmp/.X11-unix/X"));
+        eprintln!("private paste: checking missing display");
+        std::env::remove_var("DISPLAY");
+        assert!(arboard::Clipboard::new().is_err(), "Missing DISPLAY must reproduce the failure");
+        eprintln!("private paste: preserving managed display");
+        std::env::set_var("DISPLAY", local_display(&raw).unwrap());
+        let read = || -> serde_json::Value {
+            serde_json::from_slice(&fs::read(directory.join("entry.json")).unwrap()).unwrap()
+        };
+        assert_eq!(read()["text"], "");
+        let bus = Connection::new_session().unwrap();
+        let service = "org.gnome.Mutter.RemoteDesktop";
+        let interface = "org.gnome.Mutter.RemoteDesktop.Session";
+        let (path,): (dbus::Path<'static>,) = bus
+            .with_proxy(service, "/org/gnome/Mutter/RemoteDesktop", Duration::from_secs(1))
+            .method_call(service, "CreateSession", ()).unwrap();
+        let session = bus.with_proxy(service, path, Duration::from_secs(1));
+        session.method_call::<(), _, _, _>(interface, "Start", ()).unwrap();
+        let mut expected = String::new();
+        for text in ["中文测试", "混合A1，🙂", "é"] {
+            eprintln!("private paste: writing clipboard");
+            crate::clipboard::set_text_clipboard_with_owner_sync(
+                text, crate::clipboard::ClipboardSide::Host,
+            ).unwrap();
+            eprintln!("private paste: clipboard write returned");
+            std::thread::sleep(Duration::from_millis(200));
+            // Private compositor keyboard substitutes for host /dev/uinput:
+            // the production path uses the same Shift+Insert key sequence.
+            for (code, down) in [(42u32, true), (110, true), (110, false), (42, false)] {
+                session.method_call::<(), _, _, _>(interface, "NotifyKeyboardKeycode", (code, down)).unwrap();
+                std::thread::sleep(Duration::from_millis(30));
+            }
+            expected.push_str(text);
+            let deadline = Instant::now() + Duration::from_secs(3);
+            while read()["text"] != expected {
+                assert!(Instant::now() < deadline, "Focused target did not receive exact Chinese paste");
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        }
+        session.method_call::<(), _, _, _>(interface, "Stop", ()).unwrap();
+        fs::write(directory.join("gnome-input-result.json"), serde_json::to_vec_pretty(
+            &serde_json::json!({"result":"pass", "checks":["missing-display-reproduced",
+                "managed-socket-preserved", "chinese-paste", "mixed-ascii-cjk-emoji", "no-duplicates"],
+                "actual_mutter_wayland":true, "host_input_exercised":false,
+                "network_input_exercised":false}),
+        ).unwrap()).unwrap();
     }
     #[test]
     fn input_lease_expires_on_unknown_or_a_new_login_for_the_same_uid() {

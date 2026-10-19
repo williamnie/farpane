@@ -50,6 +50,19 @@ for path in snapshot.rglob('*'):
         assert stat.S_ISDIR(mode)
 assert files == manifest['files'], 'Extracted source inventory/hash mismatch'
 checks = ['archive_sha256_and_complete_extracted_source_manifest']
+if manifest.get('gui_source_update'):
+    update = manifest['gui_source_update']
+    receipt = json.loads((snapshot/'binary-build-receipt.json').read_text())
+    build = json.loads((snapshot/'gui-update/artifact-build.json').read_text())
+    assert digest(snapshot/'gui-update/artifact-build.json') == update['artifact_build_sha256']
+    assert receipt == build['build_receipt']
+    for name, sha in receipt['sources'].items():
+        assert files[name]['sha256'] == sha
+    staged = json.loads((snapshot/'Build/Linux/native-source-map.json').read_text())
+    for name, sha in staged.items():
+        assert files['Linux/'+name]['sha256'] == sha
+        assert files['Build/Linux/'+name]['sha256'] == sha
+    checks.append('gui_candidate_receipt_canonical_and_prepared_sources_match')
 
 
 def cargo(name, *args):
@@ -72,6 +85,16 @@ for component, relative, extra in [
     assert all(Path(p['manifest_path']).is_relative_to(snapshot) for p in data['packages'])
     graphs[component] = len(data['packages'])
     checks.append('empty_cargo_home_offline_' + component + '_graph_inside_snapshot')
+if sys.argv[2:] == ['--metadata-only']:
+    result = {'result':'pass','checks':checks,'archive_sha256':sys.argv[1],
+              'source_entries':len(files),'cargo_graph_packages':graphs,
+              'repository_mounted':False,'compiler_cache_mounted':False,'network':'none',
+              'full_gui_release_build':False,'full_native_media_build':False,
+              'complete_license_source_audit':False,'host_modified':False}
+    (output/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+    print(json.dumps(result),flush=True)
+    raise SystemExit(0)
+assert len(sys.argv) == 2, 'Unexpected source test arguments'
 cargo('protocol-tests', 'test', '--offline', '--locked', '--manifest-path',
       'Build/Linux/gui/Cargo.toml', '-p', 'farpane-protocol', '--lib')
 assert '38 passed; 0 failed' in (output / 'protocol-tests.stdout').read_text()

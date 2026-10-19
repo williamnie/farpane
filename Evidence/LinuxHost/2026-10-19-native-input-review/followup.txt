@@ -1,0 +1,5 @@
+补充我这边并行只读核查的三个具体点，供你评审时反证/确认（不需要另起任务）：
+1. Sources/ViewerInput/ViewerTextCommitSender.swift:8-17 在 sendText 返回 0 后即无条件补 Ctrl+Shift+V；CoreBridge/RustDeskPatch/rdn_bridge/input.rs:320-321 的 0 只表示调用 session.input_string，非远端已消费。这个客户端补发与服务端自动粘贴能叠加，职责/重复输入问题应优先说明。
+2. AppDelegate+ViewerTextInput.swift:26 的灰色条件是 viewerView/coreClient/viewerRecoveryDeviceID 任一缺失。正常产品路径 AppDelegate+Connections.swift:67,94 已创建并设置 UUID，不能未经实际版本/启动路径核对就归因为“未保存设备/没 deviceID”。不要让用户再盲找灰色开关。
+3. 当前 core src/server/uinput.rs:123-128 的 key_down 即便 self.send 失败，经 input_retry::record 只记录错误，最终仍 Ok(())；因此粘贴函数的 .is_err() 保护和 paste-queued 日志都不是 kernel accepted/应用消费确认。Linux/native/input_retry.rs 明确不重放失败动作（这是应保留的边界）。请在最小诊断建议里区分客户端入队、Host 收到、IPC 写入、内核事件和应用消费。
+我倾向保留有真实对照的 DISPLAY/0043 修正，继续搁置 0044；先明确统一 committed-text 契约及可观察失败边界，再决定输入后端。请指出这个判断的缺口。

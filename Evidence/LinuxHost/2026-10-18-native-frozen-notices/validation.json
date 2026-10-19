@@ -1,0 +1,12 @@
+{
+  "result": "pass",
+  "test_command": "FARPANE_NOTICE_TEST_SNAPSHOT=Build/Linux/source-bundles/farpane-native-source-704f37fe999ad9f837832f79 python3 -B -m unittest discover -s Linux/tests -p test_native_published_notices.py -v",
+  "unittest_exit_code": 0,
+  "test_methods": 14,
+  "skipped": 0,
+  "test_result_source": "Observed tool output; raw unittest stdout was not separately saved",
+  "source_entries_verified": 91478,
+  "product_rebuilt": false,
+  "product_installed": false,
+  "installed_current": "releases/farpane-native-dev-bfc1befc221061266d5f50da"
+}

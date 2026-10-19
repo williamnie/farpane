@@ -1,0 +1,19 @@
+{
+  "role": "agent",
+  "local_id": "1000000000",
+  "registered": true,
+  "host_enabled": true,
+  "gpu_enabled": true,
+  "permanent_password_set": true,
+  "media_backend": "gpu",
+  "settings_preserved": {
+    "local_id": true,
+    "server": true,
+    "authentication": true,
+    "permanent_password_set": true,
+    "host_enabled": true,
+    "gpu_enabled": true
+  },
+  "inbound_count": 1,
+  "release": "farpane-native-dev-bfc1befc221061266d5f50da"
+}

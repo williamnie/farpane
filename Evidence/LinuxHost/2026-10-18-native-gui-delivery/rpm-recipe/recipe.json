@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "kind": "farpane-native-rpm-recipe",
+  "rpm": "farpane-native-candidate-0.1.0~dev.20261018.6-1.fc44.x86_64.rpm",
+  "rpm_sha256": "11ab42c5f7ce62dc015fdc7d6861e1afd8d14509b9e8bcbc0fe4b96a3062bbe7",
+  "version": "0.1.0~dev.20261018.6",
+  "release": "1.fc44",
+  "artifact_id": "farpane-native-dev-532627a818c8f7d0e65df626",
+  "artifact_manifest_sha256": "75755d20ef5912cbd186f8f502857ea3ec9d9957b05fa5f8170438e718038dce",
+  "application_source_archive": "farpane-native-source-5eeb539adb09e93b49857674.tar.gz",
+  "application_source_sha256": "33aafd43ed154c8c2436c6c80fe35ec1fb715492ecc4c5dd76b2ad60c97c8cbe",
+  "files": {
+    "LICENSE": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+    "Linux/docs/native-install.md": "f892583241d8477e1f71b33505e5b7609db44d7f3929d13189ebb893ca8484b3",
+    "Linux/packaging/native-rpm-README.txt": "67140dbc5ee11b61bf386779a577585726f39b49de43d5bcc0c09bbf17e80982",
+    "Linux/packaging/native-rpm-builder-fedora44.Dockerfile": "3ca493925205d575ad2ee5892de8ad6ca1c9ce0f3214cceda5443eb454c87481",
+    "Linux/packaging/native-rpm.spec.in": "36783a23d308aa227196a9d589f908d530a0d3fe0a253f8db300b1455aac12f8",
+    "Linux/packaging/native_bundle.py": "9a3eb72e2c6a295a82f920b81524677c99b5160827a0358a077fad4737aaff97",
+    "Linux/packaging/native_deb.py": "eec5e4549a8823c645935e509fd4391a39d4bee58a8da07466ae374c415c2bbd",
+    "Linux/packaging/native_install.py": "65576f5792cb22c37c3d5534005ee4df09233c197ee3c57e3db45c93817f01e3",
+    "Linux/packaging/native_install_runtime.py": "29259d29687d2101b1a48d19bc2162c6cd3ddedf2b652bc111901841226d3c43",
+    "Linux/packaging/native_rpm.py": "519e009092a57f3572047b2e1d197dcea503faa40ca37eab9cb7b48d195a19f8",
+    "Linux/packaging/native_user_install.py": "01bb1178e84681a89d84c4acaf374820cceb9372ed0f20a203d32fc6be79fcee",
+    "Linux/tests/native-runtime-images.lock.json": "0fa4d0640992b0b723b994615fe64448248c90f5846863a45be4fa883c8aad85",
+    "Scripts/linux/install-app.py": "160a71724bf36c1dc8d048684fa32b14f22ef51d67249ccb6d138dacb98fb792",
+    "Scripts/linux/install-native-user.py": "aeb7257a1a284d09310a411a6404bbfd50f93593a05c57190b1b73d5be912d30",
+    "Scripts/linux/install-native.py": "4f82509c8e1c739b5278a4664bb2626784e858dafe6c2f3189150e736bfffb73",
+    "Scripts/linux/package-native-rpm-recipe.py": "c1eda308c1eb586d36b22c9e52344c14dee661a4a5b9a68513ff3fe9df596d41",
+    "Scripts/linux/package-native-rpm.py": "b31201cff12f23a523d24e87eb2b3705dc29cf55b886008c8980b008ec7ef5d2"
+  },
+  "contains_application_source": false,
+  "application_rebuilt": false
+}

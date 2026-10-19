@@ -1,0 +1,13 @@
+test_error_details_cannot_escape (test_native_input_observer.PrivacyAndFraming.test_error_details_cannot_escape) ... ok
+test_message_substrings_and_wrong_source_do_not_match (test_native_input_observer.PrivacyAndFraming.test_message_substrings_and_wrong_source_do_not_match) ... ok
+test_overlong_line_is_dropped_and_next_record_survives (test_native_input_observer.PrivacyAndFraming.test_overlong_line_is_dropped_and_next_record_survives) ... ok
+test_partial_lines_preserve_count_without_content (test_native_input_observer.PrivacyAndFraming.test_partial_lines_preserve_count_without_content) ... ok
+test_sequence_lengths_not_exported (test_native_input_observer.PrivacyAndFraming.test_sequence_lengths_not_exported) ... ok
+test_tail_excludes_history_and_rejects_rotation (test_native_input_observer.PrivacyAndFraming.test_tail_excludes_history_and_rejects_rotation) ... ok
+test_tail_rejects_truncation (test_native_input_observer.PrivacyAndFraming.test_tail_rejects_truncation) ... ok
+test_unknown_and_normal_key_messages_are_omitted (test_native_input_observer.PrivacyAndFraming.test_unknown_and_normal_key_messages_are_omitted) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.001s
+
+OK

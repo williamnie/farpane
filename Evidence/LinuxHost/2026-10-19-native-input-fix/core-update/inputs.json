@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "base_artifact": "farpane-native-dev-58e533b081afae50b9c8e8a5",
+  "base_manifest_sha256": "fa046ecbdaa03f8af2a458e8d95f5acfc4f839b59653f94ca599e4d575e940f9",
+  "base_build_sha256": "af9bd49ca93f2f5af070271d88b8369e377f04c9f1b4483c12bf78ec4f0bc8e1",
+  "builder": {
+    "image": "sha256:17d91d2b9bc68621d5c8ab51aeb7e7cf7589d96ae5f1caddc0c7598f4bf01841",
+    "label": "farpane-linux-builder:20260930",
+    "rust": "1.89.0",
+    "jobs": 4,
+    "memory": "12g"
+  },
+  "reversed_in_copy": [
+    "Linux/patches/0044-native-warp-paste-shortcut.patch",
+    "Linux/patches/0045-native-committed-text-state.patch"
+  ],
+  "applied_patches": [
+    "Linux/patches/0045-native-committed-text-state.patch"
+  ],
+  "sources": {
+    "Linux/dependencies.lock.json": "8314f38ae36ba558dad46a69c66844bc01671e12db45b15fd6484b5d8e3a1994",
+    "Linux/patches/0045-native-committed-text-state.patch": "e5041c24caeddb48405bb37c83b3bbf6a5fcfa9dea94c6135e732e87e2e660b9"
+  },
+  "recipe_sha256": "52a273b687e3b7ead7f4463e098ccf932d38a673c0be04268416333acd3a20f8",
+  "commands": [],
+  "gui_rebuilt": false,
+  "media_rebuilt": false,
+  "offline": true,
+  "locked": true
+}

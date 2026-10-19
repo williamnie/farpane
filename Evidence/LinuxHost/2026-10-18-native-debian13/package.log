@@ -1,0 +1,12 @@
+{"package_checks": ["headless_build_probes", "same_release_media_root_and_user", "missing_library_no_installed_or_search_fallback", "cross_release_alias_rejected", "writable_library_rejected", "symlink_library_directory_rejected", "probes_leave_configuration_and_runtime_untouched", "resolved_elf_closure_no_build_or_legacy_gui_dependencies"]}
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[42]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+{"result": "pass", "checks": ["loopback-login", "actual-video-decode", "gtk-presentation", "viewer-exit-reaped", "second-session", "host-retained", "host-media-auth-network-preserved", "successful-session-history", "wrong-password-retry"], "gpu": false, "network": "isolated-loopback", "display": "two-private-xvfb"}

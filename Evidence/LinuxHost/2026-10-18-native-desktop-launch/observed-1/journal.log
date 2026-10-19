@@ -1,0 +1,180 @@
+Oct 18 11:04:31 farpane-input-vm systemd[1]: Reached target multi-user.target - Multi-User System.
+Oct 18 11:04:31 farpane-input-vm systemd[1]: Starting farpane-input-test.service - Private VM regression controller...
+Oct 18 11:04:32 farpane-input-vm kernel: [drm] Initialized vkms 1.0.0 for vkms on minor 0
+Oct 18 11:04:32 farpane-input-vm kernel: Console: switching to colour frame buffer device 128x48
+Oct 18 11:04:32 farpane-input-vm kernel: faux_driver vkms: [drm] fb0: vkmsdrmfb frame buffer device
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Stopping getty@tty1.service - Getty on tty1...
+Oct 18 11:04:32 farpane-input-vm systemd[1]: getty@tty1.service: Deactivated successfully.
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Stopped getty@tty1.service - Getty on tty1.
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Started farpane-input-session.service - Private GNOME login session.
+Oct 18 11:04:32 farpane-input-vm (dbus-run-session)[229]: pam_unix(farpane-input-test:session): session opened for user ubuntu(uid=1000) by (uid=0)
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Created slice user-1000.slice - User Slice of UID 1000.
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Starting user-runtime-dir@1000.service - User Runtime Directory /run/user/1000...
+Oct 18 11:04:32 farpane-input-vm systemd-logind[208]: New session 'c1' of user 'ubuntu' with class 'user' and type 'wayland'.
+Oct 18 11:04:32 farpane-input-vm systemd-user-runtime-dir[230]: Successfully configured disk quota for UID 1000 on /tmp to 2.3G
+Oct 18 11:04:32 farpane-input-vm systemd-user-runtime-dir[230]: Successfully configured disk quota for UID 1000 on /dev/shm to 2.3G
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Finished user-runtime-dir@1000.service - User Runtime Directory /run/user/1000.
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Starting user@1000.service - User Manager for UID 1000...
+Oct 18 11:04:32 farpane-input-vm (systemd)[233]: pam_unix(systemd-user:session): session opened for user ubuntu(uid=1000) by ubuntu(uid=0)
+Oct 18 11:04:32 farpane-input-vm systemd-logind[208]: New session '1' of user 'ubuntu' with class 'manager' and type 'unspecified'.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Queued start job for default target default.target.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Created slice app.slice - User Application Slice.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Created slice session.slice - User Core Session Slice.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Reached target paths.target - Paths.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Reached target timers.target - Timers.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on dirmngr.socket - GnuPG network certificate management daemon.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on gpg-agent-browser.socket - GnuPG cryptographic agent and passphrase cache (access for web browsers).
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on gpg-agent-extra.socket - GnuPG cryptographic agent and passphrase cache (restricted).
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Starting gpg-agent-ssh.socket - GnuPG cryptographic agent (ssh-agent emulation)...
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Starting gpg-agent.socket - GnuPG cryptographic agent and passphrase cache...
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on keyboxd.socket - GnuPG public key management service.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on pipewire-pulse.socket - PipeWire PulseAudio.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on pipewire.socket - PipeWire Multimedia System Sockets.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on systemd-ask-password.socket - Query the User Interactively for a Password.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on gpg-agent.socket - GnuPG cryptographic agent and passphrase cache.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Listening on gpg-agent-ssh.socket - GnuPG cryptographic agent (ssh-agent emulation).
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Reached target sockets.target - Sockets.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Reached target basic.target - Basic System.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Reached target default.target - Main User Target.
+Oct 18 11:04:32 farpane-input-vm systemd[233]: Startup finished in 63ms.
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Started user@1000.service - User Manager for UID 1000.
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Started session-c1.scope - Session c1 of User ubuntu.
+Oct 18 11:04:32 farpane-input-vm pipewire[256]: mod.rt: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown
+Oct 18 11:04:32 farpane-input-vm pipewire[256]: mod.rt: RTKit does not give us MaxRealtimePriority, using 1
+Oct 18 11:04:32 farpane-input-vm pipewire[256]: mod.rt: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown
+Oct 18 11:04:32 farpane-input-vm pipewire[256]: mod.rt: RTKit does not give us MinNiceLevel, using 0
+Oct 18 11:04:32 farpane-input-vm pipewire[256]: mod.rt: RTKit error: org.freedesktop.DBus.Error.ServiceUnknown
+Oct 18 11:04:32 farpane-input-vm pipewire[256]: mod.rt: RTKit does not give us RTTimeUSecMax, using -1
+Oct 18 11:04:32 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gtk.vfs.Daemon' requested by ':1.2' (uid=1000 pid=258 comm="gsettings set org.gnome.desktop.session idle-delay" label="unconfined")
+Oct 18 11:04:32 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gtk.vfs.Daemon'
+Oct 18 11:04:32 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.ColorManager' unit='colord.service' requested by ':1.9' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Starting colord.service - Manage, Install and Generate Color Profiles...
+Oct 18 11:04:32 farpane-input-vm colord[312]: failed to get edid data: EDID length is too small
+Oct 18 11:04:32 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.ColorManager'
+Oct 18 11:04:32 farpane-input-vm systemd[1]: Started colord.service - Manage, Install and Generate Color Profiles.
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Reload requested from client PID 331 ('systemctl') (unit farpane-input-test.service)...
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Reloading...
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Reloading finished in 72 ms.
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.Shell.Screencast' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.freedesktop.impl.portal.PermissionStore' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Started farpane-unrelated-test.service.
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.Shell.CalendarServer' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.PermissionStore'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.evolution.dataserver.Sources5' requested by ':1.15' (uid=1000 pid=377 comm="/usr/libexec/gnome-shell-calendar-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activated service 'org.gnome.evolution.dataserver.Sources5' failed: Failed to execute program org.gnome.evolution.dataserver.Sources5: No such file or directory
+Oct 18 11:04:33 farpane-input-vm gnome-shell-calendar-server[377]: Failed to start evolution-source-registry: Error calling StartServiceByName for org.gnome.evolution.dataserver.Sources5: Failed to execute program org.gnome.evolution.dataserver.Sources5: No such file or directory
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activated service 'org.gnome.Shell.CalendarServer' failed: Process org.gnome.Shell.CalendarServer exited with status 1
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.Accounts' unit='accounts-daemon.service' requested by ':1.9' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Starting accounts-daemon.service - Accounts Service...
+Oct 18 11:04:33 farpane-input-vm accounts-daemon[390]: Couldn't get validated language: Child process exited with code 1
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.PolicyKit1' unit='polkit.service' requested by ':1.15' (uid=0 pid=390 comm="/usr/libexec/accounts-daemon" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Starting polkit.service - Authorization Manager...
+Oct 18 11:04:33 farpane-input-vm polkitd[401]: Started polkitd version 127
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Started polkit.service - Authorization Manager.
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.PolicyKit1'
+Oct 18 11:04:33 farpane-input-vm accounts-daemon[390]: started daemon version 23.13.9
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Started accounts-daemon.service - Accounts Service.
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.Accounts'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.freedesktop.portal.Desktop' requested by ':1.13' (uid=1000 pid=361 comm="/usr/bin/gjs -m /usr/share/gnome-shell/org.gnome.S" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.freedesktop.portal.Documents' requested by ':1.17' (uid=1000 pid=425 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.freedesktop.portal.Documents'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[438]: fusermount3: mount failed: Operation not permitted
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[431]: error: fuse init failed: Can't mount path /run/user/1000/doc
+Oct 18 11:04:33 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Document portal fuse mount point unknown: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name :1.18 was not provided by any .service files
+Oct 18 11:04:33 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Lockdown via the deprecated UseIn key
+Oct 18 11:04:33 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: The preferred method to match portal implementations to desktop environments is to use the portals.conf(5) configuration file
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gnome' requested by ':1.17' (uid=1000 pid=425 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.UPower' unit='upower.service' requested by ':1.9' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Starting upower.service - Daemon for power management...
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.Shell.Notifications' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gnome.Shell.Notifications'
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.UPower'
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Started upower.service - Daemon for power management.
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gtk.vfs.UDisks2VolumeMonitor' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.UDisks2' unit='udisks2.service' requested by ':1.19' (uid=1000 pid=489 comm="/usr/libexec/gvfs-udisks2-volume-monitor" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Starting udisks2.service - Disk Manager...
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gtk.vfs.Metadata' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gtk.vfs.Metadata'
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.UDisks2'
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Started udisks2.service - Disk Manager.
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gtk.vfs.UDisks2VolumeMonitor'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gtk.vfs.GoaVolumeMonitor' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.OnlineAccounts' requested by ':1.23' (uid=1000 pid=546 comm="/usr/libexec/gvfs-goa-volume-monitor" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm goa-daemon[551]: goa-daemon version 3.58.0 starting
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.Identity' requested by ':1.24' (uid=1000 pid=551 comm="/usr/libexec/goa-daemon" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gnome.OnlineAccounts'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gtk.vfs.GoaVolumeMonitor'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gnome.Identity'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gtk.vfs.AfcVolumeMonitor' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gtk.vfs.AfcVolumeMonitor'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gtk.vfs.GPhoto2VolumeMonitor' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gtk.vfs.GPhoto2VolumeMonitor'
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gtk.vfs.MTPVolumeMonitor' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gtk.vfs.MTPVolumeMonitor'
+Oct 18 11:04:33 farpane-input-vm systemd[233]: pipewire-pulse.socket: Failed to queue service startup job: Unit dbus.service not found.
+Oct 18 11:04:33 farpane-input-vm systemd[233]: pipewire-pulse.socket: Failed with result 'resources'.
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Activating via systemd: service name='org.freedesktop.GeoClue2' unit='geoclue.service' requested by ':1.9' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Starting geoclue.service - Location Lookup Service...
+Oct 18 11:04:33 farpane-input-vm geoclue[636]: Failed to connect to avahi service: Daemon not running
+Oct 18 11:04:33 farpane-input-vm systemd[1]: Started geoclue.service - Location Lookup Service.
+Oct 18 11:04:33 farpane-input-vm dbus-daemon[206]: [system] Successfully activated service 'org.freedesktop.GeoClue2'
+Oct 18 11:04:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.Settings.GlobalShortcutsProvider' requested by ':1.19' (uid=1000 pid=440 comm="/usr/libexec/xdg-desktop-portal-gnome" label="unconfined")
+Oct 18 11:04:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gnome.Settings.GlobalShortcutsProvider'
+Oct 18 11:04:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gnome'
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Access via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Failed to load RealtimeKit property: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.RealtimeKit1 was not provided by any .service files
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Settings via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gtk.portal for org.freedesktop.impl.portal.Settings via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.freedesktop.impl.portal.desktop.gtk' requested by ':1.17' (uid=1000 pid=425 comm="/usr/libexec/xdg-desktop-portal" label="unconfined")
+Oct 18 11:04:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.freedesktop.impl.portal.desktop.gtk'
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.FileChooser via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.AppChooser via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Print via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Notification via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gtk.portal for org.freedesktop.impl.portal.Inhibit via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Screenshot via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Background via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Wallpaper via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Account via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gtk.portal for org.freedesktop.impl.portal.Email via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.GlobalShortcuts via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.DynamicLauncher via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.ScreenCast via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.RemoteDesktop via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Clipboard via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.InputCapture via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm /usr/libexec/xdg-desktop-portal[425]: Choosing gnome.portal for org.freedesktop.impl.portal.Usb via the deprecated UseIn key
+Oct 18 11:04:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.freedesktop.portal.Desktop'
+Oct 18 11:04:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gnome.Shell.Screencast'
+Oct 18 11:04:55 farpane-input-vm systemd[1]: Reload requested from client PID 713 ('systemctl') (unit farpane-input-test.service)...
+Oct 18 11:04:55 farpane-input-vm systemd[1]: Reloading...
+Oct 18 11:04:55 farpane-input-vm systemd[1]: Reloading finished in 67 ms.
+Oct 18 11:04:57 farpane-input-vm systemd[1]: Started farpane.service - FarPane Linux native host.
+Oct 18 11:04:59 farpane-input-vm kernel: input: mouce-library-fake-mouse as /devices/virtual/input/input4
+Oct 18 11:04:59 farpane-input-vm kernel: input: RustDesk UInput Keyboard as /devices/virtual/input/input3
+Oct 18 11:04:59 farpane-input-vm systemd-logind[208]: Watching system buttons on /dev/input/event3 (RustDesk UInput Keyboard)
+Oct 18 11:04:59 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Connection :1.38 (uid=1000 pid=835 comm="dbus-monitor --session type='method_call',interfac" label="unconfined") became a monitor.
+Oct 18 11:04:59 farpane-input-vm farpane-core[839]: Cannot load libcuda.so.1
+Oct 18 11:04:59 farpane-input-vm farpane-core[839]: Cannot load libcuda.so.1
+Oct 18 11:04:59 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.farpane.FarPane' requested by ':1.40' (uid=1000 pid=857 comm="gio launch /home/ubuntu/.local/share/applications/" label="unconfined")
+Oct 18 11:04:59 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.farpane.FarPane'
+Oct 18 11:05:15 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.farpane.FarPane' requested by ':1.143' (uid=1000 pid=1419 comm="python3 -c import gi,sys,time?from gi.repository i" label="unconfined")
+Oct 18 11:05:15 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.farpane.FarPane'
+Oct 18 11:05:31 farpane-input-vm kernel: input: FarPane private desktop launcher as /devices/virtual/input/input5
+Oct 18 11:05:31 farpane-input-vm systemd-logind[208]: Watching system buttons on /dev/input/event4 (FarPane private desktop launcher)
+Oct 18 11:05:32 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.Settings.SearchProvider' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:05:32 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.gnome.Nautilus' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:05:32 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gnome.Settings.SearchProvider'
+Oct 18 11:05:32 farpane-input-vm org.gnome.Nautilus[1930]: Connecting to org.freedesktop.Tracker3.Miner.Files
+Oct 18 11:05:32 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.gnome.Nautilus'
+Oct 18 11:05:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.freedesktop.Tracker3.Miner.Files' requested by ':1.234' (uid=1000 pid=1930 comm="/usr/bin/nautilus --gapplication-service" label="unconfined")
+Oct 18 11:05:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.freedesktop.Tracker3.Miner.Files'
+Oct 18 11:05:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.freedesktop.systemd1' requested by ':1.235' (uid=1000 pid=1947 comm="/usr/libexec/localsearch-3" label="unconfined")
+Oct 18 11:05:33 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activated service 'org.freedesktop.systemd1' failed: Process org.freedesktop.systemd1 exited with status 1
+Oct 18 11:05:34 farpane-input-vm geoclue[636]: Service not used for 60 seconds. Shutting down..
+Oct 18 11:05:34 farpane-input-vm systemd[1]: geoclue.service: Deactivated successfully.
+Oct 18 11:05:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Activating service name='org.farpane.FarPane' requested by ':1.11' (uid=1000 pid=288 comm="gnome-shell --wayland --display-server" label="unconfined")
+Oct 18 11:05:34 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Successfully activated service 'org.farpane.FarPane'
+Oct 18 11:05:47 farpane-input-vm dbus-run-session[251]: dbus-daemon[251]: [session uid=1000 pid=251 pidfd=5] Monitoring connection :1.38 closed.

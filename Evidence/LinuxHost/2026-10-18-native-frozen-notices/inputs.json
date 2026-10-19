@@ -1,0 +1,21 @@
+{
+  "commands": [
+    [
+      "python3",
+      "-B",
+      "Scripts/linux/verify-published-notices.py",
+      "/home/user/farpane/Build/Linux/artifacts/farpane-native-dev-ec305482eaacd98258e28587"
+    ],
+    [
+      "python3",
+      "-B",
+      "Scripts/linux/verify-published-notices.py",
+      "/home/user/farpane/Build/Linux/artifacts/farpane-native-dev-ec305482eaacd98258e28587",
+      "--source-snapshot",
+      "/home/user/farpane/Build/Linux/source-bundles/farpane-native-source-704f37fe999ad9f837832f79",
+      "--source-manifest-sha256",
+      "704f37fe999ad9f837832f79b31e242b51e8322651136c0ee6f82b68785b4bc0"
+    ]
+  ],
+  "source_manifest_sha256": "704f37fe999ad9f837832f79b31e242b51e8322651136c0ee6f82b68785b4bc0"
+}

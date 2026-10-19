@@ -1,0 +1,27 @@
+{
+  "observed_at_utc": "2026-10-19T02:02:16.158060+00:00",
+  "status": "prepared_not_activated",
+  "new_guard_tests": {
+    "command": "python3 -B -m unittest discover -s Linux/tests -p test_original_paste_keys.py -v",
+    "count": 10,
+    "exit_code": 0
+  },
+  "existing_filter_tests": {
+    "command": "python3 -B -m unittest discover -s Linux/tests -p test_native_paste_keys.py -v",
+    "count": 11,
+    "exit_code": 0
+  },
+  "source_sha256": {
+    "Scripts/linux/observe-original-paste-keys.py": "d3226b17a543032ac6b33a8a6b34a8616c410b57c50eb436531fe8857498f46d",
+    "Linux/tests/test_original_paste_keys.py": "b8cf8d3741d100c70ea258fb6683709628c906169ff774b5769f9522acacd66a",
+    "Linux/diagnostics/paste_keys.py": "28bab254db09d0866d4c460cad3dc9f6946ace47e1a36e1f90ec3e3962c9a75d",
+    "Linux/tests/test_native_paste_keys.py": "648f9ceb246b171c37c93c6565df5a8cfe6addb22d43302ee782ddf253778fc2",
+    "Linux/docs/original-input-ab-window.md": "2f70fb005bac18d3b205f0ee40e2fd18b131ade71dcd037f75229425b277637b"
+  },
+  "host_evdev_opened": false,
+  "service_changes": false,
+  "original_cli_real_capture_tested": false,
+  "shared_filter_kernel_evidence": "Evidence/LinuxHost/2026-10-19-native-paste-key-observer/passed/",
+  "baseline_command": "python3 -B Scripts/linux/observe-original-paste-keys.py --check-baseline",
+  "baseline_check_exit_code": 0
+}

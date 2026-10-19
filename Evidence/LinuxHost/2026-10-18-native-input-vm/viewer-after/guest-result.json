@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "scope": "private-root-host-viewer-viewer-notice",
+  "result": "pass",
+  "full_farpane_input_tested": false,
+  "host_input_exposed": false,
+  "kernel": "7.0.0-38-generic",
+  "boot_id": "cb318371-74b7-4ab1-8c01-771e60b643ec",
+  "machine": "Standard PC (Q35 + ICH9, 2009)",
+  "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1",
+  "uinput": {
+    "device_name": "FarPane private VM kernel probe",
+    "events": [
+      [
+        1,
+        30,
+        1
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        30,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "input_kernel": "private-guest"
+  },
+  "service": {
+    "scope": "private-root-host-viewer-viewer-notice",
+    "session_provider": "controlled-loginctl",
+    "core_sha256": "c57fc5dd5755c2caf6e7780d5bf2cc33459b1629949079d2d9eedb17fcf62f6b",
+    "input_text_sent": false,
+    "host_input_exposed": false,
+    "result": "pass",
+    "roles": [
+      {
+        "pid": 262,
+        "uid": 0,
+        "role": "--service"
+      },
+      {
+        "pid": 294,
+        "uid": 1000,
+        "role": "--server"
+      }
+    ],
+    "product_keyboard": "event3",
+    "desktop": {
+      "connected": true,
+      "tray_registered": false,
+      "notifications_available": false,
+      "notification_actions": false,
+      "detail": "\u5f53\u524d\u684c\u9762\u6ca1\u6709\u53ef\u7528\u901a\u77e5\u670d\u52a1\uff0c\u53ef\u4ece\u5e94\u7528\u83dc\u5355\u67e5\u770b\u8bf7\u6c42"
+    },
+    "host_enabled": true,
+    "mutter_input_fds": [],
+    "viewer_presented": false,
+    "selection_notice_nonterminal": true
+  }
+}

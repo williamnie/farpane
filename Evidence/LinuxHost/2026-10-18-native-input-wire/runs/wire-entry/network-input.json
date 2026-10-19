@@ -1,0 +1,60 @@
+{
+  "result": "fail",
+  "transport": "private-direct-TCP-protocol-peer",
+  "seq_flags": {
+    "down": false,
+    "press": false,
+    "mode": "Legacy",
+    "modifiers": []
+  },
+  "target": "entry",
+  "video_packets": 31,
+  "message_boxes": 0,
+  "cases": [],
+  "events": [
+    [
+      1,
+      56,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      15,
+      1
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      15,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      56,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ]
+  ],
+  "host_input_exposed": false,
+  "mac_gui_tested": false,
+  "incorrect_password_rejected": true,
+  "authenticated": true
+}

@@ -1,0 +1,22 @@
+{
+  "result": "pass",
+  "checks": [
+    "archive_sha256_and_complete_extracted_source_manifest",
+    "gui_candidate_receipt_canonical_and_prepared_sources_match",
+    "empty_cargo_home_offline_core_graph_inside_snapshot",
+    "empty_cargo_home_offline_gui_graph_inside_snapshot"
+  ],
+  "archive_sha256": "dbe0e861a6f1fa966d2b4476a7424be0ad0e6c2acdbe1cc67ea927f37bc9e119",
+  "source_entries": 91491,
+  "cargo_graph_packages": {
+    "core": 666,
+    "gui": 71
+  },
+  "repository_mounted": false,
+  "compiler_cache_mounted": false,
+  "network": "none",
+  "full_gui_release_build": false,
+  "full_native_media_build": false,
+  "complete_license_source_audit": false,
+  "host_modified": false
+}

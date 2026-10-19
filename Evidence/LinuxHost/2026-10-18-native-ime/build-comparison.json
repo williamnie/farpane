@@ -1,0 +1,14 @@
+{
+  "native_core_changed": true,
+  "native_gui_reused_identical_bytes": true,
+  "binaries": {
+    "native-core": "1ccf41204b3adc9575e1359634ed66001f1e31edf8bc19ed393672cb728dfa2f",
+    "native-gui": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421"
+  },
+  "source_changes": [
+    "Linux/dependencies.lock.json",
+    "Linux/native/discovery.rs"
+  ],
+  "ffmpeg_rebuilt": false,
+  "installed": false
+}

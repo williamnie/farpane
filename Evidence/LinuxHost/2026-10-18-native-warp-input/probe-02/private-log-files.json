@@ -1,0 +1,6 @@
+[
+  {
+    "path": "state/warp-terminal/warp.log",
+    "text": "2026-10-18T09:00:56Z [INFO] Parent has crashed; continuing execution.\n2026-10-18T09:00:56Z [INFO] Spawning terminal server process...\n2026-10-18T09:00:56Z [INFO] Running terminal server...\n2026-10-18T09:00:56Z [INFO] Failed loading `libxkbcommon-x11.so.0`. Error: CantOpen(DlOpen { desc: \"libxkbcommon-x11.so.0: cannot open shared object file: No such file or directory\" })\n2026-10-18T09:00:56Z [INFO] Failed loading `libxkbcommon-x11.so`. Error: CantOpen(DlOpen { desc: \"libxkbcommon-x11.so: cannot open shared object file: No such file or directory\" })\n2026-10-18T09:00:56Z [ERROR] thread 'main' panicked at 'Library libxkbcommon-x11.so could not be loaded.': /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xkbcommon-dl-0.4.2/src/x11.rs:59\n   0: <unknown>\n   1: <unknown>\n   2: <unknown>\n   3: <unknown>\n   4: <unknown>\n   5: <unknown>\n   6: <unknown>\n   7: <unknown>\n   8: <unknown>\n   9: <unknown>\n  10: <unknown>\n  11: <unknown>\n  12: <unknown>\n  13: <unknown>\n  14: <unknown>\n  15: <unknown>\n  16: <unknown>\n  17: <unknown>\n  18: <unknown>\n  19: <unknown>\n  20: <unknown>\n  21: <unknown>\n  22: <unknown>\n  23: __libc_start_main\n  24: <unknown>\n\n2026-10-18T09:00:56Z [INFO] Received empty message; assuming the connection has been closed."
+  }
+]

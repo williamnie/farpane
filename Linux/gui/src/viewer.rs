@@ -21,6 +21,7 @@ pub struct View {
     bridge: Bridge,
     model: RefCell<Model>,
     status: gtk::Label,
+    toolbar_toggle: gtk::ToggleButton,
     picture: gtk::Picture,
     canvas: gtk::Stack,
     gpu: Rc<crate::gpu_renderer::View>,
@@ -150,9 +151,31 @@ impl View {
             }
         });
         header.pack_end(&fullscreen);
+        let toolbar_toggle = gtk::ToggleButton::builder()
+            .icon_name("pan-up-symbolic")
+            .tooltip_text("收起工具栏")
+            .build();
+        toolbar_toggle.set_widget_name("viewer-toolbar-toggle");
+        header.pack_end(&toolbar_toggle);
         header.pack_end(&host.sessions_button());
         root.append(&header);
-        let toolbar = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        let tools = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        let toolbar_revealer = gtk::Revealer::builder()
+            .reveal_child(true)
+            .transition_type(gtk::RevealerTransitionType::None)
+            .child(&tools)
+            .build();
+        toolbar_revealer.set_widget_name("viewer-toolbar");
+        // Keep all controls available at the user's window width, including
+        // the retry button that appears after a connection failure.
+        let toolbar = gtk::FlowBox::builder()
+            .selection_mode(gtk::SelectionMode::None)
+            .homogeneous(false)
+            .min_children_per_line(1)
+            .max_children_per_line(12)
+            .column_spacing(6)
+            .row_spacing(6)
+            .build();
         toolbar.set_margin_start(16);
         toolbar.set_margin_end(16);
         toolbar.set_margin_top(8);
@@ -204,7 +227,14 @@ impl View {
         toolbar.append(&metrics);
         let diagnostics = crate::diagnostics::Log::new();
         toolbar.append(&diagnostics.button());
-        root.append(&toolbar);
+        // The controls own keyboard focus; wrapper rows must not add an
+        // extra stop that cannot activate the button inside them.
+        let mut child = toolbar.first_child();
+        while let Some(row) = child {
+            row.set_focusable(false);
+            child = row.next_sibling();
+        }
+        tools.append(&toolbar);
         let recovery_toggle =
             gtk::CheckButton::with_label("断线后使用系统密码库自动重连（最多 4 次）");
         recovery_toggle.set_widget_name("viewer-auto-reconnect");
@@ -212,7 +242,8 @@ impl View {
         recovery_toggle.set_margin_bottom(6);
         recovery_toggle.set_tooltip_text(Some("仅对当前设备和服务器生效。没有已保存密码、密码库锁定或需要再次确认时停止；取消勾选可随时关闭。"));
         recovery_toggle.set_active(recovery.enabled());
-        root.append(&recovery_toggle);
+        tools.append(&recovery_toggle);
+        root.append(&toolbar_revealer);
         let authentication = gtk::Box::new(gtk::Orientation::Vertical, 12);
         authentication.add_css_class("card");
         authentication.set_halign(gtk::Align::Center);
@@ -257,6 +288,7 @@ impl View {
             bridge,
             model: RefCell::new(model),
             status,
+            toolbar_toggle: toolbar_toggle.clone(),
             picture,
             canvas,
             gpu,
@@ -318,6 +350,31 @@ impl View {
                 secret_cancelled: false,
                 secret_confirmed: false,
             })),
+        });
+        let weak = Rc::downgrade(&view);
+        toolbar_toggle.connect_toggled(move |button| {
+            let collapsed = button.is_active();
+            button.set_icon_name(if collapsed {
+                "pan-down-symbolic"
+            } else {
+                "pan-up-symbolic"
+            });
+            button.set_tooltip_text(Some(if collapsed {
+                "展开工具栏"
+            } else {
+                "收起工具栏"
+            }));
+            // Changing the image allocation must not carry held input or a
+            // shortcut inhibitor into the next coordinate transform.
+            if let Some(view) = weak.upgrade() {
+                if let Some(input) = view.input.borrow().as_ref() {
+                    input.release();
+                }
+            }
+            toolbar_revealer.set_reveal_child(!collapsed);
+            // With transition type None the revealer can retain its measured
+            // height. Remove it from layout as well as hiding its children.
+            toolbar_revealer.set_visible(!collapsed);
         });
         let ready = Rc::downgrade(&view);
         let painted = Rc::downgrade(&view);
@@ -641,6 +698,9 @@ impl View {
                     *self.peer_name.borrow_mut() = name;
                 }
                 EventKind::Phase { phase, detail } => {
+                    if phase != Phase::Streaming {
+                        self.toolbar_toggle.set_active(false);
+                    }
                     if phase == Phase::Authenticating && self.challenge.get() == 1 {
                         // Password submission or remote manual approval ends
                         // the previous password prompt. Preserve any already
@@ -1230,6 +1290,7 @@ impl View {
         self.fail_with_recovery(error, false);
     }
     fn fail_with_recovery(&self, error: &str, retryable: bool) {
+        self.toolbar_toggle.set_active(false);
         self.recovery_lookup.borrow_mut().take();
         self.recovery.terminal(self.bridge.session, retryable);
         self.cursors.clear();

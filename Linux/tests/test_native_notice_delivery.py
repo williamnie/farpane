@@ -69,6 +69,27 @@ class NoticeDeliveryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.verify({'Linux/gui/src/main.rs': 'd'*64})
 
+    def test_gui_update_preserves_audited_materials_and_open_items(self):
+        original = self.assemble()
+        changed = {'Linux/gui/src/main.rs': 'd'*64}
+        updated = delivery.rebind_gui_sources(self.target, changed, self.pins)
+        self.assertEqual(updated['files'], original['files'])
+        self.assertEqual(updated['audited_binary_sha256'], original['audited_binary_sha256'])
+        self.assertEqual(updated['records_without_full_notice_followup'], 1)
+        self.assertFalse(updated['complete_license_source_audit'])
+        self.assertEqual(self.verify(changed), updated)
+        with self.assertRaises(ValueError):
+            self.verify()
+
+    def test_gui_update_cannot_replace_the_original_inventory_source_map(self):
+        self.assemble()
+        changed = {'Linux/gui/src/main.rs': 'd'*64}
+        updated = delivery.rebind_gui_sources(self.target, changed, self.pins)
+        updated['gui_source_update']['base_sources']['Linux/gui/src/main.rs'] = 'e'*64
+        write(self.target/'manifest.json', updated)
+        with self.assertRaises(ValueError):
+            self.verify(changed)
+
     def test_different_notice_pins_rejected(self):
         self.assemble()
         with self.assertRaises(ValueError):

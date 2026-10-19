@@ -1,0 +1,224 @@
+{
+  "result": "pass",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+  "guest": {
+    "schema": 1,
+    "scope": "private-systemd-native-maintenance",
+    "result": "pass",
+    "full_farpane_input_tested": false,
+    "host_input_exposed": false,
+    "kernel": "7.0.0-38-generic",
+    "boot_id": "76a22423-a479-47a1-ad38-f73bf5c3d76b",
+    "machine": "Standard PC (Q35 + ICH9, 2009)",
+    "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3",
+    "checks": [
+      "real_systemd_logind_gnome_session",
+      "real_deb_initial_activation_user_bind_and_gui_bus_owner",
+      "deb_upgrade_stages_without_touching_real_live_generation",
+      "real_systemd_upgrade_replaces_root_host_gui_preserves_identity_and_entries",
+      "real_systemd_and_user_entry_rollback_restores_previous_generation",
+      "real_package_purge_retains_running_generation_credentials_and_unrelated_unit"
+    ],
+    "generations": [
+      {
+        "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+        "processes": [
+          {
+            "pid": 752,
+            "uid": 0,
+            "role": "--service",
+            "start": "2678"
+          },
+          {
+            "pid": 783,
+            "uid": 1000,
+            "role": "--server",
+            "start": "2898"
+          }
+        ]
+      },
+      {
+        "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+        "processes": [
+          {
+            "pid": 752,
+            "uid": 0,
+            "role": "--service",
+            "start": "2678"
+          },
+          {
+            "pid": 783,
+            "uid": 1000,
+            "role": "--server",
+            "start": "2898"
+          },
+          {
+            "pid": 836,
+            "uid": 1000,
+            "role": "gui",
+            "start": "2908"
+          }
+        ]
+      },
+      {
+        "release": "farpane-native-dev-d393fd0cff634416807feae5",
+        "processes": [
+          {
+            "pid": 1109,
+            "uid": 0,
+            "role": "--service",
+            "start": "4989"
+          },
+          {
+            "pid": 1147,
+            "uid": 1000,
+            "role": "--server",
+            "start": "5203"
+          }
+        ]
+      },
+      {
+        "release": "farpane-native-dev-d393fd0cff634416807feae5",
+        "processes": [
+          {
+            "pid": 1109,
+            "uid": 0,
+            "role": "--service",
+            "start": "4989"
+          },
+          {
+            "pid": 1147,
+            "uid": 1000,
+            "role": "--server",
+            "start": "5203"
+          },
+          {
+            "pid": 1230,
+            "uid": 1000,
+            "role": "gui",
+            "start": "5264"
+          }
+        ]
+      },
+      {
+        "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+        "processes": [
+          {
+            "pid": 1311,
+            "uid": 0,
+            "role": "--service",
+            "start": "5661"
+          },
+          {
+            "pid": 1350,
+            "uid": 1000,
+            "role": "--server",
+            "start": "5877"
+          }
+        ]
+      },
+      {
+        "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+        "processes": [
+          {
+            "pid": 1311,
+            "uid": 0,
+            "role": "--service",
+            "start": "5661"
+          },
+          {
+            "pid": 1350,
+            "uid": 1000,
+            "role": "--server",
+            "start": "5877"
+          },
+          {
+            "pid": 1406,
+            "uid": 1000,
+            "role": "gui",
+            "start": "5905"
+          }
+        ]
+      }
+    ],
+    "logind": {
+      "Id": "c1",
+      "User": "1000",
+      "Active": "yes",
+      "Type": "wayland",
+      "Class": "user",
+      "Seat": "seat0",
+      "Leader": "229"
+    },
+    "gui_activation": [
+      {
+        "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+        "method": "org.freedesktop.Application.Activate",
+        "bus_owner_pid": 836
+      },
+      {
+        "release": "farpane-native-dev-d393fd0cff634416807feae5",
+        "method": "org.freedesktop.Application.Activate",
+        "bus_owner_pid": 1230
+      },
+      {
+        "release": "farpane-native-dev-bfc1befc221061266d5f50da",
+        "method": "org.freedesktop.Application.Activate",
+        "bus_owner_pid": 1406
+      }
+    ],
+    "after_package_upgrade_processes": [
+      {
+        "pid": 752,
+        "uid": 0,
+        "role": "--service",
+        "start": "2678"
+      },
+      {
+        "pid": 783,
+        "uid": 1000,
+        "role": "--server",
+        "start": "2898"
+      },
+      {
+        "pid": 836,
+        "uid": 1000,
+        "role": "gui",
+        "start": "2908"
+      }
+    ],
+    "initial_artifact": "farpane-native-dev-bfc1befc221061266d5f50da",
+    "upgraded_artifact": "farpane-native-dev-d393fd0cff634416807feae5",
+    "credential_fields_compared": [
+      "enc_id",
+      "key_pair",
+      "password",
+      "salt"
+    ],
+    "credentials_unchanged": true,
+    "private_packages": [
+      {
+        "file": "0.deb",
+        "source": "/workspace/Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.1_amd64.deb",
+        "sha256": "9960dfb15c170d66c23677c006f9c37633f4c9ccf47cd72ab0e1809e8fc353e9"
+      },
+      {
+        "file": "1.deb",
+        "source": "/workspace/Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.3_amd64.deb",
+        "sha256": "476f189cac60495be8b54fad2e0c8070bf904cdfa3420af7af1baa72f68bea64"
+      }
+    ],
+    "network": "none",
+    "real_remote_connection_tested": false,
+    "input_tested": false,
+    "gpu_tested": false
+  },
+  "separate_kernel_verified": true,
+  "network": "none",
+  "host_devices_exposed": [
+    "/dev/kvm"
+  ],
+  "host_display": false,
+  "real_farpane_input_accepted": false
+}

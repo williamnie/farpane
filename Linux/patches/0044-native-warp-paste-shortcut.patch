@@ -1,0 +1,52 @@
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -2079,7 +2079,7 @@
+ }
+ 
+ /// Input text via clipboard + Shift+Insert in server process.
+-/// Shift+Insert is more universal than Ctrl+V, works in both GUI apps and terminals.
++/// Native builds select a focused-application chord; other builds use Shift+Insert.
+ ///
+ /// Note: Clipboard content is NOT restored after paste - see `set_clipboard_for_paste_sync` for rationale.
+ #[cfg(target_os = "linux")]
+@@ -2101,19 +2101,27 @@
+     #[cfg(feature = "farpane-native")]
+     fix_modifiers(&[], en, -1);
+ 
+-    // Use ENIGO's custom_keyboard directly to avoid creating new IPC connections
+-    // which would cause excessive logging and keyboard device creation/destruction
+-    if en.key_down(Key::Shift).is_err() {
+-        log::error!("input_text_via_clipboard_server: failed to press Shift, skipping paste");
+-        return;
+-    }
+-    if en.key_down(Key::Raw(XKB_KEY_INSERT)).is_err() {
+-        log::error!("input_text_via_clipboard_server: failed to press Insert, releasing Shift");
+-        en.key_up(Key::Shift);
+-        return;
+-    }
+-    en.key_up(Key::Raw(XKB_KEY_INSERT));
+-    en.key_up(Key::Shift);
++    // Warp's default bindings do not accept Shift+Insert. Select exactly one
++    // chord from the current focus; never blindly send both (duplicate paste).
++    #[cfg(feature = "farpane-native")]
++    let shortcut = crate::farpane_native::paste_target::current();
++    #[cfg(feature = "farpane-native")]
++    let keys = shortcut.keys();
++    #[cfg(not(feature = "farpane-native"))]
++    let keys = vec![Key::Shift, Key::Raw(XKB_KEY_INSERT)];
++    #[cfg(feature = "farpane-native")]
++    log::debug!("Native committed text: paste shortcut {:?}", shortcut);
++
++    // Reuse the existing custom keyboard transport. A failed press may have
++    // been delivered: release it and preceding keys, without replaying input.
++    for (index, key) in keys.iter().enumerate() {
++        if en.key_down(key.clone()).is_err() {
++            for pressed in keys[..=index].iter().rev() { en.key_up(pressed.clone()); }
++            log::error!("input_text_via_clipboard_server: paste key press failed");
++            return;
++        }
++    }
++    for key in keys.iter().rev() { en.key_up(key.clone()); }
+     #[cfg(feature = "farpane-native")]
+     log::debug!("Native committed text: paste key sequence queued");
+ 

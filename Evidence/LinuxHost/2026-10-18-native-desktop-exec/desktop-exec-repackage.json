@@ -1,0 +1,31 @@
+{
+  "artifact": "/home/user/farpane/Build/Linux/artifacts/farpane-native-dev-ec305482eaacd98258e28587",
+  "artifact_id": "farpane-native-dev-ec305482eaacd98258e28587",
+  "manifest_sha256": "ea282757ad9874d244c84fac80d72ea8ecf66c9c06126e42d3f29e54cb312db3",
+  "changed_paths": [
+    "build.json",
+    "share/applications/org.farpane.FarPane.desktop",
+    "source/Linux/packaging/org.farpane.FarPane.desktop.in",
+    "source/Scripts/linux/repackage-native-desktop.py"
+  ],
+  "provenance": {
+    "schema": 1,
+    "parent_artifact": "farpane-native-dev-d393fd0cff634416807feae5",
+    "parent_manifest_sha256": "7ec4f7e64dc80688225c5398f99d3f2931f9f2e6346f115469a64defb4b69ebd",
+    "parent_build_sha256": "eaa72ecbf8d01caca4877f32fed2fdbdbed0718599b68091391f5e0ff28b78ec",
+    "canonical_template": {
+      "Linux/packaging/org.farpane.FarPane.desktop.in": "6fcff770d4d01f713a55bb87a5f73bb13e8b20f2a788a661c8d624cbfa252486"
+    },
+    "recipe": {
+      "Scripts/linux/repackage-native-desktop.py": "dff5cb79055be715663a42ca890ebbedff6934fa239e64aa4fd496e59e202354"
+    },
+    "application_rebuilt": false,
+    "preserved_binaries": {
+      "farpane": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421",
+      "libexec/farpane-core": "c57fc5dd5755c2caf6e7780d5bf2cc33459b1629949079d2d9eedb17fcf62f6b",
+      "lib/libdrmtap.so.0.5.8": "f583791f617d5ad113c65a2247a84bcc15de235fd5c2459a10bbdddcc6a38f0d"
+    }
+  },
+  "installed": false,
+  "runtime_ready": false
+}

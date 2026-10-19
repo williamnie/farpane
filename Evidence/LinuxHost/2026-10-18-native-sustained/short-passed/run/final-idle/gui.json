@@ -1,0 +1,27 @@
+{
+  "pid": 62,
+  "start_ticks": 2935660,
+  "pss_kib": 134659,
+  "uss_kib": 105252,
+  "rss_kib": 187108,
+  "swap_pss_kib": 0,
+  "cpu_ticks": 125,
+  "threads": 54,
+  "fds": {
+    "0": "/dev/null",
+    "1": "/output/run/sustained-gui.log",
+    "2": "/output/run/sustained-gui.log",
+    "3": "anon_inode:[eventfd]",
+    "4": "anon_inode:[eventfd]",
+    "5": "socket:[2069279]",
+    "6": "anon_inode:[eventfd]",
+    "7": "socket:[2069281]",
+    "8": "/memfd:allocation fd (deleted)",
+    "9": "socket:[2072566]",
+    "11": "/run/farpane-native-test/user/state/farpane/native/viewer.lock",
+    "12": "/run/farpane-native-test/user/state/farpane/native/viewer.log"
+  },
+  "fd_count": 12,
+  "children": [],
+  "frame_mappings": []
+}

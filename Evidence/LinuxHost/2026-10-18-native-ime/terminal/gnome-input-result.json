@@ -1,0 +1,13 @@
+{
+  "actual_mutter_wayland": true,
+  "checks": [
+    "missing-display-reproduced",
+    "managed-socket-preserved",
+    "chinese-paste",
+    "mixed-ascii-cjk-emoji",
+    "no-duplicates"
+  ],
+  "host_input_exercised": false,
+  "network_input_exercised": false,
+  "result": "pass"
+}

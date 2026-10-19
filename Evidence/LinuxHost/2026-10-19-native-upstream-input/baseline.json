@@ -1,0 +1,17 @@
+{
+  "package": "rustdesk-unattended-wayland",
+  "version": "1.5.0",
+  "original_core_sha256": "b7908e555b0ad96f78b6398a470be0f0c9e07f3ccedb8acfb9ee565c63312896",
+  "matches_prior_experiment_original": true,
+  "farpane_core_sha256": "c403acbf2caa5d49d531f1f8cff30ebc248605a0e852c8367d4b14f9eeb4ee01",
+  "farpane_release": "farpane-native-dev-9a76a6c2af66e3955470ea24",
+  "user_comparison": {
+    "same_mac_client": true,
+    "same_linux-host": true,
+    "same_target_application": true,
+    "original_input_works": true,
+    "farpane_input_fails": true
+  },
+  "original_success_session_backend": "not yet identified",
+  "service_or_configuration_changed": false
+}

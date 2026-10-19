@@ -1,0 +1,38 @@
+{
+  "observed_utc": "2026-10-19T02:08:33.911479+00:00",
+  "processes": [
+    {
+      "pid": 1597708,
+      "uid": 0,
+      "role": "--service",
+      "start_ticks": 8902809,
+      "argv0": "/usr/bin/rustdesk",
+      "mapped_core": true
+    },
+    {
+      "pid": 1597935,
+      "uid": 1000,
+      "role": "--server",
+      "start_ticks": 8902918,
+      "argv0": "/usr/share/rustdesk/rustdesk",
+      "mapped_core": true
+    },
+    {
+      "pid": 1597943,
+      "uid": 1000,
+      "role": "--tray",
+      "start_ticks": 8902923,
+      "argv0": "/usr/share/rustdesk/rustdesk",
+      "mapped_core": true
+    },
+    {
+      "pid": 1598067,
+      "uid": 1000,
+      "role": "gui-or-other",
+      "start_ticks": 8902929,
+      "argv0": "/usr/share/rustdesk/rustdesk",
+      "mapped_core": true
+    }
+  ],
+  "plaintext_ids": []
+}

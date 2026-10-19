@@ -1,0 +1,36 @@
+{
+  "result": "pass",
+  "checks": [
+    "two-endpoints-each-inbound-and-outbound-present-new-frames",
+    "host-disable-stops-new-direct-connections",
+    "host-disable-preserves-existing-inbound-and-outbound-workers",
+    "host-reenable-preserves-both-streams",
+    "disconnect-inbound-does-not-kill-local-outbound",
+    "peer-reconnect-restores-coexistence",
+    "gui-own-bus-loss-exits-within-bound",
+    "gui-bus-loss-reaps-outbound-and-preserves-same-inbound-with-fresh-pixels",
+    "replacement-gui-bus-has-new-identity",
+    "reopened-home-attaches-same-host-with-live-inbound",
+    "both-guis-exit-workers-reaped-hosts-and-identities-preserved"
+  ],
+  "host_pids": {
+    "a": 28,
+    "b": 76
+  },
+  "private_uids": {
+    "a": 2201,
+    "b": 2202
+  },
+  "gpu": false,
+  "gui_bus_fault": true,
+  "gui_exit_on_bus_loss": -15,
+  "gui_bus_ids": [
+    "('24eeed3e9c9ab15b566d17066ad4944c',)",
+    "('b0c8f25e95ba637095d092eb6ad49458',)"
+  ],
+  "host_switch_control": "authenticated config-cli",
+  "inbound_disconnect": "actual GUI button",
+  "gui_controls": "external XTest",
+  "system_service_tested": false,
+  "real_desktop_tested": false
+}

@@ -1,0 +1,42 @@
+{
+  "result": "pass",
+  "checks": [
+    "held-key-released",
+    "toolbar-hidden",
+    "picture-expanded",
+    "disconnect-remains-visible",
+    "fresh-video-while-collapsed",
+    "expand-restores-layout",
+    "pointer-mapping-after-both-resizes",
+    "worker-failure-reveals-retry",
+    "return-home-preserves-host"
+  ],
+  "original_picture": [
+    0.0,
+    132.0,
+    790.0,
+    421.0
+  ],
+  "logical_size": [
+    800,
+    600
+  ],
+  "scale": 1,
+  "physical_geometry": [
+    0,
+    0,
+    865,
+    600
+  ],
+  "collapsed_picture": [
+    0.0,
+    47.0,
+    790.0,
+    506.0
+  ],
+  "software_only": true,
+  "host_preserved": true,
+  "real_desktop_tested": false,
+  "chinese_input_tested": false,
+  "memory_optimization": false
+}

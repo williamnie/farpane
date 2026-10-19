@@ -1,0 +1,19 @@
+{
+  "result": "pass",
+  "integration_checks": [
+    "actual_peer_uid_and_executable_mismatch_rejected",
+    "live_idle_host_accepted",
+    "real_inbound_video_and_media_owners_block_probe",
+    "idle_only_after_real_media_resources_drain",
+    "repeated_observations_retain_no_descriptors",
+    "exited_host_is_unknown_not_idle"
+  ],
+  "samples": 314,
+  "idle_samples": 191,
+  "busy_samples": 123,
+  "observer_fd_count": 5,
+  "unit_tests": 11,
+  "application_changed": false,
+  "gpu_started": false,
+  "memory_target_met": false
+}

@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/home/user/farpane/Scripts/linux/verify-published-notices.py", line 24, in <module>
+    if args.source_snapshot else native_published_notices.verify(args.artifact))
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/user/farpane/Linux/packaging/native_published_notices.py", line 218, in verify
+    raise ValueError('Existing followup baseline differs')
+ValueError: Existing followup baseline differs

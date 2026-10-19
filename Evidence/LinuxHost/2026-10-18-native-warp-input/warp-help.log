@@ -1,0 +1,70 @@
+Normal argument parser for the shared Warp executable across all channels.
+
+Oz commands are subcommands of this parser, so invoking an `oz` symlink does not require a mode flag. Warp Control uses its separate [`local_control::ControlArgs`] parser, selected before this parser sees the arguments.
+
+Usage: warp [OPTIONS] [COMMAND]
+
+Commands:
+  agent                               Interact with Oz
+  environment                         Manage cloud environments [aliases: e]
+  mcp                                 Manage MCP servers
+  run                                 Manage runs
+  model                               Manage available models
+  memory-store                        Manage memory stores
+  memory                              Manage memories
+  login                               Log in to Warp
+  logout                              Log out of Warp
+  whoami                              Print information about the logged-in user
+  integration                         Manage integrations [aliases: i]
+  schedule                            Create and manage scheduled Oz agents. Scheduled agents run a user-defined task periodically, according to a cron schedule
+  secret                              Manage secrets
+  federate                            Issue and manage federated identity tokens
+  artifact                            Manage artifacts
+  api-key                             Manage API keys
+  runner                              Manage cloud agent runners
+  completions                         Generate shell completions for your shell to stdout.
+  dump-debug-info, --dump-debug-info  Print debugging information and exit
+  dump-settings-schema                Print the JSON schema for the current Warp channel's settings and exit
+  help                                Print this message or the help of the given subcommand(s)
+
+Options:
+      --api-key <API_KEY>
+          API key for server authentication
+          
+          [env: WARP_API_KEY]
+
+      --output-format <OUTPUT_FORMAT>
+          Set the output format
+
+          Possible values:
+          - json:   Output as JSON
+          - ndjson: Output as newline-delimited JSON
+          - pretty: Output as human-readable text
+          - text:   Output as plain text
+          
+          [env: WARP_OUTPUT_FORMAT=]
+          [default: pretty]
+
+      --debug
+          Enable debug logging
+
+      --crash-recovery-mechanism <CRASH_RECOVERY_MECHANISM>
+          Crash recovery mechanism to use if we detect the parent process terminated
+          
+          [possible values: force-x11, force-dedicated-gpu, disable-opengl, force-vulkan]
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+
+Examples:
+
+  $ warp agent run --prompt "Build anything"
+
+  $ warp mcp list
+
+Learn more:
+* Use warp help to learn more about each command
+* Read the documentation at https://docs.warp.dev/reference/cli

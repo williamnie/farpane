@@ -43,4 +43,4 @@ Scripts/linux/test-native-deb.sh FIRST.deb UPGRADE.deb ubuntu-24.04
 
 输入限于 `Build/Linux/debian/`，测试只在既有隔离容器执行。实际记录与哈希见 [Debian 候选包证据](../../Evidence/LinuxHost/2026-10-17-native-deb/README.md)。上述早期检查未安装到 linux-host；最新原生实机切换另见本文开头的维护记录。
 
-这不是 Debian 13、Fedora/RPM、真实 GNOME/KDE/Wayland、硬件媒体、长稳或完整内存验收。正式发布仍需完整依赖许可证/对应源码与 Linux CI；当前 bundle 的既有源码和新控制脚本不能替代完整发布审计。
+上述早期检查不包含 Debian 13。2026-10-18 的现有 `.20261018.2` 候选另已通过 [Debian 13 用户态运行与真实 dpkg 事务检查](native-debian13.md)，包括 `.20261018.1 → .20261018.2` 升级与软件连接。Fedora/RPM、各发行版真实 GNOME/KDE/Wayland、硬件媒体、长稳或完整内存验收仍保留。正式发布仍需完整依赖许可证/对应源码与 Linux CI；当前 bundle 的既有源码和新控制脚本不能替代完整发布审计。

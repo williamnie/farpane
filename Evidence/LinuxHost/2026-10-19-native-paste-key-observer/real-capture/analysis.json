@@ -1,0 +1,43 @@
+{
+  "user_result": "submitted_but_no_text",
+  "user_target": "Ubuntu Chrome via Mac FarPane",
+  "complete_shift_insert_chords": [
+    {
+      "event_index": 2,
+      "duration_us": 60,
+      "insert_down_to_up_us": 13
+    },
+    {
+      "event_index": 6,
+      "duration_us": 143,
+      "insert_down_to_up_us": 43
+    },
+    {
+      "event_index": 10,
+      "duration_us": 83,
+      "insert_down_to_up_us": 19
+    },
+    {
+      "event_index": 14,
+      "duration_us": 59,
+      "insert_down_to_up_us": 13
+    },
+    {
+      "event_index": 18,
+      "duration_us": 62,
+      "insert_down_to_up_us": 13
+    }
+  ],
+  "allowed_key_events": 22,
+  "control_alt_meta_events": 0,
+  "other_shift_events": 2,
+  "ended": {
+    "schema": 1,
+    "event": "ended",
+    "elapsed_ms": 30000,
+    "reason": "time_limit",
+    "allowed_events": 22,
+    "incomplete_frame": false
+  },
+  "limits": "evdev delivery is not desktop/application consumption; no original-success capture yet"
+}

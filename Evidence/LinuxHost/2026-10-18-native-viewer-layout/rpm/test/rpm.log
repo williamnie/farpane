@@ -1,0 +1,66 @@
+{"argv": ["rpm", "-qp", "--scripts", "/workspace/Build/Linux/rpm/farpane-native-candidate-0.1.0~dev.20261018.6-1.fc44.x86_64.rpm"], "exit": 0}
+{"argv": ["rpm", "-qp", "--provides", "/workspace/Build/Linux/rpm/farpane-native-candidate-0.1.0~dev.20261018.6-1.fc44.x86_64.rpm"], "exit": 0}
+farpane-native-candidate = 0.1.0~dev.20261018.6-1.fc44
+farpane-native-candidate(x86-64) = 0.1.0~dev.20261018.6-1.fc44
+{"argv": ["rpm", "-qp", "--scripts", "/workspace/Build/Linux/rpm/farpane-native-candidate-0.1.0~dev.20261018.7-1.fc44.x86_64.rpm"], "exit": 0}
+{"argv": ["rpm", "-qp", "--provides", "/workspace/Build/Linux/rpm/farpane-native-candidate-0.1.0~dev.20261018.7-1.fc44.x86_64.rpm"], "exit": 0}
+farpane-native-candidate = 0.1.0~dev.20261018.7-1.fc44
+farpane-native-candidate(x86-64) = 0.1.0~dev.20261018.7-1.fc44
+{"argv": ["rpm", "--install", "/workspace/Build/Linux/rpm/farpane-native-candidate-0.1.0~dev.20261018.6-1.fc44.x86_64.rpm"], "exit": 0}
+{"argv": ["rpm", "--verify", "farpane-native-candidate"], "exit": 0}
+{"argv": ["/usr/bin/farpane-maintenance", "--help"], "exit": 0}
+usage: install-native.py [-h] {stage,plan,activate,recover} ...
+
+Stage/inspect a native release; activate or recover only in a maintenance
+window.
+
+positional arguments:
+  {stage,plan,activate,recover}
+
+options:
+  -h, --help            show this help message and exit
+{"argv": ["/usr/bin/farpane-user-integration", "--help"], "exit": 0}
+usage: install-native-user.py [-h] {bind,recover,rollback} ...
+
+Bind this user's FarPane menu/icons/D-Bus after system activation; never
+launch.
+
+positional arguments:
+  {bind,recover,rollback}
+
+options:
+  -h, --help            show this help message and exit
+{"argv": ["/usr/bin/farpane-maintenance", "stage", "/usr/lib64/farpane-native-candidate/payload"], "exit": 0}
+{
+  "artifact_id": "farpane-native-dev-532627a818c8f7d0e65df626",
+  "staged": true,
+  "active": false,
+  "current": "farpane-retained-test"
+}
+{"argv": ["rpm", "--upgrade", "/workspace/Build/Linux/rpm/farpane-native-candidate-0.1.0~dev.20261018.7-1.fc44.x86_64.rpm"], "exit": 0}
+{"argv": ["rpm", "--verify", "farpane-native-candidate"], "exit": 0}
+{"argv": ["rpm", "-q", "--qf", "%{VERSION}-%{RELEASE}", "farpane-native-candidate"], "exit": 0}
+0.1.0~dev.20261018.7-1.fc44{"argv": ["rpm", "-qp", "--qf", "%{VERSION}-%{RELEASE}", "/workspace/Build/Linux/rpm/farpane-native-candidate-0.1.0~dev.20261018.7-1.fc44.x86_64.rpm"], "exit": 0}
+0.1.0~dev.20261018.7-1.fc44{"argv": ["/usr/bin/farpane-maintenance", "stage", "/usr/lib64/farpane-native-candidate/payload"], "exit": 1}
+Traceback (most recent call last):
+  File "/usr/lib64/farpane-native-candidate/control/Scripts/linux/install-native.py", line 40, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/usr/lib64/farpane-native-candidate/control/Scripts/linux/install-native.py", line 30, in main
+    if args.command=='stage':result=store.stage(args.artifact.absolute())
+                                    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/farpane-native-candidate/control/Linux/packaging/native_install.py", line 242, in stage
+    self.no_pending()
+    ~~~~~~~~~~~~~~~^^
+  File "/usr/lib64/farpane-native-candidate/control/Linux/packaging/native_install.py", line 238, in no_pending
+    if self.journal.exists() or self.journal.is_symlink():raise ValueError('An installation transaction requires recovery')
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: An installation transaction requires recovery
+{"argv": ["/usr/bin/farpane-maintenance", "stage", "/usr/lib64/farpane-native-candidate/payload"], "exit": 0}
+{
+  "artifact_id": "farpane-native-dev-58e533b081afae50b9c8e8a5",
+  "staged": true,
+  "active": false,
+  "current": "farpane-retained-test"
+}
+{"argv": ["rpm", "--erase", "farpane-native-candidate"], "exit": 0}

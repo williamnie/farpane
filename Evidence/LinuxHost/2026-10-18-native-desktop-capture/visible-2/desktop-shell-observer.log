@@ -1,0 +1,794 @@
+[
+  {
+    "seconds": 3.413556,
+    "event": "enabled",
+    "windows": []
+  },
+  {
+    "seconds": 8.763309,
+    "event": "installed",
+    "windows": []
+  },
+  {
+    "seconds": 30.559393,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": null,
+        "gtk_app_id": null,
+        "app_id": "window:1",
+        "window_backed": true,
+        "app_icon": "application-x-executable",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 30.56101,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 30.563165,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": "window:1",
+        "window_backed": true,
+        "app_icon": "application-x-executable",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 30.564784,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 30.567484,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "window:1",
+        "window_backed": true,
+        "app_icon": "application-x-executable",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 30.587175,
+    "event": "idle",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "window:1",
+        "window_backed": true,
+        "app_icon": "application-x-executable",
+        "preview_icon": "application-x-executable",
+        "all_previews": [
+          {
+            "icon": "application-x-executable",
+            "position": [
+              512,
+              368
+            ],
+            "size": [
+              64,
+              64
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 32.760195,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": "application-x-executable",
+        "all_previews": [
+          {
+            "icon": "application-x-executable",
+            "position": [
+              480,
+              596
+            ],
+            "size": [
+              64,
+              65
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 32.763209,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": "application-x-executable",
+        "all_previews": [
+          {
+            "icon": "application-x-executable",
+            "position": [
+              480,
+              596
+            ],
+            "size": [
+              64,
+              65
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 32.767373,
+    "event": "installed",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": "application-x-executable",
+        "all_previews": [
+          {
+            "icon": "application-x-executable",
+            "position": [
+              480,
+              596
+            ],
+            "size": [
+              64,
+              65
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 46.469726,
+    "event": "capture-cli",
+    "windows": [
+      {
+        "pid": 860,
+        "sequence": 1,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": "application-x-executable",
+        "all_previews": [
+          {
+            "icon": "application-x-executable",
+            "position": [
+              480,
+              596
+            ],
+            "size": [
+              64,
+              65
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 46.588027,
+    "event": "tracked-windows",
+    "windows": []
+  },
+  {
+    "seconds": 46.787603,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1451,
+        "sequence": 2,
+        "wm_class": null,
+        "gtk_app_id": null,
+        "app_id": "window:2",
+        "window_backed": true,
+        "app_icon": "application-x-executable",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 46.789097,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1451,
+        "sequence": 2,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 46.790577,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1451,
+        "sequence": 2,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 46.792075,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1451,
+        "sequence": 2,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 46.79373,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1451,
+        "sequence": 2,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 46.808825,
+    "event": "idle",
+    "windows": [
+      {
+        "pid": 1451,
+        "sequence": 2,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": "org.farpane.FarPane",
+        "all_previews": [
+          {
+            "icon": "org.farpane.FarPane",
+            "position": [
+              512,
+              368
+            ],
+            "size": [
+              0,
+              0
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 62.685093,
+    "event": "capture-dbus",
+    "windows": [
+      {
+        "pid": 1451,
+        "sequence": 2,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": "org.farpane.FarPane",
+        "all_previews": [
+          {
+            "icon": "org.farpane.FarPane",
+            "position": [
+              480,
+              596
+            ],
+            "size": [
+              64,
+              65
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 62.743483,
+    "event": "tracked-windows",
+    "windows": []
+  },
+  {
+    "seconds": 62.874132,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1939,
+        "sequence": 3,
+        "wm_class": null,
+        "gtk_app_id": null,
+        "app_id": "window:3",
+        "window_backed": true,
+        "app_icon": "application-x-executable",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 62.875624,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1939,
+        "sequence": 3,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 62.877953,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1939,
+        "sequence": 3,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 62.87951,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1939,
+        "sequence": 3,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 62.881218,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 1939,
+        "sequence": 3,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 62.893957,
+    "event": "idle",
+    "windows": [
+      {
+        "pid": 1939,
+        "sequence": 3,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": "org.farpane.FarPane",
+        "all_previews": [
+          {
+            "icon": "org.farpane.FarPane",
+            "position": [
+              512,
+              368
+            ],
+            "size": [
+              0,
+              0
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 78.917329,
+    "event": "capture-cli-late",
+    "windows": [
+      {
+        "pid": 1939,
+        "sequence": 3,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": "org.farpane.FarPane",
+        "all_previews": [
+          {
+            "icon": "org.farpane.FarPane",
+            "position": [
+              480,
+              596
+            ],
+            "size": [
+              64,
+              65
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 78.975768,
+    "event": "tracked-windows",
+    "windows": []
+  },
+  {
+    "seconds": 79.180754,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 2441,
+        "sequence": 4,
+        "wm_class": null,
+        "gtk_app_id": null,
+        "app_id": "window:4",
+        "window_backed": true,
+        "app_icon": "application-x-executable",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 79.182445,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 2441,
+        "sequence": 4,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 79.184065,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 2441,
+        "sequence": 4,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 79.185616,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 2441,
+        "sequence": 4,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 79.187427,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 2441,
+        "sequence": 4,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 79.198638,
+    "event": "idle",
+    "windows": [
+      {
+        "pid": 2441,
+        "sequence": 4,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": "org.farpane.FarPane",
+        "all_previews": [
+          {
+            "icon": "org.farpane.FarPane",
+            "position": [
+              512,
+              368
+            ],
+            "size": [
+              0,
+              0
+            ],
+            "visible": true,
+            "mapped": true,
+            "paint_opacity": 255
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "seconds": 111.21569,
+    "event": "tracked-windows",
+    "windows": []
+  },
+  {
+    "seconds": 113.750416,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 3460,
+        "sequence": 5,
+        "wm_class": null,
+        "gtk_app_id": null,
+        "app_id": "window:5",
+        "window_backed": true,
+        "app_icon": "application-x-executable",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 113.751949,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 3460,
+        "sequence": 5,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 113.753388,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 3460,
+        "sequence": 5,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": null,
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 113.754814,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 3460,
+        "sequence": 5,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": null,
+        "window_backed": null,
+        "app_icon": null,
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 113.756366,
+    "event": "tracked-windows",
+    "windows": [
+      {
+        "pid": 3460,
+        "sequence": 5,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  },
+  {
+    "seconds": 117.763412,
+    "event": "installed",
+    "windows": [
+      {
+        "pid": 3460,
+        "sequence": 5,
+        "wm_class": "org.farpane.FarPane",
+        "gtk_app_id": "org.farpane.FarPane",
+        "app_id": "org.farpane.FarPane.desktop",
+        "window_backed": false,
+        "app_icon": "org.farpane.FarPane",
+        "preview_icon": null,
+        "all_previews": []
+      }
+    ]
+  }
+]

@@ -2,6 +2,7 @@
 """Probe packaged executables in an owned container, then run actual GTK/video."""
 import json
 import os
+import platform
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,7 +20,14 @@ manifest=native_bundle.verify(artifact)
 output=Path(sys.argv[1]);uid=int(sys.argv[2]);gid=int(sys.argv[3])
 output.mkdir(parents=True);os.chown(output,uid,gid)
 (output/'os-release.txt').write_bytes(Path('/etc/os-release').read_bytes())
-packages=subprocess.check_output(['dpkg-query','-W'],text=True)
+distribution = platform.freedesktop_os_release()['ID']
+if distribution in ('ubuntu', 'debian'):
+    package_query = ['dpkg-query', '-W']
+elif distribution == 'fedora':
+    package_query = ['rpm', '-qa', '--qf', '%{NAME}\t%{VERSION}-%{RELEASE}.%{ARCH}\n']
+else:
+    raise AssertionError('Unsupported runtime fixture distribution: ' + distribution)
+packages=subprocess.check_output(package_query,text=True)
 (output/'runtime-packages.txt').write_text(packages)
 release=Path('/opt/farpane-package-test/releases/probe')
 shutil.copytree(artifact,release,symlinks=True)
@@ -77,7 +85,8 @@ for path in (core,gui,library):
     dependencies[path.relative_to(release).as_posix()]=result.stdout
 checks.append('resolved_elf_closure_no_build_or_legacy_gui_dependencies')
 (output/'package-result.json').write_text(json.dumps({'result':'pass','checks':checks,'artifact':manifest['artifact_id'],
-    'core':core_info,'gui':gui_info,'dependencies':dependencies,'gpu':False,'host_modified':False},indent=2)+'\n')
+    'core':core_info,'gui':gui_info,'dependencies':dependencies,'gpu':False,'host_modified':False,
+    'distribution':distribution,'package_query':package_query},indent=2)+'\n')
 print(json.dumps({'package_checks':checks}),flush=True)
 os.environ['FARPANE_NATIVE_TEST_MODE']='video'
 from native_viewer_smoke import setup

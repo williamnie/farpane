@@ -1,0 +1,12 @@
+{
+  "command": [
+    "Scripts/linux/test-native-deb.sh",
+    "Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.5_amd64.deb",
+    "Build/Linux/debian/farpane-native-candidate_0.1.0~dev.20261018.6_amd64.deb",
+    "ubuntu-24.04"
+  ],
+  "returncode": 0,
+  "outputs": [
+    "Build/Linux/native-deb-smoke/20261018T143622Z"
+  ]
+}

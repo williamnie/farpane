@@ -1,0 +1,24 @@
+libmutter-Message: 01:57:44.941: Running Mutter (using mutter 50.1) as a Wayland display server
+
+(mutter:10): libmutter-WARNING **: 01:57:44.943: Unknown experimental feature 'scale-monitor-framebuffer'
+
+(mutter:10): libmutter-WARNING **: 01:57:44.943: Unknown experimental feature 'xwayland-native-scaling'
+libmutter-Message: 01:57:45.004: Created surfaceless renderer without GPU
+libmutter-Message: 01:57:45.024: Added virtual monitor Meta-0
+libmutter-Message: 01:57:45.028: Using public X11 display :0, (using unix:/tmp/.X11-unix/X1 for managed services)
+libmutter-Message: 01:57:45.028: Using Wayland display name 'wayland-0'
+
+(mutter:10): mutter-WARNING **: 01:57:45.034: Failed to retrieve locale properties: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.locale1 was not provided by any .service files
+
+(mutter:10): libmutter-WARNING **: 01:57:45.089: There is no colord server available
+Xwayland glamor: GBM Wayland interfaces not available
+Failed to initialize glamor, falling back to sw
+The XKEYBOARD keymap compiler (xkbcomp) reports:
+> Warning:          Unsupported maximum keycode 708, clipping.
+>                   X11 cannot support keycodes above 255.
+> Warning:          Virtual modifier Hyper multiply defined
+>                   Using 0, ignoring 0
+> Warning:          Virtual modifier ScrollLock multiply defined
+>                   Using 0, ignoring 0
+Errors from xkbcomp are not fatal to the X server
+libmutter-Message: 01:57:49.074: Removed virtual monitor Meta-0

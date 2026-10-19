@@ -1,0 +1,27 @@
+{
+  "image": "sha256:51e070245b4871c7202d3a4e0dabe4fa77b5f4e65a6a6e2845bf2cc5a3313ff4",
+  "architecture": "amd64",
+  "os": "linux",
+  "base": "debian@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+  "created": "2026-10-18T00:03:45.635325903-07:00",
+  "test_limits": {
+    "cpus": 4,
+    "memory": "12g",
+    "pids": 512,
+    "network": "none",
+    "gpu": false,
+    "host_display": false,
+    "host_service_socket": false
+  },
+  "kernel_scope": "Containers share linux-host kernel; no Debian kernel or physical desktop acceptance",
+  "sources": {
+    "Linux/packaging/native-runtime-debian13.Dockerfile": "a79cb844d000e701a14bde361d893e5e9871b8ea8b5e5acf5842bb6eb59d7a46",
+    "Linux/tests/native-runtime-images.lock.json": "db681fca87d3eb2cb2b83d680adeab2d406c44c2268d4fe663309397bf23feae",
+    "Scripts/linux/test-native-package.sh": "fedf42a7fcde1d73cc3475ba66d3e150ec90916181538062f00a596313e2c200",
+    "Scripts/linux/test-native-deb.sh": "d6f958e3bb42c7dfa886b6faf1ff0ef95c12e134252cb9b863682352d1a7d3ed",
+    "Linux/tests/native_package_smoke.py": "6f6a57caab3b1d669605abd2d8dbbec0f4c81180287dea9136ec1bace3ae574d",
+    "Linux/tests/native_deb_smoke.py": "82434d4e480a2c8b98ff05ec50a286e12d50f8c170a46e172deb54a733df2229",
+    "Linux/tests/native_viewer_smoke.py": "c496e564eb360eb8ed43d93391bc6c3c5864783a806d652eca1811c94bd1bfb1",
+    "Linux/tests/native_host_smoke.py": "40c612e3b299bf41594f87c4907e8e83d63cd3a4af9f02b3bb54008e6adcce0b"
+  }
+}

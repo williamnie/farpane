@@ -1,0 +1,103 @@
+{
+  "release": "farpane-native-dev-79e6fd6f2505d006beeb4e71",
+  "processes": [
+    {
+      "pid": 1474136,
+      "uid": 0,
+      "role": "service",
+      "sha256": "c403acbf2caa5d49d531f1f8cff30ebc248605a0e852c8367d4b14f9eeb4ee01",
+      "start_ticks": "8458393"
+    },
+    {
+      "pid": 1476403,
+      "uid": 1000,
+      "role": "server",
+      "sha256": "c403acbf2caa5d49d531f1f8cff30ebc248605a0e852c8367d4b14f9eeb4ee01",
+      "start_ticks": "8464672"
+    }
+  ],
+  "configuration_preserved": {
+    "root": {
+      "all_equal": true,
+      "fields": [
+        {
+          "file": "FarPane.toml",
+          "field": "enc_id",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "password",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "salt",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "key_pair",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options",
+          "equal": true
+        }
+      ]
+    },
+    "user": {
+      "all_equal": true,
+      "fields": [
+        {
+          "file": "FarPane.toml",
+          "field": "enc_id",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "password",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "salt",
+          "equal": true
+        },
+        {
+          "file": "FarPane.toml",
+          "field": "key_pair",
+          "equal": true
+        },
+        {
+          "file": "FarPane2.toml",
+          "field": "options",
+          "equal": true
+        }
+      ]
+    }
+  },
+  "services": {
+    "farpane.service": {
+      "ActiveState": "active",
+      "UnitFileState": "disabled",
+      "MainPID": "1474136",
+      "NRestarts": "0"
+    },
+    "rustdesk.service": {
+      "ActiveState": "inactive",
+      "UnitFileState": "disabled",
+      "MainPID": "0",
+      "NRestarts": "0"
+    }
+  },
+  "rustdesk_service_unchanged": true,
+  "previous_release_retained": true,
+  "observed_startup_idle_recycle": {
+    "previous_host_pid": 1474420,
+    "new_host_pid": 1476403,
+    "service_log_decision": "RestartIdle",
+    "root_restarted": false
+  }
+}

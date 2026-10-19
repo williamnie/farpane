@@ -1,0 +1,15 @@
+
+running 1 test
+test farpane_native::text_input::tests::private_gnome_commits_reach_focused_wayland_entry ... FAILED
+
+failures:
+
+failures:
+    farpane_native::text_input::tests::private_gnome_commits_reach_focused_wayland_entry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 452 filtered out; finished in 3.04s
+
+
+thread 'farpane_native::text_input::tests::private_gnome_commits_reach_focused_wayland_entry' panicked at src/farpane_native/text_input.rs:199:17:
+Focused Wayland entry did not receive the exact commit
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

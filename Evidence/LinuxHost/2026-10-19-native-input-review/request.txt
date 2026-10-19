@@ -1,0 +1,26 @@
+用户刚明确要求我通过 ocs 与你新开的 Claude 线程讨论 FarPane 中文输入问题。你是新线程 claude-08da8438；请做只读源码与方案评审，并回传结论。这次授权是讨论，不是实现或部署。不要唤醒旧 Claude 线程或增加代理。
+
+仓库 /home/user/farpane，分支 codex/linux-host-gpu-media，HEAD 0b73812，加大量必须保留的未提交工作。当前安装 /opt/farpane/current -> releases/farpane-native-dev-bfc1befc221061266d5f50da（.20261018.1）。最新 .7 只更新 GUI，核心复用 .3 的通用修饰键修正，未安装。
+
+用户现象：Mac mini 已由输入法选定汉字，提交到 linux-host 的 Warp 和 Chrome 都不出现文字。Mac 编辑菜单“Ubuntu 中文兼容输入”灰色，用户不能开关。手工 Ctrl+Shift+V 也未让其看到中文。用户质疑“为什么按一个程序的快捷键专门修复，感觉输入架构不对”，要求先记录后讨论。因此按应用名识别 Warp 的 0044 草稿已经暂停，不能默认采纳。
+
+先读材料（共享工作区，无需复制全部日志）：
+1. Linux/docs/chinese-input.md（最新方案暂缓与全部事实）。
+2. Evidence/LinuxHost/2026-10-18-native-input-wire/README.md 及 summary.json（真实 TCP→Host→root/uinput→GNOME 的 .1/.3 对照）。
+3. Evidence/LinuxHost/2026-10-18-native-warp-input/README.md（Warp 快捷键实验的有限结论）。
+4. Linux/patches/0042-native-paste-regression.patch、0043-native-committed-text-modifiers.patch、0044-native-warp-paste-shortcut.patch；Linux/native/discovery.rs、paste_target.rs、input_tests.rs 与相关 native/mod.rs。
+5. 实际编译源码/协议见冻结 Build/Linux/artifacts/farpane-native-dev-d393fd0cff634416807feae5/source 或 Build/Linux/source-bundles/farpane-native-source-704f37fe999ad9f837832f79；活动 Build/Linux/src/rustdesk 可能含 0044 草稿，务必分清版本。可只读检查仓库 Mac 的文字提交入口/灰色菜单绑定，不修改 Mac。
+
+已证明的事实：
+- DISPLAY=unix:/tmp/.X11-unix/X1 曾被原 discovery 丢弃，导致剪贴板写入失败；.1 修正并真实安装，但用户仍失败。
+- .1 的 Legacy Seq（整段文字，down=false/press=false/modifiers 空）在 Control 残留时，GTK4/Chrome 有焦点且剪贴板更新却无文字；.3 的 0043 先 fix_modifiers 再 Shift+Insert，真实网络/root-uinput 三应用对照通过。没有观察用户真实失败瞬间的修饰键，不能认定唯一根因。.1 当前安装不含 0043。
+- 私有 Xvfb 的实际 Warp 版本，Shift+Insert 不粘贴而 Ctrl+Shift+V 有效；0044 生产函数测试最终写入使用 XTEST，不是完整 Warp 网络/uinput/Mac 验收。这个结果不能直接支持应用名单特判。
+- 活动 canonical/pin 含暂停的 0044/paste_target.rs，不能从活动树直接编译新包。内存/字体优化也已按用户要求暂停。
+
+请给出可落地的评审，重点回答：
+A. Mac IME commit → 协议 → Linux 字面文字注入的职责边界；现有代码哪些确定正确、哪些证据不足或设计有问题（给文件/函数/行号）。
+B. X11/Wayland/原生终端上是否有本项目实际可用、无需按应用名匹配的通用文字注入路径？区分真实可实现与理论方案；剪贴板粘贴为何是/不是必要 fallback；不要把客户端 Shift+Insert 或 Ctrl+Shift+V 当作输入法协议。
+C. 对 0043 与 0044 分别建议保留、隔离、重做或拒绝的理由；如何处理残留修饰键、剪贴板竞争、物理按键状态及 Mac 菜单灰色这几个独立问题。
+D. 下一轮最小诊断/修复/验收顺序：用哪些不记录正文的观测区分 Mac 未提交、服务端未收到、剪贴板成功但目标未消费；如何覆盖 Chrome/Warp 且避免再把局部通过说成真实 Mac 已修好。
+
+严格只读：不改文件/不编译/不安装/不启停服务，不读取真实剪贴板正文、密码或密钥，不操作宿主桌面/显示/GPU。不要照跑旧实验或 switch_runtime。现有 RustDesk、Mac/xuanwu 目录保持不变；不 commit/push。请完成后直接经本 DM 回复结构化结论及建议，明确尚需用户决定/实机验收的内容。

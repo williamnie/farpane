@@ -26,3 +26,20 @@ Scripts/linux/test-native-desktop-bus.sh \
 入口复用已固定的隔离镜像，限制 4 CPU/12 GiB、无外部网络，不带设备或宿主服务挂载；最长 210 秒，只有容器里的受控进程会被测试结束。测试在 root 私有目录校验并暂存候选，然后以普通用户运行 Host/GUI；没有启动 root supervisor。新增夹具位于 `Linux/tests/native_desktop_bus_smoke.py`，通过既有 `native_viewer_smoke.py` 的专用分支执行。
 
 原始运行 `Build/Linux/native-desktop-bus-smoke/20261017T093347Z` 退出 0。结果绑定实际打包后的 GUI/core 哈希；完整记录见[专项证据](../../Evidence/LinuxHost/2026-10-17-native-desktop-bus/README.md)。新增测试未收入冻结 `.9` 的源码归档，后续实际打包再纳入；产品文件和当前服务保持不变。完整 GUI、维护窗口、60 MiB 首页目标及发布门槛仍未全部验收。
+
+## GUI 自身总线中断的退出与恢复
+
+2026-10-18，使用冻结 `.20261018.3` 追加两个普通用户端点的实际双向连接测试。A 的 GUI/Viewer 连接单独的第三条私有总线；A 的 Host、B 的 GUI/Viewer/Host 均使用其他私有总线。全过程为两个私有 Xvfb 桌面、软件视频、容器内回环网络；没有 root supervisor、用户桌面或输入法测试。
+
+结束 A 的 GUI 专用 `dbus-daemon` 后，**GUI 收到 SIGTERM 退出（返回码 -15），不是继续运行或透明恢复**。其出站 Viewer 随后退出，B 的对应入站清空。A 的独立 Host 与从 B 接入的原会话 ID 保持不变：改变 A 的合成画面后，B 的真实窗口仍显示新颜色。替换为同一路径、新 bus ID 后，重新打开 A 的 GUI 首页，仍接入原 Host，未自动重建旧出站 Viewer；B 的原入站画面继续。最后关闭窗口/断开，两个 Host 与原身份保留。
+
+第一次运行 `20261018T094124Z` 的进程检查只验证 `/proc/<pid>/exe` 已不可读，不能排除退出后的僵尸进程。因此不采纳该轮“完全回收”结论。测试入口随后增加容器 init，并要求失去 GUI 父进程的 Viewer **整个 `/proc/<pid>` 消失**。最终 `20261018T094225Z` 退出 0，12 项检查通过，含上述完整回收、新总线身份、实际新画面与 GUI 重开。
+
+```sh
+bash Scripts/linux/test-native-coexistence.sh \
+  Build/Linux/artifacts/farpane-native-dev-d393fd0cff634416807feae5 gui-bus
+```
+
+此模式限定 2 CPU/4 GiB、300 秒，复用已校验候选，不编译或启用暂停中的 Warp 草稿。工具入口原有 `run`/`calibrate` 模式保持，新增 init 负责容器内孤儿回收，不能把 init 的工作当成应用自己 wait 已退出子进程的证据。检查证明 GUI 故障不会连带结束独立 Host 的活动入站，未证明真实登录会话/系统总线/桌面退出、GPU 或所有资源门槛通过。
+
+两轮原始结果、私有截图、二进制哈希和最终测试源码见[GUI 总线故障证据](../../Evidence/LinuxHost/2026-10-18-native-gui-bus/README.md)。产品 GUI/core、包、当前安装和服务均未变化，未提交/推送。

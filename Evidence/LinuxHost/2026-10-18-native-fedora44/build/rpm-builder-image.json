@@ -1,0 +1,11 @@
+{
+  "image": "sha256:6a82c3217281d54e04442c318cc709f3805b88802661bc7d3ac5192531557263",
+  "label": "farpane-native-rpm-builder-fedora44:20261018",
+  "base": "sha256:ce8a98a1236e36755827266880578164a31bf7ef528f157c2a46358e686d2757",
+  "dockerfile": "Linux/packaging/native-rpm-builder-fedora44.Dockerfile",
+  "dockerfile_sha256": "3ca493925205d575ad2ee5892de8ad6ca1c9ce0f3214cceda5443eb454c87481",
+  "architecture": "amd64",
+  "jobs": 4,
+  "memory": "12g",
+  "dnf_snapshot_pinned": false
+}

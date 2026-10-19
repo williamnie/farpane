@@ -29,10 +29,48 @@ mod viewer_recovery;
 use adw::prelude::*;
 use gtk::{gio, glib};
 
+pub(crate) struct InstalledVersion {
+    pub version: String,
+    pub core_build: Option<String>,
+}
+
+/// Read the metadata beside this executable, never the mutable `current` link.
+/// An already-open old GUI must keep showing its own installed version.
+pub(crate) fn installed_version() -> &'static InstalledVersion {
+    static VERSION: std::sync::OnceLock<InstalledVersion> = std::sync::OnceLock::new();
+    VERSION.get_or_init(|| {
+        let load = || -> Option<InstalledVersion> {
+            use std::io::Read;
+            let executable = std::env::current_exe().ok()?.canonicalize().ok()?;
+            let file = std::fs::File::open(executable.parent()?.join("release-info.json")).ok()?;
+            let value: serde_json::Value = serde_json::from_reader(file.take(4096)).ok()?;
+            if value.get("schema")?.as_u64()? != 1 {
+                return None;
+            }
+            let version = value.get("version")?.as_str()?;
+            let core = value.get("core_sha256")?.as_str()?;
+            if version.is_empty() || version.len() > 48
+                || !version.bytes().all(|b| b.is_ascii_alphanumeric() || b".+-".contains(&b))
+                || core.len() != 64 || !core.bytes().all(|b| b.is_ascii_hexdigit())
+            {
+                return None;
+            }
+            Some(InstalledVersion {
+                version: version.into(),
+                core_build: Some(core[..8].to_ascii_lowercase()),
+            })
+        };
+        load().unwrap_or_else(|| InstalledVersion {
+            version: format!("{} · 构建未标识", env!("CARGO_PKG_VERSION")),
+            core_build: None,
+        })
+    })
+}
+
 fn main() -> glib::ExitCode {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.len() == 1 && args[0] == "--version" {
-        println!("FarPane {}", env!("CARGO_PKG_VERSION"));
+        println!("FarPane {}", installed_version().version);
         return glib::ExitCode::SUCCESS;
     }
     if args.len() == 1 && args[0] == "--build-info" {

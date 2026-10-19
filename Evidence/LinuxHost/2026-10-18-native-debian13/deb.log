@@ -1,0 +1,12 @@
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+dbus-daemon[56]: Could not get password database information for UID of current process: Looking up user ID 1000: not found
+{"result": "pass", "checks": ["loopback-login", "actual-video-decode", "gtk-presentation", "viewer-exit-reaped", "second-session", "host-retained", "host-media-auth-network-preserved", "successful-session-history", "wrong-password-retry"], "gpu": false, "network": "isolated-loopback", "display": "two-private-xvfb"}
+{"result": "pass", "checks": ["real_dpkg_install_declared_dependencies_and_private_staging", "standalone_installer_commands_and_exact_sources", "pending_maintenance_refuses_package_configuration_without_switching", "real_dpkg_upgrade_and_configuration_retry_preserve_active_release", "upgraded_deb_gui_two_real_video_sessions_and_worker_reaping", "purge_removes_candidate_tools_preserves_release_process_units_and_configuration"], "artifact_id": "farpane-native-dev-67f5d1594e8961809614f4e1", "initial_artifact_id": "farpane-native-dev-bfc1befc221061266d5f50da", "packages": {"farpane-native-candidate_0.1.0~dev.20261018.1_amd64.deb": "9960dfb15c170d66c23677c006f9c37633f4c9ccf47cd72ab0e1809e8fc353e9", "farpane-native-candidate_0.1.0~dev.20261018.2_amd64.deb": "986b9c13d94347d88069351f951e1c96ea8abb2701a86c3cbeecb64c4482d148"}, "gpu": false, "host_modified": false, "systemd_activation_tested": false, "preserved_process": "private shell blocked on a pipe, not an actual installed service"}

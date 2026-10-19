@@ -1,0 +1,30 @@
+{
+  "pid": 114,
+  "start_ticks": 2944506,
+  "pss_kib": 16642,
+  "uss_kib": 8592,
+  "rss_kib": 29108,
+  "swap_pss_kib": 0,
+  "cpu_ticks": 19,
+  "threads": 5,
+  "fds": {
+    "0": "socket:[2081938]",
+    "1": "/dev/null",
+    "2": "/dev/null",
+    "3": "socket:[2081938]",
+    "4": "socket:[2081940]",
+    "5": "socket:[2081942]",
+    "6": "anon_inode:[eventfd]",
+    "7": "anon_inode:[eventfd]",
+    "8": "anon_inode:[eventpoll]",
+    "9": "anon_inode:[eventfd]",
+    "10": "anon_inode:[eventpoll]",
+    "11": "socket:[2078086]",
+    "12": "socket:[2078087]",
+    "13": "socket:[2078086]",
+    "14": "socket:[2078088]"
+  },
+  "fd_count": 15,
+  "children": [],
+  "frame_mappings": []
+}

@@ -1,0 +1,23 @@
+{
+  "result": "pass",
+  "artifact": "farpane-native-dev-67f5d1594e8961809614f4e1",
+  "runs": {
+    "package": "Build/Linux/native-package-smoke/20261018T070404Z",
+    "deb": "Build/Linux/native-deb-smoke/20261018T070439Z"
+  },
+  "package_checks": 8,
+  "deb_check_groups": 6,
+  "actual_software_video_sessions": 4,
+  "packaged_binaries": {
+    "farpane": "9e57d7b3540b4282bcf23837d2bd05fc082f5da45a729f9d8f0e09a61984a421",
+    "libexec/farpane-core": "26147ece6e48ce42ae550f0452809227bf7c54ce8a659218a97d80456c424661"
+  },
+  "kernel_shared_with_host": "7.0.0-38-generic",
+  "debian_kernel_tested": false,
+  "real_desktop_tested": false,
+  "gpu_tested": false,
+  "chinese_input_tested": false,
+  "rebuilt_application": false,
+  "repackaged_application": false,
+  "activated_candidate": false
+}

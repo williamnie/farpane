@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "test_started_utc": "2026-10-19T00:56:47.538087+00:00",
+  "release": "farpane-native-dev-79e6fd6f2505d006beeb4e71",
+  "mode": "existing_product_logs_offset_baseline",
+  "bounded_collector_running": false,
+  "logs": [
+    {
+      "role": "service",
+      "pid": 1474136,
+      "path": "/root/.local/share/logs/FarPane/service/farpane-core_rCURRENT.log",
+      "device": 66306,
+      "inode": 2360267,
+      "offset": 4666
+    },
+    {
+      "role": "host",
+      "pid": 1476403,
+      "path": "/home/user/.local/share/logs/FarPane/server/farpane-core_rCURRENT.log",
+      "device": 66306,
+      "inode": 28871747,
+      "offset": 5163
+    }
+  ]
+}

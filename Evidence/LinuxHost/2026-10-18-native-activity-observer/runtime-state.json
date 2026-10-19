@@ -1,0 +1,19 @@
+{
+  "current_release": "releases/farpane-native-dev-bfc1befc221061266d5f50da",
+  "build_receipt_valid": true,
+  "services": {
+    "farpane.service": {
+      "ActiveState": "active",
+      "SubState": "running",
+      "UnitFileState": "disabled",
+      "MainPID": "64215"
+    },
+    "rustdesk.service": {
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "UnitFileState": "disabled",
+      "MainPID": "0"
+    }
+  },
+  "matches_previous_checkpoint": true
+}

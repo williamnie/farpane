@@ -1,0 +1,26 @@
+/home/user/farpane/Build/Linux/native-input-vm/warp-bootstrap.om4s5xp6
+{
+  "warp_exit_code": null,
+  "profile": "new-empty-private",
+  "network": "none",
+  "host_display_used": false,
+  "input_tested": true,
+  "input_scope": "local private X11 clipboard and keyboard; no FarPane network",
+  "cases": [
+    {
+      "name": "shift-insert",
+      "expected": "中文测试混合A1，🙂é",
+      "actual": null,
+      "primary_pasted": false,
+      "result": "fail"
+    },
+    {
+      "name": "ctrl-shift-v",
+      "expected": "中文测试混合A1，🙂é",
+      "actual": null,
+      "primary_pasted": false,
+      "result": "fail"
+    }
+  ]
+}
+

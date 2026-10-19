@@ -1,0 +1,321 @@
+{
+  "result": "pass",
+  "runtime_image": "sha256:675620953da21b80eb9d9ff13968ecc96eb6408c12f643ef2d50a8e3edc5ee51",
+  "kernel_sha256": "9f55ef7253055a9cf68f8a04323c93dead2fca617386d842fbde9ca7b178b27e",
+  "guest": {
+    "schema": 1,
+    "scope": "private-gnome-desktop-lifecycle",
+    "result": "pass",
+    "full_farpane_input_tested": false,
+    "host_input_exposed": false,
+    "kernel": "7.0.0-38-generic",
+    "boot_id": "0344b071-5f91-4357-9ee4-9eda63a6143c",
+    "machine": "Standard PC (Q35 + ICH9, 2009)",
+    "cmdline": "root=/dev/vda rw console=ttyS0,115200n8 init=/opt/farpane-input-test/init.py panic=1 oops=panic farpane.input-vm=1 systemd.show_status=false loglevel=3",
+    "checks": [
+      "real_systemd_logind_gnome_session"
+    ],
+    "generations": [
+      {
+        "release": "farpane-native-dev-d393fd0cff634416807feae5",
+        "processes": [
+          {
+            "pid": 752,
+            "uid": 0,
+            "role": "--service",
+            "start": "2694"
+          },
+          {
+            "pid": 783,
+            "uid": 1000,
+            "role": "--server",
+            "start": "2915"
+          }
+        ]
+      }
+    ],
+    "logind": {
+      "Id": "c1",
+      "User": "1000",
+      "Active": "yes",
+      "Type": "wayland",
+      "Class": "user",
+      "Seat": "seat0",
+      "Leader": "227"
+    },
+    "desktop_lifecycle": {
+      "result": "pass",
+      "checks": [
+        "gnome_menu_opens_one_native_gui_attached_to_host",
+        "repeated_gnome_menu_keeps_same_gui_generation",
+        "direct_executable_reuses_one_wayland_toplevel_and_app_id",
+        "real_alt_tab_switches_between_companion_and_farpane",
+        "alt_f4_destroys_window_removes_gui_and_bus_owner_preserves_host",
+        "menu_reopens_new_gui_on_original_host_and_identity",
+        "reopened_gui_remains_single_instance_and_exits_without_hidden_process"
+      ],
+      "states": [
+        {
+          "phase": "initial-menu",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2694"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2915"
+            },
+            {
+              "pid": 1071,
+              "uid": 1000,
+              "role": "gui",
+              "start": "3869"
+            }
+          ],
+          "identity_unchanged": true
+        },
+        {
+          "phase": "repeated-menu",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2694"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2915"
+            },
+            {
+              "pid": 1071,
+              "uid": 1000,
+              "role": "gui",
+              "start": "3869"
+            }
+          ],
+          "identity_unchanged": true
+        },
+        {
+          "phase": "direct-entry-existing-instance",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2694"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2915"
+            },
+            {
+              "pid": 1071,
+              "uid": 1000,
+              "role": "gui",
+              "start": "3869"
+            }
+          ],
+          "identity_unchanged": true
+        },
+        {
+          "phase": "alt-tab-returned",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2694"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2915"
+            },
+            {
+              "pid": 1071,
+              "uid": 1000,
+              "role": "gui",
+              "start": "3869"
+            }
+          ],
+          "identity_unchanged": true
+        },
+        {
+          "phase": "first-close",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2694"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2915"
+            }
+          ],
+          "identity_unchanged": true
+        },
+        {
+          "phase": "reopened",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2694"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2915"
+            },
+            {
+              "pid": 1212,
+              "uid": 1000,
+              "role": "gui",
+              "start": "5105"
+            }
+          ],
+          "identity_unchanged": true
+        },
+        {
+          "phase": "final-close",
+          "processes": [
+            {
+              "pid": 752,
+              "uid": 0,
+              "role": "--service",
+              "start": "2694"
+            },
+            {
+              "pid": 783,
+              "uid": 1000,
+              "role": "--server",
+              "start": "2915"
+            }
+          ],
+          "identity_unchanged": true
+        }
+      ],
+      "captures": [
+        {
+          "file": "launch-life-initial-search.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "6301b910b359e7785ab738bb9f94dd160fa82d37a8b1e07dde153636aa53b284",
+          "capture": "guest-only VKMS mapped frame"
+        },
+        {
+          "file": "launch-life-menu.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "a91bdf5d47e57b55323e384a73f54155fa66bf75e95600da0b2ca146dfa2855f",
+          "capture": "guest-only VKMS mapped frame"
+        },
+        {
+          "file": "launch-life-repeat.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "a91bdf5d47e57b55323e384a73f54155fa66bf75e95600da0b2ca146dfa2855f",
+          "capture": "guest-only VKMS mapped frame"
+        },
+        {
+          "file": "launch-life-switcher.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "0dea71fcee8be49c8cafb07e933a2b655abd28959aac5e819d1837a9029d2908",
+          "capture": "guest-only VKMS mapped frame"
+        },
+        {
+          "file": "launch-life-returned.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "5690d998c8a61ab02324cf79ba69739d448aefc0191337ee1c5e4840f03071c7",
+          "capture": "guest-only VKMS mapped frame"
+        },
+        {
+          "file": "launch-life-closed.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "3bb94d9449571aa0d0c04584e776f21a1c96ba0b83887a29bfec9105066a88db",
+          "capture": "guest-only VKMS mapped frame"
+        },
+        {
+          "file": "launch-life-reopened.png",
+          "width": 1024,
+          "height": 768,
+          "format": "XR24",
+          "sha256": "5690d998c8a61ab02324cf79ba69739d448aefc0191337ee1c5e4840f03071c7",
+          "capture": "guest-only VKMS mapped frame"
+        }
+      ],
+      "traces": [
+        {
+          "pid": 1071,
+          "file": "desktop-lifecycle-wayland-1071-open.log",
+          "toplevels_created": 1,
+          "app_id": "org.farpane.FarPane",
+          "destroyed": false
+        },
+        {
+          "pid": 1071,
+          "file": "desktop-lifecycle-wayland-1071-closed.log",
+          "toplevels_created": 1,
+          "app_id": "org.farpane.FarPane",
+          "destroyed": true
+        },
+        {
+          "pid": 1212,
+          "file": "desktop-lifecycle-wayland-1212-closed.log",
+          "toplevels_created": 1,
+          "app_id": "org.farpane.FarPane",
+          "destroyed": true
+        }
+      ],
+      "pre_search_settle_seconds": 7,
+      "cold_menu_without_refresh": true,
+      "close_seconds": [
+        0.131,
+        0.131
+      ],
+      "host_generation_unchanged": true,
+      "input_text_tested": false,
+      "remote_connection_tested": false,
+      "diagnostic_activation_environment": {
+        "WAYLAND_DEBUG": "client"
+      },
+      "memory_budget_tested": false
+    },
+    "real_remote_connection_tested": false,
+    "input_text_tested": false,
+    "gpu_tested": false
+  },
+  "separate_kernel_verified": true,
+  "network": "none",
+  "host_devices_exposed": [
+    "/dev/kvm"
+  ],
+  "host_display": false,
+  "real_farpane_input_accepted": false
+}
