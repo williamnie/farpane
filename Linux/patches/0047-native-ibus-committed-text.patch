@@ -1,0 +1,17 @@
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -2296,6 +2296,14 @@
+     if text.is_empty() {
+         return;
+     }
++    // IBus delivers committed text without the clipboard or a paste chord, so
++    // neither Orca's Insert binding nor per-application paste keys matter.
++    // Applications that are not IBus clients (Warp) still take the paste path.
++    #[cfg(feature = "farpane-native")]
++    if crate::farpane_native::ibus_commit::commit(text) {
++        std::thread::sleep(std::time::Duration::from_millis(20));
++        return;
++    }
+     if !set_clipboard_for_paste_sync(text) {
+         return;
+     }

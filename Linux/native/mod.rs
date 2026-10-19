@@ -18,6 +18,7 @@ mod file_host;
 pub(crate) mod file_viewer;
 pub(crate) mod files;
 pub(crate) mod host_clipboard;
+pub(crate) mod ibus_commit;
 pub(crate) mod input_retry;
 pub(crate) mod paste_target;
 pub(crate) mod process;

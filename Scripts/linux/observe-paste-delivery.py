@@ -51,6 +51,9 @@ STAGES = (
     ('paste_key_failed', re.compile(r'input_text_via_clipboard_server: failed to press (Insert|Shift)')),
     ('restore', re.compile(r'Native committed text: clipboard restored=(true|false)$')),
     ('restore_failed', re.compile(r'Native committed text: clipboard restore (failed|unavailable): ')),
+    ('ibus_committed', re.compile(r'Native committed text: IBus commit sent$')),
+    ('ibus_no_client', re.compile(r'Native committed text: no IBus client focused; using paste$')),
+    ('ibus_unavailable', re.compile(r'Native committed text: IBus unavailable; using paste: ')),
 )
 
 
@@ -325,10 +328,13 @@ class Trace:
         self.out.flush()
 
 
-def summarize(records):
-    """Groups observations around each paste the core prepared.
+ANCHORS = {'paste_preparing': 'paste', 'ibus_committed': 'ibus'}
 
-    An INFO commit record is throttled, so the per-paste DEBUG record anchors
+
+def summarize(records):
+    """Groups observations around each paste or IBus commit the core made.
+
+    An INFO commit record is throttled, so the per-delivery DEBUG record anchors
     a group; X records from 200 ms before it until the next group belong to it.
     """
     lead = 0.2
@@ -336,12 +342,13 @@ def summarize(records):
     for record in records:
         if record.get('stage') == 'commit':
             commit = record
-        elif record.get('stage') == 'paste_preparing':
-            groups.append({'at': record['log_wall'], 'commit': commit and commit['commit'],
+        elif record.get('stage') in ANCHORS:
+            groups.append({'at': record['log_wall'], 'via': ANCHORS[record['stage']],
+                           'commit': commit and commit['commit'],
                            'chars': commit and commit['chars'], 'ascii': commit and commit['ascii'],
                            'stages': [], 'owners': [], 'reads': [], 'keys': []})
     for record in records:
-        if record['source'] == 'observer' or record.get('stage') in ('commit', 'paste_preparing'):
+        if record['source'] == 'observer' or record.get('stage') == 'commit' or record.get('stage') in ANCHORS:
             continue
         at = record.get('log_wall', record['wall'])
         group = None

@@ -250,6 +250,10 @@
     {
       "path": "Linux/patches/0046-native-committed-text-clipboard-restore.patch",
       "sha256": "d9e5a9d527676a8f55c7b9b345a0542a7ff1b8da25fe2d6e2259d168f1c124c3"
+    },
+    {
+      "path": "Linux/patches/0047-native-ibus-committed-text.patch",
+      "sha256": "c744e0be605b62e65f62393f1592d19974c0c81adaf0ed25b07df696a1fc50f6"
     }
   ],
   "hwcodec_externals": {
@@ -333,7 +337,7 @@
     {
       "path": "Linux/native/mod.rs",
       "target": "src/farpane_native/mod.rs",
-      "sha256": "c85bf59ee2a5190603d68b50f7f824635def47e2225468a86c1cfae6a856d710"
+      "sha256": "8cbbb491267e54316dffd3bdfc24ba19f204625d122f5f3050a0f1a8718c11c0"
     },
     {
       "path": "Linux/native/activity.rs",
@@ -549,6 +553,11 @@
       "path": "Linux/native/paste_target.rs",
       "target": "src/farpane_native/paste_target.rs",
       "sha256": "45d85a5d96bc5f31c3b9c11736cca7aed27bbcaaa3279a9865d6b8379f84ea05"
+    },
+    {
+      "path": "Linux/native/ibus_commit.rs",
+      "target": "src/farpane_native/ibus_commit.rs",
+      "sha256": "89e87e6bfc5d349577020f7790a90f86c1ba0a5f70272a1beef2476fe51853c8"
     }
   ],
   "meson": {

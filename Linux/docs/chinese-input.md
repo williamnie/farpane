@@ -1,5 +1,7 @@
 # FarPane Linux GPU 媒体重构（linux-host）：Mac 中文输入修复
 
+**2026-10-19 不用剪贴板的提交（已安装）：** 新增 `ibus_commit.rs` 与 `0047`：Host 以 IBus 表情面板同样的方式（面板扩展 `CommitText`）把中文直接交给焦点应用，不写剪贴板、不按粘贴键，也不受 Orca 截 Insert 影响；焦点应用不是 IBus 客户端（如 Warp）或 IBus 不可用时回退剪贴板粘贴，Warp 仍用 `0044` 的 Ctrl+Shift+V。门户 keysym 方案因 Mutter 丢弃布局外 keysym 而不可行。已安装 `farpane-native-dev-b70112f157f588d4ea83f44b`，用户实测 Chrome/Zed/文本编辑器/Warp 均正常、剪贴板内容不被覆盖。见[IBus 提交证据](../../Evidence/LinuxHost/2026-10-19-native-ibus-commit/README.md)。
+
 **2026-10-19 根因与修复（默认模式）：** 实机被动追踪证明默认模式失败的根因是 GNOME 屏幕阅读器 Orca 截走 Insert：Host 的 Shift+Insert 只有 Shift 到达应用。用户确认 Orca 并非有意开启，关闭后 Chrome 默认模式正常。按用户决定恢复 `0044` Warp 白名单，并修正其 X11 连接（复用 `clipboard_x11::connect()`）；已安装 `farpane-native-dev-12a7610123e68eed56441923`，兼容开关关闭时 Warp/Chrome 均实测正常。Mac 兼容开关打开会与 Host 粘贴叠加，建议保持关闭。不靠粘贴快捷键的提交方式继续调研。见[粘贴送达追踪](../../Evidence/LinuxHost/2026-10-19-native-paste-delivery/README.md)。以下为历史记录。
 
 **2026-10-19 兼容模式实机结果：** 原版对照结束并恢复 FarPane 后，用户确认 Mac 的“编辑 → Ubuntu 中文兼容输入”可点击且未勾选；原版成功那次的开关状态不确定。只勾选现有开关后，用户反馈“我打开后，中文输入正常了，warp也正常了”，即当前 FarPane 的 Chrome/Warp 中文在兼容模式下可用。本次没有新安装或产品改动，仍是 GUI `0.1.0-dev.20261019.1`、`.8` 核心 `c403acbf…`；FarPane active、原版 inactive。用户可先保留该设置使用。

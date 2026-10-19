@@ -27,11 +27,18 @@ class LogClassification(unittest.TestCase):
         secret = '中文测试 secret device 1000000000'
         for message in (f'set_clipboard_content: failed to set clipboard with owner marker: {secret}',
                         f'Native committed text #7 dropped: chars=4 ascii=false; {secret}',
-                        f'Native committed text: clipboard restore failed: {secret}'):
+                        f'Native committed text: clipboard restore failed: {secret}',
+                        f'Native committed text: IBus unavailable; using paste: {secret}'):
             record = observer.classify(line(message))
             self.assertIsNotNone(record)
             self.assertNotIn('secret', repr(record))
             self.assertNotIn('中文', repr(record))
+
+    def test_ibus_stages_are_recognised(self):
+        self.assertEqual(observer.classify(line('Native committed text: IBus commit sent', 'DEBUG'))['stage'],
+                         'ibus_committed')
+        self.assertEqual(observer.classify(line(
+            'Native committed text: no IBus client focused; using paste', 'DEBUG'))['stage'], 'ibus_no_client')
 
     def test_unlisted_and_suffixed_messages_are_omitted(self):
         for message in ('handle_keyboard received: Layout(secret)',
@@ -92,7 +99,7 @@ class Summary(unittest.TestCase):
              'target': 'UTF8_STRING', 'wall': 10.01},
         ]
         [paste] = observer.summarize(records)
-        self.assertEqual(paste['commit'], 3)
+        self.assertEqual((paste['commit'], paste['via']), (3, 'paste'))
         self.assertEqual(paste['owners'], ['CLIPBOARD:farpane-core@-49.0ms'])
         self.assertEqual(paste['keys'], ['Insert↓@2.0ms'])
         self.assertEqual(paste['reads'], ['CLIPBOARD:warp:UTF8_STRING@10.0ms'])

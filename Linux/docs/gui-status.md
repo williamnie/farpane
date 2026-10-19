@@ -1,5 +1,7 @@
 # FarPane Linux GPU 媒体重构（linux-host）：原生 GUI 开发状态
 
+最新中文输入结论（2026-10-19，IBus）：中文改经 IBus 直接提交，非 IBus 应用（Warp）回退剪贴板粘贴；已安装 `farpane-native-dev-b70112f157f588d4ea83f44b` 并经用户实测。详见[中文输入](chinese-input.md)。
+
 最新中文输入结论（2026-10-19）：默认模式失败的根因是 Orca 截走 Insert，已关闭 Orca；`0044` Warp 白名单经修正后安装为 `farpane-native-dev-12a7610123e68eed56441923`，兼容关闭时 Warp/Chrome 实测均正常。详见[中文输入](chinese-input.md)。不靠粘贴快捷键的提交方式待调研。
 
 最新中文输入讨论（2026-10-19）：用户授权通过 ocs 与新线程 `claude-08da8438` 完成两轮只读评审。[讨论结论](chinese-input.md#2026-10-19与新-claude-线程的两轮设计评审)保留 DISPLAY/0043 的有效语义，继续暂停应用名特判和客户端补粘贴方案；纯 ASCII 修饰键覆盖、剪贴板竞争待验证，IBus 只列研究候选。先抓取不含正文的端到端诊断，再定修复；尚未授权 Mac 修改或新维护窗口。本轮只改讨论文档/证据，没有新产品、构建、测试或安装，当前 `.1` 和全部输入草稿保留。
