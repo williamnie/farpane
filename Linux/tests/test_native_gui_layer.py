@@ -27,6 +27,30 @@ class FrozenCoreBoundary(unittest.TestCase):
                 changed = dict(self.gui); changed[key] = 'changed'
                 module.gui_delta(self.sources, changed)
 
+    def test_existing_stylesheet_may_change(self):
+        self.sources['Linux/gui/resources/style.css'] = 'old'
+        self.gui['Linux/gui/resources/style.css'] = 'new'
+        self.assertEqual(module.gui_delta(self.sources, self.gui),
+                         ['Linux/gui/resources/style.css', 'Linux/gui/src/app.rs'])
+
+    def test_other_resources_rejected(self):
+        for key in ['Linux/gui/resources/farpane.gresource.xml',
+                    'Linux/gui/resources/org.farpane.FarPane.svg']:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                self.sources[key] = 'old'
+                changed = dict(self.gui); changed[key] = 'new'
+                module.gui_delta(self.sources, changed)
+
+    def test_layers_stack_with_history(self):
+        self.assertEqual(module.layer_slot({}), ([], 'gui-layer'))
+        first = {'version': '1'}
+        self.assertEqual(module.layer_slot({'gui_layer': first}), ([first], 'gui-layer-2'))
+        second = {'version': '2'}
+        self.assertEqual(module.layer_slot({'gui_layer': second, 'gui_layer_history': [first]}),
+                         ([first, second], 'gui-layer-3'))
+        with self.assertRaises(ValueError):
+            module.layer_slot({'gui_layer_history': [first]})
+
     def test_added_and_missing_inputs_rejected(self):
         for operation in ['add', 'remove']:
             with self.subTest(operation=operation), self.assertRaises(ValueError):

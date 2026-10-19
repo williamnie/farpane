@@ -4,6 +4,8 @@
 This preserves the older GUI/core receipts and their exact parent manifests.
 Dependency notices already marked as unrebound by the core update stay explicitly
 unrebound. It never relaxes the normal publication/source-audit verifier.
+A candidate that already carries a GUI layer may receive another one; earlier
+layer records move to gui_layer_history and keep their proof directories.
 """
 import argparse
 import importlib.util
@@ -31,12 +33,25 @@ def gui_delta(parent_sources, compiled):
     if expected.keys() != compiled.keys():
         raise ValueError('GUI compilation input inventory differs')
     changed = sorted(k for k in expected if expected[k] != compiled[k])
-    if not changed or any(not k.startswith('Linux/gui/src/') or not k.endswith('.rs') for k in changed):
-        raise ValueError('Only existing GUI Rust files may differ')
+    # Stylesheets are compiled into the executable's GResource bundle.
+    if not changed or any(not (k.startswith('Linux/gui/src/') and k.endswith('.rs'))
+                          and not (k.startswith('Linux/gui/resources/') and k.endswith('.css'))
+                          for k in changed):
+        raise ValueError('Only existing GUI Rust files and stylesheets may differ')
     return changed
 
 
-def package(base, update, version):
+def layer_slot(build):
+    """Return the earlier layer records and the proof directory for the next layer."""
+    history = list(build.get('gui_layer_history', []))
+    if build.get('gui_layer'):
+        history.append(build['gui_layer'])
+    elif history:
+        raise ValueError('GUI layer history without a current layer')
+    return history, 'gui-layer' if not history else f'gui-layer-{len(history) + 1}'
+
+
+def package(base, update, version, reason):
     base, update = base.resolve(strict=True), update.resolve(strict=True)
     if (base.parent != ROOT / 'Build/Linux/artifacts'
             or update.parent != ROOT / 'Build/Linux/gui-updates'
@@ -46,9 +61,12 @@ def package(base, update, version):
     build = read(base / 'build.json')
     # This path is only for the already-disclosed private core candidate. Do not
     # silently turn a fully bound delivery into one with weaker provenance.
-    if (build.get('gui_layer') or not build.get('core_update')
+    if (not build.get('core_update')
             or build['core_update'].get('notice_source_map_rebound') is not False):
         raise ValueError('Expected one existing unrebound core-update test candidate')
+    history, proof_name = layer_slot(build)
+    if read(base / 'release-info.json').get('version') == version:
+        raise ValueError('A new GUI layer needs a new product version')
     receipt = read(update / 'receipt.json')
     compilation_base_name = receipt['base_artifact']
     if not re.fullmatch(r'farpane-native-dev-[0-9a-f]{24}', compilation_base_name):
@@ -95,7 +113,7 @@ def package(base, update, version):
         for name in changed:
             shutil.copy2(update / 'source' / name, staged / 'source' / name)
             sources[name] = actual[name]
-        proof = staged / 'source/gui-layer'
+        proof = staged / 'source' / proof_name
         proof.mkdir()
         for name in ['receipt.json', 'inputs.json', 'test.log', 'release.log', 'build-native-gui-update.py']:
             shutil.copy2(update / name, proof / name)
@@ -105,7 +123,10 @@ def package(base, update, version):
         core_sha = build['packaged_binaries']['libexec/farpane-core']['sha256']
         (staged / 'release-info.json').write_text(json.dumps({
             'schema': 1, 'version': version, 'core_sha256': core_sha}, indent=2) + '\n')
+        if history:
+            build['gui_layer_history'] = history
         build['gui_layer'] = {'schema': 1, 'parent_artifact': base.name,
+            'proof': 'source/' + proof_name, 'reason': reason,
             'parent_manifest_sha256': bundle.digest(base / 'manifest.json'),
             'parent_build_sha256': bundle.digest(base / 'build.json'),
             'build_receipt_sha256': bundle.digest(proof / 'receipt.json'),
@@ -119,7 +140,7 @@ def package(base, update, version):
         build['input_binaries']['farpane'] = receipt['binary_sha256']
         (staged / 'build.json').write_text(json.dumps(build, indent=2) + '\n')
         with (staged / 'README.txt').open('a') as output:
-            output.write('Visible-version GUI layer: see build.json gui_layer and source/gui-layer.\n'
+            output.write(f'{reason} GUI layer: see build.json gui_layer and source/{proof_name}.\n'
                          'Core/media unchanged. Existing unbound notice/source gates remain open.\n')
         for name, value in build['packaged_binaries'].items():
             if bundle.digest(staged / name) != value['sha256']:
@@ -157,5 +178,6 @@ if __name__ == '__main__':
     parser.add_argument('base', type=Path)
     parser.add_argument('update', type=Path)
     parser.add_argument('--version', required=True)
+    parser.add_argument('--reason', default='Visible-version')
     args = parser.parse_args()
-    print(json.dumps(package(args.base, args.update, args.version), indent=2))
+    print(json.dumps(package(args.base, args.update, args.version, args.reason), indent=2))

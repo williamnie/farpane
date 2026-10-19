@@ -41,8 +41,11 @@ def main():
     before = source_map(base / 'source/Linux/gui')
     after = source_map(ROOT / 'Linux/gui')
     changes = sorted(k for k in before.keys() | after.keys() if before.get(k) != after.get(k))
-    if not changes or any(not k.startswith('src/') or not k.endswith('.rs') for k in changes):
-        raise ValueError('This incremental path permits only GUI Rust source changes')
+    # Stylesheets are compiled into the GUI executable's GResource bundle.
+    if not changes or any(not (k.startswith('src/') and k.endswith('.rs'))
+                          and not (k.startswith('resources/') and k.endswith('.css'))
+                          for k in changes):
+        raise ValueError('This incremental path permits only GUI Rust source and stylesheet changes')
     parent = ROOT / 'Build/Linux/gui-updates'
     parent.mkdir(exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix='run-', dir=parent))
