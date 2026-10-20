@@ -50,11 +50,14 @@ typedef enum RDNState {
 
 typedef enum RDNRemotePermissionKind {
     RDN_REMOTE_PERMISSION_AUDIO = 1,
+    /* Effective capability: authenticated Mac peer with keyboard control.
+     * Additive notification; older clients ignore unknown permission values. */
+    RDN_REMOTE_PERMISSION_MACOS_DESKTOP_SHORTCUTS = 2,
 } RDNRemotePermissionKind;
 
 /* Connection-scoped remote permission projection. The absence of an event is
- * never evidence of permission; Rust emits the authoritative audio value at
- * authentication and whenever the remote changes it. */
+ * never evidence of permission; Rust emits audio and effective Mac shortcut
+ * availability at authentication and when their prerequisites change. */
 typedef struct RDNRemotePermissionEvent {
     uint32_t abi_version;
     uint64_t connection_epoch;
@@ -470,7 +473,8 @@ typedef enum RDNKeyCode {
     RDN_KEY_PAGE_UP = 17,
     RDN_KEY_PAGE_DOWN = 18,
     /* Native macOS hardware key position. Rust Core maps this through the
-     * pinned RustDesk keyboard map mode so the remote IME sees key strokes. */
+     * pinned RustDesk keyboard map mode so the remote IME sees key strokes.
+     * Extended codes 131 (Launchpad) and 160 (Mission Control) require a Mac peer. */
     RDN_KEY_PHYSICAL = 19,
 } RDNKeyCode;
 

@@ -12,6 +12,7 @@ struct BridgeShared {
     authenticated: AtomicBool,
     remote_keyboard_enabled: AtomicBool,
     remote_audio_enabled: AtomicBool,
+    peer_is_macos: AtomicBool,
     input_allowed: AtomicBool,
     receive_clipboard_text: AtomicBool,
     send_clipboard_text: AtomicBool,
@@ -33,6 +34,26 @@ struct BridgeShared {
 }
 
 impl BridgeShared {
+    fn emit_macos_desktop_shortcuts_permission(&self) {
+        let epoch = self.connection_epoch.load(Ordering::Acquire);
+        if epoch == 0 || !self.active.load(Ordering::Acquire) {
+            return;
+        }
+        let Some(callback) = self.callbacks.on_remote_permission else {
+            return;
+        };
+        let event = RDNRemotePermissionEvent {
+            abi_version: ABI_VERSION,
+            connection_epoch: epoch,
+            permission: REMOTE_PERMISSION_MACOS_DESKTOP_SHORTCUTS,
+            enabled: cfg!(target_os = "macos")
+                && self.peer_is_macos.load(Ordering::Acquire)
+                && self.authenticated.load(Ordering::Acquire)
+                && self.input_allowed.load(Ordering::Acquire),
+        };
+        unsafe { callback(self.context as *mut c_void, &event) };
+    }
+
     fn emit_file_transfer_ready_if_available(&self) {
         if self.active.load(Ordering::Acquire)
             && self.authenticated.load(Ordering::Acquire)

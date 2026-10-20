@@ -26,6 +26,35 @@ final class ExclusiveKeyboardEventDispatcherTests: XCTestCase {
         wait(for: [sendFinished], timeout: 1)
     }
 
+    func testShortcutWaitsForPendingModifierRelease() {
+        let releaseStarted = expectation(description: "modifier release started")
+        let shortcutFinished = expectation(description: "shortcut finished")
+        let releaseAllowed = DispatchSemaphore(value: 0)
+        let recorder = KeyEventRecorder()
+        let dispatcher = ExclusiveKeyboardEventDispatcher(
+            send: { event in
+                if event.key == .physical(55) {
+                    releaseStarted.fulfill()
+                    releaseAllowed.wait()
+                }
+                recorder.append(event)
+                return 0
+            }, recordResult: { _, _ in })
+        dispatcher.enqueue(CoreKeyEvent(key: .physical(55), isDown: false))
+        wait(for: [releaseStarted], timeout: 1)
+        dispatcher.enqueueKeyPress(.physical(131)) { _ in shortcutFinished.fulfill() }
+        XCTAssertTrue(recorder.snapshot().isEmpty)
+        releaseAllowed.signal()
+        wait(for: [shortcutFinished], timeout: 1)
+        XCTAssertEqual(
+            recorder.snapshot(),
+            [
+                KeyTransition(key: .physical(55), isDown: false),
+                KeyTransition(key: .physical(131), isDown: true),
+                KeyTransition(key: .physical(131), isDown: false),
+            ])
+    }
+
     func testSerializesKeyTransitionsInAdmissionOrder() {
         let recordedAllEvents = expectation(description: "recorded all events")
         recordedAllEvents.expectedFulfillmentCount = 4

@@ -49,7 +49,11 @@ public struct CoreStateEvent: Sendable {
     public let message: String
 }
 
-public enum CoreRemotePermission: UInt32, Equatable, Sendable { case audio = 1 }
+public enum CoreRemotePermission: UInt32, Equatable, Sendable {
+    case audio = 1
+    /// 远端为 Mac 且已授予键盘控制权限；旧 Core 不上报时保持不可用。
+    case macOSDesktopShortcuts = 2
+}
 
 public struct CoreRemotePermissionEvent: Equatable, Sendable {
     public let connectionEpoch: UInt64

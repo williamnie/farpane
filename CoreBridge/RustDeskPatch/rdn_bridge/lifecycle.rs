@@ -31,6 +31,7 @@ pub unsafe extern "C" fn rdn_client_create(
         remote_keyboard_enabled: AtomicBool::new(true),
         remote_audio_enabled: AtomicBool::new(true),
         input_allowed: AtomicBool::new(false),
+        peer_is_macos: AtomicBool::new(false),
         receive_clipboard_text: AtomicBool::new(false),
         send_clipboard_text: AtomicBool::new(false),
         receive_clipboard_rich_text: AtomicBool::new(false),
@@ -137,6 +138,7 @@ pub unsafe extern "C" fn rdn_client_connect(
         .remote_audio_enabled
         .store(true, Ordering::Release);
     client.shared.input_allowed.store(false, Ordering::Release);
+    client.shared.peer_is_macos.store(false, Ordering::Release);
     client
         .shared
         .receive_clipboard_text

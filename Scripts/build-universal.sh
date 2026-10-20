@@ -165,6 +165,10 @@ else
   lipo -create "${core_libraries[@]}" \
     -output "$app_dir/Contents/Frameworks/liblibrustdesk.dylib"
 fi
+# 发布包不携带含本机源码路径的调试符号；必须在签名前处理。
+for executable in "$app_dir/Contents/MacOS/RustDeskNative" "$host_agent_executable"; do
+  xcrun strip -S "$executable"
+done
 codesign --force --sign "$signing_identity" --timestamp=none \
   "$app_dir/Contents/Frameworks/liblibrustdesk.dylib"
 # 主程序与 helper 必须各有签名标识，避免本地网络权限缓存交替映射不同 UUID。

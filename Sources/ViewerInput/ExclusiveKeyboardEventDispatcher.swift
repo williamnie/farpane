@@ -27,4 +27,18 @@ public final class ExclusiveKeyboardEventDispatcher: @unchecked Sendable {
             recordResult(event.isDown ? "key-down" : "key-up", status)
         }
     }
+
+    public func enqueueKeyPress(
+        _ key: CoreKey, sender: Sender? = nil, completion: @escaping @Sendable (Int32) -> Void
+    ) {
+        let send = sender ?? self.send
+        queue.async { [send, recordResult] in
+            let down = send(CoreKeyEvent(key: key, isDown: true))
+            recordResult("key-down", down)
+            // 即使按下失败也尝试释放；整对事件排在此前释放修饰键的事件之后。
+            let up = send(CoreKeyEvent(key: key, isDown: false))
+            recordResult("key-up", up)
+            completion(down == 0 ? up : down)
+        }
+    }
 }

@@ -115,10 +115,10 @@ fn key_payload_fields_are_canonical(
     }
 }
 
-fn physical_macos_keycode(value: u32) -> Option<i32> {
-    // macOS virtual hardware key positions are 7-bit values. Keeping this
-    // validation in Rust prevents Swift from exposing RustDesk wire details.
-    (value <= 0x7f).then_some(value as i32)
+fn physical_macos_keycode(value: u32, peer_is_macos: bool) -> Option<i32> {
+    // 普通物理键保持原范围，仅为 Mac 远端放行两个扩展系统键。
+    (value <= 0x7f || (cfg!(target_os = "macos") && peer_is_macos && matches!(value, 131 | 160)))
+        .then_some(value as i32)
 }
 
 fn modifiers(value: u32) -> Option<(bool, bool, bool, bool)> {
@@ -253,7 +253,10 @@ pub unsafe extern "C" fn rdn_client_send_key(
         return -4;
     }
     let physical_keycode = if event.code == RDNKeyCode::Physical {
-        let Some(keycode) = physical_macos_keycode(event.hardware_keycode) else {
+        let Some(keycode) = physical_macos_keycode(
+            event.hardware_keycode,
+            client.shared.peer_is_macos.load(Ordering::Acquire),
+        ) else {
             return -4;
         };
         Some(keycode)

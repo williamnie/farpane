@@ -35,6 +35,7 @@ extension AppDelegate {
             viewerDisplaySelectionInputOwner?.setControlAvailable(true)
             refreshViewerDisplaySelection(chrome: chrome)
         } else if Self.isTerminalState(event.state) {
+            chrome?.setMacOSShortcutsAvailable(false)
             viewerAudioSessionOwner?.stop()
             refreshViewerAudioSession(chrome: chrome)
             chrome?.setKeyboardGrabAvailable(false)

@@ -485,9 +485,19 @@
             'a' as u32,
             55
         ));
-        assert_eq!(physical_macos_keycode(0), Some(0));
-        assert_eq!(physical_macos_keycode(0x7f), Some(0x7f));
-        assert_eq!(physical_macos_keycode(0x80), None);
+        assert_eq!(physical_macos_keycode(0, false), Some(0));
+        assert_eq!(physical_macos_keycode(0x7f, false), Some(0x7f));
+        assert_eq!(physical_macos_keycode(0x80, true), None);
+        for code in [131, 160] {
+            assert_eq!(physical_macos_keycode(code, false), None);
+            assert_eq!(
+                physical_macos_keycode(code, true),
+                cfg!(target_os = "macos").then_some(code as i32)
+            );
+        }
+        for code in [128, 129, 130, 132, 159, 161, u32::MAX] {
+            assert_eq!(physical_macos_keycode(code, true), None);
+        }
     }
 
     #[test]
@@ -564,6 +574,7 @@
             ui_handler: ui.clone(),
             ..Default::default()
         };
+        session.lc.write().unwrap().get_config().info.platform = platform.to_owned();
         ui.set_peer_info(&PeerInfo {
             platform: platform.to_owned(),
             ..Default::default()
@@ -591,6 +602,126 @@
             modifiers: 0,
         };
         unsafe { rdn_client_send_pointer(client, &event) }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_shortcuts_reach_host_as_complete_physical_key_pairs() {
+        let (mut client, mut receiver) = scroll_test_client("Mac OS");
+        for code in [131, 160, 103] {
+            for down in [true, false] {
+                let event = RDNKeyEvent {
+                    abi_version: ABI_VERSION,
+                    code: RDNKeyCode::Physical,
+                    unicode_scalar: 0,
+                    hardware_keycode: code,
+                    down,
+                    modifiers: 0,
+                };
+                assert_eq!(unsafe { rdn_client_send_key(&mut client, &event) }, 0);
+                let Data::Message(message) = receiver.try_recv().unwrap() else {
+                    panic!("expected key message");
+                };
+                let Some(message::Union::KeyEvent(wire)) = message.union else {
+                    panic!("expected key event");
+                };
+                assert_eq!(wire.mode.enum_value().unwrap(), KeyboardMode::Map);
+                assert_eq!(wire.chr(), code);
+                assert_eq!(wire.down, down);
+                assert!(!wire.press);
+                assert!(wire.modifiers.is_empty());
+                assert!(crate::server::input_service::NormalizedKeyInput::from_wire(wire).is_some());
+                assert!(receiver.try_recv().is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn macos_shortcuts_reject_non_mac_peers_and_revoked_control_before_wire_send() {
+        for platform in ["Linux", "Windows", ""] {
+            let (mut client, mut receiver) = scroll_test_client(platform);
+            for code in [131, 160] {
+                let event = RDNKeyEvent {
+                    abi_version: ABI_VERSION,
+                    code: RDNKeyCode::Physical,
+                    unicode_scalar: 0,
+                    hardware_keycode: code,
+                    down: true,
+                    modifiers: 0,
+                };
+                assert_eq!(unsafe { rdn_client_send_key(&mut client, &event) }, -4);
+            }
+            assert!(receiver.try_recv().is_err());
+        }
+        let (mut client, mut receiver) = scroll_test_client("Mac OS");
+        for code in [131, 160, 103] {
+            let event = RDNKeyEvent {
+                abi_version: ABI_VERSION,
+                code: RDNKeyCode::Physical,
+                unicode_scalar: 0,
+                hardware_keycode: code,
+                down: true,
+                modifiers: 0,
+            };
+            client.shared.input_allowed.store(false, Ordering::Release);
+            assert_eq!(unsafe { rdn_client_send_key(&mut client, &event) }, -6);
+            client.shared.active.store(false, Ordering::Release);
+            assert_eq!(unsafe { rdn_client_send_key(&mut client, &event) }, -3);
+            client.shared.active.store(true, Ordering::Release);
+        }
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn macos_shortcuts_permission_tracks_peer_authentication_and_revocation() {
+        unsafe extern "C" fn capture(context: *mut c_void, event: *const RDNRemotePermissionEvent) {
+            let event = &*event;
+            if event.permission == REMOTE_PERMISSION_MACOS_DESKTOP_SHORTCUTS {
+                let events = &*(context as *const Mutex<Vec<(u64, bool)>>);
+                events
+                    .lock()
+                    .unwrap()
+                    .push((event.connection_epoch, event.enabled));
+            }
+        }
+        let events = Mutex::new(Vec::<(u64, bool)>::new());
+        let mut ui = BridgeUi::default();
+        let shared = Arc::get_mut(&mut ui.shared).unwrap();
+        shared.callbacks.on_remote_permission = Some(capture);
+        shared.context = &events as *const _ as usize;
+        shared.active.store(true, Ordering::Release);
+        shared.connection_epoch.store(7, Ordering::Release);
+        ui.set_peer_info(&PeerInfo {
+            platform: "Mac OS".to_owned(),
+            ..Default::default()
+        });
+        assert_eq!(events.lock().unwrap().pop(), Some((7, false)));
+        ui.on_connected(ConnType::DEFAULT_CONN);
+        assert_eq!(
+            events.lock().unwrap().pop(),
+            Some((7, cfg!(target_os = "macos")))
+        );
+        ui.set_permission("keyboard", false);
+        assert_eq!(events.lock().unwrap().pop(), Some((7, false)));
+        ui.set_permission("keyboard", true);
+        assert_eq!(
+            events.lock().unwrap().pop(),
+            Some((7, cfg!(target_os = "macos")))
+        );
+        ui.set_peer_info(&PeerInfo {
+            platform: "Linux".to_owned(),
+            ..Default::default()
+        });
+        assert_eq!(events.lock().unwrap().pop(), Some((7, false)));
+        ui.shared
+            .file_transfer_enabled
+            .store(true, Ordering::Release);
+        ui.set_peer_info(&PeerInfo {
+            platform: "Mac OS".to_owned(),
+            ..Default::default()
+        });
+        ui.on_connected(ConnType::DEFAULT_CONN);
+        assert_eq!(events.lock().unwrap().pop(), Some((7, false)));
     }
 
     fn receive_test_scroll(

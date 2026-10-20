@@ -85,6 +85,25 @@ extension AppDelegate {
         view.ubuntuPasteCompatibilityEnabled = ViewerTextInputPreferences.isEnabled(
             deviceID: viewerRecoveryDeviceID)
         view.recordInputResult = recordInputResult
+        chrome.onMacOSShortcut = { [weak self, weak view, weak chrome] shortcut in
+            guard let self, let client = self.coreClient,
+                let keyboardController = self.keyboardController, self.viewerChrome === chrome,
+                self.viewerDisplaySelectionInputOwner?.snapshot().inputQuiesced != true
+            else { return }
+            view?.releaseAllKeyboardInput()
+            let generation = self.viewerCoreGeneration
+            keyboardController.sendKeyPress(
+                shortcut.key, sender: { client.sendKey($0) },
+                completion: { [weak self, weak chrome] status in
+                    guard status != 0 else { return }
+                    DispatchQueue.main.async {
+                        guard let self, self.viewerCoreGeneration == generation,
+                            self.viewerChrome === chrome
+                        else { return }
+                        chrome?.updateState("远端快捷操作未发送，请检查连接与控制权限", isError: true)
+                    }
+                })
+        }
         if liveConfiguration != nil {
             let keyboardController = ExclusiveKeyboardController(
                 sendKey: sendKey, recordInputResult: recordInputResult)

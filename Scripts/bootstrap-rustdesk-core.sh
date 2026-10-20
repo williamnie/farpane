@@ -32,6 +32,7 @@ android_software_codec_fallback_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h
 macos_scroll_modifiers_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h11-macos-scroll-modifiers.patch"
 viewer_h264_negotiation_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h12-viewer-h264-negotiation.patch"
 native_scroll_units_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h13-native-scroll-units.patch"
+macos_desktop_shortcuts_patch_file="$repo_dir/CoreBridge/RustDeskPatch/h14-macos-desktop-shortcuts.patch"
 bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_bridge.rs"
 host_bridge_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_bridge.rs"
 host_file_transfer_source="$repo_dir/CoreBridge/RustDeskPatch/rdn_host_file_transfer.rs"
@@ -365,6 +366,13 @@ elif ! git -C "$hbb_common_dir" apply --check --reverse "$file_transfer_block_pa
   exit 1
 fi
 
+if git -C "$vendor_dir" apply --check "$macos_desktop_shortcuts_patch_file" 2>/dev/null; then
+  git -C "$vendor_dir" apply "$macos_desktop_shortcuts_patch_file"
+elif ! git -C "$vendor_dir" apply --check --reverse "$macos_desktop_shortcuts_patch_file" 2>/dev/null; then
+  print -u2 "RustDesk checkout has changes that do not match the macOS desktop shortcuts patch"
+  exit 1
+fi
+
 # Both native bridges are wholly owned by this repository; tracked sources are
 # authoritative and always synced into the generated vendor checkout.
 python3 "$repo_dir/Scripts/sync-rustdesk-bridge.py"
@@ -374,6 +382,7 @@ git -C "$vendor_dir" apply --check --reverse "$android_software_codec_fallback_p
 git -C "$vendor_dir" apply --check --reverse "$macos_scroll_modifiers_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$viewer_h264_negotiation_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$native_scroll_units_patch_file"
+git -C "$vendor_dir" apply --check --reverse "$macos_desktop_shortcuts_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$native_host_physical_display_pixels_patch_file"
 git -C "$vendor_dir" apply --check --reverse "$native_host_cm_lifetime_patch_file"
 if git -C "$vendor_dir" apply --check --reverse "$viewer_file_upload_wire_patch_file" 2>/dev/null; then

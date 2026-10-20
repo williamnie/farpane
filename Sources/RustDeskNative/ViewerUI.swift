@@ -18,6 +18,7 @@ final class ViewerChromeView: NSView {
     var onFileTransferAction: (() -> Void)?
     var onFileTransferUploadAction: (() -> Void)?
     var onSelectDisplay: ((UInt32) -> Void)?
+    var onMacOSShortcut: ((ViewerMacOSShortcut) -> Void)?
     var onOpenKeyboardPermissions: (() -> Void)?
     var onControlOverlayVisibilityChanged: ((Bool) -> Void)?
 
@@ -36,6 +37,9 @@ final class ViewerChromeView: NSView {
     private let displaySelector = NSPopUpButton(frame: .zero, pullsDown: false)
     private let hudButton = NSButton(title: "显示 HUD", target: nil, action: nil)
     private let fullscreenButton = NSButton(title: "全屏", target: nil, action: nil)
+    private let macOSShortcutsStack = NSStackView()
+    private var macOSShortcutButtons: [NSButton] = []
+    private var macOSShortcutsAvailable = false
     private let showsAcceptanceControls: Bool
     private let showsFileTransferControls: Bool
     private let showsDisplayControls: Bool
@@ -186,6 +190,17 @@ final class ViewerChromeView: NSView {
     func setKeyboardGrabAvailable(_ available: Bool) {
         keyboardGrabAvailable = available
         keyboardGrabButton.isEnabled = available || keyboardGrabActive || keyboardGrabResumePending
+    }
+
+    func setMacOSShortcutsAvailable(_ available: Bool) {
+        macOSShortcutsAvailable = available
+        if available { macOSShortcutsStack.isHidden = false }
+        for button in macOSShortcutButtons { button.isEnabled = available }
+    }
+
+    func resetMacOSShortcuts() {
+        setMacOSShortcutsAvailable(false)
+        macOSShortcutsStack.isHidden = true
     }
 
     func updateKeyboardGrab(active: Bool, resumePending: Bool, message: String?, isError: Bool) {
@@ -392,13 +407,37 @@ final class ViewerChromeView: NSView {
         let controlsStack = NSStackView(
             views: views, axis: .horizontal, alignment: .centerY, spacing: 8)
         controlsStack.edgeInsets = NSEdgeInsets(top: 8, left: 12, bottom: 8, right: 10)
-        controlsStack.translatesAutoresizingMaskIntoConstraints = false
-        controlsPanel.addSubview(controlsStack)
+        macOSShortcutsStack.orientation = .horizontal
+        macOSShortcutsStack.alignment = .centerY
+        macOSShortcutsStack.spacing = 8
+        macOSShortcutsStack.edgeInsets = NSEdgeInsets(top: 0, left: 12, bottom: 8, right: 12)
+        let shortcutsLabel = NSTextField(labelWithString: "Mac 快捷操作")
+        shortcutsLabel.font = .systemFont(ofSize: 11)
+        shortcutsLabel.textColor = .secondaryLabelColor
+        macOSShortcutsStack.addArrangedSubview(shortcutsLabel)
+        for shortcut in ViewerMacOSShortcut.allCases {
+            let button = actionButton(shortcut.title, #selector(sendMacOSShortcut(_:)))
+            button.image = NSImage(
+                systemSymbolName: shortcut.symbolName, accessibilityDescription: shortcut.title)
+            button.imagePosition = .imageOnly
+            button.tag = shortcut.rawValue
+            button.toolTip = "远端 Mac：\(shortcut.title)"
+            button.setAccessibilityLabel(shortcut.title)
+            button.isEnabled = false
+            macOSShortcutButtons.append(button)
+            macOSShortcutsStack.addArrangedSubview(button)
+        }
+        macOSShortcutsStack.isHidden = true
+        let panelStack = NSStackView(
+            views: [controlsStack, macOSShortcutsStack], axis: .vertical, alignment: .centerX,
+            spacing: 0)
+        panelStack.translatesAutoresizingMaskIntoConstraints = false
+        controlsPanel.addSubview(panelStack)
         NSLayoutConstraint.activate([
-            controlsStack.leadingAnchor.constraint(equalTo: controlsPanel.leadingAnchor),
-            controlsStack.trailingAnchor.constraint(equalTo: controlsPanel.trailingAnchor),
-            controlsStack.topAnchor.constraint(equalTo: controlsPanel.topAnchor),
-            controlsStack.bottomAnchor.constraint(equalTo: controlsPanel.bottomAnchor),
+            panelStack.leadingAnchor.constraint(equalTo: controlsPanel.leadingAnchor),
+            panelStack.trailingAnchor.constraint(equalTo: controlsPanel.trailingAnchor),
+            panelStack.topAnchor.constraint(equalTo: controlsPanel.topAnchor),
+            panelStack.bottomAnchor.constraint(equalTo: controlsPanel.bottomAnchor),
         ])
 
         configureMaterial(hudPanel, radius: 10)
@@ -517,6 +556,14 @@ final class ViewerChromeView: NSView {
     @objc private func toggleKeyboardGrab() {
         onToggleKeyboardGrab?()
         setControlsExpanded(false)
+    }
+
+    @objc private func sendMacOSShortcut(_ sender: NSButton) {
+        guard macOSShortcutsAvailable, let shortcut = ViewerMacOSShortcut(rawValue: sender.tag)
+        else { return }
+        onMacOSShortcut?(shortcut)
+        window?.makeFirstResponder(videoView)
+        scheduleCollapse()
     }
 
     @objc private func openKeyboardPermissions() {

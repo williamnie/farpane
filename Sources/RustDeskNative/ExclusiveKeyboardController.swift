@@ -98,6 +98,11 @@ final class ExclusiveKeyboardController: @unchecked Sendable {
         setSuspended(visible, for: .controlOverlayVisible, message: "本地控制菜单已打开，键盘独占已暂时释放")
     }
 
+    func sendKeyPress(
+        _ key: CoreKey, sender: @escaping ExclusiveKeyboardEventDispatcher.Sender,
+        completion: @escaping @Sendable (Int32) -> Void
+    ) { eventDispatcher.enqueueKeyPress(key, sender: sender, completion: completion) }
+
     func resumeIfRequested() {
         guard
             lock.withLock({

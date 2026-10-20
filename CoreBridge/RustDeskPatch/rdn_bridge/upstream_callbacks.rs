@@ -36,6 +36,7 @@ impl Default for BridgeUi {
                 authenticated: AtomicBool::new(false),
                 remote_keyboard_enabled: AtomicBool::new(true),
                 remote_audio_enabled: AtomicBool::new(true),
+                peer_is_macos: AtomicBool::new(false),
                 input_allowed: AtomicBool::new(false),
                 receive_clipboard_text: AtomicBool::new(false),
                 send_clipboard_text: AtomicBool::new(false),
@@ -187,6 +188,10 @@ impl InvokeUiSession for BridgeUi {
     }
 
     fn set_peer_info(&self, peer_info: &PeerInfo) {
+        self.shared
+            .peer_is_macos
+            .store(peer_info.platform == "Mac OS", Ordering::Release);
+        self.shared.emit_macos_desktop_shortcuts_permission();
         *self.shared.scroll.lock().unwrap() = NativeScrollState {
             linux: peer_info.platform == "Linux",
             ..Default::default()
@@ -210,6 +215,7 @@ impl InvokeUiSession for BridgeUi {
                 self.shared.remote_keyboard_enabled.load(Ordering::Acquire),
             );
         self.shared.input_allowed.store(allowed, Ordering::Release);
+        self.shared.emit_macos_desktop_shortcuts_permission();
         self.shared
             .emit_state(RDNState::Authenticated, 0, "authenticated");
         if file_transfer {
@@ -229,6 +235,7 @@ impl InvokeUiSession for BridgeUi {
             let allowed = !self.shared.file_transfer_enabled.load(Ordering::Acquire)
                 && input_is_allowed(self.shared.authenticated.load(Ordering::Acquire), value);
             self.shared.input_allowed.store(allowed, Ordering::Release);
+            self.shared.emit_macos_desktop_shortcuts_permission();
             if !allowed {
                 self.shared.scroll.lock().unwrap().remainder = (0, 0);
             }

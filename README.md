@@ -38,6 +38,7 @@ FarPane 是面向 macOS 13 及以上系统的原生远程桌面客户端。作�
 - ScreenCaptureKit 屏幕采集与 VideoToolbox H264/H265 硬件编码。
 - Retina/aspect-fit 坐标映射、鼠标、拖拽、滚轮和键盘输入。
 - AppKit 本地输入法提交，以及可选的远端独占键盘模式。
+- Mac 会话工具栏提供启动台、调度中心和桌面快捷操作，仅在远端为 Mac 且允许键盘控制时启用。远端 FarPane Host 需同步升级以接受启动台和调度中心系统键；桌面操作使用远端 F11 快捷键。
 - 显式控制的音频、剪贴板和双向文件传输，以及远端多显示器切换。
 - Keychain 可选保存设备密码；密码不会写入配置、参数或日志。
 - 内置 FPS、延迟、队列、CPU、内存和解码/渲染指标。
@@ -239,6 +240,7 @@ FarPane is a native remote-desktop client for macOS 13 and later. As a Viewer it
 - ScreenCaptureKit display capture with VideoToolbox H264/H265 hardware encoding.
 - Retina-aware aspect-fit mapping, pointer, drag, wheel, and keyboard input.
 - AppKit-committed local IME text plus an optional exclusive remote-keyboard mode.
+- Launchpad, Mission Control, and Show Desktop toolbar actions for Mac peers with keyboard control. The remote FarPane Host must also be updated to accept the Launchpad and Mission Control keys; Show Desktop uses the remote F11 shortcut.
 - Explicit audio, clipboard, bidirectional file-transfer, and remote multi-display controls.
 - Optional password storage in Keychain; secrets never enter settings, arguments, or logs.
 - Built-in FPS, latency, queue, CPU, memory, decode, and render metrics.

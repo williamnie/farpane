@@ -1,0 +1,13 @@
+diff --git a/src/server/input_service.rs b/src/server/input_service.rs
+--- a/src/server/input_service.rs
++++ b/src/server/input_service.rs
+@@ -361,7 +361,8 @@ fn position_keycode_is_canonical(code: u32, translated: bool) -> bool {
+     #[cfg(target_os = "macos")]
+     {
+         let _ = translated;
+-        return code <= 0x7f;
++        // Launchpad and Mission Control are extended macOS virtual keys.
++        return code <= 0x7f || matches!(code, 131 | 160);
+     }
+     #[cfg(target_os = "windows")]
+     {

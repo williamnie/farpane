@@ -21,6 +21,7 @@ extension AppDelegate {
         }
         viewerCoreGeneration += 1
         let coreGeneration = viewerCoreGeneration
+        chrome.resetMacOSShortcuts()
         let clipboardSessionEpoch = viewerClipboardSessionEpoch
         let fallbackFPS = options.fps
         let keyboardController = self.keyboardController
@@ -158,6 +159,10 @@ extension AppDelegate {
     ) {
         guard coreGeneration == viewerCoreGeneration else { return }
         if let attemptID, activeAttemptID != attemptID { return }
+        if event.permission == .macOSDesktopShortcuts {
+            viewerChrome?.setMacOSShortcutsAvailable(event.enabled)
+            return
+        }
         guard viewerAudioSessionOwner?.observe(event) == true else { return }
         refreshViewerAudioSession(chrome: viewerChrome)
     }

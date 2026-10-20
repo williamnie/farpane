@@ -106,6 +106,7 @@ pub struct RDNCoreMetrics {
 }
 
 const REMOTE_PERMISSION_AUDIO: u32 = 1;
+const REMOTE_PERMISSION_MACOS_DESKTOP_SHORTCUTS: u32 = 2;
 
 #[repr(C)]
 pub struct RDNRemotePermissionEvent {
