@@ -2,6 +2,12 @@
 
 原生安装分为 root 的 release/服务事务和普通用户的桌面入口事务。canonical 实现在 `Linux/packaging/native_install*.py`、`native_user_install.py`，入口在 `Scripts/linux/install-native*.py`。现已在授权维护窗口完成 linux-host 的真实 systemd/GNOME 用户桌面切换，用户确认 Mac 入站画面和键鼠正常；详情及权限迁移修复见[实机记录](native-hermes-maintenance.md)。用户切换、greeter、重启和真实回退仍未验收，开发包保持 `runtime_ready=false`。
 
+## 用户设置开机自启
+
+原生 GUI 的 **共享设置 → 启动 → 开机自启** 读取并修改已安装的 `farpane.service` 的持久启用状态。开启后由 systemd 在开机时启动后台服务，不自动弹出主窗口；是否接受连接仍由“允许连接本机”控制。修改时可能需要桌面 polkit 管理员授权。取消或失败后重新读取系统状态，并在开关旁显示原因。
+
+此开关只执行固定服务的 `enable` / `disable`，不启动、停止或重启当前服务，不创建用户 autostart 文件，也不修改原 RustDesk。未安装、被屏蔽或由其他策略管理的服务显示不可用。安装和升级继续保留原来的启用状态；设置入口不代表重启后远程连接已通过实机验收。
+
 ## 暂存与计划
 
 `install-native.py stage ARTIFACT` 在 `/opt/farpane/.staged` 中建立 root 私有的校验副本。源目录可属于普通用户；安装器固定 manifest 字节，通过逐级 `O_NOFOLLOW` 目录 FD 复制，限制文件数、单文件与总大小，并验证每个文件的长度、SHA-256、权限与受限媒体库别名。目标不继承源所有者、ACL、xattr 或硬链接。源目录中的符号链接目录、特殊文件、清单外文件和复制期间改变的内容被拒绝。

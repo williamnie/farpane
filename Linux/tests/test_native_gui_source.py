@@ -21,6 +21,15 @@ class GuiSourceBoundary(unittest.TestCase):
     def test_existing_gui_rust_delta_is_accepted(self):
         self.assertEqual(module.validate_delta(self.parent,self.build),['Linux/gui/src/viewer.rs'])
 
+    def test_new_gui_rust_module_is_included_in_the_exact_delta(self):
+        changed=copy.deepcopy(self.build)
+        changed['build_receipt']['sources']['Linux/gui/src/startup.rs']='e'
+        paths=['Linux/gui/src/startup.rs','Linux/gui/src/viewer.rs']
+        changed['gui_update']['changed_sources']=paths
+        self.assertEqual(module.validate_delta(self.parent,changed),paths)
+        del changed['build_receipt']['sources']['Linux/gui/Cargo.lock']
+        with self.assertRaises(ValueError):module.validate_delta(self.parent,changed)
+
     def test_changed_core_or_dependency_source_is_rejected(self):
         for key in ('Linux/gui/Cargo.lock','Linux/native/mod.rs'):
             with self.subTest(key=key),self.assertRaises(ValueError):

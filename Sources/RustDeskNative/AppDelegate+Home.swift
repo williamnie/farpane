@@ -7,6 +7,7 @@ import Darwin
 import Dispatch
 import Foundation
 import MetalKit
+import ServiceManagement
 import VideoPipeline
 import ViewerInput
 
@@ -28,6 +29,7 @@ extension AppDelegate {
     }
 
     func showHomeUI(error: String = "") {
+        loginStartupSettings.refresh()
         _ = hostAudioInputDeviceCatalogOwner.refresh()
         let hostReceiveRootPicker = hostFileTransferReceiveRootPicker
         hostFileTransferReceiveRootPicker = nil
@@ -92,6 +94,15 @@ extension AppDelegate {
             self?.handleDeviceAction(deviceID: deviceID, action: action)
         }
         view.onHostToggle = { [weak self] enabled in self?.handleHostProductToggle(enabled) }
+        view.onLoginStartupToggle = { [weak self] enabled in
+            self?.loginStartupSettings.setEnabled(enabled)
+            self?.refreshHomeUI()
+        }
+        view.onRefreshLoginStartup = { [weak self] in
+            self?.loginStartupSettings.refresh()
+            self?.refreshHomeUI()
+        }
+        view.onOpenLoginStartupSystemSettings = { SMAppService.openSystemSettingsLoginItems() }
         view.onHostClipboardToggle = { [weak self] preference, enabled in
             self?.handleHostClipboardPolicyToggle(preference, enabled: enabled)
         }
@@ -156,6 +167,7 @@ extension AppDelegate {
 
     func refreshHomeUI() {
         guard let homeView else { return }
+        homeView.applyLoginStartup(loginStartupSettings.presentation())
         refreshHostAgentRuntimeConfigurationCoherence()
         projectHostAgentBackgroundCommandPresentation(
             hostAgentBackgroundCommandPresentationOwner.snapshot())

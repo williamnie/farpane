@@ -248,7 +248,7 @@ extension HomeView {
 
         let settingsPage = makeScrollablePage(views: [
             makePageHeader(title: "共享设置", subtitle: "决定远端会话可以使用哪些本机能力；未开启的能力保持关闭。"),
-            sharingContainer,
+            makeStartupSettings(), sharingContainer,
         ])
 
         pageTabView.tabViewType = .noTabsNoBorder

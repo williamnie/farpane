@@ -35,6 +35,7 @@ extension AppDelegate {
         }
         hostAgentBackgroundFlow = nil
         let decision = HostAgentBackgroundProductRoutingPolicy.registrationDecision(view)
+        hostAutomaticStartupPreference.record(decision)
         acceptHostAgentBackgroundRegistration(view.registration, decision: decision)
         applyHostAgentBackgroundProductRoutingDecision(decision)
         refreshHomeUI()
@@ -50,6 +51,7 @@ extension AppDelegate {
         }
         hostAgentBackgroundFlow = nil
         let decision = HostAgentBackgroundProductRoutingPolicy.unregistrationDecision(view)
+        hostAutomaticStartupPreference.record(decision)
         acceptHostAgentBackgroundRegistration(view.registration, decision: decision)
         applyHostAgentBackgroundProductRoutingDecision(decision)
         refreshHomeUI()
@@ -154,7 +156,9 @@ extension AppDelegate {
         case .noAction: break
         case .stopLegacyHost:
             hostAgentAutomaticRegistrationAttempted = true
-            _ = stopHostMode(preservePreference: false, reason: .userRequest, releaseClient: true)
+            if stopHostMode(preservePreference: false, reason: .userRequest, releaseClient: true) {
+                hostAutomaticStartupPreference.record(.disable)
+            }
         case .beginRegistration:
             hostAgentBackgroundFlow = .registration
             if !beginHostAgentBackgroundRegistration() { hostAgentBackgroundFlow = nil }
@@ -189,10 +193,11 @@ extension AppDelegate {
         } else {
             bootstrapReady = false
         }
-        if HostAgentBackgroundHomeRoutingPolicy.shouldAutomaticallyRegister(
-            registration: hostAgentBackgroundRegistrationStatus, legacy: legacy,
-            bootstrapReady: bootstrapReady,
-            alreadyAttempted: hostAgentAutomaticRegistrationAttempted)
+        if hostAutomaticStartupPreference.isAllowed,
+            HostAgentBackgroundHomeRoutingPolicy.shouldAutomaticallyRegister(
+                registration: hostAgentBackgroundRegistrationStatus, legacy: legacy,
+                bootstrapReady: bootstrapReady,
+                alreadyAttempted: hostAgentAutomaticRegistrationAttempted)
         {
             registerHostAgentBackgroundAutomatically()
             return

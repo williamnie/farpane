@@ -19,6 +19,7 @@ struct Binding {
 }
 pub struct Ui {
     pub model: Rc<RefCell<Model>>,
+    startup: Rc<crate::startup_ui::Settings>,
     bridge: Bridge,
     bindings: RefCell<Vec<Binding>>,
     updating: Cell<bool>,
@@ -33,6 +34,7 @@ impl Ui {
     pub fn new(model: Rc<RefCell<Model>>, toast: &adw::ToastOverlay) -> Rc<Self> {
         Rc::new(Self {
             model,
+            startup: crate::startup_ui::Settings::new(),
             bridge: Bridge::start(),
             bindings: RefCell::new(Vec::new()),
             updating: Cell::new(false),
@@ -757,6 +759,7 @@ impl Ui {
             "共享设置",
             "按需开启共享。权限与媒体后端以后台实际状态为准。",
         );
+        page.append(&self.startup.group());
         let media = adw::PreferencesGroup::builder().title("媒体与诊断").build();
         media.add(&self.switch(
             "GPU 加速",

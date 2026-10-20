@@ -256,7 +256,10 @@ extension HomeView {
         }
     }
 
-    @objc func sidebarPageChanged(_ sender: HomeSidebarButton) { selectPage(sender.page) }
+    @objc func sidebarPageChanged(_ sender: HomeSidebarButton) {
+        if sender.page == .sharing { onRefreshLoginStartup?() }
+        selectPage(sender.page)
+    }
 
     @objc func openPermissionsPage() { selectPage(.permissions) }
 

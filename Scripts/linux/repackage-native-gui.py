@@ -4,6 +4,7 @@ import argparse
 import importlib.util
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -19,8 +20,10 @@ def read(path):
     return json.loads(path.read_text())
 
 
-def package(base, update):
+def package(base, update, version=None):
     base, update = base.resolve(strict=True), update.resolve(strict=True)
+    if version is not None and not re.fullmatch(r'\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?', version):
+        raise ValueError('Expected a product version')
     if (base.parent != ROOT / 'Build/Linux/artifacts'
             or update.parent != ROOT / 'Build/Linux/gui-updates'):
         raise ValueError('Expected frozen bundle and isolated GUI build under Build/Linux')
@@ -50,10 +53,13 @@ def package(base, update):
         if bundle.digest(path) != sha:
             raise ValueError('Parent compiled source differs: '+name)
     changed = []
+    expected = {name for name in sources
+                if name.startswith(('Linux/gui/', 'Linux/native/protocol/'))}
+    if not expected <= actual.keys():
+        raise ValueError('GUI update removed a compilation input')
     for name, sha in actual.items():
-        if name not in sources:
-            raise ValueError('GUI update added an untracked compilation input: '+name)
-        if sources[name] != sha:
+        bundle.relative_path(name)
+        if sources.get(name) != sha:
             changed.append(name)
             sources[name] = sha
     notices.gui_source_baseline(sources, {'schema': 1, 'base_sources': build['build_receipt']['sources'],
@@ -72,7 +78,13 @@ def package(base, update):
         build['packaged_binaries']['farpane'] = packer.elf_report(staged/'farpane')
         build['input_binaries']['farpane'] = receipt['binary_sha256']
         for name in changed:
+            (staged/'source'/name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(update/'source'/name, staged/'source'/name)
+        if version is not None:
+            (staged/'release-info.json').write_text(json.dumps({
+                'schema': 1, 'version': version,
+                'core_sha256': build['packaged_binaries']['libexec/farpane-core']['sha256'],
+            }, indent=2)+'\n')
         proof = staged/'source/gui-update'
         proof.mkdir()
         for name in ('receipt.json', 'inputs.json', 'test.log', 'release.log', 'build-native-gui-update.py'):
@@ -130,5 +142,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('base', type=Path)
     parser.add_argument('update', type=Path)
+    parser.add_argument('--version', help='Product version recorded beside the new GUI')
     args = parser.parse_args()
-    print(json.dumps(package(args.base,args.update),indent=2))
+    print(json.dumps(package(args.base,args.update,args.version),indent=2))

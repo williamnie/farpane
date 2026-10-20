@@ -20,6 +20,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
     static let hostAudioInputDeviceNameDefaultsKey = "farpane.host.audio.inputDeviceName"
 
     let options = Options(arguments: CommandLine.arguments)
+    let loginStartupSettings = LoginStartupSettings()
+    let hostAutomaticStartupPreference = HostAutomaticStartupPreference()
     let hostViewerConcurrencyEvidenceOwner = HostViewerConcurrencyEvidenceProcessOwner()
     let hostAgentApplicationConcurrencyObservationState =
         HostAgentApplicationConcurrencyObservationState()
@@ -344,6 +346,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
+        loginStartupSettings.refresh()
         reconcileViewerKeyboardFocus(applicationActive: true)
         reconcileHostProductOwnership()
         MainActorBackport.assumeIsolated {

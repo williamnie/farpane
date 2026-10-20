@@ -66,6 +66,8 @@ def package(artifact, parent, expected):
         shutil.copytree(parent,tree,symlinks=True)
         (tree/'source-manifest.json').unlink()
         for name in changed:
+            (tree/name).parent.mkdir(parents=True, exist_ok=True)
+            (tree/'Build'/name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(artifact/'source'/name,tree/name)
             shutil.copy2(artifact/'source'/name,tree/'Build'/name)
         staged_map = read(tree/'Build/Linux/native-source-map.json')

@@ -176,6 +176,8 @@ FarPane 只把固定 Core 路径作为内部实现细节，不要求用户选择
 3. 在首页开启“被控 Host”，确认本机 ID 和临时密码，或设置永久密码。
 4. 收到入站请求后在 FarPane 中批准或拒绝；音频、剪贴板和文件传输按需单独开启。
 
+在 **共享设置 → 启动 → 开机自启** 中，可以选择登录 Mac 后自动打开 FarPane。开关读取系统登录项状态；需要系统批准时可直接打开“登录项与扩展”。退出应用不会取消此登录项，关闭开关才会取消下次登录启动。该功能不提供登录前的远程控制；明确关闭“允许连接此 Mac”后，自动启动不会重新启用被控端。
+
 普通远程会话首次收到视频分辨率、或远端分辨率变化时，窗口会自动按画面比例调整大小，并根据本机 Retina 缩放和屏幕可用区域适配，避免标题栏或固定窗口比例造成额外黑边。同一分辨率下会保留手动调整的窗口大小；全屏期间不调整窗口，尚未应用的分辨率变化会在退出全屏后适配。
 
 断开连接或关闭远程会话后，首页恢复连接前的窗口大小，默认内容区域为 1060×720 点；本次运行中手动调整的首页大小会保留，不受远端分辨率影响。全屏中返回首页时，尺寸恢复会延迟到退出全屏后执行。
@@ -380,6 +382,8 @@ As a Host:
 2. Grant Screen Recording, Accessibility, and Input Monitoring permissions in System Settings.
 3. Enable “被控 Host” on the home screen, then use the displayed device ID and temporary password or configure a permanent password.
 4. Approve or reject incoming requests in FarPane. Enable audio, clipboard, and file transfer separately when needed.
+
+Use **共享设置 → 启动 → 开机自启** to launch FarPane after signing in to your Mac. The switch reflects the system login item and offers a link to System Settings when approval is required. Quitting the app preserves this choice; switching it off disables future login launches. This does not enable remote control before login, and explicitly disabling Host remains effective after the next launch.
 
 Disconnecting or closing a remote session restores the home window's previous size, with a default content area of 1060×720 points. Manual home-window resizing is retained during the current app run and is independent of the remote resolution. When returning home in fullscreen, restoration waits until fullscreen ends.
 

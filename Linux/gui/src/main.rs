@@ -18,6 +18,8 @@ mod host_files;
 mod inbound_smoke;
 mod memory;
 mod model;
+mod startup;
+mod startup_ui;
 mod viewer;
 mod viewer_bridge;
 mod viewer_clipboard;

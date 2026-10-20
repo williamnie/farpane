@@ -33,6 +33,15 @@ class GuiNoticeBoundary(unittest.TestCase):
         sources=dict(self.baseline);sources['Linux/gui/Cargo.toml']='e'
         with self.assertRaises(ValueError):self.verify(sources,['Linux/gui/Cargo.toml'])
 
+    def test_new_rust_module_preserves_dependency_audit_scope(self):
+        sources=dict(self.baseline);sources['Linux/gui/src/startup.rs']='e'
+        self.assertEqual(self.verify(sources,['Linux/gui/src/startup.rs']),self.baseline)
+        for name in ('Linux/gui/src/../build.rs','Linux/gui/src/new.c',
+                     'Linux/native/protocol/src/new.rs','Linux/gui/resources/new.css'):
+            with self.subTest(name=name),self.assertRaises(ValueError):
+                sources=dict(self.baseline);sources[name]='e'
+                self.verify(sources,[name])
+
     def test_omitted_dependency_delta_is_rejected(self):
         sources=dict(self.baseline);sources['Linux/gui/src/viewer.rs']='e';sources['Linux/gui/Cargo.lock']='f'
         with self.assertRaises(ValueError):self.verify(sources,['Linux/gui/src/viewer.rs'])

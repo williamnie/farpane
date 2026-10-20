@@ -76,7 +76,9 @@ def main():
                              ('release', ['build', '--offline', '--locked', '--release'])]:
         with (output / (phase + '.log')).open('w') as log:
             result = subprocess.run(command + arguments, stdout=log, stderr=subprocess.STDOUT, timeout=1800)
-        receipt['commands'].append({'phase': phase, 'command': command + arguments,
+        # 构建记录会随源码公开；保留命令结构，隐藏本机构建根目录。
+        public_command = [part.replace(str(ROOT), '/home/user/farpane') for part in command + arguments]
+        receipt['commands'].append({'phase': phase, 'command': public_command,
             'returncode': result.returncode, 'log_sha256': bundle.digest(output / (phase + '.log'))})
         (output / 'progress.json').write_text(json.dumps(receipt, indent=2) + '\n')
         if result.returncode:

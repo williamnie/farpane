@@ -42,7 +42,7 @@ def index(root):
 
 
 def gui_source_baseline(sources, update):
-    """Reuse dependency materials only for an existing GUI Rust-file delta.
+    """Reuse dependency materials only for a GUI Rust-file delta.
 
     Cargo manifests/locks, C bridges, core and dependency sources must remain
     byte-identical. This does not close any outstanding license audit item.
@@ -50,9 +50,11 @@ def gui_source_baseline(sources, update):
     if not update:
         return sources
     baseline = update.get('base_sources', {})
-    if update.get('schema') != 1 or baseline.keys() != sources.keys():
+    if update.get('schema') != 1 or not baseline.keys() <= sources.keys():
         raise ValueError('GUI notice update changed the source inventory')
-    changed = sorted(k for k in sources if baseline[k] != sources[k])
+    for name in sources:
+        relative(name)
+    changed = sorted(k for k in sources if baseline.get(k) != sources[k])
     if (not changed or changed != update.get('changed_sources')
             or any(not k.startswith('Linux/gui/src/') or not k.endswith('.rs') for k in changed)):
         raise ValueError('GUI notice update changed dependency or non-GUI sources')
