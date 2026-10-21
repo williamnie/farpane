@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 
 import native_bundle
+import native_privacy
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = 'farpane-native-candidate'
@@ -147,9 +148,11 @@ def build(artifact, version, output):
                 path.chmod(0o755)
             os.utime(path, (0, 0), follow_symlinks=False)
         package = temporary / (PACKAGE + '_' + version + '_amd64.deb')
+        native_privacy.require_clean(tree)
         subprocess.run(['dpkg-deb', '--root-owner-group', '--threads-max=4', '-Zxz', '-z6',
                         '--build', str(tree), str(package)], check=True,
                        env=dict(os.environ, SOURCE_DATE_EPOCH='0'))
+        native_privacy.require_clean(package)
         if manifest != native_bundle.verify(artifact):
             raise ValueError('Bundle changed during Debian packaging')
         if tool_hashes != {name: native_bundle.digest(ROOT / name) for name in TOOLS}:

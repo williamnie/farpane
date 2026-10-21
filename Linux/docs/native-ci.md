@@ -16,7 +16,11 @@ python3 -B Scripts/linux/ci-native-source.py \
 
 把占位值换为实际值。默认会在新的 `Build/Linux/native-ci/run.*` 下运行，不覆盖旧输出。亦可指定 `--output Build/Linux/native-ci/NEW_RUN`，该目录必须尚不存在。
 
-云端手动 workflow 输入为公开 HTTPS `source_url` 和 `source_sha256`，由 checkout 中的脚本执行完整构建。URL 不接受用户名、密码、查询串或 fragment；下载有大小限制，解包前后分别核对归档哈希和完整文件清单。输入 SHA-256 是内容校验，不是发布者签名；执行者仍须选择可信的完整源码快照。
+云端手动 workflow 输入为公开 HTTPS `source_url`、`source_sha256` 和候选 `version`，由 checkout 中的脚本执行完整构建。URL 不接受用户名、密码、查询串或 fragment；下载有大小限制，解包前后分别核对归档哈希和完整文件清单。输入 SHA-256 是内容校验，不是发布者签名；执行者仍须选择可信的完整源码快照。
+
+运行前须配置仓库 secret `FARPANE_PRIVATE_PATTERNS`，内容为本地私有扫描规则，每行一个表达式。规则只写入 runner 临时目录，不进入源码、缓存或产物。缺失规则时停止。源码快照解开后、最终产物上传前，以及可下载日志上传前都会扫描；命中时只报告文件和规则编号，不打印敏感值。包内二进制、嵌套 tar/ZIP 和 DEB 内容也在扫描范围内。RPM 在构建容器中解开后扫描全部文件。
+
+workflow 缓存的是经哈希验证的公开 Rust SDK/vcpkg/CMake 下载文件，缓存键绑定工具锁文件；不缓存凭据、私有规则或旧安装包。首次完整依赖编译仍较慢，应用源码变化后的本机增量编译与这条空缓存验收流水线不是同一耗时口径。当前云端超时为 180 分钟，阶段实际耗时写入结果。不能把只命中下载缓存说成命中了编译缓存。缓存语义见 [GitHub 官方文档](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows)。
 
 完整路径依次执行：
 
@@ -26,7 +30,7 @@ python3 -B Scripts/linux/ci-native-source.py \
 4. 运行 bundle/工具完整性测试、38 项协议测试、真实软件视频连接及 dpkg 暂存/升级/清理测试。
 5. 收集 bundle、Deb、输入源码归档、固定工具/依赖记录、构建结果和 SHA256SUMS。
 
-每阶段记录命令、耗时、退出码及 stdout/stderr 哈希。失败保留本次目录，不自动重试或覆盖它。`deliverables/` 只在全部阶段通过后生成；失败日志位于该次输出根目录。GitHub 始终上传可用日志，成功时额外上传候选文件，保留 14 天。
+每阶段记录命令、耗时、退出码及 stdout/stderr 哈希。失败保留本次目录，不自动重试或覆盖它。`deliverables/` 只在全部阶段通过后生成；失败日志位于该次输出根目录。公开构建记录中的仓库绝对路径转为相对路径。GitHub 只上传隐私扫描通过的日志，成功时额外上传扫描通过的候选文件，保留 14 天。此工作流不创建 tag 或 Release，也不修改现有安装。
 
 ## 复用已验证构建
 

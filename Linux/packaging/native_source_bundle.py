@@ -15,6 +15,7 @@ import native_receipt
 import native_notice_supplements
 import native_notice_delivery
 import native_package_source
+import native_privacy
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILD = ROOT / 'Build/Linux'
@@ -274,6 +275,7 @@ def package(reference, vendor, vendor_config, output, source_build=None):
         raw = json.dumps(manifest, sort_keys=True, separators=(',', ':')) + '\n'
         identity = 'farpane-native-source-' + hashlib.sha256(raw.encode()).hexdigest()[:24]
         (tree / 'source-manifest.json').write_text(raw)
+        native_privacy.require_clean(tree)
         if source_build:
             current, _, proof = native_package_source.load(source_build, native_receipt.sources())
             if current != receipt or proof != source_proof:
@@ -298,6 +300,7 @@ def package(reference, vendor, vendor_config, output, source_build=None):
                     info.pax_headers = {}
                     return info
                 tar.add(target, arcname=identity, filter=normalized)
+        native_privacy.require_clean(packed)
         os.link(packed, archive)
         checksum = digest(archive)
         archive.with_suffix('.gz.sha256').write_text(checksum + '  ' + archive.name + '\n')

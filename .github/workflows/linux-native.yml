@@ -11,6 +11,11 @@ on:
         description: SHA-256 of that source archive
         required: true
         type: string
+      version:
+        description: Linux preview package version (does not create a Release)
+        required: true
+        default: '0.2.9'
+        type: string
 
 permissions:
   contents: read
@@ -22,12 +27,35 @@ concurrency:
 jobs:
   candidate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - name: Check out Linux build entrypoints
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, Node 24
         with:
           persist-credentials: false
+
+      - name: Load private scan rules without publishing their contents
+        env:
+          PRIVATE_PATTERNS: ${{ secrets.FARPANE_PRIVATE_PATTERNS }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          value = os.environ.get('PRIVATE_PATTERNS', '')
+          if not value.strip():
+              raise SystemExit('Configure the FARPANE_PRIVATE_PATTERNS repository secret before building public candidates')
+          target = Path(os.environ['RUNNER_TEMP']) / 'farpane-privacy-patterns'
+          target.write_text(value)
+          target.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              stream.write('FARPANE_PRIVACY_PATTERNS=' + str(target) + '\n')
+          PY
+
+      - name: Cache verified public tool downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: Build/Linux/native-tools/downloads
+          key: linux-native-tools-${{ runner.arch }}-${{ hashFiles('Linux/native-build-tools.lock.json') }}
 
       - name: Build, test and package the complete native application
         env:
@@ -35,11 +63,15 @@ jobs:
           NATIVE_SOURCE_SHA256: ${{ inputs.source_sha256 }}
           NATIVE_RUN_ID: ${{ github.run_id }}
           NATIVE_RUN_ATTEMPT: ${{ github.run_attempt }}
+          NATIVE_VERSION: ${{ inputs.version }}
         run: |
           python3 -B Scripts/linux/ci-native-source.py \
             --source-url "$NATIVE_SOURCE_URL" --sha256 "$NATIVE_SOURCE_SHA256" \
-            --version "0.1.0~ci.${NATIVE_RUN_ID}.${NATIVE_RUN_ATTEMPT}" \
+            --version "$NATIVE_VERSION" \
             --output Build/Linux/native-ci/run
+
+      - name: Scan final archives before uploading
+        run: python3 -B Scripts/linux/scan-native-privacy.py Build/Linux/native-ci/run/deliverables
 
       - name: Upload verified candidate and source inputs
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, Node 24
@@ -50,8 +82,29 @@ jobs:
           compression-level: 0
           retention-days: 14
 
-      - name: Preserve pipeline logs
+      - name: Check logs before making them downloadable
+        id: log_privacy
         if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, 'Linux/packaging')
+          from native_privacy import Scanner, rules
+          if not os.environ.get('FARPANE_PRIVACY_PATTERNS'):
+              raise SystemExit('Private rules unavailable; logs will remain unuploaded')
+          scanner = Scanner(rules())
+          root = Path('Build/Linux/native-ci/run')
+          for pattern in ('*.json', '*.stdout', '*.stderr'):
+              for path in root.glob(pattern):
+                  scanner.path(path)
+          if scanner.hits:
+              raise SystemExit('Private information found; logs will remain unuploaded')
+          PY
+
+      - name: Preserve scanned pipeline logs
+        if: ${{ always() && steps.log_privacy.outcome == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, Node 24
         with:
           name: farpane-linux-native-logs-${{ github.run_id }}-${{ github.run_attempt }}

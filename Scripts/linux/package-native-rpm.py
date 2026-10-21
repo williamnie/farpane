@@ -36,11 +36,16 @@ def main():
         parser.error('Start the packaging runner as an ordinary user')
     pin = json.loads((ROOT / 'Linux/tests/native-runtime-images.lock.json').read_text())['fedora44_rpm_builder']
     output.mkdir(exist_ok=True)
+    privacy = Path(os.environ.get('FARPANE_PRIVACY_PATTERNS', str(Path.home() / '.config/farpane-private-patterns')))
+    privacy_mount = []
+    if privacy.is_file():
+        privacy_mount = ['--mount', f'type=bind,src={privacy.resolve()},dst=/privacy/patterns,readonly',
+                         '--env', 'FARPANE_PRIVACY_PATTERNS=/privacy/patterns']
     command = ['docker', 'run', '--rm', '--init', '--network', 'none', '--cpus', '4', '--memory', '12g',
                '--pids-limit', '256', '--read-only', '--cap-drop', 'ALL',
                '--security-opt', 'no-new-privileges', '--user', f'{os.getuid()}:{os.getgid()}',
                '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777,size=256m',
-               '--env', 'HOME=/tmp', '--env', 'PYTHONDONTWRITEBYTECODE=1',
+               '--env', 'HOME=/tmp', '--env', 'PYTHONDONTWRITEBYTECODE=1', *privacy_mount,
                '--mount', f'type=bind,src={ROOT},dst=/workspace,readonly',
                '--mount', f'type=bind,src={output},dst=/workspace/Build/Linux/rpm',
                '--workdir', '/workspace', '--entrypoint', 'timeout', pin['image'],

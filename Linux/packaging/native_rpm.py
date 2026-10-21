@@ -9,6 +9,7 @@ import tempfile
 
 import native_bundle
 import native_deb
+import native_privacy
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = 'farpane-native-candidate'
@@ -119,6 +120,7 @@ def build(artifact, version, release, output):
         for path in [tree, *tree.rglob('*')]:
             if path.is_dir(): path.chmod(0o755)
             os.utime(path, (0, 0), follow_symlinks=False)
+        native_privacy.require_clean(tree)
         subprocess.run(['rpmbuild', '-bb', '--define', '_topdir ' + str(top),
                         '--define', '_tmppath /tmp',
                         '--define', '_buildhost farpane-isolated', str(spec_path)],
@@ -131,6 +133,7 @@ def build(artifact, version, release, output):
             raise ValueError('Candidate must not have transaction scriptlets')
         unpacked = top / 'verified-payload'
         extract(package, unpacked)
+        native_privacy.require_clean(unpacked)
         if native_bundle.verify(unpacked / PREFIX / 'payload') != manifest:
             raise ValueError('RPM changed the application payload')
         actual = json.loads((unpacked / PREFIX / 'candidate.json').read_text())

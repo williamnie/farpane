@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 BUILD = ROOT / 'Build/Linux'
 sys.path.insert(0, str(ROOT / 'Linux/packaging'))
 import native_notice_delivery
+import native_privacy
 spec = importlib.util.spec_from_file_location('native_bundle', ROOT / 'Linux/packaging/native_bundle.py')
 bundle = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bundle)
@@ -57,7 +58,9 @@ def copy(source, staged, relative, executable=False):
     return path
 
 
-def package(source_build=None):
+def package(source_build=None, version=None):
+    if version is not None and not re.fullmatch(r'[0-9][0-9A-Za-z.+-]{0,47}', version):
+        raise ValueError('Invalid visible product version')
     lock = json.loads((ROOT / 'Linux/dependencies.lock.json').read_text())
     if source_build:
         receipt, inputs, source_proof = source_module.load(source_build, receipt_module.sources())
@@ -129,6 +132,11 @@ def package(source_build=None):
             'acceptance': {'runtime_ready': False, 'clean_distro_runtime': False,
                            'complete_license_source_audit': False, 'installer_rollback': False},
         }, indent=2) + '\n')
+        if version is not None:
+            (staged / 'release-info.json').write_text(json.dumps({
+                'schema': 1, 'version': version,
+                'core_sha256': binaries['libexec/farpane-core']['sha256'],
+            }, indent=2) + '\n')
         (staged / 'README.txt').write_text(
             'FarPane native development bundle — NOT an accepted or published release.\n'
             'Includes GTK4/libadwaita GUI, native core, static FFmpeg and private libdrmtap.\n'
@@ -161,6 +169,7 @@ def package(source_build=None):
             copied = staged / ('dependencies.lock.json' if name == 'Linux/dependencies.lock.json' else 'source/' + name)
             if bundle.digest(copied) != expected:
                 raise ValueError('Bundled source differs from the completed build: ' + name)
+        native_privacy.require_clean(staged)
         manifest = bundle.seal(staged)
         output = destination / manifest['artifact_id']
         if output.exists():
@@ -178,6 +187,7 @@ def package(source_build=None):
                     info.uname = info.gname = ''
                     return info
                 stream.add(output, arcname=output.name, filter=normalize)
+        native_privacy.require_clean(temporary_archive)
         if archive.exists() or archive.is_symlink():
             if archive.is_symlink() or not archive.is_file() or bundle.digest(archive) != bundle.digest(temporary_archive):
                 raise ValueError('Refusing to replace a different archive')
@@ -201,8 +211,9 @@ if __name__ == '__main__':
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--verify', type=Path, help='Verify an existing native bundle without executing it')
     mode.add_argument('--source-build', type=Path, help='Package a completed isolated source build without replacing product caches')
+    parser.add_argument('--version', help='Product version displayed by this exact bundle')
     args = parser.parse_args()
     if args.verify:
         print(json.dumps(bundle.verify(args.verify), indent=2))
     else:
-        package(args.source_build)
+        package(args.source_build, args.version)
