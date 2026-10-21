@@ -14,10 +14,22 @@ import native_build_tools as tools
 import native_bundle
 import native_package_source
 import native_receipt
+import native_privacy
 from native_source_build import inventory
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILD = ROOT / 'Build/Linux'
+
+
+def public_record(value):
+    """Keep executable local logs private; export portable command/path records."""
+    if isinstance(value, str):
+        return value.replace(str(ROOT), '.')
+    if isinstance(value, list):
+        return [public_record(item) for item in value]
+    if isinstance(value, dict):
+        return {key: public_record(item) for key, item in value.items()}
+    return value
 
 
 def json_tail(text):
@@ -116,6 +128,7 @@ def pipeline(args):
         archive = args.archive.resolve(strict=True)
     print('Verifying and extracting the source archive', flush=True)
     source, manifest = extract(archive, args.sha256, output / 'source')
+    native_privacy.require_clean(source)
     source_hash = tools.digest(source / 'source-manifest.json')
     input_record = {'archive_sha256': args.sha256, 'source_manifest_sha256': source_hash,
                     'source_entries': len(manifest['files']), 'version': args.version,
@@ -175,8 +188,10 @@ def pipeline(args):
                 *mounts, '--workdir', '/workspace',
                 '--entrypoint', 'python3', args.builder_image, '-B', script, *arguments]
 
-    packaged = json_tail(run('bundle', package_command('Scripts/linux/package-native.py',
-                           ['--source-build', container_path(application)])))
+    bundle_command = package_command('Scripts/linux/package-native.py',
+                                     ['--source-build', container_path(application),
+                                      '--version', args.version.replace('~', '-')])
+    packaged = json_tail(run('bundle', bundle_command))
     artifact = ROOT / Path(packaged['artifact']).relative_to('/workspace')
     native_bundle.verify(artifact)
     debs = []
@@ -185,6 +200,7 @@ def pipeline(args):
                                [container_path(artifact), '--version', version])))
         debs.append(ROOT / Path(record['package']).relative_to('/workspace'))
     run('bundle-unit-tests', ['python3', '-B', '-m', 'unittest', 'discover', '-s', 'Linux/tests', '-p', 'test_native_bundle.py'])
+    run('privacy-unit-tests', ['python3', '-B', '-m', 'unittest', 'discover', '-s', 'Linux/tests', '-p', 'test_native_privacy.py'])
     run('tools-unit-tests', ['python3', '-B', '-m', 'unittest', 'discover', '-s', 'Linux/tests', '-p', 'test_native_build_tools.py'])
     run('notice-unit-tests', ['python3', '-B', '-m', 'unittest', 'discover', '-s', 'Linux/tests', '-p', 'test_native_notice_supplements.py'])
     run('notice-delivery-tests', ['python3', '-B', '-m', 'unittest', 'discover', '-s', 'Linux/tests', '-p', 'test_native_notice_delivery.py'])
@@ -238,7 +254,9 @@ def pipeline(args):
               'cloud_execution_attested': False, 'runtime_ready': False, 'complete_license_source_audit': False,
               'host_installed': False, 'published': False, 'stages': stages}
     (output / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
-    (deliverables / 'build-result.json').write_text(json.dumps(result, indent=2) + '\n')
+    (deliverables / 'build-result.json').write_text(json.dumps(public_record(result), indent=2) + '\n')
+    privacy_report = native_privacy.require_clean(deliverables)
+    (deliverables / 'privacy-scan.json').write_text(json.dumps(privacy_report, indent=2) + '\n')
     (deliverables / 'SHA256SUMS').write_text(''.join(tools.digest(p) + '  ' + p.name + '\n'
         for p in sorted(deliverables.iterdir()) if p.is_file()))
     print(json.dumps({'result': 'pass', 'output': str(output), 'deliverables': str(deliverables),

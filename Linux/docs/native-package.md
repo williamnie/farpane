@@ -15,6 +15,10 @@ Scripts/linux/test-native-package.sh Build/Linux/artifacts/farpane-native-dev-<h
 Scripts/linux/test-native-package.sh Build/Linux/artifacts/farpane-native-dev-<hash> ubuntu-24.04
 ```
 
+公开候选应传入明确的显示版本，例如 `package-native.py --version 0.2.9`；`release-info.json` 同时记录实际打包核心的哈希。必须从当前干净源码重编，不能通过替换旧包文档来掩盖二进制仍含旧报错文字的问题。脱敏改动涉及 overlay 时同步更新 `dependencies.lock.json`，并让源码核验和新构建 receipt 通过后再打包。
+
+bundle、DEB、RPM 和完整源码快照的打包入口均有隐私检查。默认读取本机 `~/.config/farpane-private-patterns`，也可用 `FARPANE_PRIVACY_PATTERNS` 指定规则文件；规则和值不写入包。可独立执行 `python3 -B Scripts/linux/scan-native-privacy.py PACKAGE_OR_DIRECTORY` 检查二进制及嵌套 tar/ZIP/DEB。RPM 入口先解包再扫描全部内容。命中即拒绝产生可交付结果，旧包不得继续上传。
+
 linux-host 的只读 reference 为 `/home/user/services/rustdesk-host-perf-20261015`；这里只借 pinned Git 对象核对源码，不能运行其中的服务切换脚本。构建入口按顺序使用既有隔离镜像，约 4 核/12 GiB，不并行叠加容器。`native-build.json` 记录构建前后 canonical 文件哈希、实际 core/GUI 二进制哈希和无显示环境的组件 probe；源码或二进制改变后打包入口拒绝使用旧记录。FFmpeg 不由本入口重建。
 
 `package-native.py` 只写 `Build/Linux/artifacts/`。它在副本中删除 Cargo 工具链 RPATH，记录修改前后哈希和 ELF 依赖/符号版本，并拒绝旧 GUI 库及动态 FFmpeg 依赖。开发包中的工具版本、源码和 patch/pin/lock 随包保存；原始构建二进制不修改。文件清单、长度、权限、SHA-256 和受限同目录 libdrmtap 别名共同决定 artifact ID；未列出的文件、路径越界、外部链接、硬链接、特殊文件或可写权限均拒绝。SHA-256 是完整性校验，不是发布者签名。

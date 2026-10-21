@@ -241,8 +241,7 @@
     {
       "path": "Linux/patches/0044-native-warp-paste-shortcut.patch",
       "sha256": "5d6b2070472e88001dd748a6242b4aa2894bc10b1507f0b03aadafea4eb2e78f"
-    }
-,
+    },
     {
       "path": "Linux/patches/0045-native-committed-text-state.patch",
       "sha256": "e5041c24caeddb48405bb37c83b3bbf6a5fcfa9dea94c6135e732e87e2e660b9"
@@ -312,7 +311,7 @@
     {
       "path": "Linux/src/gpu_capture.rs",
       "target": "src/server/linux_gpu_capture.rs",
-      "sha256": "8cf88be2c227de8c8e56819778bcf875051b5f025689cf61f81f76a3cc7c0a86"
+      "sha256": "5f62ffb8b569bc4a42943a51f70b465757c04f31352a3398c995dc05d785106c"
     },
     {
       "path": "Linux/src/gpu_host.rs",
@@ -327,7 +326,7 @@
     {
       "path": "Linux/src/gpu_settings.dart",
       "target": "flutter/lib/desktop/widgets/farpane_gpu_settings.dart",
-      "sha256": "db71a3d316aced6aca41ca483d78ea614d59bb1d5cd3d581aa13241d3d391bd2"
+      "sha256": "d081bd85628a9d5525fe50c7ee570a9dba0c445130dae6d25724bd1850ef918e"
     },
     {
       "path": "Linux/native/core_main.rs",
