@@ -24,6 +24,12 @@ final class ViewerChromeView: NSView {
 
     private let collapsedControl = NSVisualEffectView()
     private let collapsedButton = NSButton(title: "●", target: nil, action: nil)
+    private var controlPosition: NSPoint?
+    private var dragOrigin = NSPoint.zero
+    private var controlCenter: NSLayoutConstraint!
+    private var controlTop: NSLayoutConstraint!
+    private var collapsedVideoTop: NSLayoutConstraint!
+    private var floatingVideoTop: NSLayoutConstraint!
     private let controlsPanel = NSVisualEffectView()
     private let hudPanel = ViewerHUDPanel()
     private let hudLabel = NSTextField(labelWithString: "正在等待视频…")
@@ -92,6 +98,10 @@ final class ViewerChromeView: NSView {
         super.layout()
         let available = safeAreaRect.insetBy(dx: 16, dy: 16)
         guard available.width > 0, available.height > 0 else { return }
+        if let controlPosition {
+            positionControl(ViewerHUDPlacement.origin(
+                for: controlPosition, size: collapsedControl.frame.size, within: safeAreaRect))
+        }
         let fittingSize = hudPanel.fittingSize
         let size = NSSize(
             width: min(fittingSize.width, available.width),
@@ -213,7 +223,7 @@ final class ViewerChromeView: NSView {
         } else if resumePending {
             collapsedButton.toolTip = "键盘独占已暂时暂停；返回会话后自动恢复"
         } else {
-            collapsedButton.toolTip = "打开会话控制"
+            collapsedButton.toolTip = "点按打开会话控制，拖动调整位置"
         }
         keyboardGrabButton.title = requested ? "退出独占" : "独占键盘"
         keyboardGrabButton.isEnabled = requested || keyboardGrabAvailable
@@ -310,7 +320,6 @@ final class ViewerChromeView: NSView {
         NSLayoutConstraint.activate([
             videoView.leadingAnchor.constraint(equalTo: leadingAnchor),
             videoView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            videoView.topAnchor.constraint(equalTo: topAnchor),
             videoView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
@@ -326,7 +335,9 @@ final class ViewerChromeView: NSView {
         collapsedButton.imageHugsTitle = true
         collapsedButton.target = self
         collapsedButton.action = #selector(expandControls)
-        collapsedButton.toolTip = "打开会话控制"
+        collapsedButton.toolTip = "点按打开会话控制，拖动调整位置"
+        collapsedButton.addGestureRecognizer(NSPanGestureRecognizer(
+            target: self, action: #selector(dragControl(_:))))
         collapsedButton.setAccessibilityLabel("打开会话控制")
         collapsedButton.translatesAutoresizingMaskIntoConstraints = false
         collapsedControl.addSubview(collapsedButton)
@@ -462,10 +473,12 @@ final class ViewerChromeView: NSView {
             overlay.translatesAutoresizingMaskIntoConstraints = false
             addSubview(overlay)
         }
+        controlCenter = collapsedControl.centerXAnchor.constraint(equalTo: centerXAnchor)
+        controlTop = collapsedControl.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 8)
+        collapsedVideoTop = videoView.topAnchor.constraint(equalTo: collapsedControl.bottomAnchor)
+        floatingVideoTop = videoView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor)
         NSLayoutConstraint.activate([
-            collapsedControl.centerXAnchor.constraint(equalTo: centerXAnchor),
-            collapsedControl.topAnchor.constraint(
-                equalTo: safeAreaLayoutGuide.topAnchor, constant: 8),
+            controlCenter, controlTop, collapsedVideoTop,
             controlsPanel.centerXAnchor.constraint(equalTo: centerXAnchor),
             controlsPanel.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 8),
             controlsPanel.leadingAnchor.constraint(
@@ -510,6 +523,29 @@ final class ViewerChromeView: NSView {
         }
         updateTrackingAreas()
         if expanded { scheduleCollapse() } else { collapseTimer?.invalidate() }
+    }
+
+    private func positionControl(_ origin: NSPoint) {
+        let size = collapsedControl.frame.size
+        let x = origin.x + size.width / 2 - bounds.midX
+        let y = safeAreaRect.maxY - origin.y - size.height
+        if controlCenter.constant != x { controlCenter.constant = x }
+        if controlTop.constant != y { controlTop.constant = y }
+    }
+
+    @objc private func dragControl(_ gesture: NSPanGestureRecognizer) {
+        if gesture.state == .began { dragOrigin = collapsedControl.frame.origin }
+        let delta = gesture.translation(in: self)
+        let size = collapsedControl.frame.size
+        let origin = ViewerHUDPlacement.clamp(
+            NSPoint(x: dragOrigin.x + delta.x, y: dragOrigin.y + delta.y),
+            size: size, within: safeAreaRect)
+        controlPosition = ViewerHUDPlacement.position(for: origin, size: size, within: safeAreaRect)
+        positionControl(origin)
+        if collapsedVideoTop.isActive {
+            collapsedVideoTop.isActive = false
+            floatingVideoTop.isActive = true
+        }
     }
 
     private func scheduleCollapse() {
