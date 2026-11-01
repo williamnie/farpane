@@ -81,8 +81,11 @@ final class ViewerMacOSShortcutTests: XCTestCase {
         window.contentView = chrome
         defer { window.contentView = nil }
         chrome.setMacOSShortcutsAvailable(true)
-        try XCTUnwrap(descendantButtons(chrome).first { $0.toolTip == "打开会话控制" }).performClick(nil)
         chrome.layoutSubtreeIfNeeded()
+        let videoFrame = chrome.videoView.frame
+        try XCTUnwrap(descendantButtons(chrome).first { $0.accessibilityLabel() == "打开会话控制" }).performClick(nil)
+        chrome.layoutSubtreeIfNeeded()
+        XCTAssertEqual(chrome.videoView.frame, videoFrame)
         let buttons = descendantButtons(chrome).filter { $0.toolTip?.hasPrefix("远端 Mac：") == true }
         for button in buttons {
             XCTAssertFalse(button.isHiddenOrHasHiddenAncestor)
@@ -93,6 +96,9 @@ final class ViewerMacOSShortcutTests: XCTestCase {
         }
         buttons[0].performClick(nil)
         XCTAssertTrue(window.firstResponder === chrome.videoView)
+        try XCTUnwrap(descendantButtons(chrome).first { $0.toolTip == "收起会话控制" }).performClick(nil)
+        chrome.layoutSubtreeIfNeeded()
+        XCTAssertEqual(chrome.videoView.frame, videoFrame)
     }
 
     @MainActor private func makeChrome(showsSessionControls: Bool = false) -> ViewerChromeView {

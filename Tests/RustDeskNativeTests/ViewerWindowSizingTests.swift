@@ -94,9 +94,10 @@ final class ViewerWindowSizingTests: XCTestCase {
         file: StaticString = #filePath, line: UInt = #line
     ) throws {
         chrome.layoutSubtreeIfNeeded()
-        XCTAssertEqual(chrome.videoView.frame, chrome.bounds, file: file, line: line)
+        XCTAssertEqual(chrome.videoView.frame.width, chrome.bounds.width, file: file, line: line)
+        XCTAssertLessThan(chrome.videoView.frame.height, chrome.bounds.height, file: file, line: line)
         XCTAssertEqual(
-            chrome.bounds.width, chrome.bounds.height * aspect, accuracy: 1, file: file, line: line)
+            chrome.videoView.frame.width, chrome.videoView.frame.height * aspect, accuracy: 1, file: file, line: line)
         let visibleFrame = try XCTUnwrap(window.screen ?? NSScreen.main).visibleFrame
         XCTAssertTrue(
             visibleFrame.insetBy(dx: -1, dy: -1).contains(window.frame), file: file, line: line)

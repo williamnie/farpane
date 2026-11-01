@@ -86,9 +86,12 @@ enum ViewerWindowSizing {
             let screen = window.screen ?? NSScreen.main
         else { return }
         let contentRect = window.contentRect(forFrameRect: window.frame)
+        let chrome = window.contentView as? ViewerChromeView
+        chrome?.layoutSubtreeIfNeeded()
+        let controlsHeight = chrome.map { $0.bounds.height - $0.videoView.frame.height } ?? 0
         let decorationSize = NSSize(
             width: window.frame.width - contentRect.width,
-            height: window.frame.height - contentRect.height)
+            height: window.frame.height - contentRect.height + controlsHeight)
         guard
             let frame = ViewerWindowSizing.frame(
                 remoteSize: remoteSize, currentFrame: window.frame,
